@@ -1,0 +1,524 @@
+{
+  "school_name": "اسم المدرسة",
+  "dashboard": "لوحة المراقبة",
+  "management": "إدارة المدرسة",
+  "logout": "تسجيل الخروج",
+  "dashboard_title": "لوحة إدارة المدرسة",
+  "hello_school_alarm": "مرحباً بمنبه المدرسة",
+  "lead_new_generation": "لنقود الجيل الجديد",
+  "search_placeholder": "البحث في معزز",
+  "today": "اليوم",
+  "notifications": "الإشعارات",
+  "profile": "الملف الشخصي",
+  "admin": "مدير",
+  "filter_bar": {
+    "filters": {
+      "today": "اليوم",
+      "grade": "الصف",
+      "academic_year": "السنة الدراسية"
+    },
+    "export": "تصدير"
+  },
+  "comparison": {
+    "vs_yesterday": "مقارنة بالأمس",
+    "vs_week": "مقارنة بهذا الأسبوع",
+    "vs_term": "مقارنة بالفصل الدراسي"
+  },
+  "sidebar": {
+    "dashboard": "لوحة المراقبة",
+    "analytics": "التحليلات",
+    "students": "الطلاب",
+    "teachers": "المعلمون",
+    "classes": "الفصول",
+    "activity": "النشاط",
+    "get_help": "الحصول على مساعدة",
+    "settings": "الإعدادات",
+    "school": "المدرسة"
+  },
+  "overview": {
+    "attendance_rate": "نسبة الحضور اليوم",
+    "delivered_classes": "الحصص المنفذة",
+    "violations": "المخالفات اليوم",
+    "financial_dues": "المستحقات المالية",
+    "staff_absenteeism": "غياب الموظفين"
+  },
+  "kpi": {
+    "total_students": "إجمالي الطلاب",
+    "today_attendance_rate": "نسبة الحضور اليوم",
+    "delivered_classes": "الحصص التي تم تقديمها",
+    "today_violations": "مخالفات اليوم",
+    "staff_absenteeism": "غياب الموظفين",
+    "nedaa_efficiency": "كفاءة نداء"
+  },
+  "alerts": {
+    "title": "تنبيهات حرجة",
+    "view_all": "عرض الكل",
+    "classes_no_teachers": "حصص بدون معلمين",
+    "classes_no_teachers_desc": "يتطلب تعيين فوري",
+    "students_below_threshold": "طلاب أقل من حد الحضور",
+    "students_below_threshold_desc": "يحتاج تدخل",
+    "overdue_invoices_alert": "فواتير متأخرة",
+    "overdue_invoices_desc": "يتطلب متابعة الدفع",
+    "assign_now": "تعيين الآن",
+    "view_list": "عرض القائمة",
+    "send_reminder": "إرسال تذكير"
+  },
+  "quick_actions": {
+    "title": "إجراءات سريعة",
+    "add_student": "إضافة طالب",
+    "attendance": "الحضور",
+    "announcement": "إعلان",
+    "assessment": "تقييم",
+    "import_data": "استيراد بيانات",
+    "print_reports": "طباعة تقارير",
+    "notification_center": "مركز الإشعارات",
+    "select_role": "اختر الدور",
+    "students": "الطلاب",
+    "teachers": "المعلمون",
+    "parents": "أولياء الأمور",
+    "staff": "الموظفون",
+    "all": "الكل",
+    "text_here": "اكتب هنا",
+    "send_notification": "إرسال إشعار",
+    "quick_notifications": "إشعارات سريعة",
+    "quick_notification": "إشعار سريع"
+  },
+  "monitoring": {
+    "title": "مراقبة اليوم",
+    "classes": "الحصص",
+    "exams": "الاختبارات",
+    "parent_visits": "زيارات أولياء الأمور",
+    "events": "الفعاليات / الأنشطة",
+    "status": {
+      "ongoing": "جاري",
+      "upcoming": "قادم",
+      "completed": "مكتمل"
+    }
+  },
+  "attendance_trend": {
+    "change_period": "تغيير الفترة",
+    "title": "اتجاه الحضور ({period})",
+    "subtitle": "نسبة الحضور اليومية مع خط المتوسط",
+    "average_label": "المتوسط",
+    "series": {
+      "attendance": "الحضور",
+      "average": "المتوسط"
+    },
+    "period": {
+      "days_30": "آخر 30 يومًا",
+      "week": "هذا الأسبوع",
+      "term": "الفصل الدراسي"
+    },
+    "below_days": "{days} أيام",
+    "below_threshold_suffix": "تم رصدها أقل من الحد المسموح",
+    "actions": {
+      "view_details": "عرض التفاصيل",
+      "send_alert": "إرسال تنبيه"
+    }
+  },
+  "students_per_grade": {
+    "title": "الطلاب حسب الصف",
+    "subtitle": "توزيع الطلاب حسب المرحلة الدراسية",
+    "filter": {
+      "all": "الكل",
+      "new": "جدد",
+      "existing": "حاليون"
+    },
+    "grades": {
+      "g1": "الصف الأول",
+      "g2": "الصف الثاني",
+      "g3": "الصف الثالث",
+      "g4": "الصف الرابع",
+      "g5": "الصف الخامس",
+      "g6": "الصف السادس"
+    },
+    "insight": {
+      "prefix": "{grade} لديه",
+      "highlight": "أعلى عدد تسجيل"
+    },
+    "actions": {
+      "view_class_distribution": "عرض توزيع الفصول"
+    }
+  },
+  "absence_reasons": {
+    "title": "أسباب الغياب",
+    "subtitle": "توزيع أنواع الغياب",
+    "types": {
+      "medical": "طبي",
+      "permission": "إذن",
+      "no_excuse": "بدون عذر"
+    },
+    "insight": {
+      "without_valid_excuse": "بدون عذر مُعتمد"
+    },
+    "actions": {
+      "contact_parents": "التواصل مع أولياء الأمور",
+      "create_plan": "إنشاء خطة"
+    }
+  },
+  "critical_alerts": {
+    "title": "التنبيهات الحرجة",
+    "view_all": "عرض الكل",
+    "alerts": {
+      "no_teachers": {
+        "title": "5 حصص بدون معلمين",
+        "description": "يتطلب تعيينًا فوريًا",
+        "action": "تعيين الآن"
+      },
+      "low_attendance": {
+        "title": "23 طالبًا أقل من حد الحضور",
+        "description": "يتطلب تدخلًا",
+        "action": "عرض القائمة"
+      },
+      "overdue_invoices": {
+        "title": "12 فاتورة متأخرة",
+        "description": "يتطلب متابعة السداد",
+        "action": "إرسال تذكير"
+      }
+    }
+  },
+  "charts": {
+    "attendance_trend": "اتجاه الحضور (30 يوم)",
+    "attendance_trend_desc": "معدل الحضور اليومي مع خط المتوسط",
+    "average": "المتوسط",
+    "days_below_threshold": "أيام أقل من الحد المطلوب",
+    "view_details": "عرض التفاصيل",
+    "send_alert": "إرسال تنبيه",
+    "students_per_grade": "الطلاب حسب الصف",
+    "students_per_grade_desc": "التوزيع حسب المستوى الدراسي",
+    "all": "الكل",
+    "new": "جديد",
+    "existing": "موجود",
+    "highest_enrollment": "أعلى تسجيل",
+    "view_class_distribution": "عرض توزيع الفصول",
+    "absence_reasons": "أسباب الغياب",
+    "absence_reasons_desc": "توزيع أنواع الغياب",
+    "medical": "طبي",
+    "permission": "إذن",
+    "no_excuse": "بدون عذر",
+    "without_valid_excuse": "بدون عذر صحيح",
+    "contact_parents": "التواصل مع أولياء الأمور",
+    "create_plan": "إنشاء خطة",
+    "academic_performance": "الأداء الأكاديمي",
+    "good": "جيد",
+    "positive": "إيجابي",
+    "negative": "سلبي",
+    "period": {
+      "today": "اليوم",
+      "this_week": "هذا الاسبوع",
+      "this_term": "هذا الدور"
+    }
+  },
+  "attendance": {
+    "title": "الحضور",
+    "present": "حاضر",
+    "absent": "غائب"
+  },
+  "incidents": {
+    "title": "الحوادث اليوم",
+    "to_student_name": "إلى اسم الطالب",
+    "activity_reason": "سبب النشاط",
+    "view_all": "عرض الكل"
+  },
+  "admissions": {
+    "dashboard": {
+      "title": "لوحة القبول",
+      "subtitle": "نظرة عامة على مسار القبول والتحليلات",
+      "export": "تصدير"
+    },
+    "kpi": {
+      "applications": "الطلبات",
+      "conversion_rate": "معدل التحويل",
+      "avg_processing_time": "متوسط وقت المعالجة",
+      "avg_time_to_decision": "متوسط الوقت للقرار"
+    },
+    "date_filter": {
+      "filter_by_period": "تصفية حسب الفترة",
+      "all_time": "كل الوقت",
+      "last_7_days": "آخر 7 أيام",
+      "last_30_days": "آخر 30 يومًا",
+      "last_60_days": "آخر 60 يومًا",
+      "last_90_days": "آخر 90 يومًا",
+      "custom_range": "نطاق مخصص",
+      "from": "من:",
+      "to": "إلى:"
+    },
+    "charts": {
+      "conversion_funnel": "مسار التحويل",
+      "pipeline_stages": "مراحل مسار الطلبات",
+      "weekly_inquiries": "الاستفسارات الأسبوعية",
+      "inquiries_trend": "اتجاه الاستفسارات عبر الوقت",
+      "applications_by_grade": "الطلبات حسب الصف",
+      "grade_distribution": "التوزيع حسب المستوى الدراسي",
+      "application_sources": "مصادر الطلبات",
+      "source_distribution": "التوزيع حسب المصدر",
+      "no_data": "لا توجد بيانات للفترة المحددة"
+    },
+    "document_center": {
+      "title": "مركز المستندات",
+      "subtitle": "تتبع وإدارة المستندات المركزية",
+      "total_documents": "إجمالي المستندات",
+      "complete": "مكتمل",
+      "unsubmitted": "غير مقدم",
+      "missing": "مفقود",
+      "completion_rate": "معدل الإكمال",
+      "search_placeholder": "البحث في المستندات...",
+      "filters": "التصفية",
+      "clear": "مسح",
+      "document_status": "حالة المستند",
+      "all_statuses": "جميع الحالات",
+      "upload": "رفع",
+      "view": "عرض",
+      "application_id": "رقم الطلب",
+      "student_name": "اسم الطالب",
+      "document_type": "نوع المستند",
+      "status": "الحالة",
+      "uploaded_date": "تاريخ الرفع",
+      "actions": "الإجراءات",
+      "no_match": "لا توجد مستندات تطابق التصفية",
+      "no_documents": "لم يتم العثور على مستندات",
+      "clear_filters": "مسح التصفية"
+    },
+    "applications": {
+      "title": "الطلبات",
+      "subtitle": "إدارة وتتبع جميع الطلبات",
+      "new_application": "طلب جديد",
+      "search_placeholder": "البحث في الطلبات..."
+    },
+    "leads": {
+      "title": "العملاء المحتملون",
+      "subtitle": "إدارة استفسارات أولياء الأمور والعملاء المحتملين",
+      "new_lead": "عميل محتمل جديد",
+      "import": "استيراد",
+      "search_placeholder": "البحث في العملاء المحتملين..."
+    },
+    "tests": {
+      "title": "الاختبارات",
+      "subtitle": "إدارة اختبارات القبول والنتائج",
+      "schedule_test": "جدولة اختبار",
+      "test_type": "نوع الاختبار",
+      "result": "النتيجة"
+    },
+    "interviews": {
+      "title": "المقابلات",
+      "subtitle": "إدارة المقابلات والتقييمات",
+      "schedule_interview": "جدولة مقابلة",
+      "rating": "التقييم"
+    },
+    "decisions": {
+      "title": "القرارات",
+      "subtitle": "إدارة قرارات القبول",
+      "decision_type": "نوع القرار",
+      "decision_date": "تاريخ القرار"
+    },
+    "enrollment": {
+      "title": "التسجيل",
+      "subtitle": "إدارة الطلاب المسجلين",
+      "enrollment_date": "تاريخ التسجيل",
+      "payment_status": "حالة الدفع"
+    },
+    "filters": {
+      "status": "الحالة",
+      "source": "المصدر",
+      "grade": "الصف",
+      "channel": "القناة",
+      "owner": "المسؤول",
+      "all": "الكل"
+    },
+    "status": {
+      "pending": "قيد الانتظار",
+      "under_review": "قيد المراجعة",
+      "accepted": "مقبول",
+      "rejected": "مرفوض",
+      "complete": "مكتمل",
+      "missing": "مفقود"
+    },
+    "source": {
+      "in_app": "داخل التطبيق",
+      "referral": "إحالة",
+      "walk_in": "زيارة مباشرة",
+      "other": "أخرى"
+    },
+    "grades": {
+      "kg1": "روضة 1",
+      "kg2": "روضة 2",
+      "grade_1": "الصف الأول",
+      "grade_2": "الصف الثاني",
+      "grade_3": "الصف الثالث",
+      "grade_4": "الصف الرابع",
+      "grade_5": "الصف الخامس",
+      "grade_6": "الصف السادس",
+      "grade_7": "الصف السابع",
+      "grade_8": "الصف الثامن",
+      "grade_9": "الصف التاسع",
+      "grade_10": "الصف العاشر",
+      "grade_11": "الصف الحادي عشر",
+      "grade_12": "الصف الثاني عشر"
+    },
+    "leads": {
+      "title": "جميع العملاء المحتملين",
+      "subtitle": "إدارة وتتبع العملاء المحتملين للطلاب",
+      "export": "تصدير",
+      "import_leads": "استيراد العملاء المحتملين",
+      "new_lead": "عميل محتمل جديد",
+      "search_placeholder": "البحث في العملاء المحتملين...",
+      "filters": "التصفية",
+      "clear": "مسح",
+      "total_leads": "إجمالي العملاء المحتملين",
+      "leads_period": "العملاء المحتملين ({period})",
+      "custom": "مخصص",
+      "days": "{days} يوم",
+      "in_selected_period": "في الفترة المحددة",
+      "new_leads": "عملاء محتملون جدد",
+      "not_yet_contacted": "لم يتم الاتصال بهم بعد",
+      "contacted": "تم الاتصال",
+      "in_progress": "قيد التنفيذ",
+      "lead_id": "رقم العميل المحتمل",
+      "name": "الاسم",
+      "phone": "الهاتف",
+      "email": "البريد الإلكتروني",
+      "channel": "القناة",
+      "status": "الحالة",
+      "owner": "المسؤول",
+      "grade_interest": "الصف المهتم به",
+      "created": "تاريخ الإنشاء",
+      "actions": "الإجراءات",
+      "convert": "تحويل",
+      "all_statuses": "جميع الحالات",
+      "new": "جديد",
+      "all_channels": "جميع القنوات",
+      "in_app": "داخل التطبيق",
+      "referral": "إحالة",
+      "walk_in": "زيارة مباشرة",
+      "other": "أخرى",
+      "all_owners": "جميع المسؤولين",
+      "no_match": "لا يوجد عملاء محتملون يطابقون التصفية",
+      "no_leads": "لم يتم العثور على عملاء محتملين",
+      "clear_filters": "مسح التصفية"
+    },
+    "tests": {
+      "title": "جميع الاختبارات",
+      "subtitle": "جدولة وإدارة اختبارات القبول",
+      "export": "تصدير",
+      "schedule_test": "جدولة اختبار",
+      "search_placeholder": "البحث في الاختبارات...",
+      "filters": "التصفية",
+      "clear_filters": "مسح التصفية",
+      "total_tests": "إجمالي الاختبارات",
+      "scheduled": "مجدولة",
+      "upcoming_tests": "اختبارات قادمة",
+      "completed": "مكتملة",
+      "failed": "راسب",
+      "average_score": "متوسط الدرجة",
+      "overall_performance": "الأداء العام",
+      "application_id": "رقم الطلب",
+      "student_name": "اسم الطالب",
+      "test_type": "نوع الاختبار",
+      "subject": "المادة",
+      "date": "التاريخ",
+      "time": "الوقت",
+      "location": "الموقع",
+      "status": "الحالة",
+      "score": "الدرجة",
+      "actions": "الإجراءات",
+      "edit": "تعديل",
+      "enter": "إدخال",
+      "enter_score": "الدرجة",
+      "all_statuses": "جميع الحالات",
+      "all_types": "جميع الأنواع",
+      "no_match": "لا توجد اختبارات تطابق التصفية",
+      "no_tests": "لم يتم العثور على اختبارات",
+      "clear_filters": "مسح التصفية",
+      "found": "تم العثور عليها"
+    },
+    "interviews": {
+      "title": "جميع المقابلات",
+      "subtitle": "جدولة وإجراء مقابلات الطلاب",
+      "export": "تصدير",
+      "schedule_interview": "جدولة مقابلة",
+      "search_placeholder": "البحث في المقابلات...",
+      "filters": "التصفية",
+      "clear_filters": "مسح التصفية",
+      "total_interviews": "إجمالي المقابلات",
+      "scheduled": "مجدولة",
+      "upcoming_interviews": "مقابلات قادمة",
+      "completed": "مكتملة",
+      "finished_interviews": "مقابلات منتهية",
+      "average_rating": "متوسط التقييم",
+      "out_of_5": "من 5",
+      "application_id": "رقم الطلب",
+      "student_name": "اسم الطالب",
+      "date": "التاريخ",
+      "time": "الوقت",
+      "interviewer": "المقابل",
+      "location": "الموقع",
+      "status": "الحالة",
+      "rating": "التقييم",
+      "actions": "الإجراءات",
+      "edit": "تعديل",
+      "rate": "تقييم",
+      "all_statuses": "جميع الحالات",
+      "no_match": "لا توجد مقابلات تطابق التصفية",
+      "no_interviews": "لم يتم العثور على مقابلات",
+      "clear_filters": "مسح التصفية",
+      "found": "تم العثور عليها"
+    },
+    "decisions": {
+      "title": "جميع القرارات",
+      "subtitle": "تتبع وإدارة قرارات القبول",
+      "export": "تصدير",
+      "search_placeholder": "البحث في القرارات...",
+      "filters": "التصفية",
+      "clear_filters": "مسح التصفية",
+      "total_decisions": "إجمالي القرارات",
+      "acceptance": "قبول",
+      "accepted": "مقبول",
+      "approved_applications": "طلبات موافق عليها",
+      "waitlisted": "قائمة الانتظار",
+      "pending_final_decision": "في انتظار القرار النهائي",
+      "rejected": "مرفوض",
+      "declined_applications": "طلبات مرفوضة",
+      "application_id": "رقم الطلب",
+      "student_name": "اسم الطالب",
+      "grade": "الصف",
+      "decision": "القرار",
+      "decision_date": "تاريخ القرار",
+      "decided_by": "تم اتخاذ القرار بواسطة",
+      "reason": "السبب",
+      "all_decisions": "جميع القرارات",
+      "accept": "مقبول",
+      "waitlist": "قائمة الانتظار",
+      "reject": "مرفوض",
+      "no_match": "لا توجد قرارات تطابق التصفية",
+      "no_decisions": "لم يتم العثور على قرارات",
+      "clear_filters": "مسح التصفية",
+      "found": "تم العثور عليها"
+    },
+    "enrollment": {
+      "title": "جميع التسجيلات",
+      "subtitle": "إدارة سجلات تسجيل الطلاب",
+      "export": "تصدير",
+      "search_placeholder": "البحث في التسجيلات...",
+      "filters": "التصفية",
+      "clear_filters": "مسح التصفية",
+      "total_enrolled": "إجمالي المسجلين",
+      "this_week": "هذا الأسبوع",
+      "new_enrollments": "تسجيلات جديدة",
+      "academic_year": "السنة الدراسية",
+      "grades": "صفوف",
+      "enrollment_id": "رقم التسجيل",
+      "application_id": "رقم الطلب",
+      "student_name": "اسم الطالب",
+      "grade": "الصف",
+      "section": "الشعبة",
+      "start_date": "تاريخ البدء",
+      "enrolled_date": "تاريخ التسجيل",
+      "all_grades": "جميع الصفوف",
+      "all_years": "جميع السنوات",
+      "no_match": "لا توجد تسجيلات تطابق التصفية",
+      "no_enrollments": "لم يتم العثور على تسجيلات",
+      "clear_filters": "مسح التصفية",
+      "found": "تم العثور عليها"
+    }
+  }
+}

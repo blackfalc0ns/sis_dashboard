@@ -1,0 +1,16 @@
+// FILE: src/app/[lang]/admissions/page.tsx
+
+"use client";
+
+import SideBarTopNav from "@/components/layout/SideBarTopNav";
+import AdmissionsDashboard from "@/components/admissions/AdmissionsDashboard";
+
+export default function AdmissionsPage() {
+  return (
+    <SideBarTopNav>
+      <main className="flex-1 p-4 sm:p-6 min-w-0 overflow-x-hidden">
+        <AdmissionsDashboard />
+      </main>
+    </SideBarTopNav>
+  );
+}

@@ -1,0 +1,525 @@
+{
+  "school_name": "School Name",
+  "dashboard": "Dashboard",
+  "management": "Management",
+  "logout": "Logout",
+  "dashboard_title": "School Management Dashboard",
+  "hello_school_alarm": "Hello School Alarm",
+  "lead_new_generation": "Let's lead The New Generation",
+  "search_placeholder": "Search In Moazzez",
+  "today": "Today",
+  "notifications": "Notifications",
+  "profile": "Profile",
+  "admin": "Admin",
+  "filter_bar": {
+    "filters": {
+      "today": "Today",
+      "grade": "Grade",
+      "academic_year": "Academic Year"
+    },
+    "export": "Export"
+  },
+  "comparison": {
+    "vs_yesterday": "vs Yesterday",
+    "vs_week": "vs Week",
+    "vs_term": "vs Term"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "analytics": "Analytics",
+    "students": "Students",
+    "teachers": "Teachers",
+    "classes": "Classes",
+    "activity": "Activity",
+    "get_help": "Get Help",
+    "settings": "Settings",
+    "school": "School"
+  },
+  "overview": {
+    "attendance_rate": "Today Attendance Rate",
+    "delivered_classes": "Delivered Classes",
+    "violations": "Today Violations",
+    "financial_dues": "Financial Dues",
+    "staff_absenteeism": "Staff Absenteeism"
+  },
+  "kpi": {
+    "total_students": "Total Students",
+    "today_attendance_rate": "Today's Attendance Rate",
+    "delivered_classes": "Delivered Classes",
+    "today_violations": "Today's Violations",
+    "staff_absenteeism": "Staff Absenteeism",
+    "nedaa_efficiency": "Nedaa Efficiency"
+  },
+  "alerts": {
+    "title": "Critical Alerts",
+    "view_all": "View All",
+    "classes_no_teachers": "Classes Without Teachers",
+    "classes_no_teachers_desc": "Immediate assignment required",
+    "students_below_threshold": "Students Below Attendance Threshold",
+    "students_below_threshold_desc": "Intervention needed",
+    "overdue_invoices_alert": "Overdue Invoices",
+    "overdue_invoices_desc": "Payment follow-up required",
+    "assign_now": "Assign Now",
+    "view_list": "View List",
+    "send_reminder": "Send Reminder"
+  },
+  "quick_actions": {
+    "title": "Quick Actions",
+    "add_student": "Add Student",
+    "attendance": "Attendance",
+    "announcement": "Announcement",
+    "assessment": "Assessment",
+    "import_data": "Import Data",
+    "print_reports": "Print Reports",
+    "notification_center": "Notification Center",
+    "select_role": "Select Role",
+    "students": "Students",
+    "teachers": "Teachers",
+    "parents": "Parents",
+    "staff": "Staff",
+    "all": "All",
+    "text_here": "Text Here",
+    "send_notification": "Send Notification",
+    "quick_notifications": "Quick Notifications",
+    "quick_notification": "Quick Notification"
+  },
+  "monitoring": {
+    "title": "Today's Monitoring",
+    "classes": "Classes",
+    "exams": "Exams",
+    "parent_visits": "Parent Visits",
+    "events": "Events / Activities",
+    "status": {
+      "ongoing": "ongoing",
+      "upcoming": "upcoming",
+      "completed": "completed"
+    }
+  },
+  "attendance_trend": {
+    "change_period": "Change period",
+    "title": "Attendance Trend ({period})",
+    "subtitle": "Daily attendance rate with average line",
+    "average_label": "Average",
+    "series": {
+      "attendance": "Attendance",
+      "average": "Average"
+    },
+    "period": {
+      "days_30": "30 Days",
+      "week": "This Week",
+      "term": "Term"
+    },
+    "below_days": "{days} days",
+    "below_threshold_suffix": "below threshold detected",
+    "actions": {
+      "view_details": "View Details",
+      "send_alert": "Send Alert"
+    }
+  },
+  "students_per_grade": {
+    "title": "Students per Grade",
+    "subtitle": "Distribution by grade level",
+    "filter": {
+      "all": "All",
+      "new": "New",
+      "existing": "Existing"
+    },
+    "grades": {
+      "g1": "Grade 1",
+      "g2": "Grade 2",
+      "g3": "Grade 3",
+      "g4": "Grade 4",
+      "g5": "Grade 5",
+      "g6": "Grade 6"
+    },
+    "insight": {
+      "prefix": "{grade} has",
+      "highlight": "highest enrollment"
+    },
+    "actions": {
+      "view_class_distribution": "View Class Distribution"
+    }
+  },
+  "absence_reasons": {
+    "title": "Absence Reasons",
+    "subtitle": "Distribution of absence types",
+    "types": {
+      "medical": "Medical",
+      "permission": "Permission",
+      "no_excuse": "No Excuse"
+    },
+    "insight": {
+      "without_valid_excuse": "without valid excuse"
+    },
+    "actions": {
+      "contact_parents": "Contact Parents",
+      "create_plan": "Create Plan"
+    }
+  },
+  "critical_alerts": {
+    "title": "Critical Alerts",
+    "view_all": "View All",
+    "alerts": {
+      "no_teachers": {
+        "title": "5 Classes Without Teachers",
+        "description": "Immediate assignment required",
+        "action": "Assign Now"
+      },
+      "low_attendance": {
+        "title": "23 Students Below Attendance Threshold",
+        "description": "Intervention needed",
+        "action": "View List"
+      },
+      "overdue_invoices": {
+        "title": "12 Overdue Invoices",
+        "description": "Payment follow-up required",
+        "action": "Send Reminder"
+      }
+    }
+  },
+  "charts": {
+    "attendance_trend": "Attendance Trend (30 Days)",
+    "attendance_trend_desc": "Daily attendance rate with average line",
+    "average": "Average",
+    "days_below_threshold": "days below threshold detected",
+    "view_details": "View Details",
+    "send_alert": "Send Alert",
+    "students_per_grade": "Students per Grade",
+    "students_per_grade_desc": "Distribution by grade level",
+    "all": "All",
+    "new": "New",
+    "existing": "Existing",
+    "highest_enrollment": "highest enrollment",
+    "view_class_distribution": "View Class Distribution",
+    "absence_reasons": "Absence Reasons",
+    "absence_reasons_desc": "Distribution of absence types",
+    "medical": "Medical",
+    "permission": "Permission",
+    "no_excuse": "No Excuse",
+    "without_valid_excuse": "without valid excuse",
+    "contact_parents": "Contact Parents",
+    "create_plan": "Create Plan",
+    "academic_performance": "Academic Performance",
+    "good": "Good",
+    "positive": "positive",
+    "negative": "negative",
+
+    "period": {
+      "today": "Today",
+      "this_week": "This week",
+      "this_term": "This term"
+    }
+  },
+  "attendance": {
+    "title": "Attendance",
+    "present": "present",
+    "absent": "Absent"
+  },
+  "incidents": {
+    "title": "Incidents Today",
+    "to_student_name": "To Student Name",
+    "activity_reason": "Activity Reason",
+    "view_all": "View all"
+  },
+  "admissions": {
+    "dashboard": {
+      "title": "Admissions Dashboard",
+      "subtitle": "Overview of admissions pipeline and analytics",
+      "export": "Export"
+    },
+    "kpi": {
+      "applications": "Applications",
+      "conversion_rate": "Conversion Rate",
+      "avg_processing_time": "Avg Processing Time",
+      "avg_time_to_decision": "Avg time to decision"
+    },
+    "date_filter": {
+      "filter_by_period": "Filter by Period",
+      "all_time": "All Time",
+      "last_7_days": "Last 7 Days",
+      "last_30_days": "Last 30 Days",
+      "last_60_days": "Last 60 Days",
+      "last_90_days": "Last 90 Days",
+      "custom_range": "Custom Range",
+      "from": "From:",
+      "to": "To:"
+    },
+    "charts": {
+      "conversion_funnel": "Conversion Funnel",
+      "pipeline_stages": "Application pipeline stages",
+      "weekly_inquiries": "Weekly Inquiries",
+      "inquiries_trend": "Inquiries trend over time",
+      "applications_by_grade": "Applications by Grade",
+      "grade_distribution": "Distribution by grade level",
+      "application_sources": "Application Sources",
+      "source_distribution": "Distribution by application source",
+      "no_data": "No data for selected period"
+    },
+    "document_center": {
+      "title": "Document Center",
+      "subtitle": "Centralized document tracking and management",
+      "total_documents": "Total Documents",
+      "complete": "Complete",
+      "unsubmitted": "Unsubmitted",
+      "missing": "Missing",
+      "completion_rate": "Completion Rate",
+      "search_placeholder": "Search documents...",
+      "filters": "Filters",
+      "clear": "Clear",
+      "document_status": "Document Status",
+      "all_statuses": "All Statuses",
+      "upload": "Upload",
+      "view": "View",
+      "application_id": "Application ID",
+      "student_name": "Student Name",
+      "document_type": "Document Type",
+      "status": "Status",
+      "uploaded_date": "Uploaded Date",
+      "actions": "Actions",
+      "no_match": "No documents match your filters",
+      "no_documents": "No documents found",
+      "clear_filters": "Clear filters"
+    },
+    "applications": {
+      "title": "Applications",
+      "subtitle": "Manage and track all applications",
+      "new_application": "New Application",
+      "search_placeholder": "Search applications..."
+    },
+    "leads": {
+      "title": "Leads",
+      "subtitle": "Manage parent inquiries and leads",
+      "new_lead": "New Lead",
+      "import": "Import",
+      "search_placeholder": "Search leads..."
+    },
+    "tests": {
+      "title": "Tests",
+      "subtitle": "Manage entrance tests and results",
+      "schedule_test": "Schedule Test",
+      "test_type": "Test Type",
+      "result": "Result"
+    },
+    "interviews": {
+      "title": "Interviews",
+      "subtitle": "Manage interviews and ratings",
+      "schedule_interview": "Schedule Interview",
+      "rating": "Rating"
+    },
+    "decisions": {
+      "title": "Decisions",
+      "subtitle": "Manage admission decisions",
+      "decision_type": "Decision Type",
+      "decision_date": "Decision Date"
+    },
+    "enrollment": {
+      "title": "Enrollment",
+      "subtitle": "Manage enrolled students",
+      "enrollment_date": "Enrollment Date",
+      "payment_status": "Payment Status"
+    },
+    "filters": {
+      "status": "Status",
+      "source": "Source",
+      "grade": "Grade",
+      "channel": "Channel",
+      "owner": "Owner",
+      "all": "All"
+    },
+    "status": {
+      "pending": "Pending",
+      "under_review": "Under Review",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "complete": "Complete",
+      "missing": "Missing"
+    },
+    "source": {
+      "in_app": "In App",
+      "referral": "Referral",
+      "walk_in": "Walk-in",
+      "other": "Other"
+    },
+    "grades": {
+      "kg1": "KG1",
+      "kg2": "KG2",
+      "grade_1": "Grade 1",
+      "grade_2": "Grade 2",
+      "grade_3": "Grade 3",
+      "grade_4": "Grade 4",
+      "grade_5": "Grade 5",
+      "grade_6": "Grade 6",
+      "grade_7": "Grade 7",
+      "grade_8": "Grade 8",
+      "grade_9": "Grade 9",
+      "grade_10": "Grade 10",
+      "grade_11": "Grade 11",
+      "grade_12": "Grade 12"
+    },
+    "leads": {
+      "title": "All Leads",
+      "subtitle": "Manage and track prospective student leads",
+      "export": "Export",
+      "import_leads": "Import Leads",
+      "new_lead": "New Lead",
+      "search_placeholder": "Search leads...",
+      "filters": "Filters",
+      "clear": "Clear",
+      "total_leads": "Total Leads",
+      "leads_period": "Leads ({period})",
+      "custom": "Custom",
+      "days": "{days} days",
+      "in_selected_period": "In selected period",
+      "new_leads": "New Leads",
+      "not_yet_contacted": "Not yet contacted",
+      "contacted": "Contacted",
+      "in_progress": "In progress",
+      "lead_id": "Lead ID",
+      "name": "Name",
+      "phone": "Phone",
+      "email": "Email",
+      "channel": "Channel",
+      "status": "Status",
+      "owner": "Owner",
+      "grade_interest": "Grade Interest",
+      "created": "Created",
+      "actions": "Actions",
+      "convert": "Convert",
+      "all_statuses": "All Statuses",
+      "new": "New",
+      "all_channels": "All Channels",
+      "in_app": "In-app",
+      "referral": "Referral",
+      "walk_in": "Walk-in",
+      "other": "Other",
+      "all_owners": "All Owners",
+      "no_match": "No leads match your filters",
+      "no_leads": "No leads found",
+      "clear_filters": "Clear filters"
+    },
+    "tests": {
+      "title": "All Tests",
+      "subtitle": "Schedule and manage placement tests",
+      "export": "Export",
+      "schedule_test": "Schedule Test",
+      "search_placeholder": "Search tests...",
+      "filters": "Filters",
+      "clear_filters": "Clear Filters",
+      "total_tests": "Total Tests",
+      "scheduled": "Scheduled",
+      "upcoming_tests": "Upcoming tests",
+      "completed": "Completed",
+      "failed": "failed",
+      "average_score": "Average Score",
+      "overall_performance": "Overall performance",
+      "application_id": "Application ID",
+      "student_name": "Student Name",
+      "test_type": "Test Type",
+      "subject": "Subject",
+      "date": "Date",
+      "time": "Time",
+      "location": "Location",
+      "status": "Status",
+      "score": "Score",
+      "actions": "Actions",
+      "edit": "Edit",
+      "enter": "Enter",
+      "enter_score": "Score",
+      "all_statuses": "All Statuses",
+      "all_types": "All Types",
+      "no_match": "No tests match your filters",
+      "no_tests": "No tests found",
+      "clear_filters": "Clear filters",
+      "found": "found"
+    },
+    "interviews": {
+      "title": "All Interviews",
+      "subtitle": "Schedule and conduct student interviews",
+      "export": "Export",
+      "schedule_interview": "Schedule Interview",
+      "search_placeholder": "Search interviews...",
+      "filters": "Filters",
+      "clear_filters": "Clear Filters",
+      "total_interviews": "Total Interviews",
+      "scheduled": "Scheduled",
+      "upcoming_interviews": "Upcoming interviews",
+      "completed": "Completed",
+      "finished_interviews": "Finished interviews",
+      "average_rating": "Average Rating",
+      "out_of_5": "Out of 5",
+      "application_id": "Application ID",
+      "student_name": "Student Name",
+      "date": "Date",
+      "time": "Time",
+      "interviewer": "Interviewer",
+      "location": "Location",
+      "status": "Status",
+      "rating": "Rating",
+      "actions": "Actions",
+      "edit": "Edit",
+      "rate": "Rate",
+      "all_statuses": "All Statuses",
+      "no_match": "No interviews match your filters",
+      "no_interviews": "No interviews found",
+      "clear_filters": "Clear filters",
+      "found": "found"
+    },
+    "decisions": {
+      "title": "All Decisions",
+      "subtitle": "Track and manage admission decisions",
+      "export": "Export",
+      "search_placeholder": "Search decisions...",
+      "filters": "Filters",
+      "clear_filters": "Clear Filters",
+      "total_decisions": "Total Decisions",
+      "acceptance": "acceptance",
+      "accepted": "Accepted",
+      "approved_applications": "Approved applications",
+      "waitlisted": "Waitlisted",
+      "pending_final_decision": "Pending final decision",
+      "rejected": "Rejected",
+      "declined_applications": "Declined applications",
+      "application_id": "Application ID",
+      "student_name": "Student Name",
+      "grade": "Grade",
+      "decision": "Decision",
+      "decision_date": "Decision Date",
+      "decided_by": "Decided By",
+      "reason": "Reason",
+      "all_decisions": "All Decisions",
+      "accept": "Accepted",
+      "waitlist": "Waitlisted",
+      "reject": "Rejected",
+      "no_match": "No decisions match your filters",
+      "no_decisions": "No decisions found",
+      "clear_filters": "Clear filters",
+      "found": "found"
+    },
+    "enrollment": {
+      "title": "All Enrollments",
+      "subtitle": "Manage student enrollment records",
+      "export": "Export",
+      "search_placeholder": "Search enrollments...",
+      "filters": "Filters",
+      "clear_filters": "Clear Filters",
+      "total_enrolled": "Total Enrolled",
+      "this_week": "This Week",
+      "new_enrollments": "New enrollments",
+      "academic_year": "Academic Year",
+      "grades": "grades",
+      "enrollment_id": "Enrollment ID",
+      "application_id": "Application ID",
+      "student_name": "Student Name",
+      "grade": "Grade",
+      "section": "Section",
+      "start_date": "Start Date",
+      "enrolled_date": "Enrolled Date",
+      "all_grades": "All Grades",
+      "all_years": "All Years",
+      "no_match": "No enrollments match your filters",
+      "no_enrollments": "No enrollments found",
+      "clear_filters": "Clear filters",
+      "found": "found"
+    }
+  }
+}
