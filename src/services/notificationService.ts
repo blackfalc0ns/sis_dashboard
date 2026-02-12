@@ -132,7 +132,7 @@ export async function sendNotification(
     notification.status[channel] = results[channel] ? "sent" : "failed";
     if (results[channel]) {
       if (!notification.sentAt) {
-        notification.sentAt = {};
+        notification.sentAt = {} as Record<NotificationChannel, string>;
       }
       notification.sentAt[channel] = new Date().toISOString();
     }
@@ -174,11 +174,11 @@ async function sendEmailNotification(
     notification.language === "ar"
       ? replaceTemplateVariables(
           template.emailSubjectAr,
-          notification.data || {},
+          (notification.data || {}) as Record<string, string>,
         )
       : replaceTemplateVariables(
           template.emailSubject,
-          notification.data || {},
+          (notification.data || {}) as Record<string, string>,
         );
 
   console.log("📧 Email Notification:", {
@@ -206,8 +206,14 @@ async function sendSMSNotification(notification: Notification): Promise<void> {
   const template = NOTIFICATION_TEMPLATES[notification.stage];
   const smsMessage =
     notification.language === "ar"
-      ? replaceTemplateVariables(template.smsMessageAr, notification.data || {})
-      : replaceTemplateVariables(template.smsMessage, notification.data || {});
+      ? replaceTemplateVariables(
+          template.smsMessageAr,
+          (notification.data || {}) as Record<string, string>,
+        )
+      : replaceTemplateVariables(
+          template.smsMessage,
+          (notification.data || {}) as Record<string, string>,
+        );
 
   console.log("📱 SMS Notification:", {
     to: notification.recipientPhone,
