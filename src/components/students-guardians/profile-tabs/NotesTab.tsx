@@ -6,60 +6,35 @@ import { useState } from "react";
 import { Plus, Eye, EyeOff, Edit2, Trash2, Filter } from "lucide-react";
 import { Student } from "@/types/students";
 import DataTable from "@/components/ui/common/DataTable";
+import { getStudentNotes } from "@/services/studentsService";
+import { getStudentDisplayName } from "@/utils/studentUtils";
+import AddNoteModal, {
+  NoteFormData,
+} from "@/components/students-guardians/modals/AddNoteModal";
+import { useTranslations } from "next-intl";
 
 interface NotesTabProps {
   student: Student;
 }
 
-// Mock notes data
-const mockNotes = [
-  {
-    id: "1",
-    date: "2024-02-10",
-    category: "academic",
-    note: "Excellent progress in mathematics. Shows strong problem-solving skills.",
-    visibility: "visible_to_guardian",
-    created_by: "Mr. Ahmed Hassan",
-  },
-  {
-    id: "2",
-    date: "2024-02-08",
-    category: "behavioral",
-    note: "Student was very helpful to classmates during group project.",
-    visibility: "visible_to_guardian",
-    created_by: "Ms. Fatima Ali",
-  },
-  {
-    id: "3",
-    date: "2024-02-05",
-    category: "general",
-    note: "Parent meeting scheduled for next week to discuss progress.",
-    visibility: "internal",
-    created_by: "Mr. Hassan Omar",
-  },
-  {
-    id: "4",
-    date: "2024-02-01",
-    category: "medical",
-    note: "Student used inhaler during PE class. No issues reported.",
-    visibility: "internal",
-    created_by: "Nurse Sarah",
-  },
-  {
-    id: "5",
-    date: "2024-01-28",
-    category: "academic",
-    note: "Needs additional support in English writing assignments.",
-    visibility: "visible_to_guardian",
-    created_by: "Ms. Layla Mahmoud",
-  },
-];
-
 export default function NotesTab({ student }: NotesTabProps) {
-  const [notes] = useState(mockNotes);
+  const t = useTranslations("students_guardians.profile.notes");
+  const notes = getStudentNotes(student.student_id || "");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [visibilityFilter, setVisibilityFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  const handleAddNote = (noteData: NoteFormData) => {
+    // TODO: Implement API call to add note
+    console.log("Adding note:", noteData);
+
+    // Close modal
+    setShowAddModal(false);
+
+    // Show success message (you can add a toast notification here)
+    alert("Note added successfully!");
+  };
 
   const getCategoryBadge = (category: string) => {
     const colors: Record<string, string> = {
@@ -73,7 +48,7 @@ export default function NotesTab({ student }: NotesTabProps) {
       <span
         className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors[category]}`}
       >
-        {category.charAt(0).toUpperCase() + category.slice(1)}
+        {t(category as any)}
       </span>
     );
   };
@@ -83,14 +58,14 @@ export default function NotesTab({ student }: NotesTabProps) {
       return (
         <span className="inline-flex items-center gap-1 text-xs text-green-600">
           <Eye className="w-3 h-3" />
-          Visible
+          {t("visible")}
         </span>
       );
     }
     return (
       <span className="inline-flex items-center gap-1 text-xs text-gray-600">
         <EyeOff className="w-3 h-3" />
-        Internal
+        {t("internal")}
       </span>
     );
   };
@@ -106,18 +81,18 @@ export default function NotesTab({ student }: NotesTabProps) {
   const columns = [
     {
       key: "date",
-      label: "Date",
+      label: t("date"),
       render: (value: unknown) =>
         new Date(value as string).toLocaleDateString(),
     },
     {
       key: "category",
-      label: "Category",
+      label: t("category"),
       render: (value: unknown) => getCategoryBadge(value as string),
     },
     {
       key: "note",
-      label: "Note",
+      label: t("note"),
       render: (value: unknown) => (
         <div className="max-w-md">
           <p className="text-sm text-gray-900 line-clamp-2">
@@ -128,28 +103,28 @@ export default function NotesTab({ student }: NotesTabProps) {
     },
     {
       key: "visibility",
-      label: "Visibility",
+      label: t("visibility"),
       render: (value: unknown) => getVisibilityBadge(value as string),
     },
     {
       key: "created_by",
-      label: "Created By",
+      label: t("created_by"),
     },
     {
       key: "actions",
-      label: "Actions",
+      label: t("actions"),
       sortable: false,
       render: () => (
         <div className="flex items-center gap-1">
           <button
             className="p-1.5 text-gray-600 hover:bg-gray-100 rounded transition-colors"
-            title="Edit"
+            title={t("edit")}
           >
             <Edit2 className="w-4 h-4" />
           </button>
           <button
             className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-            title="Delete"
+            title={t("delete")}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -163,10 +138,8 @@ export default function NotesTab({ student }: NotesTabProps) {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Student Notes</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Track observations and important information
-          </p>
+          <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
+          <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -178,11 +151,14 @@ export default function NotesTab({ student }: NotesTabProps) {
             }`}
           >
             <Filter className="w-4 h-4" />
-            Filters
+            {t("filters")}
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors"
+          >
             <Plus className="w-4 h-4" />
-            Add Note
+            {t("add_note")}
           </button>
         </div>
       </div>
@@ -193,32 +169,34 @@ export default function NotesTab({ student }: NotesTabProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category
+                {t("category")}
               </label>
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
               >
-                <option value="all">All Categories</option>
-                <option value="academic">Academic</option>
-                <option value="behavioral">Behavioral</option>
-                <option value="medical">Medical</option>
-                <option value="general">General</option>
+                <option value="all">{t("all_categories")}</option>
+                <option value="academic">{t("academic")}</option>
+                <option value="behavioral">{t("behavioral")}</option>
+                <option value="medical">{t("medical")}</option>
+                <option value="general">{t("general")}</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Visibility
+                {t("visibility")}
               </label>
               <select
                 value={visibilityFilter}
                 onChange={(e) => setVisibilityFilter(e.target.value)}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
               >
-                <option value="all">All Notes</option>
-                <option value="visible_to_guardian">Visible to Guardian</option>
-                <option value="internal">Internal Only</option>
+                <option value="all">{t("all_notes")}</option>
+                <option value="visible_to_guardian">
+                  {t("visible_to_guardian")}
+                </option>
+                <option value="internal">{t("internal")}</option>
               </select>
             </div>
           </div>
@@ -228,23 +206,25 @@ export default function NotesTab({ student }: NotesTabProps) {
       {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <p className="text-sm text-gray-600 mb-1">Total Notes</p>
+          <p className="text-sm text-gray-600 mb-1">{t("total_notes")}</p>
           <p className="text-2xl font-bold text-gray-900">{notes.length}</p>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <p className="text-sm text-gray-600 mb-1">Academic</p>
+          <p className="text-sm text-gray-600 mb-1">{t("academic")}</p>
           <p className="text-2xl font-bold text-blue-600">
             {notes.filter((n) => n.category === "academic").length}
           </p>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <p className="text-sm text-gray-600 mb-1">Behavioral</p>
+          <p className="text-sm text-gray-600 mb-1">{t("behavioral")}</p>
           <p className="text-2xl font-bold text-purple-600">
             {notes.filter((n) => n.category === "behavioral").length}
           </p>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <p className="text-sm text-gray-600 mb-1">Visible to Guardian</p>
+          <p className="text-sm text-gray-600 mb-1">
+            {t("visible_to_guardian")}
+          </p>
           <p className="text-2xl font-bold text-green-600">
             {notes.filter((n) => n.visibility === "visible_to_guardian").length}
           </p>
@@ -256,18 +236,27 @@ export default function NotesTab({ student }: NotesTabProps) {
         <div className="p-6">
           {filteredNotes.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">No notes match your filters</p>
+              <p className="text-gray-500">{t("no_match")}</p>
             </div>
           ) : (
             <DataTable
               columns={columns}
-              data={filteredNotes}
+              data={filteredNotes as unknown as Record<string, unknown>[]}
               showPagination={true}
               itemsPerPage={10}
             />
           )}
         </div>
       </div>
+
+      {/* Add Note Modal */}
+      <AddNoteModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSubmit={handleAddNote}
+        studentId={student.id}
+        studentName={getStudentDisplayName(student)}
+      />
     </div>
   );
 }

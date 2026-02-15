@@ -34,7 +34,7 @@ export default function ConversionFunnelChart({
 
   const stages = [
     {
-      label: "Leads",
+      label: t("leads"),
       count: leads,
       icon: Users,
       color: "bg-blue-500",
@@ -42,7 +42,7 @@ export default function ConversionFunnelChart({
       conversion: null,
     },
     {
-      label: "Applications",
+      label: t("applications"),
       count: applications,
       icon: FileText,
       color: "bg-purple-500",
@@ -50,7 +50,7 @@ export default function ConversionFunnelChart({
       conversion: `${leadsToApps}%`,
     },
     {
-      label: "Accepted",
+      label: t("accepted"),
       count: accepted,
       icon: CheckCircle,
       color: "bg-green-500",
@@ -58,7 +58,7 @@ export default function ConversionFunnelChart({
       conversion: `${appsToAccepted}%`,
     },
     {
-      label: "Enrolled",
+      label: t("enrolled"),
       count: enrolled,
       icon: GraduationCap,
       color: "bg-teal-500",
@@ -98,14 +98,14 @@ export default function ConversionFunnelChart({
       <div className="mb-6 p-4 bg-linear-to-r from-teal-50 to-blue-50 rounded-lg border border-teal-200">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-gray-700">
-            Overall Conversion Rate
+            {t("overall_conversion_rate")}
           </span>
           <span className="text-2xl font-bold text-[#036b80]">
             {overallConversion}%
           </span>
         </div>
         <p className="text-xs text-gray-600 mt-1">
-          {enrolled} enrolled out of {leads} leads
+          {t("enrolled_out_of_leads", { enrolled, leads })}
         </p>
       </div>
 
@@ -141,7 +141,7 @@ export default function ConversionFunnelChart({
                 <div className="flex items-center gap-2 mt-1 ml-4">
                   <div className="text-xs text-gray-500">↓</div>
                   <div className="text-xs font-medium text-gray-600">
-                    {stage.conversion} conversion
+                    {stage.conversion} {t("conversion")}
                   </div>
                 </div>
               )}
@@ -154,19 +154,19 @@ export default function ConversionFunnelChart({
       <div className="mt-6 pt-4 border-t border-gray-200">
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className="text-xs text-gray-500">Leads → Apps</p>
+            <p className="text-xs text-gray-500">{t("leads_to_apps")}</p>
             <p className="text-sm font-semibold text-gray-900">
               {leadsToApps}%
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Apps → Accepted</p>
+            <p className="text-xs text-gray-500">{t("apps_to_accepted")}</p>
             <p className="text-sm font-semibold text-gray-900">
               {appsToAccepted}%
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Accepted → Enrolled</p>
+            <p className="text-xs text-gray-500">{t("accepted_to_enrolled")}</p>
             <p className="text-sm font-semibold text-gray-900">
               {acceptedToEnrolled}%
             </p>

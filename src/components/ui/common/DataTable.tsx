@@ -1,6 +1,7 @@
 // FILE: src/components/common/DataTable.tsx
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   ArrowUpDown,
   ArrowUp,
@@ -70,6 +71,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
   showPagination = true,
   searchQuery = "", // New: Default empty search
 }: DataTableProps<T>) {
+  const t = useTranslations("common");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -234,7 +236,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
                   colSpan={columns.length}
                   className="px-3 sm:px-4 lg:px-6 py-8 sm:py-12 text-center text-gray-500 text-sm"
                 >
-                  No data available
+                  {t("no_data_available")}
                 </td>
               </tr>
             ) : (
@@ -275,7 +277,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-2">
               <label className="text-xs sm:text-sm text-gray-600 shrink-0">
-                Show:
+                {t("show")}:
               </label>
               <select
                 value={pageSize}
@@ -290,9 +292,9 @@ export default function DataTable<T extends { [key: string]: unknown }>({
               </select>
             </div>
             <div className="text-xs sm:text-sm text-gray-600">
-              Showing {startIndex + 1} to{" "}
-              {Math.min(endIndex, sortedData.length)} of {sortedData.length}{" "}
-              entries
+              {t("showing")} {startIndex + 1} {t("to")}{" "}
+              {Math.min(endIndex, sortedData.length)} {t("of")}{" "}
+              {sortedData.length} {t("entries")}
             </div>
           </div>
 
@@ -303,7 +305,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
               onClick={() => handlePageChange(1)}
               disabled={currentPage === 1}
               className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
-              title="First page"
+              title={t("first_page")}
             >
               <ChevronsLeft className="w-4 h-4" />
             </button>
@@ -313,7 +315,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
               className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
-              title="Previous page"
+              title={t("previous_page")}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -345,7 +347,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
               className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
-              title="Next page"
+              title={t("next_page")}
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -355,7 +357,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
               onClick={() => handlePageChange(totalPages)}
               disabled={currentPage === totalPages}
               className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
-              title="Last page"
+              title={t("last_page")}
             >
               <ChevronsRight className="w-4 h-4" />
             </button>

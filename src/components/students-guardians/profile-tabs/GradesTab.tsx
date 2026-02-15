@@ -7,6 +7,7 @@ import { LineChart } from "@mui/x-charts/LineChart";
 import { Student } from "@/types/students";
 import KPICard from "@/components/ui/common/KPICard";
 import DataTable from "@/components/ui/common/DataTable";
+import { useTranslations } from "next-intl";
 
 interface GradesTabProps {
   student: Student;
@@ -65,9 +66,10 @@ const mockSubjects = [
 ];
 
 export default function GradesTab({ student }: GradesTabProps) {
+  const t = useTranslations("students_guardians.profile.grades");
   // Mock performance over time
   const months = ["Sep", "Oct", "Nov", "Dec", "Jan", "Feb"];
-  const performanceData = [82, 85, 87, 86, 89, student.current_average];
+  const performanceData = [82, 85, 87, 86, 89, student.current_average ?? 85];
 
   const getTrendIcon = (trend: string) => {
     if (trend === "up")
@@ -80,28 +82,28 @@ export default function GradesTab({ student }: GradesTabProps) {
   const columns = [
     {
       key: "subject",
-      label: "Subject",
+      label: t("subject"),
     },
     {
       key: "average",
-      label: "Average",
+      label: t("average"),
       render: (value: unknown) => (
         <span className="font-semibold text-gray-900">{value as number}%</span>
       ),
     },
     {
       key: "last_assessment",
-      label: "Last Assessment",
+      label: t("last_assessment"),
       render: (value: unknown) => `${value as number}%`,
     },
     {
       key: "assessments_count",
-      label: "Assessments",
-      render: (value: unknown) => `${value as number} total`,
+      label: t("assessments"),
+      render: (value: unknown) => `${value as number} ${t("total")}`,
     },
     {
       key: "trend",
-      label: "Trend",
+      label: t("trend"),
       sortable: false,
       render: (value: unknown) => (
         <div className="flex items-center justify-center">
@@ -123,31 +125,31 @@ export default function GradesTab({ student }: GradesTabProps) {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          title="Current Average"
+          title={t("current_average")}
           value={`${student.current_average}%`}
           icon={Award}
-          numbers="Overall GPA"
+          numbers={t("overall_gpa")}
           iconBgColor="bg-blue-500"
         />
         <KPICard
-          title="Highest Grade"
+          title={t("highest_grade")}
           value={`${highestGrade}%`}
           icon={Target}
           numbers="Physical Education"
           iconBgColor="bg-green-500"
         />
         <KPICard
-          title="Lowest Grade"
+          title={t("lowest_grade")}
           value={`${lowestGrade}%`}
           icon={BookOpen}
           numbers="Mathematics"
           iconBgColor="bg-orange-500"
         />
         <KPICard
-          title="Total Assessments"
+          title={t("total_assessments")}
           value={totalAssessments}
           icon={TrendingUp}
-          numbers="This semester"
+          numbers={t("this_semester")}
           iconBgColor="bg-purple-500"
         />
       </div>
@@ -155,7 +157,7 @@ export default function GradesTab({ student }: GradesTabProps) {
       {/* Performance Over Time */}
       <div className="bg-white rounded-xl p-6 shadow-sm">
         <h3 className="text-lg font-bold text-gray-900 mb-4">
-          Performance Over Time
+          {t("performance_over_time")}
         </h3>
         <div className="h-80">
           <LineChart
@@ -163,7 +165,7 @@ export default function GradesTab({ student }: GradesTabProps) {
             series={[
               {
                 data: performanceData,
-                label: "Average Grade",
+                label: t("average_grade"),
                 color: "#036b80",
                 curve: "linear",
               },
@@ -177,10 +179,10 @@ export default function GradesTab({ student }: GradesTabProps) {
       {/* Subject Grades */}
       <div className="bg-white rounded-xl shadow-sm">
         <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-bold text-gray-900">Subject Grades</h3>
-          <p className="text-sm text-gray-500 mt-1">
-            View-only grade information
-          </p>
+          <h3 className="text-lg font-bold text-gray-900">
+            {t("subject_grades")}
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">{t("view_only")}</p>
         </div>
         <div className="p-6">
           <DataTable
@@ -194,7 +196,7 @@ export default function GradesTab({ student }: GradesTabProps) {
       {/* Subject Performance Bars */}
       <div className="bg-white rounded-xl p-6 shadow-sm">
         <h3 className="text-lg font-bold text-gray-900 mb-4">
-          Subject Performance
+          {t("subject_performance")}
         </h3>
         <div className="space-y-4">
           {mockSubjects.map((subject) => (

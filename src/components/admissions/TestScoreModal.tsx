@@ -3,6 +3,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { X, CheckCircle, XCircle } from "lucide-react";
 import { Test } from "@/types/admissions";
 
@@ -25,6 +26,7 @@ export default function TestScoreModal({
   onClose,
   onSubmit,
 }: TestScoreModalProps) {
+  const t = useTranslations("admissions.test_score_modal");
   const [score, setScore] = useState<string>(test.score?.toString() || "");
   const [maxScore, setMaxScore] = useState<string>(
     (test.maxScore || 100).toString(),
@@ -41,29 +43,29 @@ export default function TestScoreModal({
     const newErrors: Record<string, string> = {};
 
     if (!score.trim()) {
-      newErrors.score = "Score is required";
+      newErrors.score = t("errors.score_required");
     } else {
       const scoreNum = parseFloat(score);
       if (isNaN(scoreNum)) {
-        newErrors.score = "Score must be a number";
+        newErrors.score = t("errors.score_must_be_number");
       } else if (scoreNum < 0) {
-        newErrors.score = "Score cannot be negative";
+        newErrors.score = t("errors.score_cannot_be_negative");
       } else {
         const maxScoreNum = parseFloat(maxScore);
         if (!isNaN(maxScoreNum) && scoreNum > maxScoreNum) {
-          newErrors.score = `Score cannot exceed ${maxScore}`;
+          newErrors.score = t("errors.score_cannot_exceed", { maxScore });
         }
       }
     }
 
     if (!maxScore.trim()) {
-      newErrors.maxScore = "Max score is required";
+      newErrors.maxScore = t("errors.max_score_required");
     } else {
       const maxScoreNum = parseFloat(maxScore);
       if (isNaN(maxScoreNum)) {
-        newErrors.maxScore = "Max score must be a number";
+        newErrors.maxScore = t("errors.max_score_must_be_number");
       } else if (maxScoreNum <= 0) {
-        newErrors.maxScore = "Max score must be greater than 0";
+        newErrors.maxScore = t("errors.max_score_must_be_positive");
       }
     }
 
@@ -105,9 +107,9 @@ export default function TestScoreModal({
         <div className="sticky top-0 bg-gradient-to-r from-[#036b80] to-[#024d5c] text-white p-6 rounded-t-xl">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold">Enter Test Score</h2>
+              <h2 className="text-2xl font-bold">{t("title")}</h2>
               <p className="text-sm text-white/80 mt-1">
-                Record the test results for {test.studentName}
+                {t("subtitle", { studentName: test.studentName })}
               </p>
             </div>
             <button
@@ -124,25 +126,25 @@ export default function TestScoreModal({
           <div className="bg-gray-50 rounded-lg p-4 space-y-2">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-gray-600">Test Type:</span>
+                <span className="text-gray-600">{t("test_type")}:</span>
                 <span className="ml-2 font-semibold text-gray-900">
                   {test.type}
                 </span>
               </div>
               <div>
-                <span className="text-gray-600">Subject:</span>
+                <span className="text-gray-600">{t("subject")}:</span>
                 <span className="ml-2 font-semibold text-gray-900">
                   {test.subject}
                 </span>
               </div>
               <div>
-                <span className="text-gray-600">Date:</span>
+                <span className="text-gray-600">{t("date")}:</span>
                 <span className="ml-2 font-semibold text-gray-900">
                   {new Date(test.date).toLocaleDateString()}
                 </span>
               </div>
               <div>
-                <span className="text-gray-600">Time:</span>
+                <span className="text-gray-600">{t("time")}:</span>
                 <span className="ml-2 font-semibold text-gray-900">
                   {test.time}
                 </span>
@@ -153,7 +155,7 @@ export default function TestScoreModal({
           {/* Status Selection */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Test Status
+              {t("test_status")}
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -181,10 +183,10 @@ export default function TestScoreModal({
                           : "text-gray-700"
                       }`}
                     >
-                      Completed
+                      {t("completed")}
                     </div>
                     <div className="text-xs text-gray-500">
-                      Student passed the test
+                      {t("student_passed")}
                     </div>
                   </div>
                 </div>
@@ -211,10 +213,10 @@ export default function TestScoreModal({
                         status === "failed" ? "text-red-900" : "text-gray-700"
                       }`}
                     >
-                      Failed
+                      {t("failed")}
                     </div>
                     <div className="text-xs text-gray-500">
-                      Student did not pass
+                      {t("student_did_not_pass")}
                     </div>
                   </div>
                 </div>
@@ -225,7 +227,7 @@ export default function TestScoreModal({
           {/* Score Input */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Test Score <span className="text-red-500">*</span>
+              {t("test_score")} <span className="text-red-500">*</span>
             </label>
             <div className="flex items-center gap-3">
               <div className="flex-1">
@@ -238,7 +240,7 @@ export default function TestScoreModal({
                   className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-lg font-semibold ${
                     errors.score ? "border-red-500" : "border-gray-300"
                   }`}
-                  placeholder="Enter score"
+                  placeholder={t("enter_score")}
                 />
                 {errors.score && (
                   <p className="text-red-500 text-xs mt-1">{errors.score}</p>
@@ -255,7 +257,7 @@ export default function TestScoreModal({
                   className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-lg font-semibold ${
                     errors.maxScore ? "border-red-500" : "border-gray-300"
                   }`}
-                  placeholder="Max"
+                  placeholder={t("max")}
                 />
                 {errors.maxScore && (
                   <p className="text-red-500 text-xs mt-1">{errors.maxScore}</p>
@@ -267,7 +269,9 @@ export default function TestScoreModal({
             {score && !errors.score && (
               <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Percentage:</span>
+                  <span className="text-sm text-gray-600">
+                    {t("percentage")}:
+                  </span>
                   <span className={`text-2xl font-bold ${getScoreColor()}`}>
                     {percentage}%
                   </span>
@@ -293,18 +297,16 @@ export default function TestScoreModal({
           {/* Notes */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Notes (Optional)
+              {t("notes")}
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={4}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent resize-none"
-              placeholder="Add any observations or comments about the test..."
+              placeholder={t("notes_placeholder")}
             />
-            <p className="text-xs text-gray-500 mt-1">
-              These notes will be visible to the admissions team
-            </p>
+            <p className="text-xs text-gray-500 mt-1">{t("notes_hint")}</p>
           </div>
 
           {/* Actions */}
@@ -314,13 +316,13 @@ export default function TestScoreModal({
               onClick={onClose}
               className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="submit"
               className="flex-1 px-6 py-3 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg font-medium transition-colors"
             >
-              Save Score
+              {t("save_score")}
             </button>
           </div>
         </form>

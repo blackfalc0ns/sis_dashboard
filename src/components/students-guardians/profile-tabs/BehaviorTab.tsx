@@ -8,6 +8,7 @@ import { BarChart } from "@mui/x-charts/BarChart";
 import { Student } from "@/types/students";
 import KPICard from "@/components/ui/common/KPICard";
 import DataTable from "@/components/ui/common/DataTable";
+import { useTranslations } from "next-intl";
 
 interface BehaviorTabProps {
   student: Student;
@@ -63,6 +64,7 @@ const mockIncidents = [
 ];
 
 export default function BehaviorTab({ student }: BehaviorTabProps) {
+  const t = useTranslations("students_guardians.profile.behavior");
   const [activeView, setActiveView] = useState<"reinforcement" | "incidents">(
     "reinforcement",
   );
@@ -83,7 +85,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
       <span
         className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors[severity]}`}
       >
-        {severity.charAt(0).toUpperCase() + severity.slice(1)}
+        {t(severity as any)}
       </span>
     );
   };
@@ -98,7 +100,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
       <span
         className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors[status]}`}
       >
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {t(status as any)}
       </span>
     );
   };
@@ -106,54 +108,54 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
   const reinforcementColumns = [
     {
       key: "date",
-      label: "Date",
+      label: t("date"),
       render: (value: unknown) =>
         new Date(value as string).toLocaleDateString(),
     },
     {
       key: "category",
-      label: "Category",
+      label: t("category"),
     },
     {
       key: "points",
-      label: "Points",
+      label: t("points"),
       render: (value: unknown) => (
         <span className="font-semibold text-green-600">+{value as number}</span>
       ),
     },
     {
       key: "note",
-      label: "Note",
+      label: t("note"),
     },
     {
       key: "created_by",
-      label: "Recorded By",
+      label: t("recorded_by"),
     },
   ];
 
   const incidentColumns = [
     {
       key: "date",
-      label: "Date",
+      label: t("date"),
       render: (value: unknown) =>
         new Date(value as string).toLocaleDateString(),
     },
     {
       key: "severity",
-      label: "Severity",
+      label: t("severity"),
       render: (value: unknown) => getSeverityBadge(value as string),
     },
     {
       key: "description",
-      label: "Description",
+      label: t("description"),
     },
     {
       key: "action_taken",
-      label: "Action Taken",
+      label: t("action_taken"),
     },
     {
       key: "status",
-      label: "Status",
+      label: t("status"),
       render: (value: unknown) => getStatusBadge(value as string),
     },
   ];
@@ -170,31 +172,31 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          title="Total Points"
+          title={t("total_points")}
           value={245}
           icon={Award}
-          numbers="+18 this week"
+          numbers={t("this_week", { count: 18 })}
           iconBgColor="bg-purple-500"
         />
         <KPICard
-          title="Recent Points"
+          title={t("recent_points")}
           value={totalPoints}
           icon={TrendingUp}
-          numbers="Last 7 days"
+          numbers={t("last_7_days")}
           iconBgColor="bg-green-500"
         />
         <KPICard
-          title="Total Incidents"
+          title={t("total_incidents")}
           value={totalIncidents}
           icon={AlertTriangle}
-          numbers="This semester"
+          numbers={t("this_semester")}
           iconBgColor="bg-orange-500"
         />
         <KPICard
-          title="Open Incidents"
+          title={t("open_incidents")}
           value={openIncidents}
           icon={AlertTriangle}
-          numbers="Needs attention"
+          numbers={t("needs_attention")}
           iconBgColor="bg-red-500"
         />
       </div>
@@ -202,7 +204,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
       {/* Behavior Trend Chart */}
       <div className="bg-white rounded-xl p-6 shadow-sm">
         <h3 className="text-lg font-bold text-gray-900 mb-4">
-          Behavior Trend (Monthly)
+          {t("behavior_trend")}
         </h3>
         <div className="h-80">
           <BarChart
@@ -210,13 +212,13 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
             series={[
               {
                 data: positivePoints,
-                label: "Positive Points",
+                label: t("positive_points"),
                 color: "#10b981",
                 stack: "total",
               },
               {
                 data: negativePoints,
-                label: "Incidents",
+                label: t("incidents"),
                 color: "#ef4444",
                 stack: "total",
               },
@@ -240,7 +242,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
-                Positive Reinforcement
+                {t("positive_reinforcement")}
               </button>
               <button
                 onClick={() => setActiveView("incidents")}
@@ -250,12 +252,14 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
-                Incidents
+                {t("incidents")}
               </button>
             </div>
             <button className="flex items-center gap-2 px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors">
               <Plus className="w-4 h-4" />
-              Add {activeView === "reinforcement" ? "Points" : "Incident"}
+              {activeView === "reinforcement"
+                ? t("add_points")
+                : t("add_incident")}
             </button>
           </div>
         </div>

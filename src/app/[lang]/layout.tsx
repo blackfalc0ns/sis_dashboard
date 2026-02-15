@@ -1,14 +1,12 @@
 import { NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
-import { Montserrat } from "next/font/google";
+import { Cairo } from "next/font/google";
 import "../globals.css";
 
-import SideBarTopNav from "@/components/layout/SideBarTopNav";
-
-const montserrat = Montserrat({
-  variable: "--font-montserrat",
-  subsets: ["latin"],
+const cairo = Cairo({
+  variable: "--font-cairo",
+  subsets: ["latin", "arabic"],
   weight: ["400", "500", "600", "700"],
 });
 
@@ -31,7 +29,7 @@ export default async function DashboardLayout({
 
   return (
     <html lang={lang} dir={lang === "ar" ? "rtl" : "ltr"}>
-      <body className={`${montserrat.variable} antialiased`}>
+      <body className={`${cairo.variable} antialiased`}>
         <NextIntlClientProvider locale={lang} messages={messages}>
           {children}
         </NextIntlClientProvider>

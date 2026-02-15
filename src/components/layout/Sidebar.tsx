@@ -173,21 +173,21 @@ export default function Sidebar({
                       }
                       className={`
                         w-full flex items-center gap-3 rounded-[6px]
-                        transition-all duration-200 text-left
+                        transition-all duration-200 
                         ${isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"}
                         ${
                           isActive
                             ? "bg-[#036b80] text-white shadow-sm"
                             : "text-gray-700 hover:bg-teal-50 hover:text-[#036b80]"
                         }
-                      `}
+                      ${isArabic ? "text-right" : "text-left"}`}
                     >
                       <Icon
                         className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-[#A4B4CB]"}`}
                       />
                       {isOpen && (
                         <>
-                          <span className="font-semibold text-[16px] flex-1">
+                          <span className="font-semibold text-[15px] flex-1">
                             {isArabic ? item.label_ar : item.label_en}
                           </span>
                           <ChevronDown
@@ -233,7 +233,9 @@ export default function Sidebar({
 
                   {/* Children Items */}
                   {hasChildren && isExpanded && isOpen && (
-                    <div className="relative mt-1 space-y-1 ml-4 before:content-[''] before:absolute before:w-[2px] before:h-full before:top-0 before:bg-[#036b80]">
+                    <div
+                      className={`relative mt-1 space-y-1 ${isArabic ? "mr-6" : "ml-6"} before:content-[''] before:absolute before:w-[2px] before:h-full before:top-0 before:bg-[#036b80]`}
+                    >
                       {item.children!.map((child) => {
                         const ChildIcon = child.icon;
                         const childHref = isArabic
@@ -248,7 +250,8 @@ export default function Sidebar({
                             onClick={() => handleItemClick(child.key)}
                             className={`
                               w-full flex items-center gap-3 rounded-[6px]
-                              transition-all duration-200 text-left px-4 py-2.5
+                              transition-all duration-200 px-4 py-2.5
+                              ${isArabic ? "text-right" : "text-left"}
                               ${
                                 isChildActive
                                   ? "bg-teal-50 text-[#036b80] font-semibold"
@@ -257,9 +260,28 @@ export default function Sidebar({
                             `}
                           >
                             <ChildIcon className="w-4 h-4 shrink-0" />
-                            <span className="text-sm">
+                            <span className="text-xs flex-1">
                               {isArabic ? child.label_ar : child.label_en}
                             </span>
+                            {child.badge &&
+                              (() => {
+                                const count = child.badge();
+                                if (count === 0) return null;
+
+                                // Use amber badge for decisions (waitlisted), blue for others
+                                const badgeClass =
+                                  child.key === "admissions-decisions"
+                                    ? "bg-amber-100 text-amber-700 border border-amber-200"
+                                    : "bg-blue-100 text-blue-700 border border-blue-200";
+
+                                return (
+                                  <span
+                                    className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold rounded-full ${badgeClass}`}
+                                  >
+                                    {count > 99 ? "99+" : count}
+                                  </span>
+                                );
+                              })()}
                           </Link>
                         );
                       })}

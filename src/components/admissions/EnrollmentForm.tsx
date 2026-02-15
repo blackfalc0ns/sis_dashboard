@@ -3,6 +3,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { X, FileText, Download } from "lucide-react";
 import { Application } from "@/types/admissions";
 
@@ -19,6 +20,8 @@ export default function EnrollmentForm({
   onClose,
   onSubmit,
 }: EnrollmentFormProps) {
+  const t = useTranslations("admissions.enrollment_form");
+  const locale = useLocale();
   const [formData, setFormData] = useState({
     academicYear: "2024-2025",
     grade: application.gradeRequested,
@@ -28,17 +31,24 @@ export default function EnrollmentForm({
 
   if (!isOpen) return null;
 
+  const studentName =
+    locale === "ar"
+      ? application.full_name_ar ||
+        application.studentNameArabic ||
+        application.studentName
+      : application.full_name_en || application.studentName;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
   };
 
   const handleGenerateAcceptance = () => {
-    alert("Acceptance letter generated successfully!");
+    alert(t("acceptance_generated"));
   };
 
   const handleGenerateContract = () => {
-    alert("Initial contract generated successfully!");
+    alert(t("contract_generated"));
   };
 
   return (
@@ -46,11 +56,9 @@ export default function EnrollmentForm({
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full">
         <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">
-              Enrollment Setup
-            </h2>
+            <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
             <p className="text-sm text-gray-500">
-              {application.studentName} - {application.id}
+              {studentName} - {application.id}
             </p>
           </div>
           <button
@@ -67,11 +75,11 @@ export default function EnrollmentForm({
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 rounded-full bg-emerald-600" />
               <p className="text-sm font-semibold text-emerald-900">
-                Application Accepted
+                {t("application_accepted")}
               </p>
             </div>
             <p className="text-sm text-emerald-700">
-              This student has been accepted and is ready for enrollment.
+              {t("ready_for_enrollment")}
             </p>
           </div>
 
@@ -79,7 +87,7 @@ export default function EnrollmentForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Academic Year *
+                {t("academic_year")} *
               </label>
               <select
                 value={formData.academicYear}
@@ -96,7 +104,7 @@ export default function EnrollmentForm({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Grade *
+                {t("grade")} *
               </label>
               <select
                 value={formData.grade}
@@ -108,7 +116,7 @@ export default function EnrollmentForm({
               >
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((grade) => (
                   <option key={grade} value={`Grade ${grade}`}>
-                    Grade {grade}
+                    {t("grade_option", { grade })}
                   </option>
                 ))}
               </select>
@@ -116,7 +124,7 @@ export default function EnrollmentForm({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Section *
+                {t("section")} *
               </label>
               <select
                 value={formData.section}
@@ -126,17 +134,25 @@ export default function EnrollmentForm({
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
                 required
               >
-                <option value="">Select section</option>
-                <option value="A">Section A</option>
-                <option value="B">Section B</option>
-                <option value="C">Section C</option>
-                <option value="D">Section D</option>
+                <option value="">{t("select_section")}</option>
+                <option value="A">
+                  {t("section_option", { section: "A" })}
+                </option>
+                <option value="B">
+                  {t("section_option", { section: "B" })}
+                </option>
+                <option value="C">
+                  {t("section_option", { section: "C" })}
+                </option>
+                <option value="D">
+                  {t("section_option", { section: "D" })}
+                </option>
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Date *
+                {t("start_date")} *
               </label>
               <input
                 type="date"
@@ -153,7 +169,7 @@ export default function EnrollmentForm({
           {/* Document Generation */}
           <div className="border-t border-gray-200 pt-6">
             <h3 className="font-semibold text-gray-900 mb-4">
-              Generate Documents
+              {t("generate_documents")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <button
@@ -162,7 +178,7 @@ export default function EnrollmentForm({
                 className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
               >
                 <FileText className="w-4 h-4" />
-                Generate Acceptance Letter
+                {t("generate_acceptance")}
               </button>
               <button
                 type="button"
@@ -170,7 +186,7 @@ export default function EnrollmentForm({
                 className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
               >
                 <Download className="w-4 h-4" />
-                Generate Initial Contract
+                {t("generate_contract")}
               </button>
             </div>
           </div>
@@ -182,13 +198,13 @@ export default function EnrollmentForm({
               onClick={onClose}
               className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="submit"
               className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm transition-colors"
             >
-              Confirm Enrollment
+              {t("confirm_enrollment")}
             </button>
           </div>
         </form>

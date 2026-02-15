@@ -4,6 +4,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import {
   ArrowLeft,
   User,
@@ -17,7 +18,12 @@ import {
   Clock,
   Award,
 } from "lucide-react";
-import { mockStudents } from "@/data/mockStudents";
+import * as studentsService from "@/services/studentsService";
+import {
+  getStudentDisplayName,
+  getStudentDisplayId,
+  getStudentGrade,
+} from "@/utils/studentUtils";
 import OverviewTab from "./profile-tabs/OverviewTab";
 import PersonalInfoTab from "./profile-tabs/PersonalInfoTab";
 import GuardiansTab from "./profile-tabs/GuardiansTab";
@@ -28,6 +34,7 @@ import DocumentsTab from "./profile-tabs/DocumentsTab";
 import MedicalTab from "./profile-tabs/MedicalTab";
 import NotesTab from "./profile-tabs/NotesTab";
 import TimelineTab from "./profile-tabs/TimelineTab";
+import EnrollmentHistoryTab from "./profile-tabs/EnrollmentHistoryTab";
 
 interface StudentProfilePageProps {
   studentId: string;
@@ -37,6 +44,7 @@ type TabKey =
   | "overview"
   | "personal"
   | "guardians"
+  | "enrollment"
   | "attendance"
   | "grades"
   | "behavior"
@@ -46,45 +54,47 @@ type TabKey =
   | "timeline";
 
 const tabs = [
-  { key: "overview" as TabKey, label: "Overview", icon: Activity },
-  { key: "personal" as TabKey, label: "Personal Info", icon: User },
-  { key: "guardians" as TabKey, label: "Guardians", icon: Users },
-  { key: "attendance" as TabKey, label: "Attendance", icon: Calendar },
-  { key: "grades" as TabKey, label: "Grades", icon: GraduationCap },
-  { key: "behavior" as TabKey, label: "Behavior", icon: Award },
-  { key: "documents" as TabKey, label: "Documents", icon: FileText },
-  { key: "medical" as TabKey, label: "Medical", icon: Heart },
-  { key: "notes" as TabKey, label: "Notes", icon: MessageSquare },
-  { key: "timeline" as TabKey, label: "Timeline", icon: Clock },
+  { key: "overview" as TabKey, labelKey: "tabs.overview", icon: Activity },
+  { key: "personal" as TabKey, labelKey: "tabs.personal_info", icon: User },
+  { key: "guardians" as TabKey, labelKey: "tabs.guardians", icon: Users },
+  {
+    key: "enrollment" as TabKey,
+    labelKey: "tabs.enrollment_history",
+    icon: GraduationCap,
+  },
+  { key: "attendance" as TabKey, labelKey: "tabs.attendance", icon: Calendar },
+  { key: "grades" as TabKey, labelKey: "tabs.grades", icon: GraduationCap },
+  { key: "behavior" as TabKey, labelKey: "tabs.behavior", icon: Award },
+  { key: "documents" as TabKey, labelKey: "tabs.documents", icon: FileText },
+  { key: "medical" as TabKey, labelKey: "tabs.medical", icon: Heart },
+  { key: "notes" as TabKey, labelKey: "tabs.notes", icon: MessageSquare },
+  { key: "timeline" as TabKey, labelKey: "tabs.timeline", icon: Clock },
 ];
 
 export default function StudentProfilePage({
   studentId,
 }: StudentProfilePageProps) {
+  const t = useTranslations("students_guardians.profile");
+  const locale = useLocale();
   const router = useRouter();
   const params = useParams();
   const lang = (params.lang as string) || "en";
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
 
   const student = useMemo(() => {
-    console.log("Looking for student with ID:", studentId);
-    console.log(
-      "Available students:",
-      mockStudents.map((s) => ({ id: s.id, name: s.name })),
-    );
-    return mockStudents.find((s) => s.id === studentId);
+    return studentsService.getStudentById(studentId);
   }, [studentId]);
-
+  console.log(student);
   if (!student) {
     return (
       <div className="p-6">
         <div className="bg-white rounded-xl p-12 text-center">
-          <p className="text-gray-500 mb-4">Student not found</p>
+          <p className="text-gray-500 mb-4">{t("student_not_found")}</p>
           <button
             onClick={() => router.push(`/${lang}/students-guardians/students`)}
             className="text-[#036b80] hover:text-[#024d5c] font-medium"
           >
-            Back to Students List
+            {t("back_to_students")}
           </button>
         </div>
       </div>
@@ -92,7 +102,7 @@ export default function StudentProfilePage({
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case "active":
         return "bg-green-100 text-green-700";
       case "withdrawn":
@@ -103,6 +113,26 @@ export default function StudentProfilePage({
         return "bg-gray-100 text-gray-700";
     }
   };
+
+  const getStatusLabel = (status: string) => {
+    const statusKey = status.toLowerCase() as
+      | "active"
+      | "withdrawn"
+      | "suspended";
+    return t(`status.${statusKey}`);
+  };
+
+  const studentName =
+    locale === "ar"
+      ? (student as any).full_name_ar ||
+        (student as any).studentNameArabic ||
+        (student as any).full_name_en ||
+        (student as any).studentName ||
+        getStudentDisplayName(student)
+      : (student as any).full_name_en ||
+        (student as any).studentName ||
+        (student as any).full_name_ar ||
+        getStudentDisplayName(student);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -115,16 +145,16 @@ export default function StudentProfilePage({
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Back to Students</span>
+            <span className="text-sm font-medium">{t("back_to_students")}</span>
           </button>
 
           {/* Student Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             {/* Avatar */}
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#036b80] to-[#024d5c] flex items-center justify-center text-white text-2xl font-bold shrink-0">
-              {student.name
+              {studentName
                 .split(" ")
-                .map((n) => n[0])
+                .map((n: string) => n[0])
                 .join("")
                 .toUpperCase()}
             </div>
@@ -133,25 +163,29 @@ export default function StudentProfilePage({
             <div className="flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {student.name}
+                  {studentName}
                 </h1>
                 <span
                   className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(student.status)}`}
                 >
-                  {student.status.charAt(0).toUpperCase() +
-                    student.status.slice(1)}
+                  {getStatusLabel(student.status)}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                 <span className="flex items-center gap-1">
-                  <span className="font-medium">ID:</span> {student.student_id}
+                  <span className="font-medium">{t("student_id")}:</span>{" "}
+                  {getStudentDisplayId(student)}
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="font-medium">Grade:</span> {student.grade}
+                  <span className="font-medium">{t("grade")}:</span>{" "}
+                  {locale === "ar" &&
+                  getStudentGrade(student).startsWith("Grade ")
+                    ? `الصف ${getStudentGrade(student).replace("Grade ", "")}`
+                    : getStudentGrade(student)}
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="font-medium">Section:</span>{" "}
-                  {student.section}
+                  <span className="font-medium">{t("section")}:</span>{" "}
+                  {student.section ?? t("na")}
                 </span>
               </div>
             </div>
@@ -174,7 +208,7 @@ export default function StudentProfilePage({
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  {tab.label}
+                  {t(tab.labelKey)}
                 </button>
               );
             })}
@@ -187,6 +221,9 @@ export default function StudentProfilePage({
         {activeTab === "overview" && <OverviewTab student={student} />}
         {activeTab === "personal" && <PersonalInfoTab student={student} />}
         {activeTab === "guardians" && <GuardiansTab student={student} />}
+        {activeTab === "enrollment" && (
+          <EnrollmentHistoryTab student={student} />
+        )}
         {activeTab === "attendance" && <AttendanceTab student={student} />}
         {activeTab === "grades" && <GradesTab student={student} />}
         {activeTab === "behavior" && <BehaviorTab student={student} />}

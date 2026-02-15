@@ -115,15 +115,15 @@ export default function WeeklyInquiriesChart({
       <div className="mt-4 pt-4 border-t border-gray-200">
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className="text-xs text-gray-500">Total Leads</p>
+            <p className="text-xs text-gray-500">{t("total_leads")}</p>
             <p className="text-sm font-semibold text-gray-900">{totalLeads}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Peak Week</p>
+            <p className="text-xs text-gray-500">{t("peak_week")}</p>
             <p className="text-sm font-semibold text-gray-900">{maxValue}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Avg per Week</p>
+            <p className="text-xs text-gray-500">{t("avg_per_week")}</p>
             <p className="text-sm font-semibold text-gray-900">{avgPerWeek}</p>
           </div>
         </div>

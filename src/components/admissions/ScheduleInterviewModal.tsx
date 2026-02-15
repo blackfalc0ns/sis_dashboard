@@ -3,6 +3,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
 
 interface ScheduleInterviewModalProps {
@@ -18,6 +19,7 @@ export default function ScheduleInterviewModal({
   onSubmit,
   studentName,
 }: ScheduleInterviewModalProps) {
+  const t = useTranslations("admissions.schedule_interview");
   const [formData, setFormData] = useState({
     date: "",
     time: "",
@@ -40,10 +42,10 @@ export default function ScheduleInterviewModal({
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full">
         <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">
-              Schedule Interview
-            </h2>
-            <p className="text-sm text-gray-500">Student: {studentName}</p>
+            <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
+            <p className="text-sm text-gray-500">
+              {t("student")}: {studentName}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -57,7 +59,7 @@ export default function ScheduleInterviewModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date *
+                {t("date")} *
               </label>
               <input
                 type="date"
@@ -72,7 +74,7 @@ export default function ScheduleInterviewModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Time *
+                {t("time")} *
               </label>
               <input
                 type="time"
@@ -87,7 +89,7 @@ export default function ScheduleInterviewModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Interviewer *
+                {t("interviewer")} *
               </label>
               <input
                 type="text"
@@ -96,14 +98,14 @@ export default function ScheduleInterviewModal({
                   setFormData({ ...formData, interviewer: e.target.value })
                 }
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
-                placeholder="Enter interviewer name"
+                placeholder={t("interviewer_placeholder")}
                 required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Location *
+                {t("location")} *
               </label>
               <input
                 type="text"
@@ -112,14 +114,14 @@ export default function ScheduleInterviewModal({
                   setFormData({ ...formData, location: e.target.value })
                 }
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
-                placeholder="Admin Office"
+                placeholder={t("location_placeholder")}
                 required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Duration (minutes)
+                {t("duration")}
               </label>
               <select
                 value={formData.duration}
@@ -128,17 +130,17 @@ export default function ScheduleInterviewModal({
                 }
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
               >
-                <option value="15">15 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="45">45 minutes</option>
-                <option value="60">60 minutes</option>
+                <option value="15">{t("minutes", { count: 15 })}</option>
+                <option value="30">{t("minutes", { count: 30 })}</option>
+                <option value="45">{t("minutes", { count: 45 })}</option>
+                <option value="60">{t("minutes", { count: 60 })}</option>
               </select>
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes
+              {t("notes")}
             </label>
             <textarea
               value={formData.notes}
@@ -147,7 +149,7 @@ export default function ScheduleInterviewModal({
               }
               rows={3}
               className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm resize-none"
-              placeholder="Interview preparation notes..."
+              placeholder={t("notes_placeholder")}
             />
           </div>
 
@@ -157,13 +159,13 @@ export default function ScheduleInterviewModal({
               onClick={onClose}
               className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="submit"
               className="px-6 py-2.5 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg font-medium text-sm transition-colors"
             >
-              Schedule Interview
+              {t("submit")}
             </button>
           </div>
         </form>

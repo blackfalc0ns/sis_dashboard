@@ -4,27 +4,66 @@ import { BarChart } from "@mui/x-charts/BarChart";
 import { ArrowRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { mockStudents } from "@/data/mockStudents";
 
 type Filter = "all" | "new" | "existing";
 
 export default function StudentsPerGradeChart() {
   const t = useTranslations("students_per_grade");
-
+  const t_grades = useTranslations("admissions.grades");
   const [filter, setFilter] = useState<Filter>("all");
 
-  // keys ثابتة عشان الترجمة
-  const gradeKeys = ["g1", "g2", "g3", "g4", "g5", "g6"] as const;
+  // Helper function to convert grade name to translation key
+  const getGradeKey = (grade: string): string => {
+    // Convert "Grade 6" to "grade_6", "KG1" to "kg1", etc.
+    return grade.toLowerCase().replace(/\s+/g, "_");
+  };
 
-  const grades = useMemo(() => gradeKeys.map((k) => t(`grades.${k}`)), [t]);
+  // Calculate real data from mockStudents
+  const { grades, newStudents, existingStudents } = useMemo(() => {
+    // Group students by grade
+    const gradeGroups = mockStudents.reduce(
+      (acc, student) => {
+        const grade = student.gradeRequested;
+        if (!acc[grade]) {
+          acc[grade] = { new: 0, existing: 0 };
+        }
+        // Students with recent submission dates are "new", others are "existing"
+        const submittedYear = new Date(student.submittedDate).getFullYear();
+        if (submittedYear >= 2026) {
+          acc[grade].new++;
+        } else {
+          acc[grade].existing++;
+        }
+        return acc;
+      },
+      {} as Record<string, { new: number; existing: number }>,
+    );
 
-  const newStudents = [45, 52, 48, 50, 46, 44];
-  const existingStudents = [180, 175, 182, 178, 185, 180];
+    // Sort grades
+    const sortedGrades = Object.keys(gradeGroups).sort();
+    const newStudents = sortedGrades.map((g) => gradeGroups[g].new);
+    const existingStudents = sortedGrades.map((g) => gradeGroups[g].existing);
+
+    return { grades: sortedGrades, newStudents, existingStudents };
+  }, []);
+
+  // Get translated grade labels for display
+  const translatedGrades = useMemo(
+    () =>
+      grades.map((grade) => {
+        const key = getGradeKey(grade);
+        const translated = t_grades(key);
+        return translated !== key ? translated : grade;
+      }),
+    [grades, t_grades],
+  );
 
   const data = useMemo(() => {
     if (filter === "new") return newStudents;
     if (filter === "existing") return existingStudents;
     return newStudents.map((val, idx) => val + existingStudents[idx]);
-  }, [filter]);
+  }, [filter, newStudents, existingStudents]);
 
   const highestIndex = useMemo(() => {
     let maxIdx = 0;
@@ -34,7 +73,7 @@ export default function StudentsPerGradeChart() {
     return maxIdx;
   }, [data]);
 
-  const highestGradeLabel = grades[highestIndex];
+  const highestGradeLabel = translatedGrades[highestIndex];
 
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm">
@@ -64,7 +103,7 @@ export default function StudentsPerGradeChart() {
 
       <div className="h-48">
         <BarChart
-          xAxis={[{ data: grades, scaleType: "band" }]}
+          xAxis={[{ data: translatedGrades, scaleType: "band" }]}
           series={[{ data, color: "#036b80" }]}
           height={180}
           margin={{ top: 10, bottom: 30, left: 40, right: 10 }}

@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import {
   Search,
   Filter,
@@ -20,11 +20,12 @@ import DateRangeFilter, { DateRangeValue } from "./DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
 import { downloadCSV, generateFilename } from "@/utils/simpleExport";
 import { formatDecisionsForExport } from "@/utils/admissionsExportUtils";
-import { mockApplications } from "@/data/mockAdmissions";
+import { mockApplications, mockDecisions } from "@/data/mockAdmissions";
 import { Decision, DecisionType, Application } from "@/types/admissions";
 
 export default function DecisionsList() {
   const t = useTranslations("admissions.decisions");
+  const locale = useLocale();
   const [selectedApplication, setSelectedApplication] =
     useState<Application | null>(null);
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
@@ -39,17 +40,32 @@ export default function DecisionsList() {
   const [customStartDate, setCustomStartDate] = useState<string>("");
   const [customEndDate, setCustomEndDate] = useState<string>("");
 
-  // Get applications with decisions
+  // Get applications with decisions by linking decisions array to applications
   const applicationsWithDecisions = useMemo(() => {
-    return mockApplications
-      .filter((app) => app.decision)
-      .map((app) => ({
-        ...app.decision!,
-        studentName: app.studentName,
-        grade: app.gradeRequested,
-        application: app,
-      }));
-  }, []);
+    return mockDecisions
+      .map((decision) => {
+        const application = mockApplications.find(
+          (app) => app.id === decision.applicationId,
+        );
+
+        if (!application) {
+          return null;
+        }
+
+        return {
+          ...decision,
+          studentName:
+            locale === "ar"
+              ? application.full_name_ar ||
+                application.studentNameArabic ||
+                application.studentName
+              : application.full_name_en || application.studentName,
+          grade: application.gradeRequested,
+          application: application,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+  }, [locale]);
 
   // Filter and search decisions
   const filteredDecisions = useMemo(() => {
@@ -181,7 +197,10 @@ export default function DecisionsList() {
   };
 
   const handleExport = () => {
-    const formattedData = formatDecisionsForExport(mockApplications);
+    const formattedData = formatDecisionsForExport(
+      mockApplications,
+      mockDecisions,
+    );
     const filename = generateFilename("decisions", "csv");
     downloadCSV(formattedData, filename);
   };

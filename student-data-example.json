@@ -1,0 +1,484 @@
+{
+  "description": "Complete Student Data Example - ERP Architecture",
+  "architecture": "Lead → Application → Test → Interview → Decision → Enrollment → Student",
+  "student": {
+    "id": "STU-APP-2024-001",
+    "applicationId": "APP-2024-001",
+    "leadId": "L001",
+    "student_id": "STU-APP-2024-001",
+    "full_name_ar": "أحمد حسن",
+    "full_name_en": "Ahmed Hassan",
+    "name": "Ahmed Hassan",
+    "gender": "Male",
+    "dateOfBirth": "2014-05-15",
+    "date_of_birth": "2014-05-15",
+    "nationality": "UAE",
+    "status": "Active",
+    "gradeRequested": "Grade 6",
+    "source": "walk_in",
+    "submittedDate": "2026-01-10",
+    "contact": {
+      "address_line": "Al Wasl Road, Villa 45",
+      "city": "Dubai",
+      "district": "Jumeirah",
+      "student_phone": "",
+      "student_email": ""
+    },
+    "created_at": "2026-01-10",
+    "updated_at": "2026-01-10",
+    "notes": "Student identity and contact information from admissions. ERP fields (grade, section, term, performance) moved to enrollment data."
+  },
+  "enrollment": {
+    "enrollmentId": "ENR-2026-001",
+    "studentId": "STU-APP-2024-001",
+    "academicYear": "2026-2027",
+    "grade": "Grade 6",
+    "section": "A",
+    "enrollmentDate": "2026-01-10",
+    "status": "active",
+    "notes": "One enrollment per student per academic year. Contains current grade and section assignment."
+  },
+  "terms": [
+    {
+      "termId": "ENR-2026-001-T1",
+      "enrollmentId": "ENR-2026-001",
+      "term": "Term 1",
+      "startDate": "2026-09-01",
+      "endDate": "2026-12-15",
+      "attendancePercentage": 92,
+      "gradeAverage": 85,
+      "riskFlags": [],
+      "notes": "Performance data is deterministic (seeded by studentId-T1). No risk flags as attendance and grades are above thresholds."
+    },
+    {
+      "termId": "ENR-2026-001-T2",
+      "enrollmentId": "ENR-2026-001",
+      "term": "Term 2",
+      "startDate": "2027-01-05",
+      "endDate": "2027-03-20",
+      "attendancePercentage": 88,
+      "gradeAverage": 82,
+      "riskFlags": ["attendance"],
+      "notes": "Attendance dropped below 90%, triggering attendance risk flag. Values are deterministic (seeded by studentId-T2)."
+    },
+    {
+      "termId": "ENR-2026-001-T3",
+      "enrollmentId": "ENR-2026-001",
+      "term": "Term 3",
+      "startDate": "2027-04-01",
+      "endDate": "2027-06-20",
+      "attendancePercentage": 95,
+      "gradeAverage": 88,
+      "riskFlags": [],
+      "notes": "Improved performance in final term. Values are deterministic (seeded by studentId-T3)."
+    }
+  ],
+  "yearToDateAverages": {
+    "attendance": 92,
+    "gradeAverage": 85,
+    "riskFlags": ["attendance"],
+    "notes": "Calculated by averaging all three terms. Risk flags aggregated from all terms."
+  },
+  "classTeacher": {
+    "assignmentId": "CTA-2026-G6-A",
+    "academicYear": "2026-2027",
+    "grade": "Grade 6",
+    "section": "A",
+    "teacherId": "T001",
+    "teacherName": "Ms. Sarah Johnson",
+    "teacherNameArabic": "السيدة سارة جونسون",
+    "notes": "Homeroom/class teacher for Grade 6 Section A"
+  },
+  "subjectTeachers": [
+    {
+      "assignmentId": "STA-2026-G6-A-MATH",
+      "academicYear": "2026-2027",
+      "grade": "Grade 6",
+      "section": "A",
+      "subject": "Mathematics",
+      "teacherId": "T101",
+      "teacherName": "Dr. Ahmed Al-Mansoori",
+      "teacherNameArabic": "الدكتور أحمد المنصوري"
+    },
+    {
+      "assignmentId": "STA-2026-G6-A-SCI",
+      "academicYear": "2026-2027",
+      "grade": "Grade 6",
+      "section": "A",
+      "subject": "Science",
+      "teacherId": "T102",
+      "teacherName": "Ms. Sarah Johnson",
+      "teacherNameArabic": "السيدة سارة جونسون"
+    },
+    {
+      "assignmentId": "STA-2026-G6-A-ENG",
+      "academicYear": "2026-2027",
+      "grade": "Grade 6",
+      "section": "A",
+      "subject": "English",
+      "teacherId": "T103",
+      "teacherName": "Mr. John Smith",
+      "teacherNameArabic": "السيد جون سميث"
+    },
+    {
+      "assignmentId": "STA-2026-G6-A-ARA",
+      "academicYear": "2026-2027",
+      "grade": "Grade 6",
+      "section": "A",
+      "subject": "Arabic",
+      "teacherId": "T104",
+      "teacherName": "Ms. Fatima Al-Zaabi",
+      "teacherNameArabic": "السيدة فاطمة الزعابي"
+    },
+    {
+      "assignmentId": "STA-2026-G6-A-ISL",
+      "academicYear": "2026-2027",
+      "grade": "Grade 6",
+      "section": "A",
+      "subject": "Islamic Studies",
+      "teacherId": "T105",
+      "teacherName": "Sheikh Mohammed Hassan",
+      "teacherNameArabic": "الشيخ محمد حسن"
+    }
+  ],
+  "guardians": [
+    {
+      "guardianId": "G001",
+      "full_name": "Hassan Ahmed",
+      "relation": "father",
+      "phone_primary": "+971-50-123-4567",
+      "phone_secondary": "+971-4-123-4567",
+      "email": "hassan.ahmed@email.com",
+      "national_id": "784-1990-1234567-1",
+      "job_title": "Engineer",
+      "workplace": "Emirates Engineering",
+      "is_primary": true,
+      "can_pickup": true,
+      "can_receive_notifications": true,
+      "notes": "Primary guardian - father"
+    },
+    {
+      "guardianId": "G002",
+      "full_name": "Aisha Hassan",
+      "relation": "mother",
+      "phone_primary": "+971-50-123-4568",
+      "phone_secondary": "",
+      "email": "aisha.hassan@email.com",
+      "national_id": "784-1992-1234568-2",
+      "job_title": "Doctor",
+      "workplace": "Dubai Hospital",
+      "is_primary": false,
+      "can_pickup": true,
+      "can_receive_notifications": true,
+      "notes": "Secondary guardian - mother"
+    }
+  ],
+  "guardianLinks": [
+    {
+      "studentId": "STU-APP-2024-001",
+      "guardianId": "G001",
+      "relation": "father",
+      "is_primary": true
+    },
+    {
+      "studentId": "STU-APP-2024-001",
+      "guardianId": "G002",
+      "relation": "mother",
+      "is_primary": false
+    }
+  ],
+  "medicalProfile": {
+    "studentId": "STU-APP-2024-001",
+    "blood_type": "A+",
+    "allergies": null,
+    "notes": "None",
+    "emergency_plan": null,
+    "notes_field": "Blood type is deterministically selected using seededPick(studentId-blood, bloodTypes)"
+  },
+  "documents": [
+    {
+      "id": "SDOC-DOC-001-001",
+      "studentId": "STU-APP-2024-001",
+      "type": "Birth Certificate",
+      "name": "birth_certificate_ahmed.pdf",
+      "status": "complete",
+      "uploadedDate": "2026-01-10"
+    },
+    {
+      "id": "SDOC-DOC-001-002",
+      "studentId": "STU-APP-2024-001",
+      "type": "Passport",
+      "name": "passport_ahmed.pdf",
+      "status": "complete",
+      "uploadedDate": "2026-01-10"
+    },
+    {
+      "id": "SDOC-DOC-001-003",
+      "studentId": "STU-APP-2024-001",
+      "type": "Previous School Records",
+      "name": "school_records_ahmed.pdf",
+      "status": "complete",
+      "uploadedDate": "2026-01-12"
+    },
+    {
+      "id": "SDOC-DOC-001-004",
+      "studentId": "STU-APP-2024-001",
+      "type": "Medical Records",
+      "name": "medical_ahmed.pdf",
+      "status": "complete",
+      "uploadedDate": "2026-01-15"
+    }
+  ],
+  "notes": [
+    {
+      "id": "NOTE-STU-APP-2024-001-1",
+      "studentId": "STU-APP-2024-001",
+      "date": "2026-02-01T00:00:00.000Z",
+      "category": "academic",
+      "note": "Excellent progress in mathematics this term",
+      "visibility": "internal",
+      "created_by": "Ms. Sarah Johnson",
+      "notes_field": "Category and note content are deterministically selected using seededPick()"
+    },
+    {
+      "id": "NOTE-STU-APP-2024-001-2",
+      "studentId": "STU-APP-2024-001",
+      "date": "2026-02-08T00:00:00.000Z",
+      "category": "behavioral",
+      "note": "Shows great leadership skills in group activities",
+      "visibility": "visible_to_guardian",
+      "created_by": "Ms. Sarah Johnson"
+    },
+    {
+      "id": "NOTE-STU-APP-2024-001-3",
+      "studentId": "STU-APP-2024-001",
+      "date": "2026-02-15T00:00:00.000Z",
+      "category": "general",
+      "note": "Student interested in joining robotics club",
+      "visibility": "internal",
+      "created_by": "Ms. Sarah Johnson"
+    }
+  ],
+  "timeline": [
+    {
+      "id": "EVT-STU-APP-2024-001-1",
+      "studentId": "STU-APP-2024-001",
+      "type": "application_submitted",
+      "date": "2026-01-10",
+      "title": "Application Submitted",
+      "meta": {
+        "grade": "Grade 6",
+        "source": "walk_in"
+      }
+    },
+    {
+      "id": "EVT-STU-APP-2024-001-2",
+      "studentId": "STU-APP-2024-001",
+      "type": "document_uploaded",
+      "date": "2026-01-10",
+      "title": "Document Uploaded: Birth Certificate",
+      "meta": {
+        "documentType": "Birth Certificate",
+        "documentName": "birth_certificate_ahmed.pdf"
+      }
+    },
+    {
+      "id": "EVT-STU-APP-2024-001-3",
+      "studentId": "STU-APP-2024-001",
+      "type": "document_uploaded",
+      "date": "2026-01-10",
+      "title": "Document Uploaded: Passport",
+      "meta": {
+        "documentType": "Passport",
+        "documentName": "passport_ahmed.pdf"
+      }
+    },
+    {
+      "id": "EVT-STU-APP-2024-001-4",
+      "studentId": "STU-APP-2024-001",
+      "type": "document_uploaded",
+      "date": "2026-01-12",
+      "title": "Document Uploaded: Previous School Records",
+      "meta": {
+        "documentType": "Previous School Records",
+        "documentName": "school_records_ahmed.pdf"
+      }
+    },
+    {
+      "id": "EVT-STU-APP-2024-001-5",
+      "studentId": "STU-APP-2024-001",
+      "type": "document_uploaded",
+      "date": "2026-01-15",
+      "title": "Document Uploaded: Medical Records",
+      "meta": {
+        "documentType": "Medical Records",
+        "documentName": "medical_ahmed.pdf"
+      }
+    },
+    {
+      "id": "EVT-STU-APP-2024-001-6",
+      "studentId": "STU-APP-2024-001",
+      "type": "test_scheduled",
+      "date": "2026-01-20",
+      "title": "Placement Test Scheduled",
+      "meta": {
+        "testType": "Placement Test",
+        "location": "Main Campus - Room 101"
+      }
+    },
+    {
+      "id": "EVT-STU-APP-2024-001-7",
+      "studentId": "STU-APP-2024-001",
+      "type": "test_completed",
+      "date": "2026-01-20",
+      "title": "Placement Test Completed",
+      "meta": {
+        "score": 85,
+        "maxScore": 100
+      }
+    },
+    {
+      "id": "EVT-STU-APP-2024-001-8",
+      "studentId": "STU-APP-2024-001",
+      "type": "interview_scheduled",
+      "date": "2026-01-27",
+      "title": "Interview Scheduled",
+      "meta": {
+        "interviewer": "Dr. Sarah Johnson",
+        "location": "Admin Building - Office 205"
+      }
+    },
+    {
+      "id": "EVT-STU-APP-2024-001-9",
+      "studentId": "STU-APP-2024-001",
+      "type": "interview_completed",
+      "date": "2026-01-27",
+      "title": "Interview Completed",
+      "meta": {
+        "interviewer": "Dr. Sarah Johnson",
+        "rating": 5
+      }
+    },
+    {
+      "id": "EVT-STU-APP-2024-001-10",
+      "studentId": "STU-APP-2024-001",
+      "type": "decision_made",
+      "date": "2026-02-01",
+      "title": "Application Accepted",
+      "meta": {
+        "decision": "accept",
+        "decidedBy": "Admissions Committee"
+      }
+    }
+  ],
+  "admissionsHistory": {
+    "lead": {
+      "id": "L001",
+      "name": "Hassan Ahmed",
+      "phone": "+971-50-123-4567",
+      "email": "hassan.ahmed@email.com",
+      "channel": "Walk-in",
+      "status": "Contacted",
+      "owner": "Sarah Johnson",
+      "createdAt": "2026-01-05",
+      "gradeInterest": "Grade 6",
+      "source": "walk_in"
+    },
+    "application": {
+      "id": "APP-2024-001",
+      "leadId": "L001",
+      "status": "accepted",
+      "submittedDate": "2026-01-10",
+      "notes": "Excellent student, interested in STEM"
+    },
+    "test": {
+      "id": "TEST-001",
+      "applicationId": "APP-2024-001",
+      "type": "Placement Test",
+      "subject": "General",
+      "date": "2026-01-20",
+      "time": "09:00 AM",
+      "location": "Main Campus - Room 101",
+      "proctor": "Dr. Sarah Johnson",
+      "status": "completed",
+      "score": 85,
+      "maxScore": 100,
+      "notes": "Strong performance in mathematics and science"
+    },
+    "interview": {
+      "id": "INT-001",
+      "applicationId": "APP-2024-001",
+      "date": "2026-01-27",
+      "time": "02:00 PM",
+      "interviewer": "Dr. Sarah Johnson",
+      "location": "Admin Building - Office 205",
+      "status": "completed",
+      "rating": 5,
+      "notes": "Confident and well-prepared. Shows genuine interest in STEM programs. Strongly recommend acceptance."
+    },
+    "decision": {
+      "id": "DEC-001",
+      "applicationId": "APP-2024-001",
+      "decision": "accept",
+      "reason": "Strong academic performance and test scores. Excellent interview.",
+      "decisionDate": "2026-02-01",
+      "decidedBy": "Admissions Committee"
+    }
+  },
+  "dataArchitecture": {
+    "separationOfConcerns": {
+      "admissionsData": "Lead, Application, Test, Interview, Decision - stored in mockDataLinked.ts",
+      "studentIdentity": "Student core fields (name, DOB, nationality, contact) - stored in mockDataLinked.ts",
+      "erpData": "Enrollment, Terms, Teacher Assignments - stored in separate ERP files"
+    },
+    "deterministicValues": {
+      "method": "Seeded random number generation using LCG algorithm",
+      "benefits": [
+        "UI values don't change on reload",
+        "Consistent test results",
+        "Reproducible bug reports"
+      ],
+      "examples": {
+        "attendance": "seededNumber(studentId-T1, 85, 100) = 92",
+        "gradeAverage": "seededNumber(studentId-T1-avg, 70, 100) = 85",
+        "bloodType": "seededPick(studentId-blood, bloodTypes) = A+",
+        "noteCount": "seededNumber(studentId-notecount, 2, 4) = 3"
+      }
+    },
+    "linkingKeys": {
+      "Student.id": "Primary key for all student data",
+      "Enrollment.studentId": "Links to Student.id",
+      "Term.enrollmentId": "Links to Enrollment.enrollmentId",
+      "Guardian.guardianId": "Primary key for guardians",
+      "GuardianLink": "Many-to-many relationship between students and guardians"
+    }
+  },
+  "usageExamples": {
+    "getStudentWithAllData": {
+      "description": "How to fetch complete student information",
+      "steps": [
+        "1. Get student: getStudentById('STU-APP-2024-001')",
+        "2. Get enrollment: getEnrollmentByStudentId(student.id)",
+        "3. Get current term: getCurrentTerm(enrollment.enrollmentId)",
+        "4. Get all terms: getTermsByEnrollmentId(enrollment.enrollmentId)",
+        "5. Get YTD averages: getYearToDateAverages(enrollment.enrollmentId)",
+        "6. Get class teacher: getClassTeacher(enrollment.grade, enrollment.section)",
+        "7. Get subject teachers: getSubjectTeachers(enrollment.grade, enrollment.section)",
+        "8. Get guardians: getStudentGuardians(student.id)",
+        "9. Get medical profile: getStudentMedicalProfile(student.id)",
+        "10. Get documents: getStudentDocuments(student.id)",
+        "11. Get notes: getStudentNotes(student.id)",
+        "12. Get timeline: getStudentTimeline(student.id)"
+      ]
+    },
+    "displayStudentCard": {
+      "name": "student.full_name_en",
+      "grade": "enrollment.grade",
+      "section": "enrollment.section",
+      "attendance": "currentTerm.attendancePercentage",
+      "average": "currentTerm.gradeAverage",
+      "riskFlags": "currentTerm.riskFlags",
+      "classTeacher": "classTeacher.teacherName"
+    }
+  }
+}

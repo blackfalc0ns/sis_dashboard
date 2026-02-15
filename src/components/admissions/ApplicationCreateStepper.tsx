@@ -3,6 +3,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   X,
   Plus,
@@ -46,6 +47,7 @@ export default function ApplicationCreateStepper({
   onClose,
   onSubmit,
 }: ApplicationCreateStepperProps) {
+  const t = useTranslations("admissions.create_application");
   const [currentStep, setCurrentStep] = useState(0);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [guardianErrors, setGuardianErrors] = useState<ValidationErrors[]>([
@@ -94,9 +96,15 @@ export default function ApplicationCreateStepper({
   });
 
   const steps = [
-    { label: "Student Info", description: "Basic information" },
-    { label: "Guardian Info", description: "Parent/Guardian details" },
-    { label: "Documents", description: "Required documents" },
+    {
+      label: t("steps.student_info"),
+      description: t("steps.student_info_desc"),
+    },
+    {
+      label: t("steps.guardian_info"),
+      description: t("steps.guardian_info_desc"),
+    },
+    { label: t("steps.documents"), description: t("steps.documents_desc") },
   ];
 
   if (!isOpen) return null;
@@ -118,35 +126,35 @@ export default function ApplicationCreateStepper({
     const newErrors: ValidationErrors = {};
 
     if (!formData.full_name_ar.trim()) {
-      newErrors.full_name_ar = "Arabic name is required";
+      newErrors.full_name_ar = t("errors.full_name_ar_required");
     }
     if (!formData.full_name_en.trim()) {
-      newErrors.full_name_en = "English name is required";
+      newErrors.full_name_en = t("errors.full_name_en_required");
     }
     if (!formData.gender) {
-      newErrors.gender = "Gender is required";
+      newErrors.gender = t("errors.gender_required");
     }
     if (!formData.date_of_birth) {
-      newErrors.date_of_birth = "Date of birth is required";
+      newErrors.date_of_birth = t("errors.date_of_birth_required");
     } else {
       const birthDate = new Date(formData.date_of_birth);
       const today = new Date();
       const age = today.getFullYear() - birthDate.getFullYear();
       if (age < 3 || age > 20) {
-        newErrors.date_of_birth = "Student age must be between 3 and 20 years";
+        newErrors.date_of_birth = t("errors.age_range");
       }
     }
     if (!formData.nationality.trim()) {
-      newErrors.nationality = "Nationality is required";
+      newErrors.nationality = t("errors.nationality_required");
     }
     if (!formData.grade_requested) {
-      newErrors.grade_requested = "Grade is required";
+      newErrors.grade_requested = t("errors.grade_required");
     }
     if (formData.student_email && !validateEmail(formData.student_email)) {
-      newErrors.student_email = "Invalid email format";
+      newErrors.student_email = t("errors.invalid_email");
     }
     if (formData.student_phone && !validatePhone(formData.student_phone)) {
-      newErrors.student_phone = "Invalid phone format (min 10 digits)";
+      newErrors.student_phone = t("errors.invalid_phone");
     }
 
     setErrors(newErrors);
@@ -161,28 +169,28 @@ export default function ApplicationCreateStepper({
       const guardianError: ValidationErrors = {};
 
       if (!guardian.full_name.trim()) {
-        guardianError.full_name = "Guardian name is required";
+        guardianError.full_name = t("errors.guardian_name_required");
         isValid = false;
       }
       if (!guardian.phone_primary.trim()) {
-        guardianError.phone_primary = "Primary phone is required";
+        guardianError.phone_primary = t("errors.phone_primary_required");
         isValid = false;
       } else if (!validatePhone(guardian.phone_primary)) {
-        guardianError.phone_primary = "Invalid phone format (min 10 digits)";
+        guardianError.phone_primary = t("errors.invalid_phone");
         isValid = false;
       }
       if (!guardian.email.trim()) {
-        guardianError.email = "Email is required";
+        guardianError.email = t("errors.email_required");
         isValid = false;
       } else if (!validateEmail(guardian.email)) {
-        guardianError.email = "Invalid email format";
+        guardianError.email = t("errors.invalid_email");
         isValid = false;
       }
       if (
         guardian.phone_secondary &&
         !validatePhone(guardian.phone_secondary)
       ) {
-        guardianError.phone_secondary = "Invalid phone format";
+        guardianError.phone_secondary = t("errors.invalid_phone");
         isValid = false;
       }
 
@@ -194,7 +202,7 @@ export default function ApplicationCreateStepper({
     if (!hasPrimary) {
       newGuardianErrors[0] = {
         ...newGuardianErrors[0],
-        is_primary: "At least one guardian must be marked as primary",
+        is_primary: t("errors.primary_guardian_required"),
       };
       isValid = false;
     }
@@ -212,7 +220,7 @@ export default function ApplicationCreateStepper({
     );
 
     if (!hasAnyDocument) {
-      newErrors.documents = "At least one document must be uploaded";
+      newErrors.documents = t("errors.document_required");
     }
 
     setErrors(newErrors);
@@ -231,7 +239,7 @@ export default function ApplicationCreateStepper({
       if (!allowedTypes.includes(file.type)) {
         setErrors({
           ...errors,
-          [docKey]: "Only PDF, JPG, and PNG files are allowed",
+          [docKey]: t("errors.file_type_error"),
         });
         return;
       }
@@ -241,7 +249,7 @@ export default function ApplicationCreateStepper({
       if (file.size > maxSize) {
         setErrors({
           ...errors,
-          [docKey]: "File size must be less than 5MB",
+          [docKey]: t("errors.file_size_error"),
         });
         return;
       }
@@ -407,12 +415,8 @@ export default function ApplicationCreateStepper({
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">
-              Create Application
-            </h2>
-            <p className="text-sm text-gray-500">
-              Fill in the required information
-            </p>
+            <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
+            <p className="text-sm text-gray-500">{t("subtitle")}</p>
           </div>
           <button
             onClick={onClose}
@@ -433,12 +437,12 @@ export default function ApplicationCreateStepper({
           {currentStep === 0 && (
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-900 mb-4">
-                Student Information
+                {t("student.title")}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name (Arabic) *
+                    {t("student.full_name_ar")} *
                   </label>
                   <input
                     type="text"
@@ -449,7 +453,7 @@ export default function ApplicationCreateStepper({
                     className={`w-full px-4 py-2.5 bg-white border rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm ${
                       errors.full_name_ar ? "border-red-500" : "border-gray-200"
                     }`}
-                    placeholder="أدخل اسم الطالب"
+                    placeholder={t("student.full_name_ar_placeholder")}
                     dir="rtl"
                   />
                   {errors.full_name_ar && (
@@ -461,7 +465,7 @@ export default function ApplicationCreateStepper({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name (English) *
+                    {t("student.full_name_en")} *
                   </label>
                   <input
                     type="text"
@@ -472,7 +476,7 @@ export default function ApplicationCreateStepper({
                     className={`w-full px-4 py-2.5 bg-white border rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm ${
                       errors.full_name_en ? "border-red-500" : "border-gray-200"
                     }`}
-                    placeholder="Enter student name"
+                    placeholder={t("student.full_name_en_placeholder")}
                   />
                   {errors.full_name_en && (
                     <div className="flex items-center gap-1 mt-1 text-red-600 text-xs">
@@ -483,7 +487,7 @@ export default function ApplicationCreateStepper({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date of Birth *
+                    {t("student.date_of_birth")} *
                   </label>
                   <input
                     type="date"
@@ -506,7 +510,7 @@ export default function ApplicationCreateStepper({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Gender *
+                    {t("student.gender")} *
                   </label>
                   <select
                     value={formData.gender}
@@ -515,9 +519,9 @@ export default function ApplicationCreateStepper({
                       errors.gender ? "border-red-500" : "border-gray-200"
                     }`}
                   >
-                    <option value="">Select gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
+                    <option value="">{t("student.grade_placeholder")}</option>
+                    <option value="male">{t("student.male")}</option>
+                    <option value="female">{t("student.female")}</option>
                   </select>
                   {errors.gender && (
                     <div className="flex items-center gap-1 mt-1 text-red-600 text-xs">
@@ -528,7 +532,7 @@ export default function ApplicationCreateStepper({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nationality *
+                    {t("student.nationality")} *
                   </label>
                   <input
                     type="text"
@@ -539,7 +543,7 @@ export default function ApplicationCreateStepper({
                     className={`w-full px-4 py-2.5 bg-white border rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm ${
                       errors.nationality ? "border-red-500" : "border-gray-200"
                     }`}
-                    placeholder="Enter nationality"
+                    placeholder={t("student.nationality_placeholder")}
                   />
                   {errors.nationality && (
                     <div className="flex items-center gap-1 mt-1 text-red-600 text-xs">
@@ -550,7 +554,7 @@ export default function ApplicationCreateStepper({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Grade Requested *
+                    {t("student.grade_requested")} *
                   </label>
                   <select
                     value={formData.grade_requested}
@@ -563,7 +567,7 @@ export default function ApplicationCreateStepper({
                         : "border-gray-200"
                     }`}
                   >
-                    <option value="">Select grade</option>
+                    <option value="">{t("student.grade_placeholder")}</option>
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((grade) => (
                       <option key={grade} value={grade.toString()}>
                         Grade {grade}
@@ -579,7 +583,7 @@ export default function ApplicationCreateStepper({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Address Line
+                    {t("student.address_line")}
                   </label>
                   <input
                     type="text"
@@ -588,36 +592,36 @@ export default function ApplicationCreateStepper({
                       updateFormData("address_line", e.target.value)
                     }
                     className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
-                    placeholder="Street address"
+                    placeholder={t("student.address_placeholder")}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    City
+                    {t("student.city")}
                   </label>
                   <input
                     type="text"
                     value={formData.city}
                     onChange={(e) => updateFormData("city", e.target.value)}
                     className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
-                    placeholder="City"
+                    placeholder={t("student.city_placeholder")}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    District
+                    {t("student.district")}
                   </label>
                   <input
                     type="text"
                     value={formData.district}
                     onChange={(e) => updateFormData("district", e.target.value)}
                     className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
-                    placeholder="District"
+                    placeholder={t("student.district_placeholder")}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Student Phone
+                    {t("student.student_phone")}
                   </label>
                   <input
                     type="tel"
@@ -630,7 +634,7 @@ export default function ApplicationCreateStepper({
                         ? "border-red-500"
                         : "border-gray-200"
                     }`}
-                    placeholder="+20 100 111 2223"
+                    placeholder={t("guardian.phone_primary_placeholder")}
                   />
                   {errors.student_phone && (
                     <div className="flex items-center gap-1 mt-1 text-red-600 text-xs">
@@ -641,7 +645,7 @@ export default function ApplicationCreateStepper({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Student Email
+                    {t("student.student_email")}
                   </label>
                   <input
                     type="email"
@@ -654,7 +658,7 @@ export default function ApplicationCreateStepper({
                         ? "border-red-500"
                         : "border-gray-200"
                     }`}
-                    placeholder="student@email.com"
+                    placeholder={t("guardian.email_placeholder")}
                   />
                   {errors.student_email && (
                     <div className="flex items-center gap-1 mt-1 text-red-600 text-xs">
@@ -665,7 +669,7 @@ export default function ApplicationCreateStepper({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Previous School
+                    {t("student.previous_school")}
                   </label>
                   <input
                     type="text"
@@ -674,12 +678,12 @@ export default function ApplicationCreateStepper({
                       updateFormData("previous_school", e.target.value)
                     }
                     className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
-                    placeholder="Enter previous school"
+                    placeholder={t("student.previous_school_placeholder")}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Medical Conditions
+                    {t("student.medical_conditions")}
                   </label>
                   <input
                     type="text"
@@ -688,32 +692,19 @@ export default function ApplicationCreateStepper({
                       updateFormData("medical_conditions", e.target.value)
                     }
                     className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
-                    placeholder="Any medical conditions"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Join Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.join_date}
-                    onChange={(e) =>
-                      updateFormData("join_date", e.target.value)
-                    }
-                    className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
+                    placeholder={t("student.medical_placeholder")}
                   />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Notes
+                    {t("student.notes")}
                   </label>
                   <textarea
                     value={formData.notes}
                     onChange={(e) => updateFormData("notes", e.target.value)}
                     rows={3}
                     className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm resize-none"
-                    placeholder="Additional notes..."
+                    placeholder={t("student.notes_placeholder")}
                   />
                 </div>
               </div>
@@ -725,7 +716,7 @@ export default function ApplicationCreateStepper({
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900">
-                  Guardian Information
+                  {t("guardian.title")}
                 </h3>
                 <button
                   type="button"
@@ -733,7 +724,7 @@ export default function ApplicationCreateStepper({
                   className="flex items-center gap-2 px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors"
                 >
                   <Plus className="w-4 h-4" />
-                  Add Guardian
+                  {t("buttons.add_guardian")}
                 </button>
               </div>
 
@@ -744,10 +735,10 @@ export default function ApplicationCreateStepper({
                 >
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-medium text-gray-900">
-                      Guardian {index + 1}
+                      {t("guardian.title")} {index + 1}
                       {guardian.is_primary && (
                         <span className="ml-2 text-xs bg-[#036b80] text-white px-2 py-1 rounded-full">
-                          Primary
+                          {t("guardian.is_primary")}
                         </span>
                       )}
                     </h4>
@@ -758,7 +749,7 @@ export default function ApplicationCreateStepper({
                         className="flex items-center gap-1 text-red-600 hover:text-red-700 text-sm font-medium"
                       >
                         <Trash2 className="w-4 h-4" />
-                        Remove
+                        {t("buttons.remove_guardian")}
                       </button>
                     )}
                   </div>
@@ -766,7 +757,7 @@ export default function ApplicationCreateStepper({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Full Name *
+                        {t("guardian.full_name")} *
                       </label>
                       <input
                         type="text"
@@ -779,7 +770,7 @@ export default function ApplicationCreateStepper({
                             ? "border-red-500"
                             : "border-gray-200"
                         }`}
-                        placeholder="Enter guardian name"
+                        placeholder={t("guardian.full_name_placeholder")}
                       />
                       {guardianErrors[index]?.full_name && (
                         <div className="flex items-center gap-1 mt-1 text-red-600 text-xs">
@@ -790,7 +781,7 @@ export default function ApplicationCreateStepper({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Relation *
+                        {t("guardian.relation")} *
                       </label>
                       <select
                         value={guardian.relation}
@@ -799,14 +790,14 @@ export default function ApplicationCreateStepper({
                         }
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
                       >
-                        <option value="father">Father</option>
-                        <option value="mother">Mother</option>
-                        <option value="guardian">Guardian</option>
+                        <option value="father">{t("guardian.father")}</option>
+                        <option value="mother">{t("guardian.mother")}</option>
+                        <option value="guardian">{t("guardian.other")}</option>
                       </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Primary Phone *
+                        {t("guardian.phone_primary")} *
                       </label>
                       <input
                         type="tel"
@@ -819,7 +810,7 @@ export default function ApplicationCreateStepper({
                             ? "border-red-500"
                             : "border-gray-200"
                         }`}
-                        placeholder="+20 100 111 2223"
+                        placeholder={t("guardian.phone_primary_placeholder")}
                       />
                       {guardianErrors[index]?.phone_primary && (
                         <div className="flex items-center gap-1 mt-1 text-red-600 text-xs">
@@ -830,7 +821,7 @@ export default function ApplicationCreateStepper({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Secondary Phone
+                        {t("guardian.phone_secondary")}
                       </label>
                       <input
                         type="tel"
@@ -847,7 +838,7 @@ export default function ApplicationCreateStepper({
                             ? "border-red-500"
                             : "border-gray-200"
                         }`}
-                        placeholder="+20 100 111 2224"
+                        placeholder={t("guardian.phone_primary_placeholder")}
                       />
                       {guardianErrors[index]?.phone_secondary && (
                         <div className="flex items-center gap-1 mt-1 text-red-600 text-xs">
@@ -858,7 +849,7 @@ export default function ApplicationCreateStepper({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Email *
+                        {t("guardian.email")} *
                       </label>
                       <input
                         type="email"
@@ -871,7 +862,7 @@ export default function ApplicationCreateStepper({
                             ? "border-red-500"
                             : "border-gray-200"
                         }`}
-                        placeholder="guardian@email.com"
+                        placeholder={t("guardian.email_placeholder")}
                       />
                       {guardianErrors[index]?.email && (
                         <div className="flex items-center gap-1 mt-1 text-red-600 text-xs">
@@ -882,7 +873,7 @@ export default function ApplicationCreateStepper({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        National ID
+                        {t("guardian.national_id")}
                       </label>
                       <input
                         type="text"
@@ -891,12 +882,12 @@ export default function ApplicationCreateStepper({
                           updateGuardian(index, "national_id", e.target.value)
                         }
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
-                        placeholder="National ID number"
+                        placeholder={t("guardian.national_id_placeholder")}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Job Title
+                        {t("guardian.job_title")}
                       </label>
                       <input
                         type="text"
@@ -905,12 +896,12 @@ export default function ApplicationCreateStepper({
                           updateGuardian(index, "job_title", e.target.value)
                         }
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
-                        placeholder="Engineer"
+                        placeholder={t("guardian.job_title_placeholder")}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Workplace
+                        {t("guardian.workplace")}
                       </label>
                       <input
                         type="text"
@@ -919,7 +910,7 @@ export default function ApplicationCreateStepper({
                           updateGuardian(index, "workplace", e.target.value)
                         }
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
-                        placeholder="Company X"
+                        placeholder={t("guardian.workplace_placeholder")}
                       />
                     </div>
                   </div>
@@ -927,7 +918,7 @@ export default function ApplicationCreateStepper({
                   {/* Guardian Permissions */}
                   <div className="border-t border-gray-200 pt-4">
                     <h5 className="font-medium text-gray-900 mb-3 text-sm">
-                      Permissions
+                      {t("guardian.permissions")}
                     </h5>
                     {guardianErrors[index]?.is_primary && (
                       <div className="flex items-center gap-1 mb-2 text-red-600 text-xs bg-red-50 p-2 rounded">
@@ -965,7 +956,7 @@ export default function ApplicationCreateStepper({
                           className="w-4 h-4 text-[#036b80] border-gray-300 rounded focus:ring-[#036b80]"
                         />
                         <span className="text-sm text-gray-700">
-                          Primary Guardian
+                          {t("guardian.is_primary")}
                         </span>
                       </label>
                       <label className="flex items-center gap-3 cursor-pointer">
@@ -982,7 +973,7 @@ export default function ApplicationCreateStepper({
                           className="w-4 h-4 text-[#036b80] border-gray-300 rounded focus:ring-[#036b80]"
                         />
                         <span className="text-sm text-gray-700">
-                          Can Pickup Student
+                          {t("guardian.can_pickup")}
                         </span>
                       </label>
                       <label className="flex items-center gap-3 cursor-pointer">
@@ -999,7 +990,7 @@ export default function ApplicationCreateStepper({
                           className="w-4 h-4 text-[#036b80] border-gray-300 rounded focus:ring-[#036b80]"
                         />
                         <span className="text-sm text-gray-700">
-                          Can Receive Notifications
+                          {t("guardian.can_receive_notifications")}
                         </span>
                       </label>
                     </div>
@@ -1013,11 +1004,10 @@ export default function ApplicationCreateStepper({
           {currentStep === 2 && (
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-900 mb-4">
-                Required Documents
+                {t("documents.title")}
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                Upload at least one document. Accepted formats: PDF, JPG, PNG
-                (Max 5MB each)
+                {t("documents.subtitle")} - {t("documents.file_types")}
               </p>
 
               {errors.documents && (
@@ -1031,22 +1021,22 @@ export default function ApplicationCreateStepper({
                 {[
                   {
                     key: "birthCertificate",
-                    label: "Birth Certificate",
+                    label: t("documents.birth_certificate"),
                     required: true,
                   },
                   {
                     key: "passportCopy",
-                    label: "Passport Copy",
+                    label: t("documents.passport_copy"),
                     required: false,
                   },
                   {
                     key: "medicalReport",
-                    label: "Medical Report",
+                    label: t("documents.medical_report"),
                     required: false,
                   },
                   {
                     key: "schoolCertificate",
-                    label: "Previous School Certificate",
+                    label: t("documents.school_certificate"),
                     required: false,
                   },
                 ].map((doc) => {
@@ -1084,7 +1074,7 @@ export default function ApplicationCreateStepper({
                             className="flex items-center gap-1 text-red-600 hover:text-red-700 text-xs font-medium"
                           >
                             <FileX className="w-4 h-4" />
-                            Remove
+                            {t("documents.remove")}
                           </button>
                         ) : null}
                       </div>
@@ -1109,7 +1099,7 @@ export default function ApplicationCreateStepper({
                         >
                           <Upload className="w-5 h-5 text-gray-400" />
                           <span className="text-sm text-gray-600">
-                            Click to upload or drag and drop
+                            {t("documents.drag_drop")}
                           </span>
                           <input
                             type="file"
@@ -1138,9 +1128,7 @@ export default function ApplicationCreateStepper({
 
               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-xs text-blue-800">
-                  <strong>Note:</strong> Documents can be uploaded now or added
-                  later from the Application 360 view. At least one document is
-                  required to proceed.
+                  {t("documents.subtitle")}
                 </p>
               </div>
             </div>
@@ -1153,13 +1141,15 @@ export default function ApplicationCreateStepper({
             onClick={currentStep === 0 ? onClose : handleBack}
             className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
           >
-            {currentStep === 0 ? "Cancel" : "Back"}
+            {currentStep === 0 ? t("buttons.cancel") : t("buttons.previous")}
           </button>
           <button
             onClick={handleNext}
             className="px-6 py-2.5 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg font-medium text-sm transition-colors"
           >
-            {currentStep === steps.length - 1 ? "Submit Application" : "Next"}
+            {currentStep === steps.length - 1
+              ? t("buttons.submit")
+              : t("buttons.next")}
           </button>
         </div>
       </div>

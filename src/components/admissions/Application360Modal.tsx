@@ -3,6 +3,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   X,
   FileText,
@@ -40,31 +41,40 @@ export default function Application360Modal({
   onMakeDecision,
   onEnroll,
 }: Application360ModalProps) {
+  const t = useTranslations("admissions.application360");
   const [activeTab, setActiveTab] = useState("details");
 
   if (!isOpen) return null;
 
   const tabs = [
-    { id: "details", label: "Details", icon: <FileText className="w-4 h-4" /> },
-    { id: "guardians", label: "Guardians", icon: <User className="w-4 h-4" /> },
+    {
+      id: "details",
+      label: t("tabs.details"),
+      icon: <FileText className="w-4 h-4" />,
+    },
+    {
+      id: "guardians",
+      label: t("tabs.guardians"),
+      icon: <User className="w-4 h-4" />,
+    },
     {
       id: "documents",
-      label: "Documents",
+      label: t("tabs.documents"),
       icon: <FileCheck className="w-4 h-4" />,
     },
     {
       id: "tests",
-      label: "Tests",
+      label: t("tabs.tests"),
       icon: <ClipboardCheck className="w-4 h-4" />,
     },
     {
       id: "interviews",
-      label: "Interviews",
+      label: t("tabs.interviews"),
       icon: <MessageSquare className="w-4 h-4" />,
     },
     {
       id: "timeline",
-      label: "Timeline",
+      label: t("tabs.timeline"),
       icon: <Calendar className="w-4 h-4" />,
     },
   ];
@@ -76,7 +86,7 @@ export default function Application360Modal({
         <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-gray-900">
-              Application {application.id}
+              {t("header.title")} {application.id}
             </h2>
             <p className="text-sm text-gray-500">
               {application.studentName} - {application.gradeRequested}
@@ -108,17 +118,21 @@ export default function Application360Modal({
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                     <User className="w-4 h-4" />
-                    Student Information
+                    {t("details.student_info")}
                   </h3>
                   <div className="space-y-3">
                     <div>
-                      <p className="text-xs text-gray-500">English Name</p>
+                      <p className="text-xs text-gray-500">
+                        {t("details.english_name")}
+                      </p>
                       <p className="text-sm font-medium text-gray-900">
                         {application.full_name_en || application.studentName}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Arabic Name</p>
+                      <p className="text-xs text-gray-500">
+                        {t("details.arabic_name")}
+                      </p>
                       <p className="text-sm font-medium text-gray-900">
                         {application.full_name_ar ||
                           application.studentNameArabic ||
@@ -127,13 +141,17 @@ export default function Application360Modal({
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <p className="text-xs text-gray-500">Gender</p>
+                        <p className="text-xs text-gray-500">
+                          {t("details.gender")}
+                        </p>
                         <p className="text-sm font-medium text-gray-900">
                           {application.gender || "N/A"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500">Date of Birth</p>
+                        <p className="text-xs text-gray-500">
+                          {t("details.date_of_birth")}
+                        </p>
                         <p className="text-sm font-medium text-gray-900">
                           {application.date_of_birth
                             ? new Date(
@@ -144,13 +162,17 @@ export default function Application360Modal({
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Nationality</p>
+                      <p className="text-xs text-gray-500">
+                        {t("details.nationality")}
+                      </p>
                       <p className="text-sm font-medium text-gray-900">
                         {application.nationality || "N/A"}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Grade Requested</p>
+                      <p className="text-xs text-gray-500">
+                        {t("details.grade_requested")}
+                      </p>
                       <p className="text-sm font-medium text-gray-900">
                         {application.grade_requested ||
                           application.gradeRequested}
@@ -163,12 +185,14 @@ export default function Application360Modal({
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
-                    Contact Information
+                    {t("details.contact_info")}
                   </h3>
                   <div className="space-y-3">
                     {application.address_line && (
                       <div>
-                        <p className="text-xs text-gray-500">Address</p>
+                        <p className="text-xs text-gray-500">
+                          {t("details.address")}
+                        </p>
                         <p className="text-sm font-medium text-gray-900">
                           {application.address_line}
                         </p>
@@ -184,7 +208,8 @@ export default function Application360Modal({
                     {application.student_phone && (
                       <div>
                         <p className="text-xs text-gray-500 flex items-center gap-1">
-                          <Phone className="w-3 h-3" /> Student Phone
+                          <Phone className="w-3 h-3" />{" "}
+                          {t("details.student_phone")}
                         </p>
                         <p className="text-sm font-medium text-gray-900">
                           {application.student_phone}
@@ -194,7 +219,8 @@ export default function Application360Modal({
                     {application.student_email && (
                       <div>
                         <p className="text-xs text-gray-500 flex items-center gap-1">
-                          <Mail className="w-3 h-3" /> Student Email
+                          <Mail className="w-3 h-3" />{" "}
+                          {t("details.student_email")}
                         </p>
                         <p className="text-sm font-medium text-gray-900">
                           {application.student_email}
@@ -209,12 +235,14 @@ export default function Application360Modal({
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                   <FileText className="w-4 h-4" />
-                  Academic Information
+                  {t("details.academic_info")}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {application.previous_school && (
                     <div>
-                      <p className="text-xs text-gray-500">Previous School</p>
+                      <p className="text-xs text-gray-500">
+                        {t("details.previous_school")}
+                      </p>
                       <p className="text-sm font-medium text-gray-900">
                         {application.previous_school}
                       </p>
@@ -223,7 +251,7 @@ export default function Application360Modal({
                   {application.join_date && (
                     <div>
                       <p className="text-xs text-gray-500">
-                        Intended Join Date
+                        {t("details.intended_join_date")}
                       </p>
                       <p className="text-sm font-medium text-gray-900">
                         {new Date(application.join_date).toLocaleDateString()}
@@ -231,7 +259,9 @@ export default function Application360Modal({
                     </div>
                   )}
                   <div>
-                    <p className="text-xs text-gray-500">Application Status</p>
+                    <p className="text-xs text-gray-500">
+                      {t("details.application_status")}
+                    </p>
                     <StatusBadge status={application.status} size="md" />
                   </div>
                 </div>
@@ -242,13 +272,13 @@ export default function Application360Modal({
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                     <Heart className="w-4 h-4" />
-                    Medical & Additional Information
+                    {t("details.medical_additional")}
                   </h3>
                   <div className="space-y-3">
                     {application.medical_conditions && (
                       <div>
                         <p className="text-xs text-gray-500">
-                          Medical Conditions
+                          {t("details.medical_conditions")}
                         </p>
                         <p className="text-sm font-medium text-gray-900">
                           {application.medical_conditions}
@@ -257,7 +287,9 @@ export default function Application360Modal({
                     )}
                     {application.notes && (
                       <div>
-                        <p className="text-xs text-gray-500">Notes</p>
+                        <p className="text-xs text-gray-500">
+                          {t("details.notes")}
+                        </p>
                         <p className="text-sm font-medium text-gray-900">
                           {application.notes}
                         </p>
@@ -271,11 +303,13 @@ export default function Application360Modal({
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  Important Dates
+                  {t("details.important_dates")}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-gray-500">Submitted Date</p>
+                    <p className="text-xs text-gray-500">
+                      {t("details.submitted_date")}
+                    </p>
                     <p className="text-sm font-medium text-gray-900">
                       {new Date(application.submittedDate).toLocaleDateString()}
                     </p>
@@ -283,7 +317,7 @@ export default function Application360Modal({
                   {application.join_date && (
                     <div>
                       <p className="text-xs text-gray-500">
-                        Expected Start Date
+                        {t("details.expected_start_date")}
                       </p>
                       <p className="text-sm font-medium text-gray-900">
                         {new Date(application.join_date).toLocaleDateString()}
@@ -298,7 +332,7 @@ export default function Application360Modal({
           {activeTab === "guardians" && (
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-900">
-                Guardian Information
+                {t("guardians.title")}
               </h3>
               {application.guardians && application.guardians.length > 0 ? (
                 <div className="space-y-4">
@@ -314,7 +348,7 @@ export default function Application360Modal({
                             {guardian.full_name}
                             {guardian.is_primary && (
                               <span className="text-xs bg-[#036b80] text-white px-2 py-0.5 rounded-full">
-                                Primary
+                                {t("guardians.primary")}
                               </span>
                             )}
                           </h4>
@@ -328,7 +362,8 @@ export default function Application360Modal({
                         <div className="space-y-3">
                           <div>
                             <p className="text-xs text-gray-500 flex items-center gap-1">
-                              <Phone className="w-3 h-3" /> Primary Phone
+                              <Phone className="w-3 h-3" />{" "}
+                              {t("guardians.primary_phone")}
                             </p>
                             <p className="text-sm font-medium text-gray-900">
                               {guardian.phone_primary}
@@ -337,7 +372,8 @@ export default function Application360Modal({
                           {guardian.phone_secondary && (
                             <div>
                               <p className="text-xs text-gray-500 flex items-center gap-1">
-                                <Phone className="w-3 h-3" /> Secondary Phone
+                                <Phone className="w-3 h-3" />{" "}
+                                {t("guardians.secondary_phone")}
                               </p>
                               <p className="text-sm font-medium text-gray-900">
                                 {guardian.phone_secondary}
@@ -346,14 +382,17 @@ export default function Application360Modal({
                           )}
                           <div>
                             <p className="text-xs text-gray-500 flex items-center gap-1">
-                              <Mail className="w-3 h-3" /> Email
+                              <Mail className="w-3 h-3" />{" "}
+                              {t("guardians.email")}
                             </p>
                             <p className="text-sm font-medium text-gray-900">
                               {guardian.email}
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs text-gray-500">National ID</p>
+                            <p className="text-xs text-gray-500">
+                              {t("guardians.national_id")}
+                            </p>
                             <p className="text-sm font-medium text-gray-900">
                               {guardian.national_id}
                             </p>
@@ -363,31 +402,34 @@ export default function Application360Modal({
                         <div className="space-y-3">
                           <div>
                             <p className="text-xs text-gray-500 flex items-center gap-1">
-                              <Briefcase className="w-3 h-3" /> Job Title
+                              <Briefcase className="w-3 h-3" />{" "}
+                              {t("guardians.job_title")}
                             </p>
                             <p className="text-sm font-medium text-gray-900">
                               {guardian.job_title}
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs text-gray-500">Workplace</p>
+                            <p className="text-xs text-gray-500">
+                              {t("guardians.workplace")}
+                            </p>
                             <p className="text-sm font-medium text-gray-900">
                               {guardian.workplace}
                             </p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-500 mb-1">
-                              Permissions
+                              {t("guardians.permissions")}
                             </p>
                             <div className="flex flex-wrap gap-2">
                               {guardian.can_pickup && (
                                 <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                                  Can Pickup
+                                  {t("guardians.can_pickup")}
                                 </span>
                               )}
                               {guardian.can_receive_notifications && (
                                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                                  Receives Notifications
+                                  {t("guardians.receives_notifications")}
                                 </span>
                               )}
                             </div>
@@ -400,14 +442,16 @@ export default function Application360Modal({
               ) : (
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-600">
-                    <strong>Primary Guardian:</strong>{" "}
+                    <strong>{t("guardians.primary_guardian")}:</strong>{" "}
                     {application.guardianName}
                   </p>
                   <p className="text-sm text-gray-600 mt-1">
-                    <strong>Phone:</strong> {application.guardianPhone}
+                    <strong>{t("guardians.phone")}:</strong>{" "}
+                    {application.guardianPhone}
                   </p>
                   <p className="text-sm text-gray-600 mt-1">
-                    <strong>Email:</strong> {application.guardianEmail}
+                    <strong>{t("guardians.email")}:</strong>{" "}
+                    {application.guardianEmail}
                   </p>
                 </div>
               )}
@@ -417,7 +461,7 @@ export default function Application360Modal({
           {activeTab === "documents" && (
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-900">
-                Required Documents
+                {t("documents.title")}
               </h3>
               <div className="space-y-2">
                 {application.documents.map((doc) => (
@@ -450,17 +494,19 @@ export default function Application360Modal({
           {activeTab === "tests" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900">Placement Tests</h3>
+                <h3 className="font-semibold text-gray-900">
+                  {t("tests.title")}
+                </h3>
                 <button
                   onClick={onScheduleTest}
                   className="px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors"
                 >
-                  Schedule Test
+                  {t("tests.schedule_test")}
                 </button>
               </div>
               {application.tests.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-8">
-                  No tests scheduled yet
+                  {t("tests.no_tests")}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -475,11 +521,12 @@ export default function Application360Modal({
                             {test.subject} - {test.type}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
-                            {test.date} at {test.time} • {test.location}
+                            {test.date} {t("tests.at")} {test.time} •{" "}
+                            {test.location}
                           </p>
                           {test.score !== undefined && (
                             <p className="text-sm font-medium text-[#036b80] mt-2">
-                              Score: {test.score}/{test.maxScore}
+                              {t("tests.score")}: {test.score}/{test.maxScore}
                             </p>
                           )}
                         </div>
@@ -495,17 +542,19 @@ export default function Application360Modal({
           {activeTab === "interviews" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900">Interviews</h3>
+                <h3 className="font-semibold text-gray-900">
+                  {t("interviews.title")}
+                </h3>
                 <button
                   onClick={onScheduleInterview}
                   className="px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors"
                 >
-                  Schedule Interview
+                  {t("interviews.schedule_interview")}
                 </button>
               </div>
               {application.interviews.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-8">
-                  No interviews scheduled yet
+                  {t("interviews.no_interviews")}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -517,11 +566,12 @@ export default function Application360Modal({
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="text-sm font-medium text-gray-900">
-                            Interview with {interview.interviewer}
+                            {t("interviews.interview_with")}{" "}
+                            {interview.interviewer}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
-                            {interview.date} at {interview.time} •{" "}
-                            {interview.location}
+                            {interview.date} {t("interviews.at")}{" "}
+                            {interview.time} • {interview.location}
                           </p>
                           {interview.notes && (
                             <p className="text-sm text-gray-600 mt-2">
@@ -530,7 +580,7 @@ export default function Application360Modal({
                           )}
                           {interview.rating && (
                             <p className="text-sm font-medium text-[#036b80] mt-2">
-                              Rating: {interview.rating}/5
+                              {t("interviews.rating")}: {interview.rating}/5
                             </p>
                           )}
                         </div>
@@ -546,14 +596,14 @@ export default function Application360Modal({
           {activeTab === "timeline" && (
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-900">
-                Application Timeline
+                {t("timeline.title")}
               </h3>
               <div className="space-y-4">
                 <div className="flex gap-3">
                   <div className="w-2 h-2 rounded-full bg-[#036b80] mt-1.5" />
                   <div>
                     <p className="text-sm font-medium text-gray-900">
-                      Application Submitted
+                      {t("timeline.application_submitted")}
                     </p>
                     <p className="text-xs text-gray-500">
                       {new Date(application.submittedDate).toLocaleString()}
@@ -565,10 +615,10 @@ export default function Application360Modal({
                     <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">
-                        {test.subject} Test{" "}
+                        {test.subject} {t("timeline.test")}{" "}
                         {test.status === "completed"
-                          ? "Completed"
-                          : "Scheduled"}
+                          ? t("timeline.completed")
+                          : t("timeline.scheduled")}
                       </p>
                       <p className="text-xs text-gray-500">{test.date}</p>
                     </div>
@@ -579,10 +629,10 @@ export default function Application360Modal({
                     <div className="w-2 h-2 rounded-full bg-purple-500 mt-1.5" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">
-                        Interview{" "}
+                        {t("timeline.interview")}{" "}
                         {interview.status === "completed"
-                          ? "Completed"
-                          : "Scheduled"}
+                          ? t("timeline.completed")
+                          : t("timeline.scheduled")}
                       </p>
                       <p className="text-xs text-gray-500">{interview.date}</p>
                     </div>
@@ -593,7 +643,8 @@ export default function Application360Modal({
                     <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">
-                        Decision: {application.decision.decision.toUpperCase()}
+                        {t("timeline.decision")}:{" "}
+                        {application.decision.decision.toUpperCase()}
                       </p>
                       <p className="text-xs text-gray-500">
                         {application.decision.decisionDate}
@@ -613,26 +664,26 @@ export default function Application360Modal({
               onClick={onScheduleTest}
               className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
             >
-              Schedule Test
+              {t("actions.schedule_test")}
             </button>
             <button
               onClick={onScheduleInterview}
               className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
             >
-              Schedule Interview
+              {t("actions.schedule_interview")}
             </button>
             <button
               onClick={onMakeDecision}
               className="px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors"
             >
-              Make Decision
+              {t("actions.make_decision")}
             </button>
             {application.status === "accepted" && (
               <button
                 onClick={onEnroll}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
               >
-                Enroll Student
+                {t("actions.enroll_student")}
               </button>
             )}
           </div>

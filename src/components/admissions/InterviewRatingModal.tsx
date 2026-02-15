@@ -3,6 +3,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { X, Star } from "lucide-react";
 import { Interview } from "@/types/admissions";
 
@@ -19,6 +20,7 @@ export default function InterviewRatingModal({
   onClose,
   onSubmit,
 }: InterviewRatingModalProps) {
+  const t = useTranslations("admissions.interview_rating_modal");
   const [rating, setRating] = useState<number>(interview.rating || 0);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
   const [notes, setNotes] = useState<string>(interview.notes || "");
@@ -30,7 +32,7 @@ export default function InterviewRatingModal({
     const newErrors: Record<string, string> = {};
 
     if (rating === 0) {
-      newErrors.rating = "Please select a rating";
+      newErrors.rating = t("errors.rating_required");
     }
 
     setErrors(newErrors);
@@ -47,11 +49,31 @@ export default function InterviewRatingModal({
   };
 
   const ratingLabels = [
-    { value: 1, label: "Poor", description: "Not suitable for admission" },
-    { value: 2, label: "Below Average", description: "Significant concerns" },
-    { value: 3, label: "Average", description: "Meets basic requirements" },
-    { value: 4, label: "Good", description: "Strong candidate" },
-    { value: 5, label: "Excellent", description: "Outstanding candidate" },
+    {
+      value: 1,
+      label: t("rating_labels.poor"),
+      description: t("rating_descriptions.poor"),
+    },
+    {
+      value: 2,
+      label: t("rating_labels.below_average"),
+      description: t("rating_descriptions.below_average"),
+    },
+    {
+      value: 3,
+      label: t("rating_labels.average"),
+      description: t("rating_descriptions.average"),
+    },
+    {
+      value: 4,
+      label: t("rating_labels.good"),
+      description: t("rating_descriptions.good"),
+    },
+    {
+      value: 5,
+      label: t("rating_labels.excellent"),
+      description: t("rating_descriptions.excellent"),
+    },
   ];
 
   const getRatingColor = (value: number) => {
@@ -72,9 +94,9 @@ export default function InterviewRatingModal({
         <div className="sticky top-0 bg-gradient-to-r from-[#036b80] to-[#024d5c] text-white p-6 rounded-t-xl">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold">Rate Interview</h2>
+              <h2 className="text-2xl font-bold">{t("title")}</h2>
               <p className="text-sm text-white/80 mt-1">
-                Provide feedback for {interview.studentName}&apos;s interview
+                {t("subtitle", { studentName: interview.studentName })}
               </p>
             </div>
             <button
@@ -91,25 +113,25 @@ export default function InterviewRatingModal({
           <div className="bg-gray-50 rounded-lg p-4 space-y-2">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-gray-600">Interviewer:</span>
+                <span className="text-gray-600">{t("interviewer")}:</span>
                 <span className="ml-2 font-semibold text-gray-900">
                   {interview.interviewer}
                 </span>
               </div>
               <div>
-                <span className="text-gray-600">Location:</span>
+                <span className="text-gray-600">{t("location")}:</span>
                 <span className="ml-2 font-semibold text-gray-900">
                   {interview.location}
                 </span>
               </div>
               <div>
-                <span className="text-gray-600">Date:</span>
+                <span className="text-gray-600">{t("date")}:</span>
                 <span className="ml-2 font-semibold text-gray-900">
                   {new Date(interview.date).toLocaleDateString()}
                 </span>
               </div>
               <div>
-                <span className="text-gray-600">Time:</span>
+                <span className="text-gray-600">{t("time")}:</span>
                 <span className="ml-2 font-semibold text-gray-900">
                   {interview.time}
                 </span>
@@ -120,7 +142,7 @@ export default function InterviewRatingModal({
           {/* Rating Selection */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Overall Rating <span className="text-red-500">*</span>
+              {t("overall_rating")} <span className="text-red-500">*</span>
             </label>
 
             {/* Star Rating */}
@@ -174,7 +196,7 @@ export default function InterviewRatingModal({
           {/* Rating Scale Guide */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h4 className="text-sm font-semibold text-blue-900 mb-2">
-              Rating Guide
+              {t("rating_guide")}
             </h4>
             <div className="space-y-1 text-xs text-blue-800">
               {ratingLabels.map((item) => (
@@ -182,7 +204,7 @@ export default function InterviewRatingModal({
                   <div className="flex items-center gap-1 min-w-[80px]">
                     <Star className="w-3 h-3" fill="currentColor" />
                     <span className="font-semibold">
-                      {item.value} Star{item.value > 1 ? "s" : ""}:
+                      {t("star_count", { count: item.value })}:
                     </span>
                   </div>
                   <span>{item.description}</span>
@@ -194,38 +216,30 @@ export default function InterviewRatingModal({
           {/* Interview Notes */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Interview Notes
+              {t("interview_notes")}
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={6}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent resize-none"
-              placeholder="Provide detailed feedback about the interview:
-• Communication skills
-• Motivation and interest
-• Academic readiness
-• Behavioral observations
-• Strengths and areas of concern
-• Recommendation"
+              placeholder={t("notes_placeholder")}
             />
-            <p className="text-xs text-gray-500 mt-1">
-              These notes will be reviewed by the admissions committee
-            </p>
+            <p className="text-xs text-gray-500 mt-1">{t("notes_help")}</p>
           </div>
 
           {/* Quick Assessment Checklist */}
           <div className="bg-gray-50 rounded-lg p-4">
             <h4 className="text-sm font-semibold text-gray-700 mb-3">
-              Quick Assessment Areas
+              {t("assessment_areas")}
             </h4>
             <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-              <div>✓ Communication Skills</div>
-              <div>✓ Academic Interest</div>
-              <div>✓ Motivation Level</div>
-              <div>✓ Social Skills</div>
-              <div>✓ Maturity Level</div>
-              <div>✓ Parent Engagement</div>
+              <div>✓ {t("areas.communication")}</div>
+              <div>✓ {t("areas.academic_interest")}</div>
+              <div>✓ {t("areas.motivation")}</div>
+              <div>✓ {t("areas.social_skills")}</div>
+              <div>✓ {t("areas.maturity")}</div>
+              <div>✓ {t("areas.parent_engagement")}</div>
             </div>
           </div>
 
@@ -236,13 +250,13 @@ export default function InterviewRatingModal({
               onClick={onClose}
               className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="submit"
               className="flex-1 px-6 py-3 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg font-medium transition-colors"
             >
-              Save Rating
+              {t("save_rating")}
             </button>
           </div>
         </form>

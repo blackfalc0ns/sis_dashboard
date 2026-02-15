@@ -3,6 +3,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Phone,
   MessageCircle,
@@ -38,6 +39,7 @@ export default function ActivityLog({
   activities,
   onAddActivity,
 }: ActivityLogProps) {
+  const t = useTranslations("admissions.activity_log");
   const [showForm, setShowForm] = useState(false);
   const [activityType, setActivityType] = useState<ActivityType>("Call");
   const [message, setMessage] = useState("");
@@ -54,13 +56,13 @@ export default function ActivityLog({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-gray-900">Activity Timeline</h3>
+        <h3 className="font-semibold text-gray-900">{t("title")}</h3>
         <button
           onClick={() => setShowForm(!showForm)}
           className="flex items-center gap-2 px-3 py-1.5 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Add Activity
+          {t("add_activity")}
         </button>
       </div>
 
@@ -72,22 +74,22 @@ export default function ActivityLog({
         >
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Activity Type
+              {t("activity_type")}
             </label>
             <select
               value={activityType}
               onChange={(e) => setActivityType(e.target.value as ActivityType)}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
             >
-              <option value="Call">Phone Call</option>
-              <option value="WhatsApp">WhatsApp Message</option>
-              <option value="Email">Email</option>
-              <option value="Note">Note</option>
+              <option value="Call">{t("types.call")}</option>
+              <option value="WhatsApp">{t("types.whatsapp")}</option>
+              <option value="Email">{t("types.email")}</option>
+              <option value="Note">{t("types.note")}</option>
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Message
+              {t("message")}
             </label>
             <textarea
               value={message}
@@ -95,7 +97,7 @@ export default function ActivityLog({
               rows={3}
               required
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm resize-none"
-              placeholder="Describe the activity..."
+              placeholder={t("message_placeholder")}
             />
           </div>
           <div className="flex items-center gap-2">
@@ -103,7 +105,7 @@ export default function ActivityLog({
               type="submit"
               className="px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors"
             >
-              Add Activity
+              {t("add_activity")}
             </button>
             <button
               type="button"
@@ -113,7 +115,7 @@ export default function ActivityLog({
               }}
               className="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
             >
-              Cancel
+              {t("cancel")}
             </button>
           </div>
         </form>
@@ -122,7 +124,7 @@ export default function ActivityLog({
       {/* Activity List */}
       {activities.length === 0 ? (
         <div className="text-center py-8 text-gray-500 text-sm">
-          No activities recorded yet
+          {t("no_activities")}
         </div>
       ) : (
         <div className="space-y-3">
@@ -139,7 +141,7 @@ export default function ActivityLog({
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-sm font-medium text-gray-900">
-                    {activity.type}
+                    {t(`types.${activity.type.toLowerCase()}`)}
                   </p>
                   <span className="text-xs text-gray-500 shrink-0">
                     {new Date(activity.createdAt).toLocaleString()}
@@ -147,7 +149,7 @@ export default function ActivityLog({
                 </div>
                 <p className="text-sm text-gray-600 mt-1">{activity.message}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  by {activity.createdBy}
+                  {t("by")} {activity.createdBy}
                 </p>
               </div>
             </div>

@@ -3,6 +3,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
 
 interface ScheduleTestModalProps {
@@ -18,6 +19,7 @@ export default function ScheduleTestModal({
   onSubmit,
   studentName,
 }: ScheduleTestModalProps) {
+  const t = useTranslations("admissions.schedule_test");
   const [formData, setFormData] = useState({
     type: "Placement Test",
     subject: "",
@@ -42,10 +44,10 @@ export default function ScheduleTestModal({
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full">
         <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">
-              Schedule Placement Test
-            </h2>
-            <p className="text-sm text-gray-500">Student: {studentName}</p>
+            <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
+            <p className="text-sm text-gray-500">
+              {t("student")}: {studentName}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -59,7 +61,7 @@ export default function ScheduleTestModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Test Type *
+                {t("test_type")} *
               </label>
               <select
                 value={formData.type}
@@ -69,15 +71,15 @@ export default function ScheduleTestModal({
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
                 required
               >
-                <option value="Placement Test">Placement Test</option>
-                <option value="Aptitude Test">Aptitude Test</option>
-                <option value="Language Test">Language Test</option>
+                <option value="Placement Test">{t("placement_test")}</option>
+                <option value="Aptitude Test">{t("aptitude_test")}</option>
+                <option value="Language Test">{t("language_test")}</option>
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Subject *
+                {t("subject")} *
               </label>
               <select
                 value={formData.subject}
@@ -87,17 +89,17 @@ export default function ScheduleTestModal({
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
                 required
               >
-                <option value="">Select subject</option>
-                <option value="Mathematics">Mathematics</option>
-                <option value="English">English</option>
-                <option value="Arabic">Arabic</option>
-                <option value="Science">Science</option>
+                <option value="">{t("select_subject")}</option>
+                <option value="Mathematics">{t("mathematics")}</option>
+                <option value="English">{t("english")}</option>
+                <option value="Arabic">{t("arabic")}</option>
+                <option value="Science">{t("science")}</option>
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date *
+                {t("date")} *
               </label>
               <input
                 type="date"
@@ -112,7 +114,7 @@ export default function ScheduleTestModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Time *
+                {t("time")} *
               </label>
               <input
                 type="time"
@@ -127,7 +129,7 @@ export default function ScheduleTestModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Duration (minutes)
+                {t("duration")}
               </label>
               <select
                 value={formData.duration}
@@ -136,16 +138,16 @@ export default function ScheduleTestModal({
                 }
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
               >
-                <option value="30">30 minutes</option>
-                <option value="60">60 minutes</option>
-                <option value="90">90 minutes</option>
-                <option value="120">120 minutes</option>
+                <option value="30">{t("minutes", { count: 30 })}</option>
+                <option value="60">{t("minutes", { count: 60 })}</option>
+                <option value="90">{t("minutes", { count: 90 })}</option>
+                <option value="120">{t("minutes", { count: 120 })}</option>
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Location *
+                {t("location")} *
               </label>
               <input
                 type="text"
@@ -154,14 +156,14 @@ export default function ScheduleTestModal({
                   setFormData({ ...formData, location: e.target.value })
                 }
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
-                placeholder="Room 101"
+                placeholder={t("location_placeholder")}
                 required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Droctor
+                {t("proctor")}
               </label>
               <input
                 type="text"
@@ -170,14 +172,14 @@ export default function ScheduleTestModal({
                   setFormData({ ...formData, proctor: e.target.value })
                 }
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
-                placeholder="Teacher name"
+                placeholder={t("proctor_placeholder")}
               />
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes
+              {t("notes")}
             </label>
             <textarea
               value={formData.notes}
@@ -186,7 +188,7 @@ export default function ScheduleTestModal({
               }
               rows={3}
               className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm resize-none"
-              placeholder="Additional notes..."
+              placeholder={t("notes_placeholder")}
             />
           </div>
 
@@ -196,13 +198,13 @@ export default function ScheduleTestModal({
               onClick={onClose}
               className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="submit"
               className="px-6 py-2.5 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg font-medium text-sm transition-colors"
             >
-              Schedule Test
+              {t("submit")}
             </button>
           </div>
         </form>

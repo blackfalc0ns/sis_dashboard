@@ -13,7 +13,7 @@ import {
   Filter,
   X,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import DataTable from "../ui/common/DataTable";
 import { Application, Document } from "@/types/admissions";
 
@@ -23,6 +23,7 @@ interface DocumentCenterProps {
 
 export default function DocumentCenter({ applications }: DocumentCenterProps) {
   const t = useTranslations("admissions.document_center");
+  const locale = useLocale();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "complete" | "missing"
@@ -32,15 +33,23 @@ export default function DocumentCenter({ applications }: DocumentCenterProps) {
   // Flatten all documents with application info
   const allDocuments = useMemo(() => {
     return applications.flatMap((app) =>
-      app.documents.map((doc) => ({
-        ...doc,
-        applicationId: app.id,
-        studentName: app.studentName,
-        grade: app.gradeRequested,
-        applicationStatus: app.status,
-      })),
+      app.documents.map((doc) => {
+        // Use Arabic name if locale is Arabic, otherwise use English name
+        const studentName =
+          locale === "ar"
+            ? app.full_name_ar || app.studentName
+            : app.full_name_en || app.studentName;
+
+        return {
+          ...doc,
+          applicationId: app.id,
+          studentName,
+          grade: app.gradeRequested,
+          applicationStatus: app.status,
+        };
+      }),
     );
-  }, [applications]);
+  }, [applications, locale]);
 
   // Filter documents
   const filteredDocuments = useMemo(() => {

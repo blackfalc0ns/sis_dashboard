@@ -3,6 +3,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { X, CheckCircle, Clock, XCircle } from "lucide-react";
 import { Application, DecisionType } from "@/types/admissions";
 
@@ -19,6 +20,8 @@ export default function DecisionModal({
   onClose,
   onSubmit,
 }: DecisionModalProps) {
+  const t = useTranslations("admissions.decision_modal");
+  const locale = useLocale();
   const [decision, setDecision] = useState<DecisionType>("accept");
   const [reason, setReason] = useState("");
   const [decisionDate, setDecisionDate] = useState(
@@ -27,6 +30,13 @@ export default function DecisionModal({
   const [sendNotification, setSendNotification] = useState(true);
 
   if (!isOpen) return null;
+
+  const studentName =
+    locale === "ar"
+      ? application.full_name_ar ||
+        application.studentNameArabic ||
+        application.studentName
+      : application.full_name_en || application.studentName;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,11 +59,9 @@ export default function DecisionModal({
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full">
         <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">
-              Make Admission Decision
-            </h2>
+            <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
             <p className="text-sm text-gray-500">
-              {application.studentName} - {application.id}
+              {studentName} - {application.id}
             </p>
           </div>
           <button
@@ -68,7 +76,7 @@ export default function DecisionModal({
           {/* Evaluation Summary */}
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="font-semibold text-gray-900 mb-3">
-              Evaluation Summary
+              {t("evaluation_summary")}
             </h3>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
@@ -78,7 +86,8 @@ export default function DecisionModal({
                   <XCircle className="w-5 h-5 text-red-600" />
                 )}
                 <span className="text-sm text-gray-700">
-                  Test: {hasCompletedTest ? "Completed" : "Not Completed"}
+                  {t("test")}:{" "}
+                  {hasCompletedTest ? t("completed") : t("not_completed")}
                 </span>
                 {hasCompletedTest && application.tests[0]?.score && (
                   <span className="text-sm font-medium text-[#036b80]">
@@ -94,12 +103,12 @@ export default function DecisionModal({
                   <XCircle className="w-5 h-5 text-red-600" />
                 )}
                 <span className="text-sm text-gray-700">
-                  Interview:{" "}
-                  {hasCompletedInterview ? "Completed" : "Not Completed"}
+                  {t("interview")}:{" "}
+                  {hasCompletedInterview ? t("completed") : t("not_completed")}
                 </span>
                 {hasCompletedInterview && application.interviews[0]?.rating && (
                   <span className="text-sm font-medium text-[#036b80]">
-                    (Rating: {application.interviews[0].rating}/5)
+                    ({t("rating")}: {application.interviews[0].rating}/5)
                   </span>
                 )}
               </div>
@@ -110,7 +119,8 @@ export default function DecisionModal({
                   <XCircle className="w-5 h-5 text-red-600" />
                 )}
                 <span className="text-sm text-gray-700">
-                  Documents: {hasAllDocuments ? "Complete" : "Incomplete"}
+                  {t("documents")}:{" "}
+                  {hasAllDocuments ? t("complete") : t("incomplete")}
                 </span>
               </div>
             </div>
@@ -119,7 +129,7 @@ export default function DecisionModal({
           {/* Decision Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">
-              Decision *
+              {t("decision")} *
             </label>
             <div className="grid grid-cols-3 gap-3">
               <button
@@ -141,7 +151,7 @@ export default function DecisionModal({
                     decision === "accept" ? "text-emerald-900" : "text-gray-700"
                   }`}
                 >
-                  Accept
+                  {t("accept")}
                 </p>
               </button>
 
@@ -164,7 +174,7 @@ export default function DecisionModal({
                     decision === "waitlist" ? "text-amber-900" : "text-gray-700"
                   }`}
                 >
-                  Waitlist
+                  {t("waitlist")}
                 </p>
               </button>
 
@@ -187,7 +197,7 @@ export default function DecisionModal({
                     decision === "reject" ? "text-red-900" : "text-gray-700"
                   }`}
                 >
-                  Reject
+                  {t("reject")}
                 </p>
               </button>
             </div>
@@ -196,14 +206,14 @@ export default function DecisionModal({
           {/* Reason */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Reason *
+              {t("reason")} *
             </label>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={4}
               className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm resize-none"
-              placeholder="Provide a detailed reason for this decision..."
+              placeholder={t("reason_placeholder")}
               required
             />
           </div>
@@ -211,7 +221,7 @@ export default function DecisionModal({
           {/* Decision Date */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Decision Date *
+              {t("decision_date")} *
             </label>
             <input
               type="date"
@@ -232,7 +242,7 @@ export default function DecisionModal({
                 className="w-4 h-4 text-[#036b80] border-gray-300 rounded focus:ring-[#036b80]"
               />
               <span className="text-sm text-gray-700">
-                Email parents immediately
+                {t("email_parents")}
               </span>
             </label>
           </div>
@@ -244,13 +254,13 @@ export default function DecisionModal({
               onClick={onClose}
               className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="submit"
               className="px-6 py-2.5 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg font-medium text-sm transition-colors"
             >
-              Submit Decision
+              {t("submit")}
             </button>
           </div>
         </form>

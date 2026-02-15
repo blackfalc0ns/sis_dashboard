@@ -7,79 +7,58 @@ import AttendanceCard from "./AttendanceCard";
 import IncidentsCard from "./IncidentsCard";
 import QuickActionPanel from "./QuickActionPanel";
 import AcademicPerformanceCard from "../charts/AcademicPerformanceCard";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import AttendanceTrendChart from "./charts/AttendanceTrendChart";
 import StudentsPerGradeChart from "./charts/StudentsPerGradeChart";
 import AbsenceReasonsChart from "./charts/AbsenceReasonsChart";
 import CriticalAlerts from "./alerts/CriticalAlerts";
 import TodayMonitoring from "./monitoring/TodayMonitoring";
 import { useTranslations } from "next-intl";
+import { mockStudents } from "@/data/mockStudents";
 
 export default function SchoolDashboard() {
   const t_kpi = useTranslations("kpi");
-  const t_comparison = useTranslations("comparison");
 
-  const [comparisonMode, setComparisonMode] = useState<
-    "yesterday" | "week" | "term"
-  >("yesterday");
+  // Calculate real KPIs from mock data
+  const kpis = useMemo(() => {
+    const totalStudents = mockStudents.length;
+    const activeStudents = mockStudents.filter(
+      (s) => s.status === "Active",
+    ).length;
+    // Since we don't have attendance data in admissions, use placeholder
+    const avgAttendance = 92;
+    // Since we don't have risk flags in admissions, use placeholder
+    const atRiskStudents = 0;
+    const lowAttendance = 0;
+
+    return {
+      totalStudents,
+      activeStudents,
+      avgAttendance,
+      atRiskStudents,
+      lowAttendance,
+    };
+  }, []);
 
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
       <FilterBar />
 
-      {/* Comparison Tabs */}
-      <div className="w-full sm:w-fit bg-white p-1 rounded-lg shadow-sm mb-6 overflow-x-auto">
-        <div className="flex gap-2 min-w-max">
-          <button
-            onClick={() => setComparisonMode("yesterday")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-              comparisonMode === "yesterday"
-                ? "bg-(--primary-color) text-white"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            {t_comparison("vs_yesterday")}
-          </button>
-
-          <button
-            onClick={() => setComparisonMode("week")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-              comparisonMode === "week"
-                ? "bg-(--primary-color) text-white"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            {t_comparison("vs_week")}
-          </button>
-
-          <button
-            onClick={() => setComparisonMode("term")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-              comparisonMode === "term"
-                ? "bg-(--primary-color) text-white"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            {t_comparison("vs_term")}
-          </button>
-        </div>
-      </div>
-
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
         <KPICard
           title={t_kpi("total_students")}
-          value="2,847"
+          value={kpis.totalStudents.toString()}
           icon={Users}
-          trendData={[2650, 2700, 2680, 2750, 2800, 2847]}
+          trendData={[12, 13, 14, 14, 15, kpis.totalStudents]}
           iconBgColor="bg-(--primary-color)"
           variant="gradient"
         />
         <KPICard
           title={t_kpi("today_attendance_rate")}
-          value="94.5%"
+          value={`${kpis.avgAttendance}%`}
           icon={Users}
-          numbers="+2.3%"
+          numbers={kpis.avgAttendance >= 90 ? "+Good" : "Needs Attention"}
         />
         <KPICard
           title={t_kpi("delivered_classes")}
@@ -89,9 +68,9 @@ export default function SchoolDashboard() {
         />
         <KPICard
           title={t_kpi("today_violations")}
-          value="12"
+          value={kpis.atRiskStudents.toString()}
           icon={AlertTriangle}
-          numbers="+5"
+          numbers={`${kpis.lowAttendance} low attendance`}
         />
         <KPICard
           title={t_kpi("staff_absenteeism")}

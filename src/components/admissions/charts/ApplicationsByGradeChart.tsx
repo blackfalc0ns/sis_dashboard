@@ -4,6 +4,7 @@
 
 import { BarChart } from "@mui/x-charts/BarChart";
 import { useTranslations } from "next-intl";
+import { useMemo } from "react";
 
 interface GradeData {
   grade: string;
@@ -36,6 +37,13 @@ export default function ApplicationsByGradeChart({
   data,
 }: ApplicationsByGradeChartProps) {
   const t = useTranslations("admissions.charts");
+  const t_grades = useTranslations("admissions.grades");
+
+  // Helper function to convert grade name to translation key
+  const getGradeKey = (grade: string): string => {
+    // Convert "Grade 6" to "grade_6", "KG1" to "kg1", etc.
+    return grade.toLowerCase().replace(/\s+/g, "_");
+  };
 
   // Sort data by logical grade order
   const sortedData = [...data].sort((a, b) => {
@@ -58,6 +66,27 @@ export default function ApplicationsByGradeChart({
   const grades = sortedData.map((item) => item.grade);
   const counts = sortedData.map((item) => item.count);
   const total = counts.reduce((sum, count) => sum + count, 0);
+
+  // Get translated grade labels for display
+  const translatedGrades = useMemo(
+    () =>
+      grades.map((grade) => {
+        const key = getGradeKey(grade);
+        const translated = t_grades(key);
+        return translated !== key ? translated : grade;
+      }),
+    [grades, t_grades],
+  );
+
+  // Get most requested grade with translation
+  const mostRequestedGrade = useMemo(() => {
+    const mostRequested = sortedData.reduce((max, item) =>
+      item.count > max.count ? item : max,
+    );
+    const key = getGradeKey(mostRequested.grade);
+    const translated = t_grades(key);
+    return translated !== key ? translated : mostRequested.grade;
+  }, [sortedData, t_grades]);
 
   if (total === 0 || data.length === 0) {
     return (
@@ -89,7 +118,7 @@ export default function ApplicationsByGradeChart({
           xAxis={[
             {
               scaleType: "band",
-              data: grades,
+              data: translatedGrades,
               categoryGapRatio: 0.3,
               barGapRatio: 0.1,
             },
@@ -98,7 +127,7 @@ export default function ApplicationsByGradeChart({
             {
               data: counts,
               color: "#036b80",
-              label: "Applications",
+              label: t("applications"),
             },
           ]}
           height={300}
@@ -110,27 +139,23 @@ export default function ApplicationsByGradeChart({
       <div className="mt-4 pt-4 border-t border-gray-200">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
-            <p className="text-xs text-gray-500">Total Applications</p>
+            <p className="text-xs text-gray-500">{t("total_applications")}</p>
             <p className="text-lg font-bold text-gray-900">{total}</p>
           </div>
           <div className="text-center">
-            <p className="text-xs text-gray-500">Grade Levels</p>
+            <p className="text-xs text-gray-500">{t("grade_levels")}</p>
             <p className="text-lg font-bold text-gray-900">{grades.length}</p>
           </div>
           <div className="text-center">
-            <p className="text-xs text-gray-500">Most Requested</p>
+            <p className="text-xs text-gray-500">{t("most_requested")}</p>
             <p className="text-lg font-bold text-[#036b80]">
-              {
-                sortedData.reduce((max, item) =>
-                  item.count > max.count ? item : max,
-                ).grade
-              }
+              {mostRequestedGrade}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-xs text-gray-500">Highest Demand</p>
+            <p className="text-xs text-gray-500">{t("highest_demand")}</p>
             <p className="text-lg font-bold text-[#036b80]">
-              {Math.max(...counts)} apps
+              {Math.max(...counts)} {t("apps")}
             </p>
           </div>
         </div>
@@ -138,14 +163,19 @@ export default function ApplicationsByGradeChart({
 
       {/* Grade Distribution List */}
       <div className="mt-4 space-y-2">
-        {sortedData.map((item) => {
+        {sortedData.map((item, index) => {
           const percentage = total > 0 ? (item.count / total) * 100 : 0;
+          const key = getGradeKey(item.grade);
+          const translatedGrade = t_grades(key);
+          const displayGrade =
+            translatedGrade !== key ? translatedGrade : item.grade;
+
           return (
             <div
               key={item.grade}
               className="flex items-center justify-between text-sm"
             >
-              <span className="text-gray-700 font-medium">{item.grade}</span>
+              <span className="text-gray-700 font-medium">{displayGrade}</span>
               <div className="flex items-center gap-3">
                 <div className="w-32 bg-gray-200 rounded-full h-2">
                   <div

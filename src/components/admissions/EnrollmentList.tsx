@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import {
   Search,
   Filter,
@@ -25,6 +25,7 @@ import { Enrollment, Application } from "@/types/admissions";
 
 export default function EnrollmentList() {
   const t = useTranslations("admissions.enrollment");
+  const locale = useLocale();
   const [selectedApplication, setSelectedApplication] =
     useState<Application | null>(null);
   const [isEnrollmentFormOpen, setIsEnrollmentFormOpen] = useState(false);
@@ -45,7 +46,10 @@ export default function EnrollmentList() {
       .map((app, index) => ({
         id: `ENR-${String(index + 1).padStart(3, "0")}`,
         applicationId: app.id,
-        studentName: app.studentName,
+        studentName:
+          locale === "ar"
+            ? app.full_name_ar || app.studentNameArabic || app.studentName
+            : app.full_name_en || app.studentName,
         academicYear: "2024-2025",
         grade: app.gradeRequested,
         section: ["A", "B", "C"][index % 3],
@@ -54,7 +58,9 @@ export default function EnrollmentList() {
         guardianName: app.guardianName,
         guardianPhone: app.guardianPhone,
       }));
-  }, []);
+  }, [locale]);
+
+  console.log(enrollments);
 
   // Filter and search enrollments
   const filteredEnrollments = useMemo(() => {

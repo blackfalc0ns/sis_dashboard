@@ -10,7 +10,15 @@ import {
   MessageSquare,
   CheckCircle,
   GraduationCap,
+  UserCheck,
 } from "lucide-react";
+import {
+  mockLeads,
+  mockApplications,
+  mockTests,
+  mockInterviews,
+  mockDecisions,
+} from "@/data/mockDataLinked";
 
 interface MenuItem {
   key: string;
@@ -20,6 +28,7 @@ interface MenuItem {
   href_ar: string;
   icon: React.ComponentType<{ className?: string }>;
   children?: MenuItem[];
+  badge?: () => number; // Function to get dynamic badge count
 }
 
 export const menuItems: MenuItem[] = [
@@ -30,6 +39,83 @@ export const menuItems: MenuItem[] = [
     href_en: "/en/dashboard",
     href_ar: "/ar/dashboard",
     icon: Home,
+  },
+  {
+    key: "admissions-registration",
+    label_en: "Admissions & Registration",
+    label_ar: "القبول والتسجيل",
+    href_en: "/en/admissions",
+    href_ar: "/ar/admissions",
+    icon: UserPlus,
+    children: [
+      {
+        key: "admissions-dashboard",
+        label_en: "Over View",
+        label_ar: "لوحة التحكم",
+        href_en: "/en/admissions",
+        href_ar: "/ar/admissions",
+        icon: LayoutDashboard,
+      },
+      {
+        key: "admissions-leads",
+        label_en: "Leads",
+        label_ar: "العملاء المحتملون",
+        href_en: "/en/admissions/leads",
+        href_ar: "/ar/admissions/leads",
+        icon: Users,
+        badge: () => mockLeads.filter((lead) => lead.status === "New").length,
+      },
+      {
+        key: "admissions-applications",
+        label_en: "Applications",
+        label_ar: "الطلبات",
+        href_en: "/en/admissions/applications",
+        href_ar: "/ar/admissions/applications",
+        icon: FileText,
+        badge: () =>
+          mockApplications.filter((app) => app.status === "submitted").length,
+      },
+      {
+        key: "admissions-tests",
+        label_en: "Tests",
+        label_ar: "الاختبارات",
+        href_en: "/en/admissions/tests",
+        href_ar: "/ar/admissions/tests",
+        icon: ClipboardCheck,
+        badge: () =>
+          mockTests.filter((test) => test.status === "scheduled").length,
+      },
+      {
+        key: "admissions-interviews",
+        label_en: "Interviews",
+        label_ar: "المقابلات",
+        href_en: "/en/admissions/interviews",
+        href_ar: "/ar/admissions/interviews",
+        icon: MessageSquare,
+        badge: () =>
+          mockInterviews.filter((interview) => interview.status === "scheduled")
+            .length,
+      },
+      {
+        key: "admissions-decisions",
+        label_en: "Decisions",
+        label_ar: "القرارات",
+        href_en: "/en/admissions/decisions",
+        href_ar: "/ar/admissions/decisions",
+        icon: CheckCircle,
+        badge: () =>
+          mockDecisions.filter((decision) => decision.decision === "waitlist")
+            .length,
+      },
+      {
+        key: "admissions-enrollment",
+        label_en: "Enrollment",
+        label_ar: "التسجيل",
+        href_en: "/en/admissions/enrollment",
+        href_ar: "/ar/admissions/enrollment",
+        icon: GraduationCap,
+      },
+    ],
   },
   {
     key: "students-guardians",
@@ -55,71 +141,13 @@ export const menuItems: MenuItem[] = [
         href_ar: "/ar/students-guardians/students",
         icon: Users,
       },
-    ],
-  },
-  {
-    key: "admissions",
-    label_en: "Admissions",
-    label_ar: "القبول",
-    href_en: "/en/admissions",
-    href_ar: "/ar/admissions",
-    icon: UserPlus,
-    children: [
       {
-        key: "admissions-dashboard",
-        label_en: "Over View",
-        label_ar: "لوحة التحكم",
-        href_en: "/en/admissions",
-        href_ar: "/ar/admissions",
-        icon: LayoutDashboard,
-      },
-      {
-        key: "admissions-leads",
-        label_en: "Leads",
-        label_ar: "العملاء المحتملون",
-        href_en: "/en/admissions/leads",
-        href_ar: "/ar/admissions/leads",
-        icon: Users,
-      },
-      {
-        key: "admissions-applications",
-        label_en: "Applications",
-        label_ar: "الطلبات",
-        href_en: "/en/admissions/applications",
-        href_ar: "/ar/admissions/applications",
-        icon: FileText,
-      },
-      {
-        key: "admissions-tests",
-        label_en: "Tests",
-        label_ar: "الاختبارات",
-        href_en: "/en/admissions/tests",
-        href_ar: "/ar/admissions/tests",
-        icon: ClipboardCheck,
-      },
-      {
-        key: "admissions-interviews",
-        label_en: "Interviews",
-        label_ar: "المقابلات",
-        href_en: "/en/admissions/interviews",
-        href_ar: "/ar/admissions/interviews",
-        icon: MessageSquare,
-      },
-      {
-        key: "admissions-decisions",
-        label_en: "Decisions",
-        label_ar: "القرارات",
-        href_en: "/en/admissions/decisions",
-        href_ar: "/ar/admissions/decisions",
-        icon: CheckCircle,
-      },
-      {
-        key: "admissions-enrollment",
-        label_en: "Enrollment",
-        label_ar: "التسجيل",
-        href_en: "/en/admissions/enrollment",
-        href_ar: "/ar/admissions/enrollment",
-        icon: GraduationCap,
+        key: "guardians-list",
+        label_en: "Guardians",
+        label_ar: "أولياء الأمور",
+        href_en: "/en/students-guardians/guardians",
+        href_ar: "/ar/students-guardians/guardians",
+        icon: UserCheck,
       },
     ],
   },

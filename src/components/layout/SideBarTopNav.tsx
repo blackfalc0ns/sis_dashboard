@@ -37,7 +37,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-50 overflow-x-hidden">
+    <div className="flex min-h-screen bg-gray-50">
       <Sidebar
         onSelect={() => {}}
         schoolName={t("school_name")}
@@ -67,7 +67,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
           onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
           isSidebarOpen={isSidebarOpen}
         />
-        {children}
+        <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
   );

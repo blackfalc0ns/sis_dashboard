@@ -101,7 +101,32 @@ export function formatApplicationsForExport(applications: Application[]) {
  */
 export function formatDecisionsForExport(
   applications: Application[],
+  decisions?: {
+    id: string;
+    applicationId: string;
+    decision: string;
+    reason: string;
+    decisionDate: string;
+    decidedBy: string;
+  }[],
 ): Record<string, unknown>[] {
+  // If decisions array is provided (new linked structure), use it
+  if (decisions) {
+    return decisions.map((decision) => {
+      const app = applications.find((a) => a.id === decision.applicationId);
+      return {
+        "Application ID": decision.applicationId,
+        "Student Name": app?.studentName || "",
+        "Grade Requested": app?.gradeRequested || "",
+        Decision: decision.decision,
+        Reason: decision.reason,
+        "Decision Date": new Date(decision.decisionDate).toLocaleString(),
+        "Decided By": decision.decidedBy,
+      };
+    });
+  }
+
+  // Fallback to old structure (app.decision)
   return applications
     .filter((app) => app.decision)
     .map((app) => ({

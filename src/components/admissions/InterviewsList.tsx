@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import {
   Plus,
   Search,
@@ -29,6 +29,7 @@ import { Interview, InterviewStatus } from "@/types/admissions";
 
 export default function InterviewsList() {
   const t = useTranslations("admissions.interviews");
+  const locale = useLocale();
   const [selectedInterview, setSelectedInterview] = useState<
     (Interview & { studentName: string }) | null
   >(null);
@@ -50,7 +51,10 @@ export default function InterviewsList() {
     const interviewsFromApps = mockApplications.flatMap((app) =>
       app.interviews.map((interview) => ({
         ...interview,
-        studentName: app.studentName,
+        studentName:
+          locale === "ar"
+            ? app.full_name_ar || app.studentNameArabic || app.studentName
+            : app.full_name_en || app.studentName,
         applicationId: app.id,
       })),
     );
@@ -60,12 +64,18 @@ export default function InterviewsList() {
       );
       return {
         ...interview,
-        studentName: app?.studentName || "Unknown",
+        studentName:
+          locale === "ar"
+            ? app?.full_name_ar ||
+              app?.studentNameArabic ||
+              app?.studentName ||
+              "Unknown"
+            : app?.full_name_en || app?.studentName || "Unknown",
         applicationId: interview.applicationId,
       };
     });
     return [...interviewsFromApps, ...standaloneInterviews];
-  }, []);
+  }, [locale]);
 
   // Filter and search interviews
   const filteredInterviews = useMemo(() => {

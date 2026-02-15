@@ -7,6 +7,7 @@ import { LineChart } from "@mui/x-charts/LineChart";
 import { Student } from "@/types/students";
 import KPICard from "@/components/ui/common/KPICard";
 import DataTable from "@/components/ui/common/DataTable";
+import { useTranslations } from "next-intl";
 
 interface AttendanceTabProps {
   student: Student;
@@ -66,6 +67,7 @@ const mockAttendanceRecords = [
 ];
 
 export default function AttendanceTab({ student }: AttendanceTabProps) {
+  const t = useTranslations("students_guardians.profile.attendance");
   // Mock chart data
   const last30Days = Array.from({ length: 30 }, (_, i) => {
     const date = new Date();
@@ -89,7 +91,7 @@ export default function AttendanceTab({ student }: AttendanceTabProps) {
       <span
         className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors[status] || colors.present}`}
       >
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {t(status as any)}
       </span>
     );
   };
@@ -97,24 +99,24 @@ export default function AttendanceTab({ student }: AttendanceTabProps) {
   const columns = [
     {
       key: "date",
-      label: "Date",
+      label: t("date"),
       render: (value: unknown) =>
         new Date(value as string).toLocaleDateString(),
     },
     {
       key: "status",
-      label: "Status",
+      label: t("status"),
       render: (value: unknown) => getStatusBadge(value as string),
     },
     {
       key: "minutes",
-      label: "Minutes Late",
+      label: t("minutes_late"),
       render: (value: unknown) =>
-        (value as number) > 0 ? `${value} min` : "-",
+        (value as number) > 0 ? `${value} ${t("min")}` : "-",
     },
     {
       key: "reason",
-      label: "Reason",
+      label: t("reason"),
       render: (value: unknown) => (value as string) || "-",
     },
   ];
@@ -134,31 +136,31 @@ export default function AttendanceTab({ student }: AttendanceTabProps) {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          title="Attendance Rate"
+          title={t("attendance_rate")}
           value={`${student.attendance_percentage}%`}
           icon={TrendingUp}
-          numbers="This semester"
+          numbers={t("this_semester")}
           iconBgColor="bg-green-500"
         />
         <KPICard
-          title="Present Days"
+          title={t("present_days")}
           value={presentDays}
           icon={Calendar}
-          numbers="Last 7 days"
+          numbers={t("last_7_days")}
           iconBgColor="bg-blue-500"
         />
         <KPICard
-          title="Absent Days"
+          title={t("absent_days")}
           value={absentDays}
           icon={AlertCircle}
-          numbers="Last 7 days"
+          numbers={t("last_7_days")}
           iconBgColor="bg-red-500"
         />
         <KPICard
-          title="Late Arrivals"
+          title={t("late_arrivals")}
           value={lateDays}
           icon={Clock}
-          numbers="Last 7 days"
+          numbers={t("last_7_days")}
           iconBgColor="bg-yellow-500"
         />
       </div>
@@ -166,7 +168,7 @@ export default function AttendanceTab({ student }: AttendanceTabProps) {
       {/* Attendance Trend Chart */}
       <div className="bg-white rounded-xl p-6 shadow-sm">
         <h3 className="text-lg font-bold text-gray-900 mb-4">
-          Attendance Trend (Last 30 Days)
+          {t("attendance_trend")}
         </h3>
         <div className="h-80">
           <LineChart
@@ -179,7 +181,7 @@ export default function AttendanceTab({ student }: AttendanceTabProps) {
             series={[
               {
                 data: attendancePercentages,
-                label: "Attendance %",
+                label: t("attendance_percent"),
                 color: "#036b80",
                 curve: "linear",
               },
@@ -194,11 +196,9 @@ export default function AttendanceTab({ student }: AttendanceTabProps) {
       <div className="bg-white rounded-xl shadow-sm">
         <div className="p-6 border-b border-gray-200">
           <h3 className="text-lg font-bold text-gray-900">
-            Recent Attendance Records
+            {t("recent_records")}
           </h3>
-          <p className="text-sm text-gray-500 mt-1">
-            View-only attendance history
-          </p>
+          <p className="text-sm text-gray-500 mt-1">{t("view_only")}</p>
         </div>
         <div className="p-6">
           <DataTable

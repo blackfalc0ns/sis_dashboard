@@ -4,7 +4,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import {
   Plus,
   Upload,
@@ -31,11 +31,14 @@ import {
   createLead,
   convertLeadToApplication,
 } from "@/api/mockLeadsApi";
+import { mockLeadConversations } from "@/data/mockLeadMessages";
 import { Lead, LeadStatus, LeadChannel } from "@/types/leads";
 
 export default function LeadsList() {
   const router = useRouter();
   const t = useTranslations("admissions.leads");
+  const t_grades = useTranslations("admissions.grades");
+  const locale = useLocale();
   const [leads, setLeads] = useState<Lead[]>(getLeads());
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -46,7 +49,6 @@ export default function LeadsList() {
   const [channelFilter, setChannelFilter] = useState<LeadChannel | "all">(
     "all",
   );
-  const [ownerFilter, setOwnerFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [dateRange, setDateRange] = useState<DateRangeValue>("all");
   const [customStartDate, setCustomStartDate] = useState<string>("");
@@ -72,15 +74,10 @@ export default function LeadsList() {
         statusFilter === "all" || lead.status === statusFilter;
       const matchesChannel =
         channelFilter === "all" || lead.channel === channelFilter;
-      const matchesOwner = ownerFilter === "all" || lead.owner === ownerFilter;
       const matchesDateRange = isDateInRange(lead.createdAt, filterResult);
 
       return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesChannel &&
-        matchesOwner &&
-        matchesDateRange
+        matchesSearch && matchesStatus && matchesChannel && matchesDateRange
       );
     });
   }, [
@@ -88,7 +85,6 @@ export default function LeadsList() {
     searchQuery,
     statusFilter,
     channelFilter,
-    ownerFilter,
     dateRange,
     customStartDate,
     customEndDate,
@@ -111,31 +107,25 @@ export default function LeadsList() {
       (l) => l.status === "Contacted",
     ).length;
     const newLeads = leadsInRange.filter((l) => l.status === "New").length;
+    const converted = leadsInRange.filter(
+      (l) => l.status === "Converted",
+    ).length;
 
     return {
       totalLeads: leadsInRange.length,
       contacted,
       newLeads,
+      converted,
     };
   }, [leads, dateRange, customStartDate, customEndDate]);
 
-  // Get unique owners
-  const uniqueOwners = useMemo(() => {
-    const owners = new Set(leads.map((lead) => lead.owner));
-    return Array.from(owners).sort();
-  }, [leads]);
-
   const hasActiveFilters =
-    searchQuery !== "" ||
-    statusFilter !== "all" ||
-    channelFilter !== "all" ||
-    ownerFilter !== "all";
+    searchQuery !== "" || statusFilter !== "all" || channelFilter !== "all";
 
   const clearFilters = () => {
     setSearchQuery("");
     setStatusFilter("all");
     setChannelFilter("all");
-    setOwnerFilter("all");
   };
 
   const handleCreateLead = (data: Omit<Lead, "id" | "createdAt">) => {
@@ -158,7 +148,7 @@ export default function LeadsList() {
   };
 
   const handleRowClick = (lead: Lead) => {
-    router.push(`/en/admissions/leads/${lead.id}`);
+    router.push(`/${locale}/admissions/leads/${lead.id}`);
   };
 
   const handleConvertToApplication = (lead: Lead, e: React.MouseEvent) => {
@@ -167,7 +157,7 @@ export default function LeadsList() {
       const draft = convertLeadToApplication(lead.id);
       setLeads(getLeads());
       alert(`Lead converted! Application draft created: ${draft.id}`);
-      router.push(`/en/admissions/applications`);
+      router.push(`/${locale}/admissions/applications`);
     }
   };
 
@@ -181,6 +171,23 @@ export default function LeadsList() {
       key: "name",
       label: t("name"),
       searchable: true,
+      render: (value: unknown, row: Lead) => {
+        const conversation = mockLeadConversations.find(
+          (conv) => conv.leadId === row.id,
+        );
+        const unreadCount = conversation?.unreadCount || 0;
+
+        return (
+          <div className="flex items-center gap-2">
+            <span>{String(value)}</span>
+            {unreadCount > 0 && (
+              <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
+                {unreadCount}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: "phone",
@@ -195,6 +202,18 @@ export default function LeadsList() {
     {
       key: "channel",
       label: t("channel"),
+      render: (value: unknown) => {
+        const channel = String(value);
+        // Map channel values to translation keys
+        const channelMap: Record<string, string> = {
+          "In-app": "in_app",
+          Referral: "referral",
+          "Walk-in": "walk_in",
+          Other: "other",
+        };
+        const translationKey = channelMap[channel] || "other";
+        return t(translationKey);
+      },
     },
     {
       key: "status",
@@ -204,13 +223,16 @@ export default function LeadsList() {
       ),
     },
     {
-      key: "owner",
-      label: t("owner"),
-    },
-    {
       key: "gradeInterest",
       label: t("grade_interest"),
-      render: (value: unknown) => (value ? String(value) : "—"),
+      render: (value: unknown) => {
+        if (!value) return "—";
+        const grade = String(value);
+        // Convert grade to translation key (e.g., "Grade 6" -> "grade_6")
+        const gradeKey = grade.toLowerCase().replace(/\s+/g, "_");
+        const translated = t_grades(gradeKey);
+        return translated !== gradeKey ? translated : grade;
+      },
     },
     {
       key: "createdAt",
@@ -271,7 +293,7 @@ export default function LeadsList() {
           value={kpis.newLeads}
           icon={Users}
           numbers={t("not_yet_contacted")}
-          iconBgColor="bg-green-500"
+          iconBgColor="bg-blue-500"
         />
         <KPICard
           title={t("contacted")}
@@ -279,6 +301,13 @@ export default function LeadsList() {
           icon={UserCheck}
           numbers={t("in_progress")}
           iconBgColor="bg-amber-500"
+        />
+        <KPICard
+          title={t("converted")}
+          value={kpis.converted}
+          icon={UserCheck}
+          numbers={t("became_applications")}
+          iconBgColor="bg-green-500"
         />
       </div>
 
@@ -354,7 +383,7 @@ export default function LeadsList() {
 
         {/* Advanced Filters */}
         {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
                 {t("status")}
@@ -369,6 +398,8 @@ export default function LeadsList() {
                 <option value="all">{t("all_statuses")}</option>
                 <option value="New">{t("new")}</option>
                 <option value="Contacted">{t("contacted")}</option>
+                <option value="Converted">{t("converted")}</option>
+                <option value="Closed">{t("closed")}</option>
               </select>
             </div>
             <div>
@@ -387,23 +418,6 @@ export default function LeadsList() {
                 <option value="Referral">{t("referral")}</option>
                 <option value="Walk-in">{t("walk_in")}</option>
                 <option value="Other">{t("other")}</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {t("owner")}
-              </label>
-              <select
-                value={ownerFilter}
-                onChange={(e) => setOwnerFilter(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
-              >
-                <option value="all">{t("all_owners")}</option>
-                {uniqueOwners.map((owner) => (
-                  <option key={owner} value={owner}>
-                    {owner}
-                  </option>
-                ))}
               </select>
             </div>
           </div>

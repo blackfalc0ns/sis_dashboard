@@ -14,7 +14,7 @@ import {
   TrendingUp,
   Download,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import DataTable from "../ui/common/DataTable";
 import StatusBadge from "./StatusBadge";
 import StatusTagsBar from "./StatusTagsBar";
@@ -40,6 +40,8 @@ export default function ApplicationsList() {
   const t = useTranslations("admissions.applications");
   const tFilters = useTranslations("admissions.filters");
   const tStatus = useTranslations("admissions.status");
+  const t_grades = useTranslations("admissions.grades");
+  const locale = useLocale();
 
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [isApp360Open, setIsApp360Open] = useState(false);
@@ -239,46 +241,61 @@ export default function ApplicationsList() {
   const columns = [
     {
       key: "id",
-      label: "Application ID",
+      label: t("application_id"),
       searchable: true,
     },
     {
       key: "studentName",
-      label: "Student Name",
+      label: t("student_name"),
       searchable: true,
+      render: (_: unknown, row: Application) => {
+        // Use Arabic name if locale is Arabic, otherwise English
+        return locale === "ar" ? row.full_name_ar : row.full_name_en;
+      },
     },
     {
       key: "dateOfBirth",
-      label: "Date of Birth",
+      label: t("date_of_birth"),
       render: (value: unknown) =>
         value ? new Date(value as string).toLocaleDateString() : "N/A",
     },
     {
       key: "gender",
-      label: "Gender",
+      label: t("gender"),
       render: (value: unknown) => (value ? String(value) : "N/A"),
     },
     {
       key: "nationality",
-      label: "Nationality",
+      label: t("nationality"),
       render: (value: unknown) => (value ? String(value) : "N/A"),
     },
-    { key: "gradeRequested", label: "Grade" },
+    {
+      key: "gradeRequested",
+      label: t("grade"),
+      render: (value: unknown) => {
+        if (!value) return "—";
+        const grade = String(value);
+        // Convert grade to translation key (e.g., "Grade 6" -> "grade_6")
+        const gradeKey = grade.toLowerCase().replace(/\s+/g, "_");
+        const translated = t_grades(gradeKey);
+        return translated !== gradeKey ? translated : grade;
+      },
+    },
     {
       key: "status",
-      label: "Status",
+      label: t("status"),
       render: (value: unknown) => (
         <StatusBadge status={value as ApplicationStatus} />
       ),
     },
     {
       key: "guardianName",
-      label: "Guardian",
+      label: t("guardian"),
       searchable: true,
     },
     {
       key: "submittedDate",
-      label: "Submitted",
+      label: t("submitted"),
       render: (value: unknown) =>
         new Date(value as string).toLocaleDateString(),
     },
@@ -387,51 +404,54 @@ export default function ApplicationsList() {
         <KPICard
           title={
             dateRange === "all"
-              ? "Total Applications"
-              : `Applications (${dateRange} days)`
+              ? t("total_applications")
+              : t("applications_period", { days: dateRange })
           }
           value={kpis.newInPeriod}
           icon={Users}
           numbers={
             dateRange === "all"
-              ? `Today: ${kpis.newToday} | Week: ${kpis.newThisWeek}`
-              : `In selected period`
+              ? t("today_week_stats", {
+                  today: kpis.newToday,
+                  week: kpis.newThisWeek,
+                })
+              : t("in_selected_period")
           }
           iconBgColor="bg-blue-500"
         />
         <KPICard
-          title="Pending Review"
+          title={t("pending_review")}
           value={kpis.pendingReview}
           icon={Clock}
-          numbers="Awaiting action"
+          numbers={t("awaiting_action")}
           iconBgColor="bg-amber-500"
         />
         <KPICard
-          title="Missing Documents"
+          title={t("missing_documents")}
           value={kpis.missingDocuments}
           icon={Users}
-          numbers="Applications incomplete"
+          numbers={t("applications_incomplete")}
           iconBgColor="bg-red-500"
         />
         <KPICard
-          title="Approved"
+          title={t("approved")}
           value={kpis.approved}
           icon={CheckCircle}
-          numbers="Accepted applications"
+          numbers={t("accepted_applications")}
           iconBgColor="bg-green-500"
         />
         <KPICard
-          title="Rejected"
+          title={t("rejected")}
           value={kpis.rejected}
           icon={Users}
-          numbers="Declined applications"
+          numbers={t("declined_applications")}
           iconBgColor="bg-gray-500"
         />
         <KPICard
-          title="Avg Processing Time"
+          title={t("avg_processing_time")}
           value={kpis.avgProcessingDisplay}
           icon={TrendingUp}
-          numbers="Time to decision"
+          numbers={t("time_to_decision")}
           iconBgColor="bg-purple-500"
         />
       </div>
@@ -448,7 +468,7 @@ export default function ApplicationsList() {
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
           >
             <Download className="w-4 h-4" />
-            Export
+            {t("export")}
           </button>
           <button
             onClick={() => setIsCreateAppOpen(true)}
@@ -479,7 +499,7 @@ export default function ApplicationsList() {
             {searchQuery && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 <span className="text-xs text-[#036b80] font-medium">
-                  {filteredApplications.length} found
+                  {filteredApplications.length} {t("found")}
                 </span>
               </div>
             )}
@@ -501,7 +521,7 @@ export default function ApplicationsList() {
               className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 hover:bg-red-100 text-red-700 rounded-lg font-medium text-sm transition-colors"
             >
               <X className="w-4 h-4" />
-              Clear Filters
+              {t("clear_filters")}
             </button>
           )}
         </div>
@@ -522,10 +542,12 @@ export default function ApplicationsList() {
               >
                 <option value="all">{tFilters("all")}</option>
                 <option value="submitted">{tStatus("pending")}</option>
-                <option value="documents_pending">Documents Pending</option>
+                <option value="documents_pending">
+                  {t("documents_pending")}
+                </option>
                 <option value="under_review">{tStatus("under_review")}</option>
                 <option value="accepted">{tStatus("accepted")}</option>
-                <option value="waitlisted">Waitlisted</option>
+                <option value="waitlisted">{t("waitlisted")}</option>
                 <option value="rejected">{tStatus("rejected")}</option>
               </select>
             </div>
@@ -539,23 +561,27 @@ export default function ApplicationsList() {
                 className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
               >
                 <option value="all">{tFilters("all")}</option>
-                {uniqueGrades.map((grade) => (
-                  <option key={grade} value={grade}>
-                    {grade}
-                  </option>
-                ))}
+                {uniqueGrades.map((grade) => {
+                  const gradeKey = grade.toLowerCase().replace(/\s+/g, "_");
+                  const translated = t_grades(gradeKey);
+                  return (
+                    <option key={grade} value={grade}>
+                      {translated !== gradeKey ? translated : grade}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
-                Gender
+                {t("gender")}
               </label>
               <select
                 value={genderFilter}
                 onChange={(e) => setGenderFilter(e.target.value)}
                 className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
               >
-                <option value="all">All Genders</option>
+                <option value="all">{t("all_genders")}</option>
                 {uniqueGenders.map((gender) => (
                   <option key={gender} value={gender}>
                     {gender}
@@ -565,14 +591,14 @@ export default function ApplicationsList() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
-                Nationality
+                {t("nationality")}
               </label>
               <select
                 value={nationalityFilter}
                 onChange={(e) => setNationalityFilter(e.target.value)}
                 className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
               >
-                <option value="all">All Nationalities</option>
+                <option value="all">{t("all_nationalities")}</option>
                 {uniqueNationalities.map((nationality) => (
                   <option key={nationality} value={nationality}>
                     {nationality}
@@ -585,22 +611,23 @@ export default function ApplicationsList() {
       </div>
 
       {/* Status Tags Bar */}
-      <StatusTagsBar data={filteredApplications} totalLabel="Applications" />
+      <StatusTagsBar
+        data={filteredApplications}
+        totalLabel={t("applications")}
+      />
 
       {/* Table */}
       {filteredApplications.length === 0 ? (
         <div className="bg-white rounded-xl p-12 shadow-sm text-center">
           <p className="text-gray-500">
-            {hasActiveFilters
-              ? "No applications match your filters"
-              : "No applications found"}
+            {hasActiveFilters ? t("no_match") : t("no_applications")}
           </p>
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
               className="mt-4 text-[#036b80] hover:text-[#024d5c] font-medium text-sm"
             >
-              Clear filters
+              {t("clear_filters")}
             </button>
           )}
         </div>

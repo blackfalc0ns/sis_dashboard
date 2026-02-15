@@ -21,10 +21,22 @@ export default function ApplicationSourcesChart({
 }: ApplicationSourcesChartProps) {
   const t = useTranslations("admissions.charts");
 
+  // Helper function to get translation key from source
+  const getSourceKey = (source: string): string => {
+    // Convert "In App" to "in_app", "Walk-in" to "walk_in", etc.
+    return source.toLowerCase().replace(/-/g, "_").replace(/\s+/g, "_");
+  };
+
+  // Get translated source label
+  const getTranslatedSource = (source: string): string => {
+    const key = getSourceKey(source);
+    return t(key);
+  };
+
   const chartData = data.map((item, index) => ({
     id: index,
     value: item.count,
-    label: item.source,
+    label: getTranslatedSource(item.source),
     color: SOURCE_COLORS[item.source] || SOURCE_COLORS["Other"],
   }));
 
@@ -89,7 +101,9 @@ export default function ApplicationSourcesChart({
                     SOURCE_COLORS[item.source] || SOURCE_COLORS["Other"],
                 }}
               />
-              <span className="text-sm text-gray-700">{item.source}</span>
+              <span className="text-sm text-gray-700">
+                {getTranslatedSource(item.source)}
+              </span>
             </div>
             <div className="text-right">
               <span className="text-sm font-semibold text-gray-900">

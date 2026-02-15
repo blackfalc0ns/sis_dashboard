@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import {
   Plus,
   Search,
@@ -29,6 +29,7 @@ import { Test, TestStatus } from "@/types/admissions";
 
 export default function TestsList() {
   const t = useTranslations("admissions.tests");
+  const locale = useLocale();
   const [selectedTest, setSelectedTest] = useState<
     (Test & { studentName: string }) | null
   >(null);
@@ -49,7 +50,10 @@ export default function TestsList() {
     const testsFromApps = mockApplications.flatMap((app) =>
       app.tests.map((test) => ({
         ...test,
-        studentName: app.studentName,
+        studentName:
+          locale === "ar"
+            ? app.full_name_ar || app.studentNameArabic || app.studentName
+            : app.full_name_en || app.studentName,
         applicationId: app.id,
       })),
     );
@@ -57,12 +61,16 @@ export default function TestsList() {
       const app = mockApplications.find((a) => a.id === test.applicationId);
       return {
         ...test,
-        studentName: app?.studentName || "Unknown",
+        studentName: app
+          ? locale === "ar"
+            ? app.full_name_ar || app.studentNameArabic || app.studentName
+            : app.full_name_en || app.studentName
+          : "Unknown",
         applicationId: test.applicationId,
       };
     });
     return [...testsFromApps, ...standaloneTests];
-  }, []);
+  }, [locale]);
 
   // Filter and search tests
   const filteredTests = useMemo(() => {
