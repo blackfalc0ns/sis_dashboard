@@ -37,32 +37,28 @@ export default function ConversionFunnelChart({
       label: t("leads"),
       count: leads,
       icon: Users,
-      color: "bg-blue-500",
-      width: "100%",
+      color: "#6366f1", // Indigo
       conversion: null,
     },
     {
       label: t("applications"),
       count: applications,
       icon: FileText,
-      color: "bg-purple-500",
-      width: leads > 0 ? `${(applications / leads) * 100}%` : "0%",
+      color: "#8b5cf6", // Purple
       conversion: `${leadsToApps}%`,
     },
     {
       label: t("accepted"),
       count: accepted,
       icon: CheckCircle,
-      color: "bg-green-500",
-      width: leads > 0 ? `${(accepted / leads) * 100}%` : "0%",
+      color: "#10b981", // Green
       conversion: `${appsToAccepted}%`,
     },
     {
       label: t("enrolled"),
       count: enrolled,
       icon: GraduationCap,
-      color: "bg-teal-500",
-      width: leads > 0 ? `${(enrolled / leads) * 100}%` : "0%",
+      color: "#14b8a6", // Teal
       conversion: `${acceptedToEnrolled}%`,
     },
   ];
@@ -85,6 +81,13 @@ export default function ConversionFunnelChart({
     );
   }
 
+  // Calculate widths for pyramid effect
+  const maxValue = Math.max(leads, applications, accepted, enrolled);
+  const getWidth = (value: number) => {
+    if (maxValue === 0) return 0;
+    return (value / maxValue) * 100;
+  };
+
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm h-full">
       <div className="mb-6">
@@ -95,7 +98,7 @@ export default function ConversionFunnelChart({
       </div>
 
       {/* Overall Conversion */}
-      <div className="mb-6 p-4 bg-linear-to-r from-teal-50 to-blue-50 rounded-lg border border-teal-200">
+      <div className="mb-6 p-4 bg-gradient-to-r from-teal-50 to-blue-50 rounded-lg border border-teal-200">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-gray-700">
             {t("overall_conversion_rate")}
@@ -109,45 +112,84 @@ export default function ConversionFunnelChart({
         </p>
       </div>
 
-      {/* Funnel Stages */}
-      <div className="space-y-3">
-        {stages.map((stage, index) => {
-          const Icon = stage.icon;
-          const widthPercent = parseFloat(stage.width);
-          const minWidth =
-            widthPercent < 20 && widthPercent > 0 ? 20 : widthPercent;
+      {/* Pyramid Funnel */}
+      <div className="relative flex flex-col items-center py-4">
+        <svg
+          viewBox="0 0 400 400"
+          className="w-full max-w-md"
+          style={{ maxHeight: "400px" }}
+        >
+          {stages.map((stage, index) => {
+            const Icon = stage.icon;
+            const width = getWidth(stage.count);
+            const topWidth = width;
+            const bottomWidth =
+              index < stages.length - 1
+                ? getWidth(stages[index + 1].count)
+                : width * 0.6;
 
-          return (
-            <div key={stage.label} className="relative">
-              {/* Stage Bar */}
-              <div
-                className={`${stage.color} rounded-lg p-4 transition-all duration-300 hover:shadow-md`}
-                style={{
-                  width: `${minWidth}%`,
-                  minWidth: stage.count > 0 ? "120px" : "0px",
-                }}
-              >
-                <div className="flex items-center justify-between text-white">
-                  <div className="flex items-center gap-2">
-                    <Icon className="w-5 h-5" />
-                    <span className="font-semibold text-sm">{stage.label}</span>
-                  </div>
-                  <span className="text-lg font-bold">{stage.count}</span>
-                </div>
-              </div>
+            // Calculate trapezoid points with more height
+            const centerX = 200;
+            const y = index * 85 + 10;
+            const height = 75;
 
-              {/* Conversion Arrow & Percentage */}
-              {index < stages.length - 1 && stage.conversion && (
-                <div className="flex items-center gap-2 mt-1 ml-4">
-                  <div className="text-xs text-gray-500">↓</div>
-                  <div className="text-xs font-medium text-gray-600">
-                    {stage.conversion} {t("conversion")}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+            const topLeft = centerX - topWidth * 1.8;
+            const topRight = centerX + topWidth * 1.8;
+            const bottomLeft = centerX - bottomWidth * 1.8;
+            const bottomRight = centerX + bottomWidth * 1.8;
+
+            const points = `${topLeft},${y} ${topRight},${y} ${bottomRight},${y + height} ${bottomLeft},${y + height}`;
+
+            return (
+              <g key={stage.label}>
+                {/* Trapezoid shape */}
+                <polygon
+                  points={points}
+                  fill={stage.color}
+                  className="transition-all duration-300 hover:opacity-90"
+                  style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))" }}
+                />
+
+                {/* Stage label */}
+                <text
+                  x={centerX}
+                  y={y + height / 2 - 8}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="fill-white font-semibold"
+                  style={{ fontSize: "15px" }}
+                >
+                  {stage.label}
+                </text>
+
+                {/* Stage count */}
+                <text
+                  x={centerX}
+                  y={y + height / 2 + 12}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="fill-white font-bold"
+                  style={{ fontSize: "22px" }}
+                >
+                  {stage.count}
+                </text>
+
+                {/* Conversion percentage between stages */}
+                {index < stages.length - 1 && stage.conversion && (
+                  <text
+                    x={centerX}
+                    y={y + height + 18}
+                    textAnchor="middle"
+                    className="fill-gray-600 text-xs font-medium"
+                    style={{ fontSize: "12px" }}
+                  >
+                    ↓ {stage.conversion}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </svg>
       </div>
 
       {/* Summary Stats */}
