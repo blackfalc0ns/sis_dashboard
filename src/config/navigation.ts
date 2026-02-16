@@ -51,7 +51,7 @@ export const menuItems: MenuItem[] = [
       {
         key: "admissions-dashboard",
         label_en: "Over View",
-        label_ar: "لوحة التحكم",
+        label_ar: "نظرة عامة",
         href_en: "/en/admissions",
         href_ar: "/ar/admissions",
         icon: LayoutDashboard,
@@ -128,7 +128,7 @@ export const menuItems: MenuItem[] = [
       {
         key: "students-guardians-dashboard",
         label_en: "Overview",
-        label_ar: "لوحة التحكم",
+        label_ar: "نظرة عامة",
         href_en: "/en/students-guardians",
         href_ar: "/ar/students-guardians",
         icon: LayoutDashboard,

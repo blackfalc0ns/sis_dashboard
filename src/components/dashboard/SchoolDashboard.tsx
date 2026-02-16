@@ -4,10 +4,10 @@ import { Users, MapPin, BookOpen, AlertTriangle, UserX } from "lucide-react";
 import FilterBar from "./FilterBar";
 import KPICard from "../ui/common/KPICard";
 import AttendanceCard from "./AttendanceCard";
-import IncidentsCard from "./IncidentsCard";
+import ActivitiesCard from "./ActivitiesCard";
 import QuickActionPanel from "./QuickActionPanel";
 import AcademicPerformanceCard from "../charts/AcademicPerformanceCard";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import AttendanceTrendChart from "./charts/AttendanceTrendChart";
 import StudentsPerGradeChart from "./charts/StudentsPerGradeChart";
 import AbsenceReasonsChart from "./charts/AbsenceReasonsChart";
@@ -41,7 +41,7 @@ export default function SchoolDashboard() {
   }, []);
 
   return (
-    <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 bg-gray-50 min-h-screen relative">
       <FilterBar />
 
       {/* KPI Cards */}
@@ -88,13 +88,13 @@ export default function SchoolDashboard() {
       </div>
 
       {/* ✅ ONE PAGE LAYOUT: Left content + Right sticky QuickActionPanel */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start relative">
         {/* LEFT (everything) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Top cards + Academic performance */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <AttendanceCard />
-            <IncidentsCard />
+            <ActivitiesCard />
             <div className="sm:col-span-2">
               <AcademicPerformanceCard />
             </div>
@@ -115,8 +115,8 @@ export default function SchoolDashboard() {
         </div>
 
         {/* RIGHT (only QuickActionPanel sticky) */}
-        <div className="lg:col-span-1 h-full">
-          <div className="lg:sticky lg:top-[100px] h-[calc(100vh-100px)]">
+        <div className="lg:col-span-1">
+          <div className="">
             <QuickActionPanel />
           </div>
         </div>

@@ -212,7 +212,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className={`px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider ${
+                  className={`px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 text-left text-sm font-bold text-gray-600 uppercase tracking-wider ${
                     column.sortable !== false
                       ? "cursor-pointer select-none"
                       : ""
@@ -234,7 +234,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="px-3 sm:px-4 lg:px-6 py-8 sm:py-12 text-center text-gray-500 text-sm"
+                  className="px-3 sm:px-4 lg:px-6 py-8 sm:py-12 text-center text-gray-500 text-md"
                 >
                   {t("no_data_available")}
                 </td>
@@ -249,7 +249,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
                   {columns.map((column) => (
                     <td
                       key={column.key}
-                      className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900"
+                      className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-sm sm:text-[15px] text-gray-900"
                     >
                       {column.render ? (
                         column.render(row[column.key], row)

@@ -8,7 +8,7 @@ export default function AttendanceCard() {
   const t = useTranslations("attendance");
   const data = [
     { id: 0, value: 75, color: "#036b80" },
-    { id: 1, value: 25, color: "#F5E6D3" },
+    { id: 1, value: 25, color: "#0ac5b2" },
   ];
 
   return (
@@ -50,7 +50,7 @@ export default function AttendanceCard() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-[#F5E6D3]" />
+          <div className="w-3 h-3 rounded-full bg-[#0ac5b2]" />
           <div>
             <p className="text-2xl font-bold text-gray-900">25%</p>
             <p className="text-xs text-gray-500">{t("absent")}</p>

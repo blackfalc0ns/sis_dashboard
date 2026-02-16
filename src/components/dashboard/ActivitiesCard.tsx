@@ -31,8 +31,8 @@ const incidents: Incident[] = [
   },
 ];
 
-export default function IncidentsCard() {
-  const t = useTranslations("incidents");
+export default function ActivitiesCard() {
+  const t = useTranslations("activities");
   return (
     <div className="bg-white rounded-[20px] p-8 shadow-(--main-box-shadow) flex flex-col gap-1">
       <div className="flex items-center justify-between mb-6">

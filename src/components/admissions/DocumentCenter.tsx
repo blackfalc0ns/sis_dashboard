@@ -263,7 +263,7 @@ export default function DocumentCenter({ applications }: DocumentCenterProps) {
               placeholder={t("search_placeholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full pl-10 pr-4 py-2.5 bg-white border rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm min-h-[44px] ${
+              className={`w-full pl-10 pr-4 py-2.5 bg-white border rounded-lg focus:ring-2 focus:ring-[#036b80] placeholder:text-black/60 focus:border-transparent text-sm min-h-[44px] ${
                 searchQuery
                   ? "border-[#036b80] ring-2 ring-[#036b80]/20"
                   : "border-gray-200"

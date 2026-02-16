@@ -129,6 +129,19 @@ export const mockLeads: Lead[] = [
     studentName: "Hamza Ahmed",
     studentNameArabic: "حمزة أحمد",
   },
+  {
+    id: "L009",
+    name: "Ahmed Ali",
+    phone: "+971-50-890-1234",
+    email: "ahmed.ali@email.com",
+    channel: "Other",
+    status: "New",
+    createdAt: "2026-02-10",
+    gradeInterest: "Grade 8",
+    source: "other",
+    studentName: "Hamza Ali",
+    studentNameArabic: "حمزة علي",
+  },
 ];
 
 // ============================================================================

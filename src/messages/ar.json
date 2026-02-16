@@ -226,8 +226,8 @@
     "present": "حاضر",
     "absent": "غائب"
   },
-  "incidents": {
-    "title": "الحوادث اليوم",
+  "activities": {
+    "title": "نشاطات اليوم",
     "to_student_name": "إلى اسم الطالب",
     "activity_reason": "سبب النشاط",
     "view_all": "عرض الكل"
@@ -267,12 +267,12 @@
       "no_data": "لا توجد بيانات للفترة المحددة",
       "overall_conversion_rate": "معدل التحويل الإجمالي",
       "enrolled_out_of_leads": "{enrolled} مسجل من أصل {leads} عميل محتمل",
-      "leads": "عملاء محتملون",
+      "leads": "الاستفسارات",
       "applications": "طلبات",
       "accepted": "مقبول",
       "enrolled": "مسجل",
       "conversion": "تحويل",
-      "leads_to_apps": "عملاء محتملون ← طلبات",
+      "leads_to_apps": "الاستفسارات ← طلبات",
       "apps_to_accepted": "طلبات ← مقبول",
       "accepted_to_enrolled": "مقبول ← مسجل",
       "total_applications": "إجمالي الطلبات",
@@ -447,7 +447,7 @@
       "custom": "مخصص",
       "days": "{days} يوم",
       "in_selected_period": "في الفترة المحددة",
-      "new_leads": "عملاء محتملون جدد",
+      "new_leads": "الاستفسارات الجديدة",
       "not_yet_contacted": "لم يتم الاتصال بهم بعد",
       "contacted": "تم الاتصال",
       "in_progress": "قيد التنفيذ",
@@ -474,7 +474,7 @@
       "walk_in": "زيارة مباشرة",
       "other": "أخرى",
       "all_owners": "جميع المسؤولين",
-      "no_match": "لا يوجد عملاء محتملون يطابقون التصفية",
+      "no_match": "لا يوجد استفسارات يطابقون التصفية",
       "no_leads": "لم يتم العثور على عملاء محتملين",
       "clear_filters": "مسح التصفية",
       "create_new_lead": "إنشاء عميل محتمل جديد",
