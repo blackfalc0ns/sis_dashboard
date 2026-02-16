@@ -67,7 +67,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
           onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
           isSidebarOpen={isSidebarOpen}
         />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <div>{children}</div>
       </div>
     </div>
   );
