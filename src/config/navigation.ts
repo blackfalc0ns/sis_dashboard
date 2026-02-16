@@ -59,7 +59,7 @@ export const menuItems: MenuItem[] = [
       {
         key: "admissions-leads",
         label_en: "Leads",
-        label_ar: "العملاء المحتملون",
+        label_ar: "الاستفسارات",
         href_en: "/en/admissions/leads",
         href_ar: "/ar/admissions/leads",
         icon: Users,

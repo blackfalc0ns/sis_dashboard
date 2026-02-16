@@ -14,6 +14,7 @@ import {
   Tag,
   TrendingUp,
   MessageCircle,
+  ArrowRight,
 } from "lucide-react";
 import LeadStatusBadge from "@/components/leads/LeadStatusBadge";
 import ActivityLog from "@/components/leads/ActivityLog";
@@ -122,13 +123,17 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 mb-4">
         <button
           onClick={() => router.push(`/${locale}/admissions/leads`)}
           className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           title={t("back_to_leads")}
         >
-          <ArrowLeft className="w-5 h-5 text-gray-600" />
+          {locale === "ar" ? (
+            <ArrowRight className="w-5 h-5 text-gray-600" />
+          ) : (
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          )}
         </button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">{lead.name}</h1>
@@ -139,26 +144,22 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
         <LeadStatusBadge status={lead.status} size="md" />
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-xl shadow-sm p-4">
-        <div className="flex items-center gap-3 flex-wrap">
-          <button
-            onClick={handleConvertToApplication}
-            className="px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors"
-          >
-            {t("convert_to_application")}
-          </button>
-        </div>
-      </div>
-
       {/* Tabs */}
       <div className="bg-white rounded-xl shadow-sm">
-        <div className="px-6 pt-4">
+        <div className="px-6 pt-4 flex items-center justify-between">
           <TabNavigation
             tabs={tabs}
             activeTab={activeTab}
             onChange={setActiveTab}
           />
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={handleConvertToApplication}
+              className="px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              {t("convert_to_application")}
+            </button>
+          </div>
         </div>
 
         <div className="px-6 py-6">

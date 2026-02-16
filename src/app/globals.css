@@ -37,6 +37,14 @@ body {
   font-family: var(--font-cairo), system-ui, sans-serif;
 }
 
+input::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+select {
+  color: black;
+}
+
 /* Custom Scrollbar Styles */
 
 /* For Webkit browsers (Chrome, Safari, Edge) */
