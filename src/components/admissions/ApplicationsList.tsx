@@ -490,7 +490,7 @@ export default function ApplicationsList() {
               placeholder={t("search_placeholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full pl-10 pr-4 py-2.5 bg-white border rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm ${
+              className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm ${
                 searchQuery
                   ? "border-[#036b80] ring-2 ring-[#036b80]/20"
                   : "border-gray-200"
@@ -538,7 +538,7 @@ export default function ApplicationsList() {
                 onChange={(e) =>
                   setStatusFilter(e.target.value as ApplicationStatus | "all")
                 }
-                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
+                className="w-full px-3 py-2 text-black bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
               >
                 <option value="all">{tFilters("all")}</option>
                 <option value="submitted">{tStatus("pending")}</option>
@@ -558,7 +558,7 @@ export default function ApplicationsList() {
               <select
                 value={gradeFilter}
                 onChange={(e) => setGradeFilter(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
+                className="w-full px-3 text-black py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
               >
                 <option value="all">{tFilters("all")}</option>
                 {uniqueGrades.map((grade) => {
@@ -579,7 +579,7 @@ export default function ApplicationsList() {
               <select
                 value={genderFilter}
                 onChange={(e) => setGenderFilter(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
+                className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
               >
                 <option value="all">{t("all_genders")}</option>
                 {uniqueGenders.map((gender) => (
@@ -596,7 +596,7 @@ export default function ApplicationsList() {
               <select
                 value={nationalityFilter}
                 onChange={(e) => setNationalityFilter(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
+                className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
               >
                 <option value="all">{t("all_nationalities")}</option>
                 {uniqueNationalities.map((nationality) => (

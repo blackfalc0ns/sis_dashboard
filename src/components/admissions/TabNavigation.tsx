@@ -38,7 +38,7 @@ export default function TabNavigation({
               {tab.icon}
               {tab.label}
               {tab.badge !== undefined && tab.badge > 0 && (
-                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200 rounded-full">
+                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold bg-red-100 text-red-700 border border-red-200 rounded-full">
                   {tab.badge > 99 ? "99+" : tab.badge}
                 </span>
               )}

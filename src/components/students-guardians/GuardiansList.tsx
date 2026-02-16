@@ -269,7 +269,7 @@ export default function GuardiansList() {
               placeholder={t("search_placeholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 placeholder:text-black/60 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
             />
           </div>
 
@@ -307,7 +307,7 @@ export default function GuardiansList() {
                 <select
                   value={relationFilter}
                   onChange={(e) => setRelationFilter(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
+                  className="w-full text-black px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
                 >
                   <option value="all">{t("all_relations")}</option>
                   {uniqueRelations.map((relation) => (

@@ -312,7 +312,7 @@ export default function InterviewsList() {
               placeholder={t("search_placeholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full pl-10 pr-4 py-2.5 bg-white border rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm ${
+              className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm ${
                 searchQuery
                   ? "border-[#036b80] ring-2 ring-[#036b80]/20"
                   : "border-gray-200"
@@ -359,7 +359,7 @@ export default function InterviewsList() {
               onChange={(e) =>
                 setStatusFilter(e.target.value as InterviewStatus | "all")
               }
-              className="w-full max-w-xs px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
+              className="w-full text-black max-w-xs px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
             >
               <option value="all">{t("all_statuses")}</option>
               <option value="scheduled">{t("scheduled")}</option>

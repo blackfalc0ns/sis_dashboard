@@ -306,7 +306,7 @@ export default function DocumentCenter({ applications }: DocumentCenterProps) {
                   e.target.value as "all" | "complete" | "missing",
                 )
               }
-              className="w-full sm:max-w-xs px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent min-h-[44px]"
+              className="w-full sm:max-w-xs px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-black focus:ring-2 focus:ring-[#036b80] focus:border-transparent min-h-[44px]"
             >
               <option value="all">{t("all_statuses")}</option>
               <option value="complete">{t("complete")}</option>
