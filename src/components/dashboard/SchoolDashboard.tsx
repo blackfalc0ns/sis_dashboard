@@ -10,11 +10,17 @@ import AcademicPerformanceCard from "../charts/AcademicPerformanceCard";
 import { useMemo } from "react";
 import AttendanceTrendChart from "./charts/AttendanceTrendChart";
 import StudentsPerGradeChart from "./charts/StudentsPerGradeChart";
-import AbsenceReasonsChart from "./charts/AbsenceReasonsChart";
+import dynamic from "next/dynamic";
 import CriticalAlerts from "./alerts/CriticalAlerts";
 import TodayMonitoring from "./monitoring/TodayMonitoring";
 import { useTranslations } from "next-intl";
 import { mockStudents } from "@/data/mockStudents";
+
+// Dynamically import AbsenceReasonsChart with SSR disabled to prevent MUI Charts hydration issues
+const AbsenceReasonsChart = dynamic(
+  () => import("./charts/AbsenceReasonsChart"),
+  { ssr: false },
+);
 
 export default function SchoolDashboard() {
   const t_kpi = useTranslations("kpi");

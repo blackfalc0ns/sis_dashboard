@@ -26,8 +26,8 @@ export default function Sidebar({
 }: SidebarProps) {
   const t = useTranslations("sidebar");
   const pathname = usePathname();
-  const isArabic =
-    typeof document !== "undefined" && document.documentElement.lang === "ar";
+  const isArabic = pathname.startsWith("/ar");
+
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   // Auto-expand parent if current route is a child
   useEffect(() => {
@@ -85,19 +85,11 @@ export default function Sidebar({
 
       {/* Sidebar */}
       <aside
-        className={`
-          fixed z-50 h-screen bg-white flex flex-col transition-all duration-300 ease-in-out
-          ${isRTL ? "right-0 border-l" : "left-0 border-r"} border-gray-200
-          ${isOpen ? "translate-x-0" : isRTL ? "translate-x-full lg:translate-x-0" : "-translate-x-full lg:translate-x-0"}
-          ${isOpen ? "w-[240px] p-2" : "w-[240px]  lg:w-20 lg:px-3"}
-        `}
+        className={`fixed z-50 h-screen bg-white flex flex-col transition-all duration-300 ease-in-out ${isRTL ? "right-0 border-l" : "left-0 border-r"} border-gray-200 ${isOpen ? "translate-x-0" : isRTL ? "translate-x-full lg:translate-x-0" : "-translate-x-full lg:translate-x-0"} ${isOpen ? "w-[240px] p-2" : "w-[240px] lg:w-20 lg:px-3"}`}
       >
-        {/* Desktop Toggle Button */}
         <button
           onClick={onToggle}
-          className={`hidden lg:block p-2 rounded-lg text-gray-700 hover:bg-[#036b80] hover:text-white transition-colors border-[#036b80] border-2 mt-2 ${
-            isRTL ? "ml-2 mr-auto" : "ml-auto mr-2"
-          }`}
+          className={`hidden lg:block p-2 rounded-lg text-gray-700 hover:bg-[#036b80] hover:text-white transition-colors border-[#036b80] border-2 mt-2 ${isRTL ? "ml-2 mr-auto" : "ml-auto mr-2"}`}
         >
           {isOpen ? (
             <ChevronLeft className={`w-5 h-5 ${isRTL ? "rotate-180" : ""}`} />
@@ -171,16 +163,7 @@ export default function Sidebar({
                             : item.label_en
                           : undefined
                       }
-                      className={`
-                        w-full flex items-center gap-3 rounded-[6px]
-                        transition-all duration-200 
-                        ${isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"}
-                        ${
-                          isActive
-                            ? "bg-[#036b80] text-white shadow-sm"
-                            : "text-gray-700 hover:bg-teal-50 hover:text-[#036b80]"
-                        }
-                      ${isArabic ? "text-right" : "text-left"}`}
+                      className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 ${isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"} ${isActive ? "bg-[#036b80] text-white shadow-sm" : "text-gray-700 hover:bg-teal-50 hover:text-[#036b80]"} ${isArabic ? "text-right" : "text-left"}`}
                     >
                       <Icon
                         className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-[#A4B4CB]"}`}
@@ -209,16 +192,7 @@ export default function Sidebar({
                             : item.label_en
                           : undefined
                       }
-                      className={`
-                        w-full flex items-center gap-3 rounded-[6px]
-                        transition-all duration-200 text-left
-                        ${isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"}
-                        ${
-                          isActive
-                            ? "bg-[#036b80] text-white shadow-sm"
-                            : "text-gray-700 hover:bg-teal-50 hover:text-[#036b80]"
-                        }
-                      `}
+                      className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 text-left ${isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"} ${isActive ? "bg-[#036b80] text-white shadow-sm" : "text-gray-700 hover:bg-teal-50 hover:text-[#036b80]"}`}
                     >
                       <Icon
                         className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-[#A4B4CB]"}`}
@@ -248,16 +222,7 @@ export default function Sidebar({
                             key={child.key}
                             href={childHref}
                             onClick={() => handleItemClick(child.key)}
-                            className={`
-                              w-full flex items-center gap-3 rounded-[6px]
-                              transition-all duration-200 px-4 py-2.5
-                              ${isArabic ? "text-right" : "text-left"}
-                              ${
-                                isChildActive
-                                  ? "bg-teal-50 text-[#036b80] font-semibold"
-                                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                              }
-                            `}
+                            className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${isArabic ? "text-right" : "text-left"} ${isChildActive ? "bg-teal-50 text-[#036b80] font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
                           >
                             <ChildIcon className="w-4 h-4 shrink-0" />
                             <span className="text-xs flex-1">
@@ -310,11 +275,7 @@ export default function Sidebar({
                       : item.label_en
                     : undefined
                 }
-                className={`
-                  w-full flex items-center gap-3 rounded-xl text-gray-500 
-                  hover:bg-gray-50 hover:text-gray-700 transition-all duration-200 text-left
-                  ${isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"}
-                `}
+                className={`w-full flex items-center gap-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all duration-200 text-left ${isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"}`}
               >
                 <Icon className="w-5 h-5 shrink-0" />
                 {isOpen && (

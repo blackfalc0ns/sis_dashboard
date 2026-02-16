@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import TopNav from "./TopNav";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 interface LayoutWrapperProps {
   children: React.ReactNode;
@@ -11,10 +11,10 @@ interface LayoutWrapperProps {
 export default function SideBarTopNav({ children }: LayoutWrapperProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const t = useTranslations();
+  const locale = useLocale();
 
   // Detect if current locale is RTL
-  const isRTL =
-    typeof window !== "undefined" && document.documentElement.dir === "rtl";
+  const isRTL = locale === "ar";
 
   // Set initial sidebar state based on screen size
   useEffect(() => {
@@ -46,15 +46,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
         isRTL={isRTL}
       />
       <div
-        className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${
-          isRTL
-            ? isSidebarOpen
-              ? "lg:mr-[240px]"
-              : "lg:mr-20"
-            : isSidebarOpen
-              ? "lg:ml-[240px]"
-              : "lg:ml-20"
-        }`}
+        className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${isRTL ? (isSidebarOpen ? "lg:mr-[240px]" : "lg:mr-20") : isSidebarOpen ? "lg:ml-[240px]" : "lg:ml-20"}`}
       >
         <TopNav
           userName="Ammar Abd Elbari"

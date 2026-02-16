@@ -16,7 +16,13 @@ import QuickActions from "./QuickActionPanel";
 import TodayMonitoring from "./monitoring/TodayMonitoring";
 import AttendanceTrendChart from "./charts/AttendanceTrendChart";
 import StudentsPerGradeChart from "./charts/StudentsPerGradeChart";
-import AbsenceReasonsChart from "./charts/AbsenceReasonsChart";
+import dynamic from "next/dynamic";
+
+// Dynamically import AbsenceReasonsChart with SSR disabled to prevent MUI Charts hydration issues
+const AbsenceReasonsChart = dynamic(
+  () => import("./charts/AbsenceReasonsChart"),
+  { ssr: false },
+);
 
 export default function ComprehensiveDashboard() {
   const [comparisonMode, setComparisonMode] = useState<
