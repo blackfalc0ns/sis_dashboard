@@ -2,14 +2,15 @@
 
 import { useMemo, useState, useRef, useEffect } from "react";
 import { LineChart } from "@mui/x-charts/LineChart";
-import { ArrowRight } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import Button from "@/components/ui/common/Button";
 
 type Period = "days_30" | "week" | "term";
 
 export default function AttendanceTrendChart() {
   const t = useTranslations("attendance_trend");
-
+  const locale = useLocale();
   const [period, setPeriod] = useState<Period>("days_30");
   const [open, setOpen] = useState(false);
 
@@ -177,14 +178,22 @@ export default function AttendanceTrendChart() {
           </p>
 
           <div className="flex items-center gap-2">
-            <button className="px-3 py-1.5 bg-(--primary-color) text-white rounded-lg text-xs font-medium hover:bg-(--hover-color) transition-colors flex items-center gap-1">
+            <Button
+              size="sm"
+              rightIcon={
+                locale === "ar" ? (
+                  <ArrowLeft className="w-3 h-3" />
+                ) : (
+                  <ArrowRight className="w-3 h-3" />
+                )
+              }
+            >
               {t("actions.view_details")}
-              <ArrowRight className="w-3 h-3" />
-            </button>
+            </Button>
 
-            <button className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors">
+            <Button size="sm" variant="secondary">
               {t("actions.send_alert")}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

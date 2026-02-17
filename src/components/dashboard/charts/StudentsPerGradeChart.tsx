@@ -1,16 +1,18 @@
 "use client";
 
 import { BarChart } from "@mui/x-charts/BarChart";
-import { ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { mockStudents } from "@/data/mockStudents";
+import Button from "@/components/ui/common/Button";
 
 type Filter = "all" | "new" | "existing";
 
 export default function StudentsPerGradeChart() {
   const t = useTranslations("students_per_grade");
   const t_grades = useTranslations("admissions.grades");
+  const locale = useLocale();
   const [filter, setFilter] = useState<Filter>("all");
 
   // Helper function to convert grade name to translation key
@@ -120,10 +122,19 @@ export default function StudentsPerGradeChart() {
             </span>
           </p>
 
-          <button className="px-3 py-1.5 bg-(--primary-color) text-white rounded-lg text-xs font-medium hover:bg-(--hover-color) transition-colors flex items-center gap-1">
+          <Button
+            size="sm"
+            rightIcon={
+              locale === "ar" ? (
+                <ArrowLeft className="w-3 h-3" />
+              ) : (
+                <ArrowRight className="w-3 h-3" />
+              )
+            }
+          >
+            {" "}
             {t("actions.view_class_distribution")}
-            <ArrowRight className="w-3 h-3" />
-          </button>
+          </Button>
         </div>
       </div>
     </div>

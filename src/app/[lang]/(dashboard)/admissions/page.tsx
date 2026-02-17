@@ -2,7 +2,7 @@
 
 "use client";
 
-import AdmissionsDashboard from "@/components/admissions/AdmissionsDashboard";
+import AdmissionsDashboard from "@/components/admissions/pages/AdmissionsDashboard";
 
 export default function AdmissionsPage() {
   return (

@@ -20,7 +20,7 @@ import LeadStatusBadge from "@/components/leads/LeadStatusBadge";
 import ActivityLog from "@/components/leads/ActivityLog";
 import NotesPanel from "@/components/leads/NotesPanel";
 import LeadChatPanel from "@/components/leads/LeadChatPanel";
-import TabNavigation from "@/components/admissions/TabNavigation";
+import TabNavigation from "@/components/admissions/shared/TabNavigation";
 import {
   getLeadById,
   getActivitiesByLeadId,

@@ -18,13 +18,13 @@ import {
   MessageSquare,
   Download,
   Plus,
-  History,
+  Upload,
 } from "lucide-react";
 import DataTable from "@/components/ui/common/DataTable";
 import KPICard from "@/components/ui/common/KPICard";
 import DateRangeFilter, {
   DateRangeValue,
-} from "@/components/admissions/DateRangeFilter";
+} from "@/components/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
 import { downloadCSV, generateFilename } from "@/utils/simpleExport";
 import { Student, StudentStatus, RiskFlag } from "@/types/students";
@@ -43,6 +43,7 @@ import {
 import AddNoteModal, {
   NoteFormData,
 } from "@/components/students-guardians/modals/AddNoteModal";
+import BulkUploadModal from "@/components/students-guardians/modals/BulkUploadModal";
 
 export default function StudentsList() {
   const t = useTranslations("students_guardians.students");
@@ -72,6 +73,7 @@ export default function StudentsList() {
   const [customEndDate, setCustomEndDate] = useState<string>("");
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
 
   // Filter students
   const filteredStudents = useMemo(() => {
@@ -256,6 +258,23 @@ export default function StudentsList() {
     const formattedData = filteredStudents.map(formatStudentForExport);
     const filename = generateFilename("students", "csv");
     downloadCSV(formattedData, filename);
+  };
+
+  const handleBulkUpload = async (file: File) => {
+    // TODO: Implement bulk upload logic
+    // This would typically:
+    // 1. Parse the CSV/Excel file
+    // 2. Validate the data
+    // 3. Send to API
+    // 4. Show success/error messages
+
+    console.log("Uploading file:", file.name);
+
+    // Simulate upload delay
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // For now, just show success
+    alert(t("bulk_upload_success"));
   };
 
   const getRiskBadges = (
@@ -498,13 +517,20 @@ export default function StudentsList() {
           <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
           <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={handleExport}
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
           >
             <Download className="w-4 h-4" />
             {t("export")}
+          </button>
+          <button
+            onClick={() => setShowBulkUploadModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            {t("bulk_upload_button")}
           </button>
           <button
             onClick={() => {
@@ -699,6 +725,13 @@ export default function StudentsList() {
           }
         />
       )}
+
+      {/* Bulk Upload Modal */}
+      <BulkUploadModal
+        isOpen={showBulkUploadModal}
+        onClose={() => setShowBulkUploadModal(false)}
+        onUpload={handleBulkUpload}
+      />
     </div>
   );
 }

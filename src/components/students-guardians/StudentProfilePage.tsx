@@ -17,6 +17,9 @@ import {
   MessageSquare,
   Clock,
   Award,
+  ArrowRight,
+  ArrowLeftRight,
+  LogOut,
 } from "lucide-react";
 import * as studentsService from "@/services/studentsService";
 import {
@@ -35,6 +38,8 @@ import MedicalTab from "./profile-tabs/MedicalTab";
 import NotesTab from "./profile-tabs/NotesTab";
 import TimelineTab from "./profile-tabs/TimelineTab";
 import EnrollmentHistoryTab from "./profile-tabs/EnrollmentHistoryTab";
+import TransfersTab from "./profile-tabs/TransfersTab";
+import WithdrawalTab from "./profile-tabs/WithdrawalTab";
 
 interface StudentProfilePageProps {
   studentId: string;
@@ -51,7 +56,9 @@ type TabKey =
   | "documents"
   | "medical"
   | "notes"
-  | "timeline";
+  | "timeline"
+  | "transfers"
+  | "withdrawal";
 
 const tabs = [
   { key: "overview" as TabKey, labelKey: "tabs.overview", icon: Activity },
@@ -69,6 +76,12 @@ const tabs = [
   { key: "medical" as TabKey, labelKey: "tabs.medical", icon: Heart },
   { key: "notes" as TabKey, labelKey: "tabs.notes", icon: MessageSquare },
   { key: "timeline" as TabKey, labelKey: "tabs.timeline", icon: Clock },
+  {
+    key: "transfers" as TabKey,
+    labelKey: "tabs.transfers",
+    icon: ArrowLeftRight,
+  },
+  { key: "withdrawal" as TabKey, labelKey: "tabs.withdrawal", icon: LogOut },
 ];
 
 export default function StudentProfilePage({
@@ -144,14 +157,18 @@ export default function StudentProfilePage({
             onClick={() => router.push(`/${lang}/students-guardians/students`)}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            {locale === "ar" ? (
+              <ArrowRight className="w-4 h-4" />
+            ) : (
+              <ArrowLeft className="w-4 h-4" />
+            )}
             <span className="text-sm font-medium">{t("back_to_students")}</span>
           </button>
 
           {/* Student Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             {/* Avatar */}
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#036b80] to-[#024d5c] flex items-center justify-center text-white text-2xl font-bold shrink-0">
+            <div className="w-20 h-20 rounded-full bg-linear-to-br from-[#036b80] to-[#024d5c] flex items-center justify-center text-white text-2xl font-bold shrink-0">
               {studentName
                 .split(" ")
                 .map((n: string) => n[0])
@@ -166,7 +183,7 @@ export default function StudentProfilePage({
                   {studentName}
                 </h1>
                 <span
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(student.status)}`}
+                  className={`w-fit inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(student.status)}`}
                 >
                   {getStatusLabel(student.status)}
                 </span>
@@ -231,6 +248,8 @@ export default function StudentProfilePage({
         {activeTab === "medical" && <MedicalTab student={student} />}
         {activeTab === "notes" && <NotesTab student={student} />}
         {activeTab === "timeline" && <TimelineTab student={student} />}
+        {activeTab === "transfers" && <TransfersTab student={student} />}
+        {activeTab === "withdrawal" && <WithdrawalTab student={student} />}
       </div>
     </div>
   );

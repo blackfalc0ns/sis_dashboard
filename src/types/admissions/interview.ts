@@ -8,7 +8,11 @@ export interface Interview {
   applicationId: string;
   date: string;
   time: string;
+  duration?: string;
   interviewer: string;
+  interviewerPhone?: string;
+  guardianName?: string;
+  guardianPhone?: string;
   location: string;
   status: InterviewStatus;
   notes?: string;

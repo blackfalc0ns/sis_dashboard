@@ -1,7 +1,8 @@
 "use client";
 
-import { AlertCircle, ArrowRight } from "lucide-react";
-import { useTranslations } from "next-intl";
+import Button from "@/components/ui/common/Button";
+import { AlertCircle, ArrowLeft, ArrowRight } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 type Priority = "high" | "medium" | "low";
 
@@ -39,7 +40,7 @@ const alerts: AlertItem[] = [
 
 export default function CriticalAlerts() {
   const t = useTranslations("critical_alerts");
-
+  const locale = useLocale();
   const priorityStyles: Record<Priority, string> = {
     high: "bg-red-50 border-red-500",
     medium: "bg-amber-50 border-amber-500",
@@ -75,10 +76,20 @@ export default function CriticalAlerts() {
                 </p>
               </div>
 
-              <button className="shrink-0 px-3 py-1 bg-white rounded-md text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="secondary"
+                rightIcon={
+                  locale === "ar" ? (
+                    <ArrowLeft className="w-3 h-3" />
+                  ) : (
+                    <ArrowRight className="w-3 h-3" />
+                  )
+                }
+              >
+                {" "}
                 {t(alert.actionKey)}
-                <ArrowRight className="w-3 h-3" />
-              </button>
+              </Button>
             </div>
           </div>
         ))}

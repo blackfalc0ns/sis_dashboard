@@ -11,48 +11,152 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useState, useMemo } from "react";
 import KPICard from "@/components/ui/common/KPICard";
-import { BarChart } from "@mui/x-charts/BarChart";
-import { PieChart } from "@mui/x-charts/PieChart";
-import { useMemo } from "react";
+import AbsenceHeatmap from "./charts/AbsenceHeatmap";
+import StudentsByStatusChart from "./charts/StudentsByStatusChart";
+import StudentsByGradeChart from "./charts/StudentsByGradeChart";
+import RetentionCohortChart from "./charts/RetentionCohortChart";
+import ChartFilter, { ChartFilterValues } from "./shared/ChartFilter";
 import * as studentsService from "@/services/studentsService";
 
 export default function StudentsGuardiansDashboard() {
   const t = useTranslations("students_guardians.overview");
 
-  // Calculate KPIs using service
-  const stats = studentsService.getStudentStatistics();
+  // Filter state
+  const [filterValues, setFilterValues] = useState<ChartFilterValues>({
+    academicYear: "all",
+    term: "all",
+    dateRange: "all",
+    customStartDate: "",
+    customEndDate: "",
+  });
 
-  // Students by status
-  const statusData = useMemo(() => {
-    return [
-      {
-        status: t("status.active"),
-        count: studentsService.getStudentsByStatus("Active").length,
-      },
-      {
-        status: t("status.suspended"),
-        count: studentsService.getStudentsByStatus("Suspended").length,
-      },
-      {
-        status: t("status.withdrawn"),
-        count: studentsService.getStudentsByStatus("Withdrawn").length,
-      },
-    ];
-  }, [t]);
+  // Get all students with enrollment data
+  const allStudents = useMemo(
+    () => studentsService.getStudentsWithEnrollment(),
+    [],
+  );
 
-  // Students by grade using service
-  const gradeData = useMemo(() => {
-    const distribution = studentsService.getGradeDistribution();
-    return Object.entries(distribution).map(([grade, count]) => ({
-      id: grade,
-      label: grade,
-      value: count,
-    }));
-  }, []);
+  // Get unique academic years and terms for filter dropdowns
+  const { academicYears, terms } = useMemo(() => {
+    const years = new Set<string>();
+    const termSet = new Set<string>();
 
-  // Risk flag distribution using service
-  const riskDistribution = studentsService.getRiskFlagDistribution();
+    allStudents.forEach((student) => {
+      if (student.enrollment?.academicYear) {
+        years.add(student.enrollment.academicYear);
+      }
+      if (student.currentTerm?.term) {
+        termSet.add(student.currentTerm.term);
+      }
+    });
+
+    return {
+      academicYears: Array.from(years).sort(),
+      terms: Array.from(termSet).sort(),
+    };
+  }, [allStudents]);
+
+  // Filter students based on current filter values
+  const filteredStudents = useMemo(() => {
+    return allStudents.filter((student) => {
+      const academicYear = student.enrollment?.academicYear;
+      const term = student.currentTerm?.term;
+
+      // Apply academic year filter
+      if (
+        filterValues.academicYear !== "all" &&
+        academicYear !== filterValues.academicYear
+      ) {
+        return false;
+      }
+
+      // Apply term filter
+      if (filterValues.term !== "all" && term !== filterValues.term) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [allStudents, filterValues]);
+
+  // Calculate KPIs from filtered data
+  const stats = useMemo(() => {
+    const total = filteredStudents.length;
+    const active = filteredStudents.filter((s) => s.status === "Active").length;
+    const suspended = filteredStudents.filter(
+      (s) => s.status === "Suspended",
+    ).length;
+    const withdrawn = filteredStudents.filter(
+      (s) => s.status === "Withdrawn",
+    ).length;
+
+    const atRisk = filteredStudents.filter(
+      (s) => s.ytdPerformance && s.ytdPerformance.riskFlags.length > 0,
+    ).length;
+
+    // Calculate average attendance
+    const studentsWithAttendance = filteredStudents.filter(
+      (s) => s.ytdPerformance?.attendance,
+    );
+    const avgAttendance =
+      studentsWithAttendance.length > 0
+        ? Math.round(
+            studentsWithAttendance.reduce(
+              (sum, s) => sum + (s.ytdPerformance?.attendance || 0),
+              0,
+            ) / studentsWithAttendance.length,
+          )
+        : 0;
+
+    // Calculate average grade
+    const studentsWithGrades = filteredStudents.filter(
+      (s) => s.ytdPerformance?.gradeAverage,
+    );
+    const avgGrade =
+      studentsWithGrades.length > 0
+        ? Math.round(
+            studentsWithGrades.reduce(
+              (sum, s) => sum + (s.ytdPerformance?.gradeAverage || 0),
+              0,
+            ) / studentsWithGrades.length,
+          )
+        : 0;
+
+    return {
+      total,
+      active,
+      suspended,
+      withdrawn,
+      atRisk,
+      avgAttendance,
+      avgGrade,
+    };
+  }, [filteredStudents]);
+
+  // Risk flag distribution - filtered
+  const riskDistribution = useMemo(() => {
+    const distribution = {
+      attendance: 0,
+      grades: 0,
+      behavior: 0,
+    };
+
+    filteredStudents.forEach((student) => {
+      if (student.ytdPerformance?.riskFlags) {
+        student.ytdPerformance.riskFlags.forEach(
+          (flag: "attendance" | "grades" | "behavior") => {
+            if (flag === "attendance") distribution.attendance++;
+            if (flag === "grades") distribution.grades++;
+            if (flag === "behavior") distribution.behavior++;
+          },
+        );
+      }
+    });
+
+    return distribution;
+  }, [filteredStudents]);
 
   return (
     <div className="space-y-6">
@@ -61,6 +165,15 @@ export default function StudentsGuardiansDashboard() {
         <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
         <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
       </div>
+
+      {/* Chart Filter */}
+      <ChartFilter
+        values={filterValues}
+        onChange={setFilterValues}
+        academicYears={academicYears}
+        terms={terms}
+        showAdvancedFilters={true}
+      />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -112,161 +225,14 @@ export default function StudentsGuardiansDashboard() {
 
       {/* Charts Section 1: Status and Grade Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Students by Status */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">
-            {t("charts.students_by_status")}
-          </h3>
-          <div className="h-80">
-            <BarChart
-              dataset={statusData}
-              xAxis={[{ scaleType: "band", dataKey: "status" }]}
-              series={[
-                {
-                  dataKey: "count",
-                  label: t("charts.students_label"),
-                  color: "#036b80",
-                },
-              ]}
-              height={300}
-              margin={{ top: 20, bottom: 40, left: 40, right: 20 }}
-            />
-          </div>
-        </div>
-
-        {/* Students by Grade */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">
-            {t("charts.students_by_grade")}
-          </h3>
-          <div className="h-80 flex items-center justify-center">
-            <PieChart
-              series={[
-                {
-                  data: gradeData,
-                  highlightScope: { fade: "global", highlight: "item" },
-                },
-              ]}
-              height={300}
-              width={400}
-              margin={{ top: 20, bottom: 20, left: 20, right: 20 }}
-            />
-          </div>
-        </div>
+        <StudentsByStatusChart />
+        <StudentsByGradeChart />
       </div>
 
       {/* Charts Section 2: Retention and Attendance */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Student Retention Cohort */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">
-            {t("charts.retention_cohort")}
-          </h3>
-          <div className="h-80">
-            <BarChart
-              dataset={[
-                { year: "2023-24", retained: 95, left: 5 },
-                { year: "2024-25", retained: 92, left: 8 },
-                { year: "2025-26", retained: 94, left: 6 },
-              ]}
-              xAxis={[{ scaleType: "band", dataKey: "year" }]}
-              series={[
-                {
-                  dataKey: "retained",
-                  label: t("charts.retained"),
-                  color: "#10b981",
-                  stack: "total",
-                },
-                {
-                  dataKey: "left",
-                  label: t("charts.left"),
-                  color: "#ef4444",
-                  stack: "total",
-                },
-              ]}
-              height={300}
-              margin={{ top: 20, bottom: 40, left: 40, right: 20 }}
-            />
-          </div>
-        </div>
-
-        {/* Absence Heatmap */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">
-            {t("charts.absence_heatmap")}
-          </h3>
-          <div className="h-80 overflow-x-auto">
-            <div className="min-w-[400px]">
-              {/* Heatmap Header */}
-              <div className="grid grid-cols-6 gap-2 mb-2">
-                <div className="text-xs font-medium text-gray-600"></div>
-                {[
-                  t("days.mon"),
-                  t("days.tue"),
-                  t("days.wed"),
-                  t("days.thu"),
-                  t("days.fri"),
-                ].map((day) => (
-                  <div
-                    key={day}
-                    className="text-xs font-medium text-gray-600 text-center"
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
-
-              {/* Heatmap Rows */}
-              {[
-                { week: t("weeks.week_1"), data: [2, 3, 1, 4, 2] },
-                { week: t("weeks.week_2"), data: [3, 2, 5, 3, 4] },
-                { week: t("weeks.week_3"), data: [1, 4, 2, 2, 3] },
-                { week: t("weeks.week_4"), data: [4, 3, 3, 5, 6] },
-                { week: t("weeks.week_5"), data: [2, 1, 4, 3, 2] },
-                { week: t("weeks.week_6"), data: [3, 5, 2, 4, 3] },
-              ].map((row) => (
-                <div key={row.week} className="grid grid-cols-6 gap-2 mb-2">
-                  <div className="text-xs font-medium text-gray-600 flex items-center">
-                    {row.week}
-                  </div>
-                  {row.data.map((value, idx) => {
-                    const intensity =
-                      value <= 2
-                        ? "bg-green-100 text-green-800"
-                        : value <= 4
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-red-100 text-red-800";
-                    return (
-                      <div
-                        key={idx}
-                        className={`h-12 rounded flex items-center justify-center text-sm font-semibold ${intensity}`}
-                      >
-                        {value}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-
-              {/* Legend */}
-              <div className="mt-4 flex items-center gap-4 text-xs">
-                <span className="text-gray-600">{t("heatmap.absences")}:</span>
-                <div className="flex items-center gap-1">
-                  <div className="w-4 h-4 bg-green-100 rounded"></div>
-                  <span className="text-gray-600">{t("heatmap.low")}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-4 h-4 bg-yellow-100 rounded"></div>
-                  <span className="text-gray-600">{t("heatmap.medium")}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-4 h-4 bg-red-100 rounded"></div>
-                  <span className="text-gray-600">{t("heatmap.high")}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <RetentionCohortChart />
+        <AbsenceHeatmap />
       </div>
 
       {/* Risk Summary */}

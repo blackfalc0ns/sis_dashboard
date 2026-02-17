@@ -2,7 +2,7 @@
 
 "use client";
 
-import ApplicationsList from "@/components/admissions/ApplicationsList";
+import ApplicationsList from "@/components/admissions/lists/ApplicationsList";
 
 export default function ApplicationsPage() {
   return (

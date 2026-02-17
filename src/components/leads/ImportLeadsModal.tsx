@@ -148,7 +148,7 @@ export default function ImportLeadsModal({
           {/* Template Download */}
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-2">
-              Don't have a file ready?
+              Don&apos;t have a file ready?
             </p>
             <button
               type="button"

@@ -28,6 +28,10 @@ import {
   getCurrentTerm,
   getYearToDateAverages,
 } from "@/data/mockStudents";
+import {
+  getOrGenerateStudentEmail,
+  getOrGenerateGuardianEmail,
+} from "./emailService";
 
 // ============================================================================
 // STUDENT OPERATIONS
@@ -37,14 +41,24 @@ import {
  * Get all students
  */
 export function getAllStudents(): Student[] {
-  return mockStudents;
+  // Ensure all students have emails
+  return mockStudents.map((student) => ({
+    ...student,
+    email: getOrGenerateStudentEmail(student),
+  }));
 }
 
 /**
  * Get student by ID
  */
 export function getStudentById(id: string): Student | undefined {
-  return mockStudents.find((s) => s.id === id);
+  const student = mockStudents.find((s) => s.id === id);
+  if (!student) return undefined;
+
+  return {
+    ...student,
+    email: getOrGenerateStudentEmail(student),
+  };
 }
 
 /**
@@ -100,7 +114,11 @@ export function getStudentGuardians(studentId: string): StudentGuardian[] {
     .map((link) =>
       mockStudentGuardians.find((g) => g.guardianId === link.guardianId),
     )
-    .filter((g): g is StudentGuardian => g !== undefined);
+    .filter((g): g is StudentGuardian => g !== undefined)
+    .map((guardian) => ({
+      ...guardian,
+      email: getOrGenerateGuardianEmail(guardian),
+    }));
 }
 
 /**
@@ -393,6 +411,7 @@ export function getStudentsWithEnrollment(): Array<
 
     return {
       ...student,
+      email: getOrGenerateStudentEmail(student),
       enrollment,
       currentTerm,
       ytdPerformance,

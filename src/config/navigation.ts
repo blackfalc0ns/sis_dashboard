@@ -11,6 +11,7 @@ import {
   CheckCircle,
   GraduationCap,
   UserCheck,
+  FolderOpen,
 } from "lucide-react";
 import {
   mockLeads,
@@ -68,7 +69,7 @@ export const menuItems: MenuItem[] = [
       {
         key: "admissions-applications",
         label_en: "Applications",
-        label_ar: "الطلبات",
+        label_ar: "طلبات الالتحاق",
         href_en: "/en/admissions/applications",
         href_ar: "/ar/admissions/applications",
         icon: FileText,
@@ -148,6 +149,14 @@ export const menuItems: MenuItem[] = [
         href_en: "/en/students-guardians/guardians",
         href_ar: "/ar/students-guardians/guardians",
         icon: UserCheck,
+      },
+      {
+        key: "documents-center",
+        label_en: "Documents",
+        label_ar: "المستندات",
+        href_en: "/en/students-guardians/documents",
+        href_ar: "/ar/students-guardians/documents",
+        icon: FolderOpen,
       },
     ],
   },

@@ -1,13 +1,15 @@
 "use client";
 
 import { PieChart } from "@mui/x-charts/PieChart";
-import { ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import Button from "@/components/ui/common/Button";
 
 type ReasonKey = "medical" | "permission" | "no_excuse";
 
 export default function AbsenceReasonsChart() {
+  const locale = useLocale();
   const t = useTranslations("absence_reasons");
 
   const data = useMemo(
@@ -83,14 +85,22 @@ export default function AbsenceReasonsChart() {
           </p>
 
           <div className="flex items-center gap-2">
-            <button className="px-3 py-1.5 bg-(--primary-color) text-white rounded-lg text-xs font-medium hover:bg-(--hover-color) transition-colors flex items-center gap-1">
+            <Button
+              size="sm"
+              rightIcon={
+                locale === "ar" ? (
+                  <ArrowLeft className="w-3 h-3" />
+                ) : (
+                  <ArrowRight className="w-3 h-3" />
+                )
+              }
+            >
               {t("actions.contact_parents")}
-              <ArrowRight className="w-3 h-3" />
-            </button>
+            </Button>
 
-            <button className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors">
+            <Button size="sm" variant="secondary">
               {t("actions.create_plan")}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

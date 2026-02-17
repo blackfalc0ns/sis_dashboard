@@ -22,7 +22,7 @@ import CreateLeadModal from "@/components/leads/CreateLeadModal";
 import ImportLeadsModal from "@/components/leads/ImportLeadsModal";
 import DateRangeFilter, {
   DateRangeValue,
-} from "@/components/admissions/DateRangeFilter";
+} from "@/components/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
 import { downloadCSV, generateFilename } from "@/utils/simpleExport";
 import { formatLeadsForExport } from "@/utils/admissionsExportUtils";
@@ -181,7 +181,7 @@ export default function LeadsList() {
           <div className="flex items-center gap-2">
             <span>{String(value)}</span>
             {unreadCount > 0 && (
-              <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-red-100 text-red-700 border border-red-20 rounded-full">
+              <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-red-500 text-white rounded-full">
                 {unreadCount}
               </span>
             )}

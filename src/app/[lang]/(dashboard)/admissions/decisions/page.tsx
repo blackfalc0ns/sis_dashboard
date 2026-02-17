@@ -2,7 +2,7 @@
 
 "use client";
 
-import DecisionsList from "@/components/admissions/DecisionsList";
+import DecisionsList from "@/components/admissions/lists/DecisionsList";
 
 export default function DecisionsPage() {
   return (

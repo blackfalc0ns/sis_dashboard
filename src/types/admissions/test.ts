@@ -10,8 +10,12 @@ export interface Test {
   subject: string;
   date: string;
   time: string;
+  duration?: string;
   location: string;
   proctor?: string;
+  proctorPhone?: string;
+  guardianName?: string;
+  guardianPhone?: string;
   status: TestStatus;
   score?: number;
   maxScore?: number;

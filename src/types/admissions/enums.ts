@@ -22,9 +22,18 @@ export type ApplicationStatus =
   | "waitlisted"
   | "rejected";
 
-export type TestStatus = "scheduled" | "completed" | "failed";
+export type TestStatus =
+  | "scheduled"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "rescheduled";
 
-export type InterviewStatus = "scheduled" | "completed";
+export type InterviewStatus =
+  | "scheduled"
+  | "completed"
+  | "cancelled"
+  | "rescheduled";
 
 export type DecisionType = "accept" | "waitlist" | "reject";
 

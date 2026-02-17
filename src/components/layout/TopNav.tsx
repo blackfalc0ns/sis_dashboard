@@ -2,7 +2,7 @@
 
 import { Search, Bell, Menu, X } from "lucide-react";
 import Image from "next/image";
-import LanguageSwitcher from "../ui/LanguageSwitcher";
+import LanguageSwitcher from "../ui/common/LanguageSwitcher";
 import { useTranslations } from "next-intl";
 
 interface TopNavProps {
@@ -51,7 +51,7 @@ export default function TopNav({
           {/* Title (takes available space, truncates on small screens) */}
           <div className="min-w-fit lg:flex-0 sm:flex-1 flex-1">
             <div className="flex items-center gap-2 min-w-0">
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 truncate">
+              <h1 className="text-lg sm:text-sm md:text-2xl font-bold text-gray-900 truncate ">
                 {t("hello_school_alarm")}
               </h1>
               <span className="text-xl sm:text-2xl shrink-0">👋</span>
@@ -64,12 +64,12 @@ export default function TopNav({
 
           {/* Desktop Search (hidden on mobile) */}
           <div className="hidden lg:flex flex-1 max-w-full justify-center items">
-            <div className="relative flex-1 max-w-md">
+            <div className="relative flex-1 max-w-2xl">
               <input
                 type="text"
                 placeholder={t("search_placeholder")}
                 onChange={(e) => onSearchChange?.(e.target.value)}
-                className="w-full ps-4 pe-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 placeholder:text-center focus:outline-none focus:ring-2 focus:ring-(--primary-color) focus:border-transparent transition-all"
+                className="hover:border-(--primary-color) w-full ps-4 pe-10 py-3.5 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 placeholder:text-center focus:outline-none focus:ring-2 focus:ring-(--primary-color) focus:border-transparent transition-all"
               />
               {/* use logical property: icon at end (works in RTL/LTR) */}
               <Search className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />

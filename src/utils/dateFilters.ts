@@ -1,6 +1,6 @@
 // FILE: src/utils/dateFilters.ts
 
-import { DateRangeValue } from "@/components/admissions/DateRangeFilter";
+import { DateRangeValue } from "@/components/admissions/shared/DateRangeFilter";
 
 export interface DateFilterResult {
   cutoffDate: Date | null;
