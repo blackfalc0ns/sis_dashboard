@@ -343,12 +343,12 @@ export default function DataTable<T extends { [key: string]: unknown }>({
                     typeof page === "number" && handlePageChange(page)
                   }
                   disabled={page === "..."}
-                  className={`min-w-[36px] sm:min-w-[40px] px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 ${
+                  className={`min-w-[36px] sm:min-w-[40px] px-2 sm:px-3 disabled:text-black/50 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 ${
                     page === currentPage
                       ? "text-white"
                       : page === "..."
                         ? "cursor-default"
-                        : "border hover:bg-gray-50"
+                        : "border hover:bg-gray-50 text-black/50"
                   }`}
                   style={
                     page === currentPage
