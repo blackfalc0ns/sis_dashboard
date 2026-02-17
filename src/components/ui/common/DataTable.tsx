@@ -316,7 +316,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
             <button
               onClick={() => handlePageChange(1)}
               disabled={currentPage === 1}
-              className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
+              className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 text-black disabled:text-black/50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
               style={{ borderColor: "var(--border-color)" }}
               title={t("first_page")}
             >
@@ -327,7 +327,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
+              className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 text-black disabled:text-black/50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
               style={{ borderColor: "var(--border-color)" }}
               title={t("previous_page")}
             >
@@ -365,7 +365,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
+              className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 text-black disabled:text-black/50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
               style={{ borderColor: "var(--border-color)" }}
               title={t("next_page")}
             >
@@ -376,7 +376,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
             <button
               onClick={() => handlePageChange(totalPages)}
               disabled={currentPage === totalPages}
-              className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
+              className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 text-black disabled:text-black/50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
               style={{ borderColor: "var(--border-color)" }}
               title={t("last_page")}
             >
