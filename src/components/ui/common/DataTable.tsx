@@ -143,11 +143,17 @@ export default function DataTable<T extends { [key: string]: unknown }>({
     }
     if (sortDirection === "asc") {
       return (
-        <ArrowUp className="w-3 h-3 sm:w-4 sm:h-4 text-[#036b80] shrink-0" />
+        <ArrowUp
+          className="w-3 h-3 sm:w-4 sm:h-4 shrink-0"
+          style={{ color: "var(--primary-color)" }}
+        />
       );
     }
     return (
-      <ArrowDown className="w-3 h-3 sm:w-4 sm:h-4 text-[#036b80] shrink-0" />
+      <ArrowDown
+        className="w-3 h-3 sm:w-4 sm:h-4 shrink-0"
+        style={{ color: "var(--primary-color)" }}
+      />
     );
   };
 
@@ -244,7 +250,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
                 <tr
                   key={index}
                   onClick={() => onRowClick?.(row)}
-                  className={`${onRowClick ? "cursor-pointer hover:bg-gray-50" : ""} transition-colors`}
+                  className={`${onRowClick ? "cursor-pointer hover:bg-gray-100" : ""} transition-colors`}
                 >
                   {columns.map((column) => (
                     <td
@@ -282,7 +288,13 @@ export default function DataTable<T extends { [key: string]: unknown }>({
               <select
                 value={pageSize}
                 onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                className="px-2 sm:px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-[#036b80] focus:border-transparent min-h-[40px]"
+                className="px-2 sm:px-3 py-1.5 border rounded-lg text-xs sm:text-sm focus:ring-2 focus:border-transparent min-h-[40px]"
+                style={
+                  {
+                    borderColor: "var(--border-color)",
+                    "--tw-ring-color": "var(--primary-color)",
+                  } as React.CSSProperties
+                }
               >
                 <option value={5}>5</option>
                 <option value={10}>10</option>
@@ -304,7 +316,8 @@ export default function DataTable<T extends { [key: string]: unknown }>({
             <button
               onClick={() => handlePageChange(1)}
               disabled={currentPage === 1}
-              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
+              className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
+              style={{ borderColor: "var(--border-color)" }}
               title={t("first_page")}
             >
               <ChevronsLeft className="w-4 h-4" />
@@ -314,7 +327,8 @@ export default function DataTable<T extends { [key: string]: unknown }>({
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
+              className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
+              style={{ borderColor: "var(--border-color)" }}
               title={t("previous_page")}
             >
               <ChevronLeft className="w-4 h-4" />
@@ -331,11 +345,16 @@ export default function DataTable<T extends { [key: string]: unknown }>({
                   disabled={page === "..."}
                   className={`min-w-[36px] sm:min-w-[40px] px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 ${
                     page === currentPage
-                      ? "bg-[#036b80] text-white"
+                      ? "text-white"
                       : page === "..."
                         ? "cursor-default"
-                        : "border border-gray-200 hover:bg-gray-50"
+                        : "border hover:bg-gray-50"
                   }`}
+                  style={
+                    page === currentPage
+                      ? { backgroundColor: "var(--primary-color)" }
+                      : { borderColor: "var(--border-color)" }
+                  }
                 >
                   {page}
                 </button>
@@ -346,7 +365,8 @@ export default function DataTable<T extends { [key: string]: unknown }>({
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
+              className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
+              style={{ borderColor: "var(--border-color)" }}
               title={t("next_page")}
             >
               <ChevronRight className="w-4 h-4" />
@@ -356,7 +376,8 @@ export default function DataTable<T extends { [key: string]: unknown }>({
             <button
               onClick={() => handlePageChange(totalPages)}
               disabled={currentPage === totalPages}
-              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
+              className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
+              style={{ borderColor: "var(--border-color)" }}
               title={t("last_page")}
             >
               <ChevronsRight className="w-4 h-4" />

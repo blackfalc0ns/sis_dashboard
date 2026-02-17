@@ -37,8 +37,14 @@ body {
   font-family: var(--font-cairo), system-ui, sans-serif;
 }
 
-input::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: rgba(0, 0, 0, 0.5);
+}
+
+textarea,
+input {
+  color: black;
 }
 
 select {
