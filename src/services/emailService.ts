@@ -36,7 +36,8 @@ export function getOrGenerateStudentEmail(student: {
  * Generate email for a guardian based on their information
  */
 export function getOrGenerateGuardianEmail(guardian: {
-  id: string;
+  id?: string;
+  guardianId?: string;
   email?: string;
   full_name?: string;
   name?: string;
@@ -48,8 +49,9 @@ export function getOrGenerateGuardianEmail(guardian: {
 
   // Generate new email
   const name = guardian.full_name || guardian.name;
+  const id = guardian.id || guardian.guardianId || "";
 
-  return generateGuardianEmail(guardian.id, name);
+  return generateGuardianEmail(id, name);
 }
 
 /**

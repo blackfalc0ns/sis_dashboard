@@ -44,7 +44,10 @@ export function getAllStudents(): Student[] {
   // Ensure all students have emails
   return mockStudents.map((student) => ({
     ...student,
-    email: getOrGenerateStudentEmail(student),
+    contact: {
+      ...student.contact,
+      student_email: getOrGenerateStudentEmail(student),
+    },
   }));
 }
 
@@ -57,7 +60,10 @@ export function getStudentById(id: string): Student | undefined {
 
   return {
     ...student,
-    email: getOrGenerateStudentEmail(student),
+    contact: {
+      ...student.contact,
+      student_email: getOrGenerateStudentEmail(student),
+    },
   };
 }
 
@@ -411,7 +417,10 @@ export function getStudentsWithEnrollment(): Array<
 
     return {
       ...student,
-      email: getOrGenerateStudentEmail(student),
+      contact: {
+        ...student.contact,
+        student_email: getOrGenerateStudentEmail(student),
+      },
       enrollment,
       currentTerm,
       ytdPerformance,
