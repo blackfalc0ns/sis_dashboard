@@ -112,7 +112,7 @@ export default function TransferRequestDetailsPage({
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
               {tDetails("transfer_request_details")}
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm ">
               {tDetails("request_id")}: {transfer.id}
             </p>
           </div>
@@ -198,9 +198,7 @@ export default function TransferRequestDetailsPage({
           </div>
           <div className="space-y-3">
             <div>
-              <p className="text-sm text-gray-500">
-                {tDetails("student_name")}
-              </p>
+              <p className="text-sm">{tDetails("student_name")}</p>
               <p className="font-medium">
                 {locale === "ar"
                   ? transfer.studentNameAr
@@ -208,13 +206,13 @@ export default function TransferRequestDetailsPage({
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">{tDetails("stage")}</p>
+              <p className="text-sm">{tDetails("stage")}</p>
               <p className="font-medium">
                 {t(`filters.stages.${transfer.stage}`)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">{tDetails("grade")}</p>
+              <p className="text-sm">{tDetails("grade")}</p>
               <p className="font-medium">{transfer.grade}</p>
             </div>
           </div>
@@ -230,43 +228,33 @@ export default function TransferRequestDetailsPage({
           </div>
           <div className="space-y-3">
             <div>
-              <p className="text-sm text-gray-500">
-                {tDetails("transfer_type")}
-              </p>
+              <p className="text-sm ">{tDetails("transfer_type")}</p>
               <p className="font-medium">
                 {t(`filters.types.${transfer.type}`)}
               </p>
             </div>
             {transfer.type === "internal" && transfer.targetClass && (
               <div>
-                <p className="text-sm text-gray-500">
-                  {tDetails("target_class")}
-                </p>
+                <p className="text-sm ">{tDetails("target_class")}</p>
                 <p className="font-medium">{transfer.targetClass}</p>
               </div>
             )}
             {transfer.type === "external" && transfer.externalSchool && (
               <div>
-                <p className="text-sm text-gray-500">
-                  {tDetails("external_school")}
-                </p>
+                <p className="text-sm ">{tDetails("external_school")}</p>
                 <p className="font-medium">{transfer.externalSchool}</p>
               </div>
             )}
             <div>
-              <p className="text-sm text-gray-500">{tDetails("reason")}</p>
+              <p className="text-sm ">{tDetails("reason")}</p>
               <p className="font-medium">{transfer.reason}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">
-                {tDetails("request_date")}
-              </p>
+              <p className="text-sm ">{tDetails("request_date")}</p>
               <p className="font-medium">{transfer.requestDate}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">
-                {tDetails("effective_date")}
-              </p>
+              <p className="text-sm ">{tDetails("effective_date")}</p>
               <p className="font-medium">{transfer.effectiveDate}</p>
             </div>
           </div>
@@ -282,9 +270,7 @@ export default function TransferRequestDetailsPage({
           </div>
           <div className="space-y-3">
             <div>
-              <p className="text-sm text-gray-500">
-                {tDetails("behavior_score")}
-              </p>
+              <p className="text-sm ">{tDetails("behavior_score")}</p>
               <p
                 className={`text-2xl font-bold ${getBehaviorColor(transfer.behaviorScore)}`}
               >
@@ -292,9 +278,7 @@ export default function TransferRequestDetailsPage({
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">
-                {tDetails("behavior_band")}
-              </p>
+              <p className="text-sm ">{tDetails("behavior_band")}</p>
               <p className="font-medium">
                 {t(`filters.behavior_bands.${transfer.behaviorBand}`)}
               </p>
@@ -312,7 +296,7 @@ export default function TransferRequestDetailsPage({
               className={`py-4 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === "details"
                   ? "border-[#036b80] text-[#036b80]"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  : "border-transparent  hover:text-gray-700"
               }`}
             >
               {tDetails("tab_details")}
@@ -322,7 +306,7 @@ export default function TransferRequestDetailsPage({
               className={`py-4 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === "attachments"
                   ? "border-[#036b80] text-[#036b80]"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  : "border-transparent  hover:text-gray-700"
               }`}
             >
               {tDetails("tab_attachments")}
@@ -332,7 +316,7 @@ export default function TransferRequestDetailsPage({
               className={`py-4 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === "timeline"
                   ? "border-[#036b80] text-[#036b80]"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  : "border-transparent  hover:text-gray-700"
               }`}
             >
               {tDetails("tab_timeline")}
@@ -363,7 +347,7 @@ export default function TransferRequestDetailsPage({
           )}
 
           {activeTab === "attachments" && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 ">
               {tDetails("no_attachments")}
             </div>
           )}
@@ -381,9 +365,7 @@ export default function TransferRequestDetailsPage({
                   <p className="font-medium text-gray-900">
                     {tDetails("request_submitted")}
                   </p>
-                  <p className="text-sm text-gray-500">
-                    {transfer.requestDate}
-                  </p>
+                  <p className="text-sm ">{transfer.requestDate}</p>
                   <p className="text-sm text-gray-600 mt-1">
                     {tDetails("submitted_by")}: {transfer.createdBy}
                   </p>
