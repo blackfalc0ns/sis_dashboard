@@ -27,19 +27,6 @@ import {
   getStudentDisplayId,
   getStudentGrade,
 } from "@/utils/studentUtils";
-import OverviewTab from "./profile-tabs/OverviewTab";
-import PersonalInfoTab from "./profile-tabs/PersonalInfoTab";
-import GuardiansTab from "./profile-tabs/GuardiansTab";
-import AttendanceTab from "./profile-tabs/AttendanceTab";
-import GradesTab from "./profile-tabs/GradesTab";
-import BehaviorTab from "./profile-tabs/BehaviorTab";
-import DocumentsTab from "./profile-tabs/DocumentsTab";
-import MedicalTab from "./profile-tabs/MedicalTab";
-import NotesTab from "./profile-tabs/NotesTab";
-import TimelineTab from "./profile-tabs/TimelineTab";
-import EnrollmentHistoryTab from "./profile-tabs/EnrollmentHistoryTab";
-import TransfersTab from "./profile-tabs/TransfersTab";
-import WithdrawalTab from "./profile-tabs/WithdrawalTab";
 
 interface StudentProfilePageProps {
   studentId: string;
@@ -232,25 +219,6 @@ export default function StudentProfilePage({
           </div>
         </div>
       </div>
-
-      {/* Tab Content */}
-      {/* <div className="p-4 sm:p-6">
-        {activeTab === "overview" && <OverviewTab student={student} />}
-        {activeTab === "personal" && <PersonalInfoTab student={student} />}
-        {activeTab === "guardians" && <GuardiansTab student={student} />}
-        {activeTab === "enrollment" && (
-          <EnrollmentHistoryTab student={student} />
-        )}
-        {activeTab === "attendance" && <AttendanceTab student={student} />}
-        {activeTab === "grades" && <GradesTab student={student} />}
-        {activeTab === "behavior" && <BehaviorTab student={student} />}
-        {activeTab === "documents" && <DocumentsTab student={student} />}
-        {activeTab === "medical" && <MedicalTab student={student} />}
-        {activeTab === "notes" && <NotesTab student={student} />}
-        {activeTab === "timeline" && <TimelineTab student={student} />}
-        {activeTab === "transfers" && <TransfersTab student={student} />}
-        {activeTab === "withdrawal" && <WithdrawalTab student={student} />}
-      </div> */}
     </div>
   );
 }

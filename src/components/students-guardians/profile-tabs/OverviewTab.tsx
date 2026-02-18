@@ -186,6 +186,20 @@ export default function OverviewTab({ student }: OverviewTabProps) {
               </span>
             </div>
             <div className="flex justify-between">
+              <span className="text-sm text-gray-600">{t("stage")}</span>
+              <span className="text-sm font-medium text-gray-900">
+                {locale === "ar"
+                  ? student.stage === "Primary"
+                    ? "ابتدائي"
+                    : student.stage === "Preparatory"
+                      ? "إعدادي"
+                      : student.stage === "Secondary"
+                        ? "ثانوي"
+                        : student.stage
+                  : student.stage}
+              </span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-sm text-gray-600">{t("grade")}</span>
               <span className="text-sm font-medium text-gray-900">
                 {locale === "ar" && student.grade?.startsWith("Grade ")

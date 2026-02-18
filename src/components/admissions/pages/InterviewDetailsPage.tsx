@@ -158,7 +158,9 @@ export default function InterviewDetailsPage({
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
             >
               {locale === "ar" ? <ArrowRight /> : <ArrowLeft />}
-              <span className="text-sm font-medium">Back to Interviews</span>
+              <span className="text-sm font-medium">
+                {t("details.back_to_interviews")}
+              </span>
             </button>
             <div className="flex items-center justify-between">
               <div>

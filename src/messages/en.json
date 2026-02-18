@@ -388,6 +388,7 @@
       "payment_status": "Payment Status"
     },
     "filters": {
+      "filters_button": "Filters",
       "status": "Status",
       "source": "Source",
       "grade": "Grade",
@@ -593,6 +594,11 @@
         "date_of_birth": "Date of Birth",
         "nationality": "Nationality",
         "nationality_placeholder": "e.g., Saudi Arabian",
+        "stage": "Stage",
+        "stage_placeholder": "Select stage",
+        "primary": "Primary",
+        "preparatory": "Preparatory",
+        "secondary": "Secondary",
         "address": "Address",
         "address_line": "Address Line",
         "address_placeholder": "Street, Building, Apartment",
@@ -691,6 +697,7 @@
         "gender": "Gender",
         "date_of_birth": "Date of Birth",
         "nationality": "Nationality",
+        "stage": "Stage",
         "grade_requested": "Grade Requested",
         "contact_info": "Contact Information",
         "address": "Address",
@@ -913,7 +920,7 @@
       "location": "Location",
       "status": "Status",
       "score": "Score",
-      "actions": "Actions",
+      "actions_col": "Actions",
       "edit": "Edit",
       "enter": "Enter",
       "enter_score": "Score",
@@ -923,6 +930,7 @@
       "no_tests": "No tests found",
       "found": "found",
       "details": {
+        "back_to_tests": "Back to Tests",
         "title": "Test Details",
         "test_information": "Test Information",
         "date_time": "Date & Time",
@@ -992,6 +1000,7 @@
       "clear_filters": "Clear filters",
       "found": "found",
       "details": {
+        "back_to_interviews": "Back to Interviews",
         "title": "Interview",
         "interview_information": "Interview Information",
         "date_time": "Date & Time",
@@ -1345,6 +1354,350 @@
       "try_adjusting": "Try adjusting your filters",
       "clear_filters": "Clear Filters"
     },
+    "guardian_profile": {
+      "back_to_guardians": "Back to Guardians",
+      "guardian_not_found": "Guardian not found",
+      "guardian_id": "Guardian ID",
+      "yes": "Yes",
+      "no": "No",
+      "not_provided": "Not provided",
+      "no_section": "No section",
+      "no_linked_students": "No students linked to this guardian",
+      "tabs": {
+        "overview": "Overview",
+        "students": "Students",
+        "documents": "Documents",
+        "notes": "Notes",
+        "timeline": "Timeline"
+      },
+      "sections": {
+        "personal_info": "Personal Information",
+        "contact_info": "Contact Information",
+        "professional_info": "Professional Information",
+        "permissions": "Permissions",
+        "linked_students": "Linked Students",
+        "notes": "Notes",
+        "documents": "Documents",
+        "timeline": "Timeline"
+      },
+      "fields": {
+        "full_name": "Full Name",
+        "national_id": "National ID",
+        "relation": "Relation",
+        "primary_guardian": "Primary Guardian",
+        "primary_phone": "Primary Phone",
+        "secondary_phone": "Secondary Phone",
+        "email": "Email",
+        "address": "Address",
+        "job_title": "Job Title",
+        "workplace": "Workplace",
+        "can_pickup": "Can Pickup Student",
+        "can_receive_notifications": "Receive Notifications"
+      }
+    },
+    "tabs": {
+      "overview": "Overview",
+      "students": "Students",
+      "guardians": "Guardians",
+      "transfers_withdrawals": "Transfers & Withdrawals"
+    },
+    "transfers_withdrawals": {
+      "title": "Transfers & Withdrawals",
+      "subtitle": "Monitor student transfers and withdrawal trends",
+      "tabs": {
+        "transfers": "Transfers",
+        "withdrawals": "Withdrawals"
+      },
+      "transfers": {
+        "title": "Student Transfers",
+        "subtitle": "Manage internal and external student transfers",
+        "applications_subtitle": "Manage and track all transfer applications",
+        "new_transfer": "New Transfer",
+        "kpis": {
+          "transfers_this_month": "Transfers This Month",
+          "total_transfers": "Total transfers",
+          "internal_transfers": "Internal Transfers",
+          "within_school": "Within school",
+          "external_transfers": "External Transfers",
+          "to_other_schools": "To other schools",
+          "net_change": "Net Change",
+          "net_positive": "Net positive",
+          "net_negative": "Net negative"
+        },
+        "table": {
+          "title": "Transfer Applications",
+          "student_name": "Student Name",
+          "stage": "Stage",
+          "grade": "Grade",
+          "type": "Type",
+          "behavior_score": "Behavior Score",
+          "status": "Status",
+          "request_date": "Request Date",
+          "actions": "Actions",
+          "view": "View",
+          "approve": "Approve",
+          "reject": "Reject",
+          "no_data": "No transfer applications found"
+        }
+      },
+      "withdrawals": {
+        "title": "Student Withdrawals",
+        "subtitle": "Manage student withdrawal requests and clearances",
+        "applications_subtitle": "Manage and track all withdrawal applications",
+        "new_withdrawal": "New Withdrawal",
+        "kpis": {
+          "withdrawals_this_month": "Withdrawals This Month",
+          "total_withdrawals": "Total withdrawals",
+          "dropout_rate": "Dropout Rate",
+          "above_threshold": "Above threshold",
+          "within_normal": "Within normal range",
+          "behavior_related": "Behavior-Related",
+          "low_behavior_score": "Low behavior score",
+          "financial_pending": "Financial Pending",
+          "awaiting_clearance": "Awaiting clearance"
+        },
+        "alerts": {
+          "high_dropout_rate": "Dropout rate is above the threshold",
+          "dropout_message": "Current dropout rate ({rate}%) exceeds the acceptable threshold. Immediate attention required."
+        },
+        "table": {
+          "title": "Withdrawal Applications",
+          "student_name": "Student Name",
+          "stage": "Stage",
+          "grade": "Grade",
+          "behavior_avg": "Behavior Avg",
+          "attendance": "Attendance %",
+          "reason": "Reason",
+          "financial_clearance": "Financial Clearance",
+          "status": "Status",
+          "request_date": "Request Date",
+          "actions": "Actions",
+          "view": "View",
+          "approve": "Approve",
+          "reject": "Reject",
+          "no_data": "No withdrawal applications found"
+        }
+      },
+      "filters": {
+        "filters_button": "Filters",
+        "search_placeholder": "Search by student name or ID...",
+        "stage": "Stage",
+        "all_stages": "All Stages",
+        "type": "Type",
+        "all_types": "All Types",
+        "reason": "Reason",
+        "all_reasons": "All Reasons",
+        "status": "Status",
+        "all_statuses": "All Statuses",
+        "behavior_band": "Behavior Band",
+        "all_bands": "All Bands",
+        "financial_clearance": "Financial Clearance",
+        "all_clearances": "All Clearances",
+        "stages": {
+          "primary": "Primary",
+          "preparatory": "Preparatory",
+          "secondary": "Secondary"
+        },
+        "types": {
+          "internal": "Internal",
+          "external": "External"
+        },
+        "reasons": {
+          "relocation": "Relocation",
+          "financial": "Financial",
+          "academic": "Academic",
+          "behavior": "Behavior",
+          "health": "Health",
+          "other": "Other"
+        },
+        "statuses": {
+          "draft": "Draft",
+          "submitted": "Submitted",
+          "under_review": "Under Review",
+          "finance_clearance": "Finance Clearance",
+          "behavior_review": "Behavior Review",
+          "approved": "Approved",
+          "rejected": "Rejected",
+          "executed": "Executed"
+        },
+        "behavior_bands": {
+          "low": "Low (0-59)",
+          "medium": "Medium (60-79)",
+          "high": "High (80-100)"
+        },
+        "financial_clearances": {
+          "pending": "Pending",
+          "cleared": "Cleared",
+          "blocked": "Blocked"
+        }
+      },
+      "charts": {
+        "transfers_trend": "Transfers Over Time",
+        "withdrawals_trend": "Withdrawals Over Time",
+        "transfers_by_reason": "Transfers by Reason",
+        "withdrawals_by_stage": "Withdrawals by Stage",
+        "by_stage": {
+          "title": "Withdrawals by Stage",
+          "transfers": "Transfers",
+          "withdrawals": "Withdrawals"
+        },
+        "total_withdrawals": "Total Withdrawals",
+        "total_transfers": "Total Transfers",
+        "internal_transfers": "Internal Transfers",
+        "external_transfers": "External Transfers",
+        "behavior_related": "Behavior-Related",
+        "financial_related": "Financial-Related",
+        "other_reasons": "Other Reasons",
+        "stages": {
+          "primary": "Primary",
+          "preparatory": "Preparatory",
+          "secondary": "Secondary"
+        },
+        "reasons": {
+          "title": "Withdrawal Reasons Distribution",
+          "academic": "Academic",
+          "relocation": "Relocation",
+          "better_fit": "Better Fit",
+          "other": "Other"
+        },
+        "behavior": {
+          "title": "Withdrawals by Behavior Score",
+          "description": "Analysis of withdrawal patterns based on student behavior evaluation scores",
+          "withdrawals": "Withdrawals",
+          "x_axis": "Behavior Score Range",
+          "y_axis": "Number of Withdrawals",
+          "insight_title": "Key Insight",
+          "insight_text": "Students with lower behavior scores (0-40) show significantly higher withdrawal rates, indicating a strong correlation between behavior issues and student retention."
+        }
+      },
+      "modals": {
+        "transfer": {
+          "title": "Create Transfer Application",
+          "fields": {
+            "student": "Student",
+            "search_student": "Search student by name or ID...",
+            "student_id": "Student ID",
+            "stage": "Stage",
+            "grade": "Grade",
+            "type": "Transfer Type",
+            "target_class": "Target Class",
+            "target_class_placeholder": "e.g., 8-B",
+            "external_school": "External School",
+            "external_school_placeholder": "Enter school name",
+            "reason": "Reason",
+            "reason_placeholder": "Enter transfer reason",
+            "effective_date": "Effective Date",
+            "notes": "Additional Notes",
+            "notes_placeholder": "Enter any additional information...",
+            "attachments": "Attachments",
+            "upload_files": "Click to upload or drag and drop files"
+          },
+          "types": {
+            "internal": "Internal Transfer",
+            "external": "External Transfer"
+          },
+          "errors": {
+            "student_required": "Please select a student",
+            "type_required": "Please select transfer type",
+            "target_class_required": "Please enter target class",
+            "external_school_required": "Please enter external school name",
+            "reason_required": "Please enter a reason",
+            "date_required": "Please select effective date"
+          },
+          "no_students_found": "No students found",
+          "cancel": "Cancel",
+          "submit": "Submit Application"
+        },
+        "withdrawal": {
+          "title": "Create Withdrawal Application",
+          "fields": {
+            "student": "Student",
+            "search_student": "Search student by name or ID...",
+            "student_id": "Student ID",
+            "stage": "Stage",
+            "grade": "Grade",
+            "reason": "Withdrawal Reason",
+            "effective_date": "Effective Date",
+            "notes": "Additional Notes",
+            "notes_placeholder": "Enter any additional information...",
+            "attachments": "Attachments",
+            "upload_files": "Click to upload or drag and drop files"
+          },
+          "reasons": {
+            "relocation": "Relocation",
+            "financial": "Financial Reasons",
+            "academic": "Academic Reasons",
+            "behavior": "Behavior Issues",
+            "health": "Health Reasons",
+            "other": "Other"
+          },
+          "behavior_summary": {
+            "title": "Behavior Summary",
+            "behavior_avg": "Behavior Average",
+            "attendance": "Attendance",
+            "low_behavior_warning": "Warning: Student has low behavior score. Additional review required."
+          },
+          "financial_summary": {
+            "title": "Financial Summary",
+            "outstanding_balance": "Outstanding Balance",
+            "pending_clearance_warning": "Warning: Student has outstanding financial balance. Clearance required before withdrawal."
+          },
+          "errors": {
+            "student_required": "Please select a student",
+            "reason_required": "Please select a reason",
+            "date_required": "Please select effective date"
+          },
+          "no_students_found": "No students found",
+          "cancel": "Cancel",
+          "submit": "Submit Application"
+        }
+      },
+      "details": {
+        "back_to_list": "Back to List",
+        "transfer_request_details": "Transfer Request Details",
+        "withdrawal_request_details": "Withdrawal Request Details",
+        "request_id": "Request ID",
+        "approve": "Approve",
+        "reject": "Reject",
+        "execute": "Execute",
+        "student_info": "Student Information",
+        "student_name": "Student Name",
+        "stage": "Stage",
+        "grade": "Grade",
+        "request_info": "Request Information",
+        "transfer_type": "Transfer Type",
+        "target_class": "Target Class",
+        "external_school": "External School",
+        "reason": "Reason",
+        "request_date": "Request Date",
+        "effective_date": "Effective Date",
+        "created_by": "Created By",
+        "behavior_summary": "Behavior Summary",
+        "behavior_score": "Behavior Score",
+        "behavior_avg": "Behavior Average",
+        "behavior_band": "Behavior Band",
+        "attendance": "Attendance",
+        "tab_details": "Details",
+        "tab_attachments": "Attachments",
+        "tab_timeline": "Timeline",
+        "notes": "Notes",
+        "no_notes": "No notes available",
+        "rejection_reason": "Rejection Reason",
+        "no_attachments": "No attachments available",
+        "request_submitted": "Request Submitted",
+        "submitted_by": "Submitted by",
+        "change_status": "Change Status",
+        "current_status": "Current Status",
+        "new_status": "New Status",
+        "reason_required": "Rejection reason is required",
+        "reason_placeholder": "Enter the reason for rejection...",
+        "status_change_warning": "Warning",
+        "execute_warning": "Executing this request will permanently change the student's status. This action cannot be undone.",
+        "reject_warning": "Rejecting this request will permanently close it. Make sure to provide a clear reason.",
+        "cancel": "Cancel",
+        "confirm_change": "Confirm Change"
+      }
+    },
     "profile": {
       "back_to_students": "Back to Students",
       "student_not_found": "Student not found",
@@ -1396,6 +1749,7 @@
         "subject_performance": "Subject Performance",
         "student_information": "Student Information",
         "student_id": "Student ID",
+        "stage": "Stage",
         "grade": "Grade",
         "section": "Section",
         "enrollment_year": "Enrollment Year",
@@ -1430,6 +1784,7 @@
         "male": "Male",
         "female": "Female",
         "nationality": "Nationality",
+        "stage": "Stage",
         "date_of_birth": "Date of Birth",
         "grade": "Grade",
         "section": "Section",

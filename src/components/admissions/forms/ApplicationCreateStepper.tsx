@@ -75,6 +75,7 @@ export default function ApplicationCreateStepper({
     gender: "",
     date_of_birth: "",
     nationality: "",
+    stage: "",
     address_line: "",
     city: "",
     district: "",
@@ -328,6 +329,7 @@ export default function ApplicationCreateStepper({
           gender: formData.gender,
           date_of_birth: formData.date_of_birth,
           nationality: formData.nationality,
+          stage: formData.stage,
           address_line: formData.address_line,
           city: formData.city,
           district: formData.district,
@@ -551,6 +553,23 @@ export default function ApplicationCreateStepper({
                       <span>{errors.nationality}</span>
                     </div>
                   )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t("student.stage")}
+                  </label>
+                  <select
+                    value={formData.stage}
+                    onChange={(e) => updateFormData("stage", e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#036b80] focus:border-transparent text-sm"
+                  >
+                    <option value="">{t("student.stage_placeholder")}</option>
+                    <option value="Primary">{t("student.primary")}</option>
+                    <option value="Preparatory">
+                      {t("student.preparatory")}
+                    </option>
+                    <option value="Secondary">{t("student.secondary")}</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

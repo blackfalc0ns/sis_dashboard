@@ -33,6 +33,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
     date_of_birth: student.date_of_birth,
     gender: student.gender,
     nationality: student.nationality,
+    stage: student.stage || "",
     grade: enrollment?.grade || student.grade || "",
     section: enrollment?.section || student.section || "",
     status: student.status,
@@ -70,6 +71,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
       date_of_birth: student.date_of_birth,
       gender: student.gender,
       nationality: student.nationality,
+      stage: student.stage || "",
       grade: enrollment?.grade || student.grade || "",
       section: enrollment?.section || student.section || "",
       status: student.status,
@@ -284,6 +286,36 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
                   : "bg-gray-50 border-gray-200 text-gray-700"
               }`}
             />
+          </div>
+
+          {/* Stage */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t("stage")}
+            </label>
+            <select
+              value={formData.stage}
+              onChange={(e) =>
+                setFormData({ ...formData, stage: e.target.value })
+              }
+              disabled={!isEditing}
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
+                isEditing
+                  ? "border-gray-300 focus:ring-2 focus:ring-[#036b80] focus:border-transparent"
+                  : "bg-gray-50 border-gray-200 text-gray-700"
+              }`}
+            >
+              <option value="">Select Stage</option>
+              <option value="Primary">
+                {locale === "ar" ? "ابتدائي" : "Primary"}
+              </option>
+              <option value="Preparatory">
+                {locale === "ar" ? "إعدادي" : "Preparatory"}
+              </option>
+              <option value="Secondary">
+                {locale === "ar" ? "ثانوي" : "Secondary"}
+              </option>
+            </select>
           </div>
 
           {/* Grade */}

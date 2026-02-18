@@ -4,6 +4,7 @@
 
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter, useParams } from "next/navigation";
 import {
   Users,
   Phone,
@@ -28,6 +29,10 @@ import ChangePasswordModal from "@/components/students-guardians/modals/ChangePa
 
 export default function GuardiansList() {
   const t = useTranslations("students_guardians.guardians_list");
+  const router = useRouter();
+  const params = useParams();
+  const lang = (params.lang as string) || "en";
+
   // Load guardians from service
   const [guardians] = useState<StudentGuardian[]>(
     studentsService.getAllGuardians(),
@@ -146,6 +151,10 @@ export default function GuardiansList() {
 
     // Show success message
     alert(t("change_password.success"));
+  };
+
+  const handleRowClick = (guardian: StudentGuardian) => {
+    router.push(`/${lang}/students-guardians/guardians/${guardian.guardianId}`);
   };
 
   const columns = [
@@ -401,6 +410,9 @@ export default function GuardiansList() {
           showPagination={true}
           itemsPerPage={20}
           searchQuery={searchQuery}
+          onRowClick={(row) =>
+            handleRowClick(row as unknown as StudentGuardian)
+          }
         />
       )}
 

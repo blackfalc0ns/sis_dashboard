@@ -15,8 +15,6 @@ import {
   MessageSquare,
   Clock,
   Award,
-  ArrowLeftRight,
-  LogOut,
   ArrowRight,
 } from "lucide-react";
 import * as studentsService from "@/services/studentsService";
@@ -42,8 +40,6 @@ const tabs = [
   { key: "medical", labelKey: "tabs.medical", icon: Heart },
   { key: "notes", labelKey: "tabs.notes", icon: MessageSquare },
   { key: "timeline", labelKey: "tabs.timeline", icon: Clock },
-  { key: "transfers", labelKey: "tabs.transfers", icon: ArrowLeftRight },
-  { key: "withdrawal", labelKey: "tabs.withdrawal", icon: LogOut },
 ];
 
 const getStatusColor = (status: string) => {

@@ -498,7 +498,7 @@ export default function ApplicationsList() {
             }`}
           >
             <Filter className="w-4 h-4" />
-            {tFilters("status")}
+            {tFilters("filters_button")}
           </button>
           {hasActiveFilters && (
             <button

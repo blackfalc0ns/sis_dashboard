@@ -1103,6 +1103,15 @@ function generateRiskFlags(studentId: string): Student["risk_flags"] {
   return flags.length > 0 ? flags : undefined;
 }
 
+// Helper function to determine educational stage from grade
+const getStageFromGrade = (grade: string): string => {
+  const gradeNumber = parseInt(grade.replace(/\D/g, ""));
+  if (gradeNumber >= 1 && gradeNumber <= 5) return "Primary";
+  if (gradeNumber >= 6 && gradeNumber <= 9) return "Preparatory";
+  if (gradeNumber >= 10 && gradeNumber <= 12) return "Secondary";
+  return "Primary"; // Default
+};
+
 // Generate students from accepted applications
 const studentsFromApplications: Student[] = mockApplications
   .filter((app) => app.status === "accepted")
@@ -1122,6 +1131,7 @@ const studentsFromApplications: Student[] = mockApplications
       nationality: application.nationality,
       status: mapApplicationStatus(application.status),
       gradeRequested,
+      stage: getStageFromGrade(gradeRequested),
       source: application.source,
       submittedDate: application.submittedDate,
       contact: {
@@ -1164,6 +1174,7 @@ const previouslyEnrolledStudentsBase: Omit<
     nationality: "UAE",
     status: "Active",
     gradeRequested: "Grade 6",
+    stage: "Preparatory",
     source: "walk_in",
     submittedDate: "2024-08-15",
     contact: {
@@ -1186,6 +1197,7 @@ const previouslyEnrolledStudentsBase: Omit<
     nationality: "UAE",
     status: "Active",
     gradeRequested: "Grade 6",
+    stage: "Preparatory",
     source: "referral",
     submittedDate: "2024-08-18",
     contact: {
@@ -1208,6 +1220,7 @@ const previouslyEnrolledStudentsBase: Omit<
     nationality: "UAE",
     status: "Active",
     gradeRequested: "Grade 7",
+    stage: "Preparatory",
     source: "referral",
     submittedDate: "2024-08-20",
     contact: {
@@ -1230,6 +1243,7 @@ const previouslyEnrolledStudentsBase: Omit<
     nationality: "UAE",
     status: "Active",
     gradeRequested: "Grade 7",
+    stage: "Preparatory",
     source: "in_app",
     submittedDate: "2024-08-22",
     contact: {
@@ -1252,6 +1266,7 @@ const previouslyEnrolledStudentsBase: Omit<
     nationality: "UAE",
     status: "Active",
     gradeRequested: "Grade 8",
+    stage: "Preparatory",
     source: "in_app",
     submittedDate: "2024-08-10",
     contact: {
@@ -1274,6 +1289,7 @@ const previouslyEnrolledStudentsBase: Omit<
     nationality: "UAE",
     status: "Active",
     gradeRequested: "Grade 8",
+    stage: "Preparatory",
     source: "walk_in",
     submittedDate: "2024-08-12",
     contact: {
@@ -1296,6 +1312,7 @@ const previouslyEnrolledStudentsBase: Omit<
     nationality: "UAE",
     status: "Active",
     gradeRequested: "Grade 9",
+    stage: "Preparatory",
     source: "walk_in",
     submittedDate: "2024-08-25",
     contact: {
@@ -1318,6 +1335,7 @@ const previouslyEnrolledStudentsBase: Omit<
     nationality: "UAE",
     status: "Active",
     gradeRequested: "Grade 9",
+    stage: "Preparatory",
     source: "referral",
     submittedDate: "2024-08-28",
     contact: {
@@ -1340,6 +1358,7 @@ const previouslyEnrolledStudentsBase: Omit<
     nationality: "UAE",
     status: "Suspended",
     gradeRequested: "Grade 10",
+    stage: "Secondary",
     source: "referral",
     submittedDate: "2024-08-12",
     contact: {
@@ -1362,6 +1381,7 @@ const previouslyEnrolledStudentsBase: Omit<
     nationality: "UAE",
     status: "Active",
     gradeRequested: "Grade 10",
+    stage: "Secondary",
     source: "in_app",
     submittedDate: "2024-08-15",
     contact: {
@@ -1386,6 +1406,7 @@ const previouslyEnrolledStudentsBase: Omit<
     nationality: "UAE",
     status: "Active",
     gradeRequested: "Grade 7",
+    stage: "Preparatory",
     source: "walk_in",
     submittedDate: "2023-08-10",
     contact: {
@@ -1408,6 +1429,7 @@ const previouslyEnrolledStudentsBase: Omit<
     nationality: "UAE",
     status: "Active",
     gradeRequested: "Grade 8",
+    stage: "Preparatory",
     source: "referral",
     submittedDate: "2023-08-12",
     contact: {
@@ -1430,6 +1452,7 @@ const previouslyEnrolledStudentsBase: Omit<
     nationality: "UAE",
     status: "Withdrawn",
     gradeRequested: "Grade 9",
+    stage: "Preparatory",
     source: "in_app",
     submittedDate: "2023-08-15",
     contact: {

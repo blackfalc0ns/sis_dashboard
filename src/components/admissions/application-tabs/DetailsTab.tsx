@@ -20,6 +20,22 @@ interface DetailsTabProps {
 export default function DetailsTab({ application }: DetailsTabProps) {
   const t = useTranslations("admissions.application360");
 
+  // Helper function to determine stage from grade
+  const getStageFromGrade = (grade: string | undefined): string => {
+    if (!grade) return "N/A";
+    const gradeNum = parseInt(grade.replace(/\D/g, ""));
+    if (gradeNum >= 1 && gradeNum <= 5) return "Primary";
+    if (gradeNum >= 6 && gradeNum <= 9) return "Preparatory";
+    if (gradeNum >= 10 && gradeNum <= 12) return "Secondary";
+    return "N/A";
+  };
+
+  const displayStage =
+    application.stage ??
+    getStageFromGrade(
+      application.grade_requested || application.gradeRequested,
+    );
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -48,23 +64,21 @@ export default function DetailsTab({ application }: DetailsTabProps) {
                   "N/A"}
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xs text-gray-500">{t("details.gender")}</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {application.gender || "N/A"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">
-                  {t("details.date_of_birth")}
-                </p>
-                <p className="text-sm font-medium text-gray-900">
-                  {application.date_of_birth
-                    ? new Date(application.date_of_birth).toLocaleDateString()
-                    : "N/A"}
-                </p>
-              </div>
+            <div>
+              <p className="text-xs text-gray-500">{t("details.gender")}</p>
+              <p className="text-sm font-medium text-gray-900">
+                {application.gender || "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">
+                {t("details.date_of_birth")}
+              </p>
+              <p className="text-sm font-medium text-gray-900">
+                {application.date_of_birth
+                  ? new Date(application.date_of_birth).toLocaleDateString()
+                  : "N/A"}
+              </p>
             </div>
             <div>
               <p className="text-xs text-gray-500">
@@ -72,6 +86,12 @@ export default function DetailsTab({ application }: DetailsTabProps) {
               </p>
               <p className="text-sm font-medium text-gray-900">
                 {application.nationality || "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">{t("details.stage")}</p>
+              <p className="text-sm font-medium text-gray-900">
+                {displayStage}
               </p>
             </div>
             <div>

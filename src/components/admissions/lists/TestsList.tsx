@@ -177,7 +177,7 @@ export default function TestsList() {
     },
     {
       key: "actions",
-      label: t("actions"),
+      label: t("actions_col"),
       render: (_value: unknown, row: Test & { studentName: string }) =>
         row.status === "cancelled" ? null : (
           <button

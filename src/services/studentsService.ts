@@ -161,6 +161,15 @@ export function getAllGuardians(): StudentGuardian[] {
   return mockStudentGuardians;
 }
 
+/**
+ * Get guardian by ID
+ */
+export function getGuardianById(
+  guardianId: string,
+): StudentGuardian | undefined {
+  return mockStudentGuardians.find((g) => g.guardianId === guardianId);
+}
+
 // ============================================================================
 // DOCUMENT OPERATIONS
 // ============================================================================

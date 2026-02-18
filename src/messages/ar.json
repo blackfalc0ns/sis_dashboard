@@ -355,6 +355,7 @@
       "time_to_decision": "الوقت للقرار"
     },
     "filters": {
+      "filters_button": "التصفية",
       "status": "الحالة",
       "source": "المصدر",
       "grade": "الصف",
@@ -559,6 +560,11 @@
         "date_of_birth": "تاريخ الميلاد",
         "nationality": "الجنسية",
         "nationality_placeholder": "مثال: سعودي",
+        "stage": "المرحلة",
+        "stage_placeholder": "اختر المرحلة",
+        "primary": "ابتدائي",
+        "preparatory": "إعدادي",
+        "secondary": "ثانوي",
         "address": "العنوان",
         "address_line": "العنوان التفصيلي",
         "address_placeholder": "الشارع، المبنى، الشقة",
@@ -657,6 +663,7 @@
         "gender": "الجنس",
         "date_of_birth": "تاريخ الميلاد",
         "nationality": "الجنسية",
+        "stage": "المرحلة",
         "grade_requested": "الصف المطلوب",
         "contact_info": "معلومات الاتصال",
         "address": "العنوان",
@@ -879,7 +886,7 @@
       "location": "الموقع",
       "status": "الحالة",
       "score": "الدرجة",
-      "actions": "الإجراءات",
+      "actions_col": "الإجراءات",
       "edit": "تعديل",
       "enter": "إدخال",
       "enter_score": "الدرجة",
@@ -889,6 +896,7 @@
       "no_tests": "لم يتم العثور على اختبارات",
       "found": "تم العثور عليها",
       "details": {
+        "back_to_tests": "العودة إلى الاختبارات",
         "title": "تفاصيل الاختبار",
         "test_information": "معلومات الاختبار",
         "date_time": "التاريخ والوقت",
@@ -958,6 +966,7 @@
       "no_interviews": "لم يتم العثور على مقابلات",
       "found": "تم العثور عليها",
       "details": {
+        "back_to_interviews": "العودة إلى المقابلات",
         "title": "المقابلة",
         "interview_information": "معلومات المقابلة",
         "date_time": "التاريخ والوقت",
@@ -1098,7 +1107,7 @@
       "title": "تغيير كلمة المرور",
       "for_student": "للطالب",
       "for_guardian": "لولي الأمر",
-      "info_message": "سيتم استخدام كلمة المرور الجديدة للوصول إلى البوابة الإلكترونية.",
+      "info_message": "سيتم استخدام كلمة المرور الجديدة للوصول إلى  التطبيق.",
       "new_password": "كلمة المرور الجديدة",
       "enter_new_password": "أدخل كلمة المرور الجديدة",
       "confirm_password": "تأكيد كلمة المرور",
@@ -1311,6 +1320,351 @@
       "try_adjusting": "حاول تعديل الفلاتر",
       "clear_filters": "مسح الفلاتر"
     },
+    "guardian_profile": {
+      "back_to_guardians": "العودة إلى أولياء الأمور",
+      "guardian_not_found": "لم يتم العثور على ولي الأمر",
+      "guardian_id": "رقم ولي الأمر",
+      "yes": "نعم",
+      "no": "لا",
+      "not_provided": "غير مقدم",
+      "no_section": "لا توجد شعبة",
+      "no_linked_students": "لا يوجد طلاب مرتبطون بولي الأمر هذا",
+      "tabs": {
+        "overview": "نظرة عامة",
+        "students": "الطلاب",
+        "documents": "المستندات",
+        "notes": "الملاحظات",
+        "timeline": "الجدول الزمني"
+      },
+      "sections": {
+        "personal_info": "المعلومات الشخصية",
+        "contact_info": "معلومات الاتصال",
+        "professional_info": "المعلومات المهنية",
+        "permissions": "الصلاحيات",
+        "linked_students": "الطلاب المرتبطون",
+        "notes": "الملاحظات",
+        "documents": "المستندات",
+        "timeline": "الجدول الزمني"
+      },
+      "fields": {
+        "full_name": "الاسم الكامل",
+        "national_id": "الرقم الوطني",
+        "relation": "صلة القرابة",
+        "primary_guardian": "ولي الأمر الرئيسي",
+        "primary_phone": "الهاتف الأساسي",
+        "secondary_phone": "الهاتف الثانوي",
+        "email": "البريد الإلكتروني",
+        "address": "العنوان",
+        "job_title": "المسمى الوظيفي",
+        "workplace": "مكان العمل",
+        "can_pickup": "يمكنه استلام الطالب",
+        "can_receive_notifications": "يستقبل الإشعارات"
+      }
+    },
+    "tabs": {
+      "overview": "نظرة عامة",
+      "students": "الطلاب",
+      "guardians": "أولياء الأمور",
+      "transfers_withdrawals": "التحويلات والانسحاب"
+    },
+    "transfers_withdrawals": {
+      "title": "التحويلات والانسحاب",
+      "subtitle": "مراقبة اتجاهات تحويلات وانسحاب الطلاب",
+      "tabs": {
+        "transfers": "التحويلات",
+        "withdrawals": "الانسحاب"
+      },
+      "transfers": {
+        "title": "تحويلات الطلاب",
+        "subtitle": "إدارة تحويلات الطلاب الداخلية والخارجية",
+        "applications_subtitle": "إدارة وتتبع جميع طلبات التحويل",
+        "new_transfer": "تحويل جديد",
+        "kpis": {
+          "transfers_this_month": "التحويلات هذا الشهر",
+          "total_transfers": "إجمالي التحويلات",
+          "internal_transfers": "التحويلات الداخلية",
+          "within_school": "داخل المدرسة",
+          "external_transfers": "التحويلات الخارجية",
+          "to_other_schools": "إلى مدارس أخرى",
+          "net_change": "صافي التغيير",
+          "net_positive": "صافي إيجابي",
+          "net_negative": "صافي سلبي"
+        },
+        "table": {
+          "title": "طلبات التحويل",
+          "student_name": "اسم الطالب",
+          "stage": "المرحلة",
+          "grade": "الصف",
+          "type": "النوع",
+          "behavior_score": "التقييم السلوكي",
+          "status": "الحالة",
+          "request_date": "تاريخ الطلب",
+          "actions": "الإجراءات",
+          "view": "عرض",
+          "approve": "موافقة",
+          "reject": "رفض",
+          "no_data": "لم يتم العثور على طلبات تحويل"
+        }
+      },
+      "withdrawals": {
+        "title": "انسحاب الطلاب",
+        "subtitle": "إدارة طلبات انسحاب الطلاب والتصفيات",
+        "applications_subtitle": "إدارة وتتبع جميع طلبات الانسحاب",
+        "new_withdrawal": "انسحاب جديد",
+        "kpis": {
+          "withdrawals_this_month": "الانسحاب هذا الشهر",
+          "total_withdrawals": "إجمالي الانسحاب",
+          "dropout_rate": "معدل التسرب",
+          "above_threshold": "أعلى من الحد",
+          "within_normal": "ضمن المعدل الطبيعي",
+          "behavior_related": "مرتبط بالسلوك",
+          "low_behavior_score": "تقييم سلوكي منخفض",
+          "financial_pending": "مالي معلق",
+          "awaiting_clearance": "في انتظار التصفية"
+        },
+        "alerts": {
+          "high_dropout_rate": "معدل التسرب أعلى من الحد المسموح",
+          "dropout_message": "معدل التسرب الحالي ({rate}%) يتجاوز الحد المقبول. يتطلب اهتمامًا فوريًا."
+        },
+        "table": {
+          "title": "طلبات الانسحاب",
+          "student_name": "اسم الطالب",
+          "stage": "المرحلة",
+          "grade": "الصف",
+          "behavior_avg": "متوسط السلوك",
+          "attendance": "نسبة الحضور",
+          "reason": "السبب",
+          "financial_clearance": "التصفية المالية",
+          "status": "الحالة",
+          "request_date": "تاريخ الطلب",
+          "actions": "الإجراءات",
+          "view": "عرض",
+          "approve": "موافقة",
+          "reject": "رفض",
+          "no_data": "لم يتم العثور على طلبات انسحاب"
+        }
+      },
+      "filters": {
+        "filters_button": "التصفية",
+        "search_placeholder": "البحث باسم الطالب أو الرقم...",
+        "stage": "المرحلة",
+        "all_stages": "جميع المراحل",
+        "type": "النوع",
+        "all_types": "جميع الأنواع",
+        "reason": "السبب",
+        "all_reasons": "جميع الأسباب",
+        "status": "الحالة",
+        "all_statuses": "جميع الحالات",
+        "behavior_band": "نطاق السلوك",
+        "all_bands": "جميع النطاقات",
+        "financial_clearance": "التصفية المالية",
+        "all_clearances": "جميع التصفيات",
+        "stages": {
+          "primary": "ابتدائي",
+          "preparatory": "إعدادي",
+          "secondary": "ثانوي"
+        },
+        "types": {
+          "internal": "داخلي",
+          "external": "خارجي"
+        },
+        "reasons": {
+          "relocation": "الانتقال",
+          "financial": "مالي",
+          "academic": "أكاديمي",
+          "behavior": "سلوكي",
+          "health": "صحي",
+          "other": "أخرى"
+        },
+        "statuses": {
+          "draft": "مسودة",
+          "submitted": "مقدم",
+          "under_review": "قيد المراجعة",
+          "finance_clearance": "تصفية مالية",
+          "behavior_review": "مراجعة سلوكية",
+          "approved": "موافق عليه",
+          "rejected": "مرفوض",
+          "executed": "منفذ"
+        },
+        "behavior_bands": {
+          "low": "منخفض (0-59)",
+          "medium": "متوسط (60-79)",
+          "high": "عالي (80-100)"
+        },
+        "financial_clearances": {
+          "pending": "معلق",
+          "cleared": "مصفى",
+          "blocked": "محظور"
+        }
+      },
+      "charts": {
+        "transfers_trend": "التحويلات عبر الوقت",
+        "withdrawals_trend": "الانسحاب عبر الوقت",
+        "transfers_by_reason": "التحويلات حسب السبب",
+        "withdrawals_by_stage": "الانسحاب حسب المرحلة",
+        "by_stage": {
+          "title": "الانسحاب حسب المرحلة",
+          "transfers": "التحويلات",
+          "withdrawals": "الانسحابات"
+        },
+        "total_withdrawals": "إجمالي الانسحاب",
+        "total_transfers": "إجمالي التحويلات",
+        "internal_transfers": "التحويلات الداخلية",
+        "external_transfers": "التحويلات الخارجية",
+        "behavior_related": "مرتبط بالسلوك",
+        "financial_related": "مرتبط بالمالية",
+        "other_reasons": "أسباب أخرى",
+        "stages": {
+          "primary": "ابتدائي",
+          "preparatory": "إعدادي",
+          "secondary": "ثانوي"
+        },
+        "reasons": {
+          "title": "توزيع أسباب الانسحاب",
+          "academic": "أكاديمي",
+          "relocation": "الانتقال",
+          "better_fit": "ملاءمة أفضل",
+          "other": "أخرى"
+        },
+        "behavior": {
+          "title": "الانسحاب حسب التقييم السلوكي",
+          "description": "تحليل أنماط الانسحاب بناءً على درجات تقييم سلوك الطلاب",
+          "withdrawals": "الانسحابات",
+          "x_axis": "نطاق التقييم السلوكي",
+          "y_axis": "عدد الانسحابات",
+          "insight_title": "رؤية رئيسية",
+          "insight_text": "الطلاب ذوو التقييمات السلوكية المنخفضة (0-40) يظهرون معدلات انسحاب أعلى بشكل ملحوظ، مما يشير إلى وجود علاقة قوية بين المشاكل السلوكية والاحتفاظ بالطلاب."
+        }
+      },
+      "modals": {
+        "transfer": {
+          "title": "إنشاء طلب تحويل",
+          "fields": {
+            "student": "الطالب",
+            "search_student": "البحث عن طالب بالاسم أو الرقم...",
+            "student_id": "رقم الطالب",
+            "stage": "المرحلة",
+            "grade": "الصف",
+            "type": "نوع التحويل",
+            "target_class": "الفصل المستهدف",
+            "target_class_placeholder": "مثال: 8-ب",
+            "external_school": "المدرسة الخارجية",
+            "external_school_placeholder": "أدخل اسم المدرسة",
+            "reason": "السبب",
+            "reason_placeholder": "أدخل سبب التحويل",
+            "effective_date": "تاريخ السريان",
+            "notes": "ملاحظات إضافية",
+            "notes_placeholder": "أدخل أي معلومات إضافية...",
+            "attachments": "المرفقات",
+            "upload_files": "انقر للتحميل أو اسحب وأفلت الملفات"
+          },
+          "types": {
+            "internal": "تحويل داخلي",
+            "external": "تحويل خارجي"
+          },
+          "errors": {
+            "student_required": "يرجى اختيار طالب",
+            "type_required": "يرجى اختيار نوع التحويل",
+            "target_class_required": "يرجى إدخال الفصل المستهدف",
+            "external_school_required": "يرجى إدخال اسم المدرسة الخارجية",
+            "reason_required": "يرجى إدخال السبب",
+            "date_required": "يرجى اختيار تاريخ السريان"
+          },
+          "no_students_found": "لم يتم العثور على طلاب",
+          "cancel": "إلغاء",
+          "submit": "إرسال الطلب"
+        },
+        "withdrawal": {
+          "title": "إنشاء طلب انسحاب",
+          "charts": {},
+          "fields": {
+            "student": "الطالب",
+            "search_student": "البحث عن طالب بالاسم أو الرقم...",
+            "student_id": "رقم الطالب",
+            "stage": "المرحلة",
+            "grade": "الصف",
+            "reason": "سبب الانسحاب",
+            "effective_date": "تاريخ السريان",
+            "notes": "ملاحظات إضافية",
+            "notes_placeholder": "أدخل أي معلومات إضافية...",
+            "attachments": "المرفقات",
+            "upload_files": "انقر للتحميل أو اسحب وأفلت الملفات"
+          },
+          "reasons": {
+            "relocation": "الانتقال",
+            "financial": "أسباب مالية",
+            "academic": "أسباب أكاديمية",
+            "behavior": "مشاكل سلوكية",
+            "health": "أسباب صحية",
+            "other": "أخرى"
+          },
+          "behavior_summary": {
+            "title": "ملخص السلوك",
+            "behavior_avg": "متوسط السلوك",
+            "attendance": "الحضور",
+            "low_behavior_warning": "تحذير: الطالب لديه تقييم سلوكي منخفض. مراجعة إضافية مطلوبة."
+          },
+          "financial_summary": {
+            "title": "الملخص المالي",
+            "outstanding_balance": "الرصيد المستحق",
+            "pending_clearance_warning": "تحذير: الطالب لديه رصيد مالي مستحق. التصفية مطلوبة قبل الانسحاب."
+          },
+          "errors": {
+            "student_required": "يرجى اختيار طالب",
+            "reason_required": "يرجى اختيار السبب",
+            "date_required": "يرجى اختيار تاريخ السريان"
+          },
+          "no_students_found": "لم يتم العثور على طلاب",
+          "cancel": "إلغاء",
+          "submit": "إرسال الطلب"
+        }
+      },
+      "details": {
+        "back_to_list": "العودة إلى القائمة",
+        "transfer_request_details": "تفاصيل طلب التحويل",
+        "withdrawal_request_details": "تفاصيل طلب الانسحاب",
+        "request_id": "رقم الطلب",
+        "approve": "موافقة",
+        "reject": "رفض",
+        "execute": "تنفيذ",
+        "student_info": "معلومات الطالب",
+        "student_name": "اسم الطالب",
+        "stage": "المرحلة",
+        "grade": "الصف",
+        "request_info": "معلومات الطلب",
+        "transfer_type": "نوع التحويل",
+        "target_class": "الفصل المستهدف",
+        "external_school": "المدرسة الخارجية",
+        "reason": "السبب",
+        "request_date": "تاريخ الطلب",
+        "effective_date": "تاريخ السريان",
+        "created_by": "أنشئ بواسطة",
+        "behavior_summary": "ملخص السلوك",
+        "behavior_score": "درجة السلوك",
+        "behavior_avg": "متوسط السلوك",
+        "behavior_band": "نطاق السلوك",
+        "attendance": "الحضور",
+        "tab_details": "التفاصيل",
+        "tab_attachments": "المرفقات",
+        "tab_timeline": "الجدول الزمني",
+        "notes": "ملاحظات",
+        "no_notes": "لا توجد ملاحظات متاحة",
+        "rejection_reason": "سبب الرفض",
+        "no_attachments": "لا توجد مرفقات متاحة",
+        "request_submitted": "تم إرسال الطلب",
+        "submitted_by": "أرسل بواسطة",
+        "change_status": "تغيير الحالة",
+        "current_status": "الحالة الحالية",
+        "new_status": "الحالة الجديدة",
+        "reason_required": "سبب الرفض مطلوب",
+        "reason_placeholder": "أدخل سبب الرفض...",
+        "status_change_warning": "تحذير",
+        "execute_warning": "تنفيذ هذا الطلب سيغير حالة الطالب بشكل دائم. لا يمكن التراجع عن هذا الإجراء.",
+        "reject_warning": "رفض هذا الطلب سيغلقه بشكل دائم. تأكد من تقديم سبب واضح.",
+        "cancel": "إلغاء",
+        "confirm_change": "تأكيد التغيير"
+      }
+    },
     "profile": {
       "back_to_students": "العودة إلى الطلاب",
       "student_not_found": "لم يتم العثور على الطالب",
@@ -1362,6 +1716,7 @@
         "subject_performance": "الأداء حسب المادة",
         "student_information": "معلومات الطالب",
         "student_id": "رقم الطالب",
+        "stage": "المرحلة",
         "grade": "الصف",
         "section": "الشعبة",
         "enrollment_year": "سنة التسجيل",
@@ -1396,6 +1751,7 @@
         "male": "ذكر",
         "female": "أنثى",
         "nationality": "الجنسية",
+        "stage": "المرحلة",
         "date_of_birth": "تاريخ الميلاد",
         "grade": "الصف",
         "section": "الشعبة",

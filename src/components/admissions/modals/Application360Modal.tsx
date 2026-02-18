@@ -171,6 +171,29 @@ export default function Application360Modal({
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">
+                        {t("details.stage")}
+                      </p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {application.stage ||
+                          (() => {
+                            const grade =
+                              application.grade_requested ||
+                              application.gradeRequested;
+                            const gradeNum = parseInt(
+                              grade?.replace(/\D/g, "") || "0",
+                            );
+                            if (gradeNum >= 1 && gradeNum <= 5)
+                              return "Primary";
+                            if (gradeNum >= 6 && gradeNum <= 9)
+                              return "Preparatory";
+                            if (gradeNum >= 10 && gradeNum <= 12)
+                              return "Secondary";
+                            return "N/A";
+                          })()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">
                         {t("details.grade_requested")}
                       </p>
                       <p className="text-sm font-medium text-gray-900">

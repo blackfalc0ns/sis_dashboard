@@ -39,6 +39,7 @@ export interface Application {
   // Academic Information
   grade_requested: string;
   gradeRequested: string; // Alias for grade_requested
+  stage?: string; // Educational stage (Primary, Preparatory, Secondary)
   previous_school?: string;
   previousSchool?: string; // Alias for previous_school
   join_date?: string;

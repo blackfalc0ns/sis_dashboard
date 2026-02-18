@@ -43,6 +43,7 @@ export interface Student {
   // ACADEMIC INFORMATION (Admissions)
   // ============================================================================
   gradeRequested: string; // Grade level requested during admission (e.g., "Grade 4")
+  stage?: string; // Educational stage: "Primary" | "Preparatory" | "Secondary"
 
   // DEPRECATED: Use StudentEnrollment for current grade/section/term
   // These fields are kept for backward compatibility only

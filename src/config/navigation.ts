@@ -12,6 +12,8 @@ import {
   GraduationCap,
   UserCheck,
   FolderOpen,
+  ArrowLeftRight,
+  UserMinus,
 } from "lucide-react";
 import {
   mockLeads,
@@ -157,6 +159,62 @@ export const menuItems: MenuItem[] = [
         href_en: "/en/students-guardians/documents",
         href_ar: "/ar/students-guardians/documents",
         icon: FolderOpen,
+      },
+      {
+        key: "transfers",
+        label_en: "Transfers",
+        label_ar: "التحويلات",
+        href_en: "/en/students-guardians/transfers-withdrawals/transfers",
+        href_ar: "/ar/students-guardians/transfers-withdrawals/transfers",
+        icon: ArrowLeftRight,
+        children: [
+          {
+            key: "transfers-overview",
+            label_en: "Overview",
+            label_ar: "نظرة عامة",
+            href_en: "/en/students-guardians/transfers-withdrawals/transfers",
+            href_ar: "/ar/students-guardians/transfers-withdrawals/transfers",
+            icon: LayoutDashboard,
+          },
+          {
+            key: "transfers-applications",
+            label_en: "Applications",
+            label_ar: "الطلبات",
+            href_en:
+              "/en/students-guardians/transfers-withdrawals/transfers/applications",
+            href_ar:
+              "/ar/students-guardians/transfers-withdrawals/transfers/applications",
+            icon: FileText,
+          },
+        ],
+      },
+      {
+        key: "withdrawals",
+        label_en: "Withdrawals",
+        label_ar: "الانسحابات",
+        href_en: "/en/students-guardians/transfers-withdrawals/withdrawals",
+        href_ar: "/ar/students-guardians/transfers-withdrawals/withdrawals",
+        icon: UserMinus,
+        children: [
+          {
+            key: "withdrawals-overview",
+            label_en: "Overview",
+            label_ar: "نظرة عامة",
+            href_en: "/en/students-guardians/transfers-withdrawals/withdrawals",
+            href_ar: "/ar/students-guardians/transfers-withdrawals/withdrawals",
+            icon: LayoutDashboard,
+          },
+          {
+            key: "withdrawals-applications",
+            label_en: "Applications",
+            label_ar: "الطلبات",
+            href_en:
+              "/en/students-guardians/transfers-withdrawals/withdrawals/applications",
+            href_ar:
+              "/ar/students-guardians/transfers-withdrawals/withdrawals/applications",
+            icon: FileText,
+          },
+        ],
       },
     ],
   },
