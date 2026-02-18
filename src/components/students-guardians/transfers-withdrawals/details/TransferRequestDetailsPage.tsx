@@ -97,7 +97,7 @@ export default function TransferRequestDetailsPage({
       <div className="bg-white rounded-xl p-6 shadow-sm">
         <button
           onClick={handleBack}
-          className="flex items-center gap-2 text-gray-600 hover:text-[#036b80] mb-4 transition-colors"
+          className="flex items-center gap-2  hover:text-[#036b80] mb-4 transition-colors"
         >
           {locale === "ar" ? (
             <ArrowRight className="w-4 h-4" />
@@ -156,7 +156,7 @@ export default function TransferRequestDetailsPage({
             <div className="relative">
               <button
                 onClick={() => setShowActionsMenu(!showActionsMenu)}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2  hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <MoreVertical className="w-5 h-5" />
               </button>
@@ -331,9 +331,7 @@ export default function TransferRequestDetailsPage({
                 <h4 className="font-medium text-gray-900 mb-2">
                   {tDetails("notes")}
                 </h4>
-                <p className="text-gray-600">
-                  {transfer.notes || tDetails("no_notes")}
-                </p>
+                <p className="">{transfer.notes || tDetails("no_notes")}</p>
               </div>
               {transfer.rejectionReason && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -366,7 +364,7 @@ export default function TransferRequestDetailsPage({
                     {tDetails("request_submitted")}
                   </p>
                   <p className="text-sm ">{transfer.requestDate}</p>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm  mt-1">
                     {tDetails("submitted_by")}: {transfer.createdBy}
                   </p>
                 </div>
