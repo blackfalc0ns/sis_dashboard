@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, startTransition } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -77,13 +77,13 @@ export default function ApplicationProfileLayout({
   }
 
   const handleTabClick = (tabKey: string) => {
-    if (tabKey === "details") {
-      router.push(`/${lang}/admissions/applications/${applicationId}`);
-    } else {
-      router.push(
-        `/${lang}/admissions/applications/${applicationId}/${tabKey}`,
-      );
-    }
+    const path =
+      tabKey === "details"
+        ? `/${lang}/admissions/applications/${applicationId}`
+        : `/${lang}/admissions/applications/${applicationId}/${tabKey}`;
+    startTransition(() => {
+      router.push(path, { scroll: false });
+    });
   };
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, startTransition } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -107,13 +107,13 @@ export default function StudentProfileLayout({
       : student.full_name_en || getStudentDisplayName(student);
 
   const handleTabClick = (tabKey: string) => {
-    if (tabKey === "overview") {
-      router.push(`/${lang}/students-guardians/students/${studentId}`);
-    } else {
-      router.push(
-        `/${lang}/students-guardians/students/${studentId}/${tabKey}`,
-      );
-    }
+    const path =
+      tabKey === "overview"
+        ? `/${lang}/students-guardians/students/${studentId}`
+        : `/${lang}/students-guardians/students/${studentId}/${tabKey}`;
+    startTransition(() => {
+      router.push(path, { scroll: false });
+    });
   };
 
   return (

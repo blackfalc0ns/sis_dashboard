@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, startTransition } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -70,11 +70,13 @@ export default function LeadProfileLayout({
   }
 
   const handleTabClick = (tabKey: string) => {
-    if (tabKey === "overview") {
-      router.push(`/${lang}/admissions/leads/${leadId}`);
-    } else {
-      router.push(`/${lang}/admissions/leads/${leadId}/${tabKey}`);
-    }
+    const path =
+      tabKey === "overview"
+        ? `/${lang}/admissions/leads/${leadId}`
+        : `/${lang}/admissions/leads/${leadId}/${tabKey}`;
+    startTransition(() => {
+      router.push(path, { scroll: false });
+    });
   };
 
   return (
