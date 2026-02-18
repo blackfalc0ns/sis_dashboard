@@ -19,6 +19,7 @@ import {
   Download,
   Plus,
   Upload,
+  Lock,
 } from "lucide-react";
 import DataTable from "@/components/ui/common/DataTable";
 import KPICard from "@/components/ui/common/KPICard";
@@ -44,6 +45,7 @@ import AddNoteModal, {
   NoteFormData,
 } from "@/components/students-guardians/modals/AddNoteModal";
 import BulkUploadModal from "@/components/students-guardians/modals/BulkUploadModal";
+import ChangePasswordModal from "@/components/students-guardians/modals/ChangePasswordModal";
 
 export default function StudentsList() {
   const t = useTranslations("students_guardians.students");
@@ -74,6 +76,9 @@ export default function StudentsList() {
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [passwordChangeStudent, setPasswordChangeStudent] =
+    useState<Student | null>(null);
 
   // Filter students
   const filteredStudents = useMemo(() => {
@@ -252,6 +257,24 @@ export default function StudentsList() {
     e.stopPropagation();
     setSelectedStudent(student);
     setShowAddNoteModal(true);
+  };
+
+  const handleChangePasswordClick = (e: React.MouseEvent, student: Student) => {
+    e.stopPropagation();
+    setPasswordChangeStudent(student);
+    setShowChangePasswordModal(true);
+  };
+
+  const handlePasswordChange = (data: {
+    newPassword: string;
+    confirmPassword: string;
+  }) => {
+    // TODO: Implement API call to change password
+    console.log("Changing password for student:", passwordChangeStudent?.id);
+    console.log("New password:", data.newPassword);
+
+    // Show success message
+    alert(t("change_password.success"));
   };
 
   const handleExport = () => {
@@ -436,6 +459,15 @@ export default function StudentsList() {
             title={t("actions.edit")}
           >
             <Edit className="w-4 h-4" />
+          </button>
+          <button
+            onClick={(e) =>
+              handleChangePasswordClick(e, row as unknown as Student)
+            }
+            className="p-1.5 text-orange-600 hover:bg-orange-50 rounded transition-colors"
+            title={t("actions.change_password")}
+          >
+            <Lock className="w-4 h-4" />
           </button>
           <button
             onClick={(e) => handleAddNoteClick(e, row as unknown as Student)}
@@ -732,6 +764,31 @@ export default function StudentsList() {
         onClose={() => setShowBulkUploadModal(false)}
         onUpload={handleBulkUpload}
       />
+
+      {/* Change Password Modal */}
+      {passwordChangeStudent && (
+        <ChangePasswordModal
+          isOpen={showChangePasswordModal}
+          onClose={() => {
+            setShowChangePasswordModal(false);
+            setPasswordChangeStudent(null);
+          }}
+          onSubmit={handlePasswordChange}
+          userName={
+            locale === "ar"
+              ? (passwordChangeStudent as any).full_name_ar ||
+                (passwordChangeStudent as any).studentNameArabic ||
+                (passwordChangeStudent as any).full_name_en ||
+                (passwordChangeStudent as any).studentName ||
+                getStudentDisplayName(passwordChangeStudent)
+              : (passwordChangeStudent as any).full_name_en ||
+                (passwordChangeStudent as any).studentName ||
+                (passwordChangeStudent as any).full_name_ar ||
+                getStudentDisplayName(passwordChangeStudent)
+          }
+          userType="student"
+        />
+      )}
     </div>
   );
 }

@@ -18,6 +18,7 @@ import { getStudentDocuments } from "@/services/studentsService";
 import UploadDocumentModal, {
   DocumentUploadData,
 } from "@/components/students-guardians/modals/UploadDocumentModal";
+import DocumentViewerModal from "@/components/admissions/modals/DocumentViewerModal";
 import { useTranslations } from "next-intl";
 
 interface DocumentsTabProps {
@@ -29,6 +30,12 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
   const documents = getStudentDocuments(student.student_id || "");
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<{
+    type: string;
+    name: string;
+    url?: string;
+    fileType?: string;
+  } | null>(null);
 
   const handleUploadDocument = (documentData: DocumentUploadData) => {
     // TODO: Implement API call to upload document
@@ -48,6 +55,34 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
       setUploadingDocId(documentId);
     }
     setShowUploadModal(true);
+  };
+
+  const handleViewDocument = (doc: Record<string, unknown>) => {
+    // Generate a mock URL for demonstration
+    const mockUrl = `/documents/${doc.id}.pdf`;
+    const fileType = (doc.name as string)?.endsWith(".pdf")
+      ? "pdf"
+      : (doc.name as string)?.match(/\.(jpg|jpeg|png|gif)$/i)
+        ? "image"
+        : "other";
+
+    setSelectedDocument({
+      type: doc.type as string,
+      name: doc.name as string,
+      url: mockUrl,
+      fileType,
+    });
+  };
+
+  const handleDownloadDocument = (doc: Record<string, unknown>) => {
+    // Generate a mock download URL
+    const mockUrl = `/documents/${doc.id}.pdf`;
+    const link = document.createElement("a");
+    link.href = mockUrl;
+    link.download = doc.name as string;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const getStatusBadge = (status: string) => {
@@ -117,12 +152,14 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
           {row.status !== "missing" && (
             <>
               <button
+                onClick={() => handleViewDocument(row)}
                 className="p-1.5 text-[#036b80] hover:bg-[#036b80] hover:text-white rounded transition-colors"
                 title={t("view")}
               >
                 <Eye className="w-4 h-4" />
               </button>
               <button
+                onClick={() => handleDownloadDocument(row)}
                 className="p-1.5 text-gray-600 hover:bg-gray-100 rounded transition-colors"
                 title={t("download")}
               >
@@ -233,6 +270,13 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
         }}
         onSubmit={handleUploadDocument}
         studentId={student.id}
+      />
+
+      {/* Document Viewer Modal */}
+      <DocumentViewerModal
+        isOpen={!!selectedDocument}
+        onClose={() => setSelectedDocument(null)}
+        document={selectedDocument}
       />
     </div>
   );

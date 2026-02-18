@@ -82,7 +82,7 @@ export default function AttendanceTrendChart() {
   ];
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm">
+    <div className="bg-white rounded-xl p-4 shadow-(--main-box-shadow) h-full flex flex-col justify-between">
       <div className="flex items-center justify-between mb-4 gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -145,7 +145,7 @@ export default function AttendanceTrendChart() {
         </div>
       </div>
 
-      <div className="h-48">
+      <div className="">
         <LineChart
           xAxis={[{ data: days, scaleType: "linear" }]}
           series={[
@@ -162,13 +162,13 @@ export default function AttendanceTrendChart() {
               curve: "linear",
             },
           ]}
-          height={180}
+          height={300}
           margin={{ top: 10, bottom: 30, left: 40, right: 10 }}
         />
       </div>
 
       {/* Action Flow */}
-      <div className="mt-4 pt-4 border-t border-gray-200">
+      <div className="mt-4 pt-4 border-t border-gray-200 align-bottom">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-sm text-gray-600">
             <span className="font-semibold text-red-600">

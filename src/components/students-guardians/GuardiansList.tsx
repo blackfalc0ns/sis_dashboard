@@ -17,12 +17,14 @@ import {
   Star,
   CheckCircle,
   XCircle,
+  Lock,
 } from "lucide-react";
 import DataTable from "@/components/ui/common/DataTable";
 import KPICard from "@/components/ui/common/KPICard";
 import { downloadCSV, generateFilename } from "@/utils/simpleExport";
 import { StudentGuardian } from "@/types/students";
 import * as studentsService from "@/services/studentsService";
+import ChangePasswordModal from "@/components/students-guardians/modals/ChangePasswordModal";
 
 export default function GuardiansList() {
   const t = useTranslations("students_guardians.guardians_list");
@@ -35,6 +37,9 @@ export default function GuardiansList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [relationFilter, setRelationFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [passwordChangeGuardian, setPasswordChangeGuardian] =
+    useState<StudentGuardian | null>(null);
 
   // Filter guardians
   const filteredGuardians = useMemo(() => {
@@ -117,6 +122,30 @@ export default function GuardiansList() {
     }));
 
     downloadCSV(exportData, generateFilename("guardians", "csv"));
+  };
+
+  const handleChangePasswordClick = (
+    e: React.MouseEvent,
+    guardian: StudentGuardian,
+  ) => {
+    e.stopPropagation();
+    setPasswordChangeGuardian(guardian);
+    setShowChangePasswordModal(true);
+  };
+
+  const handlePasswordChange = (data: {
+    newPassword: string;
+    confirmPassword: string;
+  }) => {
+    // TODO: Implement API call to change password
+    console.log(
+      "Changing password for guardian:",
+      passwordChangeGuardian?.guardianId,
+    );
+    console.log("New password:", data.newPassword);
+
+    // Show success message
+    alert(t("change_password.success"));
   };
 
   const columns = [
@@ -212,6 +241,15 @@ export default function GuardiansList() {
             title={t("actions.edit")}
           >
             <Edit className="w-4 h-4" />
+          </button>
+          <button
+            onClick={(e) =>
+              handleChangePasswordClick(e, row as unknown as StudentGuardian)
+            }
+            className="p-1.5 text-orange-600 hover:bg-orange-50 rounded transition-colors"
+            title={t("actions.change_password")}
+          >
+            <Lock className="w-4 h-4" />
           </button>
         </div>
       ),
@@ -363,6 +401,20 @@ export default function GuardiansList() {
           showPagination={true}
           itemsPerPage={20}
           searchQuery={searchQuery}
+        />
+      )}
+
+      {/* Change Password Modal */}
+      {passwordChangeGuardian && (
+        <ChangePasswordModal
+          isOpen={showChangePasswordModal}
+          onClose={() => {
+            setShowChangePasswordModal(false);
+            setPasswordChangeGuardian(null);
+          }}
+          onSubmit={handlePasswordChange}
+          userName={passwordChangeGuardian.full_name}
+          userType="guardian"
         />
       )}
     </div>

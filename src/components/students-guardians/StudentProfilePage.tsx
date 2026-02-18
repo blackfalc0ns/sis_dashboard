@@ -234,7 +234,7 @@ export default function StudentProfilePage({
       </div>
 
       {/* Tab Content */}
-      <div className="p-4 sm:p-6">
+      {/* <div className="p-4 sm:p-6">
         {activeTab === "overview" && <OverviewTab student={student} />}
         {activeTab === "personal" && <PersonalInfoTab student={student} />}
         {activeTab === "guardians" && <GuardiansTab student={student} />}
@@ -250,7 +250,7 @@ export default function StudentProfilePage({
         {activeTab === "timeline" && <TimelineTab student={student} />}
         {activeTab === "transfers" && <TransfersTab student={student} />}
         {activeTab === "withdrawal" && <WithdrawalTab student={student} />}
-      </div>
+      </div> */}
     </div>
   );
 }

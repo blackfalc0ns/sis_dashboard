@@ -90,7 +90,7 @@ export default function ApplicationsByGradeChart({
 
   if (total === 0 || data.length === 0) {
     return (
-      <div className="bg-white rounded-xl p-6 shadow-sm h-full">
+      <div className="bg-white rounded-xl p-6 shadow-(--main-box-shadow) h-full">
         <div className="mb-4">
           <h3 className="text-lg font-bold text-gray-900">
             {t("applications_by_grade")}
@@ -105,7 +105,7 @@ export default function ApplicationsByGradeChart({
   }
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm h-full">
+    <div className="bg-white rounded-xl p-6 shadow-(--main-box-shadow) h-full">
       <div className="mb-4">
         <h3 className="text-lg font-bold text-gray-900">
           {t("applications_by_grade")}

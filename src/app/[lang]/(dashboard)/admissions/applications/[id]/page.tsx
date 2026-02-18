@@ -1,11 +1,20 @@
-import ApplicationDetailsPage from "@/components/admissions/pages/ApplicationDetailsPage";
+"use client";
 
-interface PageProps {
-  params: Promise<{
-    id: string;
-  }>;
-}
-export default async function Page({ params }: PageProps) {
-  const { id } = await params;
-  return <ApplicationDetailsPage applicationId={id} />;
+import { useMemo } from "react";
+import { useParams } from "next/navigation";
+import { mockApplications } from "@/data/mockAdmissions";
+import DetailsTab from "@/components/admissions/application-tabs/DetailsTab";
+
+export default function ApplicationDetailsPage() {
+  const params = useParams();
+  const applicationId = params.id as string;
+
+  const application = useMemo(
+    () => mockApplications.find((app) => app.id === applicationId),
+    [applicationId],
+  );
+
+  if (!application) return null;
+
+  return <DetailsTab application={application} />;
 }

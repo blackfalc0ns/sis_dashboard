@@ -1128,6 +1128,22 @@
     }
   },
   "students_guardians": {
+    "change_password": {
+      "title": "Change Password",
+      "for_student": "For Student",
+      "for_guardian": "For Guardian",
+      "info_message": "The new password will be used for portal login access.",
+      "new_password": "New Password",
+      "enter_new_password": "Enter new password",
+      "confirm_password": "Confirm Password",
+      "enter_confirm_password": "Re-enter new password",
+      "min_length": "Minimum 8 characters required",
+      "error_min_length": "Password must be at least 8 characters long",
+      "error_mismatch": "Passwords do not match",
+      "cancel": "Cancel",
+      "change_password": "Change Password",
+      "success": "Password changed successfully"
+    },
     "overview": {
       "title": "Students & Guardians Overview",
       "subtitle": "Comprehensive view of students, guardians, and academic performance",
@@ -1154,7 +1170,18 @@
         "retained": "Retained (%)",
         "left": "Left (%)",
         "absence_heatmap": "Weekly Absence Heatmap",
-        "no_data": "No data available for the selected filters"
+        "no_data": "No data available for the selected filters",
+        "pass_fail_ratio": {
+          "title": "Pass vs Fail Ratio",
+          "subtitle": "Student performance distribution",
+          "pass": "Pass",
+          "fail": "Fail",
+          "count": "Count",
+          "percentage": "Percentage",
+          "total_students": "Total Students",
+          "pass_rate": "Pass Rate",
+          "no_data": "No performance data available"
+        }
       },
       "status": {
         "active": "Active",
@@ -1230,6 +1257,7 @@
       "actions": {
         "view_profile": "View Profile",
         "edit": "Edit",
+        "change_password": "Change Password",
         "add_note": "Add Note"
       },
       "bulk_upload_button": "Bulk Upload",
@@ -1309,7 +1337,8 @@
       },
       "actions": {
         "view_details": "View Details",
-        "edit": "Edit"
+        "edit": "Edit",
+        "change_password": "Change Password"
       },
       "no_guardians": "No Guardians Found",
       "no_guardians_message": "No guardian records available",

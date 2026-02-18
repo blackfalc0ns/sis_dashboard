@@ -67,7 +67,7 @@ export default function ConversionFunnelChart({
 
   if (!hasData) {
     return (
-      <div className="bg-white rounded-xl p-6 shadow-sm">
+      <div className="bg-white rounded-xl p-6 shadow-(--main-box-shadow)">
         <div className="mb-4">
           <h3 className="text-lg font-bold text-gray-900">
             {t("conversion_funnel")}
@@ -89,7 +89,7 @@ export default function ConversionFunnelChart({
   };
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm h-full">
+    <div className="bg-white rounded-xl p-6 shadow-(--main-box-shadow) h-full">
       <div className="mb-6">
         <h3 className="text-lg font-bold text-gray-900">
           {t("conversion_funnel")}
@@ -98,7 +98,7 @@ export default function ConversionFunnelChart({
       </div>
 
       {/* Overall Conversion */}
-      <div className="mb-6 p-4 bg-gradient-to-r from-teal-50 to-blue-50 rounded-lg border border-teal-200">
+      <div className="mb-6 p-4 bg-linear-to-r from-teal-50 to-blue-50 rounded-lg border border-teal-200">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-gray-700">
             {t("overall_conversion_rate")}

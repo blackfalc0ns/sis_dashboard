@@ -50,7 +50,7 @@ export default function AdmissionsFunnelChart({
   ];
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm">
+    <div className="bg-white rounded-xl p-6 shadow-(--main-box-shadow)">
       <div className="mb-6">
         <h3 className="text-lg font-bold text-gray-900">Admissions Funnel</h3>
         <p className="text-sm text-gray-500">

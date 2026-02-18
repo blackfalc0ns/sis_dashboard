@@ -89,7 +89,7 @@ export default function StudentsByStatusChart() {
   }, [filteredStudents, t]);
 
   return (
-    <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm space-y-4">
+    <div className="bg-white rounded-xl p-4 sm:p-6 shadow-(--main-box-shadow) space-y-4">
       <h3 className="text-base sm:text-lg font-bold text-gray-900">
         {t("charts.students_by_status")}
       </h3>

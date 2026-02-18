@@ -40,7 +40,7 @@ export default function ApplicationsByStatusChart({
   const total = data.reduce((sum, item) => sum + item.count, 0);
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm">
+    <div className="bg-white rounded-xl p-6 shadow-(--main-box-shadow)">
       <div className="mb-4">
         <h3 className="text-lg font-bold text-gray-900">
           Applications by Status

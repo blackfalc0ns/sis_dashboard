@@ -34,7 +34,7 @@ const incidents: Incident[] = [
 export default function ActivitiesCard() {
   const t = useTranslations("activities");
   return (
-    <div className="bg-white rounded-[20px] p-8 shadow-(--main-box-shadow) flex flex-col gap-1">
+    <div className="bg-white rounded-[20px] p-8 shadow-(--main-box-shadow) flex flex-col gap-1 h-full">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-bold text-gray-900">{t("title")}</h3>
         <button className="text-gray-400 hover:text-gray-600">

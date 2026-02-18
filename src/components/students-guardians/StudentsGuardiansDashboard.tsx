@@ -17,6 +17,7 @@ import AbsenceHeatmap from "./charts/AbsenceHeatmap";
 import StudentsByStatusChart from "./charts/StudentsByStatusChart";
 import StudentsByGradeChart from "./charts/StudentsByGradeChart";
 import RetentionCohortChart from "./charts/RetentionCohortChart";
+import PassFailRatioChart from "./charts/PassFailRatioChart";
 import ChartFilter, { ChartFilterValues } from "./shared/ChartFilter";
 import * as studentsService from "@/services/studentsService";
 
@@ -229,9 +230,14 @@ export default function StudentsGuardiansDashboard() {
         <StudentsByGradeChart />
       </div>
 
-      {/* Charts Section 2: Retention and Attendance */}
+      {/* Charts Section 2: Pass/Fail and Retention */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <PassFailRatioChart />
         <RetentionCohortChart />
+      </div>
+
+      {/* Charts Section 3: Attendance */}
+      <div className="grid grid-cols-1 gap-6">
         <AbsenceHeatmap />
       </div>
 

@@ -65,7 +65,7 @@ export default function QuickActionPanel() {
   ];
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm lg:sticky lg:top-[100px] lg:h-[calc(100vh-120px)] lg:overflow-y-auto">
+    <div className="bg-white rounded-xl p-4 shadow-sm h-full">
       <h3 className="text-base font-bold text-gray-900 mb-6">{t("title")}</h3>
 
       {/* Quick Action Buttons */}

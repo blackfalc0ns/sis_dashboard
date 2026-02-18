@@ -1,0 +1,136 @@
+"use client";
+
+import { useMemo } from "react";
+import { useRouter, useParams, usePathname } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
+import {
+  ArrowLeft,
+  ArrowRight,
+  User,
+  MessageCircle,
+  TrendingUp,
+  Tag,
+} from "lucide-react";
+import { getLeadById } from "@/api/mockLeadsApi";
+import { getConversationByLeadId } from "@/data/mockLeadMessages";
+import LeadStatusBadge from "@/components/leads/LeadStatusBadge";
+
+const tabs = [
+  { key: "overview", labelKey: "overview", icon: User },
+  { key: "chat", labelKey: "messages", icon: MessageCircle },
+  { key: "activity", labelKey: "activity_log", icon: TrendingUp },
+  { key: "notes", labelKey: "notes", icon: Tag },
+];
+
+export default function LeadProfileLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const t = useTranslations("admissions.lead_details");
+  const locale = useLocale();
+  const router = useRouter();
+  const params = useParams();
+  const pathname = usePathname();
+  const lang = (params.lang as string) || "en";
+  const leadId = params.id as string;
+
+  const lead = useMemo(() => {
+    return getLeadById(leadId);
+  }, [leadId]);
+
+  const unreadCount = useMemo(() => {
+    const conversation = getConversationByLeadId(leadId);
+    return conversation?.unreadCount || 0;
+  }, [leadId]);
+
+  const activeTab = useMemo(() => {
+    const pathParts = pathname.split("/");
+    const lastPart = pathParts[pathParts.length - 1];
+    if (lastPart === leadId) {
+      return "overview";
+    }
+    return lastPart;
+  }, [pathname, leadId]);
+
+  if (!lead) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <p className="text-gray-500">{t("lead_not_found")}</p>
+          <button
+            onClick={() => router.push(`/${lang}/admissions/leads`)}
+            className="mt-4 text-[#036b80] hover:underline"
+          >
+            {t("back_to_leads")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const handleTabClick = (tabKey: string) => {
+    if (tabKey === "overview") {
+      router.push(`/${lang}/admissions/leads/${leadId}`);
+    } else {
+      router.push(`/${lang}/admissions/leads/${leadId}/${tabKey}`);
+    }
+  };
+
+  return (
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => router.push(`/${lang}/admissions/leads`)}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          title={t("back_to_leads")}
+        >
+          {locale === "ar" ? (
+            <ArrowRight className="w-5 h-5 text-gray-600" />
+          ) : (
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          )}
+        </button>
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold text-gray-900">{lead.name}</h1>
+          <p className="text-sm text-gray-500">
+            {t("lead_id")}: {lead.id}
+          </p>
+        </div>
+        <LeadStatusBadge status={lead.status} size="md" />
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="border-b border-gray-200 overflow-x-auto">
+          <div className="flex min-w-max">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.key;
+              const badge = tab.key === "chat" ? unreadCount : undefined;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => handleTabClick(tab.key)}
+                  className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap relative ${
+                    isActive
+                      ? "border-[#036b80] text-[#036b80]"
+                      : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {t(tab.labelKey)}
+                  {badge !== undefined && badge > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  );
+}

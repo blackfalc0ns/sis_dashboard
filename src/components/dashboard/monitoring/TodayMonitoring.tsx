@@ -50,7 +50,7 @@ export default function TodayMonitoring() {
   const t = useTranslations("monitoring");
   console.log(t("status.ongoing"));
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm">
+    <div className="bg-white rounded-xl p-4 shadow-(--main-box-shadow) h-full">
       <h3 className="text-base font-bold text-gray-900 mb-4">{t("title")}</h3>
 
       <div className="space-y-4">

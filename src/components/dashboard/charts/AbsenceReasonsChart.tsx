@@ -38,7 +38,7 @@ export default function AbsenceReasonsChart() {
   );
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm">
+    <div className="bg-white rounded-xl p-4 shadow-(--main-box-shadow) h-full flex flex-col justify-between">
       <div className="mb-4">
         <h3 className="text-base font-bold text-gray-900">{t("title")}</h3>
         <p className="text-xs text-gray-500">{t("subtitle")}</p>

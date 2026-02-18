@@ -78,7 +78,7 @@ export default function StudentsPerGradeChart() {
   const highestGradeLabel = translatedGrades[highestIndex];
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm">
+    <div className="bg-white rounded-xl p-4 shadow-(--main-box-shadow) h-full flex flex-col justify-between">
       <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div>
           <h3 className="text-base font-bold text-gray-900">{t("title")}</h3>
@@ -103,7 +103,7 @@ export default function StudentsPerGradeChart() {
         </div>
       </div>
 
-      <div className="h-48">
+      <div className="">
         <BarChart
           xAxis={[{ data: translatedGrades, scaleType: "band" }]}
           series={[{ data, color: "#036b80" }]}

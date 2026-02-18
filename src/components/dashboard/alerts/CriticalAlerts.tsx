@@ -48,7 +48,7 @@ export default function CriticalAlerts() {
   };
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm">
+    <div className="bg-white rounded-xl p-4 shadow-(--main-box-shadow) h-full">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-red-500" />

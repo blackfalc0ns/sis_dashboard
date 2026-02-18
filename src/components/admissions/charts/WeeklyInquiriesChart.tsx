@@ -16,7 +16,7 @@ export default function WeeklyInquiriesChart({
 
   if (data.length === 0) {
     return (
-      <div className="bg-white rounded-xl p-6 shadow-sm h-full">
+      <div className="bg-white rounded-xl p-6 shadow-(--main-box-shadow) h-full">
         <div className="mb-4">
           <h3 className="text-lg font-bold text-gray-900">
             {t("weekly_inquiries")}
@@ -42,7 +42,7 @@ export default function WeeklyInquiriesChart({
   const avgPerWeek = (totalLeads / yAxisData.length).toFixed(1);
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm h-full">
+    <div className="bg-white rounded-xl p-6 shadow-(--main-box-shadow) h-full">
       <div className="mb-4">
         <h3 className="text-lg font-bold text-gray-900">
           {t("weekly_inquiries")}

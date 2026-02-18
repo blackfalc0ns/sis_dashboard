@@ -1,0 +1,189 @@
+"use client";
+
+import { useMemo } from "react";
+import { useRouter, useParams, usePathname } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
+import {
+  ArrowLeft,
+  User,
+  Users,
+  Calendar,
+  GraduationCap,
+  Heart,
+  FileText,
+  Activity,
+  MessageSquare,
+  Clock,
+  Award,
+  ArrowLeftRight,
+  LogOut,
+  ArrowRight,
+} from "lucide-react";
+import * as studentsService from "@/services/studentsService";
+import {
+  getStudentDisplayName,
+  getStudentDisplayId,
+  getStudentGrade,
+} from "@/utils/studentUtils";
+
+const tabs = [
+  { key: "overview", labelKey: "tabs.overview", icon: Activity },
+  { key: "personal", labelKey: "tabs.personal_info", icon: User },
+  { key: "guardians", labelKey: "tabs.guardians", icon: Users },
+  {
+    key: "enrollment",
+    labelKey: "tabs.enrollment_history",
+    icon: GraduationCap,
+  },
+  { key: "attendance", labelKey: "tabs.attendance", icon: Calendar },
+  { key: "grades", labelKey: "tabs.grades", icon: GraduationCap },
+  { key: "behavior", labelKey: "tabs.behavior", icon: Award },
+  { key: "documents", labelKey: "tabs.documents", icon: FileText },
+  { key: "medical", labelKey: "tabs.medical", icon: Heart },
+  { key: "notes", labelKey: "tabs.notes", icon: MessageSquare },
+  { key: "timeline", labelKey: "tabs.timeline", icon: Clock },
+  { key: "transfers", labelKey: "tabs.transfers", icon: ArrowLeftRight },
+  { key: "withdrawal", labelKey: "tabs.withdrawal", icon: LogOut },
+];
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "Active":
+      return "bg-green-100 text-green-700";
+    case "Suspended":
+      return "bg-yellow-100 text-yellow-700";
+    case "Withdrawn":
+      return "bg-red-100 text-red-700";
+    default:
+      return "bg-gray-100 text-gray-700";
+  }
+};
+
+export default function StudentProfileLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const t = useTranslations("students_guardians.profile");
+  const locale = useLocale();
+  const router = useRouter();
+  const params = useParams();
+  const pathname = usePathname();
+  const lang = (params.lang as string) || "en";
+  const studentId = params.studentId as string;
+
+  const student = useMemo(() => {
+    return studentsService.getStudentById(studentId);
+  }, [studentId]);
+
+  const activeTab = useMemo(() => {
+    const pathParts = pathname.split("/");
+    const lastPart = pathParts[pathParts.length - 1];
+    if (lastPart === studentId) {
+      return "overview";
+    }
+    return lastPart;
+  }, [pathname, studentId]);
+
+  if (!student) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <p className="text-gray-500">{t("student_not_found")}</p>
+          <button
+            onClick={() => router.push(`/${lang}/students-guardians/students`)}
+            className="mt-4 text-[#036b80] hover:underline"
+          >
+            {t("back_to_students")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const studentName =
+    locale === "ar"
+      ? student.full_name_ar || getStudentDisplayName(student)
+      : student.full_name_en || getStudentDisplayName(student);
+
+  const handleTabClick = (tabKey: string) => {
+    if (tabKey === "overview") {
+      router.push(`/${lang}/students-guardians/students/${studentId}`);
+    } else {
+      router.push(
+        `/${lang}/students-guardians/students/${studentId}/${tabKey}`,
+      );
+    }
+  };
+
+  return (
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => router.push(`/${lang}/students-guardians/students`)}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          {locale === "en" ? <ArrowLeft /> : <ArrowRight />}
+          <span className="text-sm font-medium">{t("back_to_students")}</span>
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl p-6 shadow-sm">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-4">
+            <div className="w-16 h-16 rounded-full bg-[#036b80] bg-opacity-10 flex items-center justify-center">
+              <User className="w-8 h-8 text-[#036b80]" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {studentName}
+              </h1>
+              <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                <span>
+                  {t("student_id")}: {getStudentDisplayId(student)}
+                </span>
+                <span>
+                  {t("grade")}: {getStudentGrade(student) || t("na")}
+                </span>
+                <span>
+                  {t("section")}: {student.section || t("na")}
+                </span>
+              </div>
+            </div>
+          </div>
+          <span
+            className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(student.status)}`}
+          >
+            {t(`status.${student.status.toLowerCase()}`)}
+          </span>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="border-b border-gray-200 overflow-x-auto">
+          <div className="flex min-w-max">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => handleTabClick(tab.key)}
+                  className={`flex items-center gap-2 px-4 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    isActive
+                      ? "border-[#036b80] text-[#036b80]"
+                      : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {t(tab.labelKey)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  );
+}
