@@ -3,7 +3,7 @@
 
 import type { EnrollmentTerm } from "@/types/students";
 import { mockStudentEnrollments } from "./mockEnrollments";
-import { seededNumber, seededFloat } from "@/utils/seeded";
+import { seededNumber } from "@/utils/seeded";
 
 /**
  * Generate term data for all enrollments

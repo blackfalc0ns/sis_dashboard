@@ -6,9 +6,10 @@ import {
   ApplicationStatus,
   TestStatus,
   InterviewStatus,
+  LeadStatus,
 } from "@/types/admissions";
 
-type Status = ApplicationStatus | TestStatus | InterviewStatus;
+type Status = ApplicationStatus | TestStatus | InterviewStatus | LeadStatus;
 
 interface StatusBadgeProps {
   status: Status;
@@ -16,6 +17,12 @@ interface StatusBadgeProps {
 }
 
 const statusColors: Record<Status, string> = {
+  // Lead statuses
+  New: "bg-blue-100 text-blue-700",
+  Contacted: "bg-purple-100 text-purple-700",
+  Converted: "bg-green-100 text-green-700",
+  Closed: "bg-gray-100 text-gray-700",
+
   // Application statuses
   submitted: "bg-blue-100 text-blue-700",
   documents_pending: "bg-amber-100 text-amber-700",
@@ -33,6 +40,12 @@ const statusColors: Record<Status, string> = {
 };
 
 const statusTranslationKeys: Record<Status, string> = {
+  // Lead statuses
+  New: "new",
+  Contacted: "contacted",
+  Converted: "converted",
+  Closed: "closed",
+
   // Application statuses
   submitted: "submitted",
   documents_pending: "documents_pending",

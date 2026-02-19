@@ -18,8 +18,19 @@ const monthlyData = [
   { month: "Dec 23", value: 275 },
 ];
 
+interface DataPoint {
+  month: string;
+  value: number;
+}
+
+interface CustomActiveDotProps {
+  cx?: number;
+  cy?: number;
+  payload?: DataPoint;
+}
+
 // Custom active dot component with value label
-const CustomActiveDot = (props: any) => {
+const CustomActiveDot = (props: CustomActiveDotProps) => {
   const { cx, cy, payload } = props;
   return (
     <g>
@@ -32,16 +43,18 @@ const CustomActiveDot = (props: any) => {
         strokeWidth={3}
       />
       {/* Value label above the dot */}
-      <text
-        x={cx}
-        y={cy - 15}
-        textAnchor="middle"
-        fill="#036b80"
-        fontSize="12"
-        fontWeight="600"
-      >
-        {payload.value}
-      </text>
+      {cy !== undefined && payload !== undefined && (
+        <text
+          x={cx}
+          y={cy - 15}
+          textAnchor="middle"
+          fill="#036b80"
+          fontSize="12"
+          fontWeight="600"
+        >
+          {payload.value}
+        </text>
+      )}
     </g>
   );
 };

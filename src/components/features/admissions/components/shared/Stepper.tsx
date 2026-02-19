@@ -20,7 +20,6 @@ export default function Stepper({ steps, currentStep }: StepperProps) {
         {steps.map((step, index) => {
           const isCompleted = index < currentStep;
           const isCurrent = index === currentStep;
-          const isUpcoming = index > currentStep;
 
           return (
             <React.Fragment key={index}>

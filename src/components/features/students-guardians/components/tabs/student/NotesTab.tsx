@@ -44,11 +44,17 @@ export default function NotesTab({ student }: NotesTabProps) {
       general: "bg-gray-100 text-gray-700",
     };
 
+    const categoryKey = category as
+      | "academic"
+      | "behavioral"
+      | "medical"
+      | "general";
+
     return (
       <span
         className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors[category]}`}
       >
-        {t(category as any)}
+        {t(categoryKey)}
       </span>
     );
   };
@@ -254,7 +260,6 @@ export default function NotesTab({ student }: NotesTabProps) {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddNote}
-        studentId={student.id}
         studentName={getStudentDisplayName(student)}
       />
     </div>

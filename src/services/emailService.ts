@@ -62,7 +62,14 @@ export function ensureStudentsHaveEmails<
 >(students: T[]): T[] {
   return students.map((student) => ({
     ...student,
-    email: getOrGenerateStudentEmail(student as any),
+    email: getOrGenerateStudentEmail(
+      student as T & {
+        full_name_en?: string;
+        studentName?: string;
+        full_name_ar?: string;
+        studentNameArabic?: string;
+      },
+    ),
   }));
 }
 
@@ -74,6 +81,8 @@ export function ensureGuardiansHaveEmails<
 >(guardians: T[]): T[] {
   return guardians.map((guardian) => ({
     ...guardian,
-    email: getOrGenerateGuardianEmail(guardian as any),
+    email: getOrGenerateGuardianEmail(
+      guardian as T & { full_name?: string; name?: string },
+    ),
   }));
 }

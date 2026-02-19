@@ -4,7 +4,7 @@
 
 import { BarChart } from "@mui/x-charts/BarChart";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ChartCard } from "@/components/ui/chart-card";
 
 interface GradeData {
@@ -66,25 +66,21 @@ export default function ApplicationsByGradeChart({
   const total = counts.reduce((sum, count) => sum + count, 0);
 
   // Get translated grade labels for display
-  const translatedGrades = useMemo(
-    () =>
-      grades.map((grade) => {
-        const key = getGradeKey(grade);
-        const translated = t_grades(key);
-        return translated !== key ? translated : grade;
-      }),
-    [grades, t_grades],
-  );
+  const translatedGrades = grades.map((grade) => {
+    const key = getGradeKey(grade);
+    const translated = t_grades(key);
+    return translated !== key ? translated : grade;
+  });
 
   // Get most requested grade with translation
-  const mostRequestedGrade = useMemo(() => {
+  const mostRequestedGrade = (() => {
     const mostRequested = sortedData.reduce((max, item) =>
       item.count > max.count ? item : max,
     );
     const key = getGradeKey(mostRequested.grade);
     const translated = t_grades(key);
     return translated !== key ? translated : mostRequested.grade;
-  }, [sortedData, t_grades]);
+  })();
 
   const periodOptions = [
     { label: t("all_time"), value: "all" },

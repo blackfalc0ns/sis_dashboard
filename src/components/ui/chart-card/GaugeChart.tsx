@@ -26,7 +26,7 @@ export default function GaugeChart({
   const absentValue = 100 - value;
 
   // Calculate SVG paths for the gauge
-  const { presentPath, absentPath, center, radius } = useMemo(() => {
+  const { presentPath, absentPath, center } = useMemo(() => {
     const center = size / 2;
     const radius = (size - thickness) / 2;
 

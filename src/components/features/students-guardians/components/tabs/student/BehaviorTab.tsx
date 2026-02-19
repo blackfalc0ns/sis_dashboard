@@ -63,7 +63,7 @@ const mockIncidents = [
   },
 ];
 
-export default function BehaviorTab({ student }: BehaviorTabProps) {
+export default function BehaviorTab({}: BehaviorTabProps) {
   const t = useTranslations("students_guardians.profile.behavior");
   const [activeView, setActiveView] = useState<"reinforcement" | "incidents">(
     "reinforcement",
@@ -81,11 +81,13 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
       high: "bg-red-100 text-red-700",
     };
 
+    const severityKey = severity as "low" | "medium" | "high";
+
     return (
       <span
         className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors[severity]}`}
       >
-        {t(severity as any)}
+        {t(severityKey)}
       </span>
     );
   };
@@ -96,11 +98,13 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
       resolved: "bg-green-100 text-green-700",
     };
 
+    const statusKey = status as "open" | "resolved";
+
     return (
       <span
         className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors[status]}`}
       >
-        {t(status as any)}
+        {t(statusKey)}
       </span>
     );
   };

@@ -27,8 +27,9 @@ export default function TransfersWithdrawalsTrendChart() {
 
   // TODO: Filter data based on selected stage when API is integrated
   const chartData = useMemo(() => {
+    // Currently returning all data, will filter by selectedStage when API is ready
     return mockMonthlyData;
-  }, [selectedStage]);
+  }, []);
 
   const months = chartData.map((d) => d.month);
   const transfers = chartData.map((d) => d.transfers);

@@ -373,7 +373,6 @@ export default function WithdrawalRequestDetailsPage({
         onClose={() => setShowStatusModal(false)}
         onConfirm={handleStatusChange}
         currentStatus={withdrawal.status}
-        requestType="withdrawal"
       />
     </div>
   );

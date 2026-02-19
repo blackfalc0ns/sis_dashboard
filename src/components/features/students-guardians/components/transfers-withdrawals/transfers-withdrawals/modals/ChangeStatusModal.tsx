@@ -10,7 +10,6 @@ interface ChangeStatusModalProps {
   onClose: () => void;
   onConfirm: (newStatus: ApplicationStatus, reason?: string) => void;
   currentStatus: ApplicationStatus;
-  requestType: "transfer" | "withdrawal";
 }
 
 export default function ChangeStatusModal({
@@ -18,7 +17,6 @@ export default function ChangeStatusModal({
   onClose,
   onConfirm,
   currentStatus,
-  requestType,
 }: ChangeStatusModalProps) {
   const t = useTranslations("students_guardians.transfers_withdrawals");
   const tDetails = useTranslations(

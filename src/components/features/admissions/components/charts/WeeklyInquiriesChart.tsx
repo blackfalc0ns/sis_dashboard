@@ -97,11 +97,6 @@ export default function WeeklyInquiriesChart({
           ]}
           height={280}
           margin={{ top: 20, right: 20, bottom: 40, left: 40 }}
-          slotProps={{
-            legend: {
-              hidden: true,
-            } as any,
-          }}
           sx={{
             "& .MuiLineElement-root": {
               strokeWidth: 2.5,

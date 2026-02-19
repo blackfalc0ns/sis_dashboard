@@ -11,7 +11,12 @@ interface EnrollmentFormProps {
   application: Application;
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: {
+    academicYear: string;
+    grade: string;
+    section: string;
+    startDate: string;
+  }) => void;
 }
 
 export default function EnrollmentForm({

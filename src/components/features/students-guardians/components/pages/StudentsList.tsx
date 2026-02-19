@@ -86,11 +86,17 @@ export default function StudentsList() {
 
     return studentsWithEnrollment.filter((student) => {
       // Search in both English and Arabic names
+      const studentWithNames = student as Student & {
+        full_name_en?: string;
+        studentName?: string;
+        full_name_ar?: string;
+        studentNameArabic?: string;
+      };
       const englishName =
-        (student as any).full_name_en || (student as any).studentName || "";
+        studentWithNames.full_name_en || studentWithNames.studentName || "";
       const arabicName =
-        (student as any).full_name_ar ||
-        (student as any).studentNameArabic ||
+        studentWithNames.full_name_ar ||
+        studentWithNames.studentNameArabic ||
         "";
       const studentId = getStudentDisplayId(student);
 
@@ -359,17 +365,22 @@ export default function StudentsList() {
       label: t("columns.name"),
       searchable: true,
       render: (_: unknown, row: { [key: string]: unknown }) => {
-        const student = row as any;
+        const student = row as unknown as Student & {
+          full_name_en?: string;
+          studentName?: string;
+          full_name_ar?: string;
+          studentNameArabic?: string;
+        };
         return locale === "ar"
           ? student.full_name_ar ||
               student.studentNameArabic ||
               student.full_name_en ||
               student.studentName ||
-              getStudentDisplayName(student)
+              getStudentDisplayName(student as Student)
           : student.full_name_en ||
               student.studentName ||
               student.full_name_ar ||
-              getStudentDisplayName(student);
+              getStudentDisplayName(student as Student);
       },
     },
     {
@@ -417,7 +428,8 @@ export default function StudentsList() {
     {
       key: "status",
       label: t("columns.status"),
-      render: (value: unknown) => getStatusBadge(value as StudentStatus),
+      render: (value: unknown) =>
+        getStatusBadge(value as "Active" | "Withdrawn" | "Suspended"),
     },
     {
       key: "risk_flags",
@@ -770,19 +782,24 @@ export default function StudentsList() {
             setSelectedStudent(null);
           }}
           onSubmit={handleAddNote}
-          studentId={selectedStudent.id}
-          studentName={
-            locale === "ar"
-              ? (selectedStudent as any).full_name_ar ||
-                (selectedStudent as any).studentNameArabic ||
-                (selectedStudent as any).full_name_en ||
-                (selectedStudent as any).studentName ||
-                getStudentDisplayName(selectedStudent)
-              : (selectedStudent as any).full_name_en ||
-                (selectedStudent as any).studentName ||
-                (selectedStudent as any).full_name_ar ||
-                getStudentDisplayName(selectedStudent)
-          }
+          studentName={(() => {
+            const studentWithNames = selectedStudent as unknown as Student & {
+              full_name_en?: string;
+              studentName?: string;
+              full_name_ar?: string;
+              studentNameArabic?: string;
+            };
+            return locale === "ar"
+              ? studentWithNames.full_name_ar ||
+                  studentWithNames.studentNameArabic ||
+                  studentWithNames.full_name_en ||
+                  studentWithNames.studentName ||
+                  getStudentDisplayName(selectedStudent)
+              : studentWithNames.full_name_en ||
+                  studentWithNames.studentName ||
+                  studentWithNames.full_name_ar ||
+                  getStudentDisplayName(selectedStudent);
+          })()}
         />
       )}
 
@@ -802,18 +819,24 @@ export default function StudentsList() {
             setPasswordChangeStudent(null);
           }}
           onSubmit={handlePasswordChange}
-          userName={
-            locale === "ar"
-              ? (passwordChangeStudent as any).full_name_ar ||
-                (passwordChangeStudent as any).studentNameArabic ||
-                (passwordChangeStudent as any).full_name_en ||
-                (passwordChangeStudent as any).studentName ||
-                getStudentDisplayName(passwordChangeStudent)
-              : (passwordChangeStudent as any).full_name_en ||
-                (passwordChangeStudent as any).studentName ||
-                (passwordChangeStudent as any).full_name_ar ||
-                getStudentDisplayName(passwordChangeStudent)
-          }
+          userName={(() => {
+            const studentWithNames = passwordChangeStudent as Student & {
+              full_name_en?: string;
+              studentName?: string;
+              full_name_ar?: string;
+              studentNameArabic?: string;
+            };
+            return locale === "ar"
+              ? studentWithNames.full_name_ar ||
+                  studentWithNames.studentNameArabic ||
+                  studentWithNames.full_name_en ||
+                  studentWithNames.studentName ||
+                  getStudentDisplayName(passwordChangeStudent)
+              : studentWithNames.full_name_en ||
+                  studentWithNames.studentName ||
+                  studentWithNames.full_name_ar ||
+                  getStudentDisplayName(passwordChangeStudent);
+          })()}
           userType="student"
         />
       )}

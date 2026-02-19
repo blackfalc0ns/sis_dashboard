@@ -51,7 +51,16 @@ export default function StatusTagsBar<T extends { status: Status }>({
       {/* Status Counts */}
       {uniqueStatuses.map((status) => (
         <div key={status} className="flex items-center gap-2">
-          <StatusBadge status={status as any} size="sm" />
+          <StatusBadge
+            status={
+              status as
+                | LeadStatus
+                | ApplicationStatus
+                | TestStatus
+                | InterviewStatus
+            }
+            size="sm"
+          />
           <span className="text-sm font-semibold text-gray-700">
             {statusCounts[status]}
           </span>

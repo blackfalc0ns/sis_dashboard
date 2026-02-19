@@ -1,11 +1,7 @@
 // Example usage of KPI Card components
 // This file is for reference only - not used in production
 
-import {
-  MonthlyUsersCard,
-  KPICardV2,
-  KPICardWithChart,
-} from "@/components/ui/kpi-card";
+import { MonthlyUsersCard, KPICardWithChart } from "@/components/ui/kpi-card";
 
 // Sample data
 const monthlyData = [

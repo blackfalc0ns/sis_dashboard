@@ -10,7 +10,7 @@ interface TransfersTabProps {
   student: Student;
 }
 
-export default function TransfersTab({ student }: TransfersTabProps) {
+export default function TransfersTab({}: TransfersTabProps) {
   const t = useTranslations("students_guardians.profile.transfers");
 
   // TODO: Fetch actual transfer data from API

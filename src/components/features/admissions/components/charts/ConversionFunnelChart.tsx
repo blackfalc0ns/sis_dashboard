@@ -134,7 +134,6 @@ export default function ConversionFunnelChart({
           style={{ maxHeight: "400px" }}
         >
           {stages.map((stage, index) => {
-            const Icon = stage.icon;
             const width = getWidth(stage.count);
             const topWidth = width;
             const bottomWidth =

@@ -10,7 +10,7 @@ interface TimelineTabProps {
   guardian: StudentGuardian;
 }
 
-export default function TimelineTab({ guardian }: TimelineTabProps) {
+export default function TimelineTab({}: TimelineTabProps) {
   const t = useTranslations("students_guardians.guardian_profile");
 
   // TODO: Implement timeline events fetching from service

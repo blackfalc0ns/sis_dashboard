@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { useTranslations } from "next-intl";
 
 /**
  * Simple example showing how to use the Modal component
@@ -11,7 +10,6 @@ import { useTranslations } from "next-intl";
  */
 export default function SimpleModalExample() {
   const [isOpen, setIsOpen] = useState(false);
-  const t = useTranslations("common");
 
   return (
     <div className="p-8">

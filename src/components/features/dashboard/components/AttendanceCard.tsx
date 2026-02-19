@@ -1,6 +1,5 @@
 "use client";
 
-import { HelpCircle } from "lucide-react";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { useTranslations } from "next-intl";
 import { ChartCard } from "@/components/ui";

@@ -10,7 +10,6 @@ interface AddNoteModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (noteData: NoteFormData) => void;
-  studentId: string;
   studentName: string;
 }
 
@@ -25,7 +24,6 @@ export default function AddNoteModal({
   isOpen,
   onClose,
   onSubmit,
-  studentId,
   studentName,
 }: AddNoteModalProps) {
   const [formData, setFormData] = useState<NoteFormData>({

@@ -115,7 +115,14 @@ export default function TransfersApplicationsPage() {
               <select
                 value={filters.stage || "all"}
                 onChange={(e) =>
-                  setFilters({ ...filters, stage: e.target.value as any })
+                  setFilters({
+                    ...filters,
+                    stage: e.target.value as
+                      | "all"
+                      | "primary"
+                      | "preparatory"
+                      | "secondary",
+                  })
                 }
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -138,7 +145,10 @@ export default function TransfersApplicationsPage() {
               <select
                 value={filters.type || "all"}
                 onChange={(e) =>
-                  setFilters({ ...filters, type: e.target.value as any })
+                  setFilters({
+                    ...filters,
+                    type: e.target.value as "all" | "internal" | "external",
+                  })
                 }
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -156,7 +166,17 @@ export default function TransfersApplicationsPage() {
               <select
                 value={filters.status || "all"}
                 onChange={(e) =>
-                  setFilters({ ...filters, status: e.target.value as any })
+                  setFilters({
+                    ...filters,
+                    status: e.target.value as
+                      | "all"
+                      | "draft"
+                      | "submitted"
+                      | "under_review"
+                      | "approved"
+                      | "rejected"
+                      | "executed",
+                  })
                 }
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -190,7 +210,11 @@ export default function TransfersApplicationsPage() {
                 onChange={(e) =>
                   setFilters({
                     ...filters,
-                    behaviorBand: e.target.value as any,
+                    behaviorBand: e.target.value as
+                      | "all"
+                      | "low"
+                      | "medium"
+                      | "high",
                   })
                 }
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"

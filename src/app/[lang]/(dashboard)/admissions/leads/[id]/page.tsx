@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { User, Phone, Mail, Calendar, Tag } from "lucide-react";
 import { getLeadById, convertLeadToApplication } from "@/api/mockLeadsApi";
 import LeadStatusBadge from "@/components/features/leads/components/LeadStatusBadge";
@@ -10,7 +10,6 @@ import LeadStatusBadge from "@/components/features/leads/components/LeadStatusBa
 export default function LeadOverviewPage() {
   const params = useParams();
   const router = useRouter();
-  const locale = useLocale();
   const t = useTranslations("admissions.lead_details");
   const t_leads = useTranslations("admissions.leads");
   const t_grades = useTranslations("admissions.grades");

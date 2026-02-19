@@ -333,7 +333,6 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddGuardian}
-        studentId={student.id}
       />
     </div>
   );

@@ -107,7 +107,6 @@ export default function DropdownExamples() {
           <DropdownMenu
             items={iconItems}
             placeholder="Menu"
-            align="right"
             onSelect={(value) => console.log("Selected:", value)}
           />
         </div>
@@ -124,7 +123,6 @@ export default function DropdownExamples() {
             </div>
           }
           items={userMenuItems}
-          align="left"
           width="w-48"
         />
       </div>

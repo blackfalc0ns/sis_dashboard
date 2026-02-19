@@ -22,6 +22,7 @@ import {
   LogOut,
 } from "lucide-react";
 import * as studentsService from "@/services/studentsService";
+import { Student } from "@/types/students";
 import {
   getStudentDisplayName,
   getStudentDisplayId,
@@ -122,16 +123,23 @@ export default function StudentProfilePage({
     return t(`status.${statusKey}`);
   };
 
+  const studentWithNames = student as Student & {
+    full_name_ar?: string;
+    studentNameArabic?: string;
+    full_name_en?: string;
+    studentName?: string;
+  };
+
   const studentName =
     locale === "ar"
-      ? (student as any).full_name_ar ||
-        (student as any).studentNameArabic ||
-        (student as any).full_name_en ||
-        (student as any).studentName ||
+      ? studentWithNames.full_name_ar ||
+        studentWithNames.studentNameArabic ||
+        studentWithNames.full_name_en ||
+        studentWithNames.studentName ||
         getStudentDisplayName(student)
-      : (student as any).full_name_en ||
-        (student as any).studentName ||
-        (student as any).full_name_ar ||
+      : studentWithNames.full_name_en ||
+        studentWithNames.studentName ||
+        studentWithNames.full_name_ar ||
         getStudentDisplayName(student);
 
   return (

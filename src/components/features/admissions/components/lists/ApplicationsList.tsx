@@ -44,7 +44,7 @@ export default function ApplicationsList() {
   const locale = useLocale();
   const router = useRouter();
 
-  const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+  const [selectedApp] = useState<Application | null>(null);
   const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false);
   const [isScheduleInterviewOpen, setIsScheduleInterviewOpen] = useState(false);
   const [isDecisionOpen, setIsDecisionOpen] = useState(false);
@@ -318,22 +318,6 @@ export default function ApplicationsList() {
 
   const handleRowClick = (app: Application) => {
     router.push(`/${locale}/admissions/applications/${app.id}`);
-  };
-
-  const handleScheduleTest = () => {
-    setIsScheduleTestOpen(true);
-  };
-
-  const handleScheduleInterview = () => {
-    setIsScheduleInterviewOpen(true);
-  };
-
-  const handleMakeDecision = () => {
-    setIsDecisionOpen(true);
-  };
-
-  const handleEnroll = () => {
-    setIsEnrollmentOpen(true);
   };
 
   const handleTestSubmit = (data: Record<string, unknown>) => {

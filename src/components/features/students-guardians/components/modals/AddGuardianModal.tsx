@@ -10,7 +10,6 @@ interface AddGuardianModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (guardianData: GuardianFormData) => void;
-  studentId: string;
 }
 
 export interface GuardianFormData {
@@ -31,7 +30,6 @@ export default function AddGuardianModal({
   isOpen,
   onClose,
   onSubmit,
-  studentId,
 }: AddGuardianModalProps) {
   const t = useTranslations(
     "students_guardians.profile.guardians.add_guardian_modal",

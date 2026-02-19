@@ -310,7 +310,9 @@ export function getUniqueStatuses(students: Student[]): StudentStatus[] {
 /**
  * Format student data for export
  */
-export function formatStudentForExport(student: Student): Record<string, any> {
+export function formatStudentForExport(
+  student: Student,
+): Record<string, string | number> {
   return {
     "Student ID": getStudentDisplayId(student),
     "Name (English)": student.full_name_en,

@@ -11,7 +11,7 @@ interface NotesTabProps {
   guardian: StudentGuardian;
 }
 
-export default function NotesTab({ guardian }: NotesTabProps) {
+export default function NotesTab({}: NotesTabProps) {
   const t = useTranslations("students_guardians.guardian_profile");
   const [notes] = useState<never[]>([]);
 

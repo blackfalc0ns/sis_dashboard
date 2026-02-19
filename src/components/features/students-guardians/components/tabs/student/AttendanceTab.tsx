@@ -75,9 +75,11 @@ export default function AttendanceTab({ student }: AttendanceTabProps) {
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   });
 
-  const attendancePercentages = Array.from({ length: 30 }, () =>
-    Math.floor(Math.random() * 20 + 80),
-  );
+  // Generate deterministic attendance percentages based on student ID
+  const attendancePercentages = Array.from({ length: 30 }, (_, i) => {
+    const seed = student.id.charCodeAt(0) + i;
+    return Math.floor((seed % 20) + 80);
+  });
 
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
@@ -87,11 +89,13 @@ export default function AttendanceTab({ student }: AttendanceTabProps) {
       leave: "bg-blue-100 text-blue-700",
     };
 
+    const statusKey = status as "present" | "absent" | "late" | "leave";
+
     return (
       <span
         className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors[status] || colors.present}`}
       >
-        {t(status as any)}
+        {t(statusKey)}
       </span>
     );
   };
@@ -106,7 +110,8 @@ export default function AttendanceTab({ student }: AttendanceTabProps) {
     {
       key: "status",
       label: t("status"),
-      render: (value: unknown) => getStatusBadge(value as string),
+      render: (value: unknown) =>
+        getStatusBadge(value as "present" | "absent" | "late" | "leave"),
     },
     {
       key: "minutes",

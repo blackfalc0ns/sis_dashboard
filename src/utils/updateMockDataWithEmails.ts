@@ -7,8 +7,46 @@
 
 import { generateStudentEmail, generateGuardianEmail } from "./emailGenerator";
 
+interface ApplicationWithEmail {
+  id: string;
+  student_email?: string;
+  full_name_en?: string;
+  studentName?: string;
+  full_name_ar?: string;
+  studentNameArabic?: string;
+  guardianEmail?: string;
+  guardians?: Array<{
+    id: string;
+    email?: string;
+    full_name?: string;
+    is_primary?: boolean;
+  }>;
+}
+
+interface StudentWithEmail {
+  id: string;
+  email?: string;
+  full_name_en?: string;
+  studentName?: string;
+  full_name_ar?: string;
+  studentNameArabic?: string;
+  guardians?: Array<{
+    id: string;
+    email?: string;
+    full_name?: string;
+  }>;
+}
+
+interface LeadWithEmail {
+  id: string;
+  email?: string;
+  name?: string;
+}
+
 // Example usage for updating applications
-export function addEmailsToApplication(application: any) {
+export function addEmailsToApplication(
+  application: ApplicationWithEmail,
+): ApplicationWithEmail {
   // Add student email if missing
   if (!application.student_email || application.student_email === "") {
     application.student_email = generateStudentEmail(
@@ -20,7 +58,7 @@ export function addEmailsToApplication(application: any) {
 
   // Add emails to guardians if missing
   if (application.guardians && Array.isArray(application.guardians)) {
-    application.guardians = application.guardians.map((guardian: any) => {
+    application.guardians = application.guardians.map((guardian) => {
       if (!guardian.email || guardian.email === "") {
         guardian.email = generateGuardianEmail(
           guardian.id,
@@ -32,9 +70,7 @@ export function addEmailsToApplication(application: any) {
     });
 
     // Update primary guardian email
-    const primaryGuardian = application.guardians.find(
-      (g: any) => g.is_primary,
-    );
+    const primaryGuardian = application.guardians.find((g) => g.is_primary);
     if (primaryGuardian && !application.guardianEmail) {
       application.guardianEmail = primaryGuardian.email;
     }
@@ -44,7 +80,9 @@ export function addEmailsToApplication(application: any) {
 }
 
 // Example usage for updating students
-export function addEmailsToStudent(student: any) {
+export function addEmailsToStudent(
+  student: StudentWithEmail,
+): StudentWithEmail {
   // Add student email if missing
   if (!student.email || student.email === "") {
     student.email = generateStudentEmail(
@@ -56,7 +94,7 @@ export function addEmailsToStudent(student: any) {
 
   // Add emails to guardians if missing
   if (student.guardians && Array.isArray(student.guardians)) {
-    student.guardians = student.guardians.map((guardian: any) => {
+    student.guardians = student.guardians.map((guardian) => {
       if (!guardian.email || guardian.email === "") {
         guardian.email = generateGuardianEmail(
           guardian.id,
@@ -72,7 +110,7 @@ export function addEmailsToStudent(student: any) {
 }
 
 // Example usage for updating leads
-export function addEmailsToLead(lead: any) {
+export function addEmailsToLead(lead: LeadWithEmail): LeadWithEmail {
   // Leads already have emails, but we can generate if missing
   if (!lead.email || lead.email === "") {
     lead.email = generateGuardianEmail(lead.id, lead.name, undefined);
@@ -83,9 +121,9 @@ export function addEmailsToLead(lead: any) {
 
 // Batch update function
 export function addEmailsToMockData(data: {
-  leads?: any[];
-  applications?: any[];
-  students?: any[];
+  leads?: LeadWithEmail[];
+  applications?: ApplicationWithEmail[];
+  students?: StudentWithEmail[];
 }) {
   const updated = { ...data };
 

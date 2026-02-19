@@ -1,5 +1,4 @@
 "use client";
-import { useLocale } from "next-intl";
 import React from "react";
 
 export type ButtonVariant =

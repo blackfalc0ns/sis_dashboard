@@ -19,7 +19,6 @@ export interface DropdownMenuProps {
   onSelect?: (value: string) => void;
   placeholder?: string;
   className?: string;
-  align?: "left" | "right";
   width?: string;
   disabled?: boolean;
 }
@@ -31,7 +30,6 @@ export default function DropdownMenu({
   onSelect,
   placeholder = "Select an option",
   className = "",
-  align = "left",
   width = "w-48",
   disabled = false,
 }: DropdownMenuProps) {

@@ -29,7 +29,6 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
   const t = useTranslations("students_guardians.profile.documents");
   const documents = getStudentDocuments(student.student_id || "");
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<{
     type: string;
     name: string;
@@ -44,16 +43,13 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
 
     // Close modal
     setShowUploadModal(false);
-    setUploadingDocId(null);
 
     // Show success message (you can add a toast notification here)
     alert(`Document "${documentData.type}" uploaded successfully!`);
   };
 
-  const handleUploadClick = (documentId?: string) => {
-    if (documentId) {
-      setUploadingDocId(documentId);
-    }
+  const handleUploadClick = () => {
+    // Can be extended to track which document is being uploaded
     setShowUploadModal(true);
   };
 
@@ -169,7 +165,7 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
           )}
           {row.status === "missing" && (
             <button
-              onClick={() => handleUploadClick(row.id as string)}
+              onClick={() => handleUploadClick()}
               className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
               title={t("upload")}
             >
@@ -266,10 +262,8 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
         isOpen={showUploadModal}
         onClose={() => {
           setShowUploadModal(false);
-          setUploadingDocId(null);
         }}
         onSubmit={handleUploadDocument}
-        studentId={student.id}
       />
 
       {/* Document Viewer Modal */}

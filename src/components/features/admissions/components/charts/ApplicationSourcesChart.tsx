@@ -94,11 +94,6 @@ export default function ApplicationSourcesChart({
             },
           ]}
           height={280}
-          slotProps={{
-            legend: {
-              hidden: true,
-            } as any,
-          }}
         />
       </div>
 

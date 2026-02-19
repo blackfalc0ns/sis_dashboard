@@ -118,7 +118,14 @@ export default function WithdrawalsApplicationsPage() {
               <select
                 value={filters.stage || "all"}
                 onChange={(e) =>
-                  setFilters({ ...filters, stage: e.target.value as any })
+                  setFilters({
+                    ...filters,
+                    stage: e.target.value as
+                      | "all"
+                      | "primary"
+                      | "preparatory"
+                      | "secondary",
+                  })
                 }
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -141,7 +148,17 @@ export default function WithdrawalsApplicationsPage() {
               <select
                 value={filters.reason || "all"}
                 onChange={(e) =>
-                  setFilters({ ...filters, reason: e.target.value as any })
+                  setFilters({
+                    ...filters,
+                    reason: e.target.value as
+                      | "all"
+                      | "relocation"
+                      | "financial"
+                      | "academic"
+                      | "behavior"
+                      | "health"
+                      | "other",
+                  })
                 }
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -171,7 +188,19 @@ export default function WithdrawalsApplicationsPage() {
               <select
                 value={filters.status || "all"}
                 onChange={(e) =>
-                  setFilters({ ...filters, status: e.target.value as any })
+                  setFilters({
+                    ...filters,
+                    status: e.target.value as
+                      | "all"
+                      | "draft"
+                      | "submitted"
+                      | "under_review"
+                      | "finance_clearance"
+                      | "behavior_review"
+                      | "approved"
+                      | "rejected"
+                      | "executed",
+                  })
                 }
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -211,7 +240,11 @@ export default function WithdrawalsApplicationsPage() {
                 onChange={(e) =>
                   setFilters({
                     ...filters,
-                    behaviorBand: e.target.value as any,
+                    behaviorBand: e.target.value as
+                      | "all"
+                      | "low"
+                      | "medium"
+                      | "high",
                   })
                 }
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"

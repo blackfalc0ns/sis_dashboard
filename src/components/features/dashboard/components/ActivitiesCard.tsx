@@ -1,6 +1,6 @@
 "use client";
 
-import { HelpCircle, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 interface Incident {

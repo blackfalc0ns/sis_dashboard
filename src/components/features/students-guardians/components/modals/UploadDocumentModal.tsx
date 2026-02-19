@@ -9,7 +9,6 @@ interface UploadDocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (documentData: DocumentUploadData) => void;
-  studentId: string;
 }
 
 export interface DocumentUploadData {
@@ -33,7 +32,6 @@ export default function UploadDocumentModal({
   isOpen,
   onClose,
   onSubmit,
-  studentId,
 }: UploadDocumentModalProps) {
   const [formData, setFormData] = useState({
     type: "",

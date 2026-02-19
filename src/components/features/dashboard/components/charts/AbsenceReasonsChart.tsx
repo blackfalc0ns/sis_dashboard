@@ -7,8 +7,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ChartCard } from "@/components/ui/chart-card";
 
-type ReasonKey = "medical" | "permission" | "no_excuse";
-
 export default function AbsenceReasonsChart() {
   const locale = useLocale();
   const t = useTranslations("absence_reasons");

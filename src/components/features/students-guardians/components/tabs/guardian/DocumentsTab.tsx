@@ -10,7 +10,7 @@ interface DocumentsTabProps {
   guardian: StudentGuardian;
 }
 
-export default function DocumentsTab({ guardian }: DocumentsTabProps) {
+export default function DocumentsTab({}: DocumentsTabProps) {
   const t = useTranslations("students_guardians.guardian_profile");
 
   // TODO: Implement documents fetching from service

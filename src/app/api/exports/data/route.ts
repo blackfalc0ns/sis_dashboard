@@ -33,7 +33,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Filter data by date range if provided
-    const filterByDate = (items: any[], dateField: string) => {
+    const filterByDate = <T extends Record<string, unknown>>(
+      items: T[],
+      dateField: string,
+    ): T[] => {
       if (!startDate || !endDate) return items;
 
       const start = new Date(startDate);
@@ -41,13 +44,13 @@ export async function POST(request: NextRequest) {
       end.setHours(23, 59, 59, 999);
 
       return items.filter((item) => {
-        const itemDate = new Date(item[dateField]);
+        const itemDate = new Date(item[dateField] as string);
         return itemDate >= start && itemDate <= end;
       });
     };
 
     // Prepare data for each dataset
-    const exportData: Record<string, any> = {};
+    const exportData: Record<string, Array<Record<string, unknown>>> = {};
 
     if (datasets.includes("leads")) {
       const allLeads = getLeads();

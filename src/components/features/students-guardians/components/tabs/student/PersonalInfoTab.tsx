@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Edit2, Save, X, AlertTriangle } from "lucide-react";
 import { Student, RiskFlag } from "@/types/students";
 import { getRiskFlagColor, getRiskFlagLabel } from "@/utils/studentUtils";
@@ -26,45 +26,10 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
   );
 
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    name: student.name,
-    full_name_en: student.full_name_en || student.name,
-    full_name_ar: student.full_name_ar,
-    date_of_birth: student.date_of_birth,
-    gender: student.gender,
-    nationality: student.nationality,
-    stage: student.stage || "",
-    grade: enrollment?.grade || student.grade || "",
-    section: enrollment?.section || student.section || "",
-    status: student.status,
-    enrollment_year:
-      enrollment?.academicYear || student.enrollment_year?.toString() || "",
-    address_line: student.contact?.address_line || "",
-    city: student.contact?.city || "",
-    district: student.contact?.district || "",
-    student_phone: student.contact?.student_phone || "",
-    student_email: student.contact?.student_email || "",
-  });
 
-  // Update form data when enrollment changes
-  useEffect(() => {
-    if (enrollment) {
-      setFormData((prev) => ({
-        ...prev,
-        grade: enrollment.grade || prev.grade,
-        section: enrollment.section || prev.section,
-        enrollment_year: enrollment.academicYear || prev.enrollment_year,
-      }));
-    }
-  }, [enrollment]);
-
-  const handleSave = () => {
-    // TODO: Implement save functionality
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setFormData({
+  // Initialize form data with enrollment data (computed once)
+  const initialFormData = useMemo(
+    () => ({
       name: student.name,
       full_name_en: student.full_name_en || student.name,
       full_name_ar: student.full_name_ar,
@@ -82,7 +47,19 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
       district: student.contact?.district || "",
       student_phone: student.contact?.student_phone || "",
       student_email: student.contact?.student_email || "",
-    });
+    }),
+    [student, enrollment],
+  );
+
+  const [formData, setFormData] = useState(initialFormData);
+
+  const handleSave = () => {
+    // TODO: Implement save functionality
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setFormData(initialFormData);
     setIsEditing(false);
   };
 

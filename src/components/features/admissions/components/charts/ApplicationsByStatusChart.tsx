@@ -76,11 +76,6 @@ export default function ApplicationsByStatusChart({
             },
           ]}
           height={280}
-          slotProps={{
-            legend: {
-              hidden: true,
-            } as any,
-          }}
         />
       </div>
 

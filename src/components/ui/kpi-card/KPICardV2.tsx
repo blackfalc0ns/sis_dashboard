@@ -230,7 +230,6 @@ export default function KPICardV2({
                       }
                       items={periodOptions}
                       onSelect={handlePeriodChange}
-                      align="right"
                       width="w-40"
                     />
                   </div>

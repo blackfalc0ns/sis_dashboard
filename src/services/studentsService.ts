@@ -4,7 +4,6 @@
 import type {
   Student,
   StudentGuardian,
-  StudentGuardianLink,
   StudentDocument,
   StudentMedicalProfile,
   StudentNote,
@@ -23,7 +22,6 @@ import {
   mockStudentNotes,
   mockStudentTimelineEvents,
   mockStudentEnrollments,
-  mockEnrollmentTerms,
   getEnrollmentByStudentId,
   getCurrentTerm,
   getYearToDateAverages,

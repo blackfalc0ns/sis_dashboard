@@ -141,7 +141,6 @@ export default function ChartCard({
             }
             items={periodOptions}
             onSelect={handlePeriodChange}
-            align="right"
             width="w-40"
           />
         )}

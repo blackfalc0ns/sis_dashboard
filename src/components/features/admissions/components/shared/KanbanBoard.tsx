@@ -4,6 +4,12 @@ import React from "react";
 import { Application } from "@/types/admissions";
 import { Lead } from "@/types/leads";
 import StatusBadge from "./StatusBadge";
+import {
+  LeadStatus,
+  ApplicationStatus,
+  TestStatus,
+  InterviewStatus,
+} from "@/types/admissions";
 
 interface KanbanColumn {
   id: string;
@@ -51,7 +57,15 @@ export default function KanbanBoard({
                       : ""}
                   </p>
                   <div className="mt-2">
-                    <StatusBadge status={item.status as any} />
+                    <StatusBadge
+                      status={
+                        item.status as
+                          | LeadStatus
+                          | ApplicationStatus
+                          | TestStatus
+                          | InterviewStatus
+                      }
+                    />
                   </div>
                 </div>
               ))}

@@ -379,7 +379,6 @@ export default function TransferRequestDetailsPage({
         onClose={() => setShowStatusModal(false)}
         onConfirm={handleStatusChange}
         currentStatus={transfer.status}
-        requestType="transfer"
       />
     </div>
   );

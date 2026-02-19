@@ -4,7 +4,6 @@
 
 import { AlertTriangle, TrendingUp, Award, AlertCircle } from "lucide-react";
 import { LineChart } from "@mui/x-charts/LineChart";
-import { RadarChart } from "@mui/x-charts";
 import { useTranslations, useLocale } from "next-intl";
 import { Student, RiskFlag } from "@/types/students";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
