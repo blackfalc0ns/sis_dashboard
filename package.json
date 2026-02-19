@@ -2,15 +2,20 @@
   "name": "sis-dashboard",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "download-fonts": "node scripts/download-fonts.js",
+    "setup-fonts": "node scripts/setup-fonts.js",
+    "postinstall": "node scripts/setup-fonts.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@fontsource/cairo": "^5.2.7",
     "@heroicons/react": "^2.2.0",
     "@mui/material": "^7.3.7",
     "@mui/system": "^7.3.7",

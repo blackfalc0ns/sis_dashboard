@@ -1,14 +1,8 @@
 import { NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
-import { Cairo } from "next/font/google";
+import { cairo } from "@/lib/fonts";
 import "../globals.css";
-
-const cairo = Cairo({
-  variable: "--font-cairo",
-  subsets: ["latin", "arabic"],
-  weight: ["400", "500", "600", "700"],
-});
 
 export const metadata = {
   title: "معزز",

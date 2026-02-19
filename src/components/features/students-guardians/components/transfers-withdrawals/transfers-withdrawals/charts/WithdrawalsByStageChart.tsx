@@ -12,7 +12,7 @@ export default function WithdrawalsByStageChart() {
   // TODO: Replace with actual API data
   const stages = [
     t("stages.primary"),
-    t("stages.preparaory"),
+    t("stages.preparatory"),
     t("stages.secondary"),
   ];
   const behaviorData = [3, 5, 4];

@@ -106,13 +106,12 @@ export default function DropdownMenu({
       <div ref={dropdownRef} className={`relative inline-block ${className}`}>
         {/* Trigger Button */}
         {trigger ? (
-          <button
+          <div
             onClick={() => !disabled && setIsOpen(!isOpen)}
-            disabled={disabled}
-            className="focus:outline-none"
+            className="focus:outline-none cursor-pointer"
           >
             {trigger}
-          </button>
+          </div>
         ) : (
           <button
             onClick={() => !disabled && setIsOpen(!isOpen)}
