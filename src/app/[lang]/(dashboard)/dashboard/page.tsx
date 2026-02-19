@@ -1,5 +1,5 @@
 "use client";
-import SchoolDashboard from "@/components/dashboard/SchoolDashboard";
+import SchoolDashboard from "@/components/features/dashboard/components/SchoolDashboard";
 
 export default function DashboardPage() {
   return (

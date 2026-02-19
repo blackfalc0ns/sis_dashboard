@@ -1,6 +1,6 @@
 // FILE: src/app/[lang]/students-guardians/guardians/page.tsx
 
-import GuardiansList from "@/components/students-guardians/GuardiansList";
+import GuardiansList from "@/components/features/students-guardians/components/pages/GuardiansList";
 
 // Guardians list page
 export default function GuardiansListPage() {

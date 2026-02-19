@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import * as studentsService from "@/services/studentsService";
-import BehaviorTab from "@/components/students-guardians/profile-tabs/BehaviorTab";
+import BehaviorTab from "@/components/features/students-guardians/components/tabs/student/BehaviorTab";
 
 export default function StudentBehaviorPage() {
   const params = useParams();

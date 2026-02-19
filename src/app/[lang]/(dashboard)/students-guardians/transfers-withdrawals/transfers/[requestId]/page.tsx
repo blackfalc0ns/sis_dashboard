@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { getTransferById } from "@/services/transfersWithdrawalsService";
-import TransferRequestDetailsPage from "@/components/students-guardians/transfers-withdrawals/details/TransferRequestDetailsPage";
+import TransferRequestDetailsPage from "@/components/features/students-guardians/components/transfers-withdrawals/transfers-withdrawals/details/TransferRequestDetailsPage";
 
 export default function TransferDetailsRoute() {
   const params = useParams();

@@ -129,7 +129,7 @@ export default function Sidebar({
       >
         <button
           onClick={onToggle}
-          className={`hidden lg:block p-2 rounded-lg text-gray-700 hover:bg-[#036b80] hover:text-white transition-colors border-[#036b80] border-2 mt-2 ${isRTL ? "ml-2 mr-auto" : "ml-auto mr-2"}`}
+          className={`hidden lg:block p-2 rounded-lg text-gray-700 hover:bg-primary hover:text-white transition-colors border-primary border-2 mt-2 ${isRTL ? "ml-2 mr-auto" : "ml-auto mr-2"}`}
         >
           {isOpen ? (
             <ChevronLeft className={`w-5 h-5 ${isRTL ? "rotate-180" : ""}`} />
@@ -140,7 +140,7 @@ export default function Sidebar({
         {/* Logo Section */}
         <div className="px-6 py-6 flex items-center justify-center">
           {isOpen && (
-            <div className="text-[#036b80] font-bold text-3xl tracking-tight flex items-center justify-center">
+            <div className="text-primary font-bold text-3xl tracking-tight flex items-center justify-center">
               <Image
                 src="/images/logo/moazzez_logo.svg"
                 alt="Logo"
@@ -156,7 +156,7 @@ export default function Sidebar({
         {isOpen && (
           <div className="mb-6">
             <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl bg-white">
-              <div className="w-10 h-10 rounded-full bg-[#036b80] flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0">
                 <Building2 className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
@@ -203,7 +203,7 @@ export default function Sidebar({
                             : item.label_en
                           : undefined
                       }
-                      className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 ${isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"} ${isActive ? "bg-[#036b80] text-white shadow-sm" : "text-gray-700 hover:bg-teal-50 hover:text-[#036b80]"} ${isArabic ? "text-right" : "text-left"}`}
+                      className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 ${isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"} ${isActive ? "bg-primary text-white shadow-sm" : "text-gray-700 hover:bg-teal-50 hover:text-primary"} ${isArabic ? "text-right" : "text-left"}`}
                     >
                       <Icon
                         className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-[#A4B4CB]"}`}
@@ -232,7 +232,7 @@ export default function Sidebar({
                             : item.label_en
                           : undefined
                       }
-                      className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 text-left ${isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"} ${isActive ? "bg-[#036b80] text-white shadow-sm" : "text-gray-700 hover:bg-teal-50 hover:text-[#036b80]"}`}
+                      className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 text-left ${isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"} ${isActive ? "bg-primary text-white shadow-sm" : "text-gray-700 hover:bg-teal-50 hover:text-primary"}`}
                     >
                       <Icon
                         className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-[#A4B4CB]"}`}
@@ -248,7 +248,7 @@ export default function Sidebar({
                   {/* Children Items */}
                   {hasChildren && isExpanded && isOpen && (
                     <div
-                      className={`relative mt-1 space-y-1 ${isArabic ? "mr-6" : "ml-6"} before:content-[''] before:absolute before:w-[2px] before:h-full before:top-0 before:bg-[#036b80]`}
+                      className={`relative mt-1 space-y-1 ${isArabic ? "mr-6" : "ml-6"} before:content-[''] before:absolute before:w-[2px] before:h-full before:top-0 before:bg-primary`}
                     >
                       {item.children!.map((child) => {
                         const ChildIcon = child.icon;
@@ -268,7 +268,7 @@ export default function Sidebar({
                             {hasGrandchildren ? (
                               <button
                                 onClick={(e) => toggleExpand(child.key, e)}
-                                className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${isArabic ? "text-right" : "text-left"} ${isChildActive ? "bg-teal-50 text-[#036b80] font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
+                                className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${isArabic ? "text-right" : "text-left"} ${isChildActive ? "bg-teal-50 text-primary font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
                               >
                                 <ChildIcon className="w-4 h-4 shrink-0" />
                                 <span className="text-xs flex-1">
@@ -284,7 +284,7 @@ export default function Sidebar({
                               <Link
                                 href={childHref}
                                 onClick={() => handleItemClick(child.key)}
-                                className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${isArabic ? "text-right" : "text-left"} ${isChildActive ? "bg-teal-50 text-[#036b80] font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
+                                className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${isArabic ? "text-right" : "text-left"} ${isChildActive ? "bg-teal-50 text-primary font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
                               >
                                 <ChildIcon className="w-4 h-4 shrink-0" />
                                 <span className="text-xs flex-1">
@@ -332,7 +332,7 @@ export default function Sidebar({
                                       onClick={() =>
                                         handleItemClick(grandchild.key)
                                       }
-                                      className={`w-full flex items-center gap-2 rounded-[6px] transition-all duration-200 px-3 py-2 ${isArabic ? "text-right" : "text-left"} ${isGrandchildActive ? "bg-teal-50 text-[#036b80] font-semibold" : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"}`}
+                                      className={`w-full flex items-center gap-2 rounded-[6px] transition-all duration-200 px-3 py-2 ${isArabic ? "text-right" : "text-left"} ${isGrandchildActive ? "bg-teal-50 text-primary font-semibold" : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"}`}
                                     >
                                       <GrandchildIcon className="w-3.5 h-3.5 shrink-0" />
                                       <span className="text-xs">

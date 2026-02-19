@@ -14,11 +14,11 @@ import {
   FileCheck,
 } from "lucide-react";
 import { mockApplications } from "@/data/mockAdmissions";
-import StatusBadge from "@/components/admissions/shared/StatusBadge";
-import ScheduleTestModal from "@/components/admissions/modals/ScheduleTestModal";
-import ScheduleInterviewModal from "@/components/admissions/modals/ScheduleInterviewModal";
-import DecisionModal from "@/components/admissions/modals/DecisionModal";
-import EnrollmentForm from "@/components/admissions/forms/EnrollmentForm";
+import StatusBadge from "@/components/features/admissions/components/shared/StatusBadge";
+import ScheduleTestModal from "@/components/features/admissions/components/modals/ScheduleTestModal";
+import ScheduleInterviewModal from "@/components/features/admissions/components/modals/ScheduleInterviewModal";
+import DecisionModal from "@/components/features/admissions/components/modals/DecisionModal";
+import EnrollmentForm from "@/components/features/admissions/components/forms/EnrollmentForm";
 
 const tabs = [
   { key: "details", labelKey: "tabs.details", icon: FileText },

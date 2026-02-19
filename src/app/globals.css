@@ -3,24 +3,77 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
   --primary-color: #036b80;
-  --hover-color: #024d5c;
+  --hover-color: #025a6b;
+  --gray-color: grey;
   --white-color: #fefefe;
-  --black-color: #131635;
+  --black-color: black;
+
   --border-color: #cccccccc;
-  --main-box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+
+  --main-box-shadow-value: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
 }
 
+/* tokens */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-cairo);
+
+  /* base colors */
+  --color-primary: var(--primary-color);
+  --color-hover: var(--hover-color);
+
+  --color-white: var(--white-color);
+  --color-black: var(--black-color);
+  --color-border: var(--border-color);
+
+  --shadow-main: var(--main-box-shadow-value);
+
+  /* PRIMARY SCALE */
+  --color-primary-50: color-mix(in oklab, var(--primary-color) 6%, white);
+  --color-primary-100: color-mix(in oklab, var(--primary-color) 12%, white);
+  --color-primary-200: color-mix(in oklab, var(--primary-color) 22%, white);
+  --color-primary-300: color-mix(in oklab, var(--primary-color) 35%, white);
+  --color-primary-400: color-mix(in oklab, var(--primary-color) 55%, white);
+  --color-primary-500: var(--primary-color);
+  --color-primary-600: color-mix(in oklab, var(--primary-color) 85%, black);
+  --color-primary-700: color-mix(in oklab, var(--primary-color) 72%, black);
+  --color-primary-800: color-mix(in oklab, var(--primary-color) 58%, black);
+  --color-primary-900: color-mix(in oklab, var(--primary-color) 45%, black);
+  --color-primary-950: color-mix(in oklab, var(--primary-color) 30%, black);
+
+  /* HOVER SCALE (اختياري لو عايز نفس فكرة الدرجات) */
+  --color-hover-50: color-mix(in oklab, var(--hover-color) 6%, white);
+  --color-hover-100: color-mix(in oklab, var(--hover-color) 12%, white);
+  --color-hover-200: color-mix(in oklab, var(--hover-color) 22%, white);
+  --color-hover-300: color-mix(in oklab, var(--hover-color) 35%, white);
+  --color-hover-400: color-mix(in oklab, var(--hover-color) 55%, white);
+  --color-hover-500: var(--hover-color);
+  --color-hover-600: color-mix(in oklab, var(--hover-color) 85%, black);
+  --color-hover-700: color-mix(in oklab, var(--hover-color) 72%, black);
+  --color-hover-800: color-mix(in oklab, var(--hover-color) 58%, black);
+  --color-hover-900: color-mix(in oklab, var(--hover-color) 45%, black);
+  --color-hover-950: color-mix(in oklab, var(--hover-color) 30%, black);
+
+  --color-gray-50: color-mix(in oklab, var(--gray-color) 6%, white);
+  --color-gray-100: color-mix(in oklab, var(--gray-color) 12%, white);
+  --color-gray-200: color-mix(in oklab, var(--gray-color) 22%, white);
+  --color-gray-300: color-mix(in oklab, var(--gray-color) 35%, white);
+  --color-gray-400: color-mix(in oklab, var(--gray-color) 55%, white);
+  --color-gray-500: var(--gray-color);
+  --color-gray-600: color-mix(in oklab, var(--gray-color) 85%, black);
+  --color-gray-700: color-mix(in oklab, var(--gray-color) 72%, black);
+  --color-gray-800: color-mix(in oklab, var(--gray-color) 58%, black);
+  --color-gray-900: color-mix(in oklab, var(--gray-color) 45%, black);
+  --color-gray-950: color-mix(in oklab, var(--gray-color) 30%, black);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* --background: #0a0a0a; */
+    /* --foreground: #ededed; */
   }
 }
 
@@ -37,23 +90,13 @@ body {
   font-family: var(--font-cairo), system-ui, sans-serif;
 }
 
+/* placeholder */
 input::placeholder,
 textarea::placeholder {
   color: rgba(0, 0, 0, 0.5);
 }
 
-textarea,
-input {
-  color: black;
-}
-
-select {
-  color: black;
-}
-
-/* Custom Scrollbar Styles */
-
-/* For Webkit browsers (Chrome, Safari, Edge) */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
@@ -74,25 +117,23 @@ select {
   background: var(--hover-color);
 }
 
-/* For Firefox */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--primary-color) #f1f1f1;
 }
 
 /* Charts */
-
 .line-spark path {
-  stroke: var(--primary);
-  box-shadow: 0 0 5px var(--primary) !important;
+  stroke: var(--primary-color);
+  filter: drop-shadow(0 0 5px var(--primary-color));
 }
 
 /* Tags */
-
 .positive-tag {
   color: #04cc97;
   background-color: #e6faf5;
 }
+
 .negative-tag {
   color: #e31919;
   background-color: #fce8e8;

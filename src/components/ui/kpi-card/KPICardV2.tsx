@@ -1,0 +1,305 @@
+"use client";
+
+import { useState } from "react";
+import { AreaChart, Area, ResponsiveContainer, Tooltip } from "recharts";
+import { LucideIcon } from "lucide-react";
+import { DropdownMenu, DropdownItem } from "@/components/ui/dropdown";
+
+interface DataPoint {
+  label: string;
+  value: number;
+}
+
+interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+}
+
+// Custom tooltip component defined outside of render
+const CustomTooltip = ({
+  active,
+  payload,
+  chartColor,
+}: TooltipProps & { chartColor: string }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div
+        className="bg-white px-2 py-1 rounded shadow-lg border"
+        style={{ borderColor: chartColor }}
+      >
+        <p className="text-xs font-semibold" style={{ color: chartColor }}>
+          {payload[0].value}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+CustomTooltip.displayName = "CustomTooltip";
+
+interface KPICardV2Props {
+  title: string;
+  value: number | string;
+  subtitle?: string;
+  change?: {
+    value: number;
+    percentage: number;
+    isPositive?: boolean;
+  };
+  icon?: LucideIcon;
+  iconColor?: string;
+  iconBgColor?: string;
+  chartData?: DataPoint[];
+  chartColor?: string;
+  valuePrefix?: string;
+  valueSuffix?: string;
+  showChart?: boolean;
+  className?: string;
+  showPeriodFilter?: boolean;
+  periodOptions?: DropdownItem[];
+  onPeriodChange?: (period: string) => void;
+  defaultPeriod?: string;
+}
+
+export default function KPICardV2({
+  title,
+  value,
+  subtitle,
+  change,
+  icon: Icon,
+  iconColor = "#ef4444",
+  iconBgColor = "#fef2f2",
+  chartData,
+  chartColor = "#f87171",
+  valuePrefix = "",
+  valueSuffix = "",
+  showChart = true,
+  className = "",
+  showPeriodFilter = false,
+  periodOptions = [],
+  onPeriodChange,
+  defaultPeriod = "7d",
+}: KPICardV2Props) {
+  const [selectedPeriod, setSelectedPeriod] = useState(defaultPeriod);
+
+  const changeColor = change
+    ? change.isPositive !== false
+      ? "bg-emerald-500"
+      : "bg-red-500"
+    : "bg-emerald-500";
+
+  // Convert hex to rgba with opacity
+  const hexToRgba = (hex: string, opacity: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  };
+
+  const lightBgColor = hexToRgba(iconBgColor, 0.6);
+
+  const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+    if (onPeriodChange) {
+      onPeriodChange(period);
+    }
+  };
+
+  const selectedPeriodLabel = periodOptions.find(
+    (opt) => opt.value === selectedPeriod,
+  )?.label;
+
+  // Determine if we should show chart
+  const hasChart = showChart && chartData && chartData.length > 0;
+
+  return (
+    <div
+      className={`rounded-2xl border border-gray-200 shadow-sm p-6 relative ${className}`}
+      style={{
+        background: `linear-gradient(135deg, ${lightBgColor} 0%, white 60%)`,
+      }}
+    >
+      {/* Conditional Layout: Horizontal without chart, Vertical with chart */}
+      {!hasChart ? (
+        // Horizontal Layout (No Chart)
+        <div className="flex items-center gap-4">
+          {/* Icon */}
+          {Icon && (
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center shrink-0"
+              style={{ backgroundColor: iconBgColor }}
+            >
+              <Icon className="w-8 h-8" style={{ color: iconColor }} />
+            </div>
+          )}
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            {/* Title */}
+            <h3 className="text-base font-medium text-gray-500 mb-1">
+              {title}
+            </h3>
+
+            {/* Value */}
+            <p className="text-3xl font-bold text-gray-900">
+              {valuePrefix}
+              {typeof value === "number" ? value.toLocaleString() : value}
+              {valueSuffix}
+            </p>
+
+            {/* Subtitle or Change */}
+            {change ? (
+              <div className="flex items-center gap-2 mt-2">
+                <span
+                  className={`${changeColor} text-white text-xs font-semibold px-2 py-1 rounded`}
+                >
+                  {change.isPositive !== false ? "+" : ""}
+                  {change.percentage.toFixed(0)}%
+                </span>
+                {subtitle && (
+                  <span className="text-sm text-gray-400">{subtitle}</span>
+                )}
+              </div>
+            ) : (
+              subtitle && (
+                <p className="text-sm text-gray-400 mt-1">{subtitle}</p>
+              )
+            )}
+          </div>
+        </div>
+      ) : (
+        // Vertical Layout (With Chart)
+        <div className="flex items-start justify-between">
+          {/* Left Section */}
+          <div className="flex-1">
+            {/* Icon */}
+            {Icon && (
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                style={{ backgroundColor: iconBgColor }}
+              >
+                <Icon className="w-8 h-8" style={{ color: iconColor }} />
+              </div>
+            )}
+
+            {/* Title */}
+            <h3 className="text-base font-medium text-gray-500 mb-2">
+              {title}
+            </h3>
+
+            {/* Value */}
+            <p className="text-4xl font-bold text-gray-900">
+              {valuePrefix}
+              {typeof value === "number" ? value.toLocaleString() : value}
+              {valueSuffix}
+            </p>
+          </div>
+
+          {/* Right Section */}
+          <div className="flex flex-col items-end">
+            {/* Change Badge */}
+            {change && (
+              <div className="flex flex-col items-end mb-2">
+                <span
+                  className={`${changeColor} text-white text-sm font-semibold px-3 py-1.5 rounded-lg`}
+                >
+                  {change.isPositive !== false ? "+" : ""}
+                  {change.percentage.toFixed(0)}%
+                </span>
+                {showPeriodFilter && periodOptions.length > 0 ? (
+                  <div className="mt-2 relative z-50">
+                    <DropdownMenu
+                      trigger={
+                        <div className="text-xs text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1 cursor-pointer">
+                          <span>{selectedPeriodLabel}</span>
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
+                        </div>
+                      }
+                      items={periodOptions}
+                      onSelect={handlePeriodChange}
+                      align="right"
+                      width="w-40"
+                    />
+                  </div>
+                ) : (
+                  subtitle && (
+                    <p className="text-sm text-gray-400 mt-2">{subtitle}</p>
+                  )
+                )}
+              </div>
+            )}
+
+            {/* Chart */}
+            <div className="w-48 h-20 mt-4 relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={chartData}
+                  margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+                >
+                  <defs>
+                    <linearGradient
+                      id={`colorValue-${title}`}
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor={chartColor}
+                        stopOpacity={0.08}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={chartColor}
+                        stopOpacity={0}
+                      />
+                    </linearGradient>
+                  </defs>
+
+                  <Tooltip
+                    content={<CustomTooltip chartColor={chartColor} />}
+                    cursor={false}
+                  />
+
+                  <Area
+                    type="natural"
+                    dataKey="value"
+                    stroke={chartColor}
+                    strokeWidth={2}
+                    fillOpacity={0.05}
+                    dot={{
+                      r: 3,
+                      fill: chartColor,
+                      stroke: "white",
+                      strokeWidth: 1,
+                    }}
+                    activeDot={{
+                      r: 5,
+                      fill: chartColor,
+                      stroke: "white",
+                      strokeWidth: 2,
+                    }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

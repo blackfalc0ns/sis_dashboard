@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import * as studentsService from "@/services/studentsService";
-import EnrollmentHistoryTab from "@/components/students-guardians/profile-tabs/EnrollmentHistoryTab";
+import EnrollmentHistoryTab from "@/components/features/students-guardians/components/tabs/student/EnrollmentHistoryTab";
 
 export default function StudentEnrollmentHistoryPage() {
   const params = useParams();

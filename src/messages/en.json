@@ -60,7 +60,16 @@
     "delivered_classes": "Delivered Classes",
     "today_violations": "Today's Violations",
     "staff_absenteeism": "Staff Absenteeism",
-    "nedaa_efficiency": "Nedaa Efficiency"
+    "nedaa_efficiency": "Nedaa Efficiency",
+    "period": {
+      "today": "Today",
+      "7d": "Last 7 Days",
+      "30d": "Last 30 Days",
+      "this_week": "This Week",
+      "this_month": "This Month",
+      "this_term": "This Term",
+      "this_year": "This Year"
+    }
   },
   "alerts": {
     "title": "Critical Alerts",
@@ -111,6 +120,7 @@
     "change_period": "Change period",
     "title": "Attendance Trend ({period})",
     "subtitle": "Daily attendance rate with average line",
+    "description": "Track daily attendance rates over the selected time period. The blue line shows actual attendance while the orange line represents the average. Days below the threshold are highlighted to help identify patterns and take corrective action.",
     "average_label": "Average",
     "series": {
       "attendance": "Attendance",
@@ -119,7 +129,8 @@
     "period": {
       "days_30": "30 Days",
       "week": "This Week",
-      "term": "Term"
+      "term": "Term",
+      "academic_year": "Academic Year"
     },
     "below_days": "{days} days",
     "below_threshold_suffix": "below threshold detected",
@@ -131,6 +142,7 @@
   "students_per_grade": {
     "title": "Students per Grade",
     "subtitle": "Distribution by grade level",
+    "description": "This chart shows the distribution of students across different grade levels. Use the filters to view all students, new enrollments, or existing students. The data helps identify which grades need more resources or attention.",
     "filter": {
       "all": "All",
       "new": "New",
@@ -155,6 +167,7 @@
   "absence_reasons": {
     "title": "Absence Reasons",
     "subtitle": "Distribution of absence types",
+    "description": "This chart shows the distribution of student absence reasons. It helps identify patterns and take appropriate actions to reduce unexcused absences.",
     "types": {
       "medical": "Medical",
       "permission": "Permission",
@@ -212,6 +225,8 @@
     "contact_parents": "Contact Parents",
     "create_plan": "Create Plan",
     "academic_performance": "Academic Performance",
+    "academic_performance_subtitle": "Overall student performance metrics",
+    "academic_performance_description": "Track academic performance trends over time. Shows positive and negative performance indicators with percentage changes to help identify areas needing attention.",
     "good": "Good",
     "positive": "positive",
     "negative": "negative",
@@ -224,6 +239,7 @@
   },
   "attendance": {
     "title": "Attendance",
+    "description": "Today's student attendance rate",
     "present": "present",
     "absent": "Absent"
   },
@@ -263,8 +279,10 @@
       "inquiries_trend": "Inquiries trend over time",
       "applications_by_grade": "Applications by Grade",
       "grade_distribution": "Distribution by grade level",
+      "applications_by_grade_desc": "View the distribution of applications across different grade levels to identify demand patterns",
       "application_sources": "Application Sources",
       "source_distribution": "Distribution by application source",
+      "application_sources_desc": "Track where your applications are coming from to optimize marketing efforts",
       "no_data": "No data for selected period",
       "overall_conversion_rate": "Overall Conversion Rate",
       "enrolled_out_of_leads": "{enrolled} enrolled out of {leads} leads",
@@ -287,7 +305,13 @@
       "other": "Other",
       "total_leads": "Total Leads",
       "peak_week": "Peak Week",
-      "avg_per_week": "Avg per Week"
+      "avg_per_week": "Avg per Week",
+      "all_time": "All Time",
+      "this_month": "This Month",
+      "this_term": "This Term",
+      "this_year": "This Year",
+      "weekly_inquiries_desc": "Monitor the trend of incoming inquiries to forecast application volume",
+      "conversion_funnel_desc": "Track conversion rates through each stage of the admissions process"
     },
     "document_center": {
       "title": "Document Center",
@@ -1173,9 +1197,12 @@
       },
       "charts": {
         "students_by_status": "Students by Status",
+        "students_by_status_desc": "Distribution of students by their current enrollment status",
         "students_label": "Students",
         "students_by_grade": "Students by Grade",
+        "students_by_grade_desc": "Breakdown of student enrollment across different grade levels",
         "retention_cohort": "Student Retention Cohort",
+        "retention_cohort_desc": "Student retention rates by academic year cohort",
         "retained": "Retained (%)",
         "left": "Left (%)",
         "absence_heatmap": "Weekly Absence Heatmap",
@@ -1183,13 +1210,18 @@
         "pass_fail_ratio": {
           "title": "Pass vs Fail Ratio",
           "subtitle": "Student performance distribution",
+          "description": "Ratio of passing students to failing students",
           "pass": "Pass",
           "fail": "Fail",
           "count": "Count",
           "percentage": "Percentage",
           "total_students": "Total Students",
           "pass_rate": "Pass Rate",
-          "no_data": "No performance data available"
+          "no_data": "No performance data available",
+          "period": {
+            "term": "Term",
+            "academic_year": "Academic Year"
+          }
         }
       },
       "status": {
@@ -1225,6 +1257,11 @@
         "attendance_risk": "Attendance Risk",
         "low_grades": "Low Grades",
         "behavior_issues": "Behavior Issues"
+      },
+      "filters": {
+        "all_time": "All Time",
+        "this_year": "This Year",
+        "this_term": "This Term"
       }
     },
     "students": {

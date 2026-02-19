@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { mockApplications } from "@/data/mockAdmissions";
-import DocumentsTab from "@/components/admissions/application-tabs/DocumentsTab";
+import DocumentsTab from "@/components/features/admissions/components/tabs/DocumentsTab";
 
 export default function ApplicationDocumentsPage() {
   const params = useParams();

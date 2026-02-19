@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import * as studentsService from "@/services/studentsService";
-import MedicalTab from "@/components/students-guardians/profile-tabs/MedicalTab";
+import MedicalTab from "@/components/features/students-guardians/components/tabs/student/MedicalTab";
 
 export default function StudentMedicalPage() {
   const params = useParams();

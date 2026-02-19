@@ -1,4 +1,4 @@
-import TestDetailsPage from "@/components/admissions/pages/TestDetailsPage";
+import TestDetailsPage from "@/components/features/admissions/components/pages/TestDetailsPage";
 
 interface PageProps {
   params: Promise<{ id: string }>;

@@ -2,7 +2,7 @@
 
 import { Search, Bell, Menu, X } from "lucide-react";
 import Image from "next/image";
-import LanguageSwitcher from "../ui/common/LanguageSwitcher";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { useTranslations } from "next-intl";
 
 interface TopNavProps {

@@ -2,7 +2,7 @@
 
 "use client";
 
-import EnrollmentList from "@/components/admissions/lists/EnrollmentList";
+import EnrollmentList from "@/components/features/admissions/components/lists/EnrollmentList";
 
 export default function EnrollmentPage() {
   return (

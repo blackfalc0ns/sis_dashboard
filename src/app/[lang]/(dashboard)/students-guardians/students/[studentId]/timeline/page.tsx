@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import * as studentsService from "@/services/studentsService";
-import TimelineTab from "@/components/students-guardians/profile-tabs/TimelineTab";
+import TimelineTab from "@/components/features/students-guardians/components/tabs/student/TimelineTab";
 
 export default function StudentTimelinePage() {
   const params = useParams();

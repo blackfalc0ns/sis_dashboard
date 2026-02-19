@@ -2,7 +2,7 @@
 
 "use client";
 
-import InterviewsList from "@/components/admissions/lists/InterviewsList";
+import InterviewsList from "@/components/features/admissions/components/lists/InterviewsList";
 
 export default function InterviewsPage() {
   return (

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { getWithdrawalById } from "@/services/transfersWithdrawalsService";
-import WithdrawalRequestDetailsPage from "@/components/students-guardians/transfers-withdrawals/details/WithdrawalRequestDetailsPage";
+import WithdrawalRequestDetailsPage from "@/components/features/students-guardians/components/transfers-withdrawals/transfers-withdrawals/details/WithdrawalRequestDetailsPage";
 
 export default function WithdrawalDetailsRoute() {
   const params = useParams();

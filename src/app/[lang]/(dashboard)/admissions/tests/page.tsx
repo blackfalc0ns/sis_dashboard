@@ -2,7 +2,7 @@
 
 "use client";
 
-import TestsList from "@/components/admissions/lists/TestsList";
+import TestsList from "@/components/features/admissions/components/lists/TestsList";
 
 export default function TestsPage() {
   return (

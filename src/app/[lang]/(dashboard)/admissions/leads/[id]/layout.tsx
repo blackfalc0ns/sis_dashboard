@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { getLeadById } from "@/api/mockLeadsApi";
 import { getConversationByLeadId } from "@/data/mockLeadMessages";
-import LeadStatusBadge from "@/components/leads/LeadStatusBadge";
+import LeadStatusBadge from "@/components/features/leads/components/LeadStatusBadge";
 
 const tabs = [
   { key: "overview", labelKey: "overview", icon: User },
@@ -122,7 +122,7 @@ export default function LeadProfileLayout({
                   <Icon className="w-4 h-4" />
                   {t(tab.labelKey)}
                   {badge !== undefined && badge > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold bg-red-500 text-white border border-red-200 rounded-full">
                       {badge}
                     </span>
                   )}

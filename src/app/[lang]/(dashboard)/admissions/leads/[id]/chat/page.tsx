@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { getLeadById } from "@/api/mockLeadsApi";
-import LeadChatPanel from "@/components/leads/LeadChatPanel";
+import LeadChatPanel from "@/components/features/leads/components/LeadChatPanel";
 
 export default function LeadChatPage() {
   const params = useParams();

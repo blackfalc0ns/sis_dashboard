@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { User, Phone, Mail, Calendar, Tag } from "lucide-react";
 import { getLeadById, convertLeadToApplication } from "@/api/mockLeadsApi";
-import LeadStatusBadge from "@/components/leads/LeadStatusBadge";
+import LeadStatusBadge from "@/components/features/leads/components/LeadStatusBadge";
 
 export default function LeadOverviewPage() {
   const params = useParams();

@@ -1,6 +1,6 @@
 // FILE: src/app/[lang]/(dashboard)/students-guardians/guardians/[guardianId]/page.tsx
 
-import OverviewTab from "@/components/students-guardians/guardian-tabs/OverviewTab";
+import OverviewTab from "@/components/features/students-guardians/components/tabs/guardian/OverviewTab";
 import * as studentsService from "@/services/studentsService";
 import { notFound } from "next/navigation";
 
