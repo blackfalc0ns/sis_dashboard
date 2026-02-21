@@ -1,0 +1,118 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+import { Stage, Grade, Section } from "@/services/academics/structureService";
+import { AlertCircle, Layers, BookOpen, Users } from "lucide-react";
+
+interface InsightsPanelProps {
+  stages: Stage[];
+  grades: Grade[];
+  sections: Section[];
+  isLoading?: boolean;
+}
+
+export default function InsightsPanel({ stages, grades, sections, isLoading }: InsightsPanelProps) {
+  const t = useTranslations("academics.structure.insights");
+
+  const sectionsWithoutCapacity = sections.filter((s) => !s.capacity || s.capacity === 0).length;
+  const gradesWithoutSections = grades.filter(
+    (g) => !sections.some((s) => s.gradeId === g.id)
+  ).length;
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-white rounded-lg border border-border p-4 animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (stages.length === 0) {
+    return (
+      <div className="p-6">
+        <div className="bg-gray-50 rounded-lg border border-border p-6 text-center">
+          <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-600">{t("empty_state")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-4">
+      {/* Total Stages */}
+      <div className="bg-white rounded-lg border border-border p-4">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+            <Layers className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-600">{t("total_stages")}</p>
+            <p className="text-2xl font-bold text-gray-900">{stages.length}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Total Grades */}
+      <div className="bg-white rounded-lg border border-border p-4">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+            <BookOpen className="w-5 h-5 text-green-600" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-600">{t("total_grades")}</p>
+            <p className="text-2xl font-bold text-gray-900">{grades.length}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Total Sections */}
+      <div className="bg-white rounded-lg border border-border p-4">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+            <Users className="w-5 h-5 text-purple-600" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-600">{t("total_sections")}</p>
+            <p className="text-2xl font-bold text-gray-900">{sections.length}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Sections Missing Capacity */}
+      {sectionsWithoutCapacity > 0 && (
+        <div className="bg-amber-50 rounded-lg border  border-amber-200 p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+              <AlertCircle className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-sm text-amber-800">{t("sections_missing_capacity")}</p>
+              <p className="text-2xl font-bold text-amber-900">{sectionsWithoutCapacity}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Grades Without Sections */}
+      {gradesWithoutSections > 0 && (
+        <div className="bg-red-50 rounded-lg border border-red-200 p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+              <AlertCircle className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-sm text-red-800">{t("grades_without_sections")}</p>
+              <p className="text-2xl font-bold text-red-900">{gradesWithoutSections}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

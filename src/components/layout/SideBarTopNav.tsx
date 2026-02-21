@@ -49,7 +49,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
         className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${isRTL ? (isSidebarOpen ? "lg:mr-[260px]" : "lg:mr-20") : isSidebarOpen ? "lg:ml-[260px]" : "lg:ml-20"}`}
       >
         <TopNav
-          userName="Ammar Abd Elbari"
+          userName="Ahmed Mostafa"
           userRole="Admin"
           notificationCount={1}
           onSearchChange={(value) => console.log("Search:", value)}

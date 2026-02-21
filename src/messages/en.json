@@ -21,7 +21,13 @@
     "first_page": "First page",
     "previous_page": "Previous page",
     "next_page": "Next page",
-    "last_page": "Last page"
+    "last_page": "Last page",
+    "preview": "Preview",
+    "open": "Open",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "add": "Add"
   },
   "filter_bar": {
     "filters": {
@@ -2123,5 +2129,377 @@
         "no_history": "No withdrawal records available"
       }
     }
+  },
+  "academics": {
+    "structure": {
+      "context_bar": {
+        "academic_year": "Academic Year",
+        "term": "Term",
+        "status_open": "Open",
+        "status_closed": "Closed",
+        "create_year_term": "Create Year/Term",
+        "create_year": "Create Year",
+        "create_term": "Create Term",
+        "edit_year": "Edit Year",
+        "edit_term": "Edit Term",
+        "close_term": "Close Term",
+        "promote_carry_over": "Promote / Carry Over",
+        "more_actions": "More Actions"
+      },
+      "readonly_banner": {
+        "message": "This term is closed. Academic Structure is read-only.",
+        "tooltip": "You cannot edit the structure for a closed term"
+      },
+      "empty_state": {
+        "title": "No Academic Structure",
+        "message": "No academic structure exists for this term.",
+        "add_stage": "Add Stage",
+        "carry_over": "Promote / Carry Over"
+      },
+      "carry_over_dialog": {
+        "title": "Promote / Carry Over Structure",
+        "description": "Copy academic structure from another term to the current term",
+        "source_year": "Source Academic Year",
+        "source_term": "Source Term",
+        "options": "Options",
+        "copy_capacities": "Copy section capacities",
+        "copy_ordering": "Copy grade ordering",
+        "cancel": "Cancel",
+        "carry_over": "Carry Over",
+        "success": "Structure carried over successfully",
+        "error": "Failed to carry over structure"
+      },
+      "tree": {
+        "search_placeholder": "Search structure...",
+        "add_stage": "Add Stage",
+        "add_grade": "Add Grade",
+        "add_section": "Add Section",
+        "edit": "Edit",
+        "delete": "Delete",
+        "move_up": "Move Up",
+        "move_down": "Move Down",
+        "drag_to_reorder": "Drag to reorder"
+      },
+      "details": {
+        "no_selection": "Select an item from the tree to view details",
+        "stage_form": "Stage Details",
+        "grade_form": "Grade Details",
+        "section_form": "Section Details",
+        "name": "Name",
+        "description": "Description",
+        "stage": "Stage",
+        "order": "Order",
+        "notes": "Notes",
+        "capacity": "Capacity",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "validation": {
+          "name_required": "Name is required",
+          "capacity_required": "Capacity must be greater than 0"
+        },
+        "discard_dialog": {
+          "title": "Discard Changes?",
+          "message": "You have unsaved changes. Do you want to discard them?",
+          "discard": "Discard",
+          "stay": "Stay"
+        }
+      },
+      "insights": {
+        "empty_state": "No data available. Start by adding a stage.",
+        "total_stages": "Total Stages",
+        "total_grades": "Total Grades",
+        "total_sections": "Total Sections",
+        "sections_missing_capacity": "Sections Missing Capacity",
+        "grades_without_sections": "Grades Without Sections"
+      },
+      "modals": {
+        "add_stage": "Add New Stage",
+        "add_grade": "Add New Grade",
+        "add_section": "Add New Section",
+        "name": "Name",
+        "cancel": "Cancel",
+        "create": "Create"
+      },
+      "confirm_delete": "Are you sure you want to delete? All child items will also be deleted.",
+      "reorder_saved": "Reordering saved",
+      "reorder_failed": "Failed to save order",
+      "year_dialog": {
+        "create_title": "Create Academic Year",
+        "edit_title": "Edit Academic Year",
+        "name": "Year Name",
+        "name_placeholder": "e.g., 2024-2025",
+        "start_date": "Start Date",
+        "end_date": "End Date",
+        "cancel": "Cancel",
+        "create": "Create",
+        "save": "Save",
+        "saving": "Saving..."
+      },
+      "term_dialog": {
+        "create_title": "Create Term",
+        "edit_title": "Edit Term",
+        "name": "Term Name",
+        "name_placeholder": "e.g., Term 1",
+        "start_date": "Start Date",
+        "end_date": "End Date",
+        "cancel": "Cancel",
+        "create": "Create",
+        "save": "Save",
+        "saving": "Saving...",
+        "close": "Close",
+        "duration_weeks": "Duration: {count} weeks",
+        "readonly_warning": "This term is closed. Dates cannot be edited.",
+        "no_available_range": "No available date range left in this academic year. All dates are covered by existing terms."
+      },
+      "validation": {
+        "name_required": "Name is required",
+        "start_date_required": "Start date is required",
+        "end_date_required": "End date is required",
+        "start_before_end": "Start date must be before end date",
+        "year_overlap": "Academic year dates overlap with {yearName}",
+        "term_within_year": "Term dates must be within the academic year range ({yearStart} to {yearEnd})",
+        "term_overlap": "Term dates overlap with {termName} ({termStart} to {termEnd})",
+        "save_failed": "Failed to save. Please try again."
+      }
+    },
+    "subjects": {
+      "readonly_banner": {
+        "message": "This term is closed. Subjects & allocation are read-only."
+      },
+      "tabs": {
+        "subjects": "Subjects",
+        "matrix": "Matrix"
+      },
+      "empty_state": {
+        "no_grades": {
+          "title": "No Grades Found",
+          "message": "No grades found for this term. Create the academic structure first.",
+          "cta": "Go to Academic Structure"
+        }
+      },
+      "unsaved_changes": {
+        "message": "You have unsaved changes. Discard them?",
+        "stay": "Stay",
+        "discard": "Discard"
+      },
+      "subjects_list": {
+        "title": "Subjects",
+        "search_placeholder": "Search subjects...",
+        "add_subject": "Add Subject",
+        "empty": "No subjects yet. Add your first subject.",
+        "no_results": "No subjects found",
+        "status": {
+          "allocated": "Allocated",
+          "not_allocated": "Not Allocated"
+        },
+        "inactive": "Inactive",
+        "actions": {
+          "edit": "Edit",
+          "delete": "Delete"
+        }
+      },
+      "subject_dialog": {
+        "create_title": "Add Subject",
+        "edit_title": "Edit Subject",
+        "fields": {
+          "name": "Subject Name",
+          "name_placeholder": "e.g., Mathematics",
+          "code": "Subject Code",
+          "code_placeholder": "e.g., MATH101",
+          "stage": "Stage",
+          "stage_none": "None",
+          "stage_primary": "Primary",
+          "stage_middle": "Middle",
+          "stage_high": "High",
+          "is_active": "Active"
+        },
+        "validation": {
+          "name_required": "Subject name is required",
+          "name_duplicate": "A subject with this name already exists in this term",
+          "save_failed": "Failed to save subject. Please try again."
+        },
+        "cancel": "Cancel",
+        "create": "Create",
+        "save": "Save",
+        "saving": "Saving..."
+      },
+      "delete_dialog": {
+        "title": "Delete Subject",
+        "message": "Are you sure you want to delete {name}?",
+        "has_allocations": "This subject has allocations in this term. Deleting will remove them.",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "deleting": "Deleting..."
+      },
+      "matrix": {
+        "title": "Weekly Hours Allocation",
+        "filters": {
+          "stage": "Stage",
+          "all_stages": "All Stages",
+          "show_missing": "Show only missing allocations"
+        },
+        "summary": {
+          "subjects": "Subjects",
+          "grades": "Grades",
+          "completion": "Completion"
+        },
+        "table": {
+          "grade": "Grade",
+          "total": "Total"
+        },
+        "actions": {
+          "save": "Save Changes",
+          "saving": "Saving...",
+          "reset": "Reset"
+        },
+        "empty_state": {
+          "no_subjects": {
+            "title": "No Subjects",
+            "message": "Add subjects first to start allocating weekly hours."
+          }
+        }
+      },
+      "carry_over_dialog": {
+        "title": "Copy from Another Term",
+        "description": "Copy subjects and/or allocations from another term to the current term.",
+        "source_year": "Source Academic Year",
+        "source_term": "Source Term",
+        "options": "Options",
+        "copy_subjects": "Copy subjects list",
+        "copy_allocations": "Copy weekly hour allocations",
+        "allocations_require_subjects": "Allocations can only be copied if subjects are also copied",
+        "readonly_warning": "This term is closed. Cannot copy data to a closed term.",
+        "cancel": "Cancel",
+        "copy": "Copy",
+        "copying": "Copying..."
+      }
+    },
+    "curriculum": {
+      "readonly_banner": {
+        "message": "This term is closed. Curriculum is read-only."
+      },
+      "filters": {
+        "grade": "Grade",
+        "subject": "Subject"
+      },
+      "actions": {
+        "create_curriculum": "Create Curriculum"
+      },
+      "tabs": {
+        "outline": "Outline",
+        "plan": "Plan",
+        "progress": "Progress"
+      },
+      "empty_state": {
+        "no_grades": {
+          "title": "No Grades Found",
+          "message": "No grades found for this term. Create the academic structure first.",
+          "cta": "Go to Academic Structure"
+        },
+        "no_subjects": {
+          "title": "No Subjects Found",
+          "message": "No subjects found for this term. Add subjects first.",
+          "cta": "Go to Subjects & Allocation"
+        },
+        "no_curriculum": {
+          "title": "No Curriculum",
+          "message": "No curriculum exists for this grade and subject. Create one to start planning.",
+          "cta": "Create Curriculum"
+        }
+      },
+      "unsaved_changes": {
+        "message": "You have unsaved changes. Discard them?"
+      },
+      "create_dialog": {
+        "title": "Create Curriculum",
+        "description": "Create a new curriculum for the selected grade and subject.",
+        "name": "Curriculum Name",
+        "name_helper": "Leave empty to use default name",
+        "cancel": "Cancel",
+        "create": "Create",
+        "creating": "Creating..."
+      },
+      "carry_over_dialog": {
+        "title": "Copy from Another Term",
+        "description": "Copy curriculum from another term to the current term.",
+        "source_year": "Source Academic Year",
+        "source_term": "Source Term",
+        "options": "Options",
+        "copy_outline": "Copy units and lessons",
+        "copy_schedule": "Copy weekly schedule",
+        "schedule_requires_outline": "Schedule can only be copied if outline is also copied",
+        "readonly_warning": "This term is closed. Cannot copy data to a closed term.",
+        "cancel": "Cancel",
+        "copy": "Copy",
+        "copying": "Copying..."
+      },
+      "outline": {
+        "title": "Curriculum Outline",
+        "search_placeholder": "Search units and lessons...",
+        "add_unit": "Add Unit",
+        "add_lesson": "Add Lesson"
+      },
+      "editor": {
+        "no_selection": "Select a unit or lesson to edit",
+        "new_unit": "New Unit",
+        "edit_unit": "Edit Unit",
+        "new_lesson": "New Lesson",
+        "edit_lesson": "Edit Lesson",
+        "title": "Title",
+        "description": "Description",
+        "objectives": "Learning Objectives",
+        "resources": "Resources",
+        "duration_minutes": "Duration (minutes)",
+        "planned_week": "Planned Week",
+        "status_planned": "Planned",
+        "status_done": "Done",
+        "save": "Save",
+        "saving": "Saving...",
+        "delete": "Delete",
+        "mark_done": "Mark as Done",
+        "undo_done": "Undo Done",
+        "confirm_delete": "Are you sure you want to delete this item?"
+      },
+      "plan": {
+        "title": "Planning & Progress",
+        "total_lessons": "Total Lessons",
+        "done_lessons": "Done",
+        "completion": "Completion",
+        "weekly_plan": "Weekly Plan",
+        "planned_vs_done": "Planned vs Done",
+        "week": "Week",
+        "lessons": "lessons",
+        "no_lessons": "No lessons planned",
+        "planned": "Planned",
+        "done": "Done"
+      },
+      "materials": {
+        "title": "Lesson Materials",
+        "upload_files": "Upload Files",
+        "add_link": "Add Link",
+        "no_materials": "No materials added yet.",
+        "readonly_message": "Term is closed. Materials are read-only.",
+        "link_title": "Link Title",
+        "link_url": "Link URL",
+        "title_required": "Title is required",
+        "url_required": "URL is required",
+        "invalid_url": "Invalid URL format",
+        "file_too_large": "File is too large (max {max})",
+        "remove_material": "Remove Material",
+        "remove_material_confirm": "Are you sure you want to remove this material?"
+      }
+    }
+  },
+  "errors": {
+    "load_failed": "Failed to load data",
+    "upload_failed": "Upload failed",
+    "save_failed": "Failed to save",
+    "delete_failed": "Failed to delete"
+  },
+  "success": {
+    "uploaded": "Uploaded successfully",
+    "link_added": "Link added successfully",
+    "deleted": "Deleted successfully"
   }
 }

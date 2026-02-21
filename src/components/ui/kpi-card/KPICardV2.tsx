@@ -112,15 +112,15 @@ export default function KPICardV2({
       {/* Conditional Layout: Horizontal without chart, Vertical with chart */}
       {!hasChart ? (
         // Horizontal Layout (No Chart)
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Icon */}
           <div>
           {Icon && (
             <div
-              className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0"
               style={{ backgroundColor: iconBgColor }}
             >
-              <Icon className="w-6 h-6" style={{ color: iconColor }} />
+              <Icon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: iconColor }} />
             </div>
 
             
@@ -132,12 +132,12 @@ export default function KPICardV2({
           {/* Content */}
           <div className="flex-1 min-w-0">
             {/* Title */}
-            <h3 className="text-sm font-medium text-gray-500 mb-1">
+            <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-1">
               {title}
             </h3>
 
             {/* Value */}
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-xl sm:text-2xl font-bold text-gray-900">
               {valuePrefix}
               {typeof value === "number" ? value.toLocaleString() : value}
               {valueSuffix}
@@ -165,17 +165,17 @@ export default function KPICardV2({
         </div>
       ) : (
         // Vertical Layout (With Chart)
-        <div className="flex items-center justify-between h-full">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between h-full gap-3 sm:gap-0">
           {/* Left Section */}
-          <div className={`flex-1 ${showPeriodFilter || change ? "flex flex-col gap-2" : "flex flex-wrap items-center gap-4" } `}>
+          <div className={`w-full sm:flex-1 ${showPeriodFilter || change ? "flex flex-col gap-2" : "flex flex-wrap items-center gap-4" } `}>
             {/* Icon */}
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-3 sm:gap-5">
             {Icon && (
               <div
-                className="w-12 h-12 rounded-full flex items-center justify-center"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: iconBgColor }}
               >
-                <Icon className="w-6 h-6" style={{ color: iconColor }} />
+                <Icon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: iconColor }} />
               </div>
             )}
 
@@ -192,13 +192,13 @@ export default function KPICardV2({
             )}
 </div>
             {/* Title */}
-            <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-1">
+            <div className="w-full">
+            <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-1">
               {title}
             </h3>
 
             {/* Value */}
-            <p className="text-xl font-bold text-gray-900">
+            <p className="text-lg sm:text-xl font-bold text-gray-900">
               {valuePrefix}
               {typeof value === "number" ? value.toLocaleString() : value}
               {valueSuffix}
@@ -207,7 +207,7 @@ export default function KPICardV2({
           </div>
 
           {/* Right Section */}
-          <div className="flex flex-col items-end  justify-end mb-2 h-full">
+          <div className="flex flex-col items-end justify-end mb-2 h-full w-full sm:w-auto">
             {/* Change Badge */}
           
  {showPeriodFilter && periodOptions.length > 0  && (
@@ -239,7 +239,7 @@ export default function KPICardV2({
                 )
               }
             {/* Chart */}
-            <div className="w-40 h-16 mt-2 relative">
+            <div className="w-full sm:w-40 h-16 mt-2 relative">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={chartData}

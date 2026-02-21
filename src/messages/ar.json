@@ -21,7 +21,13 @@
     "first_page": "الصفحة الأولى",
     "previous_page": "الصفحة السابقة",
     "next_page": "الصفحة التالية",
-    "last_page": "الصفحة الأخيرة"
+    "last_page": "الصفحة الأخيرة",
+    "preview": "معاينة",
+    "open": "فتح",
+    "delete": "حذف",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "add": "إضافة"
   },
   "filter_bar": {
     "filters": {
@@ -2106,5 +2112,377 @@
         "no_history": "لا توجد سجلات انسحاب متاحة"
       }
     }
+  },
+  "academics": {
+    "structure": {
+      "context_bar": {
+        "academic_year": "السنة الدراسية",
+        "term": "الفصل الدراسي",
+        "status_open": "مفتوح",
+        "status_closed": "مغلق",
+        "create_year_term": "إنشاء سنة/فصل",
+        "create_year": "إنشاء سنة",
+        "create_term": "إنشاء فصل",
+        "edit_year": "تعديل السنة",
+        "edit_term": "تعديل الفصل",
+        "close_term": "إغلاق الفصل",
+        "promote_carry_over": "ترقية / نقل",
+        "more_actions": "المزيد من الإجراءات"
+      },
+      "readonly_banner": {
+        "message": "هذا الترم مغلق. الهيكل الأكاديمي للعرض فقط.",
+        "tooltip": "لا يمكنك تعديل الهيكل لترم مغلق"
+      },
+      "empty_state": {
+        "title": "لا يوجد هيكل أكاديمي",
+        "message": "لا يوجد هيكل لهذا الترم.",
+        "add_stage": "إضافة مرحلة",
+        "carry_over": "ترقية / نقل"
+      },
+      "carry_over_dialog": {
+        "title": "ترقية / نقل الهيكل",
+        "description": "نسخ الهيكل الأكاديمي من ترم آخر إلى الترم الحالي",
+        "source_year": "السنة الدراسية المصدر",
+        "source_term": "الترم المصدر",
+        "options": "الخيارات",
+        "copy_capacities": "نسخ سعة الشعب",
+        "copy_ordering": "نسخ ترتيب الصفوف",
+        "cancel": "إلغاء",
+        "carry_over": "نقل",
+        "success": "تم نقل الهيكل بنجاح",
+        "error": "فشل نقل الهيكل"
+      },
+      "tree": {
+        "search_placeholder": "البحث في الهيكل...",
+        "add_stage": "إضافة مرحلة",
+        "add_grade": "إضافة صف",
+        "add_section": "إضافة شعبة",
+        "edit": "تعديل",
+        "delete": "حذف",
+        "move_up": "تحريك لأعلى",
+        "move_down": "تحريك لأسفل",
+        "drag_to_reorder": "اسحب لإعادة الترتيب"
+      },
+      "details": {
+        "no_selection": "اختر عنصرًا من الشجرة لعرض التفاصيل",
+        "stage_form": "تفاصيل المرحلة",
+        "grade_form": "تفاصيل الصف",
+        "section_form": "تفاصيل الشعبة",
+        "name": "الاسم",
+        "description": "الوصف",
+        "stage": "المرحلة",
+        "order": "الترتيب",
+        "notes": "ملاحظات",
+        "capacity": "السعة",
+        "save": "حفظ",
+        "cancel": "إلغاء",
+        "delete": "حذف",
+        "validation": {
+          "name_required": "الاسم مطلوب",
+          "capacity_required": "السعة يجب أن تكون أكبر من 0"
+        },
+        "discard_dialog": {
+          "title": "تجاهل التغييرات؟",
+          "message": "لديك تغييرات غير محفوظة. هل تريد تجاهلها؟",
+          "discard": "تجاهل",
+          "stay": "البقاء"
+        }
+      },
+      "insights": {
+        "empty_state": "لا توجد بيانات. ابدأ بإضافة مرحلة.",
+        "total_stages": "إجمالي المراحل",
+        "total_grades": "إجمالي الصفوف",
+        "total_sections": "إجمالي الشعب",
+        "sections_missing_capacity": "شعب بدون سعة",
+        "grades_without_sections": "صفوف بدون شعب"
+      },
+      "modals": {
+        "add_stage": "إضافة مرحلة جديدة",
+        "add_grade": "إضافة صف جديد",
+        "add_section": "إضافة شعبة جديدة",
+        "name": "الاسم",
+        "cancel": "إلغاء",
+        "create": "إنشاء"
+      },
+      "confirm_delete": "هل أنت متأكد من الحذف؟ سيتم حذف جميع العناصر الفرعية أيضًا.",
+      "reorder_saved": "تم حفظ الترتيب",
+      "reorder_failed": "فشل حفظ الترتيب",
+      "year_dialog": {
+        "create_title": "إنشاء عام دراسي",
+        "edit_title": "تعديل عام دراسي",
+        "name": "اسم العام",
+        "name_placeholder": "مثال: 2024-2025",
+        "start_date": "تاريخ البداية",
+        "end_date": "تاريخ النهاية",
+        "cancel": "إلغاء",
+        "create": "إنشاء",
+        "save": "حفظ",
+        "saving": "جاري الحفظ..."
+      },
+      "term_dialog": {
+        "create_title": "إنشاء فصل دراسي",
+        "edit_title": "تعديل فصل دراسي",
+        "name": "اسم الفصل",
+        "name_placeholder": "مثال: الفصل الأول",
+        "start_date": "تاريخ البداية",
+        "end_date": "تاريخ النهاية",
+        "cancel": "إلغاء",
+        "create": "إنشاء",
+        "save": "حفظ",
+        "saving": "جاري الحفظ...",
+        "close": "إغلاق",
+        "duration_weeks": "المدة: {count} أسبوع",
+        "readonly_warning": "هذا الفصل مغلق. لا يمكن تعديل التواريخ.",
+        "no_available_range": "لا يوجد نطاق تاريخ متاح في هذا العام الدراسي. جميع التواريخ مغطاة بالفصول الموجودة."
+      },
+      "validation": {
+        "name_required": "الاسم مطلوب",
+        "start_date_required": "تاريخ البداية مطلوب",
+        "end_date_required": "تاريخ النهاية مطلوب",
+        "start_before_end": "يجب أن يكون تاريخ البداية قبل تاريخ النهاية",
+        "year_overlap": "تواريخ العام الدراسي تتداخل مع {yearName}",
+        "term_within_year": "يجب أن تكون تواريخ الفصل داخل نطاق العام الدراسي ({yearStart} إلى {yearEnd})",
+        "term_overlap": "تواريخ الفصل تتداخل مع {termName} ({termStart} إلى {termEnd})",
+        "save_failed": "فشل الحفظ. يرجى المحاولة مرة أخرى."
+      }
+    },
+    "subjects": {
+      "readonly_banner": {
+        "message": "هذا الترم مغلق. المواد والتوزيع للعرض فقط."
+      },
+      "tabs": {
+        "subjects": "المواد",
+        "matrix": "التوزيع"
+      },
+      "empty_state": {
+        "no_grades": {
+          "title": "لا توجد صفوف",
+          "message": "لا توجد صفوف لهذا الترم. أنشئ الهيكل الأكاديمي أولاً.",
+          "cta": "الذهاب إلى الهيكل الأكاديمي"
+        }
+      },
+      "unsaved_changes": {
+        "message": "لديك تغييرات غير محفوظة. هل تريد تجاهلها؟",
+        "stay": "البقاء",
+        "discard": "تجاهل"
+      },
+      "subjects_list": {
+        "title": "المواد",
+        "search_placeholder": "البحث في المواد...",
+        "add_subject": "إضافة مادة",
+        "empty": "لا توجد مواد بعد. أضف مادتك الأولى.",
+        "no_results": "لم يتم العثور على مواد",
+        "status": {
+          "allocated": "موزعة",
+          "not_allocated": "غير موزعة"
+        },
+        "inactive": "غير نشطة",
+        "actions": {
+          "edit": "تعديل",
+          "delete": "حذف"
+        }
+      },
+      "subject_dialog": {
+        "create_title": "إضافة مادة",
+        "edit_title": "تعديل مادة",
+        "fields": {
+          "name": "اسم المادة",
+          "name_placeholder": "مثال: الرياضيات",
+          "code": "رمز المادة",
+          "code_placeholder": "مثال: MATH101",
+          "stage": "المرحلة",
+          "stage_none": "بدون",
+          "stage_primary": "ابتدائي",
+          "stage_middle": "متوسط",
+          "stage_high": "ثانوي",
+          "is_active": "نشطة"
+        },
+        "validation": {
+          "name_required": "اسم المادة مطلوب",
+          "name_duplicate": "مادة بهذا الاسم موجودة بالفعل في هذا الترم",
+          "save_failed": "فشل حفظ المادة. يرجى المحاولة مرة أخرى."
+        },
+        "cancel": "إلغاء",
+        "create": "إنشاء",
+        "save": "حفظ",
+        "saving": "جاري الحفظ..."
+      },
+      "delete_dialog": {
+        "title": "حذف مادة",
+        "message": "هل أنت متأكد من حذف {name}؟",
+        "has_allocations": "هذه المادة لديها توزيعات في هذا الترم. الحذف سيزيلها.",
+        "cancel": "إلغاء",
+        "delete": "حذف",
+        "deleting": "جاري الحذف..."
+      },
+      "matrix": {
+        "title": "توزيع الساعات الأسبوعية",
+        "filters": {
+          "stage": "المرحلة",
+          "all_stages": "جميع المراحل",
+          "show_missing": "إظهار التوزيعات المفقودة فقط"
+        },
+        "summary": {
+          "subjects": "المواد",
+          "grades": "الصفوف",
+          "completion": "الاكتمال"
+        },
+        "table": {
+          "grade": "الصف",
+          "total": "المجموع"
+        },
+        "actions": {
+          "save": "حفظ التغييرات",
+          "saving": "جاري الحفظ...",
+          "reset": "إعادة تعيين"
+        },
+        "empty_state": {
+          "no_subjects": {
+            "title": "لا توجد مواد",
+            "message": "أضف المواد أولاً لبدء توزيع الساعات الأسبوعية."
+          }
+        }
+      },
+      "carry_over_dialog": {
+        "title": "نسخ من ترم آخر",
+        "description": "نسخ المواد و/أو التوزيعات من ترم آخر إلى الترم الحالي.",
+        "source_year": "السنة الدراسية المصدر",
+        "source_term": "الترم المصدر",
+        "options": "الخيارات",
+        "copy_subjects": "نسخ قائمة المواد",
+        "copy_allocations": "نسخ توزيع الساعات الأسبوعية",
+        "allocations_require_subjects": "يمكن نسخ التوزيعات فقط إذا تم نسخ المواد أيضًا",
+        "readonly_warning": "هذا الترم مغلق. لا يمكن نسخ البيانات إلى ترم مغلق.",
+        "cancel": "إلغاء",
+        "copy": "نسخ",
+        "copying": "جاري النسخ..."
+      }
+    },
+    "curriculum": {
+      "readonly_banner": {
+        "message": "هذا الترم مغلق. المنهج للعرض فقط."
+      },
+      "filters": {
+        "grade": "الصف",
+        "subject": "المادة"
+      },
+      "actions": {
+        "create_curriculum": "إنشاء منهج"
+      },
+      "tabs": {
+        "outline": "المخطط",
+        "plan": "الخطة",
+        "progress": "التقدم"
+      },
+      "empty_state": {
+        "no_grades": {
+          "title": "لا توجد صفوف",
+          "message": "لا توجد صفوف لهذا الترم. أنشئ الهيكل الأكاديمي أولاً.",
+          "cta": "الذهاب إلى الهيكل الأكاديمي"
+        },
+        "no_subjects": {
+          "title": "لا توجد مواد",
+          "message": "لا توجد مواد لهذا الترم. أضف المواد أولاً.",
+          "cta": "الذهاب إلى المواد والتوزيع"
+        },
+        "no_curriculum": {
+          "title": "لا يوجد منهج",
+          "message": "لا يوجد منهج لهذا الصف والمادة. أنشئ واحداً لبدء التخطيط.",
+          "cta": "إنشاء منهج"
+        }
+      },
+      "unsaved_changes": {
+        "message": "لديك تغييرات غير محفوظة. هل تريد تجاهلها؟"
+      },
+      "create_dialog": {
+        "title": "إنشاء منهج",
+        "description": "إنشاء منهج جديد للصف والمادة المحددين.",
+        "name": "اسم المنهج",
+        "name_helper": "اتركه فارغاً لاستخدام الاسم الافتراضي",
+        "cancel": "إلغاء",
+        "create": "إنشاء",
+        "creating": "جاري الإنشاء..."
+      },
+      "carry_over_dialog": {
+        "title": "نسخ من ترم آخر",
+        "description": "نسخ المنهج من ترم آخر إلى الترم الحالي.",
+        "source_year": "السنة الدراسية المصدر",
+        "source_term": "الترم المصدر",
+        "options": "الخيارات",
+        "copy_outline": "نسخ الوحدات والدروس",
+        "copy_schedule": "نسخ الجدول الأسبوعي",
+        "schedule_requires_outline": "يمكن نسخ الجدول فقط إذا تم نسخ المخطط أيضاً",
+        "readonly_warning": "هذا الترم مغلق. لا يمكن نسخ البيانات إلى ترم مغلق.",
+        "cancel": "إلغاء",
+        "copy": "نسخ",
+        "copying": "جاري النسخ..."
+      },
+      "outline": {
+        "title": "مخطط المنهج",
+        "search_placeholder": "البحث في الوحدات والدروس...",
+        "add_unit": "إضافة وحدة",
+        "add_lesson": "إضافة درس"
+      },
+      "editor": {
+        "no_selection": "اختر وحدة أو درس للتعديل",
+        "new_unit": "وحدة جديدة",
+        "edit_unit": "تعديل وحدة",
+        "new_lesson": "درس جديد",
+        "edit_lesson": "تعديل درس",
+        "title": "العنوان",
+        "description": "الوصف",
+        "objectives": "أهداف التعلم",
+        "resources": "الموارد",
+        "duration_minutes": "المدة (بالدقائق)",
+        "planned_week": "الأسبوع المخطط",
+        "status_planned": "مخطط",
+        "status_done": "منجز",
+        "save": "حفظ",
+        "saving": "جاري الحفظ...",
+        "delete": "حذف",
+        "mark_done": "تعليم كمنجز",
+        "undo_done": "إلغاء الإنجاز",
+        "confirm_delete": "هل أنت متأكد من حذف هذا العنصر؟"
+      },
+      "plan": {
+        "title": "التخطيط والتقدم",
+        "total_lessons": "إجمالي الدروس",
+        "done_lessons": "منجز",
+        "completion": "الإنجاز",
+        "weekly_plan": "الخطة الأسبوعية",
+        "planned_vs_done": "المخطط مقابل المنجز",
+        "week": "الأسبوع",
+        "lessons": "دروس",
+        "no_lessons": "لا توجد دروس مخططة",
+        "planned": "مخطط",
+        "done": "منجز"
+      },
+      "materials": {
+        "title": "مستندات الدرس",
+        "upload_files": "رفع ملفات",
+        "add_link": "إضافة رابط",
+        "no_materials": "لا توجد مستندات مضافة بعد.",
+        "readonly_message": "الترم مغلق. المستندات للعرض فقط.",
+        "link_title": "عنوان الرابط",
+        "link_url": "رابط URL",
+        "title_required": "العنوان مطلوب",
+        "url_required": "الرابط مطلوب",
+        "invalid_url": "صيغة الرابط غير صحيحة",
+        "file_too_large": "الملف كبير جداً (الحد الأقصى {max})",
+        "remove_material": "حذف المستند",
+        "remove_material_confirm": "هل أنت متأكد من حذف هذا المستند؟"
+      }
+    }
+  },
+  "errors": {
+    "load_failed": "فشل تحميل البيانات",
+    "upload_failed": "فشل رفع الملف",
+    "save_failed": "فشل الحفظ",
+    "delete_failed": "فشل الحذف"
+  },
+  "success": {
+    "uploaded": "تم الرفع بنجاح",
+    "link_added": "تمت إضافة الرابط بنجاح",
+    "deleted": "تم الحذف بنجاح"
   }
 }
