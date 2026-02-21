@@ -4,8 +4,8 @@
 
 import { useTranslations } from "next-intl";
 import { BarChart } from "@mui/x-charts/BarChart";
-import { Award } from "lucide-react";
 import { useResponsiveChart } from "@/hooks/useResponsiveChart";
+import { ChartCard } from "@/components/ui/chart-card";
 
 // TODO: Replace with actual API data from behavior evaluation system
 const mockBehaviorData = [
@@ -24,21 +24,12 @@ export default function WithdrawalsByBehaviorChart() {
   const withdrawals = mockBehaviorData.map((d) => d.withdrawals);
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm">
-      <div className="flex items-center gap-2 mb-6">
-        <Award className="w-5 h-5 text-primary" />
-        <h2 className="text-lg font-semibold text-gray-900">
-          {t("charts.behavior.title")}
-        </h2>
-      </div>
-
-      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-900">
-          {t("charts.behavior.description")}
-        </p>
-      </div>
-
-      <div className="w-full overflow-x-auto">
+    <ChartCard
+      title={t("charts.behavior.title")}
+      description={t("charts.behavior.description")}
+      bgColor="#ede9fe"
+    >
+      <div className="w-full overflow-x-auto mt-4">
         <BarChart
           width={width}
           height={height}
@@ -54,21 +45,41 @@ export default function WithdrawalsByBehaviorChart() {
               scaleType: "band",
               data: ranges,
               label: t("charts.behavior.x_axis"),
+              tickLabelStyle: {
+                fontSize: 14,
+                fontWeight: 500,
+              },
             },
           ]}
           yAxis={[
             {
               label: t("charts.behavior.y_axis"),
+              tickLabelStyle: {
+                fontSize: 14,
+                fontWeight: 500,
+              },
             },
           ]}
           margin={{ top: 20, right: 20, bottom: 50, left: 50 }}
+          slotProps={{
+            legend: {
+              labelStyle: {
+                fontSize: 14,
+                fontWeight: 500,
+              },
+            },
+          }}
         />
       </div>
 
-      <div className="mt-4 text-sm text-gray-600">
-        <p className="font-medium">{t("charts.behavior.insight_title")}:</p>
-        <p className="mt-1">{t("charts.behavior.insight_text")}</p>
+      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <p className="text-sm font-medium text-blue-900">
+          {t("charts.behavior.insight_title")}:
+        </p>
+        <p className="text-sm text-blue-800 mt-1">
+          {t("charts.behavior.insight_text")}
+        </p>
       </div>
-    </div>
+    </ChartCard>
   );
 }

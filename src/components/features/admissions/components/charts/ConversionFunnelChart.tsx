@@ -112,7 +112,7 @@ export default function ConversionFunnelChart({
       className="h-full flex flex-col justify-between"
     >
       {/* Overall Conversion */}
-      <div className="mb-6 p-4 bg-gradient-to-r from-teal-50 to-blue-50 rounded-lg border border-teal-200">
+      <div className="mb-6 p-4 bg-linear-to-r from-teal-50 to-blue-50 rounded-lg border border-teal-200">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-gray-700">
             {t("overall_conversion_rate")}
@@ -167,7 +167,7 @@ export default function ConversionFunnelChart({
                   textAnchor="middle"
                   dominantBaseline="middle"
                   className="fill-white font-semibold"
-                  style={{ fontSize: "15px" }}
+                  style={{ fontSize: "16px" }}
                 >
                   {stage.label}
                 </text>
@@ -178,7 +178,7 @@ export default function ConversionFunnelChart({
                   textAnchor="middle"
                   dominantBaseline="middle"
                   className="fill-white font-bold"
-                  style={{ fontSize: "22px" }}
+                  style={{ fontSize: "24px" }}
                 >
                   {stage.count}
                 </text>
@@ -189,7 +189,7 @@ export default function ConversionFunnelChart({
                     y={y + height + 18}
                     textAnchor="middle"
                     className="fill-gray-600 text-xs font-medium"
-                    style={{ fontSize: "12px" }}
+                    style={{ fontSize: "14px" }}
                   >
                     ↓ {stage.conversion}
                   </text>
@@ -204,19 +204,19 @@ export default function ConversionFunnelChart({
       <div className="mt-6 pt-4 border-t border-gray-200">
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className="text-xs text-gray-500">{t("leads_to_apps")}</p>
+            <p className="text-sm text-gray-500">{t("leads_to_apps")}</p>
             <p className="text-sm font-semibold text-gray-900">
               {leadsToApps}%
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t("apps_to_accepted")}</p>
+            <p className="text-sm text-gray-500">{t("apps_to_accepted")}</p>
             <p className="text-sm font-semibold text-gray-900">
               {appsToAccepted}%
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t("accepted_to_enrolled")}</p>
+            <p className="text-sm text-gray-500">{t("accepted_to_enrolled")}</p>
             <p className="text-sm font-semibold text-gray-900">
               {acceptedToEnrolled}%
             </p>

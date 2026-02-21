@@ -59,7 +59,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
           onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
           isSidebarOpen={isSidebarOpen}
         />
-        <div>{children}</div>
+        <div className="bg-background min-h-screen">{children}</div>
       </div>
     </div>
   );

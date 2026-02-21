@@ -5,8 +5,9 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { PieChart } from "@mui/x-charts/PieChart";
-import { FileText } from "lucide-react";
 import { useResponsiveChart } from "@/hooks/useResponsiveChart";
+import { ChartCard } from "@/components/ui/chart-card";
+import { DropdownItem } from "@/components/ui/dropdown";
 
 type Stage = "all" | "primary" | "preparatory" | "secondary";
 
@@ -32,37 +33,23 @@ export default function WithdrawalReasonsChart() {
     color: item.color,
   }));
 
+  const stageOptions: DropdownItem[] = [
+    { label: t("filters.all_stages"), value: "all" },
+    { label: t("filters.stages.primary"), value: "primary" },
+    { label: t("filters.stages.preparatory"), value: "preparatory" },
+    { label: t("filters.stages.secondary"), value: "secondary" },
+  ];
+
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <FileText className="w-5 h-5 text-primary" />
-          <h2 className="text-lg font-semibold text-gray-900">
-            {t("charts.reasons.title")}
-          </h2>
-        </div>
-
-        {/* Stage Filter */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">
-            {t("filters.stage")}:
-          </label>
-          <select
-            value={selectedStage}
-            onChange={(e) => setSelectedStage(e.target.value as Stage)}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-          >
-            <option value="all">{t("filters.all_stages")}</option>
-            <option value="primary">{t("filters.stages.primary")}</option>
-            <option value="preparatory">
-              {t("filters.stages.preparatory")}
-            </option>
-            <option value="secondary">{t("filters.stages.secondary")}</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="w-full overflow-x-auto flex justify-center">
+    <ChartCard
+      title={t("charts.reasons.title")}
+      description={t("charts.reasons.description")}
+      periodOptions={stageOptions}
+      defaultPeriod={selectedStage}
+      onPeriodChange={(value) => setSelectedStage(value as Stage)}
+      bgColor="#fef3c7"
+    >
+      <div className="w-full flex flex-col items-center mt-4">
         <PieChart
           series={[
             {
@@ -72,13 +59,34 @@ export default function WithdrawalReasonsChart() {
               outerRadius: 120,
               paddingAngle: 2,
               cornerRadius: 5,
+              arcLabel: (item) => `${item.value}%`,
+              arcLabelMinAngle: 35,
+              arcLabelStyle: {
+                fontSize: 14,
+                fontWeight: 600,
+              },
             },
           ]}
           width={Math.min(width, 500)}
-          height={Math.min(height, 300)}
-          margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+          height={ 300}
+          margin={{ top: 20, right: 20, bottom: 80, left: 20 }}
+          slotProps={{
+            legend: {
+              direction: "row",
+              position: { vertical: "bottom", horizontal: "middle" },
+              padding: 0,
+              itemMarkWidth: 12,
+              itemMarkHeight: 12,
+              markGap: 8,
+              itemGap: 16,
+              labelStyle: {
+                fontSize: 14,
+                fontWeight: 500,
+              },
+            },
+          }}
         />
       </div>
-    </div>
+    </ChartCard>
   );
 }

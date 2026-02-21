@@ -57,22 +57,9 @@ export default function ChartCard({
     (opt) => opt.value === selectedPeriod,
   )?.label;
 
-  // Convert hex to rgba with opacity
-  const hexToRgba = (hex: string, opacity: number) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-  };
-
-  const lightBgColor = hexToRgba(bgColor, 0.5);
-
   return (
     <div
       className={`rounded-2xl border border-border shadow-sm p-6 ${className}`}
-      style={{
-        background: `linear-gradient(135deg, ${lightBgColor} 0%, white 60%)`,
-      }}
     >
       {/* Header Section */}
       <div className="flex items-center justify-between mb-6">
@@ -122,7 +109,7 @@ export default function ChartCard({
         {showPeriodFilter && !customFilter && (
           <DropdownMenu
             trigger={
-              <button className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200">
+              <button className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 bg-white hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
                 <span>{selectedPeriodLabel}</span>
                 <svg
                   className="w-4 h-4"

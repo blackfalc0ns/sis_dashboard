@@ -271,7 +271,7 @@ export default function Sidebar({
                                 className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${isArabic ? "text-right" : "text-left"} ${isChildActive ? "bg-teal-50 text-primary font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
                               >
                                 <ChildIcon className="w-4 h-4 shrink-0" />
-                                <span className="text-xs flex-1">
+                                <span className="text-sm flex-1">
                                   {isArabic ? child.label_ar : child.label_en}
                                 </span>
                                 <ChevronDown
@@ -287,7 +287,7 @@ export default function Sidebar({
                                 className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${isArabic ? "text-right" : "text-left"} ${isChildActive ? "bg-teal-50 text-primary font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
                               >
                                 <ChildIcon className="w-4 h-4 shrink-0" />
-                                <span className="text-xs flex-1">
+                                <span className="text-sm flex-1">
                                   {isArabic ? child.label_ar : child.label_en}
                                 </span>
                                 {child.badge &&

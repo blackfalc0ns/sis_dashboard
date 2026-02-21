@@ -113,15 +113,6 @@ export default function AbsenceHeatmap({ data }: AbsenceHeatmapProps) {
       <h3 className="text-base sm:text-lg font-bold text-gray-900">
         {t("charts.absence_heatmap")}
       </h3>
-
-      {/* Chart Filter */}
-      <ChartFilter
-        values={filterValues}
-        onChange={setFilterValues}
-        academicYears={academicYears}
-        terms={terms}
-        showAdvancedFilters={true}
-      />
       <div className="overflow-x-auto overflow-y-hidden -mx-4 sm:mx-0 px-4 sm:px-0">
         <div className="min-w-[480px] sm:min-w-[500px]">
           {/* Heatmap Header */}

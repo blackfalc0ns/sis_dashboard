@@ -1228,6 +1228,22 @@
         "all_time": "كل الوقت",
         "this_year": "هذا العام",
         "this_term": "هذا الفصل"
+      },
+      "grades": {
+        "kg1": "روضة 1",
+        "kg2": "روضة 2",
+        "grade_1": "الصف الأول",
+        "grade_2": "الصف الثاني",
+        "grade_3": "الصف الثالث",
+        "grade_4": "الصف الرابع",
+        "grade_5": "الصف الخامس",
+        "grade_6": "الصف السادس",
+        "grade_7": "الصف السابع",
+        "grade_8": "الصف الثامن",
+        "grade_9": "الصف التاسع",
+        "grade_10": "الصف العاشر",
+        "grade_11": "الصف الحادي عشر",
+        "grade_12": "الصف الثاني عشر"
       }
     },
     "students": {
@@ -1407,6 +1423,26 @@
     "transfers_withdrawals": {
       "title": "التحويلات والانسحاب",
       "subtitle": "مراقبة اتجاهات تحويلات وانسحاب الطلاب",
+      "create_application": "إنشاء طلب",
+      "kpis": {
+        "transfers_this_month": "التحويلات هذا الشهر",
+        "incoming_students": "طلاب وافدون",
+        "withdrawals_this_month": "الانسحاب هذا الشهر",
+        "outgoing_students": "طلاب مغادرون",
+        "net_change": "صافي التغيير",
+        "transfers_minus_withdrawals": "التحويلات - الانسحاب",
+        "dropout_rate": "معدل التسرب",
+        "above_threshold": "أعلى من الحد",
+        "within_normal": "ضمن المعدل الطبيعي",
+        "pending_requests": "الطلبات المعلقة",
+        "awaiting_review": "في انتظار المراجعة",
+        "behavior_related": "مرتبط بالسلوك",
+        "low_behavior_score": "تقييم سلوكي منخفض"
+      },
+      "alerts": {
+        "high_dropout_rate": "معدل التسرب أعلى من الحد المسموح",
+        "dropout_message": "معدل التسرب الحالي ({rate}%) يتجاوز الحد المقبول. يتطلب اهتمامًا فوريًا."
+      },
       "tabs": {
         "transfers": "التحويلات",
         "withdrawals": "الانسحاب"
@@ -1496,6 +1532,11 @@
         "all_bands": "جميع النطاقات",
         "financial_clearance": "التصفية المالية",
         "all_clearances": "جميع التصفيات",
+        "period": {
+          "6months": "آخر 6 أشهر",
+          "year": "هذا العام",
+          "all": "كل الوقت"
+        },
         "stages": {
           "primary": "ابتدائي",
           "preparatory": "إعدادي",
@@ -1535,15 +1576,37 @@
         }
       },
       "charts": {
-        "transfers_trend": "التحويلات عبر الوقت",
-        "withdrawals_trend": "الانسحاب عبر الوقت",
-        "transfers_by_reason": "التحويلات حسب السبب",
-        "withdrawals_by_stage": "الانسحاب حسب المرحلة",
-        "by_stage": {
-          "title": "الانسحاب حسب المرحلة",
+        "trend": {
+          "title": "اتجاه التحويلات والانسحاب",
+          "description": "تتبع التحويلات والانسحاب الشهرية عبر الوقت",
           "transfers": "التحويلات",
           "withdrawals": "الانسحابات"
         },
+        "by_stage": {
+          "title": "التحويلات والانسحاب حسب المرحلة",
+          "description": "مقارنة التحويلات والانسحاب عبر المراحل الدراسية المختلفة",
+          "transfers": "التحويلات",
+          "withdrawals": "الانسحابات"
+        },
+        "reasons": {
+          "title": "توزيع أسباب الانسحاب",
+          "description": "تحليل الأسباب الرئيسية لانسحاب الطلاب",
+          "academic": "أكاديمي",
+          "relocation": "الانتقال",
+          "better_fit": "ملاءمة أفضل",
+          "other": "أخرى"
+        },
+        "transfers_by_reason": {
+          "title": "التحويلات حسب السبب",
+          "description": "تحليل الأسباب الرئيسية لتحويل الطلاب"
+        },
+        "transfers_trend_title": "التحويلات عبر الوقت",
+        "transfers_trend_description": "تتبع التحويلات الداخلية والخارجية عبر الوقت",
+        "withdrawals_trend_title": "الانسحاب عبر الوقت",
+        "withdrawals_trend_description": "تتبع حالات الانسحاب الشهرية",
+        "transfers_trend": "التحويلات عبر الوقت",
+        "withdrawals_trend": "الانسحاب عبر الوقت",
+        "withdrawals_by_stage": "الانسحاب حسب المرحلة",
         "total_withdrawals": "إجمالي الانسحاب",
         "total_transfers": "إجمالي التحويلات",
         "internal_transfers": "التحويلات الداخلية",
@@ -1555,13 +1618,6 @@
           "primary": "ابتدائي",
           "preparatory": "إعدادي",
           "secondary": "ثانوي"
-        },
-        "reasons": {
-          "title": "توزيع أسباب الانسحاب",
-          "academic": "أكاديمي",
-          "relocation": "الانتقال",
-          "better_fit": "ملاءمة أفضل",
-          "other": "أخرى"
         },
         "behavior": {
           "title": "الانسحاب حسب التقييم السلوكي",

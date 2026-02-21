@@ -13,6 +13,7 @@ import { DropdownItem } from "@/components/ui/dropdown";
 
 export default function StudentsByGradeChart() {
   const t = useTranslations("students_guardians.overview");
+  const t_grades = useTranslations("students_guardians.overview.grades");
   const { height, width } = useResponsiveChart();
 
   // Filter state
@@ -82,12 +83,19 @@ export default function StudentsByGradeChart() {
       }
     });
 
-    return Object.entries(gradeCount).map(([grade, count]) => ({
-      id: grade,
-      label: grade,
-      value: count,
-    }));
-  }, [filteredStudents]);
+    return Object.entries(gradeCount).map(([grade, count]) => {
+      // Convert grade to translation key (e.g., "Grade 6" -> "grade_6")
+      const gradeKey = grade.toLowerCase().replace(/\s+/g, "_");
+      const translatedGrade = t_grades(gradeKey);
+      const displayGrade = translatedGrade !== gradeKey ? translatedGrade : grade;
+
+      return {
+        id: grade,
+        label: displayGrade,
+        value: count,
+      };
+    });
+  }, [filteredStudents, t_grades]);
 
   // Period options for ChartCard
   const periodOptions: DropdownItem[] = [
@@ -105,33 +113,41 @@ export default function StudentsByGradeChart() {
       defaultPeriod="all"
       bgColor="#d1fae5"
     >
-      {/* Chart Filter */}
-      <ChartFilter
-        values={filterValues}
-        onChange={setFilterValues}
-        academicYears={academicYears}
-        terms={terms}
-        showAdvancedFilters={true}
-      />
-
       {/* Chart */}
-      <div className="h-64 sm:h-80 w-full flex items-center justify-center overflow-x-auto overflow-y-hidden mt-4">
+      <div className="h-64 sm:h-80 w-full flex flex-col items-center justify-center mt-4">
         {gradeData.length > 0 ? (
-          <div className="min-w-[280px]">
+          <div className="w-full flex justify-center">
             <PieChart
               series={[
                 {
                   data: gradeData,
                   highlightScope: { fade: "global", highlight: "item" },
+                  arcLabel: (item) => `${item.value}`,
+                  arcLabelMinAngle: 35,
                 },
               ]}
               height={height}
               width={width}
               margin={{
                 top: 10,
-                bottom: 10,
+                bottom: 80,
                 left: 10,
                 right: 10,
+              }}
+              slotProps={{
+                legend: {
+                  direction: "row",
+                  position: { vertical: "bottom", horizontal: "middle" },
+                  padding: 0,
+                  itemMarkWidth: 12,
+                  itemMarkHeight: 12,
+                  markGap: 8,
+                  itemGap: 16,
+                  labelStyle: {
+                    fontSize: 14,
+                    fontWeight: 500,
+                  },
+                },
               }}
             />
           </div>

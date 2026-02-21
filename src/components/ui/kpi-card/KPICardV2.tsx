@@ -89,15 +89,7 @@ export default function KPICardV2({
       : "bg-red-500"
     : "bg-emerald-500";
 
-  // Convert hex to rgba with opacity
-  const hexToRgba = (hex: string, opacity: number) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-  };
 
-  const lightBgColor = hexToRgba(iconBgColor, 0.6);
 
   const handlePeriodChange = (period: string) => {
     setSelectedPeriod(period);
@@ -115,10 +107,7 @@ export default function KPICardV2({
 
   return (
     <div
-      className={`rounded-2xl border border-gray-200 shadow-sm p-6 relative ${className}`}
-      style={{
-        background: `linear-gradient(135deg, ${lightBgColor} 0%, white 60%)`,
-      }}
+      className={`rounded-2xl border border-gray-200 shadow-sm p-4 relative ${className}`}
     >
       {/* Conditional Layout: Horizontal without chart, Vertical with chart */}
       {!hasChart ? (
@@ -189,7 +178,7 @@ export default function KPICardV2({
             </h3>
 
             {/* Value */}
-            <p className="text-4xl font-bold text-gray-900">
+            <p className="text-2xl font-bold text-gray-900">
               {valuePrefix}
               {typeof value === "number" ? value.toLocaleString() : value}
               {valueSuffix}

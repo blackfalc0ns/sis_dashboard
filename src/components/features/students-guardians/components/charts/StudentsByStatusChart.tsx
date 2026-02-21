@@ -106,21 +106,29 @@ export default function StudentsByStatusChart() {
       defaultPeriod="all"
       bgColor="#dbeafe"
     >
-      {/* Chart Filter */}
-      <ChartFilter
-        values={filterValues}
-        onChange={setFilterValues}
-        academicYears={academicYears}
-        terms={terms}
-        showAdvancedFilters={true}
-      />
-
       {/* Chart */}
       <div className="h-64 sm:h-80 w-full overflow-x-auto overflow-y-hidden mt-4">
         <div className="min-w-[300px]">
           <BarChart
             dataset={statusData}
-            xAxis={[{ scaleType: "band", dataKey: "status" }]}
+            xAxis={[
+              {
+                scaleType: "band",
+                dataKey: "status",
+                tickLabelStyle: {
+                  fontSize: 14,
+                  fontWeight: 500,
+                },
+              },
+            ]}
+            yAxis={[
+              {
+                tickLabelStyle: {
+                  fontSize: 14,
+                  fontWeight: 500,
+                },
+              },
+            ]}
             series={[
               {
                 dataKey: "count",
@@ -134,6 +142,14 @@ export default function StudentsByStatusChart() {
               bottom: 40,
               left: leftMargin,
               right: 20,
+            }}
+            slotProps={{
+              legend: {
+                labelStyle: {
+                  fontSize: 14,
+                  fontWeight: 500,
+                },
+              },
             }}
           />
         </div>

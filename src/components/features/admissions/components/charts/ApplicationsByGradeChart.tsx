@@ -126,6 +126,18 @@ export default function ApplicationsByGradeChart({
               data: translatedGrades,
               categoryGapRatio: 0.3,
               barGapRatio: 0.1,
+              tickLabelStyle: {
+                fontSize: 14,
+                fontWeight: 500,
+              },
+            },
+          ]}
+          yAxis={[
+            {
+              tickLabelStyle: {
+                fontSize: 14,
+                fontWeight: 500,
+              },
             },
           ]}
           series={[
@@ -137,6 +149,14 @@ export default function ApplicationsByGradeChart({
           ]}
           height={300}
           margin={{ top: 20, right: 20, bottom: 60, left: 40 }}
+          slotProps={{
+            legend: {
+              labelStyle: {
+                fontSize: 14,
+                fontWeight: 500,
+              },
+            },
+          }}
         />
       </div>
 

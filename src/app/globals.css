@@ -138,3 +138,8 @@ textarea::placeholder {
   color: #e31919;
   background-color: #fce8e8;
 }
+
+.MuiChartsLegend-label {
+  font-size: 14px !important;
+  font-family: var(--font-cairo), system-ui, sans-serif;
+}

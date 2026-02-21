@@ -1441,6 +1441,26 @@
     "transfers_withdrawals": {
       "title": "Transfers & Withdrawals",
       "subtitle": "Monitor student transfers and withdrawal trends",
+      "create_application": "Create Application",
+      "kpis": {
+        "transfers_this_month": "Transfers This Month",
+        "incoming_students": "Incoming students",
+        "withdrawals_this_month": "Withdrawals This Month",
+        "outgoing_students": "Outgoing students",
+        "net_change": "Net Change",
+        "transfers_minus_withdrawals": "Transfers - Withdrawals",
+        "dropout_rate": "Dropout Rate",
+        "above_threshold": "Above threshold",
+        "within_normal": "Within normal range",
+        "pending_requests": "Pending Requests",
+        "awaiting_review": "Awaiting review",
+        "behavior_related": "Behavior-Related",
+        "low_behavior_score": "Low behavior score"
+      },
+      "alerts": {
+        "high_dropout_rate": "Dropout rate is above the threshold",
+        "dropout_message": "Current dropout rate ({rate}%) exceeds the acceptable threshold. Immediate attention required."
+      },
       "tabs": {
         "transfers": "Transfers",
         "withdrawals": "Withdrawals"
@@ -1530,6 +1550,11 @@
         "all_bands": "All Bands",
         "financial_clearance": "Financial Clearance",
         "all_clearances": "All Clearances",
+        "period": {
+          "6months": "Last 6 Months",
+          "year": "This Year",
+          "all": "All Time"
+        },
         "stages": {
           "primary": "Primary",
           "preparatory": "Preparatory",
@@ -1569,15 +1594,37 @@
         }
       },
       "charts": {
-        "transfers_trend": "Transfers Over Time",
-        "withdrawals_trend": "Withdrawals Over Time",
-        "transfers_by_reason": "Transfers by Reason",
-        "withdrawals_by_stage": "Withdrawals by Stage",
-        "by_stage": {
-          "title": "Withdrawals by Stage",
+        "trend": {
+          "title": "Transfers & Withdrawals Trend",
+          "description": "Track monthly transfers and withdrawals over time",
           "transfers": "Transfers",
           "withdrawals": "Withdrawals"
         },
+        "transfers_trend_title": "Transfers Over Time",
+        "transfers_trend_description": "Track internal and external transfers over time",
+        "withdrawals_trend_title": "Withdrawals Over Time",
+        "withdrawals_trend_description": "Track monthly withdrawal cases",
+        "by_stage": {
+          "title": "Transfers & Withdrawals by Stage",
+          "description": "Compare transfers and withdrawals across different educational stages",
+          "transfers": "Transfers",
+          "withdrawals": "Withdrawals"
+        },
+        "reasons": {
+          "title": "Withdrawal Reasons Distribution",
+          "description": "Analyze the main reasons for student withdrawals",
+          "academic": "Academic",
+          "relocation": "Relocation",
+          "better_fit": "Better Fit",
+          "other": "Other"
+        },
+        "transfers_by_reason": {
+          "title": "Transfers by Reason",
+          "description": "Analyze the main reasons for student transfers"
+        },
+        "transfers_trend": "Transfers Over Time",
+        "withdrawals_trend": "Withdrawals Over Time",
+        "withdrawals_by_stage": "Withdrawals by Stage",
         "total_withdrawals": "Total Withdrawals",
         "total_transfers": "Total Transfers",
         "internal_transfers": "Internal Transfers",
@@ -1589,13 +1636,6 @@
           "primary": "Primary",
           "preparatory": "Preparatory",
           "secondary": "Secondary"
-        },
-        "reasons": {
-          "title": "Withdrawal Reasons Distribution",
-          "academic": "Academic",
-          "relocation": "Relocation",
-          "better_fit": "Better Fit",
-          "other": "Other"
         },
         "behavior": {
           "title": "Withdrawals by Behavior Score",

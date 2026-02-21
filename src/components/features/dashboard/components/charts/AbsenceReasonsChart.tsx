@@ -70,7 +70,7 @@ export default function AbsenceReasonsChart() {
               className="w-3 h-3 rounded-full"
               style={{ backgroundColor: item.color }}
             />
-            <span className="text-xs text-gray-600">
+            <span className="text-md text-gray-600">
               {t(`types.${item.key}`)} ({item.value}%)
             </span>
           </div>
