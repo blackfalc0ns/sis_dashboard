@@ -89,14 +89,6 @@ export default function TransfersWithdrawalsTrendChart() {
             },
           ]}
           margin={{ top: 20, right: 20, bottom: 30, left: 40 }}
-          slotProps={{
-            legend: {
-              labelStyle: {
-                fontSize: 14,
-                fontWeight: 500,
-              },
-            },
-          }}
         />
       </div>
     </ChartCard>

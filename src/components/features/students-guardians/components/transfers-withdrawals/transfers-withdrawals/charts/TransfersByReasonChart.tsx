@@ -58,30 +58,11 @@ export default function TransfersByReasonChart() {
               cornerRadius: 5,
               arcLabel: (item) => `${item.value}%`,
               arcLabelMinAngle: 35,
-              arcLabelStyle: {
-                fontSize: 14,
-                fontWeight: 600,
-              },
             },
           ]}
           width={Math.min(width, 500)}
           height={Math.min(height, 300)}
           margin={{ top: 20, right: 20, bottom: 80, left: 20 }}
-          slotProps={{
-            legend: {
-              direction: "row",
-              position: { vertical: "bottom", horizontal: "middle" },
-              padding: 0,
-              itemMarkWidth: 12,
-              itemMarkHeight: 12,
-              markGap: 8,
-              itemGap: 16,
-              labelStyle: {
-                fontSize: 14,
-                fontWeight: 500,
-              },
-            },
-          }}
         />
       </div>
     </ChartCard>

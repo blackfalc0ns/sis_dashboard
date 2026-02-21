@@ -57,7 +57,7 @@
   --color-hover-900: color-mix(in oklab, var(--hover-color) 45%, black);
   --color-hover-950: color-mix(in oklab, var(--hover-color) 30%, black);
 
-  --color-gray-50: color-mix(in oklab, var(--gray-color) 6%, white);
+  --color-gray-50: color-mix(in oklab, white 6%, white);
   --color-gray-100: color-mix(in oklab, var(--gray-color) 12%, white);
   --color-gray-200: color-mix(in oklab, var(--gray-color) 22%, white);
   --color-gray-300: color-mix(in oklab, var(--gray-color) 35%, white);

@@ -149,14 +149,6 @@ export default function ApplicationsByGradeChart({
           ]}
           height={300}
           margin={{ top: 20, right: 20, bottom: 60, left: 40 }}
-          slotProps={{
-            legend: {
-              labelStyle: {
-                fontSize: 14,
-                fontWeight: 500,
-              },
-            },
-          }}
         />
       </div>
 

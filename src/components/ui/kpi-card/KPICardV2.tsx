@@ -107,73 +107,32 @@ export default function KPICardV2({
 
   return (
     <div
-      className={`rounded-2xl border border-gray-200 shadow-sm p-4 relative ${className}`}
+      className={`rounded-2xl border border-gray-200 shadow-sm p-3 relative ${className}`}
     >
       {/* Conditional Layout: Horizontal without chart, Vertical with chart */}
       {!hasChart ? (
         // Horizontal Layout (No Chart)
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {/* Icon */}
+          <div>
           {Icon && (
             <div
-              className="w-16 h-16 rounded-full flex items-center justify-center shrink-0"
+              className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
               style={{ backgroundColor: iconBgColor }}
             >
-              <Icon className="w-8 h-8" style={{ color: iconColor }} />
+              <Icon className="w-6 h-6" style={{ color: iconColor }} />
             </div>
+
+            
           )}
+
+           
+            </div>
 
           {/* Content */}
           <div className="flex-1 min-w-0">
             {/* Title */}
-            <h3 className="text-base font-medium text-gray-500 mb-1">
-              {title}
-            </h3>
-
-            {/* Value */}
-            <p className="text-3xl font-bold text-gray-900">
-              {valuePrefix}
-              {typeof value === "number" ? value.toLocaleString() : value}
-              {valueSuffix}
-            </p>
-
-            {/* Subtitle or Change */}
-            {change ? (
-              <div className="flex items-center gap-2 mt-2">
-                <span
-                  className={`${changeColor} text-white text-xs font-semibold px-2 py-1 rounded`}
-                >
-                  {change.isPositive !== false ? "+" : ""}
-                  {change.percentage.toFixed(0)}%
-                </span>
-                {subtitle && (
-                  <span className="text-sm text-gray-400">{subtitle}</span>
-                )}
-              </div>
-            ) : (
-              subtitle && (
-                <p className="text-sm text-gray-400 mt-1">{subtitle}</p>
-              )
-            )}
-          </div>
-        </div>
-      ) : (
-        // Vertical Layout (With Chart)
-        <div className="flex items-start justify-between">
-          {/* Left Section */}
-          <div className="flex-1">
-            {/* Icon */}
-            {Icon && (
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-                style={{ backgroundColor: iconBgColor }}
-              >
-                <Icon className="w-8 h-8" style={{ color: iconColor }} />
-              </div>
-            )}
-
-            {/* Title */}
-            <h3 className="text-base font-medium text-gray-500 mb-2">
+            <h3 className="text-sm font-medium text-gray-500 mb-1">
               {title}
             </h3>
 
@@ -183,21 +142,76 @@ export default function KPICardV2({
               {typeof value === "number" ? value.toLocaleString() : value}
               {valueSuffix}
             </p>
-          </div>
 
-          {/* Right Section */}
-          <div className="flex flex-col items-end">
-            {/* Change Badge */}
-            {change && (
-              <div className="flex flex-col items-end mb-2">
+            {/* Subtitle or Change */}
+            {change ? (
+              <div className="flex items-center gap-2 mt-1">
                 <span
-                  className={`${changeColor} text-white text-sm font-semibold px-3 py-1.5 rounded-lg`}
+                  className={`${changeColor} text-white text-xs font-semibold px-1.5 py-0.5 rounded`}
                 >
                   {change.isPositive !== false ? "+" : ""}
                   {change.percentage.toFixed(0)}%
                 </span>
-                {showPeriodFilter && periodOptions.length > 0 ? (
-                  <div className="mt-2 relative z-50">
+                {subtitle && (
+                  <span className="text-xs text-gray-400">{subtitle}</span>
+                )}
+              </div>
+            ) : (
+              subtitle && (
+                <p className="text-xs text-gray-400 mt-1">{subtitle}</p>
+              )
+            )}
+          </div>
+        </div>
+      ) : (
+        // Vertical Layout (With Chart)
+        <div className="flex items-center justify-between h-full">
+          {/* Left Section */}
+          <div className={`flex-1 ${showPeriodFilter || change ? "flex flex-col gap-2" : "flex flex-wrap items-center gap-4" } `}>
+            {/* Icon */}
+            <div className="flex items-center gap-5">
+            {Icon && (
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: iconBgColor }}
+              >
+                <Icon className="w-6 h-6" style={{ color: iconColor }} />
+              </div>
+            )}
+
+             {change && (
+              <div className="flex flex-col items-end">
+                <span
+                  className={`${changeColor} text-white text-xs font-semibold px-2 py-1 rounded-lg`}
+                >
+                  {change.isPositive !== false ? "+" : ""}
+                  {change.percentage.toFixed(0)}%
+                </span>
+               
+              </div>
+            )}
+</div>
+            {/* Title */}
+            <div>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">
+              {title}
+            </h3>
+
+            {/* Value */}
+            <p className="text-xl font-bold text-gray-900">
+              {valuePrefix}
+              {typeof value === "number" ? value.toLocaleString() : value}
+              {valueSuffix}
+            </p>
+            </div>
+          </div>
+
+          {/* Right Section */}
+          <div className="flex flex-col items-end  justify-end mb-2 h-full">
+            {/* Change Badge */}
+          
+ {showPeriodFilter && periodOptions.length > 0  && (
+                  <div className="mt-1 relative z-50">
                     <DropdownMenu
                       trigger={
                         <div className="text-xs text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1 cursor-pointer">
@@ -222,20 +236,14 @@ export default function KPICardV2({
                       width="w-40"
                     />
                   </div>
-                ) : (
-                  subtitle && (
-                    <p className="text-sm text-gray-400 mt-2">{subtitle}</p>
-                  )
-                )}
-              </div>
-            )}
-
+                )
+              }
             {/* Chart */}
-            <div className="w-48 h-20 mt-4 relative">
+            <div className="w-40 h-16 mt-2 relative">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={chartData}
-                  margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+                  margin={{ top: 10, right: 3, left: 3, bottom: 3}}
                 >
                   <defs>
                     <linearGradient
@@ -270,13 +278,13 @@ export default function KPICardV2({
                     strokeWidth={2}
                     fillOpacity={0.05}
                     dot={{
-                      r: 3,
+                      r: 2,
                       fill: chartColor,
                       stroke: "white",
                       strokeWidth: 1,
                     }}
                     activeDot={{
-                      r: 5,
+                      r: 4,
                       fill: chartColor,
                       stroke: "white",
                       strokeWidth: 2,

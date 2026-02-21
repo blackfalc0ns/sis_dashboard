@@ -134,21 +134,6 @@ export default function StudentsByGradeChart() {
                 left: 10,
                 right: 10,
               }}
-              slotProps={{
-                legend: {
-                  direction: "row",
-                  position: { vertical: "bottom", horizontal: "middle" },
-                  padding: 0,
-                  itemMarkWidth: 12,
-                  itemMarkHeight: 12,
-                  markGap: 8,
-                  itemGap: 16,
-                  labelStyle: {
-                    fontSize: 14,
-                    fontWeight: 500,
-                  },
-                },
-              }}
             />
           </div>
         ) : (

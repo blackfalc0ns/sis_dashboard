@@ -61,14 +61,6 @@ export default function WithdrawalsByBehaviorChart() {
             },
           ]}
           margin={{ top: 20, right: 20, bottom: 50, left: 50 }}
-          slotProps={{
-            legend: {
-              labelStyle: {
-                fontSize: 14,
-                fontWeight: 500,
-              },
-            },
-          }}
         />
       </div>
 

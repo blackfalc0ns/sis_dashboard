@@ -143,14 +143,6 @@ export default function StudentsByStatusChart() {
               left: leftMargin,
               right: 20,
             }}
-            slotProps={{
-              legend: {
-                labelStyle: {
-                  fontSize: 14,
-                  fontWeight: 500,
-                },
-              },
-            }}
           />
         </div>
       </div>

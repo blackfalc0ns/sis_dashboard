@@ -65,14 +65,6 @@ export default function TransfersByStageChart() {
             },
           ]}
           margin={{ top: 20, right: 20, bottom: 30, left: 40 }}
-          slotProps={{
-            legend: {
-              labelStyle: {
-                fontSize: 14,
-                fontWeight: 500,
-              },
-            },
-          }}
         />
       </div>
     </ChartCard>
