@@ -395,7 +395,7 @@ export default function AllocationMatrixView({
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex flex-col gap-1 flex-1">
-                              <span>{getSubjectName(subject)}</span>
+                              <span className={isRTL ? "text-right" : "text-left"}>{getSubjectName(subject)}</span>
                               {subject.code && (
                                 <span className="inline-flex">
                                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-50 text-primary-700 border border-primary-200">
