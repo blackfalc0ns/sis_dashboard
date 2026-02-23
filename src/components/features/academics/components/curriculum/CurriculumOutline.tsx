@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Plus, Search, ChevronRight, ChevronDown } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
@@ -27,6 +27,7 @@ export default function CurriculumOutline({
   isReadOnly,
 }: CurriculumOutlineProps) {
   const t = useTranslations("academics.curriculum.outline");
+  const locale = useLocale();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(
     new Set(units.map((u) => u.id))
@@ -99,8 +100,12 @@ export default function CurriculumOutline({
                     <ChevronRight className="w-4 h-4" />
                   )}
                 </button>
-                <div className="flex-1 font-medium">{unit.title}</div>
-                <span className="text-xs text-gray-500">{unitLessons.length} lessons</span>
+                <div className="flex-1 font-medium">
+                  {locale === "ar" ? (unit.titleAr || unit.titleEn || unit.title) : (unit.titleEn || unit.titleAr || unit.title)}
+                </div>
+                <span className="text-xs text-gray-500">
+                  {t("lessons_count", { count: unitLessons.length })}
+                </span>
               </div>
 
               {isExpanded && (
@@ -119,13 +124,17 @@ export default function CurriculumOutline({
                         }`}
                         onClick={() => onSelectNode({ type: "lesson", id: lesson.id })}
                       >
-                        <div className="flex-1 text-sm text-gray-700">{lesson.title}</div>
+                        <div className="flex-1 text-sm text-gray-700">
+                          {locale === "ar" ? (lesson.titleAr || lesson.titleEn || lesson.title) : (lesson.titleEn || lesson.titleAr || lesson.title)}
+                        </div>
                         {lesson.status === "done" && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                            Done
+                            {t("status_done")}
                           </span>
                         )}
-                        <span className="text-xs text-gray-500">W{lesson.plannedWeek}</span>
+                        <span className="text-xs text-gray-500">
+                          {t("week_short", { week: lesson.plannedWeek })}
+                        </span>
                       </div>
                     );
                   })}

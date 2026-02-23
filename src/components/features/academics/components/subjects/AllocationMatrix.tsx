@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Save, RotateCcw } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
@@ -34,12 +34,15 @@ export default function AllocationMatrix({
   onRefresh,
 }: AllocationMatrixProps) {
   const t = useTranslations("academics.subjects.matrix");
+  const locale = useLocale();
+  const isRTL = locale === "ar";
 
   const [localAllocations, setLocalAllocations] = useState<SubjectAllocation[]>([]);
   const [originalAllocations, setOriginalAllocations] = useState<SubjectAllocation[]>([]);
   const [stageFilter, setStageFilter] = useState("");
   const [showOnlyMissing, setShowOnlyMissing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [focusedCell, setFocusedCell] = useState<string | null>(null);
 
   // Initialize local allocations
   useEffect(() => {
@@ -76,15 +79,28 @@ export default function AllocationMatrix({
     return grades.filter((g) => g.stageId === stageFilter);
   }, [grades, stageFilter]);
 
-  // Get unique stages
-  const stages = useMemo(() => {
-    const stageIds = new Set(grades.map((g) => g.stageId));
-    return Array.from(stageIds);
+  // Get unique stages with their data
+  const stagesData = useMemo(() => {
+    const stageMap = new Map<string, { id: string; name: string; nameAr: string; nameEn: string }>();
+    grades.forEach((grade) => {
+      if (!stageMap.has(grade.stageId)) {
+        stageMap.set(grade.stageId, {
+          id: grade.stageId,
+          name: grade.stageId,
+          nameAr: grade.stageId,
+          nameEn: grade.stageId,
+        });
+      }
+    });
+    return Array.from(stageMap.values());
   }, [grades]);
 
   const stageOptions = [
     { value: "", label: t("filters.all_stages") },
-    ...stages.map((stageId) => ({ value: stageId, label: `Stage ${stageId}` })),
+    ...stagesData.map((stage) => ({
+      value: stage.id,
+      label: locale === "ar" ? (stage.nameAr || stage.nameEn || stage.name) : (stage.nameEn || stage.nameAr || stage.name),
+    })),
   ];
 
   const setAllocation = (gradeId: string, subjectId: string, weeklyHours: number) => {
@@ -148,6 +164,8 @@ export default function AllocationMatrix({
     return Math.round((filledCells / totalCells) * 100);
   }, [filteredGrades, subjects, localAllocations]);
 
+  const getCellId = (gradeId: string, subjectId: string) => `${gradeId}-${subjectId}`;
+
   if (subjects.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -170,11 +188,14 @@ export default function AllocationMatrix({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--color-gray-50)' }}>
       {/* Toolbar */}
-      <div className="p-4 border-b border-border bg-white space-y-4">
+      <div className="p-4 border-b shadow-sm space-y-4" style={{ 
+        backgroundColor: 'var(--background)',
+        borderColor: 'var(--color-neutral-200)'
+      }}>
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <h2 className="text-lg font-semibold text-gray-900">{t("title")}</h2>
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--color-primary-900)' }}>{t("title")}</h2>
           
           <div className="flex items-center gap-2">
             <Button
@@ -215,25 +236,26 @@ export default function AllocationMatrix({
               type="checkbox"
               checked={showOnlyMissing}
               onChange={(e) => setShowOnlyMissing(e.target.checked)}
-              className="rounded border border-border"
+              className="rounded"
+              style={{ borderColor: 'var(--color-border)' }}
             />
-            <span className="text-gray-700">{t("filters.show_missing")}</span>
+            <span style={{ color: 'var(--color-gray-700)' }}>{t("filters.show_missing")}</span>
           </label>
         </div>
 
         {/* Summary */}
         <div className="flex items-center gap-6 text-sm">
           <div>
-            <span className="text-gray-600">{t("summary.subjects")}: </span>
-            <span className="font-medium">{subjects.length}</span>
+            <span style={{ color: 'var(--color-gray-600)' }}>{t("summary.subjects")}: </span>
+            <span className="font-medium" style={{ color: 'var(--color-primary-900)' }}>{subjects.length}</span>
           </div>
           <div>
-            <span className="text-gray-600">{t("summary.grades")}: </span>
-            <span className="font-medium">{filteredGrades.length}</span>
+            <span style={{ color: 'var(--color-gray-600)' }}>{t("summary.grades")}: </span>
+            <span className="font-medium" style={{ color: 'var(--color-primary-900)' }}>{filteredGrades.length}</span>
           </div>
           <div>
-            <span className="text-gray-600">{t("summary.completion")}: </span>
-            <span className="font-medium">{completionPercentage}%</span>
+            <span style={{ color: 'var(--color-gray-600)' }}>{t("summary.completion")}: </span>
+            <span className="font-medium" style={{ color: 'var(--color-primary-900)' }}>{completionPercentage}%</span>
           </div>
         </div>
       </div>
@@ -241,68 +263,197 @@ export default function AllocationMatrix({
       {/* Matrix */}
       <div className="flex-1 overflow-auto p-4">
         <div className="inline-block min-w-full">
-          <table className="min-w-full border-collapse">
+          <table className="min-w-full border-collapse shadow-sm rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--background)' }}>
             <thead>
               <tr>
-                <th className="sticky left-0 z-10 bg-gray-50 border border-border-200 px-4 py-2 text-left text-sm font-medium text-gray-700">
+                {/* Grade Column Header - Pinned */}
+                <th 
+                  className={`sticky ${isRTL ? 'right-0' : 'left-0'} z-20 px-4 py-3 text-${isRTL ? 'right' : 'left'} text-xs font-bold uppercase tracking-wider shadow-sm`}
+                  style={{ 
+                    minWidth: '200px',
+                    backgroundColor: 'var(--color-surface-100)',
+                    borderBottom: '2px solid var(--color-neutral-200)',
+                    color: 'var(--color-primary-900)'
+                  }}
+                >
                   {t("table.grade")}
                 </th>
-                {subjects.map((subject) => (
-                  <th
-                    key={subject.id}
-                    className="bg-gray-50 border border-border-200 px-4 py-2 text-left text-sm font-medium text-gray-700 min-w-[120px]"
-                  >
-                    <div className="truncate" title={subject.name}>
-                      {subject.name}
-                    </div>
-                    {subject.code && (
-                      <div className="text-xs text-gray-500 font-normal">{subject.code}</div>
-                    )}
-                  </th>
-                ))}
-                <th className="sticky right-0 z-10 bg-gray-50 border border-border-200 px-4 py-2 text-left text-sm font-medium text-gray-700">
+                
+                {/* Subject Column Headers */}
+                {subjects.map((subject) => {
+                  const subjectName = locale === "ar" 
+                    ? (subject.nameAr || subject.nameEn || subject.name) 
+                    : (subject.nameEn || subject.nameAr || subject.name);
+                  
+                  return (
+                    <th
+                      key={subject.id}
+                      className={`px-3 py-3 ${locale === "ar" ? 'text-right' : 'text-left'} text-xs font-bold uppercase tracking-wider`}
+                      style={{ 
+                        minWidth: '160px', 
+                        maxWidth: '160px',
+                        backgroundColor: 'var(--color-surface-100)',
+                        borderBottom: '2px solid var(--color-neutral-200)',
+                        color: 'var(--color-primary-900)'
+                      }}
+                      title={`${subjectName}${subject.code ? ` (${subject.code})` : ''}`}
+                    >
+                      <div className="flex flex-col gap-1">
+                        <div className="font-bold truncate" style={{ color: 'var(--color-primary-900)' }}>
+                          {subjectName}
+                        </div>
+                        {subject.code && (
+                          <div className="inline-flex">
+                            <span 
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                              style={{
+                                backgroundColor: 'var(--color-primary-50)',
+                                color: 'var(--color-primary-700)',
+                                border: '1px solid var(--color-primary-200)'
+                              }}
+                            >
+                              {subject.code}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </th>
+                  );
+                })}
+                
+                {/* Total Column Header - Pinned */}
+                <th 
+                  className={`sticky ${isRTL ? 'left-0' : 'right-0'} z-20 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider shadow-sm`}
+                  style={{ 
+                    minWidth: '110px',
+                    backgroundColor: 'var(--color-accent-50)',
+                    borderBottom: '2px solid var(--color-accent-200)',
+                    color: 'var(--color-accent-900)'
+                  }}
+                >
                   {t("table.total")}
                 </th>
               </tr>
             </thead>
             <tbody>
-              {filteredGrades.map((grade) => {
+              {filteredGrades.map((grade, gradeIndex) => {
                 const gradeTotal = getGradeTotal(grade.id);
+                const isEvenRow = gradeIndex % 2 === 0;
                 
                 return (
-                  <tr key={grade.id} className="hover:bg-gray-50">
-                    <td className="sticky left-0 z-10 bg-white border border-border-200 px-4 py-2 text-sm font-medium text-gray-900">
-                      {grade.name}
+                  <tr 
+                    key={grade.id} 
+                    className="transition-colors"
+                    style={{
+                      backgroundColor: isEvenRow ? 'var(--background)' : 'var(--color-gray-50)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'var(--color-primary-50)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = isEvenRow ? 'var(--background)' : 'var(--color-gray-50)';
+                    }}
+                  >
+                    {/* Grade Cell - Pinned */}
+                    <td 
+                      className={`sticky ${isRTL ? 'right-0' : 'left-0'} z-10 px-4 py-3 text-sm font-semibold shadow-sm`}
+                      style={{
+                        backgroundColor: 'inherit',
+                        borderBottom: '1px solid var(--color-neutral-100)',
+                        color: 'var(--color-primary-900)'
+                      }}
+                    >
+                      {locale === "ar" ? (grade.nameAr || grade.nameEn || grade.name) : (grade.nameEn || grade.nameAr || grade.name)}
                     </td>
+                    
+                    {/* Subject Allocation Cells */}
                     {subjects.map((subject) => {
                       const value = getAllocation(grade.id, subject.id);
-                      const isChanged = originalAllocations.find(
+                      const originalValue = originalAllocations.find(
                         (a) => a.gradeId === grade.id && a.subjectId === subject.id
-                      )?.weeklyHours !== value;
+                      )?.weeklyHours || 0;
+                      const isChanged = originalValue !== value;
+                      const cellId = getCellId(grade.id, subject.id);
+                      const isFocused = focusedCell === cellId;
 
                       return (
-                        <td key={subject.id} className="border border-border-200 p-1">
-                          <input
-                            type="number"
-                            min="0"
-                            max="50"
-                            value={value || ""}
-                            onChange={(e) => {
-                              const val = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
-                              setAllocation(grade.id, subject.id, val);
-                            }}
-                            disabled={isReadOnly}
-                            className={`w-full px-2 py-1 text-sm text-center border rounded ${
-                              isChanged
-                                ? "border-border bg-primary/5"
-                                : "border-border-300"
-                            } ${isReadOnly ? "bg-primary-50 cursor-not-allowed" : ""}`}
-                            placeholder="0"
-                          />
+                        <td 
+                          key={subject.id} 
+                          className="p-0"
+                          style={{ borderBottom: '1px solid var(--color-neutral-100)' }}
+                        >
+                          <div className="relative">
+                            <input
+                              type="number"
+                              min="0"
+                              max="50"
+                              step="1"
+                              value={value || ""}
+                              onChange={(e) => {
+                                const val = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
+                                if (!isNaN(val)) {
+                                  setAllocation(grade.id, subject.id, val);
+                                }
+                              }}
+                              onFocus={() => setFocusedCell(cellId)}
+                              onBlur={() => setFocusedCell(null)}
+                              disabled={isReadOnly}
+                              placeholder="—"
+                              className="w-full h-full px-3 py-3 text-sm text-center border-0 focus:outline-none transition-all"
+                              style={{
+                                appearance: 'textfield',
+                                MozAppearance: 'textfield',
+                                WebkitAppearance: 'none',
+                                backgroundColor: isChanged 
+                                  ? 'var(--color-accent-50)' 
+                                  : isFocused 
+                                    ? 'var(--color-primary-50)' 
+                                    : isReadOnly 
+                                      ? 'var(--color-gray-100)' 
+                                      : 'transparent',
+                                color: isChanged 
+                                  ? 'var(--color-accent-900)' 
+                                  : value === 0 
+                                    ? 'var(--color-gray-400)' 
+                                    : isReadOnly 
+                                      ? 'var(--color-gray-500)' 
+                                      : 'var(--foreground)',
+                                fontWeight: isChanged ? '600' : 'normal',
+                                cursor: isReadOnly ? 'not-allowed' : 'text',
+                                boxShadow: isFocused ? 'inset 0 0 0 2px var(--color-primary-500)' : 'none'
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!isReadOnly && !isFocused && !isChanged) {
+                                  e.currentTarget.style.backgroundColor = 'var(--color-gray-100)';
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isReadOnly && !isFocused && !isChanged) {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                }
+                              }}
+                            />
+                            {isChanged && !isFocused && (
+                              <div 
+                                className="absolute top-1 right-1 w-2 h-2 rounded-full" 
+                                style={{ backgroundColor: 'var(--color-accent-500)' }}
+                                title="Modified" 
+                              />
+                            )}
+                          </div>
                         </td>
                       );
                     })}
-                    <td className="sticky right-0 z-10 bg-gray-100 border border-border-200 px-4 py-2 text-sm font-semibold text-gray-900 text-center">
+                    
+                    {/* Total Cell - Pinned */}
+                    <td 
+                      className={`sticky ${isRTL ? 'left-0' : 'right-0'} z-10 px-4 py-3 text-sm font-bold text-center shadow-sm`}
+                      style={{
+                        backgroundColor: 'var(--color-accent-50)',
+                        borderBottom: '1px solid var(--color-accent-200)',
+                        color: 'var(--color-accent-900)'
+                      }}
+                    >
                       {gradeTotal}
                     </td>
                   </tr>
@@ -312,6 +463,18 @@ export default function AllocationMatrix({
           </table>
         </div>
       </div>
+
+      {/* Hide number input spinners */}
+      <style jsx>{`
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type="number"] {
+          -moz-appearance: textfield;
+        }
+      `}</style>
     </div>
   );
 }

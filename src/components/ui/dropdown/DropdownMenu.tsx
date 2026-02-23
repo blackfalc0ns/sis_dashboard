@@ -78,102 +78,74 @@ export default function DropdownMenu({
   const displayLabel = selectedItem?.label || placeholder;
 
   return (
-    <>
-      <style jsx>{`
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: scale(0.95) translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-      `}</style>
-
-      <div ref={dropdownRef} className={`relative inline-block ${className}`}>
-        {/* Trigger Button */}
-        {trigger ? (
-          <div
-            onClick={() => !disabled && setIsOpen(!isOpen)}
-            className="focus:outline-none cursor-pointer"
-          >
-            {trigger}
-          </div>
-        ) : (
-          <button
-            onClick={() => !disabled && setIsOpen(!isOpen)}
-            disabled={disabled}
-            className={`${width} flex items-center justify-between px-4 py-2.5 bg-white border border-border rounded-lg hover:border-hover focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            <span className="flex items-center gap-2 text-sm text-black">
-              {selectedItem?.icon && <span>{selectedItem.icon}</span>}
-              {label && <span className="font-medium">{label}:</span>}
-              <span className={selectedItem ? "" : "text-black"}>
-                {displayLabel}
-              </span>
+    <div ref={dropdownRef} className={`relative inline-block ${className}`}>
+      {/* Trigger Button */}
+      {trigger ? (
+        <div
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          className="focus:outline-none cursor-pointer"
+        >
+          {trigger}
+        </div>
+      ) : (
+        <button
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          disabled={disabled}
+          className={`${width} flex items-center justify-between px-4 py-2.5 bg-white border border-border rounded-lg hover:border-hover focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+        >
+          <span className="flex items-center gap-2 text-sm text-black">
+            {selectedItem?.icon && <span>{selectedItem.icon}</span>}
+            {label && <span className="font-medium">{label}:</span>}
+            <span className={selectedItem ? "" : "text-black"}>
+              {displayLabel}
             </span>
-            <ChevronDown
-              className={`w-4 h-4 text-black transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-            />
-          </button>
-        )}
+          </span>
+          <ChevronDown
+            className={`w-4 h-4 text-black transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+      )}
 
-        {/* Dropdown Menu */}
-        {isOpen && (
-          <div
-            className={`absolute z-50 mt-2 ${width} bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden ${
-              isRTL ? "left-0" : "right-0"
-            }`}
-            style={{
-              animation: "fadeIn 0.2s ease-out",
-            }}
-            dir={isRTL ? "rtl" : "ltr"}
-          >
-            <ul className="py-1 max-h-60 overflow-y-auto">
-              {items.map((item, index) => (
-                <li
-                  key={item.value}
-                  style={{
-                    animation: `slideIn 0.15s ease-out ${index * 0.03}s both`,
-                  }}
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div
+          className={`absolute z-[9999] mt-2 ${width} bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn ${
+            isRTL ? "left-0" : "right-0"
+          }`}
+          dir={isRTL ? "rtl" : "ltr"}
+        >
+          <ul className="py-1 max-h-60 overflow-y-auto">
+            {items.map((item, index) => (
+              <li
+                key={item.value}
+                className="animate-slideIn"
+                style={{
+                  animationDelay: `${index * 0.03}s`,
+                }}
+              >
+                <button
+                  onClick={() => handleSelect(item)}
+                  disabled={item.disabled}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm ${isRTL ? "text-right" : "text-left"} transition-all duration-150 ${
+                    item.disabled
+                      ? "text-gray-400 cursor-not-allowed"
+                      : selectedValue === item.value
+                        ? "bg-blue-50 text-primary-600 font-medium"
+                        : "text-gray-700 hover:bg-gray-50"
+                  }`}
                 >
-                  <button
-                    onClick={() => handleSelect(item)}
-                    disabled={item.disabled}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm ${isRTL ? "text-right" : "text-left"} transition-all duration-150 ${
-                      item.disabled
-                        ? "text-gray-400 cursor-not-allowed"
-                        : selectedValue === item.value
-                          ? "bg-blue-50 text-primary-600 font-medium"
-                          : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    {item.icon && (
-                      <span className="shrink-0 transition-transform duration-150">
-                        {item.icon}
-                      </span>
-                    )}
-                    <span>{item.label}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-    </>
+                  {item.icon && (
+                    <span className="shrink-0 transition-transform duration-150">
+                      {item.icon}
+                    </span>
+                  )}
+                  <span>{item.label}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }

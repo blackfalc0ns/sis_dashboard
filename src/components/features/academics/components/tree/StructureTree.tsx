@@ -142,7 +142,7 @@ function SortableGradeItem({
           onClick={() => onSelectNode({ type: "grade", id: grade.id })}
           className="flex-1 text-sm cursor-pointer py-1 touch-manipulation"
         >
-          {grade.name}
+          {locale === "ar" ? (grade.nameAr || grade.nameEn || grade.name) : (grade.nameEn || grade.nameAr || grade.name)}
         </div>
 
         {/* Fallback Up/Down buttons */}
@@ -213,17 +213,17 @@ function SortableGradeItem({
                     ? "bg-primary/10 border border-primary"
                     : "hover:bg-gray-50"
                 }`}
-                onClick={() => onSelectNode({ type: "section", id: section.id })}
+                
               >
                 <div className="w-4" />
-                <div className="flex-1 text-sm text-gray-600">
-                  {section.name}
+                <div className="flex-1 text-sm text-gray-600" onClick={() => onSelectNode({ type: "section", id: section.id })}>
+                  {locale === "ar" ? (section.nameAr || section.nameEn || section.name) : (section.nameEn || section.nameAr || section.name)}
                 </div>
                 <DropdownMenu
                   trigger={
                     <button 
                       className="p-1 hover:bg-gray-200 rounded touch-manipulation"
-                      onClick={(e) => e.stopPropagation()}
+                    
                     >
                       <MoreVertical className="w-3 h-3" />
                     </button>
@@ -297,7 +297,19 @@ export default function StructureTree({
   );
 
   const filteredData = useMemo(() => {
-    if (!searchQuery.trim()) return { stages, grades, sections };
+    if (!searchQuery.trim()) {
+      // Deduplicate all data by ID to prevent duplicate key errors
+      const uniqueStages = Array.from(
+        new Map(stages.map(stage => [stage.id, stage])).values()
+      );
+      const uniqueGrades = Array.from(
+        new Map(grades.map(grade => [grade.id, grade])).values()
+      );
+      const uniqueSections = Array.from(
+        new Map(sections.map(section => [section.id, section])).values()
+      );
+      return { stages: uniqueStages, grades: uniqueGrades, sections: uniqueSections };
+    }
 
     const query = searchQuery.toLowerCase();
     const matchedSections = sections.filter((s) =>
@@ -314,10 +326,21 @@ export default function StructureTree({
         matchedGrades.some((g) => g.stageId === s.id)
     );
 
+    // Deduplicate all matched data by ID
+    const uniqueMatchedStages = Array.from(
+      new Map(matchedStages.map(stage => [stage.id, stage])).values()
+    );
+    const uniqueMatchedGrades = Array.from(
+      new Map(matchedGrades.map(grade => [grade.id, grade])).values()
+    );
+    const uniqueMatchedSections = Array.from(
+      new Map(matchedSections.map(section => [section.id, section])).values()
+    );
+
     return {
-      stages: matchedStages,
-      grades: matchedGrades,
-      sections: matchedSections,
+      stages: uniqueMatchedStages,
+      grades: uniqueMatchedGrades,
+      sections: uniqueMatchedSections,
     };
   }, [searchQuery, stages, grades, sections]);
 
@@ -453,7 +476,7 @@ export default function StructureTree({
                   onClick={() => onSelectNode({ type: "stage", id: stage.id })}
                   className="flex-1 font-medium cursor-pointer py-1 touch-manipulation"
                 >
-                  {stage.name}
+                  {locale === "ar" ? (stage.nameAr || stage.nameEn || stage.name) : (stage.nameEn || stage.nameAr || stage.name)}
                 </div>
                 <button
                   onClick={() => onAddGrade(stage.id)}
@@ -538,7 +561,7 @@ export default function StructureTree({
                           <GripVertical className="w-4 h-4 text-gray-400" />
                           <ChevronRight className="w-4 h-4" />
                           <div className="flex-1 text-sm font-medium">
-                            {activeGrade.name}
+                            {locale === "ar" ? (activeGrade.nameAr || activeGrade.nameEn || activeGrade.name) : (activeGrade.nameEn || activeGrade.nameAr || activeGrade.name)}
                           </div>
                         </div>
                       ) : null}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Plus, Search, MoreVertical, Edit2, Trash2 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
@@ -34,6 +34,7 @@ export default function SubjectsList({
   onRefresh,
 }: SubjectsListProps) {
   const t = useTranslations("academics.subjects");
+  const locale = useLocale();
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<Subject | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -43,6 +44,8 @@ export default function SubjectsList({
     const query = searchQuery.toLowerCase();
     return subjects.filter(
       (s) =>
+        s.nameAr.toLowerCase().includes(query) ||
+        s.nameEn.toLowerCase().includes(query) ||
         s.name.toLowerCase().includes(query) ||
         s.code?.toLowerCase().includes(query) ||
         s.stage?.toLowerCase().includes(query)
@@ -121,7 +124,9 @@ export default function SubjectsList({
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-medium text-gray-900 truncate">{subject.name}</h3>
+                      <h3 className="font-medium text-gray-900 truncate">
+                        {locale === "ar" ? (subject.nameAr || subject.nameEn || subject.name) : (subject.nameEn || subject.nameAr || subject.name)}
+                      </h3>
                       {subject.code && (
                         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                           {subject.code}
@@ -131,7 +136,9 @@ export default function SubjectsList({
                     
                     <div className="flex items-center gap-2 flex-wrap">
                       {subject.stage && (
-                        <span className="text-xs text-gray-600">{subject.stage}</span>
+                        <span className="text-xs text-gray-600">
+                          {t(`subjects_list.stages.${subject.stage.toLowerCase()}`, { default: subject.stage })}
+                        </span>
                       )}
                       
                       <span

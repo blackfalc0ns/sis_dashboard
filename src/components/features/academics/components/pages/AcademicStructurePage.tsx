@@ -9,7 +9,6 @@ import StructureTree from "../tree/StructureTree";
 import DetailsPanel from "../shared/DetailsPanel";
 import InsightsPanel from "../shared/InsightsPanel";
 import Modal from "@/components/ui/modal/Modal";
-import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
 import {
@@ -27,15 +26,21 @@ import {
   deleteSection,
   reorderGrades,
   carryOverStructure,
+  isStageNameUnique,
+  isGradeNameUnique,
+  isSectionNameUnique,
   Stage,
   Grade,
   Section,
   AcademicYear,
   Term,
 } from "@/services/academics/structureService";
+import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
+import { validateArEnDifferent } from "@/utils/validation/bilingualValidation";
 
 export default function AcademicStructurePage() {
   const t = useTranslations("academics.structure");
+  const tValidation = useTranslations("validation");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -63,7 +68,9 @@ export default function AcademicStructurePage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalType, setAddModalType] = useState<"stage" | "grade" | "section">("stage");
   const [addModalParentId, setAddModalParentId] = useState<string | null>(null);
-  const [newItemName, setNewItemName] = useState("");
+  const [newItemNameAr, setNewItemNameAr] = useState("");
+  const [newItemNameEn, setNewItemNameEn] = useState("");
+  const [addModalErrors, setAddModalErrors] = useState<{ ar?: string; en?: string }>({});
   
   // Carry Over Dialog
   const [showCarryOverDialog, setShowCarryOverDialog] = useState(false);
@@ -221,7 +228,9 @@ export default function AcademicStructurePage() {
     if (isReadOnly) return;
     setAddModalType("stage");
     setAddModalParentId(null);
-    setNewItemName("");
+    setNewItemNameAr("");
+    setNewItemNameEn("");
+    setAddModalErrors({});
     setShowAddModal(true);
   };
 
@@ -229,7 +238,9 @@ export default function AcademicStructurePage() {
     if (isReadOnly) return;
     setAddModalType("grade");
     setAddModalParentId(stageId);
-    setNewItemName("");
+    setNewItemNameAr("");
+    setNewItemNameEn("");
+    setAddModalErrors({});
     setShowAddModal(true);
   };
 
@@ -237,37 +248,87 @@ export default function AcademicStructurePage() {
     if (isReadOnly) return;
     setAddModalType("section");
     setAddModalParentId(gradeId);
-    setNewItemName("");
+    setNewItemNameAr("");
+    setNewItemNameEn("");
+    setAddModalErrors({});
     setShowAddModal(true);
   };
 
   const handleCreateItem = async () => {
-    if (!newItemName.trim() || isReadOnly) return;
+    if (isReadOnly) return;
+
+    // Validation
+    const newErrors: { ar?: string; en?: string } = {};
+    if (!newItemNameAr.trim()) newErrors.ar = tValidation("required_ar");
+    if (!newItemNameEn.trim()) newErrors.en = tValidation("required_en");
+
+    // AR != EN validation
+    if (newItemNameAr.trim() && newItemNameEn.trim()) {
+      const arEnErrors = validateArEnDifferent(newItemNameAr, newItemNameEn);
+      if (arEnErrors.arError) {
+        newErrors.ar = tValidation("arEnMustDiffer");
+      }
+      if (arEnErrors.enError) {
+        newErrors.en = tValidation("arEnMustDiffer");
+      }
+    }
+
+    // Uniqueness validation (only if AR != EN passed)
+    if (newItemNameAr.trim() && newItemNameEn.trim() && Object.keys(newErrors).length === 0) {
+      if (addModalType === "stage") {
+        const uniqueness = isStageNameUnique(academicYearId, termId, newItemNameAr, newItemNameEn);
+        if (!uniqueness.uniqueAr) newErrors.ar = tValidation("unique_name_ar_stage");
+        if (!uniqueness.uniqueEn) newErrors.en = tValidation("unique_name_en_stage");
+      } else if (addModalType === "grade" && addModalParentId) {
+        const uniqueness = isGradeNameUnique(academicYearId, termId, addModalParentId, newItemNameAr, newItemNameEn);
+        if (!uniqueness.uniqueAr) newErrors.ar = tValidation("unique_name_ar_grade");
+        if (!uniqueness.uniqueEn) newErrors.en = tValidation("unique_name_en_grade");
+      } else if (addModalType === "section" && addModalParentId) {
+        const uniqueness = isSectionNameUnique(academicYearId, termId, addModalParentId, newItemNameAr, newItemNameEn);
+        if (!uniqueness.uniqueAr) newErrors.ar = tValidation("unique_name_ar_section");
+        if (!uniqueness.uniqueEn) newErrors.en = tValidation("unique_name_en_section");
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setAddModalErrors(newErrors);
+      return;
+    }
 
     try {
       if (addModalType === "stage") {
-        const newStage = await createStage(academicYearId, termId, { name: newItemName });
+        const newStage = await createStage(academicYearId, termId, { 
+          nameAr: newItemNameAr,
+          nameEn: newItemNameEn,
+          name: newItemNameEn || newItemNameAr,
+        });
         setStages([...stages, newStage]);
       } else if (addModalType === "grade" && addModalParentId) {
         const maxOrder = grades
           .filter((g) => g.stageId === addModalParentId)
           .reduce((max, g) => Math.max(max, g.order), 0);
         const newGrade = await createGrade(academicYearId, termId, {
-          name: newItemName,
+          nameAr: newItemNameAr,
+          nameEn: newItemNameEn,
+          name: newItemNameEn || newItemNameAr,
           stageId: addModalParentId,
           order: maxOrder + 1,
         });
         setGrades([...grades, newGrade]);
       } else if (addModalType === "section" && addModalParentId) {
         const newSection = await createSection(academicYearId, termId, {
-          name: newItemName,
+          nameAr: newItemNameAr,
+          nameEn: newItemNameEn,
+          name: newItemNameEn || newItemNameAr,
           gradeId: addModalParentId,
           capacity: 30,
         });
         setSections([...sections, newSection]);
       }
       setShowAddModal(false);
-      setNewItemName("");
+      setNewItemNameAr("");
+      setNewItemNameEn("");
+      setAddModalErrors({});
     } catch (err) {
       console.error("Failed to create item:", err);
     }
@@ -589,6 +650,8 @@ export default function AcademicStructurePage() {
               onDelete={handleDelete}
               isReadOnly={isReadOnly}
               onDirtyChange={setHasUnsavedChanges}
+              academicYearId={academicYearId}
+              termId={termId}
             />
           </div>
 
@@ -623,7 +686,7 @@ export default function AcademicStructurePage() {
             </Button>
             <Button
               onClick={handleCreateItem}
-              disabled={!newItemName.trim()}
+              disabled={!newItemNameAr.trim() || !newItemNameEn.trim()}
               variant="primary"
             >
               {t("modals.create")}
@@ -631,12 +694,17 @@ export default function AcademicStructurePage() {
           </>
         }
       >
-        <Input
+        <BilingualTextField
           label={t("modals.name")}
-          required
-          value={newItemName}
-          onChange={(e) => setNewItemName(e.target.value)}
-          autoFocus
+          value={{ ar: newItemNameAr, en: newItemNameEn }}
+          onChange={(value) => {
+            setNewItemNameAr(value.ar);
+            setNewItemNameEn(value.en);
+            setAddModalErrors({});
+          }}
+          requiredAr
+          requiredEn
+          errors={addModalErrors}
         />
       </Modal>
 
@@ -739,3 +807,4 @@ export default function AcademicStructurePage() {
     </div>
   );
 }
+

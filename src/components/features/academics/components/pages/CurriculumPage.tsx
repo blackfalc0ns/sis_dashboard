@@ -465,6 +465,7 @@ export default function CurriculumPage() {
                 onRefresh={refreshCurriculum}
                 onDirtyChange={setHasUnsavedChanges}
                 isReadOnly={isReadOnly}
+                gradeId={selectedGradeId}
               />
             </div>
 

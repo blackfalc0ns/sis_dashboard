@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import {
-  Card,
   Stack,
   Typography,
   List,
@@ -30,6 +29,7 @@ import EmptyState from "@/components/ui/empty-state/EmptyState";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import FileUploadButton from "@/components/ui/file-upload/FileUploadButton";
 import AttachmentListItem from "@/components/ui/attachment-list-item/AttachmentListItem";
+import { validateHttpUrl, normalizeUrl, getUrlErrorKey } from "@/utils/validation/url";
 import {
   LessonAttachment,
   fetchLessonAttachments,
@@ -50,6 +50,7 @@ export default function LessonMaterials({ lessonId, isReadOnly }: LessonMaterial
   const tCommon = useTranslations("common");
   const tErrors = useTranslations("errors");
   const tSuccess = useTranslations("success");
+  const tValidation = useTranslations("validation");
 
   const [attachments, setAttachments] = useState<LessonAttachment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,15 +156,11 @@ export default function LessonMaterials({ lessonId, isReadOnly }: LessonMaterial
     }
 
     if (!linkUrl.trim()) {
-      errors.url = t("url_required");
+      errors.url = tValidation("urlRequired");
     } else {
-      try {
-        const url = new URL(linkUrl);
-        if (!url.protocol.startsWith("http")) {
-          errors.url = t("invalid_url");
-        }
-      } catch {
-        errors.url = t("invalid_url");
+      const urlValidation = validateHttpUrl(linkUrl);
+      if (!urlValidation.ok) {
+        errors.url = tValidation(getUrlErrorKey(urlValidation.reason).replace('validation.', ''));
       }
     }
 
@@ -175,9 +172,10 @@ export default function LessonMaterials({ lessonId, isReadOnly }: LessonMaterial
     if (!validateLinkForm()) return;
 
     try {
+      const urlValidation = validateHttpUrl(linkUrl);
       await createLessonAttachmentLink(lessonId, {
         title: linkTitle.trim(),
-        url: linkUrl.trim(),
+        url: urlValidation.normalized || linkUrl.trim(),
       });
       await loadAttachments();
       setLinkDialogOpen(false);
@@ -266,42 +264,40 @@ export default function LessonMaterials({ lessonId, isReadOnly }: LessonMaterial
 
   return (
     <>
-      <Card sx={{ p: 3, mt: 3 }}>
-        <Stack spacing={2}>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6">{t("title")}</Typography>
-            {!isReadOnly && (
-              <Stack direction="row" spacing={1}>
-                <FileUploadButton
-                  onFilesSelected={handleFilesSelected}
-                  multiple
-                  maxSizeBytes={MAX_FILE_SIZE}
-                  disabled={uploading}
-                  buttonLabel={t("upload_files")}
-                  buttonProps={{
-                    variant: "outline",
-                    size: "sm",
-                    leftIcon: <Upload className="w-4 h-4" />,
-                  }}
-                  onError={(error) => showSnackbar(error, "error")}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<LinkIcon className="w-4 h-4" />}
-                  onClick={() => setLinkDialogOpen(true)}
-                >
-                  {t("add_link")}
-                </Button>
-              </Stack>
-            )}
-          </Box>
-
-          {isReadOnly && (
-            <Alert severity="info" sx={{ fontSize: "0.875rem" }}>
-              {t("readonly_message")}
-            </Alert>
+      <Stack spacing={2}>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          {!isReadOnly && (
+            <Stack direction="row" spacing={1}>
+              <FileUploadButton
+                onFilesSelected={handleFilesSelected}
+                multiple
+                maxSizeBytes={MAX_FILE_SIZE}
+                disabled={uploading}
+                buttonLabel={t("upload_files")}
+                buttonProps={{
+                  variant: "outline",
+                  size: "sm",
+                  leftIcon: <Upload className="w-4 h-4" />,
+                }}
+                onError={(error) => showSnackbar(error, "error")}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<LinkIcon className="w-4 h-4" />}
+                onClick={() => setLinkDialogOpen(true)}
+              >
+                {t("add_link")}
+              </Button>
+            </Stack>
           )}
+        </Box>
+
+        {isReadOnly && (
+          <Alert severity="info" sx={{ fontSize: "0.875rem" }}>
+            {t("readonly_message")}
+          </Alert>
+        )}
 
           {Object.keys(uploadProgress).length > 0 && (
             <Box>
@@ -358,7 +354,6 @@ export default function LessonMaterials({ lessonId, isReadOnly }: LessonMaterial
             </List>
           )}
         </Stack>
-      </Card>
 
       {/* Add Link Dialog */}
       <Modal
@@ -401,7 +396,18 @@ export default function LessonMaterials({ lessonId, isReadOnly }: LessonMaterial
           <Input
             label={t("link_url")}
             value={linkUrl}
-            onChange={(e) => setLinkUrl(e.target.value)}
+            onChange={(e) => {
+              setLinkUrl(e.target.value);
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              const { url, ...rest } = linkErrors;
+              setLinkErrors(rest);
+            }}
+            onBlur={() => {
+              const normalized = normalizeUrl(linkUrl);
+              if (normalized !== linkUrl) {
+                setLinkUrl(normalized);
+              }
+            }}
             required
             placeholder="https://example.com"
             error={linkErrors.url}

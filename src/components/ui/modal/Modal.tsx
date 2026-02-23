@@ -78,62 +78,71 @@ export default function Modal({
     full: "max-w-full mx-4",
   };
 
-  return (
+ // ... نفس imports ونفس props
+
+return (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+    onClick={handleOverlayClick}
+    dir={isRTL ? "rtl" : "ltr"}
+  >
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-      onClick={handleOverlayClick}
-      dir={isRTL ? "rtl" : "ltr"}
+      ref={modalRef}
+      className={`
+        relative w-full ${sizeClasses[size]} bg-white rounded-2xl shadow-2xl
+        transition-all ${className}
+        max-h-[calc(100vh-200px)]
+        flex flex-col overflow-hidden
+      `}
+      style={{ animation: "modalFadeIn 0.2s ease-out" }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={title ?? "Modal"}
     >
-      <div
-        ref={modalRef}
-        className={`relative w-full ${sizeClasses[size]} bg-white rounded-2xl shadow-2xl transform transition-all ${className}`}
-        style={{
-          animation: "modalFadeIn 0.2s ease-out",
-        }}
-      >
-        {/* Header */}
-        {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            {title && (
-              <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-            )}
-            {showCloseButton && (
-              <button
-                onClick={onClose}
-                className={`p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors ${!title ? "absolute top-4 " + (isRTL ? "left-4" : "right-4") : ""}`}
-                aria-label="Close"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Content */}
-        <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
-          {children}
+      {/* Header (fixed داخل المودال) */}
+      {(title || showCloseButton) && (
+        <div className="shrink-0 flex items-center justify-between p-6 border-b border-gray-200 bg-white">
+          {title && <h2 className="text-xl font-bold text-gray-900">{title}</h2>}
+          {showCloseButton && (
+            <button
+              onClick={onClose}
+              className={`p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors ${
+                !title ? "absolute top-4 " + (isRTL ? "left-4" : "right-4") : ""
+              }`}
+              aria-label="Close"
+              type="button"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
+      )}
 
-        {/* Footer */}
-        {footer && (
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
-            {footer}
-          </div>
-        )}
+      {/* Content (اللي عليه السكرول فقط) */}
+      <div className="flex-1 min-h-0 overflow-y-auto p-6">
+        {children}
       </div>
 
-      <style jsx>{`
-        @keyframes modalFadeIn {
-          from {
-            opacity: 0;
-            transform: scale(0.95) translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-      `}</style>
+      {/* Footer (fixed داخل المودال) */}
+      {footer && (
+        <div className="shrink-0 flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+          {footer}
+        </div>
+      )}
     </div>
-  );
+
+    <style jsx>{`
+      @keyframes modalFadeIn {
+        from {
+          opacity: 0;
+          transform: scale(0.95) translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+    `}</style>
+  </div>
+);
 }

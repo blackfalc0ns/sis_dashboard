@@ -69,7 +69,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 
     // Icon padding
     const iconPaddingLeft = leftIcon ? (isRTL ? "pr-10" : "pl-10") : "";
-    const iconPaddingRight = rightIcon ? (isRTL ? "pl-10" : "pr-10") : "";
+    const iconPaddingRight = rightIcon || error ? (isRTL ? "pl-10" : "pr-10") : "";
 
     return (
       <div className={`${fullWidth ? "w-full" : ""}`}>
@@ -126,9 +126,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             <div
               className={`absolute top-1/2 -translate-y-1/2 ${
                 isRTL ? "left-3" : "right-3"
-              } ${error ? "text-red-500" : "text-gray-400"}`}
+              } ${error ? "text-red-500" : "text-gray-400"} pointer-events-none`}
             >
-              {error ? <AlertCircle className="w-4 h-4" /> : rightIcon}
+              {error ? <AlertCircle className="w-5 h-5" /> : rightIcon}
             </div>
           )}
         </div>

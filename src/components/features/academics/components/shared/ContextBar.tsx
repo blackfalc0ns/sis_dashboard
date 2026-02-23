@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { ArrowRight, Plus, Edit2 } from "lucide-react";
 import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
@@ -19,8 +19,9 @@ interface ContextBarProps {
   termStatus: "open" | "closed";
   onAcademicYearChange: (yearId: string) => void;
   onTermChange: (termId: string) => void;
-  onPromoteCarryOver: () => void;
+  onPromoteCarryOver?: () => void; // Made optional
   isReadOnly: boolean;
+  showPromoteCarryOver?: boolean; // New prop to control visibility
 }
 
 export default function ContextBar({
@@ -31,8 +32,10 @@ export default function ContextBar({
   onTermChange,
   onPromoteCarryOver,
   isReadOnly,
+  showPromoteCarryOver = true, // Default to true for backward compatibility
 }: ContextBarProps) {
   const t = useTranslations("academics.structure.context_bar");
+  const locale = useLocale();
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [isLoadingYears, setIsLoadingYears] = useState(true);
@@ -117,12 +120,12 @@ export default function ContextBar({
 
   const academicYearOptions = academicYears.map((year) => ({
     value: year.id,
-    label: year.name,
+    label: locale === "ar" ? (year.nameAr || year.name) : (year.nameEn || year.name),
   }));
 
   const termOptions = terms.map((term) => ({
     value: term.id,
-    label: term.name,
+    label: locale === "ar" ? (term.nameAr || term.name) : (term.nameEn || term.name),
   }));
 
   const selectedYear = academicYears.find((y) => y.id === academicYearId);
@@ -215,16 +218,18 @@ export default function ContextBar({
             >
               {t("create_term")}
             </Button>
-            <Button
-              variant="primary"
-              size="md"
-              leftIcon={<ArrowRight className="w-4 h-4" />}
-              onClick={onPromoteCarryOver}
-              disabled={isReadOnly}
-              title={isReadOnly ? t("status_closed") : ""}
-            >
-              {t("promote_carry_over")}
-            </Button>
+            {showPromoteCarryOver && onPromoteCarryOver && (
+              <Button
+                variant="primary"
+                size="md"
+                leftIcon={<ArrowRight className="w-4 h-4" />}
+                onClick={onPromoteCarryOver}
+                disabled={isReadOnly}
+                title={isReadOnly ? t("status_closed") : ""}
+              >
+                {t("promote_carry_over")}
+              </Button>
+            )}
           </div>
 
           {/* Actions - Mobile */}
@@ -250,15 +255,17 @@ export default function ContextBar({
                 {t("create_term")}
               </Button>
             </div>
-            <Button
-              variant="primary"
-              size="md"
-              fullWidth
-              onClick={onPromoteCarryOver}
-              disabled={isReadOnly}
-            >
-              {t("promote_carry_over")}
-            </Button>
+            {showPromoteCarryOver && onPromoteCarryOver && (
+              <Button
+                variant="primary"
+                size="md"
+                fullWidth
+                onClick={onPromoteCarryOver}
+                disabled={isReadOnly}
+              >
+                {t("promote_carry_over")}
+              </Button>
+            )}
           </div>
         </div>
       </div>

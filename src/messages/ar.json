@@ -27,7 +27,13 @@
     "delete": "حذف",
     "cancel": "إلغاء",
     "confirm": "تأكيد",
-    "add": "إضافة"
+    "add": "إضافة",
+    "arabic": "عربي",
+    "english": "English",
+    "name_ar": "الاسم (عربي)",
+    "name_en": "الاسم (English)",
+    "title_ar": "العنوان (عربي)",
+    "title_en": "العنوان (English)"
   },
   "filter_bar": {
     "filters": {
@@ -2277,6 +2283,11 @@
           "not_allocated": "غير موزعة"
         },
         "inactive": "غير نشطة",
+        "stages": {
+          "primary": "ابتدائي",
+          "middle": "متوسط",
+          "high": "ثانوي"
+        },
         "actions": {
           "edit": "تعديل",
           "delete": "حذف"
@@ -2329,7 +2340,7 @@
         },
         "table": {
           "grade": "الصف",
-          "total": "المجموع"
+          "total": "إجمالي الساعات"
         },
         "actions": {
           "save": "حفظ التغييرات",
@@ -2421,7 +2432,10 @@
         "title": "مخطط المنهج",
         "search_placeholder": "البحث في الوحدات والدروس...",
         "add_unit": "إضافة وحدة",
-        "add_lesson": "إضافة درس"
+        "add_lesson": "إضافة درس",
+        "lessons_count": "{count, plural, =0 {لا دروس} =1 {درس واحد} =2 {درسان} other {# دروس}}",
+        "week_short": "أ{week}",
+        "status_done": "منجز"
       },
       "editor": {
         "no_selection": "اختر وحدة أو درس للتعديل",
@@ -2470,7 +2484,304 @@
         "invalid_url": "صيغة الرابط غير صحيحة",
         "file_too_large": "الملف كبير جداً (الحد الأقصى {max})",
         "remove_material": "حذف المستند",
-        "remove_material_confirm": "هل أنت متأكد من حذف هذا المستند؟"
+        "remove_material_confirm": "هل أنت متأكد من حذف هذا المستند؟",
+        "cancel": "إلغاء",
+        "save": "حفظ",
+        "open": "فتح"
+      },
+      "video": {
+        "title": "فيديو الشرح",
+        "upload": "رفع",
+        "link": "رابط",
+        "video_title": "عنوان الفيديو",
+        "video_url": "رابط الفيديو",
+        "no_video": "لا يوجد فيديو مضاف بعد.",
+        "remove_video": "حذف الفيديو؟",
+        "remove_video_confirm": "هل أنت متأكد من حذف هذا الفيديو؟",
+        "readonly_message": "الترم مغلق. الفيديو للعرض فقط.",
+        "preview": "معاينة",
+        "open": "فتح",
+        "url_invalid": "أدخل رابطًا صحيحًا يبدأ بـ http:// أو https://",
+        "upload_video": "رفع فيديو",
+        "add_video_link": "إضافة رابط فيديو",
+        "uploading": "جاري الرفع...",
+        "saving": "جاري الحفظ...",
+        "save": "حفظ"
+      },
+      "assignments": {
+        "title": "الواجبات",
+        "add_assignment": "إضافة واجب",
+        "edit_assignment": "تعديل الواجب",
+        "no_assignments": "لا توجد واجبات بعد.",
+        "readonly_message": "الترم مغلق. الواجبات للعرض فقط.",
+        "due_date": "تاريخ التسليم",
+        "max_score": "الدرجة النهائية",
+        "assignment_title": "عنوان الواجب",
+        "description": "الوصف",
+        "attachments": "المرفقات",
+        "delete_assignment": "حذف الواجب؟",
+        "delete_assignment_confirm": "هل أنت متأكد من حذف هذا الواجب؟",
+        "max_score_invalid": "يجب أن تكون الدرجة 0 أو أكثر",
+        "save": "حفظ",
+        "saving": "جاري الحفظ...",
+        "cancel": "إلغاء",
+        "published": "منشور",
+        "draft": "مسودة"
+      },
+      "learningContent": {
+        "title": "محتوى التعلم",
+        "materials": "المواد",
+        "video": "الفيديو",
+        "assignments": "الواجبات"
+      },
+      "questions": {
+        "title": "الأسئلة",
+        "add_question": "إضافة سؤال",
+        "edit_question": "تعديل السؤال",
+        "delete_question": "حذف السؤال؟",
+        "delete_question_confirm": "هل أنت متأكد من حذف هذا السؤال؟",
+        "question_text": "نص السؤال",
+        "question_type": "نوع السؤال",
+        "points": "الدرجات",
+        "no_questions": "لا توجد أسئلة بعد.",
+        "summary_title": "ملخص الدرجات",
+        "max_score": "الدرجة النهائية",
+        "total_points": "مجموع درجات الأسئلة",
+        "difference": "الفرق",
+        "points_match": "الدرجات متطابقة",
+        "points_mismatch": "الدرجات غير متطابقة",
+        "auto_distribute": "توزيع الدرجات تلقائيًا",
+        "confirm_auto_distribute_title": "توزيع الدرجات تلقائيًا؟",
+        "confirm_auto_distribute_body": "سيتم تعديل درجات جميع الأسئلة لتطابق الدرجة النهائية.",
+        "points_sum_mismatch": "يجب أن يساوي مجموع درجات الأسئلة الدرجة النهائية.",
+        "question_types": {
+          "MULTIPLE_CHOICE": "اختيار من متعدد",
+          "MCQ_SINGLE": "اختيار من متعدد (إجابة واحدة)",
+          "MCQ_MULTI": "اختيار من متعدد (أكثر من إجابة)",
+          "TRUE_FALSE": "صح أو خطأ",
+          "SHORT_ANSWER": "إجابة قصيرة",
+          "ESSAY": "مقال"
+        },
+        "options": "الاختيارات",
+        "add_option": "إضافة اختيار",
+        "remove_option": "حذف الاختيار",
+        "option_text": "نص الاختيار",
+        "correct_answer": "الإجابة الصحيحة",
+        "move_up": "تحريك لأعلى",
+        "move_down": "تحريك لأسفل",
+        "reorder_option": "إعادة ترتيب الاختيار",
+        "answers": "الإجابات",
+        "true": "صح",
+        "false": "خطأ",
+        "sample_answer": "إجابة نموذجية (اختياري)",
+        "manual_grading_hint": "هذا السؤال يحتاج تصحيحًا يدويًا."
+      },
+      "teachingWeeksHint": "أسابيع الدراسة: {count} (مع استبعاد الإجازات)",
+      "assignments": {
+        "dueDateHolidayWarning": "تاريخ التسليم يقع في يوم إجازة."
+      }
+    },
+    "calendar": {
+      "title": "التقويم الأكاديمي",
+      "readonly_banner": "هذا الترم مغلق. التقويم للعرض فقط.",
+      "today": "اليوم",
+      "prev": "السابق",
+      "next": "التالي",
+      "add_event": "إضافة حدث",
+      "edit_event": "تعديل الحدث",
+      "delete": "حذف",
+      "save": "حفظ",
+      "saving": "جاري الحفظ...",
+      "cancel": "إلغاء",
+      "more": "المزيد",
+      "event": "حدث",
+      "events": "أحداث",
+      "filters": {
+        "title": "التصفية",
+        "type": "نوع الحدث",
+        "scope": "النطاق"
+      },
+      "event_types": {
+        "holiday": "عطلة",
+        "exam": "اختبار",
+        "activity": "نشاط",
+        "other": "أخرى"
+      },
+      "scopes": {
+        "all": "الكل",
+        "school": "المدرسة",
+        "stage": "المرحلة",
+        "grade": "الصف",
+        "section": "الشعبة"
+      },
+      "title": "العنوان",
+      "type": "النوع",
+      "all_day": "طوال اليوم",
+      "start_date": "تاريخ البداية",
+      "end_date": "تاريخ النهاية",
+      "scope_type": "نوع النطاق",
+      "scope_target": "هدف النطاق",
+      "notes": "ملاحظات",
+      "optional": "اختياري",
+      "delete_confirm": {
+        "title": "حذف الحدث",
+        "message": "هل أنت متأكد من حذف هذا الحدث؟"
+      },
+      "validation": {
+        "start_after_end": "يجب أن يكون تاريخ النهاية بعد تاريخ البداية",
+        "outside_term_range": "يجب أن يكون الحدث ضمن نطاق تواريخ الترم",
+        "outside_term_range_with_dates": "يجب أن يكون الحدث ضمن نطاق الترم ({start} – {end})"
+      },
+      "term_range_hint": "نطاق الترم: {start} – {end}",
+      "date_helper_text": "يجب أن يكون داخل نطاق الترم",
+      "clear_filters": "مسح",
+      "apply": "تطبيق",
+      "notifyUsers": "إرسال إشعار للمستفيدين",
+      "eventMoved": "تم نقل الحدث",
+      "moveFailed": "فشل نقل الحدث",
+      "moveToDate": "نقل إلى تاريخ...",
+      "dropOutsideTerm": "يمكن نقل الحدث داخل نطاق الترم فقط.",
+      "moveEvent": "نقل الحدث",
+      "selectNewDate": "اختر التاريخ الجديد",
+      "views": {
+        "month": "شهر",
+        "week": "أسبوع",
+        "agenda": "جدول"
+      },
+      "modes": {
+        "compact": "مضغوط",
+        "comfortable": "مريح",
+        "minimal": "بسيط"
+      },
+      "eventsCount": "{count} أحداث",
+      "noEventsThisWeek": "لا توجد أحداث هذا الأسبوع",
+      "noEventsThisMonth": "لا توجد أحداث هذا الشهر"
+    },
+    "teacherAllocation": {
+      "title": "توزيع المعلمين",
+      "tabs": {
+        "matrix": "جدول التوزيع",
+        "load": "حمل المعلمين"
+      },
+      "filters": {
+        "stage": "المرحلة",
+        "grade": "الصف",
+        "section": "الشعبة",
+        "subject": "المادة",
+        "searchTeacher": "بحث عن معلم",
+        "allStages": "كل المراحل",
+        "allGrades": "كل الصفوف",
+        "allSections": "كل الشعب",
+        "allSubjects": "كل المواد",
+        "showOnlyMissing": "إظهار الناقص فقط"
+      },
+      "actions": {
+        "validate": "التحقق",
+        "copyFromTerm": "نسخ من ترم",
+        "applyToAllSections": "تطبيق على كل الشعب",
+        "clearSelection": "مسح",
+        "save": "حفظ التغييرات",
+        "saving": "جاري الحفظ...",
+        "reset": "إعادة تعيين"
+      },
+      "matrix": {
+        "title": "جدول توزيع المعلمين",
+        "section": "الشعبة",
+        "missingCount": "ناقص",
+        "selectTeacher": "اختر معلم",
+        "noTeacher": "لا يوجد معلم",
+        "currentLoad": "{hours}/أسبوع",
+        "summary": {
+          "sections": "الشعب",
+          "subjects": "المواد",
+          "completion": "الاكتمال"
+        }
+      },
+      "load": {
+        "title": "حمل المعلمين",
+        "kpi": {
+          "totalTeachers": "إجمالي المعلمين",
+          "teachersWithZeroLoad": "غير مخصصين",
+          "avgLoad": "متوسط الحمل",
+          "maxLoad": "أقصى حمل"
+        },
+        "filters": {
+          "searchPlaceholder": "البحث باسم المعلم...",
+          "allStatus": "كل الحالات",
+          "normal": "حمل عادي",
+          "warning": "قريب من السعة",
+          "overloaded": "محمل زيادة",
+          "zero": "بدون حمل"
+        },
+        "table": {
+          "teacher": "المعلم",
+          "weeklyLoad": "الحمل الأسبوعي",
+          "sections": "الشعب",
+          "subjects": "المواد",
+          "viewBreakdown": "عرض التفاصيل"
+        },
+        "breakdown": {
+          "title": "تفاصيل الحمل",
+          "grade": "الصف",
+          "section": "الشعبة",
+          "subject": "المادة",
+          "hours": "الساعات"
+        },
+        "noTeachers": "لا يوجد معلمون"
+      },
+      "validation": {
+        "title": "نتائج التحقق",
+        "summary": {
+          "missingAssignments": "التخصيصات الناقصة",
+          "sectionsWithMissing": "الشعب الناقصة",
+          "overloadedTeachers": "المعلمون المحملون"
+        },
+        "issues": {
+          "missing": "معلم ناقص لـ {subject} في {section}",
+          "overloaded": "{teacher} يتجاوز الحمل الأقصى ({current}/{max})",
+          "unqualified": "{teacher} غير مؤهل لـ {subject}"
+        },
+        "noIssues": "جميع التخصيصات صحيحة",
+        "close": "إغلاق"
+      },
+      "bulkAction": {
+        "title": "تطبيق المعلم على كل الشعب",
+        "message": "تطبيق {teacher} على {subject} لكل الشعب في {grade}؟",
+        "impact": "سيؤثر هذا على {count} شعبة",
+        "confirm": "تطبيق",
+        "cancel": "إلغاء",
+        "success": "تم تطبيق المعلم على كل الشعب"
+      },
+      "carryOver": {
+        "title": "نسخ التوزيعات من ترم",
+        "sourceYear": "السنة المصدر",
+        "sourceTerm": "الترم المصدر",
+        "options": {
+          "includeAllocations": "تضمين توزيعات المعلمين"
+        },
+        "confirm": "نسخ",
+        "cancel": "إلغاء",
+        "success": "تم نسخ التوزيعات بنجاح"
+      },
+      "readOnlyBanner": "هذا الترم مغلق. توزيع المعلمين للعرض فقط.",
+      "emptyState": {
+        "noGrades": {
+          "title": "لا توجد صفوف",
+          "message": "يرجى إنشاء الصفوف في الهيكل الأكاديمي أولاً",
+          "cta": "الذهاب إلى الهيكل"
+        },
+        "noSubjects": {
+          "title": "لا توجد مواد",
+          "message": "يرجى إنشاء المواد في المواد وتوزيعها أولاً",
+          "cta": "الذهاب إلى المواد"
+        },
+        "noTeachers": {
+          "title": "لا يوجد معلمون",
+          "message": "يرجى إضافة معلمين إلى النظام أولاً"
+        }
+      },
+      "unsavedChanges": {
+        "message": "لديك تغييرات غير محفوظة. هل أنت متأكد من المغادرة؟"
       }
     }
   },
@@ -2478,11 +2789,38 @@
     "load_failed": "فشل تحميل البيانات",
     "upload_failed": "فشل رفع الملف",
     "save_failed": "فشل الحفظ",
-    "delete_failed": "فشل الحذف"
+    "delete_failed": "فشل الحذف",
+    "pointsUpdateFailed": "فشل تحديث الدرجات"
   },
   "success": {
     "uploaded": "تم الرفع بنجاح",
     "link_added": "تمت إضافة الرابط بنجاح",
-    "deleted": "تم الحذف بنجاح"
+    "deleted": "تم الحذف بنجاح",
+    "pointsUpdated": "تم تحديث الدرجات بنجاح"
+  },
+  "validation": {
+    "required_ar": "العربي مطلوب",
+    "required_en": "الإنجليزي مطلوب",
+    "unique_name_ar_stage": "اسم المرحلة بالعربي يجب أن يكون فريداً",
+    "unique_name_en_stage": "اسم المرحلة بالإنجليزي يجب أن يكون فريداً",
+    "unique_name_ar_grade": "اسم الصف بالعربي يجب أن يكون فريداً داخل المرحلة",
+    "unique_name_en_grade": "اسم الصف بالإنجليزي يجب أن يكون فريداً داخل المرحلة",
+    "urlRequired": "الرابط مطلوب",
+    "urlInvalid": "أدخل رابطًا صحيحًا",
+    "urlProtocol": "يجب أن يبدأ الرابط بـ http:// أو https://",
+    "urlIncomplete": "الرابط غير مكتمل (مفقود عنوان الموقع)",
+    "urlTooLong": "الرابط طويل جدًا",
+    "urlBlocked": "هذا النطاق غير مسموح",
+    "unique_name_ar_section": "اسم الشعبة بالعربي يجب أن يكون فريداً داخل الصف",
+    "unique_name_en_section": "اسم الشعبة بالإنجليزي يجب أن يكون فريداً داخل الصف",
+    "arEnMustDiffer": "يجب أن يكون النص بالعربي مختلفاً عن النص بالإنجليزي",
+    "selectCorrectSingle": "اختر إجابة صحيحة واحدة فقط.",
+    "selectCorrectMulti": "اختر إجابة صحيحة واحدة على الأقل.",
+    "duplicateOptionAr": "اختيار عربي مكرر",
+    "duplicateOptionEn": "اختيار إنجليزي مكرر",
+    "minTwoOptions": "مطلوب اختيارين على الأقل"
+  },
+  "helper": {
+    "urlExample": "مثال: https://example.com"
   }
 }

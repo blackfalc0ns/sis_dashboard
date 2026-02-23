@@ -4,9 +4,11 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Save, Trash2, CheckCircle } from "lucide-react";
 import Button from "@/components/ui/button/Button";
-import Input from "@/components/ui/input/Input";
 import TextArea from "@/components/ui/input/TextArea";
+import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
+import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
+import { validateArEnDifferent } from "@/utils/validation/bilingualValidation";
 import {
   Curriculum,
   Unit,
@@ -21,6 +23,9 @@ import {
   undoLessonDone,
 } from "@/services/academics/curriculumService";
 import LessonMaterials from "./LessonMaterials";
+import LessonVideo from "./LessonVideo";
+import LessonAssignments from "./LessonAssignments";
+import LearningContent from "./LearningContent";
 
 interface CurriculumEditorProps {
   curriculum: Curriculum;
@@ -31,6 +36,7 @@ interface CurriculumEditorProps {
   onRefresh: () => Promise<void>;
   onDirtyChange: (isDirty: boolean) => void;
   isReadOnly: boolean;
+  gradeId?: string; // For scope-aware holiday checking
 }
 
 export default function CurriculumEditor({
@@ -42,12 +48,16 @@ export default function CurriculumEditor({
   onRefresh,
   onDirtyChange,
   isReadOnly,
+  gradeId,
 }: CurriculumEditorProps) {
   const t = useTranslations("academics.curriculum.editor");
+  const tValidation = useTranslations("validation");
 
-  const [formData, setFormData] = useState<Record<string, any>>({});
-  const [originalData, setOriginalData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<Record<string, string | number>>({});
+  const [originalData, setOriginalData] = useState<Record<string, string | number>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{ ar?: string; en?: string }>({});
 
   useEffect(() => {
     if (!selectedNode) {
@@ -59,13 +69,18 @@ export default function CurriculumEditor({
 
     if (selectedNode.type === "unit") {
       if (selectedNode.id === "new") {
-        const data = { title: "", description: "" };
+        const data = { titleAr: "", titleEn: "", title: "", description: "" };
         setFormData(data);
         setOriginalData(data);
       } else {
         const unit = units.find((u) => u.id === selectedNode.id);
         if (unit) {
-          const data = { title: unit.title, description: unit.description || "" };
+          const data = { 
+            titleAr: unit.titleAr || "", 
+            titleEn: unit.titleEn || "", 
+            title: unit.title, 
+            description: unit.description || "" 
+          };
           setFormData(data);
           setOriginalData(data);
         }
@@ -73,6 +88,8 @@ export default function CurriculumEditor({
     } else if (selectedNode.type === "lesson") {
       if (selectedNode.id.startsWith("new-")) {
         const data = {
+          titleAr: "",
+          titleEn: "",
           title: "",
           objectives: "",
           resources: "",
@@ -85,6 +102,8 @@ export default function CurriculumEditor({
         const lesson = lessons.find((l) => l.id === selectedNode.id);
         if (lesson) {
           const data = {
+            titleAr: lesson.titleAr || "",
+            titleEn: lesson.titleEn || "",
             title: lesson.title,
             objectives: lesson.objectives || "",
             resources: lesson.resources || "",
@@ -100,44 +119,82 @@ export default function CurriculumEditor({
   }, [selectedNode, units, lessons]);
 
   useEffect(() => {
-    const isDirty = JSON.stringify(formData) !== JSON.stringify(originalData);
-    onDirtyChange(isDirty);
+    const dirty = JSON.stringify(formData) !== JSON.stringify(originalData);
+    setIsDirty(dirty);
+    onDirtyChange(dirty);
   }, [formData, originalData, onDirtyChange]);
 
   const handleSave = async () => {
     if (!selectedNode) return;
 
+    // Validate required fields
+    const titleAr = (formData.titleAr as string || "").trim();
+    const titleEn = (formData.titleEn as string || "").trim();
+    
+    // Both titles are required
+    const errors: { ar?: string; en?: string } = {};
+    if (!titleAr) {
+      errors.ar = tValidation("required_ar");
+    }
+    if (!titleEn) {
+      errors.en = tValidation("required_en");
+    }
+    
+    if (errors.ar || errors.en) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    // Validate AR != EN
+    const arEnErrors = validateArEnDifferent(titleAr, titleEn);
+    if (arEnErrors.arError || arEnErrors.enError) {
+      setValidationErrors({
+        ar: arEnErrors.arError ? tValidation("arEnMustDiffer") : undefined,
+        en: arEnErrors.enError ? tValidation("arEnMustDiffer") : undefined,
+      });
+      return;
+    }
+
+    setValidationErrors({});
     setIsSaving(true);
     try {
       if (selectedNode.type === "unit") {
         if (selectedNode.id === "new") {
           await createUnit(curriculum.id, {
-            title: formData.title,
-            description: formData.description,
+            titleAr: formData.titleAr as string,
+            titleEn: formData.titleEn as string,
+            title: (formData.titleEn as string) || (formData.titleAr as string),
+            description: formData.description as string,
           });
         } else {
           await updateUnit(selectedNode.id, {
-            title: formData.title,
-            description: formData.description,
+            titleAr: formData.titleAr as string,
+            titleEn: formData.titleEn as string,
+            title: (formData.titleEn as string) || (formData.titleAr as string),
+            description: formData.description as string,
           });
         }
       } else if (selectedNode.type === "lesson") {
         if (selectedNode.id.startsWith("new-")) {
           const unitId = selectedNode.id.replace("new-", "");
           await createLesson(unitId, {
-            title: formData.title,
-            objectives: formData.objectives,
-            resources: formData.resources,
-            durationMinutes: formData.durationMinutes,
-            plannedWeek: formData.plannedWeek,
+            titleAr: formData.titleAr as string,
+            titleEn: formData.titleEn as string,
+            title: (formData.titleEn as string) || (formData.titleAr as string),
+            objectives: formData.objectives as string,
+            resources: formData.resources as string,
+            durationMinutes: formData.durationMinutes as number,
+            plannedWeek: formData.plannedWeek as number,
           });
         } else {
           await updateLesson(selectedNode.id, {
-            title: formData.title,
-            objectives: formData.objectives,
-            resources: formData.resources,
-            durationMinutes: formData.durationMinutes,
-            plannedWeek: formData.plannedWeek,
+            titleAr: formData.titleAr as string,
+            titleEn: formData.titleEn as string,
+            title: (formData.titleEn as string) || (formData.titleAr as string),
+            objectives: formData.objectives as string,
+            resources: formData.resources as string,
+            durationMinutes: formData.durationMinutes as number,
+            plannedWeek: formData.plannedWeek as number,
           });
         }
       }
@@ -227,11 +284,24 @@ export default function CurriculumEditor({
             )}
           </div>
 
-          <Input
+          <BilingualTextField
             label={t("title")}
-            required
-            value={formData.title || ""}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            value={{
+              ar: (formData.titleAr as string) || "",
+              en: (formData.titleEn as string) || "",
+            }}
+            onChange={(value) => {
+              setFormData({ 
+                ...formData, 
+                titleAr: value.ar, 
+                titleEn: value.en,
+                title: value.en || value.ar 
+              });
+              setValidationErrors({});
+            }}
+            requiredAr
+            requiredEn
+            errors={validationErrors}
             disabled={isReadOnly}
           />
 
@@ -290,7 +360,7 @@ export default function CurriculumEditor({
               onClick={handleSave}
               variant="primary"
               leftIcon={<Save className="w-4 h-4" />}
-              disabled={isReadOnly || isSaving}
+              disabled={isReadOnly || isSaving || !isDirty}
             >
               {isSaving ? t("saving") : t("save")}
             </Button>
@@ -320,9 +390,9 @@ export default function CurriculumEditor({
           </div>
         </div>
 
-        {/* Lesson Materials Section - Only for existing lessons */}
+        {/* Learning Content Section - Only for existing lessons */}
         {selectedNode.type === "lesson" && !isNew && (
-          <LessonMaterials lessonId={selectedNode.id} isReadOnly={isReadOnly} />
+          <LearningContent lessonId={selectedNode.id} isReadOnly={isReadOnly} gradeId={gradeId} />
         )}
       </div>
     </div>

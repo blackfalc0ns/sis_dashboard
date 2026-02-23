@@ -27,7 +27,13 @@
     "delete": "Delete",
     "cancel": "Cancel",
     "confirm": "Confirm",
-    "add": "Add"
+    "add": "Add",
+    "arabic": "AR",
+    "english": "EN",
+    "name_ar": "Name (AR)",
+    "name_en": "Name (EN)",
+    "title_ar": "Title (AR)",
+    "title_en": "Title (EN)"
   },
   "filter_bar": {
     "filters": {
@@ -1235,6 +1241,20 @@
         "suspended": "Suspended",
         "withdrawn": "Withdrawn"
       },
+      "grades": {
+        "grade_1": "Grade 1",
+        "grade_2": "Grade 2",
+        "grade_3": "Grade 3",
+        "grade_4": "Grade 4",
+        "grade_5": "Grade 5",
+        "grade_6": "Grade 6",
+        "grade_7": "Grade 7",
+        "grade_8": "Grade 8",
+        "grade_9": "Grade 9",
+        "grade_10": "Grade 10",
+        "grade_11": "Grade 11",
+        "grade_12": "Grade 12"
+      },
       "days": {
         "sat": "Sat",
         "sun": "Sun",
@@ -2294,6 +2314,11 @@
           "not_allocated": "Not Allocated"
         },
         "inactive": "Inactive",
+        "stages": {
+          "primary": "Primary",
+          "middle": "Middle",
+          "high": "High"
+        },
         "actions": {
           "edit": "Edit",
           "delete": "Delete"
@@ -2346,7 +2371,7 @@
         },
         "table": {
           "grade": "Grade",
-          "total": "Total"
+          "total": "Total hours"
         },
         "actions": {
           "save": "Save Changes",
@@ -2438,7 +2463,10 @@
         "title": "Curriculum Outline",
         "search_placeholder": "Search units and lessons...",
         "add_unit": "Add Unit",
-        "add_lesson": "Add Lesson"
+        "add_lesson": "Add Lesson",
+        "lessons_count": "{count, plural, =0 {no lessons} =1 {1 lesson} other {# lessons}}",
+        "week_short": "W{week}",
+        "status_done": "Done"
       },
       "editor": {
         "no_selection": "Select a unit or lesson to edit",
@@ -2487,7 +2515,304 @@
         "invalid_url": "Invalid URL format",
         "file_too_large": "File is too large (max {max})",
         "remove_material": "Remove Material",
-        "remove_material_confirm": "Are you sure you want to remove this material?"
+        "remove_material_confirm": "Are you sure you want to remove this material?",
+        "cancel": "Cancel",
+        "save": "Save",
+        "open": "Open"
+      },
+      "video": {
+        "title": "Lesson Video",
+        "upload": "Upload",
+        "link": "Link",
+        "video_title": "Video Title",
+        "video_url": "Video URL",
+        "no_video": "No video added yet.",
+        "remove_video": "Remove video?",
+        "remove_video_confirm": "Are you sure you want to remove this video?",
+        "readonly_message": "Term is closed. Video is read-only.",
+        "preview": "Preview",
+        "open": "Open",
+        "url_invalid": "Enter a valid URL starting with http:// or https://",
+        "upload_video": "Upload Video",
+        "add_video_link": "Add Video Link",
+        "uploading": "Uploading...",
+        "saving": "Saving...",
+        "save": "Save"
+      },
+      "assignments": {
+        "title": "Assignments",
+        "add_assignment": "Add Assignment",
+        "edit_assignment": "Edit Assignment",
+        "no_assignments": "No assignments yet.",
+        "readonly_message": "Term is closed. Assignments are read-only.",
+        "due_date": "Due Date",
+        "max_score": "Max Score",
+        "assignment_title": "Assignment Title",
+        "description": "Description",
+        "attachments": "Attachments",
+        "delete_assignment": "Delete assignment?",
+        "delete_assignment_confirm": "Are you sure you want to delete this assignment?",
+        "max_score_invalid": "Max score must be 0 or more",
+        "save": "Save",
+        "saving": "Saving...",
+        "cancel": "Cancel",
+        "published": "Published",
+        "draft": "Draft"
+      },
+      "learningContent": {
+        "title": "Learning Content",
+        "materials": "Materials",
+        "video": "Video",
+        "assignments": "Assignments"
+      },
+      "questions": {
+        "title": "Questions",
+        "add_question": "Add Question",
+        "edit_question": "Edit Question",
+        "delete_question": "Delete question?",
+        "delete_question_confirm": "Are you sure you want to delete this question?",
+        "question_text": "Question Text",
+        "question_type": "Question Type",
+        "points": "Points",
+        "no_questions": "No questions yet.",
+        "summary_title": "Points Summary",
+        "max_score": "Max Score",
+        "total_points": "Total Question Points",
+        "difference": "Difference",
+        "points_match": "Points match",
+        "points_mismatch": "Points mismatch",
+        "auto_distribute": "Auto distribute points",
+        "confirm_auto_distribute_title": "Auto distribute points?",
+        "confirm_auto_distribute_body": "This will update points of all questions to match max score.",
+        "points_sum_mismatch": "Question points must sum to max score.",
+        "question_types": {
+          "MULTIPLE_CHOICE": "Multiple Choice",
+          "MCQ_SINGLE": "Multiple choice (single answer)",
+          "MCQ_MULTI": "Multiple choice (multiple answers)",
+          "TRUE_FALSE": "True/False",
+          "SHORT_ANSWER": "Short Answer",
+          "ESSAY": "Essay"
+        },
+        "options": "Options",
+        "add_option": "Add option",
+        "remove_option": "Remove option",
+        "option_text": "Option text",
+        "correct_answer": "Correct answer",
+        "move_up": "Move up",
+        "move_down": "Move down",
+        "reorder_option": "Reorder option",
+        "answers": "Answers",
+        "true": "True",
+        "false": "False",
+        "sample_answer": "Sample answer (optional)",
+        "manual_grading_hint": "This question requires manual grading."
+      },
+      "teachingWeeksHint": "Teaching weeks: {count} (holidays excluded)",
+      "assignments": {
+        "dueDateHolidayWarning": "This due date falls on a holiday."
+      }
+    },
+    "calendar": {
+      "title": "Academic Calendar",
+      "readonly_banner": "This term is closed. Calendar is read-only.",
+      "today": "Today",
+      "prev": "Previous",
+      "next": "Next",
+      "add_event": "Add Event",
+      "edit_event": "Edit Event",
+      "delete": "Delete",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "more": "more",
+      "event": "event",
+      "events": "events",
+      "filters": {
+        "title": "Filters",
+        "type": "Event Type",
+        "scope": "Scope"
+      },
+      "event_types": {
+        "holiday": "Holiday",
+        "exam": "Exam",
+        "activity": "Activity",
+        "other": "Other"
+      },
+      "scopes": {
+        "all": "All",
+        "school": "School",
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section"
+      },
+      "title": "Title",
+      "type": "Type",
+      "all_day": "All Day",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "scope_type": "Scope Type",
+      "scope_target": "Scope Target",
+      "notes": "Notes",
+      "optional": "optional",
+      "delete_confirm": {
+        "title": "Delete Event",
+        "message": "Are you sure you want to delete this event?"
+      },
+      "validation": {
+        "start_after_end": "End date must be after start date",
+        "outside_term_range": "Event must be within term date range",
+        "outside_term_range_with_dates": "Event must be within the term range ({start} – {end})"
+      },
+      "term_range_hint": "Term range: {start} – {end}",
+      "date_helper_text": "Must be within term range",
+      "clear_filters": "Clear",
+      "apply": "Apply",
+      "notifyUsers": "Notify affected users",
+      "eventMoved": "Event moved",
+      "moveFailed": "Failed to move event",
+      "moveToDate": "Move to date...",
+      "dropOutsideTerm": "You can only move events within the term range.",
+      "moveEvent": "Move Event",
+      "selectNewDate": "Select new date",
+      "views": {
+        "month": "Month",
+        "week": "Week",
+        "agenda": "Agenda"
+      },
+      "modes": {
+        "compact": "Compact",
+        "comfortable": "Comfortable",
+        "minimal": "Minimal"
+      },
+      "eventsCount": "{count} events",
+      "noEventsThisWeek": "No events this week",
+      "noEventsThisMonth": "No events this month"
+    },
+    "teacherAllocation": {
+      "title": "Teacher Allocation",
+      "tabs": {
+        "matrix": "Allocation Matrix",
+        "load": "Teacher Load"
+      },
+      "filters": {
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
+        "subject": "Subject",
+        "searchTeacher": "Search teacher",
+        "allStages": "All Stages",
+        "allGrades": "All Grades",
+        "allSections": "All Sections",
+        "allSubjects": "All Subjects",
+        "showOnlyMissing": "Show only missing"
+      },
+      "actions": {
+        "validate": "Validate",
+        "copyFromTerm": "Copy from Term",
+        "applyToAllSections": "Apply to All Sections",
+        "clearSelection": "Clear",
+        "save": "Save Changes",
+        "saving": "Saving...",
+        "reset": "Reset"
+      },
+      "matrix": {
+        "title": "Teacher Allocation Matrix",
+        "section": "Section",
+        "missingCount": "Missing",
+        "selectTeacher": "Select teacher",
+        "noTeacher": "No teacher assigned",
+        "currentLoad": "{hours}/wk",
+        "summary": {
+          "sections": "Sections",
+          "subjects": "Subjects",
+          "completion": "Completion"
+        }
+      },
+      "load": {
+        "title": "Teacher Workload",
+        "kpi": {
+          "totalTeachers": "Total Teachers",
+          "teachersWithZeroLoad": "Unassigned",
+          "avgLoad": "Average Load",
+          "maxLoad": "Max Load"
+        },
+        "filters": {
+          "searchPlaceholder": "Search by teacher name...",
+          "allStatus": "All Status",
+          "normal": "Normal Load",
+          "warning": "Near Capacity",
+          "overloaded": "Overloaded",
+          "zero": "No Load"
+        },
+        "table": {
+          "teacher": "Teacher",
+          "weeklyLoad": "Weekly Load",
+          "sections": "Sections",
+          "subjects": "Subjects",
+          "viewBreakdown": "View Breakdown"
+        },
+        "breakdown": {
+          "title": "Load Breakdown",
+          "grade": "Grade",
+          "section": "Section",
+          "subject": "Subject",
+          "hours": "Hours"
+        },
+        "noTeachers": "No teachers found"
+      },
+      "validation": {
+        "title": "Validation Results",
+        "summary": {
+          "missingAssignments": "Missing Assignments",
+          "sectionsWithMissing": "Sections with Missing",
+          "overloadedTeachers": "Overloaded Teachers"
+        },
+        "issues": {
+          "missing": "Missing teacher for {subject} in {section}",
+          "overloaded": "{teacher} exceeds max load ({current}/{max})",
+          "unqualified": "{teacher} not qualified for {subject}"
+        },
+        "noIssues": "All allocations are valid",
+        "close": "Close"
+      },
+      "bulkAction": {
+        "title": "Apply Teacher to All Sections",
+        "message": "Apply {teacher} to {subject} for all sections in {grade}?",
+        "impact": "This will affect {count} sections",
+        "confirm": "Apply",
+        "cancel": "Cancel",
+        "success": "Teacher applied to all sections"
+      },
+      "carryOver": {
+        "title": "Copy Allocations from Term",
+        "sourceYear": "Source Year",
+        "sourceTerm": "Source Term",
+        "options": {
+          "includeAllocations": "Include teacher allocations"
+        },
+        "confirm": "Copy",
+        "cancel": "Cancel",
+        "success": "Allocations copied successfully"
+      },
+      "readOnlyBanner": "This term is closed. Teacher allocation is read-only.",
+      "emptyState": {
+        "noGrades": {
+          "title": "No Grades Found",
+          "message": "Please create grades in Academic Structure first",
+          "cta": "Go to Structure"
+        },
+        "noSubjects": {
+          "title": "No Subjects Found",
+          "message": "Please create subjects in Subjects & Allocation first",
+          "cta": "Go to Subjects"
+        },
+        "noTeachers": {
+          "title": "No Teachers Found",
+          "message": "Please add teachers to the system first"
+        }
+      },
+      "unsavedChanges": {
+        "message": "You have unsaved changes. Are you sure you want to leave?"
       }
     }
   },
@@ -2495,11 +2820,38 @@
     "load_failed": "Failed to load data",
     "upload_failed": "Upload failed",
     "save_failed": "Failed to save",
-    "delete_failed": "Failed to delete"
+    "delete_failed": "Failed to delete",
+    "pointsUpdateFailed": "Failed to update points"
   },
   "success": {
     "uploaded": "Uploaded successfully",
     "link_added": "Link added successfully",
-    "deleted": "Deleted successfully"
+    "deleted": "Deleted successfully",
+    "pointsUpdated": "Points updated successfully"
+  },
+  "validation": {
+    "required_ar": "Arabic is required",
+    "required_en": "English is required",
+    "unique_name_ar_stage": "Arabic stage name must be unique",
+    "unique_name_en_stage": "English stage name must be unique",
+    "unique_name_ar_grade": "Arabic grade name must be unique within the stage",
+    "unique_name_en_grade": "English grade name must be unique within the stage",
+    "unique_name_ar_section": "Arabic section name must be unique within the grade",
+    "unique_name_en_section": "English section name must be unique within the grade",
+    "arEnMustDiffer": "Arabic and English values must be different",
+    "urlRequired": "URL is required",
+    "urlInvalid": "Enter a valid URL",
+    "urlProtocol": "URL must start with http:// or https://",
+    "urlIncomplete": "URL is incomplete (missing website address)",
+    "urlTooLong": "URL is too long",
+    "urlBlocked": "This domain is not allowed",
+    "selectCorrectSingle": "Select exactly one correct option.",
+    "selectCorrectMulti": "Select at least one correct option.",
+    "duplicateOptionAr": "Duplicate Arabic option",
+    "duplicateOptionEn": "Duplicate English option",
+    "minTwoOptions": "At least 2 options required"
+  },
+  "helper": {
+    "urlExample": "Example: https://example.com"
   }
 }

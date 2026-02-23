@@ -4,7 +4,9 @@
 export interface Subject {
   id: string;
   termId: string;
-  name: string;
+  name: string; // Display name (backward compatibility)
+  nameAr: string;
+  nameEn: string;
   code?: string;
   stage?: string;
   isActive: boolean;
@@ -19,14 +21,14 @@ export interface SubjectAllocation {
 // In-memory mock data keyed by termId
 const subjectsByTerm: Record<string, Subject[]> = {
   "term-1-1": [
-    { id: "subj-1", termId: "term-1-1", name: "Mathematics", code: "MATH101", stage: "Primary", isActive: true },
-    { id: "subj-2", termId: "term-1-1", name: "Science", code: "SCI101", stage: "Primary", isActive: true },
-    { id: "subj-3", termId: "term-1-1", name: "English", code: "ENG101", isActive: true },
-    { id: "subj-4", termId: "term-1-1", name: "Arabic", code: "ARB101", isActive: true },
+    { id: "subj-1", termId: "term-1-1", name: "Mathematics", nameAr: "الرياضيات", nameEn: "Mathematics", code: "MATH101", stage: "Primary", isActive: true },
+    { id: "subj-2", termId: "term-1-1", name: "Science", nameAr: "العلوم", nameEn: "Science", code: "SCI101", stage: "Primary", isActive: true },
+    { id: "subj-3", termId: "term-1-1", name: "English", nameAr: "الإنجليزية", nameEn: "English", code: "ENG101", isActive: true },
+    { id: "subj-4", termId: "term-1-1", name: "Arabic", nameAr: "العربية", nameEn: "Arabic", code: "ARB101", isActive: true },
   ],
   "term-2-1": [
-    { id: "subj-5", termId: "term-2-1", name: "Mathematics", code: "MATH101", stage: "Primary", isActive: true },
-    { id: "subj-6", termId: "term-2-1", name: "Science", code: "SCI101", stage: "Primary", isActive: true },
+    { id: "subj-5", termId: "term-2-1", name: "Mathematics", nameAr: "الرياضيات", nameEn: "Mathematics", code: "MATH101", stage: "Primary", isActive: true },
+    { id: "subj-6", termId: "term-2-1", name: "Science", nameAr: "العلوم", nameEn: "Science", code: "SCI101", stage: "Primary", isActive: true },
   ],
 };
 
@@ -67,6 +69,7 @@ export const createSubject = async (
     id: generateId("subj"),
     termId,
     ...payload,
+    name: payload.nameEn || payload.nameAr, // Fallback display name
   };
   
   if (!subjectsByTerm[termId]) {
@@ -86,7 +89,12 @@ export const updateSubject = async (
   const index = subjects.findIndex((s) => s.id === subjectId);
   if (index === -1) throw new Error("Subject not found");
   
-  subjects[index] = { ...subjects[index], ...payload };
+  const updated = { ...subjects[index], ...payload };
+  // Update display name if bilingual names changed
+  if (payload.nameEn || payload.nameAr) {
+    updated.name = payload.nameEn || payload.nameAr || updated.name;
+  }
+  subjects[index] = updated;
   return subjects[index];
 };
 

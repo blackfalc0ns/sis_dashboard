@@ -2,11 +2,20 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { Stage, Grade, Section } from "@/services/academics/structureService";
+import { 
+  Stage, 
+  Grade, 
+  Section,
+  isStageNameUnique,
+  isGradeNameUnique,
+  isSectionNameUnique,
+} from "@/services/academics/structureService";
 import Modal from "@/components/ui/modal/Modal";
 import Input from "@/components/ui/input/Input";
 import TextArea from "@/components/ui/input/TextArea";
 import Button from "@/components/ui/button/Button";
+import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
+import { validateArEnDifferent } from "@/utils/validation/bilingualValidation";
 
 interface DetailsPanelProps {
   selectedNode: { type: "stage" | "grade" | "section"; id: string } | null;
@@ -21,6 +30,8 @@ interface DetailsPanelProps {
   onDelete: (type: "stage" | "grade" | "section", id: string) => Promise<void>;
   isReadOnly?: boolean;
   onDirtyChange?: (isDirty: boolean) => void;
+  academicYearId: string;
+  termId: string;
 }
 
 export default function DetailsPanel({
@@ -32,10 +43,14 @@ export default function DetailsPanel({
   onDelete,
   isReadOnly = false,
   onDirtyChange,
+  academicYearId,
+  termId,
 }: DetailsPanelProps) {
   const t = useTranslations("academics.structure.details");
+  const tValidation = useTranslations("validation");
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [bilingualErrors, setBilingualErrors] = useState<{ ar?: string; en?: string }>({});
   const [isDirty, setIsDirty] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [pendingNode, setPendingNode] = useState<typeof selectedNode>(null);
@@ -57,6 +72,7 @@ export default function DetailsPanel({
     setFormData(data);
     setIsDirty(false);
     setErrors({});
+    setBilingualErrors({});
   }, [stages, grades, sections]);
 
   useEffect(() => {
@@ -85,14 +101,91 @@ export default function DetailsPanel({
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
     }
+    // Clear bilingual errors when name fields change
+    if (field === "nameAr" || field === "nameEn") {
+      setBilingualErrors({});
+    }
   };
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
+    const newBilingualErrors: { ar?: string; en?: string } = {};
 
-    const nameValue = formData.name as string | undefined;
-    if (!nameValue?.trim()) {
-      newErrors.name = t("validation.name_required");
+    const nameAr = formData.nameAr as string | undefined;
+    const nameEn = formData.nameEn as string | undefined;
+
+    // Required validation
+    if (!nameAr?.trim()) {
+      newBilingualErrors.ar = tValidation("required_ar");
+    }
+    if (!nameEn?.trim()) {
+      newBilingualErrors.en = tValidation("required_en");
+    }
+
+    // AR != EN validation
+    if (nameAr?.trim() && nameEn?.trim()) {
+      const arEnErrors = validateArEnDifferent(nameAr, nameEn);
+      if (arEnErrors.arError) {
+        newBilingualErrors.ar = tValidation("arEnMustDiffer");
+      }
+      if (arEnErrors.enError) {
+        newBilingualErrors.en = tValidation("arEnMustDiffer");
+      }
+    }
+
+    // Uniqueness validation (only if AR != EN validation passed)
+    if (nameAr?.trim() && nameEn?.trim() && selectedNode && Object.keys(newBilingualErrors).length === 0) {
+      if (selectedNode.type === "stage") {
+        const uniqueness = isStageNameUnique(
+          academicYearId,
+          termId,
+          nameAr,
+          nameEn,
+          selectedNode.id
+        );
+        if (!uniqueness.uniqueAr) {
+          newBilingualErrors.ar = tValidation("unique_name_ar_stage");
+        }
+        if (!uniqueness.uniqueEn) {
+          newBilingualErrors.en = tValidation("unique_name_en_stage");
+        }
+      } else if (selectedNode.type === "grade") {
+        const stageId = formData.stageId as string;
+        if (stageId) {
+          const uniqueness = isGradeNameUnique(
+            academicYearId,
+            termId,
+            stageId,
+            nameAr,
+            nameEn,
+            selectedNode.id
+          );
+          if (!uniqueness.uniqueAr) {
+            newBilingualErrors.ar = tValidation("unique_name_ar_grade");
+          }
+          if (!uniqueness.uniqueEn) {
+            newBilingualErrors.en = tValidation("unique_name_en_grade");
+          }
+        }
+      } else if (selectedNode.type === "section") {
+        const gradeId = formData.gradeId as string;
+        if (gradeId) {
+          const uniqueness = isSectionNameUnique(
+            academicYearId,
+            termId,
+            gradeId,
+            nameAr,
+            nameEn,
+            selectedNode.id
+          );
+          if (!uniqueness.uniqueAr) {
+            newBilingualErrors.ar = tValidation("unique_name_ar_section");
+          }
+          if (!uniqueness.uniqueEn) {
+            newBilingualErrors.en = tValidation("unique_name_en_section");
+          }
+        }
+      }
     }
 
     if (selectedNode?.type === "section") {
@@ -103,7 +196,8 @@ export default function DetailsPanel({
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setBilingualErrors(newBilingualErrors);
+    return Object.keys(newErrors).length === 0 && Object.keys(newBilingualErrors).length === 0;
   };
 
   const handleSave = async () => {
@@ -162,12 +256,21 @@ export default function DetailsPanel({
           {/* Stage Form */}
           {selectedNode.type === "stage" && (
             <>
-              <Input
+              <BilingualTextField
                 label={t("name")}
-                required
-                value={(formData.name as string) || ""}
-                onChange={(e) => handleChange("name", e.target.value)}
-                error={errors.name}
+                value={{
+                  ar: (formData.nameAr as string) || "",
+                  en: (formData.nameEn as string) || "",
+                }}
+                onChange={(value) => {
+                  handleChange("nameAr", value.ar);
+                  handleChange("nameEn", value.en);
+                  // Update display name for backward compatibility
+                  handleChange("name", value.en || value.ar);
+                }}
+                requiredAr
+                requiredEn
+                errors={bilingualErrors}
                 disabled={isReadOnly}
               />
               <TextArea
@@ -183,12 +286,21 @@ export default function DetailsPanel({
           {/* Grade Form */}
           {selectedNode.type === "grade" && (
             <>
-              <Input
+              <BilingualTextField
                 label={t("name")}
-                required
-                value={(formData.name as string) || ""}
-                onChange={(e) => handleChange("name", e.target.value)}
-                error={errors.name}
+                value={{
+                  ar: (formData.nameAr as string) || "",
+                  en: (formData.nameEn as string) || "",
+                }}
+                onChange={(value) => {
+                  handleChange("nameAr", value.ar);
+                  handleChange("nameEn", value.en);
+                  // Update display name for backward compatibility
+                  handleChange("name", value.en || value.ar);
+                }}
+                requiredAr
+                requiredEn
+                errors={bilingualErrors}
                 disabled={isReadOnly}
               />
               <Input
@@ -215,12 +327,21 @@ export default function DetailsPanel({
           {/* Section Form */}
           {selectedNode.type === "section" && (
             <>
-              <Input
+              <BilingualTextField
                 label={t("name")}
-                required
-                value={(formData.name as string) || ""}
-                onChange={(e) => handleChange("name", e.target.value)}
-                error={errors.name}
+                value={{
+                  ar: (formData.nameAr as string) || "",
+                  en: (formData.nameEn as string) || "",
+                }}
+                onChange={(value) => {
+                  handleChange("nameAr", value.ar);
+                  handleChange("nameEn", value.en);
+                  // Update display name for backward compatibility
+                  handleChange("name", value.en || value.ar);
+                }}
+                requiredAr
+                requiredEn
+                errors={bilingualErrors}
                 disabled={isReadOnly}
               />
               <Input

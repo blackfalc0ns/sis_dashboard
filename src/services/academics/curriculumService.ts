@@ -13,7 +13,9 @@ export interface Curriculum {
 export interface Unit {
   id: string;
   curriculumId: string;
-  title: string;
+  title: string; // Display title (backward compatibility)
+  titleAr: string;
+  titleEn: string;
   description?: string;
   order: number;
 }
@@ -21,7 +23,9 @@ export interface Unit {
 export interface Lesson {
   id: string;
   unitId: string;
-  title: string;
+  title: string; // Display title (backward compatibility)
+  titleAr: string;
+  titleEn: string;
   objectives?: string;
   resources?: string;
   durationMinutes?: number;
@@ -44,6 +48,67 @@ export interface LessonAttachment {
   createdAt: string;
 }
 
+export interface LessonVideo {
+  id: string;
+  lessonId: string;
+  titleAr: string;
+  titleEn: string;
+  type: "UPLOAD" | "LINK";
+  url: string;
+  fileName?: string;
+  mimeType?: string;
+  size?: number;
+  createdAt?: string;
+}
+
+export interface Assignment {
+  id: string;
+  lessonId: string;
+  titleAr: string;
+  titleEn: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
+  dueDate?: string; // ISO date string
+  maxScore?: number;
+  isPublished?: boolean;
+  createdAt?: string;
+}
+
+export interface AssignmentAttachment {
+  id: string;
+  assignmentId: string;
+  type: "FILE" | "LINK";
+  title: string;
+  url: string;
+  fileName?: string;
+  mimeType?: string;
+  size?: number;
+  createdAt: string;
+}
+
+export interface QuestionOption {
+  id: string;
+  textAr: string;
+  textEn: string;
+  isCorrect: boolean;
+  order: number;
+}
+
+export interface AssignmentQuestion {
+  id: string;
+  assignmentId: string;
+  questionTextAr: string;
+  questionTextEn: string;
+  questionType: "MCQ_SINGLE" | "MCQ_MULTI" | "TRUE_FALSE" | "SHORT_ANSWER" | "ESSAY";
+  points: number;
+  order: number;
+  options?: QuestionOption[]; // For MCQ questions
+  correctAnswer?: boolean; // For TRUE_FALSE questions (true or false)
+  sampleAnswerAr?: string; // For SHORT_ANSWER questions (optional)
+  sampleAnswerEn?: string; // For SHORT_ANSWER questions (optional)
+  createdAt: string;
+}
+
 // In-memory mock data keyed by termId-gradeId-subjectId
 const curriculumByKey: Record<string, Curriculum> = {
   "term-1-1-grade-1-subj-1": {
@@ -62,6 +127,8 @@ const unitsByCurriculum: Record<string, Unit[]> = {
       id: "unit-1",
       curriculumId: "curr-1",
       title: "Numbers and Operations",
+      titleAr: "الأعداد والعمليات",
+      titleEn: "Numbers and Operations",
       description: "Introduction to basic numbers and counting",
       order: 1,
     },
@@ -69,6 +136,8 @@ const unitsByCurriculum: Record<string, Unit[]> = {
       id: "unit-2",
       curriculumId: "curr-1",
       title: "Shapes and Geometry",
+      titleAr: "الأشكال والهندسة",
+      titleEn: "Shapes and Geometry",
       description: "Basic shapes and spatial awareness",
       order: 2,
     },
@@ -81,6 +150,8 @@ const lessonsByUnit: Record<string, Lesson[]> = {
       id: "lesson-1",
       unitId: "unit-1",
       title: "Counting 1-10",
+      titleAr: "العد من 1 إلى 10",
+      titleEn: "Counting 1-10",
       objectives: "Students will be able to count from 1 to 10",
       resources: "Counting blocks, number cards",
       durationMinutes: 45,
@@ -93,6 +164,8 @@ const lessonsByUnit: Record<string, Lesson[]> = {
       id: "lesson-2",
       unitId: "unit-1",
       title: "Counting 11-20",
+      titleAr: "العد من 11 إلى 20",
+      titleEn: "Counting 11-20",
       objectives: "Students will be able to count from 11 to 20",
       durationMinutes: 45,
       plannedWeek: 2,
@@ -105,6 +178,8 @@ const lessonsByUnit: Record<string, Lesson[]> = {
       id: "lesson-3",
       unitId: "unit-2",
       title: "Circles and Squares",
+      titleAr: "الدوائر والمربعات",
+      titleEn: "Circles and Squares",
       objectives: "Identify and draw circles and squares",
       durationMinutes: 45,
       plannedWeek: 5,
@@ -188,6 +263,7 @@ export const createUnit = async (
     id: generateId("unit"),
     curriculumId,
     ...payload,
+    title: payload.titleEn || payload.titleAr, // Fallback display title
     order: maxOrder + 1,
   };
   
@@ -206,7 +282,12 @@ export const updateUnit = async (
     const units = unitsByCurriculum[currId];
     const index = units.findIndex((u) => u.id === unitId);
     if (index !== -1) {
-      units[index] = { ...units[index], ...payload };
+      const updated = { ...units[index], ...payload };
+      // Update display title if bilingual titles changed
+      if (payload.titleEn || payload.titleAr) {
+        updated.title = payload.titleEn || payload.titleAr || updated.title;
+      }
+      units[index] = updated;
       return units[index];
     }
   }
@@ -267,6 +348,7 @@ export const createLesson = async (
     id: generateId("lesson"),
     unitId,
     ...payload,
+    title: payload.titleEn || payload.titleAr, // Fallback display title
     status: "planned",
     order: maxOrder + 1,
   };
@@ -285,7 +367,12 @@ export const updateLesson = async (
     const lessons = lessonsByUnit[unitId];
     const index = lessons.findIndex((l) => l.id === lessonId);
     if (index !== -1) {
-      lessons[index] = { ...lessons[index], ...payload };
+      const updated = { ...lessons[index], ...payload };
+      // Update display title if bilingual titles changed
+      if (payload.titleEn || payload.titleAr) {
+        updated.title = payload.titleEn || payload.titleAr || updated.title;
+      }
+      lessons[index] = updated;
       return lessons[index];
     }
   }
@@ -380,6 +467,8 @@ export const carryOverCurriculum = async (params: CarryOverCurriculumOptions): P
         id: generateId("unit"),
         curriculumId: newCurriculum.id,
         title: sourceUnit.title,
+        titleAr: sourceUnit.titleAr,
+        titleEn: sourceUnit.titleEn,
         description: sourceUnit.description,
         order: sourceUnit.order,
       };
@@ -393,6 +482,8 @@ export const carryOverCurriculum = async (params: CarryOverCurriculumOptions): P
           id: generateId("lesson"),
           unitId: newUnit.id,
           title: sourceLesson.title,
+          titleAr: sourceLesson.titleAr,
+          titleEn: sourceLesson.titleEn,
           objectives: sourceLesson.objectives,
           resources: sourceLesson.resources,
           durationMinutes: sourceLesson.durationMinutes,
@@ -516,3 +607,303 @@ export const deleteAttachment = async (attachmentId: string): Promise<void> => {
     }
   }
 };
+
+// ============================================
+// LESSON VIDEO API
+// ============================================
+
+export async function fetchLessonVideo(lessonId: string): Promise<LessonVideo | null> {
+  // Mock implementation - replace with real API
+  const stored = localStorage.getItem(`lesson-video-${lessonId}`);
+  if (!stored) return null;
+  return JSON.parse(stored);
+}
+
+export async function upsertLessonVideoLink(
+  lessonId: string,
+  payload: { titleAr: string; titleEn: string; url: string }
+): Promise<LessonVideo> {
+  // Mock implementation - replace with real API
+  const video: LessonVideo = {
+    id: `video-${Date.now()}`,
+    lessonId,
+    type: "LINK",
+    ...payload,
+    createdAt: new Date().toISOString(),
+  };
+  localStorage.setItem(`lesson-video-${lessonId}`, JSON.stringify(video));
+  return video;
+}
+
+export async function uploadLessonVideoFile(
+  lessonId: string,
+  file: File,
+  payload: { titleAr: string; titleEn: string }
+): Promise<LessonVideo> {
+  // Mock implementation - replace with real API using multipart/form-data
+  const video: LessonVideo = {
+    id: `video-${Date.now()}`,
+    lessonId,
+    type: "UPLOAD",
+    ...payload,
+    url: URL.createObjectURL(file), // Mock URL
+    fileName: file.name,
+    mimeType: file.type,
+    size: file.size,
+    createdAt: new Date().toISOString(),
+  };
+  localStorage.setItem(`lesson-video-${lessonId}`, JSON.stringify(video));
+  return video;
+}
+
+export async function deleteLessonVideo(lessonId: string): Promise<void> {
+  // Mock implementation - replace with real API
+  localStorage.removeItem(`lesson-video-${lessonId}`);
+}
+
+// ============================================
+// ASSIGNMENTS API
+// ============================================
+
+export async function fetchLessonAssignments(lessonId: string): Promise<Assignment[]> {
+  // Mock implementation - replace with real API
+  const stored = localStorage.getItem(`lesson-assignments-${lessonId}`);
+  if (!stored) return [];
+  return JSON.parse(stored);
+}
+
+export async function createAssignment(
+  lessonId: string,
+  payload: Omit<Assignment, "id" | "lessonId" | "createdAt">
+): Promise<Assignment> {
+  // Mock implementation - replace with real API
+  const assignment: Assignment = {
+    id: `assignment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    lessonId,
+    ...payload,
+    createdAt: new Date().toISOString(),
+  };
+  
+  const existing = await fetchLessonAssignments(lessonId);
+  existing.push(assignment);
+  localStorage.setItem(`lesson-assignments-${lessonId}`, JSON.stringify(existing));
+  return assignment;
+}
+
+export async function updateAssignment(
+  assignmentId: string,
+  payload: Partial<Omit<Assignment, "id" | "lessonId" | "createdAt">>
+): Promise<Assignment> {
+  // Mock implementation - replace with real API
+  // Find assignment across all lessons (in real API, backend handles this)
+  const allKeys = Object.keys(localStorage).filter(k => k.startsWith('lesson-assignments-'));
+  
+  for (const key of allKeys) {
+    const assignments: Assignment[] = JSON.parse(localStorage.getItem(key) || '[]');
+    const index = assignments.findIndex(a => a.id === assignmentId);
+    
+    if (index !== -1) {
+      assignments[index] = { ...assignments[index], ...payload };
+      localStorage.setItem(key, JSON.stringify(assignments));
+      return assignments[index];
+    }
+  }
+  
+  throw new Error('Assignment not found');
+}
+
+export async function deleteAssignment(assignmentId: string): Promise<void> {
+  // Mock implementation - replace with real API
+  const allKeys = Object.keys(localStorage).filter(k => k.startsWith('lesson-assignments-'));
+  
+  for (const key of allKeys) {
+    const assignments: Assignment[] = JSON.parse(localStorage.getItem(key) || '[]');
+    const filtered = assignments.filter(a => a.id !== assignmentId);
+    
+    if (filtered.length !== assignments.length) {
+      localStorage.setItem(key, JSON.stringify(filtered));
+      // Also delete attachments
+      localStorage.removeItem(`assignment-attachments-${assignmentId}`);
+      return;
+    }
+  }
+}
+
+// ============================================
+// ASSIGNMENT ATTACHMENTS API
+// ============================================
+
+export async function fetchAssignmentAttachments(assignmentId: string): Promise<AssignmentAttachment[]> {
+  // Mock implementation - replace with real API
+  const stored = localStorage.getItem(`assignment-attachments-${assignmentId}`);
+  if (!stored) return [];
+  return JSON.parse(stored);
+}
+
+export async function uploadAssignmentAttachmentFile(
+  assignmentId: string,
+  file: File,
+  meta?: { title?: string }
+): Promise<AssignmentAttachment> {
+  // Mock implementation - replace with real API using multipart/form-data
+  const attachment: AssignmentAttachment = {
+    id: `attach-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    assignmentId,
+    type: "FILE",
+    title: meta?.title || file.name,
+    url: URL.createObjectURL(file), // Mock URL
+    fileName: file.name,
+    mimeType: file.type,
+    size: file.size,
+    createdAt: new Date().toISOString(),
+  };
+  
+  const existing = await fetchAssignmentAttachments(assignmentId);
+  existing.push(attachment);
+  localStorage.setItem(`assignment-attachments-${assignmentId}`, JSON.stringify(existing));
+  return attachment;
+}
+
+export async function createAssignmentAttachmentLink(
+  assignmentId: string,
+  payload: { title: string; url: string }
+): Promise<AssignmentAttachment> {
+  // Mock implementation - replace with real API
+  const attachment: AssignmentAttachment = {
+    id: `attach-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    assignmentId,
+    type: "LINK",
+    ...payload,
+    createdAt: new Date().toISOString(),
+  };
+  
+  const existing = await fetchAssignmentAttachments(assignmentId);
+  existing.push(attachment);
+  localStorage.setItem(`assignment-attachments-${assignmentId}`, JSON.stringify(existing));
+  return attachment;
+}
+
+export async function deleteAssignmentAttachment(attachmentId: string): Promise<void> {
+  // Mock implementation - replace with real API
+  const allKeys = Object.keys(localStorage).filter(k => k.startsWith('assignment-attachments-'));
+  
+  for (const key of allKeys) {
+    const attachments: AssignmentAttachment[] = JSON.parse(localStorage.getItem(key) || '[]');
+    const filtered = attachments.filter(a => a.id !== attachmentId);
+    
+    if (filtered.length !== attachments.length) {
+      localStorage.setItem(key, JSON.stringify(filtered));
+      return;
+    }
+  }
+}
+
+
+// ============================================
+// ASSIGNMENT QUESTIONS API
+// ============================================
+
+export async function fetchAssignmentQuestions(assignmentId: string): Promise<AssignmentQuestion[]> {
+  // Mock implementation - replace with real API
+  const stored = localStorage.getItem(`assignment-questions-${assignmentId}`);
+  if (!stored) return [];
+  const questions: AssignmentQuestion[] = JSON.parse(stored);
+  return questions.sort((a, b) => a.order - b.order);
+}
+
+export async function createAssignmentQuestion(
+  assignmentId: string,
+  payload: Omit<AssignmentQuestion, "id" | "assignmentId" | "createdAt" | "order">
+): Promise<AssignmentQuestion> {
+  // Mock implementation - replace with real API
+  const existing = await fetchAssignmentQuestions(assignmentId);
+  const maxOrder = existing.reduce((max, q) => Math.max(max, q.order), 0);
+  
+  const question: AssignmentQuestion = {
+    id: `question-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    assignmentId,
+    ...payload,
+    order: maxOrder + 1,
+    createdAt: new Date().toISOString(),
+  };
+  
+  existing.push(question);
+  localStorage.setItem(`assignment-questions-${assignmentId}`, JSON.stringify(existing));
+  return question;
+}
+
+export async function updateAssignmentQuestion(
+  questionId: string,
+  payload: Partial<Omit<AssignmentQuestion, "id" | "assignmentId" | "createdAt">>
+): Promise<AssignmentQuestion> {
+  // Mock implementation - replace with real API
+  const allKeys = Object.keys(localStorage).filter(k => k.startsWith('assignment-questions-'));
+  
+  for (const key of allKeys) {
+    const questions: AssignmentQuestion[] = JSON.parse(localStorage.getItem(key) || '[]');
+    const index = questions.findIndex(q => q.id === questionId);
+    
+    if (index !== -1) {
+      questions[index] = { ...questions[index], ...payload };
+      localStorage.setItem(key, JSON.stringify(questions));
+      return questions[index];
+    }
+  }
+  
+  throw new Error('Question not found');
+}
+
+export async function deleteAssignmentQuestion(questionId: string): Promise<void> {
+  // Mock implementation - replace with real API
+  const allKeys = Object.keys(localStorage).filter(k => k.startsWith('assignment-questions-'));
+  
+  for (const key of allKeys) {
+    const questions: AssignmentQuestion[] = JSON.parse(localStorage.getItem(key) || '[]');
+    const filtered = questions.filter(q => q.id !== questionId);
+    
+    if (filtered.length !== questions.length) {
+      localStorage.setItem(key, JSON.stringify(filtered));
+      return;
+    }
+  }
+}
+
+export async function reorderAssignmentQuestions(
+  assignmentId: string,
+  orderedQuestionIds: string[]
+): Promise<void> {
+  // Mock implementation - replace with real API
+  const questions = await fetchAssignmentQuestions(assignmentId);
+  
+  orderedQuestionIds.forEach((questionId, index) => {
+    const question = questions.find(q => q.id === questionId);
+    if (question) {
+      question.order = index + 1;
+    }
+  });
+  
+  localStorage.setItem(`assignment-questions-${assignmentId}`, JSON.stringify(questions));
+}
+
+/**
+ * Bulk update question points (for auto-distribute feature)
+ * In production: PATCH /assignments/{assignmentId}/questions/points
+ */
+export async function bulkUpdateQuestionPoints(
+  assignmentId: string,
+  updates: Array<{ questionId: string; points: number }>
+): Promise<void> {
+  // Mock implementation - replace with real API
+  await delay(300);
+  
+  const questions = await fetchAssignmentQuestions(assignmentId);
+  
+  updates.forEach(update => {
+    const question = questions.find(q => q.id === update.questionId);
+    if (question) {
+      question.points = update.points;
+    }
+  });
+  
+  localStorage.setItem(`assignment-questions-${assignmentId}`, JSON.stringify(questions));
+}

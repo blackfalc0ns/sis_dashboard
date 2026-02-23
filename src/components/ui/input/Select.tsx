@@ -115,93 +115,71 @@ export default function Select({
     : "cursor-pointer";
 
   return (
-    <>
-      <style jsx>{`
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
+    <div className={`${fullWidth ? "w-full" : ""}`}>
+      {/* Label */}
+      {label && (
+        <label
+          className={`block text-sm font-medium text-gray-700 mb-1 ${
+            isRTL ? "text-right" : "text-left"
+          }`}
+        >
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+      )}
 
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: scale(0.95) translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-      `}</style>
+      {/* Select Container */}
+      <div ref={dropdownRef} className="relative">
+        {/* Hidden input for form submission */}
+        <input type="hidden" name={name} value={selectedValue} />
 
-      <div className={`${fullWidth ? "w-full" : ""}`}>
-        {/* Label */}
-        {label && (
-          <label
-            className={`block text-sm font-medium text-gray-700 mb-1 ${
-              isRTL ? "text-right" : "text-left"
-            }`}
+        {/* Trigger Button */}
+        <button
+          type="button"
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          disabled={disabled}
+          className={`
+            ${fullWidth ? "w-full" : ""}
+            ${sizeClasses[selectSize]}
+            ${variantClasses[variant]}
+            ${focusClasses}
+            ${errorClasses}
+            ${disabledClasses}
+            ${isRTL ? "text-right" : "text-left"}
+            rounded-lg
+            transition-colors
+            flex items-center justify-between
+            ${className}
+          `}
+        >
+          <span
+            className={`${!selectedOption ? "text-gray-400" : "text-gray-900"}`}
           >
-            {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
-          </label>
-        )}
+            {displayLabel}
+          </span>
+          <ChevronDown
+            className={`w-4 h-4 ${error ? "text-red-500" : "text-gray-400"} transition-transform duration-200 ${isOpen ? "rotate-180" : ""} ${isRTL ? "mr-2" : "ml-2"}`}
+          />
+        </button>
 
-        {/* Select Container */}
-        <div ref={dropdownRef} className="relative">
-          {/* Hidden input for form submission */}
-          <input type="hidden" name={name} value={selectedValue} />
-
-          {/* Trigger Button */}
-          <button
-            type="button"
-            onClick={() => !disabled && setIsOpen(!isOpen)}
-            disabled={disabled}
-            className={`
-              ${fullWidth ? "w-full" : ""}
-              ${sizeClasses[selectSize]}
-              ${variantClasses[variant]}
-              ${focusClasses}
-              ${errorClasses}
-              ${disabledClasses}
-              ${isRTL ? "text-right" : "text-left"}
-              rounded-lg
-              transition-colors
-              flex items-center justify-between
-              ${className}
-            `}
+        {/* Dropdown Menu */}
+        {isOpen && (
+          <div
+            className={`absolute z-[9999] mt-2 ${fullWidth ? "w-full" : "min-w-full"} bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn`}
+            dir={isRTL ? "rtl" : "ltr"}
           >
-            <span
-              className={`${!selectedOption ? "text-gray-400" : "text-gray-900"}`}
-            >
-              {displayLabel}
-            </span>
-            <ChevronDown
-              className={`w-4 h-4 ${error ? "text-red-500" : "text-gray-400"} transition-transform duration-200 ${isOpen ? "rotate-180" : ""} ${isRTL ? "mr-2" : "ml-2"}`}
-            />
-          </button>
-
-          {/* Dropdown Menu */}
-          {isOpen && (
-            <div
-              className={`absolute z-50 mt-2 ${fullWidth ? "w-full" : "min-w-full"} bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden`}
-              style={{
-                animation: "fadeIn 0.2s ease-out",
-              }}
-              dir={isRTL ? "rtl" : "ltr"}
-            >
-              <ul className="py-1 max-h-60 overflow-y-auto">
-                {options.map((option, index) => (
+            <ul className="py-1 max-h-60 overflow-y-auto">
+              {options.length === 0 ? (
+                <li className="px-4 py-2.5 text-sm text-gray-400 text-center">
+                  No options available
+                </li>
+              ) : (
+                options.map((option, index) => (
                   <li
                     key={option.value}
+                    className="animate-slideIn"
                     style={{
-                      animation: `slideIn 0.15s ease-out ${index * 0.03}s both`,
+                      animationDelay: `${index * 0.03}s`,
                     }}
                   >
                     <button
@@ -219,24 +197,24 @@ export default function Select({
                       <span>{option.label}</span>
                     </button>
                   </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-
-        {/* Helper Text or Error Message */}
-        {(helperText || error) && (
-          <div
-            className={`flex items-start gap-1 mt-1 text-xs ${
-              error ? "text-red-600" : "text-gray-500"
-            } ${isRTL ? "text-right" : "text-left"}`}
-          >
-            {error && <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />}
-            <span>{error || helperText}</span>
+                ))
+              )}
+            </ul>
           </div>
         )}
       </div>
-    </>
+
+      {/* Helper Text or Error Message */}
+      {(helperText || error) && (
+        <div
+          className={`flex items-start gap-1 mt-1 text-xs ${
+            error ? "text-red-600" : "text-gray-500"
+          } ${isRTL ? "text-right" : "text-left"}`}
+        >
+          {error && <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />}
+          <span>{error || helperText}</span>
+        </div>
+      )}
+    </div>
   );
 }

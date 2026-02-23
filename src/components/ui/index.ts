@@ -11,3 +11,4 @@ export * from "./empty-state";
 export * from "./confirm-dialog";
 export * from "./file-upload";
 export * from "./attachment-list-item";
+export * from "./bilingual-text-field";

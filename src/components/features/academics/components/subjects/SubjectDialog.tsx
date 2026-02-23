@@ -6,6 +6,8 @@ import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
+import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
+import { validateArEnDifferent } from "@/utils/validation/bilingualValidation";
 import {
   Subject,
   createSubject,
@@ -30,50 +32,117 @@ export default function SubjectDialog({
   existingSubjects,
 }: SubjectDialogProps) {
   const t = useTranslations("academics.subjects.subject_dialog");
+  const tValidation = useTranslations("validation");
 
-  const [name, setName] = useState("");
+  const [nameAr, setNameAr] = useState("");
+  const [nameEn, setNameEn] = useState("");
   const [code, setCode] = useState("");
   const [stage, setStage] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [bilingualErrors, setBilingualErrors] = useState<{ ar?: string; en?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Track original values for dirty checking
+  const [originalValues, setOriginalValues] = useState({
+    nameAr: "",
+    nameEn: "",
+    code: "",
+    stage: "",
+    isActive: true,
+  });
 
   useEffect(() => {
     if (isOpen) {
-      if (subject) {
-        setName(subject.name);
-        setCode(subject.code || "");
-        setStage(subject.stage || "");
-        setIsActive(subject.isActive);
-      } else {
-        setName("");
-        setCode("");
-        setStage("");
-        setIsActive(true);
-      }
+      const initialValues = {
+        nameAr: subject?.nameAr || "",
+        nameEn: subject?.nameEn || "",
+        code: subject?.code || "",
+        stage: subject?.stage || "",
+        isActive: subject?.isActive ?? true,
+      };
+
+      setNameAr(initialValues.nameAr);
+      setNameEn(initialValues.nameEn);
+      setCode(initialValues.code);
+      setStage(initialValues.stage);
+      setIsActive(initialValues.isActive);
+      setOriginalValues(initialValues);
+      setIsDirty(false);
       setErrors({});
+      setBilingualErrors({});
     }
   }, [isOpen, subject]);
 
+  // Track dirty state
+  useEffect(() => {
+    const currentValues = {
+      nameAr: nameAr.trim(),
+      nameEn: nameEn.trim(),
+      code: code.trim(),
+      stage: stage.trim(),
+      isActive,
+    };
+
+    const dirty =
+      currentValues.nameAr !== originalValues.nameAr.trim() ||
+      currentValues.nameEn !== originalValues.nameEn.trim() ||
+      currentValues.code !== originalValues.code.trim() ||
+      currentValues.stage !== originalValues.stage.trim() ||
+      currentValues.isActive !== originalValues.isActive;
+
+    setIsDirty(dirty);
+  }, [nameAr, nameEn, code, stage, isActive, originalValues]);
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
+    const newBilingualErrors: { ar?: string; en?: string } = {};
 
-    if (!name.trim()) {
-      newErrors.name = t("validation.name_required");
-    } else {
-      // Check for duplicate name (case-insensitive, excluding current subject)
-      const duplicate = existingSubjects.find(
+    // Required validation
+    if (!nameAr.trim()) {
+      newBilingualErrors.ar = tValidation("required_ar");
+    }
+    if (!nameEn.trim()) {
+      newBilingualErrors.en = tValidation("required_en");
+    }
+
+    // AR != EN validation
+    if (nameAr.trim() && nameEn.trim()) {
+      const arEnErrors = validateArEnDifferent(nameAr, nameEn);
+      if (arEnErrors.arError) {
+        newBilingualErrors.ar = tValidation("arEnMustDiffer");
+      }
+      if (arEnErrors.enError) {
+        newBilingualErrors.en = tValidation("arEnMustDiffer");
+      }
+    }
+
+    // Check for duplicate names (case-insensitive, excluding current subject)
+    // Only check if AR != EN validation passed
+    if (nameAr.trim() && nameEn.trim() && !newBilingualErrors.ar && !newBilingualErrors.en) {
+      const duplicateAr = existingSubjects.find(
         (s) =>
           s.id !== subject?.id &&
-          s.name.toLowerCase() === name.trim().toLowerCase()
+          s.nameAr.toLowerCase().trim() === nameAr.trim().toLowerCase()
       );
-      if (duplicate) {
-        newErrors.name = t("validation.name_duplicate");
+      if (duplicateAr) {
+        newBilingualErrors.ar = t("validation.name_duplicate");
+      }
+
+      const duplicateEn = existingSubjects.find(
+        (s) =>
+          s.id !== subject?.id &&
+          s.nameEn.toLowerCase().trim() === nameEn.trim().toLowerCase()
+      );
+      if (duplicateEn) {
+        newBilingualErrors.en = t("validation.name_duplicate");
       }
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setBilingualErrors(newBilingualErrors);
+    return Object.keys(newErrors).length === 0 && Object.keys(newBilingualErrors).length === 0;
   };
 
   const handleSubmit = async () => {
@@ -82,7 +151,9 @@ export default function SubjectDialog({
     setIsSubmitting(true);
     try {
       const payload = {
-        name: name.trim(),
+        nameAr: nameAr.trim(),
+        nameEn: nameEn.trim(),
+        name: nameEn.trim() || nameAr.trim(), // Fallback display name
         code: code.trim() || undefined,
         stage: stage.trim() || undefined,
         isActive,
@@ -121,20 +192,32 @@ export default function SubjectDialog({
           <Button onClick={onClose} variant="secondary" disabled={isSubmitting}>
             {t("cancel")}
           </Button>
-          <Button onClick={handleSubmit} variant="primary" disabled={isSubmitting}>
+          <Button 
+            onClick={handleSubmit} 
+            variant="primary" 
+            disabled={isSubmitting || !isDirty}
+          >
             {isSubmitting ? t("saving") : subject ? t("save") : t("create")}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
-        <Input
+        <BilingualTextField
           label={t("fields.name")}
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          error={errors.name}
-          placeholder={t("fields.name_placeholder")}
+          value={{ ar: nameAr, en: nameEn }}
+          onChange={(value) => {
+            setNameAr(value.ar);
+            setNameEn(value.en);
+            setBilingualErrors({});
+          }}
+          requiredAr
+          requiredEn
+          errors={bilingualErrors}
+          placeholder={{
+            ar: "مثال: الرياضيات",
+            en: "e.g., Mathematics",
+          }}
         />
 
         <Input

@@ -4,8 +4,9 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
-import Input from "@/components/ui/input/Input";
 import DatePicker from "@/components/ui/input/DatePicker";
+import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
+import { validateArEnDifferent } from "@/utils/validation/bilingualValidation";
 import {
   AcademicYear,
   Term,
@@ -34,32 +35,53 @@ export function YearDialog({
   const t = useTranslations("academics.structure.year_dialog");
   const tValidation = useTranslations("academics.structure.validation");
 
-  const [name, setName] = useState("");
+  const [nameAr, setNameAr] = useState("");
+  const [nameEn, setNameEn] = useState("");
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [bilingualErrors, setBilingualErrors] = useState<{ ar?: string; en?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       if (editYear) {
-        setName(editYear.name);
+        setNameAr(editYear.nameAr || "");
+        setNameEn(editYear.nameEn || "");
         setStartDate(new Date(editYear.startDate));
         setEndDate(new Date(editYear.endDate));
       } else {
-        setName("");
+        setNameAr("");
+        setNameEn("");
         setStartDate(null);
         setEndDate(null);
       }
       setErrors({});
+      setBilingualErrors({});
     }
   }, [isOpen, editYear]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
+    const newBilingualErrors: { ar?: string; en?: string } = {};
 
-    if (!name.trim()) {
-      newErrors.name = tValidation("name_required");
+    // Required validation
+    if (!nameAr.trim()) {
+      newBilingualErrors.ar = tValidation("required_ar");
+    }
+    if (!nameEn.trim()) {
+      newBilingualErrors.en = tValidation("required_en");
+    }
+
+    // AR != EN validation
+    if (nameAr.trim() && nameEn.trim()) {
+      const arEnErrors = validateArEnDifferent(nameAr, nameEn);
+      if (arEnErrors.arError) {
+        newBilingualErrors.ar = tValidation("arEnMustDiffer");
+      }
+      if (arEnErrors.enError) {
+        newBilingualErrors.en = tValidation("arEnMustDiffer");
+      }
     }
 
     if (!startDate) {
@@ -95,7 +117,8 @@ export function YearDialog({
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setBilingualErrors(newBilingualErrors);
+    return Object.keys(newErrors).length === 0 && Object.keys(newBilingualErrors).length === 0;
   };
 
   const handleSubmit = async () => {
@@ -104,7 +127,9 @@ export function YearDialog({
     setIsSubmitting(true);
     try {
       const payload = {
-        name: name.trim(),
+        name: nameEn.trim() || nameAr.trim(),
+        nameAr: nameAr.trim(),
+        nameEn: nameEn.trim(),
         startDate: dayjs(startDate).format("YYYY-MM-DD"),
         endDate: dayjs(endDate).format("YYYY-MM-DD"),
       };
@@ -143,13 +168,21 @@ export function YearDialog({
       }
     >
       <div className="space-y-4">
-        <Input
+        <BilingualTextField
           label={t("name")}
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          error={errors.name}
-          placeholder={t("name_placeholder")}
+          value={{ ar: nameAr, en: nameEn }}
+          onChange={(value) => {
+            setNameAr(value.ar);
+            setNameEn(value.en);
+            setBilingualErrors({});
+          }}
+          requiredAr
+          requiredEn
+          errors={bilingualErrors}
+          placeholder={{
+            ar: "مثال: ٢٠٢٤-٢٠٢٥",
+            en: "e.g., 2024-2025",
+          }}
         />
 
         <DatePicker
@@ -201,10 +234,12 @@ export function TermDialog({
   const t = useTranslations("academics.structure.term_dialog");
   const tValidation = useTranslations("academics.structure.validation");
 
-  const [name, setName] = useState("");
+  const [nameAr, setNameAr] = useState("");
+  const [nameEn, setNameEn] = useState("");
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [bilingualErrors, setBilingualErrors] = useState<{ ar?: string; en?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const yearStartDate = useMemo(() => new Date(academicYear.startDate), [academicYear.startDate]);
@@ -213,11 +248,13 @@ export function TermDialog({
   useEffect(() => {
     if (isOpen) {
       if (editTerm) {
-        setName(editTerm.name);
+        setNameAr(editTerm.nameAr || "");
+        setNameEn(editTerm.nameEn || "");
         setStartDate(new Date(editTerm.startDate));
         setEndDate(new Date(editTerm.endDate));
       } else {
-        setName("");
+        setNameAr("");
+        setNameEn("");
         
         // Auto-suggest start date
         const sortedTerms = [...existingTerms].sort(
@@ -248,6 +285,7 @@ export function TermDialog({
         }
       }
       setErrors({});
+      setBilingualErrors({});
     }
   }, [isOpen, editTerm, existingTerms, yearStartDate, yearEndDate]);
 
@@ -259,9 +297,25 @@ export function TermDialog({
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
+    const newBilingualErrors: { ar?: string; en?: string } = {};
 
-    if (!name.trim()) {
-      newErrors.name = tValidation("name_required");
+    // Required validation
+    if (!nameAr.trim()) {
+      newBilingualErrors.ar = tValidation("required_ar");
+    }
+    if (!nameEn.trim()) {
+      newBilingualErrors.en = tValidation("required_en");
+    }
+
+    // AR != EN validation
+    if (nameAr.trim() && nameEn.trim()) {
+      const arEnErrors = validateArEnDifferent(nameAr, nameEn);
+      if (arEnErrors.arError) {
+        newBilingualErrors.ar = tValidation("arEnMustDiffer");
+      }
+      if (arEnErrors.enError) {
+        newBilingualErrors.en = tValidation("arEnMustDiffer");
+      }
     }
 
     if (!startDate) {
@@ -314,7 +368,8 @@ export function TermDialog({
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setBilingualErrors(newBilingualErrors);
+    return Object.keys(newErrors).length === 0 && Object.keys(newBilingualErrors).length === 0;
   };
 
   const handleSubmit = async () => {
@@ -323,7 +378,9 @@ export function TermDialog({
     setIsSubmitting(true);
     try {
       const payload: Omit<Term, "id"> = {
-        name: name.trim(),
+        name: nameEn.trim() || nameAr.trim(),
+        nameAr: nameAr.trim(),
+        nameEn: nameEn.trim(),
         startDate: dayjs(startDate).format("YYYY-MM-DD"),
         endDate: dayjs(endDate).format("YYYY-MM-DD"),
         yearId: academicYear.id,
@@ -333,6 +390,8 @@ export function TermDialog({
       if (editTerm) {
         await updateTerm(editTerm.id, {
           name: payload.name,
+          nameAr: payload.nameAr,
+          nameEn: payload.nameEn,
           startDate: payload.startDate,
           endDate: payload.endDate,
         });
@@ -414,13 +473,21 @@ export function TermDialog({
           </div>
         )}
 
-        <Input
+        <BilingualTextField
           label={t("name")}
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          error={errors.name}
-          placeholder={t("name_placeholder")}
+          value={{ ar: nameAr, en: nameEn }}
+          onChange={(value) => {
+            setNameAr(value.ar);
+            setNameEn(value.en);
+            setBilingualErrors({});
+          }}
+          requiredAr
+          requiredEn
+          errors={bilingualErrors}
+          placeholder={{
+            ar: "مثال: الفصل الأول",
+            en: "e.g., Term 1",
+          }}
         />
 
         <DatePicker
@@ -455,3 +522,4 @@ export function TermDialog({
     </Modal>
   );
 }
+
