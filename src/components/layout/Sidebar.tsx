@@ -145,18 +145,17 @@ export default function Sidebar({
       </button>
 
       {/* Logo Section (fixed top) */}
-      <div className="px-6 py-6 flex items-center justify-center shrink-0">
-        {isOpen && (
-          <div className="text-primary font-bold text-3xl tracking-tight flex items-center justify-center">
-            <Image
-              src="/images/logo/moazzez_logo.svg"
-              alt="Logo"
-              width={100}
-              height={20}
-              priority
-            />
-          </div>
-        )}
+      <div className="px-4 py-6 flex items-center justify-center shrink-0">
+        <div className="text-primary font-bold text-3xl tracking-tight flex items-center justify-center">
+          <Image
+            src="/images/logo/moazzez_logo.svg"
+            alt="Logo"
+            width={isOpen ? 120 : 40}
+            height={isOpen ? 30 : 40}
+            priority
+            className="transition-all duration-300"
+          />
+        </div>
       </div>
 
       {/* School Selector (fixed top) */}

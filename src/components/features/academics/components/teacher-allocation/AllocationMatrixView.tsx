@@ -250,6 +250,20 @@ export default function AllocationMatrixView({
       : (section.nameEn || section.nameAr || section.name);
   };
 
+  const getGradeName = (section: Section) => {
+    const grade = grades.find((g) => g.id === section.gradeId);
+    if (!grade) return "-";
+    return locale === "ar"
+      ? (grade.nameAr || grade.nameEn || grade.name)
+      : (grade.nameEn || grade.nameAr || grade.name);
+  };
+
+  const getSectionDisplayName = (section: Section) => {
+    const gradeName = getGradeName(section);
+    const sectionName = getSectionName(section);
+    return { gradeName, sectionName };
+  };
+
   const getSubjectName = (subject: Subject) => {
     return locale === "ar"
       ? (subject.nameAr || subject.nameEn || subject.name)
@@ -459,11 +473,18 @@ export default function AllocationMatrixView({
                           <td
                             className={`sticky ${
                               isRTL ? "right-0" : "left-0"
-                            } z-10 px-4 py-3 text-sm font-semibold text-gray-900 border-r border-gray-200 ${
+                            } z-10 px-4 py-3 border-r border-gray-200 ${
                               isEvenRow ? "bg-white" : "bg-gray-50"
                             }`}
                           >
-                            {getSectionName(section)}
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-sm font-semibold text-gray-900">
+                                {getSectionDisplayName(section).sectionName}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {getSectionDisplayName(section).gradeName}
+                              </span>
+                            </div>
                           </td>
 
                           {/* Teacher Selection Cells */}
