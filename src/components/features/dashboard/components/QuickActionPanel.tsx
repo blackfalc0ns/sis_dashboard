@@ -76,19 +76,13 @@ export default function QuickActionPanel() {
             <button
               key={action.id}
               className="flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all text-lg font-medium group hover:shadow-md hover:scale-105"
-              style={{ backgroundColor: `${action.color}10`, borderColor: action.color, borderWidth: 2 }}
-             
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = `${action.color}10`;
-              }}
+              style={{ backgroundColor: `${action.color}`, borderColor: action.color, borderWidth: 2 }}
             >
               <Icon
-                className="w-4 h-4 transition-colors group-hover:text-white"
-                style={{ color: action.color }}
+                className="w-4 h-4 transition-colors text-white"
               />
               <span
-                className="text-sm font-bold group-hover:text-white transition-colors"
-                style={{ color: action.color }}
+                className="text-sm font-black transition-colors text-white"
               >
                 {action.label}
               </span>
