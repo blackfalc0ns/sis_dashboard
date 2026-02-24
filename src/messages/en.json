@@ -2557,7 +2557,9 @@
         "saving": "Saving...",
         "cancel": "Cancel",
         "published": "Published",
-        "draft": "Draft"
+        "draft": "Draft",
+                "dueDateHolidayWarning": "This due date falls on a holiday."
+
       },
       "learningContent": {
         "title": "Learning Content",
@@ -2607,10 +2609,7 @@
         "sample_answer": "Sample answer (optional)",
         "manual_grading_hint": "This question requires manual grading."
       },
-      "teachingWeeksHint": "Teaching weeks: {count} (holidays excluded)",
-      "assignments": {
-        "dueDateHolidayWarning": "This due date falls on a holiday."
-      }
+      "teachingWeeksHint": "Teaching weeks: {count} (holidays excluded)"
     },
     "calendar": {
       "title": "Academic Calendar",

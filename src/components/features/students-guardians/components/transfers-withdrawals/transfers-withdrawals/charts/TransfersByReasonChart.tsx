@@ -62,7 +62,13 @@ export default function TransfersByReasonChart() {
           ]}
           width={Math.min(width, 500)}
           height={Math.min(height, 300)}
-          margin={{ top: 20, right: 20, bottom: 80, left: 20 }}
+          margin={{ top: 100, right: 70, bottom: 100, left: 70 }}
+          slotProps={{
+            legend: {
+              direction: "horizontal",
+              position: { vertical: 'bottom', horizontal: 'center' },
+            },
+          }}
         />
       </div>
     </ChartCard>

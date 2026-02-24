@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { 
   Stage, 
@@ -55,6 +55,10 @@ export default function DetailsPanel({
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [pendingNode, setPendingNode] = useState<typeof selectedNode>(null);
 
+  const lastNodeKeyRef = useRef<string | null>(null);
+
+const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : null;
+
   const loadNodeData = useCallback((node: typeof selectedNode) => {
     if (!node) return;
 
@@ -76,20 +80,37 @@ export default function DetailsPanel({
   }, [stages, grades, sections]);
 
   useEffect(() => {
-    if (!selectedNode) {
-      setFormData({});
-      setIsDirty(false);
-      return;
-    }
+  if (!selectedNode) {
+    setFormData({});
+    setIsDirty(false);
+    setShowDiscardDialog(false);
+    setPendingNode(null);
+    lastNodeKeyRef.current = null;
+    return;
+  }
 
-    if (isDirty) {
-      setPendingNode(selectedNode);
-      setShowDiscardDialog(true);
-      return;
-    }
+  // ✅ نفس العقدة (حتى لو object جديد) => تجاهل
+  if (lastNodeKeyRef.current === selectedKey) {
+    return;
+  }
 
-    loadNodeData(selectedNode);
-  }, [selectedNode, isDirty, loadNodeData]);
+  // ✅ العقدة اتغيرت فعلاً
+  if (isDirty) {
+    setPendingNode(selectedNode);
+    setShowDiscardDialog(true);
+    return;
+  }
+
+  loadNodeData(selectedNode);
+  lastNodeKeyRef.current = selectedKey;
+  setShowDiscardDialog(false);
+  setPendingNode(null);
+
+  return () => {
+    setShowDiscardDialog(false);
+    setPendingNode(null);
+  };
+}, [selectedKey, selectedNode, isDirty, loadNodeData]);
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -227,12 +248,13 @@ export default function DetailsPanel({
   };
 
   const handleDiscardChanges = () => {
-    setShowDiscardDialog(false);
-    setIsDirty(false);
-    if (pendingNode) {
-      loadNodeData(pendingNode);
-      setPendingNode(null);
-    }
+  setShowDiscardDialog(false);
+  setIsDirty(false);
+  if (pendingNode) {
+    loadNodeData(pendingNode);
+    lastNodeKeyRef.current = `${pendingNode.type}:${pendingNode.id}`;
+    setPendingNode(null);
+  }
   };
 
   if (!selectedNode) {

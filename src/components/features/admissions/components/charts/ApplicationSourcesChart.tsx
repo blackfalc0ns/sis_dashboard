@@ -38,7 +38,6 @@ export default function ApplicationSourcesChart({
   const chartData = data.map((item, index) => ({
     id: index,
     value: item.count,
-    label: getTranslatedSource(item.source),
     color: SOURCE_COLORS[item.source] || SOURCE_COLORS["Other"],
   }));
 

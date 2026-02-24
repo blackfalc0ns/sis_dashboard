@@ -2526,7 +2526,8 @@
         "saving": "جاري الحفظ...",
         "cancel": "إلغاء",
         "published": "منشور",
-        "draft": "مسودة"
+        "draft": "مسودة",
+           "dueDateHolidayWarning": "تاريخ التسليم يقع في يوم إجازة."
       },
       "learningContent": {
         "title": "محتوى التعلم",
@@ -2576,10 +2577,7 @@
         "sample_answer": "إجابة نموذجية (اختياري)",
         "manual_grading_hint": "هذا السؤال يحتاج تصحيحًا يدويًا."
       },
-      "teachingWeeksHint": "أسابيع الدراسة: {count} (مع استبعاد الإجازات)",
-      "assignments": {
-        "dueDateHolidayWarning": "تاريخ التسليم يقع في يوم إجازة."
-      }
+      "teachingWeeksHint": "أسابيع الدراسة: {count} (مع استبعاد الإجازات)"
     },
     "calendar": {
       "title": "التقويم الأكاديمي",

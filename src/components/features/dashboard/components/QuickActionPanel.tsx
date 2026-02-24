@@ -30,37 +30,37 @@ export default function QuickActionPanel() {
       id: "add_student",
       icon: UserPlus,
       label: t("add_student"),
-      color: "#52a9ff",
+      color: "#0ac5b2",
     },
     {
       id: "attendance",
       icon: ClipboardCheck,
       label: t("attendance"),
-      color: "#e5484d",
+      color: "#D93030",
     },
     {
       id: "announcement",
       icon: Megaphone,
       label: t("announcement"),
-      color: "#4caf50",
+      color: "#37A465",
     },
     {
       id: "assessment",
       icon: FileText,
       label: t("assessment"),
-      color: "#4caf50",
+      color: "#025a6b",
     },
     {
       id: "import_data",
       icon: Upload,
       label: t("import_data"),
-      color: "#ffc107",
+      color: "#CF5A32",
     },
     {
       id: "print_reports",
       icon: Printer,
       label: t("print_reports"),
-      color: "#9c27b0",
+      color: "#3C49BF",
     },
   ];
 

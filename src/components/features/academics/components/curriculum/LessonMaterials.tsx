@@ -267,7 +267,7 @@ export default function LessonMaterials({ lessonId, isReadOnly }: LessonMaterial
       <Stack spacing={2}>
         <Box display="flex" justifyContent="space-between" alignItems="center">
           {!isReadOnly && (
-            <Stack direction="row" spacing={1}>
+            <div className="flex gap-2 items-center ">
               <FileUploadButton
                 onFilesSelected={handleFilesSelected}
                 multiple
@@ -289,8 +289,7 @@ export default function LessonMaterials({ lessonId, isReadOnly }: LessonMaterial
               >
                 {t("add_link")}
               </Button>
-            </Stack>
-          )}
+</div>          )}
         </Box>
 
         {isReadOnly && (

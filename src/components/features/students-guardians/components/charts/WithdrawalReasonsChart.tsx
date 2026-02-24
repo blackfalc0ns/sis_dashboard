@@ -13,7 +13,7 @@ type Stage = "all" | "primary" | "preparatory" | "secondary";
 
 export default function WithdrawalReasonsChart() {
   const t = useTranslations("students_guardians.transfers_withdrawals");
-  const { width, height } = useResponsiveChart();
+  const { width } = useResponsiveChart();
   const [selectedStage, setSelectedStage] = useState<Stage>("all");
 
   // TODO: Replace with actual API data
@@ -64,8 +64,14 @@ export default function WithdrawalReasonsChart() {
             },
           ]}
           width={Math.min(width, 500)}
-          height={ 300}
+          height={300}
           margin={{ top: 20, right: 20, bottom: 80, left: 20 }}
+          slotProps={{
+            legend: {
+              direction: "horizontal",
+              position: { vertical: 'bottom', horizontal: 'center' },
+            },
+          }}
         />
       </div>
     </ChartCard>

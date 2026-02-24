@@ -62,7 +62,7 @@ export default function ChartCard({
       className={`rounded-2xl border border-border shadow-sm p-6 ${className}`}
     >
       {/* Header Section */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap">
         {/* Title with Tooltip */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">

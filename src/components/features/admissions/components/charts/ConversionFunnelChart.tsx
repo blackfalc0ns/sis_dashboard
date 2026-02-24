@@ -2,9 +2,9 @@
 
 "use client";
 
-import { Users, FileText, CheckCircle, GraduationCap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { FunnelChart, Funnel, Tooltip, ResponsiveContainer, Cell, LabelList } from "recharts";
 import { ChartCard } from "@/components/ui/chart-card";
 
 interface FunnelData {
@@ -37,32 +37,24 @@ export default function ConversionFunnelChart({
 
   const stages = [
     {
-      label: t("leads"),
-      count: leads,
-      icon: Users,
-      color: "#6366f1", // Indigo
-      conversion: null,
+      name: t("leads"),
+      value: leads,
+      fill: "#6366f1", // Indigo
     },
     {
-      label: t("applications"),
-      count: applications,
-      icon: FileText,
-      color: "#8b5cf6", // Purple
-      conversion: `${leadsToApps}%`,
+      name: t("applications"),
+      value: applications,
+      fill: "#8b5cf6", // Purple
     },
     {
-      label: t("accepted"),
-      count: accepted,
-      icon: CheckCircle,
-      color: "#10b981", // Green
-      conversion: `${appsToAccepted}%`,
+      name: t("accepted"),
+      value: accepted,
+      fill: "#10b981", // Green
     },
     {
-      label: t("enrolled"),
-      count: enrolled,
-      icon: GraduationCap,
-      color: "#14b8a6", // Teal
-      conversion: `${acceptedToEnrolled}%`,
+      name: t("enrolled"),
+      value: enrolled,
+      fill: "#14b8a6", // Teal
     },
   ];
 
@@ -93,13 +85,6 @@ export default function ConversionFunnelChart({
     );
   }
 
-  // Calculate widths for pyramid effect
-  const maxValue = Math.max(leads, applications, accepted, enrolled);
-  const getWidth = (value: number) => {
-    if (maxValue === 0) return 0;
-    return (value / maxValue) * 100;
-  };
-
   return (
     <ChartCard
       title={t("conversion_funnel")}
@@ -126,78 +111,46 @@ export default function ConversionFunnelChart({
         </p>
       </div>
 
-      {/* Pyramid Funnel */}
-      <div className="relative flex flex-col items-center py-4">
-        <svg
-          viewBox="0 0 400 400"
-          className="w-full max-w-md"
-          style={{ maxHeight: "400px" }}
-        >
-          {stages.map((stage, index) => {
-            const width = getWidth(stage.count);
-            const topWidth = width;
-            const bottomWidth =
-              index < stages.length - 1
-                ? getWidth(stages[index + 1].count)
-                : width * 0.6;
-
-            const centerX = 200;
-            const y = index * 85 + 10;
-            const height = 75;
-
-            const topLeft = centerX - topWidth * 1.8;
-            const topRight = centerX + topWidth * 1.8;
-            const bottomLeft = centerX - bottomWidth * 1.8;
-            const bottomRight = centerX + bottomWidth * 1.8;
-
-            const points = `${topLeft},${y} ${topRight},${y} ${bottomRight},${y + height} ${bottomLeft},${y + height}`;
-
-            return (
-              <g key={stage.label}>
-                <polygon
-                  points={points}
-                  fill={stage.color}
-                  className="transition-all duration-300 hover:opacity-90"
-                  style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))" }}
-                />
-
-                <text
-                  x={centerX}
-                  y={y + height / 2 - 8}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="fill-white font-semibold"
-                  style={{ fontSize: "16px" }}
-                >
-                  {stage.label}
-                </text>
-
-                <text
-                  x={centerX}
-                  y={y + height / 2 + 12}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="fill-white font-bold"
-                  style={{ fontSize: "24px" }}
-                >
-                  {stage.count}
-                </text>
-
-                {index < stages.length - 1 && stage.conversion && (
-                  <text
-                    x={centerX}
-                    y={y + height + 18}
-                    textAnchor="middle"
-                    className="fill-gray-600 text-xs font-medium"
-                    style={{ fontSize: "14px" }}
-                  >
-                    ↓ {stage.conversion}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </svg>
+      {/* Recharts Funnel */}
+      <div className="w-full" style={{ height: "400px" }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <FunnelChart>
+            <Tooltip
+              formatter={(value: number | undefined) => value?.toLocaleString() ?? "0"}
+              contentStyle={{
+                backgroundColor: "rgba(255, 255, 255, 0.95)",
+                border: "1px solid #e5e7eb",
+                borderRadius: "8px",
+                padding: "8px 12px",
+              }}
+            />
+            <Funnel
+              dataKey="value"
+              data={stages}
+              isAnimationActive
+            >
+              {stages.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.fill} />
+              ))}
+              <LabelList
+                position="center"
+                fill="#fff"
+                stroke="none"
+                dataKey="name"
+                style={{ fontSize: "14px", fontWeight: "600"  , transform: "translateY(10px)" } }
+                offset={-15}
+              />
+              <LabelList
+                position="center"
+                fill="#fff"
+                stroke="none"
+                dataKey="value"
+                style={{ fontSize: "22px", fontWeight: "700" , transform: "translateY(-20px)" }}
+                offset={15}
+              />
+            </Funnel>
+          </FunnelChart>
+        </ResponsiveContainer>
       </div>
 
       {/* Summary Stats */}
