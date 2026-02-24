@@ -90,6 +90,133 @@ export function exportToExcel(
 }
 
 /**
+ * Enhanced export options with title and metadata support
+ */
+export interface EnhancedExportOptions {
+  title?: string;
+  subtitle?: string;
+  data: Record<string, unknown>[];
+  filename: string;
+}
+
+/**
+ * Export to Excel with title section and metadata
+ */
+export function exportToExcelWithTitle(options: EnhancedExportOptions) {
+  const { title, subtitle, data, filename } = options;
+
+  if (data.length === 0) {
+    alert("No data to export");
+    return;
+  }
+
+  // Get headers from first object
+  const headers = Object.keys(data[0]);
+  const BOM = "\uFEFF";
+  
+  const rows: string[] = [];
+
+  // Add title row if provided
+  if (title) {
+    rows.push(`"${title.replace(/"/g, '""')}"`);
+  }
+
+  // Add subtitle/metadata row if provided
+  if (subtitle) {
+    rows.push(`"${subtitle.replace(/"/g, '""')}"`);
+  }
+
+  // Add blank spacer row if title or subtitle exists
+  if (title || subtitle) {
+    rows.push("");
+  }
+
+  // Add header row
+  rows.push(headers.join(","));
+
+  // Add data rows
+  data.forEach((row) => {
+    const rowValues = headers.map((header) => {
+      const value = row[header];
+      // Handle values with commas or quotes
+      if (
+        typeof value === "string" &&
+        (value.includes(",") || value.includes('"'))
+      ) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    });
+    rows.push(rowValues.join(","));
+  });
+
+  const csvContent = rows.join("\n");
+
+  // Create blob with BOM for Excel
+  const blob = new Blob([BOM + csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
+  downloadBlob(blob, `${filename}.csv`);
+}
+
+/**
+ * Export to CSV with title section and metadata
+ */
+export function exportToCSVWithTitle(options: EnhancedExportOptions) {
+  const { title, subtitle, data, filename } = options;
+
+  if (data.length === 0) {
+    alert("No data to export");
+    return;
+  }
+
+  // Get headers from first object
+  const headers = Object.keys(data[0]);
+  
+  const rows: string[] = [];
+
+  // Add title row if provided
+  if (title) {
+    rows.push(`"${title.replace(/"/g, '""')}"`);
+  }
+
+  // Add subtitle/metadata row if provided
+  if (subtitle) {
+    rows.push(`"${subtitle.replace(/"/g, '""')}"`);
+  }
+
+  // Add blank spacer row if title or subtitle exists
+  if (title || subtitle) {
+    rows.push("");
+  }
+
+  // Add header row
+  rows.push(headers.join(","));
+
+  // Add data rows
+  data.forEach((row) => {
+    const rowValues = headers.map((header) => {
+      const value = row[header];
+      // Handle values with commas or quotes
+      if (
+        typeof value === "string" &&
+        (value.includes(",") || value.includes('"'))
+      ) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    });
+    rows.push(rowValues.join(","));
+  });
+
+  const csvContent = rows.join("\n");
+
+  // Create blob
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  downloadBlob(blob, `${filename}.csv`);
+}
+
+/**
  * Export dashboard summary as PDF (using browser print)
  */
 export function exportToPDF() {

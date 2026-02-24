@@ -2373,10 +2373,14 @@
           "grade": "Grade",
           "total": "Total hours"
         },
+        "columns": {
+          "grade": "Grade"
+        },
         "actions": {
           "save": "Save Changes",
           "saving": "Saving...",
-          "reset": "Reset"
+          "reset": "Reset",
+          "export": "Export"
         },
         "empty_state": {
           "no_subjects": {
@@ -2725,7 +2729,17 @@
           "sections": "Sections",
           "subjects": "Subjects",
           "completion": "Completion"
+        },
+        "columns": {
+          "section": "Section",
+          "grade": "Grade"
         }
+      },
+      "actions": {
+        "save": "Save Changes",
+        "saving": "Saving...",
+        "reset": "Reset",
+        "export": "Export"
       },
       "load": {
         "title": "Teacher Workload",

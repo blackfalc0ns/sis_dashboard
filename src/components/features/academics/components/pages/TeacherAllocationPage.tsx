@@ -10,6 +10,7 @@ import {
   fetchAcademicYears,
   fetchTermsByYear,
   fetchStructureTree,
+  AcademicYear,
   Term,
   Grade,
   Section,
@@ -42,6 +43,7 @@ export default function TeacherAllocationPage() {
   const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
 
   // Context data
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
@@ -66,6 +68,7 @@ export default function TeacherAllocationPage() {
     const initializeContext = async () => {
       try {
         const years = await fetchAcademicYears();
+        setAcademicYears(years);
 
         const urlYear = searchParams.get("year");
         const urlTerm = searchParams.get("term");
@@ -337,6 +340,8 @@ export default function TeacherAllocationPage() {
             {activeTab === "matrix" && (
               <AllocationMatrixView
                 termId={termId}
+                yearName={academicYears.find((y) => y.id === academicYearId)?.name}
+                termName={terms.find((t) => t.id === termId)?.name}
                 grades={grades}
                 sections={sections}
                 subjects={subjects}

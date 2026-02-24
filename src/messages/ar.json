@@ -2342,10 +2342,14 @@
           "grade": "الصف",
           "total": "إجمالي الساعات"
         },
+        "columns": {
+          "grade": "الصف"
+        },
         "actions": {
           "save": "حفظ التغييرات",
           "saving": "جاري الحفظ...",
-          "reset": "إعادة تعيين"
+          "reset": "إعادة تعيين",
+          "export": "تصدير"
         },
         "empty_state": {
           "no_subjects": {
@@ -2680,7 +2684,8 @@
         "clearSelection": "مسح",
         "save": "حفظ التغييرات",
         "saving": "جاري الحفظ...",
-        "reset": "إعادة تعيين"
+        "reset": "إعادة تعيين",
+        "export": "تصدير"
       },
       "matrix": {
         "title": "جدول توزيع المعلمين",
@@ -2693,6 +2698,10 @@
           "sections": "الشعب",
           "subjects": "المواد",
           "completion": "الاكتمال"
+        },
+        "columns": {
+          "section": "الشعبة",
+          "grade": "الصف"
         }
       },
       "load": {

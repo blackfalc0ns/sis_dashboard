@@ -302,6 +302,8 @@ export default function SubjectsAllocationPage() {
                 subjects={subjects}
                 allocations={allocations}
                 termId={termId}
+                yearName={academicYears.find((y) => y.id === academicYearId)?.name}
+                termName={terms.find((t) => t.id === termId)?.name}
                 isReadOnly={isReadOnly}
                 onAllocationsChange={setAllocations}
                 onDirtyChange={setHasUnsavedChanges}
@@ -328,6 +330,8 @@ export default function SubjectsAllocationPage() {
                 subjects={subjects}
                 allocations={allocations}
                 termId={termId}
+                yearName={academicYears.find((y) => y.id === academicYearId)?.name}
+                termName={terms.find((t) => t.id === termId)?.name}
                 isReadOnly={isReadOnly}
                 onAllocationsChange={setAllocations}
                 onDirtyChange={setHasUnsavedChanges}

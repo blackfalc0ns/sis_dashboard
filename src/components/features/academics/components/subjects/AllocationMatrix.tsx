@@ -4,19 +4,24 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Save, RotateCcw } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import ExportButton from "@/components/ui/button/ExportButton";
 import Select from "@/components/ui/input/Select";
+import AllocationMatrixTable, { MatrixColumn, MatrixRow } from "../shared/AllocationMatrixTable";
 import {
   Subject,
   SubjectAllocation,
   bulkUpsertSubjectAllocations,
 } from "@/services/academics/subjectsService";
 import { Grade } from "@/services/academics/structureService";
+import { exportAcademicsData, generateExportFilename, ExportColumn, ExportMetadata, formatExportDate } from "@/utils/academics/exportAdapter";
 
 interface AllocationMatrixProps {
   grades: Grade[];
   subjects: Subject[];
   allocations: SubjectAllocation[];
   termId: string;
+  yearName?: string;
+  termName?: string;
   isReadOnly: boolean;
   onAllocationsChange: (allocations: SubjectAllocation[]) => void;
   onDirtyChange: (isDirty: boolean) => void;
@@ -28,14 +33,14 @@ export default function AllocationMatrix({
   subjects,
   allocations,
   termId,
+  yearName,
+  termName,
   isReadOnly,
-  onAllocationsChange,
   onDirtyChange,
   onRefresh,
 }: AllocationMatrixProps) {
   const t = useTranslations("academics.subjects.matrix");
   const locale = useLocale();
-  const isRTL = locale === "ar";
 
   const [localAllocations, setLocalAllocations] = useState<SubjectAllocation[]>([]);
   const [originalAllocations, setOriginalAllocations] = useState<SubjectAllocation[]>([]);
@@ -148,6 +153,60 @@ export default function AllocationMatrix({
     onDirtyChange(false);
   };
 
+  // Export handler
+  const handleExport = (format: "csv" | "excel") => {
+    // Prepare title
+    const title = t("title");
+
+    // Prepare metadata
+    const metadata: ExportMetadata = {
+      yearName,
+      termName,
+      exportDate: formatExportDate(locale),
+    };
+
+    // Add grade filter if selected
+    if (stageFilter) {
+      const stage = stagesData.find((s) => s.id === stageFilter);
+      if (stage) {
+        metadata.gradeName = locale === "ar" ? stage.nameAr : stage.nameEn;
+      }
+    }
+
+    // Prepare columns
+    const columns: ExportColumn[] = [
+      { key: "grade", label: t("columns.grade") },
+      ...subjects.map((subject) => ({
+        key: `subject_${subject.id}`,
+        label: locale === "ar" ? subject.nameAr : subject.nameEn,
+      })),
+    ];
+
+    // Prepare rows
+    const rows = filteredGrades.map((grade) => {
+      const row: Record<string, unknown> = {
+        grade: locale === "ar" ? grade.nameAr : grade.nameEn,
+      };
+
+      subjects.forEach((subject) => {
+        const hours = getAllocation(grade.id, subject.id);
+        row[`subject_${subject.id}`] = hours || "";
+      });
+
+      return row;
+    });
+
+    // Generate filename
+    const filename = generateExportFilename(
+      "subjects-allocation",
+      termId,
+      stageFilter || undefined
+    );
+
+    // Export with title and metadata
+    exportAcademicsData({ title, metadata, filename, format, columns, rows, locale });
+  };
+
   const completionPercentage = useMemo(() => {
     const totalCells = filteredGrades.length * subjects.length;
     if (totalCells === 0) return 0;
@@ -165,6 +224,100 @@ export default function AllocationMatrix({
   }, [filteredGrades, subjects, localAllocations]);
 
   const getCellId = (gradeId: string, subjectId: string) => `${gradeId}-${subjectId}`;
+
+  // Prepare matrix data
+  const matrixRows: (MatrixRow & { gradeId: string })[] = useMemo(() => {
+    return filteredGrades.map((grade) => ({
+      id: grade.id,
+      gradeId: grade.id,
+      label: locale === "ar" ? (grade.nameAr || grade.nameEn || grade.name) : (grade.nameEn || grade.nameAr || grade.name),
+    }));
+  }, [filteredGrades, locale]);
+
+  const matrixColumns: (MatrixColumn & { subjectId: string })[] = useMemo(() => {
+    return subjects.map((subject) => ({
+      id: subject.id,
+      subjectId: subject.id,
+      label: locale === "ar" ? (subject.nameAr || subject.nameEn || subject.name) : (subject.nameEn || subject.nameAr || subject.name),
+      code: subject.code,
+    }));
+  }, [subjects, locale]);
+
+  const renderCell = (row: MatrixRow & { gradeId: string }, column: MatrixColumn & { subjectId: string }) => {
+    const value = getAllocation(row.gradeId, column.subjectId);
+    const originalValue = originalAllocations.find(
+      (a) => a.gradeId === row.gradeId && a.subjectId === column.subjectId
+    )?.weeklyHours || 0;
+    const isChanged = originalValue !== value;
+    const cellId = getCellId(row.gradeId, column.subjectId);
+    const isFocused = focusedCell === cellId;
+
+    return (
+      <div className="relative">
+        <input
+          type="number"
+          min="0"
+          max="50"
+          step="1"
+          value={value || ""}
+          onChange={(e) => {
+            const val = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
+            if (!isNaN(val)) {
+              setAllocation(row.gradeId, column.subjectId, val);
+            }
+          }}
+          onFocus={() => setFocusedCell(cellId)}
+          onBlur={() => setFocusedCell(null)}
+          disabled={isReadOnly}
+          placeholder="—"
+          className="w-full h-full px-3 py-3 text-sm text-center border-0 focus:outline-none transition-all"
+          style={{
+            appearance: 'textfield',
+            MozAppearance: 'textfield',
+            WebkitAppearance: 'none',
+            backgroundColor: isChanged 
+              ? 'var(--color-hover-50)' 
+              : isFocused 
+                ? 'var(--color-primary-200)' 
+                : isReadOnly 
+                  ? 'var(--color-primary-100)' 
+                  : 'transparent',
+            color: isChanged 
+              ? 'var(--color-accent-900)' 
+              : value === 0 
+                ? 'var(--color-gray-400)' 
+                : isReadOnly 
+                  ? 'var(--color-gray-500)' 
+                  : 'var(--foreground)',
+            fontWeight: isChanged ? '600' : 'normal',
+            cursor: isReadOnly ? 'not-allowed' : 'text',
+            boxShadow: isFocused ? 'inset 0 0 0 2px var(--color-primary-500)' : 'none'
+          }}
+          onMouseEnter={(e) => {
+            if (!isReadOnly && !isFocused && !isChanged) {
+              e.currentTarget.style.backgroundColor = 'var(--color-primary-200)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isReadOnly && !isFocused && !isChanged) {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }
+          }}
+        />
+        {isChanged && !isFocused && (
+          <div 
+            className="absolute top-1 right-1 w-2 h-2 rounded-full" 
+            style={{ backgroundColor: 'var(--color-accent-500)' }}
+            title="Modified" 
+          />
+        )}
+      </div>
+    );
+  };
+
+  const getRowTotal = (row: MatrixRow & { gradeId: string }) => {
+    return getGradeTotal(row.gradeId);
+  };
 
   if (subjects.length === 0) {
     return (
@@ -198,10 +351,14 @@ export default function AllocationMatrix({
           <h2 className="text-lg font-semibold" style={{ color: 'var(--color-primary-900)' }}>{t("title")}</h2>
           
           <div className="flex items-center gap-2">
+            <ExportButton
+              onExport={handleExport}
+              disabled={filteredGrades.length === 0 || subjects.length === 0}
+              label={t("actions.export")}
+            />
             <Button
               onClick={handleReset}
               variant="secondary"
-              size="sm"
               leftIcon={<RotateCcw className="w-4 h-4" />}
               disabled={!isDirty || isReadOnly}
             >
@@ -210,7 +367,6 @@ export default function AllocationMatrix({
             <Button
               onClick={handleSave}
               variant="primary"
-              size="sm"
               leftIcon={<Save className="w-4 h-4" />}
               disabled={!isDirty || isReadOnly || isSaving}
             >
@@ -261,220 +417,18 @@ export default function AllocationMatrix({
       </div>
 
       {/* Matrix */}
-      <div className="flex-1 overflow-auto p-4">
-        <div className="inline-block min-w-full">
-          <table className="min-w-full border-collapse shadow-sm rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--background)' }}>
-            <thead>
-              <tr>
-                {/* Grade Column Header - Pinned */}
-                <th 
-                  className={`sticky ${isRTL ? 'right-0' : 'left-0'} z-20 px-4 py-3 text-${isRTL ? 'right' : 'left'} text-xs font-bold uppercase tracking-wider shadow-sm`}
-                  style={{ 
-                    minWidth: '200px',
-                    backgroundColor: 'var(--color-surface-100)',
-                    borderBottom: '2px solid var(--color-neutral-200)',
-                    color: 'var(--color-primary-900)'
-                  }}
-                >
-                  {t("table.grade")}
-                </th>
-                
-                {/* Subject Column Headers */}
-                {subjects.map((subject) => {
-                  const subjectName = locale === "ar" 
-                    ? (subject.nameAr || subject.nameEn || subject.name) 
-                    : (subject.nameEn || subject.nameAr || subject.name);
-                  
-                  return (
-                    <th
-                      key={subject.id}
-                      className={`px-3 py-3 ${locale === "ar" ? 'text-right' : 'text-left'} text-xs font-bold uppercase tracking-wider`}
-                      style={{ 
-                        minWidth: '160px', 
-                        maxWidth: '160px',
-                        backgroundColor: 'var(--color-surface-100)',
-                        borderBottom: '2px solid var(--color-neutral-200)',
-                        color: 'var(--color-primary-900)'
-                      }}
-                      title={`${subjectName}${subject.code ? ` (${subject.code})` : ''}`}
-                    >
-                      <div className="flex flex-col gap-1">
-                        <div className="font-bold truncate" style={{ color: 'var(--color-primary-900)' }}>
-                          {subjectName}
-                        </div>
-                        {subject.code && (
-                          <div className="inline-flex">
-                            <span 
-                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-                              style={{
-                                backgroundColor: 'var(--color-primary-50)',
-                                color: 'var(--color-primary-700)',
-                                border: '1px solid var(--color-primary-200)'
-                              }}
-                            >
-                              {subject.code}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </th>
-                  );
-                })}
-                
-                {/* Total Column Header - Pinned */}
-                <th 
-                  className={`sticky ${isRTL ? 'left-0' : 'right-0'} z-20 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider shadow-sm`}
-                  style={{ 
-                    minWidth: '110px',
-                    backgroundColor: 'var(--color-accent-50)',
-                    borderBottom: '2px solid var(--color-accent-200)',
-                    color: 'var(--color-accent-900)'
-                  }}
-                >
-                  {t("table.total")}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredGrades.map((grade, gradeIndex) => {
-                const gradeTotal = getGradeTotal(grade.id);
-                const isEvenRow = gradeIndex % 2 === 0;
-                
-                return (
-                  <tr 
-                    key={grade.id} 
-                    className="transition-colors"
-                    style={{
-                      backgroundColor: isEvenRow ? 'var(--background)' : 'var(--color-gray-50)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--color-primary-50)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = isEvenRow ? 'var(--background)' : 'var(--color-gray-50)';
-                    }}
-                  >
-                    {/* Grade Cell - Pinned */}
-                    <td 
-                      className={`sticky ${isRTL ? 'right-0' : 'left-0'} z-10 px-4 py-3 text-sm font-semibold shadow-sm`}
-                      style={{
-                        backgroundColor: 'inherit',
-                        borderBottom: '1px solid var(--color-neutral-100)',
-                        color: 'var(--color-primary-900)'
-                      }}
-                    >
-                      {locale === "ar" ? (grade.nameAr || grade.nameEn || grade.name) : (grade.nameEn || grade.nameAr || grade.name)}
-                    </td>
-                    
-                    {/* Subject Allocation Cells */}
-                    {subjects.map((subject) => {
-                      const value = getAllocation(grade.id, subject.id);
-                      const originalValue = originalAllocations.find(
-                        (a) => a.gradeId === grade.id && a.subjectId === subject.id
-                      )?.weeklyHours || 0;
-                      const isChanged = originalValue !== value;
-                      const cellId = getCellId(grade.id, subject.id);
-                      const isFocused = focusedCell === cellId;
-
-                      return (
-                        <td 
-                          key={subject.id} 
-                          className="p-0"
-                          style={{ borderBottom: '1px solid var(--color-neutral-100)' }}
-                        >
-                          <div className="relative">
-                            <input
-                              type="number"
-                              min="0"
-                              max="50"
-                              step="1"
-                              value={value || ""}
-                              onChange={(e) => {
-                                const val = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
-                                if (!isNaN(val)) {
-                                  setAllocation(grade.id, subject.id, val);
-                                }
-                              }}
-                              onFocus={() => setFocusedCell(cellId)}
-                              onBlur={() => setFocusedCell(null)}
-                              disabled={isReadOnly}
-                              placeholder="—"
-                              className="w-full h-full px-3 py-3 text-sm text-center border-0 focus:outline-none transition-all"
-                              style={{
-                                appearance: 'textfield',
-                                MozAppearance: 'textfield',
-                                WebkitAppearance: 'none',
-                                backgroundColor: isChanged 
-                                  ? 'var(--color-accent-50)' 
-                                  : isFocused 
-                                    ? 'var(--color-primary-50)' 
-                                    : isReadOnly 
-                                      ? 'var(--color-gray-100)' 
-                                      : 'transparent',
-                                color: isChanged 
-                                  ? 'var(--color-accent-900)' 
-                                  : value === 0 
-                                    ? 'var(--color-gray-400)' 
-                                    : isReadOnly 
-                                      ? 'var(--color-gray-500)' 
-                                      : 'var(--foreground)',
-                                fontWeight: isChanged ? '600' : 'normal',
-                                cursor: isReadOnly ? 'not-allowed' : 'text',
-                                boxShadow: isFocused ? 'inset 0 0 0 2px var(--color-primary-500)' : 'none'
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!isReadOnly && !isFocused && !isChanged) {
-                                  e.currentTarget.style.backgroundColor = 'var(--color-gray-100)';
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!isReadOnly && !isFocused && !isChanged) {
-                                  e.currentTarget.style.backgroundColor = 'transparent';
-                                }
-                              }}
-                            />
-                            {isChanged && !isFocused && (
-                              <div 
-                                className="absolute top-1 right-1 w-2 h-2 rounded-full" 
-                                style={{ backgroundColor: 'var(--color-accent-500)' }}
-                                title="Modified" 
-                              />
-                            )}
-                          </div>
-                        </td>
-                      );
-                    })}
-                    
-                    {/* Total Cell - Pinned */}
-                    <td 
-                      className={`sticky ${isRTL ? 'left-0' : 'right-0'} z-10 px-4 py-3 text-sm font-bold text-center shadow-sm`}
-                      style={{
-                        backgroundColor: 'var(--color-accent-50)',
-                        borderBottom: '1px solid var(--color-accent-200)',
-                        color: 'var(--color-accent-900)'
-                      }}
-                    >
-                      {gradeTotal}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-auto p-4">
+          <AllocationMatrixTable
+            rows={matrixRows}
+            columns={matrixColumns}
+            rowHeaderLabel={t("table.grade")}
+            totalColumnLabel={t("table.total")}
+            renderCell={renderCell}
+            getRowTotal={getRowTotal}
+          />
         </div>
       </div>
-
-      {/* Hide number input spinners */}
-      <style jsx>{`
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-        input[type="number"] {
-          -moz-appearance: textfield;
-        }
-      `}</style>
     </div>
   );
 }

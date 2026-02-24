@@ -4,7 +4,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { FunnelChart, Funnel, Tooltip, ResponsiveContainer, Cell, LabelList } from "recharts";
+import { FunnelChart, Funnel, Tooltip, ResponsiveContainer, LabelList } from "recharts";
 import { ChartCard } from "@/components/ui/chart-card";
 
 interface FunnelData {
@@ -129,24 +129,38 @@ export default function ConversionFunnelChart({
               data={stages}
               isAnimationActive
             >
-              {stages.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.fill} />
-              ))}
               <LabelList
                 position="center"
-                fill="#fff"
-                stroke="none"
-                dataKey="name"
-                style={{ fontSize: "14px", fontWeight: "600"  , transform: "translateY(10px)" } }
-                offset={-15}
-              />
-              <LabelList
-                position="center"
-                fill="#fff"
-                stroke="none"
-                dataKey="value"
-                style={{ fontSize: "22px", fontWeight: "700" , transform: "translateY(-20px)" }}
-                offset={15}
+                content={(props: any) => {
+                  const { x, y, width, height, value, name } = props;
+                  const centerX = x + width / 2;
+                  const centerY = y + height / 2;
+                  
+                  return (
+                    <g>
+                      <text
+                        x={centerX}
+                        y={centerY - 12}
+                        fill="#fff"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{ fontSize: "22px", fontWeight: "700" }}
+                      >
+                        {value?.toLocaleString()}
+                      </text>
+                      <text
+                        x={centerX}
+                        y={centerY + 12}
+                        fill="#fff"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{ fontSize: "14px", fontWeight: "600" }}
+                      >
+                        {name}
+                      </text>
+                    </g>
+                  );
+                }}
               />
             </Funnel>
           </FunnelChart>
