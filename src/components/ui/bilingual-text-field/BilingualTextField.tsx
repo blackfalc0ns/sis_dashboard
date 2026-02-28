@@ -12,6 +12,7 @@ export interface BilingualTextFieldProps {
   label: string;
   value: BilingualValue;
   onChange: (value: BilingualValue) => void;
+  onBlur?: () => void;
   requiredAr?: boolean;
   requiredEn?: boolean;
   disabled?: boolean;
@@ -33,6 +34,7 @@ export default function BilingualTextField({
   label,
   value,
   onChange,
+  onBlur,
   requiredAr = true,
   requiredEn = true,
   disabled = false,
@@ -48,7 +50,8 @@ export default function BilingualTextField({
       <Input
         label={`${label} (${t("arabic")})`}
         value={value.ar}
-        onChange={(e) => onChange({ ...value, ar: e.target.value })}
+        onChange={(e) =>{ onChange({ ...value, ar: e.target.value }); console.log(value.ar)}}
+        onBlur={onBlur}
         required={requiredAr}
         disabled={disabled}
         error={errors.ar}
@@ -62,6 +65,7 @@ export default function BilingualTextField({
         label={`${label} (${t("english")})`}
         value={value.en}
         onChange={(e) => onChange({ ...value, en: e.target.value })}
+        onBlur={onBlur}
         required={requiredEn}
         disabled={disabled}
         error={errors.en}

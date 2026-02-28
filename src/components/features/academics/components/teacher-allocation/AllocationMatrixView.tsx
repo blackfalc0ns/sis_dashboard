@@ -24,6 +24,7 @@ import {
   bulkUpsertTeacherAllocations,
 } from "@/services/academics/teacherAllocationService";
 import { exportAcademicsData, generateExportFilename, ExportColumn, ExportMetadata, formatExportDate } from "@/utils/academics/exportAdapter";
+import { CheckCircleIcon } from "@heroicons/react/20/solid";
 
 interface AllocationMatrixViewProps {
   termId: string;
@@ -88,7 +89,8 @@ export default function AllocationMatrixView({
   // Notify parent of allocation changes
   useEffect(() => {
     onAllocationsChange?.(localAllocations);
-  }, [localAllocations, onAllocationsChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localAllocations]);
 
   // Track dirty state
   const isDirty = useMemo(() => {
@@ -351,7 +353,8 @@ export default function AllocationMatrixView({
   // Filter sections by missing if enabled
   const displaySections = useMemo(() => {
     if (!showOnlyMissing) return filteredSections;
-    return filteredSections.filter((section) => {
+    
+    const sectionsWithMissing = filteredSections.filter((section) => {
       // Calculate missing count inline
       const missingCount = filteredSubjects.filter((subject) => {
         const allocation = localAllocations.find(
@@ -361,6 +364,8 @@ export default function AllocationMatrixView({
       }).length;
       return missingCount > 0;
     });
+    
+    return sectionsWithMissing;
   }, [filteredSections, showOnlyMissing, localAllocations, filteredSubjects]);
 
   const completionPercentage = useMemo(() => {
@@ -573,7 +578,7 @@ export default function AllocationMatrixView({
                             {missingCount}
                           </span>
                         ) : (
-                          <span className="text-green-600">✓</span>
+                          <span className="text-green-600"><CheckCircleIcon className="w-7 h-7" /></span>
                         )}
                       </div>
                     );

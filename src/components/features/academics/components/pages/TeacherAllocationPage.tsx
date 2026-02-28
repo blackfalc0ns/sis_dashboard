@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AlertCircle, Grid3x3, BarChart3 } from "lucide-react";
 import { Tabs, Tab } from "@mui/material";
+import { useDirtyKey } from "@/hooks/useDirtyKey";
 import ContextBar from "../shared/ContextBar";
 import {
   fetchAcademicYears,
@@ -31,11 +32,13 @@ import AllocationMatrixView from "../teacher-allocation/AllocationMatrixView";
 import TeacherLoadView from "../teacher-allocation/TeacherLoadView";
 import ValidationPanel from "../teacher-allocation/ValidationPanel";
 import CarryOverDialog from "../teacher-allocation/CarryOverDialog";
+import { Button } from "@/components/ui";
 
 export default function TeacherAllocationPage() {
   const t = useTranslations("academics.teacherAllocation");
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { markDirty, clearDirty } = useDirtyKey("teacher-allocation");
 
   // URL params
   const [academicYearId, setAcademicYearId] = useState("");
@@ -184,11 +187,24 @@ export default function TeacherAllocationPage() {
 
   const handleCarryOverSuccess = async () => {
     await refreshData();
+    clearDirty(); // Clear dirty state after successful carry over
   };
 
   const handleValidate = () => {
     setValidationPanelOpen(true);
   };
+
+  // Handle allocation changes - mark as dirty
+  const handleAllocationsChange = useCallback((allocations: TeacherAllocation[]) => {
+    setCurrentAllocations(allocations);
+    // Check if allocations differ from saved state
+    const hasChanges = JSON.stringify(allocations) !== JSON.stringify(teacherAllocations);
+    if (hasChanges) {
+      markDirty();
+    } else {
+      clearDirty();
+    }
+  }, [teacherAllocations, markDirty, clearDirty]);
 
   const refreshData = async () => {
     if (!termId) return;
@@ -198,6 +214,7 @@ export default function TeacherAllocationPage() {
     ]);
     setSubjectAllocations(subjectAllocsData);
     setTeacherAllocations(teacherAllocsData);
+    clearDirty(); // Clear dirty state after refresh
   };
 
   return (
@@ -239,6 +256,16 @@ export default function TeacherAllocationPage() {
               {t("emptyState.noGrades.title")}
             </h3>
             <p className="text-gray-600 mb-6">{t("emptyState.noGrades.message")}</p>
+            <div className="flex justify-center">
+              <Button
+                variant="primary"
+                onClick={() => {
+                  router.push("/academics/structure");
+                }}
+              >
+                {t("emptyState.noGrades.cta")}
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -292,7 +319,7 @@ export default function TeacherAllocationPage() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Tabs */}
           <div className="bg-white border-b border-gray-200">
-            <div className="max-w-[1400px] mx-auto px-4 md:px-6">
+            <div className="max-w-[1400px] mx-auto px-2">
               <Tabs
                 value={activeTab}
                 onChange={(_, newValue) => setActiveTab(newValue)}
@@ -315,9 +342,9 @@ export default function TeacherAllocationPage() {
               >
                 <Tab 
                   label={
-                    <div className="flex items-center gap-2">
-                      <Grid3x3 className="w-4 h-4" />
-                      <span>{t("tabs.matrix")}</span>
+                    <div className="flex items-center gap-2 p-2">
+                      <Grid3x3 className="w-5 h-5" />
+                      <span className="text-[16px] font-semibold">{t("tabs.matrix")}</span>
                     </div>
                   } 
                   value="matrix" 
@@ -325,8 +352,8 @@ export default function TeacherAllocationPage() {
                 <Tab 
                   label={
                     <div className="flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4" />
-                      <span>{t("tabs.load")}</span>
+                      <BarChart3 className="w-5 h-5" />
+                      <span className="text-[16px] font-semibold">{t("tabs.load")}</span>
                     </div>
                   } 
                   value="load" 
@@ -352,7 +379,7 @@ export default function TeacherAllocationPage() {
                 onRefresh={refreshData}
                 onValidate={handleValidate}
                 onCopyFromTerm={handlePromoteCarryOver}
-                onAllocationsChange={setCurrentAllocations}
+                onAllocationsChange={handleAllocationsChange}
               />
             )}
             {activeTab === "load" && (

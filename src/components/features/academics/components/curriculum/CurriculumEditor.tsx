@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Save, Trash2, CheckCircle } from "lucide-react";
+import { Save, Trash2, CheckCircle, BookOpen } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import TextArea from "@/components/ui/input/TextArea";
 import Input from "@/components/ui/input/Input";
@@ -22,10 +22,7 @@ import {
   markLessonDone,
   undoLessonDone,
 } from "@/services/academics/curriculumService";
-import LessonMaterials from "./LessonMaterials";
-import LessonVideo from "./LessonVideo";
-import LessonAssignments from "./LessonAssignments";
-import LearningContent from "./LearningContent";
+import LearningContentPanel from "./LearningContentPanel";
 
 interface CurriculumEditorProps {
   curriculum: Curriculum;
@@ -37,6 +34,7 @@ interface CurriculumEditorProps {
   onDirtyChange: (isDirty: boolean) => void;
   isReadOnly: boolean;
   gradeId?: string; // For scope-aware holiday checking
+  onSelectNode?: (node: { type: "unit" | "lesson"; id: string } | null) => void;
 }
 
 export default function CurriculumEditor({
@@ -49,6 +47,7 @@ export default function CurriculumEditor({
   onDirtyChange,
   isReadOnly,
   gradeId,
+  onSelectNode,
 }: CurriculumEditorProps) {
   const t = useTranslations("academics.curriculum.editor");
   const tValidation = useTranslations("validation");
@@ -58,6 +57,7 @@ export default function CurriculumEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{ ar?: string; en?: string }>({});
+  const [learningContentOpen, setLearningContentOpen] = useState(false);
 
   useEffect(() => {
     if (!selectedNode) {
@@ -218,6 +218,9 @@ export default function CurriculumEditor({
         await deleteLesson(selectedNode.id);
       }
       await onRefresh();
+      if (onSelectNode) {
+        onSelectNode(null);
+      }
     } catch (error) {
       console.error("Failed to delete:", error);
     }
@@ -259,29 +262,48 @@ export default function CurriculumEditor({
 
   return (
     <div className="p-6">
-      <div className="max-w-2xl mx-auto">
+      <div className="">
         <div className="bg-white rounded-lg shadow-sm border border-border p-6 space-y-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">
-              {selectedNode.type === "unit"
-                ? isNew
-                  ? t("new_unit")
-                  : t("edit_unit")
-                : isNew
-                  ? t("new_lesson")
-                  : t("edit_lesson")}
-            </h2>
-            {lesson && (
-              <span
-                className={`px-3 py-1 rounded-full text-sm ${
-                  lesson.status === "done"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-gray-100 text-gray-700"
-                }`}
-              >
-                {lesson.status === "done" ? t("status_done") : t("status_planned")}
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold">
+                {selectedNode.type === "unit"
+                  ? isNew
+                    ? t("new_unit")
+                    : t("edit_unit")
+                  : isNew
+                    ? t("new_lesson")
+                    : t("edit_lesson")}
+              </h2>
+              {isDirty && (
+                <span className="text-sm text-amber-600 font-medium">
+                  {t("unsaved_changes")}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {lesson && (
+                <span
+                  className={`px-3 py-1 rounded-full text-sm ${
+                    lesson.status === "done"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {lesson.status === "done" ? t("status_done") : t("status_planned")}
+                </span>
+              )}
+              {selectedNode.type === "lesson" && !isNew && (
+                <Button
+                  onClick={() => setLearningContentOpen(true)}
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<BookOpen className="w-4 h-4" />}
+                >
+                  {t("learning_content")}
+                </Button>
+              )}
+            </div>
           </div>
 
           <BilingualTextField
@@ -389,12 +411,18 @@ export default function CurriculumEditor({
             )}
           </div>
         </div>
-
-        {/* Learning Content Section - Only for existing lessons */}
-        {selectedNode.type === "lesson" && !isNew && (
-          <LearningContent lessonId={selectedNode.id} isReadOnly={isReadOnly} gradeId={gradeId} />
-        )}
       </div>
+
+      {/* Learning Content Panel */}
+      {selectedNode.type === "lesson" && !isNew && (
+        <LearningContentPanel
+          lessonId={selectedNode.id}
+          isReadOnly={isReadOnly}
+          gradeId={gradeId}
+          open={learningContentOpen}
+          onClose={() => setLearningContentOpen(false)}
+        />
+      )}
     </div>
   );
 }

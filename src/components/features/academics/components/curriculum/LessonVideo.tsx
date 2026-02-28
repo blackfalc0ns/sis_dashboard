@@ -6,10 +6,15 @@ import { Video, Link as LinkIcon, Trash2, Eye, ExternalLink } from "lucide-react
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
-import FileUploadButton from "@/components/ui/file-upload/FileUploadButton";
+import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
 import Modal from "@/components/ui/modal/Modal";
 import { validateArEnDifferent } from "@/utils/validation/bilingualValidation";
 import { validateHttpUrl, normalizeUrl, getUrlErrorKey } from "@/utils/validation/url";
+import {
+  getUploadRules,
+  formatFileSize,
+  getAllowedTypesKey,
+} from "@/utils/upload/validateFile";
 import {
   LessonVideo as LessonVideoType,
   fetchLessonVideo,
@@ -23,10 +28,16 @@ interface LessonVideoProps {
   isReadOnly: boolean;
 }
 
+const UPLOAD_AREA = "VIDEO" as const;
+
 export default function LessonVideo({ lessonId, isReadOnly }: LessonVideoProps) {
   const t = useTranslations("academics.curriculum.video");
   const tValidation = useTranslations("validation");
+  const tUpload = useTranslations("upload");
   const locale = useLocale();
+
+  const uploadRules = getUploadRules(UPLOAD_AREA);
+  const allowedTypesKey = getAllowedTypesKey(UPLOAD_AREA);
 
   const [video, setVideo] = useState<LessonVideoType | null>(null);
   const [mode, setMode] = useState<"UPLOAD" | "LINK">("LINK");
@@ -40,6 +51,7 @@ export default function LessonVideo({ lessonId, isReadOnly }: LessonVideoProps) 
 
   useEffect(() => {
     loadVideo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId]);
 
   const loadVideo = async () => {
@@ -221,12 +233,23 @@ export default function LessonVideo({ lessonId, isReadOnly }: LessonVideoProps) 
           {/* Upload Mode */}
           {mode === "UPLOAD" && (
             <div>
-              <FileUploadButton
-                onFilesSelected={(files) => setFile(files[0])}
-                accept="video/*"
-                multiple={false}
-                disabled={isReadOnly}
+              <DragDropUploadArea
+                title={tUpload("dragHereTitle")}
+                subtitle={tUpload("dragHereSubtitle")}
                 buttonLabel={t("upload_video")}
+                onFilesSelected={(files) => setFile(files[0])}
+                isUploading={isLoading}
+                disabled={isReadOnly}
+                multiple={false}
+                uploadArea={UPLOAD_AREA}
+                helperText={
+                  isReadOnly
+                    ? tUpload("termClosed")
+                    : tUpload("allowedHint", {
+                        types: tUpload(allowedTypesKey),
+                        size: formatFileSize(uploadRules.maxSizeBytes),
+                      })
+                }
               />
               {file && (
                 <div className="mt-2 text-sm text-gray-600">

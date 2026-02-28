@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Drawer, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import ContextBar from "../shared/ContextBar";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
@@ -36,13 +37,31 @@ import CurriculumCarryOverDialog from "../curriculum/CurriculumCarryOverDialog";
 
 export default function CurriculumPage() {
   const t = useTranslations("academics.curriculum");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
+  const locale = useLocale();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
+  const isRTL = locale === "ar";
+
+  // Fixed panel widths
+  const LEFT_PANEL_WIDTH = 280;
+  const RIGHT_PANEL_WIDTH = 320;
+
+  // Panel visibility state
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+
+  // Mobile drawers
+  const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
+  const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
 
   // URL params
   const [academicYearId, setAcademicYearId] = useState("");
   const [termId, setTermId] = useState("");
   const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
+  const [urlUnitId, setUrlUnitId] = useState<string | null>(null);
+  const [urlLessonId, setUrlLessonId] = useState<string | null>(null);
 
   // Context data
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -62,7 +81,6 @@ export default function CurriculumPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // UI State
-  const [activeTab, setActiveTab] = useState<"outline" | "plan" | "progress">("outline");
   const [selectedNode, setSelectedNode] = useState<
     { type: "unit" | "lesson"; id: string } | null
   >(null);
@@ -81,6 +99,11 @@ export default function CurriculumPage() {
 
         const urlYear = searchParams.get("year");
         const urlTerm = searchParams.get("term");
+        const urlUnit = searchParams.get("unit");
+        const urlLesson = searchParams.get("lesson");
+
+        setUrlUnitId(urlUnit);
+        setUrlLessonId(urlLesson);
 
         const selectedYear = years.find((y) => y.id === urlYear) || years[0];
         if (!selectedYear) return;
@@ -98,13 +121,14 @@ export default function CurriculumPage() {
           setTermId(selectedTerm.id);
           setTermStatus(selectedTerm.status);
 
-          // Calculate term weeks
           const weeks = calculateTermWeeks(selectedTerm.startDate, selectedTerm.endDate);
           setTermWeeks(weeks);
 
           const params = new URLSearchParams();
           params.set("year", selectedYear.id);
           params.set("term", selectedTerm.id);
+          if (urlUnit) params.set("unit", urlUnit);
+          if (urlLesson) params.set("lesson", urlLesson);
           router.replace(`?${params.toString()}`, { scroll: false });
         }
       } catch (error) {
@@ -131,7 +155,6 @@ export default function CurriculumPage() {
         setGrades(structureData.grades);
         setSubjects(subjectsData);
 
-        // Auto-select first grade and subject if available
         if (structureData.grades.length > 0 && !selectedGradeId) {
           setSelectedGradeId(structureData.grades[0].id);
         }
@@ -146,7 +169,7 @@ export default function CurriculumPage() {
     };
 
     loadData();
-  }, [academicYearId, termId]);
+  }, [academicYearId, termId, selectedGradeId, selectedSubjectId]);
 
   // Load curriculum when grade/subject changes
   useEffect(() => {
@@ -164,6 +187,19 @@ export default function CurriculumPage() {
           ]);
           setUnits(unitsData);
           setLessons(lessonsData);
+
+          // Set selected node from URL after data is loaded
+          if (urlLessonId) {
+            const lessonExists = lessonsData.some((l) => l.id === urlLessonId);
+            if (lessonExists) {
+              setSelectedNode({ type: "lesson", id: urlLessonId });
+            }
+          } else if (urlUnitId) {
+            const unitExists = unitsData.some((u) => u.id === urlUnitId);
+            if (unitExists) {
+              setSelectedNode({ type: "unit", id: urlUnitId });
+            }
+          }
         } else {
           setUnits([]);
           setLessons([]);
@@ -174,13 +210,15 @@ export default function CurriculumPage() {
     };
 
     loadCurriculum();
-  }, [termId, selectedGradeId, selectedSubjectId]);
+  }, [termId, selectedGradeId, selectedSubjectId, urlUnitId, urlLessonId]);
 
   const updateURL = useCallback(
-    (yearId: string, tId: string) => {
+    (yearId: string, tId: string, unitId?: string | null, lessonId?: string | null) => {
       const params = new URLSearchParams();
       params.set("year", yearId);
       params.set("term", tId);
+      if (unitId) params.set("unit", unitId);
+      if (lessonId) params.set("lesson", lessonId);
       router.replace(`?${params.toString()}`, { scroll: false });
     },
     [router]
@@ -203,7 +241,9 @@ export default function CurriculumPage() {
       setTermStatus(defaultTerm.status);
       const weeks = calculateTermWeeks(defaultTerm.startDate, defaultTerm.endDate);
       setTermWeeks(weeks);
-      updateURL(yearId, defaultTerm.id);
+      setUrlUnitId(null);
+      setUrlLessonId(null);
+      updateURL(yearId, defaultTerm.id, null, null);
     }
   };
 
@@ -219,7 +259,9 @@ export default function CurriculumPage() {
       setTermStatus(selectedTerm.status);
       const weeks = calculateTermWeeks(selectedTerm.startDate, selectedTerm.endDate);
       setTermWeeks(weeks);
-      updateURL(academicYearId, tId);
+      setUrlUnitId(null);
+      setUrlLessonId(null);
+      updateURL(academicYearId, tId, null, null);
     }
   };
 
@@ -234,6 +276,9 @@ export default function CurriculumPage() {
     }
     setSelectedGradeId(gradeId);
     setSelectedNode(null);
+    setUrlUnitId(null);
+    setUrlLessonId(null);
+    updateURL(academicYearId, termId, null, null);
   };
 
   const handleSubjectChange = (subjectId: string) => {
@@ -243,14 +288,9 @@ export default function CurriculumPage() {
     }
     setSelectedSubjectId(subjectId);
     setSelectedNode(null);
-  };
-
-  const handleTabChange = (tab: "outline" | "plan" | "progress") => {
-    if (hasUnsavedChanges) {
-      if (!confirm(t("unsaved_changes.message"))) return;
-      setHasUnsavedChanges(false);
-    }
-    setActiveTab(tab);
+    setUrlUnitId(null);
+    setUrlLessonId(null);
+    updateURL(academicYearId, termId, null, null);
   };
 
   const refreshCurriculum = async () => {
@@ -266,6 +306,26 @@ export default function CurriculumPage() {
       ]);
       setUnits(unitsData);
       setLessons(lessonsData);
+    }
+  };
+
+  const handleSelectNode = (node: { type: "unit" | "lesson"; id: string } | null) => {
+    setSelectedNode(node);
+    
+    if (node) {
+      if (node.type === "lesson") {
+        setUrlLessonId(node.id);
+        setUrlUnitId(null);
+        updateURL(academicYearId, termId, null, node.id);
+      } else if (node.type === "unit") {
+        setUrlUnitId(node.id);
+        setUrlLessonId(null);
+        updateURL(academicYearId, termId, node.id, null);
+      }
+    } else {
+      setUrlUnitId(null);
+      setUrlLessonId(null);
+      updateURL(academicYearId, termId, null, null);
     }
   };
 
@@ -308,45 +368,64 @@ export default function CurriculumPage() {
       )}
 
       {/* Filters Bar */}
-      <div className="bg-white border-b border-border px-6 py-4">
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
-          <div className="flex-1 min-w-[200px]">
-            <Select
-              label={t("filters.grade")}
-              required
-              value={selectedGradeId}
-              onChange={handleGradeChange}
-              options={gradeOptions}
-              selectSize="md"
-              disabled={!hasGrades}
-            />
-          </div>
-
-          <div className="flex-1 min-w-[200px]">
-            <Select
-              label={t("filters.subject")}
-              required
-              value={selectedSubjectId}
-              onChange={handleSubjectChange}
-              options={subjectOptions}
-              selectSize="md"
-              disabled={!hasSubjects}
-            />
-          </div>
-
-          <div className="flex gap-2">
-            {!hasCurriculum && selectedGradeId && selectedSubjectId && (
-              <Button
-                variant="primary"
-                size="md"
-                onClick={() => setShowCreateDialog(true)}
-                disabled={isReadOnly}
-              >
-                {t("actions.create_curriculum")}
-              </Button>
+      <div className="bg-white border-b border-border">
+        <div className="px-6 py-3 flex items-center justify-between border-b border-border">
+          <h3 className="text-sm font-semibold text-gray-900">{t("filters.title")}</h3>
+          <IconButton
+            size="small"
+            onClick={() => setFiltersCollapsed(!filtersCollapsed)}
+            title={filtersCollapsed ? tCommon("expand") : tCommon("collapse")}
+          >
+            {filtersCollapsed ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronUp className="w-4 h-4" />
             )}
-          </div>
+          </IconButton>
         </div>
+        
+        {!filtersCollapsed && (
+          <div className="px-6 py-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+              <div className="flex-1 min-w-[200px]">
+                <Select
+                  label={t("filters.grade")}
+                  required
+                  value={selectedGradeId}
+                  onChange={handleGradeChange}
+                  options={gradeOptions}
+                  selectSize="md"
+                  disabled={!hasGrades}
+                />
+              </div>
+
+              <div className="flex-1 min-w-[200px]">
+                <Select
+                  label={t("filters.subject")}
+                  required
+                  value={selectedSubjectId}
+                  onChange={handleSubjectChange}
+                  options={subjectOptions}
+                  selectSize="md"
+                  disabled={!hasSubjects}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                {!hasCurriculum && selectedGradeId && selectedSubjectId && (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onClick={() => setShowCreateDialog(true)}
+                    disabled={isReadOnly}
+                  >
+                    {t("actions.create_curriculum")}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Empty States */}
@@ -359,7 +438,7 @@ export default function CurriculumPage() {
             <p className="text-gray-600 mb-6">{t("empty_state.no_grades.message")}</p>
             <Button
               variant="primary"
-              onClick={() => router.push(`/${searchParams.get("lang") || "en"}/academics/structure`)}
+              onClick={() => router.push(`/${locale}/academics/structure`)}
             >
               {t("empty_state.no_grades.cta")}
             </Button>
@@ -376,7 +455,7 @@ export default function CurriculumPage() {
             <p className="text-gray-600 mb-6">{t("empty_state.no_subjects.message")}</p>
             <Button
               variant="primary"
-              onClick={() => router.push(`/${searchParams.get("lang") || "en"}/academics/subjects`)}
+              onClick={() => router.push(`/${locale}/academics/subjects`)}
             >
               {t("empty_state.no_subjects.cta")}
             </Button>
@@ -405,117 +484,168 @@ export default function CurriculumPage() {
       {/* Main Content */}
       {!isLoading && hasCurriculum && (
         <>
-          {/* Mobile Tabs */}
-          <div className="lg:hidden border-b border-border bg-white">
-            <div className="flex">
-              <button
-                onClick={() => handleTabChange("outline")}
-                className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 border-border transition-colors ${
-                  activeTab === "outline"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
+          {/* Desktop: Fixed Three-Panel Layout */}
+          {!isMobile && (
+            <div className="hidden lg:flex flex-1 overflow-hidden">
+              {/* Left Panel */}
+              <div
+                className="border-r border-border bg-white shrink-0 transition-all duration-300 overflow-hidden"
+                style={{ width: LEFT_PANEL_WIDTH }}
               >
-                {t("tabs.outline")}
-              </button>
-              <button
-                onClick={() => handleTabChange("plan")}
-                className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 border-border transition-colors ${
-                  activeTab === "plan"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
+                <div className="h-full flex flex-col">
+                  <div className="flex-1 overflow-auto">
+                    <CurriculumOutline
+                      curriculum={curriculum!}
+                      units={units}
+                      lessons={lessons}
+                      selectedNode={selectedNode}
+                      onSelectNode={handleSelectNode}
+                      onRefresh={refreshCurriculum}
+                      isReadOnly={isReadOnly}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Center Panel */}
+              <div className="flex-1 bg-gray-50 min-w-0 overflow-auto">
+                <CurriculumEditor
+                  curriculum={curriculum!}
+                  units={units}
+                  lessons={lessons}
+                  selectedNode={selectedNode}
+                  termWeeks={termWeeks}
+                  onRefresh={refreshCurriculum}
+                  onDirtyChange={setHasUnsavedChanges}
+                  isReadOnly={isReadOnly}
+                  gradeId={selectedGradeId}
+                  onSelectNode={handleSelectNode}
+                />
+              </div>
+
+              {/* Right Panel */}
+              <div
+                className="border-l border-border bg-white min-w-[400px] transition-all duration-300 overflow-hidden"
+                style={{ width: RIGHT_PANEL_WIDTH }}
               >
-                {t("tabs.plan")}
-              </button>
-              <button
-                onClick={() => handleTabChange("progress")}
-                className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 border-border transition-colors ${
-                  activeTab === "progress"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
+                <div className="h-full flex flex-col">
+                  <div className="flex-1 overflow-auto">
+                    <CurriculumPlan
+                      curriculum={curriculum!}
+                      units={units}
+                      lessons={lessons}
+                      termWeeks={termWeeks}
+                      onRefresh={refreshCurriculum}
+                      isReadOnly={isReadOnly}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile: Drawers */}
+          {isMobile && (
+            <div className="lg:hidden flex-1 overflow-hidden flex flex-col">
+              <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-border">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setLeftDrawerOpen(true)}
+                >
+                  {tCommon("lessons")}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setRightDrawerOpen(true)}
+                >
+                  {tCommon("details")}
+                </Button>
+              </div>
+
+              <div className="flex-1 overflow-auto bg-gray-50">
+                <CurriculumEditor
+                  curriculum={curriculum!}
+                  units={units}
+                  lessons={lessons}
+                  selectedNode={selectedNode}
+                  termWeeks={termWeeks}
+                  onRefresh={refreshCurriculum}
+                  onDirtyChange={setHasUnsavedChanges}
+                  isReadOnly={isReadOnly}
+                  gradeId={selectedGradeId}
+                  onSelectNode={handleSelectNode}
+                />
+              </div>
+
+              {/* Left Drawer */}
+              <Drawer
+                anchor={isRTL ? "right" : "left"}
+                open={leftDrawerOpen}
+                onClose={() => setLeftDrawerOpen(false)}
+                slotProps={{
+                  paper: {
+                    sx: { width: "80%", maxWidth: 360 },
+                  },
+                }}
               >
-                {t("tabs.progress")}
-              </button>
-            </div>
-          </div>
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                    <h3 className="font-semibold">{tCommon("lessons")}</h3>
+                    <IconButton size="small" onClick={() => setLeftDrawerOpen(false)}>
+                      <ChevronLeft className="w-5 h-5" />
+                    </IconButton>
+                  </div>
+                  <div className="flex-1 overflow-auto">
+                    <CurriculumOutline
+                      curriculum={curriculum!}
+                      units={units}
+                      lessons={lessons}
+                      selectedNode={selectedNode}
+                      onSelectNode={(node) => {
+                        handleSelectNode(node);
+                        setLeftDrawerOpen(false);
+                      }}
+                      onRefresh={refreshCurriculum}
+                      isReadOnly={isReadOnly}
+                    />
+                  </div>
+                </div>
+              </Drawer>
 
-          {/* Desktop: Three-Panel Layout */}
-          <div className="hidden lg:flex flex-1 overflow-hidden">
-            <div className="w-80 border-r border-border bg-white">
-              <CurriculumOutline
-                curriculum={curriculum}
-                units={units}
-                lessons={lessons}
-                selectedNode={selectedNode}
-                onSelectNode={setSelectedNode}
-                onRefresh={refreshCurriculum}
-                isReadOnly={isReadOnly}
-              />
+              {/* Right Drawer */}
+              <Drawer
+                anchor={isRTL ? "left" : "right"}
+                open={rightDrawerOpen}
+                onClose={() => setRightDrawerOpen(false)}
+                slotProps={{
+                  paper: {
+                    sx: { width: "80%", maxWidth: 400 },
+                  },
+                }}
+              >
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                    <h3 className="font-semibold">{tCommon("details")}</h3>
+                    <IconButton size="small" onClick={() => setRightDrawerOpen(false)}>
+                      <ChevronRight className="w-5 h-5" />
+                    </IconButton>
+                  </div>
+                  <div className="flex-1 overflow-auto">
+                    <CurriculumPlan
+                      curriculum={curriculum!}
+                      units={units}
+                      lessons={lessons}
+                      termWeeks={termWeeks}
+                      onRefresh={refreshCurriculum}
+                      isReadOnly={isReadOnly}
+                    />
+                  </div>
+                </div>
+              </Drawer>
             </div>
-
-            <div className="flex-1 bg-gray-50 overflow-auto">
-              <CurriculumEditor
-                curriculum={curriculum}
-                units={units}
-                lessons={lessons}
-                selectedNode={selectedNode}
-                termWeeks={termWeeks}
-                onRefresh={refreshCurriculum}
-                onDirtyChange={setHasUnsavedChanges}
-                isReadOnly={isReadOnly}
-                gradeId={selectedGradeId}
-              />
-            </div>
-
-            <div className="w-96 border-l border-border bg-white overflow-auto">
-              <CurriculumPlan
-                curriculum={curriculum}
-                units={units}
-                lessons={lessons}
-                termWeeks={termWeeks}
-                onRefresh={refreshCurriculum}
-                isReadOnly={isReadOnly}
-              />
-            </div>
-          </div>
-
-          {/* Mobile: Single Panel */}
-          <div className="lg:hidden flex-1 overflow-hidden">
-            {activeTab === "outline" && (
-              <CurriculumOutline
-                curriculum={curriculum}
-                units={units}
-                lessons={lessons}
-                selectedNode={selectedNode}
-                onSelectNode={setSelectedNode}
-                onRefresh={refreshCurriculum}
-                isReadOnly={isReadOnly}
-              />
-            )}
-            {activeTab === "plan" && (
-              <CurriculumPlan
-                curriculum={curriculum}
-                units={units}
-                lessons={lessons}
-                termWeeks={termWeeks}
-                onRefresh={refreshCurriculum}
-                isReadOnly={isReadOnly}
-              />
-            )}
-            {activeTab === "progress" && (
-              <CurriculumPlan
-                curriculum={curriculum}
-                units={units}
-                lessons={lessons}
-                termWeeks={termWeeks}
-                onRefresh={refreshCurriculum}
-                isReadOnly={isReadOnly}
-                showProgressOnly
-              />
-            )}
-          </div>
+          )}
         </>
       )}
 
@@ -545,3 +675,4 @@ export default function CurriculumPage() {
     </div>
   );
 }
+

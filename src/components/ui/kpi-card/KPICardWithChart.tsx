@@ -1,10 +1,13 @@
 "use client";
 
-import { AreaChart, Area, XAxis, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { useLocale } from "next-intl";
+import { formatDateTime } from "@/utils/formatters/dateTime";
 
 interface DataPoint {
   month: string;
   value: number;
+  ts?: string | number; // Optional timestamp (ISO string or epoch milliseconds)
 }
 
 interface KPICardWithChartProps {
@@ -18,40 +21,37 @@ interface KPICardWithChartProps {
   highlightIndex?: number;
 }
 
-interface CustomActiveDotProps {
-  cx?: number;
-  cy?: number;
-  payload?: DataPoint;
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{ value: number; payload: DataPoint }>;
+  locale?: string;
 }
 
-// Custom active dot component with value label
-const CustomActiveDot = (props: CustomActiveDotProps) => {
-  const { cx, cy, payload } = props;
-  return (
-    <g>
-      <circle
-        cx={cx}
-        cy={cy}
-        r={6}
-        fill="#036b80"
-        stroke="#ffffff"
-        strokeWidth={3}
-      />
-      {/* Value label above the dot */}
-      {cy !== undefined && payload !== undefined && (
-        <text
-          x={cx}
-          y={cy - 15}
-          textAnchor="middle"
-          fill="#036b80"
-          fontSize="12"
-          fontWeight="600"
-        >
-          {payload.value}
-        </text>
-      )}
-    </g>
-  );
+// Custom tooltip component
+const CustomTooltip = ({ active, payload, locale = "en" }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    const dataPoint = payload[0].payload;
+    const hasTimestamp = dataPoint.ts !== undefined;
+    
+    return (
+      <div className="bg-white px-3 py-2 rounded-lg shadow-lg border border-[#036b80] font-[Cairo]">
+        {hasTimestamp && (
+          <p className="text-[10px] text-gray-500 mb-1">
+            {formatDateTime(dataPoint.ts!, locale)}
+          </p>
+        )}
+        <p className="text-xs font-semibold text-[#036b80]">
+          {payload[0].value}
+        </p>
+        {!hasTimestamp && dataPoint.month && (
+          <p className="text-[10px] text-gray-500 mt-1">
+            {dataPoint.month}
+          </p>
+        )}
+      </div>
+    );
+  }
+  return null;
 };
 
 export default function KPICardWithChart({
@@ -64,6 +64,8 @@ export default function KPICardWithChart({
   valueSuffix = "",
   highlightIndex,
 }: KPICardWithChartProps) {
+  const locale = useLocale();
+  
   // Calculate change
   const absoluteChange = currentValue - previousValue;
   const percentageChange = ((absoluteChange / previousValue) * 100).toFixed(1);
@@ -102,7 +104,7 @@ export default function KPICardWithChart({
       </div>
 
       {/* Chart Section */}
-      <div className="h-[120px] -mx-2">
+      <div className="h-[120px] -mx-2 cursor-crosshair">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}
@@ -130,16 +132,21 @@ export default function KPICardWithChart({
               interval="preserveStartEnd"
             />
 
+            <Tooltip content={<CustomTooltip locale={locale} />} cursor={false} />
+
             <Area
               type="monotone"
               dataKey="value"
               stroke="#036b80"
               strokeWidth={2}
               fill={`url(#colorValue-${title})`}
-              activeDot={
-                highlightIndex !== undefined ? <CustomActiveDot /> : false
-              }
               dot={false}
+              activeDot={{
+                r: 6,
+                fill: "#036b80",
+                stroke: "#ffffff",
+                strokeWidth: 3,
+              }}
             />
           </AreaChart>
         </ResponsiveContainer>

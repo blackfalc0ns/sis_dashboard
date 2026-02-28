@@ -28,12 +28,54 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "add": "Add",
+    "edit": "Edit",
+    "question": "Question",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "unsaved": "Unsaved",
+    "save_failed": "Failed to save. Please try again.",
+    "save_success": "Saved successfully!",
+    "save_error": "Save failed",
+    "saveQuestion": "Save question",
+    "saveAssignment": "Save assignment",
+    "discard": "Discard",
+    "saveAndSwitch": "Save & switch",
+    "discardAndSwitch": "Discard & switch",
+    "unsavedChanges": "Unsaved changes",
+    "unsavedChangesMessage": "Save changes before switching?",
+    "retry": "Retry",
+    "reset": "Reset",
+    "reset_success": "Reset successfully!",
+    "reset_failed": "Failed to reset. Please try again.",
+    "delete_success": "Deleted successfully!",
+    "delete_failed": "Failed to delete. Please try again.",
+    "upload_success": "Uploaded successfully!",
+    "upload_failed": "Failed to upload. Please try again.",
+    "link_added": "Link added successfully!",
+    "link_failed": "Failed to add link. Please try again.",
+    "publish_success": "Published successfully!",
+    "unpublish_success": "Unpublished successfully!",
+    "publish_failed": "Failed to change publish status. Please try again.",
+    "more": "More",
     "arabic": "AR",
     "english": "EN",
     "name_ar": "Name (AR)",
     "name_en": "Name (EN)",
     "title_ar": "Title (AR)",
-    "title_en": "Title (EN)"
+    "title_en": "Title (EN)",
+    "noResults": "No results",
+    "unsavedChangesTitle": "Unsaved changes",
+    "unsavedChangesBody": "You have unsaved changes. Leave without saving?",
+    "stay": "Stay",
+    "leave": "Leave",
+    "focus": "Focus",
+    "exitFocus": "Exit focus",
+    "lessons": "Lessons",
+    "details": "Details",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "resizePanel": "Resize panel"
   },
   "filter_bar": {
     "filters": {
@@ -391,38 +433,6 @@
       "avg_processing_time": "Avg Processing Time",
       "time_to_decision": "Time to decision"
     },
-    "leads": {
-      "title": "Leads",
-      "subtitle": "Manage parent inquiries and leads",
-      "new_lead": "New Lead",
-      "import": "Import",
-      "search_placeholder": "Search leads..."
-    },
-    "tests": {
-      "title": "Tests",
-      "subtitle": "Manage entrance tests and results",
-      "schedule_test": "Schedule Test",
-      "test_type": "Test Type",
-      "result": "Result"
-    },
-    "interviews": {
-      "title": "Interviews",
-      "subtitle": "Manage interviews and ratings",
-      "schedule_interview": "Schedule Interview",
-      "rating": "Rating"
-    },
-    "decisions": {
-      "title": "Decisions",
-      "subtitle": "Manage admission decisions",
-      "decision_type": "Decision Type",
-      "decision_date": "Decision Date"
-    },
-    "enrollment": {
-      "title": "Enrollment",
-      "subtitle": "Manage enrolled students",
-      "enrollment_date": "Enrollment Date",
-      "payment_status": "Payment Status"
-    },
     "filters": {
       "filters_button": "Filters",
       "status": "Status",
@@ -491,7 +501,6 @@
       "in_selected_period": "In selected period",
       "new_leads": "New Leads",
       "not_yet_contacted": "Not yet contacted",
-      "contacted": "Contacted",
       "in_progress": "In progress",
       "lead_id": "Lead ID",
       "name": "Name",
@@ -716,7 +725,8 @@
     },
     "application360": {
       "header": {
-        "title": "Application"
+        "title": "Application",
+        "back_to_applications": "Back to Applications"
       },
       "tabs": {
         "details": "Details",
@@ -1120,7 +1130,6 @@
       "export": "Export",
       "search_placeholder": "Search decisions...",
       "filters": "Filters",
-      "clear_filters": "Clear Filters",
       "total_decisions": "Total Decisions",
       "acceptance": "acceptance",
       "accepted": "Accepted",
@@ -1151,7 +1160,6 @@
       "export": "Export",
       "search_placeholder": "Search enrollments...",
       "filters": "Filters",
-      "clear_filters": "Clear Filters",
       "total_enrolled": "Total Enrolled",
       "this_week": "This Week",
       "new_enrollments": "New enrollments",
@@ -2153,6 +2161,7 @@
   "academics": {
     "structure": {
       "context_bar": {
+        "title": "Academic Context",
         "academic_year": "Academic Year",
         "term": "Term",
         "status_open": "Open",
@@ -2409,6 +2418,7 @@
         "message": "This term is closed. Curriculum is read-only."
       },
       "filters": {
+        "title": "Filters",
         "grade": "Grade",
         "subject": "Subject"
       },
@@ -2470,7 +2480,8 @@
         "add_lesson": "Add Lesson",
         "lessons_count": "{count, plural, =0 {no lessons} =1 {1 lesson} other {# lessons}}",
         "week_short": "W{week}",
-        "status_done": "Done"
+        "status_done": "Done",
+        "no_results": "No units or lessons found"
       },
       "editor": {
         "no_selection": "Select a unit or lesson to edit",
@@ -2491,7 +2502,9 @@
         "delete": "Delete",
         "mark_done": "Mark as Done",
         "undo_done": "Undo Done",
-        "confirm_delete": "Are you sure you want to delete this item?"
+        "confirm_delete": "Are you sure you want to delete this item?",
+        "learning_content": "Learning Content",
+        "unsaved_changes": "Unsaved changes"
       },
       "plan": {
         "title": "Planning & Progress",
@@ -2548,6 +2561,7 @@
         "add_assignment": "Add Assignment",
         "edit_assignment": "Edit Assignment",
         "no_assignments": "No assignments yet.",
+        "no_lesson_selected": "Please select a lesson to view assignments.",
         "readonly_message": "Term is closed. Assignments are read-only.",
         "due_date": "Due Date",
         "max_score": "Max Score",
@@ -2562,17 +2576,50 @@
         "cancel": "Cancel",
         "published": "Published",
         "draft": "Draft",
-                "dueDateHolidayWarning": "This due date falls on a holiday."
-
+        "dueDateHolidayWarning": "This due date falls on a holiday.",
+        "noQuestionsTitle": "No questions yet",
+        "noQuestionsBody": "Start building your assignment by adding questions.",
+        "addFirstQuestion": "Add your first question",
+        "summary": {
+          "maxScore": "Max Score",
+          "sumPoints": "Question Points",
+          "difference": "Difference"
+        },
+        "pointsMatch": "Points match",
+        "pointsMismatch": "Points mismatch"
+      },
+      "assignmentBuilder": {
+        "backToLesson": "Back to Lesson",
+        "questions": "Questions",
+        "settings": "Settings",
+        "attachments": "Attachments",
+        "addQuestion": "Add Question",
+        "addFirstQuestion": "Add your first question",
+        "unsaved": "Unsaved changes",
+        "readOnly": "Read-only",
+        "publish": "Publish",
+        "unpublish": "Unpublish",
+        "published": "Published",
+        "draft": "Draft",
+        "confirmDelete": "Are you sure you want to delete this assignment?",
+        "confirmReset": "Are you sure you want to reset this assignment? All unsaved changes will be lost.",
+        "notFound": "Assignment not found",
+        "questionsOutline": "Questions Outline",
+        "noQuestionsYet": "No questions yet. Add your first question to get started.",
+        "assignmentDetails": "Assignment Details",
+        "pointsSummary": "Points Summary"
       },
       "learningContent": {
         "title": "Learning Content",
         "materials": "Materials",
         "video": "Video",
-        "assignments": "Assignments"
+        "assignments": "Assignments",
+        "close": "Close"
       },
       "questions": {
         "title": "Questions",
+        "question": "Question",
+        "question_label": "Q",
         "add_question": "Add Question",
         "edit_question": "Edit Question",
         "delete_question": "Delete question?",
@@ -2591,6 +2638,14 @@
         "confirm_auto_distribute_title": "Auto distribute points?",
         "confirm_auto_distribute_body": "This will update points of all questions to match max score.",
         "points_sum_mismatch": "Question points must sum to max score.",
+        "configured": "Configured",
+        "needs_correct": "Needs correct answer",
+        "complete": "Complete",
+        "incomplete": "Incomplete",
+        "options_count": "Options",
+        "manual_grading": "Manual grading",
+        "more_options": "more options",
+        "assignment_title": "Assignment Title",
         "question_types": {
           "MULTIPLE_CHOICE": "Multiple Choice",
           "MCQ_SINGLE": "Multiple choice (single answer)",
@@ -2611,7 +2666,15 @@
         "true": "True",
         "false": "False",
         "sample_answer": "Sample answer (optional)",
-        "manual_grading_hint": "This question requires manual grading."
+        "manual_grading_hint": "This question requires manual grading.",
+        "description": "Description",
+        "due_date": "Due Date",
+        "points_distributed": "Points distributed successfully",
+        "distribute_failed": "Failed to distribute points",
+        "add_question_failed": "Failed to add question",
+        "update_question_failed": "Failed to update question",
+        "delete_question_failed": "Failed to delete question",
+        "reorder_failed": "Failed to reorder questions"
       },
       "teachingWeeksHint": "Teaching weeks: {count} (holidays excluded)"
     },
@@ -2648,7 +2711,6 @@
         "grade": "Grade",
         "section": "Section"
       },
-      "title": "Title",
       "type": "Type",
       "all_day": "All Day",
       "start_date": "Start Date",
@@ -2689,7 +2751,137 @@
       },
       "eventsCount": "{count} events",
       "noEventsThisWeek": "No events this week",
-      "noEventsThisMonth": "No events this month"
+      "noEventsThisMonth": "No events this month",
+      "goToDate": "Go to date",
+      "outsideTermJump": "Selected date is outside the term range."
+    },
+    "timetable": {
+      "title": "Timetable",
+      "rooms_title": "Rooms",
+      "loading": "Loading...",
+      "no_term_selected": "No term selected",
+      "select_section": "Select Grade and Section",
+      "select_section_description": "Choose a grade and section from the filters above to view and edit the timetable",
+      "load_error": "Failed to load data",
+      "save_success": "Saved successfully",
+      "save_error": "Failed to save",
+      "clear_success": "Slot cleared successfully",
+      "clear_error": "Failed to clear slot",
+      "clear_confirm": "Are you sure you want to clear this slot?",
+      "subject": "Subject",
+      "teacher": "Teacher",
+      "room": "Room",
+      "period": "Period",
+      "select_subject": "Select subject",
+      "select_room": "Select room",
+      "teacher_placeholder": "Enter teacher ID or name",
+      "teacher_hint": "Teacher assignment will be validated against allocations",
+      "days": {
+        "sunday": "Sunday",
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday"
+      },
+      "filters": {
+        "select_grade": "Select Grade",
+        "select_section": "Select Section"
+      },
+      "actions": {
+        "edit_slot": "Edit Slot",
+        "clear_slot": "Clear Slot",
+        "validate": "Validate",
+        "publish": "Publish",
+        "unpublish": "Unpublish",
+        "auto_generate": "Auto Generate",
+        "copy_from": "Copy From..."
+      },
+      "status": {
+        "draft": "Draft",
+        "published": "Published"
+      },
+      "validation": {
+        "teacher_conflict": "Teacher Conflict",
+        "room_conflict": "Room Conflict",
+        "missing_teacher": "Missing Teacher",
+        "missing_room": "Missing Room",
+        "hours_mismatch": "Hours Mismatch",
+        "validation_results": "Validation Results",
+        "no_issues": "No issues found",
+        "issues_found": "{count} issues found",
+        "conflicts": "Conflicts",
+        "all_clear": "All Clear!",
+        "all_clear_description": "Your timetable has no conflicts or missing assignments",
+        "error": "Validation failed",
+        "select_section_first": "Please select a section first",
+        "conflicts_count": "{count} conflicts",
+        "missing_teachers_count": "{count} missing teachers"
+      },
+      "target_actual": {
+        "title": "Target vs Actual",
+        "actual": "Actual",
+        "target": "Target",
+        "filled_slots": "Filled Slots",
+        "total_slots": "Total Slots",
+        "conflicts": "Conflicts",
+        "missing_teachers": "Missing Teachers",
+        "missing_rooms": "Missing Rooms",
+        "subject_hours": "Subject Hours"
+      },
+      "publish": {
+        "confirm_title": "Publish Timetable",
+        "confirm_message": "Are you sure you want to publish this timetable? It will be visible to teachers and students.",
+        "ready_to_publish": "Ready to publish",
+        "cannot_publish": "Cannot publish",
+        "blocked": "Cannot publish: Please resolve all conflicts and missing assignments",
+        "success": "Timetable published successfully",
+        "error": "Failed to publish timetable",
+        "hours_warning": "Hours Mismatch Warning",
+        "hours_warning_description": "{count} subjects have hours that don't match the target",
+        "publish_description": "Once published, the timetable will be visible to all teachers and students",
+        "resolve_issues": "Please resolve all issues before publishing",
+        "confirm_publish": "Publish Timetable"
+      },
+      "unpublish": {
+        "success": "Timetable unpublished successfully",
+        "error": "Failed to unpublish timetable"
+      },
+      "rooms": {
+        "rooms_title": "Rooms",
+        "rooms_description": "Manage classrooms, labs, and other rooms",
+        "add_room": "Add Room",
+        "edit_room": "Edit Room",
+        "delete_room": "Delete Room",
+        "delete_confirm": "Are you sure you want to delete this room?",
+        "name": "Room Name",
+        "name_ar": "Name (Arabic)",
+        "name_en": "Name (English)",
+        "type": "Type",
+        "capacity": "Capacity",
+        "active": "Active",
+        "no_rooms": "No Rooms Yet",
+        "no_rooms_description": "Add your first room to start building timetables",
+        "add_first_room": "Add First Room",
+        "search_rooms": "Search rooms...",
+        "load_error": "Failed to load rooms",
+        "create_success": "Room created successfully",
+        "create_error": "Failed to create room",
+        "update_success": "Room updated successfully",
+        "update_error": "Failed to update room",
+        "delete_success": "Room deleted successfully",
+        "delete_error": "Failed to delete room",
+        "name_ar_required": "Arabic name is required",
+        "name_en_required": "English name is required",
+        "names_must_differ": "Arabic and English names must be different",
+        "capacity_invalid": "Capacity must be 0 or greater",
+        "types": {
+          "CLASSROOM": "Classroom",
+          "LAB": "Lab",
+          "OTHER": "Other"
+        }
+      }
     },
     "teacherAllocation": {
       "title": "Teacher Allocation",
@@ -2716,13 +2908,15 @@
         "clearSelection": "Clear",
         "save": "Save Changes",
         "saving": "Saving...",
-        "reset": "Reset"
+        "reset": "Reset",
+                "export": "Export"
       },
       "matrix": {
         "title": "Teacher Allocation Matrix",
         "section": "Section",
         "missingCount": "Missing",
         "selectTeacher": "Select teacher",
+        "searchTeacher": "Search teacher...",
         "noTeacher": "No teacher assigned",
         "currentLoad": "{hours}/wk",
         "summary": {
@@ -2734,12 +2928,6 @@
           "section": "Section",
           "grade": "Grade"
         }
-      },
-      "actions": {
-        "save": "Save Changes",
-        "saving": "Saving...",
-        "reset": "Reset",
-        "export": "Export"
       },
       "load": {
         "title": "Teacher Workload",
@@ -2764,13 +2952,19 @@
           "subjects": "Subjects",
           "viewBreakdown": "View Breakdown"
         },
+        "actions": {
+          "hide": "Hide",
+          "show": "Show"
+        },
         "breakdown": {
           "title": "Load Breakdown",
           "grade": "Grade",
           "section": "Section",
           "subject": "Subject",
-          "hours": "Hours"
+          "hours": "Hours",
+          "total": "Total"
         },
+        "loading": "Loading...",
         "noTeachers": "No teachers found"
       },
       "validation": {
@@ -2825,9 +3019,177 @@
         }
       },
       "unsavedChanges": {
+        "label": "Unsaved changes",
+        "message": "You have unsaved changes. Are you sure you want to leave?"
+      }
+    },
+    "timetable": {
+      "title": "Timetable",
+      "tabs": {
+        "timetable": "Timetable",
+        "rooms": "Rooms"
+      },
+      "filters": {
+        "selectGrade": "Select Grade",
+        "selectSection": "Select Section",
+        "allGrades": "All Grades",
+        "allSections": "All Sections"
+      },
+      "grid": {
+        "period": "Period",
+        "day": "Day",
+        "sunday": "Sunday",
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "holiday": "Holiday",
+        "emptySlot": "Empty",
+        "clickToEdit": "Click to edit",
+        "validation": {
+          "missingTeacher": "Missing teacher",
+          "missingRoom": "Missing room"
+        }
+      },
+      "actions": {
+        "editSlot": "Edit Slot",
+        "save": "Save Changes",
+        "saving": "Saving...",
+        "validate": "Validate",
+        "publish": "Publish",
+        "generate": "Auto Generate",
+        "copyFrom": "Copy From",
+        "clearAll": "Clear All"
+      },
+      "editSlot": {
+        "title": "Edit Time Slot",
+        "period": "Period {number}",
+        "day": "{day}",
+        "subject": "Subject",
+        "teacher": "Teacher",
+        "room": "Room",
+        "selectSubject": "Select subject",
+        "selectTeacher": "Select teacher",
+        "selectRoom": "Select room",
+        "noSubject": "No subject",
+        "noTeacher": "No teacher",
+        "noRoom": "No room",
+        "clear": "Clear Slot",
+        "autoFilled": "Auto-filled from allocation",
+        "cancel": "Cancel",
+        "save": "Save"
+      },
+      "validation": {
+        "title": "Validation",
+        "targetVsActual": "Target vs Actual Hours",
+        "completeness": "Completeness",
+        "conflicts": "Conflicts",
+        "missingTeacher": "Missing Teacher",
+        "missingRoom": "Missing Room",
+        "teacherConflict": "Teacher Conflict",
+        "roomConflict": "Room Conflict",
+        "filledSlots": "Filled Slots",
+        "totalSlots": "Total Slots",
+        "target": "Target",
+        "actual": "Actual",
+        "hours": "hours",
+        "noConflicts": "No conflicts found",
+        "conflictDetails": "{resource} is assigned to multiple sections at {day}, Period {period}",
+        "viewConflict": "View",
+        "ok": "OK",
+        "under": "Under",
+        "over": "Over"
+      },
+      "publish": {
+        "confirmTitle": "Publish Timetable",
+        "confirmMessage": "Are you sure you want to publish this timetable? This will make it visible to teachers and students.",
+        "withErrors": "There are validation errors. Are you sure you want to publish anyway?",
+        "errorsList": "Errors found:",
+        "publishAnyway": "Publish Anyway",
+        "cancel": "Cancel",
+        "success": "Timetable published successfully",
+        "error": "Failed to publish timetable"
+      },
+      "rooms": {
+        "title": "Rooms",
+        "addRoom": "Add Room",
+        "editRoom": "Edit Room",
+        "deleteRoom": "Delete Room",
+        "deleteConfirm": "Are you sure you want to delete this room?",
+        "deleteWarning": "This room may be used in timetables.",
+        "nameAr": "Name (Arabic)",
+        "nameEn": "Name (English)",
+        "type": "Type",
+        "capacity": "Capacity",
+        "active": "Active",
+        "inactive": "Inactive",
+        "types": {
+          "CLASSROOM": "Classroom",
+          "LAB": "Laboratory",
+          "OTHER": "Other"
+        },
+        "validation": {
+          "nameArRequired": "Arabic name is required",
+          "nameEnRequired": "English name is required",
+          "namesMustDiffer": "Arabic and English names must be different",
+          "capacityRequired": "Capacity is required",
+          "capacityMin": "Capacity must be at least 1"
+        },
+        "table": {
+          "name": "Name",
+          "type": "Type",
+          "capacity": "Capacity",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "emptyState": "No rooms found. Add your first room.",
+        "searchPlaceholder": "Search rooms..."
+      },
+      "readOnlyBanner": "This term is closed. Timetable is read-only.",
+      "emptyState": {
+        "noGrades": {
+          "title": "No Grades Found",
+          "message": "Please create grades in Academic Structure first",
+          "cta": "Go to Structure"
+        },
+        "noSelection": {
+          "title": "Select Grade and Section",
+          "message": "Please select a grade and section to view the timetable"
+        }
+      },
+      "unsavedChanges": {
         "message": "You have unsaved changes. Are you sure you want to leave?"
       }
     }
+  },
+  "upload": {
+    "dragHereTitle": "Drag files here",
+    "dragHereSubtitle": "or click to upload",
+    "uploadFiles": "Upload files",
+    "addLink": "Add Link",
+    "linkTitle": "Link Title",
+    "linkTitlePlaceholder": "Enter link title",
+    "linkUrl": "Link URL",
+    "noAttachments": "No attachments yet",
+    "file": "File",
+    "link": "Link",
+    "titleAndUrlRequired": "Title and URL are required",
+    "invalidUrl": "Invalid URL",
+    "linkAddFailed": "Failed to add link",
+    "invalidType": "Unsupported file type",
+    "tooLarge": "File is too large",
+    "termClosed": "Term is closed. Upload is disabled.",
+    "allowedHint": "Allowed: {types} • Max: {size}",
+    "invalidTypeStudy": "Unsupported file type for educational content.",
+    "fileBlocked": "This file type is blocked for security reasons.",
+    "maxSizeExceeded": "File exceeds max size ({size}).",
+    "allowedTypesListStudy": "PDF , Word , PowerPoint , Excel , Images",
+    "allowedTypesListVideo": "MP4 , MOV , AVI , WMM , WebM",
+    "allowedTypesMaterials": "PDF, Word, PowerPoint, Excel, Text, Images",
+    "allowedTypesAssignments": "PDF, Word, PowerPoint, Excel, Text, Images",
+    "allowedTypesVideo": "Video files (MP4, WebM, MOV)"
   },
   "errors": {
     "load_failed": "Failed to load data",
@@ -2843,6 +3205,7 @@
     "pointsUpdated": "Points updated successfully"
   },
   "validation": {
+    "required_fields": "Please fill in all required fields",
     "required_ar": "Arabic is required",
     "required_en": "English is required",
     "unique_name_ar_stage": "Arabic stage name must be unique",
@@ -2862,7 +3225,19 @@
     "selectCorrectMulti": "Select at least one correct option.",
     "duplicateOptionAr": "Duplicate Arabic option",
     "duplicateOptionEn": "Duplicate English option",
-    "minTwoOptions": "At least 2 options required"
+    "minTwoOptions": "At least 2 options required",
+    "option_text_required": "At least one option must have text",
+    "all_options_required": "All options must have both Arabic and English text",
+    "option_ar_en_must_differ": "Option Arabic and English text must be different",
+    "at_least_one_question": "At least one question is required",
+    "question_text_required": "Question text is required",
+    "invalid_max_score": "Max score must be greater than 0",
+    "invalid_points": "Points must be 0 or greater",
+    "points_sum_mismatch": "Question points must sum to max score",
+    "validation_failed": "Validation failed",
+    "cannot_publish": "Cannot publish assignment",
+    "confirm_auto_distribute_body": "This will update points of all questions to match max score.",
+    "delete_question_confirm": "Are you sure you want to delete this question?"
   },
   "helper": {
     "urlExample": "Example: https://example.com"

@@ -4,6 +4,8 @@ import { useState, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { ChevronLeft, ChevronRight, Plus, Filter, X, LayoutGrid, List, Calendar as CalendarIcon } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import DatePicker from "@/components/ui/input/DatePicker";
+import { useToast } from "@/components/ui/toast/Toast";
 import { AcademicEvent } from "@/services/academics/calendarService";
 import {
   Drawer,
@@ -37,6 +39,8 @@ interface CalendarToolbarProps {
   onViewChange: (view: "month" | "week" | "agenda") => void;
   displayMode: "compact" | "comfortable" | "minimal";
   onDisplayModeChange: (mode: "compact" | "comfortable" | "minimal") => void;
+  termStartDate?: Date;
+  termEndDate?: Date;
 }
 
 // Filters content component (reused in both Popover and Drawer)
@@ -159,15 +163,19 @@ export default function CalendarToolbar({
   onViewChange,
   displayMode,
   onDisplayModeChange,
+  termStartDate,
+  termEndDate,
 }: CalendarToolbarProps) {
   const t = useTranslations("academics.calendar");
   const locale = useLocale();
   const isRTL = locale === "ar";
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const { showWarning } = useToast();
   
   const [filtersAnchorEl, setFiltersAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
+  const [showDatePickerDialog, setShowDatePickerDialog] = useState(false);
   
   const showFiltersPopover = Boolean(filtersAnchorEl);
 
@@ -193,6 +201,28 @@ export default function CalendarToolbar({
 
   const handleToday = () => {
     onDateChange(new Date());
+  };
+
+  const handleJumpToDate = (date: Date | null) => {
+    if (!date) return;
+
+    // Check if date is within term range
+    if (termStartDate && date < termStartDate) {
+      showWarning(t("outsideTermJump"));
+      return;
+    }
+    if (termEndDate && date > termEndDate) {
+      showWarning(t("outsideTermJump"));
+      return;
+    }
+
+    // Navigate to the month containing this date
+    onDateChange(date);
+    
+    // Close mobile dialog if open
+    if (isMobile) {
+      setShowDatePickerDialog(false);
+    }
   };
 
   const handleTypeToggle = (type: AcademicEvent["type"]) => {
@@ -305,6 +335,43 @@ export default function CalendarToolbar({
             >
               {displayLabel}
             </h2>
+
+            {/* Jump to Date Picker */}
+            {view !== "agenda" && (
+              <>
+                {/* Desktop: Inline DatePicker */}
+                {!isMobile && (
+                  <div className="w-48">
+                    <DatePicker
+                      value={currentDate}
+                      onChange={handleJumpToDate}
+                      minDate={termStartDate}
+                      maxDate={termEndDate}
+                      inputSize="sm"
+                      placeholder={t("goToDate")}
+                      className="text-sm"
+                    />
+                  </div>
+                )}
+
+                {/* Mobile: Icon Button */}
+                {isMobile && (
+                  <IconButton
+                    size="small"
+                    onClick={() => setShowDatePickerDialog(true)}
+                    sx={{
+                      color: "var(--color-primary, #006D82)",
+                      backgroundColor: "var(--color-primary-50, #e0f2f5)",
+                      "&:hover": {
+                        backgroundColor: "var(--color-primary-100, #b3e0e8)",
+                      },
+                    }}
+                  >
+                    <CalendarIcon className="w-5 h-5" />
+                  </IconButton>
+                )}
+              </>
+            )}
           </div>
 
           {/* Right Section: View & Display Mode Switchers */}
@@ -493,6 +560,46 @@ export default function CalendarToolbar({
             onClear={handleClearFilters}
             onClose={handleCloseFilters}
             t={t}
+          />
+        </div>
+      </Drawer>
+
+      {/* Mobile Date Picker Dialog */}
+      <Drawer
+        anchor="bottom"
+        open={showDatePickerDialog}
+        onClose={() => setShowDatePickerDialog(false)}
+        slotProps={{
+          paper: {
+            sx: {
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              maxHeight: "80vh",
+            },
+          },
+        }}
+      >
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-gray-900">
+              {t("goToDate")}
+            </h2>
+            <IconButton
+              size="small"
+              onClick={() => setShowDatePickerDialog(false)}
+              sx={{ color: "var(--color-text-secondary, #6b7280)" }}
+            >
+              <X className="w-5 h-5" />
+            </IconButton>
+          </div>
+
+          <DatePicker
+            value={currentDate}
+            onChange={handleJumpToDate}
+            minDate={termStartDate}
+            maxDate={termEndDate}
+            label={t("goToDate")}
+            fullWidth
           />
         </div>
       </Drawer>

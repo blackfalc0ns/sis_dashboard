@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
+import { useDirtyKey } from "@/hooks/useDirtyKey";
 import ContextBar from "../shared/ContextBar";
 import Button from "@/components/ui/button/Button";
 import {
@@ -29,6 +30,8 @@ export default function SubjectsAllocationPage() {
   const t = useTranslations("academics.subjects");
   const router = useRouter();
   const searchParams = useSearchParams();
+  const locale = useLocale();
+  const { markDirty, clearDirty } = useDirtyKey("subjects-allocation");
 
   // URL params
   const [academicYearId, setAcademicYearId] = useState("");
@@ -48,7 +51,6 @@ export default function SubjectsAllocationPage() {
   const [showSubjectDialog, setShowSubjectDialog] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [showCarryOverDialog, setShowCarryOverDialog] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const isReadOnly = termStatus === "closed";
 
@@ -129,11 +131,6 @@ export default function SubjectsAllocationPage() {
   );
 
   const handleAcademicYearChange = async (yearId: string) => {
-    if (hasUnsavedChanges) {
-      if (!confirm(t("unsaved_changes.message"))) return;
-      setHasUnsavedChanges(false);
-    }
-
     setAcademicYearId(yearId);
 
     const yearTerms = await fetchTermsByYear(yearId);
@@ -148,11 +145,6 @@ export default function SubjectsAllocationPage() {
   };
 
   const handleTermChange = (tId: string) => {
-    if (hasUnsavedChanges) {
-      if (!confirm(t("unsaved_changes.message"))) return;
-      setHasUnsavedChanges(false);
-    }
-
     const selectedTerm = terms.find((t) => t.id === tId);
     if (selectedTerm) {
       setTermId(tId);
@@ -166,10 +158,6 @@ export default function SubjectsAllocationPage() {
   };
 
   const handleTabChange = (tab: "subjects" | "matrix") => {
-    if (hasUnsavedChanges) {
-      if (!confirm(t("unsaved_changes.message"))) return;
-      setHasUnsavedChanges(false);
-    }
     setActiveTab(tab);
   };
 
@@ -181,6 +169,7 @@ export default function SubjectsAllocationPage() {
     ]);
     setSubjects(subjectsData);
     setAllocations(allocationsData);
+    clearDirty(); // Clear dirty state after refresh
   };
 
   const handleAddSubject = () => {
@@ -202,7 +191,23 @@ export default function SubjectsAllocationPage() {
   const handleCarryOverSuccess = async () => {
     await refreshData();
     setShowCarryOverDialog(false);
+    clearDirty(); // Clear dirty state after successful carry over
   };
+
+  // Handle allocation changes - mark as dirty
+  const handleAllocationsChange = useCallback((newAllocations: SubjectAllocation[]) => {
+    setAllocations(newAllocations);
+    markDirty();
+  }, [markDirty]);
+
+  // Handle dirty state changes from AllocationMatrix
+  const handleDirtyChange = useCallback((isDirty: boolean) => {
+    if (isDirty) {
+      markDirty();
+    } else {
+      clearDirty();
+    }
+  }, [markDirty, clearDirty]);
 
   return (
     <div className="flex flex-col h-screen">
@@ -243,7 +248,7 @@ export default function SubjectsAllocationPage() {
             <p className="text-gray-600 mb-6">{t("empty_state.no_grades.message")}</p>
             <Button
               variant="primary"
-              onClick={() => router.push(`/${searchParams.get("lang") || "en"}/academics/structure`)}
+              onClick={() => router.push(`/${locale}/academics/structure`)}
             >
               {t("empty_state.no_grades.cta")}
             </Button>
@@ -305,8 +310,8 @@ export default function SubjectsAllocationPage() {
                 yearName={academicYears.find((y) => y.id === academicYearId)?.name}
                 termName={terms.find((t) => t.id === termId)?.name}
                 isReadOnly={isReadOnly}
-                onAllocationsChange={setAllocations}
-                onDirtyChange={setHasUnsavedChanges}
+                onAllocationsChange={handleAllocationsChange}
+                onDirtyChange={handleDirtyChange}
                 onRefresh={refreshData}
               />
             </div>
@@ -333,8 +338,8 @@ export default function SubjectsAllocationPage() {
                 yearName={academicYears.find((y) => y.id === academicYearId)?.name}
                 termName={terms.find((t) => t.id === termId)?.name}
                 isReadOnly={isReadOnly}
-                onAllocationsChange={setAllocations}
-                onDirtyChange={setHasUnsavedChanges}
+                onAllocationsChange={handleAllocationsChange}
+                onDirtyChange={handleDirtyChange}
                 onRefresh={refreshData}
               />
             )}

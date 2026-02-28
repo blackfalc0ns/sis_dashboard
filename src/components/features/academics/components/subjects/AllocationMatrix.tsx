@@ -275,7 +275,8 @@ export default function AllocationMatrix({
             appearance: 'textfield',
             MozAppearance: 'textfield',
             WebkitAppearance: 'none',
-            backgroundColor: isChanged 
+            fontFamily: 'inherit',
+                       backgroundColor: isChanged 
               ? 'var(--color-hover-50)' 
               : isFocused 
                 ? 'var(--color-primary-200)' 

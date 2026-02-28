@@ -240,12 +240,12 @@ export default function TeacherLoadView({
             {isExpanded ? (
               <>
                 <ChevronUp className="w-4 h-4" />
-                <span>Hide</span>
+                <span>{t("actions.hide")}</span>
               </>
             ) : (
               <>
                 <ChevronDown className="w-4 h-4" />
-                <span>Show</span>
+                <span>{t("actions.show")}</span>
               </>
             )}
           </button>
@@ -257,7 +257,7 @@ export default function TeacherLoadView({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-gray-500">Loading...</div>
+        <div className="text-gray-500">{t("loading")}</div>
       </div>
     );
   }
@@ -373,16 +373,16 @@ export default function TeacherLoadView({
               <table className="min-w-full">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">
+                    <th className={`px-3 py-2  ${locale === "ar" ? "text-right" : "text-left"} text-xs font-bold text-gray-700`}>
                       {t("breakdown.grade")}
                     </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">
+                    <th className={`px-3 py-2 ${locale === "ar" ? "text-right" : "text-left"} text-xs font-bold text-gray-700`}>
                       {t("breakdown.section")}
                     </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">
+                    <th className={`px-3 py-2 ${locale === "ar" ? "text-right" : "text-left"} text-xs font-bold text-gray-700`}>
                       {t("breakdown.subject")}
                     </th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700">
+                    <th className={`px-3 py-2 ${locale === "ar" ? "text-right" : "text-left"} text-xs font-bold text-gray-700`}>
                       {t("breakdown.hours")}
                     </th>
                   </tr>
@@ -422,9 +422,9 @@ export default function TeacherLoadView({
                   <tr className="bg-gray-100 border-t-2 border-gray-300">
                     <td
                       colSpan={3}
-                      className="px-3 py-2 text-sm font-semibold text-gray-900 text-right"
+                      className={`px-3 py-2 text-sm font-semibold text-gray-900 ${locale === "ar" ? "text-right" : "text-left"}`}
                     >
-                      Total:
+                      {t("breakdown.total")}:
                     </td>
                     <td className="px-3 py-2 text-center text-sm font-bold text-gray-900">
                       {tableData.find((row) => row.teacherId === expandedTeacherId)?.weeklyLoad}h

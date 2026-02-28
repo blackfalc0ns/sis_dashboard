@@ -1,11 +1,18 @@
 import { LucideIcon } from "lucide-react";
 import { SparkLineChart } from "@mui/x-charts/SparkLineChart";
+import { useLocale } from "next-intl";
+import { formatDateTime } from "@/utils/formatters/dateTime";
+
+interface DataPoint {
+  value: number;
+  ts?: string | number; // Optional timestamp
+}
 
 interface KPICardProps {
   title: string;
   value: string | number;
   icon: LucideIcon;
-  trendData?: number[];
+  trendData?: number[] | DataPoint[]; // Support both formats
   numbers?: string;
   variant?: "default" | "gradient";
   iconBgColor?: string;
@@ -21,6 +28,36 @@ export default function KPICard({
   iconBgColor = "bg-(--primary-color)",
 }: KPICardProps) {
   const isGradient = variant === "gradient";
+  const locale = useLocale();
+
+  // Normalize trendData to always be an array of numbers for SparkLineChart
+  const chartData = trendData
+    ? Array.isArray(trendData) && typeof trendData[0] === "object"
+      ? (trendData as DataPoint[]).map((d) => d.value)
+      : (trendData as number[])
+    : [];
+
+  // Check if we have timestamp data
+  const hasTimestamps =
+    trendData &&
+    Array.isArray(trendData) &&
+    typeof trendData[0] === "object" &&
+    "ts" in trendData[0];
+
+  // Create value formatter that includes timestamp if available
+  const valueFormatter = ((value: number | null, context?: { dataIndex: number }) => {
+    if (value === null) return "";
+    
+    if (hasTimestamps && trendData && context) {
+      const dataPoint = (trendData as DataPoint[])[context.dataIndex];
+      if (dataPoint?.ts) {
+        const dateTime = formatDateTime(dataPoint.ts, locale);
+        return `${value}\n${dateTime}`;
+      }
+    }
+    
+    return value.toString();
+  }) as (value: number | null) => string;
 
   // Auto-detect number styling based on prefix
   const getNumbersStyle = () => {
@@ -93,18 +130,19 @@ export default function KPICard({
         </div>
 
         {/* Trend Chart */}
-        {trendData && trendData.length > 0 && (
-          <div className="w-16 h-10 shrink-0">
+        {chartData && chartData.length > 0 && (
+          <div className="w-16 h-10 shrink-0 cursor-crosshair">
             <SparkLineChart
-              data={trendData}
+              data={chartData}
               height={40}
               width={64}
-              color={isGradient ? "#ffffff" : "#036b80"} // line color
+              color={isGradient ? "#ffffff" : "#036b80"}
               curve="natural"
-              showTooltip={false}
-              showHighlight={false}
+              showTooltip={true}
+              showHighlight={true}
               margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
               area
+              valueFormatter={valueFormatter}
               sx={{
                 "& .MuiLineElement-root": {
                   strokeWidth: 2,
@@ -115,6 +153,28 @@ export default function KPICard({
                   fill: isGradient
                     ? "rgba(255,255,255,0.25)"
                     : "rgba(3,107,128,0.25)",
+                },
+                "& .MuiChartsTooltip-root": {
+                  backgroundColor: "white",
+                  border: `1px solid ${isGradient ? "#ffffff" : "#036b80"}`,
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                },
+                "& .MuiChartsTooltip-table": {
+                  fontFamily: "Cairo, sans-serif",
+                  fontSize: "11px",
+                  lineHeight: "1.4",
+                  color: isGradient ? "#036b80" : "#036b80",
+                  whiteSpace: "pre-line",
+                },
+                "& .MuiChartsTooltip-cell": {
+                  fontWeight: 600,
+                },
+                "& .MuiHighlightElement-root": {
+                  fill: isGradient ? "#ffffff" : "#036b80",
+                  stroke: "white",
+                  strokeWidth: 2,
                 },
               }}
             >

@@ -365,6 +365,8 @@ export default function AcademicCalendarPage() {
             onViewChange={handleViewChange}
             displayMode={displayMode}
             onDisplayModeChange={handleDisplayModeChange}
+            termStartDate={term?.startDate ? new Date(term.startDate) : undefined}
+            termEndDate={term?.endDate ? new Date(term.endDate) : undefined}
           />
 
           {/* Calendar Views */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { X, Info } from "lucide-react";
 import { useLocale } from "next-intl";
 
 export interface ModalProps {
@@ -15,6 +15,10 @@ export interface ModalProps {
   closeOnEscape?: boolean;
   footer?: React.ReactNode;
   className?: string;
+  // New optional props for confirm-style modals
+  icon?: React.ReactNode;
+  description?: React.ReactNode;
+  variant?: "default" | "confirm" | "danger";
 }
 
 export default function Modal({
@@ -28,6 +32,9 @@ export default function Modal({
   closeOnEscape = true,
   footer,
   className = "",
+  icon,
+  description,
+  variant = "default",
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const locale = useLocale();
@@ -78,71 +85,121 @@ export default function Modal({
     full: "max-w-full mx-4",
   };
 
- // ... نفس imports ونفس props
+  // Default icon if none provided but title exists
+  const shouldShowIcon = icon !== undefined || (title && description);
+  const displayIcon = icon || <Info className="w-6 h-6" />;
 
-return (
-  <div
-    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-    onClick={handleOverlayClick}
-    dir={isRTL ? "rtl" : "ltr"}
-  >
+  // Icon background color based on variant
+  const iconBgColor = variant === "danger" 
+    ? "bg-red-100" 
+    : variant === "confirm"
+    ? "bg-blue-100"
+    : "bg-[var(--color-primary-100)]";
+  
+  const iconColor = variant === "danger"
+    ? "text-red-600"
+    : variant === "confirm"
+    ? "text-blue-600"
+    : "text-[var(--primary-color)]";
+
+  return (
     <div
-      ref={modalRef}
-      className={`
-        relative w-full ${sizeClasses[size]} bg-white rounded-2xl shadow-2xl
-        transition-all ${className}
-        max-h-[calc(100vh-200px)]
-        flex flex-col overflow-hidden
-      `}
-      style={{ animation: "modalFadeIn 0.2s ease-out" }}
-      role="dialog"
-      aria-modal="true"
-      aria-label={title ?? "Modal"}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={handleOverlayClick}
+      dir={isRTL ? "rtl" : "ltr"}
     >
-      {/* Header (fixed داخل المودال) */}
-      {(title || showCloseButton) && (
-        <div className="shrink-0 flex items-center justify-between p-6 border-b border-gray-200 bg-white">
-          {title && <h2 className="text-xl font-bold text-gray-900">{title}</h2>}
-          {showCloseButton && (
-            <button
-              onClick={onClose}
-              className={`p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors ${
-                !title ? "absolute top-4 " + (isRTL ? "left-4" : "right-4") : ""
-              }`}
-              aria-label="Close"
-              type="button"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-      )}
+      <div
+        ref={modalRef}
+        className={`
+          relative w-full ${sizeClasses[size]} bg-white rounded-3xl shadow-2xl
+          transition-all ${className}
+          max-h-[calc(100vh-2rem)]
+          flex flex-col overflow-hidden
+        `}
+        style={{ 
+          animation: "modalFadeIn 0.2s ease-out",
+          fontFamily: "Cairo, sans-serif"
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title ?? "Modal"}
+      >
+        {/* Header */}
+        {(title || showCloseButton) && (
+          <div className="shrink-0 px-6 pt-6 pb-4 bg-white">
+            <div className="flex items-start gap-4">
+              {/* Icon Circle */}
+              {shouldShowIcon && (
+                <div className={`shrink-0 w-12 h-12 rounded-full ${iconBgColor} ${iconColor} flex items-center justify-center`}>
+                  {displayIcon}
+                </div>
+              )}
 
-      {/* Content (اللي عليه السكرول فقط) */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-6">
-        {children}
+              {/* Title and Description */}
+              <div className="flex-1 min-w-0">
+                {title && (
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">
+                    {title}
+                  </h2>
+                )}
+                {description && (
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    {description}
+                  </p>
+                )}
+              </div>
+
+              {/* Close Button */}
+              {showCloseButton && (
+                <button
+                  onClick={onClose}
+                  className={`shrink-0 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors ${
+                    isRTL ? "ml-auto" : "mr-0"
+                  }`}
+                  style={{
+                    position: title || shouldShowIcon ? "relative" : "absolute",
+                    top: title || shouldShowIcon ? "0" : "1rem",
+                    [isRTL ? "left" : "right"]: title || shouldShowIcon ? "0" : "1rem",
+                  }}
+                  aria-label="Close"
+                  type="button"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Content (scrollable) */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-2">
+          {children}
+        </div>
+
+        {/* Footer */}
+        {footer && (
+          <div 
+            className={`shrink-0 flex items-center gap-3 px-6 py-4 border-t border-gray-100 bg-white ${
+              isRTL ? "justify-start" : "justify-end"
+            }`}
+          >
+            {footer}
+          </div>
+        )}
       </div>
 
-      {/* Footer (fixed داخل المودال) */}
-      {footer && (
-        <div className="shrink-0 flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
-          {footer}
-        </div>
-      )}
+      <style jsx>{`
+        @keyframes modalFadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.95) translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+      `}</style>
     </div>
-
-    <style jsx>{`
-      @keyframes modalFadeIn {
-        from {
-          opacity: 0;
-          transform: scale(0.95) translateY(-10px);
-        }
-        to {
-          opacity: 1;
-          transform: scale(1) translateY(0);
-        }
-      }
-    `}</style>
-  </div>
-);
+  );
 }

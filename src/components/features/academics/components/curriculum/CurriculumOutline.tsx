@@ -6,6 +6,31 @@ import { Plus, Search, ChevronRight, ChevronDown } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import { Curriculum, Unit, Lesson } from "@/services/academics/curriculumService";
+import { normalizeSearchText, buildSearchText, getHighlightedParts } from "@/utils/text/normalizeSearch";
+
+// Helper component to render highlighted text
+function HighlightedText({ text, query }: { text: string; query: string }) {
+  if (!query.trim()) return <>{text}</>;
+
+  const parts = getHighlightedParts(text, query);
+
+  return (
+    <>
+      {parts.map((part, index) =>
+        part.highlight ? (
+          <mark
+            key={index}
+            className="bg-yellow-200 text-gray-900 font-medium rounded px-0.5"
+          >
+            {part.text}
+          </mark>
+        ) : (
+          <span key={index}>{part.text}</span>
+        )
+      )}
+    </>
+  );
+}
 
 interface CurriculumOutlineProps {
   curriculum: Curriculum;
@@ -46,6 +71,52 @@ export default function CurriculumOutline({
     return lessons.filter((l) => l.unitId === unitId);
   };
 
+  // Filter units and lessons based on search query
+  const filteredUnits = units.filter((unit) => {
+    if (!searchQuery.trim()) return true;
+    
+    const normalizedQuery = normalizeSearchText(searchQuery);
+    const unitSearchText = normalizeSearchText(
+      buildSearchText(unit.titleAr, unit.titleEn, unit.title)
+    );
+    
+    // Check if unit matches
+    if (unitSearchText.includes(normalizedQuery)) {
+      return true;
+    }
+    
+    // Check if any lesson in this unit matches
+    const unitLessons = getLessonsForUnit(unit.id);
+    return unitLessons.some((lesson) => {
+      const lessonSearchText = normalizeSearchText(
+        buildSearchText(lesson.titleAr, lesson.titleEn, lesson.title)
+      );
+      return lessonSearchText.includes(normalizedQuery);
+    });
+  });
+
+  const getFilteredLessonsForUnit = (unitId: string) => {
+    const unitLessons = getLessonsForUnit(unitId);
+    if (!searchQuery.trim()) return unitLessons;
+    
+    const normalizedQuery = normalizeSearchText(searchQuery);
+    return unitLessons.filter((lesson) => {
+      const lessonSearchText = normalizeSearchText(
+        buildSearchText(lesson.titleAr, lesson.titleEn, lesson.title)
+      );
+      return lessonSearchText.includes(normalizedQuery);
+    });
+  };
+
+  // Auto-expand units when searching
+  const shouldExpandUnit = (unitId: string) => {
+    if (!searchQuery.trim()) {
+      return expandedUnits.has(unitId);
+    }
+    // Expand all units when searching to show results
+    return true;
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b border-border">
@@ -72,10 +143,18 @@ export default function CurriculumOutline({
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {units.map((unit) => {
-          const isExpanded = expandedUnits.has(unit.id);
-          const unitLessons = getLessonsForUnit(unit.id);
+        {filteredUnits.length === 0 && searchQuery.trim() && (
+          <div className="text-center py-8 text-gray-500">
+            <Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">{t("no_results")}</p>
+          </div>
+        )}
+        
+        {filteredUnits.map((unit) => {
+          const isExpanded = shouldExpandUnit(unit.id);
+          const unitLessons = getFilteredLessonsForUnit(unit.id);
           const isSelected = selectedNode?.type === "unit" && selectedNode.id === unit.id;
+          const unitTitle = locale === "ar" ? (unit.titleAr || unit.titleEn || unit.title) : (unit.titleEn || unit.titleAr || unit.title);
 
           return (
             <div key={unit.id} className="space-y-1">
@@ -101,7 +180,7 @@ export default function CurriculumOutline({
                   )}
                 </button>
                 <div className="flex-1 font-medium">
-                  {locale === "ar" ? (unit.titleAr || unit.titleEn || unit.title) : (unit.titleEn || unit.titleAr || unit.title)}
+                  <HighlightedText text={unitTitle} query={searchQuery} />
                 </div>
                 <span className="text-xs text-gray-500">
                   {t("lessons_count", { count: unitLessons.length })}
@@ -113,6 +192,7 @@ export default function CurriculumOutline({
                   {unitLessons.map((lesson) => {
                     const isLessonSelected =
                       selectedNode?.type === "lesson" && selectedNode.id === lesson.id;
+                    const lessonTitle = locale === "ar" ? (lesson.titleAr || lesson.titleEn || lesson.title) : (lesson.titleEn || lesson.titleAr || lesson.title);
 
                     return (
                       <div
@@ -125,7 +205,7 @@ export default function CurriculumOutline({
                         onClick={() => onSelectNode({ type: "lesson", id: lesson.id })}
                       >
                         <div className="flex-1 text-sm text-gray-700">
-                          {locale === "ar" ? (lesson.titleAr || lesson.titleEn || lesson.title) : (lesson.titleEn || lesson.titleAr || lesson.title)}
+                          <HighlightedText text={lessonTitle} query={searchQuery} />
                         </div>
                         {lesson.status === "done" && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
@@ -138,13 +218,15 @@ export default function CurriculumOutline({
                       </div>
                     );
                   })}
-                  <button
-                    onClick={() => onSelectNode({ type: "lesson", id: `new-${unit.id}` })}
-                    className="w-full text-left p-2 text-sm text-primary hover:bg-primary/5 rounded-lg disabled:opacity-50"
-                    disabled={isReadOnly}
-                  >
-                    + {t("add_lesson")}
-                  </button>
+                  {!searchQuery.trim() && (
+                    <button
+                      onClick={() => onSelectNode({ type: "lesson", id: `new-${unit.id}` })}
+                      className="w-full text-left p-2 text-sm text-primary hover:bg-primary/5 rounded-lg disabled:opacity-50"
+                      disabled={isReadOnly}
+                    >
+                      + {t("add_lesson")}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

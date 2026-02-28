@@ -49,10 +49,10 @@ export default function AllocationMatrixTable<
   const isRTL = locale === "ar";
 
   return (
-    <div className={`overflow-x-auto ${className}`}>
+    <div className={`overflow-x-auto ${className}`} style={{ fontFamily: 'inherit' }}>
       <table
         className="min-w-full border-collapse shadow-sm rounded-lg overflow-hidden"
-        style={{ backgroundColor: "var(--background)" }}
+        style={{ backgroundColor: "var(--background)", fontFamily: 'inherit' }}
       >
         <thead>
           <tr>

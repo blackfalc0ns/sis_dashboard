@@ -13,7 +13,6 @@ import {
   LinearProgress,
 } from "@mui/material";
 import {
-  Upload,
   Link as LinkIcon,
   FileText,
   File,
@@ -27,9 +26,14 @@ import Input from "@/components/ui/input/Input";
 import Modal from "@/components/ui/modal/Modal";
 import EmptyState from "@/components/ui/empty-state/EmptyState";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
-import FileUploadButton from "@/components/ui/file-upload/FileUploadButton";
 import AttachmentListItem from "@/components/ui/attachment-list-item/AttachmentListItem";
+import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
 import { validateHttpUrl, normalizeUrl, getUrlErrorKey } from "@/utils/validation/url";
+import {
+  getUploadRules,
+  formatFileSize as formatUploadFileSize,
+  getAllowedTypesKey,
+} from "@/utils/upload/validateFile";
 import {
   LessonAttachment,
   fetchLessonAttachments,
@@ -43,7 +47,7 @@ interface LessonMaterialsProps {
   isReadOnly: boolean;
 }
 
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+const UPLOAD_AREA = "MATERIALS" as const;
 
 export default function LessonMaterials({ lessonId, isReadOnly }: LessonMaterialsProps) {
   const t = useTranslations("academics.curriculum.materials");
@@ -51,6 +55,10 @@ export default function LessonMaterials({ lessonId, isReadOnly }: LessonMaterial
   const tErrors = useTranslations("errors");
   const tSuccess = useTranslations("success");
   const tValidation = useTranslations("validation");
+  const tUpload = useTranslations("upload");
+
+  const uploadRules = getUploadRules(UPLOAD_AREA);
+  const allowedTypesKey = getAllowedTypesKey(UPLOAD_AREA);
 
   const [attachments, setAttachments] = useState<LessonAttachment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -265,64 +273,106 @@ export default function LessonMaterials({ lessonId, isReadOnly }: LessonMaterial
   return (
     <>
       <Stack spacing={2}>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          {!isReadOnly && (
-            <div className="flex gap-2 items-center ">
-              <FileUploadButton
-                onFilesSelected={handleFilesSelected}
-                multiple
-                maxSizeBytes={MAX_FILE_SIZE}
-                disabled={uploading}
-                buttonLabel={t("upload_files")}
-                buttonProps={{
-                  variant: "outline",
-                  size: "sm",
-                  leftIcon: <Upload className="w-4 h-4" />,
-                }}
-                onError={(error) => showSnackbar(error, "error")}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                leftIcon={<LinkIcon className="w-4 h-4" />}
-                onClick={() => setLinkDialogOpen(true)}
-              >
-                {t("add_link")}
-              </Button>
-</div>          )}
-        </Box>
-
         {isReadOnly && (
           <Alert severity="info" sx={{ fontSize: "0.875rem" }}>
             {t("readonly_message")}
           </Alert>
         )}
 
-          {Object.keys(uploadProgress).length > 0 && (
-            <Box>
-              {Object.entries(uploadProgress).map(([fileName, progress]) => (
-                <Box key={fileName} sx={{ mb: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    {fileName}
-                  </Typography>
-                  <LinearProgress variant="determinate" value={progress} />
-                </Box>
-              ))}
-            </Box>
-          )}
+        {Object.keys(uploadProgress).length > 0 && (
+          <Box>
+            {Object.entries(uploadProgress).map(([fileName, progress]) => (
+              <Box key={fileName} sx={{ mb: 1 }}>
+                <Typography variant="caption" color="text.secondary">
+                  {fileName}
+                </Typography>
+                <LinearProgress variant="determinate" value={progress} />
+              </Box>
+            ))}
+          </Box>
+        )}
 
-          {loading ? (
-            <Stack spacing={1}>
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} variant="rectangular" height={60} />
-              ))}
-            </Stack>
-          ) : attachments.length === 0 ? (
-            <EmptyState
-              icon={<FileIcon className="w-12 h-12" />}
-              message={t("no_materials")}
-            />
-          ) : (
+        {loading ? (
+          <Stack spacing={1}>
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} variant="rectangular" height={60} />
+            ))}
+          </Stack>
+        ) : attachments.length === 0 ? (
+          <>
+            {/* Primary dropzone when no attachments */}
+            {!isReadOnly && (
+              <DragDropUploadArea
+                title={tUpload("dragHereTitle")}
+                subtitle={tUpload("dragHereSubtitle")}
+                buttonLabel={tUpload("uploadFiles")}
+                onFilesSelected={handleFilesSelected}
+                isUploading={uploading}
+                disabled={isReadOnly}
+                multiple
+                uploadArea={UPLOAD_AREA}
+                helperText={
+                  isReadOnly
+                    ? tUpload("termClosed")
+                    : tUpload("allowedHint", {
+                        types: tUpload(allowedTypesKey),
+                        size: formatUploadFileSize(uploadRules.maxSizeBytes),
+                      })
+                }
+              />
+            )}
+            {!isReadOnly && (
+              <Box display="flex" justifyContent="center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<LinkIcon className="w-4 h-4" />}
+                  onClick={() => setLinkDialogOpen(true)}
+                >
+                  {t("add_link")}
+                </Button>
+              </Box>
+            )}
+            {isReadOnly && (
+              <EmptyState
+                icon={<FileIcon className="w-12 h-12" />}
+                message={t("no_materials")}
+              />
+            )}
+          </>
+        ) : (
+          <>
+            {/* Compact dropzone above list when attachments exist */}
+            {!isReadOnly && (
+              <Box>
+                <DragDropUploadArea
+                  title={tUpload("dragHereTitle")}
+                  subtitle={tUpload("dragHereSubtitle")}
+                  onFilesSelected={handleFilesSelected}
+                  isUploading={uploading}
+                  disabled={isReadOnly}
+                  multiple
+                  uploadArea={UPLOAD_AREA}
+                  showButton={false}
+                />
+                <Box display="flex" justifyContent="center" mt={2}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<LinkIcon className="w-4 h-4" />}
+                    onClick={() => setLinkDialogOpen(true)}
+                  >
+                    {t("add_link")}
+                  </Button>
+                </Box>
+                <div className="text-xs text-gray-500 text-center mt-2">
+                  {tUpload("allowedHint", {
+                    types: tUpload(allowedTypesKey),
+                    size: formatUploadFileSize(uploadRules.maxSizeBytes),
+                  })}
+                </div>
+              </Box>
+            )}
             <List sx={{ p: 0 }}>
               {attachments.map((attachment) => (
                 <AttachmentListItem
@@ -351,8 +401,9 @@ export default function LessonMaterials({ lessonId, isReadOnly }: LessonMaterial
                 />
               ))}
             </List>
-          )}
-        </Stack>
+          </>
+        )}
+      </Stack>
 
       {/* Add Link Dialog */}
       <Modal

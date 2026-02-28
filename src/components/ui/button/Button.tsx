@@ -42,11 +42,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variantStyles: Record<ButtonVariant, string> = {
       primary:
-        "bg-[var(--primary-color)] hover:bg-[var(--hover-color)] text-white focus:ring-[var(--primary-color)]",
+        "bg-gradient-to-r from-primary to-hover hover:bg-hover text-white focus:ring-[var(--primary-color)]",
       secondary:
         "bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 focus:ring-gray-300",
       outline:
-        "bg-transparent border-2 border-[var(--primary-color)] hover:bg-[var(--primary-color)] text-[var(--primary-color)] hover:text-white focus:ring-[var(--primary-color)]",
+        "bg-transparent border-2 border-primary hover:bg-primary text-primary hover:text-white focus:ring-primary",
       ghost:
         "bg-transparent hover:bg-gray-100 text-gray-700 focus:ring-gray-300",
       danger: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",

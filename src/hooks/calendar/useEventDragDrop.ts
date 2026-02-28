@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { AcademicEvent } from "@/services/academics/calendarService";
 
 interface DragState {
@@ -30,6 +30,14 @@ export function useEventDragDrop({
     event: null,
   });
   const [hoverDate, setHoverDate] = useState<string | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove("calendar-dragging");
+      document.body.style.cursor = "";
+    };
+  }, []);
 
   // Calculate duration in days (inclusive)
   const calculateDuration = (startDate: string, endDate: string): number => {
@@ -81,7 +89,8 @@ export function useEventDragDrop({
     [isReadOnly]
   );
 
-  const handleDragEnd = useCallback(() => {
+  const handleDragEnd = useCallback((e?: React.DragEvent) => {
+    // Always clean up drag state and cursor
     setDragState({
       eventId: null,
       originalStartDate: null,
@@ -90,7 +99,15 @@ export function useEventDragDrop({
       event: null,
     });
     setHoverDate(null);
+    
+    // Force remove the dragging class and reset cursor
     document.body.classList.remove("calendar-dragging");
+    document.body.style.cursor = "";
+    
+    // Also reset cursor on the event target if available
+    if (e?.currentTarget) {
+      (e.currentTarget as HTMLElement).style.cursor = "";
+    }
   }, []);
 
   // Drop target handlers
@@ -120,6 +137,10 @@ export function useEventDragDrop({
         onDrop: async (e: React.DragEvent) => {
           e.preventDefault();
           setHoverDate(null);
+          
+          // Clean up cursor immediately
+          document.body.classList.remove("calendar-dragging");
+          document.body.style.cursor = "";
 
           if (!dragState.eventId || !dragState.event || isReadOnly) {
             return;

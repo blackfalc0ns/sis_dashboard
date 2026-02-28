@@ -3,16 +3,19 @@
 import { useState } from "react";
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from "recharts";
 import { LucideIcon } from "lucide-react";
+import { useLocale } from "next-intl";
 import { DropdownMenu, DropdownItem } from "@/components/ui/dropdown";
+import { formatDateTime } from "@/utils/formatters/dateTime";
 
 interface DataPoint {
   label: string;
   value: number;
+  ts?: string | number; // Optional timestamp (ISO string or epoch milliseconds)
 }
 
 interface TooltipProps {
   active?: boolean;
-  payload?: Array<{ value: number }>;
+  payload?: Array<{ value: number; payload: DataPoint }>;
 }
 
 // Custom tooltip component defined outside of render
@@ -20,13 +23,22 @@ const CustomTooltip = ({
   active,
   payload,
   chartColor,
-}: TooltipProps & { chartColor: string }) => {
+  locale,
+}: TooltipProps & { chartColor: string; locale: string }) => {
   if (active && payload && payload.length) {
+    const dataPoint = payload[0].payload;
+    const hasTimestamp = dataPoint.ts !== undefined;
+    
     return (
       <div
-        className="bg-white px-2 py-1 rounded shadow-lg border"
+        className="bg-white px-3 py-2 rounded-lg shadow-lg border font-[Cairo]"
         style={{ borderColor: chartColor }}
       >
+        {hasTimestamp && (
+          <p className="text-[10px] text-gray-500 mb-1">
+            {formatDateTime(dataPoint.ts!, locale)}
+          </p>
+        )}
         <p className="text-xs font-semibold" style={{ color: chartColor }}>
           {payload[0].value}
         </p>
@@ -82,6 +94,7 @@ export default function KPICardV2({
   defaultPeriod = "7d",
 }: KPICardV2Props) {
   const [selectedPeriod, setSelectedPeriod] = useState(defaultPeriod);
+  const locale = useLocale();
 
   const changeColor = change
     ? change.isPositive !== false
@@ -239,7 +252,7 @@ export default function KPICardV2({
                 )
               }
             {/* Chart */}
-            <div className="w-full sm:w-40 h-16 mt-2 relative">
+            <div className="w-full sm:w-40 h-16 mt-2 relative cursor-crosshair">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={chartData}
@@ -267,7 +280,7 @@ export default function KPICardV2({
                   </defs>
 
                   <Tooltip
-                    content={<CustomTooltip chartColor={chartColor} />}
+                    content={<CustomTooltip chartColor={chartColor} locale={locale} />}
                     cursor={false}
                   />
 
@@ -277,12 +290,7 @@ export default function KPICardV2({
                     stroke={chartColor}
                     strokeWidth={2}
                     fillOpacity={0.05}
-                    dot={{
-                      r: 2,
-                      fill: chartColor,
-                      stroke: "white",
-                      strokeWidth: 1,
-                    }}
+                    dot={false}
                     activeDot={{
                       r: 4,
                       fill: chartColor,

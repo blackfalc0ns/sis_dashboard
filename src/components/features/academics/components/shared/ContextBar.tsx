@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { ArrowRight, Plus, Edit2 } from "lucide-react";
+import { ArrowRight, Plus, Edit2, ChevronUp, ChevronDown } from "lucide-react";
+import { IconButton } from "@mui/material";
 import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
 import {
@@ -19,9 +20,9 @@ interface ContextBarProps {
   termStatus: "open" | "closed";
   onAcademicYearChange: (yearId: string) => void;
   onTermChange: (termId: string) => void;
-  onPromoteCarryOver?: () => void; // Made optional
+  onPromoteCarryOver?: () => void;
   isReadOnly: boolean;
-  showPromoteCarryOver?: boolean; // New prop to control visibility
+  showPromoteCarryOver?: boolean;
 }
 
 export default function ContextBar({
@@ -32,14 +33,17 @@ export default function ContextBar({
   onTermChange,
   onPromoteCarryOver,
   isReadOnly,
-  showPromoteCarryOver = true, // Default to true for backward compatibility
+  showPromoteCarryOver = true,
 }: ContextBarProps) {
   const t = useTranslations("academics.structure.context_bar");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
+
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [isLoadingYears, setIsLoadingYears] = useState(true);
   const [isLoadingTerms, setIsLoadingTerms] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   // Dialog states
   const [showYearDialog, setShowYearDialog] = useState(false);
@@ -47,7 +51,6 @@ export default function ContextBar({
   const [editingYear, setEditingYear] = useState<AcademicYear | null>(null);
   const [editingTerm, setEditingTerm] = useState<Term | null>(null);
 
-  // Load academic years on mount
   useEffect(() => {
     loadYears();
   }, []);
@@ -64,7 +67,6 @@ export default function ContextBar({
     }
   };
 
-  // Load terms when academic year changes
   useEffect(() => {
     if (!academicYearId) return;
     loadTerms();
@@ -120,154 +122,220 @@ export default function ContextBar({
 
   const academicYearOptions = academicYears.map((year) => ({
     value: year.id,
-    label: locale === "ar" ? (year.nameAr || year.name) : (year.nameEn || year.name),
+    label:
+      locale === "ar"
+        ? year.nameAr || year.name
+        : year.nameEn || year.name,
   }));
 
   const termOptions = terms.map((term) => ({
     value: term.id,
-    label: locale === "ar" ? (term.nameAr || term.name) : (term.nameEn || term.name),
+    label:
+      locale === "ar"
+        ? term.nameAr || term.name
+        : term.nameEn || term.name,
   }));
 
   const selectedYear = academicYears.find((y) => y.id === academicYearId);
+  const selectedTerm = terms.find((t) => t.id === termId);
 
   return (
     <>
-      <div className="bg-white border-b border-border px-6 py-4">
-        <div className="flex flex-col lg:flex-row lg:items-end gap-4">
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 flex-1">
-            {/* Academic Year */}
-            <div className="flex-1 min-w-[200px] flex gap-2 items-end">
-              <div className="flex-1">
-                <Select
-                  label={t("academic_year")}
-                  required
-                  value={academicYearId}
-                  onChange={onAcademicYearChange}
-                  options={academicYearOptions}
-                  selectSize="md"
-                  disabled={isLoadingYears}
-                />
-              </div>
-              {academicYearId && (
-                <button
-                  onClick={handleEditYear}
-                  className="p-2 text-gray-500 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors mb-0.5"
-                  title={t("edit_year")}
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+      <div className="bg-white border-b border-border ">
+        {/* Header */}
+        <div className="px-6 py-3 flex items-center justify-between border-b border-border bg-gradient-to-l from-primary to-hover ">
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-semibold text-white">{t("title")}</h3>
 
-            {/* Term */}
-            <div className="flex-1 min-w-[200px] flex gap-2 items-end">
-              <div className="flex-1">
-                <Select
-                  label={t("term")}
-                  required
-                  value={termId}
-                  onChange={onTermChange}
-                  options={termOptions}
-                  selectSize="md"
-                  disabled={isLoadingTerms || !academicYearId}
-                />
+            {isCollapsed && selectedYear && selectedTerm && (
+              <div className="flex items-center gap-2 text-sm text-white">
+                <span>
+                  {locale === "ar"
+                    ? selectedYear.nameAr || selectedYear.name
+                    : selectedYear.nameEn || selectedYear.name}
+                </span>
+                <span className="text-gray-400">•</span>
+                <span>
+                  {locale === "ar"
+                    ? selectedTerm.nameAr || selectedTerm.name
+                    : selectedTerm.nameEn || selectedTerm.name}
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    termStatus === "open"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {termStatus === "open" ? t("status_open") : t("status_closed")}
+                </span>
               </div>
-              {termId && (
-                <button
-                  onClick={handleEditTerm}
-                  className="p-2 text-gray-500 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors mb-0.5"
-                  title={t("edit_term")}
+            )}
+          </div>
+
+          <IconButton
+            size="small"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            title={isCollapsed ? tCommon("expand") : tCommon("collapse")}
+            style={{color: "white"}}
+          >
+            {isCollapsed ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronUp className="w-4 h-4" />
+            )}
+          </IconButton>
+        </div>
+
+        {/* Content */}
+        {!isCollapsed && (
+          <div className="px-6 py-4">
+            <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-4 flex-1">
+                {/* Academic Year */}
+                <div className="flex-1 min-w-[200px] flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Select
+                      label={t("academic_year")}
+                      required
+                      value={academicYearId}
+                      onChange={onAcademicYearChange}
+                      options={academicYearOptions}
+                      selectSize="md"
+                      disabled={isLoadingYears}
+                    />
+                  </div>
+
+                  {academicYearId && (
+                    <button
+                      onClick={handleEditYear}
+                      className="p-2 text-gray-500 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors mb-0.5"
+                      title={t("edit_year")}
+                      disabled={isReadOnly}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Term */}
+                <div className="flex-1 min-w-[200px] flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Select
+                      label={t("term")}
+                      required
+                      value={termId}
+                      onChange={onTermChange}
+                      options={termOptions}
+                      selectSize="md"
+                      disabled={isLoadingTerms || !academicYearId}
+                    />
+                  </div>
+
+                  {termId && (
+                    <button
+                      onClick={handleEditTerm}
+                      className="p-2 text-gray-500 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors mb-0.5"
+                      title={t("edit_term")}
+                      disabled={isReadOnly}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Term Status */}
+                <div className="flex items-end">
+                  <span
+                    className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                      termStatus === "open"
+                        ? "bg-green-100 text-green-700 border border-green-200"
+                        : "bg-gray-100 text-gray-700 border border-gray-200"
+                    }`}
+                  >
+                    {termStatus === "open" ? t("status_open") : t("status_closed")}
+                  </span>
+                </div>
+              </div>
+
+              {/* Actions - Desktop */}
+              <div className="hidden lg:flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="md"
+                  leftIcon={<Plus className="w-4 h-4" />}
+                  onClick={handleCreateYear}
                   disabled={isReadOnly}
                 >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+                  {t("create_year")}
+                </Button>
 
-            {/* Term Status */}
-            <div className="flex items-end">
-              <span
-                className={`px-3 py-2 rounded-lg text-sm font-medium ${
-                  termStatus === "open"
-                    ? "bg-green-100 text-green-700 border border-green-200"
-                    : "bg-gray-100 text-gray-700 border border-gray-200"
-                }`}
-              >
-                {termStatus === "open" ? t("status_open") : t("status_closed")}
-              </span>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  leftIcon={<Plus className="w-4 h-4" />}
+                  onClick={handleCreateTerm}
+                  disabled={!academicYearId || isReadOnly}
+                >
+                  {t("create_term")}
+                </Button>
+
+                {showPromoteCarryOver && onPromoteCarryOver && (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    leftIcon={<ArrowRight className="w-4 h-4" />}
+                    onClick={onPromoteCarryOver}
+                    disabled={isReadOnly}
+                    title={isReadOnly ? t("status_closed") : ""}
+                  >
+                    {t("promote_carry_over")}
+                  </Button>
+                )}
+              </div>
+
+              {/* Actions - Mobile */}
+              <div className="lg:hidden flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    fullWidth
+                    leftIcon={<Plus className="w-4 h-4" />}
+                    onClick={handleCreateYear}
+                    disabled={isReadOnly}
+                  >
+                    {t("create_year")}
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    fullWidth
+                    leftIcon={<Plus className="w-4 h-4" />}
+                    onClick={handleCreateTerm}
+                    disabled={!academicYearId || isReadOnly}
+                  >
+                    {t("create_term")}
+                  </Button>
+                </div>
+
+                {showPromoteCarryOver && onPromoteCarryOver && (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    fullWidth
+                    onClick={onPromoteCarryOver}
+                    disabled={isReadOnly}
+                  >
+                    {t("promote_carry_over")}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
-
-          {/* Actions - Desktop */}
-          <div className="hidden lg:flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="md"
-              leftIcon={<Plus className="w-4 h-4" />}
-              onClick={handleCreateYear}
-            >
-              {t("create_year")}
-            </Button>
-            <Button
-              variant="secondary"
-              size="md"
-              leftIcon={<Plus className="w-4 h-4" />}
-              onClick={handleCreateTerm}
-              disabled={!academicYearId}
-            >
-              {t("create_term")}
-            </Button>
-            {showPromoteCarryOver && onPromoteCarryOver && (
-              <Button
-                variant="primary"
-                size="md"
-                leftIcon={<ArrowRight className="w-4 h-4" />}
-                onClick={onPromoteCarryOver}
-                disabled={isReadOnly}
-                title={isReadOnly ? t("status_closed") : ""}
-              >
-                {t("promote_carry_over")}
-              </Button>
-            )}
-          </div>
-
-          {/* Actions - Mobile */}
-          <div className="lg:hidden flex flex-col gap-2">
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="md"
-                fullWidth
-                leftIcon={<Plus className="w-4 h-4" />}
-                onClick={handleCreateYear}
-              >
-                {t("create_year")}
-              </Button>
-              <Button
-                variant="secondary"
-                size="md"
-                fullWidth
-                leftIcon={<Plus className="w-4 h-4" />}
-                onClick={handleCreateTerm}
-                disabled={!academicYearId}
-              >
-                {t("create_term")}
-              </Button>
-            </div>
-            {showPromoteCarryOver && onPromoteCarryOver && (
-              <Button
-                variant="primary"
-                size="md"
-                fullWidth
-                onClick={onPromoteCarryOver}
-                disabled={isReadOnly}
-              >
-                {t("promote_carry_over")}
-              </Button>
-            )}
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Dialogs */}

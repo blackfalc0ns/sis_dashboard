@@ -4,7 +4,7 @@ import { bottomItems, menuItems } from "@/config/navigation";
 import { Building2, Menu, ChevronLeft, ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import Link from "next/link";
+import GuardedLink from "@/components/navigation/GuardedLink";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 
@@ -234,8 +234,7 @@ export default function Sidebar({
                     )}
                   </button>
                 ) : (
-                  <Link
-                    href={isArabic ? item.href_ar : item.href_en}
+                  <GuardedLink                     href={isArabic ? item.href_ar : item.href_en}
                     onClick={() => handleItemClick(item.key)}
                     title={
                       !isOpen
@@ -262,7 +261,7 @@ export default function Sidebar({
                         {isArabic ? item.label_ar : item.label_en}
                       </span>
                     )}
-                  </Link>
+                  </GuardedLink>
                 )}
 
                 {/* Children Items */}
@@ -305,8 +304,7 @@ export default function Sidebar({
                               />
                             </button>
                           ) : (
-                            <Link
-                              href={childHref}
+                            <GuardedLink                               href={childHref}
                               onClick={() => handleItemClick(child.key)}
                               className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${
                                 isArabic ? "text-right" : "text-left"
@@ -338,7 +336,7 @@ export default function Sidebar({
                                     </span>
                                   );
                                 })()}
-                            </Link>
+                            </GuardedLink>
                           )}
 
                           {/* Grandchildren Items */}
@@ -357,8 +355,7 @@ export default function Sidebar({
                                   pathname === grandchildHref;
 
                                 return (
-                                  <Link
-                                    key={grandchild.key}
+                                  <GuardedLink                                     key={grandchild.key}
                                     href={grandchildHref}
                                     onClick={() =>
                                       handleItemClick(grandchild.key)
@@ -377,7 +374,7 @@ export default function Sidebar({
                                         ? grandchild.label_ar
                                         : grandchild.label_en}
                                     </span>
-                                  </Link>
+                                  </GuardedLink>
                                 );
                               })}
                             </div>
@@ -399,8 +396,7 @@ export default function Sidebar({
           const Icon = item.icon;
 
           return (
-            <Link
-              href={isArabic ? item.href_ar : item.href_en}
+            <GuardedLink               href={isArabic ? item.href_ar : item.href_en}
               key={item.key}
               onClick={() => handleItemClick(item.key)}
               title={
@@ -420,7 +416,7 @@ export default function Sidebar({
                   {isArabic ? item.label_ar : item.label_en}
                 </span>
               )}
-            </Link>
+            </GuardedLink>
           );
         })}
       </div>
@@ -428,3 +424,4 @@ export default function Sidebar({
   </>
 );
 }
+

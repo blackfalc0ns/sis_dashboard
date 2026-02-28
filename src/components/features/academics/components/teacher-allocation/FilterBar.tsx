@@ -49,19 +49,6 @@ export default function FilterBar({
 
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
 
-  // Get unique stages
-  const stages = Array.from(
-    new Set(grades.map((g) => g.stageId))
-  ).map((stageId) => {
-    const grade = grades.find((g) => g.stageId === stageId);
-    return {
-      id: stageId,
-      name: stageId,
-      nameAr: stageId,
-      nameEn: stageId,
-    };
-  });
-
   // Filter sections by selected grade
   const filteredSections = selectedGradeId
     ? sections.filter((s) => s.gradeId === selectedGradeId)
@@ -96,57 +83,6 @@ export default function FilterBar({
         : (subject.nameEn || subject.nameAr || subject.name),
     })),
   ];
-
-  const FiltersContent = () => (
-    <div className="space-y-4">
-      {/* Grade Filter */}
-      <div>
-        <Select
-          label={t("filters.grade")}
-          value={selectedGradeId}
-          onChange={onGradeChange}
-          options={gradeOptions}
-          selectSize="sm"
-        />
-      </div>
-
-      {/* Section Filter */}
-      <div>
-        <Select
-          label={t("filters.section")}
-          value={selectedSectionId}
-          onChange={onSectionChange}
-          options={sectionOptions}
-          selectSize="sm"
-          disabled={!selectedGradeId}
-        />
-      </div>
-
-      {/* Subject Filter */}
-      <div>
-        <Select
-          label={t("filters.subject")}
-          value={selectedSubjectId}
-          onChange={onSubjectChange}
-          options={subjectOptions}
-          selectSize="sm"
-        />
-      </div>
-
-      {/* Show Only Missing Toggle */}
-      <div>
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showOnlyMissing}
-            onChange={(e) => onShowOnlyMissingChange(e.target.checked)}
-            className="rounded border-gray-300 text-primary focus:ring-primary"
-          />
-          <span className="text-gray-700">{t("filters.showOnlyMissing")}</span>
-        </label>
-      </div>
-    </div>
-  );
 
   return (
     <>
@@ -273,7 +209,54 @@ export default function FilterBar({
             </IconButton>
           </div>
 
-          <FiltersContent />
+          <div className="space-y-4">
+            {/* Grade Filter */}
+            <div>
+              <Select
+                label={t("filters.grade")}
+                value={selectedGradeId}
+                onChange={onGradeChange}
+                options={gradeOptions}
+                selectSize="sm"
+              />
+            </div>
+
+            {/* Section Filter */}
+            <div>
+              <Select
+                label={t("filters.section")}
+                value={selectedSectionId}
+                onChange={onSectionChange}
+                options={sectionOptions}
+                selectSize="sm"
+                disabled={!selectedGradeId}
+              />
+            </div>
+
+            {/* Subject Filter */}
+            <div>
+              <Select
+                label={t("filters.subject")}
+                value={selectedSubjectId}
+                onChange={onSubjectChange}
+                options={subjectOptions}
+                selectSize="sm"
+              />
+            </div>
+
+            {/* Show Only Missing Toggle */}
+            <div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showOnlyMissing}
+                  onChange={(e) => onShowOnlyMissingChange(e.target.checked)}
+                  className="rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <span className="text-gray-700">{t("filters.showOnlyMissing")}</span>
+              </label>
+            </div>
+          </div>
 
           <div className="mt-6">
             <Button

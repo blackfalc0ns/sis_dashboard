@@ -16,6 +16,7 @@ import {
   UserMinus,
   BookOpen,
   Network,
+  Clock,
 } from "lucide-react";
 import {
   mockLeads,
@@ -260,6 +261,14 @@ export const menuItems: MenuItem[] = [
         href_en: "/en/academics/calendar",
         href_ar: "/ar/academics/calendar",
         icon: ClipboardCheck,
+      },
+      {
+        key: "academics-timetable",
+        label_en: "Time Table",
+        label_ar: "الجدول",
+        href_en: "/en/academics/timetable",
+        href_ar: "/ar/academics/timetable",
+        icon: Clock,
       },
       {
         key: "academics-teacher-allocation",

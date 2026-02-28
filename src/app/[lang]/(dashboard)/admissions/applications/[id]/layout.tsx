@@ -69,8 +69,8 @@ export default function ApplicationProfileLayout({
             onClick={() => router.push(`/${lang}/admissions/applications`)}
             className="mt-4 px-4 py-2 bg-[#036b80] text-white rounded-lg"
           >
-            Back to Applications
-          </button>
+  {t("header.back_to_applications")}
+ </button>
         </div>
       </div>
     );
@@ -97,7 +97,8 @@ export default function ApplicationProfileLayout({
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
             >
               {locale === "ar" ? <ArrowRight /> : <ArrowLeft />}
-              <span className="text-sm font-medium">Back to Applications</span>
+              <span className="text-sm font-medium">  {t("header.back_to_applications")}
+</span>
             </button>
             <div className="flex items-center justify-between">
               <div>

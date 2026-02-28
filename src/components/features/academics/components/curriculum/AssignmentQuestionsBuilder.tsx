@@ -1,19 +1,14 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import {
   Plus,
-  MoreVertical,
-  Edit2,
-  Trash2,
-  AlertCircle,
-  CheckCircle,
-  Zap,
+  FileQuestion,
 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
-import DropdownMenu from "@/components/ui/dropdown/DropdownMenu";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
+import AssignmentSummaryBar from "./AssignmentSummaryBar";
 import {
   Assignment,
   AssignmentQuestion,
@@ -24,7 +19,8 @@ import {
   bulkUpdateQuestionPoints,
 } from "@/services/academics/curriculumService";
 import { distributePoints } from "@/utils/scoring/distributePoints";
-import QuestionDialog from "./QuestionDialog";
+import QuestionDrawer from "./QuestionDrawer";
+import QuestionCard from "./QuestionCard";
 
 interface AssignmentQuestionsBuilderProps {
   assignment: Assignment;
@@ -37,10 +33,10 @@ export default function AssignmentQuestionsBuilder({
   isReadOnly,
   onQuestionsChange,
 }: AssignmentQuestionsBuilderProps) {
-  const t = useTranslations("academics.curriculum.questions");
+  const t = useTranslations("academics.curriculum.assignments");
+  const tQuestions = useTranslations("academics.curriculum.questions");
   const tSuccess = useTranslations("success");
   const tErrors = useTranslations("errors");
-  const locale = useLocale();
 
   const [questions, setQuestions] = useState<AssignmentQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,6 +52,7 @@ export default function AssignmentQuestionsBuilder({
 
   useEffect(() => {
     loadQuestions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assignment.id]);
 
   const loadQuestions = async () => {
@@ -128,24 +125,20 @@ export default function AssignmentQuestionsBuilder({
 
     setIsDistributing(true);
     
-    // Store original points for rollback
     const originalPoints = questions.map(q => ({ id: q.id, points: q.points }));
 
     try {
-      // Calculate new distribution
       const distributed = distributePoints(
         pointsSummary.maxScore,
         questions.map(q => ({ id: q.id, points: q.points, order: q.order }))
       );
 
-      // Update UI optimistically
       const updatedQuestions = questions.map(q => {
         const newPoints = distributed.find(d => d.id === q.id);
         return newPoints ? { ...q, points: newPoints.points } : q;
       });
       setQuestions(updatedQuestions);
 
-      // Persist to backend
       await bulkUpdateQuestionPoints(
         assignment.id,
         distributed.map(d => ({ questionId: d.id, points: d.points }))
@@ -157,7 +150,6 @@ export default function AssignmentQuestionsBuilder({
     } catch (error) {
       console.error("Failed to distribute points:", error);
       
-      // Rollback on error
       const rolledBack = questions.map(q => {
         const original = originalPoints.find(o => o.id === q.id);
         return original ? { ...q, points: original.points } : q;
@@ -168,12 +160,6 @@ export default function AssignmentQuestionsBuilder({
     } finally {
       setIsDistributing(false);
     }
-  };
-
-  const getDisplayText = (question: AssignmentQuestion) => {
-    return locale === "ar"
-      ? question.questionTextAr || question.questionTextEn
-      : question.questionTextEn || question.questionTextAr;
   };
 
   const canAutoDistribute =
@@ -195,191 +181,93 @@ export default function AssignmentQuestionsBuilder({
 
   return (
     <div className="space-y-4">
-      {/* Points Summary Header */}
-      <div className="bg-gray-50 border border-border rounded-lg p-4">
-        <h4 className="text-sm font-semibold mb-3">{t("summary_title")}</h4>
-        
-        <div className="grid grid-cols-3 gap-4 mb-3">
-          <div>
-            <div className="text-xs text-gray-600 mb-1">{t("max_score")}</div>
-            <div className="text-lg font-semibold">
-              {pointsSummary.maxScore ?? "—"}
-            </div>
-          </div>
-          
-          <div>
-            <div className="text-xs text-gray-600 mb-1">{t("total_points")}</div>
-            <div className="text-lg font-semibold">
-              {pointsSummary.totalPoints}
-            </div>
-          </div>
-          
-          <div>
-            <div className="text-xs text-gray-600 mb-1">{t("difference")}</div>
-            <div className={`text-lg font-semibold ${
-              pointsSummary.isMatch ? "text-green-600" : "text-orange-600"
-            }`}>
-              {pointsSummary.difference > 0 ? "+" : ""}{pointsSummary.difference}
-            </div>
-          </div>
-        </div>
+      {/* Compact Summary Bar */}
+      <AssignmentSummaryBar
+        maxScore={pointsSummary.maxScore}
+        totalPoints={pointsSummary.totalPoints}
+        difference={pointsSummary.difference}
+        isMatch={pointsSummary.isMatch}
+        canAutoDistribute={canAutoDistribute}
+        onAutoDistribute={() => setShowAutoDistributeDialog(true)}
+        isReadOnly={isReadOnly}
+      />
 
-        {/* Status Indicator */}
+      {/* Sticky Add Question Bar */}
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 -mx-4 px-4 py-3 sm:-mx-6 sm:px-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {pointsSummary.isMatch ? (
-              <>
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <span className="text-sm text-green-600">{t("points_match")}</span>
-              </>
-            ) : (
-              <>
-                <AlertCircle className="w-4 h-4 text-orange-600" />
-                <span className="text-sm text-orange-600">{t("points_mismatch")}</span>
-              </>
-            )}
-          </div>
-
-          {/* Auto Distribute Button */}
-          {canAutoDistribute && !pointsSummary.isMatch && (
+          <h3 className="text-base font-semibold">{tQuestions("title")}</h3>
+          {!isReadOnly && (
             <Button
-              onClick={() => setShowAutoDistributeDialog(true)}
+              onClick={() => {
+                setEditingQuestion(null);
+                setShowQuestionDialog(true);
+              }}
               variant="primary"
               size="sm"
-              leftIcon={<Zap className="w-4 h-4" />}
+              leftIcon={<Plus className="w-4 h-4" />}
             >
-              {t("auto_distribute")}
+              {tQuestions("add_question")}
             </Button>
           )}
         </div>
-
-        {/* Mismatch Warning */}
-        {!pointsSummary.isMatch && questions.length > 0 && (
-          <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded text-sm text-orange-800">
-            <AlertCircle className="w-4 h-4 inline mr-2" />
-            {t("points_sum_mismatch")}
-          </div>
-        )}
       </div>
 
-      {/* Add Question Button */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold">{t("title")}</h3>
-        {!isReadOnly && (
-          <Button
-            onClick={() => {
-              setEditingQuestion(null);
-              setShowQuestionDialog(true);
-            }}
-            variant="primary"
-            size="sm"
-            leftIcon={<Plus className="w-4 h-4" />}
-          >
-            {t("add_question")}
-          </Button>
-        )}
-      </div>
-
-      {/* Questions List */}
+      {/* Questions List or Empty State */}
       {questions.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <p>{t("no_questions")}</p>
+        <div className="text-center py-16 px-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+            <FileQuestion className="w-8 h-8 text-gray-400" />
+          </div>
+          <h4 className="text-lg font-semibold text-gray-900 mb-2">
+            {t("noQuestionsTitle")}
+          </h4>
+          <p className="text-sm text-gray-600 mb-6 max-w-sm mx-auto">
+            {t("noQuestionsBody")}
+          </p>
+          {!isReadOnly && (
+            <Button
+              onClick={() => {
+                setEditingQuestion(null);
+                setShowQuestionDialog(true);
+              }}
+              variant="primary"
+              size="md"
+              leftIcon={<Plus className="w-4 h-4" />}
+            >
+              {t("addFirstQuestion")}
+            </Button>
+          )}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {questions.map((question, index) => (
-            <div
+            <QuestionCard
               key={question.id}
-              className="border border-border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-sm font-medium text-gray-500">
-                      Q{index + 1}
-                    </span>
-                    <span className="text-xs px-2 py-1 bg-gray-100 rounded">
-                      {t(`question_types.${question.questionType}`)}
-                    </span>
-                    <span className="text-sm font-semibold text-primary">
-                      {question.points} {t("points")}
-                    </span>
-                  </div>
-                  
-                  <p className="text-sm text-gray-900 mb-2">
-                    {getDisplayText(question)}
-                  </p>
-
-                  {/* Show options for MCQ questions */}
-                  {(question.questionType === "MCQ_SINGLE" || question.questionType === "MCQ_MULTI") && 
-                   question.options && question.options.length > 0 && (
-                    <div className="ml-4 mt-2 space-y-1">
-                      {question.options
-                        .sort((a, b) => a.order - b.order)
-                        .map((option, optIndex) => {
-                          const optionText = locale === "ar" 
-                            ? option.textAr || option.textEn 
-                            : option.textEn || option.textAr;
-                          return (
-                            <div key={option.id} className="flex items-center gap-2 text-sm">
-                              <span className={`w-5 h-5 flex items-center justify-center rounded-full text-xs ${
-                                option.isCorrect 
-                                  ? "bg-green-100 text-green-700 font-semibold" 
-                                  : "bg-gray-100 text-gray-600"
-                              }`}>
-                                {String.fromCharCode(65 + optIndex)}
-                              </span>
-                              <span className={option.isCorrect ? "font-medium" : ""}>
-                                {optionText}
-                              </span>
-                              {option.isCorrect && (
-                                <span className="text-xs text-green-600">✓</span>
-                              )}
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                </div>
-
-                {!isReadOnly && (
-                  <DropdownMenu
-                    trigger={
-                      <button className="p-2 hover:bg-gray-100 rounded">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                    }
-                    items={[
-                      {
-                        label: t("edit_question"),
-                        value: "edit",
-                        icon: <Edit2 className="w-4 h-4" />,
-                        onClick: () => {
-                          setEditingQuestion(question);
-                          setShowQuestionDialog(true);
-                        },
-                      },
-                      {
-                        label: t("delete_question"),
-                        value: "delete",
-                        icon: <Trash2 className="w-4 h-4" />,
-                        onClick: () => {
-                          setQuestionToDelete(question);
-                          setShowDeleteDialog(true);
-                        },
-                      },
-                    ]}
-                  />
-                )}
-              </div>
-            </div>
+              question={question}
+              index={index}
+              isSelected={false}
+              isReadOnly={isReadOnly}
+              onClick={() => {
+                if (!isReadOnly) {
+                  setEditingQuestion(question);
+                  setShowQuestionDialog(true);
+                }
+              }}
+              onEdit={() => {
+                setEditingQuestion(question);
+                setShowQuestionDialog(true);
+              }}
+              onDelete={() => {
+                setQuestionToDelete(question);
+                setShowDeleteDialog(true);
+              }}
+            />
           ))}
         </div>
       )}
 
-      {/* Question Dialog */}
       {showQuestionDialog && (
-        <QuestionDialog
+        <QuestionDrawer
           isOpen={showQuestionDialog}
           onClose={() => {
             setShowQuestionDialog(false);
@@ -391,7 +279,6 @@ export default function AssignmentQuestionsBuilder({
         />
       )}
 
-      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         isOpen={showDeleteDialog}
         onClose={() => {
@@ -399,32 +286,30 @@ export default function AssignmentQuestionsBuilder({
           setQuestionToDelete(null);
         }}
         onConfirm={handleDeleteQuestion}
-        title={t("delete_question")}
-        description={t("delete_question_confirm")}
-        confirmLabel={t("delete_question")}
+        title={tQuestions("delete_question")}
+        description={tQuestions("delete_question_confirm")}
+        confirmLabel={tQuestions("delete_question")}
         cancelLabel="Cancel"
         severity="danger"
       />
 
-      {/* Auto Distribute Confirmation Dialog */}
       <ConfirmDialog
         isOpen={showAutoDistributeDialog}
         onClose={() => setShowAutoDistributeDialog(false)}
         onConfirm={handleAutoDistribute}
-        title={t("confirm_auto_distribute_title")}
-        description={t("confirm_auto_distribute_body")}
-        confirmLabel={t("auto_distribute")}
+        title={tQuestions("confirm_auto_distribute_title")}
+        description={tQuestions("confirm_auto_distribute_body")}
+        confirmLabel={tQuestions("auto_distribute")}
         cancelLabel="Cancel"
         loading={isDistributing}
         severity="warning"
       />
 
-      {/* Snackbar */}
       {snackbar && (
         <div
           className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg ${
             snackbar.type === "success" ? "bg-green-600" : "bg-red-600"
-          } text-white`}
+          } text-white z-50`}
         >
           {snackbar.message}
         </div>

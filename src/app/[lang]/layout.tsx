@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { cairo } from "@/lib/fonts";
 import "../globals.css";
+import Providers from "../providers";
 
 export const metadata = {
   title: "معزز",
@@ -37,7 +38,7 @@ export default async function DashboardLayout({
     <html lang={lang} dir={lang === "ar" ? "rtl" : "ltr"}>
       <body className={`${cairo.variable} antialiased`}>
         <NextIntlClientProvider locale={lang} messages={messages}>
-          {children}
+          <Providers>{children}</Providers>
         </NextIntlClientProvider>
       </body>
     </html>

@@ -8,6 +8,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { Student, RiskFlag } from "@/types/students";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { getRiskFlagColor } from "@/utils/studentUtils";
+import { generateWeeklyTimestamps, generateMonthlyTimestamps } from "@/utils/formatters/chartDataHelpers";
 
 interface OverviewTabProps {
   student: Student;
@@ -16,6 +17,10 @@ interface OverviewTabProps {
 export default function OverviewTab({ student }: OverviewTabProps) {
   const t = useTranslations("students_guardians.profile.overview");
   const locale = useLocale();
+  
+  // Generate timestamps for chart data
+  const weeklyTimestamps = generateWeeklyTimestamps(4);
+  const monthlyTimestamps = generateMonthlyTimestamps(4);
 
   const getRiskLabel = (flag: string) => {
     switch (flag) {
@@ -48,26 +53,25 @@ export default function OverviewTab({ student }: OverviewTabProps) {
     <div className="space-y-6">
       {/* Risk Flags Alert */}
       {student.risk_flags && student.risk_flags.length > 0 && (
-        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="font-semibold text-orange-900 mb-2">
-                {t("risk_flags_detected")}
+              <h3 className="text-sm font-semibold text-red-900 mb-2">
+                {t("risk_flags_alert")}
               </h3>
-              <div className="flex gap-2 flex-wrap mb-2">
-                {student.risk_flags.map((flag: RiskFlag) => (
+              <div className="flex flex-wrap gap-2">
+                {student.risk_flags.map((flag: RiskFlag, index: number) => (
                   <span
-                    key={flag}
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getRiskFlagColor(flag)}`}
+                    key={index}
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getRiskFlagColor(
+                      flag,
+                    )}`}
                   >
                     {getRiskLabel(flag)}
                   </span>
                 ))}
               </div>
-              <p className="text-sm text-orange-700">
-                {t("requires_attention")}
-              </p>
             </div>
           </div>
         </div>
@@ -91,10 +95,10 @@ export default function OverviewTab({ student }: OverviewTabProps) {
             (student.attendance_percentage ?? 92) >= 90 ? "#d1fae5" : "#fef3c7"
           }
           chartData={[
-            { label: "W1", value: 90 },
-            { label: "W2", value: 91 },
-            { label: "W3", value: 91 },
-            { label: "W4", value: student.attendance_percentage ?? 92 },
+            { label: "W1", value: 90, ts: weeklyTimestamps[0] },
+            { label: "W2", value: 91, ts: weeklyTimestamps[1] },
+            { label: "W3", value: 91, ts: weeklyTimestamps[2] },
+            { label: "W4", value: student.attendance_percentage ?? 92, ts: weeklyTimestamps[3] },
           ]}
           chartColor={
             (student.attendance_percentage ?? 92) >= 90 ? "#10b981" : "#f59e0b"
@@ -116,10 +120,10 @@ export default function OverviewTab({ student }: OverviewTabProps) {
             (student.current_average ?? 85) >= 85 ? "#dbeafe" : "#fee2e2"
           }
           chartData={[
-            { label: "M1", value: 82 },
-            { label: "M2", value: 84 },
-            { label: "M3", value: 84 },
-            { label: "M4", value: student.current_average ?? 85 },
+            { label: "M1", value: 82, ts: monthlyTimestamps[0] },
+            { label: "M2", value: 84, ts: monthlyTimestamps[1] },
+            { label: "M3", value: 84, ts: monthlyTimestamps[2] },
+            { label: "M4", value: student.current_average ?? 85, ts: monthlyTimestamps[3] },
           ]}
           chartColor={
             (student.current_average ?? 85) >= 85 ? "#3b82f6" : "#ef4444"
@@ -133,10 +137,10 @@ export default function OverviewTab({ student }: OverviewTabProps) {
           iconColor="#8b5cf6"
           iconBgColor="#ede9fe"
           chartData={[
-            { label: "W1", value: 220 },
-            { label: "W2", value: 230 },
-            { label: "W3", value: 238 },
-            { label: "W4", value: 245 },
+            { label: "W1", value: 220, ts: weeklyTimestamps[0] },
+            { label: "W2", value: 230, ts: weeklyTimestamps[1] },
+            { label: "W3", value: 238, ts: weeklyTimestamps[2] },
+            { label: "W4", value: 245, ts: weeklyTimestamps[3] },
           ]}
           chartColor="#8b5cf6"
         />
@@ -148,10 +152,10 @@ export default function OverviewTab({ student }: OverviewTabProps) {
           iconColor="#f59e0b"
           iconBgColor="#fef3c7"
           chartData={[
-            { label: "M1", value: 1 },
-            { label: "M2", value: 3 },
-            { label: "M3", value: 2 },
-            { label: "M4", value: 2 },
+            { label: "M1", value: 1, ts: monthlyTimestamps[0] },
+            { label: "M2", value: 3, ts: monthlyTimestamps[1] },
+            { label: "M3", value: 2, ts: monthlyTimestamps[2] },
+            { label: "M4", value: 2, ts: monthlyTimestamps[3] },
           ]}
           chartColor="#f59e0b"
         />
@@ -164,21 +168,17 @@ export default function OverviewTab({ student }: OverviewTabProps) {
           <h3 className="text-lg font-bold text-gray-900 mb-4">
             {t("attendance_trend")}
           </h3>
-          <div className="h-64">
-            <LineChart
-              xAxis={[{ scaleType: "point", data: days }]}
-              series={[
-                {
-                  data: attendanceData,
-                  label: t("attendance_percent"),
-                  color: "#036b80",
-                  curve: "linear",
-                },
-              ]}
-              height={240}
-              margin={{ top: 20, bottom: 40, left: 40, right: 20 }}
-            />
-          </div>
+          <LineChart
+            xAxis={[{ scaleType: "point", data: days }]}
+            series={[
+              {
+                data: attendanceData,
+                color: "#3b82f6",
+                label: t("attendance_percentage"),
+              },
+            ]}
+            height={300}
+          />
         </div>
 
         {/* Subject Performance */}
@@ -186,129 +186,25 @@ export default function OverviewTab({ student }: OverviewTabProps) {
           <h3 className="text-lg font-bold text-gray-900 mb-4">
             {t("subject_performance")}
           </h3>
-          <div className="space-y-3">
-            {subjectPerformance.map((subject) => (
-              <div key={subject.subject}>
-                <div className="flex items-center justify-between mb-1">
+          <div className="space-y-4">
+            {subjectPerformance.map((item, index) => (
+              <div key={index}>
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">
-                    {subject.subject}
+                    {item.subject}
                   </span>
                   <span className="text-sm font-semibold text-gray-900">
-                    {subject.score}%
+                    {item.score}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
-                    className="bg-primary h-2 rounded-full transition-all"
-                    style={{ width: `${subject.score}%` }}
+                    className="bg-blue-600 h-2 rounded-full"
+                    style={{ width: `${item.score}%` }}
                   />
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">
-            {t("student_information")}
-          </h3>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">{t("student_id")}</span>
-              <span className="text-sm font-medium text-gray-900">
-                {student.student_id}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">{t("stage")}</span>
-              <span className="text-sm font-medium text-gray-900">
-                {locale === "ar"
-                  ? student.stage === "Primary"
-                    ? "ابتدائي"
-                    : student.stage === "Preparatory"
-                      ? "إعدادي"
-                      : student.stage === "Secondary"
-                        ? "ثانوي"
-                        : student.stage
-                  : student.stage}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">{t("grade")}</span>
-              <span className="text-sm font-medium text-gray-900">
-                {locale === "ar" && student.grade?.startsWith("Grade ")
-                  ? `الصف ${student.grade.replace("Grade ", "")}`
-                  : student.grade}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">{t("section")}</span>
-              <span className="text-sm font-medium text-gray-900">
-                {student.section}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">
-                {t("enrollment_year")}
-              </span>
-              <span className="text-sm font-medium text-gray-900">
-                {student.enrollment_year}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">
-                {t("date_of_birth")}
-              </span>
-              <span className="text-sm font-medium text-gray-900">
-                {new Date(
-                  student.date_of_birth ?? student.dateOfBirth,
-                ).toLocaleDateString()}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">
-            {t("recent_activity")}
-          </h3>
-          <div className="space-y-3">
-            <div className="flex items-start gap-3 pb-3 border-b border-gray-100">
-              <div className="w-2 h-2 rounded-full bg-green-500 mt-2" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">
-                  {t("submitted_assignment")}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {t("hours_ago", { count: 2 })}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 pb-3 border-b border-gray-100">
-              <div className="w-2 h-2 rounded-full bg-blue-500 mt-2" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">
-                  {t("attended_lab")}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {t("days_ago", { count: 1 })}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 rounded-full bg-purple-500 mt-2" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">
-                  {t("received_behavior_point")}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {t("days_ago", { count: 2 })}
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
