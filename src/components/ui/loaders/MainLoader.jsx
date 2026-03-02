@@ -2,7 +2,7 @@
 export default function MainLoader() {
   return (
     // حاوية تغطي الشاشة بالكامل لتوسيط الشعار
-    <div className="flex min-h-screen w-full items-center justify-center bg-white/80 backdrop-blur-sm z-50">
+    <div className="flex min-h-screen items-center justify-center bg-white/80 backdrop-blur-sm z-50">
       <div className="relative flex flex-col items-center justify-center space-y-6">
         
         {/* الشعار مع كلاس الأنيميشن */}

@@ -1839,8 +1839,10 @@
         "withdrawal": "الانصراف"
       },
       "overview": {
+        "risk_flags_alert": "تم اكتشاف علامات خطر",
         "risk_flags_detected": "تم اكتشاف علامات خطر",
         "requires_attention": "يحتاج هذا الطالب إلى اهتمام ودعم إضافي.",
+        "attendance_percentage": "نسبة الحضور",
         "risk_flags": {
           "low_attendance": "حضور منخفض",
           "low_grades": "درجات منخفضة",

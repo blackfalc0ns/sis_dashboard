@@ -1837,8 +1837,10 @@
         "withdrawal": "Withdrawal"
       },
       "overview": {
+        "risk_flags_alert": "Risk Flags Detected",
         "risk_flags_detected": "Risk Flags Detected",
         "requires_attention": "This student requires additional attention and support.",
+        "attendance_percentage": "Attendance Percentage",
         "risk_flags": {
           "low_attendance": "Low Attendance",
           "low_grades": "Low Grades",
