@@ -4,7 +4,7 @@
 
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import ChartFilter, { ChartFilterValues } from "../shared/ChartFilter";
+import { ChartFilterValues } from "../shared/ChartFilter";
 import * as studentsService from "@/services/studentsService";
 
 interface HeatmapData {
@@ -20,7 +20,7 @@ export default function AbsenceHeatmap({ data }: AbsenceHeatmapProps) {
   const t = useTranslations("students_guardians.overview");
 
   // Filter state
-  const [filterValues, setFilterValues] = useState<ChartFilterValues>({
+  const [filterValues] = useState<ChartFilterValues>({
     academicYear: "all",
     term: "all",
     dateRange: "all",
@@ -35,7 +35,7 @@ export default function AbsenceHeatmap({ data }: AbsenceHeatmapProps) {
   );
 
   // Get unique academic years and terms
-  const { academicYears, terms } = useMemo(() => {
+  useMemo(() => {
     const years = new Set<string>();
     const termSet = new Set<string>();
 

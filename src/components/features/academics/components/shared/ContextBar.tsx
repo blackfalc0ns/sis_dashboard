@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { ArrowRight, Plus, Edit2, ChevronUp, ChevronDown } from "lucide-react";
-import { IconButton } from "@mui/material";
 import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
 import {
@@ -36,7 +35,6 @@ export default function ContextBar({
   showPromoteCarryOver = true,
 }: ContextBarProps) {
   const t = useTranslations("academics.structure.context_bar");
-  const tCommon = useTranslations("common");
   const locale = useLocale();
 
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -143,7 +141,10 @@ export default function ContextBar({
     <>
       <div className="bg-white border-b border-border ">
         {/* Header */}
-        <div className="px-6 py-3 flex items-center justify-between border-b border-border bg-gradient-to-l from-primary to-hover ">
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="w-full px-6 py-3 flex items-center justify-between border-b border-border bg-linear-to-l from-primary to-hover hover:from-hover hover:to-primary transition-all cursor-pointer"
+        >
           <div className="flex items-center gap-3">
             <h3 className="text-sm font-semibold text-white">{t("title")}</h3>
 
@@ -173,19 +174,14 @@ export default function ContextBar({
             )}
           </div>
 
-          <IconButton
-            size="small"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            title={isCollapsed ? tCommon("expand") : tCommon("collapse")}
-            style={{color: "white"}}
-          >
+          <div className="text-white">
             {isCollapsed ? (
               <ChevronDown className="w-4 h-4" />
             ) : (
               <ChevronUp className="w-4 h-4" />
             )}
-          </IconButton>
-        </div>
+          </div>
+        </button>
 
         {/* Content */}
         {!isCollapsed && (

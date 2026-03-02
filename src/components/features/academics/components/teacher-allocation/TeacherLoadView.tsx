@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { ChevronDown, ChevronUp, Users, UserX, TrendingUp, Zap, Search, Filter } from "lucide-react";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
@@ -103,25 +103,25 @@ export default function TeacherLoadView({
     };
   }, [teacherLoads]);
 
-  const getTeacherName = (load: TeacherLoad) => {
+  const getTeacherName = useCallback((load: TeacherLoad) => {
     return locale === "ar"
       ? (load.teacherNameAr || load.teacherNameEn || load.teacherName)
       : (load.teacherNameEn || load.teacherNameAr || load.teacherName);
-  };
+  }, [locale]);
 
-  const getMaxLoadForTeacher = (teacherId: string): number | undefined => {
+  const getMaxLoadForTeacher = useCallback((teacherId: string): number | undefined => {
     const teacher = teachers.find((t) => t.id === teacherId);
     return teacher?.maxWeeklyLoad;
-  };
+  }, [teachers]);
 
-  const getTeacherStatus = (load: TeacherLoad): "normal" | "warning" | "overloaded" | "zero" => {
+  const getTeacherStatus = useCallback((load: TeacherLoad): "normal" | "warning" | "overloaded" | "zero" => {
     if (load.totalWeeklyPeriods === 0) return "zero";
     const maxLoad = getMaxLoadForTeacher(load.teacherId);
     if (!maxLoad) return "normal";
     if (load.totalWeeklyPeriods > maxLoad) return "overloaded";
     if (load.totalWeeklyPeriods > maxLoad * 0.8) return "warning";
     return "normal";
-  };
+  }, [getMaxLoadForTeacher]);
 
   // Transform teacher loads to table rows
   const tableData = useMemo<TeacherLoadRow[]>(() => {
@@ -140,7 +140,7 @@ export default function TeacherLoadView({
         assignments: load.assignments,
       };
     });
-  }, [teacherLoads, locale, teachers]);
+  }, [teacherLoads, getMaxLoadForTeacher, getTeacherName, getTeacherStatus]);
 
   // Apply filters
   const filteredData = useMemo(() => {
@@ -194,10 +194,10 @@ export default function TeacherLoadView({
                   : "bg-primary-100 text-primary-800"
               }`}
             >
-              {load}h
+              {load}
             </span>
             {typedRow.maxLoad && (
-              <span className="text-xs text-gray-500">/ {typedRow.maxLoad}h</span>
+              <span className="text-xs text-gray-500">/ {typedRow.maxLoad}</span>
             )}
           </div>
         );
@@ -303,14 +303,14 @@ export default function TeacherLoadView({
           />
           <KPICardV2
             title={t("kpi.avgLoad")}
-            value={`${kpis.avgLoad}h`}
+            value={`${kpis.avgLoad}`}
             icon={TrendingUp}
             iconColor="#10b981"
             iconBgColor="#f0fdf4"
           />
           <KPICardV2
             title={t("kpi.maxLoad")}
-            value={`${kpis.maxLoad}h`}
+            value={`${kpis.maxLoad}`}
             icon={Zap}
             iconColor="#8b5cf6"
             iconBgColor="#faf5ff"
@@ -383,7 +383,7 @@ export default function TeacherLoadView({
                       {t("breakdown.subject")}
                     </th>
                     <th className={`px-3 py-2 ${locale === "ar" ? "text-right" : "text-left"} text-xs font-bold text-gray-700`}>
-                      {t("breakdown.hours")}
+                      {t("breakdown.periods")}
                     </th>
                   </tr>
                 </thead>
@@ -413,7 +413,7 @@ export default function TeacherLoadView({
                             : (assignment.subjectNameEn || assignment.subjectNameAr || assignment.subjectName)}
                         </td>
                         <td className="px-3 py-2 text-center text-sm font-medium text-gray-900">
-                          {assignment.weeklyHours}h
+                          {assignment.weeklyHours}
                         </td>
                       </tr>
                     ))}
@@ -427,7 +427,7 @@ export default function TeacherLoadView({
                       {t("breakdown.total")}:
                     </td>
                     <td className="px-3 py-2 text-center text-sm font-bold text-gray-900">
-                      {tableData.find((row) => row.teacherId === expandedTeacherId)?.weeklyLoad}h
+                      {tableData.find((row) => row.teacherId === expandedTeacherId)?.weeklyLoad}
                     </td>
                   </tr>
                 </tfoot>

@@ -63,7 +63,7 @@ export default function MoveEventDialog({
 
       await onMove(newStartDate, newEndDate);
       onClose();
-    } catch (err) {
+    } catch {
       setError(t("moveFailed"));
     } finally {
       setIsMoving(false);

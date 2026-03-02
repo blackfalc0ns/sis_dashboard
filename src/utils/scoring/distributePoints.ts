@@ -101,7 +101,7 @@ function distributeProportionally(
 
   // Calculate remainder to distribute
   const floorSum = floored.reduce((sum, f) => sum + f.floorValue, 0);
-  let remainder = maxScore - floorSum;
+  const remainder = maxScore - floorSum;
 
   // Sort by fractional part (descending), then by order for stable tie-breaking
   const sorted = [...floored].sort((a, b) => {

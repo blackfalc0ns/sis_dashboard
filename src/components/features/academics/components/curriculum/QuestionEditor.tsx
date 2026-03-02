@@ -231,6 +231,8 @@ export default function QuestionEditor({
   );
 
   // Sync with prop changes when question changes
+  /* eslint-disable react-hooks/set-state-in-effect */
+  // Form reset pattern: sync form state with question prop changes
   useEffect(() => {
     setQuestionTextAr(question.questionTextAr);
     setQuestionTextEn(question.questionTextEn);
@@ -251,6 +253,7 @@ export default function QuestionEditor({
     question.sampleAnswerAr,
     question.sampleAnswerEn,
   ]); // Reset when question changes
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleTypeChange = (newType: AssignmentQuestion["questionType"]) => {
     const oldType = questionType;

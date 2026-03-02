@@ -1,6 +1,7 @@
 import SideBarTopNav from "@/components/layout/SideBarTopNav";
 import { UnsavedChangesProvider } from "@/providers/UnsavedChangesProvider";
 import { NavigationGuardProvider } from "@/providers/NavigationGuardProvider";
+import { ProgressBarProvider } from "@/providers/ProgressBarProvider";
 import { ToastProvider } from "@/components/ui/toast/Toast";
 import "@/app/globals.css";
 
@@ -13,7 +14,9 @@ export default function DashboardLayout({
     <ToastProvider>
       <UnsavedChangesProvider>
         <NavigationGuardProvider>
-          <SideBarTopNav>{children}</SideBarTopNav>
+          <ProgressBarProvider>
+            <SideBarTopNav>{children}</SideBarTopNav>
+          </ProgressBarProvider>
         </NavigationGuardProvider>
       </UnsavedChangesProvider>
     </ToastProvider>

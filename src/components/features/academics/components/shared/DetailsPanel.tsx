@@ -79,42 +79,45 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
     setBilingualErrors({});
   }, [stages, grades, sections]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
+  // Form reset pattern: sync form state with selected node changes and handle dirty state
   useEffect(() => {
-  if (!selectedNode) {
-    setFormData({});
-    setIsDirty(false);
+    if (!selectedNode) {
+      setFormData({});
+      setIsDirty(false);
+      setShowDiscardDialog(false);
+      setPendingNode(null);
+      lastNodeKeyRef.current = null;
+      return;
+    }
+
+    // ✅ نفس العقدة (حتى لو object جديد) => تجاهل
+    if (lastNodeKeyRef.current === selectedKey) {
+      return;
+    }
+
+    // ✅ العقدة اتغيرت فعلاً
+    if (isDirty) {
+      setPendingNode(selectedNode);
+      setShowDiscardDialog(true);
+      return;
+    }
+
+    loadNodeData(selectedNode);
+    lastNodeKeyRef.current = selectedKey;
     setShowDiscardDialog(false);
     setPendingNode(null);
-    lastNodeKeyRef.current = null;
-    return;
-  }
 
-  // ✅ نفس العقدة (حتى لو object جديد) => تجاهل
-  if (lastNodeKeyRef.current === selectedKey) {
-    return;
-  }
+    return () => {
+      setShowDiscardDialog(false);
+      setPendingNode(null);
+    };
+  }, [selectedKey, selectedNode, isDirty, loadNodeData]);
 
-  // ✅ العقدة اتغيرت فعلاً
-  if (isDirty) {
-    setPendingNode(selectedNode);
-    setShowDiscardDialog(true);
-    return;
-  }
-
-  loadNodeData(selectedNode);
-  lastNodeKeyRef.current = selectedKey;
-  setShowDiscardDialog(false);
-  setPendingNode(null);
-
-  return () => {
-    setShowDiscardDialog(false);
-    setPendingNode(null);
-  };
-}, [selectedKey, selectedNode, isDirty, loadNodeData]);
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- onDirtyChange is a callback prop, parent should memoize if needed
   useEffect(() => {
     onDirtyChange?.(isDirty);
-  }, [isDirty, onDirtyChange]);
+  }, [isDirty]);
 
   const handleChange = (field: string, value: unknown) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

@@ -57,9 +57,9 @@ export function useEventDragDrop({
   };
 
   // Check if date is within term range
-  const isWithinTermRange = (dateStr: string): boolean => {
+  const isWithinTermRange = useCallback((dateStr: string): boolean => {
     return dateStr >= termStartDate && dateStr <= termEndDate;
-  };
+  }, [termStartDate, termEndDate]);
 
   // Drag handlers
   const handleDragStart = useCallback(
@@ -168,7 +168,7 @@ export function useEventDragDrop({
         },
       };
     },
-    [dragState, isReadOnly, termStartDate, termEndDate, onEventMove]
+    [dragState, isReadOnly, onEventMove, isWithinTermRange]
   );
 
   return {

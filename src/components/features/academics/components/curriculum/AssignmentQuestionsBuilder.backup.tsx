@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import {
   Plus,
@@ -54,11 +54,7 @@ export default function AssignmentQuestionsBuilder({
     null
   );
 
-  useEffect(() => {
-    loadQuestions();
-  }, [assignment.id]);
-
-  const loadQuestions = async () => {
+  const loadQuestions = useCallback(async () => {
     try {
       setLoading(true);
       const data = await fetchAssignmentQuestions(assignment.id);
@@ -69,7 +65,11 @@ export default function AssignmentQuestionsBuilder({
     } finally {
       setLoading(false);
     }
-  };
+  }, [assignment.id, tErrors]);
+
+  useEffect(() => {
+    loadQuestions();
+  }, [loadQuestions]);
 
   // Calculate points summary
   const pointsSummary = useMemo(() => {

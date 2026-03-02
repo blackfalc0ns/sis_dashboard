@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
@@ -10,6 +10,7 @@ import RoomDialog from "./RoomDialog";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { fetchRooms, createRoom, updateRoom, deleteRoom } from "@/services/academics/roomsService";
 import { Room } from "@/types/academics/timetable";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 
 interface RoomsViewProps {
   schoolId: string;
@@ -32,11 +33,7 @@ export default function RoomsView({ schoolId, isReadOnly }: RoomsViewProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
 
-  useEffect(() => {
-    loadRooms();
-  }, [schoolId]);
-
-  const loadRooms = async () => {
+  const loadRooms = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await fetchRooms(schoolId);
@@ -47,7 +44,11 @@ export default function RoomsView({ schoolId, isReadOnly }: RoomsViewProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [schoolId, showToast]);
+
+  useEffect(() => {
+    loadRooms();
+  }, [loadRooms]);
 
   const handleAddRoom = () => {
     setEditingRoom(null);
@@ -183,8 +184,8 @@ export default function RoomsView({ schoolId, isReadOnly }: RoomsViewProps) {
             onClick={handleAddRoom}
             disabled={isReadOnly}
             variant="primary"
+            leftIcon={<Plus className="w-4 h-4" />}
           >
-            <Plus className="w-4 h-4 mr-2" />
             {t("addRoom")}
           </Button>
         </div>
@@ -207,7 +208,7 @@ export default function RoomsView({ schoolId, isReadOnly }: RoomsViewProps) {
           {/* Table */}
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="text-gray-500">Loading...</div>
+             <MainLoader />
             </div>
           ) : filteredRooms.length === 0 ? (
             <div className="flex items-center justify-center py-12">
@@ -216,7 +217,7 @@ export default function RoomsView({ schoolId, isReadOnly }: RoomsViewProps) {
           ) : (
             <DataTable
               data={filteredRooms as unknown as { [key: string]: unknown }[]}
-              columns={columns as unknown as any[]}
+              columns={columns as unknown as Array<{ key: string; label: string; render?: (value: unknown, row: unknown) => React.ReactNode }>}
               searchQuery={searchQuery}
             />
           )}

@@ -131,8 +131,8 @@ export default function ConversionFunnelChart({
             >
               <LabelList
                 position="center"
-                content={(props: any) => {
-                  const { x, y, width, height, value, name } = props;
+                content={(props: { x?: number; y?: number; width?: number; height?: number; value?: number; name?: string }) => {
+                  const { x = 0, y = 0, width = 0, height = 0, value, name } = props;
                   const centerX = x + width / 2;
                   const centerY = y + height / 2;
                   

@@ -18,7 +18,7 @@ interface LessonAssignmentsProps {
   gradeId?: string; // For scope-aware holiday checking
 }
 
-export default function LessonAssignments({ lessonId, isReadOnly, gradeId }: LessonAssignmentsProps) {
+export default function LessonAssignments({ lessonId, isReadOnly }: LessonAssignmentsProps) {
   const t = useTranslations("academics.curriculum.assignments");
   const locale = useLocale();
   const searchParams = useSearchParams();

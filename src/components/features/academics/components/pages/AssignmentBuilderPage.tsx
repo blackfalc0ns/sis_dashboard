@@ -229,9 +229,9 @@ export default function AssignmentBuilderPage({
     }
 
     // 6. Validate each question
-    const questionErrors: Record<string, any> = {};
-    questions.forEach((q, index) => {
-      const qErrors: any = {};
+    const questionErrors: Record<string, Record<string, string>> = {};
+    questions.forEach((q) => {
+      const qErrors: Record<string, string> = {};
       
       // Question text required
       if (!q.questionTextAr?.trim()) {
@@ -865,6 +865,36 @@ function StickyHeader({
 // ============================================
 // DESKTOP LAYOUT (3-COLUMN)
 // ============================================
+interface LayoutProps {
+  questions: AssignmentQuestion[];
+  selectedQuestionId: string | null;
+  setSelectedQuestionId: (id: string | null) => void;
+  selectedQuestion: AssignmentQuestion | undefined;
+  assignment: Assignment;
+  setAssignment: (assignment: Assignment) => void;
+  attachments: AssignmentAttachment[];
+  isReadOnly: boolean;
+  totalPoints: number;
+  pointsDifference: number;
+  pointsMatch: boolean;
+  validationErrors: Record<string, string | Record<string, string>>;
+  onAddQuestion: () => void;
+  onUpdateQuestion: (updates: Partial<AssignmentQuestion>) => void;
+  onDeleteQuestion: () => void;
+  onMoveQuestion: (direction: "up" | "down") => void;
+  onAutoDistributePoints: () => void;
+  onUploadFile: (file: File) => Promise<void>;
+  onAddLink: (title: string, url: string) => Promise<void>;
+  onDeleteAttachment: (id: string) => Promise<void>;
+  markDirty: () => void;
+  t: (key: string) => string;
+  tQuestions: (key: string) => string;
+  tCommon: (key: string) => string;
+  tValidation: (key: string) => string;
+  tUpload: (key: string) => string;
+  locale: string;
+}
+
 function DesktopLayout({
   questions,
   selectedQuestionId,
@@ -893,7 +923,7 @@ function DesktopLayout({
   tValidation,
   tUpload,
   locale,
-}: any) {
+}: LayoutProps) {
   return (
     <div className="flex h-[calc(100vh-73px)]">
       {/* Left Sidebar - Questions Outline */}
@@ -1021,6 +1051,13 @@ function DesktopLayout({
 // ============================================
 // MOBILE LAYOUT (TABS)
 // ============================================
+interface MobileLayoutProps extends LayoutProps {
+  mobileTab: number;
+  setMobileTab: (tab: number) => void;
+  questionsDrawerOpen: boolean;
+  setQuestionsDrawerOpen: (open: boolean) => void;
+}
+
 function MobileLayout({
   mobileTab,
   setMobileTab,
@@ -1053,7 +1090,7 @@ function MobileLayout({
   tValidation,
   tUpload,
   locale,
-}: any) {
+}: MobileLayoutProps) {
   return (
     <div className="flex flex-col h-[calc(100vh-73px)]">
       {/* Tabs */}
@@ -1343,6 +1380,21 @@ function QuestionOutlineItem({
 // ============================================
 // ASSIGNMENT SETTINGS PANEL
 // ============================================
+interface AssignmentSettingsProps {
+  assignment: Assignment;
+  setAssignment: (assignment: Assignment) => void;
+  totalPoints: number;
+  pointsDifference: number;
+  pointsMatch: boolean;
+  onAutoDistributePoints: () => void;
+  isReadOnly: boolean;
+  markDirty: () => void;
+  validationErrors: Record<string, string | Record<string, string>>;
+  t: (key: string) => string;
+  tQuestions: (key: string) => string;
+  tValidation: (key: string) => string;
+}
+
 function AssignmentSettings({
   assignment,
   setAssignment,
@@ -1356,7 +1408,7 @@ function AssignmentSettings({
   t,
   tQuestions,
   tValidation,
-}: any) {
+}: AssignmentSettingsProps) {
   const handleTitleChange = (value: { ar: string; en: string }) => {
     setAssignment({ ...assignment, titleAr: value.ar, titleEn: value.en });
     markDirty();
@@ -1536,6 +1588,17 @@ function AssignmentSettings({
 // ============================================
 // ATTACHMENTS PANEL
 // ============================================
+interface AttachmentsPanelProps {
+  attachments: AssignmentAttachment[];
+  onUploadFile: (file: File) => Promise<void>;
+  onAddLink: (title: string, url: string) => Promise<void>;
+  onDeleteAttachment: (id: string) => Promise<void>;
+  isReadOnly: boolean;
+  t: (key: string) => string;
+  tUpload: (key: string) => string;
+  tCommon: (key: string) => string;
+}
+
 function AttachmentsPanel({
   attachments,
   onUploadFile,
@@ -1545,7 +1608,7 @@ function AttachmentsPanel({
   t,
   tUpload,
   tCommon,
-}: any) {
+}: AttachmentsPanelProps) {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
@@ -1568,7 +1631,7 @@ function AttachmentsPanel({
       setLinkTitle("");
       setLinkUrl("");
       setLinkError("");
-    } catch (error) {
+    } catch {
       setLinkError("Failed to add link");
     }
   };

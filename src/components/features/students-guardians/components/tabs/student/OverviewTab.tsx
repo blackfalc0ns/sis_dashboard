@@ -4,7 +4,7 @@
 
 import { AlertTriangle, TrendingUp, Award, AlertCircle } from "lucide-react";
 import { LineChart } from "@mui/x-charts/LineChart";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Student, RiskFlag } from "@/types/students";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { getRiskFlagColor } from "@/utils/studentUtils";
@@ -16,7 +16,6 @@ interface OverviewTabProps {
 
 export default function OverviewTab({ student }: OverviewTabProps) {
   const t = useTranslations("students_guardians.profile.overview");
-  const locale = useLocale();
   
   // Generate timestamps for chart data
   const weeklyTimestamps = generateWeeklyTimestamps(4);

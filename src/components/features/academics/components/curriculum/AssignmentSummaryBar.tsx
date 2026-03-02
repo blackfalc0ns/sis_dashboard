@@ -21,7 +21,6 @@ export default function AssignmentSummaryBar({
   isMatch,
   canAutoDistribute,
   onAutoDistribute,
-  isReadOnly,
 }: AssignmentSummaryBarProps) {
   const t = useTranslations("academics.curriculum.assignments");
 

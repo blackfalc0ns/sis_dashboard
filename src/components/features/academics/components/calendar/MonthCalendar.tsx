@@ -38,7 +38,6 @@ export default function MonthCalendar({
   const {
     dragState,
     hoverDate,
-    isDragging,
     handleDragStart,
     handleDragEnd,
     getDropHandlers,

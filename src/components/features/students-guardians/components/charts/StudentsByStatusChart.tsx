@@ -5,7 +5,7 @@
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { BarChart } from "@mui/x-charts/BarChart";
-import ChartFilter, { ChartFilterValues } from "../shared/ChartFilter";
+import { ChartFilterValues } from "../shared/ChartFilter";
 import * as studentsService from "@/services/studentsService";
 import { useResponsiveChart } from "@/hooks/useResponsiveChart";
 import { ChartCard } from "@/components/ui/chart-card";
@@ -16,7 +16,7 @@ export default function StudentsByStatusChart() {
   const { height, leftMargin } = useResponsiveChart();
 
   // Filter state
-  const [filterValues, setFilterValues] = useState<ChartFilterValues>({
+  const [filterValues] = useState<ChartFilterValues>({
     academicYear: "all",
     term: "all",
     dateRange: "all",
@@ -31,7 +31,7 @@ export default function StudentsByStatusChart() {
   );
 
   // Get unique academic years and terms
-  const { academicYears, terms } = useMemo(() => {
+  useMemo(() => {
     const years = new Set<string>();
     const termSet = new Set<string>();
 

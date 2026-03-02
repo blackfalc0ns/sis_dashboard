@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
-import { X } from "lucide-react";
 import Select from "@/components/ui/input/Select";
 import { Button } from "@/components/ui";
+import Modal from "@/components/ui/modal/Modal";
 import { TimetableEntry } from "@/types/academics/timetable";
 import { Subject } from "@/services/academics/subjectsService";
 import { Teacher } from "@/services/academics/teacherAllocationService";
@@ -13,18 +12,22 @@ import { Room } from "@/types/academics/timetable";
 
 interface EditSlotDialogProps {
   open: boolean;
-  day: number;
-  period: number;
+  dayKey: string;
+  periodIndex: number;
+  dayName: string;
   entry?: TimetableEntry;
   subjects: Subject[];
   teachers: Teacher[];
   rooms: Room[];
   onSave: (
-    day: number,
-    period: number,
+    dayKey: string,
+    periodIndex: number,
     subjectId: string | null,
     teacherId: string | null,
-    roomId: string | null
+    roomId: string | null,
+    slotType?: "CLASS" | "BREAK",
+    breakLabelAr?: string,
+    breakLabelEn?: string
   ) => void;
   onClose: () => void;
   getDefaultTeacher: (subjectId: string) => string | null;
@@ -33,8 +36,9 @@ interface EditSlotDialogProps {
 
 export default function EditSlotDialog({
   open,
-  day,
-  period,
+  dayKey,
+  periodIndex,
+  dayName,
   entry,
   subjects,
   teachers,
@@ -45,25 +49,45 @@ export default function EditSlotDialog({
   locale,
 }: EditSlotDialogProps) {
   const t = useTranslations("academics.timetable.editSlot");
-  const tGrid = useTranslations("academics.timetable.grid");
 
-  const [subjectId, setSubjectId] = useState<string>(entry?.subjectId || "");
-  const [teacherId, setTeacherId] = useState<string>(entry?.teacherId || "");
-  const [roomId, setRoomId] = useState<string>(entry?.roomId || "");
+  const [slotType, setSlotType] = useState<"CLASS" | "BREAK">("CLASS");
+  const [subjectId, setSubjectId] = useState<string>("");
+  const [teacherId, setTeacherId] = useState<string>("");
+  const [roomId, setRoomId] = useState<string>("");
+  const [breakLabelAr, setBreakLabelAr] = useState<string>("فُسحة");
+  const [breakLabelEn, setBreakLabelEn] = useState<string>("Break");
   const [autoFilledTeacher, setAutoFilledTeacher] = useState(false);
 
+  // Reset state when dialog opens or entry changes
+  /* eslint-disable react-hooks/set-state-in-effect */
+  // Form reset pattern: sync form state with dialog open/entry changes
   useEffect(() => {
-    if (entry) {
-      setSubjectId(entry.subjectId || "");
-      setTeacherId(entry.teacherId || "");
-      setRoomId(entry.roomId || "");
+    if (open) {
+      if (entry) {
+        setSlotType(entry.slotType || "CLASS");
+        setSubjectId(entry.subjectId || "");
+        setTeacherId(entry.teacherId || "");
+        setRoomId(entry.roomId || "");
+        setBreakLabelAr(entry.breakLabelAr || "فُسحة");
+        setBreakLabelEn(entry.breakLabelEn || "Break");
+      } else {
+        // Reset to defaults when no entry
+        setSlotType("CLASS");
+        setSubjectId("");
+        setTeacherId("");
+        setRoomId("");
+        setBreakLabelAr("فُسحة");
+        setBreakLabelEn("Break");
+      }
+      setAutoFilledTeacher(false);
     }
-  }, [entry]);
+  }, [open, entry]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
-  const getDayName = (dayNum: number): string => {
-    const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-    return tGrid(days[dayNum]);
-  };
+  const slotTypeOptions = [
+    { value: "CLASS", label: t("class") },
+    { value: "BREAK", label: t("break") },
+  ];
 
   const subjectOptions = [
     { value: "", label: t("noSubject") },
@@ -106,106 +130,154 @@ export default function EditSlotDialog({
   };
 
   const handleSave = () => {
-    onSave(
-      day,
-      period,
-      subjectId || null,
-      teacherId || null,
-      roomId || null
-    );
+    if (slotType === "BREAK") {
+      onSave(
+        dayKey,
+        periodIndex,
+        null,
+        null,
+        null,
+        "BREAK",
+        breakLabelAr,
+        breakLabelEn
+      );
+    } else {
+      onSave(
+        dayKey,
+        periodIndex,
+        subjectId || null,
+        teacherId || null,
+        roomId || null,
+        "CLASS"
+      );
+    }
   };
 
   const handleClear = () => {
+    setSlotType("CLASS");
     setSubjectId("");
     setTeacherId("");
     setRoomId("");
+    setBreakLabelAr("فُسحة");
+    setBreakLabelEn("Break");
     setAutoFilledTeacher(false);
   };
 
   return (
-    <Dialog
-      open={open}
+    <Modal
+      isOpen={open}
       onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: "12px",
-        },
-      }}
+      title={t("title")}
+      description={`${dayName} - ${t("period", { number: periodIndex })}`}
+      size="md"
+      footer={
+        <>
+          <Button onClick={handleClear} variant="secondary">
+            {t("clear")}
+          </Button>
+          <div className="flex-1" />
+          <Button onClick={onClose} variant="secondary">
+            {t("cancel")}
+          </Button>
+          <Button onClick={handleSave} variant="primary">
+            {t("save")}
+          </Button>
+        </>
+      }
     >
-      <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 2 }}>
-        <div>
-          <div className="text-lg font-semibold text-gray-900">{t("title")}</div>
-          <div className="text-sm text-gray-500 mt-1">
-            {getDayName(day)} - {t("period", { number: period })}
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </DialogTitle>
-
-      <DialogContent sx={{ pt: 2 }}>
         <div className="space-y-4">
-          {/* Subject */}
+          {/* Slot Type */}
           <div>
             <Select
-              label={t("subject")}
-              value={subjectId}
-              onChange={handleSubjectChange}
-              options={subjectOptions}
-              placeholder={t("selectSubject")}
+              label={t("slotType")}
+              value={slotType}
+              onChange={(value) => setSlotType(value as "CLASS" | "BREAK")}
+              options={slotTypeOptions}
             />
           </div>
 
-          {/* Teacher */}
-          <div>
-            <Select
-              label={t("teacher")}
-              value={teacherId}
-              onChange={(value) => {
-                setTeacherId(value);
-                setAutoFilledTeacher(false);
-              }}
-              options={teacherOptions}
-              placeholder={t("selectTeacher")}
-              disabled={!subjectId}
-            />
-            {autoFilledTeacher && (
-              <p className="text-xs text-blue-600 mt-1">{t("autoFilled")}</p>
-            )}
-          </div>
+          {slotType === "BREAK" ? (
+            // Break slot fields
+            <>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p className="text-sm text-amber-800 mb-3">
+                  {t("breakInfo")}
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t("breakLabelAr")}
+                    </label>
+                    <input
+                      type="text"
+                      value={breakLabelAr}
+                      onChange={(e) => setBreakLabelAr(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="فُسحة"
+                      dir="rtl"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t("breakLabelEn")}
+                    </label>
+                    <input
+                      type="text"
+                      value={breakLabelEn}
+                      onChange={(e) => setBreakLabelEn(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="Break"
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            // Class slot fields
+            <>
+              {/* Subject */}
+              <div>
+                <Select
+                  label={t("subject")}
+                  value={subjectId}
+                  onChange={handleSubjectChange}
+                  options={subjectOptions}
+                  placeholder={t("selectSubject")}
+                />
+              </div>
 
-          {/* Room */}
-          <div>
-            <Select
-              label={t("room")}
-              value={roomId}
-              onChange={setRoomId}
-              options={roomOptions}
-              placeholder={t("selectRoom")}
-              disabled={!subjectId}
-            />
-          </div>
+              {/* Teacher */}
+              <div>
+                <Select
+                  label={t("teacher")}
+                  value={teacherId}
+                  onChange={(value) => {
+                    setTeacherId(value);
+                    setAutoFilledTeacher(false);
+                  }}
+                  options={teacherOptions}
+                  placeholder={t("selectTeacher")}
+                  disabled={!subjectId}
+                />
+                {autoFilledTeacher && (
+                  <p className="text-xs text-blue-600 mt-1">{t("autoFilled")}</p>
+                )}
+              </div>
+
+              {/* Room */}
+              <div>
+                <Select
+                  label={t("room")}
+                  value={roomId}
+                  onChange={setRoomId}
+                  options={roomOptions}
+                  placeholder={t("selectRoom")}
+                  disabled={!subjectId}
+                />
+              </div>
+            </>
+          )}
         </div>
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, pb: 3, pt: 2 }}>
-        <Button onClick={handleClear} variant="secondary">
-          {t("clear")}
-        </Button>
-        <div className="flex-1" />
-        <Button onClick={onClose} variant="secondary">
-          {t("cancel")}
-        </Button>
-        <Button onClick={handleSave} variant="primary">
-          {t("save")}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </Modal>
   );
 }

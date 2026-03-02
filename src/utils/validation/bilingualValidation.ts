@@ -8,7 +8,7 @@
  * - Collapses multiple spaces to single space
  * - Lowercases for case-insensitive comparison
  */
-export function normalizeTextForCompare(text: string, isArabic: boolean = false): string {
+export function normalizeTextForCompare(text: string): string {
   let normalized = text.trim().replace(/\s+/g, " ");
   // Lowercase for case-insensitive comparison
   normalized = normalized.toLowerCase();
@@ -28,8 +28,8 @@ export function validateArEnDifferent(
     return {};
   }
 
-  const normalizedAr = normalizeTextForCompare(ar, true);
-  const normalizedEn = normalizeTextForCompare(en, false);
+  const normalizedAr = normalizeTextForCompare(ar);
+  const normalizedEn = normalizeTextForCompare(en);
 
   // Compare normalized values
   if (normalizedAr === normalizedEn) {

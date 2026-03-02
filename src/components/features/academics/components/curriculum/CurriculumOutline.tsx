@@ -43,12 +43,10 @@ interface CurriculumOutlineProps {
 }
 
 export default function CurriculumOutline({
-  curriculum,
   units,
   lessons,
   selectedNode,
   onSelectNode,
-  onRefresh,
   isReadOnly,
 }: CurriculumOutlineProps) {
   const t = useTranslations("academics.curriculum.outline");

@@ -2,12 +2,8 @@
 
 "use client";
 
-import AdmissionsDashboard from "@/components/features/admissions/components/pages/AdmissionsDashboard";
+import AdmissionsDashboardShell from "@/components/features/admissions/components/pages/AdmissionsDashboardShell";
 
 export default function AdmissionsPage() {
-  return (
-    <main className="flex-1 p-4 sm:p-6 min-w-0 overflow-x-hidden">
-      <AdmissionsDashboard />
-    </main>
-  );
+  return <AdmissionsDashboardShell />;
 }

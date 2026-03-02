@@ -224,7 +224,7 @@ export default function TeacherSelect({
                 <div className="flex items-center gap-2">
                   {teacherLoads && (
                     <Chip
-                      label={t("currentLoad", { hours: load })}
+                      label={t("currentLoad", { periods: load })}
                       size="small"
                       sx={{
                         height: 20,

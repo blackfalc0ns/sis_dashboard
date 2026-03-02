@@ -2,7 +2,7 @@
 
 import { Snackbar, Alert, AlertColor } from "@mui/material";
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import { LinearProgress } from "@mui/material";
+
 interface ToastContextType {
   showToast: (message: string, severity?: AlertColor) => void;
   showSuccess: (message: string) => void;

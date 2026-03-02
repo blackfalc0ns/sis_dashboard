@@ -224,7 +224,7 @@ export default function KPICardV2({
             {/* Change Badge */}
           
  {showPeriodFilter && periodOptions.length > 0  && (
-                  <div className="mt-1 relative z-50">
+                  <div className="mt-1 relative">
                     <DropdownMenu
                       trigger={
                         <div className="text-xs text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1 cursor-pointer">

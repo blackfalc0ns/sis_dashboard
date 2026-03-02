@@ -1,6 +1,15 @@
 // Mock service for Teacher Allocation (TERM-SCOPED)
 // Replace with real API calls when backend is ready
 
+import { Grade, Section } from './structureService';
+import { Subject, SubjectAllocation } from './subjectsService';
+
+interface StructureData {
+  grades?: Grade[];
+  sections?: Section[];
+  subjects?: Subject[];
+}
+
 export interface Teacher {
   id: string;
   nameAr: string;
@@ -242,8 +251,8 @@ export const applyTeacherToGrade = async (
 // Analytics
 export const calculateTeacherLoads = async (
   termId: string,
-  structureData: any,
-  subjectAllocations: any[],
+  structureData: StructureData,
+  subjectAllocations: SubjectAllocation[],
   teacherAllocations?: TeacherAllocation[]
 ): Promise<TeacherLoad[]> => {
   await delay(300);
@@ -269,11 +278,11 @@ export const calculateTeacherLoads = async (
     if (!allocation.teacherId) return;
     
     // Find section in flat sections array
-    const sectionData = structureData.sections?.find((s: any) => s.id === allocation.sectionId);
+    const sectionData = structureData.sections?.find((s) => s.id === allocation.sectionId);
     if (!sectionData) return;
     
     // Find grade for this section
-    const gradeData = structureData.grades?.find((g: any) => g.id === sectionData.gradeId);
+    const gradeData = structureData.grades?.find((g) => g.id === sectionData.gradeId);
     if (!gradeData) return;
     
     // Find weekly hours for this grade-subject combination
@@ -284,7 +293,7 @@ export const calculateTeacherLoads = async (
     if (!subjectAlloc || subjectAlloc.weeklyHours === 0) return;
     
     // Find subject name
-    const subject = structureData.subjects?.find((s: any) => s.id === allocation.subjectId);
+    const subject = structureData.subjects?.find((s) => s.id === allocation.subjectId);
     
     const teacherLoad = teacherLoadsMap.get(allocation.teacherId);
     if (teacherLoad) {
@@ -315,8 +324,8 @@ export const calculateTeacherLoads = async (
 // Validation
 export const validateAllocations = async (
   termId: string,
-  structureData: any,
-  subjectAllocations: any[]
+  structureData: StructureData,
+  subjectAllocations: SubjectAllocation[]
 ): Promise<ValidationResult> => {
   await delay(300);
   
@@ -324,8 +333,8 @@ export const validateAllocations = async (
   const issues: ValidationIssue[] = [];
   
   // Check for missing allocations
-  structureData.grades?.forEach((grade: any) => {
-    grade.sections?.forEach((section: any) => {
+  structureData.grades?.forEach((grade) => {
+    grade.sections?.forEach((section) => {
       // For each subject that has weekly hours for this grade
       subjectAllocations.forEach((subjectAlloc) => {
         if (subjectAlloc.gradeId === grade.id && subjectAlloc.weeklyHours > 0) {
@@ -334,7 +343,7 @@ export const validateAllocations = async (
           );
           
           if (!allocation || !allocation.teacherId) {
-            const subject = structureData.subjects?.find((s: any) => s.id === subjectAlloc.subjectId);
+            const subject = structureData.subjects?.find((s) => s.id === subjectAlloc.subjectId);
             issues.push({
               type: 'missing',
               sectionId: section.id,
@@ -419,8 +428,8 @@ export const validateAllocations = async (
 // Validation function with flat structure (grades, sections, subjects as separate arrays)
 export const validateTeacherAllocations = (
   termId: string,
-  structureData: { grades: any[]; sections: any[]; subjects: any[] },
-  subjectAllocations: any[],
+  structureData: { grades: Grade[]; sections: Section[]; subjects: Subject[] },
+  subjectAllocations: SubjectAllocation[],
   teachers: Teacher[],
   teacherAllocations: TeacherAllocation[]
 ): ValidationResult => {

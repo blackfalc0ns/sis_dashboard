@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Save, RotateCcw, AlertCircle, Users } from "lucide-react";
 import { IconButton, Tooltip } from "@mui/material";
@@ -324,31 +324,24 @@ export default function AllocationMatrixView({
     await onRefresh();
   };
 
-  const getSectionName = (section: Section) => {
-    return locale === "ar"
+  const getSectionDisplayName = useCallback((section: Section) => {
+    const grade = grades.find((g) => g.id === section.gradeId);
+    const gradeName = grade
+      ? locale === "ar"
+        ? (grade.nameAr || grade.nameEn || grade.name)
+        : (grade.nameEn || grade.nameAr || grade.name)
+      : "-";
+    const sectionName = locale === "ar"
       ? (section.nameAr || section.nameEn || section.name)
       : (section.nameEn || section.nameAr || section.name);
-  };
-
-  const getGradeName = (section: Section) => {
-    const grade = grades.find((g) => g.id === section.gradeId);
-    if (!grade) return "-";
-    return locale === "ar"
-      ? (grade.nameAr || grade.nameEn || grade.name)
-      : (grade.nameEn || grade.nameAr || grade.name);
-  };
-
-  const getSectionDisplayName = (section: Section) => {
-    const gradeName = getGradeName(section);
-    const sectionName = getSectionName(section);
     return { gradeName, sectionName };
-  };
+  }, [grades, locale]);
 
-  const getSubjectName = (subject: Subject) => {
+  const getSubjectName = useCallback((subject: Subject) => {
     return locale === "ar"
       ? (subject.nameAr || subject.nameEn || subject.name)
       : (subject.nameEn || subject.nameAr || subject.name);
-  };
+  }, [locale]);
 
   // Filter sections by missing if enabled
   const displaySections = useMemo(() => {

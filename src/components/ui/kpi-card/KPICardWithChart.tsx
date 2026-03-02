@@ -18,7 +18,6 @@ interface KPICardWithChartProps {
   data: DataPoint[];
   valuePrefix?: string;
   valueSuffix?: string;
-  highlightIndex?: number;
 }
 
 interface CustomTooltipProps {
@@ -62,7 +61,6 @@ export default function KPICardWithChart({
   data,
   valuePrefix = "",
   valueSuffix = "",
-  highlightIndex,
 }: KPICardWithChartProps) {
   const locale = useLocale();
   

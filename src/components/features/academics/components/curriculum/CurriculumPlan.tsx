@@ -16,12 +16,9 @@ interface CurriculumPlanProps {
 }
 
 export default function CurriculumPlan({
-  curriculum,
   units,
   lessons,
   termWeeks,
-  onRefresh,
-  isReadOnly,
   showProgressOnly = false,
 }: CurriculumPlanProps) {
   const t = useTranslations("academics.curriculum.plan");

@@ -2369,7 +2369,7 @@
         "deleting": "جاري الحذف..."
       },
       "matrix": {
-        "title": "توزيع الساعات الأسبوعية",
+        "title": "توزيع الحصص الأسبوعية",
         "filters": {
           "stage": "المرحلة",
           "all_stages": "جميع المراحل",
@@ -2382,7 +2382,7 @@
         },
         "table": {
           "grade": "الصف",
-          "total": "إجمالي الساعات"
+          "total": "إجمالي الحصص"
         },
         "columns": {
           "grade": "الصف"
@@ -2396,7 +2396,7 @@
         "empty_state": {
           "no_subjects": {
             "title": "لا توجد مواد",
-            "message": "أضف المواد أولاً لبدء توزيع الساعات الأسبوعية."
+            "message": "أضف المواد أولاً لبدء توزيع الحصص الأسبوعية."
           }
         }
       },
@@ -2407,7 +2407,7 @@
         "source_term": "الترم المصدر",
         "options": "الخيارات",
         "copy_subjects": "نسخ قائمة المواد",
-        "copy_allocations": "نسخ توزيع الساعات الأسبوعية",
+        "copy_allocations": "نسخ توزيع الحصص الأسبوعية",
         "allocations_require_subjects": "يمكن نسخ التوزيعات فقط إذا تم نسخ المواد أيضًا",
         "readonly_warning": "هذا الترم مغلق. لا يمكن نسخ البيانات إلى ترم مغلق.",
         "cancel": "إلغاء",
@@ -2764,6 +2764,7 @@
         "rooms": "الغرف"
       },
       "filters": {
+        "selectStage": "اختر المرحلة",
         "selectGrade": "اختر الصف",
         "selectSection": "اختر الشعبة",
         "allGrades": "كل الصفوف",
@@ -2781,6 +2782,9 @@
         "saturday": "السبت",
         "holiday": "عطلة",
         "emptySlot": "فارغ",
+        "add": "إضافة",
+        "break": "فُسحة",
+        "dropHere": "إفلات هنا",
         "clickToEdit": "اضغط للتعديل",
         "validation": {
           "missingTeacher": "معلم مفقود",
@@ -2791,16 +2795,55 @@
         "editSlot": "تعديل الحصة",
         "save": "حفظ التغييرات",
         "saving": "جاري الحفظ...",
+        "saveSuccess": "تم حفظ الجدول بنجاح",
+        "saveError": "فشل حفظ الجدول",
         "validate": "التحقق",
         "publish": "نشر",
+        "unpublish": "إلغاء النشر",
         "generate": "توليد تلقائي",
         "copyFrom": "نسخ من",
-        "clearAll": "مسح الكل"
+        "clearAll": "مسح الكل",
+        "reset": "إعادة تعيين",
+        "resetSuccess": "تم إعادة تعيين الجدول بنجاح",
+        "resetError": "فشل إعادة تعيين الجدول",
+        "resetConfirmTitle": "إعادة تعيين الجدول",
+        "resetConfirmMessage": "هل أنت متأكد من إعادة تعيين الجدول؟ سيتم فقدان جميع التغييرات غير المحفوظة."
+      },
+      "generate": {
+        "title": "توليد جدول تلقائي",
+        "description": "سيتم توليد الجدول تلقائياً بناءً على الحصص الأسبوعية وتوزيع المعلمين",
+        "options": {
+          "distributeEvenly": "توزيع المواد بالتساوي على الأيام",
+          "avoidConsecutive": "تجنب نفس المادة في حصص متتالية",
+          "strictMode": "وضع صارم (فشل عند أي تعارض)",
+          "strictModeHelp": "في الوضع الصارم، سيفشل التوليد إذا لم يتمكن من وضع جميع الحصص المطلوبة"
+        },
+        "generating": "جاري التوليد...",
+        "generate": "توليد",
+        "apply": "تطبيق",
+        "cancel": "إلغاء",
+        "result": {
+          "entriesGenerated": "الحصص المولدة",
+          "unresolvedSubjects": "مواد غير مكتملة",
+          "unresolvedTitle": "مواد لم يتم وضع جميع حصصها",
+          "periods": "حصص",
+          "hours": "حصص",
+          "applyWarning": "سيتم استبدال الجدول الحالي بالجدول المولد. تأكد من حفظ التغييرات أولاً إذا لزم الأمر.",
+          "applied": "تم تطبيق الجدول المولد مع {count} حصة",
+          "successMessage": "تم توليد الجدول بنجاح مع {count} حصة",
+          "partialMessage": "تم توليد {generated} حصة، لكن {unresolved} مواد لديها حصص لم يتم وضعها"
+        }
       },
       "editSlot": {
         "title": "تعديل الحصة",
         "period": "الحصة {number}",
         "day": "{day}",
+        "slotType": "نوع الحصة",
+        "class": "حصة",
+        "break": "فُسحة",
+        "breakInfo": "فترات الاستراحة لا تُحتسب ضمن الحصص الأسبوعية ولا يمكن تعيين مواد لها.",
+        "breakLabelAr": "تسمية الفسحة (عربي)",
+        "breakLabelEn": "تسمية الفسحة (إنجليزي)",
         "subject": "المادة",
         "teacher": "المعلم",
         "room": "الغرفة",
@@ -2834,7 +2877,9 @@
         "viewConflict": "عرض",
         "ok": "موافق",
         "under": "أقل",
-        "over": "أكثر"
+        "over": "أكثر",
+        "cannotEditHoliday": "لا يمكن التعديل في أيام العطل",
+        "entriesOnHolidays": "توجد حصص في أيام العطل"
       },
       "publish": {
         "confirmTitle": "نشر الجدول",
@@ -2844,7 +2889,13 @@
         "publishAnyway": "نشر على أي حال",
         "cancel": "إلغاء",
         "success": "تم نشر الجدول بنجاح",
-        "error": "فشل نشر الجدول"
+        "error": "فشل نشر الجدول",
+        "confirm": "نشر",
+        "unsavedChanges": "يرجى حفظ التغييرات قبل النشر"
+      },
+      "unpublish": {
+        "success": "تم إلغاء نشر الجدول بنجاح",
+        "error": "فشل إلغاء نشر الجدول"
       },
       "rooms": {
         "title": "الغرف",
@@ -2853,8 +2904,7 @@
         "deleteRoom": "حذف الغرفة",
         "deleteConfirm": "هل أنت متأكد من حذف هذه الغرفة؟",
         "deleteWarning": "قد تكون هذه الغرفة مستخدمة في الجداول.",
-        "nameAr": "الاسم (عربي)",
-        "nameEn": "الاسم (إنجليزي)",
+        "name": "الاسم",
         "type": "النوع",
         "capacity": "السعة",
         "active": "نشط",
@@ -2878,6 +2928,10 @@
           "status": "الحالة",
           "actions": "الإجراءات"
         },
+        "editSlot": {
+          "cancel": "إلغاء",
+          "save": "حفظ"
+        },
         "emptyState": "لا توجد غرف. أضف غرفتك الأولى.",
         "searchPlaceholder": "بحث عن غرف..."
       },
@@ -2896,6 +2950,82 @@
       "unsavedChanges": {
         "label": "تغييرات غير محفوظة",
         "message": "لديك تغييرات غير محفوظة. هل أنت متأكد من المغادرة؟"
+      },
+      "config": {
+        "title": "إعدادات الجدول",
+        "subtitle": "تكوين الأيام والحصص ونطاق التطبيق للجدول",
+        "button": "الإعدادات",
+        "steps": {
+          "days": "الأيام",
+          "periods": "الحصص",
+          "scope": "التطبيق على"
+        },
+        "daysDescription": "اختر الأيام النشطة وخصص الأسماء",
+        "periodsDescription": "حدد الحصص وأوقاتها",
+        "scopeDescription": "اختر نطاق التطبيق",
+        "quickPresets": "إعدادات سريعة",
+        "presets": {
+          "sunThu": "الأحد-الخميس (5 أيام)",
+          "satThu": "السبت-الخميس (6 أيام)",
+          "allDays": "كل الأيام (7 أيام)"
+        },
+        "daysList": "إعدادات الأيام",
+        "quickTemplates": "قوالب سريعة",
+        "templates": {
+          "6periods": "6 حصص",
+          "7periods": "7 حصص",
+          "8periods": "8 حصص"
+        },
+        "periodsList": "إعدادات الحصص",
+        "selectScope": "اختر نطاق التطبيق",
+        "dayName": "اسم اليوم",
+        "dayNameAr": "اسم اليوم (عربي)",
+        "dayNameEn": "اسم اليوم (إنجليزي)",
+        "periodName": "اسم الحصة",
+        "periodCount": "عدد الحصص",
+        "periodNameAr": "اسم الحصة (عربي)",
+        "periodNameEn": "اسم الحصة (إنجليزي)",
+        "startTime": "وقت البداية",
+        "endTime": "وقت النهاية",
+        "applyTo": "التطبيق على",
+        "selectGrade": "اختر الصف",
+        "selectSection": "اختر الشعبة",
+        "scope": {
+          "term": "الترم بالكامل",
+          "termDesc": "تطبيق على كل الصفوف والشعب",
+          "grade": "صف معين",
+          "gradeDesc": "تطبيق على صف واحد فقط",
+          "section": "شعبة محددة",
+          "sectionDesc": "تطبيق على شعبة واحدة فقط"
+        },
+        "summary": {
+          "title": "ملخص الإعدادات",
+          "activeDays": "الأيام النشطة",
+          "periods": "الحصص",
+          "totalSlots": "إجمالي الفترات الأسبوعية",
+          "overridesTermSettings": "سيتم تجاوز إعدادات الترم"
+        },
+        "validation": {
+          "atLeastOneDay": "يجب تفعيل يوم واحد على الأقل",
+          "atLeastOnePeriod": "يجب وجود حصة واحدة على الأقل",
+          "selectGrade": "يرجى اختيار صف",
+          "selectSection": "يرجى اختيار شعبة",
+          "saveFailed": "فشل حفظ الإعدادات"
+        },
+        "changeWarning": {
+          "title": "تحذير تغيير الإعدادات",
+          "message": "تغيير إعدادات الجدول قد يؤثر على الحصص الموجودة. الحصص التي لا تتطابق مع الإعدادات الجديدة سيتم إزالتها.",
+          "kept": "الحصص المحفوظة",
+          "dropped": "الحصص المحذوفة",
+          "entries": "حصة",
+          "saveRequired": "يجب حفظ الجدول بعد تأكيد هذا التغيير.",
+          "confirm": "تطبيق التغييرات"
+        },
+        "next": "التالي",
+        "back": "السابق",
+        "reset": "إعادة تعيين للافتراضي",
+        "resetConfirm": "إعادة تعيين هذه الإعدادات للافتراضي للترم؟",
+        "resetSuccess": "تم إعادة تعيين الإعدادات بنجاح"
       }
     },
      "teacherAllocation": {
@@ -2933,7 +3063,7 @@
         "selectTeacher": "اختر معلم",
         "searchTeacher": "ابحث عن معلم...",
         "noTeacher": "لا يوجد معلم",
-        "currentLoad": "{hours}/أسبوع",
+        "currentLoad": "{periods}/أسبوع",
         "summary": {
           "sections": "الشعب",
           "subjects": "المواد",
@@ -2976,7 +3106,7 @@
           "grade": "الصف",
           "section": "الشعبة",
           "subject": "المادة",
-          "hours": "الساعات",
+          "periods": "الحصص",
           "total": "الإجمالي"
         },
         "loading": "جاري التحميل...",
@@ -3117,5 +3247,10 @@
   },
   "helper": {
     "urlExample": "مثال: https://example.com"
+  },
+  "NotFound": {
+    "title": "الصفحة غير موجودة",
+    "description": "عذراً، لم نتمكن من العثور على الصفحة التي تبحث عنها. ربما تم نقلها أو حذفها.",
+    "backToHome": "العودة للرئيسية"
   }
 }

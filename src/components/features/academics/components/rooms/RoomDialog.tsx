@@ -28,6 +28,8 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
   const [isActive, setIsActive] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  /* eslint-disable react-hooks/set-state-in-effect */
+  // Form reset pattern: sync form state with room prop and dialog open state
   useEffect(() => {
     if (room) {
       setNameAr(room.nameAr);
@@ -44,6 +46,7 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
     }
     setErrors({});
   }, [room, open]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -112,7 +115,7 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
           {/* Bilingual Name */}
           <div>
             <BilingualTextField
-              label={t("nameAr") + " / " + t("nameEn")}
+              label={t("name")}
               value={{ ar: nameAr, en: nameEn }}
               onChange={(value) => {
                 setNameAr(value.ar);
@@ -170,12 +173,12 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
         </div>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3, pt: 2 }}>
+      <DialogActions sx={{ pb: 3, pt: 2, display: "flex", alignItems:"center", gap: 1 }}>
         <Button onClick={onClose} variant="secondary">
-          {t("../editSlot.cancel")}
+          {t("editSlot.cancel")}
         </Button>
         <Button onClick={handleSave} variant="primary">
-          {t("../editSlot.save")}
+          {t("editSlot.save")}
         </Button>
       </DialogActions>
     </Dialog>

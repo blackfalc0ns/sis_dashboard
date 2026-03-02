@@ -2367,7 +2367,7 @@
         "deleting": "Deleting..."
       },
       "matrix": {
-        "title": "Weekly Hours Allocation",
+        "title": "Weekly Periods Allocation",
         "filters": {
           "stage": "Stage",
           "all_stages": "All Stages",
@@ -2380,7 +2380,7 @@
         },
         "table": {
           "grade": "Grade",
-          "total": "Total hours"
+          "total": "Total Periods"
         },
         "columns": {
           "grade": "Grade"
@@ -2394,7 +2394,7 @@
         "empty_state": {
           "no_subjects": {
             "title": "No Subjects",
-            "message": "Add subjects first to start allocating weekly hours."
+            "message": "Add subjects first to start allocating weekly periods."
           }
         }
       },
@@ -2755,134 +2755,6 @@
       "goToDate": "Go to date",
       "outsideTermJump": "Selected date is outside the term range."
     },
-    "timetable": {
-      "title": "Timetable",
-      "rooms_title": "Rooms",
-      "loading": "Loading...",
-      "no_term_selected": "No term selected",
-      "select_section": "Select Grade and Section",
-      "select_section_description": "Choose a grade and section from the filters above to view and edit the timetable",
-      "load_error": "Failed to load data",
-      "save_success": "Saved successfully",
-      "save_error": "Failed to save",
-      "clear_success": "Slot cleared successfully",
-      "clear_error": "Failed to clear slot",
-      "clear_confirm": "Are you sure you want to clear this slot?",
-      "subject": "Subject",
-      "teacher": "Teacher",
-      "room": "Room",
-      "period": "Period",
-      "select_subject": "Select subject",
-      "select_room": "Select room",
-      "teacher_placeholder": "Enter teacher ID or name",
-      "teacher_hint": "Teacher assignment will be validated against allocations",
-      "days": {
-        "sunday": "Sunday",
-        "monday": "Monday",
-        "tuesday": "Tuesday",
-        "wednesday": "Wednesday",
-        "thursday": "Thursday",
-        "friday": "Friday",
-        "saturday": "Saturday"
-      },
-      "filters": {
-        "select_grade": "Select Grade",
-        "select_section": "Select Section"
-      },
-      "actions": {
-        "edit_slot": "Edit Slot",
-        "clear_slot": "Clear Slot",
-        "validate": "Validate",
-        "publish": "Publish",
-        "unpublish": "Unpublish",
-        "auto_generate": "Auto Generate",
-        "copy_from": "Copy From..."
-      },
-      "status": {
-        "draft": "Draft",
-        "published": "Published"
-      },
-      "validation": {
-        "teacher_conflict": "Teacher Conflict",
-        "room_conflict": "Room Conflict",
-        "missing_teacher": "Missing Teacher",
-        "missing_room": "Missing Room",
-        "hours_mismatch": "Hours Mismatch",
-        "validation_results": "Validation Results",
-        "no_issues": "No issues found",
-        "issues_found": "{count} issues found",
-        "conflicts": "Conflicts",
-        "all_clear": "All Clear!",
-        "all_clear_description": "Your timetable has no conflicts or missing assignments",
-        "error": "Validation failed",
-        "select_section_first": "Please select a section first",
-        "conflicts_count": "{count} conflicts",
-        "missing_teachers_count": "{count} missing teachers"
-      },
-      "target_actual": {
-        "title": "Target vs Actual",
-        "actual": "Actual",
-        "target": "Target",
-        "filled_slots": "Filled Slots",
-        "total_slots": "Total Slots",
-        "conflicts": "Conflicts",
-        "missing_teachers": "Missing Teachers",
-        "missing_rooms": "Missing Rooms",
-        "subject_hours": "Subject Hours"
-      },
-      "publish": {
-        "confirm_title": "Publish Timetable",
-        "confirm_message": "Are you sure you want to publish this timetable? It will be visible to teachers and students.",
-        "ready_to_publish": "Ready to publish",
-        "cannot_publish": "Cannot publish",
-        "blocked": "Cannot publish: Please resolve all conflicts and missing assignments",
-        "success": "Timetable published successfully",
-        "error": "Failed to publish timetable",
-        "hours_warning": "Hours Mismatch Warning",
-        "hours_warning_description": "{count} subjects have hours that don't match the target",
-        "publish_description": "Once published, the timetable will be visible to all teachers and students",
-        "resolve_issues": "Please resolve all issues before publishing",
-        "confirm_publish": "Publish Timetable"
-      },
-      "unpublish": {
-        "success": "Timetable unpublished successfully",
-        "error": "Failed to unpublish timetable"
-      },
-      "rooms": {
-        "rooms_title": "Rooms",
-        "rooms_description": "Manage classrooms, labs, and other rooms",
-        "add_room": "Add Room",
-        "edit_room": "Edit Room",
-        "delete_room": "Delete Room",
-        "delete_confirm": "Are you sure you want to delete this room?",
-        "name": "Room Name",
-        "name_ar": "Name (Arabic)",
-        "name_en": "Name (English)",
-        "type": "Type",
-        "capacity": "Capacity",
-        "active": "Active",
-        "no_rooms": "No Rooms Yet",
-        "no_rooms_description": "Add your first room to start building timetables",
-        "add_first_room": "Add First Room",
-        "search_rooms": "Search rooms...",
-        "load_error": "Failed to load rooms",
-        "create_success": "Room created successfully",
-        "create_error": "Failed to create room",
-        "update_success": "Room updated successfully",
-        "update_error": "Failed to update room",
-        "delete_success": "Room deleted successfully",
-        "delete_error": "Failed to delete room",
-        "name_ar_required": "Arabic name is required",
-        "name_en_required": "English name is required",
-        "names_must_differ": "Arabic and English names must be different",
-        "capacity_invalid": "Capacity must be 0 or greater",
-        "types": {
-          "CLASSROOM": "Classroom",
-          "LAB": "Lab",
-          "OTHER": "Other"
-        }
-      }
-    },
     "teacherAllocation": {
       "title": "Teacher Allocation",
       "tabs": {
@@ -2918,7 +2790,7 @@
         "selectTeacher": "Select teacher",
         "searchTeacher": "Search teacher...",
         "noTeacher": "No teacher assigned",
-        "currentLoad": "{hours}/wk",
+        "currentLoad": "{periods}/wk",
         "summary": {
           "sections": "Sections",
           "subjects": "Subjects",
@@ -2961,7 +2833,7 @@
           "grade": "Grade",
           "section": "Section",
           "subject": "Subject",
-          "hours": "Hours",
+          "periods": "Periods",
           "total": "Total"
         },
         "loading": "Loading...",
@@ -3030,6 +2902,7 @@
         "rooms": "Rooms"
       },
       "filters": {
+        "selectStage": "Select Stage",
         "selectGrade": "Select Grade",
         "selectSection": "Select Section",
         "allGrades": "All Grades",
@@ -3047,6 +2920,9 @@
         "saturday": "Saturday",
         "holiday": "Holiday",
         "emptySlot": "Empty",
+        "add": "Add",
+        "break": "Break",
+        "dropHere": "Drop here",
         "clickToEdit": "Click to edit",
         "validation": {
           "missingTeacher": "Missing teacher",
@@ -3057,16 +2933,55 @@
         "editSlot": "Edit Slot",
         "save": "Save Changes",
         "saving": "Saving...",
+        "saveSuccess": "Timetable saved successfully",
+        "saveError": "Failed to save timetable",
         "validate": "Validate",
         "publish": "Publish",
+        "unpublish": "Unpublish",
         "generate": "Auto Generate",
         "copyFrom": "Copy From",
-        "clearAll": "Clear All"
+        "clearAll": "Clear All",
+        "reset": "Reset",
+        "resetSuccess": "Timetable reset successfully",
+        "resetError": "Failed to reset timetable",
+        "resetConfirmTitle": "Reset Timetable",
+        "resetConfirmMessage": "Are you sure you want to reset the timetable? All unsaved changes will be lost."
+      },
+      "generate": {
+        "title": "Auto Generate Timetable",
+        "description": "The timetable will be automatically generated based on weekly periods and teacher allocations",
+        "options": {
+          "distributeEvenly": "Distribute subjects evenly across days",
+          "avoidConsecutive": "Avoid same subject in consecutive periods",
+          "strictMode": "Strict mode (fail on any conflict)",
+          "strictModeHelp": "In strict mode, generation will fail if it cannot place all required hours"
+        },
+        "generating": "Generating...",
+        "generate": "Generate",
+        "apply": "Apply",
+        "cancel": "Cancel",
+        "result": {
+          "entriesGenerated": "Entries Generated",
+          "unresolvedSubjects": "Incomplete Subjects",
+          "unresolvedTitle": "Subjects with unplaced periods",
+          "periods": "periods",
+          "hours": "periods",
+          "applyWarning": "This will replace the current timetable with the generated one. Make sure to save changes first if needed.",
+          "applied": "Generated timetable applied with {count} entries",
+          "successMessage": "Successfully generated timetable with {count} entries",
+          "partialMessage": "Generated {generated} entries, but {unresolved} subjects have unplaced hours"
+        }
       },
       "editSlot": {
         "title": "Edit Time Slot",
         "period": "Period {number}",
         "day": "{day}",
+        "slotType": "Slot Type",
+        "class": "Class",
+        "break": "Break",
+        "breakInfo": "Break slots do not count toward weekly periods and cannot have subjects assigned.",
+        "breakLabelAr": "Break Label (Arabic)",
+        "breakLabelEn": "Break Label (English)",
         "subject": "Subject",
         "teacher": "Teacher",
         "room": "Room",
@@ -3100,7 +3015,9 @@
         "viewConflict": "View",
         "ok": "OK",
         "under": "Under",
-        "over": "Over"
+        "over": "Over",
+        "cannotEditHoliday": "Cannot edit on holiday days",
+        "entriesOnHolidays": "There are entries on holiday days"
       },
       "publish": {
         "confirmTitle": "Publish Timetable",
@@ -3110,7 +3027,13 @@
         "publishAnyway": "Publish Anyway",
         "cancel": "Cancel",
         "success": "Timetable published successfully",
-        "error": "Failed to publish timetable"
+        "error": "Failed to publish timetable",
+        "confirm": "Publish",
+        "unsavedChanges": "Please save your changes before publishing"
+      },
+      "unpublish": {
+        "success": "Timetable unpublished successfully",
+        "error": "Failed to unpublish timetable"
       },
       "rooms": {
         "title": "Rooms",
@@ -3119,8 +3042,7 @@
         "deleteRoom": "Delete Room",
         "deleteConfirm": "Are you sure you want to delete this room?",
         "deleteWarning": "This room may be used in timetables.",
-        "nameAr": "Name (Arabic)",
-        "nameEn": "Name (English)",
+        "name": "Name",
         "type": "Type",
         "capacity": "Capacity",
         "active": "Active",
@@ -3144,6 +3066,10 @@
           "status": "Status",
           "actions": "Actions"
         },
+         "editSlot": {
+          "cancel": "إلغاء",
+          "save": "حفظ"
+        },
         "emptyState": "No rooms found. Add your first room.",
         "searchPlaceholder": "Search rooms..."
       },
@@ -3160,7 +3086,84 @@
         }
       },
       "unsavedChanges": {
+        "label": "Unsaved changes",
         "message": "You have unsaved changes. Are you sure you want to leave?"
+      },
+      "config": {
+        "title": "Timetable Configuration",
+        "subtitle": "Configure days, periods, and scope for your timetable",
+        "button": "Settings",
+        "steps": {
+          "days": "Days",
+          "periods": "Periods",
+          "scope": "Apply To"
+        },
+        "daysDescription": "Select active days and customize names",
+        "periodsDescription": "Define periods and set times",
+        "scopeDescription": "Choose where to apply settings",
+        "quickPresets": "Quick Presets",
+        "presets": {
+          "sunThu": "Sun-Thu (5 days)",
+          "satThu": "Sat-Thu (6 days)",
+          "allDays": "All Days (7 days)"
+        },
+        "daysList": "Days Configuration",
+        "quickTemplates": "Quick Templates",
+        "templates": {
+          "6periods": "6 Periods",
+          "7periods": "7 Periods",
+          "8periods": "8 Periods"
+        },
+        "periodsList": "Periods Configuration",
+        "selectScope": "Select Application Scope",
+        "dayName": "Day Name",
+        "dayNameAr": "Day name (Arabic)",
+        "dayNameEn": "Day name (English)",
+        "periodName": "Period Name",
+        "periodCount": "Number of Periods",
+        "periodNameAr": "Period name (Arabic)",
+        "periodNameEn": "Period name (English)",
+        "startTime": "Start Time",
+        "endTime": "End Time",
+        "applyTo": "Apply To",
+        "selectGrade": "Select Grade",
+        "selectSection": "Select Section",
+        "scope": {
+          "term": "Entire Term",
+          "termDesc": "Apply to all grades and sections",
+          "grade": "Specific Grade",
+          "gradeDesc": "Apply to one grade only",
+          "section": "Individual Section",
+          "sectionDesc": "Apply to one section only"
+        },
+        "summary": {
+          "title": "Configuration Summary",
+          "activeDays": "Active Days",
+          "periods": "Periods",
+          "totalSlots": "Total Slots per Week",
+          "overridesTermSettings": "This will override term-level settings"
+        },
+        "validation": {
+          "atLeastOneDay": "At least one day must be active",
+          "atLeastOnePeriod": "At least one period is required",
+          "selectGrade": "Please select a grade",
+          "selectSection": "Please select a section",
+          "saveFailed": "Failed to save configuration"
+        },
+        "changeWarning": {
+          "title": "Configuration Change Warning",
+          "message": "Changing timetable configuration may affect existing entries. Entries that no longer match the new configuration will be removed.",
+          "kept": "Entries to keep",
+          "dropped": "Entries to remove",
+          "entries": "entries",
+          "saveRequired": "You must save the timetable after confirming this change.",
+          "confirm": "Apply Changes"
+        },
+        "next": "Next",
+        "back": "Back",
+        "reset": "Reset to Default",
+        "resetConfirm": "Reset this configuration to term default?",
+        "resetSuccess": "Configuration reset successfully"
       }
     }
   },
@@ -3241,5 +3244,10 @@
   },
   "helper": {
     "urlExample": "Example: https://example.com"
+  },
+  "NotFound": {
+    "title": "Page Not Found",
+    "description": "Sorry, we couldn't find the page you're looking for. It might have been moved or deleted.",
+    "backToHome": "Back to Home"
   }
 }

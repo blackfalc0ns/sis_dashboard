@@ -1,7 +1,7 @@
 "use client";
 
 import { bottomItems, menuItems } from "@/config/navigation";
-import { Building2, Menu, ChevronLeft, ChevronDown } from "lucide-react";
+import { Building2, Menu, ChevronLeft, ChevronDown, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import GuardedLink from "@/components/navigation/GuardedLink";
@@ -27,8 +27,18 @@ export default function Sidebar({
   const t = useTranslations("sidebar");
   const pathname = usePathname();
   const isArabic = pathname.startsWith("/ar");
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
 
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  
+  // Clear pending state when pathname changes (navigation complete)
+  useEffect(() => {
+    if (pendingHref !== null) {
+      setPendingHref(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+  
   // Auto-expand parent if current route is a child or grandchild
   useEffect(() => {
     menuItems.forEach((item) => {
@@ -82,6 +92,11 @@ export default function Sidebar({
     onSelect?.(key);
   };
 
+  const handleNavigationStart = (href: string) => {
+    // Set pending state only when navigation actually starts
+    setPendingHref(href);
+  };
+
   const toggleExpand = (key: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -128,7 +143,7 @@ export default function Sidebar({
       className={`fixed z-50 h-screen bg-white flex flex-col transition-all duration-300 ease-in-out
       ${isRTL ? "right-0 border-l" : "left-0 border-r"} border-gray-200
       ${isOpen ? "translate-x-0" : isRTL ? "translate-x-full lg:translate-x-0" : "-translate-x-full lg:translate-x-0"}
-      ${isOpen ? "w-[260px] p-2" : "w-[260px] lg:w-20 lg:px-3"}`}
+      ${isOpen ? "w-[280px] max-w-[80vw] p-2" : "lg:w-20 lg:px-3"}`}
     >
       {/* Toggle Button (fixed top) */}
       <button
@@ -176,8 +191,8 @@ export default function Sidebar({
       )}
 
       {/* ✅ Scrollable Menu Only */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        <nav className="space-y-1">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
+        <nav className="space-y-1 pb-4">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = isItemActive(item);
@@ -222,11 +237,11 @@ export default function Sidebar({
                     />
                     {isOpen && (
                       <>
-                        <span className="font-semibold text-[15px] flex-1">
+                        <span className="font-semibold text-[15px] flex-1 truncate">
                           {isArabic ? item.label_ar : item.label_en}
                         </span>
                         <ChevronDown
-                          className={`w-4 h-4 transition-transform ${
+                          className={`w-4 h-4 transition-transform shrink-0 ${
                             isExpanded ? "rotate-180" : ""
                           }`}
                         />
@@ -234,8 +249,11 @@ export default function Sidebar({
                     )}
                   </button>
                 ) : (
-                  <GuardedLink                     href={isArabic ? item.href_ar : item.href_en}
+                  <GuardedLink
+                    href={isArabic ? item.href_ar : item.href_en}
                     onClick={() => handleItemClick(item.key)}
+                    onNavigationStart={() => handleNavigationStart(isArabic ? item.href_ar : item.href_en)}
+                    prefetch
                     title={
                       !isOpen
                         ? isArabic
@@ -246,20 +264,25 @@ export default function Sidebar({
                     className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 text-left ${
                       isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
                     } ${
-                      isActive
+                      isActive || pendingHref === (isArabic ? item.href_ar : item.href_en)
                         ? "bg-primary text-white shadow-sm"
                         : "text-gray-700 hover:bg-teal-50 hover:text-primary"
                     }`}
                   >
                     <Icon
                       className={`w-5 h-5 shrink-0 ${
-                        isActive ? "text-white" : "text-[#A4B4CB]"
+                        isActive || pendingHref === (isArabic ? item.href_ar : item.href_en) ? "text-white" : "text-[#A4B4CB]"
                       }`}
                     />
                     {isOpen && (
-                      <span className="font-semibold text-[16px]">
-                        {isArabic ? item.label_ar : item.label_en}
-                      </span>
+                      <>
+                        <span className="font-semibold text-[16px] truncate">
+                          {isArabic ? item.label_ar : item.label_en}
+                        </span>
+                        {pendingHref === (isArabic ? item.href_ar : item.href_en) && (
+                          <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                        )}
+                      </>
                     )}
                   </GuardedLink>
                 )}
@@ -294,30 +317,36 @@ export default function Sidebar({
                               }`}
                             >
                               <ChildIcon className="w-4 h-4 shrink-0" />
-                              <span className="text-sm flex-1">
+                              <span className="text-sm flex-1 truncate">
                                 {isArabic ? child.label_ar : child.label_en}
                               </span>
                               <ChevronDown
-                                className={`w-3 h-3 transition-transform ${
+                                className={`w-3 h-3 transition-transform shrink-0 ${
                                   isChildExpanded ? "rotate-180" : ""
                                 }`}
                               />
                             </button>
                           ) : (
-                            <GuardedLink                               href={childHref}
+                            <GuardedLink
+                              href={childHref}
                               onClick={() => handleItemClick(child.key)}
+                              onNavigationStart={() => handleNavigationStart(childHref)}
+                              prefetch
                               className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${
                                 isArabic ? "text-right" : "text-left"
                               } ${
-                                isChildActive
+                                isChildActive || pendingHref === childHref
                                   ? "bg-teal-50 text-primary font-semibold"
                                   : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                               }`}
                             >
                               <ChildIcon className="w-4 h-4 shrink-0" />
-                              <span className="text-sm flex-1">
+                              <span className="text-sm flex-1 truncate">
                                 {isArabic ? child.label_ar : child.label_en}
                               </span>
+                              {pendingHref === childHref && (
+                                <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                              )}
                               {child.badge &&
                                 (() => {
                                   const count = child.badge();
@@ -355,25 +384,31 @@ export default function Sidebar({
                                   pathname === grandchildHref;
 
                                 return (
-                                  <GuardedLink                                     key={grandchild.key}
+                                  <GuardedLink
+                                    key={grandchild.key}
                                     href={grandchildHref}
                                     onClick={() =>
                                       handleItemClick(grandchild.key)
                                     }
+                                    onNavigationStart={() => handleNavigationStart(grandchildHref)}
+                                    prefetch
                                     className={`w-full flex items-center gap-2 rounded-[6px] transition-all duration-200 px-3 py-2 ${
                                       isArabic ? "text-right" : "text-left"
                                     } ${
-                                      isGrandchildActive
+                                      isGrandchildActive || pendingHref === grandchildHref
                                         ? "bg-teal-50 text-primary font-semibold"
                                         : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
                                     }`}
                                   >
                                     <GrandchildIcon className="w-3.5 h-3.5 shrink-0" />
-                                    <span className="text-xs">
+                                    <span className="text-xs truncate">
                                       {isArabic
                                         ? grandchild.label_ar
                                         : grandchild.label_en}
                                     </span>
+                                    {pendingHref === grandchildHref && (
+                                      <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                    )}
                                   </GuardedLink>
                                 );
                               })}
@@ -394,11 +429,16 @@ export default function Sidebar({
       <div className="pb-6 space-y-1 shrink-0 border-t border-gray-100 pt-3">
         {bottomItems.map((item) => {
           const Icon = item.icon;
+          const itemHref = isArabic ? item.href_ar : item.href_en;
+          const isPendingItem = pendingHref === itemHref;
 
           return (
-            <GuardedLink               href={isArabic ? item.href_ar : item.href_en}
+            <GuardedLink
+              href={itemHref}
               key={item.key}
               onClick={() => handleItemClick(item.key)}
+              onNavigationStart={() => handleNavigationStart(itemHref)}
+              prefetch
               title={
                 !isOpen
                   ? isArabic
@@ -406,15 +446,24 @@ export default function Sidebar({
                     : item.label_en
                   : undefined
               }
-              className={`w-full flex items-center gap-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all duration-200 text-left ${
+              className={`w-full flex items-center gap-3 rounded-xl transition-all duration-200 text-left ${
                 isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
+              } ${
+                isPendingItem
+                  ? "bg-gray-100 text-gray-900"
+                  : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
               }`}
             >
               <Icon className="w-5 h-5 shrink-0" />
               {isOpen && (
-                <span className="font-medium text-sm">
-                  {isArabic ? item.label_ar : item.label_en}
-                </span>
+                <>
+                  <span className="font-medium text-sm truncate">
+                    {isArabic ? item.label_ar : item.label_en}
+                  </span>
+                  {isPendingItem && (
+                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                  )}
+                </>
               )}
             </GuardedLink>
           );

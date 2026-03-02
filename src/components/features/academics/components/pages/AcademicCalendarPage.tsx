@@ -15,7 +15,6 @@ import MoveEventDialog from "../calendar/MoveEventDialog";
 import {
   fetchAcademicYears,
   fetchTermsByYear,
-  AcademicYear,
   Term,
 } from "@/services/academics/structureService";
 import {
@@ -36,7 +35,6 @@ export default function AcademicCalendarPage() {
   const [term, setTerm] = useState<Term | null>(null);
 
   // Context data
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
 
   // Calendar state
@@ -85,7 +83,6 @@ export default function AcademicCalendarPage() {
     const initializeContext = async () => {
       try {
         const years = await fetchAcademicYears();
-        setAcademicYears(years);
 
         const urlYear = searchParams.get("year");
         const urlTerm = searchParams.get("term");

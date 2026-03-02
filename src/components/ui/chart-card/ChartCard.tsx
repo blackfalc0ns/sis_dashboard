@@ -39,7 +39,6 @@ export default function ChartCard({
   onPeriodChange,
   defaultPeriod = "30d",
   customFilter,
-  bgColor = "#f3f4f6",
 }: ChartCardProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState(defaultPeriod);

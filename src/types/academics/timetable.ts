@@ -2,14 +2,20 @@ export interface TimetableEntry {
   id: string;
   termId: string;
   sectionId: string;
-  day: number; // 0 = Sunday, 1 = Monday, etc.
-  period: number; // 1-based period number
+  dayKey: string; // e.g., "sun", "mon", "tue" - config-safe identifier
+  periodIndex: number; // 1-based period number
+  slotType?: "CLASS" | "BREAK"; // Type of slot (default: CLASS)
   subjectId: string | null;
   teacherId: string | null;
   roomId: string | null;
+  breakLabelAr?: string; // Label for break slots (default: "فُسحة")
+  breakLabelEn?: string; // Label for break slots (default: "Break")
   status?: "DRAFT" | "PUBLISHED";
   createdAt?: string;
   updatedAt?: string;
+  // Legacy fields for backward compatibility (optional)
+  day?: number; // Deprecated: use dayKey instead
+  period?: number; // Deprecated: use periodIndex instead
 }
 
 export interface Room {
@@ -26,8 +32,8 @@ export interface Room {
 
 export interface TimetableConflict {
   type: "TEACHER" | "ROOM";
-  day: number;
-  period: number;
+  dayKey: string;
+  periodIndex: number;
   resourceId: string; // teacherId or roomId
   resourceName: string;
   sections: Array<{
@@ -35,6 +41,9 @@ export interface TimetableConflict {
     sectionName: string;
     subjectName: string;
   }>;
+  // Legacy fields for backward compatibility
+  day?: number;
+  period?: number;
 }
 
 export interface SubjectHoursSummary {
