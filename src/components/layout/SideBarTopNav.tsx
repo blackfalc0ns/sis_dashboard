@@ -46,7 +46,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
         isRTL={isRTL}
       />
       <div
-        className={`flex-1 flex flex-col transition-all duration-300 ${isRTL ? (isSidebarOpen ? "lg:mr-[280px]" : "lg:mr-20") : isSidebarOpen ? "lg:ml-[280px]" : "lg:ml-20"}`}
+        className={`flex-1 flex flex-col transition-all duration-300 ${isRTL ? (isSidebarOpen ? "lg:mr-[260px]" : "lg:mr-20") : isSidebarOpen ? "lg:ml-[260px]" : "lg:ml-20"}`}
       >
         <TopNav
           userName="Ahmed Mostafa"

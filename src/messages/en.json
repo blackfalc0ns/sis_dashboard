@@ -3166,6 +3166,122 @@
         "resetConfirm": "Reset this configuration to term default?",
         "resetSuccess": "Configuration reset successfully"
       }
+    },
+    "lessonPlans": {
+      "title": "Lesson Plans",
+      "subtitle": "Plan and track lessons across weeks",
+      "filters": {
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
+        "subject": "Subject",
+        "teacher": "Teacher"
+      },
+      "views": {
+        "weeklyBoard": "Weekly Board",
+        "calendar": "Calendar"
+      },
+      "library": {
+        "title": "Lesson Library",
+        "searchPlaceholder": "Search lessons...",
+        "filterByUnit": "Filter by unit",
+        "allUnits": "All Units",
+        "noLessons": "No lessons available",
+        "dragToAdd": "Drag lessons to weeks to plan"
+      },
+      "week": {
+        "label": "Week {index}",
+        "dateRange": "{start} - {end}",
+        "holidayWarning": "{count} holiday(s) this week",
+        "capacityWarning": "Exceeds available periods",
+        "availablePeriods": "{available} periods available",
+        "plannedItems": "{count} lessons planned"
+      },
+      "status": {
+        "PLANNED": "Planned",
+        "IN_PROGRESS": "In Progress",
+        "DONE": "Done",
+        "SKIPPED": "Skipped"
+      },
+      "actions": {
+        "addToWeek": "Add to Week",
+        "move": "Move",
+        "reorder": "Reorder",
+        "remove": "Remove from Plan",
+        "editNotes": "Edit Notes",
+        "markInProgress": "Mark In Progress",
+        "markDone": "Mark Done",
+        "skip": "Skip",
+        "markPlanned": "Mark Planned",
+        "validate": "Validate",
+        "autoPlan": "Auto-plan",
+        "publish": "Publish Plan"
+      },
+      "summary": {
+        "title": "Progress Summary",
+        "planned": "Planned",
+        "inProgress": "In Progress",
+        "done": "Done",
+        "skipped": "Skipped",
+        "completion": "Completion",
+        "totalLessons": "Total Lessons"
+      },
+      "warnings": {
+        "holidayWeek": "This week contains holidays",
+        "capacityExceeded": "Planned lessons exceed available periods",
+        "noTeacher": "No teacher assigned for this subject",
+        "termClosed": "This term is closed. Lesson plans are read-only."
+      },
+      "emptyState": {
+        "noSelection": {
+          "title": "Select Section and Subject",
+          "message": "Please select a section and subject to view lesson plans"
+        },
+        "noLessons": {
+          "title": "No Lessons in Curriculum",
+          "message": "Please add lessons to the curriculum first",
+          "cta": "Go to Curriculum"
+        },
+        "noPlan": {
+          "title": "No Lessons Planned",
+          "message": "Drag lessons from the library to weeks to start planning"
+        }
+      },
+      "notesDialog": {
+        "title": "Lesson Notes",
+        "notesAr": "Notes (Arabic)",
+        "notesEn": "Notes (English)",
+        "save": "Save",
+        "cancel": "Cancel"
+      },
+      "confirmRemove": {
+        "title": "Remove Lesson",
+        "message": "Are you sure you want to remove this lesson from the plan?",
+        "confirm": "Remove",
+        "cancel": "Cancel"
+      },
+      "autoPlanDialog": {
+        "title": "Auto-plan Lessons",
+        "message": "Automatically distribute all curriculum lessons across {weeks} weeks?",
+        "confirm": "Auto-plan",
+        "cancel": "Cancel",
+        "success": "Lessons auto-planned successfully",
+        "error": "Failed to auto-plan lessons"
+      },
+      "publishDialog": {
+        "title": "Publish Lesson Plan",
+        "message": "Publish this lesson plan to make it visible to teachers?",
+        "confirm": "Publish",
+        "cancel": "Cancel",
+        "success": "Lesson plan published successfully",
+        "error": "Failed to publish lesson plan"
+      },
+      "validation": {
+        "noIssues": "No issues found",
+        "issuesFound": "{count} issue(s) found",
+        "viewDetails": "View Details"
+      },
+      "readOnlyBanner": "This term is closed. Lesson plans are read-only."
     }
   },
   "upload": {

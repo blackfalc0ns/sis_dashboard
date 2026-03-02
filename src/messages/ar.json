@@ -3168,8 +3168,124 @@
         "label": "تغييرات غير محفوظة",
         "message": "لديك تغييرات غير محفوظة. هل أنت متأكد من المغادرة "
       }
-    }
     },
+    "lessonPlans": {
+      "title": "خطة الدروس",
+      "subtitle": "خطط وتتبع الدروس عبر الأسابيع",
+      "filters": {
+        "stage": "المرحلة",
+        "grade": "الصف",
+        "section": "الشعبة",
+        "subject": "المادة",
+        "teacher": "المعلم"
+      },
+      "views": {
+        "weeklyBoard": "لوحة أسبوعية",
+        "calendar": "التقويم"
+      },
+      "library": {
+        "title": "مكتبة الدروس",
+        "searchPlaceholder": "ابحث عن الدروس...",
+        "filterByUnit": "تصفية حسب الوحدة",
+        "allUnits": "جميع الوحدات",
+        "noLessons": "لا توجد دروس متاحة",
+        "dragToAdd": "اسحب الدروس إلى الأسابيع للتخطيط"
+      },
+      "week": {
+        "label": "الأسبوع {index}",
+        "dateRange": "{start} - {end}",
+        "holidayWarning": "{count} عطلة في هذا الأسبوع",
+        "capacityWarning": "يتجاوز الحصص المتاحة",
+        "availablePeriods": "{available} حصة متاحة",
+        "plannedItems": "{count} درس مخطط"
+      },
+      "status": {
+        "PLANNED": "مخطط",
+        "IN_PROGRESS": "قيد التنفيذ",
+        "DONE": "منتهي",
+        "SKIPPED": "متخطى"
+      },
+      "actions": {
+        "addToWeek": "إضافة إلى الأسبوع",
+        "move": "نقل",
+        "reorder": "إعادة ترتيب",
+        "remove": "إزالة من الخطة",
+        "editNotes": "تعديل الملاحظات",
+        "markInProgress": "وضع علامة قيد التنفيذ",
+        "markDone": "وضع علامة منتهي",
+        "skip": "تخطي",
+        "markPlanned": "وضع علامة مخطط",
+        "validate": "التحقق",
+        "autoPlan": "تخطيط تلقائي",
+        "publish": "نشر الخطة"
+      },
+      "summary": {
+        "title": "ملخص التقدم",
+        "planned": "مخطط",
+        "inProgress": "قيد التنفيذ",
+        "done": "منتهي",
+        "skipped": "متخطى",
+        "completion": "الإنجاز",
+        "totalLessons": "إجمالي الدروس"
+      },
+      "warnings": {
+        "holidayWeek": "يحتوي هذا الأسبوع على عطلات",
+        "capacityExceeded": "الدروس المخططة تتجاوز الحصص المتاحة",
+        "noTeacher": "لا يوجد معلم معين لهذه المادة",
+        "termClosed": "هذا الفصل مغلق. خطط الدروس للقراءة فقط."
+      },
+      "emptyState": {
+        "noSelection": {
+          "title": "اختر الشعبة والمادة",
+          "message": "يرجى اختيار شعبة ومادة لعرض خطط الدروس"
+        },
+        "noLessons": {
+          "title": "لا توجد دروس في المنهج",
+          "message": "يرجى إضافة دروس إلى المنهج أولاً",
+          "cta": "الذهاب إلى المنهج"
+        },
+        "noPlan": {
+          "title": "لا توجد دروس مخططة",
+          "message": "اسحب الدروس من المكتبة إلى الأسابيع لبدء التخطيط"
+        }
+      },
+      "notesDialog": {
+        "title": "ملاحظات الدرس",
+        "notesAr": "ملاحظات (عربي)",
+        "notesEn": "ملاحظات (إنجليزي)",
+        "save": "حفظ",
+        "cancel": "إلغاء"
+      },
+      "confirmRemove": {
+        "title": "إزالة الدرس",
+        "message": "هل أنت متأكد من إزالة هذا الدرس من الخطة؟",
+        "confirm": "إزالة",
+        "cancel": "إلغاء"
+      },
+      "autoPlanDialog": {
+        "title": "تخطيط تلقائي للدروس",
+        "message": "توزيع جميع دروس المنهج تلقائيًا عبر {weeks} أسبوع؟",
+        "confirm": "تخطيط تلقائي",
+        "cancel": "إلغاء",
+        "success": "تم التخطيط التلقائي للدروس بنجاح",
+        "error": "فشل التخطيط التلقائي للدروس"
+      },
+      "publishDialog": {
+        "title": "نشر خطة الدروس",
+        "message": "نشر خطة الدروس هذه لجعلها مرئية للمعلمين؟",
+        "confirm": "نشر",
+        "cancel": "إلغاء",
+        "success": "تم نشر خطة الدروس بنجاح",
+        "error": "فشل نشر خطة الدروس"
+      },
+      "validation": {
+        "noIssues": "لا توجد مشاكل",
+        "issuesFound": "تم العثور على {count} مشكلة",
+        "viewDetails": "عرض التفاصيل"
+      },
+      "readOnlyBanner": "هذا الفصل مغلق. خطط الدروس للقراءة فقط."
+    }
+   },
    
   "upload": {
     "dragHereTitle": "اسحب الملفات هنا",

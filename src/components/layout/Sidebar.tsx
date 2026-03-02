@@ -143,7 +143,7 @@ export default function Sidebar({
       className={`fixed z-50 h-screen bg-white flex flex-col transition-all duration-300 ease-in-out
       ${isRTL ? "right-0 border-l" : "left-0 border-r"} border-gray-200
       ${isOpen ? "translate-x-0" : isRTL ? "translate-x-full lg:translate-x-0" : "-translate-x-full lg:translate-x-0"}
-      ${isOpen ? "w-[280px] max-w-[80vw] p-2" : "lg:w-20 lg:px-3"}`}
+      ${isOpen ? "w-[260px] max-w-[80vw] p-2" : "lg:w-20 lg:px-3"}`}
     >
       {/* Toggle Button (fixed top) */}
       <button
