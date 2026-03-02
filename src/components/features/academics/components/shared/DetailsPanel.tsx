@@ -114,10 +114,9 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
     };
   }, [selectedKey, selectedNode, isDirty, loadNodeData]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- onDirtyChange is a callback prop, parent should memoize if needed
   useEffect(() => {
     onDirtyChange?.(isDirty);
-  }, [isDirty]);
+  }, [isDirty, onDirtyChange]);
 
   const handleChange = (field: string, value: unknown) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

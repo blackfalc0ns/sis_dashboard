@@ -231,8 +231,14 @@ export default function AssignmentBuilderPage({
   }, [questionDraft, isQuestionDirty, updateQuestion, questions, setQuestions, showSuccess, showError, tCommon, tValidation]);
 
   const handlePublishToggle = useCallback(async () => {
+    // Check if there are unsaved changes
+    if (isDirty) {
+      showError(t("mustSaveBeforePublish"));
+      return;
+    }
+    
     await togglePublish();
-  }, [togglePublish]);
+  }, [togglePublish, isDirty, showError, t]);
 
   const handleDelete = useCallback(async () => {
     if (!assignment) return;

@@ -865,6 +865,22 @@ function StickyHeader({
 // ============================================
 // DESKTOP LAYOUT (3-COLUMN)
 // ============================================
+interface ValidationErrors {
+  titleAr?: string;
+  titleEn?: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
+  maxScore?: string;
+  questions?: Record<string, {
+    textAr?: string;
+    textEn?: string;
+    points?: string;
+    options?: string;
+    correctAnswer?: string;
+  }>;
+  general?: string[];
+}
+
 interface LayoutProps {
   questions: AssignmentQuestion[];
   selectedQuestionId: string | null;
@@ -877,11 +893,11 @@ interface LayoutProps {
   totalPoints: number;
   pointsDifference: number;
   pointsMatch: boolean;
-  validationErrors: Record<string, string | Record<string, string>>;
-  onAddQuestion: () => void;
-  onUpdateQuestion: (updates: Partial<AssignmentQuestion>) => void;
-  onDeleteQuestion: () => void;
-  onMoveQuestion: (direction: "up" | "down") => void;
+  validationErrors: ValidationErrors;
+  onAddQuestion: () => Promise<void>;
+  onUpdateQuestion: (questionId: string, updates: Partial<AssignmentQuestion>) => Promise<void>;
+  onDeleteQuestion: (questionId: string) => Promise<void>;
+  onMoveQuestion: (questionId: string, direction: "up" | "down") => Promise<void>;
   onAutoDistributePoints: () => void;
   onUploadFile: (file: File) => Promise<void>;
   onAddLink: (title: string, url: string) => Promise<void>;
@@ -1052,8 +1068,8 @@ function DesktopLayout({
 // MOBILE LAYOUT (TABS)
 // ============================================
 interface MobileLayoutProps extends LayoutProps {
-  mobileTab: number;
-  setMobileTab: (tab: number) => void;
+  mobileTab: "questions" | "settings" | "attachments";
+  setMobileTab: (tab: "questions" | "settings" | "attachments") => void;
   questionsDrawerOpen: boolean;
   setQuestionsDrawerOpen: (open: boolean) => void;
 }
@@ -1389,7 +1405,7 @@ interface AssignmentSettingsProps {
   onAutoDistributePoints: () => void;
   isReadOnly: boolean;
   markDirty: () => void;
-  validationErrors: Record<string, string | Record<string, string>>;
+  validationErrors: ValidationErrors;
   t: (key: string) => string;
   tQuestions: (key: string) => string;
   tValidation: (key: string) => string;
@@ -1485,9 +1501,9 @@ function AssignmentSettings({
 
           <DatePicker
             label={tQuestions("due_date")}
-            value={assignment.dueDate || null}
+            value={assignment.dueDate ? new Date(assignment.dueDate) : null}
             onChange={(date) => {
-              setAssignment({ ...assignment, dueDate: date });
+              setAssignment({ ...assignment, dueDate: date ? date.toISOString().split('T')[0] : undefined });
               markDirty();
             }}
             disabled={isReadOnly}

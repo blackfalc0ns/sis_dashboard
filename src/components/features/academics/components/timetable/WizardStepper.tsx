@@ -35,14 +35,16 @@ export default function WizardStepper({ steps, activeStep, locale }: WizardStepp
             style={{
               width: `${(activeStep / (steps.length - 1)) * 100}%`,
               transformOrigin: isRTL ? "right" : "left",
+              marginLeft: isRTL ? "auto" : "0",
+              marginRight: isRTL ? "0" : "auto",
             }}
           />
         </div>
 
         {/* Steps - Reverse order for RTL */}
-        {(isRTL ? [...steps].reverse() : steps).map((step, displayIndex) => {
+        {( steps).map((step, displayIndex) => {
           // Calculate actual index based on RTL
-          const actualIndex = isRTL ? steps.length - 1 - displayIndex : displayIndex;
+          const actualIndex =  displayIndex;
           const isActive = actualIndex === activeStep;
           const isCompleted = actualIndex < activeStep;
 

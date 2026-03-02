@@ -118,7 +118,6 @@ export default function CurriculumEditor({
     }
   }, [selectedNode, units, lessons]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- onDirtyChange is a callback prop, parent should memoize if needed
   useEffect(() => {
     const dirty = JSON.stringify(formData) !== JSON.stringify(originalData);
     setIsDirty(dirty);

@@ -334,7 +334,8 @@ export const validateAllocations = async (
   
   // Check for missing allocations
   structureData.grades?.forEach((grade) => {
-    grade.sections?.forEach((section) => {
+    const gradeSections = structureData.sections?.filter((s) => s.gradeId === grade.id) || [];
+    gradeSections.forEach((section) => {
       // For each subject that has weekly hours for this grade
       subjectAllocations.forEach((subjectAlloc) => {
         if (subjectAlloc.gradeId === grade.id && subjectAlloc.weeklyHours > 0) {

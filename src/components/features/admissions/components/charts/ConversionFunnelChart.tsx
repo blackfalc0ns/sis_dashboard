@@ -131,10 +131,11 @@ export default function ConversionFunnelChart({
             >
               <LabelList
                 position="center"
-                content={(props: { x?: number; y?: number; width?: number; height?: number; value?: number; name?: string }) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                content={(props: any) => {
                   const { x = 0, y = 0, width = 0, height = 0, value, name } = props;
-                  const centerX = x + width / 2;
-                  const centerY = y + height / 2;
+                  const centerX = Number(x) + Number(width) / 2;
+                  const centerY = Number(y) + Number(height) / 2;
                   
                   return (
                     <g>

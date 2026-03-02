@@ -152,13 +152,6 @@ export default function TimetableView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [termId, academicYearId]);
 
-  // Load timetable when section changes
-  useEffect(() => {
-    if (selectedSectionId) {
-      loadTimetable();
-    }
-  }, [selectedSectionId, termId, loadTimetable]);
-
   // Resolve config when section or configs change
   useEffect(() => {
     if (selectedSectionId && configs.length > 0 && sections.length > 0) {
@@ -242,26 +235,6 @@ export default function TimetableView({
     }
   };
 
-  const loadTimetable = useCallback(async () => {
-    if (!selectedSectionId) return;
-
-    try {
-      const entries = await fetchTimetable(termId, selectedSectionId);
-      setTimetableEntries(entries);
-      setIsDirty(false);
-      
-      // Check if timetable is published
-      const published = entries.length > 0 && entries.every((e) => e.status === "PUBLISHED");
-      setIsPublished(published);
-      
-      // Calculate validation
-      calculateValidation(entries);
-    } catch (error) {
-      console.error("Failed to load timetable:", error);
-      showToast("Failed to load timetable", "error");
-    }
-  }, [selectedSectionId, termId, calculateValidation, showToast]);
-
   const calculateValidation = useCallback(
     (entries: TimetableEntry[]) => {
       // Calculate subject hours summary
@@ -320,6 +293,33 @@ export default function TimetableView({
       rooms,
     ]
   );
+
+  const loadTimetable = useCallback(async () => {
+    if (!selectedSectionId) return;
+
+    try {
+      const entries = await fetchTimetable(termId, selectedSectionId);
+      setTimetableEntries(entries);
+      setIsDirty(false);
+      
+      // Check if timetable is published
+      const published = entries.length > 0 && entries.every((e) => e.status === "PUBLISHED");
+      setIsPublished(published);
+      
+      // Calculate validation
+      calculateValidation(entries);
+    } catch (error) {
+      console.error("Failed to load timetable:", error);
+      showToast("Failed to load timetable", "error");
+    }
+  }, [selectedSectionId, termId, calculateValidation, showToast]);
+
+  // Load timetable when section changes
+  useEffect(() => {
+    if (selectedSectionId) {
+      loadTimetable();
+    }
+  }, [selectedSectionId, termId, loadTimetable]);
 
   // Helper function to check if a day is a holiday
   const isHolidayDay = useCallback((dayKey: string): boolean => {

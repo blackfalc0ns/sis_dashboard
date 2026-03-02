@@ -79,7 +79,6 @@ export default function KPICardsExample() {
             currentMonth="Jul 23"
             previousValue={582}
             data={monthlyData}
-            highlightIndex={6}
           />
 
           {/* Revenue Card */}
@@ -90,7 +89,6 @@ export default function KPICardsExample() {
             previousValue={4702}
             data={revenueData}
             valuePrefix="$"
-            highlightIndex={6}
           />
 
           {/* Sessions Card */}
@@ -100,7 +98,6 @@ export default function KPICardsExample() {
             currentMonth="Jul 23"
             previousValue={786}
             data={sessionsData}
-            highlightIndex={6}
           />
         </div>
       </section>
@@ -118,7 +115,6 @@ export default function KPICardsExample() {
             currentMonth="Mar 23"
             previousValue={431}
             data={monthlyData}
-            highlightIndex={2}
           />
 
           {/* With suffix example */}
@@ -129,7 +125,6 @@ export default function KPICardsExample() {
             previousValue={389}
             data={monthlyData}
             valueSuffix="K"
-            highlightIndex={8}
           />
         </div>
       </section>

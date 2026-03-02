@@ -2604,6 +2604,7 @@
         "confirmDelete": "Are you sure you want to delete this assignment?",
         "confirmReset": "Are you sure you want to reset this assignment? All unsaved changes will be lost.",
         "notFound": "Assignment not found",
+        "mustSaveBeforePublish": "You must save changes before publishing",
         "questionsOutline": "Questions Outline",
         "noQuestionsYet": "No questions yet. Add your first question to get started.",
         "assignmentDetails": "Assignment Details",
