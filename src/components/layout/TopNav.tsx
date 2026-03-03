@@ -51,7 +51,7 @@ export default function TopNav({
           {/* Title (takes available space, truncates on small screens) */}
           <div className="min-w-fit lg:flex-0 sm:flex-1 flex-1">
             <div className="flex items-center gap-2 min-w-0">
-              <h1 className="text-lg sm:text-sm md:text-2xl font-bold text-gray-900 truncate ">
+              <h1 className="sm:text-sm md:text-lg lg:text-2xl font-bold text-gray-900 truncate">
                 {t("hello_school_alarm")}
               </h1>
               <span className="text-xl sm:text-2xl shrink-0">👋</span>
