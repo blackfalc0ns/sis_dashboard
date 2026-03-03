@@ -134,7 +134,9 @@ export const fetchLessonPlans = async (
 ): Promise<LessonPlan[]> => {
   await delay(300);
   const key = getPlanKey(termId, sectionId, subjectId);
-  return plansByKey[key] || [];
+  const plans = plansByKey[key] || [];
+  // Return a deep copy to ensure React detects changes
+  return JSON.parse(JSON.stringify(plans));
 };
 
 /**

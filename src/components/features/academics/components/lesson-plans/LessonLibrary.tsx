@@ -32,7 +32,7 @@ export default function LessonLibrary({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUnitId, setSelectedUnitId] = useState<string>("");
 
-  // Get planned lesson IDs
+  // Get planned lesson IDs - recalculate whenever plans change
   const plannedLessonIds = useMemo(() => {
     const ids = new Set<string>();
     plans.forEach((plan) => {

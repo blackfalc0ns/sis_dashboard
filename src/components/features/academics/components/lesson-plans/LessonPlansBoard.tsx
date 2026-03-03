@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Lesson, Unit } from "@/services/academics/curriculumService";
 import { LessonPlan, WeekInfo, LessonPlanSummary } from "@/services/academics/lessonPlansService";
@@ -49,6 +49,9 @@ export default function LessonPlansBoard({
   const t = useTranslations("academics.lessonPlans");
   const { showError, showSuccess } = useToast();
 
+  // Local loading state for operations
+  const [isUpdating, setIsUpdating] = useState(false);
+
   // Dialog states
   const [notesDialog, setNotesDialog] = useState<{
     isOpen: boolean;
@@ -92,8 +95,9 @@ export default function LessonPlansBoard({
 
   // Handle drop on week
   const handleDropOnWeek = useCallback(async (weekIndex: number) => {
-    if (isReadOnly) return;
+    if (isReadOnly || isUpdating) return;
 
+    setIsUpdating(true);
     try {
       if (draggedLesson) {
         // Adding new lesson from library
@@ -107,8 +111,9 @@ export default function LessonPlansBoard({
           unitId: draggedLesson.unitId,
           status: "PLANNED",
         });
+        setDraggedLesson(null); // Clear drag state immediately
+        await onUpdate(); // Wait for update to complete
         showSuccess("Saved successfully");
-        onUpdate();
       } else if (draggedItem) {
         // Moving existing item
         if (draggedItem.fromWeekIndex !== weekIndex) {
@@ -119,16 +124,25 @@ export default function LessonPlansBoard({
             draggedItem.itemId,
             weekIndex
           );
+          setDraggedItem(null); // Clear drag state immediately
+          await onUpdate(); // Wait for update to complete
           showSuccess("Saved successfully");
-          onUpdate();
+        } else {
+          setDraggedItem(null); // Clear drag state even if not moved
         }
       }
     } catch (error) {
       console.error("Failed to drop:", error);
       showError("Failed to save");
+      // Clear drag state on error too
+      setDraggedLesson(null);
+      setDraggedItem(null);
+    } finally {
+      setIsUpdating(false);
     }
   }, [
     isReadOnly,
+    isUpdating,
     draggedLesson,
     draggedItem,
     termId,
@@ -161,17 +175,20 @@ export default function LessonPlansBoard({
     itemId: string,
     status: "PLANNED" | "IN_PROGRESS" | "DONE" | "SKIPPED"
   ) => {
-    if (isReadOnly) return;
+    if (isReadOnly || isUpdating) return;
 
+    setIsUpdating(true);
     try {
       await updateLessonPlanItemStatus(termId, sectionId, subjectId, itemId, status);
+      await onUpdate(); // Wait for update to complete
       showSuccess("Saved successfully");
-      onUpdate();
     } catch (error) {
       console.error("Failed to update status:", error);
       showError("Failed to save");
+    } finally {
+      setIsUpdating(false);
     }
-  }, [isReadOnly, termId, sectionId, subjectId, showSuccess, showError, onUpdate]);
+  }, [isReadOnly, isUpdating, termId, sectionId, subjectId, showSuccess, showError, onUpdate]);
 
   // Handle edit notes
   const handleEditNotes = useCallback((
@@ -183,6 +200,9 @@ export default function LessonPlansBoard({
   }, []);
 
   const handleSaveNotes = useCallback(async (notesAr: string, notesEn: string) => {
+    if (isUpdating) return;
+
+    setIsUpdating(true);
     try {
       await updateLessonPlanItemNotes(
         termId,
@@ -192,14 +212,17 @@ export default function LessonPlansBoard({
         notesAr,
         notesEn
       );
-      showSuccess("Saved successfully");
       setNotesDialog({ isOpen: false, itemId: "" });
-      onUpdate();
+      await onUpdate(); // Wait for update to complete
+      showSuccess("Saved successfully");
     } catch (error) {
       console.error("Failed to save notes:", error);
       showError("Failed to save");
+    } finally {
+      setIsUpdating(false);
     }
   }, [
+    isUpdating,
     termId,
     sectionId,
     subjectId,
@@ -215,18 +238,22 @@ export default function LessonPlansBoard({
   }, []);
 
   const handleConfirmRemove = useCallback(async () => {
-    if (!confirmDialog.itemId) return;
+    if (!confirmDialog.itemId || isUpdating) return;
 
+    setIsUpdating(true);
     try {
       await deleteLessonPlanItem(termId, sectionId, subjectId, confirmDialog.itemId);
-      showSuccess("Saved successfully");
       setConfirmDialog({ isOpen: false, type: null });
-      onUpdate();
+      await onUpdate(); // Wait for update to complete
+      showSuccess("Saved successfully");
     } catch (error) {
       console.error("Failed to remove:", error);
       showError("Failed to save");
+    } finally {
+      setIsUpdating(false);
     }
   }, [
+    isUpdating,
     termId,
     sectionId,
     subjectId,
@@ -235,6 +262,18 @@ export default function LessonPlansBoard({
     showError,
     onUpdate,
   ]);
+
+  // Calculate a hash of planned lesson IDs for key generation
+  const plannedLessonsHash = useMemo(() => {
+    const allLessonIds: string[] = [];
+    plans.forEach((plan) => {
+      plan.items.forEach((item) => {
+        allLessonIds.push(item.lessonId);
+      });
+    });
+    // Sort to ensure consistent hash
+    return allLessonIds.sort().join(',');
+  }, [plans]);
 
   return (
     <div className="space-y-6">
@@ -246,12 +285,13 @@ export default function LessonPlansBoard({
         {/* Lesson Library */}
         <div className="w-80 shrink-0">
           <LessonLibrary
+            key={plannedLessonsHash}
             lessons={lessons}
             units={units}
             plans={plans}
             onDragStart={handleDragStartLesson}
             onDragEnd={handleDragEndLesson}
-            isReadOnly={isReadOnly}
+            isReadOnly={isReadOnly || isUpdating}
           />
         </div>
 
@@ -265,9 +305,11 @@ export default function LessonPlansBoard({
             <div className="flex gap-4 pb-4 flex-wrap">
               {weeks.map((week) => {
                 const weekPlan = plans.find((p) => p.weekIndex === week.weekIndex);
+                // Create a unique key that includes the plan items count to force re-render
+                const planKey = `${week.weekIndex}-${weekPlan?.items.length || 0}`;
                 return (
                   <WeekColumn
-                    key={week.weekIndex}
+                    key={planKey}
                     week={week}
                     plan={weekPlan}
                     lessons={lessons}
@@ -277,10 +319,11 @@ export default function LessonPlansBoard({
                     onStatusChange={handleStatusChange}
                     onEditNotes={handleEditNotes}
                     onRemove={handleRemove}
-                    isReadOnly={isReadOnly}
+                    isReadOnly={isReadOnly || isUpdating}
                     isDragOver={
                       (draggedLesson !== null || draggedItem !== null) &&
-                      !isReadOnly
+                      !isReadOnly &&
+                      !isUpdating
                     }
                   />
                 );

@@ -25,10 +25,9 @@ import LessonPlansBoard from "../lesson-plans/LessonPlansBoard";
 export default function LessonPlansPage() {
   const t = useTranslations("academics.lessonPlans");
   const tCommon = useTranslations("common");
-  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { showError, showSuccess } = useToast();
+  const { showError } = useToast();
 
   // URL params - Academic Context
   const [academicYearId, setAcademicYearId] = useState("");
@@ -290,22 +289,19 @@ export default function LessonPlansPage() {
     setSelectedSubjectId(subjectId);
   }, []);
 
-  const handlePlansUpdate = useCallback(() => {
+  const handlePlansUpdate = useCallback(async () => {
     // Reload plans after changes
     if (termId && selectedSectionId && selectedSubjectId) {
-      const reload = async () => {
-        try {
-          const [plansData, summaryData] = await Promise.all([
-            fetchLessonPlans(termId, selectedSectionId, selectedSubjectId),
-            getLessonPlanSummary(termId, selectedSectionId, selectedSubjectId),
-          ]);
-          setPlans(plansData);
-          setSummary(summaryData);
-        } catch (error) {
-          console.error("Failed to reload plans:", error);
-        }
-      };
-      reload();
+      try {
+        const [plansData, summaryData] = await Promise.all([
+          fetchLessonPlans(termId, selectedSectionId, selectedSubjectId),
+          getLessonPlanSummary(termId, selectedSectionId, selectedSubjectId),
+        ]);
+        setPlans(plansData);
+        setSummary(summaryData);
+      } catch (error) {
+        console.error("Failed to reload plans:", error);
+      }
     }
   }, [termId, selectedSectionId, selectedSubjectId]);
 
