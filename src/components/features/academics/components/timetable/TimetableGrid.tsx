@@ -159,14 +159,14 @@ export default function TimetableGrid({
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-50">
-                <th className="sticky top-0 left-0 z-20 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-900 min-w-[100px]">
+                <th className="sticky top-0 left-0 z-20 bg-primary-200 border-b border-r border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-900 min-w-[100px]">
                   {t("period")}
                 </th>
                 {activeDays.map((day) => (
                   <th
                     key={day.key}
                     className={`sticky top-0 z-10 border-b border-r border-gray-200 px-4 py-3 text-center text-sm font-semibold min-w-[180px] ${
-                      isHolidayDay(day.key) ? "bg-red-50 text-red-700" : "bg-gray-50 text-gray-900"
+                      isHolidayDay(day.key) ? "bg-red-50 text-red-700" : "bg-primary-200 text-gray-900"
                     }`}
                   >
                     <div className="flex flex-col items-center gap-1">
@@ -184,7 +184,7 @@ export default function TimetableGrid({
             <tbody>
               {periods.map((period) => (
                 <tr key={period.index} className="hover:bg-gray-50/50">
-                  <td className="sticky left-0 z-10 bg-white border-b border-r border-gray-200 px-4 py-4 text-sm font-medium text-gray-900">
+                  <td className="sticky left-0 z-10 border-b border-r border-gray-200 px-4 py-4 text-sm font-medium text-gray-900 bg-primary-50 ">
                     <div className="flex flex-col">
                       <span>{locale === "ar" ? period.nameAr : period.nameEn}</span>
                       {period.startTime && period.endTime && (

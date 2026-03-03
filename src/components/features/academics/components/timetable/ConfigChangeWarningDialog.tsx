@@ -31,7 +31,7 @@ export default function ConfigChangeWarningDialog({
       title={t("changeWarning.title")}
       icon={<AlertTriangle className="w-6 h-6" />}
       variant="danger"
-      size="sm"
+      size="xl"
       footer={
         <>
           <Button onClick={onClose} variant="secondary">

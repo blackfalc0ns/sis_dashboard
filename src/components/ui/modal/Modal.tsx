@@ -26,7 +26,7 @@ export default function Modal({
   onClose,
   title,
   children,
-  size = "md",
+  size = "lg",
   showCloseButton = true,
   closeOnOverlayClick = true,
   closeOnEscape = true,
@@ -78,10 +78,10 @@ export default function Modal({
 
   // Size classes
   const sizeClasses = {
-    sm: "max-w-sm",
-    md: "max-w-md",
-    lg: "max-w-lg",
-    xl: "max-w-xl",
+    sm: "max-w-md",
+    md: "max-w-xl",
+    lg: "max-w-2xl",
+    xl: "max-w-3xl",
     full: "max-w-full mx-4",
   };
 
