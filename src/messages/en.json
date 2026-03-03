@@ -3173,11 +3173,19 @@
       "title": "Lesson Plans",
       "subtitle": "Plan and track lessons across weeks",
       "filters": {
+        "title": "Filters",
         "stage": "Stage",
         "grade": "Grade",
         "section": "Section",
         "subject": "Subject",
-        "teacher": "Teacher"
+        "teacher": "Teacher",
+        "assignedTeacher": "Assigned Teacher",
+        "selectStage": "Select Stage",
+        "selectGrade": "Select Grade",
+        "selectSection": "Select Section",
+        "selectSubject": "Select Subject",
+        "apply": "Apply Filters",
+        "clear": "Clear Filters"
       },
       "views": {
         "weeklyBoard": "Weekly Board",
@@ -3189,7 +3197,25 @@
         "filterByUnit": "Filter by unit",
         "allUnits": "All Units",
         "noLessons": "No lessons available",
-        "dragToAdd": "Drag lessons to weeks to plan"
+        "dragToAdd": "Drag lessons to weeks to plan",
+        "tapToAdd": "Tap a lesson to add it to a week",
+        "planned": "Planned"
+      },
+      "mobile": {
+        "openFilters": "Filters",
+        "openLibrary": "Library",
+        "selectWeek": "Select Week",
+        "addToWeek": "Add to Week",
+        "chooseWeek": "Choose a week",
+        "week": "Week",
+        "weekAccordion": "Week {index}",
+        "addLesson": "Add Lesson",
+        "confirm": "Add",
+        "cancel": "Cancel",
+        "applyFilters": "Apply Filters",
+        "clearFilters": "Clear",
+        "tapToAdd": "Tap a lesson to add it to a week",
+        "planned": "Planned"
       },
       "week": {
         "label": "Week {index}",

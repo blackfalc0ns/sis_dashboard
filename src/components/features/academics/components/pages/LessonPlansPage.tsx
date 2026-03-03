@@ -1,33 +1,40 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Alert, AlertTitle, CircularProgress } from "@mui/material";
+import { Alert, AlertTitle, CircularProgress, useMediaQuery, useTheme } from "@mui/material";
 import { useToast } from "@/components/ui/toast/Toast";
 import ContextBar from "../shared/ContextBar";
-import { fetchStructureTree, fetchTermsByYear, fetchAcademicYears, Term } from "@/services/academics/structureService";
+import { fetchStructureTree, fetchTermsByYear, fetchAcademicYears, Term, Stage, Grade, Section } from "@/services/academics/structureService";
 import { fetchSubjects, Subject } from "@/services/academics/subjectsService";
 import { fetchTeacherAllocations, Teacher, fetchTeachers } from "@/services/academics/teacherAllocationService";
-import { fetchTermEvents, AcademicEvent } from "@/services/academics/calendarService";
+import { fetchTermEvents } from "@/services/academics/calendarService";
 import { fetchCurriculum, fetchAllLessons, Lesson, Unit, fetchUnits } from "@/services/academics/curriculumService";
 import {
   fetchLessonPlans,
   computeTermWeeks,
   getLessonPlanSummary,
+  upsertLessonPlanItem,
   LessonPlan,
   WeekInfo,
   LessonPlanSummary,
 } from "@/services/academics/lessonPlansService";
 import LessonPlansFilters from "../lesson-plans/LessonPlansFilters";
 import LessonPlansBoard from "../lesson-plans/LessonPlansBoard";
+import FiltersDrawer from "../lesson-plans/FiltersDrawer";
+import LessonLibraryDrawer from "../lesson-plans/LessonLibraryDrawer";
+import AddLessonDialog from "../lesson-plans/AddLessonDialog";
+import MobileBottomBar from "../lesson-plans/MobileBottomBar";
 
 export default function LessonPlansPage() {
   const t = useTranslations("academics.lessonPlans");
   const tCommon = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   // URL params - Academic Context
   const [academicYearId, setAcademicYearId] = useState("");
@@ -39,9 +46,9 @@ export default function LessonPlansPage() {
   const [terms, setTerms] = useState<Term[]>([]);
 
   // Structure data
-  const [stages, setStages] = useState<any[]>([]);
-  const [grades, setGrades] = useState<any[]>([]);
-  const [sections, setSections] = useState<any[]>([]);
+  const [stages, setStages] = useState<Stage[]>([]);
+  const [grades, setGrades] = useState<Grade[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
 
@@ -54,7 +61,6 @@ export default function LessonPlansPage() {
   // Curriculum data
   const [units, setUnits] = useState<Unit[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [curriculumId, setCurriculumId] = useState<string>("");
 
   // Lesson plans data
   const [plans, setPlans] = useState<LessonPlan[]>([]);
@@ -65,6 +71,15 @@ export default function LessonPlansPage() {
   // Loading states
   const [loading, setLoading] = useState(true);
   const [plansLoading, setPlansLoading] = useState(false);
+
+  // Mobile drawer states
+  const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
+  const [libraryDrawerOpen, setLibraryDrawerOpen] = useState(false);
+  const [addLessonDialog, setAddLessonDialog] = useState<{
+    isOpen: boolean;
+    lesson: Lesson | null;
+    preselectedWeekIndex?: number;
+  }>({ isOpen: false, lesson: null });
 
   // Initialize from URL
   useEffect(() => {
@@ -175,14 +190,12 @@ export default function LessonPlansPage() {
       if (!termId || !selectedGradeId || !selectedSubjectId) {
         setUnits([]);
         setLessons([]);
-        setCurriculumId("");
         return;
       }
 
       try {
         const curriculum = await fetchCurriculum(termId, selectedGradeId, selectedSubjectId);
         if (curriculum) {
-          setCurriculumId(curriculum.id);
           const [unitsData, lessonsData] = await Promise.all([
             fetchUnits(curriculum.id),
             fetchAllLessons(curriculum.id),
@@ -192,7 +205,6 @@ export default function LessonPlansPage() {
         } else {
           setUnits([]);
           setLessons([]);
-          setCurriculumId("");
         }
       } catch (error) {
         console.error("Failed to load curriculum:", error);
@@ -305,6 +317,74 @@ export default function LessonPlansPage() {
     }
   }, [termId, selectedSectionId, selectedSubjectId]);
 
+  // Mobile handlers
+  const handleApplyFilters = useCallback((filters: {
+    stageId: string;
+    gradeId: string;
+    sectionId: string;
+    subjectId: string;
+  }) => {
+    setSelectedStageId(filters.stageId);
+    setSelectedGradeId(filters.gradeId);
+    setSelectedSectionId(filters.sectionId);
+    setSelectedSubjectId(filters.subjectId);
+  }, []);
+
+  const handleSelectLessonFromLibrary = useCallback((lesson: Lesson) => {
+    setAddLessonDialog((prev) => ({ 
+      isOpen: true, 
+      lesson, 
+      preselectedWeekIndex: prev.preselectedWeekIndex 
+    }));
+    setLibraryDrawerOpen(false);
+  }, []);
+
+  const handleAddLessonFromWeek = useCallback((weekIndex: number) => {
+    setLibraryDrawerOpen(true);
+    // Store the week index for later use
+    setAddLessonDialog((prev) => ({ ...prev, preselectedWeekIndex: weekIndex }));
+  }, []);
+
+  const handleConfirmAddLesson = useCallback(async (lessonId: string, weekIndex: number) => {
+    if (!termId || !selectedSectionId || !selectedSubjectId) {
+      console.error("Missing required IDs:", { termId, selectedSectionId, selectedSubjectId });
+      return;
+    }
+
+    try {
+      const lesson = lessons.find((l) => l.id === lessonId);
+      if (!lesson) {
+        console.error("Lesson not found:", lessonId);
+        return;
+      }
+
+      console.log("Adding lesson to plan:", { lessonId, weekIndex, lesson, assignedTeacherId });
+
+      await upsertLessonPlanItem({
+        termId,
+        sectionId: selectedSectionId,
+        subjectId: selectedSubjectId,
+        teacherId: assignedTeacherId || undefined,
+        weekIndex,
+        lessonId: lesson.id,
+        unitId: lesson.unitId,
+        status: "PLANNED",
+      });
+
+      console.log("Lesson added, updating plans...");
+      await handlePlansUpdate();
+      console.log("Plans updated");
+      
+      showSuccess("Saved successfully");
+      setAddLessonDialog({ isOpen: false, lesson: null });
+    } catch (error) {
+      console.error("Failed to add lesson:", error);
+      showError("Failed to save");
+    }
+  }, [termId, selectedSectionId, selectedSubjectId, assignedTeacherId, lessons, handlePlansUpdate, showSuccess, showError]);
+
+  const hasFilters = !!(selectedStageId || selectedGradeId || selectedSectionId || selectedSubjectId);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -337,25 +417,27 @@ export default function LessonPlansPage() {
         )}
 
         {/* Filters */}
-        <LessonPlansFilters
-          stages={stages}
-          grades={filteredGrades}
-          sections={filteredSections}
-          subjects={subjects}
-          teachers={teachers}
-          selectedStageId={selectedStageId}
-          selectedGradeId={selectedGradeId}
-          selectedSectionId={selectedSectionId}
-          selectedSubjectId={selectedSubjectId}
-          assignedTeacherId={assignedTeacherId}
-          onStageChange={handleStageChange}
-          onGradeChange={handleGradeChange}
-          onSectionChange={handleSectionChange}
-          onSubjectChange={handleSubjectChange}
-        />
+        {!isMobile && (
+          <LessonPlansFilters
+            stages={stages}
+            grades={filteredGrades}
+            sections={filteredSections}
+            subjects={subjects}
+            teachers={teachers}
+            selectedStageId={selectedStageId}
+            selectedGradeId={selectedGradeId}
+            selectedSectionId={selectedSectionId}
+            selectedSubjectId={selectedSubjectId}
+            assignedTeacherId={assignedTeacherId}
+            onStageChange={handleStageChange}
+            onGradeChange={handleGradeChange}
+            onSectionChange={handleSectionChange}
+            onSubjectChange={handleSubjectChange}
+          />
+        )}
 
         {/* Main content */}
-        <div className="p-6">
+        <div className={isMobile ? "p-4 pb-24" : "p-6"}>
           {!selectedSectionId || !selectedSubjectId ? (
             <div className="text-center py-12">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -390,10 +472,62 @@ export default function LessonPlansPage() {
               summary={summary}
               isReadOnly={isReadOnly}
               onUpdate={handlePlansUpdate}
+              onAddLessonMobile={handleAddLessonFromWeek}
             />
           )}
         </div>
       </div>
+
+      {/* Mobile Drawers and Bottom Bar - Always render when mobile */}
+      {isMobile && (
+        <>
+          <FiltersDrawer
+            isOpen={filtersDrawerOpen}
+            onClose={() => setFiltersDrawerOpen(false)}
+            stages={stages}
+            grades={filteredGrades}
+            sections={filteredSections}
+            subjects={subjects}
+            teachers={teachers}
+            selectedStageId={selectedStageId}
+            selectedGradeId={selectedGradeId}
+            selectedSectionId={selectedSectionId}
+            selectedSubjectId={selectedSubjectId}
+            assignedTeacherId={assignedTeacherId}
+            onApply={handleApplyFilters}
+          />
+
+          <LessonLibraryDrawer
+            isOpen={libraryDrawerOpen}
+            onClose={() => {
+              setLibraryDrawerOpen(false);
+              // Clear preselected week when closing without selection
+              setAddLessonDialog((prev) => ({ ...prev, preselectedWeekIndex: undefined }));
+            }}
+            lessons={lessons}
+            units={units}
+            plans={plans}
+            onSelectLesson={handleSelectLessonFromLibrary}
+            isReadOnly={isReadOnly}
+          />
+
+          <AddLessonDialog
+            isOpen={addLessonDialog.isOpen}
+            lesson={addLessonDialog.lesson}
+            weeks={weeks}
+            preselectedWeekIndex={addLessonDialog.preselectedWeekIndex}
+            onClose={() => setAddLessonDialog({ isOpen: false, lesson: null })}
+            onConfirm={handleConfirmAddLesson}
+          />
+
+          <MobileBottomBar
+            onOpenFilters={() => setFiltersDrawerOpen(true)}
+            onOpenLibrary={() => setLibraryDrawerOpen(true)}
+            hasFilters={hasFilters}
+            isReadOnly={isReadOnly}
+          />
+        </>
+      )}
     </div>
   );
 }

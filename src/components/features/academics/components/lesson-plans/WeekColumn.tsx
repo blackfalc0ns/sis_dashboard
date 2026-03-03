@@ -69,7 +69,7 @@ export default function WeekColumn({
   return (
     <div
       className={`
-        w-80 shrink-0 bg-white rounded-lg border transition-all
+         shrink-0 bg-white rounded-lg border transition-all
         ${dragOverColumn && isDragOver
           ? "border-primary border-2 bg-primary/5"
           : "border-gray-200"

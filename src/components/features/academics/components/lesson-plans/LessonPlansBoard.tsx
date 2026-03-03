@@ -2,10 +2,12 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
+import { useMediaQuery, useTheme } from "@mui/material";
 import { Lesson, Unit } from "@/services/academics/curriculumService";
 import { LessonPlan, WeekInfo, LessonPlanSummary } from "@/services/academics/lessonPlansService";
 import LessonLibrary from "./LessonLibrary";
-import WeekColumn from "./WeekColumn";
+import WeeksBoardDesktop from "./WeeksBoardDesktop";
+import WeeksBoardMobile from "./WeeksBoardMobile";
 import ProgressSummary from "./ProgressSummary";
 import NotesDialog from "./NotesDialog";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
@@ -14,7 +16,6 @@ import {
   upsertLessonPlanItem,
   deleteLessonPlanItem,
   moveLessonPlanItem,
-  reorderLessonPlanItems,
   updateLessonPlanItemStatus,
   updateLessonPlanItemNotes,
 } from "@/services/academics/lessonPlansService";
@@ -31,6 +32,7 @@ interface LessonPlansBoardProps {
   summary: LessonPlanSummary | null;
   isReadOnly: boolean;
   onUpdate: () => void;
+  onAddLessonMobile?: (weekIndex: number) => void;
 }
 
 export default function LessonPlansBoard({
@@ -45,9 +47,12 @@ export default function LessonPlansBoard({
   summary,
   isReadOnly,
   onUpdate,
+  onAddLessonMobile,
 }: LessonPlansBoardProps) {
   const t = useTranslations("academics.lessonPlans");
   const { showError, showSuccess } = useToast();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   // Local loading state for operations
   const [isUpdating, setIsUpdating] = useState(false);
@@ -153,22 +158,6 @@ export default function LessonPlansBoard({
     showError,
     onUpdate,
   ]);
-
-  // Handle reorder within week
-  const handleReorderInWeek = useCallback(async (
-    weekIndex: number,
-    orderedItemIds: string[]
-  ) => {
-    if (isReadOnly) return;
-
-    try {
-      await reorderLessonPlanItems(termId, sectionId, subjectId, weekIndex, orderedItemIds);
-      onUpdate();
-    } catch (error) {
-      console.error("Failed to reorder:", error);
-      showError("Failed to save");
-    }
-  }, [isReadOnly, termId, sectionId, subjectId, showError, onUpdate]);
 
   // Handle status change
   const handleStatusChange = useCallback(async (
@@ -281,54 +270,55 @@ export default function LessonPlansBoard({
       {summary && <ProgressSummary summary={summary} />}
 
       {/* Main Board */}
-      <div className="flex gap-6">
-        {/* Lesson Library */}
-        <div className="w-80 shrink-0">
-          <LessonLibrary
-            key={plannedLessonsHash}
-            lessons={lessons}
-            units={units}
-            plans={plans}
-            onDragStart={handleDragStartLesson}
-            onDragEnd={handleDragEndLesson}
-            isReadOnly={isReadOnly || isUpdating}
-          />
-        </div>
+      <div className={isMobile ? "space-y-4" : "flex gap-6"}>
+        {/* Lesson Library - Desktop Only */}
+        {!isMobile && (
+          <div className="w-80 shrink-0">
+            <LessonLibrary
+              key={plannedLessonsHash}
+              lessons={lessons}
+              units={units}
+              plans={plans}
+              onDragStart={handleDragStartLesson}
+              onDragEnd={handleDragEndLesson}
+              isReadOnly={isReadOnly || isUpdating}
+            />
+          </div>
+        )}
 
-        {/* Weeks Grid */}
-        <div className="flex-1 overflow-x-auto">
+        {/* Weeks Grid/List */}
+        <div className="flex-1">
           {weeks.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-600">{t("emptyState.noPlan.message")}</p>
             </div>
+          ) : isMobile ? (
+            <WeeksBoardMobile
+              key={plannedLessonsHash}
+              weeks={weeks}
+              plans={plans}
+              lessons={lessons}
+              isReadOnly={isReadOnly || isUpdating}
+              onStatusChange={handleStatusChange}
+              onEditNotes={handleEditNotes}
+              onRemove={handleRemove}
+              onAddLesson={onAddLessonMobile || (() => {})}
+            />
           ) : (
-            <div className="flex gap-4 pb-4 flex-wrap">
-              {weeks.map((week) => {
-                const weekPlan = plans.find((p) => p.weekIndex === week.weekIndex);
-                // Create a unique key that includes the plan items count to force re-render
-                const planKey = `${week.weekIndex}-${weekPlan?.items.length || 0}`;
-                return (
-                  <WeekColumn
-                    key={planKey}
-                    week={week}
-                    plan={weekPlan}
-                    lessons={lessons}
-                    onDrop={handleDropOnWeek}
-                    onDragStartItem={handleDragStartItem}
-                    onDragEndItem={handleDragEndItem}
-                    onStatusChange={handleStatusChange}
-                    onEditNotes={handleEditNotes}
-                    onRemove={handleRemove}
-                    isReadOnly={isReadOnly || isUpdating}
-                    isDragOver={
-                      (draggedLesson !== null || draggedItem !== null) &&
-                      !isReadOnly &&
-                      !isUpdating
-                    }
-                  />
-                );
-              })}
-            </div>
+            <WeeksBoardDesktop
+              weeks={weeks}
+              plans={plans}
+              lessons={lessons}
+              draggedLesson={draggedLesson}
+              draggedItem={draggedItem}
+              isReadOnly={isReadOnly || isUpdating}
+              onDropOnWeek={handleDropOnWeek}
+              onDragStartItem={handleDragStartItem}
+              onDragEndItem={handleDragEndItem}
+              onStatusChange={handleStatusChange}
+              onEditNotes={handleEditNotes}
+              onRemove={handleRemove}
+            />
           )}
         </div>
       </div>

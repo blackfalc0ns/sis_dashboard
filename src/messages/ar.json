@@ -3175,11 +3175,19 @@
       "title": "خطة الدروس",
       "subtitle": "خطط وتتبع الدروس عبر الأسابيع",
       "filters": {
+        "title": "الفلاتر",
         "stage": "المرحلة",
         "grade": "الصف",
         "section": "الشعبة",
         "subject": "المادة",
-        "teacher": "المعلم"
+        "teacher": "المعلم",
+        "selectStage": "اختر المرحلة",
+        "selectGrade": "اختر الصف",
+        "selectSection": "اختر الشعبة",
+        "selectSubject": "اختر المادة",
+        "assignedTeacher": "المعلم المعين",
+        "apply": "تطبيق",
+        "clear": "مسح"
       },
       "views": {
         "weeklyBoard": "لوحة أسبوعية",
@@ -3191,7 +3199,9 @@
         "filterByUnit": "تصفية حسب الوحدة",
         "allUnits": "جميع الوحدات",
         "noLessons": "لا توجد دروس متاحة",
-        "dragToAdd": "اسحب الدروس إلى الأسابيع للتخطيط"
+        "dragToAdd": "اسحب الدروس إلى الأسابيع للتخطيط",
+        "tapToAdd": "اضغط على درس لإضافته",
+        "planned": "مخطط"
       },
       "week": {
         "label": "الأسبوع {index}",
@@ -3284,6 +3294,22 @@
         "noIssues": "لا توجد مشاكل",
         "issuesFound": "تم العثور على {count} مشكلة",
         "viewDetails": "عرض التفاصيل"
+      },
+      "mobile": {
+        "openFilters": "الفلاتر",
+        "openLibrary": "المكتبة",
+        "selectWeek": "اختر الأسبوع",
+        "addToWeek": "إضافة إلى الأسبوع",
+        "weekAccordion": "الأسبوع {index}",
+        "addLesson": "إضافة درس",
+        "applyFilters": "تطبيق الفلاتر",
+        "clearFilters": "مسح",
+        "week": "الأسبوع",
+        "chooseWeek": "اختر أسبوع",
+        "cancel": "إلغاء",
+        "confirm": "تأكيد",
+        "tapToAdd": "اضغط على درس لإضافته",
+        "planned": "مخطط"
       },
       "readOnlyBanner": "هذا الفصل مغلق. خطط الدروس للقراءة فقط."
     }
