@@ -1,17 +1,13 @@
-"use client";
-
-import { useMemo } from "react";
-import { useParams } from "next/navigation";
 import * as studentsService from "@/services/studentsService";
 import OverviewTab from "@/components/features/students-guardians/components/tabs/student/OverviewTab";
 
-export default function StudentOverviewPage() {
-  const params = useParams();
-  const studentId = params.studentId as string;
-
-  const student = useMemo(() => {
-    return studentsService.getStudentById(studentId);
-  }, [studentId]);
+export default async function StudentOverviewPage({
+  params,
+}: {
+  params: Promise<{ studentId: string }>;
+}) {
+  const { studentId } = await params;
+  const student = studentsService.getStudentById(studentId);
 
   if (!student) {
     return null;

@@ -770,6 +770,7 @@ export default function StudentsList() {
           }
           onRowClick={handleRowClick}
           searchQuery={searchQuery}
+          virtualize = {true}
         />
       )}
 

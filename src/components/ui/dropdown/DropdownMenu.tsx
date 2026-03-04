@@ -109,7 +109,7 @@ export default function DropdownMenu({
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className={`absolute z-[9999] mt-2 ${width} bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn ${
+          className={`absolute z-50 mt-2 ${width} bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn ${
             isRTL ? "left-0" : "right-0"
           }`}
           dir={isRTL ? "rtl" : "ltr"}

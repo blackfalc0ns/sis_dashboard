@@ -35,7 +35,7 @@ export default function FilterBar() {
           return (
             <button
               key={filter.value}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-lg border border-gray-200 hover:border-(--primary-color) transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-lg border border-gray-200 hover:border-primary-600 transition-colors"
             >
               <Icon className="w-4 h-4 text-gray-500" />
               <span className="text-sm font-medium text-gray-700">

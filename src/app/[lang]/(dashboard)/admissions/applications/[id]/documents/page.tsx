@@ -1,18 +1,13 @@
-"use client";
-
-import { useMemo } from "react";
-import { useParams } from "next/navigation";
 import { mockApplications } from "@/data/mockAdmissions";
 import DocumentsTab from "@/components/features/admissions/components/tabs/DocumentsTab";
 
-export default function ApplicationDocumentsPage() {
-  const params = useParams();
-  const applicationId = params.id as string;
-
-  const application = useMemo(
-    () => mockApplications.find((app) => app.id === applicationId),
-    [applicationId],
-  );
+export default async function ApplicationDocumentsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const application = mockApplications.find((app) => app.id === id);
 
   if (!application) return null;
 

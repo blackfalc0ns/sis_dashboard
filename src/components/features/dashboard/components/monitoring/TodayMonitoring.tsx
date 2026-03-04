@@ -57,7 +57,7 @@ export default function TodayMonitoring() {
         {/* Classes */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-4 h-4 text-(--primary-color)" />
+            <Clock className="w-4 h-4 text-primary-600" />
             <h4 className="text-sm font-semibold text-gray-700">
               {t("classes")}
             </h4>
@@ -96,7 +96,7 @@ export default function TodayMonitoring() {
         {/* Exams */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <FileText className="w-4 h-4 text-(--primary-color)" />
+            <FileText className="w-4 h-4 text-primary-600" />
             <h4 className="text-sm font-semibold text-gray-700">
               {t("exams")}
             </h4>

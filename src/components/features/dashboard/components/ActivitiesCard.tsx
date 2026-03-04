@@ -66,7 +66,7 @@ export default function ActivitiesCard() {
         ))}
       </div>
 
-      <button className="flex items-center gap-2 text-(--primary-color) hover:text-(--hover-color) font-medium text-sm mt-4 ml-auto justify-end">
+      <button className="flex items-center gap-2 text-primary-600 hover:text-hover-600 font-medium text-sm mt-4 ml-auto justify-end">
         {t("view_all")}
         <ArrowRight className="w-4 h-4" />
       </button>

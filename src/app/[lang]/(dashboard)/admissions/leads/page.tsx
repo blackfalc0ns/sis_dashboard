@@ -1,6 +1,6 @@
 // FILE: src/app/[lang]/admissions/leads/page.tsx
 
-import LeadsList from "@/components/features/leads/components/LeadsList";
+import LeadsList from "@/components/features/admissions/components/lists/LeadsList";
 
 export default function LeadsPage() {
   return (

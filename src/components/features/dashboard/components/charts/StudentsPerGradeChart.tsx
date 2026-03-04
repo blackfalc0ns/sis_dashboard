@@ -118,7 +118,7 @@ export default function StudentsPerGradeChart() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-sm text-gray-600">
             {t("insight.prefix", { grade: highestGradeLabel })}{" "}
-            <span className="font-semibold text-(--primary-color)">
+            <span className="font-semibold text-primary-600">
               {t("insight.highlight")}
             </span>
           </p>

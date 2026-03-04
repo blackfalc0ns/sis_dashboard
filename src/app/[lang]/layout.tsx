@@ -1,23 +1,14 @@
 import { NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
-import { cairo } from "@/lib/fonts";
+import { cairo } from "@/libs/fonts";
 import "../globals.css";
 import Providers from "../providers";
 
 export const metadata = {
   title: "معزز",
   description: "School Management System",
-  icons: {
-    icon: [
-      {
-        url: "/images/logo/moazzez_logo.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    shortcut: "/images/logo/moazzez_logo.svg",
-    apple: "/images/logo/moazzez_logo.svg",
-  },
+ 
   themeColor: "#ffffff",
   manifest: "/manifest.json",
 };

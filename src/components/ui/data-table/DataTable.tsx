@@ -1,6 +1,6 @@
 // FILE: src/components/common/DataTable.tsx
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import {
   ArrowUpDown,
@@ -23,13 +23,21 @@ function HighlightText({ text, highlight }: HighlightTextProps) {
     return <span>{text}</span>;
   }
 
-  const regex = new RegExp(`(${highlight})`, "gi");
+  // Escape special regex characters to prevent crashes and security issues
+  const escapeRegExp = (str: string): string =>
+    str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  const safeHighlight = escapeRegExp(highlight);
+  const regex = new RegExp(`(${safeHighlight})`, "gi");
   const parts = text.split(regex);
+
+  // Create a non-global regex for testing (avoids stateful .test() issues)
+  const testRegex = new RegExp(safeHighlight, "i");
 
   return (
     <span>
       {parts.map((part, index) =>
-        regex.test(part) ? (
+        testRegex.test(part) ? (
           <mark
             key={index}
             className="bg-yellow-200 text-gray-900 font-medium px-0.5 rounded"
@@ -59,6 +67,8 @@ interface DataTableProps<T> {
   itemsPerPage?: number;
   showPagination?: boolean;
   searchQuery?: string; // New: Search query for highlighting
+  virtualize?: boolean; // New: Enable virtualization for large datasets
+  rowHeight?: number; // New: Row height for virtualization (default: 56px)
 }
 
 type SortDirection = "asc" | "desc" | null;
@@ -70,12 +80,19 @@ export default function DataTable<T extends { [key: string]: unknown }>({
   itemsPerPage = 10,
   showPagination = true,
   searchQuery = "", // New: Default empty search
+  virtualize = false, // New: Virtualization disabled by default
+  rowHeight = 56, // New: Default row height in pixels
 }: DataTableProps<T>) {
   const t = useTranslations("common");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(itemsPerPage);
+
+  // Virtualization state
+  const tableBodyRef = useRef<HTMLTableSectionElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
 
   const handleSort = (columnKey: string) => {
     if (sortKey === columnKey) {
@@ -165,6 +182,54 @@ export default function DataTable<T extends { [key: string]: unknown }>({
     ? sortedData.slice(startIndex, endIndex)
     : sortedData;
 
+  // Virtualization calculations
+  const dataToRender = virtualize && !showPagination ? sortedData : paginatedData;
+  
+  const virtualizedData = useMemo(() => {
+    if (!virtualize || showPagination) {
+      return { visibleRows: dataToRender, startIndex: 0, endIndex: dataToRender.length };
+    }
+
+    const visibleRowCount = Math.ceil(containerHeight / rowHeight) + 2; // +2 for buffer
+    const startRow = Math.floor(scrollTop / rowHeight);
+    const endRow = Math.min(startRow + visibleRowCount, dataToRender.length);
+
+    return {
+      visibleRows: dataToRender.slice(startRow, endRow),
+      startIndex: startRow,
+      endIndex: endRow,
+      totalHeight: dataToRender.length * rowHeight,
+      offsetY: startRow * rowHeight,
+    };
+  }, [virtualize, showPagination, dataToRender, containerHeight, scrollTop, rowHeight]);
+
+  // Handle scroll for virtualization
+  useEffect(() => {
+    if (!virtualize || showPagination) return;
+
+    const container = tableBodyRef.current?.parentElement;
+    if (!container) return;
+
+    const handleScroll = () => {
+      setScrollTop(container.scrollTop);
+    };
+
+    // Use ResizeObserver to track container height changes
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerHeight(entry.contentRect.height);
+      }
+    });
+
+    resizeObserver.observe(container);
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      resizeObserver.disconnect();
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, [virtualize, showPagination]);
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
@@ -211,7 +276,13 @@ export default function DataTable<T extends { [key: string]: unknown }>({
 
   return (
     <div className="bg-white rounded-xl shadow-sm">
-      <div className="overflow-x-auto">
+      <div 
+        className="overflow-x-auto"
+        style={virtualize && !showPagination ? { 
+          maxHeight: '600px', 
+          overflowY: 'auto' 
+        } : undefined}
+      >
         <table className="w-full min-w-[640px]">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
@@ -235,8 +306,18 @@ export default function DataTable<T extends { [key: string]: unknown }>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
-            {paginatedData.length === 0 ? (
+          <tbody 
+            ref={tableBodyRef}
+            className="divide-y divide-gray-200"
+            style={virtualize && !showPagination ? {
+              position: 'relative',
+              height: `${virtualizedData.totalHeight}px`,
+            } : undefined}
+          >
+            {virtualize && !showPagination && virtualizedData.totalHeight && (
+              <tr style={{ height: `${virtualizedData.offsetY}px` }} />
+            )}
+            {virtualizedData.visibleRows.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length}
@@ -246,31 +327,40 @@ export default function DataTable<T extends { [key: string]: unknown }>({
                 </td>
               </tr>
             ) : (
-              paginatedData.map((row, index) => (
-                <tr
-                  key={index}
-                  onClick={() => onRowClick?.(row)}
-                  className={`${onRowClick ? "cursor-pointer hover:bg-gray-100" : ""} transition-colors`}
-                >
-                  {columns.map((column) => (
-                    <td
-                      key={column.key}
-                      className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-sm sm:text-[15px] text-gray-900"
-                    >
-                      {column.render ? (
-                        column.render(row[column.key], row)
-                      ) : column.searchable && searchQuery ? (
-                        <HighlightText
-                          text={String(row[column.key] || "")}
-                          highlight={searchQuery}
-                        />
-                      ) : (
-                        String(row[column.key] || "")
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              virtualizedData.visibleRows.map((row, index) => {
+                const actualIndex = virtualize && !showPagination 
+                  ? virtualizedData.startIndex + index 
+                  : index;
+                
+                return (
+                  <tr
+                    key={actualIndex}
+                    onClick={() => onRowClick?.(row)}
+                    className={`${onRowClick ? "cursor-pointer hover:bg-gray-100" : ""} transition-colors`}
+                    style={virtualize && !showPagination ? { 
+                      height: `${rowHeight}px` 
+                    } : undefined}
+                  >
+                    {columns.map((column) => (
+                      <td
+                        key={column.key}
+                        className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-sm sm:text-[15px] text-gray-900"
+                      >
+                        {column.render ? (
+                          column.render(row[column.key], row)
+                        ) : column.searchable && searchQuery ? (
+                          <HighlightText
+                            text={String(row[column.key] || "")}
+                            highlight={searchQuery}
+                          />
+                        ) : (
+                          String(row[column.key] || "")
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

@@ -1,17 +1,13 @@
-"use client";
-
-import { useMemo } from "react";
-import { useParams } from "next/navigation";
 import * as studentsService from "@/services/studentsService";
 import GradesTab from "@/components/features/students-guardians/components/tabs/student/GradesTab";
 
-export default function StudentGradesPage() {
-  const params = useParams();
-  const studentId = params.studentId as string;
-  const student = useMemo(
-    () => studentsService.getStudentById(studentId),
-    [studentId],
-  );
+export default async function StudentGradesPage({
+  params,
+}: {
+  params: Promise<{ studentId: string }>;
+}) {
+  const { studentId } = await params;
+  const student = studentsService.getStudentById(studentId);
   if (!student) return null;
   return <GradesTab student={student} />;
 }

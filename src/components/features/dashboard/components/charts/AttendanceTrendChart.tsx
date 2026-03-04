@@ -86,7 +86,7 @@ export default function AttendanceTrendChart() {
       <div className="flex justify-end mb-2">
         <div className="text-right">
           <p className="text-xs text-gray-500">{t("average_label")}</p>
-          <p className="text-lg font-bold text-(--primary-color)">{average}%</p>
+          <p className="text-lg font-bold text-primary-600">{average}%</p>
         </div>
       </div>
 

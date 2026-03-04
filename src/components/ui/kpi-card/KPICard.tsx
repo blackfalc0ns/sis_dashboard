@@ -25,7 +25,7 @@ export default function KPICard({
   trendData,
   numbers,
   variant = "default",
-  iconBgColor = "bg-(--primary-color)",
+  iconBgColor = "bg-primary-600",
 }: KPICardProps) {
   const isGradient = variant === "gradient";
   const locale = useLocale();

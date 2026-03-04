@@ -69,7 +69,7 @@ export default function TopNav({
                 type="text"
                 placeholder={t("search_placeholder")}
                 onChange={(e) => onSearchChange?.(e.target.value)}
-                className="hover:border-(--primary-color) w-full ps-4 pe-10 py-3.5 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 placeholder:text-center focus:outline-none focus:ring-2 focus:ring-(--primary-color) focus:border-transparent transition-all"
+                className="hover:border-primary-600 w-full ps-4 pe-10 py-3.5 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 placeholder:text-center focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-all"
               />
               {/* use logical property: icon at end (works in RTL/LTR) */}
               <Search className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -81,7 +81,7 @@ export default function TopNav({
             {/* Notification Bell */}
             <button
               onClick={onNotificationClick}
-              className="relative flex items-center justify-center w-11 h-11 sm:w-[50px] sm:h-[50px] hover:bg-gray-100 transition-colors border-2 rounded-lg border-(--border-color)"
+              className="relative flex items-center justify-center w-11 h-11 sm:w-[50px] sm:h-[50px] hover:bg-gray-100 transition-colors border-2 rounded-lg border-neutral-200"
               aria-label={t("notifications")}
               type="button"
             >
@@ -108,7 +108,7 @@ export default function TopNav({
                 </p>
               </div>
 
-              <div className="w-10 h-10 rounded-full bg-(--primary-color) flex items-center justify-center overflow-hidden">
+              <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden">
                 {userAvatar ? (
                   <Image
                     src={userAvatar}
@@ -139,7 +139,7 @@ export default function TopNav({
               type="text"
               placeholder={t("search_placeholder")}
               onChange={(e) => onSearchChange?.(e.target.value)}
-              className="w-full ps-4 pe-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-(--primary-color) focus:border-transparent transition-all"
+              className="w-full ps-4 pe-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             />
             <Search className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           </div>

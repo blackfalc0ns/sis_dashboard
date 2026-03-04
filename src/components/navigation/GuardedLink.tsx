@@ -78,6 +78,23 @@ export default function GuardedLink({
   const progress = useProgressBar();
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Preserve default link behavior for:
+    // - Events that are already prevented
+    // - Non-left clicks (middle click, right click)
+    // - Modified clicks (Cmd/Ctrl/Shift/Alt + click for new tab/window)
+    if (
+      e.defaultPrevented ||
+      e.button !== 0 ||
+      e.metaKey ||
+      e.ctrlKey ||
+      e.shiftKey ||
+      e.altKey
+    ) {
+      // Let the browser handle these naturally
+      return;
+    }
+    
+    // Only prevent default for plain left clicks
     e.preventDefault();
     
     if (disabled) return;

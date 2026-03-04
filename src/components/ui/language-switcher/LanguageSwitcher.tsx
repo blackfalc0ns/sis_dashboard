@@ -31,7 +31,7 @@ export default function LanguageSwitcher() {
   return (
     <button
       onClick={() => setLocale(nextLocale)}
-      className="hidden md:flex items-center gap-2 px-3 py-2 h-[50px] hover:bg-gray-100 transition-colors border-2 rounded-lg border-(--border-color)"
+      className="hidden md:flex items-center gap-2 px-3 py-2 h-[50px] hover:bg-gray-100 transition-colors border-2 rounded-lg border-neutral-200"
     >
       <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center">
         <Image
@@ -46,7 +46,7 @@ export default function LanguageSwitcher() {
         />
       </div>
 
-      <span className="text-sm font-bold text-(--primary-color)">
+      <span className="text-sm font-bold text-primary-600">
         {nextLocale.toUpperCase()}
       </span>
     </button>

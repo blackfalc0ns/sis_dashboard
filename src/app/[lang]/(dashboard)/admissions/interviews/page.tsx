@@ -1,7 +1,5 @@
 // FILE: src/app/[lang]/admissions/interviews/page.tsx
 
-"use client";
-
 import InterviewsList from "@/components/features/admissions/components/lists/InterviewsList";
 
 export default function InterviewsPage() {

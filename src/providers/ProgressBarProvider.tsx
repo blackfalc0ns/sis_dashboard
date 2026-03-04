@@ -105,7 +105,7 @@ export function ProgressBarProvider({ children }: ProgressBarProviderProps) {
       {/* Progress Bar */}
       {isActive && (
         <div
-          className="fixed top-0 left-0 right-0 z-9999"
+          className="fixed top-0 left-0 right-0 z-50"
           style={{ height: "3px" }}
         >
           <LinearProgress

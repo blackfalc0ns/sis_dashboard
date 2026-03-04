@@ -41,7 +41,7 @@ export default function AttendanceCard() {
 
         <div className="flex items-center justify-around">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-(--primary-color)" />
+            <div className="w-3 h-3 rounded-full bg-primary-600" />
             <div>
               <p className="text-2xl font-bold text-gray-900">75%</p>
               <p className="text-xs text-gray-500">{t("present")}</p>

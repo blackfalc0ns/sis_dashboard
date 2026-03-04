@@ -55,7 +55,7 @@ export default function CriticalAlerts() {
           {t("title")}
         </h3>
 
-        <button className="text-xs text-(--primary-color) hover:underline">
+        <button className="text-xs text-primary-600 hover:underline">
           {t("view_all")}
         </button>
       </div>

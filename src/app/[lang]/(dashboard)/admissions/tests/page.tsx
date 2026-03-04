@@ -1,7 +1,5 @@
 // FILE: src/app/[lang]/admissions/tests/page.tsx
 
-"use client";
-
 import TestsList from "@/components/features/admissions/components/lists/TestsList";
 
 export default function TestsPage() {

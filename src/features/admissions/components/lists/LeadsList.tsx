@@ -18,8 +18,8 @@ import {
 import { DataTable } from "@/components/ui/data-table";
 import { KPICardV2 } from "@/components/ui/kpi-card";
 import LeadStatusBadge from "@/components/features/leads/components/LeadStatusBadge";
-import CreateLeadModal from "@/components/features/leads/components/CreateLeadModal";
-import ImportLeadsModal from "@/components/features/leads/components/ImportLeadsModal";
+import CreateLeadModal from "@/components/features/admissions/components/modals/CreateLeadModal";
+import ImportLeadsModal from "@/components/features/admissions/components/modals/ImportLeadsModal";
 import DateRangeFilter, {
   DateRangeValue,
 } from "@/components/features/admissions/components/shared/DateRangeFilter";
