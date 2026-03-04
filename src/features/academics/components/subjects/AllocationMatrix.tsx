@@ -13,7 +13,7 @@ import {
   bulkUpsertSubjectAllocations,
 } from "@/services/academics/subjectsService";
 import { Grade } from "@/services/academics/structureService";
-import { exportAcademicsData, generateExportFilename, ExportColumn, ExportMetadata, formatExportDate } from "@/utils/academics/exportAdapter";
+import { exportAcademicsData, generateExportFilename, ExportColumn, ExportMetadata, formatExportDate } from "@/features/academics/utils/exportAdapter";
 
 interface AllocationMatrixProps {
   grades: Grade[];

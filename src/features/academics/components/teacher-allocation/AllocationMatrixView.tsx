@@ -23,7 +23,7 @@ import {
   TeacherAllocation,
   bulkUpsertTeacherAllocations,
 } from "@/services/academics/teacherAllocationService";
-import { exportAcademicsData, generateExportFilename, ExportColumn, ExportMetadata, formatExportDate } from "@/utils/academics/exportAdapter";
+import { exportAcademicsData, generateExportFilename, ExportColumn, ExportMetadata, formatExportDate } from "@/features/academics/utils/exportAdapter";
 import { CheckCircleIcon } from "@heroicons/react/20/solid";
 
 interface AllocationMatrixViewProps {

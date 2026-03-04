@@ -11,7 +11,7 @@ import QuestionOutlineItem from "./QuestionOutlineItem";
 import AssignmentSettingsPanel from "./AssignmentSettingsPanel";
 import AttachmentsPanel from "./AttachmentsPanel";
 import EmptyQuestionState from "./EmptyQuestionState";
-import QuestionEditor from "@/components/features/academics/components/curriculum/QuestionEditor";
+import QuestionEditor from "@/features/academics/components/curriculum/QuestionEditor";
 
 interface MobileLayoutProps {
   questions: AssignmentQuestion[];

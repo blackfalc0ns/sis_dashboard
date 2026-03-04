@@ -1,4 +1,4 @@
-// Container component for Teacher Allocation Page
+// Container component for Subjects Allocation Page
 // Handles data fetching, state management, and business logic
 
 "use client";
@@ -13,7 +13,6 @@ import {
   type AcademicYear,
   type Term,
   type Grade,
-  type Section,
 } from "@/services/academics/structureService";
 import {
   fetchSubjects,
@@ -22,50 +21,39 @@ import {
   type SubjectAllocation,
 } from "@/services/academics/subjectsService";
 import {
-  fetchTeachers,
-  fetchTeacherAllocations,
-  type Teacher,
-  type TeacherAllocation,
-} from "@/services/academics/teacherAllocationService";
-import {
   findSelectedYear,
   findSelectedTerm,
   buildURLParams,
-} from "@/utils/academics/teacherAllocationHelpers";
-import TeacherAllocationView from "../components/pages/TeacherAllocationView";
+} from "@/features/academics/utils/subjectsAllocationHelpers";
+import SubjectsAllocationView from "../components/pages/SubjectsAllocationView";
 
-export default function TeacherAllocationContainer() {
+export default function SubjectsAllocationContainer() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { markDirty, clearDirty } = useDirtyKey("teacher-allocation");
+  const { markDirty, clearDirty } = useDirtyKey("subjects-allocation");
 
   // URL params
   const [academicYearId, setAcademicYearId] = useState("");
   const [termId, setTermId] = useState("");
   const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
 
-  // Context data
+  // Data
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
-  const [sections, setSections] = useState<Section[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [subjectAllocations, setSubjectAllocations] = useState<SubjectAllocation[]>([]);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [teacherAllocations, setTeacherAllocations] = useState<TeacherAllocation[]>([]);
+  const [allocations, setAllocations] = useState<SubjectAllocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // UI State
-  const [activeTab, setActiveTab] = useState<"matrix" | "load">("matrix");
-  const [validationPanelOpen, setValidationPanelOpen] = useState(false);
-  const [carryOverDialogOpen, setCarryOverDialogOpen] = useState(false);
-
-  // Current working allocations (for validation with unsaved changes)
-  const [currentAllocations, setCurrentAllocations] = useState<TeacherAllocation[]>([]);
+  const [activeTab, setActiveTab] = useState<"subjects" | "matrix">("subjects");
+  const [showSubjectDialog, setShowSubjectDialog] = useState(false);
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+  const [showCarryOverDialog, setShowCarryOverDialog] = useState(false);
 
   const isReadOnly = termStatus === "closed";
 
-  // Initialize from URL
+  // Initialize from URL or defaults
   useEffect(() => {
     const initializeContext = async () => {
       try {
@@ -107,26 +95,15 @@ export default function TeacherAllocationContainer() {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const [
-          structureData,
-          subjectsData,
-          subjectAllocsData,
-          teachersData,
-          teacherAllocsData,
-        ] = await Promise.all([
+        const [structureData, subjectsData, allocationsData] = await Promise.all([
           fetchStructureTree(academicYearId, termId),
           fetchSubjects(termId),
           fetchSubjectAllocations(termId),
-          fetchTeachers(),
-          fetchTeacherAllocations(termId),
         ]);
 
         setGrades(structureData.grades);
-        setSections(structureData.sections);
         setSubjects(subjectsData);
-        setSubjectAllocations(subjectAllocsData);
-        setTeachers(teachersData);
-        setTeacherAllocations(teacherAllocsData);
+        setAllocations(allocationsData);
       } catch (error) {
         console.error("Failed to load data:", error);
       } finally {
@@ -136,11 +113,6 @@ export default function TeacherAllocationContainer() {
 
     loadData();
   }, [academicYearId, termId]);
-
-  // Initialize current allocations when teacher allocations change
-  useEffect(() => {
-    setCurrentAllocations(teacherAllocations);
-  }, [teacherAllocations]);
 
   const updateURL = useCallback(
     (yearId: string, tId: string) => {
@@ -174,84 +146,103 @@ export default function TeacherAllocationContainer() {
   };
 
   const handlePromoteCarryOver = () => {
-    setCarryOverDialogOpen(true);
+    setShowCarryOverDialog(true);
+  };
+
+  const handleTabChange = (tab: "subjects" | "matrix") => {
+    setActiveTab(tab);
+  };
+
+  const refreshData = async () => {
+    if (!termId) return;
+    const [subjectsData, allocationsData] = await Promise.all([
+      fetchSubjects(termId),
+      fetchSubjectAllocations(termId),
+    ]);
+    setSubjects(subjectsData);
+    setAllocations(allocationsData);
+    clearDirty();
+  };
+
+  const handleAddSubject = () => {
+    setEditingSubject(null);
+    setShowSubjectDialog(true);
+  };
+
+  const handleEditSubject = (subject: Subject) => {
+    setEditingSubject(subject);
+    setShowSubjectDialog(true);
+  };
+
+  const handleSubjectSuccess = async () => {
+    await refreshData();
+    setShowSubjectDialog(false);
+    setEditingSubject(null);
   };
 
   const handleCarryOverSuccess = async () => {
     await refreshData();
+    setShowCarryOverDialog(false);
     clearDirty();
   };
 
-  const handleValidate = () => {
-    setValidationPanelOpen(true);
-  };
-
   const handleAllocationsChange = useCallback(
-    (allocations: TeacherAllocation[]) => {
-      setCurrentAllocations(allocations);
-      const hasChanges =
-        JSON.stringify(allocations) !== JSON.stringify(teacherAllocations);
-      if (hasChanges) {
+    (newAllocations: SubjectAllocation[]) => {
+      setAllocations(newAllocations);
+      markDirty();
+    },
+    [markDirty]
+  );
+
+  const handleDirtyChange = useCallback(
+    (isDirty: boolean) => {
+      if (isDirty) {
         markDirty();
       } else {
         clearDirty();
       }
     },
-    [teacherAllocations, markDirty, clearDirty]
+    [markDirty, clearDirty]
   );
 
-  const refreshData = async () => {
-    if (!termId) return;
-    const [subjectAllocsData, teacherAllocsData] = await Promise.all([
-      fetchSubjectAllocations(termId),
-      fetchTeacherAllocations(termId),
-    ]);
-    setSubjectAllocations(subjectAllocsData);
-    setTeacherAllocations(teacherAllocsData);
-    clearDirty();
-  };
-
-  const handleTabChange = (tab: "matrix" | "load") => {
-    setActiveTab(tab);
-  };
-
-  const handleCloseValidationPanel = () => {
-    setValidationPanelOpen(false);
+  const handleCloseSubjectDialog = () => {
+    setShowSubjectDialog(false);
+    setEditingSubject(null);
   };
 
   const handleCloseCarryOverDialog = () => {
-    setCarryOverDialogOpen(false);
+    setShowCarryOverDialog(false);
   };
 
   // Pass everything to presenter
   return (
-    <TeacherAllocationView
+    <SubjectsAllocationView
       academicYearId={academicYearId}
       termId={termId}
       termStatus={termStatus}
       academicYears={academicYears}
       terms={terms}
       grades={grades}
-      sections={sections}
       subjects={subjects}
-      subjectAllocations={subjectAllocations}
-      teachers={teachers}
-      teacherAllocations={teacherAllocations}
-      currentAllocations={currentAllocations}
+      allocations={allocations}
       isLoading={isLoading}
       activeTab={activeTab}
-      validationPanelOpen={validationPanelOpen}
-      carryOverDialogOpen={carryOverDialogOpen}
+      showSubjectDialog={showSubjectDialog}
+      editingSubject={editingSubject}
+      showCarryOverDialog={showCarryOverDialog}
       isReadOnly={isReadOnly}
       onAcademicYearChange={handleAcademicYearChange}
       onTermChange={handleTermChange}
       onPromoteCarryOver={handlePromoteCarryOver}
-      onCarryOverSuccess={handleCarryOverSuccess}
-      onValidate={handleValidate}
-      onAllocationsChange={handleAllocationsChange}
-      onRefresh={refreshData}
       onTabChange={handleTabChange}
-      onCloseValidationPanel={handleCloseValidationPanel}
+      onAddSubject={handleAddSubject}
+      onEditSubject={handleEditSubject}
+      onSubjectSuccess={handleSubjectSuccess}
+      onCarryOverSuccess={handleCarryOverSuccess}
+      onAllocationsChange={handleAllocationsChange}
+      onDirtyChange={handleDirtyChange}
+      onRefresh={refreshData}
+      onCloseSubjectDialog={handleCloseSubjectDialog}
       onCloseCarryOverDialog={handleCloseCarryOverDialog}
     />
   );
