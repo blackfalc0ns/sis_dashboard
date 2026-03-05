@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, startTransition } from "react";
-import { useRouter, useParams, usePathname } from "next/navigation";
+import { useMemo } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
   ArrowLeft,
@@ -23,6 +23,8 @@ import {
   getStudentDisplayId,
   getStudentGrade,
 } from "@/features/students-guardians/students/utils/studentUtils";
+import { useSectionTabs } from "@/hooks/useSectionTabs";
+import { buildLocalePath } from "@/lib/routing/localePath";
 
 const tabs = [
   { key: "overview", labelKey: "tabs.overview", icon: Activity },
@@ -64,22 +66,17 @@ export default function StudentProfileLayout({
   const locale = useLocale();
   const router = useRouter();
   const params = useParams();
-  const pathname = usePathname();
   const lang = (params.lang as string) || "en";
-  const studentId = params.studentId as string;
+
+  const { activeTab, entityId: studentId, handleTabClick } = useSectionTabs({
+    basePath: ["students-guardians", "students"],
+    idParam: "studentId",
+    tabs,
+  });
 
   const student = useMemo(() => {
     return studentsService.getStudentById(studentId);
   }, [studentId]);
-
-  const activeTab = useMemo(() => {
-    const pathParts = pathname.split("/");
-    const lastPart = pathParts[pathParts.length - 1];
-    if (lastPart === studentId) {
-      return "overview";
-    }
-    return lastPart;
-  }, [pathname, studentId]);
 
   if (!student) {
     return (
@@ -87,7 +84,7 @@ export default function StudentProfileLayout({
         <div className="text-center py-12">
           <p className="text-gray-500">{t("student_not_found")}</p>
           <button
-            onClick={() => router.push(`/${lang}/students-guardians/students`)}
+            onClick={() => router.push(buildLocalePath(lang, "students-guardians", "students"))}
             className="mt-4 text-[#036b80] hover:underline"
           >
             {t("back_to_students")}
@@ -102,21 +99,11 @@ export default function StudentProfileLayout({
       ? student.full_name_ar || getStudentDisplayName(student)
       : student.full_name_en || getStudentDisplayName(student);
 
-  const handleTabClick = (tabKey: string) => {
-    const path =
-      tabKey === "overview"
-        ? `/${lang}/students-guardians/students/${studentId}`
-        : `/${lang}/students-guardians/students/${studentId}/${tabKey}`;
-    startTransition(() => {
-      router.push(path, { scroll: false });
-    });
-  };
-
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <div className="flex items-center justify-between">
         <button
-          onClick={() => router.push(`/${lang}/students-guardians/students`)}
+          onClick={() => router.push(buildLocalePath(lang, "students-guardians", "students"))}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
         >
           {locale === "en" ? <ArrowLeft /> : <ArrowRight />}

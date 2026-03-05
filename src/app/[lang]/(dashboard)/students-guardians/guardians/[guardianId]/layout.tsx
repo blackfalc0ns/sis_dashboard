@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, startTransition } from "react";
-import { useRouter, useParams, usePathname } from "next/navigation";
+import { useMemo } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
   ArrowLeft,
@@ -13,6 +13,8 @@ import {
   Star,
 } from "lucide-react";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import { useSectionTabs } from "@/hooks/useSectionTabs";
+import { buildLocalePath } from "@/lib/routing/localePath";
 
 const tabs = [
   { key: "overview", labelKey: "tabs.overview", icon: User },
@@ -38,9 +40,13 @@ export default function GuardianProfileLayout({
   const locale = useLocale();
   const router = useRouter();
   const params = useParams();
-  const pathname = usePathname();
   const lang = (params.lang as string) || "en";
-  const guardianId = params.guardianId as string;
+
+  const { activeTab, entityId: guardianId, handleTabClick } = useSectionTabs({
+    basePath: ["students-guardians", "guardians"],
+    idParam: "guardianId",
+    tabs,
+  });
 
   const guardian = useMemo(() => {
     return studentsService
@@ -48,22 +54,13 @@ export default function GuardianProfileLayout({
       .find((g) => g.guardianId === guardianId);
   }, [guardianId]);
 
-  const activeTab = useMemo(() => {
-    const pathParts = pathname.split("/");
-    const lastPart = pathParts[pathParts.length - 1];
-    if (lastPart === guardianId) {
-      return "overview";
-    }
-    return lastPart;
-  }, [pathname, guardianId]);
-
   if (!guardian) {
     return (
       <div className="p-6">
         <div className="text-center py-12">
           <p className="text-gray-500">{t("guardian_not_found")}</p>
           <button
-            onClick={() => router.push(`/${lang}/students-guardians/guardians`)}
+            onClick={() => router.push(buildLocalePath(lang, "students-guardians", "guardians"))}
             className="mt-4 text-[#036b80] hover:underline"
           >
             {t("back_to_guardians")}
@@ -73,21 +70,11 @@ export default function GuardianProfileLayout({
     );
   }
 
-  const handleTabClick = (tabKey: string) => {
-    const path =
-      tabKey === "overview"
-        ? `/${lang}/students-guardians/guardians/${guardianId}`
-        : `/${lang}/students-guardians/guardians/${guardianId}/${tabKey}`;
-    startTransition(() => {
-      router.push(path, { scroll: false });
-    });
-  };
-
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <div className="flex items-center justify-between">
         <button
-          onClick={() => router.push(`/${lang}/students-guardians/guardians`)}
+          onClick={() => router.push(buildLocalePath(lang, "students-guardians", "guardians"))}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
         >
           {locale === "ar" ? (

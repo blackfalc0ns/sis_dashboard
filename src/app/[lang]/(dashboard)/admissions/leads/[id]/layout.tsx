@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, startTransition } from "react";
-import { useRouter, useParams, usePathname } from "next/navigation";
+import { useMemo } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
   ArrowLeft,
@@ -14,6 +14,8 @@ import {
 import { getLeadById } from "@/api/mockLeadsApi";
 import { getConversationByLeadId } from "@/data/mockLeadMessages";
 import LeadStatusBadge from "@/features/admissions/leads/components/LeadStatusBadge";
+import { useSectionTabs } from "@/hooks/useSectionTabs";
+import { buildLocalePath } from "@/lib/routing/localePath";
 
 const tabs = [
   { key: "overview", labelKey: "overview", icon: User },
@@ -31,9 +33,13 @@ export default function LeadProfileLayout({
   const locale = useLocale();
   const router = useRouter();
   const params = useParams();
-  const pathname = usePathname();
   const lang = (params.lang as string) || "en";
-  const leadId = params.id as string;
+
+  const { activeTab, entityId: leadId, handleTabClick } = useSectionTabs({
+    basePath: ["admissions", "leads"],
+    idParam: "id",
+    tabs,
+  });
 
   const lead = useMemo(() => {
     return getLeadById(leadId);
@@ -44,14 +50,13 @@ export default function LeadProfileLayout({
     return conversation?.unreadCount || 0;
   }, [leadId]);
 
-  const activeTab = useMemo(() => {
-    const pathParts = pathname.split("/");
-    const lastPart = pathParts[pathParts.length - 1];
-    if (lastPart === leadId) {
-      return "overview";
-    }
-    return lastPart;
-  }, [pathname, leadId]);
+  // Add badge to chat tab
+  const tabsWithBadges = useMemo(() => {
+    return tabs.map((tab) => ({
+      ...tab,
+      badge: tab.key === "chat" ? unreadCount : undefined,
+    }));
+  }, [unreadCount]);
 
   if (!lead) {
     return (
@@ -59,7 +64,7 @@ export default function LeadProfileLayout({
         <div className="text-center py-12">
           <p className="text-gray-500">{t("lead_not_found")}</p>
           <button
-            onClick={() => router.push(`/${lang}/admissions/leads`)}
+            onClick={() => router.push(buildLocalePath(lang, "admissions", "leads"))}
             className="mt-4 text-[#036b80] hover:underline"
           >
             {t("back_to_leads")}
@@ -69,21 +74,11 @@ export default function LeadProfileLayout({
     );
   }
 
-  const handleTabClick = (tabKey: string) => {
-    const path =
-      tabKey === "overview"
-        ? `/${lang}/admissions/leads/${leadId}`
-        : `/${lang}/admissions/leads/${leadId}/${tabKey}`;
-    startTransition(() => {
-      router.push(path, { scroll: false });
-    });
-  };
-
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <div className="flex items-center gap-4">
         <button
-          onClick={() => router.push(`/${lang}/admissions/leads`)}
+          onClick={() => router.push(buildLocalePath(lang, "admissions", "leads"))}
           className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           title={t("back_to_leads")}
         >
@@ -105,10 +100,10 @@ export default function LeadProfileLayout({
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         <div className="border-b border-gray-200 overflow-x-auto">
           <div className="flex min-w-max">
-            {tabs.map((tab) => {
+            {tabsWithBadges.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.key;
-              const badge = tab.key === "chat" ? unreadCount : undefined;
+              const badge = tab.badge;
               return (
                 <button
                   key={tab.key}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState, startTransition } from "react";
-import { useRouter, useParams, usePathname } from "next/navigation";
+import { useMemo, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
   ArrowLeft,
@@ -19,6 +19,8 @@ import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTe
 import ScheduleInterviewModal from "@/features/admissions/interviews/components/ScheduleInterviewModal";
 import DecisionModal from "@/features/admissions/decisions/components/DecisionModal";
 import EnrollmentForm from "@/features/admissions/enrollment/components/EnrollmentForm";
+import { useSectionTabs } from "@/hooks/useSectionTabs";
+import { buildLocalePath } from "@/lib/routing/localePath";
 
 const tabs = [
   { key: "details", labelKey: "tabs.details", icon: FileText },
@@ -38,27 +40,23 @@ export default function ApplicationProfileLayout({
   const locale = useLocale();
   const router = useRouter();
   const params = useParams();
-  const pathname = usePathname();
   const lang = (params.lang as string) || "en";
-  const applicationId = params.id as string;
 
   const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false);
   const [isScheduleInterviewOpen, setIsScheduleInterviewOpen] = useState(false);
   const [isDecisionOpen, setIsDecisionOpen] = useState(false);
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
 
+  const { activeTab, entityId: applicationId, handleTabClick } = useSectionTabs({
+    basePath: ["admissions", "applications"],
+    idParam: "id",
+    tabs,
+    defaultTab: "details",
+  });
+
   const application = useMemo(() => {
     return mockApplications.find((app) => app.id === applicationId);
   }, [applicationId]);
-
-  const activeTab = useMemo(() => {
-    const pathParts = pathname.split("/");
-    const lastPart = pathParts[pathParts.length - 1];
-    if (lastPart === applicationId) {
-      return "details";
-    }
-    return lastPart;
-  }, [pathname, applicationId]);
 
   if (!application) {
     return (
@@ -66,25 +64,15 @@ export default function ApplicationProfileLayout({
         <div className="text-center py-12">
           <p className="text-gray-500">Application not found</p>
           <button
-            onClick={() => router.push(`/${lang}/admissions/applications`)}
+            onClick={() => router.push(buildLocalePath(lang, "admissions", "applications"))}
             className="mt-4 px-4 py-2 bg-[#036b80] text-white rounded-lg"
           >
-  {t("header.back_to_applications")}
- </button>
+            {t("header.back_to_applications")}
+          </button>
         </div>
       </div>
     );
   }
-
-  const handleTabClick = (tabKey: string) => {
-    const path =
-      tabKey === "details"
-        ? `/${lang}/admissions/applications/${applicationId}`
-        : `/${lang}/admissions/applications/${applicationId}/${tabKey}`;
-    startTransition(() => {
-      router.push(path, { scroll: false });
-    });
-  };
 
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
@@ -93,12 +81,11 @@ export default function ApplicationProfileLayout({
         <div className="bg-white rounded-xl shadow-sm mb-6">
           <div className="border-b border-gray-200 px-6 py-4">
             <button
-              onClick={() => router.push(`/${lang}/admissions/applications`)}
+              onClick={() => router.push(buildLocalePath(lang, "admissions", "applications"))}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
             >
               {locale === "ar" ? <ArrowRight /> : <ArrowLeft />}
-              <span className="text-sm font-medium">  {t("header.back_to_applications")}
-</span>
+              <span className="text-sm font-medium">{t("header.back_to_applications")}</span>
             </button>
             <div className="flex items-center justify-between">
               <div>
