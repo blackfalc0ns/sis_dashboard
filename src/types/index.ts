@@ -2,7 +2,7 @@
 // Main type exports for the application
 
 // Admissions Module
-export * from "./admissions";
+export * from "@/features/admissions/types/admissions";
 
 // Students Module (with renamed exports to avoid conflicts)
 export type {
@@ -22,15 +22,15 @@ export type {
   StudentMedicalProfileMock,
   StudentTimelineEvent,
   StudentTimelineEventMock,
-} from "./students";
+} from "@/features/students-guardians/students/types";
 
 // Re-export DocumentStatus from students with alias to avoid conflict
-export type { DocumentStatus as StudentDocumentStatus } from "./students";
+export type { DocumentStatus as StudentDocumentStatus } from "@/features/students-guardians/students/types/enums";
 
 // Notifications Module
 export * from "./notifications";
 
 // Note: For better tree-shaking and explicit imports, prefer importing from specific modules:
 // import type { Application } from "@/types/admissions";
-// import type { Student } from "@/types/students";
+// import type { Student } from "@/features/students-guardians/students/types";
 // import type { Notification } from "@/types/notifications";

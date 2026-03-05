@@ -12,7 +12,7 @@ import {
   Mail,
   Star,
 } from "lucide-react";
-import * as studentsService from "@/services/studentsService";
+import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 
 const tabs = [
   { key: "overview", labelKey: "tabs.overview", icon: User },

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { getNotesByLeadId, addNote, getLeadById } from "@/api/mockLeadsApi";
-import NotesPanel from "@/components/features/leads/components/NotesPanel";
+import NotesPanel from "@/features/admissions/leads/components/NotesPanel";
 
 export default function LeadNotesPage() {
   const params = useParams();

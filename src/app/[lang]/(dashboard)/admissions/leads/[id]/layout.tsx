@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { getLeadById } from "@/api/mockLeadsApi";
 import { getConversationByLeadId } from "@/data/mockLeadMessages";
-import LeadStatusBadge from "@/components/features/leads/components/LeadStatusBadge";
+import LeadStatusBadge from "@/features/admissions/leads/components/LeadStatusBadge";
 
 const tabs = [
   { key: "overview", labelKey: "overview", icon: User },

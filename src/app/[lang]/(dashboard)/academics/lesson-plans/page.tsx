@@ -1,4 +1,4 @@
-import LessonPlansPage from "@/features/academics/components/pages/LessonPlansPage";
+import LessonPlansPage from "@/features/academics/lesson-plans/pages/LessonPlansPage";
 
 export default function Page() {
   return <LessonPlansPage />;

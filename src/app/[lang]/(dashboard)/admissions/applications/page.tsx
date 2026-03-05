@@ -1,6 +1,6 @@
 // FILE: src/app/[lang]/admissions/applications/page.tsx
 
-import ApplicationsList from "@/components/features/admissions/components/lists/ApplicationsList";
+import ApplicationsList from "@/features/admissions/applications/pages/ApplicationsList";
 
 export default function ApplicationsPage() {
   return (

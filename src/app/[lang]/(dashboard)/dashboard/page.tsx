@@ -1,4 +1,4 @@
-import SchoolDashboard from "@/components/features/dashboard/components/SchoolDashboard";
+import SchoolDashboard from "@/features/dashboard/pages/SchoolDashboard";
 
 export default function DashboardPage() {
   return (

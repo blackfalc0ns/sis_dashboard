@@ -9,8 +9,8 @@ import type {
   StudentMedicalProfile,
   StudentTimelineEvent,
   StudentStatus,
-} from "@/types/students";
-import * as studentsService from "@/services/studentsService";
+} from "@/features/students-guardians/students/types";
+import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 
 // ============================================================================
 // API RESPONSE TYPES

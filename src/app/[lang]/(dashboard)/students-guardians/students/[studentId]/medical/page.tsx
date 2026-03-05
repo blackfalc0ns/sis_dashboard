@@ -1,5 +1,5 @@
-import * as studentsService from "@/services/studentsService";
-import MedicalTab from "@/components/features/students-guardians/components/tabs/student/MedicalTab";
+import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import MedicalTab from "@/features/students-guardians/students/components/tabs/MedicalTab";
 
 export default async function StudentMedicalPage({
   params,

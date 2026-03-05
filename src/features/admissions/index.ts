@@ -1,15 +1,67 @@
 // Admissions Feature Module
-// This module contains all admissions-related functionality
+// Organized by sub-features matching academics structure
 
-// Re-export types
-export * from './types/admissions';
-export * from './types/leads';
+// ============================================================================
+// SHARED TYPES & ENUMS
+// ============================================================================
+export * from './types/enums';
 
-// Re-export services
-export * from './services/admissionsAnalytics';
-export * from './services/admissionsNotifications';
-export * from './services/mockLeadsApi';
+// ============================================================================
+// SHARED COMPONENTS
+// ============================================================================
+export * from './shared';
 
-// Re-export utils
-export * from './utils/admissionsAnalytics';
-export * from './utils/admissionsExportUtils';
+// ============================================================================
+// DASHBOARD
+// ============================================================================
+export * from './dashboard/components/charts';
+export * from './dashboard/pages/AdmissionsDashboard';
+export * from './dashboard/pages/AdmissionsDashboardShell';
+export * from './dashboard/container/AdmissionsDashboardContainer';
+export * from './dashboard/services/admissionsAnalytics';
+export * from './dashboard/services/admissionsNotifications';
+export * from './dashboard/utils/admissionsStatsCalculator';
+
+// ============================================================================
+// APPLICATIONS
+// ============================================================================
+export * from './applications/types';
+export * from './applications/components/tabs';
+export * from './applications/components/modals';
+export * from './applications/pages/ApplicationsList';
+export * from './applications/pages/ApplicationDetailsPage';
+export * from './applications/container/ApplicationsListContainer';
+export * from './applications/utils/applicationsFilters';
+
+// ============================================================================
+// LEADS
+// ============================================================================
+export * from './leads/types';
+export * from './leads/pages/LeadsList';
+export * from './leads/services/mockLeadsApi';
+
+// ============================================================================
+// INTERVIEWS
+// ============================================================================
+export * from './interviews/types';
+export * from './interviews/pages/InterviewsList';
+export * from './interviews/pages/InterviewDetailsPage';
+
+// ============================================================================
+// TESTS
+// ============================================================================
+export * from './tests/types';
+export * from './tests/pages/TestsList';
+export * from './tests/pages/TestDetailsPage';
+
+// ============================================================================
+// DECISIONS
+// ============================================================================
+export * from './decisions/types';
+export * from './decisions/pages/DecisionsList';
+
+// ============================================================================
+// ENROLLMENT
+// ============================================================================
+export * from './enrollment/types';
+export * from './enrollment/pages/EnrollmentList';

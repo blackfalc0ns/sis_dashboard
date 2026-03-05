@@ -1,5 +1,5 @@
-import { getWithdrawalById } from "@/services/transfersWithdrawalsService";
-import WithdrawalRequestDetailsPage from "@/components/features/students-guardians/components/transfers-withdrawals/transfers-withdrawals/details/WithdrawalRequestDetailsPage";
+import { getWithdrawalById } from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
+import WithdrawalRequestDetailsPage from "@/features/students-guardians/transfers-withdrawals/components/details/WithdrawalRequestDetailsPage";
 
 export default async function WithdrawalDetailsRoute({
   params,

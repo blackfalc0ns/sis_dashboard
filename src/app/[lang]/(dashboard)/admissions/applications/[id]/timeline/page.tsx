@@ -1,5 +1,5 @@
 import { mockApplications } from "@/data/mockAdmissions";
-import TimelineTab from "@/components/features/admissions/components/tabs/TimelineTab";
+import TimelineTab from "@/features/admissions/applications/components/tabs/TimelineTab";
 
 export default async function ApplicationTimelinePage({
   params,

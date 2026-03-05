@@ -8,7 +8,7 @@ import type {
   Test,
   Interview,
   Decision,
-} from "@/types/admissions";
+} from "@/features/admissions/types/admissions";
 import type {
   Student,
   StudentGuardian,
@@ -17,7 +17,7 @@ import type {
   StudentMedicalProfile,
   StudentNote,
   StudentTimelineEvent,
-} from "@/types/students";
+} from "@/features/students-guardians/students/types";
 import { seededNumber, seededPick } from "@/utils/seeded";
 
 // ============================================================================

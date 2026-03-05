@@ -4,7 +4,7 @@
 import type {
   ClassTeacherAssignment,
   SubjectTeacherAssignment,
-} from "@/types/students";
+} from "@/features/students-guardians/students/types";
 
 const academicYear = "2026-2027";
 

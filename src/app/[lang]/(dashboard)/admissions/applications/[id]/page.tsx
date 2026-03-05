@@ -1,5 +1,5 @@
 import { mockApplications } from "@/data/mockAdmissions";
-import DetailsTab from "@/components/features/admissions/components/tabs/DetailsTab";
+import DetailsTab from "@/features/admissions/applications/components/tabs/DetailsTab";
 
 export default async function ApplicationDetailsPage({
   params,

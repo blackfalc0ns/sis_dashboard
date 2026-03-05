@@ -1,5 +1,5 @@
-import * as studentsService from "@/services/studentsService";
-import AttendanceTab from "@/components/features/students-guardians/components/tabs/student/AttendanceTab";
+import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import AttendanceTab from "@/features/students-guardians/students/components/tabs/AttendanceTab";
 
 export default async function StudentAttendancePage({
   params,

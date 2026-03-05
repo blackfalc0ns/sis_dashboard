@@ -1,6 +1,6 @@
 // FILE: src/app/[lang]/students-guardians/page.tsx
 
-import StudentsGuardiansDashboard from "@/components/features/students-guardians/components/pages/StudentsGuardiansDashboard";
+import StudentsGuardiansDashboard from "@/features/students-guardians/dashboard/pages/StudentsGuardiansDashboard";
 
 export default function StudentsGuardiansPage() {
   return (

@@ -7,8 +7,8 @@ import {
   addActivity,
   getLeadById,
 } from "@/api/mockLeadsApi";
-import { ActivityType } from "@/types/leads";
-import ActivityLog from "@/components/features/leads/components/ActivityLog";
+import { ActivityType } from "@/features/admissions/types/enums";
+import ActivityLog from "@/features/admissions/leads/components/ActivityLog";
 
 export default function LeadActivityPage() {
   const params = useParams();

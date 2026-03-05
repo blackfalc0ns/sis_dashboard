@@ -1,5 +1,5 @@
-import * as studentsService from "@/services/studentsService";
-import TimelineTab from "@/components/features/students-guardians/components/tabs/student/TimelineTab";
+import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import TimelineTab from "@/features/students-guardians/students/components/tabs/TimelineTab";
 
 export default async function StudentTimelinePage({
   params,

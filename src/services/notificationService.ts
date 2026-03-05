@@ -7,7 +7,7 @@ import {
   NotificationStatus,
 } from "@/types/notifications";
 import { NOTIFICATION_TEMPLATES } from "@/config/notificationTemplates";
-import { Application, Guardian } from "@/types/admissions";
+import { Application, Guardian } from "@/features/admissions/types/admissions";
 
 /**
  * Replace template variables with actual data

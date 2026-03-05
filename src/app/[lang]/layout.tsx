@@ -6,7 +6,7 @@ import "../globals.css";
 import Providers from "../providers";
 
 export const metadata = {
-  title: "معزز",
+  title: "Moazzez | معزز",
   description: "School Management System",
  
   themeColor: "#ffffff",

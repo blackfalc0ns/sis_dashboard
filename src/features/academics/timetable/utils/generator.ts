@@ -1,0 +1,383 @@
+// Timetable Auto-Generation Algorithm
+// Basic heuristic solver - no external dependencies
+
+import { TimetableEntry } from "@/features/academics/timetable/types/timetable";
+import { Subject } from "@/features/academics/subjects/services/subjectsService";
+import { Teacher, TeacherAllocation } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
+import { SubjectAllocation } from "@/features/academics/subjects/services/subjectsService";
+import { Room } from "@/features/academics/timetable/types/timetable";
+import { ResolvedTimetableConfig, TimetableDay, TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
+
+export interface GenerationOptions {
+  sectionId: string;
+  gradeId: string;
+  termId: string;
+  strictMode: boolean; // If true, fail on any conflict
+  distributeEvenly: boolean; // Try to distribute subjects across days
+  avoidConsecutive: boolean; // Avoid same subject in consecutive periods
+  excludeDays: string[]; // Day keys to exclude (holidays, weekends)
+}
+
+export interface GenerationResult {
+  success: boolean;
+  entries: TimetableEntry[];
+  unresolved: Array<{
+    subjectId: string;
+    subjectName: string;
+    required: number;
+    placed: number;
+  }>;
+  conflicts: Array<{
+    type: "TEACHER" | "ROOM";
+    dayKey: string;
+    periodIndex: number;
+    message: string;
+  }>;
+  message: string;
+}
+
+interface SlotCandidate {
+  dayKey: string;
+  periodIndex: number;
+  score: number; // Higher is better
+}
+
+/**
+ * Main generation function
+ */
+export async function generateTimetable(
+  options: GenerationOptions,
+  subjects: Subject[],
+  subjectAllocations: SubjectAllocation[],
+  teacherAllocations: TeacherAllocation[],
+  teachers: Teacher[],
+  rooms: Room[],
+  existingEntries: TimetableEntry[], // All entries in term for conflict checking
+  config: ResolvedTimetableConfig // Configuration for days and periods
+): Promise<GenerationResult> {
+  const { sectionId, gradeId, termId, strictMode, distributeEvenly, avoidConsecutive, excludeDays } = options;
+
+  // Get active days and periods from config
+  const activeDays = config.days.filter((d) => d.isActive && !excludeDays.includes(d.key));
+  const periods = config.periods;
+
+  if (activeDays.length === 0 || periods.length === 0) {
+    return {
+      success: false,
+      entries: [],
+      unresolved: [],
+      conflicts: [],
+      message: "No active days or periods in configuration",
+    };
+  }
+
+  // Step 1: Build requirements list
+  const requirements = buildRequirements(gradeId, subjects, subjectAllocations);
+  
+  if (requirements.length === 0) {
+    return {
+      success: false,
+      entries: [],
+      unresolved: [],
+      conflicts: [],
+      message: "No subjects with weekly hours found for this grade",
+    };
+  }
+
+  // Step 2: Sort requirements by difficulty (subjects with fewer hours first for better distribution)
+  const sortedRequirements = [...requirements].sort((a, b) => a.hours - b.hours);
+
+  // Step 3: Initialize result
+  const generatedEntries: TimetableEntry[] = [];
+  const unresolved: GenerationResult["unresolved"] = [];
+  const conflicts: GenerationResult["conflicts"] = [];
+
+  // Step 4: Try to place each subject
+  for (const req of sortedRequirements) {
+    const { subjectId, hours } = req;
+    
+    // Get teacher for this subject+section
+    const teacherAllocation = teacherAllocations.find(
+      (ta) => ta.sectionId === sectionId && ta.subjectId === subjectId
+    );
+    const teacherId = teacherAllocation?.teacherId || null;
+
+    // Get suitable room (simplified - just pick first active room)
+    const room = rooms.find((r) => r.isActive);
+    const roomId = room?.id || null;
+
+    let placed = 0;
+
+    // Try to place required hours
+    for (let i = 0; i < hours; i++) {
+      const slot = findBestSlot({
+        subjectId,
+        teacherId,
+        roomId,
+        sectionId,
+        termId,
+        generatedEntries,
+        existingEntries,
+        activeDays,
+        periods,
+        distributeEvenly,
+        avoidConsecutive,
+        strictMode,
+      });
+
+      if (slot) {
+        // Place the entry
+        const entry: TimetableEntry = {
+          id: `gen-${Date.now()}-${Math.random()}`,
+          termId,
+          sectionId,
+          dayKey: slot.dayKey,
+          periodIndex: slot.periodIndex,
+          subjectId,
+          teacherId,
+          roomId,
+          status: "DRAFT",
+        };
+
+        generatedEntries.push(entry);
+        placed++;
+      } else {
+        // Could not place this hour
+        if (strictMode) {
+          // In strict mode, fail immediately
+          const subject = subjects.find((s) => s.id === subjectId);
+          return {
+            success: false,
+            entries: [],
+            unresolved: [],
+            conflicts: [],
+            message: `Failed to place all hours for ${subject?.nameEn || subjectId}. Only placed ${placed}/${hours}.`,
+          };
+        }
+        // In relaxed mode, continue
+        break;
+      }
+    }
+
+    // Track unresolved
+    if (placed < hours) {
+      const subject = subjects.find((s) => s.id === subjectId);
+      unresolved.push({
+        subjectId,
+        subjectName: subject?.nameEn || subjectId,
+        required: hours,
+        placed,
+      });
+    }
+  }
+
+  // Step 5: Return result
+  const success = unresolved.length === 0;
+  const message = success
+    ? `Successfully generated timetable with ${generatedEntries.length} entries`
+    : `Generated ${generatedEntries.length} entries, but ${unresolved.length} subjects have unplaced hours`;
+
+  return {
+    success,
+    entries: generatedEntries,
+    unresolved,
+    conflicts,
+    message,
+  };
+}
+
+/**
+ * Build list of subject requirements from allocations
+ */
+function buildRequirements(
+  gradeId: string,
+  subjects: Subject[],
+  subjectAllocations: SubjectAllocation[]
+): Array<{ subjectId: string; hours: number }> {
+  const requirements: Array<{ subjectId: string; hours: number }> = [];
+
+  for (const subject of subjects) {
+    const allocation = subjectAllocations.find(
+      (sa) => sa.gradeId === gradeId && sa.subjectId === subject.id
+    );
+
+    if (allocation && allocation.weeklyHours > 0) {
+      requirements.push({
+        subjectId: subject.id,
+        hours: allocation.weeklyHours,
+      });
+    }
+  }
+
+  return requirements;
+}
+
+/**
+ * Find the best available slot for a subject
+ */
+function findBestSlot(params: {
+  subjectId: string;
+  teacherId: string | null;
+  roomId: string | null;
+  sectionId: string;
+  termId: string;
+  generatedEntries: TimetableEntry[];
+  existingEntries: TimetableEntry[];
+  activeDays: TimetableDay[];
+  periods: TimetablePeriod[];
+  distributeEvenly: boolean;
+  avoidConsecutive: boolean;
+  strictMode: boolean;
+}): { dayKey: string; periodIndex: number } | null {
+  const {
+    subjectId,
+    teacherId,
+    roomId,
+    sectionId,
+    generatedEntries,
+    existingEntries,
+    activeDays,
+    periods,
+    distributeEvenly,
+    avoidConsecutive,
+  } = params;
+
+  const candidates: SlotCandidate[] = [];
+
+  // Check all possible slots
+  for (const day of activeDays) {
+    for (const period of periods) {
+      // Check if slot is available
+      if (isSlotAvailable(day.key, period.index, sectionId, generatedEntries)) {
+        // Check for conflicts
+        const hasConflict = checkConflicts(
+          day.key,
+          period.index,
+          teacherId,
+          roomId,
+          sectionId,
+          [...generatedEntries, ...existingEntries]
+        );
+
+        if (hasConflict) continue;
+
+        // Calculate score for this slot
+        const score = calculateSlotScore({
+          dayKey: day.key,
+          periodIndex: period.index,
+          subjectId,
+          generatedEntries,
+          distributeEvenly,
+          avoidConsecutive,
+          totalPeriods: periods.length,
+        });
+
+        candidates.push({ dayKey: day.key, periodIndex: period.index, score });
+      }
+    }
+  }
+
+  // Sort by score (highest first)
+  candidates.sort((a, b) => b.score - a.score);
+
+  // Return best candidate
+  return candidates.length > 0 ? candidates[0] : null;
+}
+
+/**
+ * Check if a slot is available (not occupied by this section)
+ */
+function isSlotAvailable(
+  dayKey: string,
+  periodIndex: number,
+  sectionId: string,
+  entries: TimetableEntry[]
+): boolean {
+  return !entries.some(
+    (e) => e.sectionId === sectionId && e.dayKey === dayKey && e.periodIndex === periodIndex
+  );
+}
+
+/**
+ * Check for teacher/room conflicts
+ */
+function checkConflicts(
+  dayKey: string,
+  periodIndex: number,
+  teacherId: string | null,
+  roomId: string | null,
+  sectionId: string,
+  allEntries: TimetableEntry[]
+): boolean {
+  // Check teacher conflict
+  if (teacherId) {
+    const teacherConflict = allEntries.some(
+      (e) =>
+        e.dayKey === dayKey &&
+        e.periodIndex === periodIndex &&
+        e.teacherId === teacherId &&
+        e.sectionId !== sectionId
+    );
+    if (teacherConflict) return true;
+  }
+
+  // Check room conflict
+  if (roomId) {
+    const roomConflict = allEntries.some(
+      (e) =>
+        e.dayKey === dayKey &&
+        e.periodIndex === periodIndex &&
+        e.roomId === roomId &&
+        e.sectionId !== sectionId
+    );
+    if (roomConflict) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Calculate score for a slot (higher is better)
+ */
+function calculateSlotScore(params: {
+  dayKey: string;
+  periodIndex: number;
+  subjectId: string;
+  generatedEntries: TimetableEntry[];
+  distributeEvenly: boolean;
+  avoidConsecutive: boolean;
+  totalPeriods: number;
+}): number {
+  const { dayKey, periodIndex, subjectId, generatedEntries, distributeEvenly, avoidConsecutive, totalPeriods } = params;
+
+  let score = 100; // Base score
+
+  // Prefer earlier periods (morning)
+  score += (totalPeriods - periodIndex) * 2;
+
+  if (distributeEvenly) {
+    // Count how many times this subject appears on this day
+    const subjectCountOnDay = generatedEntries.filter(
+      (e) => e.dayKey === dayKey && e.subjectId === subjectId
+    ).length;
+
+    // Penalize if subject already on this day
+    score -= subjectCountOnDay * 20;
+  }
+
+  if (avoidConsecutive) {
+    // Check if same subject in previous period
+    const prevPeriod = generatedEntries.find(
+      (e) => e.dayKey === dayKey && e.periodIndex === periodIndex - 1 && e.subjectId === subjectId
+    );
+    if (prevPeriod) score -= 30;
+
+    // Check if same subject in next period
+    const nextPeriod = generatedEntries.find(
+      (e) => e.dayKey === dayKey && e.periodIndex === periodIndex + 1 && e.subjectId === subjectId
+    );
+    if (nextPeriod) score -= 30;
+  }
+
+  return score;
+}

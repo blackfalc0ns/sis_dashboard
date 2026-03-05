@@ -1,4 +1,4 @@
-import AssignmentBuilderPage from "@/features/academics/components/pages/AssignmentBuilderPage";
+import AssignmentBuilderPage from "@/features/academics/curriculum/pages/AssignmentBuilderPage";
 
 interface PageProps {
   params: Promise<{

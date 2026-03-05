@@ -1,6 +1,6 @@
 // FILE: src/app/[lang]/admissions/enrollment/page.tsx
 
-import EnrollmentList from "@/components/features/admissions/components/lists/EnrollmentList";
+import EnrollmentList from "@/features/admissions/enrollment/pages/EnrollmentList";
 
 export default function EnrollmentPage() {
   return (

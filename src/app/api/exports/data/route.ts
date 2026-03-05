@@ -10,7 +10,7 @@ import {
   formatDecisionsForExport,
   formatEnrollmentsForExport,
   generateExportFilename,
-} from "@/utils/admissionsExportUtils";
+} from "@/features/admissions/applications/utils/admissionsExportUtils";
 
 export async function POST(request: NextRequest) {
   try {

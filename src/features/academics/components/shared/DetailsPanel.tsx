@@ -9,7 +9,7 @@ import {
   isStageNameUnique,
   isGradeNameUnique,
   isSectionNameUnique,
-} from "@/services/academics/structureService";
+} from "@/features/academics/academic-structure-tree/services/structureService";
 import Modal from "@/components/ui/modal/Modal";
 import Input from "@/components/ui/input/Input";
 import TextArea from "@/components/ui/input/TextArea";

@@ -1,7 +1,7 @@
 // FILE: src/data/mockEnrollments.ts
 // ERP Enrollment mock data
 
-import type { StudentEnrollment } from "@/types/students";
+import type { StudentEnrollment } from "@/features/students-guardians/students/types";
 import { mockStudents } from "./mockDataLinked";
 
 /**

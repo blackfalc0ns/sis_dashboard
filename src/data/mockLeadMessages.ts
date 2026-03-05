@@ -1,7 +1,7 @@
 // FILE: src/data/mockLeadMessages.ts
 // Mock data for lead messaging/chat system
 
-import type { LeadMessage, LeadConversation } from "@/types/leads/message";
+import type { LeadMessage, LeadConversation } from "@/features/admissions/leads/types/message";
 import { mockLeads } from "./mockDataLinked";
 
 // Mock messages for each lead

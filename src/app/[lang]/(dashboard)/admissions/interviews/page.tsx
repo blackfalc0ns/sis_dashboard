@@ -1,6 +1,6 @@
 // FILE: src/app/[lang]/admissions/interviews/page.tsx
 
-import InterviewsList from "@/components/features/admissions/components/lists/InterviewsList";
+import InterviewsList from "@/features/admissions/interviews/pages/InterviewsList";
 
 export default function InterviewsPage() {
   return (

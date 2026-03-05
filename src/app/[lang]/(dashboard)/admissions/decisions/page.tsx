@@ -1,6 +1,6 @@
 // FILE: src/app/[lang]/admissions/decisions/page.tsx
 
-import DecisionsList from "@/components/features/admissions/components/lists/DecisionsList";
+import DecisionsList from "@/features/admissions/decisions/pages/DecisionsList";
 
 export default function DecisionsPage() {
   return (

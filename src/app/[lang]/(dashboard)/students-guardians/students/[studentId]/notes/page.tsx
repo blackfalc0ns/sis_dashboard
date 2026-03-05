@@ -1,5 +1,5 @@
-import * as studentsService from "@/services/studentsService";
-import NotesTab from "@/components/features/students-guardians/components/tabs/student/NotesTab";
+import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import NotesTab from "@/features/students-guardians/students/components/tabs/NotesTab";
 
 export default async function StudentNotesPage({
   params,

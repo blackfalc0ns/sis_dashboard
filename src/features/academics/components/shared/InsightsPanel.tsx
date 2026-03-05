@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Stage, Grade, Section } from "@/services/academics/structureService";
+import { Stage, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
 import { AlertCircle, Layers, BookOpen, Users } from "lucide-react";
 
 interface InsightsPanelProps {

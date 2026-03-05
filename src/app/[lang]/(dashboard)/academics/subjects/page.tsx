@@ -1,4 +1,4 @@
-import SubjectsAllocationPage from "@/features/academics/components/pages/SubjectsAllocationPage";
+import SubjectsAllocationPage from "@/features/academics/subjects/pages/SubjectsAllocationPage";
 
 export default function Page() {
   return <SubjectsAllocationPage />;

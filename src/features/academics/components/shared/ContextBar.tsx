@@ -10,7 +10,7 @@ import {
   fetchTermsByYear,
   AcademicYear,
   Term,
-} from "@/services/academics/structureService";
+} from "@/features/academics/academic-structure-tree/services/structureService";
 import { YearDialog, TermDialog } from "../dialogs/YearTermDialogs";
 
 interface ContextBarProps {

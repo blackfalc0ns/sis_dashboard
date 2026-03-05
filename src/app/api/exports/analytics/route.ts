@@ -1,7 +1,7 @@
 // FILE: src/app/api/exports/analytics/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { getAdmissionsAnalytics } from "@/api/admissionsAnalytics";
+import { getAdmissionsAnalytics } from "@/features/admissions/dashboard/services/admissionsAnalytics";
 import {
   convertToCSV,
   formatFunnelForExport,
@@ -9,7 +9,7 @@ import {
   formatGradeDistributionForExport,
   createAnalyticsJSON,
   generateExportFilename,
-} from "@/utils/admissionsExportUtils";
+} from "@/features/admissions/applications/utils/admissionsExportUtils";
 
 export async function POST(request: NextRequest) {
   try {

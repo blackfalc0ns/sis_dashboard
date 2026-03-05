@@ -1,5 +1,5 @@
-import * as studentsService from "@/services/studentsService";
-import EnrollmentHistoryTab from "@/components/features/students-guardians/components/tabs/student/EnrollmentHistoryTab";
+import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import EnrollmentHistoryTab from "@/features/students-guardians/students/components/tabs/EnrollmentHistoryTab";
 
 export default async function StudentEnrollmentHistoryPage({
   params,

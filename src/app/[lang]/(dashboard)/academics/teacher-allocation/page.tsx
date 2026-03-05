@@ -1,4 +1,4 @@
-import TeacherAllocationPage from "@/features/academics/components/pages/TeacherAllocationPage";
+import TeacherAllocationPage from "@/features/academics/teacher-allocation/pages/TeacherAllocationPage";
 
 export default function Page() {
   return <TeacherAllocationPage />;

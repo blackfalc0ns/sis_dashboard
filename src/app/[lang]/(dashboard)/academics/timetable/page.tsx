@@ -1,4 +1,4 @@
-import TimetablePage from "@/features/academics/components/pages/TimetablePageContent";
+import TimetablePage from "@/features/academics/timetable/pages/TimetablePageContent";
 
 export default function Page() {
   return <TimetablePage />;

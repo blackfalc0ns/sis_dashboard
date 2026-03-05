@@ -14,7 +14,7 @@ import {
   updateAcademicYear,
   createTerm,
   updateTerm,
-} from "@/services/academics/structureService";
+} from "@/features/academics/academic-structure-tree/services/structureService";
 import dayjs from "dayjs";
 
 interface YearDialogProps {

@@ -1,6 +1,6 @@
 // FILE: src/utils/chartFilters.ts
 
-import { ChartFilterValues } from "@/components/features/students-guardians/components/shared/ChartFilter";
+import { ChartFilterValues } from "@/features/students-guardians/shared/ChartFilter";
 import { getDateFilterBoundaries, isDateInRange } from "./dateFilters";
 
 export interface FilteredDataParams {

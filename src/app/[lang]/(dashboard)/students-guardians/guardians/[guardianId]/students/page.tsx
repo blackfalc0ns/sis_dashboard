@@ -1,7 +1,7 @@
 // FILE: src/app/[lang]/(dashboard)/students-guardians/guardians/[guardianId]/students/page.tsx
 
-import StudentsTab from "@/components/features/students-guardians/components/tabs/guardian/StudentsTab";
-import * as studentsService from "@/services/studentsService";
+import StudentsTab from "@/features/students-guardians/guardians/components/tabs/StudentsTab";
+import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { notFound } from "next/navigation";
 
 interface GuardianStudentsPageProps {

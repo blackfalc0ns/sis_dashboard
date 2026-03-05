@@ -1,7 +1,7 @@
 // FILE: src/data/mockTerms.ts
 // ERP Term performance mock data
 
-import type { EnrollmentTerm } from "@/types/students";
+import type { EnrollmentTerm } from "@/features/students-guardians/students/types";
 import { mockStudentEnrollments } from "./mockEnrollments";
 import { seededNumber } from "@/utils/seeded";
 

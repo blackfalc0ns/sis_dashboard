@@ -17,12 +17,12 @@ import {
   Award,
   ArrowRight,
 } from "lucide-react";
-import * as studentsService from "@/services/studentsService";
+import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import {
   getStudentDisplayName,
   getStudentDisplayId,
   getStudentGrade,
-} from "@/utils/studentUtils";
+} from "@/features/students-guardians/students/utils/studentUtils";
 
 const tabs = [
   { key: "overview", labelKey: "tabs.overview", icon: Activity },
