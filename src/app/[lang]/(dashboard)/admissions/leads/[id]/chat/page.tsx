@@ -11,13 +11,11 @@ export default function LeadChatPage({
   params: Promise<{ id: string }>;
 }) {
   const [lead, setLead] = useState<Lead | null>(null);
-  const [leadId, setLeadId] = useState<string>("");
 
   useEffect(() => {
     params.then(({ id }) => {
-      setLeadId(id);
       const foundLead = getLeadById(id);
-      setLead(foundLead);
+      setLead(foundLead || null);
     });
   }, [params]);
 

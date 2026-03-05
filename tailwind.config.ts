@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 import forms from "@tailwindcss/forms";
-import { tokens } from "@/design/tokens";
+import { tokens } from "./src/design/tokens";
 
 const config: Config = {
   // Content scanning configuration - critical for proper CSS generation
