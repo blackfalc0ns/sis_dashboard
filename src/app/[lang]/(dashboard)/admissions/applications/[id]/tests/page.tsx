@@ -21,5 +21,5 @@ export default function ApplicationTestsPage({
 
   if (!application) return null;
 
-  return <TestsTab application={application}/>;
+  return <TestsTab application={application} onScheduleTest={() => {}} />;
 }

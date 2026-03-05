@@ -6,10 +6,12 @@ import StatusBadge from "../../../shared/StatusBadge";
 
 interface TestsTabProps {
   application: Application;
+  onScheduleTest: () => void;
 }
 
 export default function TestsTab({
   application,
+  onScheduleTest,
 }: TestsTabProps) {
   const t = useTranslations("admissions.application360");
 
@@ -18,7 +20,7 @@ export default function TestsTab({
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-gray-900">{t("tests.title")}</h3>
         <button
-          onClick={() => {}} // template
+          onClick={onScheduleTest}
           className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
         >
           {t("tests.schedule_test")}

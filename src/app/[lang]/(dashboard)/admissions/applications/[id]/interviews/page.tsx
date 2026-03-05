@@ -22,6 +22,6 @@ export default function ApplicationInterviewsPage({
   if (!application) return null;
 
   return (
-    <InterviewsTab application={application} />
+    <InterviewsTab application={application} onScheduleInterview={() => {}} />
   );
 }
