@@ -1,7 +1,8 @@
 "use client";
 
 import { Snackbar, Alert, AlertColor } from "@mui/material";
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
+import { announceToScreenReader, createAriaLive } from "@/lib/accessibility/ariaHelpers";
 
 interface ToastContextType {
   showToast: (message: string, severity?: AlertColor) => void;
@@ -29,6 +30,14 @@ export function ToastProvider({ children }: ToastProviderProps) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [severity, setSeverity] = useState<AlertColor>("info");
+
+  // Announce to screen readers when toast appears
+  useEffect(() => {
+    if (open && message) {
+      const priority = severity === 'error' || severity === 'warning' ? 'assertive' : 'polite';
+      announceToScreenReader(message, priority);
+    }
+  }, [open, message, severity]);
 
   const showToast = useCallback((msg: string, sev: AlertColor = "info") => {
     setMessage(msg);
@@ -60,6 +69,10 @@ export function ToastProvider({ children }: ToastProviderProps) {
     setOpen(false);
   };
 
+  // Determine ARIA role based on severity
+  const ariaRole = severity === 'error' || severity === 'warning' ? 'alert' : 'status';
+  const ariaLive = severity === 'error' || severity === 'warning' ? 'assertive' : 'polite';
+
   return (
     <ToastContext.Provider
       value={{ showToast, showSuccess, showError, showWarning, showInfo }}
@@ -76,6 +89,9 @@ export function ToastProvider({ children }: ToastProviderProps) {
           onClose={handleClose}
           severity={severity}
           variant="filled"
+          role={ariaRole}
+          aria-live={ariaLive}
+          aria-atomic="true"
           sx={{
             width: "100%",
             fontFamily: "Cairo, sans-serif",

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { SparkLineChart } from "@mui/x-charts/SparkLineChart";
-import { CheckCircleIcon } from "@heroicons/react/20/solid";
+import { CheckCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ChartCard } from "@/components/ui/chart-card";
 import { DropdownItem } from "@/components/ui/dropdown";
@@ -78,7 +78,7 @@ export default function AcademicPerformanceCard() {
       bgColor="#dbeafe"
       customFilter={
         <div className="flex items-center gap-1.5 positive-tag px-3 py-1 rounded-full">
-          <CheckCircleIcon className="w-4 h-4" />
+          <CheckCircle className="w-4 h-4" />
           <span className="text-sm font-bold">{t("good")}</span>
         </div>
       }

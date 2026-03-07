@@ -1,7 +1,7 @@
 import { NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
-import { cairo } from "@/libs/fonts";
+import { cairo } from "@/lib/fonts";
 import "../globals.css";
 import Providers from "../providers";
 

@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 import { X, Info } from "lucide-react";
 import { useLocale } from "next-intl";
+import { createFocusTrap } from "@/lib/accessibility/focusTrap";
+import { generateAriaId, createAriaModal } from "@/lib/accessibility/ariaHelpers";
 
 export interface ModalProps {
   isOpen: boolean;
@@ -37,8 +39,33 @@ export default function Modal({
   variant = "default",
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const titleId = useRef(generateAriaId('modal-title')).current;
+  const descriptionId = useRef(generateAriaId('modal-description')).current;
   const locale = useLocale();
   const isRTL = locale === "ar";
+
+  // Store the element that triggered the modal
+  useEffect(() => {
+    if (isOpen) {
+      previousFocusRef.current = document.activeElement as HTMLElement;
+    }
+  }, [isOpen]);
+
+  // Focus trap and focus restoration
+  useEffect(() => {
+    if (!isOpen || !modalRef.current) return;
+
+    const cleanup = createFocusTrap(modalRef.current);
+
+    return () => {
+      cleanup();
+      // Restore focus to the element that opened the modal
+      if (previousFocusRef.current && typeof previousFocusRef.current.focus === 'function') {
+        previousFocusRef.current.focus();
+      }
+    };
+  }, [isOpen]);
 
   // Handle escape key
   useEffect(() => {
@@ -102,11 +129,19 @@ export default function Modal({
     ? "text-blue-600"
     : "text-[var(--primary-color)]";
 
+  // Create ARIA props
+  const ariaProps = createAriaModal(
+    title ? titleId : undefined,
+    description ? descriptionId : undefined,
+    variant === "danger"
+  );
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       onClick={handleOverlayClick}
       dir={isRTL ? "rtl" : "ltr"}
+      aria-hidden={!isOpen}
     >
       <div
         ref={modalRef}
@@ -120,9 +155,7 @@ export default function Modal({
           animation: "modalFadeIn 0.2s ease-out",
           fontFamily: "Cairo, sans-serif"
         }}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title ?? "Modal"}
+        {...ariaProps}
       >
         {/* Header */}
         {(title || showCloseButton) && (
@@ -138,12 +171,12 @@ export default function Modal({
               {/* Title and Description */}
               <div className="flex-1 min-w-0">
                 {title && (
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">
+                  <h2 id={titleId} className="text-xl font-bold text-gray-900 mb-1">
                     {title}
                   </h2>
                 )}
                 {description && (
-                  <p className="text-sm text-gray-600 leading-relaxed">
+                  <p id={descriptionId} className="text-sm text-gray-600 leading-relaxed">
                     {description}
                   </p>
                 )}
@@ -161,7 +194,7 @@ export default function Modal({
                     top: title || shouldShowIcon ? "0" : "1rem",
                     [isRTL ? "left" : "right"]: title || shouldShowIcon ? "0" : "1rem",
                   }}
-                  aria-label="Close"
+                  aria-label={locale === "ar" ? "إغلاق" : "Close modal"}
                   type="button"
                 >
                   <X className="w-5 h-5" />

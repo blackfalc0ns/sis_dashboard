@@ -24,7 +24,7 @@ import {
   bulkUpsertTeacherAllocations,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { exportAcademicsData, generateExportFilename, ExportColumn, ExportMetadata, formatExportDate } from "@/features/academics/utils/exportAdapter";
-import { CheckCircleIcon } from "@heroicons/react/20/solid";
+import { CheckCircle } from "lucide-react";
 
 interface AllocationMatrixViewProps {
   termId: string;
@@ -571,7 +571,7 @@ export default function AllocationMatrixView({
                             {missingCount}
                           </span>
                         ) : (
-                          <span className="text-green-600"><CheckCircleIcon className="w-7 h-7" /></span>
+                          <span className="text-green-600"><CheckCircle className="w-7 h-7" /></span>
                         )}
                       </div>
                     );

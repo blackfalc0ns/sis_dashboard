@@ -30,13 +30,10 @@
   /* base colors */
   --color-primary: var(--primary-color);
   --color-hover: var(--hover-color);
-
   --color-white: var(--white-color);
   --color-black: var(--black-color);
   --color-border: var(--border-color);
-
   --shadow-main: var(--main-box-shadow-value);
-
   /* PRIMARY SCALE */
   --color-primary-50: color-mix(in oklab, var(--primary-color) 6%, white);
   --color-primary-100: color-mix(in oklab, var(--primary-color) 12%, white);

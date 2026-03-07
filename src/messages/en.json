@@ -75,7 +75,16 @@
     "details": "Details",
     "collapse": "Collapse",
     "expand": "Expand",
-    "resizePanel": "Resize panel"
+    "resizePanel": "Resize panel",
+    "all_scopes": "All Scopes",
+    "all_modes": "All Modes",
+    "all_statuses": "All Statuses",
+    "select": "Select",
+    "loading": "Loading...",
+    "error_loading": "Failed to load data",
+    "error_saving": "Failed to save",
+    "error_deleting": "Failed to delete",
+    "coming_soon": "Coming Soon"
   },
   "filter_bar": {
     "filters": {
@@ -2294,6 +2303,138 @@
         "save_failed": "Failed to save. Please try again."
       }
     },
+    "overview": {
+      "title": "Academics Overview",
+      "kpi": {
+        "structure": {
+          "title": "Structure",
+          "subtitle": "{sections} sections"
+        },
+        "subjects": {
+          "title": "Subjects Allocation",
+          "subtitle": "{total} subjects"
+        },
+        "teachers": {
+          "title": "Missing Allocations",
+          "subtitle": "{overloaded} overloaded"
+        },
+        "lessonPlans": {
+          "title": "Lesson Plans",
+          "subtitle": "{done}/{total} done"
+        },
+        "calendar": {
+          "title": "Upcoming Events",
+          "nextHoliday": "Next: {date}",
+          "noUpcoming": "No upcoming events"
+        },
+        "timetable": {
+          "title": "Timetable",
+          "comingSoon": "Coming soon"
+        }
+      },
+    
+      "alerts": {
+        "title": "Alerts & Issues",
+        "noAlerts": "All systems ready!",
+        "sectionsCapacity": {
+          "title": "Sections Missing Capacity",
+          "description": "Some sections have no capacity set"
+        },
+        "gradesSections": {
+          "title": "Grades Without Sections",
+          "description": "Some grades have no sections"
+        },
+        "teacherMissing": {
+          "title": "Missing Teacher Assignments",
+          "description": "Some sections need teachers"
+        },
+        "teacherOverloaded": {
+          "title": "Overloaded Teachers",
+          "description": "Some teachers exceed max load"
+        },
+        "examSoon": {
+          "title": "Exam Coming Soon",
+          "description": "Exam scheduled within 7 days"
+        },
+        "lessonsBehind": {
+          "title": "Lesson Plans Behind Schedule",
+          "description": "Completion rate is below 70%"
+        }
+      },
+     
+      "quickLinks": {
+        "title": "Quick Links",
+        "structure": "Structure",
+        "subjects": "Subjects",
+        "curriculum": "Curriculum",
+        "calendar": "Calendar",
+        "timetable": "Timetable",
+        "lessonPlans": "Lesson Plans",
+        "teacherAllocation": "Teacher Allocation"
+      },
+      "summary": {
+        "title": "Summary"
+      },
+      "analytics": {
+        "title": "Analytics"
+      },
+      "checklist": {
+        "title": "Setup Checklist",
+        "progress": "{done} of {total} completed",
+        "complete": "Complete",
+        "fix": "Fix",
+        "allGood": "All set!",
+        "structure": {
+          "title": "Structure Ready",
+          "description": "All grades have sections with capacity",
+          "reason": "{count} grades without sections",
+          "reasonCapacity": "{count} sections missing capacity"
+        },
+        "subjects": {
+          "title": "Subjects Allocated",
+          "description": "Subject allocation is complete",
+          "reason": "{percentage}% complete"
+        },
+        "teachers": {
+          "title": "Teachers Assigned",
+          "description": "All sections have teachers assigned",
+          "reason": "{count} missing allocations",
+          "reasonOverloaded": "{count} teachers overloaded"
+        },
+        "calendar": {
+          "title": "Calendar Configured",
+          "description": "Key dates and events are set",
+          "reason": "No key dates set"
+        },
+        "lessonPlans": {
+          "title": "Lesson Plans Started",
+          "description": "Lesson planning is underway",
+          "reason": "{count} lessons planned"
+        }
+      },
+      "charts": {
+        "lessonPlans": {
+          "title": "Lesson Plans Progress",
+          "planned": "Planned",
+          "done": "Done",
+          "insight": "Most delayed: {week} ({gap} lessons behind)",
+          "insightGood": "All weeks on track!"
+        },
+        "teacherLoads": {
+          "title": "Teacher Load Distribution",
+          "weeklyPeriods": "Weekly Periods",
+          "insight": "Highest load: {teacher} ({load} periods/week)"
+        },
+        "readiness": {
+          "title": "Overall Readiness",
+          "ready": "Ready",
+          "notReady": "Not Ready",
+          "insightGood": "{percentage}% ready - Great progress!",
+          "insightNeedsWork": "{percentage}% ready - Needs attention"
+        },
+        "noData": "No data available"
+      }
+    },
     "subjects": {
       "readonly_banner": {
         "message": "This term is closed. Subjects & allocation are read-only."
@@ -3394,5 +3535,114 @@
     "title": "Page Not Found",
     "description": "Sorry, we couldn't find the page you're looking for. It might have been moved or deleted.",
     "backToHome": "Back to Home"
+  },
+  "attendance": {
+    "title": "Attendance & Discipline",
+    "policies": "Policies",
+    "rollCall": "Roll Call",
+    "absences": "Absences",
+    "lateEarly": "Late/Early",
+    "excuses": "Excuses",
+    "reports": "Reports",
+    "rollCallDesc": "Take daily attendance and manage roll call",
+    "absencesDesc": "View and manage student absences",
+    "lateEarlyDesc": "Track late arrivals and early departures",
+    "excusesDesc": "Review and approve absence excuses",
+    "reportsDesc": "Generate attendance and discipline reports",
+    "policies": {
+      "title": "Attendance Policies",
+      "policiesList": "Policies List",
+      "policyName": "Policy Name",
+      "scope": "Scope",
+      "mode": "Mode",
+      "effectivePeriod": "Effective Period",
+      "status": "Status",
+      "actions": "Actions",
+      "active": "Active",
+      "inactive": "Inactive",
+      "createPolicy": "Create Policy",
+      "editPolicy": "Edit Policy",
+      "deletePolicy": "Delete Policy",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "delete": "Delete",
+      "edit": "Edit",
+      "cancel": "Cancel",
+      "save": "Save",
+      "stay": "Stay",
+      "discard": "Discard",
+      "searchPlaceholder": "Search by name or scope...",
+      "selectOrCreate": "Select or Create a Policy",
+      "selectOrCreateDesc": "Choose a policy from the list to edit, or create a new one",
+      "readonly_banner": "This term is closed. You cannot create or edit policies.",
+      "policyCreated": "Policy created successfully",
+      "policyUpdated": "Policy updated successfully",
+      "policyDeleted": "Policy deleted successfully",
+      "policyActivated": "Policy activated successfully",
+      "policyDeactivated": "Policy deactivated successfully",
+      "deleteConfirmTitle": "Delete Policy",
+      "deleteConfirmDesc": "Are you sure you want to delete the policy \"{name}\"? This action cannot be undone.",
+      "unsavedChangesTitle": "Unsaved Changes",
+      "unsavedChangesDesc": "You have unsaved changes. Do you want to discard them?",
+      "scopeType": {
+        "school": "School-wide",
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section"
+      },
+      "form": {
+        "nameAr": "Policy Name (Arabic)",
+        "nameEn": "Policy Name (English)",
+        "scopeType": "Scope Type",
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
+        "mode": "Attendance Mode",
+        "daily": "Daily Attendance",
+        "dailyDesc": "Track attendance once per day",
+        "period": "Period-based Attendance",
+        "periodDesc": "Track attendance for each class period",
+        "lateThreshold": "Late Threshold",
+        "earlyThreshold": "Early Leave Threshold",
+        "autoAbsentAfter": "Auto-mark Absent After",
+        "minutes": "minutes",
+        "optional": "Optional",
+        "autoAbsentAfterDesc": "Automatically mark student as absent if late by this many minutes",
+        "allowExcuses": "Allow Excuses",
+        "requireAttachment": "Require Attachment for Excuses",
+        "effectiveStart": "Effective Start Date",
+        "effectiveEnd": "Effective End Date",
+        "termRangeHint": "Dates must be within term range: {start} to {end}",
+        "isActive": "Policy is Active",
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "validation": {
+        "nameArRequired": "Arabic name is required",
+        "nameEnRequired": "English name is required",
+        "uniqueNameAr": "Arabic name must be unique within this scope",
+        "uniqueNameEn": "English name must be unique within this scope",
+        "required": "This field is required",
+        "nonNegative": "Value must be 0 or greater",
+        "startBeforeEnd": "Start date must be before end date",
+        "dateOutOfTerm": "Date must be within the term range"
+      },
+      "kpis": {
+        "title": "Policy Overview",
+        "activePolicies": "Active Policies",
+        "coverage": "Coverage",
+        "coveredSections": "{covered} of {total} sections",
+        "dailyPolicies": "Daily Policies",
+        "periodPolicies": "Period Policies",
+        "conflicts": "Conflicts",
+        "expiringSoon": "Expiring Soon",
+        "expiringSoonHint": "Within {days} days",
+        "defaultPolicy": "Default Policy",
+        "yes": "Yes",
+        "no": "No",
+        "ready": "Ready",
+        "needsSetup": "Needs Setup"
+      }
+    }
   }
 }

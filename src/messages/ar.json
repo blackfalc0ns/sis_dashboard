@@ -75,7 +75,16 @@
     "details": "التفاصيل",
     "collapse": "طي",
     "expand": "توسيع",
-    "resizePanel": "تغيير حجم اللوحة"
+    "resizePanel": "تغيير حجم اللوحة",
+    "all_scopes": "جميع النطاقات",
+    "all_modes": "جميع الأوضاع",
+    "all_statuses": "جميع الحالات",
+    "select": "اختر",
+    "loading": "جارٍ التحميل...",
+    "error_loading": "فشل تحميل البيانات",
+    "error_saving": "فشل الحفظ",
+    "error_deleting": "فشل الحذف",
+    "coming_soon": "قريباً"
   },
   "filter_bar": {
     "filters": {
@@ -289,12 +298,6 @@
       "this_week": "هذا الاسبوع",
       "this_term": "هذا الدور"
     }
-  },
-  "attendance": {
-    "title": "الحضور",
-    "description": "نسبة حضور الطلاب اليوم",
-    "present": "حاضر",
-    "absent": "غائب"
   },
   "activities": {
     "title": "نشاطات اليوم",
@@ -2296,6 +2299,138 @@
         "save_failed": "فشل الحفظ. يرجى المحاولة مرة أخرى."
       }
     },
+    "overview": {
+      "title": "نظرة عامة على الأكاديميات",
+      "kpi": {
+        "structure": {
+          "title": "الهيكل",
+          "subtitle": "{sections} شعبة"
+        },
+        "subjects": {
+          "title": "توزيع المواد",
+          "subtitle": "{total} مادة"
+        },
+        "teachers": {
+          "title": "التوزيعات المفقودة",
+          "subtitle": "{overloaded} محمل زائد"
+        },
+        "lessonPlans": {
+          "title": "خطط الدروس",
+          "subtitle": "{done}/{total} منجز"
+        },
+        "calendar": {
+          "title": "الأحداث القادمة",
+          "nextHoliday": "التالي: {date}",
+          "noUpcoming": "لا توجد أحداث قادمة"
+        },
+        "timetable": {
+          "title": "الجدول الدراسي",
+          "comingSoon": "قريباً"
+        }
+      },
+   
+      "alerts": {
+        "title": "التنبيهات والمشاكل",
+        "noAlerts": "جميع الأنظمة جاهزة!",
+        "sectionsCapacity": {
+          "title": "شعب بدون سعة",
+          "description": "بعض الشعب ليس لديها سعة محددة"
+        },
+        "gradesSections": {
+          "title": "صفوف بدون شعب",
+          "description": "بعض الصفوف ليس لديها شعب"
+        },
+        "teacherMissing": {
+          "title": "تعيينات معلمين مفقودة",
+          "description": "بعض الشعب تحتاج معلمين"
+        },
+        "teacherOverloaded": {
+          "title": "معلمون محملون زائد",
+          "description": "بعض المعلمين يتجاوزون الحد الأقصى"
+        },
+        "examSoon": {
+          "title": "امتحان قريب",
+          "description": "امتحان مجدول خلال 7 أيام"
+        },
+        "lessonsBehind": {
+          "title": "خطط الدروس متأخرة",
+          "description": "معدل الإنجاز أقل من 70%"
+        }
+      },
+     
+      "quickLinks": {
+        "title": "روابط سريعة",
+        "structure": "الهيكل",
+        "subjects": "المواد",
+        "curriculum": "المنهج",
+        "calendar": "التقويم",
+        "timetable": "الجدول الدراسي",
+        "lessonPlans": "خطط الدروس",
+        "teacherAllocation": "توزيع المعلمين"
+      },
+      "summary": {
+        "title": "ملخص"
+      },
+      "analytics": {
+        "title": "التحليلات"
+      },
+      "checklist": {
+        "title": "قائمة الإعداد",
+        "progress": "{done} من {total} مكتمل",
+        "complete": "مكتمل",
+        "fix": "إصلاح",
+        "allGood": "كل شيء جاهز!",
+        "structure": {
+          "title": "الهيكل جاهز",
+          "description": "جميع الصفوف لديها شعب بسعة",
+          "reason": "{count} صفوف بدون شعب",
+          "reasonCapacity": "{count} شعب بدون سعة"
+        },
+        "subjects": {
+          "title": "المواد موزعة",
+          "description": "توزيع المواد مكتمل",
+          "reason": "{percentage}% مكتمل"
+        },
+        "teachers": {
+          "title": "المعلمون معينون",
+          "description": "جميع الشعب لديها معلمون معينون",
+          "reason": "{count} توزيعات مفقودة",
+          "reasonOverloaded": "{count} معلمون محملون زائد"
+        },
+        "calendar": {
+          "title": "التقويم مهيأ",
+          "description": "التواريخ والأحداث الرئيسية محددة",
+          "reason": "لا توجد تواريخ رئيسية"
+        },
+        "lessonPlans": {
+          "title": "خطط الدروس بدأت",
+          "description": "تخطيط الدروس جارٍ",
+          "reason": "{count} دروس مخططة"
+        }
+      },
+      "charts": {
+        "lessonPlans": {
+          "title": "تقدم خطط الدروس",
+          "planned": "مخطط",
+          "done": "منجز",
+          "insight": "الأكثر تأخيراً: {week} ({gap} دروس متأخرة)",
+          "insightGood": "جميع الأسابيع على المسار الصحيح!"
+        },
+        "teacherLoads": {
+          "title": "توزيع حصص المعلمين",
+          "weeklyPeriods": "حصص أسبوعية",
+          "insight": "أعلى حمل: {teacher} ({load} حصة/أسبوع)"
+        },
+        "readiness": {
+          "title": "الجاهزية الإجمالية",
+          "ready": "جاهز",
+          "notReady": "غير جاهز",
+          "insightGood": "{percentage}% جاهز - تقدم رائع!",
+          "insightNeedsWork": "{percentage}% جاهز - يحتاج اهتمام"
+        },
+        "noData": "لا توجد بيانات متاحة"
+      }
+    },
     "subjects": {
       "readonly_banner": {
         "message": "هذا الترم مغلق. المواد والتوزيع للعرض فقط."
@@ -3397,5 +3532,113 @@
     "title": "الصفحة غير موجودة",
     "description": "عذراً، لم نتمكن من العثور على الصفحة التي تبحث عنها. ربما تم نقلها أو حذفها.",
     "backToHome": "العودة للرئيسية"
+  },
+  "attendance": {
+    "title": "الحضور والانضباط",
+    "rollCall": "كشف الحضور",
+    "absences": "الغياب",
+    "lateEarly": "التأخير/المغادرة المبكرة",
+    "excuses": "الأعذار",
+    "reports": "التقارير",
+    "rollCallDesc": "تسجيل الحضور اليومي وإدارة كشف الحضور",
+    "absencesDesc": "عرض وإدارة غياب الطلاب",
+    "lateEarlyDesc": "تتبع التأخيرات والمغادرات المبكرة",
+    "excusesDesc": "مراجعة والموافقة على أعذار الغياب",
+    "reportsDesc": "إنشاء تقارير الحضور والانضباط",
+    "policies": {
+      "title": "سياسات الحضور",
+      "policiesList": "قائمة السياسات",
+      "policyName": "اسم السياسة",
+      "scope": "النطاق",
+      "mode": "الوضع",
+      "effectivePeriod": "الفترة الفعالة",
+      "status": "الحالة",
+      "actions": "الإجراءات",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "createPolicy": "إنشاء سياسة",
+      "editPolicy": "تعديل السياسة",
+      "deletePolicy": "حذف السياسة",
+      "activate": "تفعيل",
+      "deactivate": "إلغاء التفعيل",
+      "delete": "حذف",
+      "edit": "تعديل",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "stay": "البقاء",
+      "discard": "تجاهل",
+      "searchPlaceholder": "البحث بالاسم أو النطاق...",
+      "selectOrCreate": "اختر أو أنشئ سياسة",
+      "selectOrCreateDesc": "اختر سياسة من القائمة للتعديل، أو أنشئ سياسة جديدة",
+      "readonly_banner": "هذا الفصل مغلق. لا يمكنك إنشاء أو تعديل السياسات.",
+      "policyCreated": "تم إنشاء السياسة بنجاح",
+      "policyUpdated": "تم تحديث السياسة بنجاح",
+      "policyDeleted": "تم حذف السياسة بنجاح",
+      "policyActivated": "تم تفعيل السياسة بنجاح",
+      "policyDeactivated": "تم إلغاء تفعيل السياسة بنجاح",
+      "deleteConfirmTitle": "حذف السياسة",
+      "deleteConfirmDesc": "هل أنت متأكد من حذف السياسة \"{name}\"؟ لا يمكن التراجع عن هذا الإجراء.",
+      "unsavedChangesTitle": "تغييرات غير محفوظة",
+      "unsavedChangesDesc": "لديك تغييرات غير محفوظة. هل تريد تجاهلها؟",
+      "scopeType": {
+        "school": "على مستوى المدرسة",
+        "stage": "المرحلة",
+        "grade": "الصف",
+        "section": "الشعبة"
+      },
+      "form": {
+        "nameAr": "اسم السياسة (عربي)",
+        "nameEn": "اسم السياسة (إنجليزي)",
+        "scopeType": "نوع النطاق",
+        "stage": "المرحلة",
+        "grade": "الصف",
+        "section": "الشعبة",
+        "mode": "وضع الحضور",
+        "daily": "الحضور اليومي",
+        "dailyDesc": "تتبع الحضور مرة واحدة يومياً",
+        "period": "الحضور حسب الحصة",
+        "periodDesc": "تتبع الحضور لكل حصة دراسية",
+        "lateThreshold": "حد التأخير",
+        "earlyThreshold": "حد المغادرة المبكرة",
+        "autoAbsentAfter": "تسجيل غياب تلقائي بعد",
+        "minutes": "دقيقة",
+        "optional": "اختياري",
+        "autoAbsentAfterDesc": "تسجيل الطالب غائباً تلقائياً إذا تأخر بهذا العدد من الدقائق",
+        "allowExcuses": "السماح بالأعذار",
+        "requireAttachment": "طلب مرفق للأعذار",
+        "effectiveStart": "تاريخ البدء الفعلي",
+        "effectiveEnd": "تاريخ الانتهاء الفعلي",
+        "termRangeHint": "يجب أن تكون التواريخ ضمن نطاق الفصل: {start} إلى {end}",
+        "isActive": "السياسة نشطة",
+        "active": "نشط",
+        "inactive": "غير نشط"
+      },
+      "validation": {
+        "nameArRequired": "الاسم العربي مطلوب",
+        "nameEnRequired": "الاسم الإنجليزي مطلوب",
+        "uniqueNameAr": "يجب أن يكون الاسم العربي فريداً ضمن هذا النطاق",
+        "uniqueNameEn": "يجب أن يكون الاسم الإنجليزي فريداً ضمن هذا النطاق",
+        "required": "هذا الحقل مطلوب",
+        "nonNegative": "يجب أن تكون القيمة 0 أو أكبر",
+        "startBeforeEnd": "يجب أن يكون تاريخ البدء قبل تاريخ الانتهاء",
+        "dateOutOfTerm": "يجب أن يكون التاريخ ضمن نطاق الفصل"
+      },
+      "kpis": {
+        "title": "ملخص السياسات",
+        "activePolicies": "سياسات مفعّلة",
+        "coverage": "التغطية",
+        "coveredSections": "{covered} من {total} شعب",
+        "dailyPolicies": "سياسات يومية",
+        "periodPolicies": "سياسات بالحصة",
+        "conflicts": "تعارضات",
+        "expiringSoon": "ستنتهي قريبًا",
+        "expiringSoonHint": "خلال {days} يوم",
+        "defaultPolicy": "السياسة الافتراضية",
+        "yes": "نعم",
+        "no": "لا",
+        "ready": "جاهز",
+        "needsSetup": "يحتاج إعداد"
+      }
+    }
   }
 }
