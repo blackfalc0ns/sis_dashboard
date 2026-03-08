@@ -10,6 +10,7 @@ import {
   Clock,
   AlertCircle,
   Layers,
+  Bell,
 } from "lucide-react";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import type { PolicyKpis } from "../utils/policyKpis";
@@ -33,7 +34,7 @@ export default function PoliciesKpiPanel({
           <div className="h-6 w-48 bg-gray-200 rounded animate-pulse" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(7)].map((_, i) => (
+          {[...Array(8)].map((_, i) => (
             <div
               key={i}
               className="bg-white rounded-lg border border-gray-200 p-4 h-24 animate-pulse"
@@ -86,6 +87,7 @@ export default function PoliciesKpiPanel({
     {
       title: t("dailyPolicies"),
       value: kpis.dailyCount,
+      subtitle: kpis.derivedDailyCount > 0 ? t("derivedCount", { count: kpis.derivedDailyCount }) : undefined,
       icon: Calendar,
       iconColor: kpis.hasDaily ? "#16a34a" : "#9ca3af",
       iconBgColor: kpis.hasDaily ? "#dcfce7" : "#f3f4f6",
@@ -98,11 +100,25 @@ export default function PoliciesKpiPanel({
       iconBgColor: kpis.hasPeriod ? "#dcfce7" : "#f3f4f6",
     },
     {
+      title: t("notificationsEnabled"),
+      value: kpis.notificationsEnabledCount,
+      icon: Bell,
+      iconColor: kpis.notificationsEnabledCount > 0 ? "#8b5cf6" : "#9ca3af",
+      iconBgColor: kpis.notificationsEnabledCount > 0 ? "#ede9fe" : "#f3f4f6",
+    },
+    {
       title: t("conflicts"),
       value: kpis.conflictsCount,
       icon: AlertCircle,
       iconColor: kpis.conflictsCount > 0 ? "#ef4444" : "#16a34a",
       iconBgColor: kpis.conflictsCount > 0 ? "#fef2f2" : "#dcfce7",
+    },
+    {
+      title: t("incompleteConfig"),
+      value: kpis.incompleteConfigCount,
+      icon: AlertTriangle,
+      iconColor: kpis.incompleteConfigCount > 0 ? "#f97316" : "#9ca3af",
+      iconBgColor: kpis.incompleteConfigCount > 0 ? "#ffedd5" : "#f3f4f6",
     },
     {
       title: t("expiringSoon"),
@@ -111,13 +127,6 @@ export default function PoliciesKpiPanel({
       icon: Layers,
       iconColor: kpis.expiringSoonCount > 0 ? "#f97316" : "#9ca3af",
       iconBgColor: kpis.expiringSoonCount > 0 ? "#ffedd5" : "#f3f4f6",
-    },
-    {
-      title: t("defaultPolicy"),
-      value: kpis.hasSchoolDefault ? t("yes") : t("no"),
-      icon: Shield,
-      iconColor: kpis.hasSchoolDefault ? "#16a34a" : "#9ca3af",
-      iconBgColor: kpis.hasSchoolDefault ? "#dcfce7" : "#f3f4f6",
     },
   ];
 

@@ -15,10 +15,59 @@ export interface PolicyKpis {
   hasPeriod: boolean;
   dailyCount: number;
   periodCount: number;
+  derivedDailyCount: number; // NEW: Daily policies with DERIVED strategy
+  notificationsEnabledCount: number; // NEW: Policies with notifications enabled
+  incompleteConfigCount: number; // NEW: Policies with missing/invalid config
   conflictsCount: number;
   expiringSoonCount: number;
   hasSchoolDefault: boolean;
   isRollCallReady: boolean;
+}
+
+/**
+ * Check if a policy has valid configuration
+ */
+function isPolicyConfigComplete(policy: AttendancePolicy): boolean {
+  // Check if DERIVED strategy has periods selected
+  if (
+    policy.mode === "DAILY" &&
+    policy.dailyComputationStrategy === "DERIVED_FROM_PERIODS" &&
+    (!policy.selectedPeriodIds || policy.selectedPeriodIds.length === 0)
+  ) {
+    return false;
+  }
+
+  // Check if PERIOD mode has periods selected
+  if (
+    policy.mode === "PERIOD" &&
+    (!policy.selectedPeriodIds || policy.selectedPeriodIds.length === 0)
+  ) {
+    return false;
+  }
+
+  // Check if notifications are enabled but no recipients/triggers
+  const hasRecipients =
+    policy.notifyTeachers || policy.notifyStudents || policy.notifyGuardians;
+  const hasTriggers =
+    policy.notifyOnAbsent || policy.notifyOnLate || policy.notifyOnEarlyLeave;
+
+  if (hasRecipients && !hasTriggers) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Check if a policy has notifications enabled
+ */
+function hasNotificationsEnabled(policy: AttendancePolicy): boolean {
+  const hasRecipients =
+    policy.notifyTeachers || policy.notifyStudents || policy.notifyGuardians;
+  const hasTriggers =
+    policy.notifyOnAbsent || policy.notifyOnLate || policy.notifyOnEarlyLeave;
+
+  return hasRecipients && hasTriggers;
 }
 
 /**
@@ -243,6 +292,21 @@ export function computePolicyKpis(
   const dailyCount = dailyPolicies.length;
   const periodCount = periodPolicies.length;
 
+  // NEW: Derived daily count
+  const derivedDailyCount = dailyPolicies.filter(
+    (p) => p.dailyComputationStrategy === "DERIVED_FROM_PERIODS"
+  ).length;
+
+  // NEW: Notifications enabled count
+  const notificationsEnabledCount = effectivePolicies.filter((p) =>
+    hasNotificationsEnabled(p)
+  ).length;
+
+  // NEW: Incomplete config count
+  const incompleteConfigCount = effectivePolicies.filter(
+    (p) => !isPolicyConfigComplete(p)
+  ).length;
+
   // D) Conflicts/Overlaps
   const conflictsCount = countConflicts(policies, today);
 
@@ -255,11 +319,24 @@ export function computePolicyKpis(
   );
 
   // G) Roll Call Ready
+  // Updated logic: Ready if coverage=100 AND conflicts=0 AND
+  // at least one effective policy exists for attendance tracking
+  // (period OR daily with valid computation strategy)
+  const hasValidAttendanceTracking =
+    hasPeriod ||
+    dailyPolicies.some(
+      (p) =>
+        p.dailyComputationStrategy === "MANUAL" ||
+        (p.dailyComputationStrategy === "DERIVED_FROM_PERIODS" &&
+          p.selectedPeriodIds &&
+          p.selectedPeriodIds.length > 0)
+    );
+
   const isRollCallReady =
     coveragePercent === 100 &&
     conflictsCount === 0 &&
-    hasDaily &&
-    hasPeriod;
+    incompleteConfigCount === 0 &&
+    hasValidAttendanceTracking;
 
   return {
     activePoliciesCount,
@@ -271,6 +348,9 @@ export function computePolicyKpis(
     hasPeriod,
     dailyCount,
     periodCount,
+    derivedDailyCount,
+    notificationsEnabledCount,
+    incompleteConfigCount,
     conflictsCount,
     expiringSoonCount,
     hasSchoolDefault,
@@ -278,4 +358,4 @@ export function computePolicyKpis(
   };
 }
 
-export { EXPIRY_WINDOW_DAYS };
+export { EXPIRY_WINDOW_DAYS, isPolicyConfigComplete, hasNotificationsEnabled };

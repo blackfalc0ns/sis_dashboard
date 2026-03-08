@@ -1,15 +1,5 @@
-"use client";
-
-import { useTranslations } from "next-intl";
-import ComingSoon from "@/components/common/ComingSoon";
+import AttendanceRollCallPage from "@/features/attendance/roll-call/pages/AttendanceRollCallPage";
 
 export default function RollCallPage() {
-  const t = useTranslations("attendance");
-
-  return (
-    <ComingSoon
-      title={t("rollCall")}
-      description={t("rollCallDesc")}
-    />
-  );
+  return <AttendanceRollCallPage />;
 }

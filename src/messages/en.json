@@ -76,6 +76,7 @@
     "collapse": "Collapse",
     "expand": "Expand",
     "resizePanel": "Resize panel",
+    "all": "All",
     "all_scopes": "All Scopes",
     "all_modes": "All Modes",
     "all_statuses": "All Statuses",
@@ -84,7 +85,9 @@
     "error_loading": "Failed to load data",
     "error_saving": "Failed to save",
     "error_deleting": "Failed to delete",
-    "coming_soon": "Coming Soon"
+    "coming_soon": "Coming Soon",
+    "yes": "Yes",
+    "no": "No"
   },
   "filter_bar": {
     "filters": {
@@ -299,12 +302,6 @@
       "this_week": "This week",
       "this_term": "This term"
     }
-  },
-  "attendance": {
-    "title": "Attendance",
-    "description": "Today's student attendance rate",
-    "present": "present",
-    "absent": "Absent"
   },
   "activities": {
     "title": "Today's Activities",
@@ -3478,6 +3475,7 @@
     "allowedTypesListVideo": "MP4 , MOV , AVI , WMM , WebM",
     "allowedTypesMaterials": "PDF, Word, PowerPoint, Excel, Text, Images",
     "allowedTypesAssignments": "PDF, Word, PowerPoint, Excel, Text, Images",
+    "allowedTypesAttendanceExcuse": "PDF, Word, PowerPoint, Excel, Text, Images",
     "allowedTypesVideo": "Video files (MP4, WebM, MOV)"
   },
   "errors": {
@@ -3538,10 +3536,17 @@
   },
   "attendance": {
     "title": "Attendance & Discipline",
-    "policies": "Policies",
+    "description": "Today's student attendance rate",
     "rollCall": "Roll Call",
+    "rollCallDesc": "Take daily or period-based attendance",
     "absences": "Absences",
     "lateEarly": "Late/Early",
+    "absent": "Absent",
+    "late": "Late",
+    "early": "Early", 
+    "excused": "Excused",
+    "notExcused": "Not Excused",
+    "present": "Present",
     "excuses": "Excuses",
     "reports": "Reports",
     "rollCallDesc": "Take daily attendance and manage roll call",
@@ -3633,8 +3638,11 @@
         "coverage": "Coverage",
         "coveredSections": "{covered} of {total} sections",
         "dailyPolicies": "Daily Policies",
+        "derivedCount": "{count} derived",
         "periodPolicies": "Period Policies",
+        "notificationsEnabled": "Notifications Enabled",
         "conflicts": "Conflicts",
+        "incompleteConfig": "Incomplete Config",
         "expiringSoon": "Expiring Soon",
         "expiringSoonHint": "Within {days} days",
         "defaultPolicy": "Default Policy",
@@ -3642,6 +3650,275 @@
         "no": "No",
         "ready": "Ready",
         "needsSetup": "Needs Setup"
+      },
+      "list": {
+        "tracking": "Tracking",
+        "manual": "Manual",
+        "derived": "Derived",
+        "periods": "Periods",
+        "periodsCount": "periods",
+        "noPeriodsSelected": "No periods selected",
+        "none": "None",
+        "notifications": "Notifications",
+        "teachers": "Teachers",
+        "students": "Students",
+        "guardians": "Guardians",
+        "absent": "Absent",
+        "late": "Late",
+        "earlyLeave": "Early Leave",
+        "rules": "Rules",
+        "min": "min",
+        "early": "Early",
+        "autoAbsent": "Auto-absent",
+        "missedPeriods": "Missed periods",
+        "incompleteConfigWarning": "This policy has incomplete configuration"
+      },
+      "wizard": {
+        "createPolicy": "Create Attendance Policy",
+        "editPolicy": "Edit Attendance Policy",
+        "back": "Back",
+        "next": "Next",
+        "discard": "Discard Changes",
+        "stay": "Keep Editing",
+        "unsavedChangesTitle": "Unsaved Changes",
+        "unsavedChangesDesc": "You have unsaved changes. Are you sure you want to discard them?",
+        "steps": {
+          "basicInfo": {
+            "title": "Basic Info",
+            "subtitle": "Name and description",
+            "description": "Provide a clear name and description for this attendance policy. This will help identify the policy's purpose."
+          },
+          "scope": {
+            "title": "Scope",
+            "subtitle": "Who it applies to",
+            "priorityTitle": "Policy Priority",
+            "priorityDesc": "SECTION policies override GRADE policies, which override STAGE policies, which override SCHOOL policies."
+          },
+          "mode": {
+            "title": "Mode",
+            "subtitle": "How to track",
+            "description": "Choose how attendance will be tracked and computed."
+          },
+          "rules": {
+            "title": "Rules",
+            "subtitle": "Thresholds and excuses",
+            "description": "Define late/early thresholds, auto-absent rules, and excuse policies."
+          },
+          "review": {
+            "title": "Review",
+            "subtitle": "Dates and notifications",
+            "description": "Set effective dates, configure notifications, and review your policy."
+          }
+        },
+        "fields": {
+          "policyName": "Policy Name",
+          "description": "Description",
+          "notes": "Notes",
+          "isActive": "Policy is Active",
+          "scope": "Apply To",
+          "selectStage": "Select Stage",
+          "selectGrade": "Select Grade",
+          "selectSection": "Select Section",
+          "attendanceMode": "Attendance Tracking Mode",
+          "dailyComputation": "Daily Computation Strategy",
+          "selectPeriods": "Select Periods",
+          "lateThreshold": "Late Threshold",
+          "lateThresholdDesc": "Minutes after start time to mark as late",
+          "earlyThreshold": "Early Leave Threshold",
+          "earlyThresholdDesc": "Minutes before end time to mark as early leave",
+          "autoAbsentAfter": "Auto-mark Absent After",
+          "autoAbsentAfterDesc": "Automatically mark as absent if late by this many minutes",
+          "absentIfMissed": "Mark Absent if Missed",
+          "absentIfMissedDesc": "Mark as absent if student missed this many periods",
+          "excuseSettings": "Excuse Settings",
+          "allowExcuses": "Allow Excuses",
+          "requireReason": "Require Reason",
+          "requireAttachment": "Require Attachment",
+          "maxDaysToSubmit": "Max Days to Submit Excuse",
+          "maxDaysToSubmitDesc": "Leave empty for no limit",
+          "effectiveDates": "Effective Dates",
+          "effectiveStart": "Start Date",
+          "effectiveEnd": "End Date",
+          "notifications": "Notifications",
+          "notifyWho": "Notify Who",
+          "notifyTeachers": "Teachers",
+          "notifyStudents": "Students",
+          "notifyGuardians": "Guardians",
+          "notifyWhen": "Notify When",
+          "notifyOnAbsent": "Student is Absent",
+          "notifyOnLate": "Student is Late",
+          "notifyOnEarlyLeave": "Student Leaves Early"
+        },
+        "scope": {
+          "school": "School-wide",
+          "schoolDesc": "Applies to all students",
+          "stage": "Stage",
+          "stageDesc": "Applies to a specific stage",
+          "grade": "Grade",
+          "gradeDesc": "Applies to a specific grade",
+          "section": "Section",
+          "sectionDesc": "Applies to a specific section"
+        },
+        "mode": {
+          "daily": "Daily Attendance",
+          "dailyDesc": "Track attendance once per day",
+          "period": "Period-based Attendance",
+          "periodDesc": "Track attendance for each class period"
+        },
+        "computation": {
+          "manual": "Manual Daily Check",
+          "manualDesc": "Teachers manually mark daily attendance",
+          "derived": "Derived from Periods",
+          "derivedDesc": "Daily status computed from period attendance"
+        },
+        "noPeriods": "No periods configured for this scope. Please configure timetable first.",
+        "selectAll": "Select All",
+        "clearAll": "Clear All",
+        "periodsSelected": "{count} periods selected",
+        "periodsLower": "periods",
+        "minutes": "minutes",
+        "periods": "periods",
+        "days": "days",
+        "optional": "Optional",
+        "termRangeHint": "Policy must be within term dates: {start} → {end}",
+        "reviewSummary": "Policy Summary",
+        "overridesWarning": "This policy will override school-wide settings for the selected scope"
+      },
+      "validation": {
+        "nameArRequired": "Arabic name is required",
+        "nameEnRequired": "English name is required",
+        "uniqueNameAr": "Arabic name must be unique within this scope",
+        "uniqueNameEn": "English name must be unique within this scope",
+        "required": "This field is required",
+        "nonNegative": "Value must be 0 or greater",
+        "startBeforeEnd": "Start date must be before end date",
+        "dateOutOfTerm": "Date must be within the term range",
+        "atLeastOnePeriod": "At least one period must be selected"
+      }
+    },
+    "rollCall": {
+      "title": "Live Roll Call",
+      "subtitle": "Take attendance for students",
+      "readonly_banner": "This term is closed. You cannot edit attendance.",
+      "sessionPicker": {
+        "title": "Session Selection",
+        "subtitle": "Choose scope, date, and period",
+        "scope": "Scope",
+        "date": "Date",
+        "period": "Period",
+        "prev": "Previous",
+        "next": "Next",
+        "dailyMode": "Daily Attendance Mode",
+        "status": "Session Status"
+      },
+      "sessionStatus": {
+        "draft": "Draft",
+        "submitted": "Submitted"
+      },
+      "kpis": {
+        "total": "Total",
+        "present": "Present",
+        "absent": "Absent",
+        "late": "Late",
+        "excused": "Excused",
+        "earlyLeave": "Early Leave",
+        "completion": "Completion",
+        "unmarked": "Unmarked",
+        "markedOutOfTotal": "{marked} of {total} marked"
+      },
+      "status": {
+        "present": "Present",
+        "absent": "Absent",
+        "late": "Late",
+        "excused": "Excused",
+        "earlyLeave": "Early Leave"
+      },
+      "excuse": {
+        "title": "Excuse Details",
+        "reason": "Excuse Reason",
+        "reasonPlaceholder": "Enter the reason for absence...",
+        "attachments": "Attachments",
+        "add": "Add Excuse",
+        "edit": "Edit Excuse",
+        "save": "Save Excuse",
+        "added": "Excuse added",
+        "requiredReason": "Excuse reason is required",
+        "requiredAttachment": "Attachment is required by policy",
+        "notAllowed": "Excused absences are not allowed by the current policy"
+      },
+      "earlyLeave": {
+        "minutesLabel": "Left early by (minutes)",
+        "required": "Minutes required",
+        "belowThreshold": "Below policy threshold ({threshold} min)"
+      },
+      "table": {
+        "student": "Student",
+        "status": "Status",
+        "details": "Details",
+        "minutesLate": "Minutes Late",
+        "note": "Note",
+        "notePlaceholder": "Add note..."
+      },
+      "actions": {
+        "save": "Save",
+        "saving": "Saving...",
+        "submit": "Submit",
+        "reset": "Reset",
+        "export": "Export",
+        "markAllPresent": "Mark All Present",
+        "clearAll": "Clear All"
+      },
+      "messages": {
+        "saved": "Attendance saved successfully",
+        "submitted": "Attendance submitted successfully",
+        "submitIncomplete": "There are {count} unmarked students. Submit anyway?"
+      },
+      "confirm": {
+        "discardChangesTitle": "Unsaved Changes",
+        "discardChangesMessage": "You have unsaved changes. Discard them?"
+      },
+      "empty": {
+        "noPolicy": "No Attendance Policy",
+        "noPolicyDesc": "No active attendance policy found for this scope and date. Please create a policy first.",
+        "noTimetable": "No Timetable Configuration",
+        "noTimetableDesc": "Period-based attendance requires timetable configuration. Please configure the timetable first.",
+        "noStudents": "No Students",
+        "noStudentsDesc": "No students found for the selected scope."
+      },
+      "filters": {
+        "title": "Filters",
+        "searchPlaceholder": "Search students...",
+        "showFilters": "Show filters",
+        "hideFilters": "Hide filters",
+        "statusLabel": "Status",
+        "excuseLabel": "Excuse Status",
+        "excuseAll": "All",
+        "excuseComplete": "Complete",
+        "excuseMissing": "Missing Details",
+        "lateMinLabel": "Late Minutes >=",
+        "earlyLeaveMinLabel": "Early Leave Minutes >=",
+        "reset": "Reset Filters",
+        "apply": "Apply",
+        "openFilters": "Open Filters",
+        "presetsTitle": "Quick filters",
+        "excusesDisabledTooltip": "Excuses are disabled by policy",
+        "status": {
+          "all": "All",
+          "unmarked": "Unmarked",
+          "present": "Present",
+          "absent": "Absent",
+          "late": "Late",
+          "excused": "Excused",
+          "earlyLeave": "Early Leave"
+        },
+        "preset": {
+          "all": "All",
+          "unmarked": "Unmarked",
+          "absent": "Absent",
+          "late": "Late",
+          "excused": "Excused",
+          "earlyLeave": "Early Leave"
+        }
       }
     }
   }

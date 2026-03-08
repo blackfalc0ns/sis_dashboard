@@ -4,7 +4,7 @@
  * Per-area restrictions: MATERIALS/ASSIGNMENTS allow documents+images, VIDEO allows video files only
  */
 
-export type UploadArea = "MATERIALS" | "ASSIGNMENTS" | "VIDEO";
+export type UploadArea = "MATERIALS" | "ASSIGNMENTS" | "VIDEO" | "ATTENDANCE_EXCUSE";
 
 export interface UploadRules {
   maxSizeBytes: number;
@@ -88,7 +88,8 @@ export function getUploadRules(area: UploadArea): UploadRules {
 
   switch (area) {
     case "MATERIALS":
-    case "ASSIGNMENTS": {
+    case "ASSIGNMENTS":
+    case "ATTENDANCE_EXCUSE": {
       const extensions = [...commonDocumentExtensions, ...commonImageExtensions];
       const mimeTypes = [...commonDocumentMimeTypes, ...commonImageMimeTypes];
       return {
@@ -97,7 +98,10 @@ export function getUploadRules(area: UploadArea): UploadRules {
         allowedMimeTypes: mimeTypes,
         blockedExtensions,
         acceptString: [...extensions, ...mimeTypes].join(","),
-        acceptLabelKey: area === "MATERIALS" ? "allowedTypesMaterials" : "allowedTypesAssignments",
+        acceptLabelKey: 
+          area === "MATERIALS" ? "allowedTypesMaterials" : 
+          area === "ASSIGNMENTS" ? "allowedTypesAssignments" :
+          "allowedTypesAttendanceExcuse",
       };
     }
 

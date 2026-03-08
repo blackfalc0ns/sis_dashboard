@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { Search, Plus, Edit2, Trash2, Power, PowerOff } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, Power, PowerOff, Filter, Bell, AlertTriangle as AlertTriangleIcon } from "lucide-react";
+import { Tooltip } from "@mui/material";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import DataTable from "@/components/ui/data-table/DataTable";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
+import { isPolicyConfigComplete, hasNotificationsEnabled } from "../utils/policyKpis";
 import type { AttendancePolicy, AttendanceScopeType } from "../types";
 import type { Stage, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
 
@@ -42,13 +44,16 @@ export default function PoliciesListPanel({
   const [scopeFilter, setScopeFilter] = useState<"ALL" | AttendanceScopeType>("ALL");
   const [modeFilter, setModeFilter] = useState<"ALL" | "DAILY" | "PERIOD">("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
+  const [showFilters, setShowFilters] = useState(false);
+  const [computationFilter, setComputationFilter] = useState<"ALL" | "MANUAL" | "DERIVED">("ALL");
+  const [notificationsFilter, setNotificationsFilter] = useState<"ALL" | "ENABLED" | "DISABLED">("ALL");
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [policyToDelete, setPolicyToDelete] = useState<AttendancePolicy | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Get scope display name
-  const getScopeName = (policy: AttendancePolicy): string => {
+  const getScopeName = useCallback((policy: AttendancePolicy): string => {
     if (policy.scopeType === "SCHOOL") {
       return locale === "ar" ? "المدرسة" : "School";
     }
@@ -69,7 +74,7 @@ export default function PoliciesListPanel({
     }
 
     return "";
-  };
+  }, [locale, stages, grades, sections]);
 
   // Filter policies
   const filteredPolicies = useMemo(() => {
@@ -98,9 +103,23 @@ export default function PoliciesListPanel({
       if (statusFilter === "ACTIVE" && !policy.isActive) return false;
       if (statusFilter === "INACTIVE" && policy.isActive) return false;
 
+      // Computation filter (only for DAILY policies)
+      if (computationFilter !== "ALL") {
+        if (policy.mode !== "DAILY") return false;
+        if (computationFilter === "MANUAL" && policy.dailyComputationStrategy !== "MANUAL") return false;
+        if (computationFilter === "DERIVED" && policy.dailyComputationStrategy !== "DERIVED_FROM_PERIODS") return false;
+      }
+
+      // Notifications filter
+      if (notificationsFilter !== "ALL") {
+        const hasNotif = hasNotificationsEnabled(policy);
+        if (notificationsFilter === "ENABLED" && !hasNotif) return false;
+        if (notificationsFilter === "DISABLED" && hasNotif) return false;
+      }
+
       return true;
     });
-  }, [policies, searchQuery, scopeFilter, modeFilter, statusFilter, stages, grades, sections]);
+  }, [policies, searchQuery, scopeFilter, modeFilter, statusFilter, computationFilter, notificationsFilter, getScopeName]);
 
   const handleDeleteClick = (policy: AttendancePolicy) => {
     setPolicyToDelete(policy);
@@ -135,16 +154,26 @@ export default function PoliciesListPanel({
       key: "name",
       label: t("policyName"),
       searchable: true,
-      render: (_: unknown, row: AttendancePolicy) => (
-        <div>
-          <div className="font-medium text-gray-900">
-            {locale === "ar" ? row.nameAr : row.nameEn}
+      render: (_: unknown, row: AttendancePolicy) => {
+        const isIncomplete = !isPolicyConfigComplete(row);
+        return (
+          <div className="flex items-start gap-2">
+            <div className="flex-1">
+              <div className="font-medium text-gray-900">
+                {locale === "ar" ? row.nameAr : row.nameEn}
+              </div>
+              <div className="text-xs text-gray-500">
+                {locale === "ar" ? row.nameEn : row.nameAr}
+              </div>
+            </div>
+            {isIncomplete && (
+              <Tooltip title={t("list.incompleteConfigWarning")} arrow>
+                <AlertTriangleIcon className="w-4 h-4 text-orange-500 shrink-0" />
+              </Tooltip>
+            )}
           </div>
-          <div className="text-xs text-gray-500">
-            {locale === "ar" ? row.nameEn : row.nameAr}
-          </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: "scope",
@@ -159,28 +188,126 @@ export default function PoliciesListPanel({
       ),
     },
     {
-      key: "mode",
-      label: t("mode"),
+      key: "tracking",
+      label: t("list.tracking"),
       render: (_: unknown, row: AttendancePolicy) => (
-        <span
-          className={`inline-flex px-2 py-1 text-xs font-medium rounded ${
-            row.mode === "DAILY"
-              ? "bg-blue-100 text-blue-800"
-              : "bg-purple-100 text-purple-800"
-          }`}
-        >
-          {t(`form.${row.mode.toLowerCase()}`)}
-        </span>
+        <div className="flex flex-col gap-1">
+          <span
+            className={`inline-flex px-2 py-1 text-xs font-medium rounded w-fit ${
+              row.mode === "DAILY"
+                ? "bg-blue-100 text-blue-800"
+                : "bg-purple-100 text-purple-800"
+            }`}
+          >
+            {t(`form.${row.mode.toLowerCase()}`)}
+          </span>
+          {row.mode === "DAILY" && row.dailyComputationStrategy && (
+            <span
+              className={`inline-flex px-2 py-1 text-xs font-medium rounded w-fit ${
+                row.dailyComputationStrategy === "MANUAL"
+                  ? "bg-gray-100 text-gray-700"
+                  : "bg-teal-100 text-teal-800"
+              }`}
+            >
+              {row.dailyComputationStrategy === "MANUAL"
+                ? t("list.manual")
+                : t("list.derived")}
+            </span>
+          )}
+        </div>
       ),
     },
     {
-      key: "effectiveDates",
-      label: t("effectivePeriod"),
-      render: (_: unknown, row: AttendancePolicy) => (
-        <div className="text-sm text-gray-700">
-          {row.effectiveStartDate} → {row.effectiveEndDate}
-        </div>
-      ),
+      key: "periods",
+      label: t("list.periods"),
+      render: (_: unknown, row: AttendancePolicy) => {
+        const needsPeriods =
+          row.mode === "PERIOD" ||
+          (row.mode === "DAILY" && row.dailyComputationStrategy === "DERIVED_FROM_PERIODS");
+
+        if (!needsPeriods) {
+          return <span className="text-gray-400 text-sm">—</span>;
+        }
+
+        const periodCount = row.selectedPeriodIds?.length || 0;
+        if (periodCount === 0) {
+          return (
+            <Tooltip title={t("list.noPeriodsSelected")} arrow>
+              <span className="text-orange-600 text-sm font-medium">
+                {t("list.none")}
+              </span>
+            </Tooltip>
+          );
+        }
+
+        const periodLabels = row.selectedPeriodIds?.map((id) => {
+          const periodNum = id.replace("period-", "");
+          return `P${periodNum}`;
+        });
+
+        return (
+          <Tooltip title={periodLabels?.join(", ") || ""} arrow>
+            <span className="text-sm text-gray-700 cursor-help">
+              {periodCount} {t("list.periodsCount")}
+            </span>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      key: "notifications",
+      label: t("list.notifications"),
+      render: (_: unknown, row: AttendancePolicy) => {
+        const hasNotif = hasNotificationsEnabled(row);
+
+        if (!hasNotif) {
+          return <span className="text-gray-400 text-sm">—</span>;
+        }
+
+        const recipients = [];
+        if (row.notifyTeachers) recipients.push(t("list.teachers"));
+        if (row.notifyStudents) recipients.push(t("list.students"));
+        if (row.notifyGuardians) recipients.push(t("list.guardians"));
+
+        const triggers = [];
+        if (row.notifyOnAbsent) triggers.push(t("list.absent"));
+        if (row.notifyOnLate) triggers.push(t("list.late"));
+        if (row.notifyOnEarlyLeave) triggers.push(t("list.earlyLeave"));
+
+        const summary = `${recipients.join(" + ")} / ${triggers.join(" + ")}`;
+
+        return (
+          <Tooltip title={summary} arrow>
+            <div className="flex items-center gap-1 text-sm text-purple-700 cursor-help">
+              <Bell className="w-3.5 h-3.5" />
+              <span>{recipients.length + triggers.length}</span>
+            </div>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      key: "rules",
+      label: t("list.rules"),
+      render: (_: unknown, row: AttendancePolicy) => {
+        const rulesSummary = [];
+        rulesSummary.push(`${t("list.late")}: ${row.lateThresholdMinutes}${t("list.min")}`);
+        rulesSummary.push(`${t("list.early")}: ${row.earlyLeaveThresholdMinutes}${t("list.min")}`);
+        if (row.autoAbsentAfterMinutes) {
+          rulesSummary.push(`${t("list.autoAbsent")}: ${row.autoAbsentAfterMinutes}${t("list.min")}`);
+        }
+        if (row.absentIfMissedPeriodsCount) {
+          rulesSummary.push(`${t("list.missedPeriods")}: ${row.absentIfMissedPeriodsCount}`);
+        }
+
+        return (
+          <Tooltip title={rulesSummary.join(" • ")} arrow>
+            <span className="text-sm text-gray-600 cursor-help">
+              {row.lateThresholdMinutes}/{row.earlyLeaveThresholdMinutes}
+            </span>
+          </Tooltip>
+        );
+      },
     },
     {
       key: "status",
@@ -269,52 +396,93 @@ export default function PoliciesListPanel({
         </div>
 
         {/* Search and Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              type="text"
-              placeholder={t("searchPlaceholder")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+        <div className="space-y-3">
+          {/* Search Bar with Filter Toggle */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder={t("searchPlaceholder")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`p-2 rounded-lg border transition-colors ${
+                showFilters
+                  ? "bg-primary text-white border-primary"
+                  : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+              }`}
+              title={showFilters ? "Hide filters" : "Show filters"}
+            >
+              <Filter className="w-5 h-5" />
+            </button>
           </div>
 
-          <Select
-            value={scopeFilter}
-            onChange={(value) => setScopeFilter(value as "ALL" | AttendanceScopeType)}
-            options={[
-              { value: "ALL", label: tCommon("all_scopes") },
-              { value: "SCHOOL", label: t("scopeType.school") },
-              { value: "STAGE", label: t("scopeType.stage") },
-              { value: "GRADE", label: t("scopeType.grade") },
-              { value: "SECTION", label: t("scopeType.section") },
-            ]}
-            selectSize="sm"
-          />
+          {/* Filter Dropdowns (Collapsible) */}
+          {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+              <Select
+                value={scopeFilter}
+                onChange={(value) => setScopeFilter(value as "ALL" | AttendanceScopeType)}
+                options={[
+                  { value: "ALL", label: tCommon("all_scopes") },
+                  { value: "SCHOOL", label: t("scopeType.school") },
+                  { value: "STAGE", label: t("scopeType.stage") },
+                  { value: "GRADE", label: t("scopeType.grade") },
+                  { value: "SECTION", label: t("scopeType.section") },
+                ]}
+                selectSize="sm"
+              />
 
-          <Select
-            value={modeFilter}
-            onChange={(value) => setModeFilter(value as "ALL" | "DAILY" | "PERIOD")}
-            options={[
-              { value: "ALL", label: tCommon("all_modes") },
-              { value: "DAILY", label: t("form.daily") },
-              { value: "PERIOD", label: t("form.period") },
-            ]}
-            selectSize="sm"
-          />
+              <Select
+                value={modeFilter}
+                onChange={(value) => setModeFilter(value as "ALL" | "DAILY" | "PERIOD")}
+                options={[
+                  { value: "ALL", label: tCommon("all_modes") },
+                  { value: "DAILY", label: t("form.daily") },
+                  { value: "PERIOD", label: t("form.period") },
+                ]}
+                selectSize="sm"
+              />
 
-          <Select
-            value={statusFilter}
-            onChange={(value) => setStatusFilter(value as "ALL" | "ACTIVE" | "INACTIVE")}
-            options={[
-              { value: "ALL", label: tCommon("all_statuses") },
-              { value: "ACTIVE", label: t("active") },
-              { value: "INACTIVE", label: t("inactive") },
-            ]}
-            selectSize="sm"
-          />
+              <Select
+                value={statusFilter}
+                onChange={(value) => setStatusFilter(value as "ALL" | "ACTIVE" | "INACTIVE")}
+                options={[
+                  { value: "ALL", label: tCommon("all_statuses") },
+                  { value: "ACTIVE", label: t("active") },
+                  { value: "INACTIVE", label: t("inactive") },
+                ]}
+                selectSize="sm"
+              />
+
+              <Select
+                value={computationFilter}
+                onChange={(value) => setComputationFilter(value as "ALL" | "MANUAL" | "DERIVED")}
+                options={[
+                  { value: "ALL", label: tCommon("all") },
+                  { value: "MANUAL", label: t("list.manual") },
+                  { value: "DERIVED", label: t("list.derived") },
+                ]}
+                selectSize="sm"
+              />
+
+              <Select
+                value={notificationsFilter}
+                onChange={(value) => setNotificationsFilter(value as "ALL" | "ENABLED" | "DISABLED")}
+                options={[
+                  { value: "ALL", label: tCommon("all") },
+                  { value: "ENABLED", label: t("list.notifications") },
+                  { value: "DISABLED", label: t("inactive") },
+                ]}
+                selectSize="sm"
+              />
+            </div>
+          )}
         </div>
       </div>
 

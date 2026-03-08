@@ -76,15 +76,18 @@
     "collapse": "طي",
     "expand": "توسيع",
     "resizePanel": "تغيير حجم اللوحة",
+    "all": "الكل",
     "all_scopes": "جميع النطاقات",
     "all_modes": "جميع الأوضاع",
     "all_statuses": "جميع الحالات",
     "select": "اختر",
-    "loading": "جارٍ التحميل...",
+    "loading": "جارٍ التحميل...",  
     "error_loading": "فشل تحميل البيانات",
     "error_saving": "فشل الحفظ",
     "error_deleting": "فشل الحذف",
-    "coming_soon": "قريباً"
+    "coming_soon": "قريباً",
+    "yes": "نعم",
+    "no": "لا"
   },
   "filter_bar": {
     "filters": {
@@ -3475,6 +3478,7 @@
     "allowedTypesListVideo": "MP4 , MOV , AVI , WMV , WebM",
     "allowedTypesMaterials": "PDF وWord وPowerPoint وExcel ونصوص وصور",
     "allowedTypesAssignments": "PDF وWord وPowerPoint وExcel ونصوص وصور",
+    "allowedTypesAttendanceExcuse": "PDF وWord وPowerPoint وExcel ونصوص وصور",
     "allowedTypesVideo": "ملفات فيديو (MP4, WebM, MOV)"
   },
   "errors": {
@@ -3536,10 +3540,18 @@
   "attendance": {
     "title": "الحضور والانضباط",
     "rollCall": "كشف الحضور",
+    "rollCallDesc": "تسجيل الحضور اليومي أو بالحصة",
+    "description": "معدل حضور الطلاب اليوم",
     "absences": "الغياب",
     "lateEarly": "التأخير/المغادرة المبكرة",
     "excuses": "الأعذار",
     "reports": "التقارير",
+    "absent": "غياب",
+    "late": "تاءخير",
+    "early": "مغادرة مبكرة",
+    "excused": "موافقة على الغياب",
+    "notExcused": "غير موافقة على الغياب",
+    "present": "حضور",
     "rollCallDesc": "تسجيل الحضور اليومي وإدارة كشف الحضور",
     "absencesDesc": "عرض وإدارة غياب الطلاب",
     "lateEarlyDesc": "تتبع التأخيرات والمغادرات المبكرة",
@@ -3629,8 +3641,11 @@
         "coverage": "التغطية",
         "coveredSections": "{covered} من {total} شعب",
         "dailyPolicies": "سياسات يومية",
+        "derivedCount": "{count} مشتقة",
         "periodPolicies": "سياسات بالحصة",
+        "notificationsEnabled": "الإشعارات مفعّلة",
         "conflicts": "تعارضات",
+        "incompleteConfig": "إعداد غير مكتمل",
         "expiringSoon": "ستنتهي قريبًا",
         "expiringSoonHint": "خلال {days} يوم",
         "defaultPolicy": "السياسة الافتراضية",
@@ -3638,6 +3653,275 @@
         "no": "لا",
         "ready": "جاهز",
         "needsSetup": "يحتاج إعداد"
+      },
+      "list": {
+        "tracking": "التتبع",
+        "manual": "يدوي",
+        "derived": "مشتق",
+        "periods": "الحصص",
+        "periodsCount": "حصص",
+        "noPeriodsSelected": "لم يتم اختيار حصص",
+        "none": "لا يوجد",
+        "notifications": "الإشعارات",
+        "teachers": "المعلمون",
+        "students": "الطلاب",
+        "guardians": "أولياء الأمور",
+        "absent": "غائب",
+        "late": "متأخر",
+        "earlyLeave": "مغادرة مبكرة",
+        "rules": "القواعد",
+        "min": "دقيقة",
+        "early": "مبكر",
+        "autoAbsent": "غياب تلقائي",
+        "missedPeriods": "حصص فائتة",
+        "incompleteConfigWarning": "هذه السياسة لديها إعداد غير مكتمل"
+      },
+      "wizard": {
+        "createPolicy": "إنشاء سياسة حضور",
+        "editPolicy": "تعديل سياسة الحضور",
+        "back": "السابق",
+        "next": "التالي",
+        "discard": "تجاهل التغييرات",
+        "stay": "متابعة التعديل",
+        "unsavedChangesTitle": "تغييرات غير محفوظة",
+        "unsavedChangesDesc": "لديك تغييرات غير محفوظة. هل أنت متأكد من تجاهلها؟",
+        "steps": {
+          "basicInfo": {
+            "title": "المعلومات الأساسية",
+            "subtitle": "الاسم والوصف",
+            "description": "قدم اسماً ووصفاً واضحاً لسياسة الحضور هذه. سيساعد ذلك في تحديد غرض السياسة."
+          },
+          "scope": {
+            "title": "النطاق",
+            "subtitle": "من تنطبق عليه",
+            "priorityTitle": "أولوية السياسة",
+            "priorityDesc": "سياسات الشعبة تتجاوز سياسات الصف، التي تتجاوز سياسات المرحلة، التي تتجاوز سياسات المدرسة."
+          },
+          "mode": {
+            "title": "الوضع",
+            "subtitle": "كيفية التتبع",
+            "description": "اختر كيفية تتبع واحتساب الحضور."
+          },
+          "rules": {
+            "title": "القواعد",
+            "subtitle": "الحدود والأعذار",
+            "description": "حدد حدود التأخير/المغادرة المبكرة، قواعد الغياب التلقائي، وسياسات الأعذار."
+          },
+          "review": {
+            "title": "المراجعة",
+            "subtitle": "التواريخ والإشعارات",
+            "description": "حدد التواريخ الفعالة، اضبط الإشعارات، وراجع سياستك."
+          }
+        },
+        "fields": {
+          "policyName": "اسم السياسة",
+          "description": "الوصف",
+          "notes": "ملاحظات",
+          "isActive": "السياسة نشطة",
+          "scope": "تطبيق على",
+          "selectStage": "اختر المرحلة",
+          "selectGrade": "اختر الصف",
+          "selectSection": "اختر الشعبة",
+          "attendanceMode": "وضع تتبع الحضور",
+          "dailyComputation": "استراتيجية الاحتساب اليومي",
+          "selectPeriods": "اختر الحصص",
+          "lateThreshold": "حد التأخير",
+          "lateThresholdDesc": "الدقائق بعد وقت البدء لتسجيل التأخير",
+          "earlyThreshold": "حد المغادرة المبكرة",
+          "earlyThresholdDesc": "الدقائق قبل وقت الانتهاء لتسجيل المغادرة المبكرة",
+          "autoAbsentAfter": "تسجيل غياب تلقائي بعد",
+          "autoAbsentAfterDesc": "تسجيل غياب تلقائياً إذا تأخر بهذا العدد من الدقائق",
+          "absentIfMissed": "تسجيل غياب إذا فات",
+          "absentIfMissedDesc": "تسجيل غياب إذا فات الطالب هذا العدد من الحصص",
+          "excuseSettings": "إعدادات الأعذار",
+          "allowExcuses": "السماح بالأعذار",
+          "requireReason": "طلب السبب",
+          "requireAttachment": "طلب مرفق",
+          "maxDaysToSubmit": "الحد الأقصى للأيام لتقديم العذر",
+          "maxDaysToSubmitDesc": "اترك فارغاً لعدم وجود حد",
+          "effectiveDates": "التواريخ الفعالة",
+          "effectiveStart": "تاريخ البدء",
+          "effectiveEnd": "تاريخ الانتهاء",
+          "notifications": "الإشعارات",
+          "notifyWho": "إشعار من",
+          "notifyTeachers": "المعلمون",
+          "notifyStudents": "الطلاب",
+          "notifyGuardians": "أولياء الأمور",
+          "notifyWhen": "إشعار عند",
+          "notifyOnAbsent": "غياب الطالب",
+          "notifyOnLate": "تأخر الطالب",
+          "notifyOnEarlyLeave": "مغادرة الطالب مبكراً"
+        },
+        "scope": {
+          "school": "على مستوى المدرسة",
+          "schoolDesc": "تنطبق على جميع الطلاب",
+          "stage": "المرحلة",
+          "stageDesc": "تنطبق على مرحلة محددة",
+          "grade": "الصف",
+          "gradeDesc": "تنطبق على صف محدد",
+          "section": "الشعبة",
+          "sectionDesc": "تنطبق على شعبة محددة"
+        },
+        "mode": {
+          "daily": "الحضور اليومي",
+          "dailyDesc": "تتبع الحضور مرة واحدة يومياً",
+          "period": "الحضور حسب الحصة",
+          "periodDesc": "تتبع الحضور لكل حصة دراسية"
+        },
+        "computation": {
+          "manual": "تسجيل يومي يدوي",
+          "manualDesc": "المعلمون يسجلون الحضور اليومي يدوياً",
+          "derived": "مشتق من الحصص",
+          "derivedDesc": "الحالة اليومية محسوبة من حضور الحصص"
+        },
+        "noPeriods": "لا توجد حصص مضبوطة لهذا النطاق. يرجى ضبط الجدول الدراسي أولاً.",
+        "selectAll": "اختر الكل",
+        "clearAll": "مسح الكل",
+        "periodsSelected": "{count} حصة محددة",
+        "periodsLower": "حصص",
+        "minutes": "دقيقة",
+        "periods": "حصص",
+        "days": "أيام",
+        "optional": "اختياري",
+        "termRangeHint": "يجب أن تكون السياسة ضمن تواريخ الفصل: {start} ← {end}",
+        "reviewSummary": "ملخص السياسة",
+        "overridesWarning": "ستتجاوز هذه السياسة الإعدادات على مستوى المدرسة للنطاق المحدد"
+      },
+      "validation": {
+        "nameArRequired": "الاسم العربي مطلوب",
+        "nameEnRequired": "الاسم الإنجليزي مطلوب",
+        "uniqueNameAr": "يجب أن يكون الاسم العربي فريداً ضمن هذا النطاق",
+        "uniqueNameEn": "يجب أن يكون الاسم الإنجليزي فريداً ضمن هذا النطاق",
+        "required": "هذا الحقل مطلوب",
+        "nonNegative": "يجب أن تكون القيمة 0 أو أكبر",
+        "startBeforeEnd": "يجب أن يكون تاريخ البدء قبل تاريخ الانتهاء",
+        "dateOutOfTerm": "يجب أن يكون التاريخ ضمن نطاق الفصل",
+        "atLeastOnePeriod": "يجب اختيار حصة واحدة على الأقل"
+      }
+    },
+    "rollCall": {
+      "title": "كشف الحضور المباشر",
+      "subtitle": "تسجيل حضور الطلاب",
+      "readonly_banner": "هذا الفصل مغلق. لا يمكنك تعديل الحضور.",
+      "sessionPicker": {
+        "title": "اختيار الجلسة",
+        "subtitle": "اختر النطاق والتاريخ والحصة",
+        "scope": "النطاق",
+        "date": "التاريخ",
+        "period": "الحصة",
+        "prev": "السابق",
+        "next": "التالي",
+        "dailyMode": "وضع الحضور اليومي",
+        "status": "حالة الجلسة"
+      },
+      "sessionStatus": {
+        "draft": "مسودة",
+        "submitted": "مقدم"
+      },
+      "kpis": {
+        "total": "الإجمالي",
+        "present": "حاضر",
+        "absent": "غائب",
+        "late": "متأخر",
+        "excused": "غياب بعذر",
+        "earlyLeave": "مغادرة مبكرة",
+        "completion": "الإكمال",
+        "unmarked": "غير محدد",
+        "markedOutOfTotal": "{marked} من {total} محدد"
+      },
+      "status": {
+        "present": "حاضر",
+        "absent": "غائب",
+        "late": "متأخر",
+        "excused": "غياب بعذر",
+        "earlyLeave": "مغادرة مبكرة"
+      },
+      "excuse": {
+        "title": "تفاصيل العذر",
+        "reason": "سبب العذر",
+        "reasonPlaceholder": "أدخل سبب الغياب...",
+        "attachments": "المرفقات",
+        "add": "إضافة عذر",
+        "edit": "تعديل العذر",
+        "save": "حفظ العذر",
+        "added": "تم إضافة العذر",
+        "requiredReason": "سبب العذر مطلوب",
+        "requiredAttachment": "المرفق مطلوب حسب السياسة",
+        "notAllowed": "الغياب بعذر غير مسموح به في السياسة الحالية"
+      },
+      "earlyLeave": {
+        "minutesLabel": "غادر مبكراً بـ (دقيقة)",
+        "required": "الدقائق مطلوبة",
+        "belowThreshold": "أقل من حد السياسة ({threshold} دقيقة)"
+      },
+      "table": {
+        "student": "الطالب",
+        "status": "الحالة",
+        "details": "التفاصيل",
+        "minutesLate": "دقائق التأخير",
+        "note": "ملاحظة",
+        "notePlaceholder": "أضف ملاحظة..."
+      },
+      "actions": {
+        "save": "حفظ",
+        "saving": "جارٍ الحفظ...",
+        "submit": "تقديم",
+        "reset": "إعادة تعيين",
+        "export": "تصدير",
+        "markAllPresent": "تحديد الكل حاضر",
+        "clearAll": "مسح الكل"
+      },
+      "messages": {
+        "saved": "تم حفظ الحضور بنجاح",
+        "submitted": "تم تقديم الحضور بنجاح",
+        "submitIncomplete": "هناك {count} طالب غير محدد. هل تريد التقديم على أي حال؟"
+      },
+      "confirm": {
+        "discardChangesTitle": "تغييرات غير محفوظة",
+        "discardChangesMessage": "لديك تغييرات غير محفوظة. هل تريد تجاهلها؟"
+      },
+      "empty": {
+        "noPolicy": "لا توجد سياسة حضور",
+        "noPolicyDesc": "لم يتم العثور على سياسة حضور نشطة لهذا النطاق والتاريخ. يرجى إنشاء سياسة أولاً.",
+        "noTimetable": "لا يوجد جدول زمني",
+        "noTimetableDesc": "الحضور بالحصة يتطلب إعداد الجدول الزمني. يرجى إعداد الجدول الزمني أولاً.",
+        "noStudents": "لا يوجد طلاب",
+        "noStudentsDesc": "لم يتم العثور على طلاب للنطاق المحدد."
+      },
+      "filters": {
+        "title": "التصفية",
+        "searchPlaceholder": "البحث عن الطلاب...",
+        "showFilters": "إظهار التصفية",
+        "hideFilters": "إخفاء التصفية",
+        "statusLabel": "الحالة",
+        "excuseLabel": "حالة العذر",
+        "excuseAll": "الكل",
+        "excuseComplete": "مكتمل",
+        "excuseMissing": "تفاصيل مفقودة",
+        "lateMinLabel": "دقائق التأخير >=",
+        "earlyLeaveMinLabel": "دقائق المغادرة المبكرة >=",
+        "reset": "إعادة تعيين التصفية",
+        "apply": "تطبيق",
+        "openFilters": "فتح التصفية",
+        "presetsTitle": "تصفية سريعة",
+        "excusesDisabledTooltip": "الأعذار معطلة حسب السياسة",
+        "status": {
+          "all": "الكل",
+          "unmarked": "غير محدد",
+          "present": "حاضر",
+          "absent": "غائب",
+          "late": "متأخر",
+          "excused": "غياب بعذر",
+          "earlyLeave": "مغادرة مبكرة"
+        },
+        "preset": {
+          "all": "الكل",
+          "unmarked": "غير محدد",
+          "absent": "الغائبون",
+          "late": "المتأخرون",
+          "excused": "الأعذار",
+          "earlyLeave": "المغادرة المبكرة"
+        }
       }
     }
   }

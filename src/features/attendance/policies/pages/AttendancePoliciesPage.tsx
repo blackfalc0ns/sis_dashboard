@@ -7,7 +7,7 @@ import { AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/toast/Toast";
 import ContextBar from "@/features/academics/components/shared/ContextBar";
 import PoliciesListPanel from "../components/PoliciesListPanel";
-import PolicyEditorPanel from "../components/PolicyEditorPanel";
+import PolicyWizardDialog from "../components/PolicyWizardDialog";
 import PoliciesKpiPanel from "../components/PoliciesKpiPanel";
 import {
   fetchAcademicYears,
@@ -271,7 +271,7 @@ export default function AttendancePoliciesPage() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        <div className="max-w-[1400px] mx-auto p-4 md:p-6">
+        <div className="p-4 md:p-6">
           {/* KPI Panel */}
           <PoliciesKpiPanel kpis={kpis} isLoading={false} />
 
@@ -290,9 +290,10 @@ export default function AttendancePoliciesPage() {
         </div>
       </div>
 
-      {/* Policy Editor Modal */}
+      {/* Policy Wizard Dialog */}
       {isEditorOpen && (
-        <PolicyEditorPanel
+        <PolicyWizardDialog
+          isOpen={isEditorOpen}
           policy={selectedPolicy}
           term={term}
           stages={stages}
@@ -300,7 +301,6 @@ export default function AttendancePoliciesPage() {
           sections={sections}
           isReadOnly={isReadOnly}
           onSave={handleSavePolicy}
-          onCancel={handleCancelEdit}
           onClose={handleCancelEdit}
         />
       )}

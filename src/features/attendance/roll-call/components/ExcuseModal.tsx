@@ -1,0 +1,197 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
+import { FileText, X } from "lucide-react";
+import Modal from "@/components/ui/modal/Modal";
+import Button from "@/components/ui/button/Button";
+import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
+import { formatFileSize } from "@/utils/upload/validateFile";
+import type { AttachmentMeta } from "../types";
+
+interface ExcuseModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (reason: string, attachments: AttachmentMeta[]) => void;
+  initialReason?: string;
+  initialAttachments?: AttachmentMeta[];
+  requireAttachment: boolean;
+  isReadOnly: boolean;
+}
+
+export default function ExcuseModal({
+  isOpen,
+  onClose,
+  onSave,
+  initialReason = "",
+  initialAttachments = [],
+  requireAttachment,
+  isReadOnly,
+}: ExcuseModalProps) {
+  const t = useTranslations("attendance.rollCall.excuse");
+  const tCommon = useTranslations("common");
+
+  const [reason, setReason] = useState("");
+  const [attachments, setAttachments] = useState<AttachmentMeta[]>([]);
+  const [errors, setErrors] = useState<{ reason?: string; attachments?: string }>({});
+
+  // Reset form when modal opens with new data
+  useEffect(() => {
+    if (isOpen) {
+      // Use a ref or key to track if we need to reset
+      setReason(initialReason);
+      setAttachments(initialAttachments);
+      setErrors({});
+    } else {
+      // Clear on close
+      setReason("");
+      setAttachments([]);
+      setErrors({});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]); // Intentionally only depend on isOpen
+
+  const handleFilesSelected = (files: File[]) => {
+    const newAttachments: AttachmentMeta[] = files.map((file) => ({
+      id: `att-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      uploadedAt: new Date().toISOString(),
+    }));
+
+    setAttachments((prev) => [...prev, ...newAttachments]);
+    setErrors((prev) => ({ ...prev, attachments: undefined }));
+  };
+
+  const handleRemoveAttachment = (id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const handleSave = () => {
+    const newErrors: { reason?: string; attachments?: string } = {};
+
+    if (!reason.trim()) {
+      newErrors.reason = t("requiredReason");
+    }
+
+    if (requireAttachment && attachments.length === 0) {
+      newErrors.attachments = t("requiredAttachment");
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    onSave(reason, attachments);
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="md">
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900">{t("title")}</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="space-y-4">
+          {/* Reason */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t("reason")} <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => {
+                setReason(e.target.value);
+                setErrors((prev) => ({ ...prev, reason: undefined }));
+              }}
+              disabled={isReadOnly}
+              rows={4}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
+                errors.reason ? "border-red-500" : "border-gray-300"
+              } ${isReadOnly ? "bg-gray-50 cursor-not-allowed" : ""}`}
+              placeholder={t("reasonPlaceholder")}
+            />
+            {errors.reason && (
+              <p className="mt-1 text-sm text-red-600">{errors.reason}</p>
+            )}
+          </div>
+
+          {/* Attachments */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t("attachments")}
+              {requireAttachment && <span className="text-red-500"> *</span>}
+            </label>
+
+            {!isReadOnly && (
+              <DragDropUploadArea
+                onFilesSelected={handleFilesSelected}
+                uploadArea="ATTENDANCE_EXCUSE"
+                multiple={true}
+              />
+            )}
+
+            {errors.attachments && (
+              <p className="mt-2 text-sm text-red-600">{errors.attachments}</p>
+            )}
+
+            {/* Attachment List */}
+            {attachments.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {attachments.map((att) => (
+                  <div
+                    key={att.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <FileText className="w-5 h-5 text-gray-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {att.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {formatFileSize(att.size)}
+                        </p>
+                      </div>
+                    </div>
+                    {!isReadOnly && (
+                      <button
+                        onClick={() => handleRemoveAttachment(att.id)}
+                        className="text-gray-400 hover:text-red-600 transition-colors shrink-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+          <Button variant="outline" onClick={onClose}>
+            {tCommon("cancel")}
+          </Button>
+          {!isReadOnly && (
+            <Button variant="primary" onClick={handleSave}>
+              {t("save")}
+            </Button>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+}
