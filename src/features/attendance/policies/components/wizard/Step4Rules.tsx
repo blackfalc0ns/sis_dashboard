@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { AlertCircle } from "lucide-react";
 import Input from "@/components/ui/input/Input";
 import type { PolicyFormData } from "../../types";
 
@@ -21,6 +22,10 @@ export default function Step4Rules({
   onFieldChange,
 }: Step4RulesProps) {
   const t = useTranslations("attendance.policies.wizard");
+
+  const selectedPeriodsCount = formData.selectedPeriodIds?.length || 0;
+  const threshold = formData.absentIfMissedPeriodsCount || 0;
+  const showThresholdWarning = threshold > selectedPeriodsCount;
 
   return (
     <div className="space-y-6">
@@ -74,67 +79,56 @@ export default function Step4Rules({
         </div>
       </div>
 
-      {/* Auto Absent Rules */}
-      {formData.mode === "DAILY" && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("fields.autoAbsentAfter")}
-          </label>
-          <div className="relative">
-            <Input
-              type="number"
-              value={formData.autoAbsentAfterMinutes || ""}
-              onChange={(e) =>
-                onFieldChange(
-                  "autoAbsentAfterMinutes",
-                  e.target.value ? parseInt(e.target.value) : undefined
-                )
+      {/* Daily Absent Threshold (from periods) */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {t("fields.dailyAbsentThreshold")} <span className="text-red-500">*</span>
+        </label>
+        <div className="relative max-w-xs">
+          <Input
+            type="number"
+            value={formData.absentIfMissedPeriodsCount || ""}
+            onChange={(e) => {
+              const value = e.target.value ? parseInt(e.target.value) : undefined;
+              // Clamp to valid range
+              if (value !== undefined && selectedPeriodsCount > 0) {
+                const clamped = Math.min(Math.max(1, value), selectedPeriodsCount);
+                onFieldChange("absentIfMissedPeriodsCount", clamped);
+              } else {
+                onFieldChange("absentIfMissedPeriodsCount", value);
               }
-              min={0}
-              disabled={isReadOnly}
-              error={errors.autoAbsentAfterMinutes}
-              placeholder={t("optional")}
-            />
-            <span className="absolute right-15 top-1/2 -translate-y-1/2 text-sm text-gray-500">
-              {t("minutes")}
-            </span>
-          </div>
-          <p className="text-xs text-gray-500 mt-1">
-            {t("fields.autoAbsentAfterDesc")}
-          </p>
+            }}
+            min={1}
+            max={selectedPeriodsCount}
+            disabled={isReadOnly}
+            error={errors.absentIfMissedPeriodsCount}
+          />
+          <span className="absolute right-15 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+            {t("periods")}
+          </span>
         </div>
-      )}
-
-      {formData.mode === "PERIOD" && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("fields.absentIfMissed")}
-          </label>
-          <div className="relative">
-            <Input
-              type="number"
-              value={formData.absentIfMissedPeriodsCount || ""}
-              onChange={(e) =>
-                onFieldChange(
-                  "absentIfMissedPeriodsCount",
-                  e.target.value ? parseInt(e.target.value) : undefined
-                )
-              }
-              min={0}
-              disabled={isReadOnly}
-              error={errors.absentIfMissedPeriodsCount}
-              placeholder={t("optional")}
-            />
-            <span className="absolute right-15 top-1/2 -translate-y-1/2 text-sm text-gray-500">
-              {t("periods")}
-            </span>
+        <p className="text-xs text-gray-500 mt-1">
+          {t("fields.dailyAbsentThresholdDesc", { max: selectedPeriodsCount })}
+        </p>
+        
+        {/* Warning if threshold exceeds selected periods */}
+        {showThresholdWarning && (
+          <div
+            className="flex items-start gap-2 mt-2 p-3 rounded-lg text-sm"
+            style={{
+              backgroundColor: "var(--color-accent-50)",
+              borderColor: "var(--color-accent-200)",
+              color: "var(--color-accent-800)",
+            }}
+          >
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{t("thresholdExceedsSelected")}</span>
           </div>
-          <p className="text-xs text-gray-500 mt-1">{t("fields.absentIfMissedDesc")}</p>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Excuses */}
-      <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+      <div className="border rounded-lg p-4 space-y-3" style={{ borderColor: "var(--color-neutral-200)" }}>
         <h4 className="font-semibold text-sm text-gray-900">
           {t("fields.excuseSettings")}
         </h4>

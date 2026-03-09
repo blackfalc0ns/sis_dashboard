@@ -42,10 +42,8 @@ export default function PoliciesListPanel({
 
   const [searchQuery, setSearchQuery] = useState("");
   const [scopeFilter, setScopeFilter] = useState<"ALL" | AttendanceScopeType>("ALL");
-  const [modeFilter, setModeFilter] = useState<"ALL" | "DAILY" | "PERIOD">("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
   const [showFilters, setShowFilters] = useState(false);
-  const [computationFilter, setComputationFilter] = useState<"ALL" | "MANUAL" | "DERIVED">("ALL");
   const [notificationsFilter, setNotificationsFilter] = useState<"ALL" | "ENABLED" | "DISABLED">("ALL");
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -94,21 +92,9 @@ export default function PoliciesListPanel({
         return false;
       }
 
-      // Mode filter
-      if (modeFilter !== "ALL" && policy.mode !== modeFilter) {
-        return false;
-      }
-
       // Status filter
       if (statusFilter === "ACTIVE" && !policy.isActive) return false;
       if (statusFilter === "INACTIVE" && policy.isActive) return false;
-
-      // Computation filter (only for DAILY policies)
-      if (computationFilter !== "ALL") {
-        if (policy.mode !== "DAILY") return false;
-        if (computationFilter === "MANUAL" && policy.dailyComputationStrategy !== "MANUAL") return false;
-        if (computationFilter === "DERIVED" && policy.dailyComputationStrategy !== "DERIVED_FROM_PERIODS") return false;
-      }
 
       // Notifications filter
       if (notificationsFilter !== "ALL") {
@@ -119,7 +105,7 @@ export default function PoliciesListPanel({
 
       return true;
     });
-  }, [policies, searchQuery, scopeFilter, modeFilter, statusFilter, computationFilter, notificationsFilter, getScopeName]);
+  }, [policies, searchQuery, scopeFilter, statusFilter, notificationsFilter, getScopeName]);
 
   const handleDeleteClick = (policy: AttendancePolicy) => {
     setPolicyToDelete(policy);
@@ -190,46 +176,41 @@ export default function PoliciesListPanel({
     {
       key: "tracking",
       label: t("list.tracking"),
-      render: (_: unknown, row: AttendancePolicy) => (
-        <div className="flex flex-col gap-1">
-          <span
-            className={`inline-flex px-2 py-1 text-xs font-medium rounded w-fit ${
-              row.mode === "DAILY"
-                ? "bg-blue-100 text-blue-800"
-                : "bg-purple-100 text-purple-800"
-            }`}
-          >
-            {t(`form.${row.mode.toLowerCase()}`)}
-          </span>
-          {row.mode === "DAILY" && row.dailyComputationStrategy && (
-            <span
-              className={`inline-flex px-2 py-1 text-xs font-medium rounded w-fit ${
-                row.dailyComputationStrategy === "MANUAL"
-                  ? "bg-gray-100 text-gray-700"
-                  : "bg-teal-100 text-teal-800"
-              }`}
-            >
-              {row.dailyComputationStrategy === "MANUAL"
-                ? t("list.manual")
-                : t("list.derived")}
+      render: (_: unknown, row: AttendancePolicy) => {
+        const selectedCount = row.selectedPeriodIds?.length || 0;
+        const threshold = row.absentIfMissedPeriodsCount || 0;
+        
+        return (
+          <div className="flex flex-col gap-1">
+            <span className="inline-flex px-2 py-1 text-xs font-medium rounded w-fit bg-purple-100 text-purple-800">
+              {t("form.period")}
             </span>
-          )}
-        </div>
-      ),
+            {selectedCount > 0 && threshold > 0 && (
+              <Tooltip 
+                title={locale === "ar" 
+                  ? `غائب إذا فات ${threshold} من ${selectedCount} حصص` 
+                  : `Absent if missed ${threshold} of ${selectedCount} periods`
+                } 
+                arrow
+              >
+                <span className="inline-flex px-2 py-1 text-xs font-medium rounded w-fit bg-teal-100 text-teal-800 cursor-help">
+                  {locale === "ar" 
+                    ? `${threshold}/${selectedCount} حصص` 
+                    : `${threshold}/${selectedCount} periods`
+                  }
+                </span>
+              </Tooltip>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: "periods",
       label: t("list.periods"),
       render: (_: unknown, row: AttendancePolicy) => {
-        const needsPeriods =
-          row.mode === "PERIOD" ||
-          (row.mode === "DAILY" && row.dailyComputationStrategy === "DERIVED_FROM_PERIODS");
-
-        if (!needsPeriods) {
-          return <span className="text-gray-400 text-sm">—</span>;
-        }
-
         const periodCount = row.selectedPeriodIds?.length || 0;
+        
         if (periodCount === 0) {
           return (
             <Tooltip title={t("list.noPeriodsSelected")} arrow>
@@ -424,7 +405,7 @@ export default function PoliciesListPanel({
 
           {/* Filter Dropdowns (Collapsible) */}
           {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <Select
                 value={scopeFilter}
                 onChange={(value) => setScopeFilter(value as "ALL" | AttendanceScopeType)}
@@ -439,34 +420,12 @@ export default function PoliciesListPanel({
               />
 
               <Select
-                value={modeFilter}
-                onChange={(value) => setModeFilter(value as "ALL" | "DAILY" | "PERIOD")}
-                options={[
-                  { value: "ALL", label: tCommon("all_modes") },
-                  { value: "DAILY", label: t("form.daily") },
-                  { value: "PERIOD", label: t("form.period") },
-                ]}
-                selectSize="sm"
-              />
-
-              <Select
                 value={statusFilter}
                 onChange={(value) => setStatusFilter(value as "ALL" | "ACTIVE" | "INACTIVE")}
                 options={[
                   { value: "ALL", label: tCommon("all_statuses") },
                   { value: "ACTIVE", label: t("active") },
                   { value: "INACTIVE", label: t("inactive") },
-                ]}
-                selectSize="sm"
-              />
-
-              <Select
-                value={computationFilter}
-                onChange={(value) => setComputationFilter(value as "ALL" | "MANUAL" | "DERIVED")}
-                options={[
-                  { value: "ALL", label: tCommon("all") },
-                  { value: "MANUAL", label: t("list.manual") },
-                  { value: "DERIVED", label: t("list.derived") },
                 ]}
                 selectSize="sm"
               />

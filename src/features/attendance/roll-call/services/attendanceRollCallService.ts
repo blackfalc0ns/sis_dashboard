@@ -258,3 +258,96 @@ export async function deleteSession(sessionId: string, yearId: string, termId: s
     entryStore[storeKey] = entryStore[storeKey].filter((e) => e.sessionId !== sessionId);
   }
 }
+
+/**
+ * Fetch entries by session ID (for Absences tab)
+ */
+export async function fetchEntriesBySessionId(
+  yearId: string,
+  termId: string,
+  sessionId: string
+): Promise<AttendanceEntry[]> {
+  await new Promise((resolve) => setTimeout(resolve, 50));
+
+  const storeKey = `${yearId}-${termId}`;
+  return entryStore[storeKey]?.filter((e) => e.sessionId === sessionId) || [];
+}
+
+/**
+ * Fetch entries for multiple sessions (for Absences tab)
+ */
+export async function fetchEntriesForSessions(
+  yearId: string,
+  termId: string,
+  sessionIds: string[]
+): Promise<AttendanceEntry[]> {
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
+  const storeKey = `${yearId}-${termId}`;
+  return entryStore[storeKey]?.filter((e) => sessionIds.includes(e.sessionId)) || [];
+}
+
+/**
+ * Upsert entry (create or update) - for Absences tab corrections
+ */
+export async function upsertEntry(
+  yearId: string,
+  termId: string,
+  sessionId: string,
+  studentId: string,
+  patch: Partial<AttendanceEntry>
+): Promise<AttendanceEntry> {
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
+  const storeKey = `${yearId}-${termId}`;
+  if (!entryStore[storeKey]) {
+    entryStore[storeKey] = [];
+  }
+
+  const existingIndex = entryStore[storeKey].findIndex(
+    (e) => e.sessionId === sessionId && e.studentId === studentId
+  );
+
+  const now = new Date().toISOString();
+
+  if (existingIndex >= 0) {
+    // Update existing
+    const updated = {
+      ...entryStore[storeKey][existingIndex],
+      ...patch,
+      updatedAt: now,
+    };
+    entryStore[storeKey][existingIndex] = updated;
+
+    // Update session timestamp
+    if (sessionStore[storeKey]) {
+      const sessionIndex = sessionStore[storeKey].findIndex((s) => s.id === sessionId);
+      if (sessionIndex >= 0) {
+        sessionStore[storeKey][sessionIndex].updatedAt = now;
+      }
+    }
+
+    return updated;
+  } else {
+    // Create new
+    const newEntry: AttendanceEntry = {
+      id: `entry-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      sessionId,
+      studentId,
+      status: "PRESENT",
+      ...patch,
+      updatedAt: now,
+    };
+    entryStore[storeKey].push(newEntry);
+
+    // Update session timestamp
+    if (sessionStore[storeKey]) {
+      const sessionIndex = sessionStore[storeKey].findIndex((s) => s.id === sessionId);
+      if (sessionIndex >= 0) {
+        sessionStore[storeKey][sessionIndex].updatedAt = now;
+      }
+    }
+
+    return newEntry;
+  }
+}

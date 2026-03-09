@@ -1,15 +1,5 @@
-"use client";
+﻿import AttendanceLateEarlyPage from "@/features/attendance/late-early/pages/AttendanceLateEarlyPage";
 
-import { useTranslations } from "next-intl";
-import ComingSoon from "@/components/common/ComingSoon";
-
-export default function LateEarlyPage() {
-  const t = useTranslations("attendance");
-
-  return (
-    <ComingSoon
-      title={t("lateEarly")}
-      description={t("lateEarlyDesc")}
-    />
-  );
+export default function Page() {
+  return <AttendanceLateEarlyPage />;
 }

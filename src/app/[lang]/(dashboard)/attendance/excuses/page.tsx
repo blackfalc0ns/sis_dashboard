@@ -1,15 +1,5 @@
-"use client";
+﻿import AttendanceExcusesPage from "@/features/attendance/excuses/pages/AttendanceExcusesPage";
 
-import { useTranslations } from "next-intl";
-import ComingSoon from "@/components/common/ComingSoon";
-
-export default function ExcusesPage() {
-  const t = useTranslations("attendance");
-
-  return (
-    <ComingSoon
-      title={t("excuses")}
-      description={t("excusesDesc")}
-    />
-  );
+export default function Page() {
+  return <AttendanceExcusesPage />;
 }

@@ -1,15 +1,7 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import ComingSoon from "@/components/common/ComingSoon";
+import AttendanceAbsencesPage from "@/features/attendance/absences/pages/AttendanceAbsencesPage";
 
 export default function AbsencesPage() {
-  const t = useTranslations("attendance");
-
-  return (
-    <ComingSoon
-      title={t("absences")}
-      description={t("absencesDesc")}
-    />
-  );
+  return <AttendanceAbsencesPage />;
 }

@@ -110,12 +110,12 @@ export default function PolicyWizardDialog({
         notesEn: policy.notesEn || "",
         scopeType: policy.scopeType,
         scopeIds: policy.scopeIds || {},
-        mode: policy.mode,
-        dailyComputationStrategy: policy.dailyComputationStrategy || "MANUAL",
+        mode: "PERIOD", // Force PERIOD mode
+        dailyComputationStrategy: undefined, // Not used anymore
         selectedPeriodIds: policy.selectedPeriodIds || [],
         lateThresholdMinutes: policy.lateThresholdMinutes,
         earlyLeaveThresholdMinutes: policy.earlyLeaveThresholdMinutes,
-        autoAbsentAfterMinutes: policy.autoAbsentAfterMinutes,
+        autoAbsentAfterMinutes: undefined, // Not used anymore
         absentIfMissedPeriodsCount: policy.absentIfMissedPeriodsCount,
         allowExcuses: policy.allowExcuses,
         requireExcuseReason: policy.requireExcuseReason,
@@ -135,7 +135,14 @@ export default function PolicyWizardDialog({
       setActiveStep(0);
       setErrors({});
     } else if (isOpen && !policy) {
-      // New policy - set defaults
+      // New policy - set defaults with first 2 periods
+      const defaultPeriodIds =
+        availablePeriods.length >= 2
+          ? [`period-${availablePeriods[0].index}`, `period-${availablePeriods[1].index}`]
+          : availablePeriods.length === 1
+          ? [`period-${availablePeriods[0].index}`]
+          : [];
+
       setFormData({
         yearId: term?.yearId || "",
         termId: term?.id || "",
@@ -147,13 +154,13 @@ export default function PolicyWizardDialog({
         notesEn: "",
         scopeType: "SCHOOL",
         scopeIds: {},
-        mode: "DAILY",
-        dailyComputationStrategy: "MANUAL",
-        selectedPeriodIds: [],
+        mode: "PERIOD", // Force PERIOD mode
+        dailyComputationStrategy: undefined, // Not used anymore
+        selectedPeriodIds: defaultPeriodIds,
         lateThresholdMinutes: 15,
         earlyLeaveThresholdMinutes: 15,
-        autoAbsentAfterMinutes: undefined,
-        absentIfMissedPeriodsCount: undefined,
+        autoAbsentAfterMinutes: undefined, // Not used anymore
+        absentIfMissedPeriodsCount: defaultPeriodIds.length || 1,
         allowExcuses: true,
         requireExcuseReason: false,
         requireAttachmentForExcuse: false,
@@ -172,29 +179,15 @@ export default function PolicyWizardDialog({
       setActiveStep(0);
       setErrors({});
     }
-  }, [isOpen, policy, term]);
+  }, [isOpen, policy, term, availablePeriods]);
 
-  // Load periods when mode or scope changes
+  // Load periods when dialog opens or scope changes (always needed now)
   useEffect(() => {
     if (!isOpen || !term) return;
 
-    const needsPeriods =
-      formData.mode === "PERIOD" ||
-      (formData.mode === "DAILY" &&
-        formData.dailyComputationStrategy === "DERIVED_FROM_PERIODS");
-
-    if (needsPeriods) {
-      loadAvailablePeriods();
-    }
+    loadAvailablePeriods();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    isOpen,
-    formData.mode,
-    formData.dailyComputationStrategy,
-    formData.scopeType,
-    formData.scopeIds,
-    term,
-  ]);
+  }, [isOpen, formData.scopeType, formData.scopeIds, term]);
 
   const loadAvailablePeriods = async () => {
     if (!term) return;
@@ -305,19 +298,9 @@ export default function PolicyWizardDialog({
           newErrors.sectionId = tValidation("required");
       }
     } else if (step === 2) {
-      // Step 3: Mode & Computation
-      if (
-        formData.mode === "PERIOD" &&
-        (!formData.selectedPeriodIds || formData.selectedPeriodIds.length === 0)
-      ) {
-        newErrors.selectedPeriodIds = tValidation("atLeastOnePeriod");
-      }
-      if (
-        formData.mode === "DAILY" &&
-        formData.dailyComputationStrategy === "DERIVED_FROM_PERIODS" &&
-        (!formData.selectedPeriodIds || formData.selectedPeriodIds.length === 0)
-      ) {
-        newErrors.selectedPeriodIds = tValidation("atLeastOnePeriod");
+      // Step 3: Period Selection (always required now)
+      if (!formData.selectedPeriodIds || formData.selectedPeriodIds.length === 0) {
+        newErrors.selectedPeriodIds = tValidation("periodsRequired");
       }
     } else if (step === 3) {
       // Step 4: Rules
@@ -327,18 +310,22 @@ export default function PolicyWizardDialog({
       if (formData.earlyLeaveThresholdMinutes < 0) {
         newErrors.earlyLeaveThresholdMinutes = tValidation("nonNegative");
       }
+      
+      // Validate absentIfMissedPeriodsCount (required now)
       if (
-        formData.autoAbsentAfterMinutes !== undefined &&
-        formData.autoAbsentAfterMinutes < 0
+        formData.absentIfMissedPeriodsCount === undefined ||
+        formData.absentIfMissedPeriodsCount < 1
       ) {
-        newErrors.autoAbsentAfterMinutes = tValidation("nonNegative");
-      }
-      if (
-        formData.absentIfMissedPeriodsCount !== undefined &&
-        formData.absentIfMissedPeriodsCount < 0
+        newErrors.absentIfMissedPeriodsCount = tValidation("thresholdRequired");
+      } else if (
+        formData.selectedPeriodIds &&
+        formData.absentIfMissedPeriodsCount > formData.selectedPeriodIds.length
       ) {
-        newErrors.absentIfMissedPeriodsCount = tValidation("nonNegative");
+        newErrors.absentIfMissedPeriodsCount = tValidation("thresholdOutOfRange", {
+          max: formData.selectedPeriodIds.length,
+        });
       }
+      
       if (
         formData.maxDaysToSubmitExcuse !== undefined &&
         formData.maxDaysToSubmitExcuse < 0
