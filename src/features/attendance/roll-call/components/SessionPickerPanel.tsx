@@ -121,7 +121,7 @@ export default function SessionPickerPanel({
                 size="sm"
                 onClick={handlePrevPeriod}
                 disabled={disabled || selectedPeriodIndex === null || selectedPeriodIndex <= 1}
-                leftIcon={<ChevronLeft className="w-4 h-4" />}
+                leftIcon={locale === "ar" ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
               >
                 {t("sessionPicker.prev")}
               </Button>
@@ -132,7 +132,7 @@ export default function SessionPickerPanel({
                 disabled={
                   disabled || selectedPeriodIndex === null || selectedPeriodIndex >= periods.length
                 }
-                rightIcon={<ChevronRight className="w-4 h-4" />}
+                rightIcon={locale === "ar" ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               >
                 {t("sessionPicker.next")}
               </Button>
@@ -151,7 +151,7 @@ export default function SessionPickerPanel({
                       : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                   } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                 >
-                  <div className="font-medium">
+                  <div className={`font-medium ${locale === "ar" ? "text-right" : "text-left"}`}>
                     {locale === "ar" ? period.nameAr : period.nameEn}
                   </div>
                   {period.startTime && period.endTime && (

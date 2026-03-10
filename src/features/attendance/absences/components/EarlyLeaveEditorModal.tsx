@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { X } from "lucide-react";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
@@ -24,6 +24,8 @@ export default function EarlyLeaveEditorModal({
 }: EarlyLeaveEditorModalProps) {
   const t = useTranslations("attendance.absences.earlyLeave");
   const tCommon = useTranslations("common");
+  const tForm = useTranslations("attendance.policies.form");
+  const locale = useLocale();
 
   const [minutes, setMinutes] = useState(0);
   const [error, setError] = useState("");
@@ -65,17 +67,23 @@ export default function EarlyLeaveEditorModal({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("minutesLabel")} <span className="text-red-500">*</span>
             </label>
-            <Input
-              type="number"
-              value={minutes}
-              onChange={(e) => {
-                setMinutes(parseInt(e.target.value) || 0);
-                setError("");
-              }}
-              disabled={isReadOnly}
-              min={0}
-              placeholder="0"
-            />
+            <div className="relative">
+              <Input
+                type="number"
+                value={minutes}
+                onChange={(e) => {
+                  setMinutes(parseInt(e.target.value) || 0);
+                  setError("");
+                }}
+                disabled={isReadOnly}
+                min={0}
+                placeholder="0"
+                className={locale === "ar" ? "pl-16" : "pr-16"}
+              />
+              <div className={`absolute inset-y-0 ${locale === "ar" ? "left-0 pl-3" : "right-0 pr-3"} flex items-center pointer-events-none`}>
+                <span className="text-sm text-gray-500">{tForm("minutes")}</span>
+              </div>
+            </div>
             {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
             <p className="mt-1 text-xs text-gray-500">{t("helper")}</p>
           </div>

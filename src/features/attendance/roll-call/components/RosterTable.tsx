@@ -32,6 +32,7 @@ export default function RosterTable({
   const t = useTranslations("attendance.rollCall");
   const tStatus = useTranslations("attendance.rollCall.status");
   const tExcuse = useTranslations("attendance.rollCall.excuse");
+  const tForm = useTranslations("attendance.policies.form");
   const locale = useLocale();
 
   const [excuseModalOpen, setExcuseModalOpen] = useState(false);
@@ -163,7 +164,7 @@ export default function RosterTable({
         // LATE - show minutes late input
         if (entry?.status === "LATE") {
           return (
-            <div className="w-24">
+            <div className="w-24 relative">
               <Input
                 type="number"
                 value={entry?.minutesLate?.toString() || ""}
@@ -175,8 +176,11 @@ export default function RosterTable({
                 placeholder="0"
                 min="0"
                 disabled={isReadOnly}
-                className="text-sm"
+                className={`text-sm ${locale === "ar" ? "pl-12" : "pr-12"}`}
               />
+              <div className={`absolute inset-y-0 ${locale === "ar" ? "left-0 pl-2" : "right-0 pr-2"} flex items-center pointer-events-none`}>
+                <span className="text-xs text-gray-500">{tForm("minutes")}</span>
+              </div>
             </div>
           );
         }
@@ -188,7 +192,7 @@ export default function RosterTable({
 
           return (
             <div className="space-y-1">
-              <div className="w-24">
+              <div className="w-24 relative">
                 <Input
                   type="number"
                   value={minutes?.toString() || ""}
@@ -200,9 +204,12 @@ export default function RosterTable({
                   placeholder="0"
                   min="1"
                   disabled={isReadOnly}
-                  className="text-sm"
+                  className={`text-sm ${locale === "ar" ? "pl-12" : "pr-12"}`}
                   error={!minutes ? t("earlyLeave.required") : undefined}
                 />
+                <div className={`absolute inset-y-0 ${locale === "ar" ? "left-0 pl-2" : "right-0 pr-2"} flex items-center pointer-events-none`}>
+                  <span className="text-xs text-gray-500">{tForm("minutes")}</span>
+                </div>
               </div>
               {isBelowThreshold && (
                 <p className="text-xs text-orange-600">

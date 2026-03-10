@@ -38,6 +38,9 @@ import ExcusesTable from "../components/ExcusesTable";
 import ExcuseDetailsDrawer from "../components/ExcuseDetailsDrawer";
 import ExcuseRequestModal from "../components/ExcuseRequestModal";
 import DecisionModal from "../components/DecisionModal";
+import ScopeBreadcrumb from "../../components/ScopeBreadcrumb";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 
 function computeKpis(requests: ExcuseRequest[]): ExcusesKpis {
   return {
@@ -332,7 +335,9 @@ export default function AttendanceExcusesPage() {
   };
 
   if (loading && !term) {
-    return <div className="h-screen flex items-center justify-center">{tCommon("loading")}</div>;
+    return (
+      <MainLoader />
+    );
   }
 
   return (
@@ -355,6 +360,17 @@ export default function AttendanceExcusesPage() {
       )}
 
       <div className="flex-1 p-4 flex flex-col gap-4 min-h-0" style={{ backgroundColor: "var(--background)" }}>
+                {(
+                    
+                      <ScopeBreadcrumb
+                        scopeType={filters.scopeType}
+                        scopeIds={filters.scopeIds}
+                        stages={stages}
+                        grades={grades}
+                        sections={sections}
+                      />
+                   
+                  )}
         <div className="flex items-center justify-between">
           <ExcusesKpisBar kpis={kpis} />
           {!isMobile && (
@@ -390,7 +406,7 @@ export default function AttendanceExcusesPage() {
 
               <div className="rounded-xl border overflow-hidden min-h-0" style={{ backgroundColor: "var(--card-background)", borderColor: "var(--border-color)" }}>
                 {loading ? (
-                  <div className="h-full flex items-center justify-center">{tCommon("loading")}</div>
+                  <div className="h-full flex items-center justify-center py-4"><PartialLoader/></div>
                 ) : (
                   <ExcusesTable requests={requests} grades={grades} sections={sections} isReadOnly={isReadOnly}
                     onView={(request) => setSelectedRequest(request)}

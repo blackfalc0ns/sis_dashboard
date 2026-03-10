@@ -12,6 +12,7 @@
   "profile": "الملف الشخصي",
   "admin": "مدير",
   "common": {
+    "apply": "تطبيق",
     "show": "عرض",
     "showing": "عرض",
     "to": "إلى",
@@ -87,7 +88,12 @@
     "error_deleting": "فشل الحذف",
     "coming_soon": "قريباً",
     "yes": "نعم",
-    "no": "لا"
+    "no": "لا",
+    "export": {
+      "button": "تصدير",
+      "excel": "تصدير كـ Excel",
+      "csv": "تصدير كـ CSV"
+    }
   },
   "filter_bar": {
     "filters": {
@@ -3571,7 +3577,8 @@
         "absent": "غائب",
         "late": "متأخر",
         "excused": "غياب بعذر",
-        "earlyLeave": "مغادرة مبكرة"
+        "earlyLeave": "مغادرة مبكرة",
+        "unmarked": "غير محدد"
       },
       "excuse": {
         "title": "تفاصيل العذر",
@@ -3672,7 +3679,7 @@
       "minutesSaved": "تم حفظ الدقائق بنجاح",
       "exportSuccess": "تم تصدير الغياب بنجاح",
       "kpis": {
-        "totalIncidents": "إجمالي الحوادث",
+        "totalIncidents": "إجمالي الانضباط",
         "absent": "غائب",
         "excused": "بعذر",
         "late": "متأخر",

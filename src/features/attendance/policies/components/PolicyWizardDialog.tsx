@@ -99,6 +99,20 @@ export default function PolicyWizardDialog({
   // Reset form when dialog opens/closes or policy changes
   useEffect(() => {
     if (isOpen && policy) {
+      // Migrate old period IDs to stable IDs
+      const migratedPeriodIds = policy.selectedPeriodIds
+        ? policy.selectedPeriodIds.map((id) => {
+            // If old format "period-N", convert to stable ID
+            const match = id.match(/^period-(\d+)$/);
+            if (match) {
+              const index = parseInt(match[1], 10);
+              const period = availablePeriods.find((p) => p.index === index);
+              return period ? period.id : id;
+            }
+            return id;
+          })
+        : [];
+
       setFormData({
         yearId: policy.yearId,
         termId: policy.termId,
@@ -112,7 +126,7 @@ export default function PolicyWizardDialog({
         scopeIds: policy.scopeIds || {},
         mode: "PERIOD", // Force PERIOD mode
         dailyComputationStrategy: undefined, // Not used anymore
-        selectedPeriodIds: policy.selectedPeriodIds || [],
+        selectedPeriodIds: migratedPeriodIds,
         lateThresholdMinutes: policy.lateThresholdMinutes,
         earlyLeaveThresholdMinutes: policy.earlyLeaveThresholdMinutes,
         autoAbsentAfterMinutes: undefined, // Not used anymore
@@ -135,12 +149,12 @@ export default function PolicyWizardDialog({
       setActiveStep(0);
       setErrors({});
     } else if (isOpen && !policy) {
-      // New policy - set defaults with first 2 periods
+      // New policy - use stable period IDs from the start
       const defaultPeriodIds =
         availablePeriods.length >= 2
-          ? [`period-${availablePeriods[0].index}`, `period-${availablePeriods[1].index}`]
+          ? [availablePeriods[0].id, availablePeriods[1].id]
           : availablePeriods.length === 1
-          ? [`period-${availablePeriods[0].index}`]
+          ? [availablePeriods[0].id]
           : [];
 
       setFormData({

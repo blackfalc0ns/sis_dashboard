@@ -26,6 +26,7 @@ import {
 } from "../services/attendancePolicyService";
 import { computePolicyKpis } from "../utils/policyKpis";
 import type { AttendancePolicy, PolicyFormData } from "../types";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 
 export default function AttendancePoliciesPage() {
   const t = useTranslations("attendance.policies");
@@ -241,9 +242,7 @@ export default function AttendancePoliciesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-gray-500">{tCommon("loading")}</div>
-      </div>
+      <MainLoader />
     );
   }
 

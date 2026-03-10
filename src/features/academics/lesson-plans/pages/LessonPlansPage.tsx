@@ -26,6 +26,7 @@ import FiltersDrawer from "../components/FiltersDrawer";
 import LessonLibraryDrawer from "../components/LessonLibraryDrawer";
 import AddLessonDialog from "../components/AddLessonDialog";
 import MobileBottomBar from "../components/MobileBottomBar";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 export default function LessonPlansPage() {
   const t = useTranslations("academics.lessonPlans");
@@ -387,9 +388,7 @@ export default function LessonPlansPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <CircularProgress />
-      </div>
+        <PartialLoader />
     );
   }
 

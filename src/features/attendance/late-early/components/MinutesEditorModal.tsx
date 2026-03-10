@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
 import Input from "@/components/ui/input/Input";
 import Button from "@/components/ui/button/Button";
@@ -27,6 +27,8 @@ export default function MinutesEditorModal({
 }: MinutesEditorModalProps) {
   const t = useTranslations("attendance.lateEarly.modal");
   const tCommon = useTranslations("common");
+  const tForm = useTranslations("attendance.policies.form");
+  const locale = useLocale();
 
   const [minutes, setMinutes] = useState<string>("0");
   const [error, setError] = useState<string>("");
@@ -104,19 +106,25 @@ export default function MinutesEditorModal({
         }
       >
         <div className="space-y-3 pb-2">
-          <Input
-            type="number"
-            min={0}
-            required
-            value={minutes}
-            onChange={(event) => {
-              setMinutes(event.target.value);
-              if (error) setError("");
-            }}
-            label={t("minutesLabel")}
-            error={error}
-            disabled={isReadOnly || saving}
-          />
+          <div className="relative">
+            <Input
+              type="number"
+              min={0}
+              required
+              value={minutes}
+              onChange={(event) => {
+                setMinutes(event.target.value);
+                if (error) setError("");
+              }}
+              label={t("minutesLabel")}
+              error={error}
+              disabled={isReadOnly || saving}
+              className={locale === "ar" ? "pl-16" : "pr-16"}
+            />
+            <div className={`absolute inset-y-0 ${locale === "ar" ? "left-0 pl-3" : "right-0 pr-3"} flex items-center pointer-events-none`} style={{ top: "1.5rem" }}>
+              <span className="text-sm text-gray-500">{tForm("minutes")}</span>
+            </div>
+          </div>
         </div>
       </Modal>
 

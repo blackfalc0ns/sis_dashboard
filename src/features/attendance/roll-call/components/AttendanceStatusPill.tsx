@@ -29,6 +29,7 @@ export default function AttendanceStatusPill({ status, size = "md" }: Attendance
     LATE: "bg-orange-100 text-orange-800",
     EXCUSED: "bg-blue-100 text-blue-800",
     EARLY_LEAVE: "bg-purple-100 text-purple-800",
+    UNMARKED: "bg-gray-100 text-gray-600",
   };
 
   const labels: Record<AttendanceStatus, string> = {
@@ -37,6 +38,7 @@ export default function AttendanceStatusPill({ status, size = "md" }: Attendance
     LATE: t("late"),
     EXCUSED: t("excused"),
     EARLY_LEAVE: t("earlyLeave"),
+    UNMARKED: t("unmarked"),
   };
 
   return (

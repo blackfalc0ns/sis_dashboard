@@ -1,6 +1,6 @@
 // Roll Call Types
 
-export type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "EXCUSED" | "EARLY_LEAVE";
+export type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "EXCUSED" | "EARLY_LEAVE" | "UNMARKED";
 export type AttendanceSessionMode = "DAILY" | "PERIOD";
 export type AttendanceSessionStatus = "DRAFT" | "SUBMITTED";
 

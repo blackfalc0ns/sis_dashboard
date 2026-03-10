@@ -85,6 +85,7 @@ function getStatusLabel(status: AttendanceStatus, isArabic: boolean): string {
     LATE: { ar: "متأخر", en: "Late" },
     EXCUSED: { ar: "غياب بعذر", en: "Excused" },
     EARLY_LEAVE: { ar: "مغادرة مبكرة", en: "Early Leave" },
+    UNMARKED: { ar: "غير محدد", en: "Unmarked" },
   };
 
   return isArabic ? labels[status].ar : labels[status].en;

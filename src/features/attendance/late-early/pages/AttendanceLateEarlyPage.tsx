@@ -27,6 +27,9 @@ import LateEarlyFiltersDrawer from "../components/LateEarlyFiltersDrawer";
 import LateEarlyTable from "../components/LateEarlyTable";
 import IncidentDetailsDrawer from "../components/IncidentDetailsDrawer";
 import MinutesEditorModal from "../components/MinutesEditorModal";
+import ScopeBreadcrumb from "../../components/ScopeBreadcrumb";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 
 function computeKpis(incidents: Incident[]): LateEarlyKpis {
   const late = incidents.filter((incident) => incident.type === "LATE");
@@ -293,9 +296,7 @@ export default function AttendanceLateEarlyPage() {
 
   if (loading && !term) {
     return (
-      <div className="flex items-center justify-center h-screen" style={{ color: "var(--text-secondary)" }}>
-        {tCommon("loading")}
-      </div>
+     <MainLoader />
     );
   }
 
@@ -317,8 +318,20 @@ export default function AttendanceLateEarlyPage() {
           <span className="text-sm">{t("readonlyBanner")}</span>
         </div>
       )}
-
+  {/* Scope Breadcrumb */}
+          
       <div className="flex-1 p-4 flex flex-col gap-4 min-h-0" style={{ backgroundColor: "var(--background)" }}>
+        {(
+            
+              <ScopeBreadcrumb
+                scopeType={filters.scopeType}
+                scopeIds={filters.scopeIds}
+                stages={stages}
+                grades={grades}
+                sections={sections}
+              />
+           
+          )}
         <LateEarlyKpisBar kpis={kpis} />
 
         {!isMobile && (
@@ -339,9 +352,8 @@ export default function AttendanceLateEarlyPage() {
 
               <div className="rounded-xl border overflow-hidden min-h-0" style={{ backgroundColor: "var(--card-background)", borderColor: "var(--border-color)" }}>
                 {loading ? (
-                  <div className="h-full flex items-center justify-center" style={{ color: "var(--text-secondary)" }}>
-                    {tCommon("loading")}
-                  </div>
+                                    <div className="h-full flex items-center justify-center py-4"><PartialLoader/></div>
+                  
                 ) : (
                   <LateEarlyTable
                     incidents={incidents}
@@ -377,9 +389,8 @@ export default function AttendanceLateEarlyPage() {
 
             <div className="rounded-xl border overflow-hidden min-h-0" style={{ backgroundColor: "var(--card-background)", borderColor: "var(--border-color)" }}>
               {loading ? (
-                <div className="h-full flex items-center justify-center" style={{ color: "var(--text-secondary)" }}>
-                  {tCommon("loading")}
-                </div>
+                                 <div className="h-full flex items-center justify-center py-4"><PartialLoader/></div>
+               
               ) : (
                 <LateEarlyTable
                   incidents={incidents}

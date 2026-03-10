@@ -2,6 +2,9 @@
 // Replace with real API calls when backend is ready
 
 import type { AttendancePolicy, AttendanceScopeType } from "../types";
+import { migratePeriodIds } from "@/features/academics/timetable/types/timetableConfig";
+import { fetchTimetableConfigs } from "@/features/academics/timetable/services/timetableConfigService";
+import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 
 // In-memory mock data keyed by `${yearId}-${termId}`
 const policiesByTerm: Record<string, AttendancePolicy[]> = {
@@ -16,7 +19,7 @@ const policiesByTerm: Record<string, AttendancePolicy[]> = {
       descriptionEn: "Default school-wide attendance policy - period-based tracking",
       scopeType: "SCHOOL",
       mode: "PERIOD",
-      selectedPeriodIds: ["period-1", "period-2"],
+      selectedPeriodIds: ["p1", "p2"], // Using stable IDs
       lateThresholdMinutes: 15,
       earlyLeaveThresholdMinutes: 15,
       absentIfMissedPeriodsCount: 2,
@@ -49,7 +52,7 @@ const policiesByTerm: Record<string, AttendancePolicy[]> = {
         gradeId: "grade-1",
       },
       mode: "PERIOD",
-      selectedPeriodIds: ["period-1", "period-2", "period-3", "period-4"],
+      selectedPeriodIds: ["p1", "p2", "p3", "p4"], // Using stable IDs
       lateThresholdMinutes: 10,
       earlyLeaveThresholdMinutes: 10,
       absentIfMissedPeriodsCount: 3,
@@ -83,7 +86,7 @@ const policiesByTerm: Record<string, AttendancePolicy[]> = {
         gradeId: "grade-2",
       },
       mode: "PERIOD",
-      selectedPeriodIds: ["period-1", "period-2", "period-3", "period-4", "period-5"],
+      selectedPeriodIds: ["p1", "p2", "p3", "p4", "p5"], // Using stable IDs
       lateThresholdMinutes: 15,
       earlyLeaveThresholdMinutes: 15,
       absentIfMissedPeriodsCount: 4,
@@ -177,6 +180,7 @@ export const isPolicyNameUnique = (
 
 /**
  * Fetch all policies for a term
+ * Auto-migrates old period IDs to stable IDs
  */
 export const fetchPolicies = async (
   yearId: string,
@@ -184,7 +188,45 @@ export const fetchPolicies = async (
 ): Promise<AttendancePolicy[]> => {
   await delay(300);
   const key = getTermKey(yearId, termId);
-  return [...(policiesByTerm[key] || [])];
+  const policies = [...(policiesByTerm[key] || [])];
+
+  // Auto-migrate period IDs if needed
+  try {
+    const configs = await fetchTimetableConfigs(termId);
+    const termConfig = configs.find((c) => c.scopeType === "TERM") || null;
+
+    if (termConfig) {
+      const { periods } = resolveTimetableConfig(termConfig);
+
+      // Migrate each policy's selectedPeriodIds
+      return policies.map((policy) => {
+        if (!policy.selectedPeriodIds || policy.selectedPeriodIds.length === 0) {
+          return policy;
+        }
+
+        // Check if any period ID needs migration
+        const needsMigration = policy.selectedPeriodIds.some((id) =>
+          id.match(/^period-\d+$/)
+        );
+
+        if (!needsMigration) {
+          return policy; // Already using stable IDs
+        }
+
+        // Migrate period IDs
+        const migratedIds = migratePeriodIds(policy.selectedPeriodIds, periods);
+
+        return {
+          ...policy,
+          selectedPeriodIds: migratedIds,
+        };
+      });
+    }
+  } catch (error) {
+    console.error("Failed to migrate period IDs:", error);
+  }
+
+  return policies;
 };
 
 /**

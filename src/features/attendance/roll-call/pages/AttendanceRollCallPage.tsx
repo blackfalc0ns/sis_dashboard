@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/toast/Toast";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import Button from "@/components/ui/button/Button";
 import ContextBar from "@/features/academics/components/shared/ContextBar";
+import ScopeBreadcrumb from "@/features/attendance/components/ScopeBreadcrumb";
 import SessionPickerPanel from "../components/SessionPickerPanel";
 import RosterFiltersBar, { type RosterFilters } from "../components/RosterFiltersBar";
 import RollCallFiltersDrawer from "../components/RollCallFiltersDrawer";
@@ -42,6 +43,7 @@ import type {
   AttendanceEntry,
   RosterStudent,
 } from "../types";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 
 export default function AttendanceRollCallPage() {
   const t = useTranslations("attendance.rollCall");
@@ -75,7 +77,7 @@ export default function AttendanceRollCallPage() {
 
   // Policy & timetable
   const [policy, setPolicy] = useState<AttendancePolicy | null>(null);
-  const [periods, setPeriods] = useState<Array<{ index: number; nameAr: string; nameEn: string }>>([]);
+  const [periods, setPeriods] = useState<import("@/features/academics/timetable/types/timetableConfig").TimetablePeriod[]>([]);
   const [selectedPeriodIndex, setSelectedPeriodIndex] = useState<number | null>(null);
 
   // Session & roster
@@ -552,9 +554,7 @@ export default function AttendanceRollCallPage() {
 
   if (isLoading && !term) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-gray-600">{tCommon("loading")}</div>
-      </div>
+      <MainLoader />
     );
   }
 
@@ -634,7 +634,18 @@ export default function AttendanceRollCallPage() {
               isSaving={isSaving}
             />
           )}
-
+    {/* Scope Breadcrumb */}
+          {session && roster.length > 0 && (
+            <div className="px-4 py-2">
+              <ScopeBreadcrumb
+                scopeType={scopeType}
+                scopeIds={scopeIds}
+                stages={stages}
+                grades={grades}
+                sections={sections}
+              />
+            </div>
+          )}
           {/* KPIs Bar */}
           {session && roster.length > 0 && <AttendanceKpisBar kpis={kpis} />}
 

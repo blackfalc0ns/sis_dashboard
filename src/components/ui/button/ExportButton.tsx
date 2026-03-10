@@ -3,6 +3,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Download, FileSpreadsheet, FileText } from "lucide-react";
 import Button from "./Button";
 
@@ -14,13 +15,14 @@ export interface ExportButtonProps {
 
 /**
  * Reusable Export Button with format selection dropdown
- * Integrates with existing export utilities
+ * Uses token-based styling and i18n
  */
 export default function ExportButton({
   onExport,
   disabled = false,
-  label = "Export",
+  label,
 }: ExportButtonProps) {
+  const t = useTranslations("common.export");
   const [showMenu, setShowMenu] = useState(false);
 
   const handleExport = (format: "csv" | "excel") => {
@@ -36,7 +38,7 @@ export default function ExportButton({
         variant="secondary"
         leftIcon={<Download className="w-4 h-4" />}
       >
-        {label}
+        {label || t("button")}
       </Button>
 
       {showMenu && !disabled && (
@@ -48,20 +50,44 @@ export default function ExportButton({
           />
 
           {/* Dropdown Menu */}
-          <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+          <div
+            className="absolute left-0 mt-2 w-48 rounded-lg shadow-lg border py-1 z-20"
+            style={{
+              backgroundColor: "var(--card-background)",
+              borderColor: "var(--border-color)",
+            }}
+          >
             <button
               onClick={() => handleExport("excel")}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors"
+              style={{
+                color: "var(--text-primary)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "var(--hover-background)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+              }}
             >
               <FileSpreadsheet className="w-4 h-4 text-green-600" />
-              <span>Export as Excel</span>
+              <span>{t("excel")}</span>
             </button>
             <button
               onClick={() => handleExport("csv")}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors"
+              style={{
+                color: "var(--text-primary)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "var(--hover-background)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+              }}
             >
               <FileText className="w-4 h-4 text-blue-600" />
-              <span>Export as CSV</span>
+              <span>{t("csv")}</span>
             </button>
           </div>
         </>

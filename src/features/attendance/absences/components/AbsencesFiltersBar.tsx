@@ -53,7 +53,7 @@ export default function AbsencesFiltersBar({
       </div>
 
       {/* Filters Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Date From */}
         <DatePicker
           value={filters.dateFrom ? new Date(filters.dateFrom) : null}
@@ -86,23 +86,28 @@ export default function AbsencesFiltersBar({
           selectSize="sm"
         />
 
-        {/* Granularity Multi-Select */}
-        <Select
-          value={filters.granularities.length > 0 ? filters.granularities[0] : ""}
-          onChange={(value) => {
-            if (value) {
-              const newGranularities = filters.granularities.includes(value as AttendanceGranularity)
-                ? filters.granularities.filter((g) => g !== value)
-                : [...filters.granularities, value as AttendanceGranularity];
-              onFiltersChange({ granularities: newGranularities });
-            }
-          }}
-          options={[
-            { value: "", label: t("allGranularities") },
-            ...granularityOptions,
-          ]}
-          selectSize="sm"
-        />
+         {/* Granularity Filter */}
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-gray-700">{t("granularity")}</label>
+          <div className="flex flex-col gap-2">
+            {granularityOptions.map((option) => (
+              <label key={option.value} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.granularities.includes(option.value)}
+                  onChange={(e) => {
+                    const newGranularities = e.target.checked
+                      ? [...filters.granularities, option.value]
+                      : filters.granularities.filter((g) => g !== option.value);
+                    onFiltersChange({ granularities: newGranularities });
+                  }}
+                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <span className="text-sm text-gray-700">{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Actions Row */}

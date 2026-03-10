@@ -164,6 +164,7 @@ export default function TimetableConfigDialog({
       const newPeriods = [...periods];
       for (let i = periods.length; i < count; i++) {
         newPeriods.push({
+          id: `p${i + 1}`, // Stable ID
           index: i + 1,
           nameAr: `الحصة ${i + 1}`,
           nameEn: `Period ${i + 1}`,

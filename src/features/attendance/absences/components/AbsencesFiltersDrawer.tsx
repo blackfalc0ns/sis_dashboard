@@ -127,27 +127,29 @@ export default function AbsencesFiltersDrawer({
               />
             </div>
 
-            {/* Granularity */}
+              {/* Granularity */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("granularity")}
               </label>
-              <Select
-                value={filters.granularities.length > 0 ? filters.granularities[0] : ""}
-                onChange={(value) => {
-                  if (value) {
-                    const newGranularities = filters.granularities.includes(value as AttendanceGranularity)
-                      ? filters.granularities.filter((g) => g !== value)
-                      : [...filters.granularities, value as AttendanceGranularity];
-                    onFiltersChange({ granularities: newGranularities });
-                  }
-                }}
-                options={[
-                  { value: "", label: t("allGranularities") },
-                  ...granularityOptions,
-                ]}
-                selectSize="sm"
-              />
+              <div className="space-y-2">
+                {granularityOptions.map((option) => (
+                  <label key={option.value} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={filters.granularities.includes(option.value)}
+                      onChange={(e) => {
+                        const newGranularities = e.target.checked
+                          ? [...filters.granularities, option.value]
+                          : filters.granularities.filter((g) => g !== option.value);
+                        onFiltersChange({ granularities: newGranularities });
+                      }}
+                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm text-gray-700">{option.label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
 
             {/* Only Unexcused */}
@@ -197,7 +199,7 @@ export default function AbsencesFiltersDrawer({
             onClick={onClose}
             className="flex-1"
           >
-            {tCommon("common.apply") || "Apply"}
+            {tCommon("apply") || "Apply"}
           </Button>
         </div>
       </div>

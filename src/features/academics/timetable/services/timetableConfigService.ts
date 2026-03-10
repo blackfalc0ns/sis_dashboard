@@ -189,6 +189,7 @@ export function getDefaultDays(): TimetableDay[] {
  */
 export function generateDefaultPeriods(count: number): TimetablePeriod[] {
   return Array.from({ length: count }, (_, i) => ({
+    id: `p${i + 1}`, // Stable ID
     index: i + 1,
     nameAr: `الحصة ${i + 1}`,
     nameEn: `Period ${i + 1}`,

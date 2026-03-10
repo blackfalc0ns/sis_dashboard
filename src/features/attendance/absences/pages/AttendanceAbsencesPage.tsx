@@ -30,6 +30,7 @@ import {
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { AbsenceRecord, AbsencesFilters } from "../types";
 import type { AttachmentMeta } from "@/features/attendance/roll-call/types";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 export default function AttendanceAbsencesPage() {
   const t = useTranslations("attendance.absences");
@@ -288,7 +289,7 @@ export default function AttendanceAbsencesPage() {
             >
               {isLoading ? (
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-gray-500">{tCommon("loading")}</p>
+                  <PartialLoader/>
                 </div>
               ) : (
                 <AbsencesTable

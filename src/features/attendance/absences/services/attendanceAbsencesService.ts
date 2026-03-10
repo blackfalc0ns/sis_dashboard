@@ -35,8 +35,9 @@ export async function fetchAbsenceRecords(
     search = "",
   } = params;
 
-  // 1. Load sessions for date range
-  const sessions = await fetchSessions(yearId, termId, dateFrom, dateTo);
+  // 1. Load sessions for date range (only SUBMITTED sessions)
+  const allSessions = await fetchSessions(yearId, termId, dateFrom, dateTo);
+  const sessions = allSessions.filter((s) => s.status === "SUBMITTED");
 
   if (sessions.length === 0) {
     return [];

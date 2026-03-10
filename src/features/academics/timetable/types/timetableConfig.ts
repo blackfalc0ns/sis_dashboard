@@ -9,7 +9,8 @@ export interface TimetableDay {
 }
 
 export interface TimetablePeriod {
-  index: number; // 1..N
+  id: string; // Stable unique identifier (e.g., "period-uuid" or "p1", "p2")
+  index: number; // Display order (1..N) - can change when reordering
   nameAr: string; // e.g., "الحصة 1"
   nameEn: string; // e.g., "Period 1"
   startTime?: string; // "HH:mm" format
@@ -99,14 +100,14 @@ export function getDefaultTimetableConfig(): ResolvedTimetableConfig {
       { key: "sat", index: 6, nameAr: "السبت", nameEn: "Saturday", isActive: false },
     ],
     periods: [
-      { index: 1, nameAr: "الحصة 1", nameEn: "Period 1" },
-      { index: 2, nameAr: "الحصة 2", nameEn: "Period 2" },
-      { index: 3, nameAr: "الحصة 3", nameEn: "Period 3" },
-      { index: 4, nameAr: "الحصة 4", nameEn: "Period 4" },
-      { index: 5, nameAr: "الحصة 5", nameEn: "Period 5" },
-      { index: 6, nameAr: "الحصة 6", nameEn: "Period 6" },
-      { index: 7, nameAr: "الحصة 7", nameEn: "Period 7" },
-      { index: 8, nameAr: "الحصة 8", nameEn: "Period 8" },
+      { id: "p1", index: 1, nameAr: "الحصة 1", nameEn: "Period 1" },
+      { id: "p2", index: 2, nameAr: "الحصة 2", nameEn: "Period 2" },
+      { id: "p3", index: 3, nameAr: "الحصة 3", nameEn: "Period 3" },
+      { id: "p4", index: 4, nameAr: "الحصة 4", nameEn: "Period 4" },
+      { id: "p5", index: 5, nameAr: "الحصة 5", nameEn: "Period 5" },
+      { id: "p6", index: 6, nameAr: "الحصة 6", nameEn: "Period 6" },
+      { id: "p7", index: 7, nameAr: "الحصة 7", nameEn: "Period 7" },
+      { id: "p8", index: 8, nameAr: "الحصة 8", nameEn: "Period 8" },
     ],
     source: {
       scope: "TERM",
@@ -182,4 +183,42 @@ export function mapEntriesToNewConfig<T extends { dayKey: string; periodIndex: n
   }
 
   return { kept, dropped };
+}
+
+/**
+ * Migration helper: Convert old index-based period IDs to stable IDs
+ * @param oldId - Old format like "period-1", "period-2"
+ * @param periods - Current period configuration
+ * @returns Stable period ID or null if not found
+ */
+export function migratePeriodId(
+  oldId: string,
+  periods: TimetablePeriod[]
+): string | null {
+  // Check if already using stable ID format
+  if (!oldId.match(/^period-\d+$/)) {
+    // Already stable or custom format
+    return oldId;
+  }
+
+  // Extract index from old format "period-N"
+  const match = oldId.match(/^period-(\d+)$/);
+  if (!match) return null;
+
+  const index = parseInt(match[1], 10);
+  const period = periods.find((p) => p.index === index);
+  
+  return period ? period.id : null;
+}
+
+/**
+ * Batch migrate period IDs
+ */
+export function migratePeriodIds(
+  oldIds: string[],
+  periods: TimetablePeriod[]
+): string[] {
+  return oldIds
+    .map((id) => migratePeriodId(id, periods))
+    .filter((id): id is string => id !== null);
 }

@@ -5,8 +5,32 @@ import type { AttendanceEntry } from "@/features/attendance/roll-call/types";
 import type { DailyStatus } from "../types";
 
 /**
+ * Extract period index from period ID (handles both old and new formats)
+ * @param periodId - Period ID (e.g., "p1", "period-1", or custom stable ID)
+ * @param fallbackIndex - Fallback index if extraction fails
+ */
+function extractPeriodIndex(periodId: string, fallbackIndex: number): number {
+  // Try old format "period-N"
+  const oldMatch = periodId.match(/^period-(\d+)$/);
+  if (oldMatch) {
+    return parseInt(oldMatch[1], 10);
+  }
+
+  // Try new format "pN"
+  const newMatch = periodId.match(/^p(\d+)$/);
+  if (newMatch) {
+    return parseInt(newMatch[1], 10);
+  }
+
+  // Fallback to provided index
+  return fallbackIndex;
+}
+
+/**
  * Derive daily status for a student on a specific date
  * based on period attendance and policy rules
+ * 
+ * IMPORTANT: Only call this for SUBMITTED sessions. DRAFT sessions should not be counted.
  */
 export function deriveDailyStatus(
   studentId: string,
@@ -26,36 +50,45 @@ export function deriveDailyStatus(
     };
   }
 
-  const selectedPeriodIndices = policy.selectedPeriodIds.map((id) => {
-    const match = id.match(/period-(\d+)/);
-    return match ? parseInt(match[1], 10) : -1;
-  }).filter((idx) => idx >= 0);
+  // Extract period indices from policy's selected period IDs
+  const selectedPeriodIndices = policy.selectedPeriodIds.map((id, idx) => 
+    extractPeriodIndex(id, idx + 1)
+  );
 
   const threshold = policy.absentIfMissedPeriodsCount || selectedPeriodIndices.length;
 
   // Count missed periods among selected periods
   let missedCount = 0;
   let allMissedAreExcused = true;
+  let hasUnmarked = false;
 
   for (const periodIdx of selectedPeriodIndices) {
-    const entry = periodEntries.find((e) => {
-      // Match by period index from session
-      // Assuming periodEntries have been filtered to this date already
-      return e.studentId === studentId;
-    });
+    const entry = periodEntries.find((e) => e.studentId === studentId);
 
-    if (!entry || entry.status === "ABSENT") {
+    if (!entry) {
+      // No entry found - this is UNMARKED, not ABSENT
+      // Don't count as missed if the session is DRAFT
+      hasUnmarked = true;
+      continue;
+    }
+
+    if (entry.status === "ABSENT") {
       missedCount++;
       allMissedAreExcused = false;
     } else if (entry.status === "EXCUSED") {
       missedCount++;
       // Keep allMissedAreExcused true
+    } else if (entry.status === "UNMARKED") {
+      // Explicitly marked as UNMARKED
+      hasUnmarked = true;
     }
   }
 
   // Determine daily status
   let status: "PRESENT" | "ABSENT" | "EXCUSED" = "PRESENT";
 
+  // Only mark as absent if we have enough marked absences
+  // Don't count UNMARKED entries as absent
   if (missedCount >= threshold) {
     status = allMissedAreExcused ? "EXCUSED" : "ABSENT";
   }

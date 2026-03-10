@@ -135,8 +135,12 @@ export async function fetchIncidents(params: FetchIncidentsParams): Promise<Inci
 
   let sessions = allSessions;
 
+  // Filter by session status
   if (sessionStatus !== "ALL") {
     sessions = sessions.filter((session) => session.status === sessionStatus);
+  } else {
+    // By default, only show SUBMITTED sessions to avoid counting DRAFT as incidents
+    sessions = sessions.filter((session) => session.status === "SUBMITTED");
   }
 
   sessions = applyScopeFilter(sessions, scopeType, scopeIds, structure.grades, structure.sections);

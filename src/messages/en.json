@@ -12,6 +12,7 @@
   "profile": "Profile",
   "admin": "Admin",
   "common": {
+    "apply": "Apply",
     "show": "Show",
     "showing": "Showing",
     "to": "to",
@@ -87,7 +88,12 @@
     "error_deleting": "Failed to delete",
     "coming_soon": "Coming Soon",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "export": {
+      "button": "Export",
+      "excel": "Export as Excel",
+      "csv": "Export as CSV"
+    }
   },
   "filter_bar": {
     "filters": {
@@ -3569,7 +3575,8 @@
         "absent": "Absent",
         "late": "Late",
         "excused": "Excused",
-        "earlyLeave": "Early Leave"
+        "earlyLeave": "Early Leave",
+        "unmarked": "Unmarked"
       },
       "excuse": {
         "title": "Excuse Details",
