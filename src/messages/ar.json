@@ -3610,6 +3610,7 @@
         "save": "حفظ",
         "saving": "جارٍ الحفظ...",
         "submit": "تقديم",
+        "unsubmit": "إلغاء التقديم",
         "reset": "إعادة تعيين",
         "export": "تصدير",
         "markAllPresent": "تحديد الكل حاضر",
@@ -3618,11 +3619,15 @@
       "messages": {
         "saved": "تم حفظ الحضور بنجاح",
         "submitted": "تم تقديم الحضور بنجاح",
+        "unsubmittedSuccess": "تم إلغاء التقديم. يمكنك التعديل الآن.",
         "submitIncomplete": "هناك {count} طالب غير محدد. هل تريد التقديم على أي حال؟"
       },
       "confirm": {
         "discardChangesTitle": "تغييرات غير محفوظة",
-        "discardChangesMessage": "لديك تغييرات غير محفوظة. هل تريد تجاهلها؟"
+        "discardChangesMessage": "لديك تغييرات غير محفوظة. هل تريد تجاهلها؟",
+        "unsubmitTitle": "إلغاء التقديم؟",
+        "unsubmitMessage": "سيتم إعادة فتح الجلسة للتعديل.",
+        "unsubmitConfirm": "فتح للتعديل"
       },
       "empty": {
         "noPolicy": "لا توجد سياسة حضور",
@@ -3704,7 +3709,21 @@
         "dailyDerived": "يومي (مشتق)",
         "onlyUnexcused": "بدون عذر فقط",
         "export": "تصدير",
-        "search": "بحث"
+        "search": "بحث",
+        "scope": "النطاق",
+        "scopeType": "نوع النطاق",
+        "stage": "المرحلة",
+        "grade": "الصف",
+        "section": "الشعبة",
+        "selectStage": "اختر المرحلة",
+        "selectGrade": "اختر الصف",
+        "selectSection": "اختر الشعبة",
+        "scopeTypes": {
+          "school": "المدرسة",
+          "stage": "المرحلة",
+          "grade": "الصف",
+          "section": "الشعبة"
+        }
       },
       "table": {
         "date": "التاريخ",
@@ -3750,6 +3769,20 @@
         "minutesLabel": "دقائق المغادرة المبكرة",
         "helper": "أدخل عدد الدقائق التي غادر فيها الطالب مبكراً",
         "invalidMinutes": "يجب أن تكون الدقائق 0 أو أكثر"
+      },
+      "emptyStates": {
+        "noYearTerm": {
+          "title": "اختر السنة الأكاديمية والفصل",
+          "description": "يرجى اختيار سنة أكاديمية وفصل من شريط السياق أعلاه لعرض الغياب."
+        },
+        "selectScope": {
+          "title": "اختر النطاق",
+          "description": "يرجى إكمال اختيار النطاق لتحميل سجلات الغياب."
+        },
+        "noRecords": {
+          "title": "لم يتم العثور على غياب",
+          "description": "لا توجد سجلات غياب تطابق المرشحات الحالية. جرب تعديل نطاق التاريخ أو الحالة أو اختيار النطاق."
+        }
       }
     },
     "lateEarly": {

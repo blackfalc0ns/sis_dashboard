@@ -147,7 +147,9 @@ export default function Select({
             ${disabledClasses}
             ${isRTL ? "text-right" : "text-left"}
             rounded-lg
-            transition-colors
+            transition-all duration-200
+            hover:shadow-sm
+            ${!disabled && !error ? "hover:border-gray-300" : ""}
             flex items-center justify-between
             ${className}
           `}
@@ -165,7 +167,7 @@ export default function Select({
         {/* Dropdown Menu */}
         {isOpen && (
           <div
-            className={`absolute z-[9999] mt-2 ${fullWidth ? "w-full" : "min-w-full"} bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn`}
+            className={`absolute z-50 mt-2 ${fullWidth ? "w-full" : "min-w-full"} bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200`}
             dir={isRTL ? "rtl" : "ltr"}
           >
             <ul className="py-1 max-h-60 overflow-y-auto">
@@ -186,12 +188,12 @@ export default function Select({
                       type="button"
                       onClick={() => handleSelect(option)}
                       disabled={option.disabled}
-                      className={`w-full flex items-center px-4 py-2.5 text-sm ${isRTL ? "text-right" : "text-left"} transition-all duration-150 ${
+                      className={`group w-full flex items-center px-4 py-2.5 text-sm ${isRTL ? "text-right" : "text-left"} transition-all duration-200 ${
                         option.disabled
-                          ? "text-gray-400 cursor-not-allowed"
+                          ? "text-gray-400 cursor-not-allowed opacity-50"
                           : selectedValue === option.value
-                            ? "bg-blue-50 text-primary font-medium"
-                            : "text-gray-700 hover:bg-gray-50"
+                            ? `bg-blue-50 text-primary font-medium ${isRTL ? "border-r-2 border-primary-500" : "border-l-2 border-primary-500"}`
+                            : "text-gray-700 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200"
                       }`}
                     >
                       <span>{option.label}</span>

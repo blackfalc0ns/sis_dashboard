@@ -3608,6 +3608,7 @@
         "save": "Save",
         "saving": "Saving...",
         "submit": "Submit",
+        "unsubmit": "Cancel submission",
         "reset": "Reset",
         "export": "Export",
         "markAllPresent": "Mark All Present",
@@ -3616,11 +3617,15 @@
       "messages": {
         "saved": "Attendance saved successfully",
         "submitted": "Attendance submitted successfully",
+        "unsubmittedSuccess": "Submission cancelled. You can edit now.",
         "submitIncomplete": "There are {count} unmarked students. Submit anyway?"
       },
       "confirm": {
         "discardChangesTitle": "Unsaved Changes",
-        "discardChangesMessage": "You have unsaved changes. Discard them?"
+        "discardChangesMessage": "You have unsaved changes. Discard them?",
+        "unsubmitTitle": "Cancel submission?",
+        "unsubmitMessage": "This will reopen the session for editing.",
+        "unsubmitConfirm": "Reopen for edit"
       },
       "empty": {
         "noPolicy": "No Attendance Policy",
@@ -3701,7 +3706,21 @@
         "dailyDerived": "Daily (Derived)",
         "onlyUnexcused": "Only unexcused",
         "export": "Export",
-        "search": "Search"
+        "search": "Search",
+        "scope": "Scope",
+        "scopeType": "Scope Type",
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
+        "selectStage": "Select Stage",
+        "selectGrade": "Select Grade",
+        "selectSection": "Select Section",
+        "scopeTypes": {
+          "school": "School",
+          "stage": "Stage",
+          "grade": "Grade",
+          "section": "Section"
+        }
       },
       "table": {
         "date": "Date",
@@ -3747,6 +3766,20 @@
         "minutesLabel": "Minutes left early",
         "helper": "Enter the number of minutes the student left early",
         "invalidMinutes": "Minutes must be 0 or greater"
+      },
+      "emptyStates": {
+        "noYearTerm": {
+          "title": "Select Academic Year and Term",
+          "description": "Please select an academic year and term from the context bar above to view absences."
+        },
+        "selectScope": {
+          "title": "Select Scope",
+          "description": "Please complete your scope selection to load absence records."
+        },
+        "noRecords": {
+          "title": "No Absences Found",
+          "description": "No absence records match your current filters. Try adjusting the date range, status, or scope selection."
+        }
       }
     },
     "lateEarly": {

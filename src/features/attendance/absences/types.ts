@@ -59,7 +59,7 @@ export interface AbsencesFilters {
     gradeId?: string;
     sectionId?: string;
   };
-  statuses: AttendanceIncidentType[];
+  status: "ALL" | AttendanceIncidentType; // Changed from statuses array to single status
   granularities: AttendanceGranularity[];
   onlyUnexcused: boolean;
   search: string;

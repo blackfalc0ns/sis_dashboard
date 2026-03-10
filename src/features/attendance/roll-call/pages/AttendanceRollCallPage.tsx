@@ -31,6 +31,7 @@ import {
   getOrCreateSession,
   saveSession,
   submitSession,
+  unsubmitSession,
 } from "../services/attendanceRollCallService";
 import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
 import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
@@ -90,6 +91,7 @@ export default function AttendanceRollCallPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [showUnsubmitConfirm, setShowUnsubmitConfirm] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   // Filter state
@@ -169,16 +171,22 @@ export default function AttendanceRollCallPage() {
 
   // Initialize from URL
   useEffect(() => {
+    let isCancelled = false;
+
     const initializeContext = async () => {
       try {
         const years = await fetchAcademicYears();
+        if (isCancelled) return;
+
         const urlYear = searchParams.get("year");
         const urlTerm = searchParams.get("term");
 
         const selectedYear = years.find((y) => y.id === urlYear) || years[0];
-        if (!selectedYear) return;
+        if (!selectedYear || isCancelled) return;
 
         const yearTerms = await fetchTermsByYear(selectedYear.id);
+        if (isCancelled) return;
+
         setTerms(yearTerms);
 
         let selectedTerm = yearTerms.find((t) => t.id === urlTerm);
@@ -186,26 +194,38 @@ export default function AttendanceRollCallPage() {
           selectedTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
         }
 
-        if (selectedYear && selectedTerm) {
+        if (selectedYear && selectedTerm && !isCancelled) {
           setAcademicYearId(selectedYear.id);
           setTermId(selectedTerm.id);
           setTermStatus(selectedTerm.status);
           setTerm(selectedTerm);
 
-          const params = new URLSearchParams();
-          params.set("year", selectedYear.id);
-          params.set("term", selectedTerm.id);
-          router.replace(`?${params.toString()}`, { scroll: false });
+          // Only update URL if we're still on the roll-call page
+          const currentPath = window.location.pathname;
+          if (currentPath.includes('/attendance/roll-call') && !isCancelled) {
+            const params = new URLSearchParams();
+            params.set("year", selectedYear.id);
+            params.set("term", selectedTerm.id);
+            router.replace(`?${params.toString()}`, { scroll: false });
+          }
         }
       } catch (error) {
-        console.error("Failed to initialize:", error);
-        showError(tCommon("error_loading"));
+        if (!isCancelled) {
+          console.error("Failed to initialize:", error);
+          showError(tCommon("error_loading"));
+        }
       } finally {
-        setIsLoading(false);
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     initializeContext();
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   // Load structure tree
@@ -442,6 +462,28 @@ export default function AttendanceRollCallPage() {
     }
   }, [session, policy, entries, kpis, roster, academicYearId, termId, locale, t, tCommon, showSuccess, showError]);
 
+  // Unsubmit
+  const handleUnsubmit = useCallback(async () => {
+    if (!session) return;
+
+    try {
+      setIsSaving(true);
+      const unsubmitted = await unsubmitSession(academicYearId, termId, session.id);
+      setSession(unsubmitted);
+      showSuccess(t("messages.unsubmittedSuccess"));
+    } catch (error) {
+      console.error("Failed to unsubmit:", error);
+      showError(tCommon("error_saving"));
+    } finally {
+      setIsSaving(false);
+    }
+  }, [session, academicYearId, termId, t, tCommon, showSuccess, showError]);
+
+  const handleUnsubmitConfirm = useCallback(() => {
+    setShowUnsubmitConfirm(false);
+    handleUnsubmit();
+  }, [handleUnsubmit]);
+
   // Reset
   const handleReset = useCallback(() => {
     setEntries(JSON.parse(JSON.stringify(originalEntries)));
@@ -625,8 +667,10 @@ export default function AttendanceRollCallPage() {
               isReadOnly={isReadOnly}
               isSubmitted={isSubmitted}
               canSubmit={!isReadOnly && !isSubmitted}
+              termStatus={termStatus}
               onSave={handleSave}
               onSubmit={handleSubmit}
+              onUnsubmit={() => setShowUnsubmitConfirm(true)}
               onReset={handleReset}
               onExport={handleExport}
               onMarkAllPresent={handleMarkAllPresent}
@@ -741,6 +785,18 @@ export default function AttendanceRollCallPage() {
         description={t("confirm.discardChangesMessage")}
         confirmLabel={tCommon("discard")}
         cancelLabel={tCommon("stay")}
+        severity="warning"
+      />
+
+      {/* Unsubmit Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showUnsubmitConfirm}
+        onClose={() => setShowUnsubmitConfirm(false)}
+        onConfirm={handleUnsubmitConfirm}
+        title={t("confirm.unsubmitTitle")}
+        description={t("confirm.unsubmitMessage")}
+        confirmLabel={t("confirm.unsubmitConfirm")}
+        cancelLabel={tCommon("cancel")}
         severity="warning"
       />
     </div>

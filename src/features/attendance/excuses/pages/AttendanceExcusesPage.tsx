@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -371,9 +371,11 @@ export default function AttendanceExcusesPage() {
                       />
                    
                   )}
-        <div className="flex items-center justify-between">
+          <div>
           <ExcusesKpisBar kpis={kpis} />
+          </div>
           {!isMobile && (
+            <div>
             <Button
               variant="primary"
               size="sm"
@@ -386,8 +388,8 @@ export default function AttendanceExcusesPage() {
             >
               {t("createRequest")}
             </Button>
+            </div>
           )}
-        </div>
 
         {!isMobile && (
           <div className="grid grid-cols-12 gap-4 min-h-0 flex-1">

@@ -1,16 +1,19 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Save, Send, RotateCcw, Download, CheckCircle } from "lucide-react";
+import { Save, Send, RotateCcw, Download, CheckCircle, Undo2 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface RollCallHeaderBarProps {
   isDirty: boolean;
   isReadOnly: boolean;
   isSubmitted: boolean;
   canSubmit: boolean;
+  termStatus: "open" | "closed";
   onSave: () => void;
   onSubmit: () => void;
+  onUnsubmit?: () => void;
   onReset: () => void;
   onExport: () => void;
   onMarkAllPresent: () => void;
@@ -23,8 +26,10 @@ export default function RollCallHeaderBar({
   isReadOnly,
   isSubmitted,
   canSubmit,
+  termStatus,
   onSave,
   onSubmit,
+  onUnsubmit,
   onReset,
   onExport,
   onMarkAllPresent,
@@ -32,6 +37,13 @@ export default function RollCallHeaderBar({
   isSaving = false,
 }: RollCallHeaderBarProps) {
   const t = useTranslations("attendance.rollCall.actions");
+  const { hasPermission } = usePermissions();
+
+  const canUnsubmit = !isReadOnly && 
+                      isSubmitted && 
+                      termStatus === "open" && 
+                      hasPermission("attendance.rollcall.unsubmit") &&
+                      onUnsubmit;
 
   return (
     <div className="bg-white border-b border-gray-200 px-4 py-3">
@@ -66,6 +78,18 @@ export default function RollCallHeaderBar({
           >
             {t("export")}
           </Button>
+
+          {/* Unsubmit - only show when submitted and user has permission */}
+          {canUnsubmit && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onUnsubmit}
+              leftIcon={<Undo2 className="w-4 h-4" />}
+            >
+              {t("unsubmit")}
+            </Button>
+          )}
 
           {!isReadOnly && !isSubmitted && (
             <>

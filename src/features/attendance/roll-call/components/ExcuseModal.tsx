@@ -6,7 +6,7 @@ import { FileText, X } from "lucide-react";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
-import { formatFileSize } from "@/utils/upload/validateFile";
+import { formatFileSize, getUploadRules } from "@/utils/upload/validateFile";
 import type { AttachmentMeta } from "../types";
 
 interface ExcuseModalProps {
@@ -30,11 +30,14 @@ export default function ExcuseModal({
 }: ExcuseModalProps) {
   const t = useTranslations("attendance.rollCall.excuse");
   const tCommon = useTranslations("common");
+  const tUpload = useTranslations("upload");
 
   const [reason, setReason] = useState("");
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([]);
   const [errors, setErrors] = useState<{ reason?: string; attachments?: string }>({});
 
+    const rules = getUploadRules("ATTENDANCE_EXCUSE");
+  
   // Reset form when modal opens with new data
   useEffect(() => {
     if (isOpen) {
@@ -89,18 +92,8 @@ export default function ExcuseModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="md">
-      <div className="p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">{t("title")}</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Modal isOpen={isOpen} onClose={onClose} size="md" title={t("title")} >
+      
 
         {/* Content */}
         <div className="space-y-4">
@@ -138,6 +131,7 @@ export default function ExcuseModal({
               <DragDropUploadArea
                 onFilesSelected={handleFilesSelected}
                 uploadArea="ATTENDANCE_EXCUSE"
+                helperText={`${tUpload(rules.acceptLabelKey)} - ${Math.round(rules.maxSizeBytes / (1024 * 1024))}MB`}
                 multiple={true}
               />
             )}
@@ -191,7 +185,6 @@ export default function ExcuseModal({
             </Button>
           )}
         </div>
-      </div>
     </Modal>
   );
 }

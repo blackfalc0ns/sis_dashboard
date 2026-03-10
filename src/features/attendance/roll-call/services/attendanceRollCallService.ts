@@ -219,6 +219,37 @@ export async function submitSession(sessionId: string, yearId: string, termId: s
 }
 
 /**
+ * Unsubmit session (reopen for editing)
+ */
+export async function unsubmitSession(yearId: string, termId: string, sessionId: string): Promise<AttendanceSession> {
+  await new Promise((resolve) => setTimeout(resolve, 150));
+
+  const storeKey = `${yearId}-${termId}`;
+  const sessionIndex = sessionStore[storeKey]?.findIndex((s) => s.id === sessionId);
+
+  if (sessionIndex === undefined || sessionIndex < 0) {
+    throw new Error("Session not found");
+  }
+
+  const session = sessionStore[storeKey][sessionIndex];
+  
+  // If already DRAFT, return as-is
+  if (session.status === "DRAFT") {
+    return session;
+  }
+
+  const updatedSession = {
+    ...session,
+    status: "DRAFT" as AttendanceSessionStatus,
+    updatedAt: new Date().toISOString(),
+  };
+
+  sessionStore[storeKey][sessionIndex] = updatedSession;
+
+  return updatedSession;
+}
+
+/**
  * Fetch sessions for a date range
  */
 export async function fetchSessions(

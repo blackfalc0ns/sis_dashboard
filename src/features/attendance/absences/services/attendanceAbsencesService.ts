@@ -29,8 +29,8 @@ export async function fetchAbsenceRecords(
     dateTo,
     scopeType = "SCHOOL",
     scopeIds,
-    statuses = [],
-    granularities = ["PERIOD", "DAILY_DERIVED"],
+    status = "ALL",
+    granularities = ["PERIOD"], // Default to PERIOD only
     onlyUnexcused = false,
     search = "",
   } = params;
@@ -99,7 +99,7 @@ export async function fetchAbsenceRecords(
     }
   }
 
-  // 5. Compute daily-derived records
+  // 5. Compute daily-derived records (only if explicitly requested)
   const dailyRecords: AbsenceRecord[] = [];
 
   if (granularities.includes("DAILY_DERIVED")) {
@@ -164,9 +164,9 @@ export async function fetchAbsenceRecords(
     allRecords = [...allRecords, ...dailyRecords];
   }
 
-  // Apply filters
-  if (statuses.length > 0) {
-    allRecords = allRecords.filter((r) => statuses.includes(r.status));
+  // Apply status filter (single status instead of array)
+  if (status !== "ALL") {
+    allRecords = allRecords.filter((r) => r.status === status);
   }
 
   if (onlyUnexcused) {
@@ -202,7 +202,8 @@ export function computeAbsencesKPIs(records: AbsenceRecord[]): AbsencesKPIs {
     excusedCount: records.filter((r) => r.status === "EXCUSED" || r.excuse).length,
     lateCount: records.filter((r) => r.status === "LATE").length,
     earlyLeaveCount: records.filter((r) => r.status === "EARLY_LEAVE").length,
-    dailyAbsentCount: records.filter((r) => r.granularity === "DAILY_DERIVED" && r.status === "ABSENT").length,
+    // Remove dailyAbsentCount since we focus on PERIOD only
+    dailyAbsentCount: 0,
   };
 }
 

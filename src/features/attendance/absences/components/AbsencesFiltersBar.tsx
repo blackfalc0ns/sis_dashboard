@@ -6,7 +6,8 @@ import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import DatePicker from "@/components/ui/input/DatePicker";
 import Button from "@/components/ui/button/Button";
-import type { AbsencesFilters, AttendanceIncidentType, AttendanceGranularity } from "../types";
+import type { AbsencesFilters, AttendanceIncidentType } from "../types";
+import type { StructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 
 interface AbsencesFiltersBarProps {
   filters: AbsencesFilters;
@@ -14,6 +15,7 @@ interface AbsencesFiltersBarProps {
   onClearFilters: () => void;
   onExport: () => void;
   isReadOnly: boolean;
+  structureTree: StructureTree | null;
 }
 
 export default function AbsencesFiltersBar({
@@ -21,11 +23,14 @@ export default function AbsencesFiltersBar({
   onFiltersChange,
   onClearFilters,
   onExport,
+  structureTree,
 }: AbsencesFiltersBarProps) {
   const t = useTranslations("attendance.absences.filters");
   const tCommon = useTranslations("common");
+  const locale = useLocale();
 
-  const statusOptions: { value: AttendanceIncidentType; label: string }[] = [
+  const statusOptions: { value: "ALL" | AttendanceIncidentType; label: string }[] = [
+    { value: "ALL", label: t("allStatuses") },
     { value: "ABSENT", label: t("absent") },
     { value: "LATE", label: t("late") },
     { value: "EARLY_LEAVE", label: t("earlyLeave") },
@@ -33,16 +38,56 @@ export default function AbsencesFiltersBar({
     { value: "UNMARKED", label: t("unmarked") },
   ];
 
-  const granularityOptions: { value: AttendanceGranularity; label: string }[] = [
-    { value: "PERIOD", label: t("period") },
-    { value: "DAILY_DERIVED", label: t("dailyDerived") },
+  const scopeTypeOptions = [
+    { value: "SCHOOL", label: t("scopeTypes.school") },
+    { value: "STAGE", label: t("scopeTypes.stage") },
+    { value: "GRADE", label: t("scopeTypes.grade") },
+    { value: "SECTION", label: t("scopeTypes.section") },
   ];
 
+  // Get available stages, grades, sections based on current selection
+  const availableStages = structureTree?.stages || [];
+  const availableGrades = filters.scopeIds?.stageId 
+    ? structureTree?.grades.filter(g => g.stageId === filters.scopeIds?.stageId) || []
+    : [];
+  const availableSections = filters.scopeIds?.gradeId
+    ? structureTree?.sections.filter(s => s.gradeId === filters.scopeIds?.gradeId) || []
+    : [];
+
+  const handleScopeTypeChange = (scopeType: string) => {
+    onFiltersChange({ 
+      scopeType: scopeType as "SCHOOL" | "STAGE" | "GRADE" | "SECTION",
+      scopeIds: {} // Reset scope IDs when type changes
+    });
+  };
+
+  const handleScopeIdChange = (level: "stageId" | "gradeId" | "sectionId", value: string) => {
+    const newScopeIds = { ...filters.scopeIds };
+    
+    if (level === "stageId") {
+      newScopeIds.stageId = value;
+      // Reset dependent selections
+      delete newScopeIds.gradeId;
+      delete newScopeIds.sectionId;
+    } else if (level === "gradeId") {
+      newScopeIds.gradeId = value;
+      // Reset dependent selections
+      delete newScopeIds.sectionId;
+    } else {
+      newScopeIds.sectionId = value;
+    }
+
+    onFiltersChange({ scopeIds: newScopeIds });
+  };
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search 
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" 
+          style={{ color: "var(--text-muted)" }} 
+        />
         <Input
           type="text"
           placeholder={t("searchPlaceholder")}
@@ -52,10 +97,85 @@ export default function AbsencesFiltersBar({
         />
       </div>
 
+      {/* Scope Selection */}
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+          {t("scope")}
+        </h4>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Scope Type */}
+          <Select
+            label={t("scopeType")}
+            value={filters.scopeType}
+            onChange={handleScopeTypeChange}
+            options={scopeTypeOptions}
+            selectSize="sm"
+          />
+
+          {/* Stage Selection */}
+          {(filters.scopeType === "STAGE" || filters.scopeType === "GRADE" || filters.scopeType === "SECTION") && (
+            <Select
+              label={t("stage")}
+              value={filters.scopeIds?.stageId || ""}
+              onChange={(value) => handleScopeIdChange("stageId", value)}
+              options={[
+                { value: "", label: t("selectStage") },
+                ...availableStages.map(stage => ({
+                  value: stage.id,
+                  label: locale === "ar" ? stage.nameAr : stage.nameEn
+                }))
+              ]}
+              selectSize="sm"
+              required
+            />
+          )}
+
+          {/* Grade Selection */}
+          {(filters.scopeType === "GRADE" || filters.scopeType === "SECTION") && (
+            <Select
+              label={t("grade")}
+              value={filters.scopeIds?.gradeId || ""}
+              onChange={(value) => handleScopeIdChange("gradeId", value)}
+              options={[
+                { value: "", label: t("selectGrade") },
+                ...availableGrades.map(grade => ({
+                  value: grade.id,
+                  label: locale === "ar" ? grade.nameAr : grade.nameEn
+                }))
+              ]}
+              selectSize="sm"
+              disabled={!filters.scopeIds?.stageId}
+              required
+            />
+          )}
+
+          {/* Section Selection */}
+          {filters.scopeType === "SECTION" && (
+            <Select
+              label={t("section")}
+              value={filters.scopeIds?.sectionId || ""}
+              onChange={(value) => handleScopeIdChange("sectionId", value)}
+              options={[
+                { value: "", label: t("selectSection") },
+                ...availableSections.map(section => ({
+                  value: section.id,
+                  label: locale === "ar" ? section.nameAr : section.nameEn
+                }))
+              ]}
+              selectSize="sm"
+              disabled={!filters.scopeIds?.gradeId}
+              required
+            />
+          )}
+        </div>
+      </div>
+
       {/* Filters Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Date From */}
         <DatePicker
+          label={t("dateFrom")}
           value={filters.dateFrom ? new Date(filters.dateFrom) : null}
           onChange={(value) => onFiltersChange({ dateFrom: value ? value.toISOString().split('T')[0] : undefined })}
           placeholder={t("dateFrom")}
@@ -63,51 +183,20 @@ export default function AbsencesFiltersBar({
 
         {/* Date To */}
         <DatePicker
+          label={t("dateTo")}
           value={filters.dateTo ? new Date(filters.dateTo) : null}
           onChange={(value) => onFiltersChange({ dateTo: value ? value.toISOString().split('T')[0] : undefined })}
           placeholder={t("dateTo")}
         />
 
-        {/* Status Multi-Select */}
+        {/* Status Single-Select */}
         <Select
-          value={filters.statuses.length > 0 ? filters.statuses[0] : ""}
-          onChange={(value) => {
-            if (value) {
-              const newStatuses = filters.statuses.includes(value as AttendanceIncidentType)
-                ? filters.statuses.filter((s) => s !== value)
-                : [...filters.statuses, value as AttendanceIncidentType];
-              onFiltersChange({ statuses: newStatuses });
-            }
-          }}
-          options={[
-            { value: "", label: t("allStatuses") },
-            ...statusOptions,
-          ]}
+          label={t("status")}
+          value={filters.status}
+          onChange={(value) => onFiltersChange({ status: value as "ALL" | AttendanceIncidentType })}
+          options={statusOptions}
           selectSize="sm"
         />
-
-         {/* Granularity Filter */}
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-gray-700">{t("granularity")}</label>
-          <div className="flex flex-col gap-2">
-            {granularityOptions.map((option) => (
-              <label key={option.value} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={filters.granularities.includes(option.value)}
-                  onChange={(e) => {
-                    const newGranularities = e.target.checked
-                      ? [...filters.granularities, option.value]
-                      : filters.granularities.filter((g) => g !== option.value);
-                    onFiltersChange({ granularities: newGranularities });
-                  }}
-                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                <span className="text-sm text-gray-700">{option.label}</span>
-              </label>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Actions Row */}
@@ -120,7 +209,9 @@ export default function AbsencesFiltersBar({
             onChange={(e) => onFiltersChange({ onlyUnexcused: e.target.checked })}
             className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
           />
-          <span className="text-sm text-gray-700">{t("onlyUnexcused")}</span>
+          <span className="text-sm" style={{ color: "var(--text-primary)" }}>
+            {t("onlyUnexcused")}
+          </span>
         </label>
 
         {/* Action Buttons */}

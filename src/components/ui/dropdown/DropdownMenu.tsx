@@ -91,7 +91,7 @@ export default function DropdownMenu({
         <button
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
-          className={`${width} flex items-center justify-between px-4 py-2.5 bg-white border border-border rounded-lg hover:border-hover focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+          className={`${width} flex items-center justify-between px-4 py-2.5 bg-white border border-border rounded-lg hover:border-hover hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           <span className="flex items-center gap-2 text-sm text-black">
             {selectedItem?.icon && <span>{selectedItem.icon}</span>}
@@ -109,7 +109,7 @@ export default function DropdownMenu({
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className={`absolute z-50 mt-2 ${width} bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn ${
+          className={`absolute z-50 mt-2 ${width} bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200 ${
             isRTL ? "left-0" : "right-0"
           }`}
           dir={isRTL ? "rtl" : "ltr"}
@@ -126,16 +126,16 @@ export default function DropdownMenu({
                 <button
                   onClick={() => handleSelect(item)}
                   disabled={item.disabled}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm ${isRTL ? "text-right" : "text-left"} transition-all duration-150 ${
+                  className={`group w-full flex items-center gap-3 px-4 py-2.5 text-sm ${isRTL ? "text-right" : "text-left"} transition-all duration-200 ${
                     item.disabled
-                      ? "text-gray-400 cursor-not-allowed"
+                      ? "text-gray-400 cursor-not-allowed opacity-50"
                       : selectedValue === item.value
-                        ? "bg-blue-50 text-primary-600 font-medium"
-                        : "text-gray-700 hover:bg-gray-50"
+                        ? `bg-blue-50 text-primary-600 font-medium ${isRTL ? "border-r-2 border-primary-500" : "border-l-2 border-primary-500"}`
+                        : "text-gray-700 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200"
                   }`}
                 >
                   {item.icon && (
-                    <span className="shrink-0 transition-transform duration-150">
+                    <span className="shrink-0 transition-all duration-200 group-hover:scale-105">
                       {item.icon}
                     </span>
                   )}
