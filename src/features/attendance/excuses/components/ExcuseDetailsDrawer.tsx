@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { X, User, CalendarDays, Paperclip, Clock3, Check, Ban } from "lucide-react";
+import { X, User, CalendarDays, Paperclip, Clock3, Check, Ban, MapPin } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import type { ExcuseRequest } from "../types";
 
@@ -16,6 +16,7 @@ interface ExcuseDetailsDrawerProps {
 
 export default function ExcuseDetailsDrawer({ request, isReadOnly, onClose, onApprove, onReject, onEdit }: ExcuseDetailsDrawerProps) {
   const t = useTranslations("attendance.excuses.details");
+  const tTable = useTranslations("attendance.excuses.table");
   const locale = useLocale();
 
   if (!request) {
@@ -23,6 +24,36 @@ export default function ExcuseDetailsDrawer({ request, isReadOnly, onClose, onAp
   }
 
   const canMutate = request.status === "PENDING" && !isReadOnly;
+
+  // Map status to translated label
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "PENDING": return tTable("pending");
+      case "APPROVED": return tTable("approved");
+      case "REJECTED": return tTable("rejected");
+      default: return status;
+    }
+  };
+
+  // Map type to translated label
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case "ABSENCE": return tTable("absence");
+      case "LATE": return tTable("late");
+      case "EARLY_LEAVE": return tTable("earlyLeave");
+      default: return type;
+    }
+  };
+
+  // Get scope label
+  const getScopeLabel = () => {
+    if (request.scopeType === "SCHOOL") {
+      return tTable("school");
+    }
+    // For other scopes, we'd need the actual names passed as props
+    // For now, just return the type
+    return request.scopeType;
+  };
 
   return (
     <div className="h-full flex flex-col" style={{ backgroundColor: "var(--card-background)" }}>
@@ -39,10 +70,19 @@ export default function ExcuseDetailsDrawer({ request, isReadOnly, onClose, onAp
             <User className="w-4 h-4" />
             <span className="text-sm font-semibold">{t("student")}</span>
           </div>
+          <div className="text-sm space-y-1" style={{ color: "var(--text-primary)" }}>
+            <div className="font-medium">{locale === "ar" ? request.studentNameAr : request.studentNameEn}</div>
+            {request.studentNumber && <div style={{ color: "var(--text-secondary)" }}>{request.studentNumber}</div>}
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-center gap-2 mb-2" style={{ color: "var(--text-secondary)" }}>
+            <MapPin className="w-4 h-4" />
+            <span className="text-sm font-semibold">{t("scope")}</span>
+          </div>
           <div className="text-sm" style={{ color: "var(--text-primary)" }}>
-            <div>{locale === "ar" ? request.studentNameAr : request.studentNameEn}</div>
-            <div style={{ color: "var(--text-secondary)" }}>{request.studentNumber || "-"}</div>
-            <div style={{ color: "var(--text-secondary)" }}>{request.scopeType}</div>
+            {getScopeLabel()}
           </div>
         </section>
 
@@ -52,7 +92,7 @@ export default function ExcuseDetailsDrawer({ request, isReadOnly, onClose, onAp
             <span className="text-sm font-semibold">{t("requestInfo")}</span>
           </div>
           <div className="text-sm space-y-1" style={{ color: "var(--text-primary)" }}>
-            <div>{t("type")}: {request.type}</div>
+            <div>{t("type")}: {getTypeLabel(request.type)}</div>
             <div>{t("range")}: {request.dateFrom} → {request.dateTo}</div>
             <div>{t("periods")}: {request.periodIndexes && request.periodIndexes.length > 0 ? request.periodIndexes.map((p) => `P${p}`).join(", ") : t("allPolicyPeriods")}</div>
           </div>
@@ -60,8 +100,11 @@ export default function ExcuseDetailsDrawer({ request, isReadOnly, onClose, onAp
 
         <section>
           <div className="text-sm font-semibold mb-2" style={{ color: "var(--text-secondary)" }}>{t("reason")}</div>
-          <div className="text-sm" style={{ color: "var(--text-primary)" }}>{request.reasonAr || "-"}</div>
-          <div className="text-sm" style={{ color: "var(--text-primary)" }}>{request.reasonEn || "-"}</div>
+          <div className="text-sm space-y-1" style={{ color: "var(--text-primary)" }}>
+            {request.reasonAr && <div className="whitespace-pre-wrap">{request.reasonAr}</div>}
+            {request.reasonEn && <div className="whitespace-pre-wrap">{request.reasonEn}</div>}
+            {!request.reasonAr && !request.reasonEn && <div style={{ color: "var(--text-secondary)" }}>-</div>}
+          </div>
         </section>
 
         <section>
@@ -88,7 +131,7 @@ export default function ExcuseDetailsDrawer({ request, isReadOnly, onClose, onAp
             <span className="text-sm font-semibold">{t("timeline")}</span>
           </div>
           <div className="text-sm space-y-1" style={{ color: "var(--text-primary)" }}>
-            <div>{t("status")}: {request.status}</div>
+            <div>{t("status")}: {getStatusLabel(request.status)}</div>
             {request.decidedBy && <div>{t("decidedBy")}: {request.decidedBy}</div>}
             {request.decidedAt && <div>{t("decidedAt")}: {request.decidedAt}</div>}
             {request.decisionNote && <div>{t("decisionNote")}: {request.decisionNote}</div>}

@@ -5,7 +5,6 @@ import { useTranslations, useLocale } from "next-intl";
 import { useMediaQuery } from "@mui/material";
 import { Drawer } from "@mui/material";
 import { Filter, AlertCircle } from "lucide-react";
-import { useSearchParams, useRouter } from "next/navigation";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
 import ContextBar from "@/features/academics/components/shared/ContextBar";
@@ -16,6 +15,7 @@ import AbsencesTable from "../components/AbsencesTable";
 import AbsenceDetailsPanel from "../components/AbsenceDetailsPanel";
 import ExcuseModal from "@/features/attendance/roll-call/components/ExcuseModal";
 import EarlyLeaveEditorModal from "../components/EarlyLeaveEditorModal";
+import { useAttendanceTermContext } from "@/features/attendance/shared/hooks/useAttendanceTermContext";
 import {
   fetchAbsenceRecords,
   computeAbsencesKPIs,
@@ -24,11 +24,13 @@ import {
 } from "../services/attendanceAbsencesService";
 import { exportAbsencesToExcel } from "../utils/absencesExport";
 import {
-  fetchAcademicYears,
-  fetchTermsByYear,
   fetchStructureTree,
   type StructureTree,
 } from "@/features/academics/academic-structure-tree/services/structureService";
+import {
+  resolveEffectiveExcusePolicy,
+  type EffectiveExcusePolicy,
+} from "@/features/attendance/policies/services/attendancePolicyService";
 import type { AbsenceRecord, AbsencesFilters } from "../types";
 import type { AttachmentMeta } from "@/features/attendance/roll-call/types";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
@@ -37,19 +39,15 @@ export default function AttendanceAbsencesPage() {
   const t = useTranslations("attendance.absences");
   const tCommon = useTranslations("common");
   const locale = useLocale();
-  const searchParams = useSearchParams();
-  const router = useRouter();
   const { showSuccess, showError } = useToast();
 
   const isMobile = useMediaQuery("(max-width: 768px)");
 
-  // Academic context
-  const [academicYearId, setAcademicYearId] = useState<string>("");
-  const [termId, setTermId] = useState<string>("");
-  const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
+  // Use unified term context
+  const termContext = useAttendanceTermContext();
   const [structureTree, setStructureTree] = useState<StructureTree | null>(null);
 
-  const isReadOnly = termStatus === "closed";
+  const isReadOnly = termContext.isReadOnly;
 
   // State
   const [records, setRecords] = useState<AbsenceRecord[]>([]);
@@ -57,6 +55,7 @@ export default function AttendanceAbsencesPage() {
   const [selectedRecord, setSelectedRecord] = useState<AbsenceRecord | null>(null);
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
   const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
 
   // Filters - Updated to single status and PERIOD only
   const [filters, setFilters] = useState<AbsencesFilters>({
@@ -67,98 +66,30 @@ export default function AttendanceAbsencesPage() {
     search: "",
   });
 
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters((prev) => ({ ...prev, search: searchInput }));
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   // Modals
   const [excuseModalOpen, setExcuseModalOpen] = useState(false);
   const [earlyLeaveModalOpen, setEarlyLeaveModalOpen] = useState(false);
   const [recordToEdit, setRecordToEdit] = useState<AbsenceRecord | null>(null);
-
-  // Initialize from URL
-  useEffect(() => {
-    let isCancelled = false;
-
-    const initializeContext = async () => {
-      try {
-        const years = await fetchAcademicYears();
-        if (isCancelled) return;
-
-        const urlYear = searchParams.get("year");
-        const urlTerm = searchParams.get("term");
-
-        const selectedYear = years.find((y) => y.id === urlYear) || years[0];
-        if (!selectedYear || isCancelled) return;
-
-        const yearTerms = await fetchTermsByYear(selectedYear.id);
-        if (isCancelled) return;
-
-        let selectedTerm = yearTerms.find((t) => t.id === urlTerm);
-        if (!selectedTerm) {
-          selectedTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
-        }
-
-        if (selectedYear && selectedTerm && !isCancelled) {
-          setAcademicYearId(selectedYear.id);
-          setTermId(selectedTerm.id);
-          setTermStatus(selectedTerm.status);
-
-          // Only update URL if we're still on the absences page
-          const currentPath = window.location.pathname;
-          if (currentPath.includes('/attendance/absences') && !isCancelled) {
-            const params = new URLSearchParams();
-            params.set("year", selectedYear.id);
-            params.set("term", selectedTerm.id);
-            router.replace(`?${params.toString()}`, { scroll: false });
-          }
-        }
-      } catch (error) {
-        if (!isCancelled) {
-          console.error("Failed to initialize:", error);
-          showError(tCommon("error_loading"));
-        }
-      }
-    };
-
-    initializeContext();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [searchParams, router, showError, tCommon]);
-
-  // Load structure tree when year/term changes
-  useEffect(() => {
-    if (!academicYearId || !termId) return;
-
-    let isCancelled = false;
-
-    const loadStructure = async () => {
-      try {
-        const tree = await fetchStructureTree(academicYearId, termId);
-        if (!isCancelled) {
-          setStructureTree(tree);
-        }
-      } catch (error) {
-        if (!isCancelled) {
-          console.error("Failed to load structure tree:", error);
-        }
-      }
-    };
-
-    loadStructure();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [academicYearId, termId]);
+  const [excusePolicy, setExcusePolicy] = useState<EffectiveExcusePolicy | null>(null);
 
   // Reusable reload function
   const reloadRecords = useCallback(async () => {
-    if (!academicYearId || !termId) return;
+    if (!termContext.yearId || !termContext.termId) return;
 
     setIsLoading(true);
     try {
       const data = await fetchAbsenceRecords({
-        yearId: academicYearId,
-        termId: termId,
+        yearId: termContext.yearId,
+        termId: termContext.termId,
         ...filters,
       });
       setRecords(data);
@@ -168,7 +99,23 @@ export default function AttendanceAbsencesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [academicYearId, termId, filters, showError, tCommon]);
+  }, [termContext.yearId, termContext.termId, filters, showError, tCommon]);
+
+  // Load structure tree when year/term changes
+  useEffect(() => {
+    if (!termContext.yearId || !termContext.termId) return;
+
+    const loadStructure = async () => {
+      try {
+        const tree = await fetchStructureTree(termContext.yearId!, termContext.termId!);
+        setStructureTree(tree);
+      } catch (error) {
+        console.error("Failed to load structure tree:", error);
+      }
+    };
+
+    loadStructure();
+  }, [termContext.yearId, termContext.termId]);
 
   // Load data when filters change
   useEffect(() => {
@@ -209,24 +156,22 @@ export default function AttendanceAbsencesPage() {
 
   // Handlers
   const handleAcademicYearChange = (yearId: string) => {
-    setAcademicYearId(yearId);
-    const params = new URLSearchParams(searchParams);
-    params.set("year", yearId);
-    router.push(`?${params.toString()}`);
+    termContext.setYearId(yearId);
   };
 
   const handleTermChange = (newTermId: string) => {
-    setTermId(newTermId);
-    const params = new URLSearchParams(searchParams);
-    params.set("term", newTermId);
-    router.push(`?${params.toString()}`);
+    termContext.setTermId(newTermId);
   };
 
   const handleFiltersChange = (newFilters: Partial<AbsencesFilters>) => {
+    if ('search' in newFilters) {
+      setSearchInput(newFilters.search || "");
+    }
     setFilters((prev) => ({ ...prev, ...newFilters }));
   };
 
   const handleClearFilters = () => {
+    setSearchInput("");
     setFilters({
       scopeType: "SCHOOL",
       status: "ALL",
@@ -243,10 +188,33 @@ export default function AttendanceAbsencesPage() {
     }
   };
 
-  const handleEditExcuse = (record: AbsenceRecord) => {
+  const handleEditExcuse = async (record: AbsenceRecord) => {
     if (isReadOnly) return;
-    setRecordToEdit(record);
-    setExcuseModalOpen(true);
+
+    try {
+      // Resolve effective policy for this record
+      const policy = await resolveEffectiveExcusePolicy(
+        termContext.yearId!,
+        termContext.termId!,
+        record.scopeType,
+        record.scopeIds,
+        record.date
+      );
+
+      // Check if excuses are allowed by policy
+      if (!policy.allowExcuses) {
+        showError(t("messages.excusesDisabledByPolicy"));
+        return;
+      }
+
+      // Set policy and open modal
+      setExcusePolicy(policy);
+      setRecordToEdit(record);
+      setExcuseModalOpen(true);
+    } catch (error) {
+      console.error("Failed to resolve excuse policy:", error);
+      showError(tCommon("error_loading"));
+    }
   };
 
   const handleEditEarlyLeave = (record: AbsenceRecord) => {
@@ -282,11 +250,11 @@ export default function AttendanceAbsencesPage() {
   };
 
   const handleExport = () => {
-    if (!academicYearId || !termId) return;
+    if (!termContext.yearId || !termContext.termId) return;
 
     // Get year and term names
-    const yearName = academicYearId; // TODO: Get actual name from context
-    const termName = termId; // TODO: Get actual name from context
+    const yearName = termContext.yearId; // TODO: Get actual name from context
+    const termName = termContext.termId; // TODO: Get actual name from context
     const scopeName = getScopeName();
 
     exportAbsencesToExcel(records, locale, {
@@ -304,13 +272,13 @@ export default function AttendanceAbsencesPage() {
   };
 
   // Empty states
-  if (!academicYearId || !termId) {
+  if (!termContext.yearId || !termContext.termId) {
     return (
       <div className="flex flex-col h-screen">
         <ContextBar
-          academicYearId={academicYearId}
-          termId={termId}
-          termStatus={termStatus}
+          academicYearId={termContext.yearId || ""}
+          termId={termContext.termId || ""}
+          termStatus={termContext.termStatus || "open"}
           onAcademicYearChange={handleAcademicYearChange}
           onTermChange={handleTermChange}
           isReadOnly={isReadOnly}
@@ -341,9 +309,9 @@ export default function AttendanceAbsencesPage() {
     <div className="flex flex-col h-screen">
       {/* Context Bar */}
       <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
+        academicYearId={termContext.yearId || ""}
+        termId={termContext.termId || ""}
+        termStatus={termContext.termStatus || "open"}
         onAcademicYearChange={handleAcademicYearChange}
         onTermChange={handleTermChange}
         isReadOnly={isReadOnly}
@@ -381,7 +349,7 @@ export default function AttendanceAbsencesPage() {
                 }}
               >
                 <AbsencesFiltersBar
-                  filters={filters}
+                  filters={{ ...filters, search: searchInput }}
                   onFiltersChange={handleFiltersChange}
                   onClearFilters={handleClearFilters}
                   onExport={handleExport}
@@ -522,7 +490,7 @@ export default function AttendanceAbsencesPage() {
         <AbsencesFiltersDrawer
           isOpen={showFiltersDrawer}
           onClose={() => setShowFiltersDrawer(false)}
-          filters={filters}
+          filters={{ ...filters, search: searchInput }}
           onFiltersChange={handleFiltersChange}
           onClearFilters={handleClearFilters}
           onExport={handleExport}
@@ -552,11 +520,12 @@ export default function AttendanceAbsencesPage() {
           onClose={() => {
             setExcuseModalOpen(false);
             setRecordToEdit(null);
+            setExcusePolicy(null);
           }}
           onSave={handleSaveExcuse}
           initialReason={recordToEdit?.excuse?.reasonAr || recordToEdit?.excuse?.reasonEn || ""}
           initialAttachments={recordToEdit?.excuse?.attachments || []}
-          requireAttachment={false}
+          requireAttachment={excusePolicy?.requireAttachmentForExcuse ?? false}
           isReadOnly={isReadOnly}
         />
 

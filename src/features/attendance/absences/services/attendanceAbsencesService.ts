@@ -10,6 +10,8 @@ import {
   fetchEffectivePolicy,
   upsertEntry,
 } from "@/features/attendance/roll-call/services/attendanceRollCallService";
+import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
+import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 import { computeDailyStatuses } from "../utils/deriveDailyStatus";
 import { mockStudents } from "@/data/mockStudents";
 
@@ -103,6 +105,16 @@ export async function fetchAbsenceRecords(
   const dailyRecords: AbsenceRecord[] = [];
 
   if (granularities.includes("DAILY_DERIVED")) {
+    // Fetch timetable periods for the scope
+    const termConfig = await fetchTimetableConfig(termId, "TERM");
+    const gradeConfig = scopeIds?.gradeId
+      ? await fetchTimetableConfig(termId, "GRADE", scopeIds.gradeId)
+      : null;
+    const sectionConfig = scopeIds?.sectionId
+      ? await fetchTimetableConfig(termId, "SECTION", scopeIds.sectionId)
+      : null;
+    const { periods: timetablePeriods } = resolveTimetableConfig(termConfig, gradeConfig, sectionConfig);
+
     // Group sessions by date
     const sessionsByDate = new Map<string, typeof sessions>();
     for (const session of sessions) {
@@ -124,7 +136,14 @@ export async function fetchAbsenceRecords(
 
       // Compute daily statuses
       const studentIds = roster.map((r) => r.id);
-      const dailyStatuses = computeDailyStatuses(date, studentIds, dateEntries, policy);
+      const dailyStatuses = computeDailyStatuses(
+        date,
+        studentIds,
+        dateSessions,
+        dateEntries,
+        policy,
+        timetablePeriods
+      );
 
       for (const [studentId, dailyStatus] of dailyStatuses) {
         // Only include ABSENT or EXCUSED (not PRESENT)

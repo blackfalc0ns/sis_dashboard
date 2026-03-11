@@ -29,7 +29,7 @@ export default function AbsenceDetailsPanel({
         className="h-full flex items-center justify-center p-6"
         style={{ backgroundColor: "var(--card-background)" }}
       >
-        <p className="text-sm text-gray-500">{t("selectRecord")}</p>
+        <p style={{ color: "var(--color-neutral-500)" }} className="text-sm">{t("selectRecord")}</p>
       </div>
     );
   }
@@ -60,7 +60,8 @@ export default function AbsenceDetailsPanel({
         </h3>
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 transition-colors"
+          style={{ color: "var(--color-neutral-400)" }}
+          className="hover:text-gray-600 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
@@ -72,22 +73,22 @@ export default function AbsenceDetailsPanel({
           {/* Student Info */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <User className="w-4 h-4 text-gray-400" />
-              <h4 className="text-sm font-semibold text-gray-700">{t("studentInfo")}</h4>
+              <User style={{ color: "var(--color-neutral-400)" }} className="w-4 h-4" />
+              <h4 style={{ color: "var(--color-gray-700)" }} className="text-sm font-semibold">{t("studentInfo")}</h4>
             </div>
             <div className="space-y-2 pl-6">
               <div>
-                <span className="text-xs text-gray-500">{t("studentName")}:</span>
-                <p className="text-sm font-medium text-gray-900">
+                <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("studentName")}:</span>
+                <p style={{ color: "var(--color-gray-900)" }} className="text-sm font-medium">
                   {locale === "ar" ? record.studentNameAr : record.studentNameEn}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p style={{ color: "var(--color-neutral-500)" }} className="text-xs">
                   {locale === "ar" ? record.studentNameEn : record.studentNameAr}
                 </p>
               </div>
               <div>
-                <span className="text-xs text-gray-500">{t("studentNumber")}:</span>
-                <p className="text-sm text-gray-900">{record.studentNumber}</p>
+                <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("studentNumber")}:</span>
+                <p style={{ color: "var(--color-gray-900)" }} className="text-sm">{record.studentNumber}</p>
               </div>
             </div>
           </div>
@@ -95,19 +96,19 @@ export default function AbsenceDetailsPanel({
           {/* Grade & Section */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <GraduationCap className="w-4 h-4 text-gray-400" />
-              <h4 className="text-sm font-semibold text-gray-700">{t("gradeSection")}</h4>
+              <GraduationCap style={{ color: "var(--color-neutral-400)" }} className="w-4 h-4" />
+              <h4 style={{ color: "var(--color-gray-700)" }} className="text-sm font-semibold">{t("gradeSection")}</h4>
             </div>
             <div className="space-y-2 pl-6">
               <div>
-                <span className="text-xs text-gray-500">{t("grade")}:</span>
-                <p className="text-sm text-gray-900">
+                <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("grade")}:</span>
+                <p style={{ color: "var(--color-gray-900)" }} className="text-sm">
                   {record.gradeNameAr || record.gradeNameEn || "-"}
                 </p>
               </div>
               <div>
-                <span className="text-xs text-gray-500">{t("section")}:</span>
-                <p className="text-sm text-gray-900">
+                <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("section")}:</span>
+                <p style={{ color: "var(--color-gray-900)" }} className="text-sm">
                   {record.sectionNameAr || record.sectionNameEn || "-"}
                 </p>
               </div>
@@ -117,17 +118,17 @@ export default function AbsenceDetailsPanel({
           {/* Incident Details */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <Calendar className="w-4 h-4 text-gray-400" />
-              <h4 className="text-sm font-semibold text-gray-700">{t("incidentDetails")}</h4>
+              <Calendar style={{ color: "var(--color-neutral-400)" }} className="w-4 h-4" />
+              <h4 style={{ color: "var(--color-gray-700)" }} className="text-sm font-semibold">{t("incidentDetails")}</h4>
             </div>
             <div className="space-y-2 pl-6">
               <div>
-                <span className="text-xs text-gray-500">{t("date")}:</span>
-                <p className="text-sm text-gray-900">{record.date}</p>
+                <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("date")}:</span>
+                <p style={{ color: "var(--color-gray-900)" }} className="text-sm">{record.date}</p>
               </div>
               <div>
-                <span className="text-xs text-gray-500">{t("type")}:</span>
-                <p className="text-sm text-gray-900">
+                <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("type")}:</span>
+                <p style={{ color: "var(--color-gray-900)" }} className="text-sm">
                   {record.granularity === "DAILY_DERIVED"
                     ? locale === "ar"
                       ? "يومي (مشتق)"
@@ -139,26 +140,26 @@ export default function AbsenceDetailsPanel({
               </div>
               {record.periodIndex && (
                 <div>
-                  <span className="text-xs text-gray-500">{t("period")}:</span>
-                  <p className="text-sm text-gray-900">
+                  <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("period")}:</span>
+                  <p style={{ color: "var(--color-gray-900)" }} className="text-sm">
                     P{record.periodIndex} - {locale === "ar" ? record.periodNameAr : record.periodNameEn}
                   </p>
                 </div>
               )}
               <div>
-                <span className="text-xs text-gray-500">{t("status")}:</span>
-                <p className="text-sm font-medium text-gray-900">{getStatusLabel(record.status)}</p>
+                <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("status")}:</span>
+                <p style={{ color: "var(--color-gray-900)" }} className="text-sm font-medium">{getStatusLabel(record.status)}</p>
               </div>
               {record.minutesLate && (
                 <div>
-                  <span className="text-xs text-gray-500">{t("minutesLate")}:</span>
-                  <p className="text-sm text-gray-900">{record.minutesLate}</p>
+                  <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("minutesLate")}:</span>
+                  <p style={{ color: "var(--color-gray-900)" }} className="text-sm">{record.minutesLate}</p>
                 </div>
               )}
               {record.minutesEarlyLeave && (
                 <div>
-                  <span className="text-xs text-gray-500">{t("minutesEarlyLeave")}:</span>
-                  <p className="text-sm text-gray-900">{record.minutesEarlyLeave}</p>
+                  <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("minutesEarlyLeave")}:</span>
+                  <p style={{ color: "var(--color-gray-900)" }} className="text-sm">{record.minutesEarlyLeave}</p>
                 </div>
               )}
             </div>
@@ -168,19 +169,19 @@ export default function AbsenceDetailsPanel({
           {record.excuse && (
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <FileText className="w-4 h-4 text-gray-400" />
-                <h4 className="text-sm font-semibold text-gray-700">{t("excuse")}</h4>
+                <FileText style={{ color: "var(--color-neutral-400)" }} className="w-4 h-4" />
+                <h4 style={{ color: "var(--color-gray-700)" }} className="text-sm font-semibold">{t("excuse")}</h4>
               </div>
               <div className="space-y-2 pl-6">
                 <div>
-                  <span className="text-xs text-gray-500">{t("reason")}:</span>
-                  <p className="text-sm text-gray-900">
+                  <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("reason")}:</span>
+                  <p style={{ color: "var(--color-gray-900)" }} className="text-sm">
                     {locale === "ar" ? record.excuse.reasonAr : record.excuse.reasonEn}
                   </p>
                 </div>
                 {record.excuse.attachments && record.excuse.attachments.length > 0 && (
                   <div>
-                    <span className="text-xs text-gray-500">{t("attachments")}:</span>
+                    <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("attachments")}:</span>
                     <div className="mt-1 space-y-1">
                       {record.excuse.attachments.map((att) => (
                         <div

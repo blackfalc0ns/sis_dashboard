@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { useSearchParams, useRouter } from "next/navigation";
 import { AlertCircle, Filter } from "lucide-react";
 import { useMediaQuery } from "@mui/material";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -16,14 +15,12 @@ import RollCallFiltersDrawer from "../components/RollCallFiltersDrawer";
 import RollCallHeaderBar from "../components/RollCallHeaderBar";
 import AttendanceKpisBar from "../components/AttendanceKpisBar";
 import RosterTable from "../components/RosterTable";
+import { useAttendanceTermContext } from "@/features/attendance/shared/hooks/useAttendanceTermContext";
 import {
-  fetchAcademicYears,
-  fetchTermsByYear,
   fetchStructureTree,
-  Term,
-  Stage,
-  Grade,
-  Section,
+  type Stage,
+  type Grade,
+  type Section,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   fetchEffectivePolicy,
@@ -49,18 +46,12 @@ import MainLoader from "@/components/ui/loaders/MainLoader";
 export default function AttendanceRollCallPage() {
   const t = useTranslations("attendance.rollCall");
   const tCommon = useTranslations("common");
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const locale = useLocale();
   const { showSuccess, showError } = useToast();
   const isMobile = useMediaQuery("(max-width: 768px)");
 
-  // Context state
-  const [academicYearId, setAcademicYearId] = useState("");
-  const [termId, setTermId] = useState("");
-  const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
-  const [term, setTerm] = useState<Term | null>(null);
-  const [terms, setTerms] = useState<Term[]>([]);
+  // Use unified term context
+  const termContext = useAttendanceTermContext();
 
   // Structure data
   const [stages, setStages] = useState<Stage[]>([]);
@@ -79,7 +70,7 @@ export default function AttendanceRollCallPage() {
   // Policy & timetable
   const [policy, setPolicy] = useState<AttendancePolicy | null>(null);
   const [periods, setPeriods] = useState<import("@/features/academics/timetable/types/timetableConfig").TimetablePeriod[]>([]);
-  const [selectedPeriodIndex, setSelectedPeriodIndex] = useState<number | null>(null);
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
 
   // Session & roster
   const [session, setSession] = useState<AttendanceSession | null>(null);
@@ -105,9 +96,14 @@ export default function AttendanceRollCallPage() {
     earlyLeaveMin: undefined,
   });
 
-  const isReadOnly = termStatus === "closed";
+  const isReadOnly = termContext.isReadOnly;
   const isDirty = JSON.stringify(entries) !== JSON.stringify(originalEntries);
   const isSubmitted = session?.status === "SUBMITTED";
+
+  // Get current term object
+  const term = useMemo(() => {
+    return termContext.terms.find((t) => t.id === termContext.termId) || null;
+  }, [termContext.terms, termContext.termId]);
 
   // Compute KPIs
   const kpis = useMemo(() => {
@@ -169,72 +165,13 @@ export default function AttendanceRollCallPage() {
     });
   }, [roster, entries, filters, policy]);
 
-  // Initialize from URL
-  useEffect(() => {
-    let isCancelled = false;
-
-    const initializeContext = async () => {
-      try {
-        const years = await fetchAcademicYears();
-        if (isCancelled) return;
-
-        const urlYear = searchParams.get("year");
-        const urlTerm = searchParams.get("term");
-
-        const selectedYear = years.find((y) => y.id === urlYear) || years[0];
-        if (!selectedYear || isCancelled) return;
-
-        const yearTerms = await fetchTermsByYear(selectedYear.id);
-        if (isCancelled) return;
-
-        setTerms(yearTerms);
-
-        let selectedTerm = yearTerms.find((t) => t.id === urlTerm);
-        if (!selectedTerm) {
-          selectedTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
-        }
-
-        if (selectedYear && selectedTerm && !isCancelled) {
-          setAcademicYearId(selectedYear.id);
-          setTermId(selectedTerm.id);
-          setTermStatus(selectedTerm.status);
-          setTerm(selectedTerm);
-
-          // Only update URL if we're still on the roll-call page
-          const currentPath = window.location.pathname;
-          if (currentPath.includes('/attendance/roll-call') && !isCancelled) {
-            const params = new URLSearchParams();
-            params.set("year", selectedYear.id);
-            params.set("term", selectedTerm.id);
-            router.replace(`?${params.toString()}`, { scroll: false });
-          }
-        }
-      } catch (error) {
-        if (!isCancelled) {
-          console.error("Failed to initialize:", error);
-          showError(tCommon("error_loading"));
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    initializeContext();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, []);
-
   // Load structure tree
   useEffect(() => {
-    if (!academicYearId || !termId) return;
+    if (!termContext.yearId || !termContext.termId) return;
 
     const loadStructure = async () => {
       try {
-        const tree = await fetchStructureTree(academicYearId, termId);
+        const tree = await fetchStructureTree(termContext.yearId!, termContext.termId!);
         setStages(tree.stages);
         setGrades(tree.grades);
         setSections(tree.sections);
@@ -244,11 +181,11 @@ export default function AttendanceRollCallPage() {
     };
 
     loadStructure();
-  }, [academicYearId, termId]);
+  }, [termContext.yearId, termContext.termId]);
 
   // Load policy and timetable when scope/date changes
   useEffect(() => {
-    if (!academicYearId || !termId || !date) return;
+    if (!termContext.yearId || !termContext.termId || !date) return;
 
     // Need at least a scope selection
     if (scopeType === "SECTION" && !scopeIds.sectionId) return;
@@ -259,8 +196,8 @@ export default function AttendanceRollCallPage() {
       try {
         // Fetch policy
         const effectivePolicy = await fetchEffectivePolicy(
-          academicYearId,
-          termId,
+          termContext.yearId!,
+          termContext.termId!,
           scopeType,
           scopeIds,
           date
@@ -269,26 +206,26 @@ export default function AttendanceRollCallPage() {
 
         // Fetch timetable config if PERIOD mode
         if (effectivePolicy?.mode === "PERIOD") {
-          const termConfig = await fetchTimetableConfig(termId, "TERM");
+          const termConfig = await fetchTimetableConfig(termContext.termId!, "TERM");
           const gradeConfig =
             scopeIds.gradeId
-              ? await fetchTimetableConfig(termId, "GRADE", scopeIds.gradeId)
+              ? await fetchTimetableConfig(termContext.termId!, "GRADE", scopeIds.gradeId)
               : null;
           const sectionConfig =
             scopeIds.sectionId
-              ? await fetchTimetableConfig(termId, "SECTION", scopeIds.sectionId)
+              ? await fetchTimetableConfig(termContext.termId!, "SECTION", scopeIds.sectionId)
               : null;
 
           const resolved = resolveTimetableConfig(termConfig, gradeConfig, sectionConfig);
           setPeriods(resolved.periods);
 
           // Auto-select first period if none selected
-          if (!selectedPeriodIndex && resolved.periods.length > 0) {
-            setSelectedPeriodIndex(resolved.periods[0].index);
+          if (!selectedPeriodId && resolved.periods.length > 0) {
+            setSelectedPeriodId(resolved.periods[0].id);
           }
         } else {
           setPeriods([]);
-          setSelectedPeriodIndex(null);
+          setSelectedPeriodId(null);
         }
       } catch (error) {
         console.error("Failed to load policy/timetable:", error);
@@ -296,11 +233,11 @@ export default function AttendanceRollCallPage() {
     };
 
     loadPolicyAndTimetable();
-  }, [academicYearId, termId, scopeType, scopeIds, date]);
+  }, [termContext.yearId, termContext.termId, scopeType, scopeIds, date]);
 
   // Load session and roster
   useEffect(() => {
-    if (!academicYearId || !termId || !date || !policy) return;
+    if (!termContext.yearId || !termContext.termId || !date || !policy) return;
 
     // Need scope selection
     if (scopeType === "SECTION" && !scopeIds.sectionId) return;
@@ -308,7 +245,7 @@ export default function AttendanceRollCallPage() {
     if (scopeType === "STAGE" && !scopeIds.stageId) return;
 
     // For PERIOD mode, need period selection
-    if (policy.mode === "PERIOD" && !selectedPeriodIndex) return;
+    if (policy.mode === "PERIOD" && !selectedPeriodId) return;
 
     const loadSessionAndRoster = async () => {
       try {
@@ -319,15 +256,16 @@ export default function AttendanceRollCallPage() {
         setRoster(rosterData);
 
         // Get or create session
-        const periodData = periods.find((p) => p.index === selectedPeriodIndex);
+        const periodData = periods.find((p) => p.id === selectedPeriodId);
         const sessionData = await getOrCreateSession({
-          yearId: academicYearId,
-          termId,
+          yearId: termContext.yearId!,
+          termId: termContext.termId!,
           date,
           scopeType,
           scopeIds,
           mode: policy.mode,
-          periodIndex: selectedPeriodIndex || undefined,
+          periodId: selectedPeriodId || undefined,
+          periodIndex: periodData?.index,
           periodNameAr: periodData?.nameAr,
           periodNameEn: periodData?.nameEn,
         });
@@ -344,7 +282,7 @@ export default function AttendanceRollCallPage() {
     };
 
     loadSessionAndRoster();
-  }, [academicYearId, termId, date, scopeType, scopeIds, policy, selectedPeriodIndex, periods]);
+  }, [termContext.yearId, termContext.termId, date, scopeType, scopeIds, policy, selectedPeriodId, periods]);
 
   // Handle entry change
   const handleEntryChange = useCallback(
@@ -364,7 +302,7 @@ export default function AttendanceRollCallPage() {
         } else {
           // Create new
           const newEntry: AttendanceEntry = {
-            id: `entry-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            id: `entry-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
             sessionId: session?.id || "",
             studentId,
             status: updates.status || "PRESENT",
@@ -450,7 +388,7 @@ export default function AttendanceRollCallPage() {
       // Save first
       await saveSession(session, entries);
       // Then submit
-      const submitted = await submitSession(session.id, academicYearId, termId);
+      const submitted = await submitSession(session.id, termContext.yearId!, termContext.termId!);
       setSession(submitted);
       setOriginalEntries(JSON.parse(JSON.stringify(entries)));
       showSuccess(t("messages.submitted"));
@@ -460,7 +398,7 @@ export default function AttendanceRollCallPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [session, policy, entries, kpis, roster, academicYearId, termId, locale, t, tCommon, showSuccess, showError]);
+  }, [session, policy, entries, kpis, roster, termContext.yearId, termContext.termId, locale, t, tCommon, showSuccess, showError]);
 
   // Unsubmit
   const handleUnsubmit = useCallback(async () => {
@@ -468,7 +406,7 @@ export default function AttendanceRollCallPage() {
 
     try {
       setIsSaving(true);
-      const unsubmitted = await unsubmitSession(academicYearId, termId, session.id);
+      const unsubmitted = await unsubmitSession(termContext.yearId!, termContext.termId!, session.id);
       setSession(unsubmitted);
       showSuccess(t("messages.unsubmittedSuccess"));
     } catch (error) {
@@ -477,7 +415,7 @@ export default function AttendanceRollCallPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [session, academicYearId, termId, t, tCommon, showSuccess, showError]);
+  }, [session, termContext.yearId, termContext.termId, t, tCommon, showSuccess, showError]);
 
   const handleUnsubmitConfirm = useCallback(() => {
     setShowUnsubmitConfirm(false);
@@ -578,8 +516,8 @@ export default function AttendanceRollCallPage() {
   );
 
   const handlePeriodChange = useCallback(
-    (periodIndex: number) => {
-      checkUnsavedChanges(() => setSelectedPeriodIndex(periodIndex));
+    (periodId: string) => {
+      checkUnsavedChanges(() => setSelectedPeriodId(periodId));
     },
     [checkUnsavedChanges]
   );
@@ -609,18 +547,11 @@ export default function AttendanceRollCallPage() {
     <div className="flex flex-col h-screen">
       {/* Context Bar */}
       <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
-        onAcademicYearChange={setAcademicYearId}
-        onTermChange={(newTermId) => {
-          const newTerm = terms.find((t) => t.id === newTermId);
-          if (newTerm) {
-            setTermId(newTermId);
-            setTermStatus(newTerm.status);
-            setTerm(newTerm);
-          }
-        }}
+        academicYearId={termContext.yearId || ""}
+        termId={termContext.termId || ""}
+        termStatus={termContext.termStatus || "open"}
+        onAcademicYearChange={termContext.setYearId}
+        onTermChange={termContext.setTermId}
         isReadOnly={isReadOnly}
         showPromoteCarryOver={false}
       />
@@ -651,7 +582,7 @@ export default function AttendanceRollCallPage() {
             termEndDate={term?.endDate || ""}
             mode={policy?.mode || "DAILY"}
             periods={periods}
-            selectedPeriodIndex={selectedPeriodIndex}
+            selectedPeriodId={selectedPeriodId}
             onPeriodChange={handlePeriodChange}
             sessionStatus={session?.status || null}
             disabled={isReadOnly || isSubmitted}
@@ -667,7 +598,7 @@ export default function AttendanceRollCallPage() {
               isReadOnly={isReadOnly}
               isSubmitted={isSubmitted}
               canSubmit={!isReadOnly && !isSubmitted}
-              termStatus={termStatus}
+              termStatus={termContext.termStatus || "open"}
               onSave={handleSave}
               onSubmit={handleSubmit}
               onUnsubmit={() => setShowUnsubmitConfirm(true)}
@@ -706,7 +637,7 @@ export default function AttendanceRollCallPage() {
 
           {/* Filters Button - Mobile */}
           {session && roster.length > 0 && isMobile && (
-            <div className="bg-white border-b border-gray-200 px-4 py-3">
+            <div style={{ backgroundColor: "var(--background)", borderBottom: "1px solid var(--color-border)" }} className="px-4 py-3">
               <Button
                 variant="outline"
                 size="sm"
@@ -724,8 +655,8 @@ export default function AttendanceRollCallPage() {
             <div className="flex-1 flex items-center justify-center p-8">
               <div className="text-center max-w-md">
                 <AlertCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t("empty.noPolicy")}</h3>
-                <p className="text-sm text-gray-600">{t("empty.noPolicyDesc")}</p>
+                <h3 style={{ color: "var(--color-gray-900)" }} className="text-lg font-semibold mb-2">{t("empty.noPolicy")}</h3>
+                <p style={{ color: "var(--color-gray-600)" }} className="text-sm">{t("empty.noPolicyDesc")}</p>
               </div>
             </div>
           )}
@@ -734,10 +665,10 @@ export default function AttendanceRollCallPage() {
             <div className="flex-1 flex items-center justify-center p-8">
               <div className="text-center max-w-md">
                 <AlertCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 style={{ color: "var(--color-gray-900)" }} className="text-lg font-semibold mb-2">
                   {t("empty.noTimetable")}
                 </h3>
-                <p className="text-sm text-gray-600 mb-4">{t("empty.noTimetableDesc")}</p>
+                <p style={{ color: "var(--color-gray-600)" }} className="text-sm mb-4">{t("empty.noTimetableDesc")}</p>
               </div>
             </div>
           )}
@@ -745,9 +676,9 @@ export default function AttendanceRollCallPage() {
           {showNoRoster && (
             <div className="flex-1 flex items-center justify-center p-8">
               <div className="text-center max-w-md">
-                <AlertCircle className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t("empty.noStudents")}</h3>
-                <p className="text-sm text-gray-600">{t("empty.noStudentsDesc")}</p>
+                <AlertCircle style={{ color: "var(--color-neutral-500)" }} className="w-12 h-12 mx-auto mb-4" />
+                <h3 style={{ color: "var(--color-gray-900)" }} className="text-lg font-semibold mb-2">{t("empty.noStudents")}</h3>
+                <p style={{ color: "var(--color-gray-600)" }} className="text-sm">{t("empty.noStudentsDesc")}</p>
               </div>
             </div>
           )}

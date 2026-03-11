@@ -4,7 +4,9 @@ import { useTranslations, useLocale } from "next-intl";
 import { Edit2, FileText } from "lucide-react";
 import { Tooltip } from "@mui/material";
 import DataTable from "@/components/ui/data-table/DataTable";
+import { getAttendanceStatusStyle } from "@/features/attendance/shared/statusStyles";
 import type { AbsenceRecord } from "../types";
+import type { AttendanceStatus } from "@/features/attendance/roll-call/types";
 
 interface AbsencesTableProps {
   records: AbsenceRecord[];
@@ -26,26 +28,34 @@ export default function AbsencesTable({
 
   const getStatusChip = (status: string, granularity: string) => {
     if (granularity === "DAILY_DERIVED") {
+      const style = getAttendanceStatusStyle(status as AttendanceStatus);
       return (
-        <span className="inline-flex px-2 py-1 text-xs font-medium rounded bg-purple-100 text-purple-800">
+        <span 
+          style={{ backgroundColor: style.bg, color: style.fg, borderColor: style.border }}
+          className="inline-flex px-2 py-1 text-xs font-medium rounded border"
+        >
           {locale === "ar" ? "يومي" : "Daily"} - {status === "EXCUSED" ? (locale === "ar" ? "بعذر" : "Excused") : (locale === "ar" ? "غائب" : "Absent")}
         </span>
       );
     }
 
-    const statusConfig: Record<string, { bg: string; text: string; label: string; labelAr: string }> = {
-      ABSENT: { bg: "bg-red-100", text: "text-red-800", label: "Absent", labelAr: "غائب" },
-      LATE: { bg: "bg-yellow-100", text: "text-yellow-800", label: "Late", labelAr: "متأخر" },
-      EARLY_LEAVE: { bg: "bg-blue-100", text: "text-blue-800", label: "Early Leave", labelAr: "مغادرة مبكرة" },
-      EXCUSED: { bg: "bg-green-100", text: "text-green-800", label: "Excused", labelAr: "بعذر" },
-      UNMARKED: { bg: "bg-gray-100", text: "text-gray-800", label: "Unmarked", labelAr: "غير محدد" },
+    const style = getAttendanceStatusStyle(status as AttendanceStatus);
+    const labels: Record<string, { label: string; labelAr: string }> = {
+      ABSENT: { label: "Absent", labelAr: "غائب" },
+      LATE: { label: "Late", labelAr: "متأخر" },
+      EARLY_LEAVE: { label: "Early Leave", labelAr: "مغادرة مبكرة" },
+      EXCUSED: { label: "Excused", labelAr: "بعذر" },
+      UNMARKED: { label: "Unmarked", labelAr: "غير محدد" },
     };
 
-    const config = statusConfig[status] || statusConfig.UNMARKED;
+    const label = labels[status] || labels.UNMARKED;
 
     return (
-      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${config.bg} ${config.text}`}>
-        {locale === "ar" ? config.labelAr : config.label}
+      <span 
+        style={{ backgroundColor: style.bg, color: style.fg, borderColor: style.border }}
+        className="inline-flex px-2 py-1 text-xs font-medium rounded border"
+      >
+        {locale === "ar" ? label.labelAr : label.label}
       </span>
     );
   };
@@ -56,7 +66,7 @@ export default function AbsencesTable({
       label: t("date"),
       sortable: true,
       render: (_: unknown, row: AbsenceRecord) => (
-        <span className="text-sm text-gray-900">{row.date}</span>
+        <span style={{ color: "var(--color-gray-900)" }} className="text-sm">{row.date}</span>
       ),
     },
     {
@@ -65,13 +75,13 @@ export default function AbsencesTable({
       searchable: true,
       render: (_: unknown, row: AbsenceRecord) => (
         <div>
-          <div className="text-sm font-medium text-gray-900">
+          <div style={{ color: "var(--color-gray-900)" }} className="text-sm font-medium">
             {locale === "ar" ? row.studentNameAr : row.studentNameEn}
           </div>
-          <div className="text-xs text-gray-500">
+          <div style={{ color: "var(--color-neutral-500)" }} className="text-xs">
             {locale === "ar" ? row.studentNameEn : row.studentNameAr}
           </div>
-          <div className="text-xs text-gray-400">{row.studentNumber}</div>
+          <div style={{ color: "var(--color-neutral-400)" }} className="text-xs">{row.studentNumber}</div>
         </div>
       ),
     },
@@ -79,7 +89,7 @@ export default function AbsencesTable({
       key: "grade",
       label: t("grade"),
       render: (_: unknown, row: AbsenceRecord) => (
-        <div className="text-sm text-gray-700">
+        <div style={{ color: "var(--color-gray-700)" }} className="text-sm">
           {row.gradeNameAr || row.gradeNameEn || "-"}
         </div>
       ),
@@ -88,7 +98,7 @@ export default function AbsencesTable({
       key: "section",
       label: t("section"),
       render: (_: unknown, row: AbsenceRecord) => (
-        <div className="text-sm text-gray-700">
+        <div style={{ color: "var(--color-gray-700)" }} className="text-sm">
           {row.sectionNameAr || row.sectionNameEn || "-"}
         </div>
       ),
@@ -103,10 +113,10 @@ export default function AbsencesTable({
       label: t("period"),
       render: (_: unknown, row: AbsenceRecord) => {
         if (row.granularity === "DAILY_DERIVED") {
-          return <span className="text-sm text-gray-400">-</span>;
+          return <span style={{ color: "var(--color-neutral-400)" }} className="text-sm">-</span>;
         }
         return (
-          <span className="text-sm text-gray-700">
+          <span style={{ color: "var(--color-gray-700)" }} className="text-sm">
             {row.periodIndex ? `P${row.periodIndex}` : "-"}
           </span>
         );
@@ -117,8 +127,8 @@ export default function AbsencesTable({
       label: t("minutes"),
       render: (_: unknown, row: AbsenceRecord) => {
         const minutes = row.minutesLate || row.minutesEarlyLeave;
-        if (!minutes) return <span className="text-sm text-gray-400">-</span>;
-        return <span className="text-sm text-gray-700">{minutes}</span>;
+        if (!minutes) return <span style={{ color: "var(--color-neutral-400)" }} className="text-sm">-</span>;
+        return <span style={{ color: "var(--color-gray-700)" }} className="text-sm">{minutes}</span>;
       },
     },
     {
@@ -126,7 +136,7 @@ export default function AbsencesTable({
       label: t("excuse"),
       render: (_: unknown, row: AbsenceRecord) => {
         if (!row.excuse) {
-          return <span className="text-sm text-gray-400">{t("noExcuse")}</span>;
+          return <span style={{ color: "var(--color-neutral-400)" }} className="text-sm">{t("noExcuse")}</span>;
         }
         return (
           <Tooltip title={row.excuse.reasonAr || row.excuse.reasonEn || ""} arrow>
@@ -145,7 +155,7 @@ export default function AbsencesTable({
       render: (_: unknown, row: AbsenceRecord) => {
         // Can't edit daily derived records directly
         if (row.granularity === "DAILY_DERIVED") {
-          return <span className="text-xs text-gray-400">{t("viewOnly")}</span>;
+          return <span style={{ color: "var(--color-neutral-400)" }} className="text-xs">{t("viewOnly")}</span>;
         }
 
         return (
@@ -158,7 +168,8 @@ export default function AbsencesTable({
                     onEditExcuse(row);
                   }}
                   disabled={isReadOnly}
-                  className="p-1.5 text-gray-600 hover:text-primary hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ color: "var(--color-gray-600)" }}
+                  className="p-1.5 hover:text-[var(--color-primary)] hover:bg-[var(--color-neutral-100)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <FileText className="w-4 h-4" />
                 </button>
@@ -172,7 +183,8 @@ export default function AbsencesTable({
                     onEditEarlyLeave(row);
                   }}
                   disabled={isReadOnly}
-                  className="p-1.5 text-gray-600 hover:text-primary hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ color: "var(--color-gray-600)" }}
+                  className="p-1.5 hover:text-[var(--color-primary)] hover:bg-[var(--color-neutral-100)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>

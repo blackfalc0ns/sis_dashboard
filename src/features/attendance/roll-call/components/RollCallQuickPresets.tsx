@@ -38,7 +38,7 @@ export default function RollCallQuickPresets({
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-sm font-medium text-gray-700">{t("presetsTitle")}:</span>
+      <span style={{ color: "var(--color-gray-700)" }} className="text-sm font-medium">{t("presetsTitle")}:</span>
       {presets.map((preset) => {
         const isSelected = selectedStatus === preset.value;
         const button = (
@@ -46,13 +46,26 @@ export default function RollCallQuickPresets({
             key={preset.value}
             onClick={() => !preset.disabled && onSelect(preset.value)}
             disabled={preset.disabled}
+            style={{
+              backgroundColor: isSelected 
+                ? "var(--color-primary)" 
+                : preset.disabled 
+                  ? "var(--color-neutral-100)" 
+                  : "var(--background)",
+              color: isSelected 
+                ? "var(--color-white)" 
+                : preset.disabled 
+                  ? "var(--color-neutral-400)" 
+                  : "var(--color-gray-700)",
+              borderColor: isSelected 
+                ? "var(--color-primary)" 
+                : preset.disabled 
+                  ? "var(--color-neutral-200)" 
+                  : "var(--color-neutral-300)",
+            }}
             className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
-              isSelected
-                ? "bg-primary text-white border-primary"
-                : preset.disabled
-                ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
-            }`}
+              !preset.disabled && !isSelected ? "hover:bg-[var(--color-neutral-50)] hover:border-[var(--color-neutral-400)]" : ""
+            } ${preset.disabled ? "cursor-not-allowed" : ""}`}
           >
             {preset.label}
           </button>

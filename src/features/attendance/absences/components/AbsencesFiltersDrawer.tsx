@@ -286,7 +286,8 @@ export default function AbsencesFiltersDrawer({
                 type="checkbox"
                 checked={draftFilters.onlyUnexcused}
                 onChange={(e) => handleDraftChange({ onlyUnexcused: e.target.checked })}
-                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                className="w-4 h-4 rounded text-primary focus:ring-primary"
+                style={{ borderColor: "var(--color-neutral-300)" }}
               />
               <span className="text-sm" style={{ color: "var(--text-primary)" }}>
                 {t("onlyUnexcused")}

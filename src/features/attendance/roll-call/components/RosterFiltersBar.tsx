@@ -74,11 +74,11 @@ export default function RosterFiltersBar({
   };
 
   return (
-    <div className="bg-white border-b border-gray-200 px-4 py-3">
+    <div style={{ backgroundColor: "var(--background)", borderBottom: "1px solid var(--color-border)" }} className="px-4 py-3">
       {/* Search Bar with Filter Toggle */}
       <div className="flex items-center gap-2 mb-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search style={{ color: "var(--color-neutral-400)" }} className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" />
           <Input
             type="text"
             placeholder={t("searchPlaceholder")}
@@ -89,10 +89,13 @@ export default function RosterFiltersBar({
         </div>
         <button
           onClick={onToggleFilters}
+          style={{
+            backgroundColor: showFilters ? "var(--color-primary)" : "var(--background)",
+            color: showFilters ? "var(--color-white)" : "var(--color-gray-600)",
+            borderColor: showFilters ? "var(--color-primary)" : "var(--color-neutral-300)",
+          }}
           className={`p-2 rounded-lg border transition-colors ${
-            showFilters
-              ? "bg-primary text-white border-primary"
-              : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+            showFilters ? "" : "hover:bg-[var(--color-neutral-50)]"
           }`}
           title={showFilters ? t("hideFilters") : t("showFilters")}
         >
@@ -146,7 +149,7 @@ export default function RosterFiltersBar({
 
             {/* Late Minutes Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-1">
                 {t("lateMinLabel")}
               </label>
               <Input
@@ -166,7 +169,7 @@ export default function RosterFiltersBar({
 
             {/* Early Leave Minutes Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-1">
                 {t("earlyLeaveMinLabel")}
               </label>
               <Input

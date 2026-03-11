@@ -60,15 +60,15 @@ export default function Step3ModeComputation({
 
       {/* Period Selection */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
+        <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-3">
           {t("fields.selectPeriodsForDaily")} <span className="text-red-500">*</span>
         </label>
-        <p className="text-sm text-gray-600 mb-3">
+        <p style={{ color: "var(--color-gray-600)" }} className="text-sm mb-3">
           {t("selectPeriodsForDailyHelper")}
         </p>
 
         {isLoadingPeriods ? (
-          <div className="text-sm text-gray-500 py-4">{tCommon("loading")}...</div>
+          <div style={{ color: "var(--color-neutral-500)" }} className="text-sm py-4">{tCommon("loading")}...</div>
         ) : availablePeriods.length === 0 ? (
           <div
             className="rounded-lg border p-4 text-sm"
@@ -88,7 +88,7 @@ export default function Step3ModeComputation({
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  const allIds = availablePeriods.map((p) => `period-${p.index}`);
+                  const allIds = availablePeriods.map((p) => p.id);
                   onFieldChange("selectedPeriodIds", allIds);
                   // Auto-adjust threshold
                   if (
@@ -117,12 +117,11 @@ export default function Step3ModeComputation({
             {/* Period Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-64 overflow-y-auto border rounded-lg p-3" style={{ borderColor: "var(--color-neutral-200)" }}>
               {availablePeriods.map((period) => {
-                const periodId = `period-${period.index}`;
-                const isSelected = formData.selectedPeriodIds?.includes(periodId);
+                const isSelected = formData.selectedPeriodIds?.includes(period.id);
 
                 return (
                   <label
-                    key={periodId}
+                    key={period.id}
                     className={`flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
                       isReadOnly ? "opacity-50 cursor-not-allowed" : ""
                     }`}
@@ -141,8 +140,8 @@ export default function Step3ModeComputation({
                       onChange={(e) => {
                         const current = formData.selectedPeriodIds || [];
                         const updated = e.target.checked
-                          ? [...current, periodId]
-                          : current.filter((id) => id !== periodId);
+                          ? [...current, period.id]
+                          : current.filter((id) => id !== period.id);
                         onFieldChange("selectedPeriodIds", updated);
                         
                         // Auto-adjust threshold if needed
@@ -157,11 +156,11 @@ export default function Step3ModeComputation({
                       className="w-4 h-4"
                     />
                     <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div style={{ color: "var(--color-gray-900)" }} className="text-sm font-medium">
                         {locale === "ar" ? period.nameAr : period.nameEn}
                       </div>
                       {period.startTime && period.endTime && (
-                        <div className="text-xs text-gray-500">
+                        <div style={{ color: "var(--color-neutral-500)" }} className="text-xs">
                           {period.startTime} - {period.endTime}
                         </div>
                       )}
@@ -177,7 +176,7 @@ export default function Step3ModeComputation({
               </p>
             )}
 
-            <div className="text-sm text-gray-600 mt-2">
+            <div style={{ color: "var(--color-gray-600)" }} className="text-sm mt-2">
               {t("periodsSelected", {
                 count: formData.selectedPeriodIds?.length || 0,
               })}

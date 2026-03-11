@@ -2,20 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { useSearchParams, useRouter } from "next/navigation";
 import { AlertCircle, Filter } from "lucide-react";
 import { Drawer, useMediaQuery } from "@mui/material";
 import ContextBar from "@/features/academics/components/shared/ContextBar";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
+import { useAttendanceTermContext } from "@/features/attendance/shared/hooks/useAttendanceTermContext";
 import {
-  fetchAcademicYears,
-  fetchTermsByYear,
   fetchStructureTree,
   type Grade,
   type Section,
   type Stage,
-  type Term,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
 import { fetchIncidents, updateIncidentMinutes } from "../services/attendanceLateEarlyService";
@@ -54,16 +51,11 @@ export default function AttendanceLateEarlyPage() {
   const t = useTranslations("attendance.lateEarly");
   const tCommon = useTranslations("common");
   const locale = useLocale();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { showSuccess, showError } = useToast();
   const isMobile = useMediaQuery("(max-width: 768px)");
 
-  const [academicYearId, setAcademicYearId] = useState("");
-  const [termId, setTermId] = useState("");
-  const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
-  const [term, setTerm] = useState<Term | null>(null);
-  const [terms, setTerms] = useState<Term[]>([]);
+  // Use unified term context
+  const termContext = useAttendanceTermContext();
 
   const [stages, setStages] = useState<Stage[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -71,7 +63,8 @@ export default function AttendanceLateEarlyPage() {
   const [periods, setPeriods] = useState<Array<{ index: number; nameAr: string; nameEn: string }>>([]);
 
   const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
 
   const [filters, setFilters] = useState<LateEarlyFilters>({
     scopeType: "SCHOOL",
@@ -82,14 +75,28 @@ export default function AttendanceLateEarlyPage() {
     sessionStatus: "ALL",
   });
 
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters((prev) => ({ ...prev, search: searchInput }));
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
   const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
   const [minutesEditorOpen, setMinutesEditorOpen] = useState(false);
   const [editingIncident, setEditingIncident] = useState<Incident | null>(null);
 
-  const isReadOnly = termStatus === "closed";
+  const isReadOnly = termContext.isReadOnly;
   const kpis = useMemo(() => computeKpis(incidents), [incidents]);
+
+  // Get current term object
+  const term = useMemo(() => {
+    return termContext.terms.find((t) => t.id === termContext.termId) || null;
+  }, [termContext.terms, termContext.termId]);
 
   const getScopeLabel = useCallback(() => {
     if (filters.scopeType === "SCHOOL") {
@@ -111,6 +118,7 @@ export default function AttendanceLateEarlyPage() {
   }, [filters, grades, locale, sections, stages, t]);
 
   const resetFilters = useCallback(() => {
+    setSearchInput("");
     setFilters({
       dateFrom: term?.startDate,
       dateTo: term?.endDate,
@@ -124,134 +132,53 @@ export default function AttendanceLateEarlyPage() {
   }, [term?.endDate, term?.startDate]);
 
   const reloadIncidents = useCallback(async () => {
-    if (!academicYearId || !termId) return;
+    if (!termContext.yearId || !termContext.termId) return;
 
     setLoading(true);
     try {
-      const list = await fetchIncidents({ yearId: academicYearId, termId, ...filters });
+      const list = await fetchIncidents({ yearId: termContext.yearId, termId: termContext.termId, ...filters });
       setIncidents(list);
-      if (selectedIncident) {
-        const updated = list.find((item) => item.id === selectedIncident.id) || null;
-        setSelectedIncident(updated);
-      }
+      
+      // Update selected incident if it exists in the new list
+      setSelectedIncident((prev) => {
+        if (!prev) return null;
+        return list.find((item) => item.id === prev.id) || null;
+      });
     } catch (error) {
       console.error("Failed to load incidents", error);
       showError(tCommon("error_loading"));
     } finally {
       setLoading(false);
     }
-  }, [academicYearId, filters, selectedIncident, showError, tCommon, termId]);
+  }, [termContext.yearId, termContext.termId, filters, showError, tCommon]);
 
   useEffect(() => {
-    const initialize = async () => {
-      try {
-        const years = await fetchAcademicYears();
-        const urlYear = searchParams.get("year");
-        const urlTerm = searchParams.get("term");
-        const year = years.find((item) => item.id === urlYear) || years[0];
-        if (!year) return;
-
-        const yearTerms = await fetchTermsByYear(year.id);
-        setTerms(yearTerms);
-
-        const selectedTerm = yearTerms.find((item) => item.id === urlTerm) || yearTerms.find((item) => item.status === "open") || yearTerms[0];
-        if (!selectedTerm) return;
-
-        setAcademicYearId(year.id);
-        setTermId(selectedTerm.id);
-        setTermStatus(selectedTerm.status);
-        setTerm(selectedTerm);
-
-        setFilters((prev) => ({
-          ...prev,
-          dateFrom: selectedTerm.startDate,
-          dateTo: selectedTerm.endDate,
-        }));
-
-        const params = new URLSearchParams();
-        params.set("year", year.id);
-        params.set("term", selectedTerm.id);
-        router.replace(`?${params.toString()}`, { scroll: false });
-      } catch (error) {
-        console.error("Failed to initialize late/early page", error);
-        showError(tCommon("error_loading"));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initialize();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!academicYearId || !termId) return;
+    if (!termContext.yearId || !termContext.termId) return;
 
     const loadStructure = async () => {
-      try {
-        const [structure, termConfig] = await Promise.all([
-          fetchStructureTree(academicYearId, termId),
-          fetchTimetableConfig(termId, "TERM"),
-        ]);
+      const [structure, termConfig] = await Promise.all([
+        fetchStructureTree(termContext.yearId!, termContext.termId!),
+        fetchTimetableConfig(termContext.termId!, "TERM"),
+      ]);
 
-        setStages(structure.stages);
-        setGrades(structure.grades);
-        setSections(structure.sections);
-        setPeriods(termConfig?.periods || []);
-      } catch (error) {
-        console.error("Failed to load structure", error);
-      }
+      setStages(structure.stages);
+      setGrades(structure.grades);
+      setSections(structure.sections);
+      setPeriods(termConfig?.periods || []);
     };
 
     loadStructure();
-  }, [academicYearId, termId]);
+  }, [termContext.yearId, termContext.termId]);
 
   useEffect(() => {
     reloadIncidents();
   }, [reloadIncidents]);
 
-  const updateURL = useCallback(
-    (yearId: string, nextTermId: string) => {
-      const params = new URLSearchParams();
-      params.set("year", yearId);
-      params.set("term", nextTermId);
-      router.replace(`?${params.toString()}`, { scroll: false });
-    },
-    [router]
-  );
-
-  const handleAcademicYearChange = async (yearId: string) => {
-    setAcademicYearId(yearId);
-
-    const yearTerms = await fetchTermsByYear(yearId);
-    setTerms(yearTerms);
-
-    const defaultTerm = yearTerms.find((item) => item.status === "open") || yearTerms[0];
-    if (!defaultTerm) return;
-
-    setTermId(defaultTerm.id);
-    setTermStatus(defaultTerm.status);
-    setTerm(defaultTerm);
-    setFilters((prev) => ({ ...prev, dateFrom: defaultTerm.startDate, dateTo: defaultTerm.endDate }));
-    updateURL(yearId, defaultTerm.id);
-  };
-
-  const handleTermChange = (nextTermId: string) => {
-    const nextTerm = terms.find((item) => item.id === nextTermId);
-    if (!nextTerm) return;
-
-    setTermId(nextTermId);
-    setTermStatus(nextTerm.status);
-    setTerm(nextTerm);
-    setFilters((prev) => ({ ...prev, dateFrom: nextTerm.startDate, dateTo: nextTerm.endDate }));
-    updateURL(academicYearId, nextTermId);
-  };
-
   const handleExport = (format: "csv" | "excel") => {
     if (!term) return;
 
     exportLateEarly(incidents, locale, format, {
-      yearName: academicYearId,
+      yearName: termContext.yearId || "",
       termName: locale === "ar" ? term.nameAr || term.name : term.nameEn || term.name,
       scopeName: getScopeLabel(),
       dateRange: filters.dateFrom && filters.dateTo ? `${filters.dateFrom} - ${filters.dateTo}` : t("allDates"),
@@ -294,7 +221,7 @@ export default function AttendanceLateEarlyPage() {
     }
   };
 
-  if (loading && !term) {
+  if (termContext.isLoading) {
     return (
      <MainLoader />
     );
@@ -303,11 +230,11 @@ export default function AttendanceLateEarlyPage() {
   return (
     <div className="flex flex-col h-screen">
       <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
-        onAcademicYearChange={handleAcademicYearChange}
-        onTermChange={handleTermChange}
+        academicYearId={termContext.yearId || ""}
+        termId={termContext.termId || ""}
+        termStatus={termContext.termStatus || "open"}
+        onAcademicYearChange={termContext.setYearId}
+        onTermChange={termContext.setTermId}
         isReadOnly={isReadOnly}
         showPromoteCarryOver={false}
       />
@@ -339,12 +266,17 @@ export default function AttendanceLateEarlyPage() {
             <div className="col-span-8 min-h-0 flex flex-col gap-4">
               <div className="rounded-xl border p-4" style={{ backgroundColor: "var(--card-background)", borderColor: "var(--border-color)" }}>
                 <LateEarlyFiltersBar
-                  filters={filters}
+                  filters={{ ...filters, search: searchInput }}
                   stages={stages}
                   grades={grades}
                   sections={sections}
                   periods={periods}
-                  onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
+                  onFiltersChange={(patch) => {
+                    if ('search' in patch) {
+                      setSearchInput(patch.search || "");
+                    }
+                    setFilters((prev) => ({ ...prev, ...patch }));
+                  }}
                   onResetFilters={resetFilters}
                   onExport={handleExport}
                 />
@@ -406,14 +338,19 @@ export default function AttendanceLateEarlyPage() {
 
       <LateEarlyFiltersDrawer
         isOpen={filtersDrawerOpen}
-        filters={filters}
+        filters={{ ...filters, search: searchInput }}
         stages={stages}
         grades={grades}
         sections={sections}
         periods={periods}
         onClose={() => setFiltersDrawerOpen(false)}
         onApply={() => setFiltersDrawerOpen(false)}
-        onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
+        onFiltersChange={(patch) => {
+          if ('search' in patch) {
+            setSearchInput(patch.search || "");
+          }
+          setFilters((prev) => ({ ...prev, ...patch }));
+        }}
         onResetFilters={resetFilters}
         onExport={handleExport}
       />

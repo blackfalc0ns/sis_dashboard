@@ -1,30 +1,10 @@
 // Derive daily attendance status from period attendance
 
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
-import type { AttendanceEntry } from "@/features/attendance/roll-call/types";
+import type { AttendanceEntry, AttendanceSession } from "@/features/attendance/roll-call/types";
+import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
 import type { DailyStatus } from "../types";
-
-/**
- * Extract period index from period ID (handles both old and new formats)
- * @param periodId - Period ID (e.g., "p1", "period-1", or custom stable ID)
- * @param fallbackIndex - Fallback index if extraction fails
- */
-function extractPeriodIndex(periodId: string, fallbackIndex: number): number {
-  // Try old format "period-N"
-  const oldMatch = periodId.match(/^period-(\d+)$/);
-  if (oldMatch) {
-    return parseInt(oldMatch[1], 10);
-  }
-
-  // Try new format "pN"
-  const newMatch = periodId.match(/^p(\d+)$/);
-  if (newMatch) {
-    return parseInt(newMatch[1], 10);
-  }
-
-  // Fallback to provided index
-  return fallbackIndex;
-}
+import { normalizeSelectedPeriodIds } from "../../utils/periodIdNormalization";
 
 /**
  * Derive daily status for a student on a specific date
@@ -35,8 +15,10 @@ function extractPeriodIndex(periodId: string, fallbackIndex: number): number {
 export function deriveDailyStatus(
   studentId: string,
   date: string,
-  periodEntries: AttendanceEntry[],
-  policy: AttendancePolicy | null
+  sessionsForDate: AttendanceSession[],
+  entriesForDate: AttendanceEntry[],
+  policy: AttendancePolicy | null,
+  timetablePeriods: TimetablePeriod[]
 ): DailyStatus {
   if (!policy || !policy.selectedPeriodIds || policy.selectedPeriodIds.length === 0) {
     // No policy or no selected periods - default to PRESENT
@@ -50,24 +32,55 @@ export function deriveDailyStatus(
     };
   }
 
-  // Extract period indices from policy's selected period IDs
-  const selectedPeriodIndices = policy.selectedPeriodIds.map((id, idx) => 
-    extractPeriodIndex(id, idx + 1)
+  // Normalize policy's selected period IDs against timetable
+  const selectedPeriodIds = normalizeSelectedPeriodIds(
+    policy.selectedPeriodIds,
+    timetablePeriods
   );
 
-  const threshold = policy.absentIfMissedPeriodsCount || selectedPeriodIndices.length;
+  if (selectedPeriodIds.length === 0) {
+    // No valid periods after normalization
+    return {
+      date,
+      studentId,
+      status: "PRESENT",
+      missedPeriodsCount: 0,
+      totalSelectedPeriods: 0,
+      threshold: 0,
+    };
+  }
+
+  const threshold = policy.absentIfMissedPeriodsCount || selectedPeriodIds.length;
+
+  // Build map of periodId -> sessionId for SUBMITTED sessions only
+  const periodToSessionMap = new Map<string, string>();
+  sessionsForDate
+    .filter((s) => s.status === "SUBMITTED" && s.mode === "PERIOD" && s.periodId)
+    .forEach((s) => {
+      periodToSessionMap.set(s.periodId!, s.id);
+    });
 
   // Count missed periods among selected periods
   let missedCount = 0;
   let allMissedAreExcused = true;
   let hasUnmarked = false;
 
-  for (const periodIdx of selectedPeriodIndices) {
-    const entry = periodEntries.find((e) => e.studentId === studentId);
+  for (const periodId of selectedPeriodIds) {
+    const sessionId = periodToSessionMap.get(periodId);
+
+    if (!sessionId) {
+      // No submitted session found for this period - this is UNMARKED
+      hasUnmarked = true;
+      continue;
+    }
+
+    // Find entry for this student in this session
+    const entry = entriesForDate.find(
+      (e) => e.sessionId === sessionId && e.studentId === studentId
+    );
 
     if (!entry) {
-      // No entry found - this is UNMARKED, not ABSENT
-      // Don't count as missed if the session is DRAFT
+      // No entry found - this is UNMARKED
       hasUnmarked = true;
       continue;
     }
@@ -98,7 +111,7 @@ export function deriveDailyStatus(
     studentId,
     status,
     missedPeriodsCount: missedCount,
-    totalSelectedPeriods: selectedPeriodIndices.length,
+    totalSelectedPeriods: selectedPeriodIds.length,
     threshold,
   };
 }
@@ -109,14 +122,22 @@ export function deriveDailyStatus(
 export function computeDailyStatuses(
   date: string,
   studentIds: string[],
-  periodEntriesForDate: AttendanceEntry[],
-  policy: AttendancePolicy | null
+  sessionsForDate: AttendanceSession[],
+  entriesForDate: AttendanceEntry[],
+  policy: AttendancePolicy | null,
+  timetablePeriods: TimetablePeriod[]
 ): Map<string, DailyStatus> {
   const dailyStatuses = new Map<string, DailyStatus>();
 
   for (const studentId of studentIds) {
-    const studentEntries = periodEntriesForDate.filter((e) => e.studentId === studentId);
-    const dailyStatus = deriveDailyStatus(studentId, date, studentEntries, policy);
+    const dailyStatus = deriveDailyStatus(
+      studentId,
+      date,
+      sessionsForDate,
+      entriesForDate,
+      policy,
+      timetablePeriods
+    );
     dailyStatuses.set(studentId, dailyStatus);
   }
 

@@ -32,7 +32,7 @@ export default function Step4Rules({
       {/* Late & Early Leave Thresholds */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
             {t("fields.lateThreshold")} <span className="text-red-500">*</span>
           </label>
           <div className="relative">
@@ -46,15 +46,15 @@ export default function Step4Rules({
               disabled={isReadOnly}
               error={errors.lateThresholdMinutes}
             />
-            <span className="absolute right-15 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+            <span style={{ color: "var(--color-neutral-500)" }} className="absolute right-15 top-1/2 -translate-y-1/2 text-sm">
               {t("minutes")}
             </span>
           </div>
-          <p className="text-xs text-gray-500 mt-1">{t("fields.lateThresholdDesc")}</p>
+          <p style={{ color: "var(--color-neutral-500)" }} className="text-xs mt-1">{t("fields.lateThresholdDesc")}</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
             {t("fields.earlyThreshold")} <span className="text-red-500">*</span>
           </label>
           <div className="relative">
@@ -71,17 +71,17 @@ export default function Step4Rules({
               disabled={isReadOnly}
               error={errors.earlyLeaveThresholdMinutes}
             />
-            <span className="absolute right-15 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+            <span style={{ color: "var(--color-neutral-500)" }} className="absolute right-15 top-1/2 -translate-y-1/2 text-sm">
               {t("minutes")}
             </span>
           </div>
-          <p className="text-xs text-gray-500 mt-1">{t("fields.earlyThresholdDesc")}</p>
+          <p style={{ color: "var(--color-neutral-500)" }} className="text-xs mt-1">{t("fields.earlyThresholdDesc")}</p>
         </div>
       </div>
 
       {/* Daily Absent Threshold (from periods) */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
           {t("fields.dailyAbsentThreshold")} <span className="text-red-500">*</span>
         </label>
         <div className="relative max-w-xs">
@@ -103,11 +103,11 @@ export default function Step4Rules({
             disabled={isReadOnly}
             error={errors.absentIfMissedPeriodsCount}
           />
-          <span className="absolute right-15 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+          <span style={{ color: "var(--color-neutral-500)" }} className="absolute right-15 top-1/2 -translate-y-1/2 text-sm">
             {t("periods")}
           </span>
         </div>
-        <p className="text-xs text-gray-500 mt-1">
+        <p style={{ color: "var(--color-neutral-500)" }} className="text-xs mt-1">
           {t("fields.dailyAbsentThresholdDesc", { max: selectedPeriodsCount })}
         </p>
         
@@ -128,8 +128,8 @@ export default function Step4Rules({
       </div>
 
       {/* Excuses */}
-      <div className="border rounded-lg p-4 space-y-3" style={{ borderColor: "var(--color-neutral-200)" }}>
-        <h4 className="font-semibold text-sm text-gray-900">
+      <div style={{ borderColor: "var(--color-neutral-200)" }} className="border rounded-lg p-4 space-y-3">
+        <h4 style={{ color: "var(--color-gray-900)" }} className="font-semibold text-sm">
           {t("fields.excuseSettings")}
         </h4>
 
@@ -141,7 +141,7 @@ export default function Step4Rules({
             disabled={isReadOnly}
             className="w-4 h-4"
           />
-          <span className="text-sm font-medium text-gray-700">
+          <span style={{ color: "var(--color-gray-700)" }} className="text-sm font-medium">
             {t("fields.allowExcuses")}
           </span>
         </label>
@@ -156,7 +156,7 @@ export default function Step4Rules({
                 disabled={isReadOnly}
                 className="w-4 h-4"
               />
-              <span className="text-sm text-gray-700">{t("fields.requireReason")}</span>
+              <span style={{ color: "var(--color-gray-700)" }} className="text-sm">{t("fields.requireReason")}</span>
             </label>
 
             <label className="flex items-center gap-3 ml-7">
@@ -169,13 +169,13 @@ export default function Step4Rules({
                 disabled={isReadOnly}
                 className="w-4 h-4"
               />
-              <span className="text-sm text-gray-700">
+              <span style={{ color: "var(--color-gray-700)" }} className="text-sm">
                 {t("fields.requireAttachment")}
               </span>
             </label>
 
             <div className="ml-7">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
                 {t("fields.maxDaysToSubmit")}
               </label>
               <div className="relative max-w-xs">
@@ -193,11 +193,11 @@ export default function Step4Rules({
                   error={errors.maxDaysToSubmitExcuse}
                   placeholder={t("optional")}
                 />
-                <span className="absolute right-15 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                <span style={{ color: "var(--color-neutral-500)" }} className="absolute right-15 top-1/2 -translate-y-1/2 text-sm">
                   {t("days")}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p style={{ color: "var(--color-neutral-500)" }} className="text-xs mt-1">
                 {t("fields.maxDaysToSubmitDesc")}
               </p>
             </div>

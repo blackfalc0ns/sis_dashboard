@@ -52,10 +52,11 @@ export default function EarlyLeaveEditorModal({
       <div className="p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">{t("title")}</h2>
+          <h2 style={{ color: "var(--color-gray-900)" }} className="text-xl font-semibold">{t("title")}</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            style={{ color: "var(--color-neutral-400)" }}
+            className="hover:text-[var(--color-gray-600)] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -64,7 +65,7 @@ export default function EarlyLeaveEditorModal({
         {/* Content */}
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
               {t("minutesLabel")} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -81,16 +82,16 @@ export default function EarlyLeaveEditorModal({
                 className={locale === "ar" ? "pl-16" : "pr-16"}
               />
               <div className={`absolute inset-y-0 ${locale === "ar" ? "left-0 pl-3" : "right-0 pr-3"} flex items-center pointer-events-none`}>
-                <span className="text-sm text-gray-500">{tForm("minutes")}</span>
+                <span style={{ color: "var(--color-neutral-500)" }} className="text-sm">{tForm("minutes")}</span>
               </div>
             </div>
             {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-            <p className="mt-1 text-xs text-gray-500">{t("helper")}</p>
+            <p style={{ color: "var(--color-neutral-500)" }} className="mt-1 text-xs">{t("helper")}</p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+        <div style={{ borderTop: "1px solid var(--color-border)" }} className="flex items-center justify-end gap-3 mt-6 pt-6">
           <Button variant="outline" onClick={onClose}>
             {tCommon("cancel")}
           </Button>

@@ -8,6 +8,8 @@ import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
 import type { AttendanceScopeType } from "@/features/attendance/policies/types";
 import type { Stage, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
+import { getSessionStatusStyle } from "@/features/attendance/shared/statusStyles";
+
 import type { AttendanceSessionMode } from "../types";
 
 interface SessionPickerPanelProps {
@@ -29,8 +31,8 @@ interface SessionPickerPanelProps {
   // Mode & Period
   mode: AttendanceSessionMode;
   periods: TimetablePeriod[];
-  selectedPeriodIndex: number | null;
-  onPeriodChange: (periodIndex: number) => void;
+  selectedPeriodId: string | null;
+  onPeriodChange: (periodId: string) => void;
 
   // Session status
   sessionStatus: "DRAFT" | "SUBMITTED" | null;
@@ -53,38 +55,41 @@ export default function SessionPickerPanel({
   termEndDate,
   mode,
   periods,
-  selectedPeriodIndex,
+  selectedPeriodId,
   onPeriodChange,
   sessionStatus,
-  disabled = false,
 }: SessionPickerPanelProps) {
   const t = useTranslations("attendance.rollCall");
   const tStatus = useTranslations("attendance.rollCall.sessionStatus");
   const locale = useLocale();
 
   const handlePrevPeriod = () => {
-    if (selectedPeriodIndex === null || selectedPeriodIndex <= 1) return;
-    onPeriodChange(selectedPeriodIndex - 1);
+    if (!selectedPeriodId) return;
+    const currentIdx = periods.findIndex((p) => p.id === selectedPeriodId);
+    if (currentIdx <= 0) return;
+    onPeriodChange(periods[currentIdx - 1].id);
   };
 
   const handleNextPeriod = () => {
-    if (selectedPeriodIndex === null || selectedPeriodIndex >= periods.length) return;
-    onPeriodChange(selectedPeriodIndex + 1);
+    if (!selectedPeriodId) return;
+    const currentIdx = periods.findIndex((p) => p.id === selectedPeriodId);
+    if (currentIdx < 0 || currentIdx >= periods.length - 1) return;
+    onPeriodChange(periods[currentIdx + 1].id);
   };
 
   return (
-    <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+    <div style={{ backgroundColor: "var(--background)", borderRight: "1px solid var(--color-border)" }} className="w-80 flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900">{t("sessionPicker.title")}</h3>
-        <p className="text-sm text-gray-600 mt-1">{t("sessionPicker.subtitle")}</p>
+      <div style={{ borderBottom: "1px solid var(--color-border)" }} className="p-4">
+        <h3 style={{ color: "var(--color-gray-900)" }} className="text-lg font-semibold">{t("sessionPicker.title")}</h3>
+        <p style={{ color: "var(--color-gray-600)" }} className="text-sm mt-1">{t("sessionPicker.subtitle")}</p>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Scope Picker */}
         <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-3">{t("sessionPicker.scope")}</h4>
+          <h4 style={{ color: "var(--color-gray-700)" }} className="text-sm font-medium mb-3">{t("sessionPicker.scope")}</h4>
           <ScopePicker
             scopeType={scopeType}
             scopeIds={scopeIds}
@@ -93,26 +98,24 @@ export default function SessionPickerPanel({
             sections={sections}
             onScopeTypeChange={onScopeTypeChange}
             onScopeIdsChange={onScopeIdsChange}
-            disabled={disabled}
           />
         </div>
 
         {/* Date Picker */}
         <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-3">{t("sessionPicker.date")}</h4>
+          <h4 style={{ color: "var(--color-gray-700)" }} className="text-sm font-medium mb-3">{t("sessionPicker.date")}</h4>
           <DatePicker
             value={date ? new Date(date) : null}
             onChange={(newDate) => onDateChange(newDate ? newDate.toISOString().split("T")[0] : "")}
             minDate={termStartDate ? new Date(termStartDate) : undefined}
             maxDate={termEndDate ? new Date(termEndDate) : undefined}
-            disabled={disabled}
           />
         </div>
 
         {/* Mode & Period Selection */}
         {mode === "PERIOD" && periods.length > 0 && (
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-3">{t("sessionPicker.period")}</h4>
+            <h4 style={{ color: "var(--color-gray-700)" }} className="text-sm font-medium mb-3">{t("sessionPicker.period")}</h4>
 
             {/* Period Navigation */}
             <div className="flex items-center gap-2 mb-3">
@@ -120,7 +123,7 @@ export default function SessionPickerPanel({
                 variant="outline"
                 size="sm"
                 onClick={handlePrevPeriod}
-                disabled={disabled || selectedPeriodIndex === null || selectedPeriodIndex <= 1}
+                disabled={ !selectedPeriodId || periods.findIndex((p) => p.id === selectedPeriodId) <= 0}
                 leftIcon={locale === "ar" ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
               >
                 {t("sessionPicker.prev")}
@@ -130,7 +133,7 @@ export default function SessionPickerPanel({
                 size="sm"
                 onClick={handleNextPeriod}
                 disabled={
-                  disabled || selectedPeriodIndex === null || selectedPeriodIndex >= periods.length
+                   !selectedPeriodId || periods.findIndex((p) => p.id === selectedPeriodId) >= periods.length - 1
                 }
                 rightIcon={locale === "ar" ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               >
@@ -140,35 +143,40 @@ export default function SessionPickerPanel({
 
             {/* Period List */}
             <div className="space-y-2">
-              {periods.map((period) => (
-                <button
-                  key={period.index}
-                  onClick={() => onPeriodChange(period.index)}
-                  disabled={disabled}
-                  className={`w-full text-left px-3 py-2 rounded border transition-colors ${
-                    selectedPeriodIndex === period.index
-                      ? "bg-primary text-white border-primary"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                  } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                >
-                  <div className={`font-medium ${locale === "ar" ? "text-right" : "text-left"}`}>
-                    {locale === "ar" ? period.nameAr : period.nameEn}
-                  </div>
-                  {period.startTime && period.endTime && (
-                    <div className="text-xs mt-1 opacity-80">
-                      {period.startTime} - {period.endTime}
+              {periods.map((period) => {
+                const isSelected = selectedPeriodId === period.id;
+                return (
+                  <button
+                    key={period.id}
+                    onClick={() => onPeriodChange(period.id)}
+                    style={{
+                      backgroundColor: isSelected ? "var(--color-primary)" : "var(--background)",
+                      color: isSelected ? "var(--color-white)" : "var(--color-gray-700)",
+                      borderColor: isSelected ? "var(--color-primary)" : "var(--color-neutral-300)",
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded border transition-colors ${
+                      isSelected ? "" : "hover:bg-[var(--color-neutral-50)]"
+                    } ${"cursor-pointer"}`}
+                  >
+                    <div className={`font-medium ${locale === "ar" ? "text-right" : "text-left"}`}>
+                      {locale === "ar" ? period.nameAr : period.nameEn}
                     </div>
-                  )}
-                </button>
-              ))}
+                    {period.startTime && period.endTime && (
+                      <div className="text-xs mt-1 opacity-80">
+                        {period.startTime} - {period.endTime}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
 
         {/* Daily Mode Indicator */}
         {mode === "DAILY" && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-            <div className="flex items-center gap-2 text-blue-800">
+          <div style={{ backgroundColor: "var(--color-primary-50)", borderColor: "var(--color-primary-200)" }} className="p-3 border rounded">
+            <div style={{ color: "var(--color-primary-800)" }} className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               <span className="text-sm font-medium">{t("sessionPicker.dailyMode")}</span>
             </div>
@@ -178,13 +186,13 @@ export default function SessionPickerPanel({
         {/* Session Status */}
         {sessionStatus && (
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">{t("sessionPicker.status")}</h4>
+            <h4 style={{ color: "var(--color-gray-700)" }} className="text-sm font-medium mb-2">{t("sessionPicker.status")}</h4>
             <span
-              className={`inline-flex px-3 py-1 text-sm font-medium rounded ${
-                sessionStatus === "SUBMITTED"
-                  ? "bg-green-100 text-green-800"
-                  : "bg-gray-100 text-gray-800"
-              }`}
+              style={{
+                backgroundColor: getSessionStatusStyle(sessionStatus).bg,
+                color: getSessionStatusStyle(sessionStatus).fg,
+              }}
+              className="inline-flex px-3 py-1 text-sm font-medium rounded"
             >
               {tStatus(sessionStatus.toLowerCase())}
             </span>

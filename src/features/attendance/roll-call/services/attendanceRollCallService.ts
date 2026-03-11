@@ -95,7 +95,8 @@ export async function getOrCreateSession(params: {
   scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION";
   scopeIds?: { stageId?: string; gradeId?: string; sectionId?: string };
   mode: AttendanceSessionMode;
-  periodIndex?: number;
+  periodId?: string; // Canonical stable ID from TimetablePeriod.id
+  periodIndex?: number; // Display/order only (derived from timetable)
   periodNameAr?: string;
   periodNameEn?: string;
 }): Promise<SessionWithEntries> {
@@ -114,7 +115,23 @@ export async function getOrCreateSession(params: {
     if (s.date !== params.date) return false;
     if (s.scopeType !== params.scopeType) return false;
     if (s.mode !== params.mode) return false;
-    if (params.mode === "PERIOD" && s.periodIndex !== params.periodIndex) return false;
+    
+    // For PERIOD mode, match by periodId first (canonical), fallback to periodIndex for backward compatibility
+    if (params.mode === "PERIOD") {
+      // If both have periodId, match by periodId
+      if (params.periodId && s.periodId) {
+        if (s.periodId !== params.periodId) return false;
+      } else if (params.periodId && !s.periodId) {
+        // Session lacks periodId but we have it - check periodIndex for backward compat
+        if (s.periodIndex !== params.periodIndex) return false;
+      } else if (!params.periodId && s.periodId) {
+        // We lack periodId but session has it - no match
+        return false;
+      } else {
+        // Neither has periodId - fallback to periodIndex
+        if (s.periodIndex !== params.periodIndex) return false;
+      }
+    }
 
     // Check scope IDs match
     if (params.scopeType === "SECTION") {
@@ -131,19 +148,26 @@ export async function getOrCreateSession(params: {
   });
 
   if (existing) {
+    // Migration: patch periodId on existing session if it lacks one
+    if (params.periodId && !existing.periodId && params.mode === "PERIOD") {
+      existing.periodId = params.periodId;
+      existing.updatedAt = new Date().toISOString();
+    }
+    
     const entries = entryStore[storeKey].filter((e) => e.sessionId === existing.id);
     return { session: existing, entries };
   }
 
   // Create new session
   const newSession: AttendanceSession = {
-    id: `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: `session-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
     yearId: params.yearId,
     termId: params.termId,
     date: params.date,
     scopeType: params.scopeType,
     scopeIds: params.scopeIds,
     mode: params.mode,
+    periodId: params.periodId, // Store canonical periodId
     periodIndex: params.periodIndex,
     periodNameAr: params.periodNameAr,
     periodNameEn: params.periodNameEn,

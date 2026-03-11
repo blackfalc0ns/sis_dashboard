@@ -285,13 +285,13 @@ export default function PolicyEditorPanel({
           {/* Status Badge */}
           {isEditing && (
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">{t("status")}:</span>
+              <span style={{ color: "var(--color-gray-700)" }} className="text-sm font-medium">{t("status")}:</span>
               <span
-                className={`px-2 py-1 text-xs font-medium rounded ${
-                  formData.isActive
-                    ? "bg-green-100 text-green-800"
-                    : "bg-gray-100 text-gray-800"
-                }`}
+                style={{
+                  backgroundColor: formData.isActive ? "#dcfce7" : "var(--color-neutral-100)",
+                  color: formData.isActive ? "#14532d" : "var(--color-neutral-800)",
+                }}
+                className="px-2 py-1 text-xs font-medium rounded"
               >
                 {formData.isActive ? tForm("active") : tForm("inactive")}
               </span>
@@ -330,11 +330,11 @@ export default function PolicyEditorPanel({
 
           {/* Mode */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
               {tForm("mode")} <span className="text-red-500">*</span>
             </label>
             <div className="space-y-2">
-              <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+              <label style={{ borderColor: "var(--color-border)" }} className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-[var(--color-neutral-50)]">
                 <input
                   type="radio"
                   name="mode"
@@ -345,11 +345,11 @@ export default function PolicyEditorPanel({
                   className="mt-1"
                 />
                 <div>
-                  <div className="font-medium text-gray-900">{tForm("daily")}</div>
-                  <div className="text-sm text-gray-500">{tForm("dailyDesc")}</div>
+                  <div style={{ color: "var(--color-gray-900)" }} className="font-medium">{tForm("daily")}</div>
+                  <div style={{ color: "var(--color-neutral-500)" }} className="text-sm">{tForm("dailyDesc")}</div>
                 </div>
               </label>
-              <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+              <label style={{ borderColor: "var(--color-border)" }} className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-[var(--color-neutral-50)]">
                 <input
                   type="radio"
                   name="mode"
@@ -360,8 +360,8 @@ export default function PolicyEditorPanel({
                   className="mt-1"
                 />
                 <div>
-                  <div className="font-medium text-gray-900">{tForm("period")}</div>
-                  <div className="text-sm text-gray-500">{tForm("periodDesc")}</div>
+                  <div style={{ color: "var(--color-gray-900)" }} className="font-medium">{tForm("period")}</div>
+                  <div style={{ color: "var(--color-neutral-500)" }} className="text-sm">{tForm("periodDesc")}</div>
                 </div>
               </label>
             </div>
@@ -370,7 +370,7 @@ export default function PolicyEditorPanel({
           {/* Numeric Rules */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-1">
                 {tForm("lateThreshold")} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -382,13 +382,13 @@ export default function PolicyEditorPanel({
                   disabled={isReadOnly}
                   error={errors.lateThresholdMinutes}
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                <span style={{ color: "var(--color-neutral-500)" }} className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
                   {tForm("minutes")}
                 </span>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-1">
                 {tForm("earlyThreshold")} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -400,7 +400,7 @@ export default function PolicyEditorPanel({
                   disabled={isReadOnly}
                   error={errors.earlyLeaveThresholdMinutes}
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                <span style={{ color: "var(--color-neutral-500)" }} className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
                   {tForm("minutes")}
                 </span>
               </div>
@@ -408,7 +408,7 @@ export default function PolicyEditorPanel({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-1">
               {tForm("autoAbsentAfter")}
             </label>
             <div className="relative">
@@ -421,11 +421,11 @@ export default function PolicyEditorPanel({
                 error={errors.autoAbsentAfterMinutes}
                 placeholder={tForm("optional")}
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+              <span style={{ color: "var(--color-neutral-500)" }} className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
                 {tForm("minutes")}
               </span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">{tForm("autoAbsentAfterDesc")}</p>
+            <p style={{ color: "var(--color-neutral-500)" }} className="text-xs mt-1">{tForm("autoAbsentAfterDesc")}</p>
           </div>
 
           {/* Excuses */}
@@ -438,7 +438,7 @@ export default function PolicyEditorPanel({
                 disabled={isReadOnly}
                 className="w-4 h-4"
               />
-              <span className="text-sm font-medium text-gray-700">{tForm("allowExcuses")}</span>
+              <span style={{ color: "var(--color-gray-700)" }} className="text-sm font-medium">{tForm("allowExcuses")}</span>
             </label>
             
             {formData.allowExcuses && (
@@ -450,7 +450,7 @@ export default function PolicyEditorPanel({
                   disabled={isReadOnly}
                   className="w-4 h-4"
                 />
-                <span className="text-sm text-gray-700">{tForm("requireAttachment")}</span>
+                <span style={{ color: "var(--color-gray-700)" }} className="text-sm">{tForm("requireAttachment")}</span>
               </label>
             )}
           </div>
@@ -458,7 +458,7 @@ export default function PolicyEditorPanel({
           {/* Effective Dates */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-1">
                 {tForm("effectiveStart")} <span className="text-red-500">*</span>
               </label>
               <DatePicker
@@ -469,7 +469,7 @@ export default function PolicyEditorPanel({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-1">
                 {tForm("effectiveEnd")} <span className="text-red-500">*</span>
               </label>
               <DatePicker
@@ -481,7 +481,7 @@ export default function PolicyEditorPanel({
             </div>
           </div>
           {term && (
-            <p className="text-xs text-gray-500">
+            <p style={{ color: "var(--color-neutral-500)" }} className="text-xs">
               {tForm("termRangeHint", { start: term.startDate, end: term.endDate })}
             </p>
           )}
@@ -495,7 +495,7 @@ export default function PolicyEditorPanel({
               disabled={isReadOnly}
               className="w-4 h-4"
             />
-            <span className="text-sm font-medium text-gray-700">{tForm("isActive")}</span>
+            <span style={{ color: "var(--color-gray-700)" }} className="text-sm font-medium">{tForm("isActive")}</span>
           </label>
         </div>
       </Modal>

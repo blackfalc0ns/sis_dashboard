@@ -70,10 +70,11 @@ export default function RollCallFiltersDrawer({
       <div className="p-4 max-h-[80vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">{t("title")}</h3>
+          <h3 style={{ color: "var(--color-gray-900)" }} className="text-lg font-semibold">{t("title")}</h3>
           <button
             onClick={onClose}
-            className="p-1 text-gray-500 hover:text-gray-700 rounded"
+            style={{ color: "var(--color-neutral-500)" }}
+            className="p-1 rounded hover:text-[var(--color-gray-700)]"
           >
             <X className="w-5 h-5" />
           </button>
@@ -81,11 +82,11 @@ export default function RollCallFiltersDrawer({
 
         {/* Search */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-1">
             {t("searchPlaceholder")}
           </label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search style={{ color: "var(--color-neutral-400)" }} className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" />
             <Input
               type="text"
               placeholder={t("searchPlaceholder")}
@@ -141,7 +142,7 @@ export default function RollCallFiltersDrawer({
 
         {/* Late Minutes Filter */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-1">
             {t("lateMinLabel")}
           </label>
           <Input
@@ -161,7 +162,7 @@ export default function RollCallFiltersDrawer({
 
         {/* Early Leave Minutes Filter */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-1">
             {t("earlyLeaveMinLabel")}
           </label>
           <Input
@@ -180,7 +181,7 @@ export default function RollCallFiltersDrawer({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 pt-4 border-t border-gray-200">
+        <div style={{ borderColor: "var(--color-border)" }} className="flex items-center gap-2 pt-4 border-t">
           <Button variant="outline" size="sm" onClick={onReset} className="flex-1">
             {t("reset")}
           </Button>

@@ -15,6 +15,7 @@ import {
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import type { PolicyKpis } from "../utils/policyKpis";
 import { EXPIRY_WINDOW_DAYS } from "../utils/policyKpis";
+import { getKpiIconStyle, getCoverageStyle } from "@/features/attendance/shared/statusStyles";
 
 interface PoliciesKpiPanelProps {
   kpis: PolicyKpis | null;
@@ -52,26 +53,15 @@ export default function PoliciesKpiPanel({
     return null;
   }
 
-  // Helper function to get color based on coverage
-  const getCoverageColor = (percent: number) => {
-    if (percent === 100) return "#16a34a"; // green
-    if (percent >= 50) return "#f59e0b"; // yellow/orange
-    return "#ef4444"; // red
-  };
-
-  const getCoverageBgColor = (percent: number) => {
-    if (percent === 100) return "#dcfce7"; // green bg
-    if (percent >= 50) return "#fef3c7"; // yellow bg
-    return "#fef2f2"; // red bg
-  };
-
   const kpiCards = [
     {
       title: t("activePolicies"),
       value: kpis.activePoliciesCount,
+      subtitle: undefined,
       icon: Shield,
-      iconColor: "#2563eb",
-      iconBgColor: "#dbeafe",
+      iconColor: undefined,
+      iconBgColor: undefined,
+      ...getKpiIconStyle("primary"),
     },
     {
       title: t("coverage"),
@@ -81,52 +71,63 @@ export default function PoliciesKpiPanel({
         total: kpis.totalSectionsCount,
       }),
       icon: Target,
-      iconColor: getCoverageColor(kpis.coveragePercent),
-      iconBgColor: getCoverageBgColor(kpis.coveragePercent),
+      iconColor: undefined,
+      iconBgColor: undefined,
+      ...getCoverageStyle(kpis.coveragePercent),
     },
     {
       title: t("dailyPolicies"),
       value: kpis.dailyCount,
       subtitle: kpis.derivedDailyCount > 0 ? t("derivedCount", { count: kpis.derivedDailyCount }) : undefined,
       icon: Calendar,
-      iconColor: kpis.hasDaily ? "#16a34a" : "#9ca3af",
-      iconBgColor: kpis.hasDaily ? "#dcfce7" : "#f3f4f6",
+      iconColor: undefined,
+      iconBgColor: undefined,
+      ...getKpiIconStyle(kpis.hasDaily ? "success" : "neutral"),
     },
     {
       title: t("periodPolicies"),
       value: kpis.periodCount,
+      subtitle: undefined,
       icon: Clock,
-      iconColor: kpis.hasPeriod ? "#16a34a" : "#9ca3af",
-      iconBgColor: kpis.hasPeriod ? "#dcfce7" : "#f3f4f6",
+      iconColor: undefined,
+      iconBgColor: undefined,
+      ...getKpiIconStyle(kpis.hasPeriod ? "success" : "neutral"),
     },
     {
       title: t("notificationsEnabled"),
       value: kpis.notificationsEnabledCount,
+      subtitle: undefined,
       icon: Bell,
-      iconColor: kpis.notificationsEnabledCount > 0 ? "#8b5cf6" : "#9ca3af",
-      iconBgColor: kpis.notificationsEnabledCount > 0 ? "#ede9fe" : "#f3f4f6",
+      iconColor: "#8b5cf6",
+      iconBgColor: "#ede9fe",
+      ...getKpiIconStyle(kpis.notificationsEnabledCount > 0 ? "primary" : "neutral"),
     },
     {
       title: t("conflicts"),
       value: kpis.conflictsCount,
+      subtitle: undefined,
       icon: AlertCircle,
-      iconColor: kpis.conflictsCount > 0 ? "#ef4444" : "#16a34a",
-      iconBgColor: kpis.conflictsCount > 0 ? "#fef2f2" : "#dcfce7",
+      iconColor: undefined,
+      iconBgColor: undefined,
+      ...getKpiIconStyle(kpis.conflictsCount > 0 ? "danger" : "success"),
     },
     {
       title: t("incompleteConfig"),
       value: kpis.incompleteConfigCount,
+      subtitle: undefined,
       icon: AlertTriangle,
-      iconColor: kpis.incompleteConfigCount > 0 ? "#f97316" : "#9ca3af",
-      iconBgColor: kpis.incompleteConfigCount > 0 ? "#ffedd5" : "#f3f4f6",
+      iconColor: undefined,
+      iconBgColor: undefined,
+      ...getKpiIconStyle(kpis.incompleteConfigCount > 0 ? "warning" : "neutral"),
     },
     {
       title: t("expiringSoon"),
       value: kpis.expiringSoonCount,
       subtitle: t("expiringSoonHint", { days: EXPIRY_WINDOW_DAYS }),
       icon: Layers,
-      iconColor: kpis.expiringSoonCount > 0 ? "#f97316" : "#9ca3af",
-      iconBgColor: kpis.expiringSoonCount > 0 ? "#ffedd5" : "#f3f4f6",
+      iconColor: undefined,
+      iconBgColor: undefined,
+      ...getKpiIconStyle(kpis.expiringSoonCount > 0 ? "warning" : "neutral"),
     },
   ];
 

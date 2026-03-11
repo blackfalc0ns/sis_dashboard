@@ -46,7 +46,7 @@ export default function RollCallHeaderBar({
                       onUnsubmit;
 
   return (
-    <div className="bg-white border-b border-gray-200 px-4 py-3">
+    <div style={{ backgroundColor: "var(--background)", borderBottom: "1px solid var(--color-border)" }} className="px-4 py-3">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         {/* Left: Bulk Actions */}
         <div className="flex items-center gap-2">

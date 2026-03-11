@@ -92,15 +92,15 @@ export default function RosterTable({
               className="w-8 h-8 rounded-full object-cover"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-              <User className="w-4 h-4 text-gray-500" />
+            <div style={{ backgroundColor: "var(--color-neutral-200)" }} className="w-8 h-8 rounded-full flex items-center justify-center">
+              <User style={{ color: "var(--color-neutral-500)" }} className="w-4 h-4" />
             </div>
           )}
           <div>
-            <div className="font-medium text-gray-900">
+            <div style={{ color: "var(--color-gray-900)" }} className="font-medium">
               {locale === "ar" ? row.nameAr : row.nameEn}
             </div>
-            <div className="text-xs text-gray-500">{row.studentNumber}</div>
+            <div style={{ color: "var(--color-neutral-500)" }} className="text-xs">{row.studentNumber}</div>
           </div>
         </div>
       ),
@@ -179,7 +179,7 @@ export default function RosterTable({
                 className={`text-sm ${locale === "ar" ? "pl-12" : "pr-12"}`}
               />
               <div className={`absolute inset-y-0 ${locale === "ar" ? "left-0 pl-2" : "right-0 pr-2"} flex items-center pointer-events-none`}>
-                <span className="text-xs text-gray-500">{tForm("minutes")}</span>
+                <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{tForm("minutes")}</span>
               </div>
             </div>
           );
@@ -208,7 +208,7 @@ export default function RosterTable({
                   error={!minutes ? t("earlyLeave.required") : undefined}
                 />
                 <div className={`absolute inset-y-0 ${locale === "ar" ? "left-0 pl-2" : "right-0 pr-2"} flex items-center pointer-events-none`}>
-                  <span className="text-xs text-gray-500">{tForm("minutes")}</span>
+                  <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{tForm("minutes")}</span>
                 </div>
               </div>
               {isBelowThreshold && (
@@ -220,7 +220,7 @@ export default function RosterTable({
           );
         }
 
-        return <span className="text-sm text-gray-400">—</span>;
+        return <span style={{ color: "var(--color-neutral-400)" }} className="text-sm">—</span>;
       },
     },
     {
@@ -230,7 +230,7 @@ export default function RosterTable({
         const entry = entries.find((e) => e.studentId === row.id);
 
         if (isReadOnly) {
-          return <span className="text-sm text-gray-600">{entry?.note || "—"}</span>;
+          return <span style={{ color: "var(--color-gray-600)" }} className="text-sm">{entry?.note || "—"}</span>;
         }
 
         return (

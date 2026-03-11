@@ -1,8 +1,12 @@
 ﻿import { fetchPolicies } from "@/features/attendance/policies/services/attendancePolicyService";
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
 import { getOrCreateSession, upsertEntry } from "@/features/attendance/roll-call/services/attendanceRollCallService";
+import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
+import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
+import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
 import type { AttachmentMeta as RollCallAttachmentMeta } from "@/features/attendance/roll-call/types";
 import type { ExcuseRequest } from "../types";
+import { normalizeSelectedPeriodIds } from "../../utils/periodIdNormalization";
 
 interface ApplyExcuseParams {
   request: ExcuseRequest;
@@ -22,16 +26,6 @@ function enumerateDates(dateFrom: string, dateTo: string): string[] {
   }
 
   return result;
-}
-
-function parsePeriodIds(selectedPeriodIds: string[] | undefined): number[] {
-  if (!selectedPeriodIds || selectedPeriodIds.length === 0) return [];
-  return selectedPeriodIds
-    .map((id) => {
-      const match = id.match(/(\d+)$/);
-      return match ? Number(match[1]) : NaN;
-    })
-    .filter((value) => Number.isFinite(value));
 }
 
 function resolveEffectivePolicy(
@@ -61,26 +55,63 @@ function resolveEffectivePolicy(
   return null;
 }
 
-function choosePeriods(request: ExcuseRequest, policy: AttendancePolicy): number[] {
-  const policyPeriods = parsePeriodIds(policy.selectedPeriodIds);
+async function fetchTimetablePeriodsForScope(
+  termId: string,
+  scopeType: ExcuseRequest["scopeType"],
+  scopeIds: ExcuseRequest["scopeIds"]
+): Promise<TimetablePeriod[]> {
+  const termConfig = await fetchTimetableConfig(termId, "TERM");
+  
+  let gradeConfig = null;
+  if (scopeIds?.gradeId) {
+    gradeConfig = await fetchTimetableConfig(termId, "GRADE", scopeIds.gradeId);
+  }
+  
+  let sectionConfig = null;
+  if (scopeIds?.sectionId) {
+    sectionConfig = await fetchTimetableConfig(termId, "SECTION", scopeIds.sectionId);
+  }
+
+  const resolved = resolveTimetableConfig(termConfig, gradeConfig, sectionConfig);
+  return resolved.periods;
+}
+
+function choosePeriodIds(
+  request: ExcuseRequest,
+  policy: AttendancePolicy,
+  periods: TimetablePeriod[]
+): string[] {
+  // Normalize policy's selected period IDs
+  const normalizedPolicyPeriods = normalizeSelectedPeriodIds(
+    policy.selectedPeriodIds || [],
+    periods
+  );
 
   if (request.type === "ABSENCE") {
-    return policyPeriods.length > 0 ? policyPeriods : [1];
+    // For absence, use all selected periods from policy
+    return normalizedPolicyPeriods.length > 0 ? normalizedPolicyPeriods : [periods[0]?.id].filter(Boolean);
   }
 
+  // For LATE/EARLY_LEAVE, check if request has legacy periodIndexes
   if (request.periodIndexes && request.periodIndexes.length > 0) {
-    return request.periodIndexes;
+    // Map legacy indexes to period IDs
+    return request.periodIndexes
+      .map((index) => periods.find((p) => p.index === index)?.id)
+      .filter((id): id is string => id !== undefined);
   }
 
-  if (policyPeriods.length === 0) {
-    return [1];
+  // Use policy periods
+  if (normalizedPolicyPeriods.length === 0) {
+    return [periods[0]?.id].filter(Boolean);
   }
 
   if (request.type === "LATE") {
-    return [policyPeriods[0]];
+    // First period
+    return [normalizedPolicyPeriods[0]];
   }
 
-  return [policyPeriods[policyPeriods.length - 1]];
+  // EARLY_LEAVE - last period
+  return [normalizedPolicyPeriods[normalizedPolicyPeriods.length - 1]];
 }
 
 function mapAttachments(attachments: ExcuseRequest["attachments"]): RollCallAttachmentMeta[] {
@@ -98,9 +129,16 @@ export async function applyExcuseToAttendance({ request }: ApplyExcuseParams): P
   const dates = enumerateDates(request.dateFrom, request.dateTo);
   const linkedSessionIds = new Set<string>();
 
+  // Fetch timetable periods for the request's scope
+  const periods = await fetchTimetablePeriodsForScope(
+    request.termId,
+    request.scopeType,
+    request.scopeIds
+  );
+
   for (const date of dates) {
     const effectivePolicy = resolveEffectivePolicy(policies, date, request.scopeType, request.scopeIds);
-
+    console.log(effectivePolicy)
     if (!effectivePolicy || !effectivePolicy.allowExcuses) {
       throw new Error("Excuses are not allowed by policy for one or more dates in this request.");
     }
@@ -109,9 +147,17 @@ export async function applyExcuseToAttendance({ request }: ApplyExcuseParams): P
       throw new Error("Attachment is required by policy for approval.");
     }
 
-    const periods = choosePeriods(request, effectivePolicy);
+    // Choose target period IDs based on request type and policy
+    const targetPeriodIds = choosePeriodIds(request, effectivePolicy, periods);
 
-    for (const periodIndex of periods) {
+    for (const periodId of targetPeriodIds) {
+      const periodData = periods.find((p) => p.id === periodId);
+      
+      if (!periodData) {
+        console.warn(`Period ${periodId} not found in timetable, skipping`);
+        continue;
+      }
+
       const sessionData = await getOrCreateSession({
         yearId: request.yearId,
         termId: request.termId,
@@ -119,9 +165,10 @@ export async function applyExcuseToAttendance({ request }: ApplyExcuseParams): P
         scopeType: request.scopeType,
         scopeIds: request.scopeIds,
         mode: "PERIOD",
-        periodIndex,
-        periodNameAr: `الحصة ${periodIndex}`,
-        periodNameEn: `Period ${periodIndex}`,
+        periodId: periodData.id,
+        periodIndex: periodData.index,
+        periodNameAr: periodData.nameAr,
+        periodNameEn: periodData.nameEn,
       });
 
       linkedSessionIds.add(sessionData.session.id);

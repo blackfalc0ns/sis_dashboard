@@ -24,7 +24,8 @@ export interface AttendanceSession {
     sectionId?: string;
   };
   mode: AttendanceSessionMode;
-  periodIndex?: number; // Only for PERIOD mode
+  periodId?: string; // Canonical stable ID from TimetablePeriod.id (for PERIOD mode)
+  periodIndex?: number; // Display/order only (derived from timetable period.index)
   periodNameAr?: string;
   periodNameEn?: string;
   status: AttendanceSessionStatus;

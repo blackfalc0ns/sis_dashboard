@@ -2,21 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { useSearchParams, useRouter } from "next/navigation";
 import { Drawer, useMediaQuery } from "@mui/material";
 import { AlertCircle, Filter, Plus } from "lucide-react";
 import ContextBar from "@/features/academics/components/shared/ContextBar";
 import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useToast } from "@/components/ui/toast/Toast";
+import { useAttendanceTermContext } from "@/features/attendance/shared/hooks/useAttendanceTermContext";
 import {
-  fetchAcademicYears,
-  fetchTermsByYear,
   fetchStructureTree,
   type Stage,
   type Grade,
   type Section,
-  type Term,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
 import {
@@ -29,6 +26,10 @@ import {
   validateExcuseRequest,
   resolveRequestPolicy,
 } from "../services/attendanceExcusesService";
+import {
+  resolveEffectiveExcusePolicy,
+  type EffectiveExcusePolicy,
+} from "@/features/attendance/policies/services/attendancePolicyService";
 import type { ExcuseRequest, ExcuseRequestFilters, ExcusesKpis } from "../types";
 import { exportExcuses } from "../utils/excusesExport";
 import ExcusesKpisBar from "../components/ExcusesKpisBar";
@@ -56,16 +57,11 @@ export default function AttendanceExcusesPage() {
   const t = useTranslations("attendance.excuses");
   const tCommon = useTranslations("common");
   const locale = useLocale();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { showSuccess, showError } = useToast();
   const isMobile = useMediaQuery("(max-width: 768px)");
 
-  const [academicYearId, setAcademicYearId] = useState("");
-  const [termId, setTermId] = useState("");
-  const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
-  const [term, setTerm] = useState<Term | null>(null);
-  const [terms, setTerms] = useState<Term[]>([]);
+  // Use unified term context
+  const termContext = useAttendanceTermContext();
 
   const [stages, setStages] = useState<Stage[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -73,7 +69,7 @@ export default function AttendanceExcusesPage() {
   const [periods, setPeriods] = useState<Array<{ index: number; nameAr: string; nameEn: string }>>([]);
 
   const [requests, setRequests] = useState<ExcuseRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const [filters, setFilters] = useState<ExcuseRequestFilters>({
     scopeType: "SCHOOL",
@@ -92,75 +88,44 @@ export default function AttendanceExcusesPage() {
   const [decisionRequest, setDecisionRequest] = useState<ExcuseRequest | null>(null);
   const [decisionAction, setDecisionAction] = useState<"APPROVE" | "REJECT">("APPROVE");
   const [deleteTarget, setDeleteTarget] = useState<ExcuseRequest | null>(null);
+  const [requestPolicy, setRequestPolicy] = useState<EffectiveExcusePolicy | null>(null);
 
-  const isReadOnly = termStatus === "closed";
+  const isReadOnly = termContext.isReadOnly;
   const kpis = useMemo(() => computeKpis(requests), [requests]);
 
+  // Get current term object
+  const term = useMemo(() => {
+    return termContext.terms.find((t) => t.id === termContext.termId) || null;
+  }, [termContext.terms, termContext.termId]);
+
   const reloadRequests = useCallback(async () => {
-    if (!academicYearId || !termId) return;
+    if (!termContext.yearId || !termContext.termId) return;
 
     setLoading(true);
     try {
-      const data = await fetchExcuseRequests({ yearId: academicYearId, termId, ...filters });
+      const data = await fetchExcuseRequests({ yearId: termContext.yearId, termId: termContext.termId, ...filters });
       setRequests(data);
 
-      if (selectedRequest) {
-        const nextSelected = data.find((item) => item.id === selectedRequest.id) || null;
-        setSelectedRequest(nextSelected);
-      }
+      // Update selected request if it exists in the new list
+      setSelectedRequest((prev) => {
+        if (!prev) return null;
+        return data.find((item) => item.id === prev.id) || null;
+      });
     } catch (error) {
       console.error("Failed to load excuse requests", error);
       showError(tCommon("error_loading"));
     } finally {
       setLoading(false);
     }
-  }, [academicYearId, filters, selectedRequest, showError, tCommon, termId]);
+  }, [termContext.yearId, termContext.termId, filters, showError, tCommon]);
 
   useEffect(() => {
-    const initialize = async () => {
-      try {
-        const years = await fetchAcademicYears();
-        const urlYear = searchParams.get("year");
-        const urlTerm = searchParams.get("term");
-        const selectedYear = years.find((item) => item.id === urlYear) || years[0];
-        if (!selectedYear) return;
-
-        const yearTerms = await fetchTermsByYear(selectedYear.id);
-        setTerms(yearTerms);
-
-        const selectedTerm = yearTerms.find((item) => item.id === urlTerm) || yearTerms.find((item) => item.status === "open") || yearTerms[0];
-        if (!selectedTerm) return;
-
-        setAcademicYearId(selectedYear.id);
-        setTermId(selectedTerm.id);
-        setTermStatus(selectedTerm.status);
-        setTerm(selectedTerm);
-
-        setFilters((prev) => ({ ...prev, dateFrom: selectedTerm.startDate, dateTo: selectedTerm.endDate }));
-
-        const params = new URLSearchParams();
-        params.set("year", selectedYear.id);
-        params.set("term", selectedTerm.id);
-        router.replace(`?${params.toString()}`, { scroll: false });
-      } catch (error) {
-        console.error("Failed to initialize excuses page", error);
-        showError(tCommon("error_loading"));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initialize();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!academicYearId || !termId) return;
+    if (!termContext.yearId || !termContext.termId) return;
 
     const loadStructure = async () => {
       const [structure, timetable] = await Promise.all([
-        fetchStructureTree(academicYearId, termId),
-        fetchTimetableConfig(termId, "TERM"),
+        fetchStructureTree(termContext.yearId!, termContext.termId!),
+        fetchTimetableConfig(termContext.termId!, "TERM"),
       ]);
 
       setStages(structure.stages);
@@ -170,47 +135,18 @@ export default function AttendanceExcusesPage() {
     };
 
     loadStructure();
-  }, [academicYearId, termId]);
+  }, [termContext.yearId, termContext.termId]);
 
   useEffect(() => {
     reloadRequests();
   }, [reloadRequests]);
 
-  const updateURL = useCallback(
-    (yearId: string, nextTermId: string) => {
-      const params = new URLSearchParams();
-      params.set("year", yearId);
-      params.set("term", nextTermId);
-      router.replace(`?${params.toString()}`, { scroll: false });
-    },
-    [router]
-  );
-
-  const handleYearChange = async (yearId: string) => {
-    setAcademicYearId(yearId);
-
-    const yearTerms = await fetchTermsByYear(yearId);
-    setTerms(yearTerms);
-    const nextTerm = yearTerms.find((item) => item.status === "open") || yearTerms[0];
-    if (!nextTerm) return;
-
-    setTermId(nextTerm.id);
-    setTermStatus(nextTerm.status);
-    setTerm(nextTerm);
-    setFilters((prev) => ({ ...prev, dateFrom: nextTerm.startDate, dateTo: nextTerm.endDate }));
-    updateURL(yearId, nextTerm.id);
-  };
-
-  const handleTermChange = (nextTermId: string) => {
-    const nextTerm = terms.find((item) => item.id === nextTermId);
-    if (!nextTerm) return;
-
-    setTermId(nextTermId);
-    setTermStatus(nextTerm.status);
-    setTerm(nextTerm);
-    setFilters((prev) => ({ ...prev, dateFrom: nextTerm.startDate, dateTo: nextTerm.endDate }));
-    updateURL(academicYearId, nextTermId);
-  };
+  // Update filters when term changes
+  useEffect(() => {
+    if (term) {
+      setFilters((prev) => ({ ...prev, dateFrom: term.startDate, dateTo: term.endDate }));
+    }
+  }, [term]);
 
   const getScopeLabel = () => {
     if (filters.scopeType === "SCHOOL") return t("scopeSchool");
@@ -231,7 +167,7 @@ export default function AttendanceExcusesPage() {
     if (!term) return;
 
     exportExcuses(requests, locale, format, {
-      yearName: academicYearId,
+      yearName: termContext.yearId || "",
       termName: locale === "ar" ? term.nameAr || term.name : term.nameEn || term.name,
       scopeName: getScopeLabel(),
       dateRange: filters.dateFrom && filters.dateTo ? `${filters.dateFrom} - ${filters.dateTo}` : t("allDates"),
@@ -244,8 +180,8 @@ export default function AttendanceExcusesPage() {
     if (!term) return;
 
     const effectivePolicy = await resolveRequestPolicy(
-      academicYearId,
-      termId,
+      termContext.yearId!,
+      termContext.termId!,
       payload.scopeType,
       payload.scopeIds,
       payload.dateFrom
@@ -254,8 +190,8 @@ export default function AttendanceExcusesPage() {
     const errors = await validateExcuseRequest(
       {
         ...payload,
-        yearId: academicYearId,
-        termId,
+        yearId: termContext.yearId!,
+        termId: termContext.termId!,
       },
       effectivePolicy,
       { startDate: term.startDate, endDate: term.endDate }
@@ -272,8 +208,8 @@ export default function AttendanceExcusesPage() {
     } else {
       await createExcuseRequest({
         ...payload,
-        yearId: academicYearId,
-        termId,
+        yearId: termContext.yearId!,
+        termId: termContext.termId!,
       });
       showSuccess(t("created"));
     }
@@ -321,6 +257,61 @@ export default function AttendanceExcusesPage() {
     setDecisionAction(action);
   };
 
+  const handleCreateRequest = async () => {
+    if (isReadOnly) return;
+
+    try {
+      // Use current filters for scope and date
+      const dateISO = filters.dateFrom || term?.startDate || new Date().toISOString().split('T')[0];
+      
+      const policy = await resolveEffectiveExcusePolicy(
+        termContext.yearId!,
+        termContext.termId!,
+        filters.scopeType,
+        filters.scopeIds,
+        dateISO
+      );
+
+      if (!policy.allowExcuses) {
+        showError(t("messages.excusesDisabledByPolicy"));
+        return;
+      }
+
+      setRequestPolicy(policy);
+      setEditingRequest(null);
+      setShowRequestModal(true);
+    } catch (error) {
+      console.error("Failed to resolve excuse policy:", error);
+      showError(tCommon("error_loading"));
+    }
+  };
+
+  const handleEditRequest = async (request: ExcuseRequest) => {
+    if (isReadOnly) return;
+
+    try {
+      const policy = await resolveEffectiveExcusePolicy(
+        termContext.yearId!,
+        termContext.termId!,
+        request.scopeType,
+        request.scopeIds,
+        request.dateFrom
+      );
+
+      if (!policy.allowExcuses) {
+        showError(t("messages.excusesDisabledByPolicy"));
+        return;
+      }
+
+      setRequestPolicy(policy);
+      setEditingRequest(request);
+      setShowRequestModal(true);
+    } catch (error) {
+      console.error("Failed to resolve excuse policy:", error);
+      showError(tCommon("error_loading"));
+    }
+  };
+
   const resetFilters = () => {
     setFilters({
       dateFrom: term?.startDate,
@@ -334,7 +325,7 @@ export default function AttendanceExcusesPage() {
     });
   };
 
-  if (loading && !term) {
+  if (termContext.isLoading) {
     return (
       <MainLoader />
     );
@@ -343,11 +334,11 @@ export default function AttendanceExcusesPage() {
   return (
     <div className="flex flex-col h-screen">
       <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
-        onAcademicYearChange={handleYearChange}
-        onTermChange={handleTermChange}
+        academicYearId={termContext.yearId || ""}
+        termId={termContext.termId || ""}
+        termStatus={termContext.termStatus || "open"}
+        onAcademicYearChange={termContext.setYearId}
+        onTermChange={termContext.setTermId}
         isReadOnly={isReadOnly}
         showPromoteCarryOver={false}
       />
@@ -381,10 +372,7 @@ export default function AttendanceExcusesPage() {
               size="sm"
               leftIcon={<Plus className="w-4 h-4" />}
               disabled={isReadOnly}
-              onClick={() => {
-                setEditingRequest(null);
-                setShowRequestModal(true);
-              }}
+              onClick={handleCreateRequest}
             >
               {t("createRequest")}
             </Button>
@@ -414,10 +402,7 @@ export default function AttendanceExcusesPage() {
                     onView={(request) => setSelectedRequest(request)}
                     onApprove={(request) => openDecision(request, "APPROVE")}
                     onReject={(request) => openDecision(request, "REJECT")}
-                    onEdit={(request) => {
-                      setEditingRequest(request);
-                      setShowRequestModal(true);
-                    }}
+                    onEdit={handleEditRequest}
                     onDelete={(request) => setDeleteTarget(request)}
                   />
                 )}
@@ -431,10 +416,7 @@ export default function AttendanceExcusesPage() {
                 onClose={() => setSelectedRequest(null)}
                 onApprove={(request) => openDecision(request, "APPROVE")}
                 onReject={(request) => openDecision(request, "REJECT")}
-                onEdit={(request) => {
-                  setEditingRequest(request);
-                  setShowRequestModal(true);
-                }}
+                onEdit={handleEditRequest}
               />
             </div>
           </div>
@@ -451,10 +433,7 @@ export default function AttendanceExcusesPage() {
                 size="sm"
                 leftIcon={<Plus className="w-4 h-4" />}
                 disabled={isReadOnly}
-                onClick={() => {
-                  setEditingRequest(null);
-                  setShowRequestModal(true);
-                }}
+                onClick={handleCreateRequest}
               >
                 {t("createRequest")}
               </Button>
@@ -468,10 +447,7 @@ export default function AttendanceExcusesPage() {
                 }}
                 onApprove={(request) => openDecision(request, "APPROVE")}
                 onReject={(request) => openDecision(request, "REJECT")}
-                onEdit={(request) => {
-                  setEditingRequest(request);
-                  setShowRequestModal(true);
-                }}
+                onEdit={handleEditRequest}
                 onDelete={(request) => setDeleteTarget(request)}
               />
             </div>
@@ -516,11 +492,12 @@ export default function AttendanceExcusesPage() {
         grades={grades}
         sections={sections}
         periods={periods}
-        requireAttachment={false}
+        requireAttachment={requestPolicy?.requireAttachmentForExcuse ?? false}
         initialRequest={editingRequest}
         onClose={() => {
           setShowRequestModal(false);
           setEditingRequest(null);
+          setRequestPolicy(null);
         }}
         onSave={handleSaveRequest}
       />

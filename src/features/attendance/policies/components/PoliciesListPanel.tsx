@@ -10,6 +10,7 @@ import Select from "@/components/ui/input/Select";
 import DataTable from "@/components/ui/data-table/DataTable";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { isPolicyConfigComplete, hasNotificationsEnabled } from "../utils/policyKpis";
+import { getPeriodDisplayLabel } from "../../utils/periodIdNormalization";
 import type { AttendancePolicy, AttendanceScopeType } from "../types";
 import type { Stage, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
 
@@ -221,10 +222,7 @@ export default function PoliciesListPanel({
           );
         }
 
-        const periodLabels = row.selectedPeriodIds?.map((id) => {
-          const periodNum = id.replace("period-", "");
-          return `P${periodNum}`;
-        });
+        const periodLabels = row.selectedPeriodIds?.map((id) => getPeriodDisplayLabel(id));
 
         return (
           <Tooltip title={periodLabels?.join(", ") || ""} arrow>
@@ -259,7 +257,7 @@ export default function PoliciesListPanel({
 
         return (
           <Tooltip title={summary} arrow>
-            <div className="flex items-center gap-1 text-sm text-purple-700 cursor-help">
+            <div className="flex items-center gap-1 text-sm text-purple-700 cursor-help flex-0 w-fit">
               <Bell className="w-3.5 h-3.5" />
               <span>{recipients.length + triggers.length}</span>
             </div>

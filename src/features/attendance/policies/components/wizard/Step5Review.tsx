@@ -32,12 +32,12 @@ export default function Step5Review({
     <div className="space-y-6">
       {/* Effective Dates */}
       <div>
-        <h4 className="font-semibold text-sm text-gray-900 mb-3">
+        <h4 style={{ color: "var(--color-gray-900)" }} className="font-semibold text-sm mb-3">
           {t("fields.effectiveDates")}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
               {t("fields.effectiveStart")} <span className="text-red-500">*</span>
             </label>
             <DatePicker
@@ -57,7 +57,7 @@ export default function Step5Review({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
               {t("fields.effectiveEnd")} <span className="text-red-500">*</span>
             </label>
             <DatePicker
@@ -78,20 +78,20 @@ export default function Step5Review({
           </div>
         </div>
         {term && (
-          <p className="text-xs text-gray-500 mt-2">
+          <p style={{ color: "var(--color-neutral-500)" }} className="text-xs mt-2">
             {t("termRangeHint", { start: term.startDate, end: term.endDate })}
           </p>
         )}
       </div>
 
       {/* Notifications */}
-      <div className="border border-gray-200 rounded-lg p-4 space-y-4">
-        <h4 className="font-semibold text-sm text-gray-900">
+      <div style={{ borderColor: "var(--color-border)" }} className="border rounded-lg p-4 space-y-4">
+        <h4 style={{ color: "var(--color-gray-900)" }} className="font-semibold text-sm">
           {t("fields.notifications")}
         </h4>
 
         <div>
-          <p className="text-sm font-medium text-gray-700 mb-2">
+          <p style={{ color: "var(--color-gray-700)" }} className="text-sm font-medium mb-2">
             {t("fields.notifyWho")}
           </p>
           <div className="space-y-2">
@@ -103,7 +103,7 @@ export default function Step5Review({
                 disabled={isReadOnly}
                 className="w-4 h-4"
               />
-              <span className="text-sm text-gray-700">{t("fields.notifyTeachers")}</span>
+              <span style={{ color: "var(--color-gray-700)" }} className="text-sm">{t("fields.notifyTeachers")}</span>
             </label>
             <label className="flex items-center gap-3">
               <input
@@ -113,7 +113,7 @@ export default function Step5Review({
                 disabled={isReadOnly}
                 className="w-4 h-4"
               />
-              <span className="text-sm text-gray-700">{t("fields.notifyStudents")}</span>
+              <span style={{ color: "var(--color-gray-700)" }} className="text-sm">{t("fields.notifyStudents")}</span>
             </label>
             <label className="flex items-center gap-3">
               <input
@@ -123,13 +123,13 @@ export default function Step5Review({
                 disabled={isReadOnly}
                 className="w-4 h-4"
               />
-              <span className="text-sm text-gray-700">{t("fields.notifyGuardians")}</span>
+              <span style={{ color: "var(--color-gray-700)" }} className="text-sm">{t("fields.notifyGuardians")}</span>
             </label>
           </div>
         </div>
 
         <div>
-          <p className="text-sm font-medium text-gray-700 mb-2">
+          <p style={{ color: "var(--color-gray-700)" }} className="text-sm font-medium mb-2">
             {t("fields.notifyWhen")}
           </p>
           <div className="space-y-2">
@@ -141,7 +141,7 @@ export default function Step5Review({
                 disabled={isReadOnly}
                 className="w-4 h-4"
               />
-              <span className="text-sm text-gray-700">{t("fields.notifyOnAbsent")}</span>
+              <span style={{ color: "var(--color-gray-700)" }} className="text-sm">{t("fields.notifyOnAbsent")}</span>
             </label>
             <label className="flex items-center gap-3">
               <input
@@ -151,7 +151,7 @@ export default function Step5Review({
                 disabled={isReadOnly}
                 className="w-4 h-4"
               />
-              <span className="text-sm text-gray-700">{t("fields.notifyOnLate")}</span>
+              <span style={{ color: "var(--color-gray-700)" }} className="text-sm">{t("fields.notifyOnLate")}</span>
             </label>
             <label className="flex items-center gap-3">
               <input
@@ -161,7 +161,7 @@ export default function Step5Review({
                 disabled={isReadOnly}
                 className="w-4 h-4"
               />
-              <span className="text-sm text-gray-700">
+              <span style={{ color: "var(--color-gray-700)" }} className="text-sm">
                 {t("fields.notifyOnEarlyLeave")}
               </span>
             </label>
@@ -171,45 +171,45 @@ export default function Step5Review({
 
       {/* Review Summary */}
       <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg p-5 border border-primary/20">
-        <h4 className="font-semibold text-sm text-gray-900 mb-4">
+        <h4 style={{ color: "var(--color-gray-900)" }} className="font-semibold text-sm mb-4">
           {t("reviewSummary")}
         </h4>
         <div className="space-y-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-600">{t("fields.policyName")}:</span>
-            <span className="font-medium text-gray-900">
+            <span style={{ color: "var(--color-gray-600)" }}>{t("fields.policyName")}:</span>
+            <span style={{ color: "var(--color-gray-900)" }} className="font-medium">
               {locale === "ar" ? formData.nameAr : formData.nameEn}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">{t("fields.scope")}:</span>
-            <span className="font-medium text-gray-900">
+            <span style={{ color: "var(--color-gray-600)" }}>{t("fields.scope")}:</span>
+            <span style={{ color: "var(--color-gray-900)" }} className="font-medium">
               {t(`scope.${formData.scopeType.toLowerCase()}`)}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">{t("fields.attendanceMode")}:</span>
-            <span className="font-medium text-gray-900">
+            <span style={{ color: "var(--color-gray-600)" }}>{t("fields.attendanceMode")}:</span>
+            <span style={{ color: "var(--color-gray-900)" }} className="font-medium">
               {t(`mode.${formData.mode.toLowerCase()}`)}
             </span>
           </div>
           {formData.selectedPeriodIds && formData.selectedPeriodIds.length > 0 && (
             <div className="flex justify-between">
-              <span className="text-gray-600">{t("fields.selectPeriods")}:</span>
-              <span className="font-medium text-gray-900">
+              <span style={{ color: "var(--color-gray-600)" }}>{t("fields.selectPeriods")}:</span>
+              <span style={{ color: "var(--color-gray-900)" }} className="font-medium">
                 {formData.selectedPeriodIds.length} {t("periodsLower")}
               </span>
             </div>
           )}
           <div className="flex justify-between">
-            <span className="text-gray-600">{t("fields.effectiveDates")}:</span>
-            <span className="font-medium text-gray-900">
+            <span style={{ color: "var(--color-gray-600)" }}>{t("fields.effectiveDates")}:</span>
+            <span style={{ color: "var(--color-gray-900)" }} className="font-medium">
               {formData.effectiveStartDate} → {formData.effectiveEndDate}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">{t("fields.allowExcuses")}:</span>
-            <span className="font-medium text-gray-900">
+            <span style={{ color: "var(--color-gray-600)" }}>{t("fields.allowExcuses")}:</span>
+            <span style={{ color: "var(--color-gray-900)" }} className="font-medium">
               {formData.allowExcuses ? tCommon("yes") : tCommon("no")}
             </span>
           </div>

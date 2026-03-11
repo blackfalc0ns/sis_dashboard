@@ -2,21 +2,18 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { useSearchParams, useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/toast/Toast";
 import ContextBar from "@/features/academics/components/shared/ContextBar";
 import PoliciesListPanel from "../components/PoliciesListPanel";
 import PolicyWizardDialog from "../components/PolicyWizardDialog";
 import PoliciesKpiPanel from "../components/PoliciesKpiPanel";
+import { useAttendanceTermContext } from "@/features/attendance/shared/hooks/useAttendanceTermContext";
 import {
-  fetchAcademicYears,
-  fetchTermsByYear,
   fetchStructureTree,
-  Term,
-  Stage,
-  Grade,
-  Section,
+  type Stage,
+  type Grade,
+  type Section,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   fetchPolicies,
@@ -31,16 +28,10 @@ import MainLoader from "@/components/ui/loaders/MainLoader";
 export default function AttendancePoliciesPage() {
   const t = useTranslations("attendance.policies");
   const tCommon = useTranslations("common");
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { showSuccess, showError } = useToast();
 
-  // Context state
-  const [academicYearId, setAcademicYearId] = useState("");
-  const [termId, setTermId] = useState("");
-  const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
-  const [term, setTerm] = useState<Term | null>(null);
-  const [terms, setTerms] = useState<Term[]>([]);
+  // Use unified term context
+  const termContext = useAttendanceTermContext();
 
   // Structure data
   const [stages, setStages] = useState<Stage[]>([]);
@@ -49,13 +40,13 @@ export default function AttendancePoliciesPage() {
 
   // Policies data
   const [policies, setPolicies] = useState<AttendancePolicy[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Editor state
   const [selectedPolicy, setSelectedPolicy] = useState<AttendancePolicy | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
 
-  const isReadOnly = termStatus === "closed";
+  const isReadOnly = termContext.isReadOnly;
 
   // Compute KPIs
   const kpis = useMemo(() => {
@@ -65,107 +56,37 @@ export default function AttendancePoliciesPage() {
     return computePolicyKpis(policies, sections);
   }, [policies, sections]);
 
-  // Initialize from URL
-  useEffect(() => {
-    const initializeContext = async () => {
-      try {
-        const years = await fetchAcademicYears();
-
-        const urlYear = searchParams.get("year");
-        const urlTerm = searchParams.get("term");
-
-        const selectedYear = years.find((y) => y.id === urlYear) || years[0];
-        if (!selectedYear) return;
-
-        const yearTerms = await fetchTermsByYear(selectedYear.id);
-        setTerms(yearTerms);
-
-        let selectedTerm = yearTerms.find((t) => t.id === urlTerm);
-        if (!selectedTerm) {
-          selectedTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
-        }
-
-        if (selectedYear && selectedTerm) {
-          setAcademicYearId(selectedYear.id);
-          setTermId(selectedTerm.id);
-          setTermStatus(selectedTerm.status);
-          setTerm(selectedTerm);
-
-          const params = new URLSearchParams();
-          params.set("year", selectedYear.id);
-          params.set("term", selectedTerm.id);
-          router.replace(`?${params.toString()}`, { scroll: false });
-        }
-      } catch (error) {
-        console.error("Failed to initialize:", error);
-        showError(tCommon("error_loading"));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initializeContext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Get current term object
+  const term = useMemo(() => {
+    return termContext.terms.find((t) => t.id === termContext.termId) || null;
+  }, [termContext.terms, termContext.termId]);
 
   // Load structure and policies when term changes
   useEffect(() => {
-    if (!academicYearId || !termId) return;
+    if (!termContext.yearId || !termContext.termId) return;
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [academicYearId, termId]);
+  }, [termContext.yearId, termContext.termId]);
 
   const loadData = async () => {
-    if (!academicYearId || !termId) return;
+    if (!termContext.yearId || !termContext.termId) return;
 
     try {
+      setIsLoading(true);
       // Load structure
-      const structure = await fetchStructureTree(academicYearId, termId);
+      const structure = await fetchStructureTree(termContext.yearId, termContext.termId);
       setStages(structure.stages);
       setGrades(structure.grades);
       setSections(structure.sections);
 
       // Load policies
-      const policiesData = await fetchPolicies(academicYearId, termId);
+      const policiesData = await fetchPolicies(termContext.yearId, termContext.termId);
       setPolicies(policiesData);
     } catch (error) {
       console.error("Failed to load data:", error);
       showError(tCommon("error_loading"));
-    }
-  };
-
-  const updateURL = useCallback(
-    (yearId: string, tId: string) => {
-      const params = new URLSearchParams();
-      params.set("year", yearId);
-      params.set("term", tId);
-      router.replace(`?${params.toString()}`, { scroll: false });
-    },
-    [router]
-  );
-
-  const handleAcademicYearChange = async (yearId: string) => {
-    setAcademicYearId(yearId);
-
-    const yearTerms = await fetchTermsByYear(yearId);
-    setTerms(yearTerms);
-
-    const defaultTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
-    if (defaultTerm) {
-      setTermId(defaultTerm.id);
-      setTermStatus(defaultTerm.status);
-      setTerm(defaultTerm);
-      updateURL(yearId, defaultTerm.id);
-    }
-  };
-
-  const handleTermChange = (tId: string) => {
-    const selectedTerm = terms.find((t) => t.id === tId);
-    if (selectedTerm) {
-      setTermId(tId);
-      setTermStatus(selectedTerm.status);
-      setTerm(selectedTerm);
-      updateURL(academicYearId, tId);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -180,12 +101,14 @@ export default function AttendancePoliciesPage() {
   };
 
   const handleSavePolicy = async (data: PolicyFormData) => {
+    if (!termContext.yearId || !termContext.termId) return;
+
     try {
       // Add year and term IDs
       const payload = {
         ...data,
-        yearId: academicYearId,
-        termId: termId,
+        yearId: termContext.yearId,
+        termId: termContext.termId,
       };
 
       if (selectedPolicy) {
@@ -240,21 +163,19 @@ export default function AttendancePoliciesPage() {
     setSelectedPolicy(null);
   };
 
-  if (isLoading) {
-    return (
-      <MainLoader />
-    );
+  if (termContext.isLoading || isLoading) {
+    return <MainLoader />;
   }
 
   return (
-    <div className="flex flex-col bg-gray-50">
+    <div style={{ backgroundColor: "var(--color-neutral-50)" }} className="flex flex-col">
       {/* Context Bar */}
       <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
-        onAcademicYearChange={handleAcademicYearChange}
-        onTermChange={handleTermChange}
+        academicYearId={termContext.yearId || ""}
+        termId={termContext.termId || ""}
+        termStatus={termContext.termStatus || "open"}
+        onAcademicYearChange={termContext.setYearId}
+        onTermChange={termContext.setTermId}
         onPromoteCarryOver={() => {}}
         isReadOnly={isReadOnly}
         showPromoteCarryOver={false}

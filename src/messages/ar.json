@@ -3542,6 +3542,15 @@
   },
   "attendance": {
     "title": "الحضور والانضباط",
+    "common": {
+      "termContext": {
+        "loadingYears": "جاري تحميل السنوات الدراسية...",
+        "loadingTerms": "جاري تحميل الفصول...",
+        "failedToLoadYears": "فشل تحميل السنوات الدراسية",
+        "failedToLoadTerms": "فشل تحميل الفصول",
+        "selectYearAndTerm": "الرجاء اختيار سنة دراسية وفصل"
+      }
+    },
     "rollCall": {
       "title": "كشف الحضور المباشر",
       "subtitle": "تسجيل حضور الطلاب",
@@ -3750,7 +3759,7 @@
         "gradeSection": "الصف والشعبة",
         "grade": "الصف",
         "section": "الشعبة",
-        "incidentDetails": "تفاصيل الحادثة",
+        "incidentDetails": "تفاصيل الغياب",
         "date": "التاريخ",
         "type": "النوع",
         "period": "الحصة",
@@ -3783,6 +3792,9 @@
           "title": "لم يتم العثور على غياب",
           "description": "لا توجد سجلات غياب تطابق المرشحات الحالية. جرب تعديل نطاق التاريخ أو الحالة أو اختيار النطاق."
         }
+      },
+      "messages": {
+        "excusesDisabledByPolicy": "الأعذار غير مسموحة حسب سياسة الحضور لهذا النطاق/التاريخ."
       }
     },
     "lateEarly": {
@@ -3868,7 +3880,7 @@
       }
     },
     "excuses": {
-    "title": "الأعذار", "subtitle": "إدارة طلبات الأعذار وربطها بسجلات الحضور", "readonlyBanner": "هذا الترم مغلق. يمكنك العرض فقط.", "createRequest": "إضافة طلب", "created": "تم إنشاء الطلب بنجاح", "updated": "تم تحديث الطلب بنجاح", "approved": "تمت الموافقة على الطلب", "rejected": "تم رفض الطلب", "deleted": "تم حذف الطلب", "deleteTitle": "حذف الطلب", "deleteDescription": "هل تريد حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.", "exportSuccess": "تم تصدير البيانات بنجاح", "scopeSchool": "المدرسة", "allDates": "كل التواريخ", "filters": { "filters": "الفلاتر", "searchPlaceholder": "ابحث باسم الطالب أو الرقم...", "dateFrom": "من تاريخ", "dateTo": "إلى تاريخ", "allStatuses": "كل الحالات", "pending": "قيد المراجعة", "approved": "مقبول", "rejected": "مرفوض", "allTypes": "كل الأنواع", "absence": "غياب", "late": "تأخير", "earlyLeave": "مغادرة مبكرة", "allAttachments": "كل المرفقات", "withAttachment": "مع مرفق", "withoutAttachment": "بدون مرفق", "export": "تصدير", "apply": "تطبيق" }, "kpis": { "total": "إجمالي الطلبات", "pending": "قيد المراجعة", "approved": "مقبول", "rejected": "مرفوض", "withAttachments": "مع مرفقات" }, "table": { "submittedAt": "تاريخ الإرسال", "student": "الطالب", "scope": "النطاق", "type": "النوع", "range": "الفترة", "attachments": "المرفقات", "status": "الحالة", "actions": "الإجراءات", "view": "عرض", "approve": "موافقة", "reject": "رفض", "edit": "تعديل", "delete": "حذف", "pending": "قيد المراجعة", "approved": "مقبول", "rejected": "مرفوض", "absence": "غياب", "late": "تأخير", "earlyLeave": "مغادرة مبكرة", "allPolicyPeriods": "كل حصص السياسة", "school": "المدرسة" }, "details": { "title": "تفاصيل الطلب", "selectRequest": "اختر طلبًا لعرض التفاصيل", "student": "الطالب", "requestInfo": "معلومات الطلب", "type": "النوع", "range": "الفترة", "periods": "الحصص", "reason": "السبب", "attachments": "المرفقات", "noAttachments": "لا توجد مرفقات", "timeline": "سجل الحالة", "status": "الحالة", "decidedBy": "تم اتخاذ القرار بواسطة", "decidedAt": "تاريخ القرار", "decisionNote": "ملاحظة القرار", "allPolicyPeriods": "كل حصص السياسة", "edit": "تعديل", "approve": "موافقة", "reject": "رفض" }, "modal": { "createTitle": "إضافة طلب عذر", "editTitle": "تعديل طلب عذر", "approveTitle": "الموافقة على الطلب", "rejectTitle": "رفض الطلب", "student": "الطالب", "type": "النوع", "dateFrom": "من تاريخ", "dateTo": "إلى تاريخ", "periods": "الحصص", "reason": "السبب", "attachments": "المرفقات", "absence": "غياب", "late": "تأخير", "earlyLeave": "مغادرة مبكرة", "decisionNote": "ملاحظة القرار", "decisionNotePlaceholder": "اكتب ملاحظة مختصرة (اختياري)", "cancel": "إلغاء", "approve": "موافقة", "reject": "رفض", "validation": { "studentRequired": "الطالب مطلوب", "dateRequired": "التاريخ مطلوب", "dateOrder": "يجب أن يكون تاريخ البداية قبل أو يساوي تاريخ النهاية", "termRange": "يجب أن تكون التواريخ داخل نطاق الترم", "reasonRequired": "السبب مطلوب بالعربية أو الإنجليزية", "attachmentRequired": "المرفق مطلوب حسب السياسة" } }, "validation": { "policyDisabled": "الأعذار غير مفعّلة في السياسة الحالية", "attachmentRequired": "المرفق مطلوب حسب السياسة" }
+    "title": "الأعذار", "subtitle": "إدارة طلبات الأعذار وربطها بسجلات الحضور", "readonlyBanner": "هذا الترم مغلق. يمكنك العرض فقط.", "createRequest": "إضافة طلب", "created": "تم إنشاء الطلب بنجاح", "updated": "تم تحديث الطلب بنجاح", "approved": "تمت الموافقة على الطلب", "rejected": "تم رفض الطلب", "deleted": "تم حذف الطلب", "deleteTitle": "حذف الطلب", "deleteDescription": "هل تريد حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.", "exportSuccess": "تم تصدير البيانات بنجاح", "scopeSchool": "المدرسة", "allDates": "كل التواريخ", "filters": { "filters": "الفلاتر", "searchPlaceholder": "ابحث باسم الطالب أو الرقم...", "dateFrom": "من تاريخ", "dateTo": "إلى تاريخ", "allStatuses": "كل الحالات", "pending": "قيد المراجعة", "approved": "مقبول", "rejected": "مرفوض", "allTypes": "كل الأنواع", "absence": "غياب", "late": "تأخير", "earlyLeave": "مغادرة مبكرة", "allAttachments": "كل المرفقات", "withAttachment": "مع مرفق", "withoutAttachment": "بدون مرفق", "export": "تصدير", "apply": "تطبيق" }, "kpis": { "total": "إجمالي الطلبات", "pending": "قيد المراجعة", "approved": "مقبول", "rejected": "مرفوض", "withAttachments": "مع مرفقات" }, "table": { "submittedAt": "تاريخ الإرسال", "student": "الطالب", "scope": "النطاق", "type": "النوع", "range": "الفترة", "attachments": "المرفقات", "status": "الحالة", "actions": "الإجراءات", "view": "عرض", "approve": "موافقة", "reject": "رفض", "edit": "تعديل", "delete": "حذف", "pending": "قيد المراجعة", "approved": "مقبول", "rejected": "مرفوض", "absence": "غياب", "late": "تأخير", "earlyLeave": "مغادرة مبكرة", "allPolicyPeriods": "كل حصص السياسة", "school": "المدرسة" }, "details": { "title": "تفاصيل الطلب", "selectRequest": "اختر طلبًا لعرض التفاصيل", "student": "الطالب", "scope": "النطاق", "requestInfo": "معلومات الطلب", "type": "النوع", "range": "الفترة", "periods": "الحصص", "reason": "السبب", "attachments": "المرفقات", "noAttachments": "لا توجد مرفقات", "timeline": "سجل الحالة", "status": "الحالة", "decidedBy": "تم اتخاذ القرار بواسطة", "decidedAt": "تاريخ القرار", "decisionNote": "ملاحظة القرار", "allPolicyPeriods": "كل حصص السياسة", "edit": "تعديل", "approve": "موافقة", "reject": "رفض" }, "modal": { "createTitle": "إضافة طلب عذر", "editTitle": "تعديل طلب عذر", "approveTitle": "الموافقة على الطلب", "rejectTitle": "رفض الطلب", "student": "الطالب", "type": "النوع", "dateFrom": "من تاريخ", "dateTo": "إلى تاريخ", "periods": "الحصص", "reason": "السبب", "attachments": "المرفقات", "absence": "غياب", "late": "تأخير", "earlyLeave": "مغادرة مبكرة", "decisionNote": "ملاحظة القرار", "decisionNotePlaceholder": "اكتب ملاحظة مختصرة (اختياري)", "cancel": "إلغاء", "approve": "موافقة", "reject": "رفض", "validation": { "studentRequired": "الطالب مطلوب", "dateRequired": "التاريخ مطلوب", "dateOrder": "يجب أن يكون تاريخ البداية قبل أو يساوي تاريخ النهاية", "termRange": "يجب أن تكون التواريخ داخل نطاق الترم", "reasonRequired": "السبب مطلوب بالعربية أو الإنجليزية", "attachmentRequired": "المرفق مطلوب حسب السياسة" } }, "validation": { "policyDisabled": "الأعذار غير مفعّلة في السياسة الحالية", "attachmentRequired": "المرفق مطلوب حسب السياسة" }, "messages": { "excusesDisabledByPolicy": "الأعذار غير مسموحة حسب سياسة الحضور لهذا النطاق/التاريخ." }
     },
     "reports": "التقارير",
     "absent": "غياب",

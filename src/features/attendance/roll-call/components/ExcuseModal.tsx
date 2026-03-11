@@ -99,7 +99,7 @@ export default function ExcuseModal({
         <div className="space-y-4">
           {/* Reason */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
               {t("reason")} <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -110,9 +110,13 @@ export default function ExcuseModal({
               }}
               disabled={isReadOnly}
               rows={4}
+              style={{
+                borderColor: errors.reason ? "var(--color-accent-500)" : "var(--color-border)",
+                backgroundColor: isReadOnly ? "var(--color-neutral-50)" : "transparent",
+              }}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
-                errors.reason ? "border-red-500" : "border-gray-300"
-              } ${isReadOnly ? "bg-gray-50 cursor-not-allowed" : ""}`}
+                isReadOnly ? "cursor-not-allowed" : ""
+              }`}
               placeholder={t("reasonPlaceholder")}
             />
             {errors.reason && (
@@ -122,7 +126,7 @@ export default function ExcuseModal({
 
           {/* Attachments */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
               {t("attachments")}
               {requireAttachment && <span className="text-red-500"> *</span>}
             </label>
@@ -146,15 +150,19 @@ export default function ExcuseModal({
                 {attachments.map((att) => (
                   <div
                     key={att.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    style={{
+                      backgroundColor: "var(--color-neutral-50)",
+                      borderColor: "var(--color-border)",
+                    }}
+                    className="flex items-center justify-between p-3 rounded-lg border"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <FileText className="w-5 h-5 text-gray-400 shrink-0" />
+                      <FileText style={{ color: "var(--color-neutral-400)" }} className="w-5 h-5 shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p style={{ color: "var(--color-gray-900)" }} className="text-sm font-medium truncate">
                           {att.name}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p style={{ color: "var(--color-neutral-500)" }} className="text-xs">
                           {formatFileSize(att.size)}
                         </p>
                       </div>
@@ -162,7 +170,8 @@ export default function ExcuseModal({
                     {!isReadOnly && (
                       <button
                         onClick={() => handleRemoveAttachment(att.id)}
-                        className="text-gray-400 hover:text-red-600 transition-colors shrink-0"
+                        style={{ color: "var(--color-neutral-400)" }}
+                        className="hover:text-red-600 transition-colors shrink-0"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -175,7 +184,7 @@ export default function ExcuseModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+        <div style={{ borderColor: "var(--color-border)" }} className="flex items-center justify-end gap-3 mt-6 pt-6 border-t">
           <Button variant="outline" onClick={onClose}>
             {tCommon("cancel")}
           </Button>
