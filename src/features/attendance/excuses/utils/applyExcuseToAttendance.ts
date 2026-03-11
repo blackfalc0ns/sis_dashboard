@@ -7,6 +7,7 @@ import type { TimetablePeriod } from "@/features/academics/timetable/types/timet
 import type { AttachmentMeta as RollCallAttachmentMeta } from "@/features/attendance/roll-call/types";
 import type { ExcuseRequest } from "../types";
 import { normalizeSelectedPeriodIds } from "../../utils/periodIdNormalization";
+import { formatLocalDate } from "../../utils/dateFormatting";
 
 interface ApplyExcuseParams {
   request: ExcuseRequest;
@@ -21,7 +22,7 @@ function enumerateDates(dateFrom: string, dateTo: string): string[] {
   const end = new Date(`${dateTo}T00:00:00`);
 
   while (current <= end) {
-    result.push(current.toISOString().split("T")[0]);
+    result.push(formatLocalDate(current));
     current.setDate(current.getDate() + 1);
   }
 
@@ -92,7 +93,13 @@ function choosePeriodIds(
     return normalizedPolicyPeriods.length > 0 ? normalizedPolicyPeriods : [periods[0]?.id].filter(Boolean);
   }
 
-  // For LATE/EARLY_LEAVE, check if request has legacy periodIndexes
+  // For LATE/EARLY_LEAVE, prefer selectedPeriodIds (new format)
+  if (request.selectedPeriodIds && request.selectedPeriodIds.length > 0) {
+    // Normalize request's period IDs
+    return normalizeSelectedPeriodIds(request.selectedPeriodIds, periods);
+  }
+
+  // Fallback: check if request has legacy periodIndexes
   if (request.periodIndexes && request.periodIndexes.length > 0) {
     // Map legacy indexes to period IDs
     return request.periodIndexes
@@ -100,7 +107,7 @@ function choosePeriodIds(
       .filter((id): id is string => id !== undefined);
   }
 
-  // Use policy periods
+  // Use policy periods as last resort
   if (normalizedPolicyPeriods.length === 0) {
     return [periods[0]?.id].filter(Boolean);
   }

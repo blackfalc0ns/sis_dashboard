@@ -15,7 +15,6 @@ import {
   type Grade,
   type Section,
 } from "@/features/academics/academic-structure-tree/services/structureService";
-import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
 import {
   fetchExcuseRequests,
   createExcuseRequest,
@@ -66,7 +65,6 @@ export default function AttendanceExcusesPage() {
   const [stages, setStages] = useState<Stage[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
-  const [periods, setPeriods] = useState<Array<{ index: number; nameAr: string; nameEn: string }>>([]);
 
   const [requests, setRequests] = useState<ExcuseRequest[]>([]);
   const [loading, setLoading] = useState(false);
@@ -123,15 +121,11 @@ export default function AttendanceExcusesPage() {
     if (!termContext.yearId || !termContext.termId) return;
 
     const loadStructure = async () => {
-      const [structure, timetable] = await Promise.all([
-        fetchStructureTree(termContext.yearId!, termContext.termId!),
-        fetchTimetableConfig(termContext.termId!, "TERM"),
-      ]);
+      const structure = await fetchStructureTree(termContext.yearId!, termContext.termId!);
 
       setStages(structure.stages);
       setGrades(structure.grades);
       setSections(structure.sections);
-      setPeriods(timetable?.periods || []);
     };
 
     loadStructure();
@@ -487,12 +481,12 @@ export default function AttendanceExcusesPage() {
       <ExcuseRequestModal
         isOpen={showRequestModal}
         isReadOnly={isReadOnly}
+        termId={termContext.termId || ""}
         termRange={{ startDate: term?.startDate || "", endDate: term?.endDate || "" }}
         stages={stages}
         grades={grades}
         sections={sections}
-        periods={periods}
-        requireAttachment={requestPolicy?.requireAttachmentForExcuse ?? false}
+        effectivePolicy={requestPolicy}
         initialRequest={editingRequest}
         onClose={() => {
           setShowRequestModal(false);

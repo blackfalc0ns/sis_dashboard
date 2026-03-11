@@ -27,7 +27,8 @@ export interface ExcuseRequest {
   type: ExcuseType;
   dateFrom: string;
   dateTo: string;
-  periodIndexes?: number[];
+  selectedPeriodIds?: string[]; // Stable period IDs from timetable
+  periodIndexes?: number[]; // Legacy support - will be migrated to selectedPeriodIds
   reasonAr: string;
   reasonEn: string;
   attachments: AttachmentMeta[];
@@ -68,7 +69,7 @@ export interface ExcuseValidationErrors {
   type?: string;
   dateFrom?: string;
   dateTo?: string;
-  periodIndexes?: string;
+  selectedPeriodIds?: string;
   reason?: string;
   attachments?: string;
   policy?: string;

@@ -293,6 +293,15 @@ export async function validateExcuseRequest(
     errors.reason = "At least one reason language is required";
   }
 
+  // Validate period selection for LATE and EARLY_LEAVE
+  if (payload.type === "LATE" || payload.type === "EARLY_LEAVE") {
+    const hasPeriods = (payload.selectedPeriodIds && payload.selectedPeriodIds.length > 0) ||
+                       (payload.periodIndexes && payload.periodIndexes.length > 0);
+    if (!hasPeriods) {
+      errors.selectedPeriodIds = "Period selection is required for late/early leave requests";
+    }
+  }
+
   if (effectivePolicy && !effectivePolicy.allowExcuses) {
     errors.policy = "Excuses are disabled by policy";
   }

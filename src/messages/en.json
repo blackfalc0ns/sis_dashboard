@@ -3975,6 +3975,7 @@
         "rejectTitle": "Reject request",
         "student": "Student",
         "type": "Type",
+        "date": "Date",
         "dateFrom": "Date from",
         "dateTo": "Date to",
         "periods": "Periods",
@@ -3988,13 +3989,23 @@
         "cancel": "Cancel",
         "approve": "Approve",
         "reject": "Reject",
+        "rosterLoadError": "Failed to load students. Please try again.",
+        "noStudentsInScope": "No students found in this scope.",
+        "periodRequiredHelp": "Select at least one period for late/early leave requests.",
+        "absenceAppliesToPolicyPeriods": "Absence will apply to all periods selected in the attendance policy.",
+        "attachmentRequiredByPolicy": "Attachment is required by the attendance policy.",
         "validation": {
           "studentRequired": "Student is required",
           "dateRequired": "Date is required",
           "dateOrder": "End date must be on/after start date",
           "termRange": "Date must be within term range",
           "reasonRequired": "Reason is required in Arabic or English",
-          "attachmentRequired": "Attachment is required by policy"
+          "periodRequired": "Period selection is required for late/early leave requests",
+          "attachmentRequired": "Attachment is required by policy",
+          "policyDisabled": "Excuses are disabled by policy"
+        },
+        "messages": {
+          "excusesDisabledByPolicy": "Excuses are not allowed by the attendance policy for this scope/date. You cannot create or edit excuse requests."
         }
       },
       "validation": {

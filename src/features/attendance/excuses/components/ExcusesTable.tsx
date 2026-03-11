@@ -89,7 +89,11 @@ export default function ExcusesTable({ requests, grades, sections, isReadOnly, o
         <div>
           <div>{row.dateFrom} → {row.dateTo}</div>
           <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
-            {row.periodIndexes && row.periodIndexes.length > 0 ? row.periodIndexes.map((p) => `P${p}`).join(", ") : t("allPolicyPeriods")}
+            {row.selectedPeriodIds && row.selectedPeriodIds.length > 0
+              ? row.selectedPeriodIds.join(", ")
+              : row.periodIndexes && row.periodIndexes.length > 0
+              ? row.periodIndexes.map((p) => `P${p}`).join(", ")
+              : t("allPolicyPeriods")}
           </div>
         </div>
       ),

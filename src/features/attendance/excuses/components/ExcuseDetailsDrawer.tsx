@@ -94,7 +94,15 @@ export default function ExcuseDetailsDrawer({ request, isReadOnly, onClose, onAp
           <div className="text-sm space-y-1" style={{ color: "var(--text-primary)" }}>
             <div>{t("type")}: {getTypeLabel(request.type)}</div>
             <div>{t("range")}: {request.dateFrom} → {request.dateTo}</div>
-            <div>{t("periods")}: {request.periodIndexes && request.periodIndexes.length > 0 ? request.periodIndexes.map((p) => `P${p}`).join(", ") : t("allPolicyPeriods")}</div>
+            <div>
+              {t("periods")}: {
+                request.selectedPeriodIds && request.selectedPeriodIds.length > 0
+                  ? request.selectedPeriodIds.map((id) => id).join(", ")
+                  : request.periodIndexes && request.periodIndexes.length > 0
+                  ? request.periodIndexes.map((p) => `P${p}`).join(", ")
+                  : t("allPolicyPeriods")
+              }
+            </div>
           </div>
         </section>
 
