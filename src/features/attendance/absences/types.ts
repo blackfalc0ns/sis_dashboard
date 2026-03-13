@@ -6,11 +6,12 @@ export type AttendanceIncidentType = "ABSENT" | "LATE" | "EARLY_LEAVE" | "EXCUSE
 export type AttendanceGranularity = "PERIOD" | "DAILY_DERIVED";
 
 export interface AbsenceScopeFilter {
-  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION";
+  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSROOM";
   scopeIds?: {
     stageId?: string;
     gradeId?: string;
     sectionId?: string;
+    classroomId?: string;
   };
 }
 
@@ -23,16 +24,19 @@ export interface AbsenceRecord {
   studentNumber: string;
   studentNameAr: string;
   studentNameEn: string;
-  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION";
+  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSROOM";
   scopeIds?: {
     stageId?: string;
     gradeId?: string;
     sectionId?: string;
+    classroomId?: string;
   };
   gradeNameAr?: string;
   gradeNameEn?: string;
   sectionNameAr?: string;
   sectionNameEn?: string;
+  classroomNameAr?: string;
+  classroomNameEn?: string;
   granularity: AttendanceGranularity;
   periodIndex?: number;
   periodNameAr?: string;
@@ -53,11 +57,12 @@ export interface AbsenceRecord {
 export interface AbsencesFilters {
   dateFrom?: string;
   dateTo?: string;
-  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION";
+  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSROOM";
   scopeIds?: {
     stageId?: string;
     gradeId?: string;
     sectionId?: string;
+    classroomId?: string;
   };
   status: "ALL" | AttendanceIncidentType; // Changed from statuses array to single status
   granularities: AttendanceGranularity[];

@@ -1,4 +1,4 @@
-export type AttendanceScopeType = "SCHOOL" | "STAGE" | "GRADE" | "SECTION";
+export type AttendanceScopeType = "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSROOM";
 export type AttendanceMode = "DAILY" | "PERIOD";
 export type DailyComputationStrategy = "MANUAL" | "DERIVED_FROM_PERIODS";
 
@@ -17,6 +17,7 @@ export interface AttendancePolicy {
     stageId?: string;
     gradeId?: string;
     sectionId?: string;
+    classroomId?: string;
   };
   mode: AttendanceMode;
   dailyComputationStrategy?: DailyComputationStrategy; // Only for DAILY mode
@@ -28,7 +29,6 @@ export interface AttendancePolicy {
   allowExcuses: boolean;
   requireExcuseReason: boolean;
   requireAttachmentForExcuse: boolean;
-  maxDaysToSubmitExcuse?: number;
   notifyTeachers: boolean;
   notifyStudents: boolean;
   notifyGuardians: boolean;

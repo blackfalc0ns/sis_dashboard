@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { AlertCircle, X } from "lucide-react";
+import { AlertCircle, X, AlertTriangle } from "lucide-react";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
+import Input from "@/components/ui/input/Input";
 import DatePicker from "@/components/ui/input/DatePicker";
 import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
@@ -16,21 +17,29 @@ import { fetchRoster } from "@/features/attendance/roll-call/services/attendance
 import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
 import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
-import type { Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
+import type { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { ExcuseRequest, ExcuseScopeType, ExcuseType, AttachmentMeta } from "../types";
-import type { EffectiveExcusePolicy } from "@/features/attendance/policies/services/attendancePolicyService";
 import { formatLocalDate } from "../../utils/dateFormatting";
 import { normalizeSelectedPeriodIds } from "../../utils/periodIdNormalization";
+import { getThresholdState } from "@/features/attendance/shared/policyThresholds";
+import {
+  resolveEffectiveExcusePolicy,
+  type EffectiveExcusePolicy,
+} from "@/features/attendance/policies/services/attendancePolicyService";
+import { validateExcusePolicyRange } from "../services/attendanceExcusesService";
+import type { ExcusePolicyIssue } from "../utils/excusePolicyValidation";
+import type { AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
 
 interface ExcuseRequestModalProps {
   isOpen: boolean;
   isReadOnly: boolean;
+  yearId: string;
   termId: string;
   termRange: { startDate: string; endDate: string };
   stages: Stage[];
   grades: Grade[];
   sections: Section[];
-  effectivePolicy: EffectiveExcusePolicy | null;
+  classrooms: Classroom[];
   initialRequest?: ExcuseRequest | null;
   onClose: () => void;
   onSave: (payload: Omit<ExcuseRequest, "id" | "status" | "createdAt" | "updatedAt" | "decidedAt" | "decidedBy" | "decisionNote" | "linkedSessionIds" | "yearId" | "termId">) => Promise<void>;
@@ -42,11 +51,13 @@ interface FormState {
   studentNameEn: string;
   studentNumber?: string;
   scopeType: ExcuseScopeType;
-  scopeIds?: { stageId?: string; gradeId?: string; sectionId?: string };
+  scopeIds?: AttendanceScopeIds;
   type: ExcuseType;
   dateFrom: string;
   dateTo: string;
   selectedPeriodIds: string[];
+  minutesLate?: number;
+  minutesEarlyLeave?: number;
   reasonAr: string;
   reasonEn: string;
   attachments: AttachmentMeta[];
@@ -62,12 +73,13 @@ interface RosterStudent {
 export default function ExcuseRequestModal({
   isOpen,
   isReadOnly,
+  yearId,
   termId,
   termRange,
   stages,
   grades,
   sections,
-  effectivePolicy,
+  classrooms,
   initialRequest,
   onClose,
   onSave,
@@ -99,10 +111,17 @@ export default function ExcuseRequestModal({
   const [periods, setPeriods] = useState<TimetablePeriod[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [resolvedPolicy, setResolvedPolicy] = useState<EffectiveExcusePolicy | null>(null);
+  const [policyIssue, setPolicyIssue] = useState<ExcusePolicyIssue | null>(null);
+  const [policyLoading, setPolicyLoading] = useState(false);
 
   const rules = getUploadRules("ATTENDANCE_EXCUSE");
-  const requireAttachment = effectivePolicy?.requireAttachmentForExcuse ?? false;
-  const allowExcuses = effectivePolicy?.allowExcuses ?? true;
+  const requireReason = resolvedPolicy?.requireExcuseReason ?? false;
+  const requireAttachment = resolvedPolicy?.requireAttachmentForExcuse ?? false;
+  const allowExcuses = resolvedPolicy?.allowExcuses ?? false;
+  const lateThresholdState = getThresholdState("LATE", form.minutesLate, resolvedPolicy);
+  const earlyLeaveThresholdState = getThresholdState("EARLY_LEAVE", form.minutesEarlyLeave, resolvedPolicy);
+  const isPolicyBlocking = !!policyIssue || !allowExcuses;
 
   // Initialize form when modal opens
   useEffect(() => {
@@ -121,6 +140,8 @@ export default function ExcuseRequestModal({
         dateFrom: initialRequest.dateFrom,
         dateTo: initialRequest.dateTo,
         selectedPeriodIds: initialRequest.selectedPeriodIds || [],
+        minutesLate: initialRequest.minutesLate,
+        minutesEarlyLeave: initialRequest.minutesEarlyLeave,
         reasonAr: initialRequest.reasonAr,
         reasonEn: initialRequest.reasonEn,
         attachments: initialRequest.attachments,
@@ -138,6 +159,8 @@ export default function ExcuseRequestModal({
         dateFrom: termRange.startDate,
         dateTo: termRange.startDate,
         selectedPeriodIds: [],
+        minutesLate: undefined,
+        minutesEarlyLeave: undefined,
         reasonAr: "",
         reasonEn: "",
         attachments: [],
@@ -146,7 +169,76 @@ export default function ExcuseRequestModal({
 
     setErrors({});
     setRosterError(false);
+    setPolicyIssue(null);
   }, [isOpen, initialRequest, termRange.startDate]);
+
+  useEffect(() => {
+    if (!isOpen || !yearId || !termId || !form.dateFrom) return;
+
+    let cancelled = false;
+
+    const loadPolicyState = async () => {
+      try {
+        setPolicyLoading(true);
+
+        const [policy, issue] = await Promise.all([
+          resolveEffectiveExcusePolicy(yearId, termId, form.scopeType, form.scopeIds, form.dateFrom),
+          validateExcusePolicyRange({
+            yearId,
+            termId,
+            dateFrom: form.dateFrom,
+            dateTo: form.type === "LATE" || form.type === "EARLY_LEAVE" ? form.dateFrom : form.dateTo || form.dateFrom,
+            scopeType: form.scopeType,
+            scopeIds: form.scopeIds,
+            attachments: form.attachments,
+            reasonAr: form.reasonAr,
+            reasonEn: form.reasonEn,
+          }),
+        ]);
+
+        if (!cancelled) {
+          setResolvedPolicy(policy);
+          setPolicyIssue(issue);
+        }
+      } catch (error) {
+        console.error("Failed to resolve excuse policy state:", error);
+        if (!cancelled) {
+          setResolvedPolicy(null);
+          setPolicyIssue({ code: "NO_ACTIVE_POLICY", date: form.dateFrom });
+        }
+      } finally {
+        if (!cancelled) {
+          setPolicyLoading(false);
+        }
+      }
+    };
+
+    loadPolicyState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isOpen,
+    yearId,
+    termId,
+    form.scopeType,
+    form.scopeIds,
+    form.dateFrom,
+    form.dateTo,
+    form.type,
+    form.reasonAr,
+    form.reasonEn,
+    form.attachments,
+  ]);
+
+  const getPolicyIssueMessage = (issue: ExcusePolicyIssue | null) => {
+    if (!issue) return "";
+    if (issue.code === "NO_ACTIVE_POLICY") return t("messages.noActivePolicyOnDate", { date: issue.date });
+    if (issue.code === "REASON_REQUIRED") return t("messages.reasonRequiredOnDate", { date: issue.date });
+    if (issue.code === "ATTACHMENT_REQUIRED") return t("messages.attachmentRequiredOnDate", { date: issue.date });
+    return t("messages.excusesDisabledOnDate", { date: issue.date });
+  };
 
   // Load roster when scope changes
   useEffect(() => {
@@ -204,36 +296,91 @@ export default function ExcuseRequestModal({
     () =>
       roster.map((student) => ({
         value: student.id,
-        label: locale === "ar" 
+        label: locale === "ar"
           ? `${student.nameAr} (${student.studentNumber})`
           : `${student.nameEn} (${student.studentNumber})`,
+        searchText: [student.nameAr, student.nameEn, student.studentNumber]
+          .filter(Boolean)
+          .join(" "),
       })),
     [roster, locale]
   );
+
+  const validateDateFields = (dateFrom: string, dateTo: string) => {
+    const nextDateErrors: Record<string, string> = {};
+
+    if (!dateFrom) {
+      nextDateErrors.dateFrom = t("validation.dateRequired");
+    } else if (dateFrom < termRange.startDate || dateFrom > termRange.endDate) {
+      nextDateErrors.dateFrom = t("validation.termRange");
+    }
+
+    if (!dateTo) {
+      nextDateErrors.dateTo = t("validation.dateRequired");
+    } else if (dateTo < termRange.startDate || dateTo > termRange.endDate) {
+      nextDateErrors.dateTo = t("validation.termRange");
+    }
+
+    if (dateFrom && dateTo && dateFrom > dateTo) {
+      nextDateErrors.dateTo = t("validation.dateOrder");
+    }
+
+    setErrors((prev) => ({
+      ...prev,
+      dateFrom: nextDateErrors.dateFrom || "",
+      dateTo: nextDateErrors.dateTo || "",
+    }));
+
+    return nextDateErrors;
+  };
 
   const validate = () => {
     const nextErrors: Record<string, string> = {};
 
     if (!form.studentId) nextErrors.studentId = t("validation.studentRequired");
-    if (!form.dateFrom) nextErrors.dateFrom = t("validation.dateRequired");
-    if (!form.dateTo) nextErrors.dateTo = t("validation.dateRequired");
-    if (form.dateFrom && form.dateTo && form.dateFrom > form.dateTo) nextErrors.dateTo = t("validation.dateOrder");
-    if (form.dateFrom && (form.dateFrom < termRange.startDate || form.dateFrom > termRange.endDate)) nextErrors.dateFrom = t("validation.termRange");
-    if (form.dateTo && (form.dateTo < termRange.startDate || form.dateTo > termRange.endDate)) nextErrors.dateTo = t("validation.termRange");
-    if (!form.reasonAr.trim() && !form.reasonEn.trim()) nextErrors.reason = t("validation.reasonRequired");
+    Object.assign(nextErrors, validateDateFields(form.dateFrom, form.dateTo));
+    if ((policyIssue?.code === "REASON_REQUIRED" || requireReason) && !form.reasonAr.trim() && !form.reasonEn.trim()) {
+      nextErrors.reason = t("validation.reasonRequired");
+    }
     
     // Period validation for LATE/EARLY_LEAVE
     if ((form.type === "LATE" || form.type === "EARLY_LEAVE") && form.selectedPeriodIds.length === 0) {
       nextErrors.periods = t("validation.periodRequired");
     }
 
+    // Minutes validation for LATE
+    if (form.type === "LATE") {
+      if (form.minutesLate === undefined || form.minutesLate === null || form.minutesLate === 0) {
+        nextErrors.minutesLate = t("validation.minutesRequired");
+      } else if (form.minutesLate <= 0) {
+        nextErrors.minutesLate = t("validation.minutesPositive");
+      }
+    }
+
+    // Minutes validation for EARLY_LEAVE
+    if (form.type === "EARLY_LEAVE") {
+      if (form.minutesEarlyLeave === undefined || form.minutesEarlyLeave === null || form.minutesEarlyLeave === 0) {
+        nextErrors.minutesEarlyLeave = t("validation.minutesRequired");
+      } else if (form.minutesEarlyLeave <= 0) {
+        nextErrors.minutesEarlyLeave = t("validation.minutesPositive");
+      }
+    }
+
     // Policy-based validation
-    if (!allowExcuses) {
+    if (policyIssue?.code === "EXCUSES_DISABLED") {
       nextErrors.policy = t("validation.policyDisabled");
     }
 
-    if (requireAttachment && form.attachments.length === 0) {
+    if (policyIssue?.code === "REASON_REQUIRED") {
+      nextErrors.reason = t("validation.reasonRequired");
+    }
+
+    if (policyIssue?.code === "ATTACHMENT_REQUIRED" || (requireAttachment && form.attachments.length === 0)) {
       nextErrors.attachments = t("validation.attachmentRequired");
+    }
+
+    if (policyIssue?.code === "NO_ACTIVE_POLICY") {
+      nextErrors.policy = t("validation.noActivePolicy");
     }
 
     setErrors(nextErrors);
@@ -248,6 +395,7 @@ export default function ExcuseRequestModal({
       name: file.name,
       size: file.size,
       type: file.type,
+      url: URL.createObjectURL(file),
     }));
 
     setForm((prev) => ({ ...prev, attachments: [...prev.attachments, ...mapped] }));
@@ -282,6 +430,8 @@ export default function ExcuseRequestModal({
         dateFrom: form.dateFrom,
         dateTo: form.type === "LATE" || form.type === "EARLY_LEAVE" ? form.dateFrom : form.dateTo,
         selectedPeriodIds: form.type === "ABSENCE" ? [] : normalizedPeriodIds,
+        minutesLate: form.type === "LATE" ? form.minutesLate : undefined,
+        minutesEarlyLeave: form.type === "EARLY_LEAVE" ? form.minutesEarlyLeave : undefined,
         reasonAr: form.reasonAr,
         reasonEn: form.reasonEn,
         attachments: form.attachments,
@@ -292,7 +442,7 @@ export default function ExcuseRequestModal({
     }
   };
 
-  const handleScopeChange = (scopeType: ExcuseScopeType, scopeIds: { stageId?: string; gradeId?: string; sectionId?: string }) => {
+  const handleScopeChange = (scopeType: ExcuseScopeType, scopeIds: AttendanceScopeIds) => {
     if (isReadOnly) return;
     
     // Reset all student-related state when scope changes
@@ -317,6 +467,9 @@ export default function ExcuseRequestModal({
       dateTo: (type === "LATE" || type === "EARLY_LEAVE") ? prev.dateFrom : prev.dateTo,
       // Clear period selection when changing type
       selectedPeriodIds: [],
+      // Clear minutes when changing type
+      minutesLate: type === "LATE" ? prev.minutesLate : undefined,
+      minutesEarlyLeave: type === "EARLY_LEAVE" ? prev.minutesEarlyLeave : undefined,
     }));
   };
 
@@ -324,13 +477,16 @@ export default function ExcuseRequestModal({
     if (isReadOnly) return;
 
     const dateStr = date ? formatLocalDate(date) : "";
-    setForm((prev) => ({
+    setForm((prev) => {
+      const nextDateTo = (prev.type === "LATE" || prev.type === "EARLY_LEAVE") ? dateStr : prev.dateTo;
+      validateDateFields(dateStr, nextDateTo);
+      return {
       ...prev,
       dateFrom: dateStr,
       // For LATE/EARLY_LEAVE, dateTo must match dateFrom
-      dateTo: (prev.type === "LATE" || prev.type === "EARLY_LEAVE") ? dateStr : prev.dateTo,
-    }));
-    setErrors((prev) => ({ ...prev, dateFrom: "", dateTo: "" }));
+      dateTo: nextDateTo,
+    };
+    });
   };
 
   const handleDateToChange = (date: Date | null) => {
@@ -340,8 +496,10 @@ export default function ExcuseRequestModal({
     if (form.type === "LATE" || form.type === "EARLY_LEAVE") return;
 
     const dateStr = date ? formatLocalDate(date) : "";
-    setForm((prev) => ({ ...prev, dateTo: dateStr }));
-    setErrors((prev) => ({ ...prev, dateTo: "" }));
+    setForm((prev) => {
+      validateDateFields(prev.dateFrom, dateStr);
+      return { ...prev, dateTo: dateStr };
+    });
   };
 
   const handlePeriodToggle = (periodId: string) => {
@@ -370,7 +528,7 @@ export default function ExcuseRequestModal({
             {tCommon("cancel")}
           </Button>
           {!isReadOnly && (
-            <Button variant="primary" onClick={handleSave} loading={saving} disabled={!allowExcuses}>
+            <Button variant="primary" onClick={handleSave} loading={saving} disabled={policyLoading || isPolicyBlocking}>
               {tCommon("save")}
             </Button>
           )}
@@ -379,16 +537,34 @@ export default function ExcuseRequestModal({
     >
       <div className="space-y-4 pb-2">
         {/* Policy warning */}
-        {!allowExcuses && (
+        {(policyLoading || policyIssue || resolvedPolicy) && (
           <div className="flex items-start gap-2 p-3 rounded" style={{ backgroundColor: "var(--color-warning-50)", borderLeft: "3px solid var(--color-warning-500)" }}>
-            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "var(--color-warning-700)" }} />
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "var(--color-warning-700)" }} />
             <div className="flex-1">
               <p className="text-sm font-medium" style={{ color: "var(--color-warning-800)" }}>
-                {t("validation.policyDisabled")}
+                {policyLoading
+                  ? t("policy.loading")
+                  : policyIssue
+                    ? t("policy.actionBlocked")
+                    : t("policy.active")}
               </p>
-              <p className="text-xs mt-1" style={{ color: "var(--color-warning-700)" }}>
-                {t("messages.excusesDisabledByPolicy")}
-              </p>
+              {policyLoading ? null : (
+                <>
+                  <p className="text-xs mt-1" style={{ color: "var(--color-warning-700)" }}>
+                    {policyIssue ? getPolicyIssueMessage(policyIssue) : t("policy.summary")}
+                  </p>
+                  {resolvedPolicy?.requireAttachmentForExcuse && (
+                    <p className="text-xs mt-1" style={{ color: "var(--color-warning-700)" }}>
+                      {t("policy.attachmentRequired")}
+                    </p>
+                  )}
+                  {resolvedPolicy?.requireExcuseReason && (
+                    <p className="text-xs mt-1" style={{ color: "var(--color-warning-700)" }}>
+                      {t("policy.reasonRequired")}
+                    </p>
+                  )}
+                </>
+              )}
             </div>
           </div>
         )}
@@ -400,8 +576,18 @@ export default function ExcuseRequestModal({
           stages={stages}
           grades={grades}
           sections={sections}
+          classrooms={classrooms}
           onScopeTypeChange={(scopeType) => handleScopeChange(scopeType, {})}
-          onScopeIdsChange={(scopeIds) => handleScopeChange(form.scopeType, scopeIds)}
+          onScopeIdsChange={(scopeIds) =>
+            setForm((prev) => ({
+              ...prev,
+              scopeIds,
+              studentId: "",
+              studentNameAr: "",
+              studentNameEn: "",
+              studentNumber: "",
+            }))
+          }
           errors={{}}
           disabled={isReadOnly}
         />
@@ -436,8 +622,12 @@ export default function ExcuseRequestModal({
               setErrors((prev) => ({ ...prev, studentId: "" }));
             }}
             options={studentOptions}
+            placeholder={t("selectStudent")}
             error={errors.studentId}
             disabled={isReadOnly}
+            searchable={true}
+            searchPlaceholder={t("searchStudent")}
+            noResultsText={t("noStudentsFound")}
           />
         )}
 
@@ -534,10 +724,73 @@ export default function ExcuseRequestModal({
           </div>
         )}
 
+        {/* Minutes field for LATE */}
+        {form.type === "LATE" && (
+          <div>
+            <Input
+              label={t("minutesLate")}
+              type="number"
+              value={form.minutesLate?.toString() || ""}
+              onChange={(e) => {
+                if (isReadOnly) return;
+                const value = e.target.value ? parseInt(e.target.value) : undefined;
+                setForm((prev) => ({ ...prev, minutesLate: value }));
+                setErrors((prev) => ({ ...prev, minutesLate: "" }));
+              }}
+              error={errors.minutesLate}
+              disabled={isReadOnly}
+              min={1}
+              placeholder="0"
+              helperText={t("minutesLateHelper")}
+            />
+            {lateThresholdState.isReached && typeof lateThresholdState.threshold === "number" && (
+              <div className="flex items-start gap-2 mt-2 p-2 rounded" style={{ backgroundColor: "var(--color-accent-50)" }}>
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--color-accent-700)" }} />
+                <p className="text-xs" style={{ color: "var(--color-accent-700)" }}>
+                  {t("thresholdReached", { threshold: lateThresholdState.threshold })}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Minutes field for EARLY_LEAVE */}
+        {form.type === "EARLY_LEAVE" && (
+          <div>
+            <Input
+              label={t("minutesEarlyLeave")}
+              type="number"
+              value={form.minutesEarlyLeave?.toString() || ""}
+              onChange={(e) => {
+                if (isReadOnly) return;
+                const value = e.target.value ? parseInt(e.target.value) : undefined;
+                setForm((prev) => ({ ...prev, minutesEarlyLeave: value }));
+                setErrors((prev) => ({ ...prev, minutesEarlyLeave: "" }));
+              }}
+              error={errors.minutesEarlyLeave}
+              disabled={isReadOnly}
+              min={1}
+              placeholder="0"
+              helperText={t("minutesEarlyLeaveHelper")}
+            />
+            {earlyLeaveThresholdState.isReached && typeof earlyLeaveThresholdState.threshold === "number" && (
+              <div className="flex items-start gap-2 mt-2 p-2 rounded" style={{ backgroundColor: "var(--color-accent-50)" }}>
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--color-accent-700)" }} />
+                <p className="text-xs" style={{ color: "var(--color-accent-700)" }}>
+                  {t("thresholdReached", { threshold: earlyLeaveThresholdState.threshold })}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Reason */}
         <div>
+          <p className="text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+            {t("reason")} {requireReason ? "*" : ""}
+          </p>
           <BilingualTextField
-            label={t("reason")}
+            label=""
             value={{ ar: form.reasonAr, en: form.reasonEn }}
             onChange={(value) => {
               if (isReadOnly) return;
@@ -549,6 +802,11 @@ export default function ExcuseRequestModal({
             errors={{ ar: errors.reason, en: errors.reason }}
             disabled={isReadOnly}
           />
+          {requireReason && (
+            <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
+              {t("reasonRequiredByPolicy")}
+            </p>
+          )}
         </div>
 
         {/* Attachments */}

@@ -2,7 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { Tooltip } from "@mui/material";
-import { Eye, PencilLine } from "lucide-react";
+import { Eye, PencilLine, TriangleAlert } from "lucide-react";
 import DataTable from "@/components/ui/data-table/DataTable";
 import type { Incident } from "../types";
 
@@ -52,6 +52,9 @@ export default function LateEarlyTable({ incidents, isReadOnly, onView, onEditMi
       render: (_value: unknown, row: Incident) => (
         <span>
           {(locale === "ar" ? row.gradeNameAr : row.gradeNameEn) || row.gradeNameEn || row.gradeNameAr || "-"} / {(locale === "ar" ? row.sectionNameAr : row.sectionNameEn) || row.sectionNameEn || row.sectionNameAr || "-"}
+          {row.classroomId
+            ? ` / ${((locale === "ar" ? row.classroomNameAr : row.classroomNameEn) || row.classroomNameEn || row.classroomNameAr || "-")}`
+            : ""}
         </span>
       ),
     },
@@ -81,7 +84,20 @@ export default function LateEarlyTable({ incidents, isReadOnly, onView, onEditMi
       render: (_value: unknown, row: Incident) => {
         const bg = row.isViolation ? "var(--color-accent-100)" : "var(--color-success-100)";
         const fg = row.isViolation ? "var(--color-accent-700)" : "var(--color-success-700)";
-        return <span className="inline-flex px-2 py-1 rounded text-xs font-semibold" style={{ backgroundColor: bg, color: fg }}>{row.isViolation ? t("yes") : t("no")}</span>;
+
+        return (
+          <div className="flex flex-col gap-1">
+            <span className="inline-flex w-fit px-2 py-1 rounded text-xs font-semibold" style={{ backgroundColor: bg, color: fg }}>
+              {row.isViolation ? t("yes") : t("no")}
+            </span>
+            {row.isViolation && typeof row.threshold === "number" && (
+              <span className="inline-flex items-center gap-1 text-xs" style={{ color: "var(--color-accent-700)" }}>
+                <TriangleAlert className="w-3.5 h-3.5" />
+                {t("thresholdReached", { threshold: row.threshold })}
+              </span>
+            )}
+          </div>
+        );
       },
     },
     {

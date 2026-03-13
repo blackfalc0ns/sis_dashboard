@@ -1,8 +1,10 @@
 ﻿"use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { X, User, CalendarDays, AlarmClockPlus, TriangleAlert, Link2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { X, User, CalendarDays, AlarmClockPlus, TriangleAlert, Link2, Clock3 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import { formatAttendanceDateTime } from "@/features/attendance/utils/dateFormatting";
 import type { Incident } from "../types";
 
 interface IncidentDetailsDrawerProps {
@@ -22,6 +24,7 @@ export default function IncidentDetailsDrawer({
 }: IncidentDetailsDrawerProps) {
   const t = useTranslations("attendance.lateEarly.details");
   const locale = useLocale();
+  const router = useRouter();
 
   if (!incident) {
     return (
@@ -37,9 +40,13 @@ export default function IncidentDetailsDrawer({
   const relationLabel =
     typeof incident.threshold === "number"
       ? incident.isViolation
-        ? t("aboveOrEqualThreshold", { threshold: incident.threshold })
-        : t("belowThreshold", { threshold: incident.threshold })
+        ? t("thresholdReached", { threshold: incident.threshold })
+        : t("noViolation")
       : t("noThreshold");
+
+  const handleOpenStudentProfile = () => {
+    router.push(`/${locale}/students-guardians/students/${incident.studentId}`);
+  };
 
   return (
     <div className="h-full flex flex-col" style={{ backgroundColor: "var(--card-background)" }}>
@@ -59,12 +66,23 @@ export default function IncidentDetailsDrawer({
             <span className="text-sm font-semibold">{t("student")}</span>
           </div>
           <div className="text-sm" style={{ color: "var(--text-primary)" }}>
-            <div>{locale === "ar" ? incident.studentNameAr : incident.studentNameEn}</div>
+            <button
+              type="button"
+              onClick={handleOpenStudentProfile}
+              className="font-medium text-start underline underline-offset-2"
+              style={{ color: "var(--color-primary-700)" }}
+              title={t("openStudentProfile")}
+            >
+              {locale === "ar" ? incident.studentNameAr : incident.studentNameEn}
+            </button>
             <div style={{ color: "var(--text-secondary)" }}>{incident.studentNumber || "-"}</div>
             <div style={{ color: "var(--text-secondary)" }}>
               {(locale === "ar" ? incident.gradeNameAr : incident.gradeNameEn) || incident.gradeNameEn || incident.gradeNameAr || "-"}
               {" / "}
               {(locale === "ar" ? incident.sectionNameAr : incident.sectionNameEn) || incident.sectionNameEn || incident.sectionNameAr || "-"}
+              {incident.classroomId
+                ? ` / ${((locale === "ar" ? incident.classroomNameAr : incident.classroomNameEn) || incident.classroomNameEn || incident.classroomNameAr || "-")}`
+                : ""}
             </div>
           </div>
         </section>
@@ -91,6 +109,22 @@ export default function IncidentDetailsDrawer({
             <div>{t("threshold")}: {typeof incident.threshold === "number" ? incident.threshold : "-"}</div>
             <div>{t("comparison")}: {relationLabel}</div>
             <div title={incident.policyScopeSummary}>{t("policySource")}: {incident.policyScopeSummary}</div>
+            {incident.isViolation && typeof incident.threshold === "number" && (
+              <div className="flex items-start gap-2 mt-2 p-2 rounded" style={{ backgroundColor: "var(--color-accent-50)", color: "var(--color-accent-700)" }}>
+                <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{t("thresholdReached", { threshold: incident.threshold })}</span>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-center gap-2 mb-2" style={{ color: "var(--text-secondary)" }}>
+            <Clock3 className="w-4 h-4" />
+            <span className="text-sm font-semibold">{t("timeline")}</span>
+          </div>
+          <div className="text-sm space-y-1" style={{ color: "var(--text-primary)" }}>
+            <div>{t("updatedAt")}: {formatAttendanceDateTime(incident.updatedAt, locale)}</div>
           </div>
         </section>
       </div>

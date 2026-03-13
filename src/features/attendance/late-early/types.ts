@@ -5,6 +5,7 @@ export interface LateEarlyScopeIds {
   stageId?: string;
   gradeId?: string;
   sectionId?: string;
+  classroomId?: string;
 }
 
 export interface Incident {
@@ -23,10 +24,13 @@ export interface Incident {
   stageId?: string;
   gradeId?: string;
   sectionId?: string;
+  classroomId?: string;
   gradeNameAr?: string;
   gradeNameEn?: string;
   sectionNameAr?: string;
   sectionNameEn?: string;
+  classroomNameAr?: string;
+  classroomNameEn?: string;
   type: IncidentType;
   minutes: number;
   threshold?: number;
@@ -39,7 +43,7 @@ export interface Incident {
 export interface LateEarlyFilters {
   dateFrom?: string;
   dateTo?: string;
-  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION";
+  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSROOM";
   scopeIds?: LateEarlyScopeIds;
   type: IncidentFilterType;
   onlyViolations: boolean;

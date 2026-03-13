@@ -173,34 +173,6 @@ export default function Step4Rules({
                 {t("fields.requireAttachment")}
               </span>
             </label>
-
-            <div className="ml-7">
-              <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
-                {t("fields.maxDaysToSubmit")}
-              </label>
-              <div className="relative max-w-xs">
-                <Input
-                  type="number"
-                  value={formData.maxDaysToSubmitExcuse || ""}
-                  onChange={(e) =>
-                    onFieldChange(
-                      "maxDaysToSubmitExcuse",
-                      e.target.value ? parseInt(e.target.value) : undefined
-                    )
-                  }
-                  min={0}
-                  disabled={isReadOnly}
-                  error={errors.maxDaysToSubmitExcuse}
-                  placeholder={t("optional")}
-                />
-                <span style={{ color: "var(--color-neutral-500)" }} className="absolute right-15 top-1/2 -translate-y-1/2 text-sm">
-                  {t("days")}
-                </span>
-              </div>
-              <p style={{ color: "var(--color-neutral-500)" }} className="text-xs mt-1">
-                {t("fields.maxDaysToSubmitDesc")}
-              </p>
-            </div>
           </>
         )}
       </div>

@@ -1,6 +1,6 @@
-import type { Config } from "tailwindcss";
+﻿import type { Config } from "tailwindcss";
 import forms from "@tailwindcss/forms";
-import { tokens } from "./src/design/tokens";
+const { tokens } = require("./src/design/tokens.ts");
 
 const config: Config = {
   // Content scanning configuration - critical for proper CSS generation
@@ -59,3 +59,5 @@ const config: Config = {
 };
 
 export default config;
+
+

@@ -214,6 +214,14 @@ export default function TransferRequestDetailsPage({
               <p className="text-sm">{tDetails("grade")}</p>
               <p className="font-medium">{transfer.grade}</p>
             </div>
+            <div>
+              <p className="text-sm">{tDetails("section")}</p>
+              <p className="font-medium">{transfer.section || t("na")}</p>
+            </div>
+            <div>
+              <p className="text-sm">{tDetails("classroom")}</p>
+              <p className="font-medium">{transfer.classroom || t("na")}</p>
+            </div>
           </div>
         </div>
 

@@ -36,6 +36,7 @@ import {
   getStatusColor,
   getRiskFlagColor,
   formatStudentForExport,
+  getStudentClassroom,
 } from "@/features/students-guardians/students/utils/studentUtils";
 import AddNoteModal, {
   NoteFormData,
@@ -55,13 +56,13 @@ export default function StudentsList() {
     studentsService.getStudentsWithEnrollment(),
   );
 
-  console.log(studentsWithEnrollment);
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [academicYearFilter, setAcademicYearFilter] = useState<string>("all");
   const [termFilter, setTermFilter] = useState<string>("all");
   const [gradeFilter, setGradeFilter] = useState<string>("all");
   const [sectionFilter, setSectionFilter] = useState<string>("all");
+  const [classroomFilter, setClassroomFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<StudentStatus | "all">(
     "all",
   );
@@ -109,6 +110,7 @@ export default function StudentsList() {
       // Use enrollment data for grade and section
       const studentGrade = student.enrollment?.grade || student.gradeRequested;
       const studentSection = student.enrollment?.section || "";
+      const studentClassroom = student.enrollment?.classroom || "";
       const studentAcademicYear = student.enrollment?.academicYear || "";
 
       // Get current term from currentTerm data
@@ -125,6 +127,8 @@ export default function StudentsList() {
 
       const matchesSection =
         sectionFilter === "all" || studentSection === sectionFilter;
+      const matchesClassroom =
+        classroomFilter === "all" || studentClassroom === classroomFilter;
 
       const matchesStatus =
         statusFilter === "all" || student.status === statusFilter;
@@ -140,6 +144,7 @@ export default function StudentsList() {
         matchesTerm &&
         matchesGrade &&
         matchesSection &&
+        matchesClassroom &&
         matchesStatus &&
         matchesDateRange
       );
@@ -151,6 +156,7 @@ export default function StudentsList() {
     termFilter,
     gradeFilter,
     sectionFilter,
+    classroomFilter,
     statusFilter,
     dateRange,
     customStartDate,
@@ -219,12 +225,34 @@ export default function StudentsList() {
   const uniqueSections = useMemo(() => {
     const sections = new Set<string>();
     studentsWithEnrollment.forEach((s) => {
-      if (s.enrollment?.section) {
+      const matchesGrade =
+        gradeFilter === "all" ||
+        (s.enrollment?.grade || s.gradeRequested) === gradeFilter;
+
+      if (matchesGrade && s.enrollment?.section) {
         sections.add(s.enrollment.section);
       }
     });
     return Array.from(sections).sort();
-  }, [studentsWithEnrollment]);
+  }, [gradeFilter, studentsWithEnrollment]);
+
+  const uniqueClassrooms = useMemo(() => {
+    const classrooms = new Set<string>();
+    studentsWithEnrollment.forEach((s) => {
+      const studentGrade = s.enrollment?.grade || s.gradeRequested;
+      const studentSection = s.enrollment?.section || "";
+
+      const matchesGrade =
+        gradeFilter === "all" || studentGrade === gradeFilter;
+      const matchesSection =
+        sectionFilter === "all" || studentSection === sectionFilter;
+
+      if (matchesGrade && matchesSection && s.enrollment?.classroom) {
+        classrooms.add(s.enrollment.classroom);
+      }
+    });
+    return Array.from(classrooms).sort();
+  }, [gradeFilter, sectionFilter, studentsWithEnrollment]);
 
   const hasActiveFilters =
     searchQuery !== "" ||
@@ -232,6 +260,7 @@ export default function StudentsList() {
     termFilter !== "all" ||
     gradeFilter !== "all" ||
     sectionFilter !== "all" ||
+    classroomFilter !== "all" ||
     statusFilter !== "all";
 
   const clearFilters = () => {
@@ -240,6 +269,7 @@ export default function StudentsList() {
     setTermFilter("all");
     setGradeFilter("all");
     setSectionFilter("all");
+    setClassroomFilter("all");
     setStatusFilter("all");
   };
 
@@ -403,6 +433,14 @@ export default function StudentsList() {
       render: (_: unknown, row: { [key: string]: unknown }) => {
         const student = row as unknown as (typeof studentsWithEnrollment)[0];
         return student.enrollment?.section || t("columns.na");
+      },
+    },
+    {
+      key: "classroom",
+      label: t("columns.classroom"),
+      render: (_: unknown, row: { [key: string]: unknown }) => {
+        const student = row as unknown as (typeof studentsWithEnrollment)[0];
+        return getStudentClassroom(student);
       },
     },
     {
@@ -657,7 +695,7 @@ export default function StudentsList() {
 
         {/* Advanced Filters */}
         {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
                 {t("filter_labels.academic_year")}
@@ -698,7 +736,11 @@ export default function StudentsList() {
               </label>
               <select
                 value={gradeFilter}
-                onChange={(e) => setGradeFilter(e.target.value)}
+                onChange={(e) => {
+                  setGradeFilter(e.target.value);
+                  setSectionFilter("all");
+                  setClassroomFilter("all");
+                }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("filter_options.all_grades")}</option>
@@ -715,13 +757,33 @@ export default function StudentsList() {
               </label>
               <select
                 value={sectionFilter}
-                onChange={(e) => setSectionFilter(e.target.value)}
+                onChange={(e) => {
+                  setSectionFilter(e.target.value);
+                  setClassroomFilter("all");
+                }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("filter_options.all_sections")}</option>
                 {uniqueSections.map((section) => (
                   <option key={section} value={section}>
                     {section}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                {t("filter_labels.classroom")}
+              </label>
+              <select
+                value={classroomFilter}
+                onChange={(e) => setClassroomFilter(e.target.value)}
+                className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="all">{t("filter_options.all_classrooms")}</option>
+                {uniqueClassrooms.map((classroom) => (
+                  <option key={classroom} value={classroom}>
+                    {classroom}
                   </option>
                 ))}
               </select>

@@ -3,7 +3,14 @@
 import { useTranslations, useLocale } from "next-intl";
 import Select from "@/components/ui/input/Select";
 import type { AttendanceScopeType } from "../types";
-import type { Stage, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
+import type { Stage, Grade, Section, Classroom } from "@/features/academics/academic-structure-tree/services/structureService";
+import {
+  doesScopeTypeUseClassroom,
+  doesScopeTypeUseGrade,
+  doesScopeTypeUseSection,
+  doesScopeTypeUseStage,
+  type AttendanceScopeIds,
+} from "@/features/attendance/shared/attendanceScope";
 
 interface ScopePickerProps {
   scopeType: AttendanceScopeType;
@@ -11,18 +18,21 @@ interface ScopePickerProps {
     stageId?: string;
     gradeId?: string;
     sectionId?: string;
+    classroomId?: string;
   };
   stages: Stage[];
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   onScopeTypeChange: (scopeType: AttendanceScopeType) => void;
-  onScopeIdsChange: (scopeIds: { stageId?: string; gradeId?: string; sectionId?: string }) => void;
+  onScopeIdsChange: (scopeIds: AttendanceScopeIds) => void;
   disabled?: boolean;
   errors?: {
     scopeType?: string;
     stageId?: string;
     gradeId?: string;
     sectionId?: string;
+    classroomId?: string;
   };
 }
 
@@ -32,6 +42,7 @@ export default function ScopePicker({
   stages,
   grades,
   sections,
+  classrooms,
   onScopeTypeChange,
   onScopeIdsChange,
   disabled = false,
@@ -47,6 +58,7 @@ export default function ScopePicker({
     { value: "STAGE", label: tScope("stage") },
     { value: "GRADE", label: tScope("grade") },
     { value: "SECTION", label: tScope("section") },
+    { value: "CLASSROOM", label: tScope("classroom") },
   ];
 
   const handleScopeTypeChange = (value: string) => {
@@ -60,11 +72,15 @@ export default function ScopePicker({
   };
 
   const handleGradeChange = (gradeId: string) => {
-    onScopeIdsChange({ ...scopeIds, gradeId, sectionId: undefined });
+    onScopeIdsChange({ ...scopeIds, gradeId, sectionId: undefined, classroomId: undefined });
   };
 
   const handleSectionChange = (sectionId: string) => {
-    onScopeIdsChange({ ...scopeIds, sectionId });
+    onScopeIdsChange({ ...scopeIds, sectionId, classroomId: undefined });
+  };
+
+  const handleClassroomChange = (classroomId: string) => {
+    onScopeIdsChange({ ...scopeIds, classroomId });
   };
 
   // Filter grades by selected stage
@@ -75,6 +91,10 @@ export default function ScopePicker({
   // Filter sections by selected grade
   const filteredSections = scopeIds.gradeId
     ? sections.filter((s) => s.gradeId === scopeIds.gradeId)
+    : [];
+
+  const filteredClassrooms = scopeIds.sectionId
+    ? classrooms.filter((classroom) => classroom.sectionId === scopeIds.sectionId)
     : [];
 
   return (
@@ -94,7 +114,7 @@ export default function ScopePicker({
       </div>
 
       {/* Stage Select (for STAGE, GRADE, SECTION) */}
-      {(scopeType === "STAGE" || scopeType === "GRADE" || scopeType === "SECTION") && (
+      {doesScopeTypeUseStage(scopeType) && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             {tForm("stage")} <span className="text-red-500">*</span>
@@ -114,7 +134,7 @@ export default function ScopePicker({
       )}
 
       {/* Grade Select (for GRADE, SECTION) */}
-      {(scopeType === "GRADE" || scopeType === "SECTION") && (
+      {doesScopeTypeUseGrade(scopeType) && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             {tForm("grade")} <span className="text-red-500">*</span>
@@ -134,7 +154,7 @@ export default function ScopePicker({
       )}
 
       {/* Section Select (for SECTION) */}
-      {scopeType === "SECTION" && (
+      {doesScopeTypeUseSection(scopeType) && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             {tForm("section")} <span className="text-red-500">*</span>
@@ -154,6 +174,25 @@ export default function ScopePicker({
             placeholder={`${tCommon("select")} ${tForm("section")}`}
             disabled={disabled || !scopeIds.gradeId}
             error={errors.sectionId}
+          />
+        </div>
+      )}
+
+      {doesScopeTypeUseClassroom(scopeType) && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {tForm("classroom")} <span className="text-red-500">*</span>
+          </label>
+          <Select
+            value={scopeIds.classroomId || ""}
+            onChange={handleClassroomChange}
+            options={filteredClassrooms.map((classroom) => ({
+              value: classroom.id,
+              label: locale === "ar" ? classroom.nameAr : classroom.nameEn,
+            }))}
+            placeholder={`${tCommon("select")} ${tForm("classroom")}`}
+            disabled={disabled || !scopeIds.sectionId}
+            error={errors.classroomId}
           />
         </div>
       )}

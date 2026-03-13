@@ -20,6 +20,7 @@ import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTe
 import ScheduleInterviewModal from "@/features/admissions/interviews/components/ScheduleInterviewModal";
 import DecisionModal from "@/features/admissions/decisions/components/DecisionModal";
 import EnrollmentForm from "@/features/admissions/enrollment/components/EnrollmentForm";
+import { submitApplicationEnrollment } from "@/features/admissions/enrollment/services/enrollmentService";
 import DetailsTab from "@/features/admissions/applications/components/tabs/DetailsTab";
 import GuardiansTab from "@/features/admissions/applications/components/tabs/GuardiansTab";
 import DocumentsTab from "@/features/admissions/applications/components/tabs/DocumentsTab";
@@ -253,8 +254,9 @@ export default function ApplicationDetailsPage({
       <EnrollmentForm
         isOpen={isEnrollmentOpen}
         onClose={() => setIsEnrollmentOpen(false)}
-        onSubmit={(data) => {
-          console.log("Enroll student:", data);
+        onSubmit={async (data) => {
+          await submitApplicationEnrollment(application, data);
+          alert("Student enrolled successfully!");
           setIsEnrollmentOpen(false);
         }}
         application={application}

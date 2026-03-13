@@ -8,6 +8,7 @@ import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import WizardStepper from "@/features/academics/timetable/components/WizardStepper";
 import { isPolicyNameUnique } from "../services/attendancePolicyService";
+import { getScopeSelectionMissingFields } from "@/features/attendance/shared/attendanceScope";
 import { fetchTimetableConfigs } from "@/features/academics/timetable/services/timetableConfigService";
 import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 import Step1BasicInfo from "./wizard/Step1BasicInfo";
@@ -20,6 +21,7 @@ import type {
   Stage,
   Grade,
   Section,
+  Classroom,
   Term,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
@@ -31,6 +33,7 @@ interface PolicyWizardDialogProps {
   stages: Stage[];
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   isReadOnly: boolean;
   onSave: (data: PolicyFormData) => Promise<void>;
   onClose: () => void;
@@ -43,6 +46,7 @@ export default function PolicyWizardDialog({
   stages,
   grades,
   sections,
+  classrooms,
   isReadOnly,
   onSave,
   onClose,
@@ -80,7 +84,6 @@ export default function PolicyWizardDialog({
     allowExcuses: policy?.allowExcuses ?? true,
     requireExcuseReason: policy?.requireExcuseReason ?? false,
     requireAttachmentForExcuse: policy?.requireAttachmentForExcuse ?? false,
-    maxDaysToSubmitExcuse: policy?.maxDaysToSubmitExcuse,
     notifyTeachers: policy?.notifyTeachers ?? true,
     notifyStudents: policy?.notifyStudents ?? false,
     notifyGuardians: policy?.notifyGuardians ?? true,
@@ -134,7 +137,6 @@ export default function PolicyWizardDialog({
         allowExcuses: policy.allowExcuses,
         requireExcuseReason: policy.requireExcuseReason,
         requireAttachmentForExcuse: policy.requireAttachmentForExcuse,
-        maxDaysToSubmitExcuse: policy.maxDaysToSubmitExcuse,
         notifyTeachers: policy.notifyTeachers,
         notifyStudents: policy.notifyStudents,
         notifyGuardians: policy.notifyGuardians,
@@ -178,7 +180,6 @@ export default function PolicyWizardDialog({
         allowExcuses: true,
         requireExcuseReason: false,
         requireAttachmentForExcuse: false,
-        maxDaysToSubmitExcuse: undefined,
         notifyTeachers: true,
         notifyStudents: false,
         notifyGuardians: true,
@@ -215,7 +216,7 @@ export default function PolicyWizardDialog({
       let gradeConfig = null;
       let sectionConfig = null;
 
-      if (formData.scopeType === "SECTION" && formData.scopeIds?.sectionId) {
+      if ((formData.scopeType === "SECTION" || formData.scopeType === "CLASSROOM") && formData.scopeIds?.sectionId) {
         sectionConfig =
           configs.find(
             (c) =>
@@ -290,26 +291,8 @@ export default function PolicyWizardDialog({
       }
     } else if (step === 1) {
       // Step 2: Scope
-      if (formData.scopeType === "STAGE" && !formData.scopeIds?.stageId) {
-        newErrors.stageId = tValidation("required");
-      }
-      if (
-        formData.scopeType === "GRADE" &&
-        (!formData.scopeIds?.stageId || !formData.scopeIds?.gradeId)
-      ) {
-        if (!formData.scopeIds?.stageId) newErrors.stageId = tValidation("required");
-        if (!formData.scopeIds?.gradeId) newErrors.gradeId = tValidation("required");
-      }
-      if (
-        formData.scopeType === "SECTION" &&
-        (!formData.scopeIds?.stageId ||
-          !formData.scopeIds?.gradeId ||
-          !formData.scopeIds?.sectionId)
-      ) {
-        if (!formData.scopeIds?.stageId) newErrors.stageId = tValidation("required");
-        if (!formData.scopeIds?.gradeId) newErrors.gradeId = tValidation("required");
-        if (!formData.scopeIds?.sectionId)
-          newErrors.sectionId = tValidation("required");
+      for (const field of getScopeSelectionMissingFields(formData.scopeType, formData.scopeIds)) {
+        newErrors[field] = tValidation("required");
       }
     } else if (step === 2) {
       // Step 3: Period Selection (always required now)
@@ -340,12 +323,6 @@ export default function PolicyWizardDialog({
         });
       }
       
-      if (
-        formData.maxDaysToSubmitExcuse !== undefined &&
-        formData.maxDaysToSubmitExcuse < 0
-      ) {
-        newErrors.maxDaysToSubmitExcuse = tValidation("nonNegative");
-      }
     } else if (step === 4) {
       // Step 5: Dates & Review
       if (!formData.effectiveStartDate) {
@@ -441,6 +418,11 @@ export default function PolicyWizardDialog({
     return sections.filter((s) => s.gradeId === formData.scopeIds?.gradeId);
   }, [sections, formData.scopeIds?.gradeId]);
 
+  const filteredClassrooms = useMemo(() => {
+    if (!formData.scopeIds?.sectionId) return classrooms;
+    return classrooms.filter((item) => item.sectionId === formData.scopeIds?.sectionId);
+  }, [classrooms, formData.scopeIds?.sectionId]);
+
   return (
     <>
       <Modal
@@ -501,6 +483,7 @@ export default function PolicyWizardDialog({
                 stages={stages}
                 filteredGrades={filteredGrades}
                 filteredSections={filteredSections}
+                filteredClassrooms={filteredClassrooms}
                 onFieldChange={handleFieldChange}
               />
             )}

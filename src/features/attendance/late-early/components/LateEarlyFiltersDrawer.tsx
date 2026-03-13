@@ -5,7 +5,7 @@ import { Drawer } from "@mui/material";
 import { X } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import LateEarlyFiltersBar from "./LateEarlyFiltersBar";
-import type { Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
+import type { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { LateEarlyFilters } from "../types";
 
 interface LateEarlyFiltersDrawerProps {
@@ -14,6 +14,7 @@ interface LateEarlyFiltersDrawerProps {
   stages: Stage[];
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   periods: Array<{ index: number; nameAr: string; nameEn: string }>;
   onClose: () => void;
   onFiltersChange: (patch: Partial<LateEarlyFilters>) => void;
@@ -28,6 +29,7 @@ export default function LateEarlyFiltersDrawer({
   stages,
   grades,
   sections,
+  classrooms,
   periods,
   onClose,
   onFiltersChange,
@@ -56,6 +58,7 @@ export default function LateEarlyFiltersDrawer({
             stages={stages}
             grades={grades}
             sections={sections}
+            classrooms={classrooms}
             periods={periods}
             onFiltersChange={onFiltersChange}
             onResetFilters={onResetFilters}

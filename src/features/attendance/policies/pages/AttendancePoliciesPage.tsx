@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -14,6 +14,7 @@ import {
   type Stage,
   type Grade,
   type Section,
+  type Classroom,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   fetchPolicies,
@@ -24,6 +25,7 @@ import {
 import { computePolicyKpis } from "../utils/policyKpis";
 import type { AttendancePolicy, PolicyFormData } from "../types";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import AttendanceReadOnlyBanner from "../../shared/components/AttendanceReadOnlyBanner";
 
 export default function AttendancePoliciesPage() {
   const t = useTranslations("attendance.policies");
@@ -37,6 +39,7 @@ export default function AttendancePoliciesPage() {
   const [stages, setStages] = useState<Stage[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
 
   // Policies data
   const [policies, setPolicies] = useState<AttendancePolicy[]>([]);
@@ -78,6 +81,7 @@ export default function AttendancePoliciesPage() {
       setStages(structure.stages);
       setGrades(structure.grades);
       setSections(structure.sections);
+      setClassrooms(structure.classrooms);
 
       // Load policies
       const policiesData = await fetchPolicies(termContext.yearId, termContext.termId);
@@ -183,10 +187,7 @@ export default function AttendancePoliciesPage() {
 
       {/* Read-Only Banner */}
       {isReadOnly && (
-        <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3 flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-yellow-600" />
-          <span className="text-sm text-yellow-800">{t("readonly_banner")}</span>
-        </div>
+        <AttendanceReadOnlyBanner message={t("readonly_banner")} />
       )}
 
       {/* Main Content */}
@@ -201,6 +202,7 @@ export default function AttendancePoliciesPage() {
             stages={stages}
             grades={grades}
             sections={sections}
+            classrooms={classrooms}
             isReadOnly={isReadOnly}
             onCreatePolicy={handleCreatePolicy}
             onEditPolicy={handleEditPolicy}
@@ -219,6 +221,7 @@ export default function AttendancePoliciesPage() {
           stages={stages}
           grades={grades}
           sections={sections}
+          classrooms={classrooms}
           isReadOnly={isReadOnly}
           onSave={handleSavePolicy}
           onClose={handleCancelEdit}

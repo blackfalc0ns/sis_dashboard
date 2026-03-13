@@ -1,14 +1,16 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { 
-  Stage, 
-  Grade, 
+import {
+  Stage,
+  Grade,
   Section,
+  Classroom,
   isStageNameUnique,
   isGradeNameUnique,
   isSectionNameUnique,
+  isClassroomNameUnique,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import Modal from "@/components/ui/modal/Modal";
 import Input from "@/components/ui/input/Input";
@@ -17,17 +19,19 @@ import Button from "@/components/ui/button/Button";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
 import { validateArEnDifferent } from "@/utils/validation/bilingualValidation";
 
+type NodeType = "stage" | "grade" | "section" | "classroom";
+type NodeRef = { type: NodeType; id: string } | null;
+
+type SaveData = Partial<Stage | Grade | Section | Classroom>;
+
 interface DetailsPanelProps {
-  selectedNode: { type: "stage" | "grade" | "section"; id: string } | null;
+  selectedNode: NodeRef;
   stages: Stage[];
   grades: Grade[];
   sections: Section[];
-  onSave: (
-    type: "stage" | "grade" | "section",
-    id: string | null,
-    data: Partial<Stage | Grade | Section>
-  ) => Promise<void>;
-  onDelete: (type: "stage" | "grade" | "section", id: string) => Promise<void>;
+  classrooms: Classroom[];
+  onSave: (type: NodeType, id: string | null, data: SaveData) => Promise<void>;
+  onDelete: (type: NodeType, id: string) => Promise<void>;
   isReadOnly?: boolean;
   onDirtyChange?: (isDirty: boolean) => void;
   academicYearId: string;
@@ -39,6 +43,7 @@ export default function DetailsPanel({
   stages,
   grades,
   sections,
+  classrooms,
   onSave,
   onDelete,
   isReadOnly = false,
@@ -53,34 +58,39 @@ export default function DetailsPanel({
   const [bilingualErrors, setBilingualErrors] = useState<{ ar?: string; en?: string }>({});
   const [isDirty, setIsDirty] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
-  const [pendingNode, setPendingNode] = useState<typeof selectedNode>(null);
+  const [pendingNode, setPendingNode] = useState<NodeRef>(null);
 
   const lastNodeKeyRef = useRef<string | null>(null);
+  const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : null;
 
-const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : null;
+  const loadNodeData = useCallback(
+    (node: NodeRef) => {
+      if (!node) return;
 
-  const loadNodeData = useCallback((node: typeof selectedNode) => {
-    if (!node) return;
+      let data: Record<string, unknown> = {};
+      if (node.type === "stage") {
+        const stage = stages.find((item) => item.id === node.id);
+        data = stage ? { ...stage } : {};
+      } else if (node.type === "grade") {
+        const grade = grades.find((item) => item.id === node.id);
+        data = grade ? { ...grade } : {};
+      } else if (node.type === "section") {
+        const section = sections.find((item) => item.id === node.id);
+        data = section ? { ...section } : {};
+      } else if (node.type === "classroom") {
+        const classroom = classrooms.find((item) => item.id === node.id);
+        data = classroom ? { ...classroom } : {};
+      }
 
-    let data: Record<string, unknown> = {};
-    if (node.type === "stage") {
-      const stage = stages.find((s) => s.id === node.id);
-      data = stage ? { ...stage } : {};
-    } else if (node.type === "grade") {
-      const grade = grades.find((g) => g.id === node.id);
-      data = grade ? { ...grade } : {};
-    } else if (node.type === "section") {
-      const section = sections.find((s) => s.id === node.id);
-      data = section ? { ...section } : {};
-    }
-    setFormData(data);
-    setIsDirty(false);
-    setErrors({});
-    setBilingualErrors({});
-  }, [stages, grades, sections]);
+      setFormData(data);
+      setIsDirty(false);
+      setErrors({});
+      setBilingualErrors({});
+    },
+    [stages, grades, sections, classrooms]
+  );
 
   /* eslint-disable react-hooks/set-state-in-effect */
-  // Form reset pattern: sync form state with selected node changes and handle dirty state
   useEffect(() => {
     if (!selectedNode) {
       setFormData({});
@@ -91,12 +101,10 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
       return;
     }
 
-    // ✅ نفس العقدة (حتى لو object جديد) => تجاهل
     if (lastNodeKeyRef.current === selectedKey) {
       return;
     }
 
-    // ✅ العقدة اتغيرت فعلاً
     if (isDirty) {
       setPendingNode(selectedNode);
       setShowDiscardDialog(true);
@@ -113,6 +121,7 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
       setPendingNode(null);
     };
   }, [selectedKey, selectedNode, isDirty, loadNodeData]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -124,103 +133,70 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
     }
-    // Clear bilingual errors when name fields change
     if (field === "nameAr" || field === "nameEn") {
       setBilingualErrors({});
     }
   };
 
   const validate = () => {
-    const newErrors: Record<string, string> = {};
-    const newBilingualErrors: { ar?: string; en?: string } = {};
+    const nextErrors: Record<string, string> = {};
+    const nextBilingualErrors: { ar?: string; en?: string } = {};
 
     const nameAr = formData.nameAr as string | undefined;
     const nameEn = formData.nameEn as string | undefined;
 
-    // Required validation
     if (!nameAr?.trim()) {
-      newBilingualErrors.ar = tValidation("required_ar");
+      nextBilingualErrors.ar = tValidation("required_ar");
     }
     if (!nameEn?.trim()) {
-      newBilingualErrors.en = tValidation("required_en");
+      nextBilingualErrors.en = tValidation("required_en");
     }
 
-    // AR != EN validation
     if (nameAr?.trim() && nameEn?.trim()) {
       const arEnErrors = validateArEnDifferent(nameAr, nameEn);
-      if (arEnErrors.arError) {
-        newBilingualErrors.ar = tValidation("arEnMustDiffer");
-      }
-      if (arEnErrors.enError) {
-        newBilingualErrors.en = tValidation("arEnMustDiffer");
-      }
+      if (arEnErrors.arError) nextBilingualErrors.ar = tValidation("arEnMustDiffer");
+      if (arEnErrors.enError) nextBilingualErrors.en = tValidation("arEnMustDiffer");
     }
 
-    // Uniqueness validation (only if AR != EN validation passed)
-    if (nameAr?.trim() && nameEn?.trim() && selectedNode && Object.keys(newBilingualErrors).length === 0) {
+    if (nameAr?.trim() && nameEn?.trim() && selectedNode && Object.keys(nextBilingualErrors).length === 0) {
       if (selectedNode.type === "stage") {
-        const uniqueness = isStageNameUnique(
-          academicYearId,
-          termId,
-          nameAr,
-          nameEn,
-          selectedNode.id
-        );
-        if (!uniqueness.uniqueAr) {
-          newBilingualErrors.ar = tValidation("unique_name_ar_stage");
-        }
-        if (!uniqueness.uniqueEn) {
-          newBilingualErrors.en = tValidation("unique_name_en_stage");
-        }
+        const uniqueness = isStageNameUnique(academicYearId, termId, nameAr, nameEn, selectedNode.id);
+        if (!uniqueness.uniqueAr) nextBilingualErrors.ar = tValidation("unique_name_ar_stage");
+        if (!uniqueness.uniqueEn) nextBilingualErrors.en = tValidation("unique_name_en_stage");
       } else if (selectedNode.type === "grade") {
         const stageId = formData.stageId as string;
         if (stageId) {
-          const uniqueness = isGradeNameUnique(
-            academicYearId,
-            termId,
-            stageId,
-            nameAr,
-            nameEn,
-            selectedNode.id
-          );
-          if (!uniqueness.uniqueAr) {
-            newBilingualErrors.ar = tValidation("unique_name_ar_grade");
-          }
-          if (!uniqueness.uniqueEn) {
-            newBilingualErrors.en = tValidation("unique_name_en_grade");
-          }
+          const uniqueness = isGradeNameUnique(academicYearId, termId, stageId, nameAr, nameEn, selectedNode.id);
+          if (!uniqueness.uniqueAr) nextBilingualErrors.ar = tValidation("unique_name_ar_grade");
+          if (!uniqueness.uniqueEn) nextBilingualErrors.en = tValidation("unique_name_en_grade");
         }
       } else if (selectedNode.type === "section") {
         const gradeId = formData.gradeId as string;
         if (gradeId) {
-          const uniqueness = isSectionNameUnique(
-            academicYearId,
-            termId,
-            gradeId,
-            nameAr,
-            nameEn,
-            selectedNode.id
-          );
-          if (!uniqueness.uniqueAr) {
-            newBilingualErrors.ar = tValidation("unique_name_ar_section");
-          }
-          if (!uniqueness.uniqueEn) {
-            newBilingualErrors.en = tValidation("unique_name_en_section");
-          }
+          const uniqueness = isSectionNameUnique(academicYearId, termId, gradeId, nameAr, nameEn, selectedNode.id);
+          if (!uniqueness.uniqueAr) nextBilingualErrors.ar = tValidation("unique_name_ar_section");
+          if (!uniqueness.uniqueEn) nextBilingualErrors.en = tValidation("unique_name_en_section");
+        }
+      } else if (selectedNode.type === "classroom") {
+        const sectionId = formData.sectionId as string;
+        if (sectionId) {
+          const uniqueness = isClassroomNameUnique(academicYearId, termId, sectionId, nameAr, nameEn, selectedNode.id);
+          if (!uniqueness.uniqueAr) nextBilingualErrors.ar = tValidation("unique_name_ar_classroom");
+          if (!uniqueness.uniqueEn) nextBilingualErrors.en = tValidation("unique_name_en_classroom");
         }
       }
     }
 
-    if (selectedNode?.type === "section") {
+    if (selectedNode?.type === "section" || selectedNode?.type === "classroom") {
       const capacityValue = formData.capacity as number | undefined;
       if (!capacityValue || capacityValue <= 0) {
-        newErrors.capacity = t("validation.capacity_required");
+        nextErrors.capacity = t("validation.capacity_required");
       }
     }
 
-    setErrors(newErrors);
-    setBilingualErrors(newBilingualErrors);
-    return Object.keys(newErrors).length === 0 && Object.keys(newBilingualErrors).length === 0;
+    setErrors(nextErrors);
+    setBilingualErrors(nextBilingualErrors);
+    return Object.keys(nextErrors).length === 0 && Object.keys(nextBilingualErrors).length === 0;
   };
 
   const handleSave = async () => {
@@ -250,13 +226,13 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
   };
 
   const handleDiscardChanges = () => {
-  setShowDiscardDialog(false);
-  setIsDirty(false);
-  if (pendingNode) {
-    loadNodeData(pendingNode);
-    lastNodeKeyRef.current = `${pendingNode.type}:${pendingNode.id}`;
-    setPendingNode(null);
-  }
+    setShowDiscardDialog(false);
+    setIsDirty(false);
+    if (pendingNode) {
+      loadNodeData(pendingNode);
+      lastNodeKeyRef.current = `${pendingNode.type}:${pendingNode.id}`;
+      setPendingNode(null);
+    }
   };
 
   if (!selectedNode) {
@@ -267,6 +243,10 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
     );
   }
 
+  const selectedStageName = stages.find((stage) => stage.id === (formData.stageId as string))?.name || "";
+  const selectedSection = sections.find((section) => section.id === (formData.sectionId as string));
+  const selectedGrade = grades.find((grade) => grade.id === (formData.gradeId as string));
+
   return (
     <>
       <div className="p-6 h-full overflow-y-auto">
@@ -275,9 +255,9 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
             {selectedNode.type === "stage" && t("stage_form")}
             {selectedNode.type === "grade" && t("grade_form")}
             {selectedNode.type === "section" && t("section_form")}
+            {selectedNode.type === "classroom" && t("classroom_form")}
           </h3>
 
-          {/* Stage Form */}
           {selectedNode.type === "stage" && (
             <>
               <BilingualTextField
@@ -289,7 +269,6 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
                 onChange={(value) => {
                   handleChange("nameAr", value.ar);
                   handleChange("nameEn", value.en);
-                  // Update display name for backward compatibility
                   handleChange("name", value.en || value.ar);
                 }}
                 requiredAr
@@ -307,7 +286,6 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
             </>
           )}
 
-          {/* Grade Form */}
           {selectedNode.type === "grade" && (
             <>
               <BilingualTextField
@@ -319,7 +297,6 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
                 onChange={(value) => {
                   handleChange("nameAr", value.ar);
                   handleChange("nameEn", value.en);
-                  // Update display name for backward compatibility
                   handleChange("name", value.en || value.ar);
                 }}
                 requiredAr
@@ -327,17 +304,8 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
                 errors={bilingualErrors}
                 disabled={isReadOnly}
               />
-              <Input
-                label={t("stage")}
-                value={stages.find((s) => s.id === (formData.stageId as string))?.name || ""}
-                disabled
-              />
-              <Input
-                label={t("order")}
-                type="number"
-                value={(formData.order as number) || ""}
-                disabled
-              />
+              <Input label={t("stage")} value={selectedStageName} disabled />
+              <Input label={t("order")} type="number" value={(formData.order as number) || ""} disabled />
               <TextArea
                 label={t("notes")}
                 value={(formData.notes as string) || ""}
@@ -348,7 +316,6 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
             </>
           )}
 
-          {/* Section Form */}
           {selectedNode.type === "section" && (
             <>
               <BilingualTextField
@@ -360,7 +327,6 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
                 onChange={(value) => {
                   handleChange("nameAr", value.ar);
                   handleChange("nameEn", value.en);
-                  // Update display name for backward compatibility
                   handleChange("name", value.en || value.ar);
                 }}
                 requiredAr
@@ -374,10 +340,11 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
                 type="number"
                 min="1"
                 value={(formData.capacity as number) || ""}
-                onChange={(e) => handleChange("capacity", parseInt(e.target.value) || 0)}
+                onChange={(e) => handleChange("capacity", parseInt(e.target.value, 10) || 0)}
                 error={errors.capacity}
                 disabled={isReadOnly}
               />
+              <Input label={t("order")} type="number" value={(formData.order as number) || ""} disabled />
               <TextArea
                 label={t("notes")}
                 value={(formData.notes as string) || ""}
@@ -388,7 +355,55 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
             </>
           )}
 
-          {/* Actions */}
+          {selectedNode.type === "classroom" && (
+            <>
+              <BilingualTextField
+                label={t("name")}
+                value={{
+                  ar: (formData.nameAr as string) || "",
+                  en: (formData.nameEn as string) || "",
+                }}
+                onChange={(value) => {
+                  handleChange("nameAr", value.ar);
+                  handleChange("nameEn", value.en);
+                  handleChange("name", value.en || value.ar);
+                }}
+                requiredAr
+                requiredEn
+                errors={bilingualErrors}
+                disabled={isReadOnly}
+              />
+              <Input
+                label={t("section")}
+                value={selectedSection?.name || ""}
+                disabled
+              />
+              <Input
+                label={t("grade")}
+                value={selectedGrade?.name || grades.find((grade) => grade.id === selectedSection?.gradeId)?.name || ""}
+                disabled
+              />
+              <Input
+                label={t("capacity")}
+                required
+                type="number"
+                min="1"
+                value={(formData.capacity as number) || ""}
+                onChange={(e) => handleChange("capacity", parseInt(e.target.value, 10) || 0)}
+                error={errors.capacity}
+                disabled={isReadOnly}
+              />
+              <Input label={t("order")} type="number" value={(formData.order as number) || ""} disabled />
+              <TextArea
+                label={t("notes")}
+                value={(formData.notes as string) || ""}
+                onChange={(e) => handleChange("notes", e.target.value)}
+                rows={3}
+                disabled={isReadOnly}
+              />
+            </>
+          )}
+
           <div className="flex gap-3 pt-4">
             <Button onClick={handleSave} disabled={!isDirty || isReadOnly} variant="primary">
               {t("save")}
@@ -403,7 +418,6 @@ const selectedKey = selectedNode ? `${selectedNode.type}:${selectedNode.id}` : n
         </div>
       </div>
 
-      {/* Discard Changes Dialog */}
       <Modal
         isOpen={showDiscardDialog}
         onClose={() => setShowDiscardDialog(false)}

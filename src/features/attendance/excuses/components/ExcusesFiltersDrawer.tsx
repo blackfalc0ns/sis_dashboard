@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import ExcusesFiltersBar from "./ExcusesFiltersBar";
-import type { Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
+import type { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { ExcuseRequestFilters } from "../types";
 
 interface ExcusesFiltersDrawerProps {
@@ -14,6 +14,7 @@ interface ExcusesFiltersDrawerProps {
   stages: Stage[];
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   onClose: () => void;
   onApply: () => void;
   onFiltersChange: (patch: Partial<ExcuseRequestFilters>) => void;
@@ -27,6 +28,7 @@ export default function ExcusesFiltersDrawer({
   stages,
   grades,
   sections,
+  classrooms,
   onClose,
   onApply,
   onFiltersChange,
@@ -52,6 +54,7 @@ export default function ExcusesFiltersDrawer({
             stages={stages}
             grades={grades}
             sections={sections}
+            classrooms={classrooms}
             onFiltersChange={onFiltersChange}
             onReset={onReset}
             onExport={onExport}

@@ -6,21 +6,23 @@ import DatePicker from "@/components/ui/input/DatePicker";
 import Button from "@/components/ui/button/Button";
 import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
 import type { AttendanceScopeType } from "@/features/attendance/policies/types";
-import type { Stage, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
+import type { Stage, Grade, Section, Classroom } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
 import { getSessionStatusStyle } from "@/features/attendance/shared/statusStyles";
+import type { AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
 
 import type { AttendanceSessionMode } from "../types";
 
 interface SessionPickerPanelProps {
   // Scope
   scopeType: AttendanceScopeType;
-  scopeIds: { stageId?: string; gradeId?: string; sectionId?: string };
+  scopeIds: AttendanceScopeIds;
   stages: Stage[];
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   onScopeTypeChange: (scopeType: AttendanceScopeType) => void;
-  onScopeIdsChange: (scopeIds: { stageId?: string; gradeId?: string; sectionId?: string }) => void;
+  onScopeIdsChange: (scopeIds: AttendanceScopeIds) => void;
 
   // Date
   date: string;
@@ -47,6 +49,7 @@ export default function SessionPickerPanel({
   stages,
   grades,
   sections,
+  classrooms,
   onScopeTypeChange,
   onScopeIdsChange,
   date,
@@ -96,6 +99,7 @@ export default function SessionPickerPanel({
             stages={stages}
             grades={grades}
             sections={sections}
+            classrooms={classrooms}
             onScopeTypeChange={onScopeTypeChange}
             onScopeIdsChange={onScopeIdsChange}
           />

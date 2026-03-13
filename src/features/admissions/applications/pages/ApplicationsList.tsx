@@ -25,6 +25,10 @@ import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTe
 import ScheduleInterviewModal from "@/features/admissions/interviews/components/ScheduleInterviewModal";
 import DecisionModal from "@/features/admissions/decisions/components/DecisionModal";
 import EnrollmentForm from "@/features/admissions/enrollment/components/EnrollmentForm";
+import {
+  submitApplicationEnrollment,
+  type EnrollmentSubmission,
+} from "@/features/admissions/enrollment/services/enrollmentService";
 import DateRangeFilter, { DateRangeValue } from "@/features/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
 import { downloadCSV, generateFilename } from "@/utils/simpleExport";
@@ -342,10 +346,12 @@ export default function ApplicationsList() {
     setIsDecisionOpen(false);
   };
 
-  const handleEnrollmentSubmit = (data: Record<string, unknown>) => {
-    console.log("Enrollment confirmed:", data);
-    alert("Student enrolled successfully!");
-    setIsEnrollmentOpen(false);
+  const handleEnrollmentSubmit = (data: EnrollmentSubmission) => {
+    if (!selectedApp) return;
+    submitApplicationEnrollment(selectedApp, data).then(() => {
+      alert("Student enrolled successfully!");
+      setIsEnrollmentOpen(false);
+    });
   };
 
   const handleCreateApplicationSubmit = (data: Record<string, unknown>) => {

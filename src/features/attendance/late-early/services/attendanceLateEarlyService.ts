@@ -1,6 +1,7 @@
 ﻿import { mockStudents } from "@/data/mockStudents";
 import {
   fetchStructureTree,
+  type Classroom,
   type Grade,
   type Section,
 } from "@/features/academics/academic-structure-tree/services/structureService";
@@ -11,6 +12,7 @@ import {
   fetchSessions,
   upsertEntry,
 } from "@/features/attendance/roll-call/services/attendanceRollCallService";
+import { matchesResolvedAttendanceScope } from "@/features/attendance/shared/attendanceScope";
 import type { AttendanceEntry, AttendanceSession } from "@/features/attendance/roll-call/types";
 import type { Incident, LateEarlyFilters } from "../types";
 import { deriveIncidentsFromSessions, resolveSessionScope } from "../utils/deriveIncidents";
@@ -63,25 +65,16 @@ function applyScopeFilter(
   scopeType: LateEarlyFilters["scopeType"],
   scopeIds: LateEarlyFilters["scopeIds"],
   grades: Grade[],
-  sections: Section[]
+  sections: Section[],
+  classrooms: Classroom[]
 ): AttendanceSession[] {
-  if (scopeType === "SCHOOL") return sessions;
-
   const gradesById = new Map(grades.map((grade) => [grade.id, grade]));
   const sectionsById = new Map(sections.map((section) => [section.id, section]));
+  const classroomsById = new Map(classrooms.map((classroom) => [classroom.id, classroom]));
 
   return sessions.filter((session) => {
-    const resolved = resolveSessionScope(session, gradesById, sectionsById);
-
-    if (scopeType === "STAGE") {
-      return resolved.stageId === scopeIds?.stageId;
-    }
-
-    if (scopeType === "GRADE") {
-      return resolved.gradeId === scopeIds?.gradeId;
-    }
-
-    return resolved.sectionId === scopeIds?.sectionId;
+    const resolved = resolveSessionScope(session, gradesById, sectionsById, classroomsById);
+    return matchesResolvedAttendanceScope(scopeType, scopeIds, resolved);
   });
 }
 
@@ -143,7 +136,7 @@ export async function fetchIncidents(params: FetchIncidentsParams): Promise<Inci
     sessions = sessions.filter((session) => session.status === "SUBMITTED");
   }
 
-  sessions = applyScopeFilter(sessions, scopeType, scopeIds, structure.grades, structure.sections);
+  sessions = applyScopeFilter(sessions, scopeType, scopeIds, structure.grades, structure.sections, structure.classrooms);
 
   if (sessions.length === 0) return [];
 
@@ -161,6 +154,7 @@ export async function fetchIncidents(params: FetchIncidentsParams): Promise<Inci
     policies,
     grades: structure.grades,
     sections: structure.sections,
+    classrooms: structure.classrooms,
     studentsById: buildStudentsMap(roster),
   });
 
@@ -206,6 +200,7 @@ export async function updateIncidentMinutes(params: UpdateIncidentMinutesParams)
     policies,
     grades: structure.grades,
     sections: structure.sections,
+    classrooms: structure.classrooms,
     studentsById: buildStudentsMap(roster),
   });
 

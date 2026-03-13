@@ -27,6 +27,7 @@ import {
   getStudentDisplayName,
   getStudentDisplayId,
   getStudentGrade,
+  getStudentClassroom,
 } from "@/features/students-guardians/students/utils/studentUtils";
 
 interface StudentProfilePageProps {
@@ -85,7 +86,11 @@ export default function StudentProfilePage({
   const student = useMemo(() => {
     return studentsService.getStudentById(studentId);
   }, [studentId]);
-  console.log(student);
+
+  const enrichedStudent = useMemo(() => {
+    return studentsService.getStudentsWithEnrollment().find((item) => item.id === studentId);
+  }, [studentId]);
+
   if (!student) {
     return (
       <div className="p-6">
@@ -197,7 +202,11 @@ export default function StudentProfilePage({
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="font-medium">{t("section")}:</span>{" "}
-                  {student.section ?? t("na")}
+                  {enrichedStudent?.enrollment?.section ?? student.section ?? t("na")}
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="font-medium">{t("classroom")}:</span>{" "}
+                  {getStudentClassroom(enrichedStudent ?? student)}
                 </span>
               </div>
             </div>

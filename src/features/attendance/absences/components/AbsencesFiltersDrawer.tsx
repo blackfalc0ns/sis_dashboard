@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Drawer } from "@mui/material";
 import { X, Download } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import DatePicker from "@/components/ui/input/DatePicker";
+import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
 import type { AbsencesFilters, AttendanceIncidentType } from "../types";
 import type { StructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 
@@ -32,7 +33,6 @@ export default function AbsencesFiltersDrawer({
 }: AbsencesFiltersDrawerProps) {
   const t = useTranslations("attendance.absences.filters");
   const tCommon = useTranslations("common");
-  const locale = useLocale();
 
   // Local draft state for mobile - only apply on "Apply" button
   const [draftFilters, setDraftFilters] = useState<AbsencesFilters>(filters);
@@ -51,50 +51,8 @@ export default function AbsencesFiltersDrawer({
     { value: "UNMARKED", label: t("unmarked") },
   ];
 
-  const scopeTypeOptions = [
-    { value: "SCHOOL", label: t("scopeTypes.school") },
-    { value: "STAGE", label: t("scopeTypes.stage") },
-    { value: "GRADE", label: t("scopeTypes.grade") },
-    { value: "SECTION", label: t("scopeTypes.section") },
-  ];
-
-  // Get available stages, grades, sections based on current selection
-  const availableStages = structureTree?.stages || [];
-  const availableGrades = draftFilters.scopeIds?.stageId 
-    ? structureTree?.grades.filter(g => g.stageId === draftFilters.scopeIds?.stageId) || []
-    : [];
-  const availableSections = draftFilters.scopeIds?.gradeId
-    ? structureTree?.sections.filter(s => s.gradeId === draftFilters.scopeIds?.gradeId) || []
-    : [];
-
   const handleDraftChange = (changes: Partial<AbsencesFilters>) => {
     setDraftFilters(prev => ({ ...prev, ...changes }));
-  };
-
-  const handleScopeTypeChange = (scopeType: string) => {
-    handleDraftChange({ 
-      scopeType: scopeType as "SCHOOL" | "STAGE" | "GRADE" | "SECTION",
-      scopeIds: {} // Reset scope IDs when type changes
-    });
-  };
-
-  const handleScopeIdChange = (level: "stageId" | "gradeId" | "sectionId", value: string) => {
-    const newScopeIds = { ...draftFilters.scopeIds };
-    
-    if (level === "stageId") {
-      newScopeIds.stageId = value;
-      // Reset dependent selections
-      delete newScopeIds.gradeId;
-      delete newScopeIds.sectionId;
-    } else if (level === "gradeId") {
-      newScopeIds.gradeId = value;
-      // Reset dependent selections
-      delete newScopeIds.sectionId;
-    } else {
-      newScopeIds.sectionId = value;
-    }
-
-    handleDraftChange({ scopeIds: newScopeIds });
   };
 
   const handleApply = () => {
@@ -163,84 +121,31 @@ export default function AbsencesFiltersDrawer({
               <h4 className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
                 {t("scope")}
               </h4>
-              
-              {/* Scope Type */}
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                  {t("scopeType")}
-                </label>
-                <Select
-                  value={draftFilters.scopeType}
-                  onChange={handleScopeTypeChange}
-                  options={scopeTypeOptions}
-                  selectSize="sm"
+
+              <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-color)" }}>
+                <ScopePicker
+                  scopeType={draftFilters.scopeType}
+                  scopeIds={draftFilters.scopeIds || {}}
+                  stages={structureTree?.stages || []}
+                  grades={structureTree?.grades || []}
+                  sections={structureTree?.sections || []}
+                  classrooms={structureTree?.classrooms || []}
+                  onScopeTypeChange={(scopeType) =>
+                    handleDraftChange({
+                      scopeType,
+                      scopeIds: {},
+                    })
+                  }
+                  onScopeIdsChange={(scopeIds) =>
+                    handleDraftChange({
+                      scopeIds: {
+                        ...(draftFilters.scopeIds || {}),
+                        ...scopeIds,
+                      },
+                    })
+                  }
                 />
               </div>
-
-              {/* Stage Selection */}
-              {(draftFilters.scopeType === "STAGE" || draftFilters.scopeType === "GRADE" || draftFilters.scopeType === "SECTION") && (
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                    {t("stage")}
-                  </label>
-                  <Select
-                    value={draftFilters.scopeIds?.stageId || ""}
-                    onChange={(value) => handleScopeIdChange("stageId", value)}
-                    options={[
-                      { value: "", label: t("selectStage") },
-                      ...availableStages.map(stage => ({
-                        value: stage.id,
-                        label: locale === "ar" ? stage.nameAr : stage.nameEn
-                      }))
-                    ]}
-                    selectSize="sm"
-                  />
-                </div>
-              )}
-
-              {/* Grade Selection */}
-              {(draftFilters.scopeType === "GRADE" || draftFilters.scopeType === "SECTION") && (
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                    {t("grade")}
-                  </label>
-                  <Select
-                    value={draftFilters.scopeIds?.gradeId || ""}
-                    onChange={(value) => handleScopeIdChange("gradeId", value)}
-                    options={[
-                      { value: "", label: t("selectGrade") },
-                      ...availableGrades.map(grade => ({
-                        value: grade.id,
-                        label: locale === "ar" ? grade.nameAr : grade.nameEn
-                      }))
-                    ]}
-                    selectSize="sm"
-                    disabled={!draftFilters.scopeIds?.stageId}
-                  />
-                </div>
-              )}
-
-              {/* Section Selection */}
-              {draftFilters.scopeType === "SECTION" && (
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                    {t("section")}
-                  </label>
-                  <Select
-                    value={draftFilters.scopeIds?.sectionId || ""}
-                    onChange={(value) => handleScopeIdChange("sectionId", value)}
-                    options={[
-                      { value: "", label: t("selectSection") },
-                      ...availableSections.map(section => ({
-                        value: section.id,
-                        label: locale === "ar" ? section.nameAr : section.nameEn
-                      }))
-                    ]}
-                    selectSize="sm"
-                    disabled={!draftFilters.scopeIds?.gradeId}
-                  />
-                </div>
-              )}
             </div>
 
             {/* Date From */}

@@ -21,7 +21,12 @@ import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
 import { downloadCSV, generateFilename } from "@/utils/simpleExport";
 import { formatEnrollmentsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
 import { mockApplications } from "@/data/mockAdmissions";
+import { mockStudentEnrollments, mockStudents } from "@/data/mockStudents";
 import { Enrollment, Application } from "@/features/admissions/types/admissions";
+import {
+  submitApplicationEnrollment,
+  type EnrollmentSubmission,
+} from "@/features/admissions/enrollment/services/enrollmentService";
 
 export default function EnrollmentList() {
   const t = useTranslations("admissions.enrollment");
@@ -29,6 +34,7 @@ export default function EnrollmentList() {
   const [selectedApplication, setSelectedApplication] =
     useState<Application | null>(null);
   const [isEnrollmentFormOpen, setIsEnrollmentFormOpen] = useState(false);
+  const [, setEnrollmentVersion] = useState(0);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -39,28 +45,32 @@ export default function EnrollmentList() {
   const [customStartDate, setCustomStartDate] = useState<string>("");
   const [customEndDate, setCustomEndDate] = useState<string>("");
 
-  // Generate mock enrollments from accepted applications
-  const enrollments = useMemo(() => {
-    return mockApplications
-      .filter((app) => app.status === "accepted")
-      .map((app, index) => ({
-        id: `ENR-${String(index + 1).padStart(3, "0")}`,
-        applicationId: app.id,
-        studentName:
-          locale === "ar"
-            ? app.full_name_ar || app.studentNameArabic || app.studentName
-            : app.full_name_en || app.studentName,
-        academicYear: "2024-2025",
-        grade: app.gradeRequested,
-        section: ["A", "B", "C"][index % 3],
-        startDate: "2024-09-01",
-        enrolledDate: app.decision?.decisionDate || "2024-01-25",
-        guardianName: app.guardianName,
-        guardianPhone: app.guardianPhone,
-      }));
-  }, [locale]);
+  // Read the real mock ERP enrollments so updates persist across the UI
+  const enrollments = mockStudentEnrollments.map((enrollment) => {
+    const student = mockStudents.find((item) => item.id === enrollment.studentId);
+    const application = mockApplications.find((app) => app.id === student?.applicationId);
 
-  console.log(enrollments);
+    return {
+      id: enrollment.enrollmentId,
+      applicationId: application?.id || student?.applicationId || "",
+      studentId: enrollment.studentId,
+      studentName:
+        locale === "ar"
+          ? student?.full_name_ar || application?.full_name_ar || application?.studentNameArabic || student?.name || enrollment.studentId
+          : student?.full_name_en || application?.full_name_en || application?.studentName || student?.name || enrollment.studentId,
+      academicYear: enrollment.academicYear,
+      grade: enrollment.grade,
+      section: enrollment.section,
+      classroom: enrollment.classroom || "—",
+      gradeId: enrollment.gradeId,
+      sectionId: enrollment.sectionId,
+      classroomId: enrollment.classroomId,
+      startDate: enrollment.enrollmentDate,
+      enrolledDate: enrollment.enrollmentDate,
+      guardianName: application?.guardianName || "",
+      guardianPhone: application?.guardianPhone || "",
+    };
+  });
 
   // Filter and search enrollments
   const filteredEnrollments = useMemo(() => {
@@ -155,6 +165,7 @@ export default function EnrollmentList() {
     { key: "studentName", label: t("student_name"), searchable: true },
     { key: "grade", label: t("grade") },
     { key: "section", label: t("section") },
+    { key: "classroom", label: t("classroom") },
     { key: "academicYear", label: t("academic_year") },
     {
       key: "startDate",
@@ -189,9 +200,11 @@ export default function EnrollmentList() {
     }
   };
 
-  const handleEnrollmentSubmit = (data: Record<string, unknown>) => {
-    console.log("Enrollment updated:", data);
+  const handleEnrollmentSubmit = async (data: EnrollmentSubmission) => {
+    if (!selectedApplication) return;
+    await submitApplicationEnrollment(selectedApplication, data);
     alert("Enrollment updated successfully!");
+    setEnrollmentVersion((prev) => prev + 1);
     setIsEnrollmentFormOpen(false);
   };
 

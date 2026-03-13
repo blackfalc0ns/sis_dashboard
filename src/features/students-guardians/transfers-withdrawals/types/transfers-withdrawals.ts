@@ -31,7 +31,13 @@ export interface TransferApplication {
   studentNameAr: string;
   stage: Stage;
   grade: string;
+  section?: string;
+  classroom?: string;
   type: TransferType;
+  targetSection?: string;
+  targetSectionId?: string;
+  targetClassroom?: string;
+  targetClassroomId?: string;
   targetClass?: string; // For internal transfers
   externalSchool?: string; // For external transfers
   reason: string;
@@ -54,6 +60,8 @@ export interface WithdrawalApplication {
   studentNameAr: string;
   stage: Stage;
   grade: string;
+  section?: string;
+  classroom?: string;
   reason: WithdrawalReason;
   behaviorAvg: number;
   behaviorBand: BehaviorBand;

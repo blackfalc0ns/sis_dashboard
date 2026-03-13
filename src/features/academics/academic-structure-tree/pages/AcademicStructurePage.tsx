@@ -9,6 +9,7 @@ import StructureTree from "../components/StructureTree";
 import DetailsPanel from "../../components/shared/DetailsPanel";
 import InsightsPanel from "../../components/shared/InsightsPanel";
 import Modal from "@/components/ui/modal/Modal";
+import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
 import {
@@ -24,14 +25,21 @@ import {
   createSection,
   updateSection,
   deleteSection,
+  createClassroom,
+  updateClassroom,
+  deleteClassroom,
   reorderGrades,
+  reorderSections,
+  reorderClassrooms,
   carryOverStructure,
   isStageNameUnique,
   isGradeNameUnique,
   isSectionNameUnique,
+  isClassroomNameUnique,
   Stage,
   Grade,
   Section,
+  Classroom,
   AcademicYear,
   Term,
 } from "@/features/academics/academic-structure-tree/services/structureService";
@@ -55,22 +63,25 @@ export default function AcademicStructurePage() {
   const [stages, setStages] = useState<Stage[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // UI State
   const [selectedNode, setSelectedNode] = useState<{
-    type: "stage" | "grade" | "section";
+    type: "stage" | "grade" | "section" | "classroom";
     id: string;
   } | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showTreeDrawer, setShowTreeDrawer] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addModalType, setAddModalType] = useState<"stage" | "grade" | "section">("stage");
+  const [addModalType, setAddModalType] = useState<"stage" | "grade" | "section" | "classroom">("stage");
   const [addModalParentId, setAddModalParentId] = useState<string | null>(null);
   const [newItemNameAr, setNewItemNameAr] = useState("");
   const [newItemNameEn, setNewItemNameEn] = useState("");
-  const [addModalErrors, setAddModalErrors] = useState<{ ar?: string; en?: string }>({});
+  const [newItemCapacity, setNewItemCapacity] = useState<number>(30);
+  const [newItemOrder, setNewItemOrder] = useState<number>(1);
+  const [addModalErrors, setAddModalErrors] = useState<{ ar?: string; en?: string; capacity?: string; order?: string }>({});
   
   // Carry Over Dialog
   const [showCarryOverDialog, setShowCarryOverDialog] = useState(false);
@@ -88,7 +99,7 @@ export default function AcademicStructurePage() {
   }>({ open: false, message: "", severity: "success" });
 
   const isReadOnly = termStatus === "closed";
-  const hasNoStructure = stages.length === 0 && grades.length === 0 && sections.length === 0;
+  const hasNoStructure = stages.length === 0 && grades.length === 0 && sections.length === 0 && classrooms.length === 0;
 
   // Initialize from URL or defaults
   useEffect(() => {
@@ -145,6 +156,7 @@ export default function AcademicStructurePage() {
         setStages(data.stages);
         setGrades(data.grades);
         setSections(data.sections);
+        setClassrooms(data.classrooms);
       } catch (err) {
         setError("Failed to load data");
         console.error(err);
@@ -173,6 +185,7 @@ export default function AcademicStructurePage() {
       setStages(data.stages);
       setGrades(data.grades);
       setSections(data.sections);
+      setClassrooms(data.classrooms);
     } catch (err) {
       setError("Failed to load data");
       console.error(err);
@@ -216,12 +229,27 @@ export default function AcademicStructurePage() {
     }
   };
 
-  const handleSelectNode = (node: { type: "stage" | "grade" | "section"; id: string }) => {
+  const handleSelectNode = (node: { type: "stage" | "grade" | "section" | "classroom"; id: string }) => {
     if (hasUnsavedChanges) {
       if (!confirm(t("details.discard_dialog.message"))) return;
       setHasUnsavedChanges(false);
     }
     setSelectedNode(node);
+  };
+
+  const handleAddClassroom = (sectionId: string) => {
+    if (isReadOnly) return;
+    setAddModalType("classroom");
+    setAddModalParentId(sectionId);
+    setNewItemNameAr("");
+    setNewItemNameEn("");
+    setNewItemCapacity(30);
+    const maxOrder = classrooms
+      .filter((item) => item.sectionId === sectionId)
+      .reduce((max, item) => Math.max(max, item.order), 0);
+    setNewItemOrder(maxOrder + 1);
+    setAddModalErrors({});
+    setShowAddModal(true);
   };
 
   const handleAddStage = () => {
@@ -230,6 +258,8 @@ export default function AcademicStructurePage() {
     setAddModalParentId(null);
     setNewItemNameAr("");
     setNewItemNameEn("");
+    setNewItemCapacity(30);
+    setNewItemOrder(1);
     setAddModalErrors({});
     setShowAddModal(true);
   };
@@ -240,6 +270,8 @@ export default function AcademicStructurePage() {
     setAddModalParentId(stageId);
     setNewItemNameAr("");
     setNewItemNameEn("");
+    setNewItemCapacity(30);
+    setNewItemOrder(1);
     setAddModalErrors({});
     setShowAddModal(true);
   };
@@ -250,6 +282,8 @@ export default function AcademicStructurePage() {
     setAddModalParentId(gradeId);
     setNewItemNameAr("");
     setNewItemNameEn("");
+    setNewItemCapacity(30);
+    setNewItemOrder(1);
     setAddModalErrors({});
     setShowAddModal(true);
   };
@@ -258,9 +292,15 @@ export default function AcademicStructurePage() {
     if (isReadOnly) return;
 
     // Validation
-    const newErrors: { ar?: string; en?: string } = {};
+    const newErrors: { ar?: string; en?: string; capacity?: string; order?: string } = {};
     if (!newItemNameAr.trim()) newErrors.ar = tValidation("required_ar");
     if (!newItemNameEn.trim()) newErrors.en = tValidation("required_en");
+    if ((addModalType === "section" || addModalType === "classroom") && newItemCapacity <= 0) {
+      newErrors.capacity = t("details.validation.capacity_required");
+    }
+    if (addModalType === "classroom" && newItemOrder <= 0) {
+      newErrors.order = tValidation("required");
+    }
 
     // AR != EN validation
     if (newItemNameAr.trim() && newItemNameEn.trim()) {
@@ -287,6 +327,10 @@ export default function AcademicStructurePage() {
         const uniqueness = isSectionNameUnique(academicYearId, termId, addModalParentId, newItemNameAr, newItemNameEn);
         if (!uniqueness.uniqueAr) newErrors.ar = tValidation("unique_name_ar_section");
         if (!uniqueness.uniqueEn) newErrors.en = tValidation("unique_name_en_section");
+      } else if (addModalType === "classroom" && addModalParentId) {
+        const uniqueness = isClassroomNameUnique(academicYearId, termId, addModalParentId, newItemNameAr, newItemNameEn);
+        if (!uniqueness.uniqueAr) newErrors.ar = tValidation("unique_name_ar_classroom");
+        if (!uniqueness.uniqueEn) newErrors.en = tValidation("unique_name_en_classroom");
       }
     }
 
@@ -297,37 +341,50 @@ export default function AcademicStructurePage() {
 
     try {
       if (addModalType === "stage") {
-        const newStage = await createStage(academicYearId, termId, { 
+        await createStage(academicYearId, termId, {
           nameAr: newItemNameAr,
           nameEn: newItemNameEn,
           name: newItemNameEn || newItemNameAr,
         });
-        setStages([...stages, newStage]);
       } else if (addModalType === "grade" && addModalParentId) {
         const maxOrder = grades
           .filter((g) => g.stageId === addModalParentId)
           .reduce((max, g) => Math.max(max, g.order), 0);
-        const newGrade = await createGrade(academicYearId, termId, {
+        await createGrade(academicYearId, termId, {
           nameAr: newItemNameAr,
           nameEn: newItemNameEn,
           name: newItemNameEn || newItemNameAr,
           stageId: addModalParentId,
           order: maxOrder + 1,
         });
-        setGrades([...grades, newGrade]);
       } else if (addModalType === "section" && addModalParentId) {
-        const newSection = await createSection(academicYearId, termId, {
+        const maxOrder = sections
+          .filter((s) => s.gradeId === addModalParentId)
+          .reduce((max, s) => Math.max(max, s.order), 0);
+        await createSection(academicYearId, termId, {
           nameAr: newItemNameAr,
           nameEn: newItemNameEn,
           name: newItemNameEn || newItemNameAr,
           gradeId: addModalParentId,
-          capacity: 30,
+          capacity: newItemCapacity,
+          order: maxOrder + 1,
         });
-        setSections([...sections, newSection]);
+      } else if (addModalType === "classroom" && addModalParentId) {
+        await createClassroom(academicYearId, termId, {
+          nameAr: newItemNameAr,
+          nameEn: newItemNameEn,
+          name: newItemNameEn || newItemNameAr,
+          sectionId: addModalParentId,
+          capacity: newItemCapacity,
+          order: newItemOrder,
+        });
       }
+      await loadData();
       setShowAddModal(false);
       setNewItemNameAr("");
       setNewItemNameEn("");
+      setNewItemCapacity(30);
+      setNewItemOrder(1);
       setAddModalErrors({});
     } catch (err) {
       console.error("Failed to create item:", err);
@@ -335,9 +392,9 @@ export default function AcademicStructurePage() {
   };
 
   const handleSave = async (
-    type: "stage" | "grade" | "section",
+    type: "stage" | "grade" | "section" | "classroom",
     id: string | null,
-    data: Partial<Stage | Grade | Section>
+    data: Partial<Stage | Grade | Section | Classroom>
   ) => {
     if (!id || isReadOnly) return;
 
@@ -346,11 +403,14 @@ export default function AcademicStructurePage() {
         const updated = await updateStage(academicYearId, termId, id, data);
         setStages(stages.map((s) => (s.id === id ? updated : s)));
       } else if (type === "grade") {
-        const updated = await updateGrade(academicYearId, termId, id, data);
-        setGrades(grades.map((g) => (g.id === id ? updated : g)));
+        await updateGrade(academicYearId, termId, id, data);
+        await loadData();
       } else if (type === "section") {
-        const updated = await updateSection(academicYearId, termId, id, data);
-        setSections(sections.map((s) => (s.id === id ? updated : s)));
+        await updateSection(academicYearId, termId, id, data);
+        await loadData();
+      } else if (type === "classroom") {
+        await updateClassroom(academicYearId, termId, id, data);
+        await loadData();
       }
       setHasUnsavedChanges(false);
     } catch (err) {
@@ -359,22 +419,20 @@ export default function AcademicStructurePage() {
     }
   };
 
-  const handleDelete = async (type: "stage" | "grade" | "section", id: string) => {
+  const handleDelete = async (type: "stage" | "grade" | "section" | "classroom", id: string) => {
     if (isReadOnly || !confirm(t("confirm_delete"))) return;
 
     try {
       if (type === "stage") {
         await deleteStage(academicYearId, termId, id);
-        setStages(stages.filter((s) => s.id !== id));
-        setGrades(grades.filter((g) => g.stageId !== id));
       } else if (type === "grade") {
         await deleteGrade(academicYearId, termId, id);
-        setGrades(grades.filter((g) => g.id !== id));
-        setSections(sections.filter((s) => s.gradeId !== id));
       } else if (type === "section") {
         await deleteSection(academicYearId, termId, id);
-        setSections(sections.filter((s) => s.id !== id));
+      } else if (type === "classroom") {
+        await deleteClassroom(academicYearId, termId, id);
       }
+      await loadData();
       setSelectedNode(null);
     } catch (err) {
       console.error("Failed to delete:", err);
@@ -463,6 +521,168 @@ export default function AcademicStructurePage() {
         message: t("reorder_failed"),
         severity: "error",
       });
+    }
+  };
+
+  const handleDragReorderSection = async (gradeId: string, oldIndex: number, newIndex: number) => {
+    if (isReadOnly) return;
+
+    const gradeSections = sections
+      .filter((section) => section.gradeId === gradeId)
+      .sort((a, b) => a.order - b.order);
+
+    const reorderedSections = [...gradeSections];
+    const [movedSection] = reorderedSections.splice(oldIndex, 1);
+    reorderedSections.splice(newIndex, 0, movedSection);
+
+    const updatedSections = sections.map((section) => {
+      if (section.gradeId !== gradeId) return section;
+      const newOrder = reorderedSections.findIndex((item) => item.id === section.id);
+      return { ...section, order: newOrder + 1 };
+    });
+
+    setSections(updatedSections);
+
+    try {
+      const orderedIds = reorderedSections.map((section) => section.id);
+      await reorderSections(academicYearId, termId, gradeId, orderedIds);
+      setSnackbar({
+        open: true,
+        message: t("reorder_saved"),
+        severity: "success",
+      });
+    } catch (err) {
+      console.error("Failed to reorder sections:", err);
+      setSections(sections);
+      setSnackbar({
+        open: true,
+        message: t("reorder_failed"),
+        severity: "error",
+      });
+    }
+  };
+
+  const handleReorderSection = async (sectionId: string, direction: "up" | "down") => {
+    if (isReadOnly) return;
+
+    const section = sections.find((item) => item.id === sectionId);
+    if (!section) return;
+
+    const gradeSections = sections
+      .filter((item) => item.gradeId === section.gradeId)
+      .sort((a, b) => a.order - b.order);
+
+    const currentIndex = gradeSections.findIndex((item) => item.id === sectionId);
+    if (
+      (direction === "up" && currentIndex === 0) ||
+      (direction === "down" && currentIndex === gradeSections.length - 1)
+    ) {
+      return;
+    }
+
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    const swappedSection = gradeSections[newIndex];
+
+    const updatedSections = [...sections];
+    const currentSection = updatedSections.find((item) => item.id === sectionId);
+    const swapSection = updatedSections.find((item) => item.id === swappedSection.id);
+
+    if (currentSection && swapSection) {
+      const tempOrder = currentSection.order;
+      currentSection.order = swapSection.order;
+      swapSection.order = tempOrder;
+      setSections(updatedSections);
+
+      try {
+        const orderedIds = gradeSections.map((item) =>
+          item.id === sectionId ? swappedSection.id : item.id === swappedSection.id ? sectionId : item.id
+        );
+        await reorderSections(academicYearId, termId, section.gradeId, orderedIds);
+      } catch (err) {
+        console.error("Failed to reorder sections:", err);
+        setSections(sections);
+      }
+    }
+  };
+
+  const handleDragReorderClassroom = async (sectionId: string, oldIndex: number, newIndex: number) => {
+    if (isReadOnly) return;
+
+    const sectionClassrooms = classrooms
+      .filter((item) => item.sectionId === sectionId)
+      .sort((a, b) => a.order - b.order);
+
+    const reorderedClassrooms = [...sectionClassrooms];
+    const [movedClassroom] = reorderedClassrooms.splice(oldIndex, 1);
+    reorderedClassrooms.splice(newIndex, 0, movedClassroom);
+
+    const updatedClassrooms = classrooms.map((item) => {
+      if (item.sectionId !== sectionId) return item;
+      const nextOrder = reorderedClassrooms.findIndex((reordered) => reordered.id === item.id);
+      return { ...item, order: nextOrder + 1 };
+    });
+
+    setClassrooms(updatedClassrooms);
+
+    try {
+      const orderedIds = reorderedClassrooms.map((item) => item.id);
+      await reorderClassrooms(academicYearId, termId, sectionId, orderedIds);
+      setSnackbar({
+        open: true,
+        message: t("reorder_saved"),
+        severity: "success",
+      });
+    } catch (err) {
+      console.error("Failed to reorder classrooms:", err);
+      setClassrooms(classrooms);
+      setSnackbar({
+        open: true,
+        message: t("reorder_failed"),
+        severity: "error",
+      });
+    }
+  };
+
+  const handleReorderClassroom = async (classroomId: string, direction: "up" | "down") => {
+    if (isReadOnly) return;
+
+    const classroom = classrooms.find((item) => item.id === classroomId);
+    if (!classroom) return;
+
+    const sectionClassrooms = classrooms
+      .filter((item) => item.sectionId === classroom.sectionId)
+      .sort((a, b) => a.order - b.order);
+
+    const currentIndex = sectionClassrooms.findIndex((item) => item.id === classroomId);
+    if (
+      (direction === "up" && currentIndex === 0) ||
+      (direction === "down" && currentIndex === sectionClassrooms.length - 1)
+    ) {
+      return;
+    }
+
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    const swapClassroom = sectionClassrooms[newIndex];
+
+    const updatedClassrooms = [...classrooms];
+    const classroomToUpdate = updatedClassrooms.find((item) => item.id === classroomId);
+    const swapClassroomToUpdate = updatedClassrooms.find((item) => item.id === swapClassroom.id);
+
+    if (classroomToUpdate && swapClassroomToUpdate) {
+      const tempOrder = classroomToUpdate.order;
+      classroomToUpdate.order = swapClassroomToUpdate.order;
+      swapClassroomToUpdate.order = tempOrder;
+      setClassrooms(updatedClassrooms);
+
+      try {
+        const orderedIds = sectionClassrooms.map((item) =>
+          item.id === classroomId ? swapClassroom.id : item.id === swapClassroom.id ? classroomId : item.id
+        );
+        await reorderClassrooms(academicYearId, termId, classroom.sectionId, orderedIds);
+      } catch (err) {
+        console.error("Failed to reorder classrooms:", err);
+        setClassrooms(classrooms);
+      }
     }
   };
 
@@ -573,20 +793,26 @@ export default function AcademicStructurePage() {
           </div>
 
           {/* Desktop: Tree Panel */}
-          <div className="hidden lg:block w-80 border-r border-border bg-white overflow-hidden">
+          <div className="hidden lg:block w-100 border-r border-l border-border bg-white overflow-hidden">
             <StructureTree
               stages={stages}
               grades={grades}
               sections={sections}
+              classrooms={classrooms}
               selectedNode={selectedNode}
               onSelectNode={handleSelectNode}
               onAddStage={handleAddStage}
               onAddGrade={handleAddGrade}
               onAddSection={handleAddSection}
+              onAddClassroom={handleAddClassroom}
               onEdit={(type, id) => handleSelectNode({ type, id })}
               onDelete={handleDelete}
               onReorderGrade={handleReorderGrade}
+              onReorderSection={handleReorderSection}
+              onReorderClassroom={handleReorderClassroom}
               onDragReorder={handleDragReorder}
+              onDragReorderSection={handleDragReorderSection}
+              onDragReorderClassroom={handleDragReorderClassroom}
               isReadOnly={isReadOnly}
             />
           </div>
@@ -616,6 +842,7 @@ export default function AcademicStructurePage() {
                     stages={stages}
                     grades={grades}
                     sections={sections}
+                    classrooms={classrooms}
                     selectedNode={selectedNode}
                     onSelectNode={(node) => {
                       handleSelectNode(node);
@@ -625,13 +852,18 @@ export default function AcademicStructurePage() {
                     onAddStage={handleAddStage}
                     onAddGrade={handleAddGrade}
                     onAddSection={handleAddSection}
+                    onAddClassroom={handleAddClassroom}
                     onEdit={(type, id) => {
                       handleSelectNode({ type, id });
                       setTimeout(() => setShowTreeDrawer(false), 300);
                     }}
                     onDelete={handleDelete}
                     onReorderGrade={handleReorderGrade}
+                    onReorderSection={handleReorderSection}
+                    onReorderClassroom={handleReorderClassroom}
                     onDragReorder={handleDragReorder}
+                    onDragReorderSection={handleDragReorderSection}
+                    onDragReorderClassroom={handleDragReorderClassroom}
                     isReadOnly={isReadOnly}
                   />
                 </div>
@@ -646,6 +878,7 @@ export default function AcademicStructurePage() {
               stages={stages}
               grades={grades}
               sections={sections}
+              classrooms={classrooms}
               onSave={handleSave}
               onDelete={handleDelete}
               isReadOnly={isReadOnly}
@@ -661,6 +894,7 @@ export default function AcademicStructurePage() {
               stages={stages}
               grades={grades}
               sections={sections}
+              classrooms={classrooms}
               isLoading={isLoading}
             />
           </div>
@@ -676,7 +910,9 @@ export default function AcademicStructurePage() {
             ? t("modals.add_stage")
             : addModalType === "grade"
               ? t("modals.add_grade")
-              : t("modals.add_section")
+              : addModalType === "section"
+                ? t("modals.add_section")
+                : t("modals.add_classroom")
         }
         size="sm"
         footer={
@@ -686,7 +922,12 @@ export default function AcademicStructurePage() {
             </Button>
             <Button
               onClick={handleCreateItem}
-              disabled={!newItemNameAr.trim() || !newItemNameEn.trim()}
+              disabled={
+                !newItemNameAr.trim() ||
+                !newItemNameEn.trim() ||
+                ((addModalType === "section" || addModalType === "classroom") && newItemCapacity <= 0) ||
+                (addModalType === "classroom" && newItemOrder <= 0)
+              }
               variant="primary"
             >
               {t("modals.create")}
@@ -706,6 +947,36 @@ export default function AcademicStructurePage() {
           requiredEn
           errors={addModalErrors}
         />
+        {(addModalType === "section" || addModalType === "classroom") && (
+          <div className="mt-4">
+            <Input
+              label={t("details.capacity")}
+              type="number"
+              min="1"
+              value={newItemCapacity}
+              onChange={(e) => {
+                setNewItemCapacity(parseInt(e.target.value, 10) || 0);
+                setAddModalErrors((prev) => ({ ...prev, capacity: undefined }));
+              }}
+              error={addModalErrors.capacity}
+            />
+          </div>
+        )}
+        {addModalType === "classroom" && (
+          <div className="mt-4">
+            <Input
+              label={t("details.order")}
+              type="number"
+              min="1"
+              value={newItemOrder}
+              onChange={(e) => {
+                setNewItemOrder(parseInt(e.target.value, 10) || 0);
+                setAddModalErrors((prev) => ({ ...prev, order: undefined }));
+              }}
+              error={addModalErrors.order}
+            />
+          </div>
+        )}
       </Modal>
 
       {/* Carry Over Dialog */}
@@ -807,4 +1078,3 @@ export default function AcademicStructurePage() {
     </div>
   );
 }
-

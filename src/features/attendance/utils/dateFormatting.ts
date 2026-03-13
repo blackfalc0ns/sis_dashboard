@@ -54,3 +54,20 @@ export function isValidLocalDate(dateStr: string): boolean {
   const date = parseLocalDate(dateStr);
   return !isNaN(date.getTime());
 }
+
+/**
+ * Format a timestamp into a locale-aware date/time string.
+ */
+export function formatAttendanceDateTime(dateTime: string | undefined, locale: string): string {
+  if (!dateTime) return "-";
+
+  const parsed = new Date(dateTime);
+  if (Number.isNaN(parsed.getTime())) {
+    return dateTime;
+  }
+
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(parsed);
+}

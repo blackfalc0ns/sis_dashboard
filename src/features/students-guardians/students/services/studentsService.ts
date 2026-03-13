@@ -23,6 +23,7 @@ import {
   mockStudentTimelineEvents,
   mockStudentEnrollments,
   getEnrollmentByStudentId,
+  getEnrollmentsByClassroomId,
   getCurrentTerm,
   getYearToDateAverages,
 } from "@/data/mockStudents";
@@ -341,6 +342,32 @@ export function getSectionDistribution(grade: string): Record<string, number> {
       },
       {} as Record<string, number>,
     );
+}
+
+/**
+ * Get classroom distribution for a grade + section
+ */
+export function getClassroomDistribution(
+  grade: string,
+  section: string,
+): Record<string, number> {
+  return mockStudentEnrollments
+    .filter((enrollment) => enrollment.grade === grade && enrollment.section === section)
+    .reduce(
+      (acc, enrollment) => {
+        const classroom = enrollment.classroom || "Unassigned";
+        acc[classroom] = (acc[classroom] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+}
+
+export function getStudentsByClassroomId(classroomId: string): Student[] {
+  const classroomEnrollments = getEnrollmentsByClassroomId(classroomId);
+  const enrolledStudentIds = new Set(classroomEnrollments.map((enrollment) => enrollment.studentId));
+
+  return getAllStudents().filter((student) => enrolledStudentIds.has(student.id));
 }
 
 /**

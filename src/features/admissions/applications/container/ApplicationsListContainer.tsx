@@ -14,7 +14,12 @@ import {
 } from "@/features/admissions/applications/utils/applicationsFilters";
 import type { DateRangeValue } from "../../shared/DateRangeFilter";
 import type { ApplicationStatus, DecisionType } from "@/features/admissions/types/admissions";
+import type { Application } from "@/features/admissions/types/admissions";
 import ApplicationsListView from "@/features/admissions/applications/views/ApplicationsListView";
+import {
+  submitApplicationEnrollment,
+  type EnrollmentSubmission,
+} from "@/features/admissions/enrollment/services/enrollmentService";
 
 export default function ApplicationsListContainer() {
   // Filter states
@@ -36,16 +41,28 @@ export default function ApplicationsListContainer() {
   const [isCreateAppOpen, setIsCreateAppOpen] = useState(false);
 
   // Build filter values object
-  const filterValues: ApplicationFilterValues = {
-    searchQuery,
-    statusFilter,
-    gradeFilter,
-    genderFilter,
-    nationalityFilter,
-    dateRange,
-    customStartDate,
-    customEndDate,
-  };
+  const filterValues: ApplicationFilterValues = useMemo(
+    () => ({
+      searchQuery,
+      statusFilter,
+      gradeFilter,
+      genderFilter,
+      nationalityFilter,
+      dateRange,
+      customStartDate,
+      customEndDate,
+    }),
+    [
+      searchQuery,
+      statusFilter,
+      gradeFilter,
+      genderFilter,
+      nationalityFilter,
+      dateRange,
+      customStartDate,
+      customEndDate,
+    ]
+  );
 
   // Filter applications
   const filteredApplications = useMemo(
@@ -138,10 +155,14 @@ export default function ApplicationsListContainer() {
     setIsDecisionOpen(false);
   };
 
-  const handleEnrollmentSubmit = (data: Record<string, unknown>) => {
-    console.log("Enrollment confirmed:", data);
-    alert("Student enrolled successfully!");
-    setIsEnrollmentOpen(false);
+  const handleEnrollmentSubmit = (
+    application: Application,
+    data: EnrollmentSubmission,
+  ) => {
+    submitApplicationEnrollment(application, data).then(() => {
+      alert("Student enrolled successfully!");
+      setIsEnrollmentOpen(false);
+    });
   };
 
   const handleCreateApplicationSubmit = (data: Record<string, unknown>) => {

@@ -1,11 +1,12 @@
 "use client";
 
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Search, X, Download } from "lucide-react";
 import Input from "@/components/ui/input/Input";
-import Select from "@/components/ui/input/Select";
 import DatePicker from "@/components/ui/input/DatePicker";
 import Button from "@/components/ui/button/Button";
+import Select from "@/components/ui/input/Select";
+import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
 import type { AbsencesFilters, AttendanceIncidentType } from "../types";
 import type { StructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 
@@ -27,7 +28,6 @@ export default function AbsencesFiltersBar({
 }: AbsencesFiltersBarProps) {
   const t = useTranslations("attendance.absences.filters");
   const tCommon = useTranslations("common");
-  const locale = useLocale();
 
   const statusOptions: { value: "ALL" | AttendanceIncidentType; label: string }[] = [
     { value: "ALL", label: t("allStatuses") },
@@ -37,48 +37,6 @@ export default function AbsencesFiltersBar({
     { value: "EXCUSED", label: t("excused") },
     { value: "UNMARKED", label: t("unmarked") },
   ];
-
-  const scopeTypeOptions = [
-    { value: "SCHOOL", label: t("scopeTypes.school") },
-    { value: "STAGE", label: t("scopeTypes.stage") },
-    { value: "GRADE", label: t("scopeTypes.grade") },
-    { value: "SECTION", label: t("scopeTypes.section") },
-  ];
-
-  // Get available stages, grades, sections based on current selection
-  const availableStages = structureTree?.stages || [];
-  const availableGrades = filters.scopeIds?.stageId 
-    ? structureTree?.grades.filter(g => g.stageId === filters.scopeIds?.stageId) || []
-    : [];
-  const availableSections = filters.scopeIds?.gradeId
-    ? structureTree?.sections.filter(s => s.gradeId === filters.scopeIds?.gradeId) || []
-    : [];
-
-  const handleScopeTypeChange = (scopeType: string) => {
-    onFiltersChange({ 
-      scopeType: scopeType as "SCHOOL" | "STAGE" | "GRADE" | "SECTION",
-      scopeIds: {} // Reset scope IDs when type changes
-    });
-  };
-
-  const handleScopeIdChange = (level: "stageId" | "gradeId" | "sectionId", value: string) => {
-    const newScopeIds = { ...filters.scopeIds };
-    
-    if (level === "stageId") {
-      newScopeIds.stageId = value;
-      // Reset dependent selections
-      delete newScopeIds.gradeId;
-      delete newScopeIds.sectionId;
-    } else if (level === "gradeId") {
-      newScopeIds.gradeId = value;
-      // Reset dependent selections
-      delete newScopeIds.sectionId;
-    } else {
-      newScopeIds.sectionId = value;
-    }
-
-    onFiltersChange({ scopeIds: newScopeIds });
-  };
 
   return (
     <div className="space-y-4">
@@ -102,72 +60,25 @@ export default function AbsencesFiltersBar({
         <h4 className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
           {t("scope")}
         </h4>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Scope Type */}
-          <Select
-            label={t("scopeType")}
-            value={filters.scopeType}
-            onChange={handleScopeTypeChange}
-            options={scopeTypeOptions}
-            selectSize="sm"
+
+        <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-color)" }}>
+          <ScopePicker
+            scopeType={filters.scopeType}
+            scopeIds={filters.scopeIds || {}}
+            stages={structureTree?.stages || []}
+            grades={structureTree?.grades || []}
+            sections={structureTree?.sections || []}
+            classrooms={structureTree?.classrooms || []}
+            onScopeTypeChange={(scopeType) => onFiltersChange({ scopeType, scopeIds: {} })}
+            onScopeIdsChange={(scopeIds) =>
+              onFiltersChange({
+                scopeIds: {
+                  ...(filters.scopeIds || {}),
+                  ...scopeIds,
+                },
+              })
+            }
           />
-
-          {/* Stage Selection */}
-          {(filters.scopeType === "STAGE" || filters.scopeType === "GRADE" || filters.scopeType === "SECTION") && (
-            <Select
-              label={t("stage")}
-              value={filters.scopeIds?.stageId || ""}
-              onChange={(value) => handleScopeIdChange("stageId", value)}
-              options={[
-                { value: "", label: t("selectStage") },
-                ...availableStages.map(stage => ({
-                  value: stage.id,
-                  label: locale === "ar" ? stage.nameAr : stage.nameEn
-                }))
-              ]}
-              selectSize="sm"
-              required
-            />
-          )}
-
-          {/* Grade Selection */}
-          {(filters.scopeType === "GRADE" || filters.scopeType === "SECTION") && (
-            <Select
-              label={t("grade")}
-              value={filters.scopeIds?.gradeId || ""}
-              onChange={(value) => handleScopeIdChange("gradeId", value)}
-              options={[
-                { value: "", label: t("selectGrade") },
-                ...availableGrades.map(grade => ({
-                  value: grade.id,
-                  label: locale === "ar" ? grade.nameAr : grade.nameEn
-                }))
-              ]}
-              selectSize="sm"
-              disabled={!filters.scopeIds?.stageId}
-              required
-            />
-          )}
-
-          {/* Section Selection */}
-          {filters.scopeType === "SECTION" && (
-            <Select
-              label={t("section")}
-              value={filters.scopeIds?.sectionId || ""}
-              onChange={(value) => handleScopeIdChange("sectionId", value)}
-              options={[
-                { value: "", label: t("selectSection") },
-                ...availableSections.map(section => ({
-                  value: section.id,
-                  label: locale === "ar" ? section.nameAr : section.nameEn
-                }))
-              ]}
-              selectSize="sm"
-              disabled={!filters.scopeIds?.gradeId}
-              required
-            />
-          )}
         </div>
       </div>
 

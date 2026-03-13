@@ -1,7 +1,12 @@
-﻿import type { AttendancePolicy } from "@/features/attendance/policies/types";
+import type { AttendancePolicy } from "@/features/attendance/policies/types";
 import { fetchPolicies } from "@/features/attendance/policies/services/attendancePolicyService";
 import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import { applyExcuseToAttendance } from "../utils/applyExcuseToAttendance";
+import {
+  assertExcusePolicyAllowed,
+  getExcusePolicyIssue,
+  resolveEffectiveExcuseAttendancePolicy,
+} from "../utils/excusePolicyValidation";
 import type {
   ExcuseRequest,
   ExcuseRequestFilters,
@@ -9,46 +14,18 @@ import type {
   ExcuseScopeType,
   ExcuseStatus,
 } from "../types";
+import {
+  matchesResolvedAttendanceScope,
+  resolveAttendanceHierarchyScope,
+  type AttendanceScopeIds,
+} from "@/features/attendance/shared/attendanceScope";
 
 const excusesByTerm: Record<string, ExcuseRequest[]> = {};
-
-const POLICY_PRIORITY: Array<AttendancePolicy["scopeType"]> = ["SECTION", "GRADE", "STAGE", "SCHOOL"];
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const getKey = (yearId: string, termId: string) => `${yearId}-${termId}`;
 
-function resolveEffectivePolicy(
-  policies: AttendancePolicy[],
-  date: string,
-  scopeType: ExcuseScopeType,
-  scopeIds?: { stageId?: string; gradeId?: string; sectionId?: string }
-): AttendancePolicy | null {
-  const active = policies.filter((policy) => {
-    if (!policy.isActive) return false;
-    if (date < policy.effectiveStartDate || date > policy.effectiveEndDate) return false;
-    return true;
-  });
-
-  for (const priority of POLICY_PRIORITY) {
-    const match = active.find((policy) => {
-      if (policy.scopeType !== priority) return false;
-      if (priority === "SCHOOL") return true;
-      if (priority === "STAGE") return policy.scopeIds?.stageId === scopeIds?.stageId;
-      if (priority === "GRADE") return policy.scopeIds?.gradeId === scopeIds?.gradeId;
-      return policy.scopeIds?.sectionId === scopeIds?.sectionId;
-    });
-
-    if (match) return match;
-  }
-
-  return null;
-}
-
-function overlapsRange(
-  request: ExcuseRequest,
-  dateFrom?: string,
-  dateTo?: string
-): boolean {
+function overlapsRange(request: ExcuseRequest, dateFrom?: string, dateTo?: string): boolean {
   if (!dateFrom && !dateTo) return true;
   const from = dateFrom || request.dateFrom;
   const to = dateTo || request.dateTo;
@@ -59,30 +36,28 @@ function overlapsRange(
 function resolveScopeFromRequest(
   request: ExcuseRequest,
   gradesById: Map<string, { stageId: string }>,
-  sectionsById: Map<string, { gradeId: string }>
+  sectionsById: Map<string, { gradeId: string }>,
+  classroomsById: Map<string, { sectionId: string }>
 ) {
-  const sectionId = request.scopeIds?.sectionId;
-  const gradeIdFromSection = sectionId ? sectionsById.get(sectionId)?.gradeId : undefined;
-  const gradeId = request.scopeIds?.gradeId || gradeIdFromSection;
-  const stageId = request.scopeIds?.stageId || (gradeId ? gradesById.get(gradeId)?.stageId : undefined);
-
-  return { stageId, gradeId, sectionId };
+  return resolveAttendanceHierarchyScope({
+    scopeType: request.scopeType,
+    scopeIds: request.scopeIds,
+    gradesById,
+    sectionsById,
+    classroomsById,
+  });
 }
 
 function scopeMatches(
   request: ExcuseRequest,
   scopeType: ExcuseRequestFilters["scopeType"],
-  scopeIds: ExcuseRequestFilters["scopeIds"],
+  scopeIds: AttendanceScopeIds | undefined,
   gradesById: Map<string, { stageId: string }>,
-  sectionsById: Map<string, { gradeId: string }>
+  sectionsById: Map<string, { gradeId: string }>,
+  classroomsById: Map<string, { sectionId: string }>
 ) {
-  if (scopeType === "SCHOOL") return true;
-
-  const resolved = resolveScopeFromRequest(request, gradesById, sectionsById);
-
-  if (scopeType === "STAGE") return resolved.stageId === scopeIds?.stageId;
-  if (scopeType === "GRADE") return resolved.gradeId === scopeIds?.gradeId;
-  return resolved.sectionId === scopeIds?.sectionId;
+  const resolved = resolveScopeFromRequest(request, gradesById, sectionsById, classroomsById);
+  return matchesResolvedAttendanceScope(scopeType, scopeIds, resolved);
 }
 
 export async function fetchExcuseRequests(
@@ -108,10 +83,11 @@ export async function fetchExcuseRequests(
   const structure = await fetchStructureTree(yearId, termId);
   const gradesById = new Map(structure.grades.map((grade) => [grade.id, { stageId: grade.stageId }]));
   const sectionsById = new Map(structure.sections.map((section) => [section.id, { gradeId: section.gradeId }]));
+  const classroomsById = new Map(structure.classrooms.map((classroom) => [classroom.id, { sectionId: classroom.sectionId }]));
 
   const filtered = store.filter((request) => {
     if (!overlapsRange(request, dateFrom, dateTo)) return false;
-    if (!scopeMatches(request, scopeType, scopeIds, gradesById, sectionsById)) return false;
+    if (!scopeMatches(request, scopeType, scopeIds, gradesById, sectionsById, classroomsById)) return false;
     if (status !== "ALL" && request.status !== status) return false;
     if (type !== "ALL" && request.type !== type) return false;
 
@@ -133,7 +109,10 @@ export async function fetchExcuseRequests(
 }
 
 export async function createExcuseRequest(
-  payload: Omit<ExcuseRequest, "id" | "status" | "createdAt" | "updatedAt" | "decidedAt" | "decidedBy" | "decisionNote" | "linkedSessionIds">
+  payload: Omit<
+    ExcuseRequest,
+    "id" | "status" | "createdAt" | "updatedAt" | "decidedAt" | "decidedBy" | "decisionNote" | "linkedSessionIds"
+  >
 ): Promise<ExcuseRequest> {
   await delay(120);
 
@@ -220,8 +199,9 @@ async function updateDecision(
     }
 
     let linkedSessionIds = request.linkedSessionIds;
-
     if (status === "APPROVED") {
+      const policies = await fetchPolicies(request.yearId, request.termId);
+      assertExcusePolicyAllowed(request, policies);
       linkedSessionIds = await applyExcuseToAttendance({ request, decidedBy });
     }
 
@@ -289,16 +269,31 @@ export async function validateExcuseRequest(
 
   const reasonAr = payload.reasonAr?.trim() || "";
   const reasonEn = payload.reasonEn?.trim() || "";
-  if (!reasonAr && !reasonEn) {
+  if (effectivePolicy?.requireExcuseReason && !reasonAr && !reasonEn) {
     errors.reason = "At least one reason language is required";
   }
 
-  // Validate period selection for LATE and EARLY_LEAVE
   if (payload.type === "LATE" || payload.type === "EARLY_LEAVE") {
     const hasPeriods = (payload.selectedPeriodIds && payload.selectedPeriodIds.length > 0) ||
-                       (payload.periodIndexes && payload.periodIndexes.length > 0);
+      (payload.periodIndexes && payload.periodIndexes.length > 0);
     if (!hasPeriods) {
       errors.selectedPeriodIds = "Period selection is required for late/early leave requests";
+    }
+  }
+
+  if (payload.type === "LATE") {
+    if (payload.minutesLate === undefined || payload.minutesLate === null) {
+      errors.minutesLate = "Minutes late is required";
+    } else if (payload.minutesLate <= 0) {
+      errors.minutesLate = "Minutes late must be greater than 0";
+    }
+  }
+
+  if (payload.type === "EARLY_LEAVE") {
+    if (payload.minutesEarlyLeave === undefined || payload.minutesEarlyLeave === null) {
+      errors.minutesEarlyLeave = "Minutes early leave is required";
+    } else if (payload.minutesEarlyLeave <= 0) {
+      errors.minutesEarlyLeave = "Minutes early leave must be greater than 0";
     }
   }
 
@@ -313,13 +308,20 @@ export async function validateExcuseRequest(
   return errors;
 }
 
+export async function validateExcusePolicyRange(
+  payload: Pick<ExcuseRequest, "yearId" | "termId" | "dateFrom" | "dateTo" | "scopeType" | "scopeIds" | "attachments" | "reasonAr" | "reasonEn">
+) {
+  const policies = await fetchPolicies(payload.yearId, payload.termId);
+  return getExcusePolicyIssue(payload, policies);
+}
+
 export async function resolveRequestPolicy(
   yearId: string,
   termId: string,
   scopeType: ExcuseScopeType,
-  scopeIds: { stageId?: string; gradeId?: string; sectionId?: string } | undefined,
+  scopeIds: AttendanceScopeIds | undefined,
   date: string
 ): Promise<AttendancePolicy | null> {
   const policies = await fetchPolicies(yearId, termId);
-  return resolveEffectivePolicy(policies, date, scopeType, scopeIds);
+  return resolveEffectiveExcuseAttendancePolicy(policies, date, scopeType, scopeIds);
 }

@@ -104,6 +104,15 @@ export default function AbsencesTable({
       ),
     },
     {
+      key: "classroom",
+      label: t("classroom"),
+      render: (_: unknown, row: AbsenceRecord) => (
+        <div style={{ color: "var(--color-gray-700)" }} className="text-sm">
+          {row.classroomNameAr || row.classroomNameEn || "-"}
+        </div>
+      ),
+    },
+    {
       key: "status",
       label: t("status"),
       render: (_: unknown, row: AbsenceRecord) => getStatusChip(row.status, row.granularity),

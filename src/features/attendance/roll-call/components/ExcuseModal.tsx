@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
@@ -6,6 +6,7 @@ import { FileText, X } from "lucide-react";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
+import AttendanceAttachmentPreviewModal from "@/features/attendance/shared/components/AttendanceAttachmentPreviewModal";
 import { formatFileSize, getUploadRules } from "@/utils/upload/validateFile";
 import type { AttachmentMeta } from "../types";
 
@@ -35,24 +36,26 @@ export default function ExcuseModal({
   const [reason, setReason] = useState("");
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([]);
   const [errors, setErrors] = useState<{ reason?: string; attachments?: string }>({});
+  const [previewAttachment, setPreviewAttachment] = useState<AttachmentMeta | null>(null);
 
-    const rules = getUploadRules("ATTENDANCE_EXCUSE");
-  
-  // Reset form when modal opens with new data
+  const rules = getUploadRules("ATTENDANCE_EXCUSE");
+
   useEffect(() => {
-    if (isOpen) {
-      // Use a ref or key to track if we need to reset
-      setReason(initialReason);
-      setAttachments(initialAttachments);
-      setErrors({});
-    } else {
-      // Clear on close
-      setReason("");
-      setAttachments([]);
-      setErrors({});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]); // Intentionally only depend on isOpen
+    const frameId = window.requestAnimationFrame(() => {
+      if (isOpen) {
+        setReason(initialReason);
+        setAttachments(initialAttachments);
+        setErrors({});
+      } else {
+        setReason("");
+        setAttachments([]);
+        setErrors({});
+        setPreviewAttachment(null);
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [initialAttachments, initialReason, isOpen]);
 
   const handleFilesSelected = (files: File[]) => {
     const newAttachments: AttachmentMeta[] = files.map((file) => ({
@@ -92,12 +95,9 @@ export default function ExcuseModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="md" title={t("title")} >
-      
-
-        {/* Content */}
+    <>
+      <Modal isOpen={isOpen} onClose={onClose} size="md" title={t("title")}>
         <div className="space-y-4">
-          {/* Reason */}
           <div>
             <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
               {t("reason")} <span className="text-red-500">*</span>
@@ -124,7 +124,6 @@ export default function ExcuseModal({
             )}
           </div>
 
-          {/* Attachments */}
           <div>
             <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
               {t("attachments")}
@@ -144,7 +143,6 @@ export default function ExcuseModal({
               <p className="mt-2 text-sm text-red-600">{errors.attachments}</p>
             )}
 
-            {/* Attachment List */}
             {attachments.length > 0 && (
               <div className="mt-3 space-y-2">
                 {attachments.map((att) => (
@@ -154,9 +152,13 @@ export default function ExcuseModal({
                       backgroundColor: "var(--color-neutral-50)",
                       borderColor: "var(--color-border)",
                     }}
-                    className="flex items-center justify-between p-3 rounded-lg border"
+                    className="flex items-center justify-between gap-3 p-3 rounded-lg border"
                   >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewAttachment(att)}
+                      className="flex items-center gap-3 flex-1 min-w-0 text-start"
+                    >
                       <FileText style={{ color: "var(--color-neutral-400)" }} className="w-5 h-5 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p style={{ color: "var(--color-gray-900)" }} className="text-sm font-medium truncate">
@@ -166,12 +168,12 @@ export default function ExcuseModal({
                           {formatFileSize(att.size)}
                         </p>
                       </div>
-                    </div>
+                    </button>
                     {!isReadOnly && (
                       <button
                         onClick={() => handleRemoveAttachment(att.id)}
                         style={{ color: "var(--color-neutral-400)" }}
-                        className="hover:text-red-600 transition-colors shrink-0"
+                        className="transition-colors shrink-0"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -183,7 +185,6 @@ export default function ExcuseModal({
           </div>
         </div>
 
-        {/* Footer */}
         <div style={{ borderColor: "var(--color-border)" }} className="flex items-center justify-end gap-3 mt-6 pt-6 border-t">
           <Button variant="outline" onClick={onClose}>
             {tCommon("cancel")}
@@ -194,6 +195,14 @@ export default function ExcuseModal({
             </Button>
           )}
         </div>
-    </Modal>
+      </Modal>
+
+      <AttendanceAttachmentPreviewModal
+        attachment={previewAttachment}
+        isOpen={!!previewAttachment}
+        onClose={() => setPreviewAttachment(null)}
+      />
+    </>
   );
 }
+

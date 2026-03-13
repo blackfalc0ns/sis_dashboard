@@ -51,11 +51,8 @@ export default function ExportButton({
 
           {/* Dropdown Menu */}
           <div
-            className="absolute left-0 mt-2 w-48 rounded-lg shadow-lg border py-1 z-20"
-            style={{
-              backgroundColor: "var(--card-background)",
-              borderColor: "var(--border-color)",
-            }}
+            className="absolute left-0 mt-2 w-48 rounded-lg shadow-lg border py-1 z-20 bg-white border-border"
+           
           >
             <button
               onClick={() => handleExport("excel")}

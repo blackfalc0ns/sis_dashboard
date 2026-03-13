@@ -12,13 +12,15 @@ import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { isPolicyConfigComplete, hasNotificationsEnabled } from "../utils/policyKpis";
 import { getPeriodDisplayLabel } from "../../utils/periodIdNormalization";
 import type { AttendancePolicy, AttendanceScopeType } from "../types";
-import type { Stage, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
+import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
+import type { Stage, Grade, Section, Classroom } from "@/features/academics/academic-structure-tree/services/structureService";
 
 interface PoliciesListPanelProps {
   policies: AttendancePolicy[];
   stages: Stage[];
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   isReadOnly: boolean;
   onCreatePolicy: () => void;
   onEditPolicy: (policy: AttendancePolicy) => void;
@@ -31,6 +33,7 @@ export default function PoliciesListPanel({
   stages,
   grades,
   sections,
+  classrooms,
   isReadOnly,
   onCreatePolicy,
   onEditPolicy,
@@ -53,27 +56,16 @@ export default function PoliciesListPanel({
 
   // Get scope display name
   const getScopeName = useCallback((policy: AttendancePolicy): string => {
-    if (policy.scopeType === "SCHOOL") {
-      return locale === "ar" ? "المدرسة" : "School";
-    }
-
-    if (policy.scopeType === "STAGE" && policy.scopeIds?.stageId) {
-      const stage = stages.find((s) => s.id === policy.scopeIds?.stageId);
-      return locale === "ar" ? stage?.nameAr || "" : stage?.nameEn || "";
-    }
-
-    if (policy.scopeType === "GRADE" && policy.scopeIds?.gradeId) {
-      const grade = grades.find((g) => g.id === policy.scopeIds?.gradeId);
-      return locale === "ar" ? grade?.nameAr || "" : grade?.nameEn || "";
-    }
-
-    if (policy.scopeType === "SECTION" && policy.scopeIds?.sectionId) {
-      const section = sections.find((s) => s.id === policy.scopeIds?.sectionId);
-      return locale === "ar" ? section?.nameAr || "" : section?.nameEn || "";
-    }
-
-    return "";
-  }, [locale, stages, grades, sections]);
+    return getAttendanceScopeLabel({
+      scopeType: policy.scopeType,
+      scopeIds: policy.scopeIds,
+      stages,
+      grades,
+      sections,
+      classrooms,
+      locale,
+    });
+  }, [classrooms, grades, locale, sections, stages]);
 
   // Filter policies
   const filteredPolicies = useMemo(() => {
@@ -413,6 +405,7 @@ export default function PoliciesListPanel({
                   { value: "STAGE", label: t("scopeType.stage") },
                   { value: "GRADE", label: t("scopeType.grade") },
                   { value: "SECTION", label: t("scopeType.section") },
+                  { value: "CLASSROOM", label: t("scopeType.classroom") },
                 ]}
                 selectSize="sm"
               />
@@ -479,3 +472,6 @@ export default function PoliciesListPanel({
     </div>
   );
 }
+
+
+

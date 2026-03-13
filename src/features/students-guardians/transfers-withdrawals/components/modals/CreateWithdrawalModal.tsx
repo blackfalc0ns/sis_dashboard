@@ -1,11 +1,12 @@
-// FILE: src/components/students-guardians/transfers-withdrawals/modals/CreateWithdrawalModal.tsx
+﻿"use client";
 
-"use client";
-
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
 import { X, Search, Upload, AlertCircle } from "lucide-react";
-import { getAllStudents } from "@/features/students-guardians/students/services/studentsService";
+import {
+  getAllStudents,
+  getStudentEnrollment,
+} from "@/features/students-guardians/students/services/studentsService";
 import type { Student } from "@/features/students-guardians/students/types";
 import type { WithdrawalApplication } from "@/features/students-guardians/transfers-withdrawals/types/transfers-withdrawals";
 
@@ -14,6 +15,13 @@ interface CreateWithdrawalModalProps {
   onClose: () => void;
   onSubmit: (data: Partial<WithdrawalApplication>) => void;
 }
+
+const getStageFromGrade = (grade: string): "primary" | "preparatory" | "secondary" => {
+  const gradeNumber = parseInt(grade.replace(/\D/g, ""), 10);
+  if (gradeNumber >= 1 && gradeNumber <= 5) return "primary";
+  if (gradeNumber >= 6 && gradeNumber <= 9) return "preparatory";
+  return "secondary";
+};
 
 export default function CreateWithdrawalModal({
   isOpen,
@@ -30,6 +38,8 @@ export default function CreateWithdrawalModal({
     studentNameAr: "",
     stage: undefined,
     grade: "",
+    section: "",
+    classroom: "",
     reason: "relocation",
     effectiveDate: "",
     notes: "",
@@ -38,21 +48,22 @@ export default function CreateWithdrawalModal({
   });
 
   const [financialBalance, setFinancialBalance] = useState(0);
-
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [showStudentSearch, setShowStudentSearch] = useState(false);
 
   const allStudents = getAllStudents();
-  const filteredStudents = allStudents.filter(
-    (student) =>
-      student.full_name_en.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredStudents = allStudents.filter((student) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      student.full_name_en.toLowerCase().includes(query) ||
       student.full_name_ar.includes(searchQuery) ||
-      student.student_id?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+      student.student_id?.toLowerCase().includes(query)
+    );
+  });
 
   const handleStudentSelect = useCallback((student: Student) => {
-    // TODO: Fetch actual behavior and attendance data
+    const enrollment = getStudentEnrollment(student.id);
     const mockBehaviorAvg = Math.floor(Math.random() * 40) + 60;
     const mockAttendance = Math.floor(Math.random() * 20) + 80;
     const mockFinancialBalance = Math.floor(Math.random() * 5000);
@@ -63,8 +74,13 @@ export default function CreateWithdrawalModal({
       studentName: student.full_name_en,
       studentNameAr: student.full_name_ar || "",
       stage:
-        (student.stage as "primary" | "preparatory" | "secondary") || "primary",
-      grade: student.gradeRequested,
+        enrollment?.grade
+          ? getStageFromGrade(enrollment.grade)
+          : (student.stage as "primary" | "preparatory" | "secondary") ||
+            getStageFromGrade(student.gradeRequested),
+      grade: enrollment?.grade || student.gradeRequested,
+      section: enrollment?.section || "",
+      classroom: enrollment?.classroom || "",
       behaviorAvg: mockBehaviorAvg,
       attendancePercent: mockAttendance,
     }));
@@ -78,8 +94,9 @@ export default function CreateWithdrawalModal({
 
     if (!formData.studentId) newErrors.studentId = t("errors.student_required");
     if (!formData.reason) newErrors.reason = t("errors.reason_required");
-    if (!formData.effectiveDate)
+    if (!formData.effectiveDate) {
       newErrors.effectiveDate = t("errors.date_required");
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -117,7 +134,6 @@ export default function CreateWithdrawalModal({
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            {/* Student Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("fields.student")} <span className="text-red-500">*</span>
@@ -147,22 +163,32 @@ export default function CreateWithdrawalModal({
                 {showStudentSearch && searchQuery && (
                   <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {filteredStudents.length > 0 ? (
-                      filteredStudents.map((student) => (
-                        <button
-                          key={student.id}
-                          type="button"
-                          onClick={() => handleStudentSelect(student)}
-                          className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0"
-                        >
-                          <div className="font-medium text-gray-900">
-                            {student.full_name_en}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {student.student_id || student.id} • {student.stage}{" "}
-                            • {student.gradeRequested}
-                          </div>
-                        </button>
-                      ))
+                      filteredStudents.map((student) => {
+                        const enrollment = getStudentEnrollment(student.id);
+                        const placement = [
+                          enrollment?.grade || student.gradeRequested,
+                          enrollment?.section,
+                          enrollment?.classroom,
+                        ]
+                          .filter(Boolean)
+                          .join(" • ");
+
+                        return (
+                          <button
+                            key={student.id}
+                            type="button"
+                            onClick={() => handleStudentSelect(student)}
+                            className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0"
+                          >
+                            <div className="font-medium text-gray-900">
+                              {student.full_name_en}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {student.student_id || student.id} • {placement}
+                            </div>
+                          </button>
+                        );
+                      })
                     ) : (
                       <div className="px-4 py-3 text-sm text-gray-500">
                         {t("no_students_found")}
@@ -176,17 +202,12 @@ export default function CreateWithdrawalModal({
               )}
             </div>
 
-            {/* Selected Student Info */}
             {formData.studentId && (
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="grid grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-600">
-                      {t("fields.student_id")}:
-                    </span>
-                    <span className="ml-2 font-medium">
-                      {formData.studentId}
-                    </span>
+                    <span className="text-gray-600">{t("fields.student_id")}:</span>
+                    <span className="ml-2 font-medium">{formData.studentId}</span>
                   </div>
                   <div>
                     <span className="text-gray-600">{t("fields.stage")}:</span>
@@ -196,11 +217,18 @@ export default function CreateWithdrawalModal({
                     <span className="text-gray-600">{t("fields.grade")}:</span>
                     <span className="ml-2 font-medium">{formData.grade}</span>
                   </div>
+                  <div>
+                    <span className="text-gray-600">{t("fields.section")}:</span>
+                    <span className="ml-2 font-medium">{formData.section || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">{t("fields.classroom")}:</span>
+                    <span className="ml-2 font-medium">{formData.classroom || "—"}</span>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Behavior Summary */}
             {formData.studentId && (
               <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
                 <h4 className="text-sm font-semibold text-gray-900 mb-3">
@@ -208,9 +236,7 @@ export default function CreateWithdrawalModal({
                 </h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-600">
-                      {t("behavior_summary.behavior_avg")}:
-                    </span>
+                    <span className="text-gray-600">{t("behavior_summary.behavior_avg")}:</span>
                     <span
                       className={`ml-2 font-semibold ${
                         (formData.behaviorAvg || 0) >= 80
@@ -224,12 +250,8 @@ export default function CreateWithdrawalModal({
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-600">
-                      {t("behavior_summary.attendance")}:
-                    </span>
-                    <span className="ml-2 font-medium">
-                      {formData.attendancePercent || 0}%
-                    </span>
+                    <span className="text-gray-600">{t("behavior_summary.attendance")}:</span>
+                    <span className="ml-2 font-medium">{formData.attendancePercent || 0}%</span>
                   </div>
                 </div>
                 {hasBehaviorIssues && (
@@ -241,16 +263,13 @@ export default function CreateWithdrawalModal({
               </div>
             )}
 
-            {/* Financial Summary */}
             {formData.studentId && (
               <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
                 <h4 className="text-sm font-semibold text-gray-900 mb-3">
                   {t("financial_summary.title")}
                 </h4>
                 <div className="text-sm">
-                  <span className="text-gray-600">
-                    {t("financial_summary.outstanding_balance")}:
-                  </span>
+                  <span className="text-gray-600">{t("financial_summary.outstanding_balance")}:</span>
                   <span
                     className={`ml-2 font-semibold ${
                       hasFinancialIssues ? "text-red-600" : "text-green-600"
@@ -262,15 +281,12 @@ export default function CreateWithdrawalModal({
                 {hasFinancialIssues && (
                   <div className="mt-3 flex items-start gap-2 text-sm text-yellow-700 bg-yellow-50 p-2 rounded">
                     <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                    <span>
-                      {t("financial_summary.pending_clearance_warning")}
-                    </span>
+                    <span>{t("financial_summary.pending_clearance_warning")}</span>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Reason */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("fields.reason")} <span className="text-red-500">*</span>
@@ -292,16 +308,12 @@ export default function CreateWithdrawalModal({
                 <option value="health">{t("reasons.health")}</option>
                 <option value="other">{t("reasons.other")}</option>
               </select>
-              {errors.reason && (
-                <p className="mt-1 text-sm text-red-600">{errors.reason}</p>
-              )}
+              {errors.reason && <p className="mt-1 text-sm text-red-600">{errors.reason}</p>}
             </div>
 
-            {/* Effective Date */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t("fields.effective_date")}{" "}
-                <span className="text-red-500">*</span>
+                {t("fields.effective_date")} <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
@@ -312,42 +324,33 @@ export default function CreateWithdrawalModal({
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               />
               {errors.effectiveDate && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.effectiveDate}
-                </p>
+                <p className="mt-1 text-sm text-red-600">{errors.effectiveDate}</p>
               )}
             </div>
 
-            {/* Notes */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("fields.notes")}
               </label>
               <textarea
                 value={formData.notes}
-                onChange={(e) =>
-                  setFormData({ ...formData, notes: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={4}
                 placeholder={t("fields.notes_placeholder")}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
               />
             </div>
 
-            {/* Attachments */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("fields.attachments")}
               </label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
                 <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">
-                  {t("fields.upload_files")}
-                </p>
+                <p className="text-sm text-gray-600">{t("fields.upload_files")}</p>
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
               <button
                 type="button"
@@ -369,3 +372,4 @@ export default function CreateWithdrawalModal({
     </div>
   );
 }
+

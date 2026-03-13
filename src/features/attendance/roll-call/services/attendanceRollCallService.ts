@@ -10,7 +10,19 @@ import type {
 } from "../types";
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
 import { fetchPolicies } from "@/features/attendance/policies/services/attendancePolicyService";
-import { mockStudents } from "@/data/mockStudents";
+import { mockStudentEnrollments, mockStudents } from "@/data/mockStudents";
+import {
+  ATTENDANCE_SCOPE_PRIORITY,
+  isScopeSelectionComplete,
+  matchesDirectAttendanceScope,
+  resolveAttendanceHierarchyScope,
+  scopeMatchesTarget,
+  type AttendanceScopeIds,
+} from "@/features/attendance/shared/attendanceScope";
+import {
+  getStructureTreeSnapshot,
+  resolveStructureContextForAcademicYear,
+} from "@/features/academics/academic-structure-tree/services/structureService";
 
 // Term-scoped mock store
 const sessionStore: Record<string, AttendanceSession[]> = {};
@@ -18,13 +30,13 @@ const entryStore: Record<string, AttendanceEntry[]> = {};
 
 /**
  * Fetch effective policy for a scope and date
- * Priority: SECTION > GRADE > STAGE > SCHOOL
+ * Priority: CLASSROOM > SECTION > GRADE > STAGE > SCHOOL
  */
 export async function fetchEffectivePolicy(
   yearId: string,
   termId: string,
-  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION",
-  scopeIds: { stageId?: string; gradeId?: string; sectionId?: string },
+  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSROOM",
+  scopeIds: AttendanceScopeIds,
   date: string
 ): Promise<AttendancePolicy | null> {
   await new Promise((resolve) => setTimeout(resolve, 100));
@@ -38,20 +50,14 @@ export async function fetchEffectivePolicy(
     return true;
   });
 
-  // Priority order: SECTION > GRADE > STAGE > SCHOOL
-  const priorityOrder = ["SECTION", "GRADE", "STAGE", "SCHOOL"];
+  const resolvedScope = resolveAttendanceHierarchyScope({ scopeType, scopeIds });
 
-  for (const priority of priorityOrder) {
-    const matchingPolicy = activePolicies.find((p) => {
-      if (p.scopeType !== priority) return false;
-
-      if (priority === "SCHOOL") return true;
-      if (priority === "STAGE") return p.scopeIds?.stageId === scopeIds.stageId;
-      if (priority === "GRADE") return p.scopeIds?.gradeId === scopeIds.gradeId;
-      if (priority === "SECTION") return p.scopeIds?.sectionId === scopeIds.sectionId;
-
-      return false;
-    });
+  for (const priority of ATTENDANCE_SCOPE_PRIORITY) {
+    const matchingPolicy = activePolicies.find(
+      (policy) =>
+        policy.scopeType === priority &&
+        scopeMatchesTarget(policy.scopeType, policy.scopeIds, resolvedScope)
+    );
 
     if (matchingPolicy) return matchingPolicy;
   }
@@ -59,30 +65,95 @@ export async function fetchEffectivePolicy(
   return null;
 }
 
+function getEnrollmentScopeMaps() {
+  const gradesById = new Map<string, { stageId: string }>();
+  const sectionsById = new Map<string, { gradeId: string }>();
+  const classroomsById = new Map<string, { sectionId: string }>();
+
+  const seenContexts = new Set<string>();
+  for (const enrollment of mockStudentEnrollments) {
+    const context = resolveStructureContextForAcademicYear(enrollment.academicYear);
+    if (!context) continue;
+
+    const key = `${context.academicYearId}-${context.termId}`;
+    if (seenContexts.has(key)) continue;
+    seenContexts.add(key);
+
+    const structure = getStructureTreeSnapshot(context.academicYearId, context.termId);
+    structure.grades.forEach((grade) => gradesById.set(grade.id, { stageId: grade.stageId }));
+    structure.sections.forEach((section) => sectionsById.set(section.id, { gradeId: section.gradeId }));
+    structure.classrooms.forEach((classroom) =>
+      classroomsById.set(classroom.id, { sectionId: classroom.sectionId })
+    );
+  }
+
+  return { gradesById, sectionsById, classroomsById };
+}
+
 /**
  * Fetch roster (students) for a scope
  */
 export async function fetchRoster(
-  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION",
-  scopeIds: { stageId?: string; gradeId?: string; sectionId?: string } // eslint-disable-line @typescript-eslint/no-unused-vars
+  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSROOM",
+  scopeIds: AttendanceScopeIds
 ): Promise<RosterStudent[]> {
   await new Promise((resolve) => setTimeout(resolve, 150));
 
-  // For now, return all mock students (simplified for demo)
-  // In production, this would call the actual students API with proper filtering
-  // based on enrollment data (scopeType, scopeIds)
-  
-  // Return a reasonable subset for demo purposes
-  const maxStudents = scopeType === "SECTION" ? 30 : scopeType === "GRADE" ? 50 : 100;
-  const filteredStudents = mockStudents.slice(0, maxStudents);
+  if (!isScopeSelectionComplete(scopeType, scopeIds)) {
+    return [];
+  }
 
-  return filteredStudents.map((s) => ({
-    id: s.id,
-    nameAr: s.full_name_ar,
-    nameEn: s.full_name_en,
-    studentNumber: s.student_id || s.id,
-    photoUrl: undefined, // Mock students don't have photos
-  }));
+  const { gradesById, sectionsById, classroomsById } = getEnrollmentScopeMaps();
+  const targetScope = resolveAttendanceHierarchyScope({
+    scopeType,
+    scopeIds,
+    gradesById,
+    sectionsById,
+    classroomsById,
+  });
+
+  const matchedStudentIds = new Set(
+    mockStudentEnrollments
+      .filter((enrollment) => enrollment.status !== "withdrawn")
+      .filter((enrollment) => {
+        const enrollmentScope = resolveAttendanceHierarchyScope({
+          scopeType: enrollment.classroomId
+            ? "CLASSROOM"
+            : enrollment.sectionId
+              ? "SECTION"
+              : enrollment.gradeId
+                ? "GRADE"
+                : "SCHOOL",
+          scopeIds: {
+            stageId: undefined,
+            gradeId: enrollment.gradeId,
+            sectionId: enrollment.sectionId,
+            classroomId: enrollment.classroomId,
+          },
+          gradesById,
+          sectionsById,
+          classroomsById,
+        });
+
+        if (scopeType === "SCHOOL") return true;
+        if (scopeType === "STAGE") return enrollmentScope.stageId === targetScope.stageId;
+        if (scopeType === "GRADE") return enrollmentScope.gradeId === targetScope.gradeId;
+        if (scopeType === "SECTION") return enrollmentScope.sectionId === targetScope.sectionId;
+        return enrollmentScope.classroomId === targetScope.classroomId;
+      })
+      .map((enrollment) => enrollment.studentId)
+  );
+
+  return mockStudents
+    .filter((student) => matchedStudentIds.has(student.id))
+    .map((student) => ({
+      id: student.id,
+      nameAr: student.full_name_ar,
+      nameEn: student.full_name_en,
+      studentNumber: student.student_id || student.id,
+      photoUrl: undefined,
+    }))
+    .sort((a, b) => a.nameEn.localeCompare(b.nameEn));
 }
 
 /**
@@ -92,8 +163,8 @@ export async function getOrCreateSession(params: {
   yearId: string;
   termId: string;
   date: string;
-  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION";
-  scopeIds?: { stageId?: string; gradeId?: string; sectionId?: string };
+  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSROOM";
+  scopeIds?: AttendanceScopeIds;
   mode: AttendanceSessionMode;
   periodId?: string; // Canonical stable ID from TimetablePeriod.id
   periodIndex?: number; // Display/order only (derived from timetable)
@@ -134,17 +205,7 @@ export async function getOrCreateSession(params: {
     }
 
     // Check scope IDs match
-    if (params.scopeType === "SECTION") {
-      return s.scopeIds?.sectionId === params.scopeIds?.sectionId;
-    }
-    if (params.scopeType === "GRADE") {
-      return s.scopeIds?.gradeId === params.scopeIds?.gradeId;
-    }
-    if (params.scopeType === "STAGE") {
-      return s.scopeIds?.stageId === params.scopeIds?.stageId;
-    }
-
-    return true; // SCHOOL
+    return matchesDirectAttendanceScope(params.scopeType, s.scopeIds, params.scopeIds);
   });
 
   if (existing) {
@@ -280,7 +341,11 @@ export async function fetchSessions(
   yearId: string,
   termId: string,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  scopeFilter?: {
+    scopeType: AttendanceSession["scopeType"];
+    scopeIds?: AttendanceScopeIds;
+  }
 ): Promise<AttendanceSession[]> {
   await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -292,6 +357,13 @@ export async function fetchSessions(
   }
   if (endDate) {
     sessions = sessions.filter((s) => s.date <= endDate);
+  }
+
+  if (scopeFilter) {
+    sessions = sessions.filter((session) => {
+      if (session.scopeType !== scopeFilter.scopeType) return false;
+      return matchesDirectAttendanceScope(scopeFilter.scopeType, session.scopeIds, scopeFilter.scopeIds);
+    });
   }
 
   return sessions;

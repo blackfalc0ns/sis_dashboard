@@ -2,14 +2,23 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { AlertCircle, Filter } from "lucide-react";
-import { Drawer, useMediaQuery } from "@mui/material";
+import { Filter } from "lucide-react";
+import { useMediaQuery } from "@mui/material";
 import ContextBar from "@/features/academics/components/shared/ContextBar";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useAttendanceTermContext } from "@/features/attendance/shared/hooks/useAttendanceTermContext";
+import AttendanceStatePanel from "@/features/attendance/shared/components/AttendanceStatePanel";
+import AttendanceScopeHeader from "@/features/attendance/shared/components/AttendanceScopeHeader";
+import AttendanceDataPanel from "@/features/attendance/shared/components/AttendanceDataPanel";
+import AttendanceFiltersPanel from "@/features/attendance/shared/components/AttendanceFiltersPanel";
+import AttendanceMobileActions from "@/features/attendance/shared/components/AttendanceMobileActions";
+import AttendanceDetailsCard from "@/features/attendance/shared/components/AttendanceDetailsCard";
+import AttendanceBottomDrawer from "@/features/attendance/shared/components/AttendanceBottomDrawer";
+import { isScopeSelectionComplete } from "@/features/attendance/shared/attendanceScope";
 import {
   fetchStructureTree,
+  type Classroom,
   type Grade,
   type Section,
   type Stage,
@@ -24,8 +33,7 @@ import LateEarlyFiltersDrawer from "../components/LateEarlyFiltersDrawer";
 import LateEarlyTable from "../components/LateEarlyTable";
 import IncidentDetailsDrawer from "../components/IncidentDetailsDrawer";
 import MinutesEditorModal from "../components/MinutesEditorModal";
-import ScopeBreadcrumb from "../../components/ScopeBreadcrumb";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 
 function computeKpis(incidents: Incident[]): LateEarlyKpis {
@@ -60,6 +68,7 @@ export default function AttendanceLateEarlyPage() {
   const [stages, setStages] = useState<Stage[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [periods, setPeriods] = useState<Array<{ index: number; nameAr: string; nameEn: string }>>([]);
 
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -97,25 +106,6 @@ export default function AttendanceLateEarlyPage() {
   const term = useMemo(() => {
     return termContext.terms.find((t) => t.id === termContext.termId) || null;
   }, [termContext.terms, termContext.termId]);
-
-  const getScopeLabel = useCallback(() => {
-    if (filters.scopeType === "SCHOOL") {
-      return locale === "ar" ? t("scopeSchool") : "School";
-    }
-
-    if (filters.scopeType === "STAGE") {
-      const stage = stages.find((item) => item.id === filters.scopeIds?.stageId);
-      return (locale === "ar" ? stage?.nameAr : stage?.nameEn) || "-";
-    }
-
-    if (filters.scopeType === "GRADE") {
-      const grade = grades.find((item) => item.id === filters.scopeIds?.gradeId);
-      return (locale === "ar" ? grade?.nameAr : grade?.nameEn) || "-";
-    }
-
-    const section = sections.find((item) => item.id === filters.scopeIds?.sectionId);
-    return (locale === "ar" ? section?.nameAr : section?.nameEn) || "-";
-  }, [filters, grades, locale, sections, stages, t]);
 
   const resetFilters = useCallback(() => {
     setSearchInput("");
@@ -164,6 +154,7 @@ export default function AttendanceLateEarlyPage() {
       setStages(structure.stages);
       setGrades(structure.grades);
       setSections(structure.sections);
+      setClassrooms(structure.classrooms);
       setPeriods(termConfig?.periods || []);
     };
 
@@ -180,7 +171,16 @@ export default function AttendanceLateEarlyPage() {
     exportLateEarly(incidents, locale, format, {
       yearName: termContext.yearId || "",
       termName: locale === "ar" ? term.nameAr || term.name : term.nameEn || term.name,
-      scopeName: getScopeLabel(),
+      scopeName: getAttendanceScopeLabel({
+        scopeType: filters.scopeType,
+        scopeIds: filters.scopeIds,
+        stages,
+        grades,
+        sections,
+        classrooms,
+        locale,
+        schoolLabel: t("scopeSchool"),
+      }),
       dateRange: filters.dateFrom && filters.dateTo ? `${filters.dateFrom} - ${filters.dateTo}` : t("allDates"),
     });
 
@@ -227,6 +227,30 @@ export default function AttendanceLateEarlyPage() {
     );
   }
 
+  if (!termContext.yearId || !termContext.termId) {
+    return (
+      <div className="flex flex-col h-screen">
+        <ContextBar
+          academicYearId={termContext.yearId || ""}
+          termId={termContext.termId || ""}
+          termStatus={termContext.termStatus || "open"}
+          onAcademicYearChange={termContext.setYearId}
+          onTermChange={termContext.setTermId}
+          isReadOnly={isReadOnly}
+          showPromoteCarryOver={false}
+        />
+        <div className="flex-1 flex items-center justify-center">
+          <AttendanceStatePanel
+            title={t("emptyStates.noYearTerm.title")}
+            description={t("emptyStates.noYearTerm.description")}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const isScopeSelectionIncomplete = !isScopeSelectionComplete(filters.scopeType, filters.scopeIds);
+
   return (
     <div className="flex flex-col h-screen">
       <ContextBar
@@ -238,38 +262,29 @@ export default function AttendanceLateEarlyPage() {
         isReadOnly={isReadOnly}
         showPromoteCarryOver={false}
       />
-
-      {isReadOnly && (
-        <div className="px-4 py-2 flex items-center gap-2" style={{ backgroundColor: "var(--color-warning-50)", color: "var(--color-warning-800)", borderBottom: "1px solid var(--color-warning-200)" }}>
-          <AlertCircle className="w-4 h-4" />
-          <span className="text-sm">{t("readonlyBanner")}</span>
-        </div>
-      )}
-  {/* Scope Breadcrumb */}
-          
       <div className="flex-1 p-4 flex flex-col gap-4 min-h-0" style={{ backgroundColor: "var(--background)" }}>
-        {(
-            
-              <ScopeBreadcrumb
-                scopeType={filters.scopeType}
-                scopeIds={filters.scopeIds}
-                stages={stages}
-                grades={grades}
-                sections={sections}
-              />
-           
-          )}
+        <AttendanceScopeHeader
+          isReadOnly={isReadOnly}
+          readOnlyMessage={t("readonlyBanner")}
+          scopeType={filters.scopeType}
+          scopeIds={filters.scopeIds}
+          stages={stages}
+          grades={grades}
+          sections={sections}
+          classrooms={classrooms}
+        />
         <LateEarlyKpisBar kpis={kpis} />
 
         {!isMobile && (
           <div className="grid grid-cols-12 gap-4 min-h-0 flex-1">
             <div className="col-span-8 min-h-0 flex flex-col gap-4">
-              <div className="rounded-xl border p-4" style={{ backgroundColor: "var(--card-background)", borderColor: "var(--border-color)" }}>
+              <AttendanceFiltersPanel>
                 <LateEarlyFiltersBar
                   filters={{ ...filters, search: searchInput }}
                   stages={stages}
                   grades={grades}
                   sections={sections}
+                  classrooms={classrooms}
                   periods={periods}
                   onFiltersChange={(patch) => {
                     if ('search' in patch) {
@@ -280,12 +295,19 @@ export default function AttendanceLateEarlyPage() {
                   onResetFilters={resetFilters}
                   onExport={handleExport}
                 />
-              </div>
+              </AttendanceFiltersPanel>
 
-              <div className="rounded-xl border overflow-hidden min-h-0" style={{ backgroundColor: "var(--card-background)", borderColor: "var(--border-color)" }}>
-                {loading ? (
-                                    <div className="h-full flex items-center justify-center py-4"><PartialLoader/></div>
-                  
+              <AttendanceDataPanel loading={loading}>
+                {isScopeSelectionIncomplete ? (
+                  <AttendanceStatePanel
+                    title={t("emptyStates.selectScope.title")}
+                    description={t("emptyStates.selectScope.description")}
+                  />
+                ) : incidents.length === 0 ? (
+                  <AttendanceStatePanel
+                    title={t("emptyStates.noRecords.title")}
+                    description={t("emptyStates.noRecords.description")}
+                  />
                 ) : (
                   <LateEarlyTable
                     incidents={incidents}
@@ -294,35 +316,44 @@ export default function AttendanceLateEarlyPage() {
                     onEditMinutes={handleEditMinutes}
                   />
                 )}
-              </div>
+              </AttendanceDataPanel>
             </div>
 
-            <div className="col-span-4 min-h-0 rounded-xl border overflow-hidden" style={{ backgroundColor: "var(--card-background)", borderColor: "var(--border-color)" }}>
+            <AttendanceDetailsCard>
               <IncidentDetailsDrawer
                 incident={selectedIncident}
                 isReadOnly={isReadOnly}
                 onClose={() => setSelectedIncident(null)}
                 onEditMinutes={handleEditMinutes}
               />
-            </div>
+            </AttendanceDetailsCard>
           </div>
         )}
 
         {isMobile && (
           <div className="flex flex-col gap-4 min-h-0 flex-1">
-            <Button
-              variant="outline"
-              size="sm"
-              leftIcon={<Filter className="w-4 h-4" />}
-              onClick={() => setFiltersDrawerOpen(true)}
-            >
-              {t("filters.filters")}
-            </Button>
+            <AttendanceMobileActions>
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<Filter className="w-4 h-4" />}
+                onClick={() => setFiltersDrawerOpen(true)}
+              >
+                {t("filters.filters")}
+              </Button>
+            </AttendanceMobileActions>
 
-            <div className="rounded-xl border overflow-hidden min-h-0" style={{ backgroundColor: "var(--card-background)", borderColor: "var(--border-color)" }}>
-              {loading ? (
-                                 <div className="h-full flex items-center justify-center py-4"><PartialLoader/></div>
-               
+            <AttendanceDataPanel loading={loading}>
+              {isScopeSelectionIncomplete ? (
+                <AttendanceStatePanel
+                  title={t("emptyStates.selectScope.title")}
+                  description={t("emptyStates.selectScope.description")}
+                />
+              ) : incidents.length === 0 ? (
+                <AttendanceStatePanel
+                  title={t("emptyStates.noRecords.title")}
+                  description={t("emptyStates.noRecords.description")}
+                />
               ) : (
                 <LateEarlyTable
                   incidents={incidents}
@@ -331,7 +362,7 @@ export default function AttendanceLateEarlyPage() {
                   onEditMinutes={handleEditMinutes}
                 />
               )}
-            </div>
+            </AttendanceDataPanel>
           </div>
         )}
       </div>
@@ -342,6 +373,7 @@ export default function AttendanceLateEarlyPage() {
         stages={stages}
         grades={grades}
         sections={sections}
+        classrooms={classrooms}
         periods={periods}
         onClose={() => setFiltersDrawerOpen(false)}
         onApply={() => setFiltersDrawerOpen(false)}
@@ -355,16 +387,14 @@ export default function AttendanceLateEarlyPage() {
         onExport={handleExport}
       />
 
-      <Drawer anchor="bottom" open={detailsDrawerOpen} onClose={() => setDetailsDrawerOpen(false)}>
-        <div className="h-[80vh]">
-          <IncidentDetailsDrawer
-            incident={selectedIncident}
-            isReadOnly={isReadOnly}
-            onClose={() => setDetailsDrawerOpen(false)}
-            onEditMinutes={handleEditMinutes}
-          />
-        </div>
-      </Drawer>
+      <AttendanceBottomDrawer isOpen={detailsDrawerOpen} onClose={() => setDetailsDrawerOpen(false)}>
+        <IncidentDetailsDrawer
+          incident={selectedIncident}
+          isReadOnly={isReadOnly}
+          onClose={() => setDetailsDrawerOpen(false)}
+          onEditMinutes={handleEditMinutes}
+        />
+      </AttendanceBottomDrawer>
 
       <MinutesEditorModal
         isOpen={minutesEditorOpen}
@@ -380,3 +410,6 @@ export default function AttendanceLateEarlyPage() {
     </div>
   );
 }
+
+
+

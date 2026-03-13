@@ -4,13 +4,14 @@ import { useLocale, useTranslations } from "next-intl";
 import { Tooltip } from "@mui/material";
 import { Eye, Check, X, PencilLine, Trash2 } from "lucide-react";
 import DataTable from "@/components/ui/data-table/DataTable";
-import type { Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
+import type { Classroom, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { ExcuseRequest } from "../types";
 
 interface ExcusesTableProps {
   requests: ExcuseRequest[];
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   isReadOnly: boolean;
   onView: (request: ExcuseRequest) => void;
   onApprove: (request: ExcuseRequest) => void;
@@ -19,7 +20,7 @@ interface ExcusesTableProps {
   onDelete: (request: ExcuseRequest) => void;
 }
 
-export default function ExcusesTable({ requests, grades, sections, isReadOnly, onView, onApprove, onReject, onEdit, onDelete }: ExcusesTableProps) {
+export default function ExcusesTable({ requests, grades, sections, classrooms, isReadOnly, onView, onApprove, onReject, onEdit, onDelete }: ExcusesTableProps) {
   const t = useTranslations("attendance.excuses.table");
   const locale = useLocale();
 
@@ -55,8 +56,14 @@ export default function ExcusesTable({ requests, grades, sections, isReadOnly, o
       render: (_: unknown, row: ExcuseRequest) => {
         const grade = row.scopeIds?.gradeId ? grades.find((item) => item.id === row.scopeIds?.gradeId) : undefined;
         const section = row.scopeIds?.sectionId ? sections.find((item) => item.id === row.scopeIds?.sectionId) : undefined;
+        const classroom = row.scopeIds?.classroomId ? classrooms.find((item) => item.id === row.scopeIds?.classroomId) : undefined;
         const gradeLabel = grade ? (locale === "ar" ? grade.nameAr : grade.nameEn) : row.scopeIds?.gradeId || "-";
         const sectionLabel = section ? (locale === "ar" ? section.nameAr : section.nameEn) : row.scopeIds?.sectionId || "-";
+        const classroomLabel = classroom ? (locale === "ar" ? classroom.nameAr : classroom.nameEn) : row.scopeIds?.classroomId || "-";
+
+        if (row.scopeType === "CLASSROOM") {
+          return <span>{gradeLabel} / {sectionLabel} / {classroomLabel}</span>;
+        }
 
         if (row.scopeType === "SECTION") {
           return <span>{gradeLabel} / {sectionLabel}</span>;
@@ -95,6 +102,16 @@ export default function ExcusesTable({ requests, grades, sections, isReadOnly, o
               ? row.periodIndexes.map((p) => `P${p}`).join(", ")
               : t("allPolicyPeriods")}
           </div>
+          {row.type === "LATE" && typeof row.minutesLate === "number" && (
+            <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
+              {row.minutesLate} {t("minutes")}
+            </div>
+          )}
+          {row.type === "EARLY_LEAVE" && typeof row.minutesEarlyLeave === "number" && (
+            <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
+              {row.minutesEarlyLeave} {t("minutes")}
+            </div>
+          )}
         </div>
       ),
     },

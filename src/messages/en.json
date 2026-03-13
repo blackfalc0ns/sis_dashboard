@@ -909,9 +909,12 @@
       "ready_for_enrollment": "This student has been accepted and is ready for enrollment.",
       "academic_year": "Academic Year",
       "grade": "Grade",
+      "select_grade": "Select grade",
       "grade_option": "Grade {grade}",
       "section": "Section",
       "select_section": "Select section",
+      "classroom": "Classroom",
+      "select_classroom": "Select classroom",
       "section_option": "Section {section}",
       "start_date": "Start Date",
       "generate_documents": "Generate Documents",
@@ -1181,6 +1184,7 @@
       "student_name": "Student Name",
       "grade": "Grade",
       "section": "Section",
+      "classroom": "Classroom",
       "start_date": "Start Date",
       "enrolled_date": "Enrolled Date",
       "all_grades": "All Grades",
@@ -1338,6 +1342,7 @@
         "name": "Name",
         "grade": "Grade",
         "section": "Section",
+        "classroom": "Classroom",
         "attendance": "Attendance",
         "average": "Average",
         "status": "Status",
@@ -1376,6 +1381,7 @@
         "term": "Term",
         "grade": "Grade",
         "section": "Section",
+        "classroom": "Classroom",
         "status": "Status"
       },
       "filter_options": {
@@ -1383,6 +1389,7 @@
         "all_terms": "All Terms",
         "all_grades": "All Grades",
         "all_sections": "All Sections",
+        "all_classrooms": "All Classrooms",
         "all_statuses": "All Statuses"
       },
       "status": {
@@ -1531,6 +1538,8 @@
           "student_name": "Student Name",
           "stage": "Stage",
           "grade": "Grade",
+          "section": "Section",
+          "classroom": "Classroom",
           "type": "Type",
           "behavior_score": "Behavior Score",
           "status": "Status",
@@ -1567,6 +1576,8 @@
           "student_name": "Student Name",
           "stage": "Stage",
           "grade": "Grade",
+          "section": "Section",
+          "classroom": "Classroom",
           "behavior_avg": "Behavior Avg",
           "attendance": "Attendance %",
           "reason": "Reason",
@@ -1701,7 +1712,15 @@
             "student_id": "Student ID",
             "stage": "Stage",
             "grade": "Grade",
+            "section": "Section",
+            "classroom": "Classroom",
+            "current_section": "Current section",
+            "current_classroom": "Current classroom",
             "type": "Transfer Type",
+            "target_section": "Target Section",
+            "target_classroom": "Target Classroom",
+            "search_target_section": "Search target section",
+            "search_target_classroom": "Search target classroom",
             "target_class": "Target Class",
             "target_class_placeholder": "e.g., 8-B",
             "external_school": "External School",
@@ -1722,11 +1741,16 @@
             "student_required": "Please select a student",
             "type_required": "Please select transfer type",
             "target_class_required": "Please enter target class",
+            "target_section_required": "Please select a target section",
+            "target_classroom_required": "Please select a target classroom",
+            "target_must_change": "Choose a different section or classroom from the current placement",
             "external_school_required": "Please enter external school name",
             "reason_required": "Please enter a reason",
             "date_required": "Please select effective date"
           },
           "no_students_found": "No students found",
+          "no_sections_found": "No sections found",
+          "no_classrooms_found": "No classrooms found",
           "cancel": "Cancel",
           "submit": "Submit Application"
         },
@@ -1738,6 +1762,8 @@
             "student_id": "Student ID",
             "stage": "Stage",
             "grade": "Grade",
+            "section": "Section",
+            "classroom": "Classroom",
             "reason": "Withdrawal Reason",
             "effective_date": "Effective Date",
             "notes": "Additional Notes",
@@ -1786,6 +1812,8 @@
         "student_name": "Student Name",
         "stage": "Stage",
         "grade": "Grade",
+        "section": "Section",
+        "classroom": "Classroom",
         "request_info": "Request Information",
         "transfer_type": "Transfer Type",
         "target_class": "Target Class",
@@ -1826,6 +1854,7 @@
       "student_id": "ID",
       "grade": "Grade",
       "section": "Section",
+      "classroom": "Classroom",
       "na": "N/A",
       "status": {
         "active": "Active",
@@ -1912,6 +1941,11 @@
         "date_of_birth": "Date of Birth",
         "grade": "Grade",
         "section": "Section",
+        "classroom": "Classroom",
+        "select_stage": "Select stage",
+        "select_grade": "Select grade",
+        "select_section": "Select section",
+        "select_classroom": "Select classroom",
         "status": "Status",
         "enrollment_year": "Enrollment Year",
         "created_at": "Created At",
@@ -1989,9 +2023,11 @@
         "enrollment_id": "Enrollment ID",
         "grade": "Grade",
         "section": "Section",
+        "classroom": "Classroom",
         "enrollment_date": "Enrollment Date",
         "current": "Current",
-        "grade_progression": "Grade Progression"
+        "grade_progression": "Grade Progression",
+        "na": "N/A"
       },
       "attendance": {
         "title": "Attendance",
@@ -2216,6 +2252,7 @@
         "add_stage": "Add Stage",
         "add_grade": "Add Grade",
         "add_section": "Add Section",
+        "add_classroom": "Add Classroom",
         "edit": "Edit",
         "delete": "Delete",
         "move_up": "Move Up",
@@ -2227,9 +2264,12 @@
         "stage_form": "Stage Details",
         "grade_form": "Grade Details",
         "section_form": "Section Details",
+        "classroom_form": "Classroom Details",
         "name": "Name",
         "description": "Description",
         "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
         "order": "Order",
         "notes": "Notes",
         "capacity": "Capacity",
@@ -2252,13 +2292,17 @@
         "total_stages": "Total Stages",
         "total_grades": "Total Grades",
         "total_sections": "Total Sections",
+        "total_classrooms": "Total Classrooms",
         "sections_missing_capacity": "Sections Missing Capacity",
-        "grades_without_sections": "Grades Without Sections"
+        "classrooms_missing_capacity": "Classrooms Missing Capacity",
+        "grades_without_sections": "Grades Without Sections",
+        "sections_without_classrooms": "Sections Without Classrooms"
       },
       "modals": {
         "add_stage": "Add New Stage",
         "add_grade": "Add New Grade",
         "add_section": "Add New Section",
+        "add_classroom": "Add New Classroom",
         "name": "Name",
         "cancel": "Cancel",
         "create": "Create"
@@ -3504,6 +3548,8 @@
     "unique_name_en_grade": "English grade name must be unique within the stage",
     "unique_name_ar_section": "Arabic section name must be unique within the grade",
     "unique_name_en_section": "English section name must be unique within the grade",
+    "unique_name_ar_classroom": "Arabic classroom name must be unique within the section",
+    "unique_name_en_classroom": "English classroom name must be unique within the section",
     "arEnMustDiffer": "Arabic and English values must be different",
     "urlRequired": "URL is required",
     "urlInvalid": "Enter a valid URL",
@@ -3562,7 +3608,12 @@
         "prev": "Previous",
         "next": "Next",
         "dailyMode": "Daily Attendance Mode",
-        "status": "Session Status"
+        "status": "Session Status",
+        "scopeTypes": {
+          "classroom": "Classroom"
+        },
+        "classroom": "Classroom",
+        "selectClassroom": "Select Classroom"
       },
       "sessionStatus": {
         "draft": "Draft",
@@ -3678,7 +3729,8 @@
           "excused": "Excused",
           "earlyLeave": "Early Leave"
         }
-      }
+      },
+      "thresholdReached": "Policy threshold reached ({threshold} min)"
     },
     "rollCallDesc": "Take daily attendance and manage roll call",
     "absences": {
@@ -3728,8 +3780,11 @@
           "school": "School",
           "stage": "Stage",
           "grade": "Grade",
-          "section": "Section"
-        }
+          "section": "Section",
+          "classroom": "Classroom"
+        },
+        "classroom": "Classroom",
+        "selectClassroom": "Select Classroom"
       },
       "table": {
         "date": "Date",
@@ -3745,7 +3800,8 @@
         "hasExcuse": "Has excuse",
         "viewOnly": "View only",
         "editExcuse": "Edit excuse",
-        "editEarlyLeave": "Edit minutes"
+        "editEarlyLeave": "Edit minutes",
+        "classroom": "Classroom"
       },
       "details": {
         "title": "Absence Details",
@@ -3768,7 +3824,13 @@
         "attachments": "Attachments",
         "addExcuse": "Add Excuse",
         "editExcuse": "Edit Excuse",
-        "editMinutes": "Edit Minutes"
+        "editMinutes": "Edit Minutes",
+        "openStudentProfile": "Open student profile",
+        "previewAttachment": "Preview attachment",
+        "excuseCreatedAt": "Excuse added at",
+        "updatedAt": "Last updated",
+        "timeline": "Timeline",
+        "classroom": "Classroom"
       },
       "earlyLeave": {
         "title": "Edit Early Leave Minutes",
@@ -3802,6 +3864,20 @@
       "allDates": "All dates",
       "minutesSaved": "Minutes updated successfully",
       "exportSuccess": "Late/Early incidents exported successfully",
+      "emptyStates": {
+        "noYearTerm": {
+          "title": "Select Academic Year and Term",
+          "description": "Please select an academic year and term from the context bar above to view late and early leave incidents."
+        },
+        "selectScope": {
+          "title": "Select Scope",
+          "description": "Please complete your scope selection to load late and early leave incidents."
+        },
+        "noRecords": {
+          "title": "No Incidents Found",
+          "description": "No late or early leave incidents match your current filters. Try adjusting the date range, scope, or search."
+        }
+      },
       "filters": {
         "filters": "Filters",
         "searchPlaceholder": "Search by student name or number...",
@@ -3843,7 +3919,8 @@
         "no": "No",
         "actions": "Actions",
         "view": "View",
-        "editMinutes": "Edit minutes"
+        "editMinutes": "Edit minutes",
+        "thresholdReached": "Threshold reached ({threshold} min)"
       },
       "details": {
         "title": "Incident details",
@@ -3864,7 +3941,12 @@
         "belowThreshold": "Below threshold ({threshold} min)",
         "noThreshold": "No threshold set",
         "openSession": "Open session",
-        "editMinutes": "Edit minutes"
+        "editMinutes": "Edit minutes",
+        "thresholdReached": "Policy threshold reached ({threshold} min)",
+        "noViolation": "Policy threshold not reached",
+        "openStudentProfile": "Open student profile",
+        "timeline": "Timeline",
+        "updatedAt": "Last updated"
       },
       "modal": {
         "editLateMinutes": "Edit late minutes",
@@ -3897,6 +3979,20 @@
       "exportSuccess": "Excuses exported successfully",
       "scopeSchool": "School",
       "allDates": "All dates",
+      "emptyStates": {
+        "noYearTerm": {
+          "title": "Select Academic Year and Term",
+          "description": "Please select an academic year and term from the context bar above to view excuse requests."
+        },
+        "selectScope": {
+          "title": "Select Scope",
+          "description": "Please complete your scope selection to load excuse requests."
+        },
+        "noRecords": {
+          "title": "No Requests Found",
+          "description": "No excuse requests match your current filters. Try adjusting the date range, scope, status, or search."
+        }
+      },
       "filters": {
         "filters": "Filters",
         "searchPlaceholder": "Search by student name or number...",
@@ -3929,6 +4025,7 @@
         "scope": "Scope",
         "type": "Type",
         "range": "Range",
+        "minutes": "min",
         "attachments": "Attachments",
         "status": "Status",
         "actions": "Actions",
@@ -3955,6 +4052,8 @@
         "type": "Type",
         "range": "Range",
         "periods": "Periods",
+        "minutesLate": "Minutes Late",
+        "minutesEarlyLeave": "Minutes Early Leave",
         "reason": "Reason",
         "attachments": "Attachments",
         "noAttachments": "No attachments",
@@ -3966,7 +4065,17 @@
         "allPolicyPeriods": "Policy periods",
         "edit": "Edit",
         "approve": "Approve",
-        "reject": "Reject"
+        "reject": "Reject",
+        "thresholdReached": "Policy threshold reached ({threshold} min)",
+        "openStudentProfile": "Open student profile",
+        "previewAttachment": "Preview attachment",
+        "previewUnavailable": "Preview unavailable",
+        "previewUnavailableDescription": "This attachment does not have a preview URL available yet.",
+        "openInNewTab": "You can open this file in a new tab if a URL is available.",
+        "attachmentType": "File type",
+        "attachmentSize": "File size",
+        "submittedAt": "Submitted at",
+        "updatedAt": "Last updated"
       },
       "modal": {
         "createTitle": "Create excuse request",
@@ -3974,11 +4083,19 @@
         "approveTitle": "Approve request",
         "rejectTitle": "Reject request",
         "student": "Student",
+        "selectStudent": "Select a student",
+        "searchStudent": "Search by student name or number",
+        "noStudentsFound": "No matching students found.",
         "type": "Type",
         "date": "Date",
         "dateFrom": "Date from",
         "dateTo": "Date to",
         "periods": "Periods",
+        "minutesLate": "Minutes late",
+        "minutesEarlyLeave": "Minutes early leave",
+        "minutesLateHelper": "Enter the number of minutes the student was late",
+        "minutesEarlyLeaveHelper": "Enter the number of minutes the student left early",
+        "minutesReachedThreshold": "Policy threshold reached: {threshold} minutes or more is considered a violation",
         "reason": "Reason",
         "attachments": "Attachments",
         "absence": "Absence",
@@ -4001,19 +4118,40 @@
           "termRange": "Date must be within term range",
           "reasonRequired": "Reason is required in Arabic or English",
           "periodRequired": "Period selection is required for late/early leave requests",
+          "minutesRequired": "Minutes is required",
+          "minutesPositive": "Minutes must be greater than 0",
           "attachmentRequired": "Attachment is required by policy",
-          "policyDisabled": "Excuses are disabled by policy"
+          "policyDisabled": "Excuses are disabled by policy",
+          "noActivePolicy": "No active attendance policy was found for the selected date and scope"
         },
         "messages": {
-          "excusesDisabledByPolicy": "Excuses are not allowed by the attendance policy for this scope/date. You cannot create or edit excuse requests."
-        }
+          "excusesDisabledByPolicy": "Excuses are not allowed by the attendance policy for this scope/date. You cannot create or edit excuse requests.",
+          "noActivePolicyOnDate": "No active attendance policy was found for {date}.",
+          "reasonRequiredOnDate": "A reason is required by policy on {date}.",
+          "excusesDisabledOnDate": "Excuses are disabled by the attendance policy on {date}.",
+          "attachmentRequiredOnDate": "An attachment is required by policy on {date}."
+        },
+        "thresholdReached": "Policy threshold reached ({threshold} min)",
+        "policy": {
+          "loading": "Checking attendance policy",
+          "actionBlocked": "This request is blocked by attendance policy",
+          "active": "Attendance policy is active",
+          "summary": "This request will use the effective attendance policy for the selected scope and dates.",
+          "reasonRequired": "A reason is required by the current policy.",
+          "attachmentRequired": "Attachments are required by the current policy."
+        },
+        "reasonRequiredByPolicy": "A reason is required by the current attendance policy."
       },
       "validation": {
         "policyDisabled": "Excuses are disabled by policy",
         "attachmentRequired": "Attachment is required by policy"
       },
       "messages": {
-        "excusesDisabledByPolicy": "Excuses are disabled by the attendance policy for this scope/date."
+        "excusesDisabledByPolicy": "Excuses are disabled by the attendance policy for this scope/date.",
+        "noActivePolicyOnDate": "No active attendance policy was found for {date}.",
+        "reasonRequiredOnDate": "A reason is required by policy on {date}.",
+        "excusesDisabledOnDate": "Excuses are disabled by the attendance policy on {date}.",
+        "attachmentRequiredOnDate": "An attachment is required by policy on {date}."
       }
     },
     "reports": "Reports",
@@ -4060,7 +4198,8 @@
         "school": "School-wide",
         "stage": "Stage",
         "grade": "Grade",
-        "section": "Section"
+        "section": "Section",
+        "classroom": "Classroom"
       },
       "form": {
         "nameAr": "Policy Name (Arabic)",
@@ -4087,7 +4226,8 @@
         "termRangeHint": "Dates must be within term range: {start} to {end}",
         "isActive": "Policy is Active",
         "active": "Active",
-        "inactive": "Inactive"
+        "inactive": "Inactive",
+        "classroom": "Classroom"
       },
       "validation": {
         "nameArRequired": "Arabic name is required",
@@ -4163,7 +4303,7 @@
             "title": "Scope",
             "subtitle": "Who it applies to",
             "priorityTitle": "Policy Priority",
-            "priorityDesc": "SECTION policies override GRADE policies, which override STAGE policies, which override SCHOOL policies."
+            "priorityDesc": "CLASSROOM policies override SECTION policies, which override GRADE policies, which override STAGE policies, which override SCHOOL policies."
           },
           "mode": {
             "title": "Mode",
@@ -4208,8 +4348,6 @@
           "allowExcuses": "Allow Excuses",
           "requireReason": "Require Reason",
           "requireAttachment": "Require Attachment",
-          "maxDaysToSubmit": "Max Days to Submit Excuse",
-          "maxDaysToSubmitDesc": "Leave empty for no limit",
           "effectiveDates": "Effective Dates",
           "effectiveStart": "Start Date",
           "effectiveEnd": "End Date",
@@ -4221,7 +4359,8 @@
           "notifyWhen": "Notify When",
           "notifyOnAbsent": "Student is Absent",
           "notifyOnLate": "Student is Late",
-          "notifyOnEarlyLeave": "Student Leaves Early"
+          "notifyOnEarlyLeave": "Student Leaves Early",
+          "selectClassroom": "Select Classroom"
         },
         "scope": {
           "school": "School-wide",
@@ -4231,7 +4370,9 @@
           "grade": "Grade",
           "gradeDesc": "Applies to a specific grade",
           "section": "Section",
-          "sectionDesc": "Applies to a specific section"
+          "sectionDesc": "Applies to a specific section",
+          "classroom": "Classroom",
+          "classroomDesc": "Apply the policy to a specific classroom under the section"
         },
         "mode": {
           "daily": "Daily Attendance",
@@ -4266,6 +4407,14 @@
         "selectPeriodsForDailyHelper": "These periods will be used to calculate daily attendance. If a student misses the threshold number of these periods, they will be marked absent for the day.",
         "thresholdExceedsSelected": "Threshold cannot exceed the number of selected periods. It will be automatically adjusted."
       }
+    },
+    "shared": {
+      "previewAttachment": "Preview attachment",
+      "previewUnavailable": "Preview unavailable",
+      "previewUnavailableDescription": "This attachment does not have a preview URL available yet.",
+      "openInNewTab": "You can open this file in a new tab if a URL is available.",
+      "fileType": "File type",
+      "fileSize": "File size"
     }
   }
 }

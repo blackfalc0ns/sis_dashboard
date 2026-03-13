@@ -1,6 +1,6 @@
 ﻿export type ExcuseType = "ABSENCE" | "LATE" | "EARLY_LEAVE";
 export type ExcuseStatus = "PENDING" | "APPROVED" | "REJECTED";
-export type ExcuseScopeType = "SCHOOL" | "STAGE" | "GRADE" | "SECTION";
+export type ExcuseScopeType = "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSROOM";
 
 export interface AttachmentMeta {
   id: string;
@@ -23,12 +23,15 @@ export interface ExcuseRequest {
     stageId?: string;
     gradeId?: string;
     sectionId?: string;
+    classroomId?: string;
   };
   type: ExcuseType;
   dateFrom: string;
   dateTo: string;
   selectedPeriodIds?: string[]; // Stable period IDs from timetable
   periodIndexes?: number[]; // Legacy support - will be migrated to selectedPeriodIds
+  minutesLate?: number; // Duration in minutes for LATE requests
+  minutesEarlyLeave?: number; // Duration in minutes for EARLY_LEAVE requests
   reasonAr: string;
   reasonEn: string;
   attachments: AttachmentMeta[];
@@ -49,6 +52,7 @@ export interface ExcuseRequestFilters {
     stageId?: string;
     gradeId?: string;
     sectionId?: string;
+    classroomId?: string;
   };
   status: "ALL" | ExcuseStatus;
   type: "ALL" | ExcuseType;
@@ -70,6 +74,8 @@ export interface ExcuseValidationErrors {
   dateFrom?: string;
   dateTo?: string;
   selectedPeriodIds?: string;
+  minutesLate?: string;
+  minutesEarlyLeave?: string;
   reason?: string;
   attachments?: string;
   policy?: string;

@@ -14,6 +14,7 @@ import { fetchTimetableConfig } from "@/features/academics/timetable/services/ti
 import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 import { computeDailyStatuses } from "../utils/deriveDailyStatus";
 import { mockStudents } from "@/data/mockStudents";
+import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 
 /**
  * Fetch absence records based on filters
@@ -36,6 +37,11 @@ export async function fetchAbsenceRecords(
     onlyUnexcused = false,
     search = "",
   } = params;
+
+  const structure = await fetchStructureTree(yearId, termId);
+  const gradesById = new Map(structure.grades.map((grade) => [grade.id, grade]));
+  const sectionsById = new Map(structure.sections.map((section) => [section.id, section]));
+  const classroomsById = new Map(structure.classrooms.map((classroom) => [classroom.id, classroom]));
 
   // 1. Load sessions for date range (only SUBMITTED sessions)
   const allSessions = await fetchSessions(yearId, termId, dateFrom, dateTo);
@@ -78,6 +84,12 @@ export async function fetchAbsenceRecords(
         studentNameEn,
         scopeType: session.scopeType,
         scopeIds: session.scopeIds,
+        gradeNameAr: session.scopeIds?.gradeId ? gradesById.get(session.scopeIds.gradeId)?.nameAr : undefined,
+        gradeNameEn: session.scopeIds?.gradeId ? gradesById.get(session.scopeIds.gradeId)?.nameEn : undefined,
+        sectionNameAr: session.scopeIds?.sectionId ? sectionsById.get(session.scopeIds.sectionId)?.nameAr : undefined,
+        sectionNameEn: session.scopeIds?.sectionId ? sectionsById.get(session.scopeIds.sectionId)?.nameEn : undefined,
+        classroomNameAr: session.scopeIds?.classroomId ? classroomsById.get(session.scopeIds.classroomId)?.nameAr : undefined,
+        classroomNameEn: session.scopeIds?.classroomId ? classroomsById.get(session.scopeIds.classroomId)?.nameEn : undefined,
         granularity: "PERIOD",
         periodIndex: session.periodIndex,
         periodNameAr: session.periodNameAr,
@@ -167,6 +179,12 @@ export async function fetchAbsenceRecords(
           studentNameEn,
           scopeType,
           scopeIds,
+          gradeNameAr: scopeIds?.gradeId ? gradesById.get(scopeIds.gradeId)?.nameAr : undefined,
+          gradeNameEn: scopeIds?.gradeId ? gradesById.get(scopeIds.gradeId)?.nameEn : undefined,
+          sectionNameAr: scopeIds?.sectionId ? sectionsById.get(scopeIds.sectionId)?.nameAr : undefined,
+          sectionNameEn: scopeIds?.sectionId ? sectionsById.get(scopeIds.sectionId)?.nameEn : undefined,
+          classroomNameAr: scopeIds?.classroomId ? classroomsById.get(scopeIds.classroomId)?.nameAr : undefined,
+          classroomNameEn: scopeIds?.classroomId ? classroomsById.get(scopeIds.classroomId)?.nameEn : undefined,
           granularity: "DAILY_DERIVED",
           status: dailyStatus.status === "EXCUSED" ? "EXCUSED" : "ABSENT",
           updatedAt: new Date().toISOString(),

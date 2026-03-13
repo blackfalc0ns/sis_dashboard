@@ -8,7 +8,7 @@ import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
 import ExportButton from "@/components/ui/button/ExportButton";
 import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
-import type { Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
+import type { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { ExcuseRequestFilters } from "../types";
 
 interface ExcusesFiltersBarProps {
@@ -16,6 +16,7 @@ interface ExcusesFiltersBarProps {
   stages: Stage[];
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   onFiltersChange: (patch: Partial<ExcuseRequestFilters>) => void;
   onReset: () => void;
   onExport: (format: "csv" | "excel") => void;
@@ -26,6 +27,7 @@ export default function ExcusesFiltersBar({
   stages,
   grades,
   sections,
+  classrooms,
   onFiltersChange,
   onReset,
   onExport,
@@ -94,6 +96,7 @@ export default function ExcusesFiltersBar({
             stages={stages}
             grades={grades}
             sections={sections}
+            classrooms={classrooms}
             onScopeTypeChange={(scopeType) => onFiltersChange({ scopeType, scopeIds: {} })}
             onScopeIdsChange={(scopeIds) => onFiltersChange({ scopeIds })}
           />

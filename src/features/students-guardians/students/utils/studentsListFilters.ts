@@ -27,6 +27,7 @@ export interface StudentFilterValues {
   termFilter: string;
   gradeFilter: string;
   sectionFilter: string;
+  classroomFilter: string;
   statusFilter: StudentStatus | "all";
   dateRange: DateRangeValue;
   customStartDate: string;
@@ -51,6 +52,7 @@ export function filterStudentsList(
     termFilter,
     gradeFilter,
     sectionFilter,
+    classroomFilter,
     statusFilter,
     dateRange,
     customStartDate,
@@ -85,6 +87,7 @@ export function filterStudentsList(
 
     const studentGrade = student.enrollment?.grade || student.gradeRequested;
     const studentSection = student.enrollment?.section || "";
+    const studentClassroom = student.enrollment?.classroom || "";
     const studentAcademicYear = student.enrollment?.academicYear || "";
     const studentTerm = student.currentTerm?.term || "";
 
@@ -94,6 +97,8 @@ export function filterStudentsList(
     const matchesGrade = gradeFilter === "all" || studentGrade === gradeFilter;
     const matchesSection =
       sectionFilter === "all" || studentSection === sectionFilter;
+    const matchesClassroom =
+      classroomFilter === "all" || studentClassroom === classroomFilter;
     const matchesStatus = statusFilter === "all" || student.status === statusFilter;
     const matchesDateRange = isDateInRange(
       student.created_at ?? student.submittedDate,
@@ -106,6 +111,7 @@ export function filterStudentsList(
       matchesTerm &&
       matchesGrade &&
       matchesSection &&
+      matchesClassroom &&
       matchesStatus &&
       matchesDateRange
     );
@@ -144,11 +150,13 @@ export function extractStudentFilterOptions(students: StudentWithEnrollment[]): 
   uniqueTerms: string[];
   uniqueGrades: string[];
   uniqueSections: string[];
+  uniqueClassrooms: string[];
 } {
   const years = new Set<string>();
   const terms = new Set<string>();
   const grades = new Set<string>();
   const sections = new Set<string>();
+  const classrooms = new Set<string>();
 
   students.forEach((s) => {
     if (s.enrollment?.academicYear) {
@@ -162,6 +170,9 @@ export function extractStudentFilterOptions(students: StudentWithEnrollment[]): 
     if (s.enrollment?.section) {
       sections.add(s.enrollment.section);
     }
+    if (s.enrollment?.classroom) {
+      classrooms.add(s.enrollment.classroom);
+    }
   });
 
   return {
@@ -169,6 +180,7 @@ export function extractStudentFilterOptions(students: StudentWithEnrollment[]): 
     uniqueTerms: Array.from(terms).sort(),
     uniqueGrades: Array.from(grades).sort(),
     uniqueSections: Array.from(sections).sort(),
+    uniqueClassrooms: Array.from(classrooms).sort(),
   };
 }
 
@@ -179,6 +191,7 @@ export function hasActiveFilters(filters: StudentFilterValues): boolean {
     filters.termFilter !== "all" ||
     filters.gradeFilter !== "all" ||
     filters.sectionFilter !== "all" ||
+    filters.classroomFilter !== "all" ||
     filters.statusFilter !== "all"
   );
 }

@@ -5,6 +5,12 @@ import type { AttendancePolicy, AttendanceScopeType } from "../types";
 import { migratePeriodIds } from "@/features/academics/timetable/types/timetableConfig";
 import { fetchTimetableConfigs } from "@/features/academics/timetable/services/timetableConfigService";
 import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
+import {
+  ATTENDANCE_SCOPE_PRIORITY,
+  resolveAttendanceHierarchyScope,
+  scopeMatchesTarget,
+  type AttendanceScopeIds,
+} from "@/features/attendance/shared/attendanceScope";
 
 // In-memory mock data keyed by `${yearId}-${termId}`
 const policiesByTerm: Record<string, AttendancePolicy[]> = {
@@ -59,7 +65,6 @@ const policiesByTerm: Record<string, AttendancePolicy[]> = {
       allowExcuses: true,
       requireExcuseReason: true,
       requireAttachmentForExcuse: true,
-      maxDaysToSubmitExcuse: 3,
       notifyTeachers: true,
       notifyStudents: true,
       notifyGuardians: true,
@@ -136,7 +141,7 @@ export const isPolicyNameUnique = (
   yearId: string,
   termId: string,
   scopeType: AttendanceScopeType,
-  scopeIds: { stageId?: string; gradeId?: string; sectionId?: string } | undefined,
+  scopeIds: AttendanceScopeIds | undefined,
   nameAr: string,
   nameEn: string,
   excludeId?: string
@@ -156,6 +161,12 @@ export const isPolicyNameUnique = (
     if (scopeType === "STAGE" && p.scopeIds?.stageId !== scopeIds?.stageId) return false;
     if (scopeType === "GRADE" && (p.scopeIds?.stageId !== scopeIds?.stageId || p.scopeIds?.gradeId !== scopeIds?.gradeId)) return false;
     if (scopeType === "SECTION" && (p.scopeIds?.stageId !== scopeIds?.stageId || p.scopeIds?.gradeId !== scopeIds?.gradeId || p.scopeIds?.sectionId !== scopeIds?.sectionId)) return false;
+    if (scopeType === "CLASSROOM" && (
+      p.scopeIds?.stageId !== scopeIds?.stageId ||
+      p.scopeIds?.gradeId !== scopeIds?.gradeId ||
+      p.scopeIds?.sectionId !== scopeIds?.sectionId ||
+      p.scopeIds?.classroomId !== scopeIds?.classroomId
+    )) return false;
     
     return normalizeName(p.nameAr, true) === normalizedAr;
   });
@@ -168,6 +179,12 @@ export const isPolicyNameUnique = (
     if (scopeType === "STAGE" && p.scopeIds?.stageId !== scopeIds?.stageId) return false;
     if (scopeType === "GRADE" && (p.scopeIds?.stageId !== scopeIds?.stageId || p.scopeIds?.gradeId !== scopeIds?.gradeId)) return false;
     if (scopeType === "SECTION" && (p.scopeIds?.stageId !== scopeIds?.stageId || p.scopeIds?.gradeId !== scopeIds?.gradeId || p.scopeIds?.sectionId !== scopeIds?.sectionId)) return false;
+    if (scopeType === "CLASSROOM" && (
+      p.scopeIds?.stageId !== scopeIds?.stageId ||
+      p.scopeIds?.gradeId !== scopeIds?.gradeId ||
+      p.scopeIds?.sectionId !== scopeIds?.sectionId ||
+      p.scopeIds?.classroomId !== scopeIds?.classroomId
+    )) return false;
     
     return normalizeName(p.nameEn, false) === normalizedEn;
   });
@@ -306,7 +323,10 @@ export const deletePolicy = async (id: string): Promise<void> => {
  */
 export type EffectiveExcusePolicy = {
   allowExcuses: boolean;
+  requireExcuseReason: boolean;
   requireAttachmentForExcuse: boolean;
+  lateThresholdMinutes: number;
+  earlyLeaveThresholdMinutes: number;
 };
 
 /**
@@ -317,7 +337,7 @@ export async function resolveEffectiveExcusePolicy(
   yearId: string,
   termId: string,
   scopeType: AttendanceScopeType,
-  scopeIds: { stageId?: string; gradeId?: string; sectionId?: string } | undefined,
+  scopeIds: AttendanceScopeIds | undefined,
   dateISO: string // YYYY-MM-DD
 ): Promise<EffectiveExcusePolicy> {
   // 1) Fetch all policies for the term
@@ -335,53 +355,20 @@ export async function resolveEffectiveExcusePolicy(
     return true;
   });
 
-  // 3) Find policies that match the scope, prioritizing most specific
-  const matchingPolicies: AttendancePolicy[] = [];
+  const resolvedScope = resolveAttendanceHierarchyScope({ scopeType, scopeIds });
 
-  // Helper function to check if policy scope matches target scope
-  const doesScopeMatch = (policy: AttendancePolicy): boolean => {
-    switch (policy.scopeType) {
-      case "SCHOOL":
-        return true; // School policy applies to all scopes
-
-      case "STAGE":
-        return scopeType !== "SCHOOL" && 
-               policy.scopeIds?.stageId === scopeIds?.stageId;
-
-      case "GRADE":
-        return (scopeType === "GRADE" || scopeType === "SECTION") &&
-               policy.scopeIds?.stageId === scopeIds?.stageId &&
-               policy.scopeIds?.gradeId === scopeIds?.gradeId;
-
-      case "SECTION":
-        return scopeType === "SECTION" &&
-               policy.scopeIds?.stageId === scopeIds?.stageId &&
-               policy.scopeIds?.gradeId === scopeIds?.gradeId &&
-               policy.scopeIds?.sectionId === scopeIds?.sectionId;
-
-      default:
-        return false;
-    }
-  };
-
-  // Collect all matching policies
-  for (const policy of activePolicies) {
-    if (doesScopeMatch(policy)) {
-      matchingPolicies.push(policy);
-    }
-  }
-
-  // 4) Choose the most specific policy (SECTION > GRADE > STAGE > SCHOOL)
-  const scopePriority = { SECTION: 4, GRADE: 3, STAGE: 2, SCHOOL: 1 };
-  
   let selectedPolicy: AttendancePolicy | null = null;
-  let highestPriority = 0;
 
-  for (const policy of matchingPolicies) {
-    const priority = scopePriority[policy.scopeType];
-    if (priority > highestPriority) {
-      highestPriority = priority;
-      selectedPolicy = policy;
+  for (const priority of ATTENDANCE_SCOPE_PRIORITY) {
+    const match = activePolicies.find(
+      (policy) =>
+        policy.scopeType === priority &&
+        scopeMatchesTarget(policy.scopeType, policy.scopeIds, resolvedScope)
+    );
+
+    if (match) {
+      selectedPolicy = match;
+      break;
     }
   }
 
@@ -389,13 +376,19 @@ export async function resolveEffectiveExcusePolicy(
   if (selectedPolicy) {
     return {
       allowExcuses: selectedPolicy.allowExcuses,
+      requireExcuseReason: selectedPolicy.requireExcuseReason,
       requireAttachmentForExcuse: selectedPolicy.requireAttachmentForExcuse,
+      lateThresholdMinutes: selectedPolicy.lateThresholdMinutes,
+      earlyLeaveThresholdMinutes: selectedPolicy.earlyLeaveThresholdMinutes,
     };
   }
 
   // Fallback if no policy found
   return {
     allowExcuses: true,
+    requireExcuseReason: false,
     requireAttachmentForExcuse: false,
+    lateThresholdMinutes: 15,
+    earlyLeaveThresholdMinutes: 15,
   };
 }

@@ -11,8 +11,9 @@ import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTe
 import ScopePicker from "./ScopePicker";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { isPolicyNameUnique } from "../services/attendancePolicyService";
+import { getScopeSelectionMissingFields } from "@/features/attendance/shared/attendanceScope";
 import type { AttendancePolicy, PolicyFormData, AttendanceMode } from "../types";
-import type { Stage, Grade, Section, Term } from "@/features/academics/academic-structure-tree/services/structureService";
+import type { Stage, Grade, Section, Classroom, Term } from "@/features/academics/academic-structure-tree/services/structureService";
 
 interface PolicyEditorPanelProps {
   policy: AttendancePolicy | null;
@@ -20,6 +21,7 @@ interface PolicyEditorPanelProps {
   stages: Stage[];
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   isReadOnly: boolean;
   onSave: (data: PolicyFormData) => Promise<void>;
   onCancel: () => void;
@@ -32,6 +34,7 @@ export default function PolicyEditorPanel({
   stages,
   grades,
   sections,
+  classrooms,
   isReadOnly,
   onSave,
   onCancel,
@@ -62,7 +65,6 @@ export default function PolicyEditorPanel({
     allowExcuses: policy?.allowExcuses ?? true,
     requireExcuseReason: policy?.requireExcuseReason ?? false,
     requireAttachmentForExcuse: policy?.requireAttachmentForExcuse ?? false,
-    maxDaysToSubmitExcuse: policy?.maxDaysToSubmitExcuse,
     notifyTeachers: policy?.notifyTeachers ?? true,
     notifyStudents: policy?.notifyStudents ?? false,
     notifyGuardians: policy?.notifyGuardians ?? true,
@@ -103,7 +105,6 @@ export default function PolicyEditorPanel({
         allowExcuses: policy.allowExcuses,
         requireExcuseReason: policy.requireExcuseReason,
         requireAttachmentForExcuse: policy.requireAttachmentForExcuse,
-        maxDaysToSubmitExcuse: policy.maxDaysToSubmitExcuse,
         notifyTeachers: policy.notifyTeachers,
         notifyStudents: policy.notifyStudents,
         notifyGuardians: policy.notifyGuardians,
@@ -162,18 +163,8 @@ export default function PolicyEditorPanel({
       }
     }
 
-    // Scope validation
-    if (formData.scopeType === "STAGE" && !formData.scopeIds?.stageId) {
-      newErrors.stageId = tValidation("required");
-    }
-    if (formData.scopeType === "GRADE" && (!formData.scopeIds?.stageId || !formData.scopeIds?.gradeId)) {
-      if (!formData.scopeIds?.stageId) newErrors.stageId = tValidation("required");
-      if (!formData.scopeIds?.gradeId) newErrors.gradeId = tValidation("required");
-    }
-    if (formData.scopeType === "SECTION" && (!formData.scopeIds?.stageId || !formData.scopeIds?.gradeId || !formData.scopeIds?.sectionId)) {
-      if (!formData.scopeIds?.stageId) newErrors.stageId = tValidation("required");
-      if (!formData.scopeIds?.gradeId) newErrors.gradeId = tValidation("required");
-      if (!formData.scopeIds?.sectionId) newErrors.sectionId = tValidation("required");
+    for (const field of getScopeSelectionMissingFields(formData.scopeType, formData.scopeIds)) {
+      newErrors[field] = tValidation("required");
     }
 
     // Numeric validations
@@ -322,6 +313,7 @@ export default function PolicyEditorPanel({
             stages={stages}
             grades={grades}
             sections={sections}
+            classrooms={classrooms}
             onScopeTypeChange={(scopeType) => handleFieldChange("scopeType", scopeType)}
             onScopeIdsChange={(scopeIds) => handleFieldChange("scopeIds", scopeIds)}
             disabled={isReadOnly}

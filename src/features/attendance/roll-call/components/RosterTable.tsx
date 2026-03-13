@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
@@ -7,10 +7,12 @@ import DataTable from "@/components/ui/data-table/DataTable";
 import Select from "@/components/ui/input/Select";
 import Input from "@/components/ui/input/Input";
 import Button from "@/components/ui/button/Button";
+import { useToast } from "@/components/ui/toast/Toast";
 import AttendanceStatusPill from "./AttendanceStatusPill";
 import ExcuseModal from "./ExcuseModal";
 import type { RosterStudent, AttendanceEntry, AttendanceStatus, AttachmentMeta } from "../types";
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
+import { getThresholdState } from "@/features/attendance/shared/policyThresholds";
 
 interface RosterTableProps {
   roster: RosterStudent[];
@@ -34,13 +36,13 @@ export default function RosterTable({
   const tExcuse = useTranslations("attendance.rollCall.excuse");
   const tForm = useTranslations("attendance.policies.form");
   const locale = useLocale();
+  const { showError } = useToast();
 
   const [excuseModalOpen, setExcuseModalOpen] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   const allowExcuses = policy?.allowExcuses ?? false;
   const requireAttachment = policy?.requireAttachmentForExcuse ?? false;
-  const earlyLeaveThreshold = policy?.earlyLeaveThresholdMinutes ?? 0;
 
   const statusOptions = [
     { value: "", label: "—" },
@@ -53,8 +55,7 @@ export default function RosterTable({
 
   const handleStatusChange = (studentId: string, newStatus: string) => {
     if (newStatus === "EXCUSED" && !allowExcuses) {
-      // Show warning - this shouldn't happen if UI is correct, but safety check
-      alert(t("excuse.notAllowed"));
+      showError(t("excuse.notAllowed"));
       return;
     }
 
@@ -133,7 +134,6 @@ export default function RosterTable({
       render: (_: unknown, row: RosterStudent) => {
         const entry = entries.find((e) => e.studentId === row.id);
 
-        // EXCUSED - show excuse button/indicator
         if (entry?.status === "EXCUSED") {
           const hasExcuse = entry.excuseReason || (entry.excuseAttachments?.length ?? 0) > 0;
           const missingRequired = requireAttachment && (!entry.excuseAttachments || entry.excuseAttachments.length === 0);
@@ -149,10 +149,10 @@ export default function RosterTable({
                 {hasExcuse ? tExcuse("edit") : tExcuse("add")}
               </Button>
               {hasExcuse && !missingRequired && (
-                <span className="text-xs text-green-600">{tExcuse("added")}</span>
+                <span className="text-xs" style={{ color: "var(--color-success-700)" }}>{tExcuse("added")}</span>
               )}
               {missingRequired && (
-                <span className="flex items-center gap-1 text-xs text-red-600">
+                <span className="flex items-center gap-1 text-xs" style={{ color: "var(--color-accent-700)" }}>
                   <AlertCircle className="w-3 h-3" />
                   {tExcuse("requiredAttachment")}
                 </span>
@@ -161,34 +161,9 @@ export default function RosterTable({
           );
         }
 
-        // LATE - show minutes late input
         if (entry?.status === "LATE") {
-          return (
-            <div className="w-24 relative">
-              <Input
-                type="number"
-                value={entry?.minutesLate?.toString() || ""}
-                onChange={(e) =>
-                  onEntryChange(row.id, {
-                    minutesLate: e.target.value ? parseInt(e.target.value) : undefined,
-                  })
-                }
-                placeholder="0"
-                min="0"
-                disabled={isReadOnly}
-                className={`text-sm ${locale === "ar" ? "pl-12" : "pr-12"}`}
-              />
-              <div className={`absolute inset-y-0 ${locale === "ar" ? "left-0 pl-2" : "right-0 pr-2"} flex items-center pointer-events-none`}>
-                <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{tForm("minutes")}</span>
-              </div>
-            </div>
-          );
-        }
-
-        // EARLY_LEAVE - show minutes early leave input with validation
-        if (entry?.status === "EARLY_LEAVE") {
-          const minutes = entry?.minutesEarlyLeave;
-          const isBelowThreshold = minutes !== undefined && earlyLeaveThreshold > 0 && minutes < earlyLeaveThreshold;
+          const minutes = entry.minutesLate;
+          const thresholdState = getThresholdState("LATE", minutes, policy);
 
           return (
             <div className="space-y-1">
@@ -198,11 +173,44 @@ export default function RosterTable({
                   value={minutes?.toString() || ""}
                   onChange={(e) =>
                     onEntryChange(row.id, {
-                      minutesEarlyLeave: e.target.value ? parseInt(e.target.value) : undefined,
+                      minutesLate: e.target.value ? parseInt(e.target.value, 10) : undefined,
                     })
                   }
                   placeholder="0"
-                  min="1"
+                  min="0"
+                  disabled={isReadOnly}
+                  className={`text-sm ${locale === "ar" ? "pl-12" : "pr-12"}`}
+                />
+                <div className={`absolute inset-y-0 ${locale === "ar" ? "left-0 pl-2" : "right-0 pr-2"} flex items-center pointer-events-none`}>
+                  <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{tForm("minutes")}</span>
+                </div>
+              </div>
+              {thresholdState.isReached && typeof thresholdState.threshold === "number" && (
+                <p className="text-xs" style={{ color: "var(--color-warning-700)" }}>
+                  {t("thresholdReached", { threshold: thresholdState.threshold })}
+                </p>
+              )}
+            </div>
+          );
+        }
+
+        if (entry?.status === "EARLY_LEAVE") {
+          const minutes = entry.minutesEarlyLeave;
+          const thresholdState = getThresholdState("EARLY_LEAVE", minutes, policy);
+
+          return (
+            <div className="space-y-1">
+              <div className="w-24 relative">
+                <Input
+                  type="number"
+                  value={minutes?.toString() || ""}
+                  onChange={(e) =>
+                    onEntryChange(row.id, {
+                      minutesEarlyLeave: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                    })
+                  }
+                  placeholder="0"
+                  min="0"
                   disabled={isReadOnly}
                   className={`text-sm ${locale === "ar" ? "pl-12" : "pr-12"}`}
                   error={!minutes ? t("earlyLeave.required") : undefined}
@@ -211,9 +219,9 @@ export default function RosterTable({
                   <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{tForm("minutes")}</span>
                 </div>
               </div>
-              {isBelowThreshold && (
-                <p className="text-xs text-orange-600">
-                  {t("earlyLeave.belowThreshold", { threshold: earlyLeaveThreshold })}
+              {thresholdState.isReached && typeof thresholdState.threshold === "number" && (
+                <p className="text-xs" style={{ color: "var(--color-warning-700)" }}>
+                  {t("thresholdReached", { threshold: thresholdState.threshold })}
                 </p>
               )}
             </div>
@@ -260,7 +268,6 @@ export default function RosterTable({
         />
       </div>
 
-      {/* Excuse Modal */}
       <ExcuseModal
         isOpen={excuseModalOpen}
         onClose={() => {
@@ -276,3 +283,4 @@ export default function RosterTable({
     </>
   );
 }
+

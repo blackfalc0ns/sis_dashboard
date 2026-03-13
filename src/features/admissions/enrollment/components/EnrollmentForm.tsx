@@ -1,23 +1,50 @@
-// FILE: src/components/admissions/EnrollmentForm.tsx
-
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { X, FileText, Download } from "lucide-react";
 import { Application } from "@/features/admissions/types/admissions";
+import {
+  fetchAcademicYears,
+  getStructureTreeSnapshot,
+  resolveStructureContextForAcademicYear,
+} from "@/features/academics/academic-structure-tree/services/structureService";
+import type { AcademicYear } from "@/features/academics/academic-structure-tree/services/structureService";
+
+export interface EnrollmentFormData {
+  academicYear: string;
+  grade: string;
+  section: string;
+  classroom: string;
+  startDate: string;
+  gradeId?: string;
+  sectionId?: string;
+  classroomId?: string;
+}
 
 interface EnrollmentFormProps {
   application: Application;
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: {
-    academicYear: string;
-    grade: string;
-    section: string;
-    startDate: string;
-  }) => void;
+  onSubmit: (data: EnrollmentFormData) => void | Promise<void>;
 }
+
+const deriveDefaultAcademicYear = (application: Application) => {
+  if (application.id.startsWith("APP-2024") || application.id.startsWith("APP-2026")) {
+    return "2026-2027";
+  }
+  return "2025-2026";
+};
+
+const toLegacySectionLabel = (value: string) => {
+  const englishMatch = value.match(/section\s+(.+)$/i);
+  if (englishMatch?.[1]) return englishMatch[1].trim();
+
+  const arabicMatch = value.match(/شعبة\s+(.+)$/);
+  if (arabicMatch?.[1]) return arabicMatch[1].trim();
+
+  return value;
+};
 
 export default function EnrollmentForm({
   application,
@@ -27,12 +54,158 @@ export default function EnrollmentForm({
 }: EnrollmentFormProps) {
   const t = useTranslations("admissions.enrollment_form");
   const locale = useLocale();
-  const [formData, setFormData] = useState({
-    academicYear: "2024-2025",
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState<EnrollmentFormData>({
+    academicYear: deriveDefaultAcademicYear(application),
     grade: application.gradeRequested,
     section: "",
-    startDate: "",
+    classroom: "",
+    startDate: application.join_date || "2026-09-01",
+    gradeId: undefined,
+    sectionId: undefined,
+    classroomId: undefined,
   });
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const loadAcademicYears = async () => {
+      const years = await fetchAcademicYears();
+      setAcademicYears(years);
+    };
+
+    loadAcademicYears();
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setFormData({
+      academicYear: deriveDefaultAcademicYear(application),
+      grade: application.gradeRequested,
+      section: "",
+      classroom: "",
+      startDate: application.join_date || "2026-09-01",
+      gradeId: undefined,
+      sectionId: undefined,
+      classroomId: undefined,
+    });
+  }, [application, isOpen]);
+
+  const structureContext = useMemo(
+    () => resolveStructureContextForAcademicYear(formData.academicYear),
+    [formData.academicYear],
+  );
+
+  const structure = useMemo(() => {
+    if (!structureContext) return null;
+    return getStructureTreeSnapshot(
+      structureContext.academicYearId,
+      structureContext.termId,
+    );
+  }, [structureContext]);
+
+  const gradeOptions = useMemo(() => {
+    if (!structure) return [];
+    return structure.grades
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .map((grade) => ({
+        id: grade.id,
+        label: grade.nameEn || grade.nameAr || grade.name,
+      }));
+  }, [structure]);
+
+  const selectedGradeId =
+    formData.gradeId ||
+    gradeOptions.find((grade) => grade.label === formData.grade)?.id;
+
+  const sectionOptions = useMemo(() => {
+    if (!structure || !selectedGradeId) return [];
+    return structure.sections
+      .filter((section) => section.gradeId === selectedGradeId)
+      .sort((a, b) => a.order - b.order)
+      .map((section) => ({
+        id: section.id,
+        label: section.nameEn || section.nameAr || section.name,
+        legacyLabel: toLegacySectionLabel(section.nameEn || section.nameAr || section.name),
+      }));
+  }, [structure, selectedGradeId]);
+
+  const selectedSectionId =
+    formData.sectionId ||
+    sectionOptions.find((section) => section.legacyLabel === formData.section)?.id;
+
+  const classroomOptions = useMemo(() => {
+    if (!structure || !selectedSectionId) return [];
+    return structure.classrooms
+      .filter((classroom) => classroom.sectionId === selectedSectionId)
+      .sort((a, b) => a.order - b.order)
+      .map((classroom) => ({
+        id: classroom.id,
+        label: classroom.nameEn || classroom.nameAr || classroom.name,
+      }));
+  }, [structure, selectedSectionId]);
+
+  useEffect(() => {
+    if (!isOpen || gradeOptions.length === 0) return;
+
+    const preferredGrade =
+      gradeOptions.find((grade) => grade.label === application.gradeRequested) ||
+      gradeOptions.find((grade) => grade.id === formData.gradeId) ||
+      gradeOptions[0];
+
+    if (!preferredGrade) return;
+
+    setFormData((prev) => {
+      if (prev.gradeId === preferredGrade.id && prev.grade === preferredGrade.label) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        grade: preferredGrade.label,
+        gradeId: preferredGrade.id,
+        section: "",
+        sectionId: undefined,
+        classroom: "",
+        classroomId: undefined,
+      };
+    });
+  }, [application.gradeRequested, formData.gradeId, gradeOptions, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || sectionOptions.length === 0 || !selectedGradeId) return;
+
+    setFormData((prev) => {
+      const hasValidSection = sectionOptions.some((section) => section.id === prev.sectionId);
+      if (hasValidSection) return prev;
+
+      return {
+        ...prev,
+        section: sectionOptions[0].legacyLabel,
+        sectionId: sectionOptions[0].id,
+        classroom: "",
+        classroomId: undefined,
+      };
+    });
+  }, [isOpen, sectionOptions, selectedGradeId]);
+
+  useEffect(() => {
+    if (!isOpen || classroomOptions.length === 0 || !selectedSectionId) return;
+
+    setFormData((prev) => {
+      const hasValidClassroom = classroomOptions.some((classroom) => classroom.id === prev.classroomId);
+      if (hasValidClassroom) return prev;
+
+      return {
+        ...prev,
+        classroom: classroomOptions[0].label,
+        classroomId: classroomOptions[0].id,
+      };
+    });
+  }, [classroomOptions, isOpen, selectedSectionId]);
 
   if (!isOpen) return null;
 
@@ -43,9 +216,14 @@ export default function EnrollmentForm({
         application.studentName
       : application.full_name_en || application.studentName;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    setIsSubmitting(true);
+    try {
+      await onSubmit(formData);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleGenerateAcceptance = () => {
@@ -75,7 +253,6 @@ export default function EnrollmentForm({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Student Info Summary */}
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 rounded-full bg-emerald-600" />
@@ -88,7 +265,6 @@ export default function EnrollmentForm({
             </p>
           </div>
 
-          {/* Enrollment Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -97,13 +273,25 @@ export default function EnrollmentForm({
               <select
                 value={formData.academicYear}
                 onChange={(e) =>
-                  setFormData({ ...formData, academicYear: e.target.value })
+                  setFormData({
+                    academicYear: e.target.value,
+                    grade: "",
+                    section: "",
+                    classroom: "",
+                    startDate: formData.startDate,
+                    gradeId: undefined,
+                    sectionId: undefined,
+                    classroomId: undefined,
+                  })
                 }
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
                 required
               >
-                <option value="2024-2025">2024-2025</option>
-                <option value="2025-2026">2025-2026</option>
+                {academicYears.map((year) => (
+                  <option key={year.id} value={year.name}>
+                    {year.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -112,16 +300,26 @@ export default function EnrollmentForm({
                 {t("grade")} *
               </label>
               <select
-                value={formData.grade}
-                onChange={(e) =>
-                  setFormData({ ...formData, grade: e.target.value })
-                }
+                value={formData.gradeId || ""}
+                onChange={(e) => {
+                  const selectedGrade = gradeOptions.find((grade) => grade.id === e.target.value);
+                  setFormData((prev) => ({
+                    ...prev,
+                    grade: selectedGrade?.label || "",
+                    gradeId: selectedGrade?.id,
+                    section: "",
+                    sectionId: undefined,
+                    classroom: "",
+                    classroomId: undefined,
+                  }));
+                }}
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
                 required
               >
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((grade) => (
-                  <option key={grade} value={`Grade ${grade}`}>
-                    {t("grade_option", { grade })}
+                <option value="">{t("select_grade")}</option>
+                {gradeOptions.map((grade) => (
+                  <option key={grade.id} value={grade.id}>
+                    {grade.label}
                   </option>
                 ))}
               </select>
@@ -132,30 +330,58 @@ export default function EnrollmentForm({
                 {t("section")} *
               </label>
               <select
-                value={formData.section}
-                onChange={(e) =>
-                  setFormData({ ...formData, section: e.target.value })
-                }
+                value={formData.sectionId || ""}
+                onChange={(e) => {
+                  const selectedSection = sectionOptions.find((section) => section.id === e.target.value);
+                  setFormData((prev) => ({
+                    ...prev,
+                    section: selectedSection?.legacyLabel || "",
+                    sectionId: selectedSection?.id,
+                    classroom: "",
+                    classroomId: undefined,
+                  }));
+                }}
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
                 required
+                disabled={!formData.gradeId}
               >
                 <option value="">{t("select_section")}</option>
-                <option value="A">
-                  {t("section_option", { section: "A" })}
-                </option>
-                <option value="B">
-                  {t("section_option", { section: "B" })}
-                </option>
-                <option value="C">
-                  {t("section_option", { section: "C" })}
-                </option>
-                <option value="D">
-                  {t("section_option", { section: "D" })}
-                </option>
+                {sectionOptions.map((section) => (
+                  <option key={section.id} value={section.id}>
+                    {section.label}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("classroom")} *
+              </label>
+              <select
+                value={formData.classroomId || ""}
+                onChange={(e) => {
+                  const selectedClassroom = classroomOptions.find((classroom) => classroom.id === e.target.value);
+                  setFormData((prev) => ({
+                    ...prev,
+                    classroom: selectedClassroom?.label || "",
+                    classroomId: selectedClassroom?.id,
+                  }));
+                }}
+                className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+                required
+                disabled={!formData.sectionId}
+              >
+                <option value="">{t("select_classroom")}</option>
+                {classroomOptions.map((classroom) => (
+                  <option key={classroom.id} value={classroom.id}>
+                    {classroom.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t("start_date")} *
               </label>
@@ -163,7 +389,7 @@ export default function EnrollmentForm({
                 type="date"
                 value={formData.startDate}
                 onChange={(e) =>
-                  setFormData({ ...formData, startDate: e.target.value })
+                  setFormData((prev) => ({ ...prev, startDate: e.target.value }))
                 }
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
                 required
@@ -171,7 +397,6 @@ export default function EnrollmentForm({
             </div>
           </div>
 
-          {/* Document Generation */}
           <div className="border-t border-gray-200 pt-6">
             <h3 className="font-semibold text-gray-900 mb-4">
               {t("generate_documents")}
@@ -196,7 +421,6 @@ export default function EnrollmentForm({
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-4">
             <button
               type="button"
@@ -207,7 +431,14 @@ export default function EnrollmentForm({
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm transition-colors"
+              disabled={
+                isSubmitting ||
+                !formData.gradeId ||
+                !formData.sectionId ||
+                !formData.classroomId ||
+                !formData.startDate
+              }
+              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-lg font-medium text-sm transition-colors"
             >
               {t("confirm_enrollment")}
             </button>

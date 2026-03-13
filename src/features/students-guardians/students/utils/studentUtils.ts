@@ -50,6 +50,15 @@ export function getStudentGrade(student: Student): string {
 }
 
 /**
+ * Get display classroom for a student when available
+ */
+export function getStudentClassroom(student: Student & {
+  enrollment?: { classroom?: string };
+}): string {
+  return student.enrollment?.classroom ?? "N/A";
+}
+
+/**
  * Extract grade number from grade string (e.g., "Grade 4" -> 4)
  */
 export function extractGradeNumber(grade: string): number {
@@ -313,12 +322,17 @@ export function getUniqueStatuses(students: Student[]): StudentStatus[] {
 export function formatStudentForExport(
   student: Student,
 ): Record<string, string | number> {
+  const studentWithEnrollment = student as Student & {
+    enrollment?: { section?: string; classroom?: string };
+  };
+
   return {
     "Student ID": getStudentDisplayId(student),
     "Name (English)": student.full_name_en,
     "Name (Arabic)": student.full_name_ar,
     Grade: getStudentGrade(student),
-    Section: student.section ?? "N/A",
+    Section: studentWithEnrollment.enrollment?.section ?? student.section ?? "N/A",
+    Classroom: getStudentClassroom(studentWithEnrollment),
     Status: student.status,
     Gender: student.gender,
     Nationality: student.nationality,

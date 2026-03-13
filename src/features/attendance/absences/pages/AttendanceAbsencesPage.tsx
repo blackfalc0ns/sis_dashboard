@@ -3,11 +3,17 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useMediaQuery } from "@mui/material";
-import { Drawer } from "@mui/material";
-import { Filter, AlertCircle } from "lucide-react";
+import { Filter } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
 import ContextBar from "@/features/academics/components/shared/ContextBar";
+import AttendanceStatePanel from "@/features/attendance/shared/components/AttendanceStatePanel";
+import AttendanceScopeHeader from "@/features/attendance/shared/components/AttendanceScopeHeader";
+import AttendanceDataPanel from "@/features/attendance/shared/components/AttendanceDataPanel";
+import AttendanceFiltersPanel from "@/features/attendance/shared/components/AttendanceFiltersPanel";
+import AttendanceMobileActions from "@/features/attendance/shared/components/AttendanceMobileActions";
+import AttendanceDetailsCard from "@/features/attendance/shared/components/AttendanceDetailsCard";
+import AttendanceBottomDrawer from "@/features/attendance/shared/components/AttendanceBottomDrawer";
 import AbsencesKpisBar from "../components/AbsencesKpisBar";
 import AbsencesFiltersBar from "../components/AbsencesFiltersBar";
 import AbsencesFiltersDrawer from "../components/AbsencesFiltersDrawer";
@@ -31,9 +37,10 @@ import {
   resolveEffectiveExcusePolicy,
   type EffectiveExcusePolicy,
 } from "@/features/attendance/policies/services/attendancePolicyService";
+import { isScopeSelectionComplete } from "@/features/attendance/shared/attendanceScope";
+import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
 import type { AbsenceRecord, AbsencesFilters } from "../types";
 import type { AttachmentMeta } from "@/features/attendance/roll-call/types";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 export default function AttendanceAbsencesPage() {
   const t = useTranslations("attendance.absences");
@@ -124,35 +131,6 @@ export default function AttendanceAbsencesPage() {
 
   // Compute KPIs
   const kpis = useMemo(() => computeAbsencesKPIs(records), [records]);
-
-  // Get scope name for export
-  const getScopeName = useCallback(() => {
-    if (!structureTree) return locale === "ar" ? "المدرسة" : "School";
-
-    switch (filters.scopeType) {
-      case "SCHOOL":
-        return locale === "ar" ? "المدرسة" : "School";
-      case "STAGE":
-        if (filters.scopeIds?.stageId) {
-          const stage = structureTree.stages.find(s => s.id === filters.scopeIds?.stageId);
-          return stage ? (locale === "ar" ? stage.nameAr : stage.nameEn) : "";
-        }
-        break;
-      case "GRADE":
-        if (filters.scopeIds?.gradeId) {
-          const grade = structureTree.grades.find(g => g.id === filters.scopeIds?.gradeId);
-          return grade ? (locale === "ar" ? grade.nameAr : grade.nameEn) : "";
-        }
-        break;
-      case "SECTION":
-        if (filters.scopeIds?.sectionId) {
-          const section = structureTree.sections.find(s => s.id === filters.scopeIds?.sectionId);
-          return section ? (locale === "ar" ? section.nameAr : section.nameEn) : "";
-        }
-        break;
-    }
-    return "";
-  }, [structureTree, filters.scopeType, filters.scopeIds, locale]);
 
   // Handlers
   const handleAcademicYearChange = (yearId: string) => {
@@ -255,7 +233,15 @@ export default function AttendanceAbsencesPage() {
     // Get year and term names
     const yearName = termContext.yearId; // TODO: Get actual name from context
     const termName = termContext.termId; // TODO: Get actual name from context
-    const scopeName = getScopeName();
+    const scopeName = getAttendanceScopeLabel({
+      scopeType: filters.scopeType,
+      scopeIds: filters.scopeIds,
+      stages: structureTree?.stages || [],
+      grades: structureTree?.grades || [],
+      sections: structureTree?.sections || [],
+      classrooms: structureTree?.classrooms || [],
+      locale,
+    });
 
     exportAbsencesToExcel(records, locale, {
       yearName,
@@ -285,25 +271,16 @@ export default function AttendanceAbsencesPage() {
           showPromoteCarryOver={false}
         />
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-3">
-            <AlertCircle className="w-12 h-12 mx-auto" style={{ color: "var(--text-muted)" }} />
-            <h3 className="text-lg font-medium" style={{ color: "var(--text-primary)" }}>
-              {t("emptyStates.noYearTerm.title")}
-            </h3>
-            <p style={{ color: "var(--text-muted)" }}>
-              {t("emptyStates.noYearTerm.description")}
-            </p>
-          </div>
+          <AttendanceStatePanel
+            title={t("emptyStates.noYearTerm.title")}
+            description={t("emptyStates.noYearTerm.description")}
+          />
         </div>
       </div>
     );
   }
 
-  // Check if scope selection is required but missing
-  const isScopeSelectionIncomplete = 
-    (filters.scopeType === "STAGE" && !filters.scopeIds?.stageId) ||
-    (filters.scopeType === "GRADE" && (!filters.scopeIds?.stageId || !filters.scopeIds?.gradeId)) ||
-    (filters.scopeType === "SECTION" && (!filters.scopeIds?.stageId || !filters.scopeIds?.gradeId || !filters.scopeIds?.sectionId));
+  const isScopeSelectionIncomplete = !isScopeSelectionComplete(filters.scopeType, filters.scopeIds);
 
   return (
     <div className="flex flex-col h-screen">
@@ -319,19 +296,16 @@ export default function AttendanceAbsencesPage() {
       />
 
       <div className="flex-1 flex flex-col gap-4 p-4 min-h-0">
-        {/* Read-only Banner */}
-        {isReadOnly && (
-          <div
-            className="rounded-lg p-3 text-sm"
-            style={{
-              backgroundColor: "var(--color-warning-50)",
-              color: "var(--color-warning-800)",
-              borderLeft: "4px solid var(--color-warning-500)",
-            }}
-          >
-            {t("readonly_banner")}
-          </div>
-        )}
+        <AttendanceScopeHeader
+          isReadOnly={isReadOnly}
+          readOnlyMessage={t("readonly_banner")}
+          scopeType={filters.scopeType}
+          scopeIds={filters.scopeIds}
+          stages={structureTree?.stages || []}
+          grades={structureTree?.grades || []}
+          sections={structureTree?.sections || []}
+          classrooms={structureTree?.classrooms || []}
+        />
 
         {/* KPIs */}
         <AbsencesKpisBar kpis={kpis} />
@@ -341,13 +315,7 @@ export default function AttendanceAbsencesPage() {
           <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">
             {/* Left: Filters + Table */}
             <div className="col-span-8 flex flex-col gap-4 min-h-0">
-              <div
-                className="rounded-lg border p-4"
-                style={{
-                  backgroundColor: "var(--card-background)",
-                  borderColor: "var(--border-color)",
-                }}
-              >
+              <AttendanceFiltersPanel className="rounded-lg">
                 <AbsencesFiltersBar
                   filters={{ ...filters, search: searchInput }}
                   onFiltersChange={handleFiltersChange}
@@ -356,43 +324,22 @@ export default function AttendanceAbsencesPage() {
                   isReadOnly={isReadOnly}
                   structureTree={structureTree}
                 />
-              </div>
-
-              <div
+              </AttendanceFiltersPanel>
+              <AttendanceDataPanel
+                loading={isLoading}
                 className="flex-1 rounded-lg border overflow-hidden min-h-0"
-                style={{
-                  backgroundColor: "var(--card-background)",
-                  borderColor: "var(--border-color)",
-                }}
+                loaderClassName="flex items-center justify-center h-full"
               >
-                {isLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <PartialLoader />
-                  </div>
-                ) : isScopeSelectionIncomplete ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center space-y-3">
-                      <AlertCircle className="w-12 h-12 mx-auto" style={{ color: "var(--text-muted)" }} />
-                      <h3 className="text-lg font-medium" style={{ color: "var(--text-primary)" }}>
-                        {t("emptyStates.selectScope.title")}
-                      </h3>
-                      <p style={{ color: "var(--text-muted)" }}>
-                        {t("emptyStates.selectScope.description")}
-                      </p>
-                    </div>
-                  </div>
+                {isScopeSelectionIncomplete ? (
+                  <AttendanceStatePanel
+                    title={t("emptyStates.selectScope.title")}
+                    description={t("emptyStates.selectScope.description")}
+                  />
                 ) : records.length === 0 ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center space-y-3">
-                      <AlertCircle className="w-12 h-12 mx-auto" style={{ color: "var(--text-muted)" }} />
-                      <h3 className="text-lg font-medium" style={{ color: "var(--text-primary)" }}>
-                        {t("emptyStates.noRecords.title")}
-                      </h3>
-                      <p style={{ color: "var(--text-muted)" }}>
-                        {t("emptyStates.noRecords.description")}
-                      </p>
-                    </div>
-                  </div>
+                  <AttendanceStatePanel
+                    title={t("emptyStates.noRecords.title")}
+                    description={t("emptyStates.noRecords.description")}
+                  />
                 ) : (
                   <AbsencesTable
                     records={records}
@@ -402,17 +349,11 @@ export default function AttendanceAbsencesPage() {
                     isReadOnly={isReadOnly}
                   />
                 )}
-              </div>
+              </AttendanceDataPanel>
             </div>
 
             {/* Right: Details Panel */}
-            <div
-              className="col-span-4 rounded-lg border overflow-hidden"
-              style={{
-                backgroundColor: "var(--card-background)",
-                borderColor: "var(--border-color)",
-              }}
-            >
+            <AttendanceDetailsCard className="rounded-lg">
               <AbsenceDetailsPanel
                 record={selectedRecord}
                 onClose={() => setSelectedRecord(null)}
@@ -420,59 +361,39 @@ export default function AttendanceAbsencesPage() {
                 onEditEarlyLeave={handleEditEarlyLeave}
                 isReadOnly={isReadOnly}
               />
-            </div>
+            </AttendanceDetailsCard>
           </div>
         )}
 
         {/* Mobile Layout */}
         {isMobile && (
           <div className="flex-1 flex flex-col gap-4 min-h-0">
-            {/* Filters Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              leftIcon={<Filter className="w-4 h-4" />}
-              onClick={() => setShowFiltersDrawer(true)}
-            >
-              {t("filters.filters")}
-            </Button>
-
+            <AttendanceMobileActions>
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<Filter className="w-4 h-4" />}
+                onClick={() => setShowFiltersDrawer(true)}
+              >
+                {t("filters.filters")}
+              </Button>
+            </AttendanceMobileActions>
             {/* Table */}
-            <div
+            <AttendanceDataPanel
+              loading={isLoading}
               className="flex-1 rounded-lg border overflow-hidden min-h-0"
-              style={{
-                backgroundColor: "var(--card-background)",
-                borderColor: "var(--border-color)",
-              }}
+              loaderClassName="flex items-center justify-center h-full"
             >
-              {isLoading ? (
-                <div className="flex items-center justify-center h-full">
-                  <PartialLoader />
-                </div>
-              ) : isScopeSelectionIncomplete ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center space-y-3">
-                    <AlertCircle className="w-12 h-12 mx-auto" style={{ color: "var(--text-muted)" }} />
-                    <h3 className="text-lg font-medium" style={{ color: "var(--text-primary)" }}>
-                      {t("emptyStates.selectScope.title")}
-                    </h3>
-                    <p style={{ color: "var(--text-muted)" }}>
-                      {t("emptyStates.selectScope.description")}
-                    </p>
-                  </div>
-                </div>
+              {isScopeSelectionIncomplete ? (
+                <AttendanceStatePanel
+                  title={t("emptyStates.selectScope.title")}
+                  description={t("emptyStates.selectScope.description")}
+                />
               ) : records.length === 0 ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center space-y-3">
-                    <AlertCircle className="w-12 h-12 mx-auto" style={{ color: "var(--text-muted)" }} />
-                    <h3 className="text-lg font-medium" style={{ color: "var(--text-primary)" }}>
-                      {t("emptyStates.noRecords.title")}
-                    </h3>
-                    <p style={{ color: "var(--text-muted)" }}>
-                      {t("emptyStates.noRecords.description")}
-                    </p>
-                  </div>
-                </div>
+                <AttendanceStatePanel
+                  title={t("emptyStates.noRecords.title")}
+                  description={t("emptyStates.noRecords.description")}
+                />
               ) : (
                 <AbsencesTable
                   records={records}
@@ -482,7 +403,7 @@ export default function AttendanceAbsencesPage() {
                   isReadOnly={isReadOnly}
                 />
               )}
-            </div>
+            </AttendanceDataPanel>
           </div>
         )}
 
@@ -498,21 +419,15 @@ export default function AttendanceAbsencesPage() {
         />
 
         {/* Mobile Details Drawer */}
-        <Drawer
-          anchor="bottom"
-          open={showDetailsDrawer}
-          onClose={() => setShowDetailsDrawer(false)}
-        >
-          <div className="h-[80vh]">
-            <AbsenceDetailsPanel
-              record={selectedRecord}
-              onClose={() => setShowDetailsDrawer(false)}
-              onEditExcuse={handleEditExcuse}
-              onEditEarlyLeave={handleEditEarlyLeave}
-              isReadOnly={isReadOnly}
-            />
-          </div>
-        </Drawer>
+        <AttendanceBottomDrawer isOpen={showDetailsDrawer} onClose={() => setShowDetailsDrawer(false)}>
+          <AbsenceDetailsPanel
+            record={selectedRecord}
+            onClose={() => setShowDetailsDrawer(false)}
+            onEditExcuse={handleEditExcuse}
+            onEditEarlyLeave={handleEditEarlyLeave}
+            isReadOnly={isReadOnly}
+          />
+        </AttendanceBottomDrawer>
 
         {/* Excuse Modal */}
         <ExcuseModal
@@ -544,3 +459,8 @@ export default function AttendanceAbsencesPage() {
     </div>
   );
 }
+
+
+
+
+

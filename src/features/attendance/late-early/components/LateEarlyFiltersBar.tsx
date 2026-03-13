@@ -8,7 +8,7 @@ import Select from "@/components/ui/input/Select";
 import ExportButton from "@/components/ui/button/ExportButton";
 import Button from "@/components/ui/button/Button";
 import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
-import type { Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
+import type { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { LateEarlyFilters } from "../types";
 
 interface LateEarlyFiltersBarProps {
@@ -17,6 +17,7 @@ interface LateEarlyFiltersBarProps {
   stages: Stage[];
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   onFiltersChange: (patch: Partial<LateEarlyFilters>) => void;
   onResetFilters: () => void;
   onExport: (format: "csv" | "excel") => void;
@@ -28,6 +29,7 @@ export default function LateEarlyFiltersBar({
   stages,
   grades,
   sections,
+  classrooms,
   onFiltersChange,
   onResetFilters,
   onExport,
@@ -100,6 +102,7 @@ export default function LateEarlyFiltersBar({
             stages={stages}
             grades={grades}
             sections={sections}
+            classrooms={classrooms}
             onScopeTypeChange={(scopeType) => onFiltersChange({ scopeType, scopeIds: {} })}
             onScopeIdsChange={(scopeIds) => onFiltersChange({ scopeIds })}
           />

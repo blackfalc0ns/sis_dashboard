@@ -56,6 +56,10 @@ export default function EnrollmentHistoryTab({
     );
   };
 
+  const currentPlacement = [enrollment?.grade, enrollment?.section, enrollment?.classroom]
+    .filter(Boolean)
+    .join(" • ");
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -101,7 +105,7 @@ export default function EnrollmentHistoryTab({
           />
           <KPICardV2
             title={t("current_grade")}
-            value={enrollment?.grade || "N/A"}
+            value={currentPlacement || "N/A"}
             icon={GraduationCap}
             iconColor="#8b5cf6"
             iconBgColor="#ede9fe"
@@ -152,7 +156,7 @@ export default function EnrollmentHistoryTab({
                       {getStatusBadge(enrollment.status)}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                       <div>
                         <p className="text-xs text-gray-500 mb-1">
                           {t("grade")}
@@ -167,6 +171,14 @@ export default function EnrollmentHistoryTab({
                         </p>
                         <p className="text-sm font-medium text-gray-900">
                           {enrollment.section}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">
+                          {t("classroom")}
+                        </p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {enrollment.classroom || t("na")}
                         </p>
                       </div>
                       <div>

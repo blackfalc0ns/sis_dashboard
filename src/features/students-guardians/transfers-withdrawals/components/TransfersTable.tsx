@@ -63,6 +63,16 @@ export default function TransfersTable({ data }: TransfersTableProps) {
       label: t("transfers.table.grade"),
     },
     {
+      key: "section",
+      label: t("transfers.table.section"),
+      render: (value: unknown) => (value as string) || t("na"),
+    },
+    {
+      key: "classroom",
+      label: t("transfers.table.classroom"),
+      render: (value: unknown) => (value as string) || t("na"),
+    },
+    {
       key: "type",
       label: t("transfers.table.type"),
       render: (value: unknown) => t(`filters.types.${value as string}`),

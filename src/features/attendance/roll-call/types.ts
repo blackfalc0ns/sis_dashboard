@@ -17,11 +17,12 @@ export interface AttendanceSession {
   yearId: string;
   termId: string;
   date: string; // YYYY-MM-DD
-  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION";
+  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSROOM";
   scopeIds?: {
     stageId?: string;
     gradeId?: string;
     sectionId?: string;
+    classroomId?: string;
   };
   mode: AttendanceSessionMode;
   periodId?: string; // Canonical stable ID from TimetablePeriod.id (for PERIOD mode)

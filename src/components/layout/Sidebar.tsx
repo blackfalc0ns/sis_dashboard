@@ -143,7 +143,7 @@ export default function Sidebar({
       className={`fixed z-50 h-screen bg-white flex flex-col transition-all duration-300 ease-in-out
       ${isRTL ? "right-0 border-l" : "left-0 border-r"} border-gray-200
       ${isOpen ? "translate-x-0" : isRTL ? "translate-x-full lg:translate-x-0" : "-translate-x-full lg:translate-x-0"}
-      ${isOpen ? "w-[260px] max-w-[80vw] p-2" : "lg:w-20 lg:px-3"}`}
+      ${isOpen ? "w-[260px] max-w-[80vw]" : "lg:w-20 lg:px-3"}`}
     >
       {/* Toggle Button (fixed top) */}
       <button
@@ -175,7 +175,7 @@ export default function Sidebar({
 
       {/* School Selector (fixed top) */}
       {isOpen && (
-        <div className="mb-6 shrink-0">
+        <div className="mb-6 shrink-0 p-2">
           <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl bg-white">
             <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0">
               <Building2 className="w-5 h-5 text-white" />
@@ -191,7 +191,7 @@ export default function Sidebar({
       )}
 
       {/* ✅ Scrollable Menu Only */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 sidebar-scroll">
         <nav className="space-y-1 pb-4">
           {menuItems.map((item) => {
             const Icon = item.icon;

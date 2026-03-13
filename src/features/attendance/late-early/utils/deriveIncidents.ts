@@ -1,7 +1,13 @@
 ﻿import type { AttendancePolicy } from "@/features/attendance/policies/types";
 import type { AttendanceEntry, AttendanceSession } from "@/features/attendance/roll-call/types";
-import type { Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
+import type { Classroom, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { Incident, IncidentType } from "../types";
+import { getThresholdState } from "@/features/attendance/shared/policyThresholds";
+import {
+  ATTENDANCE_SCOPE_PRIORITY,
+  resolveAttendanceHierarchyScope,
+  scopeMatchesTarget,
+} from "@/features/attendance/shared/attendanceScope";
 
 interface StudentLike {
   id: string;
@@ -21,6 +27,7 @@ interface DeriveOptions {
   policies: AttendancePolicy[];
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   studentsById: Map<string, StudentLike>;
 }
 
@@ -28,41 +35,22 @@ interface ResolvedScope {
   stageId?: string;
   gradeId?: string;
   sectionId?: string;
+  classroomId?: string;
 }
-
-const POLICY_PRIORITY: Array<AttendancePolicy["scopeType"]> = ["SECTION", "GRADE", "STAGE", "SCHOOL"];
 
 export function resolveSessionScope(
   session: AttendanceSession,
   gradesById: Map<string, Grade>,
-  sectionsById: Map<string, Section>
+  sectionsById: Map<string, Section>,
+  classroomsById: Map<string, Classroom>
 ): ResolvedScope {
-  const sectionId = session.scopeIds?.sectionId;
-  if (session.scopeType === "SECTION" && sectionId) {
-    const section = sectionsById.get(sectionId);
-    const grade = section ? gradesById.get(section.gradeId) : undefined;
-    return {
-      sectionId,
-      gradeId: section?.gradeId,
-      stageId: grade?.stageId,
-    };
-  }
-
-  const gradeId = session.scopeIds?.gradeId;
-  if (session.scopeType === "GRADE" && gradeId) {
-    const grade = gradesById.get(gradeId);
-    return {
-      gradeId,
-      stageId: grade?.stageId,
-    };
-  }
-
-  const stageId = session.scopeIds?.stageId;
-  if (session.scopeType === "STAGE" && stageId) {
-    return { stageId };
-  }
-
-  return {};
+  return resolveAttendanceHierarchyScope({
+    scopeType: session.scopeType,
+    scopeIds: session.scopeIds,
+    gradesById: new Map(Array.from(gradesById.entries()).map(([id, grade]) => [id, { stageId: grade.stageId }])),
+    sectionsById: new Map(Array.from(sectionsById.entries()).map(([id, section]) => [id, { gradeId: section.gradeId }])),
+    classroomsById: new Map(Array.from(classroomsById.entries()).map(([id, classroom]) => [id, { sectionId: classroom.sectionId }])),
+  });
 }
 
 function resolveEffectivePolicy(
@@ -76,14 +64,12 @@ function resolveEffectivePolicy(
     return true;
   });
 
-  for (const scopeType of POLICY_PRIORITY) {
-    const match = active.find((policy) => {
-      if (policy.scopeType !== scopeType) return false;
-      if (scopeType === "SCHOOL") return true;
-      if (scopeType === "STAGE") return policy.scopeIds?.stageId === scope.stageId;
-      if (scopeType === "GRADE") return policy.scopeIds?.gradeId === scope.gradeId;
-      return policy.scopeIds?.sectionId === scope.sectionId;
-    });
+  for (const scopeType of ATTENDANCE_SCOPE_PRIORITY) {
+    const match = active.find(
+      (policy) =>
+        policy.scopeType === scopeType &&
+        scopeMatchesTarget(policy.scopeType, policy.scopeIds, scope)
+    );
 
     if (match) return match;
   }
@@ -109,13 +95,15 @@ function toIncident(
   scope: ResolvedScope,
   gradesById: Map<string, Grade>,
   sectionsById: Map<string, Section>,
+  classroomsById: Map<string, Classroom>,
   policy: AttendancePolicy | null,
   studentsById: Map<string, StudentLike>
 ): Incident {
   const grade = scope.gradeId ? gradesById.get(scope.gradeId) : undefined;
   const section = scope.sectionId ? sectionsById.get(scope.sectionId) : undefined;
+  const classroom = scope.classroomId ? classroomsById.get(scope.classroomId) : undefined;
   const student = studentsById.get(entry.studentId);
-  const threshold = type === "LATE" ? policy?.lateThresholdMinutes : policy?.earlyLeaveThresholdMinutes;
+  const thresholdState = getThresholdState(type, minutes, policy);
 
   return {
     id: `${session.id}:${entry.studentId}:${type}`,
@@ -131,14 +119,17 @@ function toIncident(
     stageId: scope.stageId,
     gradeId: scope.gradeId,
     sectionId: scope.sectionId,
+    classroomId: scope.classroomId,
     gradeNameAr: grade?.nameAr,
     gradeNameEn: grade?.nameEn,
     sectionNameAr: section?.nameAr,
     sectionNameEn: section?.nameEn,
+    classroomNameAr: classroom?.nameAr,
+    classroomNameEn: classroom?.nameEn,
     type,
     minutes,
-    threshold: typeof threshold === "number" ? threshold : undefined,
-    isViolation: typeof threshold === "number" ? minutes >= threshold : false,
+    threshold: thresholdState.threshold,
+    isViolation: thresholdState.isReached,
     policyScopeSummary: policy ? `${policy.scopeType} - ${policy.nameEn || policy.nameAr}` : "SCHOOL - default",
     sessionStatus: session.status,
     updatedAt: entry.updatedAt,
@@ -146,9 +137,10 @@ function toIncident(
 }
 
 export function deriveIncidentsFromSessions(options: DeriveOptions): Incident[] {
-  const { yearId, termId, sessions, entries, policies, grades, sections, studentsById } = options;
+  const { yearId, termId, sessions, entries, policies, grades, sections, classrooms, studentsById } = options;
   const gradesById = new Map(grades.map((grade) => [grade.id, grade]));
   const sectionsById = new Map(sections.map((section) => [section.id, section]));
+  const classroomsById = new Map(classrooms.map((classroom) => [classroom.id, classroom]));
 
   const entriesBySession = new Map<string, AttendanceEntry[]>();
   for (const entry of entries) {
@@ -162,7 +154,7 @@ export function deriveIncidentsFromSessions(options: DeriveOptions): Incident[] 
   for (const session of sessions) {
     if (session.mode !== "PERIOD" || !session.periodIndex) continue;
 
-    const scope = resolveSessionScope(session, gradesById, sectionsById);
+    const scope = resolveSessionScope(session, gradesById, sectionsById, classroomsById);
     const policy = resolveEffectivePolicy(policies, session.date, scope);
     const sessionEntries = entriesBySession.get(session.id) || [];
 
@@ -180,6 +172,7 @@ export function deriveIncidentsFromSessions(options: DeriveOptions): Incident[] 
             scope,
             gradesById,
             sectionsById,
+            classroomsById,
             policy,
             studentsById
           )
@@ -199,6 +192,7 @@ export function deriveIncidentsFromSessions(options: DeriveOptions): Incident[] 
             scope,
             gradesById,
             sectionsById,
+            classroomsById,
             policy,
             studentsById
           )
@@ -209,3 +203,4 @@ export function deriveIncidentsFromSessions(options: DeriveOptions): Incident[] 
 
   return incidents;
 }
+

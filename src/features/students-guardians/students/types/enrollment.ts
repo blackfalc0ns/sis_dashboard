@@ -11,6 +11,10 @@ export interface StudentEnrollment {
   academicYear: string; // e.g., "2026-2027"
   grade: string; // e.g., "Grade 6"
   section: string; // e.g., "A", "B", "C"
+  classroom?: string; // e.g., "Classroom 601"
+  gradeId?: string;
+  sectionId?: string;
+  classroomId?: string;
   enrollmentDate: string; // ISO date string
   status: "active" | "completed" | "withdrawn"; // Enrollment status
 }
@@ -39,6 +43,7 @@ export interface ClassTeacherAssignment {
   academicYear: string; // e.g., "2026-2027"
   grade: string; // e.g., "Grade 6"
   section: string; // e.g., "A"
+  classroomId?: string;
   teacherId: string; // e.g., "T001"
   teacherName: string; // e.g., "Ms. Sarah Johnson"
   teacherNameArabic?: string; // Arabic name
@@ -53,6 +58,7 @@ export interface SubjectTeacherAssignment {
   academicYear: string; // e.g., "2026-2027"
   grade: string; // e.g., "Grade 6"
   section: string; // e.g., "A"
+  classroomId?: string;
   subject: string; // e.g., "Mathematics", "Science", "Arabic"
   teacherId: string; // e.g., "T001"
   teacherName: string; // e.g., "Dr. Ahmed Al-Mansoori"

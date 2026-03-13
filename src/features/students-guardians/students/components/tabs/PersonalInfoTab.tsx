@@ -1,60 +1,203 @@
-// FILE: src/components/students-guardians/profile-tabs/PersonalInfoTab.tsx
-
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Edit2, Save, X, AlertTriangle } from "lucide-react";
 import { Student, RiskFlag } from "@/features/students-guardians/students/types";
-import { getRiskFlagColor, getRiskFlagLabel } from "@/features/students-guardians/students/utils/studentUtils";
+import {
+  getRiskFlagColor,
+  getRiskFlagLabel,
+} from "@/features/students-guardians/students/utils/studentUtils";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
-import { getEnrollmentByStudentId } from "@/data/mockEnrollments";
+import {
+  getEnrollmentByStudentId,
+  upsertStudentEnrollment,
+} from "@/data/mockEnrollments";
+import {
+  getStructureTreeSnapshot,
+  resolveStructureContextForAcademicYear,
+} from "@/features/academics/academic-structure-tree/services/structureService";
 
 interface PersonalInfoTabProps {
   student: Student;
 }
+
+type PersonalInfoFormData = {
+  name: string;
+  full_name_en: string;
+  full_name_ar: string;
+  date_of_birth: string;
+  gender: string;
+  nationality: string;
+  stage: string;
+  grade: string;
+  section: string;
+  classroom: string;
+  status: Student["status"];
+  enrollment_year: string;
+  address_line: string;
+  city: string;
+  district: string;
+  student_phone: string;
+  student_email: string;
+};
 
 export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
   const t = useTranslations("students_guardians.profile.personal_info");
   const params = useParams();
   const locale = params.lang as string;
 
-  // Get enrollment data for grade, section, and academic year
-  const enrollment = useMemo(
-    () => getEnrollmentByStudentId(student.id),
-    [student.id],
-  );
-
   const [isEditing, setIsEditing] = useState(false);
+  const enrollment = getEnrollmentByStudentId(student.id);
 
-  // Initialize form data with enrollment data (computed once)
-  const initialFormData = useMemo(
+  const structureContext = useMemo(() => {
+    const academicYearName =
+      enrollment?.academicYear ||
+      (typeof student.academic_year === "string" ? student.academic_year : "") ||
+      "";
+
+    return academicYearName
+      ? resolveStructureContextForAcademicYear(academicYearName)
+      : null;
+  }, [enrollment?.academicYear, student.academic_year]);
+
+  const structure = useMemo(() => {
+    if (!structureContext) {
+      return { stages: [], grades: [], sections: [], classrooms: [] };
+    }
+
+    return getStructureTreeSnapshot(
+      structureContext.academicYearId,
+      structureContext.termId,
+    );
+  }, [structureContext]);
+
+  const initialFormData = useMemo<PersonalInfoFormData>(
     () => ({
-      name: student.name,
-      full_name_en: student.full_name_en || student.name,
-      full_name_ar: student.full_name_ar,
-      date_of_birth: student.date_of_birth,
+      name: student.name || student.full_name_en,
+      full_name_en: student.full_name_en || student.name || "",
+      full_name_ar: student.full_name_ar || "",
+      date_of_birth: student.date_of_birth || student.dateOfBirth || "",
       gender: student.gender,
       nationality: student.nationality,
       stage: student.stage || "",
       grade: enrollment?.grade || student.grade || "",
       section: enrollment?.section || student.section || "",
+      classroom: enrollment?.classroom || "",
       status: student.status,
       enrollment_year:
-        enrollment?.academicYear || student.enrollment_year?.toString() || "",
+        enrollment?.academicYear ||
+        (student.enrollment_year ? String(student.enrollment_year) : ""),
       address_line: student.contact?.address_line || "",
       city: student.contact?.city || "",
       district: student.contact?.district || "",
       student_phone: student.contact?.student_phone || "",
       student_email: student.contact?.student_email || "",
     }),
-    [student, enrollment],
+    [enrollment, student],
   );
 
   const [formData, setFormData] = useState(initialFormData);
 
+  const availableStages = useMemo(() => {
+    return structure.stages;
+  }, [structure.stages]);
+
+  const selectedStage = useMemo(() => {
+    return (
+      structure.stages.find(
+        (stage) =>
+          stage.name === formData.stage ||
+          stage.nameEn === formData.stage ||
+          stage.nameAr === formData.stage,
+      ) || null
+    );
+  }, [formData.stage, structure.stages]);
+
+  const availableGrades = useMemo(() => {
+    return structure.grades
+      .filter((grade) => !selectedStage || grade.stageId === selectedStage.id)
+      .sort((a, b) => a.order - b.order);
+  }, [selectedStage, structure.grades]);
+
+  const selectedGrade = useMemo(() => {
+    return (
+      availableGrades.find(
+        (grade) =>
+          grade.id === enrollment?.gradeId ||
+          grade.name === formData.grade ||
+          grade.nameEn === formData.grade ||
+          grade.nameAr === formData.grade,
+      ) || null
+    );
+  }, [availableGrades, enrollment?.gradeId, formData.grade]);
+
+  const availableSections = useMemo(() => {
+    if (!selectedGrade) return [];
+
+    return structure.sections
+      .filter((section) => section.gradeId === selectedGrade.id)
+      .sort((a, b) => a.order - b.order);
+  }, [selectedGrade, structure.sections]);
+
+  const selectedSection = useMemo(() => {
+    return (
+      availableSections.find((section) => {
+        const sectionShortName =
+          section.nameEn?.replace(/^Section\s+/i, "") ||
+          section.nameAr ||
+          section.name;
+
+        return (
+          section.id === enrollment?.sectionId ||
+          section.name === formData.section ||
+          section.nameEn === formData.section ||
+          section.nameAr === formData.section ||
+          sectionShortName === formData.section
+        );
+      }) || null
+    );
+  }, [availableSections, enrollment?.sectionId, formData.section]);
+
+  const availableClassrooms = useMemo(() => {
+    if (!selectedSection) return [];
+
+    return structure.classrooms
+      .filter((classroom) => classroom.sectionId === selectedSection.id)
+      .sort((a, b) => a.order - b.order);
+  }, [selectedSection, structure.classrooms]);
+
   const handleSave = () => {
-    // TODO: Implement save functionality
+    if (enrollment && selectedGrade && selectedSection) {
+      const selectedClassroom =
+        availableClassrooms.find(
+          (classroom) =>
+            classroom.id === enrollment.classroomId ||
+            classroom.name === formData.classroom ||
+            classroom.nameEn === formData.classroom ||
+            classroom.nameAr === formData.classroom,
+        ) || null;
+
+      upsertStudentEnrollment({
+        ...enrollment,
+        academicYear: formData.enrollment_year || enrollment.academicYear,
+        grade: selectedGrade.nameEn || selectedGrade.nameAr || selectedGrade.name,
+        section:
+          selectedSection.nameEn?.replace(/^Section\s+/i, "") ||
+          selectedSection.nameAr ||
+          selectedSection.name,
+        classroom: selectedClassroom
+          ? selectedClassroom.nameEn ||
+            selectedClassroom.nameAr ||
+            selectedClassroom.name
+          : undefined,
+        gradeId: selectedGrade.id,
+        sectionId: selectedSection.id,
+        classroomId: selectedClassroom?.id,
+        status: enrollment.status,
+      });
+    }
+
     setIsEditing(false);
   };
 
@@ -63,9 +206,47 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
     setIsEditing(false);
   };
 
+  const handleStageChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      stage: value,
+      grade: "",
+      section: "",
+      classroom: "",
+    }));
+  };
+
+  const handleGradeChange = (value: string) => {
+    const nextGrade = structure.grades.find(
+      (grade) =>
+        grade.name === value ||
+        grade.nameEn === value ||
+        grade.nameAr === value,
+    );
+
+    const nextStage = nextGrade
+      ? structure.stages.find((stage) => stage.id === nextGrade.stageId)
+      : null;
+
+    setFormData((prev) => ({
+      ...prev,
+      stage: nextStage?.name || prev.stage,
+      grade: value,
+      section: "",
+      classroom: "",
+    }));
+  };
+
+  const handleSectionChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      section: value,
+      classroom: "",
+    }));
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
         {!isEditing ? (
@@ -96,9 +277,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
         )}
       </div>
 
-      {/* Form */}
       <div className="bg-white rounded-xl p-6 shadow-sm">
-        {/* Risk Flags Alert */}
         {student.risk_flags && student.risk_flags.length > 0 && (
           <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
             <div className="flex items-start gap-3">
@@ -126,7 +305,6 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Student ID */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("student_id")}
@@ -137,12 +315,9 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
               disabled
               className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500 cursor-not-allowed"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              {t("cannot_be_changed")}
-            </p>
+            <p className="text-xs text-gray-500 mt-1">{t("cannot_be_changed")}</p>
           </div>
 
-          {/* Full Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("full_name")}
@@ -151,7 +326,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
               type="text"
               value={formData.name}
               onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
+                setFormData((prev) => ({ ...prev, name: e.target.value }))
               }
               disabled={!isEditing}
               className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
@@ -162,7 +337,6 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
             />
           </div>
 
-          {/* Full Name (English) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("full_name_en")}
@@ -171,7 +345,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
               type="text"
               value={formData.full_name_en}
               onChange={(e) =>
-                setFormData({ ...formData, full_name_en: e.target.value })
+                setFormData((prev) => ({ ...prev, full_name_en: e.target.value }))
               }
               disabled={!isEditing}
               className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
@@ -182,7 +356,6 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
             />
           </div>
 
-          {/* Full Name (Arabic) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("full_name_ar")}
@@ -191,7 +364,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
               type="text"
               value={formData.full_name_ar}
               onChange={(e) =>
-                setFormData({ ...formData, full_name_ar: e.target.value })
+                setFormData((prev) => ({ ...prev, full_name_ar: e.target.value }))
               }
               disabled={!isEditing}
               dir="rtl"
@@ -203,7 +376,6 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
             />
           </div>
 
-          {/* Gender */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("gender")}
@@ -211,7 +383,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
             <select
               value={formData.gender}
               onChange={(e) =>
-                setFormData({ ...formData, gender: e.target.value })
+                setFormData((prev) => ({ ...prev, gender: e.target.value }))
               }
               disabled={!isEditing}
               className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
@@ -225,7 +397,6 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
             </select>
           </div>
 
-          {/* Date of Birth */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("date_of_birth")}
@@ -234,7 +405,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
               type="date"
               value={formData.date_of_birth}
               onChange={(e) =>
-                setFormData({ ...formData, date_of_birth: e.target.value })
+                setFormData((prev) => ({ ...prev, date_of_birth: e.target.value }))
               }
               disabled={!isEditing}
               className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
@@ -245,7 +416,6 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
             />
           </div>
 
-          {/* Nationality */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("nationality")}
@@ -254,7 +424,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
               type="text"
               value={formData.nationality}
               onChange={(e) =>
-                setFormData({ ...formData, nationality: e.target.value })
+                setFormData((prev) => ({ ...prev, nationality: e.target.value }))
               }
               disabled={!isEditing}
               className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
@@ -265,16 +435,13 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
             />
           </div>
 
-          {/* Stage */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("stage")}
             </label>
             <select
               value={formData.stage}
-              onChange={(e) =>
-                setFormData({ ...formData, stage: e.target.value })
-              }
+              onChange={(e) => handleStageChange(e.target.value)}
               disabled={!isEditing}
               className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
                 isEditing
@@ -282,29 +449,24 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
                   : "bg-gray-50 border-gray-200 text-gray-700"
               }`}
             >
-              <option value="">Select Stage</option>
-              <option value="Primary">
-                {locale === "ar" ? "ابتدائي" : "Primary"}
-              </option>
-              <option value="Preparatory">
-                {locale === "ar" ? "إعدادي" : "Preparatory"}
-              </option>
-              <option value="Secondary">
-                {locale === "ar" ? "ثانوي" : "Secondary"}
-              </option>
+              <option value="">{t("select_stage")}</option>
+              {availableStages.map((stage) => (
+                <option key={stage.id} value={stage.name}>
+                  {locale === "ar"
+                    ? stage.nameAr || stage.name
+                    : stage.nameEn || stage.name}
+                </option>
+              ))}
             </select>
           </div>
 
-          {/* Grade */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("grade")}
             </label>
             <select
               value={formData.grade}
-              onChange={(e) =>
-                setFormData({ ...formData, grade: e.target.value })
-              }
+              onChange={(e) => handleGradeChange(e.target.value)}
               disabled={!isEditing}
               className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
                 isEditing
@@ -312,41 +474,91 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
                   : "bg-gray-50 border-gray-200 text-gray-700"
               }`}
             >
-              <option value="Grade 6">Grade 6</option>
-              <option value="Grade 7">Grade 7</option>
-              <option value="Grade 8">Grade 8</option>
-              <option value="Grade 9">Grade 9</option>
-              <option value="Grade 10">Grade 10</option>
-              <option value="Grade 11">Grade 11</option>
-              <option value="Grade 12">Grade 12</option>
+              <option value="">{t("select_grade")}</option>
+              {availableGrades.map((grade) => {
+                const gradeLabel =
+                  locale === "ar"
+                    ? grade.nameAr || grade.name
+                    : grade.nameEn || grade.name;
+                const gradeValue = grade.nameEn || grade.nameAr || grade.name;
+
+                return (
+                  <option key={grade.id} value={gradeValue}>
+                    {gradeLabel}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
-          {/* Section */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("section")}
             </label>
             <select
               value={formData.section}
-              onChange={(e) =>
-                setFormData({ ...formData, section: e.target.value })
-              }
-              disabled={!isEditing}
+              onChange={(e) => handleSectionChange(e.target.value)}
+              disabled={!isEditing || !formData.grade}
               className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
                 isEditing
                   ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
                   : "bg-gray-50 border-gray-200 text-gray-700"
               }`}
             >
-              <option value="A">Section A</option>
-              <option value="B">Section B</option>
-              <option value="C">Section C</option>
-              <option value="D">Section D</option>
+              <option value="">{t("select_section")}</option>
+              {availableSections.map((section) => {
+                const sectionValue =
+                  section.nameEn?.replace(/^Section\s+/i, "") ||
+                  section.nameAr ||
+                  section.name;
+                const sectionLabel =
+                  locale === "ar"
+                    ? section.nameAr || section.name
+                    : section.nameEn || section.name;
+
+                return (
+                  <option key={section.id} value={sectionValue}>
+                    {sectionLabel}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
-          {/* Status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t("classroom")}
+            </label>
+            <select
+              value={formData.classroom}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, classroom: e.target.value }))
+              }
+              disabled={!isEditing || !formData.section}
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
+                isEditing
+                  ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  : "bg-gray-50 border-gray-200 text-gray-700"
+              }`}
+            >
+              <option value="">{t("select_classroom")}</option>
+              {availableClassrooms.map((classroom) => {
+                const classroomLabel =
+                  locale === "ar"
+                    ? classroom.nameAr || classroom.name
+                    : classroom.nameEn || classroom.name;
+                const classroomValue =
+                  classroom.nameEn || classroom.nameAr || classroom.name;
+
+                return (
+                  <option key={classroom.id} value={classroomValue}>
+                    {classroomLabel}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("status")}
@@ -354,10 +566,10 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
             <select
               value={formData.status}
               onChange={(e) =>
-                setFormData({
-                  ...formData,
+                setFormData((prev) => ({
+                  ...prev,
                   status: e.target.value as Student["status"],
-                })
+                }))
               }
               disabled={!isEditing}
               className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
@@ -372,7 +584,6 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
             </select>
           </div>
 
-          {/* Enrollment Year */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("enrollment_year")}
@@ -381,10 +592,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
               type="text"
               value={formData.enrollment_year}
               onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  enrollment_year: e.target.value,
-                })
+                setFormData((prev) => ({ ...prev, enrollment_year: e.target.value }))
               }
               disabled={!isEditing}
               placeholder="2026-2027"
@@ -396,7 +604,6 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
             />
           </div>
 
-          {/* Created At */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("created_at")}
@@ -412,13 +619,11 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
           </div>
         </div>
 
-        {/* Contact Information Section */}
         <div className="mt-8 pt-6 border-t border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             {t("contact_information")}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Address */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("address")}
@@ -427,7 +632,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
                 type="text"
                 value={formData.address_line}
                 onChange={(e) =>
-                  setFormData({ ...formData, address_line: e.target.value })
+                  setFormData((prev) => ({ ...prev, address_line: e.target.value }))
                 }
                 disabled={!isEditing}
                 placeholder={t("address_placeholder")}
@@ -439,7 +644,6 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
               />
             </div>
 
-            {/* City */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("city")}
@@ -448,7 +652,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
                 type="text"
                 value={formData.city}
                 onChange={(e) =>
-                  setFormData({ ...formData, city: e.target.value })
+                  setFormData((prev) => ({ ...prev, city: e.target.value }))
                 }
                 disabled={!isEditing}
                 className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
@@ -459,7 +663,6 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
               />
             </div>
 
-            {/* District */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("district")}
@@ -468,7 +671,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
                 type="text"
                 value={formData.district}
                 onChange={(e) =>
-                  setFormData({ ...formData, district: e.target.value })
+                  setFormData((prev) => ({ ...prev, district: e.target.value }))
                 }
                 disabled={!isEditing}
                 className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
@@ -479,7 +682,6 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
               />
             </div>
 
-            {/* Student Phone */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("student_phone")}
@@ -488,7 +690,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
                 type="tel"
                 value={formData.student_phone}
                 onChange={(e) =>
-                  setFormData({ ...formData, student_phone: e.target.value })
+                  setFormData((prev) => ({ ...prev, student_phone: e.target.value }))
                 }
                 disabled={!isEditing}
                 placeholder="+966 XX XXX XXXX"
@@ -500,7 +702,6 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
               />
             </div>
 
-            {/* Student Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("student_email")}
@@ -509,7 +710,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
                 type="email"
                 value={formData.student_email}
                 onChange={(e) =>
-                  setFormData({ ...formData, student_email: e.target.value })
+                  setFormData((prev) => ({ ...prev, student_email: e.target.value }))
                 }
                 disabled={!isEditing}
                 placeholder="student@example.com"

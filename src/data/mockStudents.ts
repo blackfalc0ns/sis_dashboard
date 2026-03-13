@@ -17,6 +17,10 @@ export {
   getEnrollmentByStudentId,
   getEnrollmentsByGrade,
   getEnrollmentsBySection,
+  getEnrollmentsBySectionId,
+  getEnrollmentsByClassroomId,
+  getEnrollmentClassroom,
+  upsertStudentEnrollment,
 } from "./mockEnrollments";
 
 export {

@@ -216,6 +216,14 @@ export default function WithdrawalRequestDetailsPage({
               <p className="text-sm ">{tDetails("grade")}</p>
               <p className="font-medium">{withdrawal.grade}</p>
             </div>
+            <div>
+              <p className="text-sm ">{tDetails("section")}</p>
+              <p className="font-medium">{withdrawal.section || t("na")}</p>
+            </div>
+            <div>
+              <p className="text-sm ">{tDetails("classroom")}</p>
+              <p className="font-medium">{withdrawal.classroom || t("na")}</p>
+            </div>
           </div>
         </div>
 

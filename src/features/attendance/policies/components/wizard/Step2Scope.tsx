@@ -1,13 +1,14 @@
 "use client";
 
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
-import Select from "@/components/ui/input/Select";
+import ScopePicker from "../ScopePicker";
 import type { PolicyFormData, AttendanceScopeType } from "../../types";
 import type {
   Stage,
   Grade,
   Section,
+  Classroom,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 
 interface Step2ScopeProps {
@@ -17,6 +18,7 @@ interface Step2ScopeProps {
   stages: Stage[];
   filteredGrades: Grade[];
   filteredSections: Section[];
+  filteredClassrooms: Classroom[];
   onFieldChange: <K extends keyof PolicyFormData>(
     field: K,
     value: PolicyFormData[K]
@@ -30,10 +32,10 @@ export default function Step2Scope({
   stages,
   filteredGrades,
   filteredSections,
+  filteredClassrooms,
   onFieldChange,
 }: Step2ScopeProps) {
   const t = useTranslations("attendance.policies.wizard");
-  const locale = useLocale();
 
   return (
     <div className="space-y-6">
@@ -50,8 +52,8 @@ export default function Step2Scope({
         <label className="block text-sm font-medium text-gray-700 mb-3">
           {t("fields.scope")} <span className="text-red-500">*</span>
         </label>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {(["SCHOOL", "STAGE", "GRADE", "SECTION"] as AttendanceScopeType[]).map(
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+          {(["SCHOOL", "STAGE", "GRADE", "SECTION", "CLASSROOM"] as AttendanceScopeType[]).map(
             (scopeType) => (
               <div
                 key={scopeType}
@@ -90,77 +92,34 @@ export default function Step2Scope({
         </div>
       </div>
 
-      {/* Stage Selector */}
-      {(formData.scopeType === "STAGE" ||
-        formData.scopeType === "GRADE" ||
-        formData.scopeType === "SECTION") && (
-        <Select
-          label={t("fields.selectStage")}
-          value={formData.scopeIds?.stageId || ""}
-          onChange={(value) => {
+      <div className="rounded-lg border p-4" style={{ borderColor: "var(--border-color)" }}>
+        <ScopePicker
+          scopeType={formData.scopeType}
+          scopeIds={formData.scopeIds || {}}
+          stages={stages}
+          grades={filteredGrades}
+          sections={filteredSections}
+          classrooms={filteredClassrooms}
+          onScopeTypeChange={(scopeType) => {
+            onFieldChange("scopeType", scopeType);
+            onFieldChange("scopeIds", {});
+          }}
+          onScopeIdsChange={(scopeIds) => {
             onFieldChange("scopeIds", {
-              ...formData.scopeIds,
-              stageId: value,
-              gradeId: undefined,
-              sectionId: undefined,
+              ...(formData.scopeIds || {}),
+              ...scopeIds,
             });
           }}
-          options={stages.map((stage) => ({
-            value: stage.id,
-            label: locale === "ar" ? stage.nameAr : stage.nameEn,
-          }))}
-          placeholder={t("fields.selectStage")}
-          error={errors.stageId}
-          fullWidth
           disabled={isReadOnly}
-        />
-      )}
-
-      {/* Grade Selector */}
-      {(formData.scopeType === "GRADE" || formData.scopeType === "SECTION") &&
-        formData.scopeIds?.stageId && (
-          <Select
-            label={t("fields.selectGrade")}
-            value={formData.scopeIds?.gradeId || ""}
-            onChange={(value) => {
-              onFieldChange("scopeIds", {
-                ...formData.scopeIds,
-                gradeId: value,
-                sectionId: undefined,
-              });
-            }}
-            options={filteredGrades.map((grade) => ({
-              value: grade.id,
-              label: locale === "ar" ? grade.nameAr : grade.nameEn,
-            }))}
-            placeholder={t("fields.selectGrade")}
-            error={errors.gradeId}
-            fullWidth
-            disabled={isReadOnly}
-          />
-        )}
-
-      {/* Section Selector */}
-      {formData.scopeType === "SECTION" && formData.scopeIds?.gradeId && (
-        <Select
-          label={t("fields.selectSection")}
-          value={formData.scopeIds?.sectionId || ""}
-          onChange={(value) => {
-            onFieldChange("scopeIds", {
-              ...formData.scopeIds,
-              sectionId: value,
-            });
+          errors={{
+            scopeType: errors.scopeType,
+            stageId: errors.stageId,
+            gradeId: errors.gradeId,
+            sectionId: errors.sectionId,
+            classroomId: errors.classroomId,
           }}
-          options={filteredSections.map((section) => ({
-            value: section.id,
-            label: locale === "ar" ? section.nameAr : section.nameEn,
-          }))}
-          placeholder={t("fields.selectSection")}
-          error={errors.sectionId}
-          fullWidth
-          disabled={isReadOnly}
         />
-      )}
+      </div>
     </div>
   );
 }

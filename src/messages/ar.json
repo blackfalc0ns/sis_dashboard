@@ -651,6 +651,8 @@
         "nationality": "الجنسية",
         "nationality_placeholder": "مثال: سعودي",
         "stage": "المرحلة",
+        "grade": "الصف",
+        "section": "الشعبة",
         "stage_placeholder": "اختر المرحلة",
         "primary": "ابتدائي",
         "preparatory": "إعدادي",
@@ -909,9 +911,12 @@
       "ready_for_enrollment": "تم قبول هذا الطالب وهو جاهز للتسجيل.",
       "academic_year": "العام الدراسي",
       "grade": "الصف",
+      "select_grade": "اختر الصف",
       "grade_option": "الصف {grade}",
       "section": "الشعبة",
       "select_section": "اختر الشعبة",
+      "classroom": "الفصل",
+      "select_classroom": "اختر الفصل",
       "section_option": "الشعبة {section}",
       "start_date": "تاريخ البدء",
       "generate_documents": "إنشاء المستندات",
@@ -1182,6 +1187,7 @@
       "student_name": "اسم الطالب",
       "grade": "الصف",
       "section": "الشعبة",
+      "classroom": "الفصل",
       "start_date": "تاريخ البدء",
       "enrolled_date": "تاريخ التسجيل",
       "all_grades": "جميع الصفوف",
@@ -1340,6 +1346,7 @@
         "name": "الاسم",
         "grade": "الصف",
         "section": "الشعبة",
+        "classroom": "الفصل",
         "attendance": "الحضور",
         "average": "المعدل",
         "status": "الحالة",
@@ -1378,6 +1385,7 @@
         "term": "الفصل",
         "grade": "الصف",
         "section": "الشعبة",
+        "classroom": "الفصل",
         "status": "الحالة"
       },
       "filter_options": {
@@ -1385,6 +1393,7 @@
         "all_terms": "جميع الفصول",
         "all_grades": "جميع الصفوف",
         "all_sections": "جميع الشعب",
+        "all_classrooms": "جميع الفصول",
         "all_statuses": "جميع الحالات"
       },
       "status": {
@@ -1533,6 +1542,8 @@
           "student_name": "اسم الطالب",
           "stage": "المرحلة",
           "grade": "الصف",
+          "section": "الشعبة",
+          "classroom": "الفصل",
           "type": "النوع",
           "behavior_score": "التقييم السلوكي",
           "status": "الحالة",
@@ -1569,6 +1580,8 @@
           "student_name": "اسم الطالب",
           "stage": "المرحلة",
           "grade": "الصف",
+          "section": "الشعبة",
+          "classroom": "الفصل",
           "behavior_avg": "متوسط السلوك",
           "attendance": "نسبة الحضور",
           "reason": "السبب",
@@ -1703,7 +1716,15 @@
             "student_id": "رقم الطالب",
             "stage": "المرحلة",
             "grade": "الصف",
+            "section": "الشعبة",
+            "classroom": "الفصل",
+            "current_section": "الشعبة الحالية",
+            "current_classroom": "الفصل الحالي",
             "type": "نوع التحويل",
+            "target_section": "الشعبة المستهدفة",
+            "target_classroom": "الفصل المستهدف",
+            "search_target_section": "ابحث عن الشعبة المستهدفة",
+            "search_target_classroom": "ابحث عن الفصل المستهدف",
             "target_class": "الفصل المستهدف",
             "target_class_placeholder": "مثال: 8-ب",
             "external_school": "المدرسة الخارجية",
@@ -1724,11 +1745,16 @@
             "student_required": "يرجى اختيار طالب",
             "type_required": "يرجى اختيار نوع التحويل",
             "target_class_required": "يرجى إدخال الفصل المستهدف",
+            "target_section_required": "يرجى اختيار الشعبة المستهدفة",
+            "target_classroom_required": "يرجى اختيار الفصل المستهدف",
+            "target_must_change": "اختر شعبة أو فصلًا مختلفًا عن المكان الحالي",
             "external_school_required": "يرجى إدخال اسم المدرسة الخارجية",
             "reason_required": "يرجى إدخال السبب",
             "date_required": "يرجى اختيار تاريخ السريان"
           },
           "no_students_found": "لم يتم العثور على طلاب",
+          "no_sections_found": "لم يتم العثور على شعب",
+          "no_classrooms_found": "لم يتم العثور على فصول",
           "cancel": "إلغاء",
           "submit": "إرسال الطلب"
         },
@@ -1741,6 +1767,8 @@
             "student_id": "رقم الطالب",
             "stage": "المرحلة",
             "grade": "الصف",
+            "section": "الشعبة",
+            "classroom": "الفصل",
             "reason": "سبب الانسحاب",
             "effective_date": "تاريخ السريان",
             "notes": "ملاحظات إضافية",
@@ -1789,6 +1817,8 @@
         "student_name": "اسم الطالب",
         "stage": "المرحلة",
         "grade": "الصف",
+        "section": "الشعبة",
+        "classroom": "الفصل",
         "request_info": "معلومات الطلب",
         "transfer_type": "نوع التحويل",
         "target_class": "الفصل المستهدف",
@@ -1829,6 +1859,7 @@
       "student_id": "الرقم",
       "grade": "الصف",
       "section": "الشعبة",
+      "classroom": "الفصل",
       "na": "غير متاح",
       "status": {
         "active": "نشط",
@@ -1915,6 +1946,11 @@
         "date_of_birth": "تاريخ الميلاد",
         "grade": "الصف",
         "section": "الشعبة",
+        "classroom": "الفصل",
+        "select_stage": "اختر المرحلة",
+        "select_grade": "اختر الصف",
+        "select_section": "اختر الشعبة",
+        "select_classroom": "اختر الفصل",
         "status": "الحالة",
         "enrollment_year": "سنة التسجيل",
         "created_at": "تاريخ الإنشاء",
@@ -1992,9 +2028,11 @@
         "enrollment_id": "رقم التسجيل",
         "grade": "الصف",
         "section": "الشعبة",
+        "classroom": "الفصل",
         "enrollment_date": "تاريخ التسجيل",
         "current": "حالي",
-        "grade_progression": "تقدم الصفوف"
+        "grade_progression": "تقدم الصفوف",
+        "na": "غير متاح"
       },
       "attendance": {
         "title": "الحضور",
@@ -2219,6 +2257,7 @@
         "add_stage": "إضافة مرحلة",
         "add_grade": "إضافة صف",
         "add_section": "إضافة شعبة",
+        "add_classroom": "إضافة فصل",
         "edit": "تعديل",
         "delete": "حذف",
         "move_up": "تحريك لأعلى",
@@ -2230,9 +2269,12 @@
         "stage_form": "تفاصيل المرحلة",
         "grade_form": "تفاصيل الصف",
         "section_form": "تفاصيل الشعبة",
+        "classroom_form": "تفاصيل الفصل",
         "name": "الاسم",
         "description": "الوصف",
         "stage": "المرحلة",
+        "grade": "الصف",
+        "section": "الشعبة",
         "order": "الترتيب",
         "notes": "ملاحظات",
         "capacity": "السعة",
@@ -2255,13 +2297,17 @@
         "total_stages": "إجمالي المراحل",
         "total_grades": "إجمالي الصفوف",
         "total_sections": "إجمالي الشعب",
+        "total_classrooms": "إجمالي الفصول",
         "sections_missing_capacity": "شعب بدون سعة",
-        "grades_without_sections": "صفوف بدون شعب"
+        "classrooms_missing_capacity": "فصول بدون سعة",
+        "grades_without_sections": "صفوف بدون شعب",
+        "sections_without_classrooms": "شعب بدون فصول"
       },
       "modals": {
         "add_stage": "إضافة مرحلة جديدة",
         "add_grade": "إضافة صف جديد",
         "add_section": "إضافة شعبة جديدة",
+        "add_classroom": "إضافة فصل جديد",
         "name": "الاسم",
         "cancel": "إلغاء",
         "create": "إنشاء"
@@ -3513,6 +3559,8 @@
     "urlBlocked": "هذا النطاق غير مسموح",
     "unique_name_ar_section": "اسم الشعبة بالعربي يجب أن يكون فريداً داخل الصف",
     "unique_name_en_section": "اسم الشعبة بالإنجليزي يجب أن يكون فريداً داخل الصف",
+    "unique_name_ar_classroom": "اسم الفصل بالعربي يجب أن يكون فريداً داخل الشعبة",
+    "unique_name_en_classroom": "اسم الفصل بالإنجليزي يجب أن يكون فريداً داخل الشعبة",
     "arEnMustDiffer": "يجب أن يكون النص بالعربي مختلفاً عن النص بالإنجليزي",
     "selectCorrectSingle": "اختر إجابة صحيحة واحدة فقط.",
     "selectCorrectMulti": "اختر إجابة صحيحة واحدة على الأقل.",
@@ -3564,7 +3612,12 @@
         "prev": "السابق",
         "next": "التالي",
         "dailyMode": "وضع الحضور اليومي",
-        "status": "حالة الجلسة"
+        "status": "حالة الجلسة",
+        "scopeTypes": {
+          "classroom": "فصل"
+        },
+        "classroom": "فصل",
+        "selectClassroom": "اختر الفصل"
       },
       "sessionStatus": {
         "draft": "مسودة",
@@ -3680,7 +3733,8 @@
           "excused": "الأعذار",
           "earlyLeave": "المغادرة المبكرة"
         }
-      }
+      },
+      "thresholdReached": "تم الوصول إلى حد السياسة ({threshold} دقيقة)"
     },
     "rollCallDesc": "تسجيل الحضور اليومي وإدارة كشف الحضور",
     "description": "معدل حضور الطلاب اليوم",
@@ -3731,8 +3785,11 @@
           "school": "المدرسة",
           "stage": "المرحلة",
           "grade": "الصف",
-          "section": "الشعبة"
-        }
+          "section": "الشعبة",
+          "classroom": "الفصل"
+        },
+        "classroom": "الفصل",
+        "selectClassroom": "اختر الفصل"
       },
       "table": {
         "date": "التاريخ",
@@ -3748,7 +3805,8 @@
         "hasExcuse": "يوجد عذر",
         "viewOnly": "عرض فقط",
         "editExcuse": "تعديل العذر",
-        "editEarlyLeave": "تعديل الدقائق"
+        "editEarlyLeave": "تعديل الدقائق",
+        "classroom": "الفصل"
       },
       "details": {
         "title": "تفاصيل الغياب",
@@ -3771,7 +3829,13 @@
         "attachments": "المرفقات",
         "addExcuse": "إضافة عذر",
         "editExcuse": "تعديل العذر",
-        "editMinutes": "تعديل الدقائق"
+        "editMinutes": "تعديل الدقائق",
+        "openStudentProfile": "فتح ملف الطالب",
+        "previewAttachment": "معاينة المرفق",
+        "excuseCreatedAt": "تاريخ إضافة العذر",
+        "updatedAt": "آخر تحديث",
+        "timeline": "السجل الزمني",
+        "classroom": "الفصل"
       },
       "earlyLeave": {
         "title": "تعديل دقائق المغادرة المبكرة",
@@ -3805,6 +3869,20 @@
       "allDates": "كل التواريخ",
       "minutesSaved": "تم حفظ الدقائق بنجاح",
       "exportSuccess": "تم تصدير تقرير التأخير والمغادرة المبكرة بنجاح",
+      "emptyStates": {
+        "noYearTerm": {
+          "title": "اختر السنة الأكاديمية والفصل",
+          "description": "يرجى اختيار سنة أكاديمية وفصل من شريط السياق أعلاه لعرض حالات التأخير والمغادرة المبكرة."
+        },
+        "selectScope": {
+          "title": "اختر النطاق",
+          "description": "يرجى إكمال اختيار النطاق لتحميل حالات التأخير والمغادرة المبكرة."
+        },
+        "noRecords": {
+          "title": "لا توجد حالات",
+          "description": "لا توجد حالات تأخير أو مغادرة مبكرة تطابق الفلاتر الحالية. جرّب تعديل نطاق التاريخ أو النطاق أو البحث."
+        }
+      },
       "filters": {
         "filters": "الفلاتر",
         "searchPlaceholder": "ابحث باسم الطالب أو الرقم...",
@@ -3846,7 +3924,8 @@
         "no": "لا",
         "actions": "الإجراءات",
         "view": "عرض",
-        "editMinutes": "تعديل الدقائق"
+        "editMinutes": "تعديل الدقائق",
+        "thresholdReached": "تم الوصول إلى الحد ({threshold} دقيقة)"
       },
       "details": {
         "title": "تفاصيل الحالة",
@@ -3867,7 +3946,12 @@
         "belowThreshold": "أقل من الحد ({threshold} دقيقة)",
         "noThreshold": "لا يوجد حد محدد",
         "openSession": "فتح الجلسة",
-        "editMinutes": "تعديل الدقائق"
+        "editMinutes": "تعديل الدقائق",
+        "thresholdReached": "تم الوصول إلى حد السياسة ({threshold} دقيقة)",
+        "noViolation": "لم يتم الوصول إلى حد السياسة",
+        "openStudentProfile": "فتح ملف الطالب",
+        "timeline": "السجل الزمني",
+        "updatedAt": "آخر تحديث"
       },
       "modal": {
         "editLateMinutes": "تعديل دقائق التأخير",
@@ -3880,7 +3964,194 @@
       }
     },
     "excuses": {
-    "title": "الأعذار", "subtitle": "إدارة طلبات الأعذار وربطها بسجلات الحضور", "readonlyBanner": "هذا الترم مغلق. يمكنك العرض فقط.", "createRequest": "إضافة طلب", "created": "تم إنشاء الطلب بنجاح", "updated": "تم تحديث الطلب بنجاح", "approved": "تمت الموافقة على الطلب", "rejected": "تم رفض الطلب", "deleted": "تم حذف الطلب", "deleteTitle": "حذف الطلب", "deleteDescription": "هل تريد حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.", "exportSuccess": "تم تصدير البيانات بنجاح", "scopeSchool": "المدرسة", "allDates": "كل التواريخ", "filters": { "filters": "الفلاتر", "searchPlaceholder": "ابحث باسم الطالب أو الرقم...", "dateFrom": "من تاريخ", "dateTo": "إلى تاريخ", "allStatuses": "كل الحالات", "pending": "قيد المراجعة", "approved": "مقبول", "rejected": "مرفوض", "allTypes": "كل الأنواع", "absence": "غياب", "late": "تأخير", "earlyLeave": "مغادرة مبكرة", "allAttachments": "كل المرفقات", "withAttachment": "مع مرفق", "withoutAttachment": "بدون مرفق", "export": "تصدير", "apply": "تطبيق" }, "kpis": { "total": "إجمالي الطلبات", "pending": "قيد المراجعة", "approved": "مقبول", "rejected": "مرفوض", "withAttachments": "مع مرفقات" }, "table": { "submittedAt": "تاريخ الإرسال", "student": "الطالب", "scope": "النطاق", "type": "النوع", "range": "الفترة", "attachments": "المرفقات", "status": "الحالة", "actions": "الإجراءات", "view": "عرض", "approve": "موافقة", "reject": "رفض", "edit": "تعديل", "delete": "حذف", "pending": "قيد المراجعة", "approved": "مقبول", "rejected": "مرفوض", "absence": "غياب", "late": "تأخير", "earlyLeave": "مغادرة مبكرة", "allPolicyPeriods": "كل حصص السياسة", "school": "المدرسة" }, "details": { "title": "تفاصيل الطلب", "selectRequest": "اختر طلبًا لعرض التفاصيل", "student": "الطالب", "scope": "النطاق", "requestInfo": "معلومات الطلب", "type": "النوع", "range": "الفترة", "periods": "الحصص", "reason": "السبب", "attachments": "المرفقات", "noAttachments": "لا توجد مرفقات", "timeline": "سجل الحالة", "status": "الحالة", "decidedBy": "تم اتخاذ القرار بواسطة", "decidedAt": "تاريخ القرار", "decisionNote": "ملاحظة القرار", "allPolicyPeriods": "كل حصص السياسة", "edit": "تعديل", "approve": "موافقة", "reject": "رفض" }, "modal": { "createTitle": "إضافة طلب عذر", "editTitle": "تعديل طلب عذر", "approveTitle": "الموافقة على الطلب", "rejectTitle": "رفض الطلب", "student": "الطالب", "type": "النوع", "date": "التاريخ", "dateFrom": "من تاريخ", "dateTo": "إلى تاريخ", "periods": "الحصص", "reason": "السبب", "attachments": "المرفقات", "absence": "غياب", "late": "تأخير", "earlyLeave": "مغادرة مبكرة", "decisionNote": "ملاحظة القرار", "decisionNotePlaceholder": "اكتب ملاحظة مختصرة (اختياري)", "cancel": "إلغاء", "approve": "موافقة", "reject": "رفض", "rosterLoadError": "فشل تحميل الطلاب. يرجى المحاولة مرة أخرى.", "noStudentsInScope": "لا يوجد طلاب في هذا النطاق.", "periodRequiredHelp": "اختر حصة واحدة على الأقل لطلبات التأخير/المغادرة المبكرة.", "absenceAppliesToPolicyPeriods": "سيتم تطبيق الغياب على جميع الحصص المحددة في سياسة الحضور.", "attachmentRequiredByPolicy": "المرفق مطلوب حسب سياسة الحضور.", "validation": { "studentRequired": "الطالب مطلوب", "dateRequired": "التاريخ مطلوب", "dateOrder": "يجب أن يكون تاريخ البداية قبل أو يساوي تاريخ النهاية", "termRange": "يجب أن تكون التواريخ داخل نطاق الترم", "reasonRequired": "السبب مطلوب بالعربية أو الإنجليزية", "periodRequired": "اختيار الحصة مطلوب لطلبات التأخير/المغادرة المبكرة", "attachmentRequired": "المرفق مطلوب حسب السياسة", "policyDisabled": "الأعذار غير مفعّلة في السياسة الحالية" }, "messages": { "excusesDisabledByPolicy": "الأعذار غير مسموحة حسب سياسة الحضور لهذا النطاق/التاريخ. لا يمكنك إنشاء أو تعديل طلبات الأعذار." } }, "validation": { "policyDisabled": "الأعذار غير مفعّلة في السياسة الحالية", "attachmentRequired": "المرفق مطلوب حسب السياسة" }, "messages": { "excusesDisabledByPolicy": "الأعذار غير مسموحة حسب سياسة الحضور لهذا النطاق/التاريخ." }
+      "title": "الأعذار",
+      "subtitle": "إدارة طلبات الأعذار وربطها بسجلات الحضور",
+      "readonlyBanner": "هذا الترم مغلق. يمكنك العرض فقط.",
+      "createRequest": "إضافة طلب",
+      "created": "تم إنشاء الطلب بنجاح",
+      "updated": "تم تحديث الطلب بنجاح",
+      "approved": "تمت الموافقة على الطلب",
+      "rejected": "تم رفض الطلب",
+      "deleted": "تم حذف الطلب",
+      "deleteTitle": "حذف الطلب",
+      "deleteDescription": "هل تريد حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.",
+      "exportSuccess": "تم تصدير البيانات بنجاح",
+      "scopeSchool": "المدرسة",
+      "allDates": "كل التواريخ",
+      "emptyStates": {
+        "noYearTerm": {
+          "title": "اختر السنة الأكاديمية والفصل",
+          "description": "يرجى اختيار سنة أكاديمية وفصل من شريط السياق أعلاه لعرض طلبات الأعذار."
+        },
+        "selectScope": {
+          "title": "اختر النطاق",
+          "description": "يرجى إكمال اختيار النطاق لتحميل طلبات الأعذار."
+        },
+        "noRecords": {
+          "title": "لا توجد طلبات",
+          "description": "لا توجد طلبات أعذار تطابق الفلاتر الحالية. جرّب تعديل نطاق التاريخ أو النطاق أو الحالة أو البحث."
+        }
+      },
+      "filters": {
+        "filters": "الفلاتر",
+        "searchPlaceholder": "ابحث باسم الطالب أو الرقم...",
+        "dateFrom": "من تاريخ",
+        "dateTo": "إلى تاريخ",
+        "allStatuses": "كل الحالات",
+        "pending": "قيد المراجعة",
+        "approved": "مقبول",
+        "rejected": "مرفوض",
+        "allTypes": "كل الأنواع",
+        "absence": "غياب",
+        "late": "تأخير",
+        "earlyLeave": "مغادرة مبكرة",
+        "allAttachments": "كل المرفقات",
+        "withAttachment": "مع مرفق",
+        "withoutAttachment": "بدون مرفق",
+        "export": "تصدير",
+        "apply": "تطبيق"
+      },
+      "kpis": {
+        "total": "إجمالي الطلبات",
+        "pending": "قيد المراجعة",
+        "approved": "مقبول",
+        "rejected": "مرفوض",
+        "withAttachments": "مع مرفقات"
+      },
+      "table": {
+        "submittedAt": "تاريخ الإرسال",
+        "student": "الطالب",
+        "scope": "النطاق",
+        "type": "النوع",
+        "range": "الفترة",
+        "minutes": "دقيقة",
+        "attachments": "المرفقات",
+        "status": "الحالة",
+        "actions": "الإجراءات",
+        "view": "عرض",
+        "approve": "موافقة",
+        "reject": "رفض",
+        "edit": "تعديل",
+        "delete": "حذف",
+        "pending": "قيد المراجعة",
+        "approved": "مقبول",
+        "rejected": "مرفوض",
+        "absence": "غياب",
+        "late": "تأخير",
+        "earlyLeave": "مغادرة مبكرة",
+        "allPolicyPeriods": "كل حصص السياسة",
+        "school": "المدرسة"
+      },
+      "details": {
+        "title": "تفاصيل الطلب",
+        "selectRequest": "اختر طلبًا لعرض التفاصيل",
+        "student": "الطالب",
+        "scope": "النطاق",
+        "requestInfo": "معلومات الطلب",
+        "type": "النوع",
+        "range": "الفترة",
+        "periods": "الحصص",
+        "minutesLate": "دقائق التأخير",
+        "minutesEarlyLeave": "دقائق المغادرة المبكرة",
+        "reason": "السبب",
+        "attachments": "المرفقات",
+        "noAttachments": "لا توجد مرفقات",
+        "timeline": "سجل الحالة",
+        "status": "الحالة",
+        "decidedBy": "تم اتخاذ القرار بواسطة",
+        "decidedAt": "تاريخ القرار",
+        "decisionNote": "ملاحظة القرار",
+        "allPolicyPeriods": "كل حصص السياسة",
+        "edit": "تعديل",
+        "approve": "موافقة",
+        "reject": "رفض",
+        "thresholdReached": "تم الوصول إلى حد السياسة ({threshold} دقيقة)",
+        "openStudentProfile": "فتح ملف الطالب",
+        "previewAttachment": "معاينة المرفق",
+        "previewUnavailable": "المعاينة غير متاحة",
+        "previewUnavailableDescription": "هذا المرفق لا يمكن عرضه داخل النظام. يمكنك تنزيله لعرضه.",
+        "openInNewTab": "افتح في علامة تبويب جديدة إذا كنت تواجه مشكلة في عرض المعاينة.",
+        "attachmentType": "نوع المرفق",
+        "attachmentSize": "حجم المرفق",
+        "submittedAt": "تاريخ الإرسال",
+        "updatedAt": "آخر تحديث"
+      },
+      "modal": {
+        "minutesLate": "دقائق التأخر",
+        "minutesEarlyLeave": "دقائق الانصراف المبكر",
+        "minutesLateHelper": "أدخل عدد الدقائق التي تأخر فيها الطالب",
+        "minutesEarlyLeaveHelper": "أدخل عدد الدقائق التي غادر فيها الطالب مبكرًا",
+        "minutesReachedThreshold": "تم الوصول إلى حد السياسة: {threshold} دقيقة أو أكثر يعتبر مخالفة",
+        "createTitle": "إضافة طلب عذر",
+        "editTitle": "تعديل طلب عذر",
+        "approveTitle": "الموافقة على الطلب",
+        "rejectTitle": "رفض الطلب",
+        "student": "الطالب",
+        "selectStudent": "اختر طالبًا",
+        "searchStudent": "ابحث بالاسم أو الرقم...",
+        "noStudentsFound": "لم يتم العثور على طلاب",
+        "type": "النوع",
+        "date": "التاريخ",
+        "dateFrom": "من تاريخ",
+        "dateTo": "إلى تاريخ",
+        "periods": "الحصص",
+        "reason": "السبب",
+        "attachments": "المرفقات",
+        "absence": "غياب",
+        "late": "تأخير",
+        "earlyLeave": "مغادرة مبكرة",
+        "decisionNote": "ملاحظة القرار",
+        "decisionNotePlaceholder": "اكتب ملاحظة مختصرة (اختياري)",
+        "cancel": "إلغاء",
+        "approve": "موافقة",
+        "reject": "رفض",
+        "rosterLoadError": "فشل تحميل الطلاب. يرجى المحاولة مرة أخرى.",
+        "noStudentsInScope": "لا يوجد طلاب في هذا النطاق.",
+        "periodRequiredHelp": "اختر حصة واحدة على الأقل لطلبات التأخير/المغادرة المبكرة.",
+        "absenceAppliesToPolicyPeriods": "سيتم تطبيق الغياب على جميع الحصص المحددة في سياسة الحضور.",
+        "attachmentRequiredByPolicy": "المرفق مطلوب حسب سياسة الحضور.",
+        "validation": {
+          "studentRequired": "الطالب مطلوب",
+          "dateRequired": "التاريخ مطلوب",
+          "dateOrder": "يجب أن يكون تاريخ البداية قبل أو يساوي تاريخ النهاية",
+          "termRange": "يجب أن تكون التواريخ داخل نطاق الترم",
+          "reasonRequired": "السبب مطلوب بالعربية أو الإنجليزية",
+          "periodRequired": "اختيار الحصة مطلوب لطلبات التأخير/المغادرة المبكرة",
+          "attachmentRequired": "المرفق مطلوب حسب السياسة",
+          "policyDisabled": "الأعذار غير مفعّلة في السياسة الحالية",
+          "minutesRequired": "يجب إدخال عدد الدقائق",
+          "minutesPositive": "يجب أن يكون عدد الدقائق أكبر من صفر",
+          "noActivePolicy": "لا توجد سياسة حضور فعالة للتاريخ والنطاق المحددين"
+        },
+        "messages": {
+          "excusesDisabledByPolicy": "الأعذار غير مسموحة حسب سياسة الحضور لهذا النطاق/التاريخ. لا يمكنك إنشاء أو تعديل طلبات الأعذار.",
+          "noActivePolicyOnDate": "لا توجد سياسة حضور فعالة للتاريخ {date}.",
+          "reasonRequiredOnDate": "السبب مطلوب حسب السياسة بتاريخ {date}.",
+          "excusesDisabledOnDate": "الأعذار غير مفعلة في سياسة الحضور بتاريخ {date}.",
+          "attachmentRequiredOnDate": "يوجد مرفق مطلوب حسب السياسة بتاريخ {date}."
+        },
+        "thresholdReached": "تم الوصول إلى حد السياسة ({threshold} دقيقة)",
+        "policy": {
+          "loading": "جارٍ التحقق من سياسة الحضور",
+          "actionBlocked": "هذا الطلب محجوب بواسطة سياسة الحضور",
+          "active": "سياسة الحضور الحالية فعالة",
+          "summary": "سيتم تطبيق سياسة الحضور الفعالة على هذا الطلب حسب النطاق والتواريخ المحددة.",
+          "reasonRequired": "السبب مطلوب حسب السياسة الحالية.",
+          "attachmentRequired": "المرفقات مطلوبة حسب السياسة الحالية."
+        },
+        "reasonRequiredByPolicy": "السبب مطلوب حسب سياسة الحضور الحالية."
+      },
+      "validation": {
+        "policyDisabled": "الأعذار غير مفعّلة في السياسة الحالية",
+        "attachmentRequired": "المرفق مطلوب حسب السياسة"
+      },
+      "messages": {
+        "excusesDisabledByPolicy": "الأعذار غير مسموحة حسب سياسة الحضور لهذا النطاق/التاريخ.",
+        "noActivePolicyOnDate": "لا توجد سياسة حضور فعالة للتاريخ {date}.",
+        "reasonRequiredOnDate": "السبب مطلوب حسب السياسة بتاريخ {date}.",
+        "excusesDisabledOnDate": "الأعذار غير مفعلة في سياسة الحضور بتاريخ {date}.",
+        "attachmentRequiredOnDate": "يوجد مرفق مطلوب حسب السياسة بتاريخ {date}."
+      }
     },
     "reports": "التقارير",
     "absent": "غياب",
@@ -3932,7 +4203,8 @@
         "school": "على مستوى المدرسة",
         "stage": "المرحلة",
         "grade": "الصف",
-        "section": "الشعبة"
+        "section": "الشعبة",
+        "classroom": "الفصل"
       },
       "form": {
         "nameAr": "اسم السياسة (عربي)",
@@ -3959,7 +4231,8 @@
         "termRangeHint": "يجب أن تكون التواريخ ضمن نطاق الفصل: {start} إلى {end}",
         "isActive": "السياسة نشطة",
         "active": "نشط",
-        "inactive": "غير نشط"
+        "inactive": "غير نشط",
+        "classroom": "الفصل"
       },
       "validation": {
         "nameArRequired": "الاسم العربي مطلوب",
@@ -4035,7 +4308,7 @@
             "title": "النطاق",
             "subtitle": "من تنطبق عليه",
             "priorityTitle": "أولوية السياسة",
-            "priorityDesc": "سياسات الشعبة تتجاوز سياسات الصف، التي تتجاوز سياسات المرحلة، التي تتجاوز سياسات المدرسة."
+            "priorityDesc": "تكون للسياسات ذات النطاق الأكثر تحديدًا أولوية أعلى من السياسات الأوسع نطاقًا عند وجود أكثر من سياسة تنطبق على نفس الطالب."
           },
           "mode": {
             "title": "الوضع",
@@ -4080,8 +4353,6 @@
           "allowExcuses": "السماح بالأعذار",
           "requireReason": "طلب السبب",
           "requireAttachment": "طلب مرفق",
-          "maxDaysToSubmit": "الحد الأقصى للأيام لتقديم العذر",
-          "maxDaysToSubmitDesc": "اترك فارغاً لعدم وجود حد",
           "effectiveDates": "التواريخ الفعالة",
           "effectiveStart": "تاريخ البدء",
           "effectiveEnd": "تاريخ الانتهاء",
@@ -4093,7 +4364,8 @@
           "notifyWhen": "إشعار عند",
           "notifyOnAbsent": "غياب الطالب",
           "notifyOnLate": "تأخر الطالب",
-          "notifyOnEarlyLeave": "مغادرة الطالب مبكراً"
+          "notifyOnEarlyLeave": "مغادرة الطالب مبكراً",
+          "selectClassroom": "اختر الفصل"
         },
         "scope": {
           "school": "على مستوى المدرسة",
@@ -4103,7 +4375,9 @@
           "grade": "الصف",
           "gradeDesc": "تنطبق على صف محدد",
           "section": "الشعبة",
-          "sectionDesc": "تنطبق على شعبة محددة"
+          "sectionDesc": "تنطبق على شعبة محددة",
+          "classroom": "الفصل",
+          "classroomDesc": "تنطبق على فصل دراسي محدد"
         },
         "mode": {
           "daily": "الحضور اليومي",
@@ -4138,6 +4412,14 @@
         "selectPeriodsForDailyHelper": "ستُستخدم هذه الحصص لحساب الحضور اليومي. إذا فات الطالب عدد الحصص المحدد كحد، سيُسجل غائباً لليوم.",
         "thresholdExceedsSelected": "لا يمكن أن يتجاوز الحد عدد الحصص المحددة. سيتم تعديله تلقائياً."
       }
+    },
+    "shared": {
+      "previewAttachment": "معاينة المرفق",
+      "previewUnavailable": "المعاينة غير متاحة",
+      "previewUnavailableDescription": "هذا المرفق لا يحتوي على رابط معاينة متاح حالياً.",
+      "openInNewTab": "يمكنك فتح الملف في تبويب جديد إذا كان الرابط متاحاً.",
+      "fileType": "نوع الملف",
+      "fileSize": "حجم الملف"
     }
   }
 }

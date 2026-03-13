@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { AlertCircle, ChevronDown } from "lucide-react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { AlertCircle, ChevronDown, Search } from "lucide-react";
 import { useLocale } from "next-intl";
 
 export interface SelectOption {
   value: string;
   label: string;
   disabled?: boolean;
+  searchText?: string;
 }
 
 export interface SelectProps {
@@ -25,6 +26,10 @@ export interface SelectProps {
   value?: string;
   onChange?: (value: string) => void;
   name?: string;
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  noOptionsText?: string;
+  noResultsText?: string;
 }
 
 export default function Select({
@@ -42,9 +47,15 @@ export default function Select({
   value,
   onChange,
   name,
+  searchable = false,
+  searchPlaceholder = "Search...",
+  noOptionsText = "No options available",
+  noResultsText = "No matching results",
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const locale = useLocale();
   const isRTL = locale === "ar";
 
@@ -59,6 +70,7 @@ export default function Select({
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
+        setSearchQuery("");
       }
     };
 
@@ -71,15 +83,34 @@ export default function Select({
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (isOpen && searchable) {
+      searchInputRef.current?.focus();
+    }
+  }, [isOpen, searchable]);
+
   const handleSelect = (option: SelectOption) => {
     if (option.disabled) return;
 
     setIsOpen(false);
+    setSearchQuery("");
 
     if (onChange) {
       onChange(option.value);
     }
   };
+
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const filteredOptions = useMemo(() => {
+    if (!searchable || !normalizedSearchQuery) {
+      return options;
+    }
+
+    return options.filter((option) => {
+      const haystack = `${option.label} ${option.searchText || ""}`.toLowerCase();
+      return haystack.includes(normalizedSearchQuery);
+    });
+  }, [normalizedSearchQuery, options, searchable]);
 
   const selectedOption = options.find((opt) => opt.value === selectedValue);
   const displayLabel = selectedOption?.label || placeholder;
@@ -170,13 +201,39 @@ export default function Select({
             className={`absolute z-50 mt-2 ${fullWidth ? "w-full" : "min-w-full"} bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200`}
             dir={isRTL ? "rtl" : "ltr"}
           >
+            {searchable && (
+              <div className="border-b border-gray-200 px-3 py-2">
+                <div className="relative">
+                  <Search
+                    className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 ${
+                      isRTL ? "right-3" : "left-3"
+                    }`}
+                  />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    onClick={(event) => event.stopPropagation()}
+                    placeholder={searchPlaceholder}
+                    className={`w-full rounded-md border border-gray-200 bg-white py-2 text-sm text-gray-900 outline-none transition-colors focus:border-primary ${
+                      isRTL ? "pr-9 pl-3 text-right" : "pl-9 pr-3 text-left"
+                    }`}
+                  />
+                </div>
+              </div>
+            )}
             <ul className="py-1 max-h-60 overflow-y-auto">
               {options.length === 0 ? (
                 <li className="px-4 py-2.5 text-sm text-gray-400 text-center">
-                  No options available
+                  {noOptionsText}
+                </li>
+              ) : filteredOptions.length === 0 ? (
+                <li className="px-4 py-2.5 text-sm text-gray-400 text-center">
+                  {noResultsText}
                 </li>
               ) : (
-                options.map((option, index) => (
+                filteredOptions.map((option, index) => (
                   <li
                     key={option.value}
                     className="animate-slideIn"

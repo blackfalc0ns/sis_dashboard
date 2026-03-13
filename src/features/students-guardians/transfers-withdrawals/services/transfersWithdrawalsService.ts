@@ -1,5 +1,3 @@
-// FILE: src/services/transfersWithdrawalsService.ts
-
 import type {
   TransferApplication,
   WithdrawalApplication,
@@ -9,15 +7,16 @@ import type {
 
 // TODO: Replace with actual API integration
 
-// Mock data for transfers
 const mockTransfers: TransferApplication[] = [
   {
     id: "TRF-2024-001",
     studentId: "STU-001",
     studentName: "Omar Ali",
-    studentNameAr: "عمر علي",
+    studentNameAr: "??? ???",
     stage: "preparatory",
     grade: "Grade 8",
+    section: "A",
+    classroom: "Classroom 801",
     type: "internal",
     targetClass: "8-B",
     reason: "Better academic fit",
@@ -32,9 +31,11 @@ const mockTransfers: TransferApplication[] = [
     id: "TRF-2024-002",
     studentId: "STU-002",
     studentName: "Layla Hassan",
-    studentNameAr: "ليلى حسن",
+    studentNameAr: "???? ???",
     stage: "secondary",
     grade: "Grade 10",
+    section: "B",
+    classroom: "Innovation Hall 10B",
     type: "external",
     externalSchool: "International School",
     reason: "Family relocation",
@@ -47,15 +48,16 @@ const mockTransfers: TransferApplication[] = [
   },
 ];
 
-// Mock data for withdrawals
 const mockWithdrawals: WithdrawalApplication[] = [
   {
     id: "WTH-2024-001",
     studentId: "STU-003",
     studentName: "Ahmed Hassan",
-    studentNameAr: "أحمد حسن",
+    studentNameAr: "???? ???",
     stage: "primary",
     grade: "Grade 5",
+    section: "A",
+    classroom: "Classroom 501",
     reason: "relocation",
     behaviorAvg: 85,
     behaviorBand: "high",
@@ -70,9 +72,11 @@ const mockWithdrawals: WithdrawalApplication[] = [
     id: "WTH-2024-002",
     studentId: "STU-004",
     studentName: "Sara Mohamed",
-    studentNameAr: "سارة محمد",
+    studentNameAr: "???? ????",
     stage: "secondary",
     grade: "Grade 11",
+    section: "B",
+    classroom: "Classroom 1102",
     reason: "behavior",
     behaviorAvg: 45,
     behaviorBand: "low",
@@ -94,13 +98,13 @@ export function getAllWithdrawals(): WithdrawalApplication[] {
 }
 
 export function getTransferById(id: string): TransferApplication | undefined {
-  return mockTransfers.find((t) => t.id === id);
+  return mockTransfers.find((transfer) => transfer.id === id);
 }
 
 export function getWithdrawalById(
   id: string,
 ): WithdrawalApplication | undefined {
-  return mockWithdrawals.find((w) => w.id === id);
+  return mockWithdrawals.find((withdrawal) => withdrawal.id === id);
 }
 
 export function filterTransfers(
@@ -109,28 +113,33 @@ export function filterTransfers(
   let filtered = [...mockTransfers];
 
   if (filters.stage && filters.stage !== "all") {
-    filtered = filtered.filter((t) => t.stage === filters.stage);
+    filtered = filtered.filter((transfer) => transfer.stage === filters.stage);
   }
 
   if (filters.type && filters.type !== "all") {
-    filtered = filtered.filter((t) => t.type === filters.type);
+    filtered = filtered.filter((transfer) => transfer.type === filters.type);
   }
 
   if (filters.status && filters.status !== "all") {
-    filtered = filtered.filter((t) => t.status === filters.status);
+    filtered = filtered.filter((transfer) => transfer.status === filters.status);
   }
 
   if (filters.behaviorBand && filters.behaviorBand !== "all") {
-    filtered = filtered.filter((t) => t.behaviorBand === filters.behaviorBand);
+    filtered = filtered.filter(
+      (transfer) => transfer.behaviorBand === filters.behaviorBand,
+    );
   }
 
   if (filters.searchQuery) {
     const query = filters.searchQuery.toLowerCase();
     filtered = filtered.filter(
-      (t) =>
-        t.studentName.toLowerCase().includes(query) ||
-        t.studentNameAr.includes(query) ||
-        t.id.toLowerCase().includes(query),
+      (transfer) =>
+        transfer.studentName.toLowerCase().includes(query) ||
+        transfer.studentNameAr.includes(filters.searchQuery || "") ||
+        transfer.id.toLowerCase().includes(query) ||
+        transfer.grade.toLowerCase().includes(query) ||
+        transfer.section?.toLowerCase().includes(query) ||
+        transfer.classroom?.toLowerCase().includes(query),
     );
   }
 
@@ -143,41 +152,45 @@ export function filterWithdrawals(
   let filtered = [...mockWithdrawals];
 
   if (filters.stage && filters.stage !== "all") {
-    filtered = filtered.filter((w) => w.stage === filters.stage);
+    filtered = filtered.filter((withdrawal) => withdrawal.stage === filters.stage);
   }
 
   if (filters.reason && filters.reason !== "all") {
-    filtered = filtered.filter((w) => w.reason === filters.reason);
+    filtered = filtered.filter((withdrawal) => withdrawal.reason === filters.reason);
   }
 
   if (filters.status && filters.status !== "all") {
-    filtered = filtered.filter((w) => w.status === filters.status);
+    filtered = filtered.filter((withdrawal) => withdrawal.status === filters.status);
   }
 
   if (filters.behaviorBand && filters.behaviorBand !== "all") {
-    filtered = filtered.filter((w) => w.behaviorBand === filters.behaviorBand);
+    filtered = filtered.filter(
+      (withdrawal) => withdrawal.behaviorBand === filters.behaviorBand,
+    );
   }
 
   if (filters.financialClearance && filters.financialClearance !== "all") {
     filtered = filtered.filter(
-      (w) => w.financialClearance === filters.financialClearance,
+      (withdrawal) => withdrawal.financialClearance === filters.financialClearance,
     );
   }
 
   if (filters.searchQuery) {
     const query = filters.searchQuery.toLowerCase();
     filtered = filtered.filter(
-      (w) =>
-        w.studentName.toLowerCase().includes(query) ||
-        w.studentNameAr.includes(query) ||
-        w.id.toLowerCase().includes(query),
+      (withdrawal) =>
+        withdrawal.studentName.toLowerCase().includes(query) ||
+        withdrawal.studentNameAr.includes(filters.searchQuery || "") ||
+        withdrawal.id.toLowerCase().includes(query) ||
+        withdrawal.grade.toLowerCase().includes(query) ||
+        withdrawal.section?.toLowerCase().includes(query) ||
+        withdrawal.classroom?.toLowerCase().includes(query),
     );
   }
 
   return filtered;
 }
 
-// TODO: Implement API calls
 export async function createTransfer(
   data: Partial<TransferApplication>,
 ): Promise<TransferApplication> {

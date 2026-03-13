@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import {
   ChevronRight,
@@ -32,24 +32,52 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Stage, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
+import { Stage, Grade, Section, Classroom } from "@/features/academics/academic-structure-tree/services/structureService";
 import Input from "@/components/ui/input/Input";
 import Button from "@/components/ui/button/Button";
 import DropdownMenu from "@/components/ui/dropdown/DropdownMenu";
+
+const normalizeSearchText = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[\u064b-\u065f\u0670]/g, "")
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/[ى]/g, "ي")
+    .replace(/\s+/g, " ");
+
+const matchesSearch = (query: string, ...values: Array<string | undefined>) => {
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) return true;
+
+  return values.some((value) => normalizeSearchText(value || "").includes(normalizedQuery));
+};
+
+interface TreeNodeRef {
+  type: "stage" | "grade" | "section" | "classroom";
+  id: string;
+}
 
 interface StructureTreeProps {
   stages: Stage[];
   grades: Grade[];
   sections: Section[];
-  selectedNode: { type: "stage" | "grade" | "section"; id: string } | null;
-  onSelectNode: (node: { type: "stage" | "grade" | "section"; id: string }) => void;
+  classrooms: Classroom[];
+  selectedNode: TreeNodeRef | null;
+  onSelectNode: (node: TreeNodeRef) => void;
   onAddStage: () => void;
   onAddGrade: (stageId: string) => void;
   onAddSection: (gradeId: string) => void;
-  onEdit: (type: "stage" | "grade" | "section", id: string) => void;
-  onDelete: (type: "stage" | "grade" | "section", id: string) => void;
+  onAddClassroom: (sectionId: string) => void;
+  onEdit: (type: TreeNodeRef["type"], id: string) => void;
+  onDelete: (type: TreeNodeRef["type"], id: string) => void;
   onReorderGrade: (gradeId: string, direction: "up" | "down") => void;
+  onReorderSection: (sectionId: string, direction: "up" | "down") => void;
+  onReorderClassroom: (classroomId: string, direction: "up" | "down") => void;
   onDragReorder: (stageId: string, oldIndex: number, newIndex: number) => Promise<void>;
+  onDragReorderSection: (gradeId: string, oldIndex: number, newIndex: number) => Promise<void>;
+  onDragReorderClassroom: (sectionId: string, oldIndex: number, newIndex: number) => Promise<void>;
   isReadOnly?: boolean;
 }
 
@@ -59,15 +87,315 @@ interface SortableGradeItemProps {
   totalGrades: number;
   isSelected: boolean;
   isExpanded: boolean;
+  expandedSections: Set<string>;
   sections: Section[];
-  selectedNode: { type: "stage" | "grade" | "section"; id: string } | null;
-  onSelectNode: (node: { type: "stage" | "grade" | "section"; id: string }) => void;
+  classrooms: Classroom[];
+  selectedNode: TreeNodeRef | null;
+  onSelectNode: (node: TreeNodeRef) => void;
   onToggleGrade: (gradeId: string) => void;
+  onToggleSection: (sectionId: string) => void;
   onReorderGrade: (gradeId: string, direction: "up" | "down") => void;
+  onReorderSection: (sectionId: string, direction: "up" | "down") => void;
   onAddSection: (gradeId: string) => void;
-  onEdit: (type: "stage" | "grade" | "section", id: string) => void;
-  onDelete: (type: "stage" | "grade" | "section", id: string) => void;
+  onAddClassroom: (sectionId: string) => void;
+  onEdit: (type: TreeNodeRef["type"], id: string) => void;
+  onDelete: (type: TreeNodeRef["type"], id: string) => void;
+  onReorderClassroom: (classroomId: string, direction: "up" | "down") => void;
+  onDragReorderSection: (gradeId: string, oldIndex: number, newIndex: number) => Promise<void>;
+  onDragReorderClassroom: (sectionId: string, oldIndex: number, newIndex: number) => Promise<void>;
   isDragging: boolean;
+}
+
+interface SortableSectionItemProps {
+  section: Section;
+  index: number;
+  totalSections: number;
+  isSelected: boolean;
+  isExpanded: boolean;
+  classrooms: Classroom[];
+  selectedNode: TreeNodeRef | null;
+  onSelectNode: (node: TreeNodeRef) => void;
+  onToggleSection: (sectionId: string) => void;
+  onAddClassroom: (sectionId: string) => void;
+  onEdit: (type: TreeNodeRef["type"], id: string) => void;
+  onDelete: (type: TreeNodeRef["type"], id: string) => void;
+  onReorderSection: (sectionId: string, direction: "up" | "down") => void;
+  onReorderClassroom: (classroomId: string, direction: "up" | "down") => void;
+  onDragReorderClassroom: (sectionId: string, oldIndex: number, newIndex: number) => Promise<void>;
+}
+
+interface SortableClassroomItemProps {
+  classroom: Classroom;
+  index: number;
+  totalClassrooms: number;
+  isSelected: boolean;
+  onSelectNode: (node: TreeNodeRef) => void;
+  onEdit: (type: TreeNodeRef["type"], id: string) => void;
+  onDelete: (type: TreeNodeRef["type"], id: string) => void;
+  onReorderClassroom: (classroomId: string, direction: "up" | "down") => void;
+}
+
+function SortableClassroomItem({
+  classroom,
+  index,
+  totalClassrooms,
+  isSelected,
+  onSelectNode,
+  onEdit,
+  onDelete,
+  onReorderClassroom,
+}: SortableClassroomItemProps) {
+  const t = useTranslations("academics.structure");
+  const locale = useLocale();
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: classroom.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors touch-manipulation ${
+        isSelected ? "bg-primary/10 border border-primary" : "hover:bg-gray-50"
+      }`}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="p-1 hover:bg-gray-200 rounded cursor-grab active:cursor-grabbing touch-none"
+        title={t("tree.drag_to_reorder")}
+        aria-label={t("tree.drag_to_reorder")}
+      >
+        <GripVertical className="w-3 h-3 text-gray-400" />
+      </button>
+      <div className="flex-1 text-sm text-gray-500 truncate touch-manipulation" onClick={() => onSelectNode({ type: "classroom", id: classroom.id })}>
+        {locale === "ar"
+          ? (classroom.nameAr || classroom.nameEn || classroom.name)
+          : (classroom.nameEn || classroom.nameAr || classroom.name)}
+      </div>
+      <button
+        onClick={() => onReorderClassroom(classroom.id, "up")}
+        disabled={index === 0}
+        className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"
+        title={t("tree.move_up")}
+        aria-label={t("tree.move_up")}
+      >
+        <ArrowUp className="w-3 h-3" />
+      </button>
+      <button
+        onClick={() => onReorderClassroom(classroom.id, "down")}
+        disabled={index === totalClassrooms - 1}
+        className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"
+        title={t("tree.move_down")}
+        aria-label={t("tree.move_down")}
+      >
+        <ArrowDown className="w-3 h-3" />
+      </button>
+      <DropdownMenu
+        trigger={
+          <button className="p-1 hover:bg-gray-200 rounded touch-manipulation">
+            <MoreVertical className="w-3 h-3" />
+          </button>
+        }
+        items={[
+          {
+            label: t("tree.edit"),
+            value: "edit",
+            icon: <Edit2 className="w-4 h-4" />,
+            onClick: () => onEdit("classroom", classroom.id),
+          },
+          {
+            label: t("tree.delete"),
+            value: "delete",
+            icon: <Trash2 className="w-4 h-4" />,
+            onClick: () => onDelete("classroom", classroom.id),
+          },
+        ]}
+        width="w-32"
+      />
+    </div>
+  );
+}
+
+function SortableSectionItem({
+  section,
+  index,
+  totalSections,
+  isSelected,
+  isExpanded,
+  classrooms,
+  selectedNode,
+  onSelectNode,
+  onToggleSection,
+  onAddClassroom,
+  onEdit,
+  onDelete,
+  onReorderSection,
+  onReorderClassroom,
+  onDragReorderClassroom,
+}: SortableSectionItemProps) {
+  const t = useTranslations("academics.structure");
+  const locale = useLocale();
+  const isRTL = locale === "ar";
+  const classroomSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 150,
+        tolerance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: section.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="space-y-1">
+      <div
+        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors touch-manipulation ${
+          isSelected ? "bg-primary/10 border border-primary" : "hover:bg-gray-50"
+        }`}
+      >
+        <button
+          {...attributes}
+          {...listeners}
+          className="p-1 hover:bg-gray-200 rounded cursor-grab active:cursor-grabbing touch-none"
+          title={t("tree.drag_to_reorder")}
+          aria-label={t("tree.drag_to_reorder")}
+        >
+          <GripVertical className="w-3 h-3 text-gray-400" />
+        </button>
+        <button
+          onClick={() => onToggleSection(section.id)}
+          className="p-1 hover:bg-gray-200 rounded touch-manipulation"
+          aria-label="Toggle section"
+        >
+          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </button>
+        <div className="flex-1 text-sm text-gray-600 truncate touch-manipulation" onClick={() => onSelectNode({ type: "section", id: section.id })}>
+          {locale === "ar" ? (section.nameAr || section.nameEn || section.name) : (section.nameEn || section.nameAr || section.name)}
+        </div>
+        <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600">
+          {classrooms.length}
+        </span>
+        <button
+          onClick={() => onReorderSection(section.id, "up")}
+          disabled={index === 0}
+          className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"
+          title={t("tree.move_up")}
+          aria-label={t("tree.move_up")}
+        >
+          <ArrowUp className="w-3 h-3" />
+        </button>
+        <button
+          onClick={() => onReorderSection(section.id, "down")}
+          disabled={index === totalSections - 1}
+          className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"
+          title={t("tree.move_down")}
+          aria-label={t("tree.move_down")}
+        >
+          <ArrowDown className="w-3 h-3" />
+        </button>
+        <button
+          onClick={() => onAddClassroom(section.id)}
+          className="p-1 hover:bg-gray-200 rounded"
+          title={t("tree.add_classroom")}
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+        <DropdownMenu
+          trigger={
+            <button className="p-1 hover:bg-gray-200 rounded touch-manipulation">
+              <MoreVertical className="w-3 h-3" />
+            </button>
+          }
+          items={[
+            {
+              label: t("tree.edit"),
+              value: "edit",
+              icon: <Edit2 className="w-4 h-4" />,
+              onClick: () => onEdit("section", section.id),
+            },
+            {
+              label: t("tree.delete"),
+              value: "delete",
+              icon: <Trash2 className="w-4 h-4" />,
+              onClick: () => onDelete("section", section.id),
+            },
+          ]}
+          width="w-32"
+        />
+      </div>
+
+      {isExpanded && classrooms.length > 0 && (
+        <div className={`${isRTL ? "mr-6" : "ml-6"} space-y-1`}>
+          <DndContext
+            sensors={classroomSensors}
+            collisionDetection={closestCenter}
+            onDragEnd={async (event) => {
+              const { active, over } = event;
+              if (!over || active.id === over.id) return;
+
+              const oldIndex = classrooms.findIndex((item) => item.id === active.id);
+              const newIndex = classrooms.findIndex((item) => item.id === over.id);
+
+              if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+                await onDragReorderClassroom(section.id, oldIndex, newIndex);
+              }
+            }}
+          >
+            <SortableContext
+              items={classrooms.map((classroom) => classroom.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {classrooms.map((classroom, classroomIndex) => (
+                <SortableClassroomItem
+                  key={classroom.id}
+                  classroom={classroom}
+                  index={classroomIndex}
+                  totalClassrooms={classrooms.length}
+                  isSelected={selectedNode?.type === "classroom" && selectedNode.id === classroom.id}
+                  onSelectNode={onSelectNode}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onReorderClassroom={onReorderClassroom}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function SortableGradeItem({
@@ -76,19 +404,41 @@ function SortableGradeItem({
   totalGrades,
   isSelected,
   isExpanded,
+  expandedSections,
   sections,
+  classrooms,
   selectedNode,
   onSelectNode,
   onToggleGrade,
+  onToggleSection,
   onReorderGrade,
+  onReorderSection,
   onAddSection,
+  onAddClassroom,
   onEdit,
   onDelete,
+  onReorderClassroom,
+  onDragReorderSection,
+  onDragReorderClassroom,
   isDragging,
 }: SortableGradeItemProps) {
   const t = useTranslations("academics.structure");
   const locale = useLocale();
   const isRTL = locale === "ar";
+  const sectionSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 150,
+        tolerance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
 
   const {
     attributes,
@@ -107,15 +457,13 @@ function SortableGradeItem({
 
   return (
     <div ref={setNodeRef} style={style} className="space-y-1">
-      {/* Grade */}
       <div
+      aria-label=          {locale === "ar" ? (grade.nameAr || grade.nameEn || grade.name) : (grade.nameEn || grade.nameAr || grade.name)}
+
         className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
-          isSelected
-            ? "bg-primary/10 border border-primary"
-            : "hover:bg-gray-50"
+          isSelected ? "bg-primary/10 border border-primary" : "hover:bg-gray-50"
         } ${isSortableDragging ? "shadow-lg z-50" : ""}`}
       >
-        {/* Drag Handle */}
         <button
           {...attributes}
           {...listeners}
@@ -132,20 +480,16 @@ function SortableGradeItem({
           className="p-1 hover:bg-gray-200 rounded touch-manipulation"
           aria-label="Toggle grade"
         >
-          {isExpanded ? (
-            <ChevronDown className="w-4 h-4" />
-          ) : (
-            <ChevronRight className="w-4 h-4" />
-          )}
+          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>
+
         <div
           onClick={() => onSelectNode({ type: "grade", id: grade.id })}
-          className="flex-1 text-sm cursor-pointer py-1 touch-manipulation"
+          className="flex-1 text-sm cursor-pointer py-1 touch-manipulation truncate"
         >
           {locale === "ar" ? (grade.nameAr || grade.nameEn || grade.name) : (grade.nameEn || grade.nameAr || grade.name)}
         </div>
 
-        {/* Fallback Up/Down buttons */}
         <button
           onClick={() => onReorderGrade(grade.id, "up")}
           disabled={index === 0}
@@ -182,15 +526,13 @@ function SortableGradeItem({
             {
               label: t("tree.edit"),
               value: "edit",
-                                      icon: <Edit2 className="w-4 h-4" />,
-              
+              icon: <Edit2 className="w-4 h-4" />,
               onClick: () => onEdit("grade", grade.id),
             },
             {
               label: t("tree.delete"),
               value: "delete",
-                                      icon: <Trash2 className="w-4 h-4" />,
-
+              icon: <Trash2 className="w-4 h-4" />,
               onClick: () => onDelete("grade", grade.id),
             },
           ]}
@@ -198,57 +540,52 @@ function SortableGradeItem({
         />
       </div>
 
-      {/* Sections */}
       {isExpanded && (
         <div className={`${isRTL ? "mr-6" : "ml-6"} space-y-1`}>
-          {sections.map((section) => {
-            const isSectionSelected =
-              selectedNode?.type === "section" && selectedNode.id === section.id;
+          <DndContext
+            sensors={sectionSensors}
+            collisionDetection={closestCenter}
+            onDragEnd={async (event) => {
+              const { active, over } = event;
+              if (!over || active.id === over.id) return;
 
-            return (
-              <div
-                key={section.id}
-                className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors touch-manipulation ${
-                  isSectionSelected
-                    ? "bg-primary/10 border border-primary"
-                    : "hover:bg-gray-50"
-                }`}
-                
-              >
-                <div className="w-4" />
-                <div className="flex-1 text-sm text-gray-600" onClick={() => onSelectNode({ type: "section", id: section.id })}>
-                  {locale === "ar" ? (section.nameAr || section.nameEn || section.name) : (section.nameEn || section.nameAr || section.name)}
-                </div>
-                <DropdownMenu
-                  trigger={
-                    <button 
-                      className="p-1 hover:bg-gray-200 rounded touch-manipulation"
-                    
-                    >
-                      <MoreVertical className="w-3 h-3" />
-                    </button>
-                  }
-                  items={[
-                    {
-                      label: t("tree.edit"),
-                      value: "edit",
-                                              icon: <Edit2 className="w-4 h-4" />,
+              const oldIndex = sections.findIndex((item) => item.id === active.id);
+              const newIndex = sections.findIndex((item) => item.id === over.id);
 
-                      onClick: () => onEdit("section", section.id),
-                    },
-                    {
-                      label: t("tree.delete"),
-                      value: "delete",
-                                              icon: <Trash2 className="w-4 h-4" />,
-                      
-                      onClick: () => onDelete("section", section.id),
-                    },
-                  ]}
-                  width="w-32"
-                />
-              </div>
-            );
-          })}
+              if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+                await onDragReorderSection(grade.id, oldIndex, newIndex);
+              }
+            }}
+          >
+            <SortableContext items={sections.map((section) => section.id)} strategy={verticalListSortingStrategy}>
+              {sections.map((section, sectionIndex) => {
+                const sectionClassrooms = classrooms
+                  .filter((classroom) => classroom.sectionId === section.id)
+                  .sort((a, b) => a.order - b.order);
+
+                return (
+                  <SortableSectionItem
+                    key={section.id}
+                    section={section}
+                    index={sectionIndex}
+                    totalSections={sections.length}
+                    isSelected={selectedNode?.type === "section" && selectedNode.id === section.id}
+                    isExpanded={expandedSections.has(section.id)}
+                    classrooms={sectionClassrooms}
+                    selectedNode={selectedNode}
+                    onSelectNode={onSelectNode}
+                    onToggleSection={onToggleSection}
+                    onAddClassroom={onAddClassroom}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onReorderSection={onReorderSection}
+                    onReorderClassroom={onReorderClassroom}
+                    onDragReorderClassroom={onDragReorderClassroom}
+                  />
+                );
+              })}
+            </SortableContext>
+          </DndContext>
         </div>
       )}
     </div>
@@ -259,28 +596,32 @@ export default function StructureTree({
   stages,
   grades,
   sections,
+  classrooms,
   selectedNode,
   onSelectNode,
   onAddStage,
   onAddGrade,
   onAddSection,
+  onAddClassroom,
   onEdit,
   onDelete,
   onReorderGrade,
+  onReorderSection,
+  onReorderClassroom,
   onDragReorder,
+  onDragReorderSection,
+  onDragReorderClassroom,
   isReadOnly = false,
 }: StructureTreeProps) {
   const t = useTranslations("academics.structure");
   const locale = useLocale();
   const isRTL = locale === "ar";
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedStages, setExpandedStages] = useState<Set<string>>(
-    new Set(stages.map((s) => s.id))
-  );
+  const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set(stages.map((s) => s.id)));
   const [expandedGrades, setExpandedGrades] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Configure sensors with touch support and activation constraints
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -297,52 +638,41 @@ export default function StructureTree({
   );
 
   const filteredData = useMemo(() => {
+    const uniqueStages = Array.from(new Map(stages.map((stage) => [stage.id, stage])).values());
+    const uniqueGrades = Array.from(new Map(grades.map((grade) => [grade.id, grade])).values());
+    const uniqueSections = Array.from(new Map(sections.map((section) => [section.id, section])).values());
+    const uniqueClassrooms = Array.from(new Map(classrooms.map((classroom) => [classroom.id, classroom])).values());
+
     if (!searchQuery.trim()) {
-      // Deduplicate all data by ID to prevent duplicate key errors
-      const uniqueStages = Array.from(
-        new Map(stages.map(stage => [stage.id, stage])).values()
-      );
-      const uniqueGrades = Array.from(
-        new Map(grades.map(grade => [grade.id, grade])).values()
-      );
-      const uniqueSections = Array.from(
-        new Map(sections.map(section => [section.id, section])).values()
-      );
-      return { stages: uniqueStages, grades: uniqueGrades, sections: uniqueSections };
+      return { stages: uniqueStages, grades: uniqueGrades, sections: uniqueSections, classrooms: uniqueClassrooms };
     }
 
-    const query = searchQuery.toLowerCase();
-    const matchedSections = sections.filter((s) =>
-      s.name.toLowerCase().includes(query)
+    const matchedClassrooms = uniqueClassrooms.filter((classroom) =>
+      matchesSearch(searchQuery, classroom.name, classroom.nameAr, classroom.nameEn)
     );
-    const matchedGrades = grades.filter(
-      (g) =>
-        g.name.toLowerCase().includes(query) ||
-        matchedSections.some((s) => s.gradeId === g.id)
+    const matchedSections = uniqueSections.filter(
+      (section) =>
+        matchesSearch(searchQuery, section.name, section.nameAr, section.nameEn) ||
+        matchedClassrooms.some((classroom) => classroom.sectionId === section.id)
     );
-    const matchedStages = stages.filter(
-      (s) =>
-        s.name.toLowerCase().includes(query) ||
-        matchedGrades.some((g) => g.stageId === s.id)
+    const matchedGrades = uniqueGrades.filter(
+      (grade) =>
+        matchesSearch(searchQuery, grade.name, grade.nameAr, grade.nameEn) ||
+        matchedSections.some((section) => section.gradeId === grade.id)
     );
-
-    // Deduplicate all matched data by ID
-    const uniqueMatchedStages = Array.from(
-      new Map(matchedStages.map(stage => [stage.id, stage])).values()
-    );
-    const uniqueMatchedGrades = Array.from(
-      new Map(matchedGrades.map(grade => [grade.id, grade])).values()
-    );
-    const uniqueMatchedSections = Array.from(
-      new Map(matchedSections.map(section => [section.id, section])).values()
+    const matchedStages = uniqueStages.filter(
+      (stage) =>
+        matchesSearch(searchQuery, stage.name, stage.nameAr, stage.nameEn) ||
+        matchedGrades.some((grade) => grade.stageId === stage.id)
     );
 
     return {
-      stages: uniqueMatchedStages,
-      grades: uniqueMatchedGrades,
-      sections: uniqueMatchedSections,
+      stages: matchedStages,
+      grades: matchedGrades,
+      sections: matchedSections,
+      classrooms: matchedClassrooms,
     };
-  }, [searchQuery, stages, grades, sections]);
+  }, [searchQuery, stages, grades, sections, classrooms]);
 
   const toggleStage = (stageId: string) => {
     setExpandedStages((prev) => {
@@ -362,15 +692,36 @@ export default function StructureTree({
     });
   };
 
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
+      return next;
+    });
+  };
+
   const getGradesByStage = (stageId: string) => {
-    return filteredData.grades
-      .filter((g) => g.stageId === stageId)
-      .sort((a, b) => a.order - b.order);
+    return filteredData.grades.filter((grade) => grade.stageId === stageId).sort((a, b) => a.order - b.order);
   };
 
   const getSectionsByGrade = (gradeId: string) => {
-    return filteredData.sections.filter((s) => s.gradeId === gradeId);
+    return filteredData.sections
+      .filter((section) => section.gradeId === gradeId)
+      .sort((a, b) => a.order - b.order);
   };
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      return;
+    }
+
+    setExpandedStages(new Set(filteredData.stages.map((stage) => stage.id)));
+    setExpandedGrades(new Set(filteredData.grades.map((grade) => grade.id)));
+    setExpandedSections(new Set(filteredData.sections.map((section) => section.id)));
+  }, [searchQuery, filteredData.stages, filteredData.grades, filteredData.sections]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -385,23 +736,22 @@ export default function StructureTree({
       return;
     }
 
-    const activeGrade = grades.find((g) => g.id === active.id);
-    const overGrade = grades.find((g) => g.id === over.id);
+    const activeGrade = grades.find((grade) => grade.id === active.id);
+    const overGrade = grades.find((grade) => grade.id === over.id);
 
     if (!activeGrade || !overGrade) {
       setActiveId(null);
       return;
     }
 
-    // Prevent cross-stage moves
     if (activeGrade.stageId !== overGrade.stageId) {
       setActiveId(null);
       return;
     }
 
     const stageGrades = getGradesByStage(activeGrade.stageId);
-    const oldIndex = stageGrades.findIndex((g) => g.id === active.id);
-    const newIndex = stageGrades.findIndex((g) => g.id === over.id);
+    const oldIndex = stageGrades.findIndex((grade) => grade.id === active.id);
+    const newIndex = stageGrades.findIndex((grade) => grade.id === over.id);
 
     if (oldIndex !== newIndex) {
       await onDragReorder(activeGrade.stageId, oldIndex, newIndex);
@@ -414,12 +764,10 @@ export default function StructureTree({
     setActiveId(null);
   };
 
-  // Get the active grade for drag overlay
-  const activeGrade = activeId ? grades.find((g) => g.id === activeId) : null;
+  const activeGrade = activeId ? grades.find((grade) => grade.id === activeId) : null;
 
   return (
     <div className="flex flex-col h-full">
-      {/* Search */}
       <div className="p-4 border-b border-border">
         <Input
           value={searchQuery}
@@ -430,7 +778,6 @@ export default function StructureTree({
         />
       </div>
 
-      {/* Add Stage Button */}
       <div className="p-4 border-b border-border">
         <Button
           onClick={onAddStage}
@@ -443,22 +790,17 @@ export default function StructureTree({
         </Button>
       </div>
 
-      {/* Tree */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {filteredData.stages.map((stage) => {
           const stageGrades = getGradesByStage(stage.id);
           const isExpanded = expandedStages.has(stage.id);
-          const isSelected =
-            selectedNode?.type === "stage" && selectedNode.id === stage.id;
+          const isSelected = selectedNode?.type === "stage" && selectedNode.id === stage.id;
 
           return (
             <div key={stage.id} className="space-y-1">
-              {/* Stage */}
               <div
                 className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                  isSelected
-                    ? "bg-primary/10 border border-primary"
-                    : "hover:bg-gray-50"
+                  isSelected ? "bg-primary/10 border border-primary" : "hover:bg-gray-50"
                 }`}
               >
                 <button
@@ -466,11 +808,7 @@ export default function StructureTree({
                   className="p-1 hover:bg-gray-200 rounded touch-manipulation"
                   aria-label="Toggle stage"
                 >
-                  {isExpanded ? (
-                    <ChevronDown className="w-4 h-4" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4" />
-                  )}
+                  {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                 </button>
                 <div
                   onClick={() => onSelectNode({ type: "stage", id: stage.id })}
@@ -495,15 +833,13 @@ export default function StructureTree({
                     {
                       label: t("tree.edit"),
                       value: "edit",
-                                              icon: <Edit2 className="w-4 h-4" />,
-                      
+                      icon: <Edit2 className="w-4 h-4" />,
                       onClick: () => onEdit("stage", stage.id),
                     },
                     {
                       label: t("tree.delete"),
                       value: "delete",
-                                              icon: <Trash2 className="w-4 h-4" />,
-                      
+                      icon: <Trash2 className="w-4 h-4" />,
                       onClick: () => onDelete("stage", stage.id),
                     },
                   ]}
@@ -511,7 +847,6 @@ export default function StructureTree({
                 />
               </div>
 
-              {/* Grades - Sortable */}
               {isExpanded && stageGrades.length > 0 && (
                 <div className={`${isRTL ? "mr-6" : "ml-6"}`}>
                   <DndContext
@@ -521,40 +856,36 @@ export default function StructureTree({
                     onDragEnd={handleDragEnd}
                     onDragCancel={handleDragCancel}
                   >
-                    <SortableContext
-                      items={stageGrades.map((g) => g.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {stageGrades.map((grade, index) => {
-                        const gradeSections = getSectionsByGrade(grade.id);
-                        const isGradeExpanded = expandedGrades.has(grade.id);
-                        const isGradeSelected =
-                          selectedNode?.type === "grade" &&
-                          selectedNode.id === grade.id;
-
-                        return (
-                          <SortableGradeItem
-                            key={grade.id}
-                            grade={grade}
-                            index={index}
-                            totalGrades={stageGrades.length}
-                            isSelected={isGradeSelected}
-                            isExpanded={isGradeExpanded}
-                            sections={gradeSections}
-                            selectedNode={selectedNode}
-                            onSelectNode={onSelectNode}
-                            onToggleGrade={toggleGrade}
-                            onReorderGrade={onReorderGrade}
-                            onAddSection={onAddSection}
-                            onEdit={onEdit}
-                            onDelete={onDelete}
-                            isDragging={activeId === grade.id}
-                          />
-                        );
-                      })}
+                    <SortableContext items={stageGrades.map((grade) => grade.id)} strategy={verticalListSortingStrategy}>
+                      {stageGrades.map((grade, index) => (
+                        <SortableGradeItem
+                          key={grade.id}
+                          grade={grade}
+                          index={index}
+                          totalGrades={stageGrades.length}
+                          isSelected={selectedNode?.type === "grade" && selectedNode.id === grade.id}
+                          isExpanded={expandedGrades.has(grade.id)}
+                          expandedSections={expandedSections}
+                          sections={getSectionsByGrade(grade.id)}
+                          classrooms={filteredData.classrooms}
+                          selectedNode={selectedNode}
+                          onSelectNode={onSelectNode}
+                          onToggleGrade={toggleGrade}
+                          onToggleSection={toggleSection}
+                          onReorderGrade={onReorderGrade}
+                          onReorderSection={onReorderSection}
+                          onAddSection={onAddSection}
+                          onAddClassroom={onAddClassroom}
+                          onEdit={onEdit}
+                          onDelete={onDelete}
+                          onReorderClassroom={onReorderClassroom}
+                          onDragReorderSection={onDragReorderSection}
+                          onDragReorderClassroom={onDragReorderClassroom}
+                          isDragging={activeId === grade.id}
+                        />
+                      ))}
                     </SortableContext>
 
-                    {/* Drag Overlay */}
                     <DragOverlay>
                       {activeGrade ? (
                         <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-primary shadow-lg">

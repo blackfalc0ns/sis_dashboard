@@ -2,13 +2,15 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { AlertCircle, Filter } from "lucide-react";
+import { Filter } from "lucide-react";
 import { useMediaQuery } from "@mui/material";
 import { useToast } from "@/components/ui/toast/Toast";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import Button from "@/components/ui/button/Button";
 import ContextBar from "@/features/academics/components/shared/ContextBar";
 import ScopeBreadcrumb from "@/features/attendance/components/ScopeBreadcrumb";
+import AttendanceReadOnlyBanner from "@/features/attendance/shared/components/AttendanceReadOnlyBanner";
+import AttendanceStatePanel from "@/features/attendance/shared/components/AttendanceStatePanel";
 import SessionPickerPanel from "../components/SessionPickerPanel";
 import RosterFiltersBar, { type RosterFilters } from "../components/RosterFiltersBar";
 import RollCallFiltersDrawer from "../components/RollCallFiltersDrawer";
@@ -21,6 +23,7 @@ import {
   type Stage,
   type Grade,
   type Section,
+  type Classroom,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   fetchEffectivePolicy,
@@ -36,6 +39,8 @@ import { exportAttendanceSession } from "../utils/attendanceExport";
 import { computeAttendanceKpis } from "../utils/attendanceKpis";
 import type { AttendanceScopeType } from "@/features/attendance/policies/types";
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
+import { isScopeSelectionComplete, type AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
+import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
 import type {
   AttendanceSession,
   AttendanceEntry,
@@ -57,14 +62,11 @@ export default function AttendanceRollCallPage() {
   const [stages, setStages] = useState<Stage[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
 
   // Session picker state
   const [scopeType, setScopeType] = useState<AttendanceScopeType>("SECTION");
-  const [scopeIds, setScopeIds] = useState<{
-    stageId?: string;
-    gradeId?: string;
-    sectionId?: string;
-  }>({});
+  const [scopeIds, setScopeIds] = useState<AttendanceScopeIds>({});
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
   // Policy & timetable
@@ -175,6 +177,7 @@ export default function AttendanceRollCallPage() {
         setStages(tree.stages);
         setGrades(tree.grades);
         setSections(tree.sections);
+        setClassrooms(tree.classrooms);
       } catch (error) {
         console.error("Failed to load structure:", error);
       }
@@ -187,10 +190,7 @@ export default function AttendanceRollCallPage() {
   useEffect(() => {
     if (!termContext.yearId || !termContext.termId || !date) return;
 
-    // Need at least a scope selection
-    if (scopeType === "SECTION" && !scopeIds.sectionId) return;
-    if (scopeType === "GRADE" && !scopeIds.gradeId) return;
-    if (scopeType === "STAGE" && !scopeIds.stageId) return;
+    if (!isScopeSelectionComplete(scopeType, scopeIds)) return;
 
     const loadPolicyAndTimetable = async () => {
       try {
@@ -233,16 +233,13 @@ export default function AttendanceRollCallPage() {
     };
 
     loadPolicyAndTimetable();
-  }, [termContext.yearId, termContext.termId, scopeType, scopeIds, date]);
+  }, [termContext.yearId, termContext.termId, scopeType, scopeIds, date, selectedPeriodId]);
 
   // Load session and roster
   useEffect(() => {
     if (!termContext.yearId || !termContext.termId || !date || !policy) return;
 
-    // Need scope selection
-    if (scopeType === "SECTION" && !scopeIds.sectionId) return;
-    if (scopeType === "GRADE" && !scopeIds.gradeId) return;
-    if (scopeType === "STAGE" && !scopeIds.stageId) return;
+    if (!isScopeSelectionComplete(scopeType, scopeIds)) return;
 
     // For PERIOD mode, need period selection
     if (policy.mode === "PERIOD" && !selectedPeriodId) return;
@@ -282,7 +279,7 @@ export default function AttendanceRollCallPage() {
     };
 
     loadSessionAndRoster();
-  }, [termContext.yearId, termContext.termId, date, scopeType, scopeIds, policy, selectedPeriodId, periods]);
+  }, [termContext.yearId, termContext.termId, date, scopeType, scopeIds, policy, selectedPeriodId, periods, showError, tCommon]);
 
   // Handle entry change
   const handleEntryChange = useCallback(
@@ -422,7 +419,7 @@ export default function AttendanceRollCallPage() {
     handleUnsubmit();
   }, [handleUnsubmit]);
 
-  // Reset
+    // Reset
   const handleReset = useCallback(() => {
     setEntries(JSON.parse(JSON.stringify(originalEntries)));
   }, [originalEntries]);
@@ -431,7 +428,15 @@ export default function AttendanceRollCallPage() {
   const handleExport = useCallback(() => {
     if (!session) return;
 
-    const scopeName = getScopeName();
+    const scopeName = getAttendanceScopeLabel({
+      scopeType,
+      scopeIds,
+      stages,
+      grades,
+      sections,
+      classrooms,
+      locale,
+    });
     exportAttendanceSession({
       session,
       entries,
@@ -439,7 +444,7 @@ export default function AttendanceRollCallPage() {
       locale,
       scopeName,
     });
-  }, [session, entries, roster, locale]);
+  }, [classrooms, entries, grades, locale, roster, scopeIds, scopeType, sections, session, stages]);
 
   // Bulk actions
   const handleMarkAllPresent = useCallback(() => {
@@ -451,26 +456,6 @@ export default function AttendanceRollCallPage() {
   const handleClearAll = useCallback(() => {
     setEntries([]);
   }, []);
-
-  // Get scope name for display
-  const getScopeName = useCallback((): string => {
-    if (scopeType === "SCHOOL") {
-      return locale === "ar" ? "المدرسة" : "School";
-    }
-    if (scopeType === "STAGE" && scopeIds.stageId) {
-      const stage = stages.find((s) => s.id === scopeIds.stageId);
-      return locale === "ar" ? stage?.nameAr || "" : stage?.nameEn || "";
-    }
-    if (scopeType === "GRADE" && scopeIds.gradeId) {
-      const grade = grades.find((g) => g.id === scopeIds.gradeId);
-      return locale === "ar" ? grade?.nameAr || "" : grade?.nameEn || "";
-    }
-    if (scopeType === "SECTION" && scopeIds.sectionId) {
-      const section = sections.find((s) => s.id === scopeIds.sectionId);
-      return locale === "ar" ? section?.nameAr || "" : section?.nameEn || "";
-    }
-    return "";
-  }, [scopeType, scopeIds, stages, grades, sections, locale]);
 
   // Unsaved changes guard
   const checkUnsavedChanges = useCallback(
@@ -502,7 +487,7 @@ export default function AttendanceRollCallPage() {
   );
 
   const handleScopeIdsChange = useCallback(
-    (newScopeIds: { stageId?: string; gradeId?: string; sectionId?: string }) => {
+    (newScopeIds: AttendanceScopeIds) => {
       checkUnsavedChanges(() => setScopeIds(newScopeIds));
     },
     [checkUnsavedChanges]
@@ -558,10 +543,7 @@ export default function AttendanceRollCallPage() {
 
       {/* Read-only Banner */}
       {isReadOnly && (
-        <div className="bg-orange-50 border-b border-orange-200 px-4 py-2 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-orange-600" />
-          <span className="text-sm text-orange-800">{t("readonly_banner")}</span>
-        </div>
+        <AttendanceReadOnlyBanner message={t("readonly_banner")} />
       )}
 
       {/* Main Content */}
@@ -574,6 +556,7 @@ export default function AttendanceRollCallPage() {
             stages={stages}
             grades={grades}
             sections={sections}
+            classrooms={classrooms}
             onScopeTypeChange={handleScopeTypeChange}
             onScopeIdsChange={handleScopeIdsChange}
             date={date}
@@ -618,6 +601,7 @@ export default function AttendanceRollCallPage() {
                 stages={stages}
                 grades={grades}
                 sections={sections}
+                classrooms={classrooms}
               />
             </div>
           )}
@@ -652,34 +636,29 @@ export default function AttendanceRollCallPage() {
 
           {/* Roster Table or Empty States */}
           {showNoPolicy && (
-            <div className="flex-1 flex items-center justify-center p-8">
-              <div className="text-center max-w-md">
-                <AlertCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-                <h3 style={{ color: "var(--color-gray-900)" }} className="text-lg font-semibold mb-2">{t("empty.noPolicy")}</h3>
-                <p style={{ color: "var(--color-gray-600)" }} className="text-sm">{t("empty.noPolicyDesc")}</p>
-              </div>
+            <div className="flex-1 p-8">
+              <AttendanceStatePanel
+                title={t("empty.noPolicy")}
+                description={t("empty.noPolicyDesc")}
+              />
             </div>
           )}
 
           {showNoTimetable && (
-            <div className="flex-1 flex items-center justify-center p-8">
-              <div className="text-center max-w-md">
-                <AlertCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-                <h3 style={{ color: "var(--color-gray-900)" }} className="text-lg font-semibold mb-2">
-                  {t("empty.noTimetable")}
-                </h3>
-                <p style={{ color: "var(--color-gray-600)" }} className="text-sm mb-4">{t("empty.noTimetableDesc")}</p>
-              </div>
+            <div className="flex-1 p-8">
+              <AttendanceStatePanel
+                title={t("empty.noTimetable")}
+                description={t("empty.noTimetableDesc")}
+              />
             </div>
           )}
 
           {showNoRoster && (
-            <div className="flex-1 flex items-center justify-center p-8">
-              <div className="text-center max-w-md">
-                <AlertCircle style={{ color: "var(--color-neutral-500)" }} className="w-12 h-12 mx-auto mb-4" />
-                <h3 style={{ color: "var(--color-gray-900)" }} className="text-lg font-semibold mb-2">{t("empty.noStudents")}</h3>
-                <p style={{ color: "var(--color-gray-600)" }} className="text-sm">{t("empty.noStudentsDesc")}</p>
-              </div>
+            <div className="flex-1 p-8">
+              <AttendanceStatePanel
+                title={t("empty.noStudents")}
+                description={t("empty.noStudentsDesc")}
+              />
             </div>
           )}
 
@@ -733,3 +712,8 @@ export default function AttendanceRollCallPage() {
     </div>
   );
 }
+
+
+
+
+

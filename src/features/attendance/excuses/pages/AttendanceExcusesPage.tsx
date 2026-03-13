@@ -2,18 +2,27 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Drawer, useMediaQuery } from "@mui/material";
-import { AlertCircle, Filter, Plus } from "lucide-react";
+import { useMediaQuery } from "@mui/material";
+import { Filter, Plus } from "lucide-react";
 import ContextBar from "@/features/academics/components/shared/ContextBar";
 import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useAttendanceTermContext } from "@/features/attendance/shared/hooks/useAttendanceTermContext";
+import AttendanceStatePanel from "@/features/attendance/shared/components/AttendanceStatePanel";
+import AttendanceScopeHeader from "@/features/attendance/shared/components/AttendanceScopeHeader";
+import AttendanceDataPanel from "@/features/attendance/shared/components/AttendanceDataPanel";
+import AttendanceFiltersPanel from "@/features/attendance/shared/components/AttendanceFiltersPanel";
+import AttendanceMobileActions from "@/features/attendance/shared/components/AttendanceMobileActions";
+import AttendanceDetailsCard from "@/features/attendance/shared/components/AttendanceDetailsCard";
+import AttendanceBottomDrawer from "@/features/attendance/shared/components/AttendanceBottomDrawer";
+import { isScopeSelectionComplete } from "@/features/attendance/shared/attendanceScope";
 import {
   fetchStructureTree,
   type Stage,
   type Grade,
   type Section,
+  type Classroom,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   fetchExcuseRequests,
@@ -24,7 +33,9 @@ import {
   rejectExcuseRequest,
   validateExcuseRequest,
   resolveRequestPolicy,
+  validateExcusePolicyRange,
 } from "../services/attendanceExcusesService";
+import { ExcusePolicyValidationError, type ExcusePolicyIssue } from "../utils/excusePolicyValidation";
 import {
   resolveEffectiveExcusePolicy,
   type EffectiveExcusePolicy,
@@ -38,8 +49,7 @@ import ExcusesTable from "../components/ExcusesTable";
 import ExcuseDetailsDrawer from "../components/ExcuseDetailsDrawer";
 import ExcuseRequestModal from "../components/ExcuseRequestModal";
 import DecisionModal from "../components/DecisionModal";
-import ScopeBreadcrumb from "../../components/ScopeBreadcrumb";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 
 function computeKpis(requests: ExcuseRequest[]): ExcusesKpis {
@@ -65,6 +75,7 @@ export default function AttendanceExcusesPage() {
   const [stages, setStages] = useState<Stage[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
 
   const [requests, setRequests] = useState<ExcuseRequest[]>([]);
   const [loading, setLoading] = useState(false);
@@ -86,7 +97,7 @@ export default function AttendanceExcusesPage() {
   const [decisionRequest, setDecisionRequest] = useState<ExcuseRequest | null>(null);
   const [decisionAction, setDecisionAction] = useState<"APPROVE" | "REJECT">("APPROVE");
   const [deleteTarget, setDeleteTarget] = useState<ExcuseRequest | null>(null);
-  const [requestPolicy, setRequestPolicy] = useState<EffectiveExcusePolicy | null>(null);
+  const [selectedRequestPolicy, setSelectedRequestPolicy] = useState<EffectiveExcusePolicy | null>(null);
 
   const isReadOnly = termContext.isReadOnly;
   const kpis = useMemo(() => computeKpis(requests), [requests]);
@@ -126,6 +137,7 @@ export default function AttendanceExcusesPage() {
       setStages(structure.stages);
       setGrades(structure.grades);
       setSections(structure.sections);
+      setClassrooms(structure.classrooms);
     };
 
     loadStructure();
@@ -135,26 +147,60 @@ export default function AttendanceExcusesPage() {
     reloadRequests();
   }, [reloadRequests]);
 
+  useEffect(() => {
+    if (!selectedRequest || !termContext.yearId || !termContext.termId) {
+      setSelectedRequestPolicy(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadSelectedRequestPolicy = async () => {
+      try {
+        const policy = await resolveEffectiveExcusePolicy(
+          termContext.yearId!,
+          termContext.termId!,
+          selectedRequest.scopeType,
+          selectedRequest.scopeIds,
+          selectedRequest.dateFrom
+        );
+
+        if (!cancelled) {
+          setSelectedRequestPolicy(policy);
+        }
+      } catch (error) {
+        console.error("Failed to resolve selected request policy:", error);
+        if (!cancelled) {
+          setSelectedRequestPolicy(null);
+        }
+      }
+    };
+
+    loadSelectedRequestPolicy();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedRequest, termContext.yearId, termContext.termId]);
+
   // Update filters when term changes
   useEffect(() => {
     if (term) {
       setFilters((prev) => ({ ...prev, dateFrom: term.startDate, dateTo: term.endDate }));
     }
-  }, [term]);
+  }, [term]);
 
-  const getScopeLabel = () => {
-    if (filters.scopeType === "SCHOOL") return t("scopeSchool");
-    if (filters.scopeType === "STAGE") {
-      const stage = stages.find((item) => item.id === filters.scopeIds?.stageId);
-      return (locale === "ar" ? stage?.nameAr : stage?.nameEn) || "-";
+  const getPolicyIssueMessage = (issue: ExcusePolicyIssue) => {
+    if (issue.code === "NO_ACTIVE_POLICY") {
+      return t("messages.noActivePolicyOnDate", { date: issue.date });
     }
-    if (filters.scopeType === "GRADE") {
-      const grade = grades.find((item) => item.id === filters.scopeIds?.gradeId);
-      return (locale === "ar" ? grade?.nameAr : grade?.nameEn) || "-";
+    if (issue.code === "REASON_REQUIRED") {
+      return t("messages.reasonRequiredOnDate", { date: issue.date });
     }
-
-    const section = sections.find((item) => item.id === filters.scopeIds?.sectionId);
-    return (locale === "ar" ? section?.nameAr : section?.nameEn) || "-";
+    if (issue.code === "ATTACHMENT_REQUIRED") {
+      return t("messages.attachmentRequiredOnDate", { date: issue.date });
+    }
+    return t("messages.excusesDisabledOnDate", { date: issue.date });
   };
 
   const handleExport = (format: "csv" | "excel") => {
@@ -163,7 +209,16 @@ export default function AttendanceExcusesPage() {
     exportExcuses(requests, locale, format, {
       yearName: termContext.yearId || "",
       termName: locale === "ar" ? term.nameAr || term.name : term.nameEn || term.name,
-      scopeName: getScopeLabel(),
+      scopeName: getAttendanceScopeLabel({
+        scopeType: filters.scopeType,
+        scopeIds: filters.scopeIds,
+        stages,
+        grades,
+        sections,
+        classrooms,
+        locale,
+        schoolLabel: t("scopeSchool"),
+      }),
       dateRange: filters.dateFrom && filters.dateTo ? `${filters.dateFrom} - ${filters.dateTo}` : t("allDates"),
     });
 
@@ -172,6 +227,16 @@ export default function AttendanceExcusesPage() {
 
   const handleSaveRequest = async (payload: Omit<ExcuseRequest, "id" | "status" | "createdAt" | "updatedAt" | "decidedAt" | "decidedBy" | "decisionNote" | "linkedSessionIds" | "yearId" | "termId">) => {
     if (!term) return;
+
+    const policyIssue = await validateExcusePolicyRange({
+      ...payload,
+      yearId: termContext.yearId!,
+      termId: termContext.termId!,
+    });
+    if (policyIssue) {
+      showError(getPolicyIssueMessage(policyIssue));
+      throw new Error("Validation failed");
+    }
 
     const effectivePolicy = await resolveRequestPolicy(
       termContext.yearId!,
@@ -228,7 +293,11 @@ export default function AttendanceExcusesPage() {
       await reloadRequests();
     } catch (error) {
       console.error("Decision failed", error);
-      showError(error instanceof Error ? error.message : tCommon("save_failed"));
+      if (error instanceof ExcusePolicyValidationError) {
+        showError(getPolicyIssueMessage(error.issue));
+      } else {
+        showError(error instanceof Error ? error.message : tCommon("save_failed"));
+      }
       throw error;
     }
   };
@@ -254,56 +323,15 @@ export default function AttendanceExcusesPage() {
   const handleCreateRequest = async () => {
     if (isReadOnly) return;
 
-    try {
-      // Use current filters for scope and date
-      const dateISO = filters.dateFrom || term?.startDate || new Date().toISOString().split('T')[0];
-      
-      const policy = await resolveEffectiveExcusePolicy(
-        termContext.yearId!,
-        termContext.termId!,
-        filters.scopeType,
-        filters.scopeIds,
-        dateISO
-      );
-
-      if (!policy.allowExcuses) {
-        showError(t("messages.excusesDisabledByPolicy"));
-        return;
-      }
-
-      setRequestPolicy(policy);
-      setEditingRequest(null);
-      setShowRequestModal(true);
-    } catch (error) {
-      console.error("Failed to resolve excuse policy:", error);
-      showError(tCommon("error_loading"));
-    }
+    setEditingRequest(null);
+    setShowRequestModal(true);
   };
 
   const handleEditRequest = async (request: ExcuseRequest) => {
     if (isReadOnly) return;
 
-    try {
-      const policy = await resolveEffectiveExcusePolicy(
-        termContext.yearId!,
-        termContext.termId!,
-        request.scopeType,
-        request.scopeIds,
-        request.dateFrom
-      );
-
-      if (!policy.allowExcuses) {
-        showError(t("messages.excusesDisabledByPolicy"));
-        return;
-      }
-
-      setRequestPolicy(policy);
-      setEditingRequest(request);
-      setShowRequestModal(true);
-    } catch (error) {
-      console.error("Failed to resolve excuse policy:", error);
-      showError(tCommon("error_loading"));
-    }
+    setEditingRequest(request);
+    setShowRequestModal(true);
   };
 
   const resetFilters = () => {
@@ -325,6 +353,30 @@ export default function AttendanceExcusesPage() {
     );
   }
 
+  if (!termContext.yearId || !termContext.termId) {
+    return (
+      <div className="flex flex-col h-screen">
+        <ContextBar
+          academicYearId={termContext.yearId || ""}
+          termId={termContext.termId || ""}
+          termStatus={termContext.termStatus || "open"}
+          onAcademicYearChange={termContext.setYearId}
+          onTermChange={termContext.setTermId}
+          isReadOnly={isReadOnly}
+          showPromoteCarryOver={false}
+        />
+        <div className="flex-1 flex items-center justify-center">
+          <AttendanceStatePanel
+            title={t("emptyStates.noYearTerm.title")}
+            description={t("emptyStates.noYearTerm.description")}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const isScopeSelectionIncomplete = !isScopeSelectionComplete(filters.scopeType, filters.scopeIds);
+
   return (
     <div className="flex flex-col h-screen">
       <ContextBar
@@ -336,26 +388,17 @@ export default function AttendanceExcusesPage() {
         isReadOnly={isReadOnly}
         showPromoteCarryOver={false}
       />
-
-      {isReadOnly && (
-        <div className="px-4 py-2 flex items-center gap-2" style={{ backgroundColor: "var(--color-warning-50)", color: "var(--color-warning-800)", borderBottom: "1px solid var(--color-warning-200)" }}>
-          <AlertCircle className="w-4 h-4" />
-          <span className="text-sm">{t("readonlyBanner")}</span>
-        </div>
-      )}
-
       <div className="flex-1 p-4 flex flex-col gap-4 min-h-0" style={{ backgroundColor: "var(--background)" }}>
-                {(
-                    
-                      <ScopeBreadcrumb
-                        scopeType={filters.scopeType}
-                        scopeIds={filters.scopeIds}
-                        stages={stages}
-                        grades={grades}
-                        sections={sections}
-                      />
-                   
-                  )}
+        <AttendanceScopeHeader
+          isReadOnly={isReadOnly}
+          readOnlyMessage={t("readonlyBanner")}
+          scopeType={filters.scopeType}
+          scopeIds={filters.scopeIds}
+          stages={stages}
+          grades={grades}
+          sections={sections}
+          classrooms={classrooms}
+        />
           <div>
           <ExcusesKpisBar kpis={kpis} />
           </div>
@@ -376,23 +419,32 @@ export default function AttendanceExcusesPage() {
         {!isMobile && (
           <div className="grid grid-cols-12 gap-4 min-h-0 flex-1">
             <div className="col-span-8 min-h-0 flex flex-col gap-4">
-              <div className="rounded-xl border p-4" style={{ backgroundColor: "var(--card-background)", borderColor: "var(--border-color)" }}>
+              <AttendanceFiltersPanel>
                 <ExcusesFiltersBar
                   filters={filters}
                   stages={stages}
                   grades={grades}
                   sections={sections}
+                  classrooms={classrooms}
                   onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
                   onReset={resetFilters}
                   onExport={handleExport}
                 />
-              </div>
+              </AttendanceFiltersPanel>
 
-              <div className="rounded-xl border overflow-hidden min-h-0" style={{ backgroundColor: "var(--card-background)", borderColor: "var(--border-color)" }}>
-                {loading ? (
-                  <div className="h-full flex items-center justify-center py-4"><PartialLoader/></div>
+              <AttendanceDataPanel loading={loading}>
+                {isScopeSelectionIncomplete ? (
+                  <AttendanceStatePanel
+                    title={t("emptyStates.selectScope.title")}
+                    description={t("emptyStates.selectScope.description")}
+                  />
+                ) : requests.length === 0 ? (
+                  <AttendanceStatePanel
+                    title={t("emptyStates.noRecords.title")}
+                    description={t("emptyStates.noRecords.description")}
+                  />
                 ) : (
-                  <ExcusesTable requests={requests} grades={grades} sections={sections} isReadOnly={isReadOnly}
+                  <ExcusesTable requests={requests} grades={grades} sections={sections} classrooms={classrooms} isReadOnly={isReadOnly}
                     onView={(request) => setSelectedRequest(request)}
                     onApprove={(request) => openDecision(request, "APPROVE")}
                     onReject={(request) => openDecision(request, "REJECT")}
@@ -400,25 +452,26 @@ export default function AttendanceExcusesPage() {
                     onDelete={(request) => setDeleteTarget(request)}
                   />
                 )}
-              </div>
+              </AttendanceDataPanel>
             </div>
 
-            <div className="col-span-4 min-h-0 rounded-xl border overflow-hidden" style={{ backgroundColor: "var(--card-background)", borderColor: "var(--border-color)" }}>
+            <AttendanceDetailsCard>
               <ExcuseDetailsDrawer
                 request={selectedRequest}
+                effectivePolicy={selectedRequestPolicy}
                 isReadOnly={isReadOnly}
                 onClose={() => setSelectedRequest(null)}
                 onApprove={(request) => openDecision(request, "APPROVE")}
                 onReject={(request) => openDecision(request, "REJECT")}
                 onEdit={handleEditRequest}
               />
-            </div>
+            </AttendanceDetailsCard>
           </div>
         )}
 
         {isMobile && (
           <div className="flex flex-col gap-3 min-h-0 flex-1">
-            <div className="grid grid-cols-2 gap-2">
+            <AttendanceMobileActions columns={2}>
               <Button variant="outline" size="sm" leftIcon={<Filter className="w-4 h-4" />} onClick={() => setShowFiltersDrawer(true)}>
                 {t("filters.filters")}
               </Button>
@@ -431,20 +484,32 @@ export default function AttendanceExcusesPage() {
               >
                 {t("createRequest")}
               </Button>
-            </div>
+            </AttendanceMobileActions>
 
-            <div className="rounded-xl border overflow-hidden min-h-0" style={{ backgroundColor: "var(--card-background)", borderColor: "var(--border-color)" }}>
-              <ExcusesTable requests={requests} grades={grades} sections={sections} isReadOnly={isReadOnly}
-                onView={(request) => {
-                  setSelectedRequest(request);
-                  setShowDetailsDrawer(true);
-                }}
-                onApprove={(request) => openDecision(request, "APPROVE")}
-                onReject={(request) => openDecision(request, "REJECT")}
-                onEdit={handleEditRequest}
-                onDelete={(request) => setDeleteTarget(request)}
-              />
-            </div>
+            <AttendanceDataPanel loading={loading}>
+              {isScopeSelectionIncomplete ? (
+                <AttendanceStatePanel
+                  title={t("emptyStates.selectScope.title")}
+                  description={t("emptyStates.selectScope.description")}
+                />
+              ) : requests.length === 0 ? (
+                <AttendanceStatePanel
+                  title={t("emptyStates.noRecords.title")}
+                  description={t("emptyStates.noRecords.description")}
+                />
+              ) : (
+                <ExcusesTable requests={requests} grades={grades} sections={sections} classrooms={classrooms} isReadOnly={isReadOnly}
+                  onView={(request) => {
+                    setSelectedRequest(request);
+                    setShowDetailsDrawer(true);
+                  }}
+                  onApprove={(request) => openDecision(request, "APPROVE")}
+                  onReject={(request) => openDecision(request, "REJECT")}
+                  onEdit={handleEditRequest}
+                  onDelete={(request) => setDeleteTarget(request)}
+                />
+              )}
+            </AttendanceDataPanel>
           </div>
         )}
       </div>
@@ -455,6 +520,7 @@ export default function AttendanceExcusesPage() {
         stages={stages}
         grades={grades}
         sections={sections}
+        classrooms={classrooms}
         onClose={() => setShowFiltersDrawer(false)}
         onApply={() => setShowFiltersDrawer(false)}
         onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
@@ -462,36 +528,35 @@ export default function AttendanceExcusesPage() {
         onExport={handleExport}
       />
 
-      <Drawer anchor="bottom" open={showDetailsDrawer} onClose={() => setShowDetailsDrawer(false)}>
-        <div className="h-[85vh]">
-          <ExcuseDetailsDrawer
-            request={selectedRequest}
-            isReadOnly={isReadOnly}
-            onClose={() => setShowDetailsDrawer(false)}
-            onApprove={(request) => openDecision(request, "APPROVE")}
-            onReject={(request) => openDecision(request, "REJECT")}
-            onEdit={(request) => {
-              setEditingRequest(request);
-              setShowRequestModal(true);
-            }}
-          />
-        </div>
-      </Drawer>
+      <AttendanceBottomDrawer isOpen={showDetailsDrawer} onClose={() => setShowDetailsDrawer(false)} heightClassName="h-[85vh]">
+        <ExcuseDetailsDrawer
+          request={selectedRequest}
+          effectivePolicy={selectedRequestPolicy}
+          isReadOnly={isReadOnly}
+          onClose={() => setShowDetailsDrawer(false)}
+          onApprove={(request) => openDecision(request, "APPROVE")}
+          onReject={(request) => openDecision(request, "REJECT")}
+          onEdit={(request) => {
+            setEditingRequest(request);
+            setShowRequestModal(true);
+          }}
+        />
+      </AttendanceBottomDrawer>
 
       <ExcuseRequestModal
         isOpen={showRequestModal}
         isReadOnly={isReadOnly}
+        yearId={termContext.yearId || ""}
         termId={termContext.termId || ""}
         termRange={{ startDate: term?.startDate || "", endDate: term?.endDate || "" }}
         stages={stages}
         grades={grades}
         sections={sections}
-        effectivePolicy={requestPolicy}
+        classrooms={classrooms}
         initialRequest={editingRequest}
         onClose={() => {
           setShowRequestModal(false);
           setEditingRequest(null);
-          setRequestPolicy(null);
         }}
         onSave={handleSaveRequest}
       />
@@ -517,4 +582,11 @@ export default function AttendanceExcusesPage() {
     </div>
   );
 }
+
+
+
+
+
+
+
 

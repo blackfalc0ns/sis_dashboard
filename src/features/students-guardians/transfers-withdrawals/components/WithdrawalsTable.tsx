@@ -64,6 +64,16 @@ export default function WithdrawalsTable({ data }: WithdrawalsTableProps) {
       label: t("withdrawals.table.grade"),
     },
     {
+      key: "section",
+      label: t("withdrawals.table.section"),
+      render: (value: unknown) => (value as string) || t("na"),
+    },
+    {
+      key: "classroom",
+      label: t("withdrawals.table.classroom"),
+      render: (value: unknown) => (value as string) || t("na"),
+    },
+    {
       key: "behaviorAvg",
       label: t("withdrawals.table.behavior_avg"),
       render: (value: unknown) => (
