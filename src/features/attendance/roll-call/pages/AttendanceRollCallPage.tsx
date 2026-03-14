@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/toast/Toast";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import Button from "@/components/ui/button/Button";
 import ContextBar from "@/features/academics/components/shared/ContextBar";
-import ScopeBreadcrumb from "@/features/attendance/components/ScopeBreadcrumb";
+import ScopeBreadcrumb from "@/features/attendance/shared/components/ScopeBreadcrumb";
 import AttendanceReadOnlyBanner from "@/features/attendance/shared/components/AttendanceReadOnlyBanner";
 import AttendanceStatePanel from "@/features/attendance/shared/components/AttendanceStatePanel";
 import SessionPickerPanel from "../components/SessionPickerPanel";

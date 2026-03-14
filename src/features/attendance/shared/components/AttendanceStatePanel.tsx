@@ -14,11 +14,11 @@ export default function AttendanceStatePanel({
   compact = false,
 }: AttendanceStatePanelProps) {
   return (
-    <div className="flex items-center justify-center h-full">
+    <div className="flex items-center justify-center h-full p-10">
       <div className={`text-center ${compact ? "space-y-2" : "space-y-3"}`}>
         <AlertCircle
-          className={`${compact ? "w-10 h-10" : "w-12 h-12"} mx-auto`}
-          style={{ color: "var(--text-muted)" }}
+          className={`${compact ? "w-10 h-10" : "w-12 h-12"} mx-auto text-warning`}
+          style={{ color: "var(--text-warning)" }}
         />
         <h3
           className={`${compact ? "text-base" : "text-lg"} font-medium`}

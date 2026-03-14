@@ -33,6 +33,7 @@
   --color-white: var(--white-color);
   --color-black: var(--black-color);
   --color-border: var(--border-color);
+  --color-warning: #ffcc00;
   --shadow-main: var(--main-box-shadow-value);
   /* PRIMARY SCALE */
   --color-primary-50: color-mix(in oklab, var(--primary-color) 6%, white);

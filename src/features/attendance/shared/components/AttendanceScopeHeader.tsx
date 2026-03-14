@@ -1,6 +1,6 @@
 "use client";
 
-import ScopeBreadcrumb from "@/features/attendance/components/ScopeBreadcrumb";
+import ScopeBreadcrumb from "@/features/attendance/shared/components/ScopeBreadcrumb";
 import AttendanceReadOnlyBanner from "./AttendanceReadOnlyBanner";
 import type {
   Classroom,

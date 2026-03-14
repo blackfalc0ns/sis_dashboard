@@ -923,7 +923,17 @@
       "acceptance_generated": "Acceptance letter generated successfully!",
       "contract_generated": "Initial contract generated successfully!",
       "cancel": "Cancel",
-      "confirm_enrollment": "Confirm Enrollment"
+      "confirm_enrollment": "Confirm Enrollment",
+      "capacity_summary": "Capacity Summary",
+      "available_seats": "Available seats",
+      "over_capacity": "This classroom is over capacity.",
+      "classroom_full": "This classroom is full.",
+      "section_full": "This section is full.",
+      "low_seats": "Low remaining seats.",
+      "suggested_placements": "Suggested placements",
+      "no_seats_available": "No seats are available in the selected placement.",
+      "add_to_waitlist": "Add to Waitlist",
+      "assign_automatically": "Assign Automatically"
     },
     "test_score_modal": {
       "title": "Enter Test Score",
@@ -1166,7 +1176,10 @@
       "no_match": "No decisions match your filters",
       "no_decisions": "No decisions found",
       "clear_filters": "Clear filters",
-      "found": "found"
+      "found": "found",
+      "messages": {
+        "decision_recorded": "Decision recorded successfully."
+      }
     },
     "enrollment": {
       "title": "All Enrollments",
@@ -1203,8 +1216,18 @@
         "enrollment_updated": "Enrollment updated successfully.",
         "promotion_complete": "{count} students promoted successfully.",
         "rebalance_complete": "{count} placements updated. Unassigned: {unassigned}.",
-        "action_failed": "The action could not be completed."
-      }
+        "action_failed": "The action could not be completed.",
+        "waitlist_created": "Applicant added to waitlist successfully.",
+        "waitlist_promoted": "{count} waitlist entries promoted. Blocked: {blocked}.",
+        "section_full": "Selected section is full.",
+        "classroom_full": "Selected classroom is full.",
+        "no_seats_available": "No seats are currently available."
+      },
+      "waitlist": "Waitlist",
+      "pending_placement": "pending placement",
+      "full_classrooms": "Full Classrooms",
+      "promote_waitlist": "Promote Waitlist",
+      "waitlist_summary": "{count} active waitlist entries will be checked for available seats."
     }
   },
   "students_guardians": {
@@ -1743,7 +1766,9 @@
             "notes": "Additional Notes",
             "notes_placeholder": "Enter any additional information...",
             "attachments": "Attachments",
-            "upload_files": "Click to upload or drag and drop files"
+            "upload_files": "Click to upload or drag and drop files",
+            "available_seats": "available seats",
+            "suggested_placements": "Suggested placements"
           },
           "types": {
             "internal": "Internal Transfer",
@@ -1758,7 +1783,9 @@
             "target_must_change": "Choose a different section or classroom from the current placement",
             "external_school_required": "Please enter external school name",
             "reason_required": "Please enter a reason",
-            "date_required": "Please select effective date"
+            "date_required": "Please select effective date",
+            "target_section_full": "Target section is full.",
+            "target_classroom_full": "Target classroom is full."
           },
           "no_students_found": "No students found",
           "no_sections_found": "No sections found",

@@ -1194,19 +1194,7 @@
       "all_years": "جميع السنوات",
       "no_match": "لا توجد تسجيلات تطابق التصفية",
       "no_enrollments": "لم يتم العثور على تسجيلات",
-      "found": "تم العثور عليها",
-      "promote_students": "????? ??????",
-      "rebalance_classrooms": "????? ????? ??????",
-      "target_academic_year": "????? ??????? ????????",
-      "effective_date": "????? ???????",
-      "confirm": "?????",
-      "cancel": "?????",
-      "messages": {
-        "enrollment_updated": "?? ????? ????? ?????.",
-        "promotion_complete": "??? ????? {count} ???? ?????.",
-        "rebalance_complete": "?? ????? {count} ?? ?????????. ??? ??????: {unassigned}.",
-        "action_failed": "???? ????? ???????."
-      }
+      "found": "تم العثور عليها"
     }
   },
   "students_guardians": {
@@ -2045,14 +2033,14 @@
         "current": "حالي",
         "grade_progression": "تقدم الصفوف",
         "na": "غير متاح",
-        "movement_title": "نوع الحركة",
+"movement_title": "نوع الحركة",
         "movement": {
-          "enrolled": "تم التسجيل",
-          "transferred_internal": "نقل داخلي",
-          "transferred_external": "نقل خارجي",
-          "withdrawn": "منسحب",
-          "promoted": "ترقية",
-          "reassigned_bulk": "إعادة تعيين جماعية إلى شعبة"
+        "enrolled": "تم التسجيل",
+"transferred_internal": "نقل داخلي",
+"transferred_external": "نقل خارجي",
+"withdrawn": "منسحب",
+"promoted": "ترقية",
+"reassigned_bulk": "إعادة تعيين جماعية إلى شعبة"
         }
       },
       "attendance": {
