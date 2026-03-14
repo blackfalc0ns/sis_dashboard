@@ -125,7 +125,7 @@ export default function KPICardV2({
       {/* Conditional Layout: Horizontal without chart, Vertical with chart */}
       {!hasChart ? (
         // Horizontal Layout (No Chart)
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 h-full">
           {/* Icon */}
           <div>
           {Icon && (

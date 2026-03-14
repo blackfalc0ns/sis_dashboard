@@ -103,7 +103,8 @@ export interface EnhancedExportOptions {
  * Export to Excel with title section and metadata
  */
 export function exportToExcelWithTitle(options: EnhancedExportOptions) {
-  const { title, subtitle, data, filename } = options;
+  const { title, subtitle, filename } = options;
+  const data = Array.isArray(options.data) ? options.data : [];
 
   if (data.length === 0) {
     alert("No data to export");
@@ -163,7 +164,8 @@ export function exportToExcelWithTitle(options: EnhancedExportOptions) {
  * Export to CSV with title section and metadata
  */
 export function exportToCSVWithTitle(options: EnhancedExportOptions) {
-  const { title, subtitle, data, filename } = options;
+  const { title, subtitle, filename } = options;
+  const data = Array.isArray(options.data) ? options.data : [];
 
   if (data.length === 0) {
     alert("No data to export");

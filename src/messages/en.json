@@ -4507,6 +4507,192 @@
       "openInNewTab": "You can open this file in a new tab if a URL is available.",
       "fileType": "File type",
       "fileSize": "File size"
+    },
+    "reportsPage": {
+      "readonlyBanner": "This term is closed. Reports are read-only.",
+      "scopeSchool": "School",
+      "filters": {
+        "dateFrom": "Date from",
+        "dateTo": "Date to",
+        "student": "Student",
+        "allStudents": "All students",
+        "studentSearch": "Search students",
+        "noStudents": "No students available",
+        "attendanceStatus": "Attendance status",
+        "allAttendanceStatuses": "All attendance statuses",
+        "statuses": {
+          "present": "Present",
+          "absent": "Absent",
+          "excused": "Excused",
+          "late": "Late",
+          "earlyLeave": "Early leave"
+        },
+        "excuseStatus": "Excuse status",
+        "allExcuseStatuses": "All excuse statuses",
+        "excuseStatuses": {
+          "pending": "Pending",
+          "approved": "Approved",
+          "rejected": "Rejected"
+        },
+        "incidentType": "Incident type",
+        "allIncidentTypes": "All incident types",
+        "incidentTypes": {
+          "absence": "Absence",
+          "excused": "Excused",
+          "late": "Late",
+          "earlyLeave": "Early leave"
+        },
+        "reset": "Reset filters",
+        "open": "Filters"
+      },
+      "export": {
+        "dataset": "Export dataset",
+        "button": "Export report",
+        "summary": "Summary",
+        "detailed": "Detailed records",
+        "risk": "Risk report",
+        "performance": "Performance table",
+        "success": "Attendance report exported successfully"
+      },
+      "emptyStates": {
+        "noYearTerm": {
+          "title": "Select academic year and term",
+          "description": "Choose an academic year and term from the context bar to load attendance reports."
+        },
+        "noData": {
+          "title": "No report data available",
+          "description": "No submitted attendance data matches the current filters. Try adjusting the date range or scope."
+        }
+      },
+      "kpis": {
+        "attendanceRate": "Attendance rate",
+        "presentCount": "Present",
+        "absentCount": "Absent",
+        "excusedCount": "Excused",
+        "lateCount": "Late incidents",
+        "earlyLeaveCount": "Early leave incidents",
+        "riskStudents": "Students at risk",
+        "groupsBelowThreshold": "Groups below threshold",
+        "previousPeriod": "Vs previous period",
+        "delta": "Delta vs previous period: {value}",
+        "drilldown": "Open drill-down"
+      },
+      "trend": {
+      "title": "Attendance trend",
+      "subtitle": "Attendance rate and attendance volume over time",
+      "rateSeries": "Attendance rate",
+      "volumeSeries": "Marked entries",
+      "empty": "No attendance trend data in the selected period."
+    },
+      "absence": {
+        "title": "Absence analysis",
+        "subtitle": "Absence concentration, trend, and repeat patterns",
+        "totalAbsences": "Total absences",
+        "excused": "Excused",
+        "unexcused": "Unexcused",
+        "byDate": "Absences by date",
+        "topStudents": "Top absent students",
+        "excusedUnexcused": "Excused: {excused} ? Unexcused: {unexcused}",
+        "byGrade": "By grade",
+        "bySection": "By section",
+        "byClassroom": "By classroom",
+        "weekdayPattern": "Weekday pattern"
+      },
+      "lateEarly": {
+        "title": "Late / Early analysis",
+        "subtitle": "Incidents, minutes, violations, and repeat students",
+        "lateCount": "Late incidents",
+        "earlyLeaveCount": "Early leave incidents",
+        "violations": "Violations",
+        "avgLateMinutes": "Avg late minutes",
+        "avgEarlyLeaveMinutes": "Avg early-leave minutes",
+        "trend": "Trend",
+        "topLateStudents": "Top late students",
+        "topEarlyLeaveStudents": "Top early-leave students",
+        "studentSummary": "{count} incidents ? Avg {minutes} min",
+        "byGrade": "By grade",
+        "bySection": "By section",
+        "byClassroom": "By classroom"
+      },
+      "excuses": {
+        "title": "Excuses analysis",
+        "subtitle": "Status mix, approval rate, and activity concentration",
+        "totalRequests": "Total requests",
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "approvalRate": "Approval rate",
+        "lateSubmissions": "Late submissions",
+        "byType": "By type",
+        "types": {
+          "ABSENCE": "Absence",
+          "LATE": "Late",
+          "EARLY_LEAVE": "Early leave"
+        },
+        "topStudents": "Top students",
+        "studentSummary": "{count} requests ? Approved {approved} ? Rejected {rejected}",
+        "topScopes": "Top scopes"
+      },
+      "risk": {
+        "title": "Student risk / exceptions",
+        "subtitle": "Students requiring follow-up based on attendance patterns",
+        "student": "Student",
+        "scope": "Current scope",
+        "attendanceRate": "Attendance rate",
+        "absences": "Absences",
+        "late": "Late",
+        "rejectedExcuses": "Rejected excuses",
+        "missingMarks": "Missing marks",
+        "flags": {
+          "low_attendance": "Low attendance ({count}%)",
+          "repeated_absence": "Repeated absences ({count})",
+          "repeated_late": "Repeated late ({count})",
+          "rejected_excuses": "Rejected excuses ({count})",
+          "missing_attendance": "Missing attendance ({count})"
+        },
+        "flagsMap": "Flags",
+        "flagsLabel": "Flags"
+      },
+      "performance": {
+        "title": "Performance comparison",
+        "subtitle": "Compare attendance rate across academic groups",
+        "levels": {
+          "stage": "Stage",
+          "grade": "Grade",
+          "section": "Section",
+          "classroom": "Classroom"
+        },
+        "name": "Name",
+        "attendanceRate": "Attendance rate",
+        "markedCount": "Marked count",
+        "absent": "Absent",
+        "late": "Late",
+        "delta": "Delta"
+      },
+      "drilldown": {
+        "title": "Drill-down details",
+        "empty": "No rows available for this drill-down.",
+        "attendanceRows": "Attendance detail rows",
+        "riskStudents": "Risk students",
+        "groupsBelowThreshold": "Groups below threshold",
+        "excuseRequests": "Excuse requests",
+        "columns": {
+          "date": "Date",
+          "student": "Student",
+          "scope": "Scope",
+          "status": "Status",
+          "period": "Period",
+          "attendanceRate": "Attendance rate",
+          "flags": "Flags",
+          "type": "Type",
+          "level": "Level"
+        },
+        "openIn": {
+          "absences": "Open in Absences",
+          "lateEarly": "Open in Late / Early",
+          "excuses": "Open in Excuses"
+        }
+      }
     }
   }
 }

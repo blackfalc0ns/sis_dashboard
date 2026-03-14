@@ -81,7 +81,7 @@ export default function SessionPickerPanel({
   };
 
   return (
-    <div style={{ backgroundColor: "var(--background)", borderRight: "1px solid var(--color-border)" }} className="w-80 flex flex-col">
+    <div style={{ backgroundColor: "var(--background)", borderRight: "1px solid var(--color-border)", borderLeft: "1px solid var(--color-border)" }} className="w-80 flex flex-col">
       {/* Header */}
       <div style={{ borderBottom: "1px solid var(--color-border)" }} className="p-4">
         <h3 style={{ color: "var(--color-gray-900)" }} className="text-lg font-semibold">{t("sessionPicker.title")}</h3>

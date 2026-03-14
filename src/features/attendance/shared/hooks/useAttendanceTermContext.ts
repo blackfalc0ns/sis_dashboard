@@ -72,7 +72,9 @@ export function useAttendanceTermContext(): AttendanceTermContext {
       // Only update if we're still on an attendance page
       if (!pathname.includes('/attendance')) return;
 
-      const params = new URLSearchParams(searchParams);
+      const params = new URLSearchParams(
+        typeof window !== "undefined" ? window.location.search : searchParams.toString()
+      );
       params.set("year", newYearId);
       params.set("term", newTermId);
       router.replace(`?${params.toString()}`, { scroll: false });

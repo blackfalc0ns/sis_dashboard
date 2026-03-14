@@ -1,15 +1,5 @@
-"use client";
+import AttendanceReportsPage from "@/features/attendance/reports/pages/AttendanceReportsPage";
 
-import { useTranslations } from "next-intl";
-import ComingSoon from "@/components/common/ComingSoon";
-
-export default function ReportsPage() {
-  const t = useTranslations("attendance");
-
-  return (
-    <ComingSoon
-      title={t("reports")}
-      description={t("reportsDesc")}
-    />
-  );
+export default function ReportsPageRoute() {
+  return <AttendanceReportsPage />;
 }
