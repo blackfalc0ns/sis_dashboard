@@ -14,12 +14,15 @@ export {
 // Re-export ERP data
 export {
   mockStudentEnrollments,
+  mockEnrollmentMovements,
   getEnrollmentByStudentId,
+  getEnrollmentsByStudentId,
   getEnrollmentsByGrade,
   getEnrollmentsBySection,
   getEnrollmentsBySectionId,
   getEnrollmentsByClassroomId,
   getEnrollmentClassroom,
+  getEnrollmentMovementsByStudentId,
   upsertStudentEnrollment,
 } from "./mockEnrollments";
 

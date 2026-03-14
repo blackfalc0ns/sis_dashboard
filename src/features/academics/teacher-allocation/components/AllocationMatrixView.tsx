@@ -11,6 +11,7 @@ import TeacherSelect from "./TeacherSelect";
 import BulkActionDialog from "./BulkActionDialog";
 import AllocationMatrixTable, { MatrixColumn, MatrixRow } from "../../components/shared/AllocationMatrixTable";
 import {
+  Classroom,
   Grade,
   Section,
 } from "@/features/academics/academic-structure-tree/services/structureService";
@@ -22,8 +23,15 @@ import {
   Teacher,
   TeacherAllocation,
   bulkUpsertTeacherAllocations,
+  resolveTeacherAllocationForTarget,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import { exportAcademicsData, generateExportFilename, ExportColumn, ExportMetadata, formatExportDate } from "@/features/academics/utils/exportAdapter";
+import {
+  exportAcademicsData,
+  generateExportFilename,
+  ExportColumn,
+  ExportMetadata,
+  formatExportDate,
+} from "@/features/academics/utils/exportAdapter";
 import { CheckCircle } from "lucide-react";
 
 interface AllocationMatrixViewProps {
@@ -32,6 +40,7 @@ interface AllocationMatrixViewProps {
   termName?: string;
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   subjects: Subject[];
   subjectAllocations: SubjectAllocation[];
   teachers: Teacher[];
@@ -43,12 +52,18 @@ interface AllocationMatrixViewProps {
   onAllocationsChange?: (allocations: TeacherAllocation[]) => void;
 }
 
+type TargetRow = MatrixRow & {
+  section: Section;
+  classroom?: Classroom;
+};
+
 export default function AllocationMatrixView({
   termId,
   yearName,
   termName,
   grades,
   sections,
+  classrooms,
   subjects,
   subjectAllocations,
   teachers,
@@ -63,161 +78,184 @@ export default function AllocationMatrixView({
   const locale = useLocale();
   const isRTL = locale === "ar";
 
-  // Filter state
   const [selectedGradeId, setSelectedGradeId] = useState("");
   const [selectedSectionId, setSelectedSectionId] = useState("");
+  const [selectedClassroomId, setSelectedClassroomId] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [showOnlyMissing, setShowOnlyMissing] = useState(false);
 
-  // Local allocations state
   const [localAllocations, setLocalAllocations] = useState<TeacherAllocation[]>([]);
   const [originalAllocations, setOriginalAllocations] = useState<TeacherAllocation[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Bulk action dialog state
   const [bulkActionDialogOpen, setBulkActionDialogOpen] = useState(false);
   const [bulkActionGrade, setBulkActionGrade] = useState<Grade | null>(null);
   const [bulkActionSubject, setBulkActionSubject] = useState<Subject | null>(null);
   const [bulkActionTeacher, setBulkActionTeacher] = useState<Teacher | null>(null);
 
-  // Initialize local allocations
   useEffect(() => {
     setLocalAllocations(teacherAllocations);
     setOriginalAllocations(teacherAllocations);
   }, [teacherAllocations]);
 
-  // Notify parent of allocation changes
   useEffect(() => {
     onAllocationsChange?.(localAllocations);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localAllocations]);
 
-  // Track dirty state
+  const allocationsEqual = useCallback((left: TeacherAllocation, right: TeacherAllocation) => {
+    return (
+      left.sectionId === right.sectionId &&
+      left.subjectId === right.subjectId &&
+      (left.classroomId || "") === (right.classroomId || "") &&
+      left.teacherId === right.teacherId
+    );
+  }, []);
+
   const isDirty = useMemo(() => {
     if (localAllocations.length !== originalAllocations.length) return true;
 
     return localAllocations.some((local) => {
       const original = originalAllocations.find(
-        (o) => o.sectionId === local.sectionId && o.subjectId === local.subjectId
+        (item) =>
+          item.sectionId === local.sectionId &&
+          item.subjectId === local.subjectId &&
+          (item.classroomId || "") === (local.classroomId || "")
       );
-      return !original || original.teacherId !== local.teacherId;
+      return !original || !allocationsEqual(local, original);
     });
-  }, [localAllocations, originalAllocations]);
+  }, [allocationsEqual, localAllocations, originalAllocations]);
 
-  // Get sections for selected grade
   const filteredSections = useMemo(() => {
     let result = sections;
 
     if (selectedGradeId) {
-      result = result.filter((s) => s.gradeId === selectedGradeId);
+      result = result.filter((section) => section.gradeId === selectedGradeId);
     }
 
     if (selectedSectionId) {
-      result = result.filter((s) => s.id === selectedSectionId);
+      result = result.filter((section) => section.id === selectedSectionId);
     }
 
     return result;
   }, [sections, selectedGradeId, selectedSectionId]);
 
-  // Get subjects with weekly hours > 0 for selected grade
+  const selectedSectionClassrooms = useMemo(() => {
+    if (!selectedSectionId) return [];
+    return classrooms.filter((classroom) => classroom.sectionId === selectedSectionId);
+  }, [classrooms, selectedSectionId]);
+
   const filteredSubjects = useMemo(() => {
     let result = subjects;
 
     if (selectedGradeId) {
-      // Only show subjects that have weekly hours for this grade
       const subjectsWithHours = new Set(
         subjectAllocations
-          .filter((sa) => sa.gradeId === selectedGradeId && sa.weeklyHours > 0)
-          .map((sa) => sa.subjectId)
+          .filter((allocation) => allocation.gradeId === selectedGradeId && allocation.weeklyHours > 0)
+          .map((allocation) => allocation.subjectId)
       );
-      result = result.filter((s) => subjectsWithHours.has(s.id));
+      result = result.filter((subject) => subjectsWithHours.has(subject.id));
     }
 
     if (selectedSubjectId) {
-      result = result.filter((s) => s.id === selectedSubjectId);
+      result = result.filter((subject) => subject.id === selectedSubjectId);
     }
 
     return result;
-  }, [subjects, subjectAllocations, selectedGradeId, selectedSubjectId]);
+  }, [selectedGradeId, selectedSubjectId, subjectAllocations, subjects]);
 
-  // Calculate teacher loads
   const teacherLoads = useMemo(() => {
     const loads = new Map<string, number>();
 
     localAllocations.forEach((allocation) => {
       if (!allocation.teacherId) return;
 
-      // Find section's grade
-      const section = sections.find((s) => s.id === allocation.sectionId);
+      const section = sections.find((item) => item.id === allocation.sectionId);
       if (!section) return;
-      const gradeId = section.gradeId;
 
-      if (!gradeId) return;
-
-      // Find weekly hours for this grade-subject
-      const subjectAlloc = subjectAllocations.find(
-        (sa) => sa.gradeId === gradeId && sa.subjectId === allocation.subjectId
+      const subjectAllocation = subjectAllocations.find(
+        (item) => item.gradeId === section.gradeId && item.subjectId === allocation.subjectId
       );
 
-      if (subjectAlloc && subjectAlloc.weeklyHours > 0) {
-        const currentLoad = loads.get(allocation.teacherId) || 0;
-        loads.set(allocation.teacherId, currentLoad + subjectAlloc.weeklyHours);
-      }
+      if (!subjectAllocation || subjectAllocation.weeklyHours <= 0) return;
+
+      const currentLoad = loads.get(allocation.teacherId) || 0;
+      loads.set(allocation.teacherId, currentLoad + subjectAllocation.weeklyHours);
     });
 
     return loads;
   }, [localAllocations, sections, subjectAllocations]);
 
-  const getAllocation = (sectionId: string, subjectId: string): string | null => {
-    const allocation = localAllocations.find(
-      (a) => a.sectionId === sectionId && a.subjectId === subjectId
-    );
-    return allocation?.teacherId || null;
-  };
+  const getAllocation = useCallback(
+    (sectionId: string, subjectId: string, classroomId?: string) => {
+      const allocation = resolveTeacherAllocationForTarget(localAllocations, {
+        sectionId,
+        classroomId,
+        subjectId,
+      });
+      return allocation?.teacherId || null;
+    },
+    [localAllocations]
+  );
 
-  const setAllocation = (sectionId: string, subjectId: string, teacherId: string | null) => {
-    setLocalAllocations((prev) => {
-      const existing = prev.find(
-        (a) => a.sectionId === sectionId && a.subjectId === subjectId
-      );
-
-      if (existing) {
-        return prev.map((a) =>
-          a.sectionId === sectionId && a.subjectId === subjectId
-            ? { ...a, teacherId }
-            : a
+  const setAllocation = useCallback(
+    (sectionId: string, subjectId: string, teacherId: string | null, classroomId?: string) => {
+      setLocalAllocations((previous) => {
+        const existing = previous.find(
+          (allocation) =>
+            allocation.sectionId === sectionId &&
+            allocation.subjectId === subjectId &&
+            (allocation.classroomId || "") === (classroomId || "")
         );
-      } else {
+
+        if (existing) {
+          return previous.map((allocation) =>
+            allocation.sectionId === sectionId &&
+            allocation.subjectId === subjectId &&
+            (allocation.classroomId || "") === (classroomId || "")
+              ? { ...allocation, teacherId, classroomId }
+              : allocation
+          );
+        }
+
         return [
-          ...prev,
+          ...previous,
           {
             id: `temp-${Date.now()}-${Math.random()}`,
             termId,
             sectionId,
+            classroomId,
             subjectId,
             teacherId,
           },
         ];
-      }
-    });
-  };
+      });
+    },
+    [termId]
+  );
 
-  const getMissingCount = (sectionId: string): number => {
-    return filteredSubjects.filter((subject) => {
-      const allocation = localAllocations.find(
-        (a) => a.sectionId === sectionId && a.subjectId === subject.id
-      );
-      return !allocation || !allocation.teacherId;
-    }).length;
-  };
+  const getMissingCount = useCallback(
+    (sectionId: string, classroomId?: string) => {
+      return filteredSubjects.filter((subject) => {
+        const allocation = resolveTeacherAllocationForTarget(localAllocations, {
+          sectionId,
+          classroomId,
+          subjectId: subject.id,
+        });
+        return !allocation || !allocation.teacherId;
+      }).length;
+    },
+    [filteredSubjects, localAllocations]
+  );
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const items = localAllocations.map((a) => ({
-        sectionId: a.sectionId,
-        subjectId: a.subjectId,
-        teacherId: a.teacherId,
+      const items = localAllocations.map((allocation) => ({
+        sectionId: allocation.sectionId,
+        classroomId: allocation.classroomId,
+        subjectId: allocation.subjectId,
+        teacherId: allocation.teacherId,
       }));
 
       await bulkUpsertTeacherAllocations(termId, items);
@@ -234,83 +272,175 @@ export default function AllocationMatrixView({
     setLocalAllocations(originalAllocations);
   };
 
-  // Export handler
-  const handleExport = (format: "csv" | "excel") => {
-    // Prepare title
-    const title = t("title");
+  const displaySections = useMemo(() => {
+    if (!showOnlyMissing) return filteredSections;
+    return filteredSections.filter((section) => getMissingCount(section.id) > 0);
+  }, [filteredSections, getMissingCount, showOnlyMissing]);
 
-    // Prepare metadata
+  const matrixRows = useMemo<TargetRow[]>(() => {
+    const getGradeName = (gradeId: string) => {
+      const grade = grades.find((item) => item.id === gradeId);
+      return grade
+        ? locale === "ar"
+          ? (grade.nameAr || grade.nameEn || grade.name)
+          : (grade.nameEn || grade.nameAr || grade.name)
+        : "-";
+    };
+
+    if (selectedSectionId && selectedSectionClassrooms.length > 0) {
+      const rows = selectedSectionClassrooms
+        .filter((classroom) => !selectedClassroomId || classroom.id === selectedClassroomId)
+        .map((classroom) => {
+          const section = sections.find((item) => item.id === classroom.sectionId)!;
+          const sectionName = locale === "ar"
+            ? (section.nameAr || section.nameEn || section.name)
+            : (section.nameEn || section.nameAr || section.name);
+          const classroomName = locale === "ar"
+            ? (classroom.nameAr || classroom.nameEn || classroom.name)
+            : (classroom.nameEn || classroom.nameAr || classroom.name);
+          return {
+            id: classroom.id,
+            section,
+            classroom,
+            label: classroomName,
+            secondaryLabel: `${getGradeName(section.gradeId)} / ${sectionName}`,
+          };
+        });
+
+      if (!showOnlyMissing) return rows;
+      return rows.filter((row) => getMissingCount(row.section.id, row.classroom?.id) > 0);
+    }
+
+    return displaySections.map((section) => {
+      const sectionName = locale === "ar"
+        ? (section.nameAr || section.nameEn || section.name)
+        : (section.nameEn || section.nameAr || section.name);
+      return {
+        id: section.id,
+        section,
+        label: sectionName,
+        secondaryLabel: getGradeName(section.gradeId),
+      };
+    });
+  }, [displaySections, getMissingCount, grades, locale, sections, selectedClassroomId, selectedSectionClassrooms, selectedSectionId, showOnlyMissing]);
+
+  const matrixColumns = useMemo<(MatrixColumn & { subject: Subject })[]>(() => {
+    return filteredSubjects.map((subject) => ({
+      id: subject.id,
+      subject,
+      label: locale === "ar"
+        ? (subject.nameAr || subject.nameEn || subject.name)
+        : (subject.nameEn || subject.nameAr || subject.name),
+      code: subject.code,
+      minWidth: "250px",
+    }));
+  }, [filteredSubjects, locale]);
+
+  const completionPercentage = useMemo(() => {
+    const totalCells = matrixRows.length * filteredSubjects.length;
+    if (totalCells === 0) return 0;
+
+    const filledCells = matrixRows.reduce((count, row) => {
+      return count + filteredSubjects.filter((subject) => {
+        const allocation = resolveTeacherAllocationForTarget(localAllocations, {
+          sectionId: row.section.id,
+          classroomId: row.classroom?.id,
+          subjectId: subject.id,
+        });
+        return Boolean(allocation?.teacherId);
+      }).length;
+    }, 0);
+
+    return Math.round((filledCells / totalCells) * 100);
+  }, [filteredSubjects, localAllocations, matrixRows]);
+
+  const handleExport = (format: "csv" | "excel") => {
     const metadata: ExportMetadata = {
       yearName,
       termName,
       exportDate: formatExportDate(locale),
     };
 
-    // Add filters to metadata
     if (selectedGradeId) {
-      const grade = grades.find((g) => g.id === selectedGradeId);
-      if (grade) {
-        metadata.gradeName = locale === "ar" ? grade.nameAr : grade.nameEn;
-      }
+      const grade = grades.find((item) => item.id === selectedGradeId);
+      if (grade) metadata.gradeName = locale === "ar" ? grade.nameAr : grade.nameEn;
     }
 
     if (selectedSectionId) {
-      const section = sections.find((s) => s.id === selectedSectionId);
-      if (section) {
-        metadata.sectionName = locale === "ar" ? section.nameAr : section.nameEn;
-      }
+      const section = sections.find((item) => item.id === selectedSectionId);
+      if (section) metadata.sectionName = locale === "ar" ? section.nameAr : section.nameEn;
     }
 
-    // Prepare columns
+    if (selectedClassroomId) {
+      const classroom = classrooms.find((item) => item.id === selectedClassroomId);
+      if (classroom) metadata.classroomName = locale === "ar" ? classroom.nameAr : classroom.nameEn;
+    }
+
     const columns: ExportColumn[] = [
       { key: "section", label: t("matrix.columns.section") },
       { key: "grade", label: t("matrix.columns.grade") },
+      ...(selectedSectionId && selectedSectionClassrooms.length > 0
+        ? [{ key: "classroom", label: t("filters.classroom") }]
+        : []),
       ...filteredSubjects.map((subject) => ({
         key: `subject_${subject.id}`,
         label: locale === "ar" ? subject.nameAr : subject.nameEn,
       })),
     ];
 
-    // Prepare rows
-    const rows = filteredSections.map((section) => {
-      const grade = grades.find((g) => g.id === section.gradeId);
-      const row: Record<string, unknown> = {
-        section: locale === "ar" ? section.nameAr : section.nameEn,
+    const rows = matrixRows.map((row) => {
+      const grade = grades.find((item) => item.id === row.section.gradeId);
+      const record: Record<string, unknown> = {
+        section: locale === "ar" ? row.section.nameAr : row.section.nameEn,
         grade: grade ? (locale === "ar" ? grade.nameAr : grade.nameEn) : "",
       };
 
+      if (row.classroom) {
+        record.classroom = locale === "ar" ? row.classroom.nameAr : row.classroom.nameEn;
+      }
+
       filteredSubjects.forEach((subject) => {
-        const allocation = localAllocations.find(
-          (a) => a.sectionId === section.id && a.subjectId === subject.id
-        );
+        const allocation = resolveTeacherAllocationForTarget(localAllocations, {
+          sectionId: row.section.id,
+          classroomId: row.classroom?.id,
+          subjectId: subject.id,
+        });
         const teacher = allocation?.teacherId
-          ? teachers.find((t) => t.id === allocation.teacherId)
+          ? teachers.find((item) => item.id === allocation.teacherId)
           : null;
-        row[`subject_${subject.id}`] = teacher
-          ? (locale === "ar" ? teacher.nameAr : teacher.nameEn)
+        record[`subject_${subject.id}`] = teacher
+          ? locale === "ar"
+            ? teacher.nameAr
+            : teacher.nameEn
           : "";
       });
 
-      return row;
+      return record;
     });
 
-    // Generate filename
     const filename = generateExportFilename(
       "teacher-allocation",
       termId,
-      selectedGradeId || undefined
+      selectedClassroomId || selectedSectionId || selectedGradeId || undefined
     );
 
-    // Export with title and metadata
-    exportAcademicsData({ title, metadata, filename, format, columns, rows, locale });
+    exportAcademicsData({
+      title: t("title"),
+      metadata,
+      filename,
+      format,
+      columns,
+      rows,
+      locale,
+    });
   };
 
   const handleOpenBulkAction = (gradeId: string, subjectId: string, teacherId: string | null) => {
     if (!teacherId || !selectedGradeId) return;
 
-    const grade = grades.find((g) => g.id === gradeId);
-    const subject = subjects.find((s) => s.id === subjectId);
-    const teacher = teachers.find((t) => t.id === teacherId);
+    const grade = grades.find((item) => item.id === gradeId);
+    const subject = subjects.find((item) => item.id === subjectId);
+    const teacher = teachers.find((item) => item.id === teacherId);
 
     if (grade && subject && teacher) {
       setBulkActionGrade(grade);
@@ -320,100 +450,15 @@ export default function AllocationMatrixView({
     }
   };
 
-  const handleBulkActionSuccess = async () => {
-    await onRefresh();
-  };
-
-  const getSectionDisplayName = useCallback((section: Section) => {
-    const grade = grades.find((g) => g.id === section.gradeId);
-    const gradeName = grade
-      ? locale === "ar"
-        ? (grade.nameAr || grade.nameEn || grade.name)
-        : (grade.nameEn || grade.nameAr || grade.name)
-      : "-";
-    const sectionName = locale === "ar"
-      ? (section.nameAr || section.nameEn || section.name)
-      : (section.nameEn || section.nameAr || section.name);
-    return { gradeName, sectionName };
-  }, [grades, locale]);
-
-  const getSubjectName = useCallback((subject: Subject) => {
-    return locale === "ar"
-      ? (subject.nameAr || subject.nameEn || subject.name)
-      : (subject.nameEn || subject.nameAr || subject.name);
-  }, [locale]);
-
-  // Filter sections by missing if enabled
-  const displaySections = useMemo(() => {
-    if (!showOnlyMissing) return filteredSections;
-    
-    const sectionsWithMissing = filteredSections.filter((section) => {
-      // Calculate missing count inline
-      const missingCount = filteredSubjects.filter((subject) => {
-        const allocation = localAllocations.find(
-          (a) => a.sectionId === section.id && a.subjectId === subject.id
-        );
-        return !allocation || !allocation.teacherId;
-      }).length;
-      return missingCount > 0;
-    });
-    
-    return sectionsWithMissing;
-  }, [filteredSections, showOnlyMissing, localAllocations, filteredSubjects]);
-
-  const completionPercentage = useMemo(() => {
-    const totalCells = displaySections.length * filteredSubjects.length;
-    if (totalCells === 0) return 0;
-
-    const filledCells = displaySections.reduce((count, section) => {
-      return (
-        count +
-        filteredSubjects.filter((subject) => {
-          const allocation = localAllocations.find(
-            (a) => a.sectionId === section.id && a.subjectId === subject.id
-          );
-          return allocation && allocation.teacherId;
-        }).length
-      );
-    }, 0);
-
-    return Math.round((filledCells / totalCells) * 100);
-  }, [displaySections, filteredSubjects, localAllocations]);
-
-  // Prepare matrix data
-  const matrixRows: (MatrixRow & { section: Section })[] = useMemo(() => {
-    return displaySections.map((section) => {
-      const { gradeName, sectionName } = getSectionDisplayName(section);
-      return {
-        id: section.id,
-        section,
-        label: sectionName,
-        secondaryLabel: gradeName,
-      };
-    });
-  }, [displaySections, getSectionDisplayName]);
-
-  const matrixColumns: (MatrixColumn & { subject: Subject })[] = useMemo(() => {
-    return filteredSubjects.map((subject) => ({
-      id: subject.id,
-      subject,
-      label: getSubjectName(subject),
-      code: subject.code,
-      minWidth: "250px",
-    }));
-  }, [filteredSubjects, getSubjectName]);
-
-  const renderCell = (row: MatrixRow & { section: Section }, column: MatrixColumn & { subject: Subject }) => {
-    const teacherId = getAllocation(row.section.id, column.subject.id);
+  const renderCell = (row: TargetRow, column: MatrixColumn & { subject: Subject }) => {
+    const teacherId = getAllocation(row.section.id, column.subject.id, row.classroom?.id);
 
     return (
       <div className="px-4 py-3">
         <TeacherSelect
           teachers={teachers}
           value={teacherId}
-          onChange={(newTeacherId) =>
-            setAllocation(row.section.id, column.subject.id, newTeacherId)
-          }
+          onChange={(newTeacherId) => setAllocation(row.section.id, column.subject.id, newTeacherId, row.classroom?.id)}
           disabled={isReadOnly}
           teacherLoads={teacherLoads}
           size="small"
@@ -435,18 +480,16 @@ export default function AllocationMatrixView({
             </span>
           )}
         </div>
-        {selectedGradeId && !isReadOnly && (
+        {selectedGradeId && !selectedSectionId && !isReadOnly && (
           <Tooltip title={t("actions.applyToAllSections")} arrow>
             <IconButton
               size="small"
               onClick={() => {
-                // Get first section's teacher for this subject as default
-                const firstSection = displaySections[0];
-                if (firstSection) {
-                  const teacherId = getAllocation(firstSection.id, column.subject.id);
-                  if (teacherId) {
-                    handleOpenBulkAction(selectedGradeId, column.subject.id, teacherId);
-                  }
+                const firstRow = matrixRows[0];
+                if (!firstRow) return;
+                const teacherId = getAllocation(firstRow.section.id, column.subject.id);
+                if (teacherId) {
+                  handleOpenBulkAction(selectedGradeId, column.subject.id, teacherId);
                 }
               }}
               sx={{
@@ -465,23 +508,25 @@ export default function AllocationMatrixView({
     );
   };
 
-  const getMissingCountForRow = (row: MatrixRow & { section: Section }) => {
-    return getMissingCount(row.section.id);
+  const handleBulkActionSuccess = async () => {
+    await onRefresh();
   };
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
-      {/* Filter Bar */}
       <FilterBar
         grades={grades}
         sections={sections}
+        classrooms={classrooms}
         subjects={subjects}
         selectedGradeId={selectedGradeId}
         selectedSectionId={selectedSectionId}
+        selectedClassroomId={selectedClassroomId}
         selectedSubjectId={selectedSubjectId}
         showOnlyMissing={showOnlyMissing}
         onGradeChange={setSelectedGradeId}
         onSectionChange={setSelectedSectionId}
+        onClassroomChange={setSelectedClassroomId}
         onSubjectChange={setSelectedSubjectId}
         onShowOnlyMissingChange={setShowOnlyMissing}
         onValidate={onValidate}
@@ -489,15 +534,14 @@ export default function AllocationMatrixView({
         isReadOnly={isReadOnly}
       />
 
-      {/* Toolbar */}
       <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-4">
         <div className="max-w-[1400px] mx-auto">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">{t("matrix.title")}</h2>
-              <div className="flex items-center gap-6 text-sm text-gray-600 mt-1">
+              <div className="flex items-center gap-6 text-sm text-gray-600 mt-1 flex-wrap">
                 <span>
-                  {t("matrix.summary.sections")}: <strong>{displaySections.length}</strong>
+                  {t("matrix.summary.sections")}: <strong>{matrixRows.length}</strong>
                 </span>
                 <span>
                   {t("matrix.summary.subjects")}: <strong>{filteredSubjects.length}</strong>
@@ -517,7 +561,7 @@ export default function AllocationMatrixView({
               )}
               <ExportButton
                 onExport={handleExport}
-                disabled={filteredSections.length === 0 || filteredSubjects.length === 0}
+                disabled={matrixRows.length === 0 || filteredSubjects.length === 0}
                 label={t("actions.export")}
               />
               <Button
@@ -541,14 +585,13 @@ export default function AllocationMatrixView({
         </div>
       </div>
 
-      {/* Matrix Table */}
       <div className="flex-1 overflow-hidden">
         <div className="h-full overflow-auto p-4 md:p-6">
           <div className="max-w-[1400px] mx-auto">
-            {displaySections.length === 0 || filteredSubjects.length === 0 ? (
+            {matrixRows.length === 0 || filteredSubjects.length === 0 ? (
               <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
                 <p className="text-gray-500">
-                  {displaySections.length === 0
+                  {matrixRows.length === 0
                     ? t("emptyState.noGrades.message")
                     : t("emptyState.noSubjects.message")}
                 </p>
@@ -558,12 +601,13 @@ export default function AllocationMatrixView({
                 <AllocationMatrixTable
                   rows={matrixRows}
                   columns={matrixColumns}
-                  rowHeaderLabel={t("matrix.section")}
+                  rowHeaderLabel={selectedSectionId && selectedSectionClassrooms.length > 0 ? t("filters.classroom") : t("matrix.section")}
                   totalColumnLabel={t("matrix.missingCount")}
                   renderCell={renderCell}
                   renderColumnHeader={renderColumnHeader}
                   renderRowTotal={(row) => {
-                    const missingCount = getMissingCountForRow(row);
+                    const typedRow = row as TargetRow;
+                    const missingCount = getMissingCount(typedRow.section.id, typedRow.classroom?.id);
                     return (
                       <div className="flex items-center justify-center">
                         {missingCount > 0 ? (
@@ -583,7 +627,6 @@ export default function AllocationMatrixView({
         </div>
       </div>
 
-      {/* Bulk Action Dialog */}
       <BulkActionDialog
         open={bulkActionDialogOpen}
         onClose={() => setBulkActionDialogOpen(false)}
@@ -592,6 +635,7 @@ export default function AllocationMatrixView({
         subject={bulkActionSubject}
         teacher={bulkActionTeacher}
         sections={sections}
+        classrooms={classrooms}
         onSuccess={handleBulkActionSuccess}
       />
     </div>

@@ -1192,7 +1192,19 @@
       "no_match": "No enrollments match your filters",
       "no_enrollments": "No enrollments found",
       "clear_filters": "Clear filters",
-      "found": "found"
+      "found": "found",
+      "promote_students": "Promote Students",
+      "rebalance_classrooms": "Rebalance Classrooms",
+      "target_academic_year": "Target Academic Year",
+      "effective_date": "Effective Date",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "messages": {
+        "enrollment_updated": "Enrollment updated successfully.",
+        "promotion_complete": "{count} students promoted successfully.",
+        "rebalance_complete": "{count} placements updated. Unassigned: {unassigned}.",
+        "action_failed": "The action could not be completed."
+      }
     }
   },
   "students_guardians": {
@@ -2027,7 +2039,16 @@
         "enrollment_date": "Enrollment Date",
         "current": "Current",
         "grade_progression": "Grade Progression",
-        "na": "N/A"
+        "na": "N/A",
+        "movement_title": "Placement Movements",
+        "movement": {
+          "enrolled": "Enrolled",
+          "transferred_internal": "Internal transfer",
+          "transferred_external": "External transfer-out",
+          "withdrawn": "Withdrawn",
+          "promoted": "Promoted",
+          "reassigned_bulk": "Bulk classroom reassignment"
+        }
       },
       "attendance": {
         "title": "Attendance",
@@ -2959,7 +2980,9 @@
         "allGrades": "All Grades",
         "allSections": "All Sections",
         "allSubjects": "All Subjects",
-        "showOnlyMissing": "Show only missing"
+        "showOnlyMissing": "Show only missing",
+        "classroom": "Classroom",
+        "allClassrooms": "All Classrooms"
       },
       "actions": {
         "validate": "Validate",
@@ -3022,7 +3045,8 @@
           "section": "Section",
           "subject": "Subject",
           "periods": "Periods",
-          "total": "Total"
+          "total": "Total",
+          "classroom": "Classroom"
         },
         "loading": "Loading...",
         "noTeachers": "No teachers found"
@@ -3094,7 +3118,8 @@
         "selectGrade": "Select Grade",
         "selectSection": "Select Section",
         "allGrades": "All Grades",
-        "allSections": "All Sections"
+        "allSections": "All Sections",
+        "selectClassroom": "Select Classroom"
       },
       "grid": {
         "period": "Period",
@@ -3182,7 +3207,14 @@
         "clear": "Clear Slot",
         "autoFilled": "Auto-filled from allocation",
         "cancel": "Cancel",
-        "save": "Save"
+        "save": "Save",
+        "autoFilledRoom": "Recommended room auto-filled for this classroom",
+        "targetClassroom": "Target classroom: {classroom}",
+        "roomSourceLabel": "Room source:",
+        "roomSourceClassroomDefault": "classroom default",
+        "roomSourceSectionDefault": "section default",
+        "roomSourceRecommended": "recommended room",
+        "roomSourceManual": "manual selection"
       },
       "validation": {
         "title": "Validation",
@@ -3205,7 +3237,10 @@
         "under": "Under",
         "over": "Over",
         "cannotEditHoliday": "Cannot edit on holiday days",
-        "entriesOnHolidays": "There are entries on holiday days"
+        "entriesOnHolidays": "There are entries on holiday days",
+        "roomSourceClassroomDefault": "classroom default",
+        "roomSourceSectionDefault": "section default",
+        "roomDefaultAvailable": "A default room is available from {source}."
       },
       "publish": {
         "confirmTitle": "Publish Timetable",
@@ -3259,7 +3294,21 @@
           "save": "حفظ"
         },
         "emptyState": "No rooms found. Add your first room.",
-        "searchPlaceholder": "Search rooms..."
+        "searchPlaceholder": "Search rooms...",
+        "defaults": {
+          "title": "Default Room Assignments",
+          "description": "Define default rooms for sections and classrooms used by timetable editing.",
+          "scopeType": "Scope Type",
+          "grade": "Grade",
+          "section": "Section",
+          "classroom": "Classroom",
+          "room": "Room",
+          "add": "Add Default",
+          "update": "Update Default",
+          "emptyState": "No default room assignments yet.",
+          "validation": "Please select the target scope and room.",
+          "stage": "Stage"
+        }
       },
       "readOnlyBanner": "This term is closed. Timetable is read-only.",
       "emptyState": {
@@ -3322,7 +3371,9 @@
           "grade": "Specific Grade",
           "gradeDesc": "Apply to one grade only",
           "section": "Individual Section",
-          "sectionDesc": "Apply to one section only"
+          "sectionDesc": "Apply to one section only",
+          "classroom": "Classroom",
+          "classroomDesc": "Apply configuration to a specific classroom"
         },
         "summary": {
           "title": "Configuration Summary",
@@ -3336,7 +3387,8 @@
           "atLeastOnePeriod": "At least one period is required",
           "selectGrade": "Please select a grade",
           "selectSection": "Please select a section",
-          "saveFailed": "Failed to save configuration"
+          "saveFailed": "Failed to save configuration",
+          "selectClassroom": "Please select a classroom"
         },
         "changeWarning": {
           "title": "Configuration Change Warning",
@@ -3352,6 +3404,19 @@
         "reset": "Reset to Default",
         "resetConfirm": "Reset this configuration to term default?",
         "resetSuccess": "Configuration reset successfully"
+      },
+      "target": {
+        "label": "Target",
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
+        "classroom": "Classroom",
+        "configSource": "Config source"
+      },
+      "export": {
+        "status": "Status",
+        "draft": "Draft",
+        "published": "Published"
       }
     },
     "lessonPlans": {

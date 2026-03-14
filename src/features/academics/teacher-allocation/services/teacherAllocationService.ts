@@ -1,12 +1,13 @@
 // Mock service for Teacher Allocation (TERM-SCOPED)
 // Replace with real API calls when backend is ready
 
-import { Grade, Section } from '@/features/academics/academic-structure-tree/services/structureService';
+import { Classroom, Grade, Section } from '@/features/academics/academic-structure-tree/services/structureService';
 import { Subject, SubjectAllocation } from '@/features/academics/subjects/services/subjectsService';
 
 interface StructureData {
   grades?: Grade[];
   sections?: Section[];
+  classrooms?: Classroom[];
   subjects?: Subject[];
 }
 
@@ -24,6 +25,7 @@ export interface TeacherAllocation {
   id: string;
   termId: string;
   sectionId: string;
+  classroomId?: string;
   subjectId: string;
   teacherId: string | null;
 }
@@ -39,6 +41,10 @@ export interface TeacherLoad {
     sectionName: string;
     sectionNameAr: string;
     sectionNameEn: string;
+    classroomId?: string;
+    classroomName?: string;
+    classroomNameAr?: string;
+    classroomNameEn?: string;
     gradeId: string;
     gradeName: string;
     gradeNameAr: string;
@@ -57,6 +63,10 @@ export interface ValidationIssue {
   sectionName: string;
   sectionNameAr: string;
   sectionNameEn: string;
+  classroomId?: string;
+  classroomName?: string;
+  classroomNameAr?: string;
+  classroomNameEn?: string;
   gradeId: string;
   gradeName: string;
   gradeNameAr: string;
@@ -80,7 +90,7 @@ export interface ValidationResult {
   overloadedCount: number;
   unqualifiedCount: number;
   sectionsWithMissing: number;
-  missingAllocations: Array<{ sectionId: string; subjectId: string }>;
+  missingAllocations: Array<{ sectionId: string; classroomId?: string; subjectId: string }>;
   overloadedTeachers: Array<{ teacherId: string; currentLoad: number; maxLoad: number }>;
   issues: ValidationIssue[];
 }
@@ -109,6 +119,54 @@ let idCounter = 2000;
 const generateId = (prefix: string) => {
   idCounter++;
   return `${prefix}-${Date.now()}-${idCounter}`;
+};
+
+interface TeacherAllocationTarget {
+  sectionId: string;
+  subjectId: string;
+  classroomId?: string;
+}
+
+const normalizeClassroomKey = (classroomId?: string | null) => classroomId || "";
+
+const getSectionClassrooms = (structureData: StructureData, sectionId: string) =>
+  (structureData.classrooms || []).filter((classroom) => classroom.sectionId === sectionId);
+
+const getClassroomAllocationsForGroup = (
+  allocations: TeacherAllocation[],
+  target: TeacherAllocationTarget
+) =>
+  allocations.filter(
+    (allocation) =>
+      allocation.sectionId === target.sectionId &&
+      allocation.subjectId === target.subjectId &&
+      Boolean(allocation.classroomId)
+  );
+
+// Classroom allocations are the concrete delivery assignments.
+// When a section+subject has any classroom allocations, they replace section-level load usage.
+export const resolveTeacherAllocationForTarget = (
+  allocations: TeacherAllocation[],
+  target: TeacherAllocationTarget
+): TeacherAllocation | undefined => {
+  if (target.classroomId) {
+    const classroomAllocation = allocations.find(
+      (allocation) =>
+        allocation.sectionId === target.sectionId &&
+        allocation.subjectId === target.subjectId &&
+        allocation.classroomId === target.classroomId
+    );
+    if (classroomAllocation) {
+      return classroomAllocation;
+    }
+  }
+
+  return allocations.find(
+    (allocation) =>
+      allocation.sectionId === target.sectionId &&
+      allocation.subjectId === target.subjectId &&
+      !allocation.classroomId
+  );
 };
 
 // Teachers CRUD
@@ -174,7 +232,10 @@ export const bulkUpsertTeacherAllocations = async (
   
   items.forEach((item) => {
     const existingIndex = allocations.findIndex(
-      (a) => a.sectionId === item.sectionId && a.subjectId === item.subjectId
+      (a) =>
+        a.sectionId === item.sectionId &&
+        a.subjectId === item.subjectId &&
+        normalizeClassroomKey(a.classroomId) === normalizeClassroomKey(item.classroomId)
     );
     
     if (existingIndex !== -1) {
@@ -217,7 +278,8 @@ export const applyTeacherToGrade = async (
   gradeId: string,
   subjectId: string,
   teacherId: string | null,
-  sectionIds: string[]
+  sectionIds: string[],
+  classroomIdsBySection?: Record<string, string[]>
 ): Promise<void> => {
   await delay(300);
   
@@ -228,10 +290,40 @@ export const applyTeacherToGrade = async (
   const allocations = allocationsByTerm[termId];
   
   sectionIds.forEach((sectionId) => {
+    const classroomIds = classroomIdsBySection?.[sectionId] || [];
+
+    if (classroomIds.length > 0) {
+      classroomIds.forEach((classroomId) => {
+        const existingIndex = allocations.findIndex(
+          (a) =>
+            a.sectionId === sectionId &&
+            a.subjectId === subjectId &&
+            a.classroomId === classroomId
+        );
+
+        if (existingIndex !== -1) {
+          allocations[existingIndex].teacherId = teacherId;
+        } else {
+          allocations.push({
+            id: generateId("alloc"),
+            termId,
+            sectionId,
+            classroomId,
+            subjectId,
+            teacherId,
+          });
+        }
+      });
+      return;
+    }
+
     const existingIndex = allocations.findIndex(
-      (a) => a.sectionId === sectionId && a.subjectId === subjectId
+      (a) =>
+        a.sectionId === sectionId &&
+        a.subjectId === subjectId &&
+        !a.classroomId
     );
-    
+
     if (existingIndex !== -1) {
       allocations[existingIndex].teacherId = teacherId;
     } else {
@@ -276,44 +368,70 @@ export const calculateTeacherLoads = async (
   // Calculate loads from allocations
   allocations.forEach((allocation) => {
     if (!allocation.teacherId) return;
-    
-    // Find section in flat sections array
-    const sectionData = structureData.sections?.find((s) => s.id === allocation.sectionId);
-    if (!sectionData) return;
-    
-    // Find grade for this section
-    const gradeData = structureData.grades?.find((g) => g.id === sectionData.gradeId);
+  });
+
+  (structureData.sections || []).forEach((sectionData) => {
+    const gradeData = structureData.grades?.find((grade) => grade.id === sectionData.gradeId);
     if (!gradeData) return;
-    
-    // Find weekly hours for this grade-subject combination
-    const subjectAlloc = subjectAllocations.find(
-      (sa) => sa.gradeId === gradeData.id && sa.subjectId === allocation.subjectId
-    );
-    
-    if (!subjectAlloc || subjectAlloc.weeklyHours === 0) return;
-    
-    // Find subject name
-    const subject = structureData.subjects?.find((s) => s.id === allocation.subjectId);
-    
-    const teacherLoad = teacherLoadsMap.get(allocation.teacherId);
-    if (teacherLoad) {
-      teacherLoad.totalWeeklyPeriods += subjectAlloc.weeklyHours;
-      teacherLoad.assignments.push({
-        sectionId: sectionData.id,
-        sectionName: sectionData.nameEn || sectionData.nameAr || sectionData.name,
-        sectionNameAr: sectionData.nameAr || sectionData.nameEn || sectionData.name,
-        sectionNameEn: sectionData.nameEn || sectionData.nameAr || sectionData.name,
-        gradeId: gradeData.id,
-        gradeName: gradeData.nameEn || gradeData.nameAr || gradeData.name,
-        gradeNameAr: gradeData.nameAr || gradeData.nameEn || gradeData.name,
-        gradeNameEn: gradeData.nameEn || gradeData.nameAr || gradeData.name,
-        subjectId: allocation.subjectId,
-        subjectName: subject?.nameEn || subject?.nameAr || subject?.name || allocation.subjectId,
-        subjectNameAr: subject?.nameAr || subject?.nameEn || subject?.name || allocation.subjectId,
-        subjectNameEn: subject?.nameEn || subject?.nameAr || subject?.name || allocation.subjectId,
-        weeklyHours: subjectAlloc.weeklyHours,
+
+    const sectionClassrooms = getSectionClassrooms(structureData, sectionData.id);
+
+    subjectAllocations
+      .filter((subjectAllocation) => subjectAllocation.gradeId === gradeData.id && subjectAllocation.weeklyHours > 0)
+      .forEach((subjectAllocation) => {
+        const subject = structureData.subjects?.find((item) => item.id === subjectAllocation.subjectId);
+        const classroomAllocations = getClassroomAllocationsForGroup(allocations, {
+          sectionId: sectionData.id,
+          subjectId: subjectAllocation.subjectId,
+        });
+
+        const addAssignment = (allocation: TeacherAllocation, classroom?: Classroom) => {
+          if (!allocation.teacherId) return;
+          const teacherLoad = teacherLoadsMap.get(allocation.teacherId);
+          if (!teacherLoad) return;
+
+          teacherLoad.totalWeeklyPeriods += subjectAllocation.weeklyHours;
+          teacherLoad.assignments.push({
+            sectionId: sectionData.id,
+            sectionName: sectionData.nameEn || sectionData.nameAr || sectionData.name,
+            sectionNameAr: sectionData.nameAr || sectionData.nameEn || sectionData.name,
+            sectionNameEn: sectionData.nameEn || sectionData.nameAr || sectionData.name,
+            classroomId: classroom?.id,
+            classroomName: classroom ? classroom.nameEn || classroom.nameAr || classroom.name : undefined,
+            classroomNameAr: classroom ? classroom.nameAr || classroom.nameEn || classroom.name : undefined,
+            classroomNameEn: classroom ? classroom.nameEn || classroom.nameAr || classroom.name : undefined,
+            gradeId: gradeData.id,
+            gradeName: gradeData.nameEn || gradeData.nameAr || gradeData.name,
+            gradeNameAr: gradeData.nameAr || gradeData.nameEn || gradeData.name,
+            gradeNameEn: gradeData.nameEn || gradeData.nameAr || gradeData.name,
+            subjectId: subjectAllocation.subjectId,
+            subjectName: subject?.nameEn || subject?.nameAr || subject?.name || subjectAllocation.subjectId,
+            subjectNameAr: subject?.nameAr || subject?.nameEn || subject?.name || subjectAllocation.subjectId,
+            subjectNameEn: subject?.nameEn || subject?.nameAr || subject?.name || subjectAllocation.subjectId,
+            weeklyHours: subjectAllocation.weeklyHours,
+          });
+        };
+
+        if (sectionClassrooms.length > 0 && classroomAllocations.length > 0) {
+          sectionClassrooms.forEach((classroom) => {
+            const classroomAllocation = classroomAllocations.find(
+              (allocation) => allocation.classroomId === classroom.id
+            );
+            if (classroomAllocation) {
+              addAssignment(classroomAllocation, classroom);
+            }
+          });
+          return;
+        }
+
+        const sectionAllocation = resolveTeacherAllocationForTarget(allocations, {
+          sectionId: sectionData.id,
+          subjectId: subjectAllocation.subjectId,
+        });
+        if (sectionAllocation) {
+          addAssignment(sectionAllocation);
+        }
       });
-    }
   });
   
   return Array.from(teacherLoadsMap.values()).sort((a, b) => 
@@ -336,15 +454,55 @@ export const validateAllocations = async (
   structureData.grades?.forEach((grade) => {
     const gradeSections = structureData.sections?.filter((s) => s.gradeId === grade.id) || [];
     gradeSections.forEach((section) => {
+      const classrooms = getSectionClassrooms(structureData, section.id);
+
       // For each subject that has weekly hours for this grade
       subjectAllocations.forEach((subjectAlloc) => {
         if (subjectAlloc.gradeId === grade.id && subjectAlloc.weeklyHours > 0) {
-          const allocation = allocations.find(
-            (a) => a.sectionId === section.id && a.subjectId === subjectAlloc.subjectId
-          );
-          
+          const subject = structureData.subjects?.find((s) => s.id === subjectAlloc.subjectId);
+          const classroomAllocations = getClassroomAllocationsForGroup(allocations, {
+            sectionId: section.id,
+            subjectId: subjectAlloc.subjectId,
+          });
+
+          if (classrooms.length > 0 && classroomAllocations.length > 0) {
+            classrooms.forEach((classroom) => {
+              const classroomAllocation = classroomAllocations.find(
+                (allocation) => allocation.classroomId === classroom.id
+              );
+
+              if (!classroomAllocation || !classroomAllocation.teacherId) {
+                issues.push({
+                  type: 'missing',
+                  sectionId: section.id,
+                  sectionName: section.nameEn || section.nameAr || section.name,
+                  sectionNameAr: section.nameAr || section.nameEn || section.name,
+                  sectionNameEn: section.nameEn || section.nameAr || section.name,
+                  classroomId: classroom.id,
+                  classroomName: classroom.nameEn || classroom.nameAr || classroom.name,
+                  classroomNameAr: classroom.nameAr || classroom.nameEn || classroom.name,
+                  classroomNameEn: classroom.nameEn || classroom.nameAr || classroom.name,
+                  gradeId: grade.id,
+                  gradeName: grade.nameEn || grade.nameAr || grade.name,
+                  gradeNameAr: grade.nameAr || grade.nameEn || grade.name,
+                  gradeNameEn: grade.nameEn || grade.nameAr || grade.name,
+                  subjectId: subjectAlloc.subjectId,
+                  subjectName: subject?.nameEn || subject?.nameAr || subject?.name || subjectAlloc.subjectId,
+                  subjectNameAr: subject?.nameAr || subject?.nameEn || subject?.name || subjectAlloc.subjectId,
+                  subjectNameEn: subject?.nameEn || subject?.nameAr || subject?.name || subjectAlloc.subjectId,
+                  details: `Missing teacher assignment`,
+                });
+              }
+            });
+            return;
+          }
+
+          const allocation = resolveTeacherAllocationForTarget(allocations, {
+            sectionId: section.id,
+            subjectId: subjectAlloc.subjectId,
+          });
+
           if (!allocation || !allocation.teacherId) {
-            const subject = structureData.subjects?.find((s) => s.id === subjectAlloc.subjectId);
             issues.push({
               type: 'missing',
               sectionId: section.id,
@@ -400,7 +558,7 @@ export const validateAllocations = async (
   // Build missing allocations array
   const missingAllocations = issues
     .filter((i) => i.type === 'missing')
-    .map((i) => ({ sectionId: i.sectionId, subjectId: i.subjectId || '' }));
+    .map((i) => ({ sectionId: i.sectionId, classroomId: i.classroomId, subjectId: i.subjectId || '' }));
   
   // Build overloaded teachers array
   const overloadedTeachers = issues
@@ -429,13 +587,17 @@ export const validateAllocations = async (
 // Validation function with flat structure (grades, sections, subjects as separate arrays)
 export const validateTeacherAllocations = (
   termId: string,
-  structureData: { grades: Grade[]; sections: Section[]; subjects: Subject[] },
+  structureData: { grades: Grade[]; sections: Section[]; classrooms?: Classroom[]; subjects: Subject[] },
   subjectAllocations: SubjectAllocation[],
   teachers: Teacher[],
   teacherAllocations: TeacherAllocation[]
 ): ValidationResult => {
   const issues: ValidationIssue[] = [];
-  const missingAllocations: Array<{ sectionId: string; subjectId: string }> = [];
+  const missingAllocations: Array<{
+    sectionId: string;
+    classroomId?: string;
+    subjectId: string;
+  }> = [];
   const overloadedTeachers: Array<{ teacherId: string; currentLoad: number; maxLoad: number }> = [];
   const sectionsWithMissingSet = new Set<string>();
 
@@ -445,12 +607,37 @@ export const validateTeacherAllocations = (
     const grade = structureData.grades.find((g) => g.id === section.gradeId);
     if (!grade) return;
 
+    const classrooms = (structureData.classrooms || []).filter((classroom) => classroom.sectionId === section.id);
+
     // For each subject that has weekly hours for this grade
     subjectAllocations.forEach((subjectAlloc) => {
       if (subjectAlloc.gradeId === grade.id && subjectAlloc.weeklyHours > 0) {
-        const allocation = teacherAllocations.find(
-          (a) => a.sectionId === section.id && a.subjectId === subjectAlloc.subjectId
-        );
+        const classroomAllocations = getClassroomAllocationsForGroup(teacherAllocations, {
+          sectionId: section.id,
+          subjectId: subjectAlloc.subjectId,
+        });
+
+        if (classrooms.length > 0 && classroomAllocations.length > 0) {
+          classrooms.forEach((classroom) => {
+            const classroomAllocation = classroomAllocations.find(
+              (allocation) => allocation.classroomId === classroom.id
+            );
+            if (!classroomAllocation || !classroomAllocation.teacherId) {
+              missingAllocations.push({
+                sectionId: section.id,
+                classroomId: classroom.id,
+                subjectId: subjectAlloc.subjectId,
+              });
+              sectionsWithMissingSet.add(section.id);
+            }
+          });
+          return;
+        }
+
+        const allocation = resolveTeacherAllocationForTarget(teacherAllocations, {
+          sectionId: section.id,
+          subjectId: subjectAlloc.subjectId,
+        });
 
         if (!allocation || !allocation.teacherId) {
           missingAllocations.push({
@@ -529,6 +716,7 @@ export const carryOverTeacherAllocations = async (
     id: generateId("alloc"),
     termId: toTermId,
     sectionId: a.sectionId,
+    classroomId: a.classroomId,
     subjectId: a.subjectId,
     teacherId: a.teacherId,
   }));

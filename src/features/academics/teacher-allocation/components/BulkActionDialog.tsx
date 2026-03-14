@@ -6,6 +6,7 @@ import { Users, X, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, IconButton } from "@mui/material";
 import Button from "@/components/ui/button/Button";
 import {
+  Classroom,
   Grade,
   Section,
 } from "@/features/academics/academic-structure-tree/services/structureService";
@@ -25,6 +26,7 @@ interface BulkActionDialogProps {
   subject: Subject | null;
   teacher: Teacher | null;
   sections: Section[];
+  classrooms: Classroom[];
   onSuccess: () => void;
 }
 
@@ -36,6 +38,7 @@ export default function BulkActionDialog({
   subject,
   teacher,
   sections,
+  classrooms,
   onSuccess,
 }: BulkActionDialogProps) {
   const t = useTranslations("academics.teacherAllocation.bulkAction");
@@ -45,6 +48,15 @@ export default function BulkActionDialog({
 
   // Get sections for the grade
   const gradeSections = sections.filter((s) => s.gradeId === grade?.id);
+  const classroomsBySection = gradeSections.reduce<Record<string, string[]>>((accumulator, section) => {
+    const classroomIds = classrooms
+      .filter((classroom) => classroom.sectionId === section.id)
+      .map((classroom) => classroom.id);
+    if (classroomIds.length > 0) {
+      accumulator[section.id] = classroomIds;
+    }
+    return accumulator;
+  }, {});
   const affectedCount = gradeSections.length;
 
   const getGradeName = () => {
@@ -80,7 +92,8 @@ export default function BulkActionDialog({
         grade.id,
         subject.id,
         teacher.id,
-        sectionIds
+        sectionIds,
+        classroomsBySection
       );
 
       onSuccess();

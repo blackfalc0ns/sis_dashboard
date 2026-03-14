@@ -17,13 +17,13 @@ export interface TimetablePeriod {
   endTime?: string; // "HH:mm" format
 }
 
-export type TimetableConfigScope = "TERM" | "GRADE" | "SECTION";
+export type TimetableConfigScope = "TERM" | "GRADE" | "SECTION" | "CLASSROOM";
 
 export interface TimetableConfig {
   id: string;
   termId: string;
   scopeType: TimetableConfigScope;
-  scopeId?: string; // gradeId or sectionId (null for TERM scope)
+  scopeId?: string; // gradeId, sectionId, or classroomId (null for TERM scope)
   days: TimetableDay[];
   periods: TimetablePeriod[];
   updatedAt: string;
@@ -39,15 +39,26 @@ export interface ResolvedTimetableConfig {
 }
 
 /**
- * Resolve the effective timetable config for a section
- * Priority: SECTION > GRADE > TERM
+ * Resolve the effective timetable config for a target.
+ * Priority: CLASSROOM > SECTION > GRADE > TERM
  */
 export function resolveTimetableConfig(
   termConfig: TimetableConfig | null,
   gradeConfig?: TimetableConfig | null,
-  sectionConfig?: TimetableConfig | null
+  sectionConfig?: TimetableConfig | null,
+  classroomConfig?: TimetableConfig | null
 ): ResolvedTimetableConfig {
-  // Priority: Section > Grade > Term
+  if (classroomConfig) {
+    return {
+      days: classroomConfig.days,
+      periods: classroomConfig.periods,
+      source: {
+        scope: "CLASSROOM",
+        id: classroomConfig.scopeId,
+      },
+    };
+  }
+
   if (sectionConfig) {
     return {
       days: sectionConfig.days,

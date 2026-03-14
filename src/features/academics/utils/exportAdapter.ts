@@ -13,10 +13,13 @@ export interface ExportColumn {
 }
 
 export interface ExportMetadata {
+  stageName?: string;
   yearName?: string;
   termName?: string;
   gradeName?: string;
   sectionName?: string;
+  classroomName?: string;
+  configSource?: string;
   exportDate?: string;
 }
 
@@ -37,30 +40,45 @@ function buildSubtitle(metadata: ExportMetadata | undefined, locale: string): st
   if (!metadata) return "";
 
   const parts: string[] = [];
-  const separator = locale === "ar" ? " • " : " • ";
+  const separator = locale === "ar" ? " ? " : " ? ";
 
   if (metadata.yearName) {
-    const label = locale === "ar" ? "العام" : "Year";
+    const label = locale === "ar" ? "?????" : "Year";
     parts.push(`${label}: ${metadata.yearName}`);
   }
 
+  if (metadata.stageName) {
+    const label = locale === "ar" ? "???????" : "Stage";
+    parts.push(`${label}: ${metadata.stageName}`);
+  }
+
   if (metadata.termName) {
-    const label = locale === "ar" ? "الترم" : "Term";
+    const label = locale === "ar" ? "?????" : "Term";
     parts.push(`${label}: ${metadata.termName}`);
   }
 
   if (metadata.gradeName) {
-    const label = locale === "ar" ? "الصف" : "Grade";
+    const label = locale === "ar" ? "????" : "Grade";
     parts.push(`${label}: ${metadata.gradeName}`);
   }
 
   if (metadata.sectionName) {
-    const label = locale === "ar" ? "الشعبة" : "Section";
+    const label = locale === "ar" ? "??????" : "Section";
     parts.push(`${label}: ${metadata.sectionName}`);
   }
 
+  if (metadata.classroomName) {
+    const label = locale === "ar" ? "?????" : "Classroom";
+    parts.push(`${label}: ${metadata.classroomName}`);
+  }
+
+  if (metadata.configSource) {
+    const label = locale === "ar" ? "???? ???????" : "Config source";
+    parts.push(`${label}: ${metadata.configSource}`);
+  }
+
   if (metadata.exportDate) {
-    const label = locale === "ar" ? "تاريخ التصدير" : "Exported";
+    const label = locale === "ar" ? "????? ???????" : "Exported";
     parts.push(`${label}: ${metadata.exportDate}`);
   }
 
@@ -79,7 +97,6 @@ export function exportAcademicsData(options: ExportOptions): void {
     return;
   }
 
-  // Transform rows to use localized column labels as keys
   const transformedRows = rows.map((row) => {
     const transformedRow: Record<string, unknown> = {};
     columns.forEach((col) => {
@@ -88,10 +105,8 @@ export function exportAcademicsData(options: ExportOptions): void {
     return transformedRow;
   });
 
-  // Build subtitle from metadata
   const subtitle = buildSubtitle(metadata, locale);
 
-  // Use enhanced export utilities with title support
   if (format === "excel") {
     exportToExcelWithTitle({
       title,
@@ -112,18 +127,14 @@ export function exportAcademicsData(options: ExportOptions): void {
 /**
  * Generate filename with timestamp and locale-safe characters
  */
-export function generateExportFilename(
-  prefix: string,
-  termId?: string,
-  gradeId?: string,
-): string {
+export function generateExportFilename(prefix: string, termId?: string, gradeId?: string): string {
   const timestamp = new Date().toISOString().split("T")[0];
   const parts = [prefix];
-  
+
   if (termId) parts.push(termId);
   if (gradeId) parts.push(gradeId);
   parts.push(timestamp);
-  
+
   return parts.join("-");
 }
 

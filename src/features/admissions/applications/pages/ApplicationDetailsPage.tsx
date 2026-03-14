@@ -256,7 +256,6 @@ export default function ApplicationDetailsPage({
         onClose={() => setIsEnrollmentOpen(false)}
         onSubmit={async (data) => {
           await submitApplicationEnrollment(application, data);
-          alert("Student enrolled successfully!");
           setIsEnrollmentOpen(false);
         }}
         application={application}

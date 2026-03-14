@@ -192,6 +192,8 @@ export default function TimetablePageContent() {
         {activeTab === "rooms" && (
           <RoomsView
             schoolId="school-1" // TODO: Get from context
+            academicYearId={academicYearId}
+            termId={termId}
             isReadOnly={isReadOnly}
           />
         )}

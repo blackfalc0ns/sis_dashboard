@@ -1,7 +1,10 @@
 // FILE: src/data/mockEnrollments.ts
 // ERP Enrollment mock data
 
-import type { StudentEnrollment } from "@/features/students-guardians/students/types";
+import type {
+  EnrollmentMovement,
+  StudentEnrollment,
+} from "@/features/students-guardians/students/types";
 import {
   getStructureTreeSnapshot,
   resolveStructureContextForAcademicYear,
@@ -115,10 +118,55 @@ export const mockStudentEnrollments: StudentEnrollment[] = mockStudents.map((stu
   buildEnrollment(student, index),
 );
 
+export const mockEnrollmentMovements: EnrollmentMovement[] = mockStudentEnrollments.map(
+  (enrollment) => ({
+    id: `MOVE-${enrollment.enrollmentId}`,
+    studentId: enrollment.studentId,
+    academicYear: enrollment.academicYear,
+    actionType: "enrolled",
+    toGradeId: enrollment.gradeId,
+    toSectionId: enrollment.sectionId,
+    toClassroomId: enrollment.classroomId,
+    toGrade: enrollment.grade,
+    toSection: enrollment.section,
+    toClassroom: enrollment.classroom,
+    effectiveDate: enrollment.enrollmentDate,
+    createdAt: enrollment.enrollmentDate,
+  }),
+);
+
+const compareAcademicYears = (left: string, right: string) => {
+  const leftStart = parseInt(left.split("-")[0] || "0", 10);
+  const rightStart = parseInt(right.split("-")[0] || "0", 10);
+  return leftStart - rightStart;
+};
+
 export function getEnrollmentByStudentId(
   studentId: string,
 ): StudentEnrollment | undefined {
-  return mockStudentEnrollments.find((enrollment) => enrollment.studentId === studentId);
+  return mockStudentEnrollments
+    .filter((enrollment) => enrollment.studentId === studentId)
+    .sort((left, right) => compareAcademicYears(right.academicYear, left.academicYear))
+    .sort((left, right) => {
+      if (left.status === "active" && right.status !== "active") return -1;
+      if (left.status !== "active" && right.status === "active") return 1;
+      return 0;
+    })[0];
+}
+
+export function getEnrollmentsByStudentId(studentId: string): StudentEnrollment[] {
+  return mockStudentEnrollments
+    .filter((enrollment) => enrollment.studentId === studentId)
+    .sort((left, right) => compareAcademicYears(left.academicYear, right.academicYear));
+}
+
+export function getEnrollmentMovementsByStudentId(studentId: string): EnrollmentMovement[] {
+  return mockEnrollmentMovements
+    .filter((movement) => movement.studentId === studentId)
+    .sort(
+      (left, right) =>
+        new Date(right.effectiveDate).getTime() - new Date(left.effectiveDate).getTime(),
+    );
 }
 
 export function getEnrollmentsByGrade(grade: string): StudentEnrollment[] {
@@ -150,7 +198,9 @@ export function upsertStudentEnrollment(
   payload: Omit<StudentEnrollment, "enrollmentId"> & { enrollmentId?: string },
 ): StudentEnrollment {
   const existingIndex = mockStudentEnrollments.findIndex(
-    (enrollment) => enrollment.studentId === payload.studentId,
+    (enrollment) =>
+      enrollment.studentId === payload.studentId &&
+      enrollment.academicYear === payload.academicYear,
   );
 
   const nextEnrollment: StudentEnrollment = {

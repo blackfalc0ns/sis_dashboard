@@ -6,6 +6,7 @@ import { X, AlertCircle, AlertTriangle, CheckCircle } from "lucide-react";
 import { Drawer } from "@mui/material";
 import Button from "@/components/ui/button/Button";
 import {
+  Classroom,
   Grade,
   Section,
 } from "@/features/academics/academic-structure-tree/services/structureService";
@@ -26,6 +27,7 @@ interface ValidationPanelProps {
   termId: string;
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   subjects: Subject[];
   subjectAllocations: SubjectAllocation[];
   teachers: Teacher[];
@@ -37,6 +39,8 @@ interface MissingAssignment {
   gradeName: string;
   sectionId: string;
   sectionName: string;
+  classroomId?: string;
+  classroomName?: string;
   subjectId: string;
   subjectName: string;
 }
@@ -54,6 +58,7 @@ export default function ValidationPanel({
   termId,
   grades,
   sections,
+  classrooms,
   subjects,
   subjectAllocations,
   teachers,
@@ -62,9 +67,8 @@ export default function ValidationPanel({
   const t = useTranslations("academics.teacherAllocation.validation");
   const locale = useLocale();
 
-  // Run validation
   const validationResult = useMemo<ValidationResult>(() => {
-    const structureData = { grades, sections, subjects };
+    const structureData = { grades, sections, classrooms, subjects };
     return validateTeacherAllocations(
       termId,
       structureData,
@@ -72,27 +76,21 @@ export default function ValidationPanel({
       teachers,
       teacherAllocations
     );
-  }, [termId, grades, sections, subjects, subjectAllocations, teachers, teacherAllocations]);
+  }, [termId, grades, sections, classrooms, subjects, subjectAllocations, teachers, teacherAllocations]);
 
-  // Build missing assignments list
   const missingAssignments = useMemo<MissingAssignment[]>(() => {
     const missing: MissingAssignment[] = [];
 
     validationResult.missingAllocations.forEach((item) => {
-      const section = sections.find((s) => s.id === item.sectionId);
-      const subject = subjects.find((s) => s.id === item.subjectId);
-      
+      const section = sections.find((currentSection) => currentSection.id === item.sectionId);
+      const subject = subjects.find((currentSubject) => currentSubject.id === item.subjectId);
+      const classroom = item.classroomId
+        ? classrooms.find((currentClassroom) => currentClassroom.id === item.classroomId)
+        : undefined;
+
       if (!section || !subject) return;
 
-      // Find grade for this section
-      let grade: Grade | undefined;
-      grades.forEach((g) => {
-        const sectionInGrade = sections.find(
-          (s) => s.id === item.sectionId && s.gradeId === g.id
-        );
-        if (sectionInGrade) grade = g;
-      });
-
+      const grade = grades.find((currentGrade) => currentGrade.id === section.gradeId);
       if (!grade) return;
 
       missing.push({
@@ -100,18 +98,23 @@ export default function ValidationPanel({
         gradeName: locale === "ar" ? (grade.nameAr || grade.nameEn) : (grade.nameEn || grade.nameAr),
         sectionId: section.id,
         sectionName: locale === "ar" ? (section.nameAr || section.nameEn) : (section.nameEn || section.nameAr),
+        classroomId: classroom?.id,
+        classroomName: classroom
+          ? locale === "ar"
+            ? (classroom.nameAr || classroom.nameEn)
+            : (classroom.nameEn || classroom.nameAr)
+          : undefined,
         subjectId: subject.id,
         subjectName: locale === "ar" ? (subject.nameAr || subject.nameEn) : (subject.nameEn || subject.nameAr),
       });
     });
 
     return missing;
-  }, [validationResult, grades, sections, subjects, locale]);
+  }, [validationResult, sections, subjects, classrooms, grades, locale]);
 
-  // Build overloaded teachers list
   const overloadedTeachers = useMemo<OverloadedTeacher[]>(() => {
     return validationResult.overloadedTeachers.map((item) => {
-      const teacher = teachers.find((t) => t.id === item.teacherId);
+      const teacher = teachers.find((currentTeacher) => currentTeacher.id === item.teacherId);
       return {
         teacherId: item.teacherId,
         teacherName: teacher
@@ -125,16 +128,14 @@ export default function ValidationPanel({
     });
   }, [validationResult, teachers, locale]);
 
-  // Group missing assignments by grade
   const missingByGrade = useMemo(() => {
     const grouped = new Map<string, MissingAssignment[]>();
-    
+
     missingAssignments.forEach((item) => {
-      const key = item.gradeId;
-      if (!grouped.has(key)) {
-        grouped.set(key, []);
+      if (!grouped.has(item.gradeId)) {
+        grouped.set(item.gradeId, []);
       }
-      grouped.get(key)!.push(item);
+      grouped.get(item.gradeId)!.push(item);
     });
 
     return grouped;
@@ -155,7 +156,6 @@ export default function ValidationPanel({
       }}
     >
       <div className="flex flex-col h-full bg-gray-50">
-        {/* Header */}
         <div className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">{t("title")}</h2>
@@ -168,11 +168,8 @@ export default function ValidationPanel({
           </div>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Summary Cards */}
           <div className="grid grid-cols-1 gap-4">
-            {/* Missing Assignments */}
             <div
               className={`rounded-lg border-2 p-4 ${
                 validationResult.missingCount > 0
@@ -201,7 +198,6 @@ export default function ValidationPanel({
               </div>
             </div>
 
-            {/* Sections with Missing */}
             <div className="rounded-lg border-2 bg-amber-50 border-amber-200 p-4">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
@@ -216,7 +212,6 @@ export default function ValidationPanel({
               </div>
             </div>
 
-            {/* Overloaded Teachers */}
             <div
               className={`rounded-lg border-2 p-4 ${
                 validationResult.overloadedCount > 0
@@ -246,7 +241,6 @@ export default function ValidationPanel({
             </div>
           </div>
 
-          {/* No Issues Message */}
           {!hasIssues && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
               <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
@@ -254,7 +248,6 @@ export default function ValidationPanel({
             </div>
           )}
 
-          {/* Missing Assignments Details */}
           {missingAssignments.length > 0 && (
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="bg-red-50 border-b border-red-200 px-4 py-3">
@@ -273,14 +266,18 @@ export default function ValidationPanel({
                       <div className="space-y-2">
                         {items.map((item, index) => (
                           <div
-                            key={`${item.sectionId}-${item.subjectId}-${index}`}
+                            key={`${item.sectionId}-${item.classroomId || "section"}-${item.subjectId}-${index}`}
                             className="flex items-start gap-2 text-sm"
                           >
                             <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
                             <div className="flex-1">
-                              <span className="text-gray-900 font-medium">
-                                {item.sectionName}
-                              </span>
+                              <span className="text-gray-900 font-medium">{item.sectionName}</span>
+                              {item.classroomName && (
+                                <>
+                                  <span className="text-gray-500"> • </span>
+                                  <span className="text-gray-700">{item.classroomName}</span>
+                                </>
+                              )}
                               <span className="text-gray-500"> • </span>
                               <span className="text-gray-700">{item.subjectName}</span>
                             </div>
@@ -294,7 +291,6 @@ export default function ValidationPanel({
             </div>
           )}
 
-          {/* Overloaded Teachers Details */}
           {overloadedTeachers.length > 0 && (
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="bg-orange-50 border-b border-orange-200 px-4 py-3">
@@ -343,7 +339,6 @@ export default function ValidationPanel({
           )}
         </div>
 
-        {/* Footer */}
         <div className="bg-white border-t border-gray-200 px-6 py-4">
           <Button onClick={onClose} variant="primary" className="w-full">
             {t("close")}
@@ -352,4 +347,4 @@ export default function ValidationPanel({
       </div>
     </Drawer>
   );
-}
+}

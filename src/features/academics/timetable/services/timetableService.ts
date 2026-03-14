@@ -24,14 +24,18 @@ const mockTimetableEntries: TimetableEntry[] = [];
 
 export async function fetchTimetable(
   termId: string,
-  sectionId: string
+  sectionId: string,
+  classroomId?: string
 ): Promise<TimetableEntry[]> {
   // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   // Filter entries for this section and migrate to new format
   const entries = mockTimetableEntries.filter(
-    (entry) => entry.termId === termId && entry.sectionId === sectionId
+    (entry) =>
+      entry.termId === termId &&
+      entry.sectionId === sectionId &&
+      (classroomId ? entry.classroomId === classroomId : !entry.classroomId)
   );
 
   return entries.map(migrateEntry);
@@ -50,7 +54,8 @@ export async function fetchAllTimetablesForTerm(
 export async function upsertTimetableEntries(
   termId: string,
   sectionId: string,
-  entries: Partial<TimetableEntry>[]
+  entries: Partial<TimetableEntry>[],
+  classroomId?: string
 ): Promise<TimetableEntry[]> {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -62,6 +67,7 @@ export async function upsertTimetableEntries(
       (e) =>
         e.termId === termId &&
         e.sectionId === sectionId &&
+        (e.classroomId || "") === (classroomId || "") &&
         e.dayKey === entry.dayKey &&
         e.periodIndex === entry.periodIndex
     );
@@ -70,6 +76,7 @@ export async function upsertTimetableEntries(
       id: entry.id || `tt-${Date.now()}-${Math.random()}`,
       termId,
       sectionId,
+      classroomId,
       dayKey: entry.dayKey!,
       periodIndex: entry.periodIndex!,
       subjectId: entry.subjectId || null,
@@ -95,7 +102,8 @@ export async function deleteTimetableEntry(
   termId: string,
   sectionId: string,
   day: number,
-  period: number
+  period: number,
+  classroomId?: string
 ): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -103,6 +111,7 @@ export async function deleteTimetableEntry(
     (e) =>
       e.termId === termId &&
       e.sectionId === sectionId &&
+      (e.classroomId || "") === (classroomId || "") &&
       e.day === day &&
       e.period === period
   );
@@ -132,13 +141,18 @@ export async function validateTimetable(): Promise<TimetableValidationResult> {
 
 export async function publishTimetable(
   termId: string,
-  sectionId: string
+  sectionId: string,
+  classroomId?: string
 ): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   // Update all entries for this section to PUBLISHED
   mockTimetableEntries.forEach((entry) => {
-    if (entry.termId === termId && entry.sectionId === sectionId) {
+    if (
+      entry.termId === termId &&
+      entry.sectionId === sectionId &&
+      (classroomId ? entry.classroomId === classroomId : !entry.classroomId)
+    ) {
       entry.status = "PUBLISHED";
     }
   });
@@ -146,13 +160,18 @@ export async function publishTimetable(
 
 export async function unpublishTimetable(
   termId: string,
-  sectionId: string
+  sectionId: string,
+  classroomId?: string
 ): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   // Update all entries for this section to DRAFT
   mockTimetableEntries.forEach((entry) => {
-    if (entry.termId === termId && entry.sectionId === sectionId) {
+    if (
+      entry.termId === termId &&
+      entry.sectionId === sectionId &&
+      (classroomId ? entry.classroomId === classroomId : !entry.classroomId)
+    ) {
       entry.status = "DRAFT";
     }
   });
@@ -162,6 +181,7 @@ export async function unpublishTimetable(
 export function detectConflicts(
   entries: TimetableEntry[],
   sections: Array<{ id: string; nameAr: string; nameEn: string }>,
+  classrooms: Array<{ id: string; nameAr: string; nameEn: string }>,
   teachers: Array<{ id: string; nameAr: string; nameEn: string }>,
   rooms: Array<{ id: string; nameAr: string; nameEn: string }>,
   subjects: Array<{ id: string; nameAr: string; nameEn: string }>
@@ -209,10 +229,15 @@ export function detectConflicts(
           resourceName: teacher?.nameEn || "Unknown Teacher",
           sections: entries.map((e) => {
             const section = sections.find((s) => s.id === e.sectionId);
+            const classroom = e.classroomId
+              ? classrooms.find((item) => item.id === e.classroomId)
+              : undefined;
             const subject = subjects.find((s) => s.id === e.subjectId);
             return {
               sectionId: e.sectionId,
               sectionName: section?.nameEn || "Unknown Section",
+              classroomId: e.classroomId,
+              classroomName: classroom?.nameEn || classroom?.nameAr,
               subjectName: subject?.nameEn || "Unknown Subject",
             };
           }),
@@ -243,10 +268,15 @@ export function detectConflicts(
           resourceName: room?.nameEn || "Unknown Room",
           sections: entries.map((e) => {
             const section = sections.find((s) => s.id === e.sectionId);
+            const classroom = e.classroomId
+              ? classrooms.find((item) => item.id === e.classroomId)
+              : undefined;
             const subject = subjects.find((s) => s.id === e.subjectId);
             return {
               sectionId: e.sectionId,
               sectionName: section?.nameEn || "Unknown Section",
+              classroomId: e.classroomId,
+              classroomName: classroom?.nameEn || classroom?.nameAr,
               subjectName: subject?.nameEn || "Unknown Subject",
             };
           }),

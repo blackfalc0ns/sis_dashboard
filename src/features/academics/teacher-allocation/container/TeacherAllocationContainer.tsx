@@ -11,6 +11,7 @@ import {
   fetchTermsByYear,
   fetchStructureTree,
   type AcademicYear,
+  type Classroom,
   type Term,
   type Grade,
   type Section,
@@ -49,6 +50,7 @@ export default function TeacherAllocationContainer() {
   const [terms, setTerms] = useState<Term[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectAllocations, setSubjectAllocations] = useState<SubjectAllocation[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -123,6 +125,7 @@ export default function TeacherAllocationContainer() {
 
         setGrades(structureData.grades);
         setSections(structureData.sections);
+        setClassrooms(structureData.classrooms);
         setSubjects(subjectsData);
         setSubjectAllocations(subjectAllocsData);
         setTeachers(teachersData);
@@ -233,6 +236,7 @@ export default function TeacherAllocationContainer() {
       terms={terms}
       grades={grades}
       sections={sections}
+      classrooms={classrooms}
       subjects={subjects}
       subjectAllocations={subjectAllocations}
       teachers={teachers}

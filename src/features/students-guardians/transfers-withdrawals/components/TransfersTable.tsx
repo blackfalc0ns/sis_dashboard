@@ -10,9 +10,17 @@ import type { TransferApplication } from "@/features/students-guardians/transfer
 
 interface TransfersTableProps {
   data: TransferApplication[];
+  onApprove?: (id: string) => void;
+  onReject?: (id: string) => void;
+  onExecute?: (id: string) => void;
 }
 
-export default function TransfersTable({ data }: TransfersTableProps) {
+export default function TransfersTable({
+  data,
+  onApprove,
+  onReject,
+  onExecute,
+}: TransfersTableProps) {
   const t = useTranslations("students_guardians.transfers_withdrawals");
   const locale = useLocale();
   const router = useRouter();
@@ -124,20 +132,29 @@ export default function TransfersTable({ data }: TransfersTableProps) {
           {row.status === "under_review" && (
             <>
               <button
-                onClick={() => console.log("Approve", row.id)}
+                onClick={() => onApprove?.(row.id as string)}
                 className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
                 title={t("transfers.table.approve")}
               >
                 <CheckCircle className="w-4 h-4" />
               </button>
               <button
-                onClick={() => console.log("Reject", row.id)}
+                onClick={() => onReject?.(row.id as string)}
                 className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
                 title={t("transfers.table.reject")}
               >
                 <XCircle className="w-4 h-4" />
               </button>
             </>
+          )}
+          {row.status === "approved" && (
+            <button
+              onClick={() => onExecute?.(row.id as string)}
+              className="p-1.5 text-primary hover:bg-blue-50 rounded transition-colors"
+              title={t("details.execute")}
+            >
+              <CheckCircle className="w-4 h-4" />
+            </button>
           )}
         </div>
       ),

@@ -2,13 +2,19 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useTranslations } from "next-intl";
 import { Plus, Search, Filter, X } from "lucide-react";
 import WithdrawalsTable from "./WithdrawalsTable";
 import CreateWithdrawalModal from "./modals/CreateWithdrawalModal";
 import type { WithdrawalsFilters as FiltersType } from "@/features/students-guardians/transfers-withdrawals/types/transfers-withdrawals";
-import { filterWithdrawals } from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
+import {
+  createWithdrawal,
+  filterWithdrawals,
+  getTransfersWithdrawalsSnapshot,
+  subscribeTransfersWithdrawals,
+  updateWithdrawalStatus,
+} from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
 
 export default function WithdrawalsApplicationsPage() {
   const t = useTranslations("students_guardians.transfers_withdrawals");
@@ -23,10 +29,13 @@ export default function WithdrawalsApplicationsPage() {
     financialClearance: "all",
   });
 
-  const filteredData = useMemo(
-    () => filterWithdrawals({ ...filters, searchQuery }),
-    [filters, searchQuery],
+  useSyncExternalStore(
+    subscribeTransfersWithdrawals,
+    getTransfersWithdrawalsSnapshot,
+    getTransfersWithdrawalsSnapshot,
   );
+
+  const filteredData = filterWithdrawals({ ...filters, searchQuery });
 
   const hasActiveFilters =
     searchQuery !== "" ||
@@ -264,16 +273,26 @@ export default function WithdrawalsApplicationsPage() {
       </div>
 
       {/* Table */}
-      <WithdrawalsTable data={filteredData} />
+      <WithdrawalsTable
+        data={filteredData}
+        onApprove={async (id) => {
+          await updateWithdrawalStatus(id, "approved");
+        }}
+        onReject={async (id) => {
+          await updateWithdrawalStatus(id, "rejected");
+        }}
+        onExecute={async (id) => {
+          await updateWithdrawalStatus(id, "executed");
+        }}
+      />
 
       {/* Create Modal */}
       {showCreateModal && (
         <CreateWithdrawalModal
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
-          onSubmit={(data) => {
-            console.log("Withdrawal created:", data);
-            // TODO: Implement API call
+          onSubmit={async (data) => {
+            await createWithdrawal(data);
             setShowCreateModal(false);
           }}
         />

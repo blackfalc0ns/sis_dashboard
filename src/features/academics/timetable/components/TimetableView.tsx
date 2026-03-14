@@ -20,6 +20,7 @@ import GenerateDialog from "./GenerateDialog";
 import TimetableConfigDialog from "./TimetableConfigDialog";
 import ConfigChangeWarningDialog from "./ConfigChangeWarningDialog";
 import { Button } from "@/components/ui";
+import ExportButton from "@/components/ui/button/ExportButton";
 import { useToast } from "@/components/ui/toast/Toast";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import {
@@ -28,6 +29,7 @@ import {
   Stage,
   Grade,
   Section,
+  Classroom,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   fetchSubjects,
@@ -40,8 +42,16 @@ import {
   fetchTeacherAllocations,
   Teacher,
   TeacherAllocation,
+  resolveTeacherAllocationForTarget,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import { fetchRooms } from "@/features/academics/rooms/services/roomsService";
+import {
+  fetchRooms,
+  fetchRoomDefaultAssignments,
+  resolveDefaultRoomSourceForTarget,
+  resolveDefaultRoomForTarget,
+  type RoomDefaultAssignment,
+  type RoomAssignmentSource,
+} from "@/features/academics/rooms/services/roomsService";
 import { fetchTermEvents } from "@/features/academics/calendar/services/calendarService";
 import {
   fetchTimetable,
@@ -72,6 +82,13 @@ import {
   upsertTimetableConfig,
 } from "@/features/academics/timetable/services/timetableConfigService";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import {
+  exportAcademicsData,
+  generateExportFilename,
+  type ExportColumn,
+  type ExportMetadata,
+  formatExportDate,
+} from "@/features/academics/utils/exportAdapter";
 
 interface TimetableViewProps {
   termId: string;
@@ -95,11 +112,13 @@ export default function TimetableView({
   const [stages, setStages] = useState<Stage[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectAllocations, setSubjectAllocations] = useState<SubjectAllocation[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [teacherAllocations, setTeacherAllocations] = useState<TeacherAllocation[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [roomDefaults, setRoomDefaults] = useState<RoomDefaultAssignment[]>([]);
   const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>([]);
   const [allTermEntries, setAllTermEntries] = useState<TimetableEntry[]>([]);
 
@@ -120,6 +139,7 @@ export default function TimetableView({
   const [selectedStageId, setSelectedStageId] = useState<string>("");
   const [selectedGradeId, setSelectedGradeId] = useState<string>("");
   const [selectedSectionId, setSelectedSectionId] = useState<string>("");
+  const [selectedClassroomId, setSelectedClassroomId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -164,12 +184,17 @@ export default function TimetableView({
         const sectionConfig = configs.find(
           (c) => c.scopeType === "SECTION" && c.scopeId === selectedSectionId
         );
+        const classroomConfig = selectedClassroomId
+          ? configs.find(
+              (c) => c.scopeType === "CLASSROOM" && c.scopeId === selectedClassroomId
+            )
+          : null;
         
-        const resolved = resolveTimetableConfig(termConfig || null, gradeConfig, sectionConfig);
+        const resolved = resolveTimetableConfig(termConfig || null, gradeConfig, sectionConfig, classroomConfig || undefined);
         setResolvedConfig(resolved);
       }
     }
-  }, [selectedSectionId, configs, sections]);
+  }, [selectedClassroomId, selectedSectionId, configs, sections]);
 
   // Update dirty state
   useEffect(() => {
@@ -191,7 +216,17 @@ export default function TimetableView({
         yearId = currentYear.id;
       }
 
-      const [structure, subjectsData, subjectAllocsData, teachersData, teacherAllocsData, roomsData, , configsData] =
+      const [
+        structure,
+        subjectsData,
+        subjectAllocsData,
+        teachersData,
+        teacherAllocsData,
+        roomsData,
+        roomDefaultsData,
+        ,
+        configsData,
+      ] =
         await Promise.all([
           fetchStructureTree(yearId, termId),
           fetchSubjects(termId),
@@ -199,6 +234,7 @@ export default function TimetableView({
           fetchTeachers(),
           fetchTeacherAllocations(termId),
           fetchRooms("school-1"),
+          fetchRoomDefaultAssignments("school-1"),
           fetchTermEvents(termId), // Fetched but not used currently
           fetchTimetableConfigs(termId),
         ]);
@@ -207,6 +243,7 @@ export default function TimetableView({
       const allStages: Stage[] = structure.stages || [];
       const allGrades: Grade[] = structure.grades || [];
       const allSections: Section[] = structure.sections || [];
+      const allClassrooms: Classroom[] = structure.classrooms || [];
 
       // Filter only HOLIDAY events with SCHOOL scope
       // const schoolHolidays = calendarEvents.filter(
@@ -216,11 +253,13 @@ export default function TimetableView({
       setStages(allStages);
       setGrades(allGrades);
       setSections(allSections);
+      setClassrooms(allClassrooms);
       setSubjects(subjectsData);
       setSubjectAllocations(subjectAllocsData);
       setTeachers(teachersData);
       setTeacherAllocations(teacherAllocsData);
       setRooms(roomsData.filter((r) => r.isActive));
+      setRoomDefaults(roomDefaultsData);
       // setHolidays(schoolHolidays); // Holidays not currently used
       setConfigs(configsData);
 
@@ -276,6 +315,7 @@ export default function TimetableView({
       const detectedConflicts = detectConflicts(
         allTermEntries,
         sections,
+        classrooms,
         teachers,
         rooms,
         subjects
@@ -291,6 +331,7 @@ export default function TimetableView({
       allTermEntries,
       teachers,
       rooms,
+      classrooms,
     ]
   );
 
@@ -298,7 +339,7 @@ export default function TimetableView({
     if (!selectedSectionId) return;
 
     try {
-      const entries = await fetchTimetable(termId, selectedSectionId);
+      const entries = await fetchTimetable(termId, selectedSectionId, selectedClassroomId || undefined);
       setTimetableEntries(entries);
       setIsDirty(false);
       
@@ -312,14 +353,14 @@ export default function TimetableView({
       console.error("Failed to load timetable:", error);
       showToast("Failed to load timetable", "error");
     }
-  }, [selectedSectionId, termId, calculateValidation, showToast]);
+  }, [selectedClassroomId, selectedSectionId, termId, calculateValidation, showToast]);
 
   // Load timetable when section changes
   useEffect(() => {
     if (selectedSectionId) {
       loadTimetable();
     }
-  }, [selectedSectionId, termId, loadTimetable]);
+  }, [selectedClassroomId, selectedSectionId, termId, loadTimetable]);
 
   // Helper function to check if a day is a holiday
   const isHolidayDay = useCallback((dayKey: string): boolean => {
@@ -362,6 +403,7 @@ export default function TimetableView({
       id: existingIndex >= 0 ? updatedEntries[existingIndex].id : `temp-${Date.now()}`,
       termId,
       sectionId: selectedSectionId,
+      classroomId: selectedClassroomId || undefined,
       dayKey,
       periodIndex,
       slotType: slotType || "CLASS",
@@ -392,7 +434,7 @@ export default function TimetableView({
 
     setIsSaving(true);
     try {
-      await upsertTimetableEntries(termId, selectedSectionId, timetableEntries);
+      await upsertTimetableEntries(termId, selectedSectionId, timetableEntries, selectedClassroomId || undefined);
       setIsDirty(false);
       showToast(t("actions.saveSuccess"), "success");
       
@@ -419,7 +461,13 @@ export default function TimetableView({
 
     // Check for errors
     const hasConflicts = conflicts.some(
-      (c) => c.sections.some((s) => s.sectionId === selectedSectionId)
+      (c) =>
+        c.sections.some(
+          (section) =>
+            section.sectionId === selectedSectionId &&
+            ((selectedClassroomId && section.classroomId === selectedClassroomId) ||
+              (!selectedClassroomId && !section.classroomId))
+        )
     );
     const hasMismatches = subjectHours.some((s) => s.status !== "OK");
 
@@ -436,7 +484,7 @@ export default function TimetableView({
     if (!selectedSectionId) return;
 
     try {
-      await publishTimetable(termId, selectedSectionId);
+      await publishTimetable(termId, selectedSectionId, selectedClassroomId || undefined);
       
       // Update local state instead of reloading
       const updatedEntries = timetableEntries.map(entry => ({
@@ -459,7 +507,7 @@ export default function TimetableView({
     if (!selectedSectionId) return;
 
     try {
-      await unpublishTimetable(termId, selectedSectionId);
+      await unpublishTimetable(termId, selectedSectionId, selectedClassroomId || undefined);
       
       // Update local state instead of reloading
       const updatedEntries = timetableEntries.map(entry => ({
@@ -609,6 +657,7 @@ export default function TimetableView({
     const result = await generateTimetable(
       {
         sectionId: selectedSectionId,
+        classroomId: selectedClassroomId || undefined,
         gradeId: selectedSection.gradeId,
         termId,
         excludeDays,
@@ -637,13 +686,238 @@ export default function TimetableView({
     showToast(t("generate.result.applied", { count: result.entries.length }), "success");
   };
 
+  const getRecommendedRooms = (subjectId?: string): Room[] => {
+    const selectedClassroom = selectedClassroomId
+      ? classrooms.find((item) => item.id === selectedClassroomId)
+      : undefined;
+    const subject = subjectId ? subjects.find((item) => item.id === subjectId) : undefined;
+    const subjectLabel = `${subject?.nameEn || ""} ${subject?.nameAr || ""}`.toLowerCase();
+    const isLabSubject =
+      subjectLabel.includes("science") ||
+      subjectLabel.includes("computer") ||
+      subjectLabel.includes("stem") ||
+      subjectLabel.includes("?????") ||
+      subjectLabel.includes("????");
+    const explicitDefaultRoom = selectedSectionId
+      ? resolveDefaultRoomForTarget(rooms, roomDefaults, {
+          schoolId: "school-1",
+          sectionId: selectedSectionId,
+          classroomId: selectedClassroomId || undefined,
+        })
+      : null;
+
+    return [...rooms].sort((left, right) => {
+      const getScore = (room: Room) => {
+        let score = 0;
+
+        if (explicitDefaultRoom?.id === room.id) {
+          score += 200;
+        }
+
+        if (
+          selectedClassroom &&
+          (room.nameEn === selectedClassroom.nameEn || room.nameAr === selectedClassroom.nameAr)
+        ) {
+          score += 100;
+        }
+
+        if (selectedClassroom && room.capacity >= selectedClassroom.capacity) {
+          score += 10;
+        }
+
+        if (selectedClassroom && room.type === "CLASSROOM") {
+          score += 5;
+        }
+
+        if (isLabSubject && room.type === "LAB") {
+          score += 20;
+        }
+
+        return score;
+      };
+
+      return getScore(right) - getScore(left);
+    });
+  };
+
   const getDefaultTeacher = (subjectId: string): string | null => {
     if (!selectedSectionId) return null;
-    
-    const allocation = teacherAllocations.find(
-      (a) => a.sectionId === selectedSectionId && a.subjectId === subjectId
-    );
+
+    const allocation = resolveTeacherAllocationForTarget(teacherAllocations, {
+      sectionId: selectedSectionId,
+      classroomId: selectedClassroomId || undefined,
+      subjectId,
+    });
     return allocation?.teacherId || null;
+  };
+
+  const getDefaultRoomSuggestion = (
+    subjectId: string
+  ): {
+    roomId: string | null;
+    source: Exclude<RoomAssignmentSource, "MANUAL"> | null;
+  } => {
+    if (selectedSectionId) {
+      const explicitDefaultRoom = resolveDefaultRoomForTarget(rooms, roomDefaults, {
+        schoolId: "school-1",
+        sectionId: selectedSectionId,
+        classroomId: selectedClassroomId || undefined,
+      });
+      const explicitDefaultSource = resolveDefaultRoomSourceForTarget(roomDefaults, {
+        schoolId: "school-1",
+        sectionId: selectedSectionId,
+        classroomId: selectedClassroomId || undefined,
+      });
+
+      if (explicitDefaultRoom && explicitDefaultSource) {
+        return {
+          roomId: explicitDefaultRoom.id,
+          source: explicitDefaultSource,
+        };
+      }
+    }
+
+    const [preferredRoom] = getRecommendedRooms(subjectId);
+    return {
+      roomId: preferredRoom?.id || null,
+      source: preferredRoom ? "RECOMMENDED" : null,
+    };
+  };
+
+  const getRoomSource = (
+    roomId: string | null,
+    subjectId?: string
+  ): RoomAssignmentSource | null => {
+    if (!roomId) {
+      return null;
+    }
+
+    const explicitDefaultRoom = selectedSectionId
+      ? resolveDefaultRoomForTarget(rooms, roomDefaults, {
+          schoolId: "school-1",
+          sectionId: selectedSectionId,
+          classroomId: selectedClassroomId || undefined,
+        })
+      : null;
+    const explicitDefaultSource = selectedSectionId
+      ? resolveDefaultRoomSourceForTarget(roomDefaults, {
+          schoolId: "school-1",
+          sectionId: selectedSectionId,
+          classroomId: selectedClassroomId || undefined,
+        })
+      : null;
+
+    if (explicitDefaultRoom?.id === roomId && explicitDefaultSource) {
+      return explicitDefaultSource;
+    }
+
+    if (subjectId) {
+      const [recommendedRoom] = getRecommendedRooms(subjectId);
+      if (recommendedRoom?.id === roomId) {
+        return "RECOMMENDED";
+      }
+    }
+
+    return "MANUAL";
+  };
+
+  const selectedStage = selectedStageId
+    ? stages.find((item) => item.id === selectedStageId)
+    : undefined;
+  const selectedGrade = selectedGradeId
+    ? grades.find((item) => item.id === selectedGradeId)
+    : undefined;
+  const selectedSection = selectedSectionId
+    ? sections.find((item) => item.id === selectedSectionId)
+    : undefined;
+  const selectedClassroom = selectedClassroomId
+    ? classrooms.find((item) => item.id === selectedClassroomId)
+    : undefined;
+
+  const getDisplayName = (entity?: {
+    name?: string;
+    nameAr?: string;
+    nameEn?: string;
+  }) => {
+    if (!entity) return "";
+    return locale === "ar"
+      ? entity.nameAr || entity.nameEn || entity.name || ""
+      : entity.nameEn || entity.nameAr || entity.name || "";
+  };
+
+  const configSourceLabel = resolvedConfig
+    ? t(`config.scope.${resolvedConfig.source.scope.toLowerCase()}`)
+    : "";
+
+  const handleExport = (format: "csv" | "excel") => {
+    if (!selectedSection || !resolvedConfig) return;
+
+    const columns: ExportColumn[] = [
+      { key: "day", label: t("grid.day") },
+      { key: "period", label: t("grid.period") },
+      { key: "slotType", label: t("editSlot.slotType") },
+      { key: "subject", label: t("editSlot.subject") },
+      { key: "teacher", label: t("editSlot.teacher") },
+      { key: "room", label: t("editSlot.room") },
+      { key: "status", label: t("export.status") },
+    ];
+
+    const rows = resolvedConfig.days
+      .filter((day) => day.isActive)
+      .flatMap((day) =>
+        resolvedConfig.periods.map((period) => {
+          const entry = timetableEntries.find(
+            (item) => item.dayKey === day.key && item.periodIndex === period.index
+          );
+          const subject = entry?.subjectId
+            ? subjects.find((item) => item.id === entry.subjectId)
+            : undefined;
+          const teacher = entry?.teacherId
+            ? teachers.find((item) => item.id === entry.teacherId)
+            : undefined;
+          const room = entry?.roomId
+            ? rooms.find((item) => item.id === entry.roomId)
+            : undefined;
+
+          return {
+            day: locale === "ar" ? day.nameAr : day.nameEn,
+            period: locale === "ar" ? period.nameAr : period.nameEn,
+            slotType:
+              entry?.slotType === "BREAK"
+                ? t("editSlot.break")
+                : t("editSlot.class"),
+            subject: subject ? getDisplayName(subject) : "",
+            teacher: teacher ? getDisplayName(teacher) : "",
+            room: room ? getDisplayName(room) : "",
+            status: entry?.status === "PUBLISHED" ? t("export.published") : t("export.draft"),
+          };
+        })
+      );
+
+    const metadata: ExportMetadata = {
+      yearName: academicYearId || undefined,
+      stageName: getDisplayName(selectedStage) || undefined,
+      termName: termId,
+      gradeName: getDisplayName(selectedGrade) || undefined,
+      sectionName: getDisplayName(selectedSection) || undefined,
+      classroomName: getDisplayName(selectedClassroom) || undefined,
+      configSource: configSourceLabel || undefined,
+      exportDate: formatExportDate(locale),
+    };
+
+    exportAcademicsData({
+      title: t("title"),
+      metadata,
+      filename: generateExportFilename(
+        "timetable",
+        termId,
+        selectedClassroomId || selectedSectionId || selectedGradeId || undefined
+      ),
+      format,
+      columns,
+      rows,
+      locale,
+    });
   };
 
   if (isLoading) {
@@ -673,14 +947,57 @@ export default function TimetableView({
         stages={stages}
         grades={grades}
         sections={sections}
+        classrooms={classrooms}
         selectedStageId={selectedStageId}
         selectedGradeId={selectedGradeId}
         selectedSectionId={selectedSectionId}
+        selectedClassroomId={selectedClassroomId}
         onStageChange={setSelectedStageId}
         onGradeChange={setSelectedGradeId}
         onSectionChange={setSelectedSectionId}
+        onClassroomChange={setSelectedClassroomId}
         locale={locale}
       />
+
+      {selectedSectionId && (
+        <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-gray-600">
+                {t("target.label")}
+              </span>
+              {selectedStage && (
+                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                  {t("target.stage")}: {getDisplayName(selectedStage)}
+                </span>
+              )}
+              {selectedGrade && (
+                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                  {t("target.grade")}: {getDisplayName(selectedGrade)}
+                </span>
+              )}
+              {selectedSection && (
+                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                  {t("target.section")}: {getDisplayName(selectedSection)}
+                </span>
+              )}
+              {selectedClassroom && (
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                  {t("target.classroom")}: {getDisplayName(selectedClassroom)}
+                </span>
+              )}
+            </div>
+            {resolvedConfig && (
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <span className="font-medium">{t("target.configSource")}:</span>
+                <span className="rounded-full bg-amber-50 px-3 py-1 font-medium text-amber-700">
+                  {configSourceLabel}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Action Bar */}
       {selectedSectionId && (
@@ -747,6 +1064,7 @@ export default function TimetableView({
               >
                 {t("actions.validate")}
               </Button>
+              <ExportButton onExport={handleExport} disabled={!selectedSectionId} />
             </div>
             {isDirty && (
               <span className="text-sm text-orange-600">
@@ -829,6 +1147,7 @@ export default function TimetableView({
               >
                 {t("actions.validate")}
               </Button>
+              <ExportButton onExport={handleExport} disabled={!selectedSectionId} />
             </div>
 
             {/* Unsaved changes indicator */}
@@ -875,7 +1194,12 @@ export default function TimetableView({
           open={validationPanelOpen}
           subjectHours={subjectHours}
           conflicts={conflicts.filter((c) =>
-            c.sections.some((s) => s.sectionId === selectedSectionId)
+            c.sections.some(
+              (section) =>
+                section.sectionId === selectedSectionId &&
+                ((selectedClassroomId && section.classroomId === selectedClassroomId) ||
+                  (!selectedClassroomId && !section.classroomId))
+            )
           )}
           totalSlots={
             resolvedConfig.days.filter((d) => d.isActive).length *
@@ -884,6 +1208,15 @@ export default function TimetableView({
           filledSlots={timetableEntries.filter((e) => e.subjectId).length}
           missingTeacher={timetableEntries.filter((e) => e.subjectId && !e.teacherId).length}
           missingRoom={timetableEntries.filter((e) => e.subjectId && !e.roomId).length}
+          roomDefaultSource={
+            selectedSectionId
+              ? resolveDefaultRoomSourceForTarget(roomDefaults, {
+                  schoolId: "school-1",
+                  sectionId: selectedSectionId,
+                  classroomId: selectedClassroomId || undefined,
+                })
+              : null
+          }
           onClose={() => setValidationPanelOpen(false)}
           locale={locale}
           resolvedConfig={resolvedConfig}
@@ -904,10 +1237,19 @@ export default function TimetableView({
           entry={editingSlot.entry}
           subjects={subjects}
           teachers={teachers}
-          rooms={rooms}
+          rooms={getRecommendedRooms(editingSlot.entry?.subjectId || undefined)}
           onSave={handleSlotSave}
           onClose={() => setEditDialogOpen(false)}
           getDefaultTeacher={getDefaultTeacher}
+          getDefaultRoomSuggestion={getDefaultRoomSuggestion}
+          getRoomSource={getRoomSource}
+          selectedClassroomName={
+            selectedClassroomId
+              ? (locale === "ar"
+                  ? classrooms.find((item) => item.id === selectedClassroomId)?.nameAr
+                  : classrooms.find((item) => item.id === selectedClassroomId)?.nameEn)
+              : undefined
+          }
           locale={locale}
         />
       )}
@@ -934,6 +1276,7 @@ export default function TimetableView({
           initialScopeId={resolvedConfig.source.id}
           grades={grades}
           sections={sections}
+          classrooms={classrooms}
           locale={locale}
         />
       )}

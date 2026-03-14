@@ -1,13 +1,19 @@
+"use client";
+
+import { useMemo } from "react";
+import { useParams } from "next/navigation";
 import { getWithdrawalById } from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
 import WithdrawalRequestDetailsPage from "@/features/students-guardians/transfers-withdrawals/components/details/WithdrawalRequestDetailsPage";
 
-export default async function WithdrawalDetailsRoute({
-  params,
-}: {
-  params: Promise<{ requestId: string }>;
-}) {
-  const { requestId } = await params;
-  const withdrawal = getWithdrawalById(requestId);
+export default function WithdrawalDetailsRoute() {
+  const params = useParams<{ requestId: string }>();
+  const requestId = Array.isArray(params?.requestId)
+    ? params.requestId[0]
+    : params?.requestId;
+  const withdrawal = useMemo(
+    () => (requestId ? getWithdrawalById(requestId) : undefined),
+    [requestId],
+  );
 
   if (!withdrawal) {
     return (

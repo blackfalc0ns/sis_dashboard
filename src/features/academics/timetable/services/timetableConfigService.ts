@@ -13,7 +13,7 @@ let configStore: TimetableConfig[] = [];
 
 /**
  * Fetch all timetable configs for a term
- * Returns configs at TERM, GRADE, and SECTION levels
+ * Returns configs at TERM, GRADE, SECTION, and CLASSROOM levels
  */
 export async function fetchTimetableConfigs(
   termId: string
@@ -102,7 +102,7 @@ export async function deleteTimetableConfig(configId: string): Promise<void> {
  */
 export async function resetTimetableConfig(
   termId: string,
-  scopeType: "GRADE" | "SECTION",
+  scopeType: "GRADE" | "SECTION" | "CLASSROOM",
   scopeId: string
 ): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 100));

@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, Users, UserX, TrendingUp, Zap, Search, Filter }
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import DataTable from "@/components/ui/data-table/DataTable";
 import {
+  Classroom,
   Grade,
   Section,
 } from "@/features/academics/academic-structure-tree/services/structureService";
@@ -24,6 +25,7 @@ interface TeacherLoadViewProps {
   termId: string;
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   subjects: Subject[];
   subjectAllocations: SubjectAllocation[];
   teachers: Teacher[];
@@ -46,6 +48,7 @@ export default function TeacherLoadView({
   termId,
   grades,
   sections,
+  classrooms,
   subjects,
   subjectAllocations,
   teachers,
@@ -67,7 +70,7 @@ export default function TeacherLoadView({
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const structureData = { grades, sections, subjects };
+        const structureData = { grades, sections, classrooms, subjects };
         const loads = await calculateTeacherLoads(termId, structureData, subjectAllocations, teacherAllocations);
         setTeacherLoads(loads);
       } catch (error) {
@@ -78,7 +81,7 @@ export default function TeacherLoadView({
     };
 
     loadData();
-  }, [termId, grades, sections, subjects, subjectAllocations, teacherAllocations]);
+  }, [termId, grades, sections, classrooms, subjects, subjectAllocations, teacherAllocations]);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
@@ -380,6 +383,9 @@ export default function TeacherLoadView({
                       {t("breakdown.section")}
                     </th>
                     <th className={`px-3 py-2 ${locale === "ar" ? "text-right" : "text-left"} text-xs font-bold text-gray-700`}>
+                      {t("breakdown.classroom")}
+                    </th>
+                    <th className={`px-3 py-2 ${locale === "ar" ? "text-right" : "text-left"} text-xs font-bold text-gray-700`}>
                       {t("breakdown.subject")}
                     </th>
                     <th className={`px-3 py-2 ${locale === "ar" ? "text-right" : "text-left"} text-xs font-bold text-gray-700`}>
@@ -408,6 +414,13 @@ export default function TeacherLoadView({
                             : (assignment.sectionNameEn || assignment.sectionNameAr || assignment.sectionName)}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-900">
+                          {assignment.classroomId
+                            ? locale === "ar"
+                              ? (assignment.classroomNameAr || assignment.classroomNameEn || assignment.classroomName)
+                              : (assignment.classroomNameEn || assignment.classroomNameAr || assignment.classroomName)
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
                           {locale === "ar"
                             ? (assignment.subjectNameAr || assignment.subjectNameEn || assignment.subjectName)
                             : (assignment.subjectNameEn || assignment.subjectNameAr || assignment.subjectName)}
@@ -421,7 +434,7 @@ export default function TeacherLoadView({
                 <tfoot>
                   <tr className="bg-gray-100 border-t-2 border-gray-300">
                     <td
-                      colSpan={3}
+                      colSpan={4}
                       className={`px-3 py-2 text-sm font-semibold text-gray-900 ${locale === "ar" ? "text-right" : "text-left"}`}
                     >
                       {t("breakdown.total")}:

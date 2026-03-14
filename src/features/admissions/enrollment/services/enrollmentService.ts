@@ -1,10 +1,9 @@
 import type { Application } from "@/features/admissions/types/admissions";
 import type { StudentEnrollment } from "@/features/students-guardians/students/types";
 import {
-  getEnrollmentByStudentId,
   mockStudents,
-  upsertStudentEnrollment,
 } from "@/data/mockStudents";
+import { upsertEnrollment } from "@/features/students-guardians/students/services/enrollmentService";
 
 export interface EnrollmentSubmission {
   academicYear: string;
@@ -29,10 +28,7 @@ export async function submitApplicationEnrollment(
   payload: EnrollmentSubmission,
 ): Promise<StudentEnrollment> {
   const studentId = resolveStudentIdForApplication(application);
-  const existingEnrollment = getEnrollmentByStudentId(studentId);
-
-  return upsertStudentEnrollment({
-    enrollmentId: existingEnrollment?.enrollmentId,
+  return upsertEnrollment({
     studentId,
     academicYear: payload.academicYear,
     grade: payload.grade,
@@ -42,6 +38,6 @@ export async function submitApplicationEnrollment(
     sectionId: payload.sectionId,
     classroomId: payload.classroomId,
     enrollmentDate: payload.startDate,
-    status: existingEnrollment?.status || "active",
+    status: "active",
   });
 }

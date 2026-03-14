@@ -3,13 +3,18 @@
 
 import { TimetableEntry } from "@/features/academics/timetable/types/timetable";
 import { Subject } from "@/features/academics/subjects/services/subjectsService";
-import { Teacher, TeacherAllocation } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
+import {
+  Teacher,
+  TeacherAllocation,
+  resolveTeacherAllocationForTarget,
+} from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { SubjectAllocation } from "@/features/academics/subjects/services/subjectsService";
 import { Room } from "@/features/academics/timetable/types/timetable";
 import { ResolvedTimetableConfig, TimetableDay, TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
 
 export interface GenerationOptions {
   sectionId: string;
+  classroomId?: string;
   gradeId: string;
   termId: string;
   strictMode: boolean; // If true, fail on any conflict
@@ -55,7 +60,16 @@ export async function generateTimetable(
   existingEntries: TimetableEntry[], // All entries in term for conflict checking
   config: ResolvedTimetableConfig // Configuration for days and periods
 ): Promise<GenerationResult> {
-  const { sectionId, gradeId, termId, strictMode, distributeEvenly, avoidConsecutive, excludeDays } = options;
+  const {
+    sectionId,
+    classroomId,
+    gradeId,
+    termId,
+    strictMode,
+    distributeEvenly,
+    avoidConsecutive,
+    excludeDays,
+  } = options;
 
   // Get active days and periods from config
   const activeDays = config.days.filter((d) => d.isActive && !excludeDays.includes(d.key));
@@ -97,9 +111,11 @@ export async function generateTimetable(
     const { subjectId, hours } = req;
     
     // Get teacher for this subject+section
-    const teacherAllocation = teacherAllocations.find(
-      (ta) => ta.sectionId === sectionId && ta.subjectId === subjectId
-    );
+    const teacherAllocation = resolveTeacherAllocationForTarget(teacherAllocations, {
+      sectionId,
+      classroomId,
+      subjectId,
+    });
     const teacherId = teacherAllocation?.teacherId || null;
 
     // Get suitable room (simplified - just pick first active room)
@@ -115,6 +131,7 @@ export async function generateTimetable(
         teacherId,
         roomId,
         sectionId,
+        classroomId,
         termId,
         generatedEntries,
         existingEntries,
@@ -131,6 +148,7 @@ export async function generateTimetable(
           id: `gen-${Date.now()}-${Math.random()}`,
           termId,
           sectionId,
+          classroomId,
           dayKey: slot.dayKey,
           periodIndex: slot.periodIndex,
           subjectId,
@@ -220,6 +238,7 @@ function findBestSlot(params: {
   teacherId: string | null;
   roomId: string | null;
   sectionId: string;
+  classroomId?: string;
   termId: string;
   generatedEntries: TimetableEntry[];
   existingEntries: TimetableEntry[];
@@ -234,6 +253,7 @@ function findBestSlot(params: {
     teacherId,
     roomId,
     sectionId,
+    classroomId,
     generatedEntries,
     existingEntries,
     activeDays,
@@ -248,7 +268,7 @@ function findBestSlot(params: {
   for (const day of activeDays) {
     for (const period of periods) {
       // Check if slot is available
-      if (isSlotAvailable(day.key, period.index, sectionId, generatedEntries)) {
+      if (isSlotAvailable(day.key, period.index, sectionId, classroomId, generatedEntries)) {
         // Check for conflicts
         const hasConflict = checkConflicts(
           day.key,
@@ -256,6 +276,7 @@ function findBestSlot(params: {
           teacherId,
           roomId,
           sectionId,
+          classroomId,
           [...generatedEntries, ...existingEntries]
         );
 
@@ -291,10 +312,15 @@ function isSlotAvailable(
   dayKey: string,
   periodIndex: number,
   sectionId: string,
+  classroomId: string | undefined,
   entries: TimetableEntry[]
 ): boolean {
   return !entries.some(
-    (e) => e.sectionId === sectionId && e.dayKey === dayKey && e.periodIndex === periodIndex
+    (e) =>
+      e.sectionId === sectionId &&
+      (e.classroomId || "") === (classroomId || "") &&
+      e.dayKey === dayKey &&
+      e.periodIndex === periodIndex
   );
 }
 
@@ -307,6 +333,7 @@ function checkConflicts(
   teacherId: string | null,
   roomId: string | null,
   sectionId: string,
+  classroomId: string | undefined,
   allEntries: TimetableEntry[]
 ): boolean {
   // Check teacher conflict
@@ -316,7 +343,7 @@ function checkConflicts(
         e.dayKey === dayKey &&
         e.periodIndex === periodIndex &&
         e.teacherId === teacherId &&
-        e.sectionId !== sectionId
+        (e.sectionId !== sectionId || (e.classroomId || "") !== (classroomId || ""))
     );
     if (teacherConflict) return true;
   }
@@ -328,7 +355,7 @@ function checkConflicts(
         e.dayKey === dayKey &&
         e.periodIndex === periodIndex &&
         e.roomId === roomId &&
-        e.sectionId !== sectionId
+        (e.sectionId !== sectionId || (e.classroomId || "") !== (classroomId || ""))
     );
     if (roomConflict) return true;
   }

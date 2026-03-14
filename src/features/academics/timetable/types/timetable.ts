@@ -2,6 +2,7 @@ export interface TimetableEntry {
   id: string;
   termId: string;
   sectionId: string;
+  classroomId?: string;
   dayKey: string; // e.g., "sun", "mon", "tue" - config-safe identifier
   periodIndex: number; // 1-based period number
   slotType?: "CLASS" | "BREAK"; // Type of slot (default: CLASS)
@@ -39,6 +40,8 @@ export interface TimetableConflict {
   sections: Array<{
     sectionId: string;
     sectionName: string;
+    classroomId?: string;
+    classroomName?: string;
     subjectName: string;
   }>;
   // Legacy fields for backward compatibility

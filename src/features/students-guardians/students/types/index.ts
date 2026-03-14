@@ -53,6 +53,8 @@ export type {
 export type {
   StudentEnrollment,
   EnrollmentTerm,
+  EnrollmentMovement,
+  EnrollmentMovementAction,
   ClassTeacherAssignment,
   SubjectTeacherAssignment,
 } from "./enrollment";

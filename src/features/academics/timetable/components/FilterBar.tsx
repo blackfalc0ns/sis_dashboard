@@ -2,18 +2,21 @@
 
 import { useTranslations } from "next-intl";
 import Select from "@/components/ui/input/Select";
-import { Stage, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
+import { Classroom, Stage, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
 
 interface FilterBarProps {
   stages: Stage[];
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   selectedStageId: string;
   selectedGradeId: string;
   selectedSectionId: string;
+  selectedClassroomId: string;
   onStageChange: (stageId: string) => void;
   onGradeChange: (gradeId: string) => void;
   onSectionChange: (sectionId: string) => void;
+  onClassroomChange: (classroomId: string) => void;
   locale: string;
 }
 
@@ -21,12 +24,15 @@ export default function FilterBar({
   stages,
   grades,
   sections,
+  classrooms,
   selectedStageId,
   selectedGradeId,
   selectedSectionId,
+  selectedClassroomId,
   onStageChange,
   onGradeChange,
   onSectionChange,
+  onClassroomChange,
   locale,
 }: FilterBarProps) {
   const t = useTranslations("academics.timetable.filters");
@@ -54,15 +60,31 @@ export default function FilterBar({
     label: locale === "ar" ? section.nameAr || section.name : section.nameEn || section.name,
   }));
 
+  const filteredClassrooms = selectedSectionId
+    ? classrooms.filter((classroom) => classroom.sectionId === selectedSectionId)
+    : [];
+
+  const classroomOptions = filteredClassrooms.map((classroom) => ({
+    value: classroom.id,
+    label: locale === "ar" ? classroom.nameAr || classroom.name : classroom.nameEn || classroom.name,
+  }));
+
   const handleStageChange = (value: string) => {
     onStageChange(value);
     onGradeChange(""); // Reset grade when stage changes
     onSectionChange(""); // Reset section when stage changes
+    onClassroomChange(""); // Reset classroom when stage changes
   };
 
   const handleGradeChange = (value: string) => {
     onGradeChange(value);
     onSectionChange(""); // Reset section when grade changes
+    onClassroomChange(""); // Reset classroom when grade changes
+  };
+
+  const handleSectionChange = (value: string) => {
+    onSectionChange(value);
+    onClassroomChange(""); // Reset classroom when section changes
   };
 
   return (
@@ -91,10 +113,20 @@ export default function FilterBar({
           <Select
             label={t("selectSection")}
             value={selectedSectionId}
-            onChange={onSectionChange}
+            onChange={handleSectionChange}
             options={sectionOptions}
             placeholder={t("selectSection")}
             disabled={!selectedGradeId}
+          />
+        </div>
+        <div className="w-full lg:w-64">
+          <Select
+            label={t("selectClassroom")}
+            value={selectedClassroomId}
+            onChange={onClassroomChange}
+            options={classroomOptions}
+            placeholder={t("selectClassroom")}
+            disabled={!selectedSectionId || filteredClassrooms.length === 0}
           />
         </div>
       </div>

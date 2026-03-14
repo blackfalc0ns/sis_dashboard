@@ -19,6 +19,7 @@ import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTe
 import ScheduleInterviewModal from "@/features/admissions/interviews/components/ScheduleInterviewModal";
 import DecisionModal from "@/features/admissions/decisions/components/DecisionModal";
 import EnrollmentForm from "@/features/admissions/enrollment/components/EnrollmentForm";
+import { submitApplicationEnrollment } from "@/features/admissions/enrollment/services/enrollmentService";
 import { useSectionTabs } from "@/hooks/useSectionTabs";
 import { buildLocalePath } from "@/lib/routing/localePath";
 
@@ -195,8 +196,8 @@ export default function ApplicationProfileLayout({
       <EnrollmentForm
         isOpen={isEnrollmentOpen}
         onClose={() => setIsEnrollmentOpen(false)}
-        onSubmit={(data) => {
-          console.log("Enroll student:", data);
+        onSubmit={async (data) => {
+          await submitApplicationEnrollment(application, data);
           setIsEnrollmentOpen(false);
         }}
         application={application}

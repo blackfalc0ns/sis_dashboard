@@ -28,7 +28,7 @@ import {
   validateTimetableConfig,
 } from "@/features/academics/timetable/types/timetableConfig";
 import { getDefaultDays, generateDefaultPeriods } from "@/features/academics/timetable/services/timetableConfigService";
-import { Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
+import { Classroom, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
 
 interface TimetableConfigDialogProps {
   open: boolean;
@@ -45,6 +45,7 @@ interface TimetableConfigDialogProps {
   initialScopeId?: string;
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   locale: string;
 }
 
@@ -58,6 +59,7 @@ export default function TimetableConfigDialog({
   initialScopeId,
   grades,
   sections,
+  classrooms,
   locale,
 }: TimetableConfigDialogProps) {
   const t = useTranslations("academics.timetable.config");
@@ -70,6 +72,7 @@ export default function TimetableConfigDialog({
   const [scopeId, setScopeId] = useState<string>(initialScopeId || "");
   const [selectedGradeId, setSelectedGradeId] = useState<string>("");
   const [selectedSectionId, setSelectedSectionId] = useState<string>("");
+  const [selectedClassroomId, setSelectedClassroomId] = useState<string>("");
   const [periodCount, setPeriodCount] = useState(8);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -89,13 +92,24 @@ export default function TimetableConfigDialog({
         if (section) {
           setSelectedGradeId(section.gradeId);
           setSelectedSectionId(initialScopeId);
+          setSelectedClassroomId("");
+        }
+      } else if (initialScope === "CLASSROOM" && initialScopeId) {
+        const classroom = classrooms.find((item) => item.id === initialScopeId);
+        const section = classroom ? sections.find((item) => item.id === classroom.sectionId) : undefined;
+        if (section && classroom) {
+          setSelectedGradeId(section.gradeId);
+          setSelectedSectionId(section.id);
+          setSelectedClassroomId(classroom.id);
         }
       } else if (initialScope === "GRADE" && initialScopeId) {
         setSelectedGradeId(initialScopeId);
         setSelectedSectionId("");
+        setSelectedClassroomId("");
       } else {
         setSelectedGradeId("");
         setSelectedSectionId("");
+        setSelectedClassroomId("");
       }
       
       setPeriodCount(initialPeriods?.length || 8);
@@ -104,7 +118,7 @@ export default function TimetableConfigDialog({
       setEditingDayIndex(null);
       setEditingPeriodIndex(null);
     }
-  }, [open, initialDays, initialPeriods, initialScope, initialScopeId, sections]);
+  }, [open, initialDays, initialPeriods, initialScope, initialScopeId, sections, classrooms]);
 
   // Quick presets for days
   const applyDayPreset = (preset: "sun-thu" | "sat-thu" | "all") => {
@@ -252,6 +266,20 @@ export default function TimetableConfigDialog({
         setErrors([t("validation.selectSection")]);
         return;
       }
+    } else if (scopeType === "CLASSROOM") {
+      finalScopeId = selectedClassroomId;
+      if (!selectedGradeId) {
+        setErrors([t("validation.selectGrade")]);
+        return;
+      }
+      if (!selectedSectionId) {
+        setErrors([t("validation.selectSection")]);
+        return;
+      }
+      if (!finalScopeId) {
+        setErrors([t("validation.selectClassroom")]);
+        return;
+      }
     }
 
     setIsSaving(true);
@@ -278,7 +306,10 @@ export default function TimetableConfigDialog({
   ];
 
   const filteredSections = sections.filter((s) =>
-    scopeType === "SECTION" && selectedGradeId ? s.gradeId === selectedGradeId : true
+    (scopeType === "SECTION" || scopeType === "CLASSROOM") && selectedGradeId ? s.gradeId === selectedGradeId : true
+  );
+  const filteredClassrooms = classrooms.filter((classroom) =>
+    scopeType === "CLASSROOM" && selectedSectionId ? classroom.sectionId === selectedSectionId : true
   );
 
   const activeDaysCount = days.filter((d) => d.isActive).length;
@@ -606,7 +637,7 @@ export default function TimetableConfigDialog({
                   <h3 className="text-sm font-semibold text-gray-700 mb-3">
                     {t("selectScope")}
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     {/* Term Card */}
                     <div
                       onClick={() => setScopeType("TERM")}
@@ -696,6 +727,35 @@ export default function TimetableConfigDialog({
                         {t("scope.sectionDesc")}
                       </p>
                     </div>
+
+                    <div
+                      onClick={() => setScopeType("CLASSROOM")}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        scopeType === "CLASSROOM"
+                          ? "border-primary bg-primary/5"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                            scopeType === "CLASSROOM"
+                              ? "border-primary bg-primary"
+                              : "border-gray-300"
+                          }`}
+                        >
+                          {scopeType === "CLASSROOM" && (
+                            <Check className="w-3 h-3 text-white" />
+                          )}
+                        </div>
+                        <span className="font-semibold text-sm">
+                          {t("scope.classroom")}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600">
+                        {t("scope.classroomDesc")}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -746,6 +806,58 @@ export default function TimetableConfigDialog({
                           label: locale === "ar" ? section.nameAr : section.nameEn,
                         }))}
                         placeholder={t("selectSection")}
+                        fullWidth
+                      />
+                    )}
+                  </div>
+                )}
+
+                {scopeType === "CLASSROOM" && (
+                  <div className="space-y-3">
+                    <Select
+                      label={t("selectGrade")}
+                      value={selectedGradeId}
+                      onChange={(value) => {
+                        setSelectedGradeId(value);
+                        setSelectedSectionId("");
+                        setSelectedClassroomId("");
+                      }}
+                      options={grades.map((grade) => ({
+                        value: grade.id,
+                        label: locale === "ar" ? grade.nameAr : grade.nameEn,
+                      }))}
+                      placeholder={t("selectGrade")}
+                      fullWidth
+                    />
+                    {selectedGradeId && (
+                      <Select
+                        label={t("selectSection")}
+                        value={selectedSectionId}
+                        onChange={(value) => {
+                          setSelectedSectionId(value);
+                          setSelectedClassroomId("");
+                        }}
+                        options={filteredSections.map((section) => ({
+                          value: section.id,
+                          label: locale === "ar" ? section.nameAr : section.nameEn,
+                        }))}
+                        placeholder={t("selectSection")}
+                        fullWidth
+                      />
+                    )}
+                    {selectedSectionId && (
+                      <Select
+                        label={t("validation.selectClassroom")}
+                        value={selectedClassroomId}
+                        onChange={(value) => {
+                          setSelectedClassroomId(value);
+                          setScopeId(value);
+                        }}
+                        options={filteredClassrooms.map((classroom) => ({
+                          value: classroom.id,
+                          label: locale === "ar" ? classroom.nameAr : classroom.nameEn,
+                        }))}
+                        placeholder={t("validation.selectClassroom")}
                         fullWidth
                       />
                     )}

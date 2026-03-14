@@ -5,6 +5,7 @@ import { X, AlertTriangle, CheckCircle, AlertCircle } from "lucide-react";
 import { Drawer } from "@mui/material";
 import { TimetableConflict, SubjectHoursSummary } from "@/features/academics/timetable/types/timetable";
 import { ResolvedTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
+import { RoomAssignmentSource } from "@/features/academics/rooms/services/roomsService";
 
 interface ValidationPanelProps {
   open: boolean;
@@ -14,6 +15,10 @@ interface ValidationPanelProps {
   filledSlots: number;
   missingTeacher: number;
   missingRoom: number;
+  roomDefaultSource?: Extract<
+    RoomAssignmentSource,
+    "CLASSROOM_DEFAULT" | "SECTION_DEFAULT"
+  > | null;
   onClose: () => void;
   locale: string;
   resolvedConfig: ResolvedTimetableConfig;
@@ -27,11 +32,13 @@ export default function ValidationPanel({
   filledSlots,
   missingTeacher,
   missingRoom,
+  roomDefaultSource,
   onClose,
   locale,
   resolvedConfig,
 }: ValidationPanelProps) {
   const t = useTranslations("academics.timetable.validation");
+  const tGrid = useTranslations("academics.timetable.grid");
   const isRTL = locale === "ar";
 
   const completionPercentage = totalSlots > 0 ? Math.round((filledSlots / totalSlots) * 100) : 0;
@@ -40,6 +47,14 @@ export default function ValidationPanel({
     const day = resolvedConfig.days.find((d) => d.key === dayKey);
     return day ? (locale === "ar" ? day.nameAr : day.nameEn) : dayKey;
   };
+
+  const roomDefaultSourceLabel = roomDefaultSource
+    ? t(
+        roomDefaultSource === "CLASSROOM_DEFAULT"
+          ? "roomSourceClassroomDefault"
+          : "roomSourceSectionDefault"
+      )
+    : null;
 
   return (
     <Drawer
@@ -100,11 +115,18 @@ export default function ValidationPanel({
                 </div>
               )}
               {missingRoom > 0 && (
-                <div className="flex items-center gap-2 text-sm text-orange-600">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>
-                    {missingRoom} {t("missingRoom")}
-                  </span>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-orange-600">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>
+                      {missingRoom} {t("missingRoom")}
+                    </span>
+                  </div>
+                  {roomDefaultSourceLabel && (
+                    <p className="text-xs text-gray-500">
+                      {t("roomDefaultAvailable", { source: roomDefaultSourceLabel })}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -193,12 +215,12 @@ export default function ValidationPanel({
                           {conflict.resourceName}
                         </p>
                         <p className="text-xs text-red-600 mt-1">
-                          {getDayName(conflict.dayKey)}, {t("../grid.period")} {conflict.periodIndex}
+                          {getDayName(conflict.dayKey)}, {tGrid("period")} {conflict.periodIndex}
                         </p>
                         <div className="mt-2 space-y-1">
                           {conflict.sections.map((section, idx) => (
                             <p key={idx} className="text-xs text-red-600">
-                              • {section.sectionName}: {section.subjectName}
+                              • {section.sectionName}{section.classroomName ? ` / ${section.classroomName}` : ""}: {section.subjectName}
                             </p>
                           ))}
                         </div>
@@ -214,3 +236,4 @@ export default function ValidationPanel({
     </Drawer>
   );
 }
+

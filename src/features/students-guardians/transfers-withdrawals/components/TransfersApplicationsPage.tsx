@@ -2,13 +2,19 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useTranslations } from "next-intl";
 import { Plus, Search, Filter, X } from "lucide-react";
 import TransfersTable from "./TransfersTable";
 import CreateTransferModal from "./modals/CreateTransferModal";
 import type { TransfersFilters as FiltersType } from "@/features/students-guardians/transfers-withdrawals/types/transfers-withdrawals";
-import { filterTransfers } from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
+import {
+  createTransfer,
+  filterTransfers,
+  getTransfersWithdrawalsSnapshot,
+  subscribeTransfersWithdrawals,
+  updateTransferStatus,
+} from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
 
 export default function TransfersApplicationsPage() {
   const t = useTranslations("students_guardians.transfers_withdrawals");
@@ -22,10 +28,13 @@ export default function TransfersApplicationsPage() {
     behaviorBand: "all",
   });
 
-  const filteredData = useMemo(
-    () => filterTransfers({ ...filters, searchQuery }),
-    [filters, searchQuery],
+  useSyncExternalStore(
+    subscribeTransfersWithdrawals,
+    getTransfersWithdrawalsSnapshot,
+    getTransfersWithdrawalsSnapshot,
   );
+
+  const filteredData = filterTransfers({ ...filters, searchQuery });
 
   const hasActiveFilters =
     searchQuery !== "" ||
@@ -232,16 +241,26 @@ export default function TransfersApplicationsPage() {
       </div>
 
       {/* Table */}
-      <TransfersTable data={filteredData} />
+      <TransfersTable
+        data={filteredData}
+        onApprove={async (id) => {
+          await updateTransferStatus(id, "approved");
+        }}
+        onReject={async (id) => {
+          await updateTransferStatus(id, "rejected");
+        }}
+        onExecute={async (id) => {
+          await updateTransferStatus(id, "executed");
+        }}
+      />
 
       {/* Create Modal */}
       {showCreateModal && (
         <CreateTransferModal
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
-          onSubmit={(data) => {
-            console.log("Transfer created:", data);
-            // TODO: Implement API call
+          onSubmit={async (data) => {
+            await createTransfer(data);
             setShowCreateModal(false);
           }}
         />

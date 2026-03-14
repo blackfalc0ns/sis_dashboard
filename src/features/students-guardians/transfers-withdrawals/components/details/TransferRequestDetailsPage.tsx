@@ -19,6 +19,7 @@ import type {
   ApplicationStatus,
 } from "@/features/students-guardians/transfers-withdrawals/types/transfers-withdrawals";
 import ChangeStatusModal from "../modals/ChangeStatusModal";
+import { updateTransferStatus } from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
 
 interface TransferRequestDetailsPageProps {
   transfer: TransferApplication;
@@ -34,6 +35,7 @@ export default function TransferRequestDetailsPage({
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [transferState, setTransferState] = useState(transfer);
   const [activeTab, setActiveTab] = useState<
     "details" | "attachments" | "timeline"
   >("details");
@@ -66,27 +68,27 @@ export default function TransferRequestDetailsPage({
     router.push(`/${locale}${backUrl}`);
   };
 
-  const handleApprove = () => {
-    // TODO: Implement approval logic
-    console.log("Approve transfer:", transfer.id);
+  const handleApprove = async () => {
+    const updated = await updateTransferStatus(transferState.id, "approved");
+    setTransferState({ ...updated });
   };
 
-  const handleReject = () => {
-    // TODO: Implement rejection modal/dialog
-    console.log("Reject transfer:", transfer.id);
+  const handleReject = async () => {
+    const updated = await updateTransferStatus(transferState.id, "rejected");
+    setTransferState({ ...updated });
   };
 
-  const handleExecute = () => {
-    // TODO: Implement execution confirmation
-    console.log("Execute transfer:", transfer.id);
+  const handleExecute = async () => {
+    const updated = await updateTransferStatus(transferState.id, "executed");
+    setTransferState({ ...updated });
   };
 
-  const handleStatusChange = (
+  const handleStatusChange = async (
     newStatus: ApplicationStatus,
     reason?: string,
   ) => {
-    // TODO: Implement status change API call
-    console.log("Change status:", transfer.id, newStatus, reason);
+    const updated = await updateTransferStatus(transferState.id, newStatus, reason);
+    setTransferState({ ...updated });
     setShowStatusModal(false);
   };
 
@@ -118,12 +120,12 @@ export default function TransferRequestDetailsPage({
 
           <div className="flex items-center gap-3">
             <span
-              className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${getStatusColor(transfer.status)}`}
+              className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${getStatusColor(transferState.status)}`}
             >
-              {t(`filters.statuses.${transfer.status}`)}
+              {t(`filters.statuses.${transferState.status}`)}
             </span>
 
-            {transfer.status === "under_review" ? (
+            {transferState.status === "under_review" ? (
               <>
                 <button
                   onClick={handleApprove}
@@ -142,7 +144,7 @@ export default function TransferRequestDetailsPage({
               </>
             ) : null}
 
-            {transfer.status === "approved" ? (
+            {transferState.status === "approved" ? (
               <button
                 onClick={handleExecute}
                 className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
@@ -199,28 +201,28 @@ export default function TransferRequestDetailsPage({
             <div>
               <p className="text-sm">{tDetails("student_name")}</p>
               <p className="font-medium">
-                {locale === "ar"
-                  ? transfer.studentNameAr
-                  : transfer.studentName}
+              {locale === "ar"
+                  ? transferState.studentNameAr
+                  : transferState.studentName}
               </p>
             </div>
             <div>
               <p className="text-sm">{tDetails("stage")}</p>
               <p className="font-medium">
-                {t(`filters.stages.${transfer.stage}`)}
+                {t(`filters.stages.${transferState.stage}`)}
               </p>
             </div>
             <div>
               <p className="text-sm">{tDetails("grade")}</p>
-              <p className="font-medium">{transfer.grade}</p>
+              <p className="font-medium">{transferState.grade}</p>
             </div>
             <div>
               <p className="text-sm">{tDetails("section")}</p>
-              <p className="font-medium">{transfer.section || t("na")}</p>
+              <p className="font-medium">{transferState.section || t("na")}</p>
             </div>
             <div>
               <p className="text-sm">{tDetails("classroom")}</p>
-              <p className="font-medium">{transfer.classroom || t("na")}</p>
+              <p className="font-medium">{transferState.classroom || t("na")}</p>
             </div>
           </div>
         </div>
@@ -237,32 +239,32 @@ export default function TransferRequestDetailsPage({
             <div>
               <p className="text-sm ">{tDetails("transfer_type")}</p>
               <p className="font-medium">
-                {t(`filters.types.${transfer.type}`)}
+                {t(`filters.types.${transferState.type}`)}
               </p>
             </div>
-            {transfer.type === "internal" && transfer.targetClass && (
+            {transferState.type === "internal" && transferState.targetClass && (
               <div>
                 <p className="text-sm ">{tDetails("target_class")}</p>
-                <p className="font-medium">{transfer.targetClass}</p>
+                <p className="font-medium">{transferState.targetClass}</p>
               </div>
             )}
-            {transfer.type === "external" && transfer.externalSchool && (
+            {transferState.type === "external" && transferState.externalSchool && (
               <div>
                 <p className="text-sm ">{tDetails("external_school")}</p>
-                <p className="font-medium">{transfer.externalSchool}</p>
+                <p className="font-medium">{transferState.externalSchool}</p>
               </div>
             )}
             <div>
               <p className="text-sm ">{tDetails("reason")}</p>
-              <p className="font-medium">{transfer.reason}</p>
+              <p className="font-medium">{transferState.reason}</p>
             </div>
             <div>
               <p className="text-sm ">{tDetails("request_date")}</p>
-              <p className="font-medium">{transfer.requestDate}</p>
+              <p className="font-medium">{transferState.requestDate}</p>
             </div>
             <div>
               <p className="text-sm ">{tDetails("effective_date")}</p>
-              <p className="font-medium">{transfer.effectiveDate}</p>
+              <p className="font-medium">{transferState.effectiveDate}</p>
             </div>
           </div>
         </div>
@@ -279,15 +281,15 @@ export default function TransferRequestDetailsPage({
             <div>
               <p className="text-sm ">{tDetails("behavior_score")}</p>
               <p
-                className={`text-2xl font-bold ${getBehaviorColor(transfer.behaviorScore)}`}
+                className={`text-2xl font-bold ${getBehaviorColor(transferState.behaviorScore)}`}
               >
-                {transfer.behaviorScore}
+                {transferState.behaviorScore}
               </p>
             </div>
             <div>
               <p className="text-sm ">{tDetails("behavior_band")}</p>
               <p className="font-medium">
-                {t(`filters.behavior_bands.${transfer.behaviorBand}`)}
+                {t(`filters.behavior_bands.${transferState.behaviorBand}`)}
               </p>
             </div>
           </div>
@@ -338,14 +340,14 @@ export default function TransferRequestDetailsPage({
                 <h4 className="font-medium text-gray-900 mb-2">
                   {tDetails("notes")}
                 </h4>
-                <p className="">{transfer.notes || tDetails("no_notes")}</p>
+                <p className="">{transferState.notes || tDetails("no_notes")}</p>
               </div>
-              {transfer.rejectionReason && (
+              {transferState.rejectionReason && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <h4 className="font-medium text-red-900 mb-2">
                     {tDetails("rejection_reason")}
                   </h4>
-                  <p className="text-red-700">{transfer.rejectionReason}</p>
+                  <p className="text-red-700">{transferState.rejectionReason}</p>
                 </div>
               )}
             </div>
@@ -370,12 +372,31 @@ export default function TransferRequestDetailsPage({
                   <p className="font-medium text-gray-900">
                     {tDetails("request_submitted")}
                   </p>
-                  <p className="text-sm ">{transfer.requestDate}</p>
+                  <p className="text-sm ">{transferState.requestDate}</p>
                   <p className="text-sm  mt-1">
-                    {tDetails("submitted_by")}: {transfer.createdBy}
+                    {tDetails("submitted_by")}: {transferState.createdBy}
                   </p>
                 </div>
               </div>
+              {(transferState.approvedBy || transferState.status === "executed") && (
+                <div className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">
+                      {transferState.status === "executed"
+                        ? tDetails("execute")
+                        : tDetails("approve")}
+                    </p>
+                    <p className="text-sm mt-1">
+                      {tDetails("submitted_by")}: {transferState.approvedBy || "system"}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -386,7 +407,7 @@ export default function TransferRequestDetailsPage({
         isOpen={showStatusModal}
         onClose={() => setShowStatusModal(false)}
         onConfirm={handleStatusChange}
-        currentStatus={transfer.status}
+        currentStatus={transferState.status}
       />
     </div>
   );

@@ -10,6 +10,7 @@ import { Tabs, Tab } from "@mui/material";
 import ContextBar from "../../components/shared/ContextBar";
 import type {
   AcademicYear,
+  Classroom,
   Term,
   Grade,
   Section,
@@ -36,6 +37,7 @@ interface TeacherAllocationViewProps {
   terms: Term[];
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   subjects: Subject[];
   subjectAllocations: SubjectAllocation[];
   teachers: Teacher[];
@@ -66,6 +68,7 @@ export default function TeacherAllocationView({
   terms,
   grades,
   sections,
+  classrooms,
   subjects,
   subjectAllocations,
   teachers,
@@ -278,6 +281,7 @@ export default function TeacherAllocationView({
                   termName={termName}
                   grades={grades}
                   sections={sections}
+                  classrooms={classrooms}
                   subjects={subjects}
                   subjectAllocations={subjectAllocations}
                   teachers={teachers}
@@ -294,6 +298,7 @@ export default function TeacherAllocationView({
                   termId={termId}
                   grades={grades}
                   sections={sections}
+                  classrooms={classrooms}
                   subjects={subjects}
                   subjectAllocations={subjectAllocations}
                   teachers={teachers}
@@ -311,6 +316,7 @@ export default function TeacherAllocationView({
         termId={termId}
         grades={grades}
         sections={sections}
+        classrooms={classrooms}
         subjects={subjects}
         subjectAllocations={subjectAllocations}
         teachers={teachers}

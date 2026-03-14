@@ -1194,7 +1194,19 @@
       "all_years": "جميع السنوات",
       "no_match": "لا توجد تسجيلات تطابق التصفية",
       "no_enrollments": "لم يتم العثور على تسجيلات",
-      "found": "تم العثور عليها"
+      "found": "تم العثور عليها",
+      "promote_students": "????? ??????",
+      "rebalance_classrooms": "????? ????? ??????",
+      "target_academic_year": "????? ??????? ????????",
+      "effective_date": "????? ???????",
+      "confirm": "?????",
+      "cancel": "?????",
+      "messages": {
+        "enrollment_updated": "?? ????? ????? ?????.",
+        "promotion_complete": "??? ????? {count} ???? ?????.",
+        "rebalance_complete": "?? ????? {count} ?? ?????????. ??? ??????: {unassigned}.",
+        "action_failed": "???? ????? ???????."
+      }
     }
   },
   "students_guardians": {
@@ -2032,7 +2044,16 @@
         "enrollment_date": "تاريخ التسجيل",
         "current": "حالي",
         "grade_progression": "تقدم الصفوف",
-        "na": "غير متاح"
+        "na": "غير متاح",
+        "movement_title": "نوع الحركة",
+        "movement": {
+          "enrolled": "تم التسجيل",
+          "transferred_internal": "نقل داخلي",
+          "transferred_external": "نقل خارجي",
+          "withdrawn": "منسحب",
+          "promoted": "ترقية",
+          "reassigned_bulk": "إعادة تعيين جماعية إلى شعبة"
+        }
       },
       "attendance": {
         "title": "الحضور",
@@ -2959,7 +2980,8 @@
         "selectGrade": "اختر الصف",
         "selectSection": "اختر الشعبة",
         "allGrades": "كل الصفوف",
-        "allSections": "كل الشعب"
+        "allSections": "كل الشعب",
+        "selectClassroom": "اختر الفصل"
       },
       "grid": {
         "period": "الحصة",
@@ -3047,7 +3069,14 @@
         "clear": "مسح الحصة",
         "autoFilled": "تم التعبئة تلقائياً من التوزيع",
         "cancel": "إلغاء",
-        "save": "حفظ"
+        "save": "حفظ",
+        "autoFilledRoom": "فصل تم التعبئة تلقائياً من التوزيع لهذا الصف",
+        "targetClassroom": "الفصل المستهدف: {classroom}",
+        "roomSourceLabel": "مصدر الغرفة:",
+        "roomSourceClassroomDefault": "الافتراضي على مستوى الفصل",
+        "roomSourceSectionDefault": "الافتراضي على مستوى الشعبة",
+        "roomSourceRecommended": "مقترحة من النظام",
+        "roomSourceManual": "اختيار يدوي"
       },
       "validation": {
         "title": "التحقق",
@@ -3070,7 +3099,10 @@
         "under": "أقل",
         "over": "أكثر",
         "cannotEditHoliday": "لا يمكن التعديل في أيام العطل",
-        "entriesOnHolidays": "توجد حصص في أيام العطل"
+        "entriesOnHolidays": "توجد حصص في أيام العطل",
+        "roomSourceClassroomDefault": "الافتراضي على مستوى الفصل",
+        "roomSourceSectionDefault": "الافتراضي على مستوى الشعبة",
+        "roomDefaultAvailable": "توجد غرفة افتراضية متاحة من {source}."
       },
       "publish": {
         "confirmTitle": "نشر الجدول",
@@ -3124,7 +3156,21 @@
           "save": "حفظ"
         },
         "emptyState": "لا توجد غرف. أضف غرفتك الأولى.",
-        "searchPlaceholder": "بحث عن غرف..."
+        "searchPlaceholder": "بحث عن غرف...",
+        "defaults": {
+          "title": "إعدادات الغرف الافتراضية",
+          "description": "حدد الغرف الافتراضية التي سيتم استخدامها لكل نطاق دراسي.",
+          "scopeType": "نوع النطاق",
+          "grade": "الصف",
+          "section": "الشعبة",
+          "classroom": "الفصل",
+          "room": "الغرفة",
+          "add": "إضافة تعيين",
+          "update": "تحديث التعيينات",
+          "emptyState": "لا توجد تعيينات غرف افتراضية بعد.",
+          "validation": "يرجى اختيار غرفة صالحة.",
+          "stage": "المرحلة"
+        }
       },
       "readOnlyBanner": "هذا الترم مغلق. الجدول للعرض فقط.",
       "emptyState": {
@@ -3187,7 +3233,9 @@
           "grade": "صف معين",
           "gradeDesc": "تطبيق على صف واحد فقط",
           "section": "شعبة محددة",
-          "sectionDesc": "تطبيق على شعبة واحدة فقط"
+          "sectionDesc": "تطبيق على شعبة واحدة فقط",
+          "classroom": "فصل",
+          "classroomDesc": "تطبيق على فصل واحد فقط"
         },
         "summary": {
           "title": "ملخص الإعدادات",
@@ -3201,7 +3249,8 @@
           "atLeastOnePeriod": "يجب وجود حصة واحدة على الأقل",
           "selectGrade": "يرجى اختيار صف",
           "selectSection": "يرجى اختيار شعبة",
-          "saveFailed": "فشل حفظ الإعدادات"
+          "saveFailed": "فشل حفظ الإعدادات",
+          "selectClassroom": "يرجى اختيار فصل"
         },
         "changeWarning": {
           "title": "تحذير تغيير الإعدادات",
@@ -3217,6 +3266,19 @@
         "reset": "إعادة تعيين للافتراضي",
         "resetConfirm": "إعادة تعيين هذه الإعدادات للافتراضي للترم؟",
         "resetSuccess": "تم إعادة تعيين الإعدادات بنجاح"
+      },
+      "target": {
+        "label": "الحصص المستهدفة",
+        "stage": "مرحلة",
+        "grade": "صف",
+        "section": "شعبة",
+        "classroom": "فصل",
+        "configSource": "مصدر الإعدادات"
+      },
+      "export": {
+        "status": "حالة",
+        "draft": "مسودة",
+        "published": "منشور"
       }
     },
     "teacherAllocation": {
@@ -3235,7 +3297,9 @@
         "allGrades": "كل الصفوف",
         "allSections": "كل الشعب",
         "allSubjects": "كل المواد",
-        "showOnlyMissing": "إظهار الناقص فقط"
+        "showOnlyMissing": "إظهار الناقص فقط",
+        "classroom": "الفصل",
+        "allClassrooms": "كل الفصول"
       },
       "actions": {
         "validate": "التحقق",
@@ -3298,7 +3362,8 @@
           "section": "الشعبة",
           "subject": "المادة",
           "periods": "الحصص",
-          "total": "الإجمالي"
+          "total": "الإجمالي",
+          "classroom": "الفصل"
         },
         "loading": "جاري التحميل...",
         "noTeachers": "لا يوجد معلمون"

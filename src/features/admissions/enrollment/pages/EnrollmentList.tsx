@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import {
   Search,
@@ -12,6 +12,8 @@ import {
   CheckCircle,
   Calendar,
   Download,
+  ArrowUpCircle,
+  Shuffle,
 } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import { KPICardV2 } from "@/components/ui/kpi-card";
@@ -27,14 +29,50 @@ import {
   submitApplicationEnrollment,
   type EnrollmentSubmission,
 } from "@/features/admissions/enrollment/services/enrollmentService";
+import Modal from "@/components/ui/modal/Modal";
+import Select from "@/components/ui/input/Select";
+import { Button } from "@/components/ui";
+import { useToast } from "@/components/ui/toast/Toast";
+import {
+  bulkAssignStudentsToClassrooms,
+  promoteActiveStudentsToAcademicYear,
+} from "@/features/students-guardians/students/services/enrollmentService";
+import {
+  fetchAcademicYears,
+  getStructureTreeSnapshot,
+  resolveStructureContextForAcademicYear,
+  type AcademicYear,
+} from "@/features/academics/academic-structure-tree/services/structureService";
 
 export default function EnrollmentList() {
   const t = useTranslations("admissions.enrollment");
   const locale = useLocale();
+  const { showToast } = useToast();
   const [selectedApplication, setSelectedApplication] =
     useState<Application | null>(null);
   const [isEnrollmentFormOpen, setIsEnrollmentFormOpen] = useState(false);
   const [, setEnrollmentVersion] = useState(0);
+  const [isPromotionOpen, setIsPromotionOpen] = useState(false);
+  const [isRebalanceOpen, setIsRebalanceOpen] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+  const [promotionYear, setPromotionYear] = useState("");
+  const [promotionDate, setPromotionDate] = useState("");
+  const [rebalanceAcademicYear, setRebalanceAcademicYear] = useState("");
+  const [rebalanceGradeId, setRebalanceGradeId] = useState("");
+  const [rebalanceSectionId, setRebalanceSectionId] = useState("");
+
+  useEffect(() => {
+    const loadAcademicYears = async () => {
+      const years = await fetchAcademicYears();
+      setAcademicYears(years);
+      if (years.length > 0) {
+        setPromotionYear((current) => current || years[years.length - 1].name);
+        setRebalanceAcademicYear((current) => current || years[years.length - 1].name);
+      }
+    };
+    loadAcademicYears();
+  }, []);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -71,6 +109,30 @@ export default function EnrollmentList() {
       guardianPhone: application?.guardianPhone || "",
     };
   });
+
+  const rebalanceStructureContext = rebalanceAcademicYear
+    ? resolveStructureContextForAcademicYear(rebalanceAcademicYear)
+    : null;
+  const rebalanceStructure = rebalanceStructureContext
+    ? getStructureTreeSnapshot(
+        rebalanceStructureContext.academicYearId,
+        rebalanceStructureContext.termId,
+      )
+    : null;
+  const rebalanceGradeOptions = (rebalanceStructure?.grades || [])
+    .slice()
+    .sort((a, b) => a.order - b.order)
+    .map((grade) => ({
+      value: grade.id,
+      label: grade.nameEn || grade.nameAr || grade.name,
+    }));
+  const rebalanceSectionOptions = (rebalanceStructure?.sections || [])
+    .filter((section) => section.gradeId === rebalanceGradeId)
+    .sort((a, b) => a.order - b.order)
+    .map((section) => ({
+      value: section.id,
+      label: section.nameEn || section.nameAr || section.name,
+    }));
 
   // Filter and search enrollments
   const filteredEnrollments = useMemo(() => {
@@ -203,9 +265,56 @@ export default function EnrollmentList() {
   const handleEnrollmentSubmit = async (data: EnrollmentSubmission) => {
     if (!selectedApplication) return;
     await submitApplicationEnrollment(selectedApplication, data);
-    alert("Enrollment updated successfully!");
+    showToast(t("messages.enrollment_updated"), "success");
     setEnrollmentVersion((prev) => prev + 1);
     setIsEnrollmentFormOpen(false);
+  };
+
+  const handlePromoteStudents = async () => {
+    if (!promotionYear || !promotionDate) return;
+    setIsActionLoading(true);
+    try {
+      const promoted = await promoteActiveStudentsToAcademicYear(
+        promotionYear,
+        promotionDate,
+      );
+      setEnrollmentVersion((prev) => prev + 1);
+      setIsPromotionOpen(false);
+      showToast(
+        t("messages.promotion_complete", { count: promoted.length }),
+        "success",
+      );
+    } catch (error) {
+      console.error("Failed to promote students:", error);
+      showToast(t("messages.action_failed"), "error");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleRebalanceClassrooms = async () => {
+    if (!rebalanceAcademicYear || !rebalanceSectionId) return;
+    setIsActionLoading(true);
+    try {
+      const result = await bulkAssignStudentsToClassrooms({
+        academicYear: rebalanceAcademicYear,
+        sectionId: rebalanceSectionId,
+      });
+      setEnrollmentVersion((prev) => prev + 1);
+      setIsRebalanceOpen(false);
+      showToast(
+        t("messages.rebalance_complete", {
+          count: result.assignedCount,
+          unassigned: result.unassignedCount,
+        }),
+        "success",
+      );
+    } catch (error) {
+      console.error("Failed to rebalance classrooms:", error);
+      showToast(t("messages.action_failed"), "error");
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
   const handleExport = () => {
@@ -290,6 +399,20 @@ export default function EnrollmentList() {
         >
           <Download className="w-4 h-4" />
           {t("export")}
+        </button>
+        <button
+          onClick={() => setIsPromotionOpen(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+        >
+          <ArrowUpCircle className="w-4 h-4" />
+          {t("promote_students")}
+        </button>
+        <button
+          onClick={() => setIsRebalanceOpen(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+        >
+          <Shuffle className="w-4 h-4" />
+          {t("rebalance_classrooms")}
         </button>
       </div>
 
@@ -416,6 +539,106 @@ export default function EnrollmentList() {
           onSubmit={handleEnrollmentSubmit}
         />
       )}
+
+      <Modal
+        isOpen={isPromotionOpen}
+        onClose={() => setIsPromotionOpen(false)}
+        title={t("promote_students")}
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setIsPromotionOpen(false)}>
+              {t("cancel")}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handlePromoteStudents}
+              disabled={!promotionYear || !promotionDate || isActionLoading}
+              loading={isActionLoading}
+            >
+              {t("confirm")}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Select
+            label={t("target_academic_year")}
+            value={promotionYear}
+            onChange={setPromotionYear}
+            options={academicYears.map((year) => ({
+              value: year.name,
+              label: year.name,
+            }))}
+          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("effective_date")}
+            </label>
+            <input
+              type="date"
+              value={promotionDate}
+              onChange={(event) => setPromotionDate(event.target.value)}
+              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+            />
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isRebalanceOpen}
+        onClose={() => setIsRebalanceOpen(false)}
+        title={t("rebalance_classrooms")}
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setIsRebalanceOpen(false)}>
+              {t("cancel")}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleRebalanceClassrooms}
+              disabled={!rebalanceAcademicYear || !rebalanceSectionId || isActionLoading}
+              loading={isActionLoading}
+            >
+              {t("confirm")}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Select
+            label={t("academic_year")}
+            value={rebalanceAcademicYear}
+            onChange={(value) => {
+              setRebalanceAcademicYear(value);
+              setRebalanceGradeId("");
+              setRebalanceSectionId("");
+            }}
+            options={academicYears.map((year) => ({
+              value: year.name,
+              label: year.name,
+            }))}
+          />
+          <Select
+            label={t("grade")}
+            value={rebalanceGradeId}
+            onChange={(value) => {
+              setRebalanceGradeId(value);
+              setRebalanceSectionId("");
+            }}
+            options={rebalanceGradeOptions}
+            disabled={!rebalanceAcademicYear}
+          />
+          <Select
+            label={t("section")}
+            value={rebalanceSectionId}
+            onChange={setRebalanceSectionId}
+            options={rebalanceSectionOptions}
+            disabled={!rebalanceGradeId}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

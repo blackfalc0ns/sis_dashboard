@@ -19,6 +19,7 @@ export const mockClassTeacherAssignments: ClassTeacherAssignment[] = [
     academicYear,
     grade: "Grade 6",
     section: "A",
+    classroomId: "classroom-6",
     teacherId: "T001",
     teacherName: "Ms. Sarah Johnson",
     teacherNameArabic: "السيدة سارة جونسون",
@@ -28,6 +29,7 @@ export const mockClassTeacherAssignments: ClassTeacherAssignment[] = [
     academicYear,
     grade: "Grade 6",
     section: "B",
+    classroomId: "classroom-8",
     teacherId: "T002",
     teacherName: "Mr. Ahmed Al-Mansoori",
     teacherNameArabic: "السيد أحمد المنصوري",
@@ -48,6 +50,7 @@ export const mockClassTeacherAssignments: ClassTeacherAssignment[] = [
     academicYear,
     grade: "Grade 7",
     section: "A",
+    classroomId: "classroom-9",
     teacherId: "T004",
     teacherName: "Dr. Mohammed Hassan",
     teacherNameArabic: "الدكتور محمد حسن",
@@ -77,6 +80,7 @@ export const mockClassTeacherAssignments: ClassTeacherAssignment[] = [
     academicYear,
     grade: "Grade 8",
     section: "A",
+    classroomId: "classroom-11",
     teacherId: "T007",
     teacherName: "Ms. Aisha Abdullah",
     teacherNameArabic: "السيدة عائشة عبدالله",
@@ -106,6 +110,7 @@ export const mockClassTeacherAssignments: ClassTeacherAssignment[] = [
     academicYear,
     grade: "Grade 9",
     section: "A",
+    classroomId: "classroom-13",
     teacherId: "T010",
     teacherName: "Mr. Youssef Mohammed",
     teacherNameArabic: "السيد يوسف محمد",
@@ -135,6 +140,7 @@ export const mockClassTeacherAssignments: ClassTeacherAssignment[] = [
     academicYear,
     grade: "Grade 10",
     section: "A",
+    classroomId: "classroom-15",
     teacherId: "T013",
     teacherName: "Ms. Noura Ahmed",
     teacherNameArabic: "السيدة نورة أحمد",
@@ -170,6 +176,7 @@ export const mockSubjectTeacherAssignments: SubjectTeacherAssignment[] = [
     academicYear,
     grade: "Grade 6",
     section: "A",
+    classroomId: "classroom-6",
     subject: "Mathematics",
     teacherId: "T101",
     teacherName: "Dr. Ahmed Al-Mansoori",
@@ -180,6 +187,7 @@ export const mockSubjectTeacherAssignments: SubjectTeacherAssignment[] = [
     academicYear,
     grade: "Grade 6",
     section: "A",
+    classroomId: "classroom-6",
     subject: "Science",
     teacherId: "T102",
     teacherName: "Ms. Sarah Johnson",
@@ -190,6 +198,7 @@ export const mockSubjectTeacherAssignments: SubjectTeacherAssignment[] = [
     academicYear,
     grade: "Grade 6",
     section: "A",
+    classroomId: "classroom-7",
     subject: "English",
     teacherId: "T103",
     teacherName: "Mr. John Smith",
@@ -200,6 +209,7 @@ export const mockSubjectTeacherAssignments: SubjectTeacherAssignment[] = [
     academicYear,
     grade: "Grade 6",
     section: "A",
+    classroomId: "classroom-7",
     subject: "Arabic",
     teacherId: "T104",
     teacherName: "Ms. Fatima Al-Zaabi",
@@ -210,6 +220,7 @@ export const mockSubjectTeacherAssignments: SubjectTeacherAssignment[] = [
     academicYear,
     grade: "Grade 6",
     section: "A",
+    classroomId: "classroom-6",
     subject: "Islamic Studies",
     teacherId: "T105",
     teacherName: "Sheikh Mohammed Hassan",
@@ -222,6 +233,7 @@ export const mockSubjectTeacherAssignments: SubjectTeacherAssignment[] = [
     academicYear,
     grade: "Grade 7",
     section: "A",
+    classroomId: "classroom-9",
     subject: "Mathematics",
     teacherId: "T106",
     teacherName: "Dr. Layla Ibrahim",
@@ -232,6 +244,7 @@ export const mockSubjectTeacherAssignments: SubjectTeacherAssignment[] = [
     academicYear,
     grade: "Grade 7",
     section: "A",
+    classroomId: "classroom-9",
     subject: "Science",
     teacherId: "T107",
     teacherName: "Mr. Khalid Omar",
@@ -244,6 +257,7 @@ export const mockSubjectTeacherAssignments: SubjectTeacherAssignment[] = [
     academicYear,
     grade: "Grade 8",
     section: "A",
+    classroomId: "classroom-11",
     subject: "Mathematics",
     teacherId: "T108",
     teacherName: "Dr. Aisha Abdullah",
@@ -254,6 +268,7 @@ export const mockSubjectTeacherAssignments: SubjectTeacherAssignment[] = [
     academicYear,
     grade: "Grade 8",
     section: "A",
+    classroomId: "classroom-11",
     subject: "Science",
     teacherId: "T109",
     teacherName: "Mr. Salem Rashid",
@@ -264,14 +279,44 @@ export const mockSubjectTeacherAssignments: SubjectTeacherAssignment[] = [
 /**
  * Get class teacher for a specific grade and section
  */
+type AssignmentLookupParams = {
+  grade?: string;
+  section?: string;
+  classroomId?: string;
+  year?: string;
+};
+
+const matchAssignmentTarget = <T extends { academicYear: string; grade: string; section: string; classroomId?: string }>(
+  assignment: T,
+  params: AssignmentLookupParams,
+) => {
+  const year = params.year || academicYear;
+  if (assignment.academicYear !== year) return false;
+  if (params.classroomId && assignment.classroomId === params.classroomId) return true;
+
+  return assignment.grade === params.grade && assignment.section === params.section;
+};
+
 export function getClassTeacher(
   grade: string,
   section: string,
+  year?: string,
+): ClassTeacherAssignment | undefined;
+export function getClassTeacher(
+  params: AssignmentLookupParams,
+): ClassTeacherAssignment | undefined;
+export function getClassTeacher(
+  gradeOrParams: string | AssignmentLookupParams,
+  section?: string,
   year: string = academicYear,
 ): ClassTeacherAssignment | undefined {
-  return mockClassTeacherAssignments.find(
-    (a) =>
-      a.grade === grade && a.section === section && a.academicYear === year,
+  const params =
+    typeof gradeOrParams === "string"
+      ? { grade: gradeOrParams, section, year }
+      : gradeOrParams;
+
+  return mockClassTeacherAssignments.find((assignment) =>
+    matchAssignmentTarget(assignment, params),
   );
 }
 
@@ -281,11 +326,23 @@ export function getClassTeacher(
 export function getSubjectTeachers(
   grade: string,
   section: string,
+  year?: string,
+): SubjectTeacherAssignment[];
+export function getSubjectTeachers(
+  params: AssignmentLookupParams,
+): SubjectTeacherAssignment[];
+export function getSubjectTeachers(
+  gradeOrParams: string | AssignmentLookupParams,
+  section?: string,
   year: string = academicYear,
 ): SubjectTeacherAssignment[] {
-  return mockSubjectTeacherAssignments.filter(
-    (a) =>
-      a.grade === grade && a.section === section && a.academicYear === year,
+  const params =
+    typeof gradeOrParams === "string"
+      ? { grade: gradeOrParams, section, year }
+      : gradeOrParams;
+
+  return mockSubjectTeacherAssignments.filter((assignment) =>
+    matchAssignmentTarget(assignment, params),
   );
 }
 
@@ -296,13 +353,24 @@ export function getSubjectTeacher(
   grade: string,
   section: string,
   subject: string,
+  year?: string,
+): SubjectTeacherAssignment | undefined;
+export function getSubjectTeacher(
+  params: AssignmentLookupParams & { subject: string },
+): SubjectTeacherAssignment | undefined;
+export function getSubjectTeacher(
+  gradeOrParams: string | (AssignmentLookupParams & { subject: string }),
+  section?: string,
+  subject?: string,
   year: string = academicYear,
 ): SubjectTeacherAssignment | undefined {
+  const params =
+    typeof gradeOrParams === "string"
+      ? { grade: gradeOrParams, section, subject: subject || "", year }
+      : gradeOrParams;
+
   return mockSubjectTeacherAssignments.find(
-    (a) =>
-      a.grade === grade &&
-      a.section === section &&
-      a.subject === subject &&
-      a.academicYear === year,
+    (assignment) =>
+      assignment.subject === params.subject && matchAssignmentTarget(assignment, params),
   );
 }

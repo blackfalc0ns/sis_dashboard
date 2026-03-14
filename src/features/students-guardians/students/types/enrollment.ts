@@ -19,6 +19,38 @@ export interface StudentEnrollment {
   status: "active" | "completed" | "withdrawn"; // Enrollment status
 }
 
+export type EnrollmentMovementAction =
+  | "enrolled"
+  | "transferred_internal"
+  | "transferred_external"
+  | "withdrawn"
+  | "promoted"
+  | "reassigned_bulk";
+
+export interface EnrollmentMovement {
+  id: string;
+  studentId: string;
+  academicYear: string;
+  actionType: EnrollmentMovementAction;
+  fromGradeId?: string;
+  fromSectionId?: string;
+  fromClassroomId?: string;
+  toGradeId?: string;
+  toSectionId?: string;
+  toClassroomId?: string;
+  fromGrade?: string;
+  fromSection?: string;
+  fromClassroom?: string;
+  toGrade?: string;
+  toSection?: string;
+  toClassroom?: string;
+  effectiveDate: string;
+  reason?: string;
+  notes?: string;
+  sourceRequestId?: string;
+  createdAt: string;
+}
+
 /**
  * Enrollment Term
  * Represents performance data for a specific term within an enrollment

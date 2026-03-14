@@ -6,19 +6,22 @@ import { useState } from "react";
 import { Drawer, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
-import { Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
+import { Classroom, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
 import { Subject } from "@/features/academics/subjects/services/subjectsService";
 
 interface FilterBarProps {
   grades: Grade[];
   sections: Section[];
+  classrooms: Classroom[];
   subjects: Subject[];
   selectedGradeId: string;
   selectedSectionId: string;
+  selectedClassroomId: string;
   selectedSubjectId: string;
   showOnlyMissing: boolean;
   onGradeChange: (gradeId: string) => void;
   onSectionChange: (sectionId: string) => void;
+  onClassroomChange: (classroomId: string) => void;
   onSubjectChange: (subjectId: string) => void;
   onShowOnlyMissingChange: (show: boolean) => void;
   onValidate: () => void;
@@ -29,13 +32,16 @@ interface FilterBarProps {
 export default function FilterBar({
   grades,
   sections,
+  classrooms,
   subjects,
   selectedGradeId,
   selectedSectionId,
+  selectedClassroomId,
   selectedSubjectId,
   showOnlyMissing,
   onGradeChange,
   onSectionChange,
+  onClassroomChange,
   onSubjectChange,
   onShowOnlyMissingChange,
   onValidate,
@@ -74,6 +80,20 @@ export default function FilterBar({
     })),
   ];
 
+  const filteredClassrooms = selectedSectionId
+    ? classrooms.filter((classroom) => classroom.sectionId === selectedSectionId)
+    : [];
+
+  const classroomOptions = [
+    { value: "", label: t("filters.allClassrooms") },
+    ...filteredClassrooms.map((classroom) => ({
+      value: classroom.id,
+      label: locale === "ar"
+        ? (classroom.nameAr || classroom.nameEn || classroom.name)
+        : (classroom.nameEn || classroom.nameAr || classroom.name),
+    })),
+  ];
+
   const subjectOptions = [
     { value: "", label: t("filters.allSubjects") },
     ...subjects.map((subject) => ({
@@ -83,6 +103,17 @@ export default function FilterBar({
         : (subject.nameEn || subject.nameAr || subject.name),
     })),
   ];
+
+  const handleGradeFilterChange = (value: string) => {
+    onGradeChange(value);
+    onSectionChange("");
+    onClassroomChange("");
+  };
+
+  const handleSectionFilterChange = (value: string) => {
+    onSectionChange(value);
+    onClassroomChange("");
+  };
 
   return (
     <>
@@ -109,7 +140,7 @@ export default function FilterBar({
                     <Select
                       label={t("filters.grade")}
                       value={selectedGradeId}
-                      onChange={onGradeChange}
+                      onChange={handleGradeFilterChange}
                       options={gradeOptions}
                       selectSize="sm"
                     />
@@ -119,10 +150,21 @@ export default function FilterBar({
                     <Select
                       label={t("filters.section")}
                       value={selectedSectionId}
-                      onChange={onSectionChange}
+                      onChange={handleSectionFilterChange}
                       options={sectionOptions}
                       selectSize="sm"
                       disabled={!selectedGradeId}
+                    />
+                  </div>
+
+                  <div className="w-48">
+                    <Select
+                      label={t("filters.classroom")}
+                      value={selectedClassroomId}
+                      onChange={onClassroomChange}
+                      options={classroomOptions}
+                      selectSize="sm"
+                      disabled={!selectedSectionId || filteredClassrooms.length === 0}
                     />
                   </div>
 
@@ -215,7 +257,7 @@ export default function FilterBar({
               <Select
                 label={t("filters.grade")}
                 value={selectedGradeId}
-                onChange={onGradeChange}
+                onChange={handleGradeFilterChange}
                 options={gradeOptions}
                 selectSize="sm"
               />
@@ -226,10 +268,21 @@ export default function FilterBar({
               <Select
                 label={t("filters.section")}
                 value={selectedSectionId}
-                onChange={onSectionChange}
+                onChange={handleSectionFilterChange}
                 options={sectionOptions}
                 selectSize="sm"
                 disabled={!selectedGradeId}
+              />
+            </div>
+
+            <div>
+              <Select
+                label={t("filters.classroom")}
+                value={selectedClassroomId}
+                onChange={onClassroomChange}
+                options={classroomOptions}
+                selectSize="sm"
+                disabled={!selectedSectionId || filteredClassrooms.length === 0}
               />
             </div>
 

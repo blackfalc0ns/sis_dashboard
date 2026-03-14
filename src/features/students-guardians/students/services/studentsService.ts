@@ -23,6 +23,7 @@ import {
   mockStudentTimelineEvents,
   mockStudentEnrollments,
   getEnrollmentByStudentId,
+  getEnrollmentsByStudentId,
   getEnrollmentsByClassroomId,
   getCurrentTerm,
   getYearToDateAverages,
@@ -319,6 +320,9 @@ export function getGradeDistribution(): Record<string, number> {
   // Use enrollment data for accurate grade distribution
   return mockStudentEnrollments.reduce(
     (acc, enrollment) => {
+      if (enrollment.status !== "active") {
+        return acc;
+      }
       const grade = enrollment.grade;
       acc[grade] = (acc[grade] || 0) + 1;
       return acc;
@@ -333,7 +337,7 @@ export function getGradeDistribution(): Record<string, number> {
 export function getSectionDistribution(grade: string): Record<string, number> {
   // Use enrollment data for accurate section distribution
   return mockStudentEnrollments
-    .filter((e) => e.grade === grade)
+    .filter((e) => e.grade === grade && e.status === "active")
     .reduce(
       (acc, enrollment) => {
         const section = enrollment.section;
@@ -352,7 +356,12 @@ export function getClassroomDistribution(
   section: string,
 ): Record<string, number> {
   return mockStudentEnrollments
-    .filter((enrollment) => enrollment.grade === grade && enrollment.section === section)
+    .filter(
+      (enrollment) =>
+        enrollment.grade === grade &&
+        enrollment.section === section &&
+        enrollment.status === "active",
+    )
     .reduce(
       (acc, enrollment) => {
         const classroom = enrollment.classroom || "Unassigned";
@@ -472,12 +481,9 @@ export function getStudentsWithEnrollmentHistory(): Array<
   }
 > {
   return mockStudents.map((student) => {
-    const enrollmentHistory = mockStudentEnrollments
-      .filter((e) => e.studentId === student.id)
-      .sort((a, b) => a.academicYear.localeCompare(b.academicYear));
+    const enrollmentHistory = getEnrollmentsByStudentId(student.id);
 
-    // Get the most recent enrollment (last in sorted array)
-    const currentEnrollment = enrollmentHistory[enrollmentHistory.length - 1];
+    const currentEnrollment = getEnrollmentByStudentId(student.id);
 
     return {
       ...student,
