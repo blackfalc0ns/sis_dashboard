@@ -24,6 +24,50 @@ interface ExcusesAnalysisSectionProps {
   onScopeClick: (scope: ReportsExcuseScopeRow) => void;
 }
 
+function ChartEmptyState({ message }: { message: string }) {
+  return (
+    <div
+      className="flex h-full items-center justify-center rounded-lg border p-4 text-center text-sm"
+      style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)" }}
+    >
+      {message}
+    </div>
+  );
+}
+
+function getChartPayload<T>(state: unknown): T | undefined {
+  return (state as { activePayload?: Array<{ payload?: T }> } | undefined)?.activePayload?.[0]?.payload;
+}
+
+function CategoryTick({
+  x = 0,
+  y = 0,
+  payload,
+  locale,
+}: {
+  x?: number;
+  y?: number;
+  payload?: { value?: string };
+  locale: string;
+}) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text
+        x={-70}
+        y={0}
+        dy={4}
+        textAnchor="end"
+        direction={locale === "ar" ? "rtl" : "ltr"}
+        unicodeBidi="plaintext"
+        fill="var(--text-secondary)"
+        fontSize="12"
+      >
+        {payload?.value || ""}
+      </text>
+    </g>
+  );
+}
+
 export default function ExcusesAnalysisSection({
   analysis,
   onStudentClick,
@@ -31,6 +75,8 @@ export default function ExcusesAnalysisSection({
 }: ExcusesAnalysisSectionProps) {
   const t = useTranslations("attendance.reportsPage.excuses");
   const locale = useLocale();
+  const yAxisWidth = locale === "ar" ? 80 : 140;
+
   const metricCards = [
     {
       key: "total",
@@ -76,8 +122,27 @@ export default function ExcusesAnalysisSection({
     },
   ];
 
+  const byTypeData = analysis.byType.map((item) => ({
+    ...item,
+    label: t(`types.${item.type}`),
+    value: item.count,
+  }));
+
+  const topStudentsData = analysis.topStudents.slice(0, 8).map((student) => ({
+    ...student,
+    label: locale === "ar" ? student.studentNameAr : student.studentNameEn,
+  }));
+
+  const topScopesData = analysis.topScopes.map((scope) => ({
+    ...scope,
+    label: locale === "ar" ? scope.labelAr : scope.labelEn,
+  }));
+
   return (
-    <div className="rounded-xl border p-4 space-y-4" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}>
+    <div
+      className="rounded-xl border p-4 space-y-4"
+      style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}
+    >
       <div>
         <div className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
           {t("title")}
@@ -87,7 +152,7 @@ export default function ExcusesAnalysisSection({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
         {metricCards.map((card) => (
           <KPICardV2
             key={card.key}
@@ -102,104 +167,139 @@ export default function ExcusesAnalysisSection({
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="space-y-2">
-          <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{t("byType")}</div>
-          <div className="h-72 rounded-lg border p-2" style={{ borderColor: "var(--border-color)" }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={analysis.byType.map((item) => ({
-                    ...item,
-                    label: t(`types.${item.type}`),
-                    value: item.count,
-                  }))}
-                  dataKey="value"
-                  nameKey="label"
-                  outerRadius={90}
-                >
-                  {analysis.byType.map((item, index) => (
-                    <Cell
-                      key={item.type}
-                      fill={
-                        [
-                          "var(--primary-color)",
-                          "var(--accent-color)",
-                          "var(--color-primary-200)",
-                        ][index % 3]
-                      }
+          <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+            {t("byType")}
+          </div>
+          <div className="h-72">
+            {byTypeData.length === 0 ? (
+              <ChartEmptyState message={t("emptyChart")} />
+            ) : (
+              <div className="h-full rounded-lg border p-2" style={{ borderColor: "var(--border-color)" }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={byTypeData} dataKey="value" nameKey="label" outerRadius={90}>
+                      {byTypeData.map((item, index) => (
+                        <Cell
+                          key={item.type}
+                          fill={["var(--primary-color)", "var(--accent-color)", "var(--color-primary-200)"][index % 3]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "var(--surface-color)",
+                        borderColor: "var(--border-color)",
+                        borderRadius: "12px",
+                      }}
                     />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--surface-color)",
-                    borderColor: "var(--border-color)",
-                    borderRadius: "12px",
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="space-y-2">
-          <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{t("topStudents")}</div>
-          {analysis.topStudents.map((student) => (
-            <button
-              key={student.studentId}
-              type="button"
-              onClick={() => onStudentClick(student.studentId)}
-              className="w-full rounded-lg border p-3 text-start"
-              style={{ borderColor: "var(--border-color)" }}
-            >
-              <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                {locale === "ar" ? student.studentNameAr : student.studentNameEn}
+          <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+            {t("topStudents")}
+          </div>
+          <div className="h-72">
+            {topStudentsData.length === 0 ? (
+              <ChartEmptyState message={t("emptyChart")} />
+            ) : (
+              <div className="h-full rounded-lg border p-2" style={{ borderColor: "var(--border-color)" }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={topStudentsData}
+                    layout="vertical"
+                    margin={{ top: 8, right: 12, left: 28, bottom: 8 }}
+                    onClick={(state) => {
+                      const payload = getChartPayload<{ studentId: string }>(state);
+                      if (payload?.studentId) onStudentClick(payload.studentId);
+                    }}
+                  >
+                    <CartesianGrid stroke="var(--border-color)" strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" tick={{ fill: "var(--text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <YAxis
+                      type="category"
+                      dataKey="label"
+                      width={yAxisWidth}
+                      tick={<CategoryTick locale={locale} />}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      formatter={(value) => [`${value}`, t("totalRequests")]}
+                      labelFormatter={(_label, payload) => {
+                        const row = payload?.[0]?.payload as (typeof topStudentsData)[number] | undefined;
+                        if (!row) return "";
+                        const name = locale === "ar" ? row.studentNameAr : row.studentNameEn;
+                        return `${name} - ${t("studentSummary", {
+                          count: row.count,
+                          approved: row.approvedCount,
+                          rejected: row.rejectedCount,
+                        })}`;
+                      }}
+                      contentStyle={{
+                        backgroundColor: "var(--surface-color)",
+                        borderColor: "var(--border-color)",
+                        borderRadius: "12px",
+                      }}
+                    />
+                    <Bar dataKey="count" fill="var(--primary-color)" radius={[0, 6, 6, 0]} cursor="pointer" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-              <div className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                {student.studentNumber || "-"} • {t("studentSummary", { count: student.count, approved: student.approvedCount, rejected: student.rejectedCount })}
-              </div>
-            </button>
-          ))}
+            )}
+          </div>
         </div>
 
         <div className="space-y-2">
-          <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{t("topScopes")}</div>
-          <div className="h-72 rounded-lg border p-2" style={{ borderColor: "var(--border-color)" }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={analysis.topScopes.map((scope) => ({
-                  ...scope,
-                  label: locale === "ar" ? scope.labelAr : scope.labelEn,
-                }))}
-                layout="vertical"
-                margin={{ top: 8, right: 12, left: 12, bottom: 8 }}
-                onClick={(state) => {
-                  const payload = getChartPayload<ReportsExcuseScopeRow>(state);
-                  if (payload) onScopeClick(payload);
-                }}
-              >
-                <CartesianGrid stroke="var(--border-color)" strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" tick={{ fill: "var(--text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="label" width={100} tick={{ fill: "var(--text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--surface-color)",
-                    borderColor: "var(--border-color)",
-                    borderRadius: "12px",
-                  }}
-                />
-                <Bar dataKey="total" fill="var(--primary-color)" radius={[0, 6, 6, 0]} cursor="pointer" />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+            {t("topScopes")}
+          </div>
+          <div className="h-72">
+            {topScopesData.length === 0 ? (
+              <ChartEmptyState message={t("emptyChart")} />
+            ) : (
+              <div className="h-full rounded-lg border p-2" style={{ borderColor: "var(--border-color)" }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={topScopesData}
+                    layout="vertical"
+                    margin={{ top: 8, right: 12, left: 28, bottom: 8 }}
+                    onClick={(state) => {
+                      const payload = getChartPayload<ReportsExcuseScopeRow>(state);
+                      if (payload) onScopeClick(payload);
+                    }}
+                  >
+                    <CartesianGrid stroke="var(--border-color)" strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" tick={{ fill: "var(--text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <YAxis
+                      type="category"
+                      dataKey="label"
+                      width={yAxisWidth}
+                      tick={<CategoryTick locale={locale} />}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "var(--surface-color)",
+                        borderColor: "var(--border-color)",
+                        borderRadius: "12px",
+                      }}
+                    />
+                    <Bar dataKey="total" fill="var(--primary-color)" radius={[0, 6, 6, 0]} cursor="pointer" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
-}
-
-function getChartPayload<T>(state: unknown): T | undefined {
-  const payload = (state as { activePayload?: Array<{ payload?: T }> } | undefined)?.activePayload?.[0]?.payload;
-  return payload;
 }

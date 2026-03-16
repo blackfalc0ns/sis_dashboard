@@ -1,4 +1,4 @@
-import {
+﻿import {
   Home,
   Users,
   HelpCircle,
@@ -19,6 +19,7 @@ import {
   Clock,
   Calendar,
   ClipboardList,
+  BarChart3,
 } from "lucide-react";
 import {
   mockLeads,
@@ -264,6 +265,7 @@ export const menuItems: MenuItem[] = [
         href_ar: "/ar/academics/curriculum",
         icon: FileText,
       },
+
       {
         key: "academics-calendar",
         label_en: "Academic Calendar",
@@ -299,6 +301,40 @@ export const menuItems: MenuItem[] = [
     ],
   },
   {
+    key: "grades",
+    label_en: "Assessments & Grades",
+    label_ar: "التقييمات والدرجات",
+    href_en: "/en/grades",
+    href_ar: "/ar/grades",
+    icon: ClipboardCheck,
+    children: [
+      {
+        key: "grades-overview",
+        label_en: "Overview",
+        label_ar: "نظرة عامة",
+        href_en: "/en/grades",
+        href_ar: "/ar/grades",
+        icon: LayoutDashboard,
+      },
+      {
+        key: "grades-assessments",
+        label_en: "Assessments",
+        label_ar: "التقييمات",
+        href_en: "/en/grades/assessments",
+        href_ar: "/ar/grades/assessments",
+        icon: ClipboardCheck,
+      },
+      {
+        key: "grades-gradebook",
+        label_en: "Gradebook",
+        label_ar: "الدرجات",
+        href_en: "/en/grades/gradebook",
+        href_ar: "/ar/grades/gradebook",
+        icon: BookOpen,
+      },
+    ],
+  },
+  {
     key: "attendance",
     label_en: "Attendance & Discipline",
     label_ar: "الحضور والانضباط",
@@ -306,6 +342,14 @@ export const menuItems: MenuItem[] = [
     href_ar: "/ar/attendance/policies",
     icon: ClipboardList,
     children: [
+       {
+        key: "attendance-reports",
+        label_en: "Overview",
+        label_ar: "نظرة عامة",
+        href_en: "/en/attendance/reports",
+        href_ar: "/ar/attendance/reports",
+        icon: LayoutDashboard,
+      },
       {
         key: "attendance-policies",
         label_en: "Policies",
@@ -346,14 +390,7 @@ export const menuItems: MenuItem[] = [
         href_ar: "/ar/attendance/excuses",
         icon: MessageSquare,
       },
-      {
-        key: "attendance-reports",
-        label_en: "Reports",
-        label_ar: "التقارير",
-        href_en: "/en/attendance/reports",
-        href_ar: "/ar/attendance/reports",
-        icon: LayoutDashboard,
-      },
+     
     ],
   },
 ];
@@ -376,3 +413,5 @@ export const bottomItems = [
     icon: Settings,
   },
 ];
+
+

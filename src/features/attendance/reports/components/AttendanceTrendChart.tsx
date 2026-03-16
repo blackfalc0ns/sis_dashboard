@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Bar,
   CartesianGrid,
@@ -19,6 +19,7 @@ interface AttendanceTrendChartProps {
 }
 
 export default function AttendanceTrendChart({ points, onPointClick }: AttendanceTrendChartProps) {
+  const locale = useLocale();
   const t = useTranslations("attendance.reportsPage.trend");
 
   if (points.length === 0) {
@@ -35,6 +36,10 @@ export default function AttendanceTrendChart({ points, onPointClick }: Attendanc
   }
 
   const maxRate = Math.max(...points.map((point) => point.attendanceRate), 100);
+  const chartData = points.map((point) => ({
+    ...point,
+    displayLabel: formatTrendLabel(point, locale),
+  }));
 
   return (
     <div className="rounded-xl border p-4 space-y-4" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}>
@@ -50,7 +55,7 @@ export default function AttendanceTrendChart({ points, onPointClick }: Attendanc
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
-            data={points}
+            data={chartData}
             margin={{ top: 12, right: 16, left: 0, bottom: 8 }}
             onClick={(state) => {
               const payload = getChartPayload<ReportsTrendPoint>(state);
@@ -58,7 +63,7 @@ export default function AttendanceTrendChart({ points, onPointClick }: Attendanc
             }}
           >
             <CartesianGrid stroke="var(--border-color)" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="label" tick={{ fill: "var(--text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="displayLabel" tick={{ fill: "var(--text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
             <YAxis
               yAxisId="left"
               tick={{ fill: "var(--text-secondary)", fontSize: 12 }}
@@ -79,6 +84,10 @@ export default function AttendanceTrendChart({ points, onPointClick }: Attendanc
                 backgroundColor: "var(--surface-color)",
                 borderColor: "var(--border-color)",
                 borderRadius: "12px",
+              }}
+              labelFormatter={(_, payload) => {
+                const point = payload?.[0]?.payload as (ReportsTrendPoint & { displayLabel?: string }) | undefined;
+                return point?.displayLabel || "";
               }}
               formatter={(value: number | string | undefined, name: string | undefined) => [
                 name === "attendanceRate"
@@ -113,4 +122,13 @@ export default function AttendanceTrendChart({ points, onPointClick }: Attendanc
 function getChartPayload<T>(state: unknown): T | undefined {
   const payload = (state as { activePayload?: Array<{ payload?: T }> } | undefined)?.activePayload?.[0]?.payload;
   return payload;
+}
+
+function formatTrendLabel(point: ReportsTrendPoint, locale: string) {
+  if (point.dateFrom === point.dateTo) {
+    return point.dateFrom;
+  }
+
+  const separator = locale === "ar" ? " \u2190 " : " -> ";
+  return `\u200E${point.dateFrom}\u200E${separator}\u200E${point.dateTo}\u200E`;
 }

@@ -20,6 +20,8 @@ import {
   type AttendanceScopeIds,
 } from "@/features/attendance/shared/attendanceScope";
 import {
+  fetchAcademicYears,
+  fetchTermsByYear,
   getStructureTreeSnapshot,
   resolveStructureContextForAcademicYear,
 } from "@/features/academics/academic-structure-tree/services/structureService";
@@ -27,6 +29,144 @@ import {
 // Term-scoped mock store
 const sessionStore: Record<string, AttendanceSession[]> = {};
 const entryStore: Record<string, AttendanceEntry[]> = {};
+
+async function ensureSeededAttendanceData(yearId: string, termId: string) {
+  const storeKey = `${yearId}-${termId}`;
+  if ((sessionStore[storeKey]?.length || 0) > 0) {
+    return;
+  }
+
+  const [academicYears, terms] = await Promise.all([
+    fetchAcademicYears(),
+    fetchTermsByYear(yearId),
+  ]);
+
+  const academicYear = academicYears.find((item) => item.id === yearId);
+  const term = terms.find((item) => item.id === termId);
+  if (!academicYear || !term) {
+    return;
+  }
+
+  const structure = getStructureTreeSnapshot(yearId, termId);
+  const classroomsById = new Map(structure.classrooms.map((item) => [item.id, item]));
+  const sectionsById = new Map(structure.sections.map((item) => [item.id, item]));
+  const gradesById = new Map(structure.grades.map((item) => [item.id, item]));
+
+  const activeEnrollments = mockStudentEnrollments.filter(
+    (enrollment) =>
+      enrollment.academicYear === academicYear.name &&
+      enrollment.status === "active" &&
+      enrollment.classroomId &&
+      classroomsById.has(enrollment.classroomId)
+  );
+
+  const enrollmentsByClassroom = new Map<string, typeof activeEnrollments>();
+  for (const enrollment of activeEnrollments) {
+    const classroomId = enrollment.classroomId!;
+    if (!enrollmentsByClassroom.has(classroomId)) {
+      enrollmentsByClassroom.set(classroomId, []);
+    }
+    enrollmentsByClassroom.get(classroomId)!.push(enrollment);
+  }
+
+  const targetClassrooms = Array.from(enrollmentsByClassroom.entries())
+    .filter(([, enrollments]) => enrollments.length > 0)
+    .sort(([leftId], [rightId]) => {
+      const left = classroomsById.get(leftId);
+      const right = classroomsById.get(rightId);
+      return (left?.order || 0) - (right?.order || 0);
+    })
+    .slice(0, 6);
+
+  if (targetClassrooms.length === 0) {
+    return;
+  }
+
+  const seedDates: string[] = [];
+  const startDate = new Date(term.startDate);
+  for (let week = 0; week < 8; week += 1) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + week * 7);
+    seedDates.push(date.toISOString().slice(0, 10));
+  }
+
+  sessionStore[storeKey] = [];
+  entryStore[storeKey] = [];
+
+  targetClassrooms.forEach(([classroomId, enrollments], classroomIndex) => {
+    const classroom = classroomsById.get(classroomId);
+    const section = classroom ? sectionsById.get(classroom.sectionId) : undefined;
+    const grade = section ? gradesById.get(section.gradeId) : undefined;
+
+    if (!classroom || !section || !grade) {
+      return;
+    }
+
+    seedDates.forEach((date, dateIndex) => {
+      const sessionId = `seed-session-${storeKey}-${classroomId}-${date}`;
+      const now = `${date}T07:00:00.000Z`;
+      const session: AttendanceSession = {
+        id: sessionId,
+        yearId,
+        termId,
+        date,
+        scopeType: "CLASSROOM",
+        scopeIds: {
+          stageId: grade.stageId,
+          gradeId: grade.id,
+          sectionId: section.id,
+          classroomId: classroom.id,
+        },
+        mode: "PERIOD",
+        periodId: `period-1`,
+        periodIndex: 1,
+        periodNameAr: "الحصة الأولى",
+        periodNameEn: "Period 1",
+        status: "SUBMITTED",
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      sessionStore[storeKey].push(session);
+
+      enrollments.forEach((enrollment, studentIndex) => {
+        const selector = (studentIndex + dateIndex + classroomIndex) % 11;
+        const baseEntry: AttendanceEntry = {
+          id: `seed-entry-${sessionId}-${enrollment.studentId}`,
+          sessionId,
+          studentId: enrollment.studentId,
+          status: "PRESENT",
+          updatedAt: `${date}T08:00:00.000Z`,
+        };
+
+        if (selector === 0) {
+          baseEntry.status = "ABSENT";
+          baseEntry.note = "Repeated absence for reports seeding";
+        } else if (selector === 1) {
+          baseEntry.status = "EXCUSED";
+          baseEntry.excuseReason = "Medical appointment";
+          baseEntry.excuseAttachments = [
+            {
+              id: `att-${sessionId}-${enrollment.studentId}`,
+              name: "medical-note.pdf",
+              size: 248000,
+              type: "application/pdf",
+              uploadedAt: `${date}T08:10:00.000Z`,
+            },
+          ];
+        } else if (selector === 2 || selector === 3) {
+          baseEntry.status = "LATE";
+          baseEntry.minutesLate = 7 + ((studentIndex + dateIndex) % 18);
+        } else if (selector === 4) {
+          baseEntry.status = "EARLY_LEAVE";
+          baseEntry.minutesEarlyLeave = 5 + ((studentIndex + classroomIndex) % 15);
+        }
+
+        entryStore[storeKey].push(baseEntry);
+      });
+    });
+  });
+}
 
 /**
  * Fetch effective policy for a scope and date
@@ -348,6 +488,8 @@ export async function fetchSessions(
   }
 ): Promise<AttendanceSession[]> {
   await new Promise((resolve) => setTimeout(resolve, 100));
+
+  await ensureSeededAttendanceData(yearId, termId);
 
   const storeKey = `${yearId}-${termId}`;
   let sessions = sessionStore[storeKey] || [];

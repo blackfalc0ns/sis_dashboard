@@ -252,7 +252,7 @@ export default function AttendanceLateEarlyPage() {
   const isScopeSelectionIncomplete = !isScopeSelectionComplete(filters.scopeType, filters.scopeIds);
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col">
       <ContextBar
         academicYearId={termContext.yearId || ""}
         termId={termContext.termId || ""}

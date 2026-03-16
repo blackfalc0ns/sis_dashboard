@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
+import DataTable from "@/components/ui/data-table/DataTable";
 import AttendanceBottomDrawer from "@/features/attendance/shared/components/AttendanceBottomDrawer";
 
 export interface ReportsDrilldownColumn {
@@ -33,9 +34,14 @@ export default function ReportsDrilldownDrawer({
   const t = useTranslations("attendance.reportsPage.drilldown");
   const route = state?.route;
 
+  const columns = (state?.columns || []).map((column) => ({
+    key: column.key,
+    label: column.label,
+  }));
+
   return (
     <AttendanceBottomDrawer isOpen={open} onClose={onClose} heightClassName="h-[85vh]">
-      <div className="h-full flex flex-col p-4 gap-4">
+      <div className="flex h-full flex-col gap-4 p-4">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
@@ -54,32 +60,19 @@ export default function ReportsDrilldownDrawer({
           ) : null}
         </div>
 
-        <div className="flex-1 overflow-auto rounded-lg border" style={{ borderColor: "var(--border-color)" }}>
+        <div className="min-h-0 flex-1">
           {state && state.rows.length > 0 ? (
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr style={{ color: "var(--text-secondary)" }}>
-                  {state.columns.map((column) => (
-                    <th key={column.key} className="px-4 py-3 text-start">
-                      {column.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {state.rows.map((row, index) => (
-                  <tr key={index} className="border-t" style={{ borderColor: "var(--border-color)" }}>
-                    {state.columns.map((column) => (
-                      <td key={column.key} className="px-4 py-3" style={{ color: "var(--text-primary)" }}>
-                        {row[column.key] ?? "-"}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              columns={columns as unknown as { key: string; label: string; sortable?: boolean; searchable?: boolean; render?: (value: unknown, row: { [key: string]: unknown }) => React.ReactNode }[]}
+              data={state.rows as unknown as { [key: string]: unknown }[]}
+              itemsPerPage={15}
+              showPagination
+            />
           ) : (
-            <div className="h-full flex items-center justify-center text-sm" style={{ color: "var(--text-secondary)" }}>
+            <div
+              className="flex h-full items-center justify-center rounded-lg border text-sm"
+              style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)" }}
+            >
               {t("empty")}
             </div>
           )}

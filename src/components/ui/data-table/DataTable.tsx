@@ -52,7 +52,7 @@ function HighlightText({ text, highlight }: HighlightTextProps) {
   );
 }
 
-interface Column<T> {
+export interface Column<T> {
   key: string;
   label: string;
   sortable?: boolean;

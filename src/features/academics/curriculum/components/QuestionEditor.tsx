@@ -231,8 +231,7 @@ export default function QuestionEditor({
   );
 
   // Sync with prop changes when question changes
-  /* eslint-disable react-hooks/set-state-in-effect */
-  // Form reset pattern: sync form state with question prop changes
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     setQuestionTextAr(question.questionTextAr);
     setQuestionTextEn(question.questionTextEn);
@@ -242,18 +241,8 @@ export default function QuestionEditor({
     setCorrectAnswer(question.correctAnswer ?? true);
     setSampleAnswerAr(question.sampleAnswerAr || "");
     setSampleAnswerEn(question.sampleAnswerEn || "");
-  }, [
-    question.id,
-    question.questionTextAr,
-    question.questionTextEn,
-    question.questionType,
-    question.points,
-    question.options,
-    question.correctAnswer,
-    question.sampleAnswerAr,
-    question.sampleAnswerEn,
-  ]); // Reset when question changes
-  /* eslint-enable react-hooks/set-state-in-effect */
+  }, [question.id]); // Reset only when switching to a different question
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   const handleTypeChange = (newType: AssignmentQuestion["questionType"]) => {
     const oldType = questionType;

@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { X, Download, FileText, BarChart3, Calendar } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface AdmissionsExportModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export default function AdmissionsExportModal({
   onClose,
   currentDateRange,
 }: AdmissionsExportModalProps) {
+  const t = useTranslations("admissions.export");
   const [exportType, setExportType] = useState<ExportType>("data");
   const [format, setFormat] = useState<ExportFormat>("csv");
   const [selectedDatasets, setSelectedDatasets] = useState<string[]>([
@@ -34,21 +36,21 @@ export default function AdmissionsExportModal({
   if (!isOpen) return null;
 
   const datasetOptions = [
-    { value: "leads", label: "Leads", description: "All lead inquiries" },
+    { value: "leads", label: t("datasets.leads.label"), description: t("datasets.leads.description") },
     {
       value: "applications",
-      label: "Applications",
-      description: "Student applications",
+      label: t("datasets.applications.label"),
+      description: t("datasets.applications.description"),
     },
     {
       value: "decisions",
-      label: "Decisions",
-      description: "Admission decisions",
+      label: t("datasets.decisions.label"),
+      description: t("datasets.decisions.description"),
     },
     {
       value: "enrollments",
-      label: "Enrollments",
-      description: "Enrolled students",
+      label: t("datasets.enrollments.label"),
+      description: t("datasets.enrollments.description"),
     },
   ];
 
@@ -105,7 +107,7 @@ export default function AdmissionsExportModal({
       if (exportType === "data") {
         // Export raw data
         if (selectedDatasets.length === 0) {
-          alert("Please select at least one dataset to export");
+          alert(t("errors.noDatasets"));
           setIsExporting(false);
           return;
         }
@@ -123,7 +125,7 @@ export default function AdmissionsExportModal({
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(error.error || "Export failed");
+          throw new Error(error.error || t("errors.exportFailed"));
         }
 
         // Download file
@@ -158,7 +160,7 @@ export default function AdmissionsExportModal({
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(error.error || "Export failed");
+          throw new Error(error.error || t("errors.exportFailed"));
         }
 
         // Download file
@@ -190,7 +192,7 @@ export default function AdmissionsExportModal({
       alert(
         error instanceof Error
           ? error.message
-          : "Export failed. Please try again.",
+          : t("errors.exportFailedGeneric"),
       );
       setIsExporting(false);
     }
@@ -203,9 +205,9 @@ export default function AdmissionsExportModal({
         <div className="sticky top-0 bg-gradient-to-r from-primary to-hover text-white p-6 rounded-t-xl">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold">Export Admissions Data</h2>
+              <h2 className="text-2xl font-bold">{t("title")}</h2>
               <p className="text-sm text-white/80 mt-1">
-                Download data and analytics reports
+                {t("subtitle")}
               </p>
             </div>
             <button
@@ -221,7 +223,7 @@ export default function AdmissionsExportModal({
           {/* Export Type Selection */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Export Type
+              {t("exportType.label")}
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -244,10 +246,10 @@ export default function AdmissionsExportModal({
                         exportType === "data" ? "text-primary" : "text-gray-700"
                       }`}
                     >
-                      Export Data
+                      {t("exportType.data.title")}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
-                      Raw leads, applications, decisions
+                      {t("exportType.data.description")}
                     </div>
                   </div>
                 </div>
@@ -277,10 +279,10 @@ export default function AdmissionsExportModal({
                           : "text-gray-700"
                       }`}
                     >
-                      Export Analytics
+                      {t("exportType.analytics.title")}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
-                      Funnel, trends, grade distribution
+                      {t("exportType.analytics.description")}
                     </div>
                   </div>
                 </div>
@@ -292,7 +294,7 @@ export default function AdmissionsExportModal({
           {exportType === "data" && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Select Datasets
+                {t("datasets.label")}
               </label>
               <div className="space-y-2">
                 {datasetOptions.map((option) => (
@@ -323,7 +325,7 @@ export default function AdmissionsExportModal({
           {/* Format Selection */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Export Format
+              {t("format.label")}
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -339,10 +341,10 @@ export default function AdmissionsExportModal({
                     format === "csv" ? "text-primary" : "text-gray-700"
                   }`}
                 >
-                  CSV
+                  {t("format.csv.title")}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  Excel compatible
+                  {t("format.csv.description")}
                 </div>
               </button>
 
@@ -359,10 +361,10 @@ export default function AdmissionsExportModal({
                     format === "json" ? "text-primary" : "text-gray-700"
                   }`}
                 >
-                  JSON
+                  {t("format.json.title")}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  Structured data
+                  {t("format.json.description")}
                 </div>
               </button>
             </div>
@@ -374,17 +376,22 @@ export default function AdmissionsExportModal({
               <Calendar className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div>
                 <h4 className="text-sm font-semibold text-blue-900">
-                  Date Range
+                  {t("dateRange.title")}
                 </h4>
                 <p className="text-xs text-blue-800 mt-1">
                   {currentDateRange?.value === "custom"
-                    ? `Custom: ${currentDateRange.customStart} to ${currentDateRange.customEnd}`
+                    ? t("dateRange.custom", {
+                        start: currentDateRange.customStart ?? "",
+                        end: currentDateRange.customEnd ?? "",
+                      })
                     : currentDateRange?.value === "all"
-                      ? "All time data"
-                      : `Last ${currentDateRange?.value || "30"} days`}
+                      ? t("dateRange.allTime")
+                      : t("dateRange.lastDays", {
+                          days: currentDateRange?.value || "30",
+                        })}
                 </p>
                 <p className="text-xs text-blue-700 mt-1">
-                  Export will use the current dashboard date filter
+                  {t("dateRange.description")}
                 </p>
               </div>
             </div>
@@ -397,7 +404,7 @@ export default function AdmissionsExportModal({
               disabled={isExporting}
               className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors disabled:opacity-50"
             >
-              Cancel
+              {t("actions.cancel")}
             </button>
             <button
               onClick={handleExport}
@@ -410,12 +417,12 @@ export default function AdmissionsExportModal({
               {isExporting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Exporting...
+                  {t("actions.exporting")}
                 </>
               ) : (
                 <>
                   <Download className="w-4 h-4" />
-                  Export {exportType === "data" ? "Data" : "Analytics"}
+                  {exportType === "data" ? t("actions.exportData") : t("actions.exportAnalytics")}
                 </>
               )}
             </button>

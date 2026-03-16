@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -191,6 +191,41 @@ export default function AttendanceReportsPage() {
     setExportDataset("summary");
   };
 
+  const getAttendanceStatusLabel = useCallback(
+    (status: "PRESENT" | "ABSENT" | "EXCUSED" | "LATE" | "EARLY_LEAVE" | "UNMARKED") => {
+      if (status === "PRESENT") return t("filters.statuses.present");
+      if (status === "ABSENT") return t("filters.statuses.absent");
+      if (status === "EXCUSED") return t("filters.statuses.excused");
+      if (status === "LATE") return t("filters.statuses.late");
+      if (status === "UNMARKED") return status;
+      return t("filters.statuses.earlyLeave");
+    },
+    [t]
+  );
+
+  const getExcuseStatusLabel = useCallback(
+    (status: "PENDING" | "APPROVED" | "REJECTED") => {
+      if (status === "PENDING") return t("filters.excuseStatuses.pending");
+      if (status === "APPROVED") return t("filters.excuseStatuses.approved");
+      return t("filters.excuseStatuses.rejected");
+    },
+    [t]
+  );
+
+  const getExcuseTypeLabel = useCallback(
+    (type: "ABSENCE" | "LATE" | "EARLY_LEAVE") => {
+      if (type === "ABSENCE") return t("excuses.types.ABSENCE");
+      if (type === "LATE") return t("excuses.types.LATE");
+      return t("excuses.types.EARLY_LEAVE");
+    },
+    [t]
+  );
+
+  const getPerformanceLevelLabel = useCallback(
+    (level: "stage" | "grade" | "section" | "classroom") => t(`performance.levels.${level}`),
+    [t]
+  );
+
   const buildAttendanceRows = useCallback(
     (rows: AttendanceReportsData["attendanceRows"], route?: "absences" | "lateEarly" | "excuses"): ReportsDrilldownState => ({
       title: t("drilldown.attendanceRows"),
@@ -207,12 +242,12 @@ export default function AttendanceReportsPage() {
         scope: locale === "ar"
           ? row.classroomNameAr || row.sectionNameAr || row.gradeNameAr || row.stageNameAr || "-"
           : row.classroomNameEn || row.sectionNameEn || row.gradeNameEn || row.stageNameEn || "-",
-        status: row.status,
+        status: getAttendanceStatusLabel(row.status),
         period: locale === "ar" ? row.periodNameAr || row.periodIndex || "-" : row.periodNameEn || row.periodIndex || "-",
       })),
       route,
     }),
-    [locale, t]
+    [getAttendanceStatusLabel, locale, t]
   );
 
   const openKpiDrilldown = (key: ReportsKpiCard["key"]) => {
@@ -253,7 +288,7 @@ export default function AttendanceReportsPage() {
         rows: report.riskStudents.map((row) => ({
           student: locale === "ar" ? row.studentNameAr : row.studentNameEn,
           attendanceRate: `${row.attendanceRate.toFixed(1)}%`,
-          flags: row.flags.map((flag) => t(`risk.flags.${flag.code}`, { count: flag.count })).join(" • "),
+          flags: row.flags.map((flag) => t(`risk.flags.${flag.code}`, { count: flag.count })).join(" •"),
         })),
       });
       return;
@@ -270,7 +305,7 @@ export default function AttendanceReportsPage() {
         .filter((row) => row.attendanceRate < 85)
         .map((row) => ({
           name: locale === "ar" ? row.labelAr : row.labelEn,
-          level: row.level,
+          level: getPerformanceLevelLabel(row.level),
           attendanceRate: `${row.attendanceRate.toFixed(1)}%`,
         })),
     });
@@ -502,8 +537,8 @@ export default function AttendanceReportsPage() {
                     .map((request) => ({
                       dateFrom: `${request.dateFrom} - ${request.dateTo}`,
                       student: locale === "ar" ? request.studentNameAr : request.studentNameEn,
-                      type: request.type,
-                      status: request.status,
+                      type: getExcuseTypeLabel(request.type),
+                      status: getExcuseStatusLabel(request.status),
                     })),
                   route: "excuses",
                 })
@@ -522,8 +557,8 @@ export default function AttendanceReportsPage() {
                     .map((request) => ({
                       dateFrom: `${request.dateFrom} - ${request.dateTo}`,
                       student: locale === "ar" ? request.studentNameAr : request.studentNameEn,
-                      type: request.type,
-                      status: request.status,
+                      type: getExcuseTypeLabel(request.type),
+                      status: getExcuseStatusLabel(request.status),
                     })),
                   route: "excuses",
                 })
@@ -567,3 +602,4 @@ export default function AttendanceReportsPage() {
     </div>
   );
 }
+

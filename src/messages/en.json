@@ -1228,6 +1228,69 @@
       "full_classrooms": "Full Classrooms",
       "promote_waitlist": "Promote Waitlist",
       "waitlist_summary": "{count} active waitlist entries will be checked for available seats."
+    },
+    "export": {
+      "title": "Export Admissions Data",
+      "subtitle": "Download data and analytics reports",
+      "exportType": {
+        "label": "Export Type",
+        "data": {
+          "title": "Export Data",
+          "description": "Raw leads, applications, decisions"
+        },
+        "analytics": {
+          "title": "Export Analytics",
+          "description": "Funnel, trends, grade distribution"
+        }
+      },
+      "datasets": {
+        "label": "Select Datasets",
+        "leads": {
+          "label": "Leads",
+          "description": "All lead inquiries"
+        },
+        "applications": {
+          "label": "Applications",
+          "description": "Student applications"
+        },
+        "decisions": {
+          "label": "Decisions",
+          "description": "Admission decisions"
+        },
+        "enrollments": {
+          "label": "Enrollments",
+          "description": "Enrolled students"
+        }
+      },
+      "format": {
+        "label": "Export Format",
+        "csv": {
+          "title": "CSV",
+          "description": "Excel compatible"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "Structured data"
+        }
+      },
+      "dateRange": {
+        "title": "Date Range",
+        "custom": "Custom: {start} to {end}",
+        "allTime": "All time data",
+        "lastDays": "Last {days} days",
+        "description": "Export will use the current dashboard date filter"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "exporting": "Exporting...",
+        "exportData": "Export Data",
+        "exportAnalytics": "Export Analytics"
+      },
+      "errors": {
+        "noDatasets": "Please select at least one dataset to export",
+        "exportFailed": "Export failed",
+        "exportFailedGeneric": "Export failed. Please try again."
+      }
     }
   },
   "students_guardians": {
@@ -3587,6 +3650,263 @@
         "viewDetails": "View Details"
       },
       "readOnlyBanner": "This term is closed. Lesson plans are read-only."
+    },
+    "grades": {
+      "title": "Assessments & Grades",
+      "readOnlyBanner": "This term is closed. Grades are read-only.",
+      "tabs": {
+        "overview": "Overview",
+        "assessments": "Assessments",
+        "analytics": "Analytics",
+        "gradebook": "Gradebook"
+      },
+      "filters": {
+        "grade": "Grade",
+        "section": "Section",
+        "classroom": "Classroom",
+        "subject": "Subject",
+        "allClassrooms": "All Classrooms",
+        "selectGrade": "Select Grade",
+        "selectSection": "Select Section",
+        "selectSubject": "Select Subject",
+        "activeContext": "{subject} - {section}"
+      },
+      "kpis": {
+        "students": "Students",
+        "assessments": "Assessments",
+        "classAverage": "Class Average",
+        "completionRate": "Completion Rate"
+      },
+      "trend": {
+        "title": "Performance Trend",
+        "subtitle": "Average score by assessment over time",
+        "average": "Average Score"
+      },
+      "summaryPanel": {
+        "title": "Section Summary",
+        "highest": "Highest Average",
+        "lowest": "Lowest Average",
+        "passMark": "Pass Mark",
+        "assessments": "Assessments"
+      },
+      "gradebook": {
+        "title": "Gradebook",
+        "subtitle": "Students by rows, assessments by columns"
+      },
+      "analytics": {
+        "kpis": {
+          "classAverage": "Class average",
+          "passRate": "Pass rate",
+          "completionRate": "Completion rate",
+          "failingStudents": "Failing students"
+        },
+        "distribution": {
+          "title": "Grade distribution",
+          "subtitle": "Students grouped by average score bands",
+          "count": "Students"
+        },
+        "assessments": {
+          "title": "Assessment performance",
+          "subtitle": "Average score by assessment",
+          "average": "Average"
+        },
+        "topStudents": "Top students",
+        "lowestStudents": "Students needing support",
+        "table": {
+          "student": "Student",
+          "average": "Average",
+          "completionRate": "Completion rate"
+        },
+        "empty": "No analytics data is available for the current filters."
+      },
+      "table": {
+        "student": "Student",
+        "classroom": "Classroom",
+        "notAssigned": "Unassigned",
+        "average": "Average",
+        "completion": "Completion",
+        "absent": "Absent",
+        "pending": "Pending"
+      },
+      "assessmentTypes": {
+        "quiz": "Quiz",
+        "assignment": "Assignment",
+        "midterm": "Midterm",
+        "final": "Final",
+        "practical": "Practical"
+      },
+      "emptyState": {
+        "selectFilters": "Select a section and subject to view the gradebook.",
+        "noAssessments": "No assessments available for the selected filters.",
+        "noStudents": "No enrolled students found for the selected filters."
+      },
+      "actions": {
+        "createAssessment": "Create Assessment",
+        "bulkEntry": "Bulk Entry",
+        "approve": "Approve",
+        "lock": "Lock",
+        "edit": "Edit",
+        "delete": "Delete",
+        "manageQuestions": "Manage Questions",
+        "publish": "Publish"
+      },
+      "messages": {
+        "assessmentCreated": "Assessment created successfully",
+        "assessmentUpdated": "Assessment updated successfully",
+        "assessmentDeleted": "Assessment deleted successfully",
+        "gradeSaved": "Grade saved successfully",
+        "bulkGradesSaved": "Grades saved successfully",
+        "assessmentApproved": "Assessment approved successfully",
+        "assessmentLocked": "Assessment locked successfully",
+        "assessmentPublished": "Assessment published successfully"
+      },
+      "dialogs": {
+        "createAssessment": {
+          "title": "Create Assessment",
+          "description": "Add a new assessment to the current gradebook.",
+          "titleEn": "Title (English)",
+          "titleAr": "Title (Arabic)",
+          "type": "Type",
+          "date": "Date",
+          "weight": "Weight",
+          "maxScore": "Max Score",
+          "save": "Create",
+          "cancel": "Cancel",
+          "types": {
+            "quiz": "Quiz",
+            "assignment": "Assignment",
+            "midterm": "Midterm",
+            "final": "Final",
+            "practical": "Practical"
+          },
+          "deliveryMode": "Delivery Mode",
+          "deliveryModes": {
+            "scoreOnly": "Score only",
+            "questionBased": "Question-based"
+          }
+        },
+        "editAssessment": {
+          "title": "Edit Assessment",
+          "description": "Update the selected assessment details.",
+          "titleEn": "Title (English)",
+          "titleAr": "Title (Arabic)",
+          "type": "Type",
+          "date": "Date",
+          "weight": "Weight",
+          "maxScore": "Max Score",
+          "save": "Save Changes",
+          "cancel": "Cancel",
+          "types": {
+            "quiz": "Quiz",
+            "assignment": "Assignment",
+            "midterm": "Midterm",
+            "final": "Final",
+            "practical": "Practical"
+          },
+          "deliveryMode": "Delivery Mode",
+          "deliveryModes": {
+            "scoreOnly": "Score only",
+            "questionBased": "Question-based"
+          }
+        },
+        "editGrade": {
+          "title": "Edit Grade",
+          "description": "Update {student} for {assessment}.",
+          "status": "Status",
+          "score": "Score",
+          "scoreHelp": "Allowed range: 0 - {maxScore}",
+          "comment": "Comment",
+          "save": "Save",
+          "cancel": "Cancel",
+          "statuses": {
+            "entered": "Entered",
+            "missing": "Missing",
+            "absent": "Absent"
+          }
+        },
+        "deleteAssessment": {
+          "title": "Delete Assessment",
+          "description": "Delete {assessment}? Existing scores for this assessment will also be removed.",
+          "confirm": "Delete",
+          "cancel": "Cancel"
+        },
+        "bulkEntry": {
+          "title": "Bulk Grade Entry",
+          "description": "Update the full roster for {assessment}.",
+          "student": "Student",
+          "classroom": "Classroom",
+          "notAssigned": "Unassigned",
+          "status": "Status",
+          "score": "Score",
+          "scoreHelp": "Allowed range: 0 - {maxScore}",
+          "comment": "Comment",
+          "save": "Save All",
+          "cancel": "Cancel",
+          "statuses": {
+            "entered": "Entered",
+            "missing": "Missing",
+            "absent": "Absent"
+          }
+        }
+      },
+      "errors": {
+        "missing_scope": "Please select a valid subject and section.",
+        "title_required": "Assessment title is required in both languages.",
+        "invalid_weight": "Weight must be between 1 and 100.",
+        "invalid_max_score": "Max score must be greater than 0.",
+        "assessment_not_found": "Assessment not found.",
+        "assessment_locked": "This assessment is locked.",
+        "assessment_metadata_locked": "Assessment metadata cannot be changed after approval.",
+        "grade_item_not_found": "Grade item not found.",
+        "bulk_empty": "There are no grades to save.",
+        "score_required": "A score is required when status is entered.",
+        "score_out_of_range": "Score is outside the allowed range.",
+        "generic": "Unable to complete this action.",
+        "question_not_found": "Question not found.",
+        "assessment_structure_locked": "Assessment structure cannot be changed after approval or lock.",
+        "grading_started": "Question structure cannot be changed after grade entry has started.",
+        "last_question_required": "At least one question must remain on the assessment.",
+        "assessment_not_published": "Assessment must be published before approval.",
+        "assessment_not_approved": "Assessment must be approved before locking."
+      },
+      "deliveryModes": {
+        "scoreOnly": "Score only",
+        "questionBased": "Question-based"
+      },
+      "questions": {
+        "pageTitle": "Assessment Questions",
+        "title": "Questions Builder",
+        "subtitle": "Build and maintain questions for this assessment",
+        "add": "Add Question",
+        "addFirst": "Add First Question",
+        "emptyTitle": "No questions yet",
+        "emptyDescription": "Start building the question set for this assessment.",
+        "deleteTitle": "Delete Question",
+        "deleteDescription": "This question will be removed from the assessment.",
+        "deleteConfirm": "Delete",
+        "deleteCancel": "Cancel",
+        "back": "Back to Assessments",
+        "notFound": "Assessment not found for the current term context.",
+        "notQuestionBased": "This assessment is score-only. Edit it and switch the delivery mode to question-based first.",
+        "loading": "Loading questions...",
+        "messages": {
+          "saved": "Question saved successfully",
+          "deleted": "Question deleted successfully",
+          "pointsUpdated": "Question points updated successfully"
+        },
+        "saveAssessment": "Save Assessment",
+        "readOnly": "Read-only",
+        "settingsTitle": "Assessment Settings",
+        "assessmentTitle": "Assessment Title",
+        "assessmentDate": "Assessment Date",
+        "maxScore": "Max Score",
+        "totalPoints": "Total Points",
+        "difference": "Difference",
+        "pointsSummary": "Points Summary",
+        "pointsMatch": "Points match the assessment total",
+        "pointsMismatch": "Points do not match the assessment total",
+        "autoDistribute": "Auto Distribute"
+      }
     }
   },
   "upload": {
@@ -3665,7 +3985,8 @@
     "validation_failed": "Validation failed",
     "cannot_publish": "Cannot publish assignment",
     "confirm_auto_distribute_body": "This will update points of all questions to match max score.",
-    "delete_question_confirm": "Are you sure you want to delete this question?"
+    "delete_question_confirm": "Are you sure you want to delete this question?",
+    "fix_errors_before_save": "Please fix the validation errors before saving."
   },
   "helper": {
     "urlExample": "Example: https://example.com"
@@ -4578,12 +4899,12 @@
         "drilldown": "Open drill-down"
       },
       "trend": {
-      "title": "Attendance trend",
-      "subtitle": "Attendance rate and attendance volume over time",
-      "rateSeries": "Attendance rate",
-      "volumeSeries": "Marked entries",
-      "empty": "No attendance trend data in the selected period."
-    },
+        "title": "Attendance trend",
+        "subtitle": "Attendance rate and attendance volume over time",
+        "rateSeries": "Attendance rate",
+        "volumeSeries": "Marked entries",
+        "empty": "No attendance trend data in the selected period."
+      },
       "absence": {
         "title": "Absence analysis",
         "subtitle": "Absence concentration, trend, and repeat patterns",
@@ -4591,6 +4912,8 @@
         "excused": "Excused",
         "unexcused": "Unexcused",
         "byDate": "Absences by date",
+        "incidents": "Incidents",
+        "emptyChart": "No data is available for the current filters.",
         "topStudents": "Top absent students",
         "excusedUnexcused": "Excused: {excused} ? Unexcused: {unexcused}",
         "byGrade": "By grade",
@@ -4607,6 +4930,8 @@
         "avgLateMinutes": "Avg late minutes",
         "avgEarlyLeaveMinutes": "Avg early-leave minutes",
         "trend": "Trend",
+        "incidents": "Incidents",
+        "emptyChart": "No data is available for the current filters.",
         "topLateStudents": "Top late students",
         "topEarlyLeaveStudents": "Top early-leave students",
         "studentSummary": "{count} incidents ? Avg {minutes} min",
@@ -4624,6 +4949,7 @@
         "approvalRate": "Approval rate",
         "lateSubmissions": "Late submissions",
         "byType": "By type",
+        "emptyChart": "No data is available for the current filters.",
         "types": {
           "ABSENCE": "Absence",
           "LATE": "Late",

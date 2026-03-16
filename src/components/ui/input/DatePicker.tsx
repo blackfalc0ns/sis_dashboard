@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { DatePicker as MuiDatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -53,18 +52,15 @@ export default function DatePicker({
 }: DatePickerProps) {
   const locale = useLocale();
   const isRTL = locale === "ar";
-  const [internalValue, setInternalValue] = useState<Dayjs | null>(
-    value ? dayjs(value) : null,
-  );
-
   // Set dayjs locale
   dayjs.locale(locale);
 
   // Default format based on locale
   const dateFormat = format || (locale === "ar" ? "DD/MM/YYYY" : "MM/DD/YYYY");
 
+  const resolvedValue = value ? dayjs(value) : null;
+
   const handleChange = (newValue: Dayjs | null) => {
-    setInternalValue(newValue);
     if (onChange) {
       onChange(newValue ? newValue.toDate() : null);
     }
@@ -113,7 +109,7 @@ export default function DatePicker({
       <input
         type="hidden"
         name={name}
-        value={internalValue ? internalValue.format("YYYY-MM-DD") : ""}
+        value={resolvedValue ? resolvedValue.format("YYYY-MM-DD") : ""}
       />
 
       {/* DatePicker Container */}
@@ -132,7 +128,7 @@ export default function DatePicker({
       >
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={locale}>
           <MuiDatePicker
-            value={internalValue}
+            value={resolvedValue}
             onChange={handleChange}
             disabled={disabled}
             minDate={minDate ? dayjs(minDate) : undefined}

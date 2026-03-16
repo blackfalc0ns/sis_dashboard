@@ -1,6 +1,8 @@
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
 import { fetchPolicies } from "@/features/attendance/policies/services/attendancePolicyService";
 import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
+import { fetchAcademicYears, fetchTermsByYear } from "@/features/academics/academic-structure-tree/services/structureService";
+import { mockStudentEnrollments, mockStudents } from "@/data/mockStudents";
 import { applyExcuseToAttendance } from "../utils/applyExcuseToAttendance";
 import {
   assertExcusePolicyAllowed,
@@ -24,6 +26,114 @@ const excusesByTerm: Record<string, ExcuseRequest[]> = {};
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const getKey = (yearId: string, termId: string) => `${yearId}-${termId}`;
+
+async function ensureSeededExcuseRequests(yearId: string, termId: string) {
+  const key = getKey(yearId, termId);
+  if ((excusesByTerm[key]?.length || 0) > 0) {
+    return;
+  }
+
+  const [academicYears, terms, structure] = await Promise.all([
+    fetchAcademicYears(),
+    fetchTermsByYear(yearId),
+    fetchStructureTree(yearId, termId),
+  ]);
+
+  const academicYear = academicYears.find((item) => item.id === yearId);
+  const term = terms.find((item) => item.id === termId);
+  if (!academicYear || !term) {
+    return;
+  }
+
+  const classroomsById = new Map(structure.classrooms.map((item) => [item.id, item]));
+  const sectionsById = new Map(structure.sections.map((item) => [item.id, item]));
+
+  const placements = mockStudentEnrollments
+    .filter(
+      (enrollment) =>
+        enrollment.academicYear === academicYear.name &&
+        enrollment.status === "active" &&
+        enrollment.sectionId
+    )
+    .slice(0, 12);
+
+  if (placements.length === 0) {
+    excusesByTerm[key] = [];
+    return;
+  }
+
+  excusesByTerm[key] = placements.map((enrollment, index) => {
+    const student = mockStudents.find((item) => item.id === enrollment.studentId);
+    const baseDate = new Date(term.startDate);
+    baseDate.setDate(baseDate.getDate() + index * 5);
+    const date = baseDate.toISOString().slice(0, 10);
+
+    const statusCycle: ExcuseStatus[] = ["APPROVED", "PENDING", "REJECTED"];
+    const typeCycle = ["ABSENCE", "LATE", "EARLY_LEAVE"] as const;
+    const status = statusCycle[index % statusCycle.length];
+    const type = typeCycle[index % typeCycle.length];
+    const classroom = enrollment.classroomId ? classroomsById.get(enrollment.classroomId) : undefined;
+    const section = enrollment.sectionId ? sectionsById.get(enrollment.sectionId) : undefined;
+
+    return {
+      id: `seed-excuse-${yearId}-${termId}-${index + 1}`,
+      yearId,
+      termId,
+      studentId: enrollment.studentId,
+      studentNameAr: student?.full_name_ar || student?.full_name_en || enrollment.studentId,
+      studentNameEn: student?.full_name_en || student?.full_name_ar || enrollment.studentId,
+      studentNumber: student?.student_id || enrollment.studentId,
+      scopeType: classroom ? "CLASSROOM" : "SECTION",
+      scopeIds: {
+        gradeId: enrollment.gradeId,
+        sectionId: enrollment.sectionId,
+        classroomId: enrollment.classroomId,
+      },
+      type,
+      dateFrom: date,
+      dateTo: date,
+      selectedPeriodIds: type === "ABSENCE" ? undefined : ["period-1"],
+      periodIndexes: type === "ABSENCE" ? undefined : [1],
+      minutesLate: type === "LATE" ? 10 + (index % 9) : undefined,
+      minutesEarlyLeave: type === "EARLY_LEAVE" ? 8 + (index % 7) : undefined,
+      reasonAr:
+        status === "REJECTED"
+          ? "سبب غير مكتمل"
+          : type === "ABSENCE"
+            ? "موعد طبي"
+            : type === "LATE"
+              ? "ازدحام مروري"
+              : "موعد عائلي",
+      reasonEn:
+        status === "REJECTED"
+          ? "Incomplete reason"
+          : type === "ABSENCE"
+            ? "Medical appointment"
+            : type === "LATE"
+              ? "Traffic delay"
+              : "Family appointment",
+      attachments:
+        index % 2 === 0
+          ? [
+              {
+                id: `seed-attachment-${index + 1}`,
+                name: "supporting-document.pdf",
+                size: 182000,
+                type: "application/pdf",
+                url: undefined,
+              },
+            ]
+          : [],
+      status,
+      decisionNote: status === "REJECTED" ? "Needs supporting evidence" : undefined,
+      decidedAt: status === "PENDING" ? undefined : `${date}T12:00:00.000Z`,
+      decidedBy: status === "PENDING" ? undefined : "Attendance Office",
+      createdAt: `${date}T08:30:00.000Z`,
+      updatedAt: `${date}T12:00:00.000Z`,
+      linkedSessionIds: status === "APPROVED" ? [`seed-session-${key}-${classroom?.id || section?.id}-${date}`] : undefined,
+    };
+  });
+}
 
 function overlapsRange(request: ExcuseRequest, dateFrom?: string, dateTo?: string): boolean {
   if (!dateFrom && !dateTo) return true;
@@ -79,6 +189,7 @@ export async function fetchExcuseRequests(
   } = params;
 
   const key = getKey(yearId, termId);
+  await ensureSeededExcuseRequests(yearId, termId);
   const store = excusesByTerm[key] || [];
   const structure = await fetchStructureTree(yearId, termId);
   const gradesById = new Map(structure.grades.map((grade) => [grade.id, { stageId: grade.stageId }]));

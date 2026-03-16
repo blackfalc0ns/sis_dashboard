@@ -188,7 +188,8 @@ export default function AttendanceExcusesPage() {
     if (term) {
       setFilters((prev) => ({ ...prev, dateFrom: term.startDate, dateTo: term.endDate }));
     }
-  }, [term]);
+  }, [term]);
+
 
   const getPolicyIssueMessage = (issue: ExcusePolicyIssue) => {
     if (issue.code === "NO_ACTIVE_POLICY") {
@@ -378,7 +379,7 @@ export default function AttendanceExcusesPage() {
   const isScopeSelectionIncomplete = !isScopeSelectionComplete(filters.scopeType, filters.scopeIds);
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col">
       <ContextBar
         academicYearId={termContext.yearId || ""}
         termId={termContext.termId || ""}

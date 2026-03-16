@@ -50,7 +50,7 @@ export default function BilingualTextField({
       <Input
         label={`${label} (${t("arabic")})`}
         value={value.ar}
-        onChange={(e) =>{ onChange({ ...value, ar: e.target.value }); console.log(value.ar)}}
+        onChange={(e) => onChange({ ...value, ar: e.target.value })}
         onBlur={onBlur}
         required={requiredAr}
         disabled={disabled}

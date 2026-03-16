@@ -283,7 +283,7 @@ export default function AttendanceAbsencesPage() {
   const isScopeSelectionIncomplete = !isScopeSelectionComplete(filters.scopeType, filters.scopeIds);
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col">
       {/* Context Bar */}
       <ContextBar
         academicYearId={termContext.yearId || ""}

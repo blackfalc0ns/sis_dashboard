@@ -14,7 +14,7 @@ interface AttendanceDataPanelProps {
 export default function AttendanceDataPanel({
   loading = false,
   children,
-  className = "rounded-xl border overflow-hidden min-h-0",
+  className = "rounded-xl border",
   loaderClassName = "h-full flex items-center justify-center py-4",
 }: AttendanceDataPanelProps) {
   return (

@@ -256,7 +256,7 @@ export default function KPICardV2({
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={chartData}
-                  margin={{ top: 10, right: 3, left: 3, bottom: 3}}
+                  margin={{ top: 12, right: 3, left: 3, bottom: 7}}
                 >
                   <defs>
                     <linearGradient

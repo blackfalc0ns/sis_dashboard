@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import DataTable from "@/components/ui/data-table/DataTable";
 import type { ReportsPerformanceLevel, ReportsPerformanceRow } from "../types";
 
 interface SectionPerformanceTableProps {
@@ -9,37 +10,47 @@ interface SectionPerformanceTableProps {
   onRowClick: (row: ReportsPerformanceRow) => void;
 }
 
-type SortKey = "attendanceRate" | "markedCount" | "absentCount" | "lateCount" | "delta";
-
 export default function SectionPerformanceTable({ rowsByLevel, onRowClick }: SectionPerformanceTableProps) {
   const t = useTranslations("attendance.reportsPage.performance");
   const locale = useLocale();
   const [level, setLevel] = useState<ReportsPerformanceLevel>("section");
-  const [sortKey, setSortKey] = useState<SortKey>("attendanceRate");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
-  const sortedRows = useMemo(() => {
-    const rows = rowsByLevel[level] || [];
-    return [...rows].sort((a, b) => {
-      const left = sortKey === "delta" ? a.delta || 0 : a[sortKey];
-      const right = sortKey === "delta" ? b.delta || 0 : b[sortKey];
-      const multiplier = sortDir === "asc" ? 1 : -1;
-      return ((left as number) - (right as number)) * multiplier;
-    });
-  }, [level, rowsByLevel, sortDir, sortKey]);
+  const rows = useMemo(() => rowsByLevel[level] || [], [level, rowsByLevel]);
 
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
-      return;
-    }
-    setSortKey(key);
-    setSortDir(key === "attendanceRate" ? "asc" : "desc");
-  };
+  const columns = [
+    {
+      key: "name",
+      label: t("name"),
+      searchable: true,
+      render: (_: unknown, row: ReportsPerformanceRow) => (
+        <span className="font-medium" style={{ color: "var(--text-primary)" }}>
+          {locale === "ar" ? row.labelAr : row.labelEn}
+        </span>
+      ),
+    },
+    {
+      key: "attendanceRate",
+      label: t("attendanceRate"),
+      render: (value: unknown) => <span>{Number(value).toFixed(1)}%</span>,
+    },
+    { key: "markedCount", label: t("markedCount") },
+    { key: "absentCount", label: t("absent") },
+    { key: "lateCount", label: t("late") },
+    {
+      key: "delta",
+      label: t("delta"),
+      render: (value: unknown) => (
+        <span>{typeof value === "number" ? Number(value).toFixed(1) : "-"}</span>
+      ),
+    },
+  ];
 
   return (
-    <div className="rounded-xl border p-4 space-y-4" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}>
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+    <div
+      className="rounded-xl border p-4 space-y-4"
+      style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
             {t("title")}
@@ -66,39 +77,13 @@ export default function SectionPerformanceTable({ rowsByLevel, onRowClick }: Sec
         </div>
       </div>
 
-      <div className="overflow-auto">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr style={{ color: "var(--text-secondary)" }}>
-              <th className="pb-3 text-start">{t("name")}</th>
-              <th className="pb-3 text-start"><button type="button" onClick={() => handleSort("attendanceRate")}>{t("attendanceRate")}</button></th>
-              <th className="pb-3 text-start"><button type="button" onClick={() => handleSort("markedCount")}>{t("markedCount")}</button></th>
-              <th className="pb-3 text-start"><button type="button" onClick={() => handleSort("absentCount")}>{t("absent")}</button></th>
-              <th className="pb-3 text-start"><button type="button" onClick={() => handleSort("lateCount")}>{t("late")}</button></th>
-              <th className="pb-3 text-start"><button type="button" onClick={() => handleSort("delta")}>{t("delta")}</button></th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedRows.map((row) => (
-              <tr
-                key={row.id}
-                className="border-t cursor-pointer"
-                style={{ borderColor: "var(--border-color)" }}
-                onClick={() => onRowClick(row)}
-              >
-                <td className="py-3 font-medium" style={{ color: "var(--text-primary)" }}>
-                  {locale === "ar" ? row.labelAr : row.labelEn}
-                </td>
-                <td className="py-3">{row.attendanceRate.toFixed(1)}%</td>
-                <td className="py-3">{row.markedCount}</td>
-                <td className="py-3">{row.absentCount}</td>
-                <td className="py-3">{row.lateCount}</td>
-                <td className="py-3">{typeof row.delta === "number" ? row.delta.toFixed(1) : "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={columns as unknown as { key: string; label: string; sortable?: boolean; searchable?: boolean; render?: (value: unknown, row: { [key: string]: unknown }) => React.ReactNode }[]}
+        data={rows as unknown as { [key: string]: unknown }[]}
+        onRowClick={(row) => onRowClick(row as unknown as ReportsPerformanceRow)}
+        itemsPerPage={10}
+        showPagination
+      />
     </div>
   );
 }

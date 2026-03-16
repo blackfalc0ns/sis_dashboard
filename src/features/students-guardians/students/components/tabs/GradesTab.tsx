@@ -1,204 +1,147 @@
-// FILE: src/components/students-guardians/profile-tabs/GradesTab.tsx
+﻿"use client";
 
-"use client";
-
+import { useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { TrendingUp, Award, BookOpen, Target } from "lucide-react";
 import { LineChart } from "@mui/x-charts/LineChart";
-import { Student } from "@/features/students-guardians/students/types";
+import type { Student } from "@/features/students-guardians/students/types";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { DataTable } from "@/components/ui/data-table";
-import { useTranslations } from "next-intl";
+import { fetchStudentGradesSnapshot } from "@/features/grades/overview/services/gradesOverviewService";
+import type { StudentGradesSnapshot } from "@/features/grades/overview/types";
 
 interface GradesTabProps {
   student: Student;
 }
 
-// Mock grades data
-const mockSubjects = [
-  {
-    id: "1",
-    subject: "Mathematics",
-    average: 85,
-    last_assessment: 88,
-    assessments_count: 5,
-    trend: "up",
-  },
-  {
-    id: "2",
-    subject: "Science",
-    average: 90,
-    last_assessment: 92,
-    assessments_count: 4,
-    trend: "up",
-  },
-  {
-    id: "3",
-    subject: "English",
-    average: 88,
-    last_assessment: 85,
-    assessments_count: 6,
-    trend: "down",
-  },
-  {
-    id: "4",
-    subject: "Arabic",
-    average: 92,
-    last_assessment: 94,
-    assessments_count: 5,
-    trend: "up",
-  },
-  {
-    id: "5",
-    subject: "History",
-    average: 87,
-    last_assessment: 87,
-    assessments_count: 4,
-    trend: "stable",
-  },
-  {
-    id: "6",
-    subject: "Physical Education",
-    average: 95,
-    last_assessment: 96,
-    assessments_count: 3,
-    trend: "up",
-  },
-];
-
 export default function GradesTab({ student }: GradesTabProps) {
   const t = useTranslations("students_guardians.profile.grades");
-  // Mock performance over time
-  const months = ["Sep", "Oct", "Nov", "Dec", "Jan", "Feb"];
-  const performanceData = [82, 85, 87, 86, 89, student.current_average ?? 85];
+  const locale = useLocale();
+  const [snapshot, setSnapshot] = useState<StudentGradesSnapshot | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const getTrendIcon = (trend: string) => {
-    if (trend === "up")
-      return <TrendingUp className="w-4 h-4 text-green-600" />;
-    if (trend === "down")
-      return <TrendingUp className="w-4 h-4 text-red-600 rotate-180" />;
-    return <span className="w-4 h-4 text-gray-400">-</span>;
-  };
+  useEffect(() => {
+    const loadSnapshot = async () => {
+      setIsLoading(true);
+      try {
+        const nextSnapshot = await fetchStudentGradesSnapshot(student.id);
+        setSnapshot(nextSnapshot);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const columns = [
-    {
-      key: "subject",
-      label: t("subject"),
-    },
-    {
-      key: "average",
-      label: t("average"),
-      render: (value: unknown) => (
-        <span className="font-semibold text-gray-900">{value as number}%</span>
-      ),
-    },
-    {
-      key: "last_assessment",
-      label: t("last_assessment"),
-      render: (value: unknown) => `${value as number}%`,
-    },
-    {
-      key: "assessments_count",
-      label: t("assessments"),
-      render: (value: unknown) => `${value as number} ${t("total")}`,
-    },
-    {
-      key: "trend",
-      label: t("trend"),
-      sortable: false,
-      render: (value: unknown) => (
-        <div className="flex items-center justify-center">
-          {getTrendIcon(value as string)}
-        </div>
-      ),
-    },
-  ];
+    void loadSnapshot();
+  }, [student.id]);
 
-  const highestGrade = Math.max(...mockSubjects.map((s) => s.average));
-  const lowestGrade = Math.min(...mockSubjects.map((s) => s.average));
-  const totalAssessments = mockSubjects.reduce(
-    (sum, s) => sum + s.assessments_count,
-    0,
+  const subjectRows = snapshot?.subjectRows || [];
+  const columns = useMemo(
+    () => [
+      {
+        key: "subject",
+        label: t("subject"),
+      },
+      {
+        key: "average",
+        label: t("average"),
+        render: (value: unknown) => <span className="font-semibold">{Number(value || 0).toFixed(1)}%</span>,
+      },
+      {
+        key: "last_assessment",
+        label: t("last_assessment"),
+        render: (value: unknown) => (value == null ? "-" : `${Number(value).toFixed(1)}%`),
+      },
+      {
+        key: "assessments_count",
+        label: t("assessments"),
+        render: (value: unknown) => `${value as number} ${t("total")}`,
+      },
+      {
+        key: "trend",
+        label: t("trend"),
+      },
+    ],
+    [t],
   );
+
+  const tableData = subjectRows.map((row) => ({
+    id: row.subjectId,
+    subject: locale === "ar" ? row.subjectNameAr : row.subjectName,
+    average: row.average,
+    last_assessment: row.lastAssessmentScore,
+    assessments_count: row.assessmentsCount,
+    trend: row.trend,
+  }));
+
+  if (isLoading) {
+    return <div className="py-8 text-center text-sm text-gray-500">{t("view_only")}</div>;
+  }
+
+  if (!snapshot || subjectRows.length === 0) {
+    return (
+      <div className="rounded-xl border p-6 text-center text-sm" style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)", backgroundColor: "var(--surface-color)" }}>
+        {t("view_only")}
+      </div>
+    );
+  }
+
+  const topSubject = subjectRows[0];
+  const lowestSubject = subjectRows[subjectRows.length - 1];
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KPICardV2
           title={t("current_average")}
-          value={`${student.current_average}%`}
+          value={`${snapshot.currentAverage.toFixed(1)}%`}
           subtitle={t("overall_gpa")}
           icon={Award}
-          iconColor="#3b82f6"
-          iconBgColor="#dbeafe"
-          chartData={[
-            { label: "M1", value: 82 },
-            { label: "M2", value: 84 },
-            { label: "M3", value: 84 },
-            { label: "M4", value: student.current_average ?? 85 },
-          ]}
-          chartColor="#3b82f6"
+          iconColor="var(--primary-color)"
+          iconBgColor="var(--color-primary-100)"
+          chartData={snapshot.performanceTrend.map((point, index) => ({ label: `P${index + 1}`, value: point.average }))}
+          chartColor="var(--primary-color)"
         />
         <KPICardV2
           title={t("highest_grade")}
-          value={`${highestGrade}%`}
-          subtitle="Physical Education"
+          value={`${snapshot.highestAverage.toFixed(1)}%`}
+          subtitle={locale === "ar" ? topSubject.subjectNameAr : topSubject.subjectName}
           icon={Target}
-          iconColor="#10b981"
-          iconBgColor="#d1fae5"
-          chartData={[
-            { label: "M1", value: 92 },
-            { label: "M2", value: 93 },
-            { label: "M3", value: 94 },
-            { label: "M4", value: highestGrade },
-          ]}
-          chartColor="#10b981"
+          iconColor="var(--success-text)"
+          iconBgColor="var(--success-bg)"
+          showChart={false}
         />
         <KPICardV2
           title={t("lowest_grade")}
-          value={`${lowestGrade}%`}
-          subtitle="Mathematics"
+          value={`${snapshot.lowestAverage.toFixed(1)}%`}
+          subtitle={locale === "ar" ? lowestSubject.subjectNameAr : lowestSubject.subjectName}
           icon={BookOpen}
-          iconColor="#f59e0b"
-          iconBgColor="#fef3c7"
-          chartData={[
-            { label: "M1", value: 82 },
-            { label: "M2", value: 84 },
-            { label: "M3", value: 83 },
-            { label: "M4", value: lowestGrade },
-          ]}
-          chartColor="#f59e0b"
+          iconColor="var(--warning-text)"
+          iconBgColor="var(--warning-bg)"
+          showChart={false}
         />
         <KPICardV2
           title={t("total_assessments")}
-          value={totalAssessments}
+          value={snapshot.totalAssessments}
           subtitle={t("this_semester")}
           icon={TrendingUp}
-          iconColor="#8b5cf6"
-          iconBgColor="#ede9fe"
-          chartData={[
-            { label: "M1", value: 18 },
-            { label: "M2", value: 22 },
-            { label: "M3", value: 26 },
-            { label: "M4", value: totalAssessments },
-          ]}
-          chartColor="#8b5cf6"
+          iconColor="var(--accent-color)"
+          iconBgColor="var(--color-primary-50)"
+          showChart={false}
         />
       </div>
 
-      {/* Performance Over Time */}
-      <div className="bg-white rounded-xl p-6 shadow-sm">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">
+      <div className="rounded-xl border p-6" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}>
+        <h3 className="mb-4 text-lg font-bold" style={{ color: "var(--text-primary)" }}>
           {t("performance_over_time")}
         </h3>
         <div className="h-80">
           <LineChart
-            xAxis={[{ scaleType: "point", data: months }]}
+            xAxis={[{ scaleType: "point", data: snapshot.performanceTrend.map((point) => point.label) }]}
             series={[
               {
-                data: performanceData,
+                data: snapshot.performanceTrend.map((point) => point.average),
                 label: t("average_grade"),
-                color: "#036b80",
+                color: "var(--primary-color)",
                 curve: "linear",
               },
             ]}
@@ -208,56 +151,14 @@ export default function GradesTab({ student }: GradesTabProps) {
         </div>
       </div>
 
-      {/* Subject Grades */}
-      <div className="bg-white rounded-xl shadow-sm">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-bold text-gray-900">
+      <div className="rounded-xl border p-6" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}>
+        <div className="mb-4 border-b pb-4" style={{ borderColor: "var(--border-color)" }}>
+          <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
             {t("subject_grades")}
           </h3>
-          <p className="text-sm text-gray-500 mt-1">{t("view_only")}</p>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>{t("view_only")}</p>
         </div>
-        <div className="p-6">
-          <DataTable
-            columns={columns}
-            data={mockSubjects}
-            showPagination={false}
-          />
-        </div>
-      </div>
-
-      {/* Subject Performance Bars */}
-      <div className="bg-white rounded-xl p-6 shadow-sm">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">
-          {t("subject_performance")}
-        </h3>
-        <div className="space-y-4">
-          {mockSubjects.map((subject) => (
-            <div key={subject.id}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">
-                  {subject.subject}
-                </span>
-                <span className="text-sm font-semibold text-gray-900">
-                  {subject.average}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div
-                  className={`h-3 rounded-full transition-all ${
-                    subject.average >= 90
-                      ? "bg-green-500"
-                      : subject.average >= 80
-                        ? "bg-blue-500"
-                        : subject.average >= 70
-                          ? "bg-yellow-500"
-                          : "bg-red-500"
-                  }`}
-                  style={{ width: `${subject.average}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
+        <DataTable columns={columns} data={tableData} showPagination={false} />
       </div>
     </div>
   );

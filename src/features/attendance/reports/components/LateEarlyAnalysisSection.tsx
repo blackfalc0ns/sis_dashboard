@@ -27,6 +27,50 @@ interface LateEarlyAnalysisSectionProps {
   onScopeClick: (scope: ReportsScopeBreakdownRow, level: "grade" | "section" | "classroom") => void;
 }
 
+function ChartEmptyState({ message }: { message: string }) {
+  return (
+    <div
+      className="flex h-full items-center justify-center rounded-lg border p-4 text-center text-sm"
+      style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)" }}
+    >
+      {message}
+    </div>
+  );
+}
+
+function getChartPayload<T>(state: unknown): T | undefined {
+  return (state as { activePayload?: Array<{ payload?: T }> } | undefined)?.activePayload?.[0]?.payload;
+}
+
+function CategoryTick({
+  x = 0,
+  y = 0,
+  payload,
+  locale,
+}: {
+  x?: number;
+  y?: number;
+  payload?: { value?: string };
+  locale: string;
+}) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text
+        x={-70}
+        y={0}
+        dy={4}
+        textAnchor="end"
+        direction={locale === "ar" ? "rtl" : "ltr"}
+        unicodeBidi="plaintext"
+        fill="var(--text-secondary)"
+        fontSize="12"
+      >
+        {payload?.value || ""}
+      </text>
+    </g>
+  );
+}
+
 export default function LateEarlyAnalysisSection({
   analysis,
   onTrendClick,
@@ -35,7 +79,10 @@ export default function LateEarlyAnalysisSection({
 }: LateEarlyAnalysisSectionProps) {
   const t = useTranslations("attendance.reportsPage.lateEarly");
   const locale = useLocale();
+  const yAxisWidth = locale === "ar" ? 80 : 140;
+
   const maxTrend = Math.max(...analysis.trend.map((point) => point.lateCount + point.earlyLeaveCount), 1);
+
   const metricCards = [
     {
       key: "late",
@@ -74,8 +121,89 @@ export default function LateEarlyAnalysisSection({
     },
   ];
 
+  const trendData = analysis.trend.slice(-8).map((point) => ({
+    ...point,
+    incidents: point.lateCount + point.earlyLeaveCount,
+  }));
+
+  const studentChart = (
+    title: string,
+    rows: ReportsLateEarlyStudentRow[],
+    type: "LATE" | "EARLY_LEAVE"
+  ) => {
+    const data = rows.slice(0, 8).map((row) => ({
+      ...row,
+      label: locale === "ar" ? row.studentNameAr : row.studentNameEn,
+    }));
+
+    return (
+      <div className="space-y-2">
+        <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+          {title}
+        </div>
+        <div className="h-72">
+          {data.length === 0 ? (
+            <ChartEmptyState message={t("emptyChart")} />
+          ) : (
+            <div className="h-full rounded-lg border p-2" style={{ borderColor: "var(--border-color)" }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={data}
+                  layout="vertical"
+                  margin={{ top: 8, right: 12, left: 28, bottom: 8 }}
+                  onClick={(state) => {
+                    const payload = getChartPayload<ReportsLateEarlyStudentRow>(state);
+                    if (payload) onStudentClick(payload, type);
+                  }}
+                >
+                  <CartesianGrid stroke="var(--border-color)" strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" tick={{ fill: "var(--text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    type="category"
+                    dataKey="label"
+                    width={yAxisWidth}
+                    tick={<CategoryTick locale={locale} />}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    formatter={(value) => [`${value}`, t("incidents")]}
+                    labelFormatter={(_label, payload) => {
+                      const row = payload?.[0]?.payload as ReportsLateEarlyStudentRow | undefined;
+                      if (!row) return "";
+                      const name = locale === "ar" ? row.studentNameAr : row.studentNameEn;
+                      return `${name} - ${t("studentSummary", {
+                        count: row.incidentCount,
+                        minutes: row.averageMinutes.toFixed(1),
+                      })}`;
+                    }}
+                    contentStyle={{
+                      backgroundColor: "var(--surface-color)",
+                      borderColor: "var(--border-color)",
+                      borderRadius: "12px",
+                    }}
+                  />
+                  <Bar dataKey="incidentCount" fill="var(--primary-color)" radius={[0, 6, 6, 0]} cursor="pointer" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const breakdownBlocks = [
+    { title: t("byGrade"), rows: analysis.byGrade, level: "grade" as const },
+    { title: t("bySection"), rows: analysis.bySection, level: "section" as const },
+    { title: t("byClassroom"), rows: analysis.byClassroom, level: "classroom" as const },
+  ];
+
   return (
-    <div className="rounded-xl border p-4 space-y-4" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}>
+    <div
+      className="rounded-xl border p-4 space-y-4"
+      style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}
+    >
       <div>
         <div className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
           {t("title")}
@@ -85,7 +213,7 @@ export default function LateEarlyAnalysisSection({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
         {metricCards.map((card) => (
           <KPICardV2
             key={card.key}
@@ -100,125 +228,105 @@ export default function LateEarlyAnalysisSection({
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="space-y-2">
-          <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{t("trend")}</div>
-          <div className="h-72 rounded-lg border p-2" style={{ borderColor: "var(--border-color)" }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={analysis.trend.slice(-8).map((point) => ({
-                  ...point,
-                  incidents: point.lateCount + point.earlyLeaveCount,
-                }))}
-                margin={{ top: 8, right: 12, left: 0, bottom: 8 }}
-                onClick={(state) => {
-                  const payload = getChartPayload<ReportsTrendPoint & { incidents: number }>(state);
-                  if (payload) onTrendClick(payload);
-                }}
-              >
-                <CartesianGrid stroke="var(--border-color)" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: "var(--text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, maxTrend]} tick={{ fill: "var(--text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--surface-color)",
-                    borderColor: "var(--border-color)",
-                    borderRadius: "12px",
-                  }}
-                />
-                <Bar dataKey="incidents" fill="var(--primary-color)" radius={[6, 6, 0, 0]} cursor="pointer" />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+            {t("trend")}
+          </div>
+          <div className="h-72">
+            {trendData.length === 0 ? (
+              <ChartEmptyState message={t("emptyChart")} />
+            ) : (
+              <div className="h-full rounded-lg border p-2" style={{ borderColor: "var(--border-color)" }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={trendData}
+                    margin={{ top: 8, right: 12, left: 0, bottom: 8 }}
+                    onClick={(state) => {
+                      const payload = getChartPayload<ReportsTrendPoint & { incidents: number }>(state);
+                      if (payload) onTrendClick(payload);
+                    }}
+                  >
+                    <CartesianGrid stroke="var(--border-color)" strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fill: "var(--text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <YAxis domain={[0, maxTrend]} tick={{ fill: "var(--text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      formatter={(value) => [`${value}`, t("incidents")]}
+                      contentStyle={{
+                        backgroundColor: "var(--surface-color)",
+                        borderColor: "var(--border-color)",
+                        borderRadius: "12px",
+                      }}
+                    />
+                    <Bar dataKey="incidents" fill="var(--primary-color)" radius={[6, 6, 0, 0]} cursor="pointer" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{t("topLateStudents")}</div>
-            {analysis.topLateStudents.map((student) => (
-              <button
-                key={student.studentId}
-                type="button"
-                onClick={() => onStudentClick(student, "LATE")}
-                className="w-full rounded-lg border p-3 text-start"
-                style={{ borderColor: "var(--border-color)" }}
-              >
-                <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                  {locale === "ar" ? student.studentNameAr : student.studentNameEn}
-                </div>
-                <div className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                  {student.studentNumber || "-"} • {t("studentSummary", { count: student.incidentCount, minutes: student.averageMinutes.toFixed(1) })}
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <div className="space-y-2">
-            <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{t("topEarlyLeaveStudents")}</div>
-            {analysis.topEarlyLeaveStudents.map((student) => (
-              <button
-                key={student.studentId}
-                type="button"
-                onClick={() => onStudentClick(student, "EARLY_LEAVE")}
-                className="w-full rounded-lg border p-3 text-start"
-                style={{ borderColor: "var(--border-color)" }}
-              >
-                <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                  {locale === "ar" ? student.studentNameAr : student.studentNameEn}
-                </div>
-                <div className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                  {student.studentNumber || "-"} • {t("studentSummary", { count: student.incidentCount, minutes: student.averageMinutes.toFixed(1) })}
-                </div>
-              </button>
-            ))}
-          </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {studentChart(t("topLateStudents"), analysis.topLateStudents, "LATE")}
+          {studentChart(t("topEarlyLeaveStudents"), analysis.topEarlyLeaveStudents, "EARLY_LEAVE")}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        {[
-          { title: t("byGrade"), rows: analysis.byGrade, level: "grade" as const },
-          { title: t("bySection"), rows: analysis.bySection, level: "section" as const },
-          { title: t("byClassroom"), rows: analysis.byClassroom, level: "classroom" as const },
-        ].map((block) => (
-          <div key={block.level} className="space-y-2">
-            <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{block.title}</div>
-            <div className="h-64 rounded-lg border p-2" style={{ borderColor: "var(--border-color)" }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={block.rows.slice(0, 5).map((row) => ({
-                    ...row,
-                    label: locale === "ar" ? row.labelAr : row.labelEn,
-                  }))}
-                  layout="vertical"
-                  margin={{ top: 8, right: 12, left: 12, bottom: 8 }}
-                  onClick={(state) => {
-                    const payload = getChartPayload<ReportsScopeBreakdownRow>(state);
-                    if (payload) onScopeClick(payload, block.level);
-                  }}
-                >
-                  <CartesianGrid stroke="var(--border-color)" strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" tick={{ fill: "var(--text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
-                  <YAxis type="category" dataKey="label" width={90} tick={{ fill: "var(--text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "var(--surface-color)",
-                      borderColor: "var(--border-color)",
-                      borderRadius: "12px",
-                    }}
-                  />
-                  <Bar dataKey="incidents" fill="var(--primary-color)" radius={[0, 6, 6, 0]} cursor="pointer" />
-                </BarChart>
-              </ResponsiveContainer>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        {breakdownBlocks.map((block) => {
+          const data = block.rows.slice(0, 5).map((row) => ({
+            ...row,
+            label: locale === "ar" ? row.labelAr : row.labelEn,
+          }));
+
+          return (
+            <div key={block.level} className="space-y-2">
+              <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                {block.title}
+              </div>
+              <div className="h-64">
+                {data.length === 0 ? (
+                  <ChartEmptyState message={t("emptyChart")} />
+                ) : (
+                  <div className="h-full rounded-lg border p-2" style={{ borderColor: "var(--border-color)" }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={data}
+                        layout="vertical"
+                        margin={{ top: 8, right: 12, left: 28, bottom: 8 }}
+                        onClick={(state) => {
+                          const payload = getChartPayload<ReportsScopeBreakdownRow>(state);
+                          if (payload) onScopeClick(payload, block.level);
+                        }}
+                      >
+                        <CartesianGrid stroke="var(--border-color)" strokeDasharray="3 3" horizontal={false} />
+                        <XAxis type="number" tick={{ fill: "var(--text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
+                        <YAxis
+                          type="category"
+                          dataKey="label"
+                          width={locale === "ar" ? 150 : 120}
+                          tick={<CategoryTick locale={locale} />}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          formatter={(value) => [`${value}`, t("incidents")]}
+                          contentStyle={{
+                            backgroundColor: "var(--surface-color)",
+                            borderColor: "var(--border-color)",
+                            borderRadius: "12px",
+                          }}
+                        />
+                        <Bar dataKey="incidents" fill="var(--primary-color)" radius={[0, 6, 6, 0]} cursor="pointer" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
-}
-
-function getChartPayload<T>(state: unknown): T | undefined {
-  const payload = (state as { activePayload?: Array<{ payload?: T }> } | undefined)?.activePayload?.[0]?.payload;
-  return payload;
 }
