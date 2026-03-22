@@ -1,7 +1,10 @@
 // FILE: src/components/common/DataTable.tsx
 
-import { useState, useRef, useEffect, useMemo } from "react";
+"use client";
+
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useTranslations } from "next-intl";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowUpDown,
   ArrowUp,
@@ -69,6 +72,11 @@ interface DataTableProps<T> {
   searchQuery?: string; // New: Search query for highlighting
   virtualize?: boolean; // New: Enable virtualization for large datasets
   rowHeight?: number; // New: Row height for virtualization (default: 56px)
+  urlState?: {
+    keyPrefix: string;
+    syncPagination?: boolean;
+    syncSorting?: boolean;
+  };
 }
 
 type SortDirection = "asc" | "desc" | null;
@@ -82,30 +90,192 @@ export default function DataTable<T extends { [key: string]: unknown }>({
   searchQuery = "", // New: Default empty search
   virtualize = false, // New: Virtualization disabled by default
   rowHeight = 56, // New: Default row height in pixels
+  urlState,
 }: DataTableProps<T>) {
   const t = useTranslations("common");
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(itemsPerPage);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const urlSyncEnabled = Boolean(urlState?.keyPrefix);
+  const pageParamName = urlState ? `${urlState.keyPrefix}Page` : "";
+  const pageSizeParamName = urlState ? `${urlState.keyPrefix}PageSize` : "";
+  const sortKeyParamName = urlState ? `${urlState.keyPrefix}SortKey` : "";
+  const sortDirParamName = urlState ? `${urlState.keyPrefix}SortDir` : "";
+
+  const allowedSortKeys = useMemo(
+    () => new Set(columns.map((column) => column.key)),
+    [columns],
+  );
+
+  const urlPage = urlSyncEnabled
+    ? Number(searchParams.get(pageParamName) || "1")
+    : 1;
+  const urlPageSize = urlSyncEnabled
+    ? Number(searchParams.get(pageSizeParamName) || String(itemsPerPage))
+    : itemsPerPage;
+  const urlSortKey = urlSyncEnabled ? searchParams.get(sortKeyParamName) : null;
+  const urlSortDirection = urlSyncEnabled
+    ? (searchParams.get(sortDirParamName) as SortDirection)
+    : null;
+
+  const [sortKey, setSortKey] = useState<string | null>(
+    urlSyncEnabled && urlState?.syncSorting && urlSortKey && allowedSortKeys.has(urlSortKey)
+      ? urlSortKey
+      : null,
+  );
+  const [sortDirection, setSortDirection] = useState<SortDirection>(
+    urlSyncEnabled &&
+      urlState?.syncSorting &&
+      (urlSortDirection === "asc" || urlSortDirection === "desc")
+      ? urlSortDirection
+      : null,
+  );
+  const [currentPage, setCurrentPage] = useState(
+    urlSyncEnabled &&
+      urlState?.syncPagination &&
+      Number.isFinite(urlPage) &&
+      urlPage > 0
+      ? urlPage
+      : 1,
+  );
+  const [pageSize, setPageSize] = useState(
+    urlSyncEnabled &&
+      urlState?.syncPagination &&
+      Number.isFinite(urlPageSize) &&
+      urlPageSize > 0
+      ? urlPageSize
+      : itemsPerPage,
+  );
 
   // Virtualization state
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
 
+  const updateTableUrl = useCallback((
+    updates: Record<string, string | null>,
+    mode: "push" | "replace" = "push",
+  ) => {
+    if (!urlSyncEnabled) {
+      return;
+    }
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (!value) {
+        nextParams.delete(key);
+      } else {
+        nextParams.set(key, value);
+      }
+    });
+
+    const nextQuery = nextParams.toString();
+    const currentQuery = searchParams.toString();
+    if (nextQuery === currentQuery) {
+      return;
+    }
+
+    const href = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+    if (mode === "replace") {
+      router.replace(href, { scroll: false });
+      return;
+    }
+
+    router.push(href, { scroll: false });
+  }, [pathname, router, searchParams, urlSyncEnabled]);
+
+  useEffect(() => {
+    if (!urlSyncEnabled || !urlState?.syncPagination) {
+      return;
+    }
+
+    const nextPage =
+      Number.isFinite(urlPage) && urlPage > 0 ? urlPage : 1;
+    const nextPageSize =
+      Number.isFinite(urlPageSize) && urlPageSize > 0 ? urlPageSize : itemsPerPage;
+
+    queueMicrotask(() => {
+      setCurrentPage((current) => (current === nextPage ? current : nextPage));
+      setPageSize((current) =>
+        current === nextPageSize ? current : nextPageSize,
+      );
+    });
+  }, [
+    itemsPerPage,
+    urlPage,
+    urlPageSize,
+    urlState?.syncPagination,
+    urlSyncEnabled,
+  ]);
+
+  useEffect(() => {
+    if (!urlSyncEnabled || !urlState?.syncSorting) {
+      return;
+    }
+
+    const nextSortKey =
+      urlSortKey && allowedSortKeys.has(urlSortKey) ? urlSortKey : null;
+    const nextSortDirection =
+      urlSortDirection === "asc" || urlSortDirection === "desc"
+        ? urlSortDirection
+        : null;
+
+    queueMicrotask(() => {
+      setSortKey((current) =>
+        current === nextSortKey ? current : nextSortKey,
+      );
+      setSortDirection((current) =>
+        current === nextSortDirection ? current : nextSortDirection,
+      );
+    });
+  }, [
+    allowedSortKeys,
+    urlSortDirection,
+    urlSortKey,
+    urlState?.syncSorting,
+    urlSyncEnabled,
+  ]);
+
   const handleSort = (columnKey: string) => {
     if (sortKey === columnKey) {
       // Cycle through: asc -> desc -> null
       if (sortDirection === "asc") {
         setSortDirection("desc");
+        if (urlSyncEnabled && urlState?.syncSorting) {
+          updateTableUrl(
+            {
+              [sortKeyParamName]: columnKey,
+              [sortDirParamName]: "desc",
+            },
+            "push",
+          );
+        }
       } else if (sortDirection === "desc") {
         setSortDirection(null);
         setSortKey(null);
+        if (urlSyncEnabled && urlState?.syncSorting) {
+          updateTableUrl(
+            {
+              [sortKeyParamName]: null,
+              [sortDirParamName]: null,
+            },
+            "push",
+          );
+        }
       }
     } else {
       setSortKey(columnKey);
       setSortDirection("asc");
+      if (urlSyncEnabled && urlState?.syncSorting) {
+        updateTableUrl(
+          {
+            [sortKeyParamName]: columnKey,
+            [sortDirParamName]: "asc",
+          },
+          "push",
+        );
+      }
     }
   };
 
@@ -182,6 +352,40 @@ export default function DataTable<T extends { [key: string]: unknown }>({
     ? sortedData.slice(startIndex, endIndex)
     : sortedData;
 
+  useEffect(() => {
+    if (!showPagination) {
+      return;
+    }
+
+    const nextPage =
+      totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
+
+    if (nextPage === currentPage) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      setCurrentPage(nextPage);
+    });
+
+    if (urlSyncEnabled && urlState?.syncPagination) {
+      updateTableUrl(
+        {
+          [pageParamName]: nextPage <= 1 ? null : String(nextPage),
+        },
+        "replace",
+      );
+    }
+  }, [
+    currentPage,
+    pageParamName,
+    showPagination,
+    totalPages,
+    updateTableUrl,
+    urlState?.syncPagination,
+    urlSyncEnabled,
+  ]);
+
   // Virtualization calculations
   const dataToRender = virtualize && !showPagination ? sortedData : paginatedData;
   
@@ -232,11 +436,23 @@ export default function DataTable<T extends { [key: string]: unknown }>({
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    if (urlSyncEnabled && urlState?.syncPagination) {
+      updateTableUrl({ [pageParamName]: String(page) }, "push");
+    }
   };
 
   const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize);
     setCurrentPage(1); // Reset to first page
+    if (urlSyncEnabled && urlState?.syncPagination) {
+      updateTableUrl(
+        {
+          [pageSizeParamName]: String(newSize),
+          [pageParamName]: null,
+        },
+        "push",
+      );
+    }
   };
 
   const getPageNumbers = () => {

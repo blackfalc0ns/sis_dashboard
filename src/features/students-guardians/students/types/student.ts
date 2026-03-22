@@ -74,5 +74,17 @@ export interface Student {
   risk_flags?: RiskFlag[]; // @deprecated Use EnrollmentTerm data instead
 }
 
+export interface UpdateStudentPayload {
+  name?: string;
+  full_name_en?: string;
+  full_name_ar?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  date_of_birth?: string;
+  nationality?: string;
+  status?: StudentStatus;
+  contact?: StudentContact;
+}
+
 // Backward compatibility aliases
 export type StudentMock = Student;

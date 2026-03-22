@@ -27,7 +27,6 @@ export default function LessonAssignments({ lessonId, isReadOnly }: LessonAssign
   const [assignments, setAssignments] = useState<Assignment[]>([]);
 
   useEffect(() => {
-    console.log("LessonAssignments mounted with lessonId:", lessonId);
     if (lessonId) {
       loadAssignments();
     }
@@ -45,26 +44,14 @@ export default function LessonAssignments({ lessonId, isReadOnly }: LessonAssign
   };
 
   const handleAddAssignment = () => {
-    // Navigate to assignment builder (new)
-    if (!lessonId) {
-      console.error("lessonId is undefined - cannot navigate");
-      return;
-    }
     const params = new URLSearchParams(searchParams.toString());
     const url = `/${locale}/academics/curriculum/lessons/${lessonId}/assignments/new?${params.toString()}`;
-    console.log("Navigating to:", url);
     guardedRouter.push(url);
   };
 
   const handleEditAssignment = (assignmentId: string) => {
-    // Navigate to assignment builder (edit)
-    if (!lessonId) {
-      console.error("lessonId is undefined - cannot navigate");
-      return;
-    }
     const params = new URLSearchParams(searchParams.toString());
     const url = `/${locale}/academics/curriculum/lessons/${lessonId}/assignments/${assignmentId}?${params.toString()}`;
-    console.log("Navigating to:", url);
     guardedRouter.push(url);
   };
 

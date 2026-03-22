@@ -18,26 +18,16 @@ import StudentsByStatusChart from "../components/charts/StudentsByStatusChart";
 import StudentsByGradeChart from "../components/charts/StudentsByGradeChart";
 import RetentionCohortChart from "../components/charts/RetentionCohortChart";
 import PassFailRatioChart from "../components/charts/PassFailRatioChart";
-import ChartFilter from "../../shared/ChartFilter";
 import type { StudentStats, RiskDistribution } from "@/features/students-guardians/dashboard/utils/studentStatsCalculator";
-import type { StudentFilterValues } from "@/features/students-guardians/dashboard/utils/studentFilters";
 
 interface StudentsGuardiansDashboardViewProps {
   stats: StudentStats;
   riskDistribution: RiskDistribution;
-  filterValues: StudentFilterValues;
-  onFilterChange: (values: StudentFilterValues) => void;
-  academicYears: string[];
-  terms: string[];
 }
 
 export default function StudentsGuardiansDashboardView({
   stats,
   riskDistribution,
-  filterValues,
-  onFilterChange,
-  academicYears,
-  terms,
 }: StudentsGuardiansDashboardViewProps) {
   const t = useTranslations("students_guardians.overview");
 
@@ -48,15 +38,6 @@ export default function StudentsGuardiansDashboardView({
         <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
         <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
       </div>
-
-      {/* Chart Filter */}
-      <ChartFilter
-        values={filterValues}
-        onChange={onFilterChange}
-        academicYears={academicYears}
-        terms={terms}
-        showAdvancedFilters={true}
-      />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

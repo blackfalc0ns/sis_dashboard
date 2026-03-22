@@ -20,8 +20,14 @@ import {
   mockStudentEnrollments,
 } from "@/data/mockEnrollments";
 import { mockStudents } from "@/data/mockStudents";
+import type { EnrollmentAdapter } from "./enrollmentAdapter";
+import {
+  createEnrollmentApiAdapter,
+  enrollmentApiAdapter,
+} from "./enrollmentApiAdapter";
 
 const delay = (ms = 200) => new Promise((resolve) => setTimeout(resolve, ms));
+let currentEnrollmentAdapter: EnrollmentAdapter | null = null;
 
 export interface EnrollmentPlacementPayload {
   studentId: string;
@@ -227,7 +233,7 @@ const buildNormalizedPlacement = (payload: EnrollmentPlacementPayload) => {
   };
 };
 
-export const validateEnrollmentPlacement = (
+const validateEnrollmentPlacementImpl = (
   payload: EnrollmentPlacementPayload,
   options?: { excludeStudentId?: string; skipCapacityCheck?: boolean },
 ): EnrollmentPlacementValidationResult => {
@@ -322,12 +328,12 @@ const updateEnrollmentRecord = (
   return mockStudentEnrollments[index];
 };
 
-export async function createEnrollment(
+const createEnrollmentImpl = async (
   payload: EnrollmentPlacementPayload,
-): Promise<StudentEnrollment> {
+): Promise<StudentEnrollment> => {
   await delay();
 
-  const validation = validateEnrollmentPlacement(payload);
+  const validation = validateEnrollmentPlacementImpl(payload);
   if (!validation.valid) {
     throw new Error(validation.errors[0]);
   }
@@ -354,12 +360,12 @@ export async function createEnrollment(
   });
 
   return nextEnrollment;
-}
+};
 
-export async function updateEnrollment(
+const updateEnrollmentImpl = async (
   enrollmentId: string,
   payload: Partial<EnrollmentPlacementPayload> & { status?: StudentEnrollment["status"] },
-): Promise<StudentEnrollment> {
+): Promise<StudentEnrollment> => {
   await delay();
   const existing = mockStudentEnrollments.find((enrollment) => enrollment.enrollmentId === enrollmentId);
   if (!existing) {
@@ -379,7 +385,7 @@ export async function updateEnrollment(
     status: payload.status || existing.status,
   };
 
-  const validation = validateEnrollmentPlacement(mergedPayload, {
+  const validation = validateEnrollmentPlacementImpl(mergedPayload, {
     excludeStudentId: existing.studentId,
   });
   if (!validation.valid) {
@@ -388,41 +394,41 @@ export async function updateEnrollment(
 
   const { normalized } = buildNormalizedPlacement(mergedPayload);
   return updateEnrollmentRecord(enrollmentId, normalized);
-}
+};
 
-export async function upsertEnrollment(
+const upsertEnrollmentImpl = async (
   payload: EnrollmentPlacementPayload,
-): Promise<StudentEnrollment> {
+): Promise<StudentEnrollment> => {
   await delay();
   const existing = getActiveEnrollmentForYear(payload.studentId, payload.academicYear);
   if (existing) {
-    return updateEnrollment(existing.enrollmentId, payload);
+    return updateEnrollmentImpl(existing.enrollmentId, payload);
   }
-  return createEnrollment(payload);
-}
+  return createEnrollmentImpl(payload);
+};
 
-export function getCurrentActiveEnrollment(
+const getCurrentActiveEnrollmentImpl = (
   studentId: string,
   academicYear?: string,
-): StudentEnrollment | undefined {
+): StudentEnrollment | undefined => {
   return academicYear
     ? getActiveEnrollmentForYear(studentId, academicYear)
     : getEnrollmentByStudentId(resolveInternalStudentId(studentId));
-}
+};
 
-export function getEnrollmentHistory(studentId: string): StudentEnrollment[] {
+const getEnrollmentHistoryImpl = (studentId: string): StudentEnrollment[] => {
   return getEnrollmentsByStudentId(resolveInternalStudentId(studentId));
-}
+};
 
-export function getPlacementHistory(studentId: string): EnrollmentMovement[] {
+const getPlacementHistoryImpl = (studentId: string): EnrollmentMovement[] => {
   return getEnrollmentMovementsByStudentId(resolveInternalStudentId(studentId));
-}
+};
 
-export async function transferStudent(
+const transferStudentImpl = async (
   payload: TransferStudentPayload,
-): Promise<StudentEnrollment> {
+): Promise<StudentEnrollment> => {
   await delay();
-  const currentEnrollment = getCurrentActiveEnrollment(payload.studentId);
+  const currentEnrollment = getCurrentActiveEnrollmentImpl(payload.studentId);
   if (!currentEnrollment) {
     throw new Error("active_enrollment_not_found");
   }
@@ -450,7 +456,7 @@ export async function transferStudent(
     throw new Error("classroom_section_mismatch");
   }
 
-  const validation = validateEnrollmentPlacement(
+  const validation = validateEnrollmentPlacementImpl(
     {
       studentId: currentEnrollment.studentId,
       academicYear: currentEnrollment.academicYear,
@@ -501,13 +507,13 @@ export async function transferStudent(
   });
 
   return updated;
-}
+};
 
-export async function withdrawStudent(
+const withdrawStudentImpl = async (
   payload: WithdrawStudentPayload,
-): Promise<StudentEnrollment> {
+): Promise<StudentEnrollment> => {
   await delay();
-  const currentEnrollment = getCurrentActiveEnrollment(payload.studentId);
+  const currentEnrollment = getCurrentActiveEnrollmentImpl(payload.studentId);
   if (!currentEnrollment) {
     throw new Error("active_enrollment_not_found");
   }
@@ -533,7 +539,7 @@ export async function withdrawStudent(
   });
 
   return updated;
-}
+};
 
 const resolvePromotionTarget = (
   sourceEnrollment: StudentEnrollment,
@@ -597,11 +603,11 @@ const resolvePromotionTarget = (
   };
 };
 
-export async function promoteStudentEnrollment(
+const promoteStudentEnrollmentImpl = async (
   payload: PromoteStudentEnrollmentPayload,
-): Promise<StudentEnrollment> {
+): Promise<StudentEnrollment> => {
   await delay();
-  const sourceEnrollment = getCurrentActiveEnrollment(payload.studentId);
+  const sourceEnrollment = getCurrentActiveEnrollmentImpl(payload.studentId);
   if (!sourceEnrollment) {
     throw new Error("active_enrollment_not_found");
   }
@@ -609,7 +615,7 @@ export async function promoteStudentEnrollment(
   const target = resolvePromotionTarget(sourceEnrollment, payload.targetAcademicYear);
   updateEnrollmentRecord(sourceEnrollment.enrollmentId, { status: "completed" });
 
-  const nextEnrollment = await upsertEnrollment({
+  const nextEnrollment = await upsertEnrollmentImpl({
     studentId: sourceEnrollment.studentId,
     academicYear: payload.targetAcademicYear,
     grade: getDisplayName(target.grade),
@@ -643,11 +649,11 @@ export async function promoteStudentEnrollment(
   });
 
   return nextEnrollment;
-}
+};
 
-export async function bulkAssignStudentsToClassrooms(
+const bulkAssignStudentsToClassroomsImpl = async (
   payload: BulkAssignStudentsPayload,
-): Promise<BulkAssignStudentsResult> {
+): Promise<BulkAssignStudentsResult> => {
   await delay();
   const structure = resolveStructure(payload.academicYear);
   if (!structure) {
@@ -742,12 +748,12 @@ export async function bulkAssignStudentsToClassrooms(
     unassignedCount,
     perClassroomCounts,
   };
-}
+};
 
-export async function promoteActiveStudentsToAcademicYear(
+const promoteActiveStudentsToAcademicYearImpl = async (
   targetAcademicYear: string,
   effectiveDate: string,
-): Promise<StudentEnrollment[]> {
+): Promise<StudentEnrollment[]> => {
   await delay();
   const sourceYear = [...mockStudentEnrollments]
     .filter((enrollment) => enrollment.status === "active")
@@ -777,9 +783,129 @@ export async function promoteActiveStudentsToAcademicYear(
   }
 
   return promoted;
+};
+
+const getAcademicYearOptionsImpl = async (): Promise<string[]> => {
+  const years = await fetchAcademicYears();
+  return years.map((year) => year.name);
+};
+
+const mockEnrollmentAdapter: EnrollmentAdapter = {
+  validateEnrollmentPlacement: validateEnrollmentPlacementImpl,
+  createEnrollment: createEnrollmentImpl,
+  updateEnrollment: updateEnrollmentImpl,
+  upsertEnrollment: upsertEnrollmentImpl,
+  getCurrentActiveEnrollment: getCurrentActiveEnrollmentImpl,
+  getEnrollmentHistory: getEnrollmentHistoryImpl,
+  getPlacementHistory: getPlacementHistoryImpl,
+  transferStudent: transferStudentImpl,
+  withdrawStudent: withdrawStudentImpl,
+  promoteStudentEnrollment: promoteStudentEnrollmentImpl,
+  bulkAssignStudentsToClassrooms: bulkAssignStudentsToClassroomsImpl,
+  promoteActiveStudentsToAcademicYear: promoteActiveStudentsToAcademicYearImpl,
+  getAcademicYearOptions: getAcademicYearOptionsImpl,
+};
+
+currentEnrollmentAdapter = mockEnrollmentAdapter;
+
+if (process.env.NEXT_PUBLIC_USE_STUDENTS_GUARDIANS_ENROLLMENT_API === "true") {
+  currentEnrollmentAdapter = enrollmentApiAdapter;
+}
+
+export function getEnrollmentAdapter(): EnrollmentAdapter {
+  return currentEnrollmentAdapter || mockEnrollmentAdapter;
+}
+
+export function setEnrollmentAdapter(adapter: EnrollmentAdapter) {
+  currentEnrollmentAdapter = adapter;
+}
+
+export function resetEnrollmentAdapter() {
+  currentEnrollmentAdapter =
+    process.env.NEXT_PUBLIC_USE_STUDENTS_GUARDIANS_ENROLLMENT_API === "true"
+      ? createEnrollmentApiAdapter()
+      : mockEnrollmentAdapter;
+}
+
+export function activateEnrollmentAdapter(adapter: EnrollmentAdapter) {
+  setEnrollmentAdapter(adapter);
+  return adapter;
+}
+
+export const validateEnrollmentPlacement = (
+  payload: EnrollmentPlacementPayload,
+  options?: { excludeStudentId?: string; skipCapacityCheck?: boolean },
+): EnrollmentPlacementValidationResult =>
+  getEnrollmentAdapter().validateEnrollmentPlacement(payload, options);
+
+export async function createEnrollment(
+  payload: EnrollmentPlacementPayload,
+): Promise<StudentEnrollment> {
+  return getEnrollmentAdapter().createEnrollment(payload);
+}
+
+export async function updateEnrollment(
+  enrollmentId: string,
+  payload: Partial<EnrollmentPlacementPayload> & { status?: StudentEnrollment["status"] },
+): Promise<StudentEnrollment> {
+  return getEnrollmentAdapter().updateEnrollment(enrollmentId, payload);
+}
+
+export async function upsertEnrollment(
+  payload: EnrollmentPlacementPayload,
+): Promise<StudentEnrollment> {
+  return getEnrollmentAdapter().upsertEnrollment(payload);
+}
+
+export function getCurrentActiveEnrollment(
+  studentId: string,
+  academicYear?: string,
+): StudentEnrollment | undefined {
+  return getEnrollmentAdapter().getCurrentActiveEnrollment(studentId, academicYear);
+}
+
+export function getEnrollmentHistory(studentId: string): StudentEnrollment[] {
+  return getEnrollmentAdapter().getEnrollmentHistory(studentId);
+}
+
+export function getPlacementHistory(studentId: string): EnrollmentMovement[] {
+  return getEnrollmentAdapter().getPlacementHistory(studentId);
+}
+
+export async function transferStudent(
+  payload: TransferStudentPayload,
+): Promise<StudentEnrollment> {
+  return getEnrollmentAdapter().transferStudent(payload);
+}
+
+export async function withdrawStudent(
+  payload: WithdrawStudentPayload,
+): Promise<StudentEnrollment> {
+  return getEnrollmentAdapter().withdrawStudent(payload);
+}
+
+export async function promoteStudentEnrollment(
+  payload: PromoteStudentEnrollmentPayload,
+): Promise<StudentEnrollment> {
+  return getEnrollmentAdapter().promoteStudentEnrollment(payload);
+}
+
+export async function bulkAssignStudentsToClassrooms(
+  payload: BulkAssignStudentsPayload,
+): Promise<BulkAssignStudentsResult> {
+  return getEnrollmentAdapter().bulkAssignStudentsToClassrooms(payload);
+}
+
+export async function promoteActiveStudentsToAcademicYear(
+  targetAcademicYear: string,
+  effectiveDate: string,
+): Promise<StudentEnrollment[]> {
+  return getEnrollmentAdapter().promoteActiveStudentsToAcademicYear(
+    targetAcademicYear,
+    effectiveDate,
+  );
 }
 
 export async function getAcademicYearOptions(): Promise<string[]> {
-  const years = await fetchAcademicYears();
-  return years.map((year) => year.name);
+  return getEnrollmentAdapter().getAcademicYearOptions();
 }

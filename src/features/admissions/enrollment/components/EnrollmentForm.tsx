@@ -5,11 +5,11 @@ import { useTranslations, useLocale } from "next-intl";
 import { X, FileText, Download } from "lucide-react";
 import { Application } from "@/features/admissions/types/admissions";
 import {
-  fetchAcademicYears,
   getStructureTreeSnapshot,
   resolveStructureContextForAcademicYear,
 } from "@/features/academics/academic-structure-tree/services/structureService";
-import type { AcademicYear } from "@/features/academics/academic-structure-tree/services/structureService";
+import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 
 export interface EnrollmentFormData {
   academicYear: string;
@@ -54,10 +54,13 @@ export default function EnrollmentForm({
 }: EnrollmentFormProps) {
   const t = useTranslations("admissions.enrollment_form");
   const locale = useLocale();
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+  const { academicYears, yearId, isReadOnly } = useAdmissionsYearTermContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const selectedAcademicYearName =
+    academicYears.find((year) => year.id === yearId)?.name ||
+    deriveDefaultAcademicYear(application);
   const [formData, setFormData] = useState<EnrollmentFormData>({
-    academicYear: deriveDefaultAcademicYear(application),
+    academicYear: selectedAcademicYearName,
     grade: application.gradeRequested,
     section: "",
     classroom: "",
@@ -70,19 +73,8 @@ export default function EnrollmentForm({
   useEffect(() => {
     if (!isOpen) return;
 
-    const loadAcademicYears = async () => {
-      const years = await fetchAcademicYears();
-      setAcademicYears(years);
-    };
-
-    loadAcademicYears();
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
     setFormData({
-      academicYear: deriveDefaultAcademicYear(application),
+      academicYear: selectedAcademicYearName,
       grade: application.gradeRequested,
       section: "",
       classroom: "",
@@ -91,7 +83,7 @@ export default function EnrollmentForm({
       sectionId: undefined,
       classroomId: undefined,
     });
-  }, [application, isOpen]);
+  }, [application, isOpen, selectedAcademicYearName]);
 
   const structureContext = useMemo(
     () => resolveStructureContextForAcademicYear(formData.academicYear),
@@ -218,6 +210,7 @@ export default function EnrollmentForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReadOnly) return;
     setIsSubmitting(true);
     try {
       await onSubmit(formData);
@@ -253,6 +246,7 @@ export default function EnrollmentForm({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {isReadOnly && <AdmissionsReadOnlyBanner />}
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 rounded-full bg-emerald-600" />
@@ -286,6 +280,7 @@ export default function EnrollmentForm({
                 }
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
                 required
+                disabled={isReadOnly}
               >
                 {academicYears.map((year) => (
                   <option key={year.id} value={year.name}>
@@ -315,6 +310,7 @@ export default function EnrollmentForm({
                 }}
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
                 required
+                disabled={isReadOnly}
               >
                 <option value="">{t("select_grade")}</option>
                 {gradeOptions.map((grade) => (
@@ -343,7 +339,7 @@ export default function EnrollmentForm({
                 }}
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
                 required
-                disabled={!formData.gradeId}
+                disabled={isReadOnly || !formData.gradeId}
               >
                 <option value="">{t("select_section")}</option>
                 {sectionOptions.map((section) => (
@@ -370,7 +366,7 @@ export default function EnrollmentForm({
                 }}
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
                 required
-                disabled={!formData.sectionId}
+                disabled={isReadOnly || !formData.sectionId}
               >
                 <option value="">{t("select_classroom")}</option>
                 {classroomOptions.map((classroom) => (
@@ -393,6 +389,7 @@ export default function EnrollmentForm({
                 }
                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
                 required
+                disabled={isReadOnly}
               />
             </div>
           </div>
@@ -405,6 +402,7 @@ export default function EnrollmentForm({
               <button
                 type="button"
                 onClick={handleGenerateAcceptance}
+                disabled={isReadOnly}
                 className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
               >
                 <FileText className="w-4 h-4" />
@@ -413,6 +411,7 @@ export default function EnrollmentForm({
               <button
                 type="button"
                 onClick={handleGenerateContract}
+                disabled={isReadOnly}
                 className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
               >
                 <Download className="w-4 h-4" />
@@ -432,6 +431,7 @@ export default function EnrollmentForm({
             <button
               type="submit"
               disabled={
+                isReadOnly ||
                 isSubmitting ||
                 !formData.gradeId ||
                 !formData.sectionId ||

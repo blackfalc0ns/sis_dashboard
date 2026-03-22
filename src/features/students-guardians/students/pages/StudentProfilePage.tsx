@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -24,11 +24,27 @@ import {
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { Student } from "@/features/students-guardians/students/types";
 import {
+  StudentAttendanceTab,
+  StudentBehaviorTab,
+  StudentDocumentsTab,
+  StudentEnrollmentHistoryTab,
+  StudentGradesTab,
+  StudentGuardiansTab,
+  StudentMedicalTab,
+  StudentNotesTab,
+  StudentOverviewTab,
+  StudentPersonalInfoTab,
+  StudentTimelineTab,
+  StudentTransfersTab,
+  StudentWithdrawalTab,
+} from "@/features/students-guardians/students/components/tabs";
+import {
   getStudentDisplayName,
   getStudentDisplayId,
   getStudentGrade,
   getStudentClassroom,
 } from "@/features/students-guardians/students/utils/studentUtils";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 
 interface StudentProfilePageProps {
   studentId: string;
@@ -82,20 +98,84 @@ export default function StudentProfilePage({
   const params = useParams();
   const lang = (params.lang as string) || "en";
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [studentRevision, setStudentRevision] = useState(0);
+  const [student, setStudent] = useState<Student | null>(null);
+  const [enrichedStudent, setEnrichedStudent] =
+    useState<studentsService.StudentWithEnrollmentContext | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const student = useMemo(() => {
-    return studentsService.getStudentById(studentId);
-  }, [studentId]);
+  useEffect(() => {
+    let isCancelled = false;
 
-  const enrichedStudent = useMemo(() => {
-    return studentsService.getStudentsWithEnrollment().find((item) => item.id === studentId);
-  }, [studentId]);
+    void Promise.resolve().then(async () => {
+      if (isCancelled) {
+        return;
+      }
+
+      setIsLoading(true);
+      setLoadError(null);
+
+      try {
+        const studentData = await studentsService.fetchStudentById(studentId);
+
+        if (isCancelled) {
+          return;
+        }
+
+        setStudent(studentData ?? null);
+
+        if (!studentData) {
+          setEnrichedStudent(null);
+          return;
+        }
+
+        try {
+          const enrichedStudents = await studentsService.fetchStudentsWithEnrollment();
+          if (isCancelled) {
+            return;
+          }
+          setEnrichedStudent(
+            enrichedStudents.find((item) => item.id === studentId) ?? null,
+          );
+        } catch {
+          if (!isCancelled) {
+            setEnrichedStudent(null);
+          }
+        }
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        setStudent(null);
+        setEnrichedStudent(null);
+        setLoadError(
+          error instanceof Error ? error.message : t("student_not_found"),
+        );
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [studentId, studentRevision, t]);
+
+  if (isLoading) {
+    return <MainLoader />;
+  }
 
   if (!student) {
     return (
       <div className="p-6">
         <div className="bg-white rounded-xl p-12 text-center">
-          <p className="text-gray-500 mb-4">{t("student_not_found")}</p>
+          <p className="text-gray-500 mb-4">
+            {loadError || t("student_not_found")}
+          </p>
           <button
             onClick={() => router.push(`/${lang}/students-guardians/students`)}
             className="text-primary hover:text-hover font-medium"
@@ -146,6 +226,29 @@ export default function StudentProfilePage({
         studentWithNames.studentName ||
         studentWithNames.full_name_ar ||
         getStudentDisplayName(student);
+
+  const profileStudent = enrichedStudent ?? student;
+
+  const tabContent: Record<TabKey, JSX.Element> = {
+    overview: <StudentOverviewTab student={profileStudent} />,
+    personal: (
+      <StudentPersonalInfoTab
+        student={profileStudent}
+        onStudentUpdated={() => setStudentRevision((current) => current + 1)}
+      />
+    ),
+    guardians: <StudentGuardiansTab student={profileStudent} />,
+    enrollment: <StudentEnrollmentHistoryTab student={profileStudent} />,
+    attendance: <StudentAttendanceTab student={profileStudent} />,
+    grades: <StudentGradesTab student={profileStudent} />,
+    behavior: <StudentBehaviorTab student={profileStudent} />,
+    documents: <StudentDocumentsTab student={profileStudent} />,
+    medical: <StudentMedicalTab student={profileStudent} />,
+    notes: <StudentNotesTab student={profileStudent} />,
+    timeline: <StudentTimelineTab student={profileStudent} />,
+    transfers: <StudentTransfersTab student={profileStudent} />,
+    withdrawal: <StudentWithdrawalTab student={profileStudent} />,
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -235,6 +338,14 @@ export default function StudentProfilePage({
             })}
           </div>
         </div>
+      </div>
+
+      <div className="p-4 sm:p-6">
+        {tabContent[activeTab] || (
+          <div className="bg-white rounded-xl border border-gray-200 p-10 text-center text-gray-500">
+            {t("no_data")}
+          </div>
+        )}
       </div>
     </div>
   );

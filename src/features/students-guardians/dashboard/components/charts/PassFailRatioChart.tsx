@@ -5,11 +5,13 @@
 import { PieChart } from "@mui/x-charts/PieChart";
 import { CheckCircle2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useResponsiveChart } from "@/hooks/useResponsiveChart";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import { useOptionalStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import { ChartCard } from "@/components/ui/chart-card";
 import { DropdownItem } from "@/components/ui/dropdown";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 type Period = "term" | "academic_year";
 
@@ -18,6 +20,10 @@ export default function PassFailRatioChart() {
     "students_guardians.overview.charts.pass_fail_ratio",
   );
   const { height } = useResponsiveChart();
+  const context = useOptionalStudentsGuardiansYearTermContext();
+  const yearId = context?.yearId ?? null;
+  const termId = context?.termId ?? null;
+  const isContextLoading = context?.isLoading ?? false;
 
   const [period, setPeriod] = useState<Period>("term");
 
@@ -31,10 +37,46 @@ export default function PassFailRatioChart() {
   );
 
   // Get all students with enrollment data
-  const allStudents = useMemo(
-    () => studentsService.getStudentsWithEnrollment(),
-    [],
-  );
+  const [allStudents, setAllStudents] = useState<
+    studentsService.StudentWithEnrollmentContext[]
+  >([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (isContextLoading) {
+      setAllStudents([]);
+      setIsLoading(true);
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    void Promise.resolve().then(async () => {
+      setIsLoading(true);
+      try {
+        const students =
+          yearId && termId
+            ? await studentsService.fetchStudentsWithEnrollmentForContext(
+                yearId,
+                termId,
+              )
+            : await studentsService.fetchStudentsWithEnrollment();
+        if (!isCancelled) {
+          setAllStudents(students);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isContextLoading, termId, yearId]);
 
   // Filter and calculate pass/fail data based on period
   const chartData = useMemo(() => {
@@ -85,7 +127,9 @@ export default function PassFailRatioChart() {
       bgColor="#d1fae5"
       className="h-full"
     >
-      {chartData.total > 0 ? (
+      {isLoading ? (
+        <PartialLoader />
+      ) : chartData.total > 0 ? (
         <>
           {/* Legend on the left */}
           <div className="flex items-center gap-8 mb-4">

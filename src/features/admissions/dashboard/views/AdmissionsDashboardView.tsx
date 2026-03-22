@@ -248,6 +248,10 @@ export default function AdmissionsDashboardView({
           searchQuery=""
           onRowClick={handleRowClick}
           showPagination={false}
+          urlState={{
+            keyPrefix: "admissionsDashboardViewTable",
+            syncSorting: true,
+          }}
         />
       </div>
 

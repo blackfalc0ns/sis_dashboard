@@ -315,6 +315,19 @@
     "view_all": "View all"
   },
   "admissions": {
+    "context_bar": {
+      "title": "Admissions Context",
+      "academic_year": "Academic year",
+      "term": "Term",
+      "status_open": "Open",
+      "status_closed": "Closed",
+      "read_only": "Read-only",
+      "read_only_banner": "This term is closed. Admissions actions are read-only.",
+      "errors": {
+        "failed_to_load": "Failed to load admissions context.",
+        "failed_to_load_terms": "Failed to load admissions terms."
+      }
+    },
     "dashboard": {
       "title": "Admissions Dashboard",
       "subtitle": "Overview of admissions pipeline and analytics",
@@ -1412,6 +1425,7 @@
       }
     },
     "students": {
+      "loading_error": "Failed to load students for the selected academic context.",
       "title": "All Students",
       "subtitle": "Manage and track student information",
       "export": "Export",
@@ -1502,6 +1516,7 @@
       }
     },
     "guardians_list": {
+      "loading_error": "Failed to load guardians for the selected academic context.",
       "title": "Guardians",
       "subtitle": "Manage and view guardian information",
       "kpis": {
@@ -1622,6 +1637,7 @@
         "new_transfer": "New Transfer",
         "kpis": {
           "transfers_this_month": "Transfers This Month",
+          "transfers_this_term": "Transfers This Term",
           "total_transfers": "Total transfers",
           "internal_transfers": "Internal Transfers",
           "within_school": "Within school",
@@ -1656,6 +1672,7 @@
         "new_withdrawal": "New Withdrawal",
         "kpis": {
           "withdrawals_this_month": "Withdrawals This Month",
+          "withdrawals_this_term": "Withdrawals This Term",
           "total_withdrawals": "Total withdrawals",
           "dropout_rate": "Dropout Rate",
           "above_threshold": "Above threshold",
@@ -2027,7 +2044,11 @@
         "title": "Personal Information",
         "edit": "Edit",
         "save": "Save",
+        "saving": "Saving...",
         "cancel": "Cancel",
+        "save_success": "Student profile saved successfully.",
+        "save_failed": "Failed to save student profile. Please try again.",
+        "select_enrollment_year": "Select enrollment year",
         "risk_flags_detected": "Risk Flags Detected",
         "risk_flags_message": "This student requires additional attention and support.",
         "student_id": "Student ID",
@@ -2164,23 +2185,85 @@
       },
       "grades": {
         "title": "Grades",
-        "current_average": "Current Average",
-        "overall_gpa": "Overall GPA",
-        "highest_grade": "Highest Grade",
-        "lowest_grade": "Lowest Grade",
-        "total_assessments": "Total Assessments",
-        "this_semester": "This semester",
+        "loading": "Loading grades data...",
+        "empty_state": "No ERP-linked grades data is available for this student yet.",
+        "not_available": "Not available",
         "performance_over_time": "Performance Over Time",
+        "performance_over_time_subtitle": "Term progression for {scope}",
         "average_grade": "Average Grade",
+        "overall_gpa": "Overall GPA",
+        "no_trend_data": "No term progression data is available for this student.",
+        "real_assessment_count": "{count} real assessments in this view",
         "subject_grades": "Subject Grades",
-        "view_only": "View-only grade information",
-        "subject": "Subject",
-        "average": "Average",
-        "last_assessment": "Last Assessment",
-        "assessments": "Assessments",
-        "trend": "Trend",
-        "total": "total",
-        "subject_performance": "Subject Performance"
+        "subject_grades_subtitle": "Real subject performance for the selected term",
+        "total_assessments": "Total Assessments",
+        "total_assessments_suffix": "total",
+        "academic_summary": "Academic Summary",
+        "academic_summary_subtitle": "ERP summary used because no real subject breakdown is available for this view",
+        "this_semester": "This semester",
+        "term_selector": {
+          "label": "View",
+          "current": "Current Term",
+          "term_1": "Term 1",
+          "term_2": "Term 2",
+          "term_3": "Term 3",
+          "ytd": "YTD"
+        },
+        "current_term_fallback": {
+          "active": "Showing the active term.",
+          "latest_completed": "No active term. Showing the latest completed term.",
+          "upcoming": "No active or completed term. Showing the nearest upcoming term."
+        },
+        "context": {
+          "academic_year": "Academic Year",
+          "grade": "Grade",
+          "section": "Section",
+          "classroom": "Classroom",
+          "selected_view": "Selected View",
+          "homeroom_teacher": "Homeroom Teacher"
+        },
+        "kpis": {
+          "term_average": "Term Average",
+          "ytd_average": "YTD Average",
+          "attendance": "Attendance",
+          "highest_grade": "Highest Subject Average",
+          "lowest_grade": "Lowest Subject Average",
+          "best_term_average": "Best Term Average",
+          "lowest_term_average": "Lowest Term Average",
+          "risk_flags": "Risk Flags",
+          "selected_term_subtitle": "{term}",
+          "ytd_subtitle": "Across all available terms",
+          "subject_data_subtitle": "{label}",
+          "term_data_subtitle": "{label}",
+          "risk_flags_subtitle": "Active ERP risk indicators"
+        },
+        "table": {
+          "subject": "Subject",
+          "teacher": "Teacher",
+          "average": "Average",
+          "last_assessment": "Last Assessment",
+          "assessments": "Assessments",
+          "trend": "Trend"
+        },
+        "summary": {
+          "metric": "Metric",
+          "value": "Value",
+          "detail": "Detail",
+          "term_average": "Average",
+          "attendance": "Attendance",
+          "risk_flags": "Risk Flags",
+          "homeroom_teacher": "Homeroom Teacher"
+        },
+        "trend": {
+          "up": "Improving",
+          "down": "Declining",
+          "stable": "Stable"
+        },
+        "risk_flags": {
+          "attendance": "Attendance risk",
+          "grades": "Grades risk",
+          "behavior": "Behavior risk"
+        }
       },
       "behavior": {
         "title": "Behavior",
@@ -2315,6 +2398,19 @@
         "no_withdrawal_desc": "This student is currently active and has not been withdrawn.",
         "withdrawal_history": "Withdrawal History",
         "no_history": "No withdrawal records available"
+      }
+    },
+    "shared": {
+      "year_term_context": {
+        "title": "Academic Context",
+        "academic_year": "Academic Year",
+        "term": "Term",
+        "status_open": "Open",
+        "status_closed": "Closed",
+        "errors": {
+          "failed_to_load": "Failed to load academic years and terms.",
+          "failed_to_load_terms": "Failed to load terms for the selected academic year."
+        }
       }
     }
   },
@@ -2530,8 +2626,59 @@
       "summary": {
         "title": "Summary"
       },
+      "filters": {
+        "checklistStatus": "Checklist status",
+        "alertSeverity": "Alert severity",
+        "chart": "Chart",
+        "exportDataset": "Export dataset",
+        "reset": "Reset filters",
+        "options": {
+          "all": "All",
+          "done": "Done",
+          "warning": "Warning",
+          "error": "Error",
+          "info": "Info",
+          "lessonPlans": "Lesson plans",
+          "teacherLoads": "Teacher loads",
+          "readiness": "Readiness",
+          "summary": "Summary",
+          "checklist": "Checklist",
+          "alerts": "Alerts"
+        }
+      },
       "analytics": {
         "title": "Analytics"
+      },
+      "export": {
+        "columns": {
+          "group": "Group",
+          "metric": "Metric",
+          "value": "Value",
+          "title": "Title",
+          "status": "Status",
+          "reason": "Reason",
+          "link": "Link",
+          "severity": "Severity",
+          "description": "Description",
+          "count": "Count",
+          "week": "Week",
+          "teacher": "Teacher"
+        },
+        "metrics": {
+          "totalStages": "Total stages",
+          "totalGrades": "Total grades",
+          "totalSections": "Total sections",
+          "sectionsWithoutCapacity": "Sections without capacity",
+          "totalSubjects": "Total subjects",
+          "subjectCompletion": "Subject allocation completion",
+          "missingTeacherAllocations": "Missing teacher allocations",
+          "overloadedTeachers": "Overloaded teachers",
+          "lessonPlansPlanned": "Lesson plans planned",
+          "lessonPlansDone": "Lesson plans done",
+          "lessonPlansCompletion": "Lesson plans completion"
+        },
+        "overloaded": "Overloaded",
+        "normal": "Normal"
       },
       "checklist": {
         "title": "Setup Checklist",
@@ -2902,6 +3049,10 @@
         "confirmDelete": "Are you sure you want to delete this assignment?",
         "confirmReset": "Are you sure you want to reset this assignment? All unsaved changes will be lost.",
         "notFound": "Assignment not found",
+        "createDraftTitle": "Create assignment draft",
+        "createDraftBody": "Create a draft assignment before adding questions, attachments, or publishing.",
+        "createDraftAction": "Create draft",
+        "creatingDraft": "Creating...",
         "mustSaveBeforePublish": "You must save changes before publishing",
         "questionsOutline": "Questions Outline",
         "noQuestionsYet": "No questions yet. Add your first question to get started.",
@@ -3517,12 +3668,14 @@
         "stage": "Stage",
         "grade": "Grade",
         "section": "Section",
+        "classroom": "Classroom",
         "subject": "Subject",
         "teacher": "Teacher",
         "assignedTeacher": "Assigned Teacher",
         "selectStage": "Select Stage",
         "selectGrade": "Select Grade",
         "selectSection": "Select Section",
+        "selectClassroom": "Select Classroom",
         "selectSubject": "Select Subject",
         "apply": "Apply Filters",
         "clear": "Clear Filters"

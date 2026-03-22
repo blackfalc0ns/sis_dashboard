@@ -2,14 +2,15 @@
 
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { CheckCircle2, AlertCircle, XCircle, ChevronRight, ArrowRight } from "lucide-react";
+import { CheckCircle2, AlertCircle, XCircle, ArrowRight } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import type { ChecklistItem } from "../services/overviewService";
 import type { OverviewMetrics } from "../services/overviewService";
 
 interface SetupChecklistProps {
   items: ChecklistItem[];
-  metrics: OverviewMetrics;
+  metrics?: OverviewMetrics;
   isLoading?: boolean;
 }
 
@@ -19,20 +20,15 @@ export default function SetupChecklist({ items, metrics, isLoading }: SetupCheck
   if (isLoading) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
-        <div className="space-y-3">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg animate-pulse">
-              <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
-              <div className="flex-1">
-                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-              </div>
-            </div>
-          ))}
+        <div className="flex min-h-[220px] items-center justify-center">
+          <PartialLoader />
         </div>
       </div>
     );
+  }
+
+  if (!metrics) {
+    return null;
   }
 
   const getStatusIcon = (status: string) => {

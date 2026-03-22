@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Upload,
   FileText,
@@ -16,16 +16,17 @@ import { useTranslations } from "next-intl";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import DocumentViewerModal from "@/features/admissions/applications/components/modals/DocumentViewerModal";
-import { mockStudentDocuments } from "@/data/mockDataLinked";
-import { mockStudents } from "@/data/mockStudents";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
+import {
+  fetchAllStudentDocumentsForCenter,
+  fetchStudentDocumentsCenterStats,
+} from "@/features/students-guardians/documents/services/documentsService";
+import type { StudentDocumentCenterItem } from "@/features/students-guardians/documents/services/documentsAdapter";
+import MainLoader from "@/components/ui/loaders/MainLoader";
+import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 
 export default function DocumentsCenter() {
   const t = useTranslations("admissions.document_center");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "complete" | "missing"
-  >("all");
   const [showFilters, setShowFilters] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{
     type: string;
@@ -33,18 +34,79 @@ export default function DocumentsCenter() {
     url?: string;
     fileType?: string;
   } | null>(null);
+  const [allDocuments, setAllDocuments] = useState<StudentDocumentCenterItem[]>([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    complete: 0,
+    missing: 0,
+    completionRate: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const { values, setValue, reset } = useUrlQueryState<{
+    search: string;
+    status: string;
+  }>({
+    defaults: {
+      search: "",
+      status: "all",
+    },
+    debouncedKeys: ["search"],
+    modeByKey: {
+      search: "replace",
+    },
+  });
 
-  // Combine student documents with student info
-  const allDocuments = useMemo(() => {
-    return mockStudentDocuments.map((doc) => {
-      const student = mockStudents.find((s) => s.id === doc.studentId);
-      return {
-        ...doc,
-        studentName: student?.name || "Unknown",
-        grade: student?.grade || "-",
-      };
+  const searchQuery = values.search;
+  const statusFilter = values.status as "all" | "complete" | "missing";
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    void Promise.resolve().then(async () => {
+      if (isCancelled) {
+        return;
+      }
+
+      setIsLoading(true);
+      setLoadError(null);
+
+      try {
+        const [documentsData, statsData] = await Promise.all([
+          fetchAllStudentDocumentsForCenter(),
+          fetchStudentDocumentsCenterStats(),
+        ]);
+
+        if (isCancelled) {
+          return;
+        }
+
+        setAllDocuments(documentsData);
+        setStats(statsData);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        setAllDocuments([]);
+        setStats({
+          total: 0,
+          complete: 0,
+          missing: 0,
+          completionRate: 0,
+        });
+        setLoadError(error instanceof Error ? error.message : t("no_documents"));
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
     });
-  }, []);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [t]);
 
   // Filter documents
   const filteredDocuments = useMemo(() => {
@@ -62,19 +124,17 @@ export default function DocumentsCenter() {
     });
   }, [allDocuments, searchQuery, statusFilter]);
 
-  // Calculate stats
-  const stats = useMemo(() => {
-    const total = allDocuments.length;
-    const complete = allDocuments.filter(
-      (doc) => doc.status === "complete",
-    ).length;
-    const missing = allDocuments.filter(
-      (doc) => doc.status === "missing",
-    ).length;
-    const completionRate = total > 0 ? Math.round((complete / total) * 100) : 0;
+  if (isLoading) {
+    return <MainLoader />;
+  }
 
-    return { total, complete, missing, completionRate };
-  }, [allDocuments]);
+  if (loadError) {
+    return (
+      <div className="bg-white rounded-xl p-10 text-center shadow-sm">
+        <p className="text-sm text-red-600">{loadError}</p>
+      </div>
+    );
+  }
 
   const handleUpload = (doc: { studentId: string; type: string }) => {
     alert(`Upload document for ${doc.type} - Student ${doc.studentId}`);
@@ -99,8 +159,7 @@ export default function DocumentsCenter() {
   };
 
   const clearFilters = () => {
-    setSearchQuery("");
-    setStatusFilter("all");
+    reset(undefined, "replace");
   };
 
   const hasActiveFilters = searchQuery !== "" || statusFilter !== "all";
@@ -273,13 +332,13 @@ export default function DocumentsCenter() {
             <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
-                type="text"
-                placeholder={t("search_placeholder")}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full pl-10 pr-4 py-2.5 bg-white border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-black/60 focus:border-transparent text-sm min-h-[44px] ${
-                  searchQuery
-                    ? "border-primary ring-2 ring-primary/20"
+              type="text"
+              placeholder={t("search_placeholder")}
+              value={searchQuery}
+              onChange={(e) => setValue("search", e.target.value, "replace")}
+              className={`w-full pl-10 pr-4 py-2.5 bg-white border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-black/60 focus:border-transparent text-sm min-h-[44px] ${
+                searchQuery
+                  ? "border-primary ring-2 ring-primary/20"
                     : "border-gray-200"
                 }`}
               />
@@ -315,11 +374,9 @@ export default function DocumentsCenter() {
               </label>
               <select
                 value={statusFilter}
-                onChange={(e) =>
-                  setStatusFilter(
-                    e.target.value as "all" | "complete" | "missing",
-                  )
-                }
+                onChange={(e) => {
+                  setValue("status", e.target.value as "all" | "complete" | "missing", "push");
+                }}
                 className="w-full sm:max-w-xs px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-black focus:ring-2 focus:ring-primary focus:border-transparent min-h-[44px]"
               >
                 <option value="all">{t("all_statuses")}</option>
@@ -347,14 +404,19 @@ export default function DocumentsCenter() {
             )}
           </div>
         ) : (
-          <DataTable
-            columns={columns}
-            data={filteredDocuments}
-            searchQuery={searchQuery}
-            showPagination={true}
-            itemsPerPage={10}
-          />
-        )}
+        <DataTable
+          columns={columns}
+          data={filteredDocuments}
+          searchQuery={searchQuery}
+          showPagination={true}
+          itemsPerPage={10}
+          urlState={{
+            keyPrefix: "documentsTable",
+            syncPagination: true,
+            syncSorting: true,
+          }}
+        />
+      )}
       </div>
 
       <DocumentViewerModal

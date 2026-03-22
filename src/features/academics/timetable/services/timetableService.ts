@@ -3,6 +3,8 @@ import {
   TimetableValidationResult,
   TimetableConflict,
 } from "@/features/academics/timetable/types/timetable";
+import type { TimetableAdapter } from "@/features/academics/timetable/services/timetableAdapter";
+import { createTimetableApiAdapter } from "@/features/academics/timetable/services/timetableApiAdapter";
 
 // Helper function to migrate old format to new
 function getDayKeyFromIndex(index: number): string {
@@ -14,15 +16,15 @@ function getDayKeyFromIndex(index: number): string {
 function migrateEntry(entry: TimetableEntry): TimetableEntry {
   return {
     ...entry,
-    dayKey: entry.dayKey || getDayKeyFromIndex(entry.day || 0),
-    periodIndex: entry.periodIndex || entry.period || 1,
+    dayKey: entry.dayKey || getDayKeyFromIndex(entry.day ?? 0),
+    periodIndex: entry.periodIndex ?? entry.period ?? 1,
   };
 }
 
 // Mock data for development
 const mockTimetableEntries: TimetableEntry[] = [];
 
-export async function fetchTimetable(
+async function fetchTimetableImpl(
   termId: string,
   sectionId: string,
   classroomId?: string
@@ -41,7 +43,7 @@ export async function fetchTimetable(
   return entries.map(migrateEntry);
 }
 
-export async function fetchAllTimetablesForTerm(
+async function fetchAllTimetablesForTermImpl(
   termId: string
 ): Promise<TimetableEntry[]> {
   // Fetch all timetables for conflict detection
@@ -51,7 +53,7 @@ export async function fetchAllTimetablesForTerm(
   return entries.map(migrateEntry);
 }
 
-export async function upsertTimetableEntries(
+async function upsertTimetableEntriesImpl(
   termId: string,
   sectionId: string,
   entries: Partial<TimetableEntry>[],
@@ -98,7 +100,7 @@ export async function upsertTimetableEntries(
   return updatedEntries;
 }
 
-export async function deleteTimetableEntry(
+async function deleteTimetableEntryImpl(
   termId: string,
   sectionId: string,
   day: number,
@@ -107,21 +109,24 @@ export async function deleteTimetableEntry(
 ): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
-  const index = mockTimetableEntries.findIndex(
-    (e) =>
-      e.termId === termId &&
-      e.sectionId === sectionId &&
-      (e.classroomId || "") === (classroomId || "") &&
-      e.day === day &&
-      e.period === period
-  );
+  const dayKey = getDayKeyFromIndex(day);
+  const index = mockTimetableEntries.findIndex((entry) => {
+    const migrated = migrateEntry(entry);
+    return (
+      migrated.termId === termId &&
+      migrated.sectionId === sectionId &&
+      (migrated.classroomId || "") === (classroomId || "") &&
+      migrated.dayKey === dayKey &&
+      migrated.periodIndex === period
+    );
+  });
 
   if (index >= 0) {
     mockTimetableEntries.splice(index, 1);
   }
 }
 
-export async function validateTimetable(): Promise<TimetableValidationResult> {
+async function validateTimetableImpl(): Promise<TimetableValidationResult> {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   // This would call the backend validation endpoint
@@ -139,7 +144,7 @@ export async function validateTimetable(): Promise<TimetableValidationResult> {
   };
 }
 
-export async function publishTimetable(
+async function publishTimetableImpl(
   termId: string,
   sectionId: string,
   classroomId?: string
@@ -158,7 +163,7 @@ export async function publishTimetable(
   });
 }
 
-export async function unpublishTimetable(
+async function unpublishTimetableImpl(
   termId: string,
   sectionId: string,
   classroomId?: string
@@ -178,7 +183,7 @@ export async function unpublishTimetable(
 }
 
 // Helper function to detect conflicts
-export function detectConflicts(
+function detectConflictsImpl(
   entries: TimetableEntry[],
   sections: Array<{ id: string; nameAr: string; nameEn: string }>,
   classrooms: Array<{ id: string; nameAr: string; nameEn: string }>,
@@ -287,3 +292,91 @@ export function detectConflicts(
 
   return conflicts;
 }
+
+const mockTimetableAdapter: TimetableAdapter = {
+  fetchTimetable: fetchTimetableImpl,
+  fetchAllTimetablesForTerm: fetchAllTimetablesForTermImpl,
+  upsertTimetableEntries: upsertTimetableEntriesImpl,
+  deleteTimetableEntry: deleteTimetableEntryImpl,
+  validateTimetable: validateTimetableImpl,
+  publishTimetable: publishTimetableImpl,
+  unpublishTimetable: unpublishTimetableImpl,
+  detectConflicts: detectConflictsImpl,
+};
+
+let timetableAdapter: TimetableAdapter = mockTimetableAdapter;
+
+if (process.env.NEXT_PUBLIC_USE_TIMETABLE_API === "true") {
+  timetableAdapter = createTimetableApiAdapter(detectConflictsImpl);
+}
+
+export const getTimetableAdapter = (): TimetableAdapter => timetableAdapter;
+
+export const setTimetableAdapter = (adapter: TimetableAdapter) => {
+  timetableAdapter = adapter;
+};
+
+export const resetTimetableAdapter = () => {
+  timetableAdapter =
+    process.env.NEXT_PUBLIC_USE_TIMETABLE_API === "true"
+      ? createTimetableApiAdapter(detectConflictsImpl)
+      : mockTimetableAdapter;
+};
+
+export const activateTimetableAdapter = (adapter: TimetableAdapter) => {
+  setTimetableAdapter(adapter);
+  return adapter;
+};
+
+export const fetchTimetable = (
+  termId: string,
+  sectionId: string,
+  classroomId?: string
+): Promise<TimetableEntry[]> =>
+  timetableAdapter.fetchTimetable(termId, sectionId, classroomId);
+
+export const fetchAllTimetablesForTerm = (
+  termId: string
+): Promise<TimetableEntry[]> => timetableAdapter.fetchAllTimetablesForTerm(termId);
+
+export const upsertTimetableEntries = (
+  termId: string,
+  sectionId: string,
+  entries: Partial<TimetableEntry>[],
+  classroomId?: string
+): Promise<TimetableEntry[]> =>
+  timetableAdapter.upsertTimetableEntries(termId, sectionId, entries, classroomId);
+
+export const deleteTimetableEntry = (
+  termId: string,
+  sectionId: string,
+  day: number,
+  period: number,
+  classroomId?: string
+): Promise<void> =>
+  timetableAdapter.deleteTimetableEntry(termId, sectionId, day, period, classroomId);
+
+export const validateTimetable = (): Promise<TimetableValidationResult> =>
+  timetableAdapter.validateTimetable();
+
+export const publishTimetable = (
+  termId: string,
+  sectionId: string,
+  classroomId?: string
+): Promise<void> => timetableAdapter.publishTimetable(termId, sectionId, classroomId);
+
+export const unpublishTimetable = (
+  termId: string,
+  sectionId: string,
+  classroomId?: string
+): Promise<void> => timetableAdapter.unpublishTimetable(termId, sectionId, classroomId);
+
+export const detectConflicts = (
+  entries: TimetableEntry[],
+  sections: Array<{ id: string; nameAr: string; nameEn: string }>,
+  classrooms: Array<{ id: string; nameAr: string; nameEn: string }>,
+  teachers: Array<{ id: string; nameAr: string; nameEn: string }>,
+  rooms: Array<{ id: string; nameAr: string; nameEn: string }>,
+  subjects: Array<{ id: string; nameAr: string; nameEn: string }>
+): TimetableConflict[] =>
+  timetableAdapter.detectConflicts(entries, sections, classrooms, teachers, rooms, subjects);

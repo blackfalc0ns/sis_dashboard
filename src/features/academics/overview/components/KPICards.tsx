@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Layers, BookOpen, Users, Calendar, FileText, Grid } from "lucide-react";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import type { OverviewMetrics } from "../services/overviewService";
 
 interface KPICardsProps {
@@ -15,14 +16,8 @@ export default function KPICards({ metrics, isLoading }: KPICardsProps) {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
-            <div className="h-10 w-10 bg-gray-200 rounded-full mb-3"></div>
-            <div className="h-4 bg-gray-200 rounded w-2/3 mb-2"></div>
-            <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-          </div>
-        ))}
+      <div className="flex min-h-[160px] items-center justify-center">
+        <PartialLoader />
       </div>
     );
   }

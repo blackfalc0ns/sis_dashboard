@@ -15,19 +15,43 @@ import {
   subscribeTransfersWithdrawals,
   updateWithdrawalStatus,
 } from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
+import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 
 export default function WithdrawalsApplicationsPage() {
   const t = useTranslations("students_guardians.transfers_withdrawals");
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<FiltersType>({
-    stage: "all",
-    reason: "all",
-    status: "all",
-    behaviorBand: "all",
-    financialClearance: "all",
+  const { values, setValue, reset } = useUrlQueryState<{
+    search: string;
+    stage: string;
+    reason: string;
+    status: string;
+    behaviorBand: string;
+    financialClearance: string;
+  }>({
+    defaults: {
+      search: "",
+      stage: "all",
+      reason: "all",
+      status: "all",
+      behaviorBand: "all",
+      financialClearance: "all",
+    },
+    debouncedKeys: ["search"],
+    modeByKey: {
+      search: "replace",
+    },
   });
+
+  const searchQuery = values.search;
+  const filters: FiltersType = {
+    stage: values.stage as FiltersType["stage"],
+    reason: values.reason as FiltersType["reason"],
+    status: values.status as FiltersType["status"],
+    behaviorBand: values.behaviorBand as FiltersType["behaviorBand"],
+    financialClearance:
+      values.financialClearance as FiltersType["financialClearance"],
+  };
 
   useSyncExternalStore(
     subscribeTransfersWithdrawals,
@@ -46,14 +70,7 @@ export default function WithdrawalsApplicationsPage() {
     filters.financialClearance !== "all";
 
   const clearFilters = () => {
-    setSearchQuery("");
-    setFilters({
-      stage: "all",
-      reason: "all",
-      status: "all",
-      behaviorBand: "all",
-      financialClearance: "all",
-    });
+    reset(undefined, "replace");
   };
 
   return (
@@ -86,7 +103,7 @@ export default function WithdrawalsApplicationsPage() {
               type="text"
               placeholder={t("filters.search_placeholder")}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setValue("search", e.target.value, "replace")}
               className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
                 searchQuery
                   ? "border-primary ring-2 ring-primary/20"
@@ -126,16 +143,9 @@ export default function WithdrawalsApplicationsPage() {
               </label>
               <select
                 value={filters.stage || "all"}
-                onChange={(e) =>
-                  setFilters({
-                    ...filters,
-                    stage: e.target.value as
-                      | "all"
-                      | "primary"
-                      | "preparatory"
-                      | "secondary",
-                  })
-                }
+                onChange={(e) => {
+                  setValue("stage", e.target.value as FiltersType["stage"], "push");
+                }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("filters.all_stages")}</option>
@@ -156,19 +166,9 @@ export default function WithdrawalsApplicationsPage() {
               </label>
               <select
                 value={filters.reason || "all"}
-                onChange={(e) =>
-                  setFilters({
-                    ...filters,
-                    reason: e.target.value as
-                      | "all"
-                      | "relocation"
-                      | "financial"
-                      | "academic"
-                      | "behavior"
-                      | "health"
-                      | "other",
-                  })
-                }
+                onChange={(e) => {
+                  setValue("reason", e.target.value as FiltersType["reason"], "push");
+                }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("filters.all_reasons")}</option>
@@ -196,21 +196,9 @@ export default function WithdrawalsApplicationsPage() {
               </label>
               <select
                 value={filters.status || "all"}
-                onChange={(e) =>
-                  setFilters({
-                    ...filters,
-                    status: e.target.value as
-                      | "all"
-                      | "draft"
-                      | "submitted"
-                      | "under_review"
-                      | "finance_clearance"
-                      | "behavior_review"
-                      | "approved"
-                      | "rejected"
-                      | "executed",
-                  })
-                }
+                onChange={(e) => {
+                  setValue("status", e.target.value as FiltersType["status"], "push");
+                }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("filters.all_statuses")}</option>
@@ -246,16 +234,13 @@ export default function WithdrawalsApplicationsPage() {
               </label>
               <select
                 value={filters.behaviorBand || "all"}
-                onChange={(e) =>
-                  setFilters({
-                    ...filters,
-                    behaviorBand: e.target.value as
-                      | "all"
-                      | "low"
-                      | "medium"
-                      | "high",
-                  })
-                }
+                onChange={(e) => {
+                  setValue(
+                    "behaviorBand",
+                    e.target.value as FiltersType["behaviorBand"],
+                    "push",
+                  );
+                }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("filters.all_bands")}</option>
@@ -275,6 +260,7 @@ export default function WithdrawalsApplicationsPage() {
       {/* Table */}
       <WithdrawalsTable
         data={filteredData}
+        urlStateKeyPrefix="withdrawalApplicationsTable"
         onApprove={async (id) => {
           await updateWithdrawalStatus(id, "approved");
         }}

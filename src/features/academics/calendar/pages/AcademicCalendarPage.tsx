@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { Snackbar, Alert } from "@mui/material";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 import ContextBar from "../../components/shared/ContextBar";
 import CalendarToolbar from "../components/CalendarToolbar";
 import MonthCalendar from "../components/MonthCalendar";
@@ -13,48 +14,86 @@ import AgendaView from "../components/AgendaView";
 import EventDialog from "../components/EventDialog";
 import MoveEventDialog from "../components/MoveEventDialog";
 import {
-  fetchAcademicYears,
-  fetchTermsByYear,
-  Term,
-} from "@/features/academics/academic-structure-tree/services/structureService";
-import {
   fetchTermEvents,
   updateEvent,
   AcademicEvent,
 } from "@/features/academics/calendar/services/calendarService";
+import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
 
 export default function AcademicCalendarPage() {
   const t = useTranslations("academics.calendar");
   const router = useRouter();
   const searchParams = useSearchParams();
+  const {
+    academicYearId,
+    termId,
+    termStatus,
+    isInitializing,
+    selectedTerm,
+    changeAcademicYear,
+    changeTerm,
+  } = useAcademicYearTermContext();
 
-  // URL params
-  const [academicYearId, setAcademicYearId] = useState("");
-  const [termId, setTermId] = useState("");
-  const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
-  const [term, setTerm] = useState<Term | null>(null);
+  const queryState = useMemo(() => {
+    const rawDate = searchParams.get("date");
+    const parsedDate =
+      rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
+        ? new Date(`${rawDate}T00:00:00`)
+        : null;
+    const validDate =
+      parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : new Date();
 
-  // Context data
-  const [terms, setTerms] = useState<Term[]>([]);
+    const rawTypes = (searchParams.get("types") || "")
+      .split(",")
+      .filter(Boolean) as AcademicEvent["type"][];
+    const validTypes = rawTypes.filter((type) =>
+      ["HOLIDAY", "EXAM", "ACTIVITY", "OTHER"].includes(type)
+    ) as AcademicEvent["type"][];
+
+    const rawScope = searchParams.get("scope");
+    const validScope =
+      rawScope &&
+      ["ALL", "SCHOOL", "STAGE", "GRADE", "SECTION"].includes(rawScope)
+        ? (rawScope as "ALL" | AcademicEvent["scopeType"])
+        : "ALL";
+
+    const rawView = searchParams.get("view");
+    const validView =
+      rawView && ["month", "week", "agenda"].includes(rawView)
+        ? (rawView as "month" | "week" | "agenda")
+        : "month";
+
+    const rawMode = searchParams.get("mode");
+    const validMode =
+      rawMode && ["compact", "comfortable", "minimal"].includes(rawMode)
+        ? (rawMode as "compact" | "comfortable" | "minimal")
+        : "compact";
+
+    return {
+      currentDate: validDate,
+      typeFilters:
+        validTypes.length > 0
+          ? validTypes
+          : (["HOLIDAY", "EXAM", "ACTIVITY", "OTHER"] as AcademicEvent["type"][]),
+      scopeFilter: validScope,
+      view: validView,
+      displayMode: validMode,
+    };
+  }, [searchParams]);
 
   // Calendar state
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(queryState.currentDate);
   const [events, setEvents] = useState<AcademicEvent[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<AcademicEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // View and display mode state
-  const [view, setView] = useState<"month" | "week" | "agenda">("month");
-  const [displayMode, setDisplayMode] = useState<"compact" | "comfortable" | "minimal">("compact");
+  const [view, setView] = useState<"month" | "week" | "agenda">(queryState.view);
+  const [displayMode, setDisplayMode] = useState<"compact" | "comfortable" | "minimal">(queryState.displayMode);
 
   // Filters
-  const [typeFilters, setTypeFilters] = useState<AcademicEvent["type"][]>([
-    "HOLIDAY",
-    "EXAM",
-    "ACTIVITY",
-    "OTHER",
-  ]);
-  const [scopeFilter, setScopeFilter] = useState<"ALL" | AcademicEvent["scopeType"]>("ALL");
+  const [typeFilters, setTypeFilters] = useState<AcademicEvent["type"][]>(queryState.typeFilters);
+  const [scopeFilter, setScopeFilter] = useState<"ALL" | AcademicEvent["scopeType"]>(queryState.scopeFilter);
 
   // Dialog state
   const [showEventDialog, setShowEventDialog] = useState(false);
@@ -77,55 +116,18 @@ export default function AcademicCalendarPage() {
   });
 
   const isReadOnly = termStatus === "closed";
-
-  // Initialize from URL
-  useEffect(() => {
-    const initializeContext = async () => {
-      try {
-        const years = await fetchAcademicYears();
-
-        const urlYear = searchParams.get("year");
-        const urlTerm = searchParams.get("term");
-
-        const selectedYear = years.find((y) => y.id === urlYear) || years[0];
-        if (!selectedYear) return;
-
-        const yearTerms = await fetchTermsByYear(selectedYear.id);
-        setTerms(yearTerms);
-
-        let selectedTerm = yearTerms.find((t) => t.id === urlTerm);
-        if (!selectedTerm) {
-          selectedTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
-        }
-
-        if (selectedYear && selectedTerm) {
-          setAcademicYearId(selectedYear.id);
-          setTermId(selectedTerm.id);
-          setTermStatus(selectedTerm.status);
-          setTerm(selectedTerm);
-
-          const params = new URLSearchParams();
-          params.set("year", selectedYear.id);
-          params.set("term", selectedTerm.id);
-          router.replace(`?${params.toString()}`, { scroll: false });
-        }
-      } catch (error) {
-        console.error("Failed to initialize:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initializeContext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const term = selectedTerm;
 
   // Load events when term changes
   useEffect(() => {
-    if (!termId) return;
+    if (isInitializing) return;
+    if (!termId) {
+      setIsLoading(false);
+      return;
+    }
     loadEvents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [termId]);
+  }, [isInitializing, termId]);
 
   // Apply filters when events or filters change
   useEffect(() => {
@@ -133,12 +135,31 @@ export default function AcademicCalendarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events, typeFilters, scopeFilter]);
 
+  useEffect(() => {
+    setCurrentDate(queryState.currentDate);
+  }, [queryState.currentDate]);
+
+  useEffect(() => {
+    setTypeFilters(queryState.typeFilters);
+  }, [queryState.typeFilters]);
+
+  useEffect(() => {
+    setScopeFilter(queryState.scopeFilter);
+  }, [queryState.scopeFilter]);
+
+  useEffect(() => {
+    setView(queryState.view);
+  }, [queryState.view]);
+
+  useEffect(() => {
+    setDisplayMode(queryState.displayMode);
+  }, [queryState.displayMode]);
+
   const loadEvents = async () => {
     if (!termId) return;
-    console.log("loadEvents called for termId:", termId);
+    setIsLoading(true);
     try {
       const termEvents = await fetchTermEvents(termId);
-      console.log("Loaded events:", termEvents.length, termEvents);
       setEvents(termEvents);
       
       // Apply filters immediately after setting events
@@ -147,17 +168,16 @@ export default function AcademicCalendarPage() {
       if (scopeFilter !== "ALL") {
         filtered = filtered.filter((event) => event.scopeType === scopeFilter);
       }
-      console.log("Applied filters immediately:", filtered.length, "events");
       setFilteredEvents(filtered);
     } catch (error) {
       console.error("Failed to load events:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const applyFilters = () => {
     let filtered = events;
-
-    console.log("applyFilters called with", events.length, "events");
 
     // Filter by type
     filtered = filtered.filter((event) => typeFilters.includes(event.type));
@@ -167,69 +187,141 @@ export default function AcademicCalendarPage() {
       filtered = filtered.filter((event) => event.scopeType === scopeFilter);
     }
 
-    console.log("After filtering:", filtered.length, "events");
     setFilteredEvents(filtered);
   };
 
   const updateURL = useCallback(
-    (yearId: string, tId: string, currentView?: string, currentMode?: string) => {
+    (
+      yearId: string,
+      tId: string,
+      state: {
+        currentDate?: Date;
+        currentView?: "month" | "week" | "agenda";
+        currentMode?: "compact" | "comfortable" | "minimal";
+        currentTypeFilters?: AcademicEvent["type"][];
+        currentScopeFilter?: "ALL" | AcademicEvent["scopeType"];
+      },
+      historyMode: "push" | "replace" = "push"
+    ) => {
       const params = new URLSearchParams();
       params.set("year", yearId);
       params.set("term", tId);
-      if (currentView) params.set("view", currentView);
-      if (currentMode) params.set("mode", currentMode);
-      router.replace(`?${params.toString()}`, { scroll: false });
+      const nextDate = state.currentDate ?? currentDate;
+      const formattedDate = [
+        nextDate.getFullYear(),
+        String(nextDate.getMonth() + 1).padStart(2, "0"),
+        String(nextDate.getDate()).padStart(2, "0"),
+      ].join("-");
+      params.set("date", formattedDate);
+
+      const nextView = state.currentView ?? view;
+      const nextMode = state.currentMode ?? displayMode;
+      const nextTypes = state.currentTypeFilters ?? typeFilters;
+      const nextScope = state.currentScopeFilter ?? scopeFilter;
+
+      params.set("view", nextView);
+      params.set("mode", nextMode);
+
+      if (nextTypes.length > 0 && nextTypes.length < 4) {
+        params.set("types", nextTypes.join(","));
+      }
+
+      if (nextScope !== "ALL") {
+        params.set("scope", nextScope);
+      }
+
+      const nextQuery = params.toString();
+      const currentQuery = searchParams.toString();
+      if (nextQuery === currentQuery) {
+        return;
+      }
+
+      const nextUrl = `?${nextQuery}`;
+      if (historyMode === "push") {
+        router.push(nextUrl, { scroll: false });
+        return;
+      }
+      router.replace(nextUrl, { scroll: false });
     },
-    [router]
+    [currentDate, displayMode, router, scopeFilter, searchParams, typeFilters, view]
   );
 
-  // Initialize view and mode from URL
-  useEffect(() => {
-    const urlView = searchParams.get("view") as "month" | "week" | "agenda" | null;
-    const urlMode = searchParams.get("mode") as "compact" | "comfortable" | "minimal" | null;
-    
-    if (urlView && ["month", "week", "agenda"].includes(urlView)) {
-      setView(urlView);
-    }
-    if (urlMode && ["compact", "comfortable", "minimal"].includes(urlMode)) {
-      setDisplayMode(urlMode);
-    }
-  }, [searchParams]);
-
   const handleAcademicYearChange = async (yearId: string) => {
-    setAcademicYearId(yearId);
-
-    const yearTerms = await fetchTermsByYear(yearId);
-    setTerms(yearTerms);
-
-    const defaultTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
-    if (defaultTerm) {
-      setTermId(defaultTerm.id);
-      setTermStatus(defaultTerm.status);
-      setTerm(defaultTerm);
-      updateURL(yearId, defaultTerm.id, view, displayMode);
-    }
+    await changeAcademicYear(yearId);
   };
 
   const handleTermChange = (tId: string) => {
-    const selectedTerm = terms.find((t) => t.id === tId);
-    if (selectedTerm) {
-      setTermId(tId);
-      setTermStatus(selectedTerm.status);
-      setTerm(selectedTerm);
-      updateURL(academicYearId, tId, view, displayMode);
-    }
+    changeTerm(tId);
   };
 
   const handleViewChange = (newView: "month" | "week" | "agenda") => {
     setView(newView);
-    updateURL(academicYearId, termId, newView, displayMode);
+    updateURL(
+      academicYearId,
+      termId,
+      {
+        currentView: newView,
+      },
+      "push"
+    );
   };
 
   const handleDisplayModeChange = (newMode: "compact" | "comfortable" | "minimal") => {
     setDisplayMode(newMode);
-    updateURL(academicYearId, termId, view, newMode);
+    updateURL(
+      academicYearId,
+      termId,
+      {
+        currentMode: newMode,
+      },
+      "push"
+    );
   };
+
+  const handleDateChange = useCallback(
+    (date: Date) => {
+      setCurrentDate(date);
+      updateURL(
+        academicYearId,
+        termId,
+        {
+          currentDate: date,
+        },
+        "push"
+      );
+    },
+    [academicYearId, termId, updateURL]
+  );
+
+  const handleTypeFiltersChange = useCallback(
+    (filters: AcademicEvent["type"][]) => {
+      setTypeFilters(filters);
+      updateURL(
+        academicYearId,
+        termId,
+        {
+          currentTypeFilters: filters,
+        },
+        "push"
+      );
+    },
+    [academicYearId, termId, updateURL]
+  );
+
+  const handleScopeFilterChange = useCallback(
+    (scope: "ALL" | AcademicEvent["scopeType"]) => {
+      setScopeFilter(scope);
+      updateURL(
+        academicYearId,
+        termId,
+        {
+          currentScopeFilter: scope,
+        },
+        "push"
+      );
+    },
+    [academicYearId, termId, updateURL]
+  );
 
   const handlePromoteCarryOver = () => {
     // Not applicable for calendar
@@ -248,9 +340,7 @@ export default function AcademicCalendarPage() {
   };
 
   const handleEventSuccess = async () => {
-    console.log("handleEventSuccess called, reloading events...");
     await loadEvents();
-    console.log("Events reloaded, closing dialog");
     setShowEventDialog(false);
     setEditingEvent(null);
     setPrefilledDate(null);
@@ -318,7 +408,7 @@ export default function AcademicCalendarPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-gray-500">Loading...</div>
+        <MainLoader />
       </div>
     );
   }
@@ -351,11 +441,11 @@ export default function AcademicCalendarPage() {
           {/* Calendar Toolbar */}
           <CalendarToolbar
             currentDate={currentDate}
-            onDateChange={setCurrentDate}
+            onDateChange={handleDateChange}
             typeFilters={typeFilters}
-            onTypeFiltersChange={setTypeFilters}
+            onTypeFiltersChange={handleTypeFiltersChange}
             scopeFilter={scopeFilter}
-            onScopeFilterChange={setScopeFilter}
+            onScopeFilterChange={handleScopeFilterChange}
             onAddEvent={() => handleAddEvent()}
             isReadOnly={isReadOnly}
             view={view}

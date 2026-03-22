@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useDebouncedCallback } from "use-debounce";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui";
@@ -46,6 +48,8 @@ export default function RoomsView({
   const t = useTranslations("academics.timetable.rooms");
   const tCommon = useTranslations("common");
   const locale = useLocale();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
 
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -55,12 +59,24 @@ export default function RoomsView({
   const [sections, setSections] = useState<Section[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [defaultScopeType, setDefaultScopeType] = useState<"SECTION" | "CLASSROOM">("SECTION");
-  const [defaultStageId, setDefaultStageId] = useState("");
-  const [defaultGradeId, setDefaultGradeId] = useState("");
-  const [defaultSectionId, setDefaultSectionId] = useState("");
-  const [defaultClassroomId, setDefaultClassroomId] = useState("");
+  const queryState = useMemo(
+    () => ({
+      searchQuery: searchParams.get("roomSearch") || "",
+      defaultScopeType:
+        searchParams.get("defaultScope") === "CLASSROOM"
+          ? "CLASSROOM"
+          : "SECTION",
+      defaultStageId: searchParams.get("defaultStage") || "",
+      defaultGradeId: searchParams.get("defaultGrade") || "",
+      defaultSectionId: searchParams.get("defaultSection") || "",
+      defaultClassroomId: searchParams.get("defaultClassroom") || "",
+    }),
+    [searchParams]
+  );
+  const [searchInputValue, setSearchInputValue] = useState(queryState.searchQuery);
+  useEffect(() => {
+    setSearchInputValue(queryState.searchQuery);
+  }, [queryState.searchQuery]);
   const [defaultRoomId, setDefaultRoomId] = useState("");
   const [editingDefault, setEditingDefault] = useState<RoomDefaultAssignment | null>(null);
 
@@ -69,6 +85,90 @@ export default function RoomsView({
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
+
+  const syncQueryParams = useCallback(
+    (
+      nextState: Partial<{
+        searchQuery: string;
+        defaultScopeType: "SECTION" | "CLASSROOM";
+        defaultStageId: string;
+        defaultGradeId: string;
+        defaultSectionId: string;
+        defaultClassroomId: string;
+      }>,
+      historyMode: "push" | "replace" = "push"
+    ) => {
+      const params = new URLSearchParams(searchParams.toString());
+      const mergedState = {
+        searchQuery: nextState.searchQuery ?? queryState.searchQuery,
+        defaultScopeType:
+          nextState.defaultScopeType ?? queryState.defaultScopeType,
+        defaultStageId: nextState.defaultStageId ?? queryState.defaultStageId,
+        defaultGradeId: nextState.defaultGradeId ?? queryState.defaultGradeId,
+        defaultSectionId:
+          nextState.defaultSectionId ?? queryState.defaultSectionId,
+        defaultClassroomId:
+          nextState.defaultClassroomId ?? queryState.defaultClassroomId,
+      };
+
+      if (mergedState.searchQuery) {
+        params.set("roomSearch", mergedState.searchQuery);
+      } else {
+        params.delete("roomSearch");
+      }
+
+      if (mergedState.defaultScopeType === "CLASSROOM") {
+        params.set("defaultScope", "CLASSROOM");
+      } else {
+        params.delete("defaultScope");
+      }
+
+      const entries: Array<[string, string]> = [
+        ["defaultStage", mergedState.defaultStageId],
+        ["defaultGrade", mergedState.defaultGradeId],
+        ["defaultSection", mergedState.defaultSectionId],
+        ["defaultClassroom", mergedState.defaultClassroomId],
+      ];
+
+      entries.forEach(([key, value]) => {
+        if (value) {
+          params.set(key, value);
+        } else {
+          params.delete(key);
+        }
+      });
+
+      const nextQuery = params.toString();
+      const currentQuery = searchParams.toString();
+      if (nextQuery === currentQuery) {
+        return;
+      }
+
+      const nextUrl = nextQuery ? `?${nextQuery}` : "?";
+      if (historyMode === "push") {
+        router.push(nextUrl, { scroll: false });
+        return;
+      }
+      router.replace(nextUrl, { scroll: false });
+    },
+    [
+      queryState.defaultClassroomId,
+      queryState.defaultGradeId,
+      queryState.defaultScopeType,
+      queryState.defaultSectionId,
+      queryState.defaultStageId,
+      queryState.searchQuery,
+      router,
+      searchParams,
+    ]
+  );
+  const syncSearchQueryParam = useDebouncedCallback((value: string) => {
+    syncQueryParams({ searchQuery: value }, "replace");
+  }, 250);
+
+  useEffect(() => () => {
+    syncSearchQueryParam.cancel();
+  }, [syncSearchQueryParam]);
 
   const loadRooms = useCallback(async () => {
     setIsLoading(true);
@@ -107,6 +207,74 @@ export default function RoomsView({
 
     loadStructure();
   }, [academicYearId, termId]);
+
+  useEffect(() => {
+    if (stages.length === 0 && grades.length === 0 && sections.length === 0) {
+      return;
+    }
+
+    const normalizedStageId = stages.some(
+      (stage) => stage.id === queryState.defaultStageId
+    )
+      ? queryState.defaultStageId
+      : "";
+
+    const normalizedGradeId = grades.some(
+      (grade) =>
+        grade.id === queryState.defaultGradeId &&
+        (!normalizedStageId || grade.stageId === normalizedStageId)
+    )
+      ? queryState.defaultGradeId
+      : "";
+
+    const normalizedSectionId = sections.some(
+      (section) =>
+        section.id === queryState.defaultSectionId &&
+        (!normalizedGradeId || section.gradeId === normalizedGradeId)
+    )
+      ? queryState.defaultSectionId
+      : "";
+
+    const normalizedClassroomId =
+      queryState.defaultScopeType === "CLASSROOM" &&
+      classrooms.some(
+        (classroom) =>
+          classroom.id === queryState.defaultClassroomId &&
+          (!normalizedSectionId || classroom.sectionId === normalizedSectionId)
+      )
+        ? queryState.defaultClassroomId
+        : "";
+
+    if (
+      normalizedStageId === queryState.defaultStageId &&
+      normalizedGradeId === queryState.defaultGradeId &&
+      normalizedSectionId === queryState.defaultSectionId &&
+      normalizedClassroomId === queryState.defaultClassroomId
+    ) {
+      return;
+    }
+
+    syncQueryParams(
+      {
+        defaultStageId: normalizedStageId,
+        defaultGradeId: normalizedGradeId,
+        defaultSectionId: normalizedSectionId,
+        defaultClassroomId: normalizedClassroomId,
+      },
+      "replace"
+    );
+  }, [
+    classrooms,
+    grades,
+    queryState.defaultClassroomId,
+    queryState.defaultGradeId,
+    queryState.defaultScopeType,
+    queryState.defaultSectionId,
+    queryState.defaultStageId,
+    sections,
+    stages,
+    syncQueryParams,
+  ]);
 
   const handleAddRoom = () => {
     setEditingRoom(null);
@@ -157,40 +325,59 @@ export default function RoomsView({
 
   const resetDefaultForm = () => {
     setEditingDefault(null);
-    setDefaultScopeType("SECTION");
-    setDefaultStageId("");
-    setDefaultGradeId("");
-    setDefaultSectionId("");
-    setDefaultClassroomId("");
+    syncQueryParams(
+      {
+        defaultScopeType: "SECTION",
+        defaultStageId: "",
+        defaultGradeId: "",
+        defaultSectionId: "",
+        defaultClassroomId: "",
+      },
+      "replace"
+    );
     setDefaultRoomId("");
   };
 
   const handleEditDefault = (assignment: RoomDefaultAssignment) => {
     setEditingDefault(assignment);
-    setDefaultScopeType(assignment.scopeType);
     if (assignment.scopeType === "SECTION") {
       const section = sections.find((item) => item.id === assignment.scopeId);
       const grade = section ? grades.find((item) => item.id === section.gradeId) : undefined;
-      setDefaultStageId(grade?.stageId || "");
-      setDefaultSectionId(section?.id || "");
-      setDefaultGradeId(section?.gradeId || "");
-      setDefaultClassroomId("");
+      syncQueryParams(
+        {
+          defaultScopeType: "SECTION",
+          defaultStageId: grade?.stageId || "",
+          defaultGradeId: section?.gradeId || "",
+          defaultSectionId: section?.id || "",
+          defaultClassroomId: "",
+        },
+        "replace"
+      );
     } else {
       const classroom = classrooms.find((item) => item.id === assignment.scopeId);
       const section = classroom
         ? sections.find((item) => item.id === classroom.sectionId)
         : undefined;
       const grade = section ? grades.find((item) => item.id === section.gradeId) : undefined;
-      setDefaultStageId(grade?.stageId || "");
-      setDefaultClassroomId(classroom?.id || "");
-      setDefaultSectionId(section?.id || "");
-      setDefaultGradeId(section?.gradeId || "");
+      syncQueryParams(
+        {
+          defaultScopeType: "CLASSROOM",
+          defaultStageId: grade?.stageId || "",
+          defaultGradeId: section?.gradeId || "",
+          defaultSectionId: section?.id || "",
+          defaultClassroomId: classroom?.id || "",
+        },
+        "replace"
+      );
     }
     setDefaultRoomId(assignment.roomId);
   };
 
   const handleSaveDefault = async () => {
-    const scopeId = defaultScopeType === "CLASSROOM" ? defaultClassroomId : defaultSectionId;
+    const scopeId =
+      queryState.defaultScopeType === "CLASSROOM"
+        ? queryState.defaultClassroomId
+        : queryState.defaultSectionId;
     if (!scopeId || !defaultRoomId) {
       showToast(t("defaults.validation"), "error");
       return;
@@ -199,13 +386,13 @@ export default function RoomsView({
     try {
       if (editingDefault) {
         await updateRoomDefaultAssignment(editingDefault.id, {
-          scopeType: defaultScopeType,
+          scopeType: queryState.defaultScopeType,
           scopeId,
           roomId: defaultRoomId,
         });
       } else {
         await createRoomDefaultAssignment(schoolId, {
-          scopeType: defaultScopeType,
+          scopeType: queryState.defaultScopeType,
           scopeId,
           roomId: defaultRoomId,
         });
@@ -235,22 +422,22 @@ export default function RoomsView({
   };
 
   const filteredRooms = rooms.filter((room) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
+    if (!searchInputValue) return true;
+    const query = searchInputValue.toLowerCase();
     return (
       room.nameAr.toLowerCase().includes(query) ||
       room.nameEn.toLowerCase().includes(query)
     );
   });
 
-  const filteredSections = defaultGradeId
-    ? sections.filter((section) => section.gradeId === defaultGradeId)
+  const filteredSections = queryState.defaultGradeId
+    ? sections.filter((section) => section.gradeId === queryState.defaultGradeId)
     : sections;
-  const filteredGrades = defaultStageId
-    ? grades.filter((grade) => grade.stageId === defaultStageId)
+  const filteredGrades = queryState.defaultStageId
+    ? grades.filter((grade) => grade.stageId === queryState.defaultStageId)
     : grades;
-  const filteredClassrooms = defaultSectionId
-    ? classrooms.filter((classroom) => classroom.sectionId === defaultSectionId)
+  const filteredClassrooms = queryState.defaultSectionId
+    ? classrooms.filter((classroom) => classroom.sectionId === queryState.defaultSectionId)
     : [];
 
   const getDisplayName = (item?: { nameAr?: string; nameEn?: string }) =>
@@ -369,8 +556,12 @@ export default function RoomsView({
           <div className="p-4 border-b border-gray-200">
             <input
               type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchInputValue}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSearchInputValue(value);
+                syncSearchQueryParam(value);
+              }}
               placeholder={t("searchPlaceholder")}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
@@ -389,7 +580,7 @@ export default function RoomsView({
             <DataTable
               data={filteredRooms as unknown as { [key: string]: unknown }[]}
               columns={columns as unknown as Array<{ key: string; label: string; render?: (value: unknown, row: unknown) => React.ReactNode }>}
-              searchQuery={searchQuery}
+              searchQuery={searchInputValue}
             />
           )}
         </div>
@@ -410,13 +601,18 @@ export default function RoomsView({
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
             <Select
               label={t("defaults.scopeType")}
-              value={defaultScopeType}
+              value={queryState.defaultScopeType}
               onChange={(value) => {
-                setDefaultScopeType(value as "SECTION" | "CLASSROOM");
-                setDefaultStageId("");
-                setDefaultGradeId("");
-                setDefaultSectionId("");
-                setDefaultClassroomId("");
+                syncQueryParams(
+                  {
+                    defaultScopeType: value as "SECTION" | "CLASSROOM",
+                    defaultStageId: "",
+                    defaultGradeId: "",
+                    defaultSectionId: "",
+                    defaultClassroomId: "",
+                  },
+                  "push"
+                );
               }}
               options={[
                 { value: "SECTION", label: t("defaults.section") },
@@ -426,43 +622,64 @@ export default function RoomsView({
             />
             <Select
               label={t("defaults.stage")}
-              value={defaultStageId}
+              value={queryState.defaultStageId}
               onChange={(value) => {
-                setDefaultStageId(value);
-                setDefaultGradeId("");
-                setDefaultSectionId("");
-                setDefaultClassroomId("");
+                syncQueryParams(
+                  {
+                    defaultStageId: value,
+                    defaultGradeId: "",
+                    defaultSectionId: "",
+                    defaultClassroomId: "",
+                  },
+                  "push"
+                );
               }}
               options={stageOptions}
               disabled={isReadOnly}
             />
             <Select
               label={t("defaults.grade")}
-              value={defaultGradeId}
+              value={queryState.defaultGradeId}
               onChange={(value) => {
-                setDefaultGradeId(value);
-                setDefaultSectionId("");
-                setDefaultClassroomId("");
+                syncQueryParams(
+                  {
+                    defaultGradeId: value,
+                    defaultSectionId: "",
+                    defaultClassroomId: "",
+                  },
+                  "push"
+                );
               }}
               options={filteredGradeOptions}
-              disabled={isReadOnly || !defaultStageId}
+              disabled={isReadOnly || !queryState.defaultStageId}
             />
             <Select
               label={t("defaults.section")}
-              value={defaultSectionId}
+              value={queryState.defaultSectionId}
               onChange={(value) => {
-                setDefaultSectionId(value);
-                setDefaultClassroomId("");
+                syncQueryParams(
+                  {
+                    defaultSectionId: value,
+                    defaultClassroomId: "",
+                  },
+                  "push"
+                );
               }}
               options={sectionOptions}
-              disabled={isReadOnly || !defaultGradeId}
+              disabled={isReadOnly || !queryState.defaultGradeId}
             />
             <Select
               label={t("defaults.classroom")}
-              value={defaultClassroomId}
-              onChange={setDefaultClassroomId}
+              value={queryState.defaultClassroomId}
+              onChange={(value) =>
+                syncQueryParams({ defaultClassroomId: value }, "push")
+              }
               options={classroomOptions}
-              disabled={isReadOnly || defaultScopeType !== "CLASSROOM" || !defaultSectionId}
+              disabled={
+                isReadOnly ||
+                queryState.defaultScopeType !== "CLASSROOM" ||
+                !queryState.defaultSectionId
+              }
             />
             <Select
               label={t("defaults.room")}

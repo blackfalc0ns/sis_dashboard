@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Application } from "@/features/admissions/types/admissions";
 import StatusBadge from "../../../shared/StatusBadge";
+import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 
 interface TestsTabProps {
   application: Application;
@@ -14,6 +15,7 @@ export default function TestsTab({
   onScheduleTest,
 }: TestsTabProps) {
   const t = useTranslations("admissions.application360");
+  const { isReadOnly } = useAdmissionsYearTermContext();
 
   return (
     <div className="space-y-4">
@@ -21,6 +23,7 @@ export default function TestsTab({
         <h3 className="font-semibold text-gray-900">{t("tests.title")}</h3>
         <button
           onClick={onScheduleTest}
+          disabled={isReadOnly}
           className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
         >
           {t("tests.schedule_test")}

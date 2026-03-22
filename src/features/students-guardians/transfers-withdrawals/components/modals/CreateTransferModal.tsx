@@ -1,10 +1,10 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { X, Search, Upload, ChevronDown } from "lucide-react";
 import {
-  getAllStudents,
+  fetchAllStudents,
   getStudentEnrollment,
 } from "@/features/students-guardians/students/services/studentsService";
 import type { Student } from "@/features/students-guardians/students/types";
@@ -13,6 +13,7 @@ import {
   getStructureTreeSnapshot,
   resolveStructureContextForAcademicYear,
 } from "@/features/academics/academic-structure-tree/services/structureService";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 interface CreateTransferModalProps {
   isOpen: boolean;
@@ -157,15 +158,42 @@ export default function CreateTransferModal({
   const [showSectionDropdown, setShowSectionDropdown] = useState(false);
   const [showClassroomDropdown, setShowClassroomDropdown] = useState(false);
 
-  const allStudents = getAllStudents();
-  const filteredStudents = allStudents.filter((student) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      student.full_name_en.toLowerCase().includes(query) ||
-      student.full_name_ar.includes(searchQuery) ||
-      student.student_id?.toLowerCase().includes(query)
-    );
-  });
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(true);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    void Promise.resolve().then(async () => {
+      try {
+        const students = await fetchAllStudents();
+        if (!isCancelled) {
+          setAllStudents(students);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingStudents(false);
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  const filteredStudents = useMemo(
+    () =>
+      allStudents.filter((student) => {
+        const query = searchQuery.toLowerCase();
+        return (
+          student.full_name_en.toLowerCase().includes(query) ||
+          student.full_name_ar.includes(searchQuery) ||
+          student.student_id?.toLowerCase().includes(query)
+        );
+      }),
+    [allStudents, searchQuery],
+  );
 
   const selectedStudent = formData.studentId
     ? allStudents.find((item) => (item.student_id || item.id) === formData.studentId)
@@ -323,6 +351,7 @@ export default function CreateTransferModal({
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {isLoadingStudents ? <PartialLoader /> : null}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("fields.student")} <span className="text-red-500">*</span>

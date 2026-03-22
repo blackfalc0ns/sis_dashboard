@@ -315,6 +315,19 @@
     "view_all": "عرض الكل"
   },
   "admissions": {
+    "context_bar": {
+      "title": "سياق القبول",
+      "academic_year": "العام الأكاديمي",
+      "term": "الفصل الدراسي",
+      "status_open": "مفتوح",
+      "status_closed": "مغلق",
+      "read_only": "للقراءة فقط",
+      "read_only_banner": "هذا الفصل مغلق. إجراءات القبول للقراءة فقط.",
+      "errors": {
+        "failed_to_load": "تعذر تحميل سياق القبول.",
+        "failed_to_load_terms": "تعذر تحميل فصول القبول."
+      }
+    },
     "dashboard": {
       "title": "لوحة القبول",
       "subtitle": "نظرة عامة على مسار القبول والتحليلات",
@@ -1194,7 +1207,19 @@
       "all_years": "جميع السنوات",
       "no_match": "لا توجد تسجيلات تطابق التصفية",
       "no_enrollments": "لم يتم العثور على تسجيلات",
-      "found": "تم العثور عليها"
+      "found": "تم العثور عليها",
+      "promote_students": "ترقية الطلاب",
+      "rebalance_classrooms": "إعادة توزيع الفصول",
+      "target_academic_year": "السنة الدراسية المستهدفة",
+      "effective_date": "تاريخ السريان",
+      "confirm": "تأكيد",
+      "cancel": "إلغاء",
+      "messages": {
+        "enrollment_updated": "تم تحديث التسجيل بنجاح.",
+        "promotion_complete": "تمت ترقية {count} طالبًا بنجاح.",
+        "rebalance_complete": "تم تحديث {count} من التوزيعات. غير المعيّن: {unassigned}.",
+        "action_failed": "تعذر إكمال العملية."
+      }
     },
     "export": {
       "title": "تصدير بيانات القبول",
@@ -1381,6 +1406,7 @@
       }
     },
     "students": {
+      "loading_error": "فشل تحميل الطلاب للسياق الأكاديمي المحدد.",
       "title": "جميع الطلاب",
       "subtitle": "إدارة وتتبع معلومات الطلاب",
       "export": "تصدير",
@@ -1471,6 +1497,7 @@
       }
     },
     "guardians_list": {
+      "loading_error": "فشل تحميل أولياء الأمور للسياق الأكاديمي المحدد.",
       "title": "أولياء الأمور",
       "subtitle": "إدارة وعرض معلومات أولياء الأمور",
       "kpis": {
@@ -1591,6 +1618,7 @@
         "new_transfer": "تحويل جديد",
         "kpis": {
           "transfers_this_month": "التحويلات هذا الشهر",
+          "transfers_this_term": "التحويلات هذا الترم",
           "total_transfers": "إجمالي التحويلات",
           "internal_transfers": "التحويلات الداخلية",
           "within_school": "داخل المدرسة",
@@ -1625,6 +1653,7 @@
         "new_withdrawal": "انسحاب جديد",
         "kpis": {
           "withdrawals_this_month": "الانسحاب هذا الشهر",
+          "withdrawals_this_term": "الانسحاب هذا الترم",
           "total_withdrawals": "إجمالي الانسحاب",
           "dropout_rate": "معدل التسرب",
           "above_threshold": "أعلى من الحد",
@@ -1747,7 +1776,10 @@
         "withdrawals_trend_description": "تتبع حالات الانسحاب الشهرية",
         "transfers_trend": "التحويلات عبر الوقت",
         "withdrawals_trend": "الانسحاب عبر الوقت",
-        "withdrawals_by_stage": "الانسحاب حسب المرحلة",
+        "withdrawals_by_stage": {
+         "title": "الانسحاب حسب المرحلة",
+  "description": "توزيع حالات الانسحاب عبر المراحل التعليمية"
+        },
         "total_withdrawals": "إجمالي الانسحاب",
         "total_transfers": "إجمالي التحويلات",
         "internal_transfers": "التحويلات الداخلية",
@@ -1768,7 +1800,27 @@
           "y_axis": "عدد الانسحابات",
           "insight_title": "رؤية رئيسية",
           "insight_text": "الطلاب ذوو التقييمات السلوكية المنخفضة (0-40) يظهرون معدلات انسحاب أعلى بشكل ملحوظ، مما يشير إلى وجود علاقة قوية بين المشاكل السلوكية والاحتفاظ بالطلاب."
-        }
+        },
+    "transfers_by_type": {
+  "title": "التحويلات حسب النوع",
+  "description": "توزيع عدد حالات التحويل الداخلية والخارجية حسب نوع التحويل"
+},
+"transfers_by_stage": {
+  "title": "التحويلات حسب المرحلة",
+  "description": "توزيع حالات التحويل عبر المراحل التعليمية"
+},
+"transfers_by_status": {
+  "title": "التحويلات حسب الحالة",
+  "description": "توزيع الحالات حسب حالة طلب التحويل"
+},
+"withdrawals_by_status": {
+  "title": "الانسحاب حسب الحالة",
+  "description": "توزيع الحالات حسب حالة طلب الانسحاب"
+},
+"withdrawals_by_clearance": {
+  "title": "الانسحاب حسب حالة المخالصة",
+  "description": "توزيع عدد حالات الانسحاب المكتملة وغير المكتملة حسب المخالصة"
+}
       },
       "modals": {
         "transfer": {
@@ -1993,7 +2045,11 @@
         "title": "المعلومات الشخصية",
         "edit": "تعديل",
         "save": "حفظ",
+        "saving": "جارٍ الحفظ...",
         "cancel": "إلغاء",
+        "save_success": "تم حفظ ملف الطالب بنجاح.",
+        "save_failed": "فشل حفظ ملف الطالب. يرجى المحاولة مرة أخرى.",
+        "select_enrollment_year": "اختر سنة التسجيل",
         "risk_flags_detected": "تم اكتشاف علامات خطر",
         "risk_flags_message": "هذا الطالب يحتاج إلى اهتمام ودعم إضافي.",
         "student_id": "رقم الطالب",
@@ -2130,23 +2186,85 @@
       },
       "grades": {
         "title": "الدرجات",
-        "current_average": "المعدل الحالي",
-        "overall_gpa": "المعدل التراكمي",
-        "highest_grade": "أعلى درجة",
-        "lowest_grade": "أقل درجة",
-        "total_assessments": "إجمالي التقييمات",
-        "this_semester": "هذا الفصل",
+        "loading": "جار تحميل بيانات الدرجات...",
+        "empty_state": "لا توجد بيانات درجات متاحة من نظام ERP لهذا الطالب حتى الآن.",
+        "not_available": "غير متاح",
         "performance_over_time": "الأداء عبر الوقت",
+        "performance_over_time_subtitle": "اتجاه الأداء ضمن {scope}",
         "average_grade": "متوسط الدرجات",
+        "overall_gpa": "المعدل العام",
+        "no_trend_data": "لا توجد بيانات كافية لعرض اتجاه الأداء.",
+        "real_assessment_count": "{count} تقييمًا فعليًا في هذا العرض",
         "subject_grades": "درجات المواد",
-        "view_only": "معلومات الدرجات للعرض فقط",
-        "subject": "المادة",
-        "average": "المعدل",
-        "last_assessment": "آخر تقييم",
-        "assessments": "التقييمات",
-        "trend": "الاتجاه",
-        "total": "إجمالي",
-        "subject_performance": "الأداء حسب المادة"
+        "subject_grades_subtitle": "ملخص درجات المواد خلال الفترة المحددة",
+        "total_assessments": "إجمالي التقييمات",
+        "total_assessments_suffix": "إجمالي",
+        "academic_summary": "الملخص الأكاديمي",
+        "academic_summary_subtitle": "هذا الملخص يعتمد على بيانات ERP الحالية عند عدم توفر تفاصيل المواد",
+        "this_semester": "هذا الفصل",
+        "term_selector": {
+          "label": "الفصل",
+          "current": "الفصل الحالي",
+          "term_1": "الفصل الأول",
+          "term_2": "الفصل الثاني",
+          "term_3": "الفصل الثالث",
+          "ytd": "منذ بداية العام"
+        },
+        "current_term_fallback": {
+          "active": "تم العثور على فصل نشط.",
+          "latest_completed": "لا يوجد فصل نشط الآن. تم اختيار آخر فصل مكتمل.",
+          "upcoming": "لا يوجد فصل نشط أو مكتمل بعد. تم اختيار أول فصل قادم."
+        },
+        "context": {
+          "academic_year": "العام الدراسي",
+          "grade": "الصف",
+          "section": "الشعبة",
+          "classroom": "الفصل",
+          "selected_view": "العرض المحدد",
+          "homeroom_teacher": "المعلم المشرف"
+        },
+        "kpis": {
+          "term_average": "متوسط الفصل",
+          "ytd_average": "متوسط العام حتى الآن",
+          "attendance": "الحضور",
+          "highest_grade": "أعلى درجة متاحة",
+          "lowest_grade": "أدنى درجة متاحة",
+          "best_term_average": "أفضل متوسط فصل",
+          "lowest_term_average": "أدنى متوسط فصل",
+          "risk_flags": "مؤشرات الخطر",
+          "selected_term_subtitle": "{term}",
+          "ytd_subtitle": "من جميع الفترات المتاحة",
+          "subject_data_subtitle": "{label}",
+          "term_data_subtitle": "{label}",
+          "risk_flags_subtitle": "مؤشرات مستخلصة من بيانات ERP"
+        },
+        "table": {
+          "subject": "المادة",
+          "teacher": "المعلم",
+          "average": "المتوسط",
+          "last_assessment": "آخر تقييم",
+          "assessments": "التقييمات",
+          "trend": "الاتجاه"
+        },
+        "summary": {
+          "metric": "المؤشر",
+          "value": "القيمة",
+          "detail": "التفاصيل",
+          "term_average": "متوسط الفصل",
+          "attendance": "الحضور",
+          "risk_flags": "مؤشرات الخطر",
+          "homeroom_teacher": "المعلم المشرف"
+        },
+        "trend": {
+          "up": "في ارتفاع",
+          "down": "في انخفاض",
+          "stable": "مستقر"
+        },
+        "risk_flags": {
+          "attendance": "انخفاض الحضور",
+          "grades": "انخفاض الدرجات",
+          "behavior": "مخاطر سلوكية"
+        }
       },
       "behavior": {
         "title": "السلوك",
@@ -2282,7 +2400,20 @@
         "withdrawal_history": "سجل الانسحاب",
         "no_history": "لا توجد سجلات انسحاب متاحة"
       }
+    },
+   "shared": {
+  "year_term_context": {
+    "title": "السياق الأكاديمي",
+    "academic_year": "العام الدراسي",
+    "term": "الفصل",
+    "status_open": "مفتوح",
+    "status_closed": "مغلق",
+    "errors": {
+      "failed_to_load": "تعذر تحميل السياق الأكاديمي الحالي.",
+      "failed_to_load_terms": "تعذر تحميل فصول العام الدراسي."
     }
+  }
+}
   },
   "academics": {
     "structure": {
@@ -2868,6 +2999,10 @@
         "confirmDelete": "هل أنت متأكد من حذف هذا الواجب ",
         "confirmReset": "هل أنت متأكد من إعادة تعيين هذا الواجب  سيتم فقدان جميع التغييرات غير المحفوظة.",
         "notFound": "الواجب غير موجود",
+        "createDraftTitle": "إنشاء مسودة واجب",
+        "createDraftBody": "قم بإنشاء مسودة واجب قبل إضافة الأسئلة أو المرفقات أو النشر.",
+        "createDraftAction": "إنشاء مسودة",
+        "creatingDraft": "جاري الإنشاء...",
         "mustSaveBeforePublish": "يجب حفظ التغييرات قبل النشر",
         "questionsOutline": "قائمة الأسئلة",
         "noQuestionsYet": "لا توجد أسئلة بعد. أضف أول سؤال للبدء.",
@@ -3815,26 +3950,26 @@
           }
         }
       },
- "errors": {
-  "missing_scope": "يرجى تحديد نطاق العمل أولاً.",
-  "title_required": "عنوان التقييم مطلوب.",
-  "invalid_weight": "يجب أن يكون الوزن رقمًا بين 1 و100.",
-  "invalid_max_score": "يجب أن تكون الدرجة النهائية أكبر من 0.",
-  "assessment_not_found": "التقييم غير موجود.",
-  "assessment_locked": "هذا التقييم مقفل.",
-  "assessment_metadata_locked": "لا يمكن تعديل بيانات التقييم بعد الاعتماد.",
-  "grade_item_not_found": "عنصر الدرجة غير موجود.",
-  "bulk_empty": "لا توجد درجات لإرسالها.",
-  "score_required": "الدرجة مطلوبة عندما تكون الحالة تم الإدخال.",
-  "score_out_of_range": "الدرجة خارج النطاق المسموح.",
-  "generic": "حدث خطأ غير متوقع.",
-  "question_not_found": "السؤال المطلوب غير موجود.",
-  "assessment_structure_locked": "لا يمكن تعديل بنية التقييم بعد اعتماده.",
-  "grading_started": "لا يمكن تعديل التقييم بعد بدء عملية التصحيح.",
-  "last_question_required": "يجب أن يحتوي التقييم على سؤال واحد على الأقل.",
-  "assessment_not_published": "لم يتم نشر التقييم بعد.",
-  "assessment_not_approved": "لم يتم اعتماد التقييم بعد."
-},
+      "errors": {
+        "missing_scope": "يرجى تحديد نطاق العمل أولاً.",
+        "title_required": "عنوان التقييم مطلوب.",
+        "invalid_weight": "يجب أن يكون الوزن رقمًا بين 1 و100.",
+        "invalid_max_score": "يجب أن تكون الدرجة النهائية أكبر من 0.",
+        "assessment_not_found": "التقييم غير موجود.",
+        "assessment_locked": "هذا التقييم مقفل.",
+        "assessment_metadata_locked": "لا يمكن تعديل بيانات التقييم بعد الاعتماد.",
+        "grade_item_not_found": "عنصر الدرجة غير موجود.",
+        "bulk_empty": "لا توجد درجات لإرسالها.",
+        "score_required": "الدرجة مطلوبة عندما تكون الحالة تم الإدخال.",
+        "score_out_of_range": "الدرجة خارج النطاق المسموح.",
+        "generic": "حدث خطأ غير متوقع.",
+        "question_not_found": "السؤال المطلوب غير موجود.",
+        "assessment_structure_locked": "لا يمكن تعديل بنية التقييم بعد اعتماده.",
+        "grading_started": "لا يمكن تعديل التقييم بعد بدء عملية التصحيح.",
+        "last_question_required": "يجب أن يحتوي التقييم على سؤال واحد على الأقل.",
+        "assessment_not_published": "لم يتم نشر التقييم بعد.",
+        "assessment_not_approved": "لم يتم اعتماد التقييم بعد."
+      },
       "deliveryModes": {
         "scoreOnly": "درجة فقط",
         "questionBased": "بناءً على الأسئلة"

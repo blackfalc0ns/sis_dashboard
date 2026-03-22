@@ -1,9 +1,13 @@
+import type { OverviewAdapter } from "@/features/academics/overview/services/overviewAdapter";
+import { overviewApiAdapter } from "@/features/academics/overview/services/overviewApiAdapter";
+
 // Service to aggregate data from all academics modules for the overview
 
-import { fetchStructureTree } from '@/features/academics/academic-structure-tree/services/structureService';
-import { fetchSubjects, fetchSubjectAllocations } from '@/features/academics/subjects/services/subjectsService';
-import { fetchTeacherAllocations, fetchTeachers } from '@/features/academics/teacher-allocation/services/teacherAllocationService';
-import { fetchTermEvents } from '@/features/academics/calendar/services/calendarService';
+import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
+import { fetchSubjects, fetchSubjectAllocations } from "@/features/academics/subjects/services/subjectsService";
+import { fetchTeacherAllocations, fetchTeachers } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
+import { fetchTermEvents } from "@/features/academics/calendar/services/calendarService";
+import { getLessonPlanSummary } from "@/features/academics/lesson-plans/services/lessonPlansService";
 
 export interface OverviewMetrics {
   structure: {
@@ -35,13 +39,18 @@ export interface OverviewMetrics {
     totalPlanned: number;
     totalDone: number;
     completionPercentage: number;
+    weeklyBreakdown?: Array<{
+      week: string;
+      planned: number;
+      done: number;
+    }>;
   };
 }
 
-export async function fetchOverviewMetrics(
+const fetchOverviewMetricsImpl = async (
   yearId: string,
   termId: string
-): Promise<OverviewMetrics> {
+): Promise<OverviewMetrics> => {
   // Fetch all data in parallel
   const [structure, subjects, allocations, teacherAllocations, teachers, events] = await Promise.all([
     fetchStructureTree(yearId, termId),
@@ -61,11 +70,47 @@ export async function fetchOverviewMetrics(
   ).length;
 
   // Calculate subject allocation metrics
-  const expectedAllocations = structure.grades.length * subjects.length;
-  const completionPercentage = expectedAllocations > 0
-    ? Math.round((allocations.length / expectedAllocations) * 100)
-    : 0;
-  const missingSubjectAllocations = expectedAllocations - allocations.length;
+  const stageNamesById = new Map(
+    structure.stages.map((stage) => [
+      stage.id,
+      [
+        normalizeOverviewLabel(stage.name),
+        normalizeOverviewLabel(stage.nameEn),
+        normalizeOverviewLabel(stage.nameAr),
+      ].filter(Boolean),
+    ])
+  );
+  const eligibleAllocationKeys = new Set<string>();
+
+  structure.grades.forEach((grade) => {
+    const stageNames = new Set(stageNamesById.get(grade.stageId) || []);
+    subjects.forEach((subject) => {
+      const subjectStage = normalizeOverviewLabel(subject.stage);
+      const isEligible = !subjectStage || stageNames.has(subjectStage);
+      if (isEligible) {
+        eligibleAllocationKeys.add(`${grade.id}:${subject.id}`);
+      }
+    });
+  });
+
+  const actualAllocationKeys = new Set(
+    allocations
+      .filter((allocation) => allocation.weeklyHours > 0)
+      .map((allocation) => `${allocation.gradeId}:${allocation.subjectId}`)
+  );
+
+  const expectedAllocations = eligibleAllocationKeys.size;
+  const completionPercentage =
+    expectedAllocations > 0
+      ? Math.min(
+          100,
+          Math.round((actualAllocationKeys.size / expectedAllocations) * 100)
+        )
+      : 0;
+  const missingSubjectAllocations = Math.max(
+    0,
+    expectedAllocations - actualAllocationKeys.size
+  );
 
   // Calculate teacher allocation metrics
   const missingTeacherAllocations = teacherAllocations.filter(
@@ -105,18 +150,87 @@ export async function fetchOverviewMetrics(
   }).length;
 
   const nextHoliday = events
-    .filter((e) => e.type === 'HOLIDAY' && new Date(e.startDate) > today)
+    .filter((e) => e.type === "HOLIDAY" && new Date(e.startDate) > today)
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0];
 
   const nextExam = events
-    .filter((e) => e.type === 'EXAM' && new Date(e.startDate) > today)
+    .filter((e) => e.type === "EXAM" && new Date(e.startDate) > today)
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0];
 
-  // Mock lesson plans data (replace with real service when available)
+  const lessonPlanTargets = structure.sections.flatMap((section) => {
+    const subjectTargets = allocations.filter(
+      (allocation) =>
+        allocation.gradeId === section.gradeId && allocation.weeklyHours > 0
+    );
+    const classrooms = structure.classrooms.filter(
+      (classroom) => classroom.sectionId === section.id
+    );
+
+    if (classrooms.length > 0) {
+      return subjectTargets.flatMap((allocation) =>
+        classrooms.map((classroom) => ({
+          sectionId: section.id,
+          subjectId: allocation.subjectId,
+          classroomId: classroom.id,
+        }))
+      );
+    }
+
+    return subjectTargets.map((allocation) => ({
+      sectionId: section.id,
+      subjectId: allocation.subjectId,
+      classroomId: undefined,
+    }));
+  });
+
+  const lessonPlanSummaries = await Promise.all(
+    lessonPlanTargets.map((target) =>
+      getLessonPlanSummary(
+        termId,
+        target.sectionId,
+        target.subjectId,
+        target.classroomId
+      )
+    )
+  );
+
+  const lessonWeeks = new Map<number, { planned: number; done: number }>();
+  let totalPlanned = 0;
+  let totalInProgress = 0;
+  let totalDone = 0;
+  let totalSkipped = 0;
+
+  lessonPlanSummaries.forEach((summary) => {
+    totalPlanned += summary.totalPlanned;
+    totalInProgress += summary.totalInProgress;
+    totalDone += summary.totalDone;
+    totalSkipped += summary.totalSkipped;
+
+    summary.weeklyBreakdown.forEach((week) => {
+      const current = lessonWeeks.get(week.weekIndex) || { planned: 0, done: 0 };
+      lessonWeeks.set(week.weekIndex, {
+        planned: current.planned + week.planned + week.inProgress,
+        done: current.done + week.done,
+      });
+    });
+  });
+
+  const totalLessonItems =
+    totalPlanned + totalInProgress + totalDone + totalSkipped;
   const lessonPlansMetrics = {
-    totalPlanned: 45,
-    totalDone: 32,
-    completionPercentage: Math.round((32 / 45) * 100),
+    totalPlanned,
+    totalDone,
+    completionPercentage:
+      totalLessonItems > 0
+        ? Math.round((totalDone / totalLessonItems) * 100)
+        : 0,
+    weeklyBreakdown: Array.from(lessonWeeks.entries())
+      .sort(([left], [right]) => left - right)
+      .map(([weekIndex, values]) => ({
+        week: `W${weekIndex}`,
+        planned: values.planned,
+        done: values.done,
+      })),
   };
 
   return {
@@ -147,11 +261,42 @@ export async function fetchOverviewMetrics(
     },
     lessonPlans: lessonPlansMetrics,
   };
-}
+};
+
+const mockOverviewAdapter: OverviewAdapter = {
+  fetchOverviewMetrics: fetchOverviewMetricsImpl,
+};
+
+let overviewAdapter: OverviewAdapter =
+  process.env.NEXT_PUBLIC_USE_OVERVIEW_API === "true"
+    ? overviewApiAdapter
+    : mockOverviewAdapter;
+
+export const getOverviewAdapter = (): OverviewAdapter => overviewAdapter;
+
+export const setOverviewAdapter = (adapter: OverviewAdapter) => {
+  overviewAdapter = adapter;
+};
+
+export const resetOverviewAdapter = () => {
+  overviewAdapter =
+    process.env.NEXT_PUBLIC_USE_OVERVIEW_API === "true"
+      ? overviewApiAdapter
+      : mockOverviewAdapter;
+};
+
+export const activateOverviewAdapter = () => {
+  overviewAdapter = overviewApiAdapter;
+};
+
+export const fetchOverviewMetrics = (
+  yearId: string,
+  termId: string
+): Promise<OverviewMetrics> => getOverviewAdapter().fetchOverviewMetrics(yearId, termId);
 
 export interface ChecklistItem {
   id: string;
-  status: 'done' | 'warning' | 'error';
+  status: "done" | "warning" | "error";
   titleKey: string;
   descriptionKey: string;
   link: string;
@@ -164,13 +309,13 @@ export function generateChecklist(metrics: OverviewMetrics, lang: string): Check
   const structureStatus =
     metrics.structure.gradesWithoutSections === 0 &&
     metrics.structure.sectionsWithoutCapacity === 0
-      ? 'done'
+      ? "done"
       : metrics.structure.gradesWithoutSections > 0
-      ? 'error'
-      : 'warning';
+      ? "error"
+      : "warning";
 
   items.push({
-    id: 'structure',
+    id: "structure",
     status: structureStatus,
     titleKey: 'academics.overview.checklist.structure.title',
     descriptionKey: 'academics.overview.checklist.structure.description',
@@ -180,13 +325,13 @@ export function generateChecklist(metrics: OverviewMetrics, lang: string): Check
   // 2. Subjects allocation ready
   const subjectsStatus =
     metrics.subjects.completionPercentage === 100
-      ? 'done'
+      ? "done"
       : metrics.subjects.completionPercentage >= 80
-      ? 'warning'
-      : 'error';
+      ? "warning"
+      : "error";
 
   items.push({
-    id: 'subjects',
+    id: "subjects",
     status: subjectsStatus,
     titleKey: 'academics.overview.checklist.subjects.title',
     descriptionKey: 'academics.overview.checklist.subjects.description',
@@ -197,13 +342,13 @@ export function generateChecklist(metrics: OverviewMetrics, lang: string): Check
   const teacherStatus =
     metrics.teacherAllocation.missingAllocations === 0 &&
     metrics.teacherAllocation.overloadedTeachers === 0
-      ? 'done'
+      ? "done"
       : metrics.teacherAllocation.overloadedTeachers > 0
-      ? 'error'
-      : 'warning';
+      ? "error"
+      : "warning";
 
   items.push({
-    id: 'teachers',
+    id: "teachers",
     status: teacherStatus,
     titleKey: 'academics.overview.checklist.teachers.title',
     descriptionKey: 'academics.overview.checklist.teachers.description',
@@ -213,11 +358,11 @@ export function generateChecklist(metrics: OverviewMetrics, lang: string): Check
   // 4. Calendar ready
   const calendarStatus =
     metrics.calendar.nextHolidayDate || metrics.calendar.nextExamDate
-      ? 'done'
-      : 'warning';
+      ? "done"
+      : "warning";
 
   items.push({
-    id: 'calendar',
+    id: "calendar",
     status: calendarStatus,
     titleKey: 'academics.overview.checklist.calendar.title',
     descriptionKey: 'academics.overview.checklist.calendar.description',
@@ -227,13 +372,13 @@ export function generateChecklist(metrics: OverviewMetrics, lang: string): Check
   // 5. Lesson plans started
   const lessonPlansStatus =
     metrics.lessonPlans.totalPlanned >= 10
-      ? 'done'
+      ? "done"
       : metrics.lessonPlans.totalPlanned > 0
-      ? 'warning'
-      : 'error';
+      ? "warning"
+      : "error";
 
   items.push({
-    id: 'lessonPlans',
+    id: "lessonPlans",
     status: lessonPlansStatus,
     titleKey: 'academics.overview.checklist.lessonPlans.title',
     descriptionKey: 'academics.overview.checklist.lessonPlans.description',
@@ -245,12 +390,15 @@ export function generateChecklist(metrics: OverviewMetrics, lang: string): Check
 
 export interface Alert {
   id: string;
-  severity: 'info' | 'warning' | 'error';
+  severity: "info" | "warning" | "error";
   titleKey: string;
   descriptionKey: string;
   link: string;
   count?: number;
 }
+
+const normalizeOverviewLabel = (value?: string | null) =>
+  (value || "").trim().toLowerCase();
 
 export function generateAlerts(metrics: OverviewMetrics, lang: string): Alert[] {
   const alerts: Alert[] = [];
@@ -258,8 +406,8 @@ export function generateAlerts(metrics: OverviewMetrics, lang: string): Alert[] 
   // Sections missing capacity
   if (metrics.structure.sectionsWithoutCapacity > 0) {
     alerts.push({
-      id: 'sections-capacity',
-      severity: 'warning',
+      id: "sections-capacity",
+      severity: "warning",
       titleKey: 'academics.overview.alerts.sectionsCapacity.title',
       descriptionKey: 'academics.overview.alerts.sectionsCapacity.description',
       link: `/${lang}/academics/structure`,
@@ -270,8 +418,8 @@ export function generateAlerts(metrics: OverviewMetrics, lang: string): Alert[] 
   // Grades without sections
   if (metrics.structure.gradesWithoutSections > 0) {
     alerts.push({
-      id: 'grades-sections',
-      severity: 'error',
+      id: "grades-sections",
+      severity: "error",
       titleKey: 'academics.overview.alerts.gradesSections.title',
       descriptionKey: 'academics.overview.alerts.gradesSections.description',
       link: `/${lang}/academics/structure`,
@@ -282,8 +430,8 @@ export function generateAlerts(metrics: OverviewMetrics, lang: string): Alert[] 
   // Missing teacher allocations
   if (metrics.teacherAllocation.missingAllocations > 0) {
     alerts.push({
-      id: 'teacher-missing',
-      severity: 'error',
+      id: "teacher-missing",
+      severity: "error",
       titleKey: 'academics.overview.alerts.teacherMissing.title',
       descriptionKey: 'academics.overview.alerts.teacherMissing.description',
       link: `/${lang}/academics/teacher-allocation`,
@@ -294,8 +442,8 @@ export function generateAlerts(metrics: OverviewMetrics, lang: string): Alert[] 
   // Overloaded teachers
   if (metrics.teacherAllocation.overloadedTeachers > 0) {
     alerts.push({
-      id: 'teacher-overloaded',
-      severity: 'warning',
+      id: "teacher-overloaded",
+      severity: "warning",
       titleKey: 'academics.overview.alerts.teacherOverloaded.title',
       descriptionKey: 'academics.overview.alerts.teacherOverloaded.description',
       link: `/${lang}/academics/teacher-allocation`,
@@ -311,8 +459,8 @@ export function generateAlerts(metrics: OverviewMetrics, lang: string): Alert[] 
     );
     if (daysUntil <= 7) {
       alerts.push({
-        id: 'exam-soon',
-        severity: 'info',
+        id: "exam-soon",
+        severity: "info",
         titleKey: 'academics.overview.alerts.examSoon.title',
         descriptionKey: 'academics.overview.alerts.examSoon.description',
         link: `/${lang}/academics/calendar`,
@@ -323,8 +471,8 @@ export function generateAlerts(metrics: OverviewMetrics, lang: string): Alert[] 
   // Lesson plans behind schedule (if completion < 70%)
   if (metrics.lessonPlans.completionPercentage < 70) {
     alerts.push({
-      id: 'lessons-behind',
-      severity: 'warning',
+      id: "lessons-behind",
+      severity: "warning",
       titleKey: 'academics.overview.alerts.lessonsBehind.title',
       descriptionKey: 'academics.overview.alerts.lessonsBehind.description',
       link: `/${lang}/academics/lesson-plans`,

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Save, RotateCcw } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import ExportButton from "@/components/ui/button/ExportButton";
@@ -41,11 +42,19 @@ export default function AllocationMatrix({
 }: AllocationMatrixProps) {
   const t = useTranslations("academics.subjects.matrix");
   const locale = useLocale();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryState = useMemo(
+    () => ({
+      stageFilter: searchParams.get("stage") || "",
+      showOnlyMissing: searchParams.get("missing") === "1",
+    }),
+    [searchParams]
+  );
+  const { stageFilter, showOnlyMissing } = queryState;
 
   const [localAllocations, setLocalAllocations] = useState<SubjectAllocation[]>([]);
   const [originalAllocations, setOriginalAllocations] = useState<SubjectAllocation[]>([]);
-  const [stageFilter, setStageFilter] = useState("");
-  const [showOnlyMissing, setShowOnlyMissing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [focusedCell, setFocusedCell] = useState<string | null>(null);
 
@@ -78,8 +87,48 @@ export default function AllocationMatrix({
     onDirtyChange(isDirty);
   }, [isDirty, onDirtyChange]);
 
+  const syncQueryParams = (
+    nextState: Partial<{
+      stageFilter: string;
+      showOnlyMissing: boolean;
+    }>,
+    historyMode: "push" | "replace" = "push"
+  ) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const mergedState = {
+      stageFilter: nextState.stageFilter ?? queryState.stageFilter,
+      showOnlyMissing:
+        nextState.showOnlyMissing ?? queryState.showOnlyMissing,
+    };
+
+    if (mergedState.stageFilter) {
+      params.set("stage", mergedState.stageFilter);
+    } else {
+      params.delete("stage");
+    }
+
+    if (mergedState.showOnlyMissing) {
+      params.set("missing", "1");
+    } else {
+      params.delete("missing");
+    }
+
+    const nextQuery = params.toString();
+    const currentQuery = searchParams.toString();
+    if (nextQuery === currentQuery) {
+      return;
+    }
+
+    const nextUrl = nextQuery ? `?${nextQuery}` : "?";
+    if (historyMode === "push") {
+      router.push(nextUrl, { scroll: false });
+      return;
+    }
+    router.replace(nextUrl, { scroll: false });
+  };
+
   // Filter grades by stage
-  const filteredGrades = useMemo(() => {
+  const stageFilteredGrades = useMemo(() => {
     if (!stageFilter) return grades;
     return grades.filter((g) => g.stageId === stageFilter);
   }, [grades, stageFilter]);
@@ -107,6 +156,35 @@ export default function AllocationMatrix({
       label: locale === "ar" ? (stage.nameAr || stage.nameEn || stage.name) : (stage.nameEn || stage.nameAr || stage.name),
     })),
   ];
+
+  useEffect(() => {
+    if (!stageFilter) {
+      return;
+    }
+
+    const isValidStage = stagesData.some((stage) => stage.id === stageFilter);
+    if (isValidStage) {
+      return;
+    }
+
+    syncQueryParams({ stageFilter: "" }, "replace");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stageFilter, stagesData]);
+
+  const filteredGrades = useMemo(() => {
+    if (!showOnlyMissing) {
+      return stageFilteredGrades;
+    }
+
+    return stageFilteredGrades.filter((grade) =>
+      subjects.some((subject) => {
+        const allocation = localAllocations.find(
+          (item) => item.gradeId === grade.id && item.subjectId === subject.id
+        );
+        return (allocation?.weeklyHours || 0) <= 0;
+      })
+    );
+  }, [showOnlyMissing, stageFilteredGrades, subjects, localAllocations]);
 
   const setAllocation = (gradeId: string, subjectId: string, weeklyHours: number) => {
     const value = Math.max(0, Math.min(50, weeklyHours)); // Clamp between 0-50
@@ -382,7 +460,7 @@ export default function AllocationMatrix({
             <Select
               label={t("filters.stage")}
               value={stageFilter}
-              onChange={setStageFilter}
+              onChange={(value) => syncQueryParams({ stageFilter: value }, "push")}
               options={stageOptions}
               selectSize="sm"
             />
@@ -392,7 +470,9 @@ export default function AllocationMatrix({
             <input
               type="checkbox"
               checked={showOnlyMissing}
-              onChange={(e) => setShowOnlyMissing(e.target.checked)}
+              onChange={(e) =>
+                syncQueryParams({ showOnlyMissing: e.target.checked }, "push")
+              }
               className="rounded"
               style={{ borderColor: 'var(--color-border)' }}
             />

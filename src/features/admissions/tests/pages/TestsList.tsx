@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
@@ -27,25 +27,30 @@ import { formatTestsForExport } from "@/features/admissions/applications/utils/a
 import { mockApplications, mockTests } from "@/data/mockAdmissions";
 import { Test, TestStatus } from "@/features/admissions/types/admissions";
 import { KPICardV2 } from "@/components/ui";
+import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
+import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import {
+  filterAdmissionsRecordsByDateContext,
+  resolveAdmissionsContextScope,
+} from "@/features/admissions/shared/utils/admissionsContextScope";
 
 export default function TestsList() {
   const t = useTranslations("admissions.tests");
   const locale = useLocale();
   const router = useRouter();
+  const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
   const [selectedTest, setSelectedTest] = useState<
     (Test & { studentName: string }) | null
   >(null);
   const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false);
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false);
 
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<TestStatus | "all">("all");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRangeValue>("all");
-  const [customStartDate, setCustomStartDate] = useState<string>("");
-  const [customEndDate, setCustomEndDate] = useState<string>("");
+  const admissionsScope = useMemo(
+    () => resolveAdmissionsContextScope(yearId, termId),
+    [termId, yearId],
+  );
 
   // Combine tests from applications and standalone tests
   const allTests = useMemo(() => {
@@ -73,6 +78,81 @@ export default function TestsList() {
     });
     return [...testsFromApps, ...standaloneTests];
   }, [locale]);
+  const scopedTests = useMemo(
+    () =>
+      filterAdmissionsRecordsByDateContext(
+        allTests,
+        (test) => test.date,
+        admissionsScope,
+      ),
+    [admissionsScope, allTests],
+  );
+
+  // Get unique values for filters
+  const uniqueTypes = useMemo(() => {
+    const types = new Set(scopedTests.map((test) => test.type));
+    return Array.from(types).sort();
+  }, [scopedTests]);
+
+  const normalizeQueryValues = useCallback(
+    (
+      values: Record<
+        "search" | "status" | "type" | "dateRange" | "startDate" | "endDate",
+        string
+      >,
+    ) => {
+      const updates: Partial<Record<keyof typeof values, string | null>> = {};
+      const validStatuses = new Set(["all", "scheduled", "completed", "failed"]);
+      const validDateRanges = new Set(["all", "7", "14", "30", "60", "90", "custom"]);
+
+      if (!validStatuses.has(values.status)) {
+        updates.status = null;
+      }
+      if (values.type !== "all" && !uniqueTypes.includes(values.type)) {
+        updates.type = null;
+      }
+      if (!validDateRanges.has(values.dateRange)) {
+        updates.dateRange = null;
+      }
+      if (values.dateRange !== "custom") {
+        if (values.startDate) updates.startDate = null;
+        if (values.endDate) updates.endDate = null;
+      }
+
+      return Object.keys(updates).length > 0 ? updates : null;
+    },
+    [uniqueTypes],
+  );
+
+  const { values, setValue, setValues, reset } = useAdmissionsUrlQueryState<{
+    search: string;
+    status: string;
+    type: string;
+    dateRange: string;
+    startDate: string;
+    endDate: string;
+  }>({
+    defaults: {
+      search: "",
+      status: "all",
+      type: "all",
+      dateRange: "all",
+      startDate: "",
+      endDate: "",
+    },
+    debouncedKeys: ["search"],
+    modeByKey: {
+      search: "replace",
+    },
+    normalize: normalizeQueryValues,
+  });
+
+  const searchQuery = values.search;
+  const statusFilter = values.status as TestStatus | "all";
+  const typeFilter = values.type;
+  const dateRange = values.dateRange as DateRangeValue;
+  const customStartDate = values.startDate;
+  const customEndDate = values.endDate;
 
   // Filter and search tests
   const filteredTests = useMemo(() => {
@@ -82,7 +162,7 @@ export default function TestsList() {
       customEndDate,
     );
 
-    return allTests.filter((test) => {
+    return scopedTests.filter((test) => {
       const matchesSearch =
         searchQuery === "" ||
         test.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -97,7 +177,7 @@ export default function TestsList() {
       return matchesSearch && matchesStatus && matchesType && matchesDateRange;
     });
   }, [
-    allTests,
+    scopedTests,
     searchQuery,
     statusFilter,
     typeFilter,
@@ -105,12 +185,6 @@ export default function TestsList() {
     customStartDate,
     customEndDate,
   ]);
-
-  // Get unique values for filters
-  const uniqueTypes = useMemo(() => {
-    const types = new Set(allTests.map((test) => test.type));
-    return Array.from(types).sort();
-  }, [allTests]);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
@@ -120,7 +194,7 @@ export default function TestsList() {
       customEndDate,
     );
 
-    const testsInRange = allTests.filter((test) =>
+    const testsInRange = scopedTests.filter((test) =>
       isDateInRange(test.date, filterResult),
     );
 
@@ -149,7 +223,7 @@ export default function TestsList() {
         : 0;
 
     return { total, scheduled, completed, failed, avgScore };
-  }, [allTests, dateRange, customStartDate, customEndDate]);
+  }, [customEndDate, customStartDate, dateRange, scopedTests]);
 
   const columns = [
     { key: "applicationId", label: t("application_id"), searchable: true },
@@ -180,12 +254,13 @@ export default function TestsList() {
       label: t("actions_col"),
       render: (_value: unknown, row: Test & { studentName: string }) =>
         row.status === "cancelled" ? null : (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedTest(row);
-              setIsScoreModalOpen(true);
-            }}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isReadOnly) return;
+                setSelectedTest(row);
+                setIsScoreModalOpen(true);
+              }}
             className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary hover:text-white border border-primary rounded-lg transition-colors"
             title="Enter/Edit Score"
           >
@@ -201,9 +276,7 @@ export default function TestsList() {
     searchQuery !== "" || statusFilter !== "all" || typeFilter !== "all";
 
   const clearFilters = () => {
-    setSearchQuery("");
-    setStatusFilter("all");
-    setTypeFilter("all");
+    reset(undefined, "replace");
   };
 
   const handleRowClick = (
@@ -249,12 +322,28 @@ export default function TestsList() {
       {/* Date Range Filter */}
       <DateRangeFilter
         value={dateRange}
-        onChange={setDateRange}
+        onChange={(nextRange) => {
+          const shouldResetCustom = nextRange !== "custom";
+          setValues(
+            {
+              dateRange: nextRange,
+              startDate: shouldResetCustom ? null : customStartDate || null,
+              endDate: shouldResetCustom ? null : customEndDate || null,
+            },
+            "push",
+          );
+        }}
         customStartDate={customStartDate}
         customEndDate={customEndDate}
         onCustomDateChange={(start, end) => {
-          setCustomStartDate(start);
-          setCustomEndDate(end);
+          setValues(
+            {
+              dateRange: "custom",
+              startDate: start || null,
+              endDate: end || null,
+            },
+            "replace",
+          );
         }}
         showAllTime={true}
       />
@@ -339,6 +428,7 @@ export default function TestsList() {
           </button>
           <button
             onClick={() => setIsScheduleTestOpen(true)}
+            disabled={isReadOnly}
             className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg font-medium text-sm transition-colors"
           >
             <Plus className="w-4 h-4" />
@@ -346,6 +436,8 @@ export default function TestsList() {
           </button>
         </div>
       </div>
+
+      {isReadOnly && <AdmissionsReadOnlyBanner />}
 
       {/* Filters */}
       <div className="space-y-3">
@@ -356,7 +448,7 @@ export default function TestsList() {
               type="text"
               placeholder={t("search_placeholder")}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setValue("search", e.target.value, "replace")}
               className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
                 searchQuery
                   ? "border-primary ring-2 ring-primary/20"
@@ -396,7 +488,7 @@ export default function TestsList() {
               <select
                 value={statusFilter}
                 onChange={(e) =>
-                  setStatusFilter(e.target.value as TestStatus | "all")
+                  setValue("status", e.target.value as TestStatus | "all", "push")
                 }
                 className="w-full px-3 py-2 bg-white border text-black border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -412,7 +504,7 @@ export default function TestsList() {
               </label>
               <select
                 value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
+                onChange={(e) => setValue("type", e.target.value, "push")}
                 className="w-full px-3 py-2 bg-white border text-black border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("all_types")}</option>
@@ -454,6 +546,11 @@ export default function TestsList() {
           data={filteredTests}
           onRowClick={handleRowClick}
           searchQuery={searchQuery}
+          urlState={{
+            keyPrefix: "testsTable",
+            syncPagination: true,
+            syncSorting: true,
+          }}
         />
       )}
 

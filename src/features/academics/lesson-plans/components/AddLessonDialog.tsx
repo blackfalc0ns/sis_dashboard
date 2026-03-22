@@ -34,11 +34,13 @@ export default function AddLessonDialog({
   );
 
   // Update selectedWeekIndex when preselectedWeekIndex or isOpen changes
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (isOpen) {
       setSelectedWeekIndex(preselectedWeekIndex?.toString() || "");
     }
   }, [isOpen, preselectedWeekIndex]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleConfirm = () => {
     if (lesson && selectedWeekIndex) {
@@ -68,7 +70,7 @@ export default function AddLessonDialog({
           <Button
             onClick={handleConfirm}
             variant="primary"
-            disabled={!selectedWeekIndex}
+            disabled={!selectedWeekIndex || weeks.length === 0}
           >
             {t("confirm")}
           </Button>
@@ -86,18 +88,26 @@ export default function AddLessonDialog({
         )}
 
         {/* Week Selection */}
-        <Select
-          label={t("selectWeek")}
-          value={selectedWeekIndex}
-          onChange={setSelectedWeekIndex}
-          options={[
-            { value: "", label: t("chooseWeek") },
-            ...weeks.map((week) => ({
-              value: week.weekIndex.toString(),
-              label: `${t("week")} ${week.weekIndex} (${formatDate(week.startDate)} - ${formatDate(week.endDate)})`,
-            })),
-          ]}
-        />
+        {weeks.length === 0 ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            {isRTL
+              ? "\u0644\u0627 \u062a\u0648\u062c\u062f \u0623\u0633\u0627\u0628\u064a\u0639 \u0645\u062a\u0627\u062d\u0629 \u0644\u0644\u062a\u062e\u0637\u064a\u0637 \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u0641\u0635\u0644."
+              : "No teaching weeks are available for planning in this term."}
+          </div>
+        ) : (
+          <Select
+            label={t("selectWeek")}
+            value={selectedWeekIndex}
+            onChange={setSelectedWeekIndex}
+            options={[
+              { value: "", label: t("chooseWeek") },
+              ...weeks.map((week) => ({
+                value: week.weekIndex.toString(),
+                label: `${t("week")} ${week.weekIndex} (${formatDate(week.startDate)} - ${formatDate(week.endDate)})`,
+              })),
+            ]}
+          />
+        )}
       </div>
     </Modal>
   );

@@ -36,6 +36,8 @@ interface CurriculumOutlineProps {
   curriculum: Curriculum;
   units: Unit[];
   lessons: Lesson[];
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
   selectedNode: { type: "unit" | "lesson"; id: string } | null;
   onSelectNode: (node: { type: "unit" | "lesson"; id: string } | null) => void;
   onRefresh: () => Promise<void>;
@@ -45,13 +47,14 @@ interface CurriculumOutlineProps {
 export default function CurriculumOutline({
   units,
   lessons,
+  searchQuery,
+  onSearchQueryChange,
   selectedNode,
   onSelectNode,
   isReadOnly,
 }: CurriculumOutlineProps) {
   const t = useTranslations("academics.curriculum.outline");
   const locale = useLocale();
-  const [searchQuery, setSearchQuery] = useState("");
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(
     new Set(units.map((u) => u.id))
   );
@@ -117,11 +120,11 @@ export default function CurriculumOutline({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-border">
+      <div className="p-4 border-b  border-border">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">{t("title")}</h2>
         <Input
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => onSearchQueryChange(e.target.value)}
           placeholder={t("search_placeholder")}
           leftIcon={<Search className="w-4 h-4" />}
           inputSize="md"

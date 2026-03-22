@@ -2,81 +2,72 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { BarChart } from "@mui/x-charts/BarChart";
-import ChartFilter, { ChartFilterValues } from "../../../shared/ChartFilter";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import { useOptionalStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import { useResponsiveChart } from "@/hooks/useResponsiveChart";
 import { ChartCard } from "@/components/ui/chart-card";
 import { DropdownItem } from "@/components/ui/dropdown";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 export default function RetentionCohortChart() {
   const t = useTranslations("students_guardians.overview");
   const { height, leftMargin } = useResponsiveChart();
-
-  // Filter state
-  const [filterValues, setFilterValues] = useState<ChartFilterValues>({
-    academicYear: "all",
-    term: "all",
-    dateRange: "all",
-    customStartDate: "",
-    customEndDate: "",
-  });
+  const context = useOptionalStudentsGuardiansYearTermContext();
+  const yearId = context?.yearId ?? null;
+  const termId = context?.termId ?? null;
+  const isContextLoading = context?.isLoading ?? false;
 
   // Get all students
-  const allStudents = useMemo(
-    () => studentsService.getStudentsWithEnrollment(),
-    [],
-  );
+  const [allStudents, setAllStudents] = useState<
+    studentsService.StudentWithEnrollmentContext[]
+  >([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Get unique academic years and terms
-  const { academicYears, terms } = useMemo(() => {
-    const years = new Set<string>();
-    const termSet = new Set<string>();
+  useEffect(() => {
+    let isCancelled = false;
 
-    allStudents.forEach((student) => {
-      if (student.enrollment?.academicYear) {
-        years.add(student.enrollment.academicYear);
-      }
-      if (student.currentTerm?.term) {
-        termSet.add(student.currentTerm.term);
+    if (isContextLoading) {
+      setAllStudents([]);
+      setIsLoading(true);
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    void Promise.resolve().then(async () => {
+      setIsLoading(true);
+      try {
+        const students =
+          yearId && termId
+            ? await studentsService.fetchStudentsWithEnrollmentForContext(
+                yearId,
+                termId,
+              )
+            : await studentsService.fetchStudentsWithEnrollment();
+        if (!isCancelled) {
+          setAllStudents(students);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     });
 
-    return {
-      academicYears: Array.from(years).sort(),
-      terms: Array.from(termSet).sort(),
+    return () => {
+      isCancelled = true;
     };
-  }, [allStudents]);
-
-  // Filter students
-  const filteredStudents = useMemo(() => {
-    return allStudents.filter((student) => {
-      const academicYear = student.enrollment?.academicYear;
-      const term = student.currentTerm?.term;
-
-      if (
-        filterValues.academicYear !== "all" &&
-        academicYear !== filterValues.academicYear
-      ) {
-        return false;
-      }
-
-      if (filterValues.term !== "all" && term !== filterValues.term) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [allStudents, filterValues]);
+  }, [isContextLoading, termId, yearId]);
 
   // Calculate retention data by academic year
   const retentionData = useMemo(() => {
     // Group students by academic year
     const yearGroups: Record<string, { total: number; retained: number }> = {};
 
-    filteredStudents.forEach((student) => {
+    allStudents.forEach((student) => {
       const year = student.enrollment?.academicYear;
       if (year) {
         if (!yearGroups[year]) {
@@ -97,7 +88,7 @@ export default function RetentionCohortChart() {
         left: Math.round(((data.total - data.retained) / data.total) * 100),
       }))
       .sort((a, b) => a.year.localeCompare(b.year));
-  }, [filteredStudents]);
+  }, [allStudents]);
 
   // Fallback to mock data if no filtered data
   const chartData =
@@ -125,18 +116,12 @@ export default function RetentionCohortChart() {
       defaultPeriod="all"
       bgColor="#ede9fe"
     >
-      {/* Chart Filter */}
-      <ChartFilter
-        values={filterValues}
-        onChange={setFilterValues}
-        academicYears={academicYears}
-        terms={terms}
-        showAdvancedFilters={true}
-      />
-
       {/* Chart */}
       <div className="h-64 sm:h-80 w-full overflow-x-auto overflow-y-hidden mt-4">
         <div className="min-w-[300px]">
+          {isLoading ? (
+            <PartialLoader />
+          ) : (
           <BarChart
             dataset={chartData}
             xAxis={[{ scaleType: "band", dataKey: "year" }]}
@@ -162,6 +147,7 @@ export default function RetentionCohortChart() {
               right: 20,
             }}
           />
+          )}
         </div>
       </div>
     </ChartCard>

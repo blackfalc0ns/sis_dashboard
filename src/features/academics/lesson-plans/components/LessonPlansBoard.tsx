@@ -24,6 +24,7 @@ interface LessonPlansBoardProps {
   termId: string;
   sectionId: string;
   subjectId: string;
+  classroomId: string;
   teacherId: string;
   lessons: Lesson[];
   units: Unit[];
@@ -31,6 +32,10 @@ interface LessonPlansBoardProps {
   weeks: WeekInfo[];
   summary: LessonPlanSummary | null;
   isReadOnly: boolean;
+  librarySearchQuery: string;
+  librarySelectedUnitId: string;
+  onLibrarySearchQueryChange: (value: string) => void;
+  onLibrarySelectedUnitIdChange: (value: string) => void;
   onUpdate: () => void;
   onAddLessonMobile?: (weekIndex: number) => void;
 }
@@ -39,6 +44,7 @@ export default function LessonPlansBoard({
   termId,
   sectionId,
   subjectId,
+  classroomId,
   teacherId,
   lessons,
   units,
@@ -46,6 +52,10 @@ export default function LessonPlansBoard({
   weeks,
   summary,
   isReadOnly,
+  librarySearchQuery,
+  librarySelectedUnitId,
+  onLibrarySearchQueryChange,
+  onLibrarySelectedUnitIdChange,
   onUpdate,
   onAddLessonMobile,
 }: LessonPlansBoardProps) {
@@ -110,6 +120,7 @@ export default function LessonPlansBoard({
           termId,
           sectionId,
           subjectId,
+          classroomId: classroomId || undefined,
           teacherId,
           weekIndex,
           lessonId: draggedLesson.id,
@@ -127,7 +138,9 @@ export default function LessonPlansBoard({
             sectionId,
             subjectId,
             draggedItem.itemId,
-            weekIndex
+            weekIndex,
+            undefined,
+            classroomId || undefined
           );
           setDraggedItem(null); // Clear drag state immediately
           await onUpdate(); // Wait for update to complete
@@ -153,6 +166,7 @@ export default function LessonPlansBoard({
     termId,
     sectionId,
     subjectId,
+    classroomId,
     teacherId,
     showSuccess,
     showError,
@@ -168,7 +182,14 @@ export default function LessonPlansBoard({
 
     setIsUpdating(true);
     try {
-      await updateLessonPlanItemStatus(termId, sectionId, subjectId, itemId, status);
+      await updateLessonPlanItemStatus(
+        termId,
+        sectionId,
+        subjectId,
+        itemId,
+        status,
+        classroomId || undefined
+      );
       await onUpdate(); // Wait for update to complete
       showSuccess("Saved successfully");
     } catch (error) {
@@ -177,7 +198,7 @@ export default function LessonPlansBoard({
     } finally {
       setIsUpdating(false);
     }
-  }, [isReadOnly, isUpdating, termId, sectionId, subjectId, showSuccess, showError, onUpdate]);
+  }, [isReadOnly, isUpdating, termId, sectionId, subjectId, classroomId, showSuccess, showError, onUpdate]);
 
   // Handle edit notes
   const handleEditNotes = useCallback((
@@ -199,7 +220,8 @@ export default function LessonPlansBoard({
         subjectId,
         notesDialog.itemId,
         notesAr,
-        notesEn
+        notesEn,
+        classroomId || undefined
       );
       setNotesDialog({ isOpen: false, itemId: "" });
       await onUpdate(); // Wait for update to complete
@@ -215,6 +237,7 @@ export default function LessonPlansBoard({
     termId,
     sectionId,
     subjectId,
+    classroomId,
     notesDialog.itemId,
     showSuccess,
     showError,
@@ -231,7 +254,13 @@ export default function LessonPlansBoard({
 
     setIsUpdating(true);
     try {
-      await deleteLessonPlanItem(termId, sectionId, subjectId, confirmDialog.itemId);
+      await deleteLessonPlanItem(
+        termId,
+        sectionId,
+        subjectId,
+        confirmDialog.itemId,
+        classroomId || undefined
+      );
       setConfirmDialog({ isOpen: false, type: null });
       await onUpdate(); // Wait for update to complete
       showSuccess("Saved successfully");
@@ -246,6 +275,7 @@ export default function LessonPlansBoard({
     termId,
     sectionId,
     subjectId,
+    classroomId,
     confirmDialog.itemId,
     showSuccess,
     showError,
@@ -279,6 +309,10 @@ export default function LessonPlansBoard({
               lessons={lessons}
               units={units}
               plans={plans}
+              searchQuery={librarySearchQuery}
+              selectedUnitId={librarySelectedUnitId}
+              onSearchQueryChange={onLibrarySearchQueryChange}
+              onSelectedUnitIdChange={onLibrarySelectedUnitIdChange}
               onDragStart={handleDragStartLesson}
               onDragEnd={handleDragEndLesson}
               isReadOnly={isReadOnly || isUpdating}

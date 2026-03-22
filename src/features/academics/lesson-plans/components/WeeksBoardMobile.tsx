@@ -41,7 +41,7 @@ export default function WeeksBoardMobile({
     <div className="space-y-2">
       {weeks.map((week) => {
         const weekPlan = plans.find((p) => p.weekIndex === week.weekIndex);
-        const items = weekPlan?.items.sort((a, b) => a.order - b.order) || [];
+        const items = weekPlan ? [...weekPlan.items].sort((a, b) => a.order - b.order) : [];
 
         return (
           <Accordion
@@ -72,11 +72,11 @@ export default function WeeksBoardMobile({
                   </h4>
                   <div className="flex items-center gap-2">
                     {week.hasHolidays && (
-                      <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-50 border border-orange-200 rounded text-xs text-orange-800">
-                        <AlertTriangle className="w-3 h-3" />
-                        {week.holidayCount}
-                      </span>
-                    )}
+                        <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-50 border border-orange-200 rounded text-xs text-orange-800">
+                          <AlertTriangle className="w-3 h-3" />
+                          {week.lostTeachingDays}
+                        </span>
+                      )}
                     <span className="px-2 py-0.5 text-xs font-medium text-primary border border-primary rounded-full">
                       {items.length}
                     </span>

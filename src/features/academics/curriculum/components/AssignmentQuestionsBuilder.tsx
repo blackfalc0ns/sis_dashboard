@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   Plus,
@@ -9,18 +9,11 @@ import {
 import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import AssignmentSummaryBar from "./AssignmentSummaryBar";
-import {
-  Assignment,
-  AssignmentQuestion,
-  fetchAssignmentQuestions,
-  createAssignmentQuestion,
-  updateAssignmentQuestion,
-  deleteAssignmentQuestion,
-  bulkUpdateQuestionPoints,
-} from "@/features/academics/curriculum/services/curriculumService";
-import { distributePoints } from "@/features/academics/curriculum/utils/distributePoints";
-import QuestionDrawer from "./QuestionDrawer";
+import { Assignment } from "@/features/academics/curriculum/services/curriculumService";
+import { useAssignmentQuestionsManager } from "@/features/academics/curriculum/hooks/useAssignmentQuestionsManager";
+import QuestionDialog from "./QuestionDialog";
 import QuestionCard from "./QuestionCard";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 interface AssignmentQuestionsBuilderProps {
   assignment: Assignment;
@@ -37,129 +30,81 @@ export default function AssignmentQuestionsBuilder({
   const tQuestions = useTranslations("academics.curriculum.questions");
   const tSuccess = useTranslations("success");
   const tErrors = useTranslations("errors");
+  const snackbarTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [questions, setQuestions] = useState<AssignmentQuestion[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showQuestionDialog, setShowQuestionDialog] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<AssignmentQuestion | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [questionToDelete, setQuestionToDelete] = useState<AssignmentQuestion | null>(null);
-  const [showAutoDistributeDialog, setShowAutoDistributeDialog] = useState(false);
-  const [isDistributing, setIsDistributing] = useState(false);
   const [snackbar, setSnackbar] = useState<{ message: string; type: "success" | "error" } | null>(
     null
   );
+  const showSnackbar = useCallback((message: string, type: "success" | "error") => {
+    if (snackbarTimeoutRef.current) {
+      clearTimeout(snackbarTimeoutRef.current);
+    }
+
+    setSnackbar({ message, type });
+    snackbarTimeoutRef.current = setTimeout(() => {
+      setSnackbar(null);
+      snackbarTimeoutRef.current = null;
+    }, 3000);
+  }, []);
 
   useEffect(() => {
-    loadQuestions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assignment.id]);
-
-  const loadQuestions = async () => {
-    try {
-      setLoading(true);
-      const data = await fetchAssignmentQuestions(assignment.id);
-      setQuestions(data);
-    } catch (error) {
-      console.error("Failed to load questions:", error);
-      showSnackbar(tErrors("load_failed"), "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Calculate points summary
-  const pointsSummary = useMemo(() => {
-    const maxScore = assignment.maxScore ?? 0;
-    const totalPoints = questions.reduce((sum, q) => sum + (q.points || 0), 0);
-    const difference = maxScore - totalPoints;
-    const isMatch = difference === 0;
-
-    return {
-      maxScore,
-      totalPoints,
-      difference,
-      isMatch,
-    };
-  }, [assignment.maxScore, questions]);
-
-  const showSnackbar = (message: string, type: "success" | "error") => {
-    setSnackbar({ message, type });
-    setTimeout(() => setSnackbar(null), 3000);
-  };
-
-  const handleSaveQuestion = async (data: Partial<AssignmentQuestion>) => {
-    try {
-      if (editingQuestion) {
-        await updateAssignmentQuestion(editingQuestion.id, data);
-      } else {
-        await createAssignmentQuestion(assignment.id, data as Omit<AssignmentQuestion, "id" | "assignmentId" | "createdAt" | "order">);
+    return () => {
+      if (snackbarTimeoutRef.current) {
+        clearTimeout(snackbarTimeoutRef.current);
       }
-      await loadQuestions();
-      setShowQuestionDialog(false);
-      setEditingQuestion(null);
-      onQuestionsChange?.();
-    } catch (error) {
-      console.error("Failed to save question:", error);
-      throw error;
+    };
+  }, []);
+  const handleLoadError = useCallback(() => {
+    showSnackbar(tErrors("load_failed"), "error");
+  }, [showSnackbar, tErrors]);
+  const {
+    questions,
+    loading,
+    pointsSummary,
+    editorOpen,
+    editingQuestion,
+    deleteDialogOpen,
+    autoDistributeDialogOpen,
+    isDistributing,
+    openNewQuestion,
+    openEditQuestion,
+    closeEditor,
+    promptDeleteQuestion,
+    closeDeleteDialog,
+    openAutoDistributeDialog,
+    closeAutoDistributeDialog,
+    saveQuestion,
+    deleteQuestion,
+    autoDistribute,
+  } = useAssignmentQuestionsManager({
+    assignment,
+    onQuestionsChange,
+    onLoadError: handleLoadError,
+  });
+
+  const handleSaveQuestion = async (data: Parameters<typeof saveQuestion>[0]) => {
+    try {
+      await saveQuestion(data);
+    } catch {
+      // QuestionDialog already keeps the drawer open on failure.
     }
   };
 
   const handleDeleteQuestion = async () => {
-    if (!questionToDelete) return;
-
-    try {
-      await deleteAssignmentQuestion(questionToDelete.id);
-      await loadQuestions();
-      setShowDeleteDialog(false);
-      setQuestionToDelete(null);
-      onQuestionsChange?.();
-    } catch (error) {
-      console.error("Failed to delete question:", error);
+    const success = await deleteQuestion();
+    if (!success) {
       showSnackbar(tErrors("delete_failed"), "error");
     }
   };
 
   const handleAutoDistribute = async () => {
-    if (questions.length === 0 || pointsSummary.maxScore === undefined) return;
-
-    setIsDistributing(true);
-    
-    const originalPoints = questions.map(q => ({ id: q.id, points: q.points }));
-
-    try {
-      const distributed = distributePoints(
-        pointsSummary.maxScore,
-        questions.map(q => ({ id: q.id, points: q.points, order: q.order }))
-      );
-
-      const updatedQuestions = questions.map(q => {
-        const newPoints = distributed.find(d => d.id === q.id);
-        return newPoints ? { ...q, points: newPoints.points } : q;
-      });
-      setQuestions(updatedQuestions);
-
-      await bulkUpdateQuestionPoints(
-        assignment.id,
-        distributed.map(d => ({ questionId: d.id, points: d.points }))
-      );
-
+    const success = await autoDistribute();
+    if (success) {
       showSnackbar(tSuccess("pointsUpdated"), "success");
-      setShowAutoDistributeDialog(false);
-      onQuestionsChange?.();
-    } catch (error) {
-      console.error("Failed to distribute points:", error);
-      
-      const rolledBack = questions.map(q => {
-        const original = originalPoints.find(o => o.id === q.id);
-        return original ? { ...q, points: original.points } : q;
-      });
-      setQuestions(rolledBack);
-      
-      showSnackbar(tErrors("pointsUpdateFailed"), "error");
-    } finally {
-      setIsDistributing(false);
+      return;
     }
+
+    showSnackbar(tErrors("pointsUpdateFailed"), "error");
   };
 
   const canAutoDistribute =
@@ -171,10 +116,7 @@ export default function AssignmentQuestionsBuilder({
   if (loading) {
     return (
       <div className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-20 bg-gray-200 rounded"></div>
-        </div>
+        <PartialLoader />
       </div>
     );
   }
@@ -188,7 +130,7 @@ export default function AssignmentQuestionsBuilder({
         difference={pointsSummary.difference}
         isMatch={pointsSummary.isMatch}
         canAutoDistribute={canAutoDistribute}
-        onAutoDistribute={() => setShowAutoDistributeDialog(true)}
+        onAutoDistribute={openAutoDistributeDialog}
         isReadOnly={isReadOnly}
       />
 
@@ -198,10 +140,7 @@ export default function AssignmentQuestionsBuilder({
           <h3 className="text-base font-semibold">{tQuestions("title")}</h3>
           {!isReadOnly && (
             <Button
-              onClick={() => {
-                setEditingQuestion(null);
-                setShowQuestionDialog(true);
-              }}
+              onClick={openNewQuestion}
               variant="primary"
               size="sm"
               leftIcon={<Plus className="w-4 h-4" />}
@@ -226,10 +165,7 @@ export default function AssignmentQuestionsBuilder({
           </p>
           {!isReadOnly && (
             <Button
-              onClick={() => {
-                setEditingQuestion(null);
-                setShowQuestionDialog(true);
-              }}
+              onClick={openNewQuestion}
               variant="primary"
               size="md"
               leftIcon={<Plus className="w-4 h-4" />}
@@ -249,30 +185,20 @@ export default function AssignmentQuestionsBuilder({
               isReadOnly={isReadOnly}
               onClick={() => {
                 if (!isReadOnly) {
-                  setEditingQuestion(question);
-                  setShowQuestionDialog(true);
+                  openEditQuestion(question);
                 }
               }}
-              onEdit={() => {
-                setEditingQuestion(question);
-                setShowQuestionDialog(true);
-              }}
-              onDelete={() => {
-                setQuestionToDelete(question);
-                setShowDeleteDialog(true);
-              }}
+              onEdit={() => openEditQuestion(question)}
+              onDelete={() => promptDeleteQuestion(question)}
             />
           ))}
         </div>
       )}
 
-      {showQuestionDialog && (
-        <QuestionDrawer
-          isOpen={showQuestionDialog}
-          onClose={() => {
-            setShowQuestionDialog(false);
-            setEditingQuestion(null);
-          }}
+      {editorOpen && (
+        <QuestionDialog
+          isOpen={editorOpen}
+          onClose={closeEditor}
           onSave={handleSaveQuestion}
           question={editingQuestion}
           isReadOnly={isReadOnly}
@@ -280,11 +206,8 @@ export default function AssignmentQuestionsBuilder({
       )}
 
       <ConfirmDialog
-        isOpen={showDeleteDialog}
-        onClose={() => {
-          setShowDeleteDialog(false);
-          setQuestionToDelete(null);
-        }}
+        isOpen={deleteDialogOpen}
+        onClose={closeDeleteDialog}
         onConfirm={handleDeleteQuestion}
         title={tQuestions("delete_question")}
         description={tQuestions("delete_question_confirm")}
@@ -294,8 +217,8 @@ export default function AssignmentQuestionsBuilder({
       />
 
       <ConfirmDialog
-        isOpen={showAutoDistributeDialog}
-        onClose={() => setShowAutoDistributeDialog(false)}
+        isOpen={autoDistributeDialogOpen}
+        onClose={closeAutoDistributeDialog}
         onConfirm={handleAutoDistribute}
         title={tQuestions("confirm_auto_distribute_title")}
         description={tQuestions("confirm_auto_distribute_body")}

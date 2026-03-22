@@ -1,6 +1,9 @@
 // Mock service for Subjects & Allocation (TERM-SCOPED)
 // Replace with real API calls when backend is ready
 
+import type { SubjectsAdapter } from "@/features/academics/subjects/services/subjectsAdapter";
+import { subjectsApiAdapter } from "@/features/academics/subjects/services/subjectsApiAdapter";
+
 export interface Subject {
   id: string;
   termId: string;
@@ -55,12 +58,12 @@ const generateId = (prefix: string) => {
 };
 
 // Subjects CRUD (term-scoped)
-export const fetchSubjects = async (termId: string): Promise<Subject[]> => {
+const fetchSubjectsImpl = async (termId: string): Promise<Subject[]> => {
   await delay(200);
   return subjectsByTerm[termId] || [];
 };
 
-export const createSubject = async (
+const createSubjectImpl = async (
   termId: string,
   payload: Omit<Subject, "id" | "termId">
 ): Promise<Subject> => {
@@ -79,7 +82,7 @@ export const createSubject = async (
   return newSubject;
 };
 
-export const updateSubject = async (
+const updateSubjectImpl = async (
   termId: string,
   subjectId: string,
   payload: Partial<Omit<Subject, "id" | "termId">>
@@ -98,7 +101,7 @@ export const updateSubject = async (
   return subjects[index];
 };
 
-export const deleteSubject = async (termId: string, subjectId: string): Promise<void> => {
+const deleteSubjectImpl = async (termId: string, subjectId: string): Promise<void> => {
   await delay(200);
   const subjects = subjectsByTerm[termId] || [];
   subjectsByTerm[termId] = subjects.filter((s) => s.id !== subjectId);
@@ -109,12 +112,12 @@ export const deleteSubject = async (termId: string, subjectId: string): Promise<
 };
 
 // Allocations (term-scoped)
-export const fetchSubjectAllocations = async (termId: string): Promise<SubjectAllocation[]> => {
+const fetchSubjectAllocationsImpl = async (termId: string): Promise<SubjectAllocation[]> => {
   await delay(200);
   return allocationsByTerm[termId] || [];
 };
 
-export const bulkUpsertSubjectAllocations = async (
+const bulkUpsertSubjectAllocationsImpl = async (
   termId: string,
   items: SubjectAllocation[]
 ): Promise<void> => {
@@ -136,7 +139,7 @@ export interface CarryOverSubjectsOptions {
   };
 }
 
-export const carryOverSubjectsAndAllocations = async (
+const carryOverSubjectsAndAllocationsImpl = async (
   params: CarryOverSubjectsOptions
 ): Promise<void> => {
   await delay(500);
@@ -176,7 +179,75 @@ export const carryOverSubjectsAndAllocations = async (
 };
 
 // Helper: Check if subject has allocations
-export const subjectHasAllocations = (termId: string, subjectId: string): boolean => {
+const subjectHasAllocationsImpl = (termId: string, subjectId: string): boolean => {
   const allocations = allocationsByTerm[termId] || [];
   return allocations.some((a) => a.subjectId === subjectId && a.weeklyHours > 0);
 };
+
+const mockSubjectsAdapter: SubjectsAdapter = {
+  fetchSubjects: fetchSubjectsImpl,
+  createSubject: createSubjectImpl,
+  updateSubject: updateSubjectImpl,
+  deleteSubject: deleteSubjectImpl,
+  fetchSubjectAllocations: fetchSubjectAllocationsImpl,
+  bulkUpsertSubjectAllocations: bulkUpsertSubjectAllocationsImpl,
+  carryOverSubjectsAndAllocations: carryOverSubjectsAndAllocationsImpl,
+  subjectHasAllocations: subjectHasAllocationsImpl,
+};
+
+let subjectsAdapter: SubjectsAdapter = mockSubjectsAdapter;
+
+if (process.env.NEXT_PUBLIC_USE_SUBJECTS_API === "true") {
+  subjectsAdapter = subjectsApiAdapter;
+}
+
+export const getSubjectsAdapter = (): SubjectsAdapter => subjectsAdapter;
+
+export const setSubjectsAdapter = (adapter: SubjectsAdapter) => {
+  subjectsAdapter = adapter;
+};
+
+export const resetSubjectsAdapter = () => {
+  subjectsAdapter =
+    process.env.NEXT_PUBLIC_USE_SUBJECTS_API === "true"
+      ? subjectsApiAdapter
+      : mockSubjectsAdapter;
+};
+
+export const activateSubjectsAdapter = (adapter: SubjectsAdapter) => {
+  setSubjectsAdapter(adapter);
+  return adapter;
+};
+
+export const fetchSubjects = (termId: string): Promise<Subject[]> =>
+  subjectsAdapter.fetchSubjects(termId);
+
+export const createSubject = (
+  termId: string,
+  payload: Omit<Subject, "id" | "termId">
+): Promise<Subject> => subjectsAdapter.createSubject(termId, payload);
+
+export const updateSubject = (
+  termId: string,
+  subjectId: string,
+  payload: Partial<Omit<Subject, "id" | "termId">>
+): Promise<Subject> => subjectsAdapter.updateSubject(termId, subjectId, payload);
+
+export const deleteSubject = (termId: string, subjectId: string): Promise<void> =>
+  subjectsAdapter.deleteSubject(termId, subjectId);
+
+export const fetchSubjectAllocations = (
+  termId: string
+): Promise<SubjectAllocation[]> => subjectsAdapter.fetchSubjectAllocations(termId);
+
+export const bulkUpsertSubjectAllocations = (
+  termId: string,
+  items: SubjectAllocation[]
+): Promise<void> => subjectsAdapter.bulkUpsertSubjectAllocations(termId, items);
+
+export const carryOverSubjectsAndAllocations = (
+  params: CarryOverSubjectsOptions
+): Promise<void> => subjectsAdapter.carryOverSubjectsAndAllocations(params);
+
+export const subjectHasAllocations = (termId: string, subjectId: string): boolean =>
+  subjectsAdapter.subjectHasAllocations(termId, subjectId);

@@ -39,26 +39,26 @@ export default function GradesTab({ student }: GradesTabProps) {
     () => [
       {
         key: "subject",
-        label: t("subject"),
+        label: t("table.subject"),
       },
       {
         key: "average",
-        label: t("average"),
+        label: t("table.average"),
         render: (value: unknown) => <span className="font-semibold">{Number(value || 0).toFixed(1)}%</span>,
       },
       {
         key: "last_assessment",
-        label: t("last_assessment"),
+        label: t("table.last_assessment"),
         render: (value: unknown) => (value == null ? "-" : `${Number(value).toFixed(1)}%`),
       },
       {
         key: "assessments_count",
-        label: t("assessments"),
-        render: (value: unknown) => `${value as number} ${t("total")}`,
+        label: t("table.assessments"),
+        render: (value: unknown) => `${value as number} ${t("total_assessments_suffix")}`,
       },
       {
         key: "trend",
-        label: t("trend"),
+        label: t("table.trend"),
       },
     ],
     [t],
@@ -74,13 +74,13 @@ export default function GradesTab({ student }: GradesTabProps) {
   }));
 
   if (isLoading) {
-    return <div className="py-8 text-center text-sm text-gray-500">{t("view_only")}</div>;
+    return <div className="py-8 text-center text-sm text-gray-500">{t("loading")}</div>;
   }
 
   if (!snapshot || subjectRows.length === 0) {
     return (
       <div className="rounded-xl border p-6 text-center text-sm" style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)", backgroundColor: "var(--surface-color)" }}>
-        {t("view_only")}
+        {t("empty_state")}
       </div>
     );
   }
@@ -92,7 +92,7 @@ export default function GradesTab({ student }: GradesTabProps) {
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KPICardV2
-          title={t("current_average")}
+          title={t("kpis.term_average")}
           value={`${snapshot.currentAverage.toFixed(1)}%`}
           subtitle={t("overall_gpa")}
           icon={Award}
@@ -102,7 +102,7 @@ export default function GradesTab({ student }: GradesTabProps) {
           chartColor="var(--primary-color)"
         />
         <KPICardV2
-          title={t("highest_grade")}
+          title={t("kpis.highest_grade")}
           value={`${snapshot.highestAverage.toFixed(1)}%`}
           subtitle={locale === "ar" ? topSubject.subjectNameAr : topSubject.subjectName}
           icon={Target}
@@ -111,7 +111,7 @@ export default function GradesTab({ student }: GradesTabProps) {
           showChart={false}
         />
         <KPICardV2
-          title={t("lowest_grade")}
+          title={t("kpis.lowest_grade")}
           value={`${snapshot.lowestAverage.toFixed(1)}%`}
           subtitle={locale === "ar" ? lowestSubject.subjectNameAr : lowestSubject.subjectName}
           icon={BookOpen}
@@ -156,7 +156,7 @@ export default function GradesTab({ student }: GradesTabProps) {
           <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
             {t("subject_grades")}
           </h3>
-          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>{t("view_only")}</p>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>{t("subject_grades_subtitle")}</p>
         </div>
         <DataTable columns={columns} data={tableData} showPagination={false} />
       </div>

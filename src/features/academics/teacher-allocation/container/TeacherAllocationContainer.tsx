@@ -3,16 +3,12 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useDirtyKey } from "@/hooks/useDirtyKey";
 import {
-  fetchAcademicYears,
-  fetchTermsByYear,
   fetchStructureTree,
-  type AcademicYear,
   type Classroom,
-  type Term,
   type Grade,
   type Section,
 } from "@/features/academics/academic-structure-tree/services/structureService";
@@ -28,26 +24,24 @@ import {
   type Teacher,
   type TeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import {
-  findSelectedYear,
-  findSelectedTerm,
-  buildURLParams,
-} from "@/features/academics/teacher-allocation/utils/teacherAllocationHelpers";
 import TeacherAllocationView from "../views/TeacherAllocationView";
+import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
 
 export default function TeacherAllocationContainer() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { markDirty, clearDirty } = useDirtyKey("teacher-allocation");
-
-  // URL params
-  const [academicYearId, setAcademicYearId] = useState("");
-  const [termId, setTermId] = useState("");
-  const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
+  const {
+    academicYearId,
+    termId,
+    termStatus,
+    academicYears,
+    terms,
+    changeAcademicYear,
+    changeTerm,
+  } = useAcademicYearTermContext();
 
   // Context data
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
-  const [terms, setTerms] = useState<Term[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
@@ -58,49 +52,19 @@ export default function TeacherAllocationContainer() {
   const [isLoading, setIsLoading] = useState(true);
 
   // UI State
-  const [activeTab, setActiveTab] = useState<"matrix" | "load">("matrix");
   const [validationPanelOpen, setValidationPanelOpen] = useState(false);
   const [carryOverDialogOpen, setCarryOverDialogOpen] = useState(false);
+  const queryState = useMemo(
+    () => ({
+      activeTab: searchParams.get("tab") === "load" ? "load" : "matrix",
+    }),
+    [searchParams]
+  );
 
   // Current working allocations (for validation with unsaved changes)
   const [currentAllocations, setCurrentAllocations] = useState<TeacherAllocation[]>([]);
 
   const isReadOnly = termStatus === "closed";
-
-  // Initialize from URL
-  useEffect(() => {
-    const initializeContext = async () => {
-      try {
-        const years = await fetchAcademicYears();
-        setAcademicYears(years);
-
-        const urlYear = searchParams.get("year");
-        const urlTerm = searchParams.get("term");
-
-        const selectedYear = findSelectedYear(years, urlYear);
-        if (!selectedYear) return;
-
-        const yearTerms = await fetchTermsByYear(selectedYear.id);
-        setTerms(yearTerms);
-
-        const selectedTerm = findSelectedTerm(yearTerms, urlTerm);
-
-        if (selectedYear && selectedTerm) {
-          setAcademicYearId(selectedYear.id);
-          setTermId(selectedTerm.id);
-          setTermStatus(selectedTerm.status);
-
-          const urlParams = buildURLParams(selectedYear.id, selectedTerm.id);
-          router.replace(`?${urlParams}`, { scroll: false });
-        }
-      } catch (error) {
-        console.error("Failed to initialize:", error);
-      }
-    };
-
-    initializeContext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Load data when year/term changes
   useEffect(() => {
@@ -145,35 +109,12 @@ export default function TeacherAllocationContainer() {
     setCurrentAllocations(teacherAllocations);
   }, [teacherAllocations]);
 
-  const updateURL = useCallback(
-    (yearId: string, tId: string) => {
-      const urlParams = buildURLParams(yearId, tId);
-      router.replace(`?${urlParams}`, { scroll: false });
-    },
-    [router]
-  );
-
   const handleAcademicYearChange = async (yearId: string) => {
-    setAcademicYearId(yearId);
-
-    const yearTerms = await fetchTermsByYear(yearId);
-    setTerms(yearTerms);
-
-    const defaultTerm = findSelectedTerm(yearTerms, null);
-    if (defaultTerm) {
-      setTermId(defaultTerm.id);
-      setTermStatus(defaultTerm.status);
-      updateURL(yearId, defaultTerm.id);
-    }
+    await changeAcademicYear(yearId);
   };
 
   const handleTermChange = (tId: string) => {
-    const selectedTerm = terms.find((t) => t.id === tId);
-    if (selectedTerm) {
-      setTermId(tId);
-      setTermStatus(selectedTerm.status);
-      updateURL(academicYearId, tId);
-    }
+    changeTerm(tId);
   };
 
   const handlePromoteCarryOver = () => {
@@ -215,7 +156,21 @@ export default function TeacherAllocationContainer() {
   };
 
   const handleTabChange = (tab: "matrix" | "load") => {
-    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "load") {
+      params.set("tab", "load");
+    } else {
+      params.delete("tab");
+    }
+
+    const nextQuery = params.toString();
+    const currentQuery = searchParams.toString();
+    if (nextQuery === currentQuery) {
+      return;
+    }
+
+    const nextUrl = nextQuery ? `?${nextQuery}` : "?";
+    router.push(nextUrl, { scroll: false });
   };
 
   const handleCloseValidationPanel = () => {
@@ -243,7 +198,7 @@ export default function TeacherAllocationContainer() {
       teacherAllocations={teacherAllocations}
       currentAllocations={currentAllocations}
       isLoading={isLoading}
-      activeTab={activeTab}
+      activeTab={queryState.activeTab}
       validationPanelOpen={validationPanelOpen}
       carryOverDialogOpen={carryOverDialogOpen}
       isReadOnly={isReadOnly}

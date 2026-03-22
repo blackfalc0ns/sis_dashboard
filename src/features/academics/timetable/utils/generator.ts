@@ -11,6 +11,8 @@ import {
 import { SubjectAllocation } from "@/features/academics/subjects/services/subjectsService";
 import { Room } from "@/features/academics/timetable/types/timetable";
 import { ResolvedTimetableConfig, TimetableDay, TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
+import { RoomDefaultAssignment, resolveDefaultRoomForTarget } from "@/features/academics/rooms/services/roomsService";
+import { DEFAULT_SCHOOL_ID } from "@/features/academics/constants/school";
 
 export interface GenerationOptions {
   sectionId: string;
@@ -57,6 +59,7 @@ export async function generateTimetable(
   teacherAllocations: TeacherAllocation[],
   teachers: Teacher[],
   rooms: Room[],
+  roomDefaults: RoomDefaultAssignment[],
   existingEntries: TimetableEntry[], // All entries in term for conflict checking
   config: ResolvedTimetableConfig // Configuration for days and periods
 ): Promise<GenerationResult> {
@@ -118,9 +121,14 @@ export async function generateTimetable(
     });
     const teacherId = teacherAllocation?.teacherId || null;
 
-    // Get suitable room (simplified - just pick first active room)
-    const room = rooms.find((r) => r.isActive);
-    const roomId = room?.id || null;
+    const roomId = resolvePreferredRoomId({
+      subjectId,
+      sectionId,
+      classroomId,
+      subjects,
+      rooms,
+      roomDefaults,
+    });
 
     let placed = 0;
 
@@ -202,6 +210,45 @@ export async function generateTimetable(
     conflicts,
     message,
   };
+}
+
+function resolvePreferredRoomId(params: {
+  subjectId: string;
+  sectionId: string;
+  classroomId?: string;
+  subjects: Subject[];
+  rooms: Room[];
+  roomDefaults: RoomDefaultAssignment[];
+}): string | null {
+  const explicitDefaultRoom = resolveDefaultRoomForTarget(
+    params.rooms,
+    params.roomDefaults,
+    {
+      schoolId: DEFAULT_SCHOOL_ID,
+      sectionId: params.sectionId,
+      classroomId: params.classroomId,
+    }
+  );
+
+  if (explicitDefaultRoom?.isActive) {
+    return explicitDefaultRoom.id;
+  }
+
+  const subject = params.subjects.find((item) => item.id === params.subjectId);
+  const subjectLabel = `${subject?.nameEn || ""} ${subject?.nameAr || ""}`.toLowerCase();
+  const prefersLab =
+    subjectLabel.includes("science") ||
+    subjectLabel.includes("computer") ||
+    subjectLabel.includes("stem") ||
+    subjectLabel.includes("علوم") ||
+    subjectLabel.includes("حاسوب");
+
+  const preferredType = prefersLab ? "LAB" : "CLASSROOM";
+  return (
+    params.rooms.find((room) => room.isActive && room.type === preferredType)?.id ||
+    params.rooms.find((room) => room.isActive)?.id ||
+    null
+  );
 }
 
 /**

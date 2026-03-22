@@ -58,7 +58,7 @@ export default function WeekColumn({
     }
   }, [isReadOnly, onDrop, week.weekIndex]);
 
-  const items = plan?.items.sort((a, b) => a.order - b.order) || [];
+  const items = plan ? [...plan.items].sort((a, b) => a.order - b.order) : [];
 
   // Format dates
   const formatDate = (dateStr: string) => {
@@ -104,7 +104,7 @@ export default function WeekColumn({
           <div className="mt-2 px-2 py-1 bg-orange-50 border border-orange-200 rounded-md">
             <div className="flex items-center gap-1 text-xs text-orange-800">
               <AlertTriangle className="w-3 h-3 shrink-0" />
-              <span>{t("holidayWarning", { count: week.holidayCount })}</span>
+              <span>{t("holidayWarning", { count: week.lostTeachingDays })}</span>
             </div>
           </div>
         )}

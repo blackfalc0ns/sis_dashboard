@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Plus,
   Search,
@@ -39,6 +39,13 @@ import {
   ApplicationStatus,
   DecisionType,
 } from "@/features/admissions/types/admissions";
+import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
+import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import {
+  filterAdmissionsRecordsByDateContext,
+  resolveAdmissionsContextScope,
+} from "@/features/admissions/shared/utils/admissionsContextScope";
 
 export default function ApplicationsList() {
   const t = useTranslations("admissions.applications");
@@ -47,6 +54,7 @@ export default function ApplicationsList() {
   const t_grades = useTranslations("admissions.grades");
   const locale = useLocale();
   const router = useRouter();
+  const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
 
   const [selectedApp] = useState<Application | null>(null);
   const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false);
@@ -55,29 +63,154 @@ export default function ApplicationsList() {
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
   const [isCreateAppOpen, setIsCreateAppOpen] = useState(false);
 
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "all">(
-    "all",
-  );
-  const [gradeFilter, setGradeFilter] = useState<string>("all");
-  const [genderFilter, setGenderFilter] = useState<string>("all");
-  const [nationalityFilter, setNationalityFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRangeValue>("all");
-  const [customStartDate, setCustomStartDate] = useState<string>("");
-  const [customEndDate, setCustomEndDate] = useState<string>("");
+  const admissionsScope = useMemo(
+    () => resolveAdmissionsContextScope(yearId, termId),
+    [termId, yearId],
+  );
+
+  const scopedApplications = useMemo(
+    () =>
+      filterAdmissionsRecordsByDateContext(
+        mockApplications,
+        (application) => application.submittedDate,
+        admissionsScope,
+      ),
+    [admissionsScope],
+  );
+
+  const uniqueGrades = useMemo(() => {
+    const grades = new Set(scopedApplications.map((app) => app.gradeRequested));
+    return Array.from(grades).sort();
+  }, [scopedApplications]);
+
+  const uniqueGenders = useMemo(() => {
+    const genders = new Set(
+      mockApplications
+        .filter((app) => scopedApplications.some((item) => item.id === app.id))
+        .map((app) => app.gender)
+        .filter((gender): gender is string => !!gender),
+    );
+    return Array.from(genders).sort();
+  }, [scopedApplications]);
+
+  const uniqueNationalities = useMemo(() => {
+    const nationalities = new Set(
+      mockApplications
+        .filter((app) => scopedApplications.some((item) => item.id === app.id))
+        .map((app) => app.nationality)
+        .filter((nationality): nationality is string => !!nationality),
+    );
+    return Array.from(nationalities).sort();
+  }, [scopedApplications]);
+
+  const normalizeQueryValues = useCallback(
+    (
+      values: Record<
+        | "search"
+        | "status"
+        | "grade"
+        | "gender"
+        | "nationality"
+        | "dateRange"
+        | "startDate"
+        | "endDate",
+        string
+      >,
+    ) => {
+      const updates: Partial<Record<keyof typeof values, string | null>> = {};
+      const validStatuses = new Set([
+        "all",
+        "submitted",
+        "documents_pending",
+        "under_review",
+        "accepted",
+        "waitlisted",
+        "rejected",
+      ]);
+      const validDateRanges = new Set([
+        "all",
+        "7",
+        "14",
+        "30",
+        "60",
+        "90",
+        "custom",
+      ]);
+
+      if (!validStatuses.has(values.status)) {
+        updates.status = null;
+      }
+      if (values.grade !== "all" && !uniqueGrades.includes(values.grade)) {
+        updates.grade = null;
+      }
+      if (values.gender !== "all" && !uniqueGenders.includes(values.gender)) {
+        updates.gender = null;
+      }
+      if (
+        values.nationality !== "all" &&
+        !uniqueNationalities.includes(values.nationality)
+      ) {
+        updates.nationality = null;
+      }
+      if (!validDateRanges.has(values.dateRange)) {
+        updates.dateRange = null;
+      }
+      if (values.dateRange !== "custom") {
+        if (values.startDate) updates.startDate = null;
+        if (values.endDate) updates.endDate = null;
+      }
+
+      return Object.keys(updates).length > 0 ? updates : null;
+    },
+    [uniqueGenders, uniqueGrades, uniqueNationalities],
+  );
+
+  const { values, setValue, setValues, reset } = useAdmissionsUrlQueryState<{
+    search: string;
+    status: string;
+    grade: string;
+    gender: string;
+    nationality: string;
+    dateRange: string;
+    startDate: string;
+    endDate: string;
+  }>({
+    defaults: {
+      search: "",
+      status: "all",
+      grade: "all",
+      gender: "all",
+      nationality: "all",
+      dateRange: "all",
+      startDate: "",
+      endDate: "",
+    },
+    debouncedKeys: ["search"],
+    modeByKey: {
+      search: "replace",
+    },
+    normalize: normalizeQueryValues,
+  });
+
+  const searchQuery = values.search;
+  const statusFilter = values.status as ApplicationStatus | "all";
+  const gradeFilter = values.grade;
+  const genderFilter = values.gender;
+  const nationalityFilter = values.nationality;
+  const dateRange = values.dateRange as DateRangeValue;
+  const customStartDate = values.startDate;
+  const customEndDate = values.endDate;
 
   // Filter and search applications
   const filteredApplications = useMemo(() => {
-    const now = new Date();
-    const cutoffDate = dateRange !== "all" ? new Date(now) : null;
-    if (cutoffDate) {
-      cutoffDate.setDate(now.getDate() - parseInt(dateRange));
-      cutoffDate.setHours(0, 0, 0, 0);
-    }
+    const filterResult = getDateFilterBoundaries(
+      dateRange,
+      customStartDate,
+      customEndDate,
+    );
 
-    return mockApplications.filter((app) => {
+    return scopedApplications.filter((app) => {
       const matchesSearch =
         searchQuery === "" ||
         app.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -97,8 +230,7 @@ export default function ApplicationsList() {
       const matchesNationality =
         nationalityFilter === "all" || app.nationality === nationalityFilter;
 
-      const matchesDateRange =
-        !cutoffDate || new Date(app.submittedDate) >= cutoffDate;
+      const matchesDateRange = isDateInRange(app.submittedDate, filterResult);
 
       return (
         matchesSearch &&
@@ -110,37 +242,16 @@ export default function ApplicationsList() {
       );
     });
   }, [
+    customEndDate,
+    customStartDate,
+    dateRange,
+    genderFilter,
+    gradeFilter,
+    nationalityFilter,
+    scopedApplications,
     searchQuery,
     statusFilter,
-    gradeFilter,
-    genderFilter,
-    nationalityFilter,
-    dateRange,
   ]);
-
-  // Get unique values for filters
-  const uniqueGrades = useMemo(() => {
-    const grades = new Set(mockApplications.map((app) => app.gradeRequested));
-    return Array.from(grades).sort();
-  }, []);
-
-  const uniqueGenders = useMemo(() => {
-    const genders = new Set(
-      mockApplications
-        .map((app) => app.gender)
-        .filter((gender): gender is string => !!gender),
-    );
-    return Array.from(genders).sort();
-  }, []);
-
-  const uniqueNationalities = useMemo(() => {
-    const nationalities = new Set(
-      mockApplications
-        .map((app) => app.nationality)
-        .filter((nationality): nationality is string => !!nationality),
-    );
-    return Array.from(nationalities).sort();
-  }, []);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
@@ -152,7 +263,7 @@ export default function ApplicationsList() {
     );
 
     // Filter applications by date range
-    const applicationsInRange = mockApplications.filter((app) =>
+    const applicationsInRange = scopedApplications.filter((app) =>
       isDateInRange(app.submittedDate, filterResult),
     );
 
@@ -240,7 +351,7 @@ export default function ApplicationsList() {
       rejected,
       avgProcessingDisplay,
     };
-  }, [dateRange, customStartDate, customEndDate]);
+  }, [customEndDate, customStartDate, dateRange, scopedApplications]);
 
   const columns = [
     {
@@ -313,11 +424,7 @@ export default function ApplicationsList() {
     nationalityFilter !== "all";
 
   const clearFilters = () => {
-    setSearchQuery("");
-    setStatusFilter("all");
-    setGradeFilter("all");
-    setGenderFilter("all");
-    setNationalityFilter("all");
+    reset(undefined, "replace");
   };
 
   const handleRowClick = (app: Application) => {
@@ -371,12 +478,28 @@ export default function ApplicationsList() {
       {/* Date Range Filter */}
       <DateRangeFilter
         value={dateRange}
-        onChange={setDateRange}
+        onChange={(nextRange) => {
+          const shouldResetCustom = nextRange !== "custom";
+          setValues(
+            {
+              dateRange: nextRange,
+              startDate: shouldResetCustom ? null : customStartDate || null,
+              endDate: shouldResetCustom ? null : customEndDate || null,
+            },
+            "push",
+          );
+        }}
         customStartDate={customStartDate}
         customEndDate={customEndDate}
         onCustomDateChange={(start, end) => {
-          setCustomStartDate(start);
-          setCustomEndDate(end);
+          setValues(
+            {
+              dateRange: "custom",
+              startDate: start || null,
+              endDate: end || null,
+            },
+            "replace",
+          );
         }}
         showAllTime={true}
       />
@@ -502,6 +625,7 @@ export default function ApplicationsList() {
           </button>
           <button
             onClick={() => setIsCreateAppOpen(true)}
+            disabled={isReadOnly}
             className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg font-medium text-sm transition-colors"
           >
             <Plus className="w-4 h-4" />
@@ -509,6 +633,8 @@ export default function ApplicationsList() {
           </button>
         </div>
       </div>
+
+      {isReadOnly && <AdmissionsReadOnlyBanner />}
 
       {/* Filters */}
       <div className="space-y-3">
@@ -519,7 +645,7 @@ export default function ApplicationsList() {
               type="text"
               placeholder={t("search_placeholder")}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setValue("search", e.target.value, "replace")}
               className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
                 searchQuery
                   ? "border-primary ring-2 ring-primary/20"
@@ -559,7 +685,11 @@ export default function ApplicationsList() {
               <select
                 value={statusFilter}
                 onChange={(e) =>
-                  setStatusFilter(e.target.value as ApplicationStatus | "all")
+                  setValue(
+                    "status",
+                    e.target.value as ApplicationStatus | "all",
+                    "push",
+                  )
                 }
                 className="w-full px-3 py-2 text-black bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -580,7 +710,7 @@ export default function ApplicationsList() {
               </label>
               <select
                 value={gradeFilter}
-                onChange={(e) => setGradeFilter(e.target.value)}
+                onChange={(e) => setValue("grade", e.target.value, "push")}
                 className="w-full px-3 text-black py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{tFilters("all")}</option>
@@ -601,7 +731,7 @@ export default function ApplicationsList() {
               </label>
               <select
                 value={genderFilter}
-                onChange={(e) => setGenderFilter(e.target.value)}
+                onChange={(e) => setValue("gender", e.target.value, "push")}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("all_genders")}</option>
@@ -618,7 +748,9 @@ export default function ApplicationsList() {
               </label>
               <select
                 value={nationalityFilter}
-                onChange={(e) => setNationalityFilter(e.target.value)}
+                onChange={(e) =>
+                  setValue("nationality", e.target.value, "push")
+                }
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("all_nationalities")}</option>
@@ -660,6 +792,11 @@ export default function ApplicationsList() {
           data={filteredApplications}
           onRowClick={handleRowClick}
           searchQuery={searchQuery}
+          urlState={{
+            keyPrefix: "applicationsTable",
+            syncPagination: true,
+            syncSorting: true,
+          }}
         />
       )}
 

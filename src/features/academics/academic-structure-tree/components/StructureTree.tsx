@@ -64,6 +64,14 @@ interface StructureTreeProps {
   grades: Grade[];
   sections: Section[];
   classrooms: Classroom[];
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
+  expandedStages: Set<string>;
+  expandedGrades: Set<string>;
+  expandedSections: Set<string>;
+  onExpandedStagesChange: (value: Set<string>) => void;
+  onExpandedGradesChange: (value: Set<string>) => void;
+  onExpandedSectionsChange: (value: Set<string>) => void;
   selectedNode: TreeNodeRef | null;
   onSelectNode: (node: TreeNodeRef) => void;
   onAddStage: () => void;
@@ -597,6 +605,14 @@ export default function StructureTree({
   grades,
   sections,
   classrooms,
+  searchQuery,
+  onSearchQueryChange,
+  expandedStages,
+  expandedGrades,
+  expandedSections,
+  onExpandedStagesChange,
+  onExpandedGradesChange,
+  onExpandedSectionsChange,
   selectedNode,
   onSelectNode,
   onAddStage,
@@ -616,10 +632,6 @@ export default function StructureTree({
   const t = useTranslations("academics.structure");
   const locale = useLocale();
   const isRTL = locale === "ar";
-  const [searchQuery, setSearchQuery] = useState("");
-  const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set(stages.map((s) => s.id)));
-  const [expandedGrades, setExpandedGrades] = useState<Set<string>>(new Set());
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -647,24 +659,81 @@ export default function StructureTree({
       return { stages: uniqueStages, grades: uniqueGrades, sections: uniqueSections, classrooms: uniqueClassrooms };
     }
 
-    const matchedClassrooms = uniqueClassrooms.filter((classroom) =>
-      matchesSearch(searchQuery, classroom.name, classroom.nameAr, classroom.nameEn)
+    const gradeById = new Map(uniqueGrades.map((grade) => [grade.id, grade]));
+    const sectionById = new Map(uniqueSections.map((section) => [section.id, section]));
+
+    const directlyMatchedStageIds = new Set(
+      uniqueStages
+        .filter((stage) => matchesSearch(searchQuery, stage.name, stage.nameAr, stage.nameEn))
+        .map((stage) => stage.id)
     );
-    const matchedSections = uniqueSections.filter(
-      (section) =>
-        matchesSearch(searchQuery, section.name, section.nameAr, section.nameEn) ||
-        matchedClassrooms.some((classroom) => classroom.sectionId === section.id)
+    const directlyMatchedGradeIds = new Set(
+      uniqueGrades
+        .filter((grade) => matchesSearch(searchQuery, grade.name, grade.nameAr, grade.nameEn))
+        .map((grade) => grade.id)
     );
-    const matchedGrades = uniqueGrades.filter(
-      (grade) =>
-        matchesSearch(searchQuery, grade.name, grade.nameAr, grade.nameEn) ||
-        matchedSections.some((section) => section.gradeId === grade.id)
+    const directlyMatchedSectionIds = new Set(
+      uniqueSections
+        .filter((section) => matchesSearch(searchQuery, section.name, section.nameAr, section.nameEn))
+        .map((section) => section.id)
     );
-    const matchedStages = uniqueStages.filter(
-      (stage) =>
-        matchesSearch(searchQuery, stage.name, stage.nameAr, stage.nameEn) ||
-        matchedGrades.some((grade) => grade.stageId === stage.id)
+    const directlyMatchedClassroomIds = new Set(
+      uniqueClassrooms
+        .filter((classroom) => matchesSearch(searchQuery, classroom.name, classroom.nameAr, classroom.nameEn))
+        .map((classroom) => classroom.id)
     );
+
+    const includedGradeIds = new Set<string>();
+    uniqueGrades.forEach((grade) => {
+      if (directlyMatchedStageIds.has(grade.stageId) || directlyMatchedGradeIds.has(grade.id)) {
+        includedGradeIds.add(grade.id);
+      }
+    });
+
+    const includedSectionIds = new Set<string>();
+    uniqueSections.forEach((section) => {
+      if (
+        directlyMatchedSectionIds.has(section.id) ||
+        includedGradeIds.has(section.gradeId) ||
+        uniqueClassrooms.some(
+          (classroom) =>
+            classroom.sectionId === section.id &&
+            directlyMatchedClassroomIds.has(classroom.id)
+        )
+      ) {
+        includedSectionIds.add(section.id);
+      }
+    });
+
+    uniqueGrades.forEach((grade) => {
+      if (Array.from(includedSectionIds).some((sectionId) => sectionById.get(sectionId)?.gradeId === grade.id)) {
+        includedGradeIds.add(grade.id);
+      }
+    });
+
+    const includedStageIds = new Set<string>(directlyMatchedStageIds);
+    uniqueGrades.forEach((grade) => {
+      if (includedGradeIds.has(grade.id)) {
+        includedStageIds.add(grade.stageId);
+      }
+    });
+
+    const matchedClassrooms = uniqueClassrooms.filter((classroom) => {
+      if (directlyMatchedClassroomIds.has(classroom.id)) {
+        return true;
+      }
+
+      if (includedSectionIds.has(classroom.sectionId)) {
+        return true;
+      }
+
+      const parentSection = sectionById.get(classroom.sectionId);
+      const parentGrade = parentSection ? gradeById.get(parentSection.gradeId) : null;
+      return !!parentGrade && includedStageIds.has(parentGrade.stageId);
+    });
+    const matchedSections = uniqueSections.filter((section) => includedSectionIds.has(section.id));
+    const matchedGrades = uniqueGrades.filter((grade) => includedGradeIds.has(grade.id));
+    const matchedStages = uniqueStages.filter((stage) => includedStageIds.has(stage.id));
 
     return {
       stages: matchedStages,
@@ -675,30 +744,24 @@ export default function StructureTree({
   }, [searchQuery, stages, grades, sections, classrooms]);
 
   const toggleStage = (stageId: string) => {
-    setExpandedStages((prev) => {
-      const next = new Set(prev);
-      if (next.has(stageId)) next.delete(stageId);
-      else next.add(stageId);
-      return next;
-    });
+    const next = new Set(expandedStages);
+    if (next.has(stageId)) next.delete(stageId);
+    else next.add(stageId);
+    onExpandedStagesChange(next);
   };
 
   const toggleGrade = (gradeId: string) => {
-    setExpandedGrades((prev) => {
-      const next = new Set(prev);
-      if (next.has(gradeId)) next.delete(gradeId);
-      else next.add(gradeId);
-      return next;
-    });
+    const next = new Set(expandedGrades);
+    if (next.has(gradeId)) next.delete(gradeId);
+    else next.add(gradeId);
+    onExpandedGradesChange(next);
   };
 
   const toggleSection = (sectionId: string) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(sectionId)) next.delete(sectionId);
-      else next.add(sectionId);
-      return next;
-    });
+    const next = new Set(expandedSections);
+    if (next.has(sectionId)) next.delete(sectionId);
+    else next.add(sectionId);
+    onExpandedSectionsChange(next);
   };
 
   const getGradesByStage = (stageId: string) => {
@@ -711,17 +774,23 @@ export default function StructureTree({
       .sort((a, b) => a.order - b.order);
   };
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!searchQuery.trim()) {
       return;
     }
 
-    setExpandedStages(new Set(filteredData.stages.map((stage) => stage.id)));
-    setExpandedGrades(new Set(filteredData.grades.map((grade) => grade.id)));
-    setExpandedSections(new Set(filteredData.sections.map((section) => section.id)));
-  }, [searchQuery, filteredData.stages, filteredData.grades, filteredData.sections]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+    onExpandedStagesChange(new Set(filteredData.stages.map((stage) => stage.id)));
+    onExpandedGradesChange(new Set(filteredData.grades.map((grade) => grade.id)));
+    onExpandedSectionsChange(new Set(filteredData.sections.map((section) => section.id)));
+  }, [
+    filteredData.grades,
+    filteredData.sections,
+    filteredData.stages,
+    onExpandedGradesChange,
+    onExpandedSectionsChange,
+    onExpandedStagesChange,
+    searchQuery,
+  ]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -771,7 +840,7 @@ export default function StructureTree({
       <div className="p-4 border-b border-border">
         <Input
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => onSearchQueryChange(e.target.value)}
           placeholder={t("tree.search_placeholder")}
           leftIcon={<Search className="w-4 h-4" />}
           inputSize="md"

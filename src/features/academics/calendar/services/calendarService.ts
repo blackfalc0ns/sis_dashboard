@@ -1,6 +1,9 @@
 // Mock service for Academic Calendar (TERM SCOPED)
 // Replace with real API calls when backend is ready
 
+import type { CalendarAdapter } from "@/features/academics/calendar/services/calendarAdapter";
+import { calendarApiAdapter } from "@/features/academics/calendar/services/calendarApiAdapter";
+
 export interface AcademicEvent {
   id: string;
   termId: string;
@@ -91,17 +94,16 @@ const generateId = (prefix: string) => {
 /**
  * Fetch all events for a term
  */
-export const fetchTermEvents = async (termId: string): Promise<AcademicEvent[]> => {
+const fetchTermEventsImpl = async (termId: string): Promise<AcademicEvent[]> => {
   await delay(300);
   const events = eventsByTerm[termId] || [];
-  console.log(`fetchTermEvents for term ${termId}: found ${events.length} events`);
   return events;
 };
 
 /**
  * Create a new event for a term
  */
-export const createTermEvent = async (
+const createTermEventImpl = async (
   termId: string,
   payload: Omit<AcademicEvent, "id" | "termId" | "createdAt">
 ): Promise<AcademicEvent> => {
@@ -119,16 +121,13 @@ export const createTermEvent = async (
   }
   eventsByTerm[termId].push(newEvent);
 
-  console.log("Created new event:", newEvent.id, "for term:", termId);
-  console.log("Total events in term:", eventsByTerm[termId].length);
-
   return newEvent;
 };
 
 /**
  * Update an existing event
  */
-export const updateEvent = async (
+const updateEventImpl = async (
   eventId: string,
   payload: Partial<Omit<AcademicEvent, "id" | "termId" | "createdAt">>
 ): Promise<AcademicEvent> => {
@@ -151,30 +150,19 @@ export const updateEvent = async (
 /**
  * Delete an event
  */
-export const deleteEvent = async (eventId: string): Promise<void> => {
+const deleteEventImpl = async (eventId: string): Promise<void> => {
   await delay(300);
-
-  console.log("deleteEvent called with ID:", eventId);
-  console.log("Current eventsByTerm keys:", Object.keys(eventsByTerm));
   
   // Find and remove event across all terms
   for (const termId in eventsByTerm) {
     const events = eventsByTerm[termId];
-    console.log(`Checking term ${termId}, has ${events.length} events`);
     const index = events.findIndex((e) => e.id === eventId);
 
     if (index !== -1) {
-      console.log(`Found event at index ${index} in term ${termId}`);
       events.splice(index, 1);
       return;
     }
   }
-
-  // Log available event IDs for debugging
-  const allEventIds = Object.values(eventsByTerm)
-    .flat()
-    .map((e) => e.id);
-  console.error(`Event not found. Looking for: "${eventId}", Available IDs:`, allEventIds);
   
   throw new Error(`Event not found: ${eventId}`);
 };
@@ -209,21 +197,11 @@ export const getEventsForDate = (
   const day = String(date.getDate()).padStart(2, "0");
   const dateStr = `${year}-${month}-${day}`;
 
-  console.log("getEventsForDate called for:", dateStr);
-
   const filtered = events.filter((event) => {
     const eventStart = event.startDate;
     const eventEnd = event.endDate;
-    const matches = dateStr >= eventStart && dateStr <= eventEnd;
-    
-    if (matches) {
-      console.log(`  Event "${event.titleEn}" matches (${eventStart} to ${eventEnd})`);
-    }
-
-    return matches;
+    return dateStr >= eventStart && dateStr <= eventEnd;
   });
-
-  console.log(`  Found ${filtered.length} events for ${dateStr}`);
   return filtered;
 };
 
@@ -249,20 +227,14 @@ export const getEventsForDateRange = (
  * Send notification for an event (EXAM or HOLIDAY)
  * 
  * TODO: Wire to actual notification API when available
- * For now, this is a stub that logs the notification
  */
-export const notifyEvent = async (eventId: string): Promise<void> => {
+const notifyEventImpl = async (eventId: string): Promise<void> => {
   await delay(300);
 
   // Find the event
   for (const termId in eventsByTerm) {
     const event = eventsByTerm[termId].find((e) => e.id === eventId);
     if (event) {
-      console.log(`[NOTIFICATION STUB] Sending notification for event: ${event.titleEn}`);
-      console.log(`  Type: ${event.type}`);
-      console.log(`  Scope: ${event.scopeType}${event.scopeId ? ` (${event.scopeId})` : ""}`);
-      console.log(`  Date: ${event.startDate} to ${event.endDate}`);
-      
       // TODO: Replace with actual API call
       // await fetch('/api/events/notify', {
       //   method: 'POST',
@@ -275,3 +247,54 @@ export const notifyEvent = async (eventId: string): Promise<void> => {
 
   throw new Error("Event not found");
 };
+
+const mockCalendarAdapter: CalendarAdapter = {
+  fetchTermEvents: fetchTermEventsImpl,
+  createTermEvent: createTermEventImpl,
+  updateEvent: updateEventImpl,
+  deleteEvent: deleteEventImpl,
+  notifyEvent: notifyEventImpl,
+};
+
+let calendarAdapter: CalendarAdapter = mockCalendarAdapter;
+
+if (process.env.NEXT_PUBLIC_USE_CALENDAR_API === "true") {
+  calendarAdapter = calendarApiAdapter;
+}
+
+export const getCalendarAdapter = (): CalendarAdapter => calendarAdapter;
+
+export const setCalendarAdapter = (adapter: CalendarAdapter) => {
+  calendarAdapter = adapter;
+};
+
+export const resetCalendarAdapter = () => {
+  calendarAdapter =
+    process.env.NEXT_PUBLIC_USE_CALENDAR_API === "true"
+      ? calendarApiAdapter
+      : mockCalendarAdapter;
+};
+
+export const activateCalendarAdapter = (adapter: CalendarAdapter) => {
+  setCalendarAdapter(adapter);
+  return adapter;
+};
+
+export const fetchTermEvents = (termId: string): Promise<AcademicEvent[]> =>
+  calendarAdapter.fetchTermEvents(termId);
+
+export const createTermEvent = (
+  termId: string,
+  payload: Omit<AcademicEvent, "id" | "termId" | "createdAt">
+): Promise<AcademicEvent> => calendarAdapter.createTermEvent(termId, payload);
+
+export const updateEvent = (
+  eventId: string,
+  payload: Partial<Omit<AcademicEvent, "id" | "termId" | "createdAt">>
+): Promise<AcademicEvent> => calendarAdapter.updateEvent(eventId, payload);
+
+export const deleteEvent = (eventId: string): Promise<void> =>
+  calendarAdapter.deleteEvent(eventId);
+
+export const notifyEvent = (eventId: string): Promise<void> =>
+  calendarAdapter.notifyEvent(eventId);

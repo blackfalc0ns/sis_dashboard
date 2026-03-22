@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -28,7 +28,11 @@ import DateRangeFilter, {
 } from "@/features/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
 import { downloadCSV, generateFilename } from "@/utils/simpleExport";
-import { Student, StudentStatus } from "@/features/students-guardians/students/types";
+import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
+import {
+  Student,
+  StudentStatus,
+} from "@/features/students-guardians/students/types";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import {
   getStudentDisplayName,
@@ -43,6 +47,8 @@ import AddNoteModal, {
 } from "@/features/students-guardians/students/components/modals/AddNoteModal";
 import BulkUploadModal from "@/features/students-guardians/students/components/modals/BulkUploadModal";
 import ChangePasswordModal from "@/features/students-guardians/students/components/modals/ChangePasswordModal";
+import MainLoader from "@/components/ui/loaders/MainLoader";
+import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 
 export default function StudentsList() {
   const t = useTranslations("students_guardians.students");
@@ -50,32 +56,124 @@ export default function StudentsList() {
   const router = useRouter();
   const params = useParams();
   const lang = (params.lang as string) || "en";
+  const {
+    yearId,
+    termId,
+    isLoading: isContextLoading,
+    error: contextError,
+  } = useStudentsGuardiansYearTermContext();
 
-  // Load students with enrollment data from service
-  const [studentsWithEnrollment] = useState(
-    studentsService.getStudentsWithEnrollment(),
-  );
+  const [studentsWithEnrollment, setStudentsWithEnrollment] = useState<
+    studentsService.StudentWithEnrollmentContext[]
+  >([]);
+  const [isPageLoading, setIsPageLoading] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (isContextLoading) {
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    if (!yearId || !termId) {
+      setStudentsWithEnrollment([]);
+      setPageError(null);
+      setIsPageLoading(false);
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    void Promise.resolve().then(async () => {
+      if (isCancelled) {
+        return;
+      }
+
+      setIsPageLoading(true);
+      setPageError(null);
+
+      try {
+        const data =
+          await studentsService.fetchStudentsWithEnrollmentForContext(
+            yearId,
+            termId,
+          );
+        if (isCancelled) {
+          return;
+        }
+        setStudentsWithEnrollment(data);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+        setStudentsWithEnrollment([]);
+        setPageError(
+          error instanceof Error ? error.message : t("loading_error"),
+        );
+      } finally {
+        if (!isCancelled) {
+          setIsPageLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isContextLoading, termId, t, yearId]);
 
   // Filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [academicYearFilter, setAcademicYearFilter] = useState<string>("all");
-  const [termFilter, setTermFilter] = useState<string>("all");
-  const [gradeFilter, setGradeFilter] = useState<string>("all");
-  const [sectionFilter, setSectionFilter] = useState<string>("all");
-  const [classroomFilter, setClassroomFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<StudentStatus | "all">(
-    "all",
-  );
   const [showFilters, setShowFilters] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRangeValue>("all");
-  const [customStartDate, setCustomStartDate] = useState<string>("");
-  const [customEndDate, setCustomEndDate] = useState<string>("");
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [passwordChangeStudent, setPasswordChangeStudent] =
     useState<Student | null>(null);
+  const {
+    values: queryValues,
+    setValue,
+    setValues,
+    replaceValues,
+    reset,
+  } = useUrlQueryState<{
+    search: string;
+    grade: string;
+    section: string;
+    classroom: string;
+    status: string;
+    dateRange: string;
+    startDate: string;
+    endDate: string;
+  }>({
+    defaults: {
+      search: "",
+      grade: "all",
+      section: "all",
+      classroom: "all",
+      status: "all",
+      dateRange: "all",
+      startDate: "",
+      endDate: "",
+    },
+    debouncedKeys: ["search"],
+    modeByKey: {
+      search: "replace",
+    },
+  });
+
+  const searchQuery = queryValues.search;
+  const gradeFilter = queryValues.grade;
+  const sectionFilter = queryValues.section;
+  const classroomFilter = queryValues.classroom;
+  const statusFilter = queryValues.status as StudentStatus | "all";
+  const dateRange = queryValues.dateRange as DateRangeValue;
+  const customStartDate = queryValues.startDate;
+  const customEndDate = queryValues.endDate;
 
   // Filter students
   const filteredStudents = useMemo(() => {
@@ -111,17 +209,6 @@ export default function StudentsList() {
       const studentGrade = student.enrollment?.grade || student.gradeRequested;
       const studentSection = student.enrollment?.section || "";
       const studentClassroom = student.enrollment?.classroom || "";
-      const studentAcademicYear = student.enrollment?.academicYear || "";
-
-      // Get current term from currentTerm data
-      const studentTerm = student.currentTerm?.term || "";
-
-      const matchesAcademicYear =
-        academicYearFilter === "all" ||
-        studentAcademicYear === academicYearFilter;
-
-      const matchesTerm = termFilter === "all" || studentTerm === termFilter;
-
       const matchesGrade =
         gradeFilter === "all" || studentGrade === gradeFilter;
 
@@ -140,8 +227,6 @@ export default function StudentsList() {
 
       return (
         matchesSearch &&
-        matchesAcademicYear &&
-        matchesTerm &&
         matchesGrade &&
         matchesSection &&
         matchesClassroom &&
@@ -152,8 +237,6 @@ export default function StudentsList() {
   }, [
     studentsWithEnrollment,
     searchQuery,
-    academicYearFilter,
-    termFilter,
     gradeFilter,
     sectionFilter,
     classroomFilter,
@@ -184,35 +267,15 @@ export default function StudentsList() {
       (s) => s.status === "Withdrawn",
     ).length;
 
-    // Use YTD performance data for at-risk calculation
-    const atRisk = studentsInRange.filter(
-      (s) => s.ytdPerformance && s.ytdPerformance.riskFlags.length > 0,
-    ).length;
+    const atRisk = studentsInRange.filter((student) => {
+      const performance = student.contextPerformance || student.ytdPerformance;
+      return Boolean(performance && performance.riskFlags.length > 0);
+    }).length;
 
     return { total, active, suspended, withdrawn, atRisk };
   }, [studentsWithEnrollment, dateRange, customStartDate, customEndDate]);
 
   // Get unique values for filters from enrollment data
-  const uniqueAcademicYears = useMemo(() => {
-    const years = new Set<string>();
-    studentsWithEnrollment.forEach((s) => {
-      if (s.enrollment?.academicYear) {
-        years.add(s.enrollment.academicYear);
-      }
-    });
-    return Array.from(years).sort();
-  }, [studentsWithEnrollment]);
-
-  const uniqueTerms = useMemo(() => {
-    const terms = new Set<string>();
-    studentsWithEnrollment.forEach((s) => {
-      if (s.currentTerm?.term) {
-        terms.add(s.currentTerm.term);
-      }
-    });
-    return Array.from(terms).sort();
-  }, [studentsWithEnrollment]);
-
   const uniqueGrades = useMemo(() => {
     const grades = new Set<string>();
     studentsWithEnrollment.forEach((s) => {
@@ -254,23 +317,43 @@ export default function StudentsList() {
     return Array.from(classrooms).sort();
   }, [gradeFilter, sectionFilter, studentsWithEnrollment]);
 
+  useEffect(() => {
+    if (gradeFilter !== "all" && !uniqueGrades.includes(gradeFilter)) {
+      replaceValues({
+        grade: null,
+        section: null,
+        classroom: null,
+      });
+    }
+  }, [gradeFilter, replaceValues, uniqueGrades]);
+
+  useEffect(() => {
+    if (sectionFilter !== "all" && !uniqueSections.includes(sectionFilter)) {
+      replaceValues({
+        section: null,
+        classroom: null,
+      });
+    }
+  }, [replaceValues, sectionFilter, uniqueSections]);
+
+  useEffect(() => {
+    if (
+      classroomFilter !== "all" &&
+      !uniqueClassrooms.includes(classroomFilter)
+    ) {
+      replaceValues({ classroom: null });
+    }
+  }, [classroomFilter, replaceValues, uniqueClassrooms]);
+
   const hasActiveFilters =
     searchQuery !== "" ||
-    academicYearFilter !== "all" ||
-    termFilter !== "all" ||
     gradeFilter !== "all" ||
     sectionFilter !== "all" ||
     classroomFilter !== "all" ||
     statusFilter !== "all";
 
   const clearFilters = () => {
-    setSearchQuery("");
-    setAcademicYearFilter("all");
-    setTermFilter("all");
-    setGradeFilter("all");
-    setSectionFilter("all");
-    setClassroomFilter("all");
-    setStatusFilter("all");
+    reset(undefined, "replace");
   };
 
   const handleAddNote = (noteData: NoteFormData) => {
@@ -333,11 +416,12 @@ export default function StudentsList() {
   };
 
   const getRiskBadges = (
-    ytdPerformance:
+    performance:
       | ReturnType<typeof studentsService.getStudentYTDPerformance>
+      | studentsService.StudentWithEnrollmentContext["contextPerformance"]
       | undefined,
   ) => {
-    if (!ytdPerformance || ytdPerformance.riskFlags.length === 0) return null;
+    if (!performance || performance.riskFlags.length === 0) return null;
 
     const getRiskLabel = (flag: string) => {
       switch (flag) {
@@ -354,7 +438,7 @@ export default function StudentsList() {
 
     return (
       <div className="flex gap-1 flex-wrap">
-        {ytdPerformance.riskFlags.map((flag) => (
+        {performance.riskFlags.map((flag) => (
           <span
             key={flag}
             className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getRiskFlagColor(flag)}`}
@@ -448,8 +532,8 @@ export default function StudentsList() {
       label: t("columns.attendance"),
       render: (_: unknown, row: { [key: string]: unknown }) => {
         const student = row as unknown as (typeof studentsWithEnrollment)[0];
-        return student.ytdPerformance
-          ? `${student.ytdPerformance.attendance}%`
+        return student.contextPerformance || student.ytdPerformance
+          ? `${(student.contextPerformance || student.ytdPerformance)?.attendance}%`
           : t("columns.na");
       },
     },
@@ -458,8 +542,8 @@ export default function StudentsList() {
       label: t("columns.average"),
       render: (_: unknown, row: { [key: string]: unknown }) => {
         const student = row as unknown as (typeof studentsWithEnrollment)[0];
-        return student.ytdPerformance
-          ? `${student.ytdPerformance.gradeAverage}%`
+        return student.contextPerformance || student.ytdPerformance
+          ? `${(student.contextPerformance || student.ytdPerformance)?.gradeAverage}%`
           : t("columns.na");
       },
     },
@@ -475,7 +559,9 @@ export default function StudentsList() {
       sortable: false,
       render: (_: unknown, row: { [key: string]: unknown }) => {
         const student = row as unknown as (typeof studentsWithEnrollment)[0];
-        return getRiskBadges(student.ytdPerformance);
+        return getRiskBadges(
+          student.contextPerformance || student.ytdPerformance,
+        );
       },
     },
     {
@@ -533,17 +619,49 @@ export default function StudentsList() {
     );
   };
 
+  if (isContextLoading || isPageLoading) {
+    return <MainLoader />;
+  }
+
+  if (contextError || pageError || !yearId || !termId) {
+    return (
+      <div className="p-4 sm:p-6">
+        <div className="bg-white rounded-xl p-10 text-center shadow-sm">
+          <p className="text-sm text-red-600">
+            {contextError || pageError || t("loading_error")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 space-y-6 overflow-x-hidden">
       {/* Date Range Filter */}
       <DateRangeFilter
         value={dateRange}
-        onChange={setDateRange}
+        onChange={(nextRange) => {
+          const shouldResetCustom = nextRange !== "custom";
+          setValues(
+            {
+              dateRange: nextRange,
+              startDate: shouldResetCustom ? null : customStartDate || null,
+              endDate: shouldResetCustom ? null : customEndDate || null,
+            },
+            "push",
+          );
+        }}
         customStartDate={customStartDate}
         customEndDate={customEndDate}
         onCustomDateChange={(start, end) => {
-          setCustomStartDate(start);
-          setCustomEndDate(end);
+          setValues(
+            {
+              dateRange: "custom",
+              startDate: start || null,
+              endDate: end || null,
+            },
+            "replace",
+          );
         }}
         showAllTime={true}
       />
@@ -663,7 +781,9 @@ export default function StudentsList() {
               type="text"
               placeholder={t("search_placeholder")}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setValue("search", e.target.value, "replace");
+              }}
               className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
                 searchQuery
                   ? "border-primary ring-2 ring-primary/20"
@@ -695,41 +815,7 @@ export default function StudentsList() {
 
         {/* Advanced Filters */}
         {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {t("filter_labels.academic_year")}
-              </label>
-              <select
-                value={academicYearFilter}
-                onChange={(e) => setAcademicYearFilter(e.target.value)}
-                className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">{t("filter_options.all_years")}</option>
-                {uniqueAcademicYears.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {t("filter_labels.term")}
-              </label>
-              <select
-                value={termFilter}
-                onChange={(e) => setTermFilter(e.target.value)}
-                className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">{t("filter_options.all_terms")}</option>
-                {uniqueTerms.map((term) => (
-                  <option key={term} value={term}>
-                    {term}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
                 {t("filter_labels.grade")}
@@ -737,9 +823,15 @@ export default function StudentsList() {
               <select
                 value={gradeFilter}
                 onChange={(e) => {
-                  setGradeFilter(e.target.value);
-                  setSectionFilter("all");
-                  setClassroomFilter("all");
+                  const nextGrade = e.target.value;
+                  setValues(
+                    {
+                      grade: nextGrade,
+                      section: null,
+                      classroom: null,
+                    },
+                    "push",
+                  );
                 }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -758,8 +850,14 @@ export default function StudentsList() {
               <select
                 value={sectionFilter}
                 onChange={(e) => {
-                  setSectionFilter(e.target.value);
-                  setClassroomFilter("all");
+                  const nextSection = e.target.value;
+                  setValues(
+                    {
+                      section: nextSection,
+                      classroom: null,
+                    },
+                    "push",
+                  );
                 }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -777,10 +875,14 @@ export default function StudentsList() {
               </label>
               <select
                 value={classroomFilter}
-                onChange={(e) => setClassroomFilter(e.target.value)}
+                onChange={(e) => {
+                  setValue("classroom", e.target.value, "push");
+                }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
-                <option value="all">{t("filter_options.all_classrooms")}</option>
+                <option value="all">
+                  {t("filter_options.all_classrooms")}
+                </option>
                 {uniqueClassrooms.map((classroom) => (
                   <option key={classroom} value={classroom}>
                     {classroom}
@@ -794,9 +896,13 @@ export default function StudentsList() {
               </label>
               <select
                 value={statusFilter}
-                onChange={(e) =>
-                  setStatusFilter(e.target.value as StudentStatus | "all")
-                }
+                onChange={(e) => {
+                  setValue(
+                    "status",
+                    e.target.value as StudentStatus | "all",
+                    "push",
+                  );
+                }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("filter_options.all_statuses")}</option>
@@ -832,7 +938,12 @@ export default function StudentsList() {
           }
           onRowClick={handleRowClick}
           searchQuery={searchQuery}
-          virtualize = {true}
+          virtualize={true}
+          urlState={{
+            keyPrefix: "studentsTable",
+            syncPagination: true,
+            syncSorting: true,
+          }}
         />
       )}
 

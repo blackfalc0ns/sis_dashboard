@@ -4,7 +4,7 @@
  */
 
 import { useMemo, startTransition } from 'react';
-import { useRouter, useParams, usePathname } from 'next/navigation';
+import { useRouter, useParams, usePathname, useSearchParams } from 'next/navigation';
 import { buildTabPath, getActiveTabFromPath } from '@/lib/routing/localePath';
 
 export interface TabConfig {
@@ -82,11 +82,12 @@ export interface UseSectionTabsReturn {
  * });
  */
 export function useSectionTabs(options: UseSectionTabsOptions): UseSectionTabsReturn {
-  const { basePath, idParam, tabs, defaultTab = 'overview' } = options;
+  const { basePath, idParam, tabs } = options;
   
   const router = useRouter();
   const params = useParams();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   
   const lang = (params.lang as string) || 'en';
   const entityId = params[idParam] as string;
@@ -101,8 +102,10 @@ export function useSectionTabs(options: UseSectionTabsOptions): UseSectionTabsRe
   
   const handleTabClick = (tabKey: string) => {
     const path = buildPath(tabKey);
+    const query = searchParams.toString();
+    const nextPath = query ? `${path}?${query}` : path;
     startTransition(() => {
-      router.push(path, { scroll: false });
+      router.push(nextPath, { scroll: false });
     });
   };
   

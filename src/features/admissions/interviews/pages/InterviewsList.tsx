@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
@@ -26,26 +26,30 @@ import { downloadCSV, generateFilename } from "@/utils/simpleExport";
 import { formatInterviewsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
 import { mockApplications, mockInterviews } from "@/data/mockAdmissions";
 import { Interview, InterviewStatus } from "@/features/admissions/types/admissions";
+import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
+import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import {
+  filterAdmissionsRecordsByDateContext,
+  resolveAdmissionsContextScope,
+} from "@/features/admissions/shared/utils/admissionsContextScope";
 
 export default function InterviewsList() {
   const t = useTranslations("admissions.interviews");
   const locale = useLocale();
   const router = useRouter();
+  const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
   const [selectedInterview, setSelectedInterview] = useState<
     (Interview & { studentName: string }) | null
   >(null);
   const [isScheduleInterviewOpen, setIsScheduleInterviewOpen] = useState(false);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
 
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<InterviewStatus | "all">(
-    "all",
-  );
   const [showFilters, setShowFilters] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRangeValue>("all");
-  const [customStartDate, setCustomStartDate] = useState<string>("");
-  const [customEndDate, setCustomEndDate] = useState<string>("");
+  const admissionsScope = useMemo(
+    () => resolveAdmissionsContextScope(yearId, termId),
+    [termId, yearId],
+  );
 
   // Combine interviews from applications and standalone interviews
   const allInterviews = useMemo(() => {
@@ -78,6 +82,69 @@ export default function InterviewsList() {
     });
     return [...interviewsFromApps, ...standaloneInterviews];
   }, [locale]);
+  const scopedInterviews = useMemo(
+    () =>
+      filterAdmissionsRecordsByDateContext(
+        allInterviews,
+        (interview) => interview.date,
+        admissionsScope,
+      ),
+    [admissionsScope, allInterviews],
+  );
+
+  const normalizeQueryValues = useCallback(
+    (
+      values: Record<
+        "search" | "status" | "dateRange" | "startDate" | "endDate",
+        string
+      >,
+    ) => {
+      const updates: Partial<Record<keyof typeof values, string | null>> = {};
+      const validStatuses = new Set(["all", "scheduled", "completed"]);
+      const validDateRanges = new Set(["all", "7", "14", "30", "60", "90", "custom"]);
+
+      if (!validStatuses.has(values.status)) {
+        updates.status = null;
+      }
+      if (!validDateRanges.has(values.dateRange)) {
+        updates.dateRange = null;
+      }
+      if (values.dateRange !== "custom") {
+        if (values.startDate) updates.startDate = null;
+        if (values.endDate) updates.endDate = null;
+      }
+
+      return Object.keys(updates).length > 0 ? updates : null;
+    },
+    [],
+  );
+
+  const { values, setValue, setValues, reset } = useAdmissionsUrlQueryState<{
+    search: string;
+    status: string;
+    dateRange: string;
+    startDate: string;
+    endDate: string;
+  }>({
+    defaults: {
+      search: "",
+      status: "all",
+      dateRange: "all",
+      startDate: "",
+      endDate: "",
+    },
+    debouncedKeys: ["search"],
+    modeByKey: {
+      search: "replace",
+    },
+    normalize: normalizeQueryValues,
+  });
+
+  const searchQuery = values.search;
+  const statusFilter = values.status as InterviewStatus | "all";
+  const dateRange = values.dateRange as DateRangeValue;
+  const customStartDate = values.startDate;
+  const customEndDate = values.endDate;
 
   // Filter and search interviews
   const filteredInterviews = useMemo(() => {
@@ -87,7 +154,7 @@ export default function InterviewsList() {
       customEndDate,
     );
 
-    return allInterviews.filter((interview) => {
+    return scopedInterviews.filter((interview) => {
       const matchesSearch =
         searchQuery === "" ||
         interview.studentName
@@ -107,7 +174,7 @@ export default function InterviewsList() {
       return matchesSearch && matchesStatus && matchesDateRange;
     });
   }, [
-    allInterviews,
+    scopedInterviews,
     searchQuery,
     statusFilter,
     dateRange,
@@ -123,7 +190,7 @@ export default function InterviewsList() {
       customEndDate,
     );
 
-    const interviewsInRange = allInterviews.filter((interview) =>
+    const interviewsInRange = scopedInterviews.filter((interview) =>
       isDateInRange(interview.date, filterResult),
     );
 
@@ -150,7 +217,7 @@ export default function InterviewsList() {
         : "0.0";
 
     return { total, scheduled, completed, avgRating };
-  }, [allInterviews, dateRange, customStartDate, customEndDate]);
+  }, [customEndDate, customStartDate, dateRange, scopedInterviews]);
 
   const columns = [
     { key: "interviewId", label: t("interview_id"), searchable: true },
@@ -185,6 +252,7 @@ export default function InterviewsList() {
           <button
             onClick={(e) => {
               e.stopPropagation();
+              if (isReadOnly) return;
               setSelectedInterview(row);
               setIsRatingModalOpen(true);
             }}
@@ -201,8 +269,7 @@ export default function InterviewsList() {
   const hasActiveFilters = searchQuery !== "" || statusFilter !== "all";
 
   const clearFilters = () => {
-    setSearchQuery("");
-    setStatusFilter("all");
+    reset(undefined, "replace");
   };
 
   const handleRowClick = (
@@ -242,12 +309,28 @@ export default function InterviewsList() {
       {/* Date Range Filter */}
       <DateRangeFilter
         value={dateRange}
-        onChange={setDateRange}
+        onChange={(nextRange) => {
+          const shouldResetCustom = nextRange !== "custom";
+          setValues(
+            {
+              dateRange: nextRange,
+              startDate: shouldResetCustom ? null : customStartDate || null,
+              endDate: shouldResetCustom ? null : customEndDate || null,
+            },
+            "push",
+          );
+        }}
         customStartDate={customStartDate}
         customEndDate={customEndDate}
         onCustomDateChange={(start, end) => {
-          setCustomStartDate(start);
-          setCustomEndDate(end);
+          setValues(
+            {
+              dateRange: "custom",
+              startDate: start || null,
+              endDate: end || null,
+            },
+            "replace",
+          );
         }}
         showAllTime={true}
       />
@@ -333,6 +416,8 @@ export default function InterviewsList() {
         </div>
       </div>
 
+      {isReadOnly && <AdmissionsReadOnlyBanner />}
+
       {/* Filters */}
       <div className="space-y-3">
         <div className="flex items-center gap-3 flex-wrap">
@@ -342,7 +427,7 @@ export default function InterviewsList() {
               type="text"
               placeholder={t("search_placeholder")}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setValue("search", e.target.value, "replace")}
               className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
                 searchQuery
                   ? "border-primary ring-2 ring-primary/20"
@@ -381,7 +466,7 @@ export default function InterviewsList() {
             <select
               value={statusFilter}
               onChange={(e) =>
-                setStatusFilter(e.target.value as InterviewStatus | "all")
+                setValue("status", e.target.value as InterviewStatus | "all", "push")
               }
               className="w-full text-black max-w-xs px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
             >
@@ -420,6 +505,11 @@ export default function InterviewsList() {
           data={filteredInterviews}
           onRowClick={handleRowClick}
           searchQuery={searchQuery}
+          urlState={{
+            keyPrefix: "interviewsTable",
+            syncPagination: true,
+            syncSorting: true,
+          }}
         />
       )}
 

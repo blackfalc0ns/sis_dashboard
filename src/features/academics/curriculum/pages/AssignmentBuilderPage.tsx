@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useMediaQuery, useTheme } from "@mui/material";
@@ -17,6 +17,7 @@ import BuilderHeader from "@/features/academics/curriculum/components/BuilderHea
 import DesktopLayout from "@/features/academics/curriculum/components/DesktopLayout";
 import MobileLayout from "@/features/academics/curriculum/components/MobileLayout";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 
 interface AssignmentBuilderPageProps {
   lessonId: string;
@@ -54,6 +55,7 @@ export default function AssignmentBuilderPage({
   const [questionDraft, setQuestionDraft] = useState<AssignmentQuestion | null>(null);
   const [lastSavedQuestion, setLastSavedQuestion] = useState<AssignmentQuestion | null>(null);
   const [isQuestionSaving, setIsQuestionSaving] = useState(false);
+  const lastInitializedAssignmentId = useRef<string | null>(null);
   
   // Confirm dialogs state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -77,7 +79,9 @@ export default function AssignmentBuilderPage({
     questions,
     attachments,
     loading,
+    creatingDraft,
     error,
+    createDraft,
     setAssignment,
     setQuestions,
     setAttachments,
@@ -128,11 +132,12 @@ export default function AssignmentBuilderPage({
 
   // Initialize assignment draft when assignment loads
   useEffect(() => {
-    if (assignment) {
+    if (assignment && lastInitializedAssignmentId.current !== assignment.id) {
       setAssignmentDraft(assignment);
       setLastSavedAssignment(assignment);
+      lastInitializedAssignmentId.current = assignment.id;
     }
-  }, [assignment?.id]); // Only reset when assignment ID changes
+  }, [assignment]);
 
   // Initialize question draft when selected question changes
   useEffect(() => {
@@ -393,16 +398,13 @@ export default function AssignmentBuilderPage({
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-16 bg-gray-200 rounded"></div>
-          <div className="h-96 bg-gray-200 rounded"></div>
-        </div>
+        <MainLoader />
       </div>
     );
   }
 
   // Error state
-  if (error || !assignment) {
+  if (error || (assignmentId && !assignment)) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="text-center py-12">
@@ -413,6 +415,34 @@ export default function AssignmentBuilderPage({
           >
             {t("backToLesson")}
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!assignment) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="mx-auto max-w-xl rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+          <h1 className="text-xl font-semibold text-gray-900">{t("createDraftTitle")}</h1>
+          <p className="mt-3 text-sm text-gray-600">
+            {t("createDraftBody")}
+          </p>
+          <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+            <button
+              onClick={handleBack}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              {t("backToLesson")}
+            </button>
+            <button
+              onClick={createDraft}
+              disabled={creatingDraft}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {creatingDraft ? t("creatingDraft") : t("createDraftAction")}
+            </button>
+          </div>
         </div>
       </div>
     );

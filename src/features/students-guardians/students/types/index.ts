@@ -16,7 +16,12 @@ export type {
 // ============================================================================
 
 // Student
-export type { Student, StudentContact, StudentMock } from "./student";
+export type {
+  Student,
+  StudentContact,
+  StudentMock,
+  UpdateStudentPayload,
+} from "./student";
 
 // Guardian
 export type {

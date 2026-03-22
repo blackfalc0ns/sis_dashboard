@@ -2,84 +2,75 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { BarChart } from "@mui/x-charts/BarChart";
-import { ChartFilterValues } from "../../../shared/ChartFilter";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import { useOptionalStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import { useResponsiveChart } from "@/hooks/useResponsiveChart";
 import { ChartCard } from "@/components/ui/chart-card";
 import { DropdownItem } from "@/components/ui/dropdown";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 export default function StudentsByStatusChart() {
   const t = useTranslations("students_guardians.overview");
   const { height, leftMargin } = useResponsiveChart();
-
-  // Filter state
-  const [filterValues] = useState<ChartFilterValues>({
-    academicYear: "all",
-    term: "all",
-    dateRange: "all",
-    customStartDate: "",
-    customEndDate: "",
-  });
+  const context = useOptionalStudentsGuardiansYearTermContext();
+  const yearId = context?.yearId ?? null;
+  const termId = context?.termId ?? null;
+  const isContextLoading = context?.isLoading ?? false;
 
   // Get all students
-  const allStudents = useMemo(
-    () => studentsService.getStudentsWithEnrollment(),
-    [],
-  );
+  const [allStudents, setAllStudents] = useState<
+    studentsService.StudentWithEnrollmentContext[]
+  >([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Get unique academic years and terms
-  useMemo(() => {
-    const years = new Set<string>();
-    const termSet = new Set<string>();
+  useEffect(() => {
+    let isCancelled = false;
 
-    allStudents.forEach((student) => {
-      if (student.enrollment?.academicYear) {
-        years.add(student.enrollment.academicYear);
-      }
-      if (student.currentTerm?.term) {
-        termSet.add(student.currentTerm.term);
+    if (isContextLoading) {
+      setAllStudents([]);
+      setIsLoading(true);
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    void Promise.resolve().then(async () => {
+      setIsLoading(true);
+      try {
+        const students =
+          yearId && termId
+            ? await studentsService.fetchStudentsWithEnrollmentForContext(
+                yearId,
+                termId,
+              )
+            : await studentsService.fetchStudentsWithEnrollment();
+        if (!isCancelled) {
+          setAllStudents(students);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     });
 
-    return {
-      academicYears: Array.from(years).sort(),
-      terms: Array.from(termSet).sort(),
+    return () => {
+      isCancelled = true;
     };
-  }, [allStudents]);
-
-  // Filter students
-  const filteredStudents = useMemo(() => {
-    return allStudents.filter((student) => {
-      const academicYear = student.enrollment?.academicYear;
-      const term = student.currentTerm?.term;
-
-      if (
-        filterValues.academicYear !== "all" &&
-        academicYear !== filterValues.academicYear
-      ) {
-        return false;
-      }
-
-      if (filterValues.term !== "all" && term !== filterValues.term) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [allStudents, filterValues]);
+  }, [isContextLoading, termId, yearId]);
 
   // Calculate status data
   const statusData = useMemo(() => {
-    const activeCount = filteredStudents.filter(
+    const activeCount = allStudents.filter(
       (s) => s.status === "Active",
     ).length;
-    const suspendedCount = filteredStudents.filter(
+    const suspendedCount = allStudents.filter(
       (s) => s.status === "Suspended",
     ).length;
-    const withdrawnCount = filteredStudents.filter(
+    const withdrawnCount = allStudents.filter(
       (s) => s.status === "Withdrawn",
     ).length;
 
@@ -88,7 +79,7 @@ export default function StudentsByStatusChart() {
       { status: t("status.suspended"), count: suspendedCount },
       { status: t("status.withdrawn"), count: withdrawnCount },
     ];
-  }, [filteredStudents, t]);
+  }, [allStudents, t]);
 
   // Period options for ChartCard
   const periodOptions: DropdownItem[] = [
@@ -109,6 +100,9 @@ export default function StudentsByStatusChart() {
       {/* Chart */}
       <div className="h-64 sm:h-80 w-full overflow-x-auto overflow-y-hidden mt-4">
         <div className="min-w-[300px]">
+          {isLoading ? (
+            <PartialLoader />
+          ) : (
           <BarChart
             dataset={statusData}
             xAxis={[
@@ -144,6 +138,7 @@ export default function StudentsByStatusChart() {
               right: 20,
             }}
           />
+          )}
         </div>
       </div>
     </ChartCard>

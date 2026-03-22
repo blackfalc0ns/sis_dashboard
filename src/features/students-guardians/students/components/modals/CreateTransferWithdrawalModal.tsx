@@ -1,13 +1,14 @@
-"use client";
+ï»¿"use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { X, Search } from "lucide-react";
 import {
-  getAllStudents,
+  fetchAllStudents,
   getStudentEnrollment,
 } from "@/features/students-guardians/students/services/studentsService";
 import type { Student } from "@/features/students-guardians/students/types";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 interface CreateTransferWithdrawalModalProps {
   isOpen: boolean;
@@ -60,19 +61,53 @@ export default function CreateTransferWithdrawalModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [showStudentSearch, setShowStudentSearch] = useState(false);
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
 
-  const allStudents = getAllStudents();
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
 
-  const filteredStudents = allStudents.filter((student) => {
+    let isMounted = true;
+
+    const loadStudents = async () => {
+      setIsLoadingStudents(true);
+
+      try {
+        const students = await fetchAllStudents();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setAllStudents(students);
+      } finally {
+        if (isMounted) {
+          setIsLoadingStudents(false);
+        }
+      }
+    };
+
+    void loadStudents();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
+
+  const filteredStudents = useMemo(() => {
     const searchValue = searchQuery.toLowerCase();
 
-    return (
-      student.full_name_en.toLowerCase().includes(searchValue) ||
-      student.full_name_ar.includes(searchQuery) ||
-      student.student_id?.toLowerCase().includes(searchValue) ||
-      student.id.toLowerCase().includes(searchValue)
-    );
-  });
+    return allStudents.filter((student) => {
+      return (
+        student.full_name_en.toLowerCase().includes(searchValue) ||
+        student.full_name_ar.includes(searchQuery) ||
+        student.student_id?.toLowerCase().includes(searchValue) ||
+        student.id.toLowerCase().includes(searchValue)
+      );
+    });
+  }, [allStudents, searchQuery]);
 
   const handleStudentSelect = (student: Student) => {
     const enrollment = getStudentEnrollment(student.id);
@@ -145,6 +180,8 @@ export default function CreateTransferWithdrawalModal({
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {isLoadingStudents ? <PartialLoader /> : null}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("fields.student")} <span className="text-red-500">*</span>
@@ -186,7 +223,7 @@ export default function CreateTransferWithdrawalModal({
                           enrollment?.classroom,
                         ]
                           .filter(Boolean)
-                          .join(" • ");
+                          .join(" â€¢ ");
 
                         return (
                           <button
@@ -199,7 +236,7 @@ export default function CreateTransferWithdrawalModal({
                               {student.full_name_en}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {student.student_id || student.id} • {student.stage || getStageFromGrade(student.gradeRequested)} • {placement}
+                              {student.student_id || student.id} â€¢ {student.stage || getStageFromGrade(student.gradeRequested)} â€¢ {placement}
                             </div>
                           </button>
                         );
@@ -234,11 +271,11 @@ export default function CreateTransferWithdrawalModal({
                   </div>
                   <div>
                     <span className="text-gray-600">{t("fields.section")}:</span>
-                    <span className="ml-2 font-medium">{formData.section || "—"}</span>
+                    <span className="ml-2 font-medium">{formData.section || "â€”"}</span>
                   </div>
                   <div>
                     <span className="text-gray-600">{t("fields.classroom")}:</span>
-                    <span className="ml-2 font-medium">{formData.classroom || "—"}</span>
+                    <span className="ml-2 font-medium">{formData.classroom || "â€”"}</span>
                   </div>
                 </div>
               </div>

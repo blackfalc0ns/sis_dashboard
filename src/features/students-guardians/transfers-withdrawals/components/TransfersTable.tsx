@@ -13,6 +13,7 @@ interface TransfersTableProps {
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
   onExecute?: (id: string) => void;
+  urlStateKeyPrefix?: string;
 }
 
 export default function TransfersTable({
@@ -20,6 +21,7 @@ export default function TransfersTable({
   onApprove,
   onReject,
   onExecute,
+  urlStateKeyPrefix,
 }: TransfersTableProps) {
   const t = useTranslations("students_guardians.transfers_withdrawals");
   const locale = useLocale();
@@ -182,6 +184,15 @@ export default function TransfersTable({
           showPagination={true}
           itemsPerPage={10}
           onRowClick={handleRowClick}
+          urlState={
+            urlStateKeyPrefix
+              ? {
+                  keyPrefix: urlStateKeyPrefix,
+                  syncPagination: true,
+                  syncSorting: true,
+                }
+              : undefined
+          }
         />
       )}
     </div>

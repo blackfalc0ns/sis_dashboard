@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Edit2, Save, X, AlertTriangle } from "lucide-react";
 import { Student, RiskFlag } from "@/features/students-guardians/students/types";
 import {
@@ -10,16 +10,21 @@ import {
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import {
-  getEnrollmentByStudentId,
-  upsertStudentEnrollment,
-} from "@/data/mockEnrollments";
-import {
+  fetchAcademicYears,
   getStructureTreeSnapshot,
   resolveStructureContextForAcademicYear,
 } from "@/features/academics/academic-structure-tree/services/structureService";
+import {
+  getCurrentActiveEnrollment,
+  updateEnrollment,
+  upsertEnrollment,
+  validateEnrollmentPlacement,
+} from "@/features/students-guardians/students/services/enrollmentService";
+import { updateStudent } from "@/features/students-guardians/students/services/studentsService";
 
 interface PersonalInfoTabProps {
   student: Student;
+  onStudentUpdated?: () => void;
 }
 
 type PersonalInfoFormData = {
@@ -42,16 +47,82 @@ type PersonalInfoFormData = {
   student_email: string;
 };
 
-export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
+const buildPersonalInfoFormData = (
+  student: Student,
+  enrollment?: ReturnType<typeof getCurrentActiveEnrollment>,
+): PersonalInfoFormData => ({
+  name: student.name || student.full_name_en,
+  full_name_en: student.full_name_en || student.name || "",
+  full_name_ar: student.full_name_ar || "",
+  date_of_birth: student.date_of_birth || student.dateOfBirth || "",
+  gender: student.gender,
+  nationality: student.nationality,
+  stage: student.stage || "",
+  grade: enrollment?.grade || student.grade || "",
+  section: enrollment?.section || student.section || "",
+  classroom: enrollment?.classroom || "",
+  status: student.status,
+  enrollment_year:
+    enrollment?.academicYear ||
+    (student.enrollment_year ? String(student.enrollment_year) : "") ||
+    (typeof student.academic_year === "string" ? student.academic_year : ""),
+  address_line: student.contact?.address_line || "",
+  city: student.contact?.city || "",
+  district: student.contact?.district || "",
+  student_phone: student.contact?.student_phone || "",
+  student_email: student.contact?.student_email || "",
+});
+
+const normalizeProfileValues = (formData: PersonalInfoFormData) => ({
+  name: formData.name.trim(),
+  full_name_en: formData.full_name_en.trim(),
+  full_name_ar: formData.full_name_ar.trim(),
+  date_of_birth: formData.date_of_birth,
+  gender: formData.gender,
+  nationality: formData.nationality.trim(),
+  status: formData.status,
+  contact: {
+    address_line: formData.address_line.trim(),
+    city: formData.city.trim(),
+    district: formData.district.trim(),
+    student_phone: formData.student_phone.trim(),
+    student_email: formData.student_email.trim(),
+  },
+});
+
+const getDisplayName = (item?: { name?: string; nameEn?: string; nameAr?: string }) =>
+  item?.nameEn || item?.nameAr || item?.name || "";
+
+const getSectionValue = (section?: { name?: string; nameEn?: string; nameAr?: string }) =>
+  section
+    ? section.nameEn?.replace(/^Section\s+/i, "") || section.nameAr || section.name || ""
+    : "";
+
+export default function PersonalInfoTab({
+  student,
+  onStudentUpdated,
+}: PersonalInfoTabProps) {
   const t = useTranslations("students_guardians.profile.personal_info");
   const params = useParams();
   const locale = params.lang as string;
 
   const [isEditing, setIsEditing] = useState(false);
-  const enrollment = getEnrollmentByStudentId(student.id);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const enrollment = getCurrentActiveEnrollment(student.id);
+
+  const initialFormData = useMemo<PersonalInfoFormData>(
+    () => buildPersonalInfoFormData(student, enrollment),
+    [enrollment, student],
+  );
+
+  const [formData, setFormData] = useState(initialFormData);
+  const [academicYearOptions, setAcademicYearOptions] = useState<string[]>([]);
 
   const structureContext = useMemo(() => {
     const academicYearName =
+      formData.enrollment_year ||
       enrollment?.academicYear ||
       (typeof student.academic_year === "string" ? student.academic_year : "") ||
       "";
@@ -59,7 +130,7 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
     return academicYearName
       ? resolveStructureContextForAcademicYear(academicYearName)
       : null;
-  }, [enrollment?.academicYear, student.academic_year]);
+  }, [enrollment?.academicYear, formData.enrollment_year, student.academic_year]);
 
   const structure = useMemo(() => {
     if (!structureContext) {
@@ -72,32 +143,22 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
     );
   }, [structureContext]);
 
-  const initialFormData = useMemo<PersonalInfoFormData>(
-    () => ({
-      name: student.name || student.full_name_en,
-      full_name_en: student.full_name_en || student.name || "",
-      full_name_ar: student.full_name_ar || "",
-      date_of_birth: student.date_of_birth || student.dateOfBirth || "",
-      gender: student.gender,
-      nationality: student.nationality,
-      stage: student.stage || "",
-      grade: enrollment?.grade || student.grade || "",
-      section: enrollment?.section || student.section || "",
-      classroom: enrollment?.classroom || "",
-      status: student.status,
-      enrollment_year:
-        enrollment?.academicYear ||
-        (student.enrollment_year ? String(student.enrollment_year) : ""),
-      address_line: student.contact?.address_line || "",
-      city: student.contact?.city || "",
-      district: student.contact?.district || "",
-      student_phone: student.contact?.student_phone || "",
-      student_email: student.contact?.student_email || "",
-    }),
-    [enrollment, student],
-  );
+  useEffect(() => {
+    setFormData(initialFormData);
+  }, [initialFormData]);
 
-  const [formData, setFormData] = useState(initialFormData);
+  useEffect(() => {
+    const loadAcademicYears = async () => {
+      try {
+        const years = await fetchAcademicYears();
+        setAcademicYearOptions(years.map((year) => year.name));
+      } catch {
+        setAcademicYearOptions([]);
+      }
+    };
+
+    void loadAcademicYears();
+  }, []);
 
   const availableStages = useMemo(() => {
     return structure.stages;
@@ -167,41 +228,126 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
       .sort((a, b) => a.order - b.order);
   }, [selectedSection, structure.classrooms]);
 
-  const handleSave = () => {
-    if (enrollment && selectedGrade && selectedSection) {
+  const profileValidationError = useMemo(() => {
+    if (!formData.full_name_en.trim()) return t("full_name_en");
+    if (!formData.full_name_ar.trim()) return t("full_name_ar");
+    if (!formData.date_of_birth) return t("date_of_birth");
+    if (!formData.nationality.trim()) return t("nationality");
+    return null;
+  }, [formData.date_of_birth, formData.full_name_ar, formData.full_name_en, formData.nationality, t]);
+
+  const placementValidationError = useMemo(() => {
+    if (!formData.enrollment_year) return t("enrollment_year");
+    if (!selectedGrade) return t("grade");
+    if (!selectedSection) return t("section");
+
+    const selectedClassroom =
+      availableClassrooms.find(
+        (classroom) =>
+          classroom.name === formData.classroom ||
+          classroom.nameEn === formData.classroom ||
+          classroom.nameAr === formData.classroom,
+      ) || null;
+
+    const validation = validateEnrollmentPlacement({
+      studentId: student.id,
+      academicYear: formData.enrollment_year,
+      grade: getDisplayName(selectedGrade),
+      section: getSectionValue(selectedSection),
+      classroom: selectedClassroom ? getDisplayName(selectedClassroom) : undefined,
+      gradeId: selectedGrade.id,
+      sectionId: selectedSection.id,
+      classroomId: selectedClassroom?.id,
+      status: enrollment?.status || "active",
+      enrollmentDate: enrollment?.enrollmentDate,
+    }, {
+      excludeStudentId: student.id,
+    });
+
+    return validation.valid ? null : validation.errors[0];
+  }, [
+    availableClassrooms,
+    enrollment?.enrollmentDate,
+    enrollment?.status,
+    formData.classroom,
+    formData.enrollment_year,
+    selectedGrade,
+    selectedSection,
+    student.id,
+    t,
+  ]);
+
+  const handleSave = async () => {
+    setSaveError(null);
+    setSaveSuccess(null);
+
+    if (profileValidationError) {
+      setSaveError(`${t("cannot_be_changed")}: ${profileValidationError}`);
+      return;
+    }
+
+    if (placementValidationError) {
+      setSaveError(placementValidationError);
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const normalizedProfile = normalizeProfileValues(formData);
+
+      await updateStudent(student.id, {
+        name: normalizedProfile.name,
+        full_name_en: normalizedProfile.full_name_en,
+        full_name_ar: normalizedProfile.full_name_ar,
+        gender: normalizedProfile.gender,
+        dateOfBirth: normalizedProfile.date_of_birth,
+        date_of_birth: normalizedProfile.date_of_birth,
+        nationality: normalizedProfile.nationality,
+        status: normalizedProfile.status,
+        contact: normalizedProfile.contact,
+      });
+
       const selectedClassroom =
         availableClassrooms.find(
           (classroom) =>
-            classroom.id === enrollment.classroomId ||
             classroom.name === formData.classroom ||
             classroom.nameEn === formData.classroom ||
             classroom.nameAr === formData.classroom,
         ) || null;
 
-      upsertStudentEnrollment({
-        ...enrollment,
-        academicYear: formData.enrollment_year || enrollment.academicYear,
-        grade: selectedGrade.nameEn || selectedGrade.nameAr || selectedGrade.name,
-        section:
-          selectedSection.nameEn?.replace(/^Section\s+/i, "") ||
-          selectedSection.nameAr ||
-          selectedSection.name,
-        classroom: selectedClassroom
-          ? selectedClassroom.nameEn ||
-            selectedClassroom.nameAr ||
-            selectedClassroom.name
-          : undefined,
-        gradeId: selectedGrade.id,
-        sectionId: selectedSection.id,
+      const placementPayload = {
+        studentId: student.id,
+        academicYear: formData.enrollment_year,
+        grade: getDisplayName(selectedGrade || undefined),
+        section: getSectionValue(selectedSection || undefined),
+        classroom: selectedClassroom ? getDisplayName(selectedClassroom) : undefined,
+        gradeId: selectedGrade?.id,
+        sectionId: selectedSection?.id,
         classroomId: selectedClassroom?.id,
-        status: enrollment.status,
-      });
-    }
+        enrollmentDate: enrollment?.enrollmentDate,
+        status: enrollment?.status || "active",
+      };
 
-    setIsEditing(false);
+      if (enrollment) {
+        await updateEnrollment(enrollment.enrollmentId, placementPayload);
+      } else {
+        await upsertEnrollment(placementPayload);
+      }
+
+      onStudentUpdated?.();
+      setSaveSuccess(t("save_success"));
+      setIsEditing(false);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : t("save_failed"));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
+    setSaveError(null);
+    setSaveSuccess(null);
     setFormData(initialFormData);
     setIsEditing(false);
   };
@@ -251,7 +397,11 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
         <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
         {!isEditing ? (
           <button
-            onClick={() => setIsEditing(true)}
+            onClick={() => {
+              setSaveError(null);
+              setSaveSuccess(null);
+              setIsEditing(true);
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
           >
             <Edit2 className="w-4 h-4" />
@@ -268,16 +418,29 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
             </button>
             <button
               onClick={handleSave}
+              disabled={isSaving}
               className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
             >
               <Save className="w-4 h-4" />
-              {t("save")}
+              {isSaving ? t("saving") : t("save")}
             </button>
           </div>
         )}
       </div>
 
       <div className="bg-white rounded-xl p-6 shadow-sm">
+        {saveError && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {saveError}
+          </div>
+        )}
+
+        {saveSuccess && (
+          <div className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {saveSuccess}
+          </div>
+        )}
+
         {student.risk_flags && student.risk_flags.length > 0 && (
           <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
             <div className="flex items-start gap-3">
@@ -588,20 +751,25 @@ export default function PersonalInfoTab({ student }: PersonalInfoTabProps) {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("enrollment_year")}
             </label>
-            <input
-              type="text"
+            <select
               value={formData.enrollment_year}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, enrollment_year: e.target.value }))
               }
               disabled={!isEditing}
-              placeholder="2026-2027"
               className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
                 isEditing
                   ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
                   : "bg-gray-50 border-gray-200 text-gray-700"
               }`}
-            />
+            >
+              <option value="">{t("select_enrollment_year")}</option>
+              {academicYearOptions.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

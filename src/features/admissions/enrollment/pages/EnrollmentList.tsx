@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import {
   Search,
@@ -12,8 +12,6 @@ import {
   CheckCircle,
   Calendar,
   Download,
-  ArrowUpCircle,
-  Shuffle,
 } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import { KPICardV2 } from "@/components/ui/kpi-card";
@@ -29,59 +27,30 @@ import {
   submitApplicationEnrollment,
   type EnrollmentSubmission,
 } from "@/features/admissions/enrollment/services/enrollmentService";
-import Modal from "@/components/ui/modal/Modal";
-import Select from "@/components/ui/input/Select";
-import { Button } from "@/components/ui";
 import { useToast } from "@/components/ui/toast/Toast";
+import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
+import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import {
-  bulkAssignStudentsToClassrooms,
-  promoteActiveStudentsToAcademicYear,
-} from "@/features/students-guardians/students/services/enrollmentService";
-import {
-  fetchAcademicYears,
-  getStructureTreeSnapshot,
-  resolveStructureContextForAcademicYear,
-  type AcademicYear,
-} from "@/features/academics/academic-structure-tree/services/structureService";
+  filterAdmissionsEnrollmentsByContext,
+  resolveAdmissionsContextScope,
+} from "@/features/admissions/shared/utils/admissionsContextScope";
 
 export default function EnrollmentList() {
   const t = useTranslations("admissions.enrollment");
   const locale = useLocale();
   const { showToast } = useToast();
+  const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
   const [selectedApplication, setSelectedApplication] =
     useState<Application | null>(null);
   const [isEnrollmentFormOpen, setIsEnrollmentFormOpen] = useState(false);
   const [, setEnrollmentVersion] = useState(0);
-  const [isPromotionOpen, setIsPromotionOpen] = useState(false);
-  const [isRebalanceOpen, setIsRebalanceOpen] = useState(false);
-  const [isActionLoading, setIsActionLoading] = useState(false);
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
-  const [promotionYear, setPromotionYear] = useState("");
-  const [promotionDate, setPromotionDate] = useState("");
-  const [rebalanceAcademicYear, setRebalanceAcademicYear] = useState("");
-  const [rebalanceGradeId, setRebalanceGradeId] = useState("");
-  const [rebalanceSectionId, setRebalanceSectionId] = useState("");
 
-  useEffect(() => {
-    const loadAcademicYears = async () => {
-      const years = await fetchAcademicYears();
-      setAcademicYears(years);
-      if (years.length > 0) {
-        setPromotionYear((current) => current || years[years.length - 1].name);
-        setRebalanceAcademicYear((current) => current || years[years.length - 1].name);
-      }
-    };
-    loadAcademicYears();
-  }, []);
-
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [gradeFilter, setGradeFilter] = useState<string>("all");
-  const [academicYearFilter, setAcademicYearFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRangeValue>("all");
-  const [customStartDate, setCustomStartDate] = useState<string>("");
-  const [customEndDate, setCustomEndDate] = useState<string>("");
+  const admissionsScope = useMemo(
+    () => resolveAdmissionsContextScope(yearId, termId),
+    [termId, yearId],
+  );
 
   // Read the real mock ERP enrollments so updates persist across the UI
   const enrollments = mockStudentEnrollments.map((enrollment) => {
@@ -109,30 +78,83 @@ export default function EnrollmentList() {
       guardianPhone: application?.guardianPhone || "",
     };
   });
+  const scopedEnrollments = useMemo(
+    () => filterAdmissionsEnrollmentsByContext(enrollments, admissionsScope),
+    [admissionsScope, enrollments],
+  );
 
-  const rebalanceStructureContext = rebalanceAcademicYear
-    ? resolveStructureContextForAcademicYear(rebalanceAcademicYear)
-    : null;
-  const rebalanceStructure = rebalanceStructureContext
-    ? getStructureTreeSnapshot(
-        rebalanceStructureContext.academicYearId,
-        rebalanceStructureContext.termId,
-      )
-    : null;
-  const rebalanceGradeOptions = (rebalanceStructure?.grades || [])
-    .slice()
-    .sort((a, b) => a.order - b.order)
-    .map((grade) => ({
-      value: grade.id,
-      label: grade.nameEn || grade.nameAr || grade.name,
-    }));
-  const rebalanceSectionOptions = (rebalanceStructure?.sections || [])
-    .filter((section) => section.gradeId === rebalanceGradeId)
-    .sort((a, b) => a.order - b.order)
-    .map((section) => ({
-      value: section.id,
-      label: section.nameEn || section.nameAr || section.name,
-    }));
+  // Get unique values for filters
+  const uniqueGrades = useMemo(() => {
+    const grades = new Set(scopedEnrollments.map((e) => e.grade));
+    return Array.from(grades).sort();
+  }, [scopedEnrollments]);
+
+  const uniqueYears = useMemo(() => {
+    const years = new Set(scopedEnrollments.map((e) => e.academicYear));
+    return Array.from(years).sort();
+  }, [scopedEnrollments]);
+
+  const normalizeQueryValues = useCallback(
+    (
+      values: Record<
+        "search" | "grade" | "academicYear" | "dateRange" | "startDate" | "endDate",
+        string
+      >,
+    ) => {
+      const updates: Partial<Record<keyof typeof values, string | null>> = {};
+      const validDateRanges = new Set(["all", "7", "14", "30", "60", "90", "custom"]);
+
+      if (values.grade !== "all" && !uniqueGrades.includes(values.grade)) {
+        updates.grade = null;
+      }
+      if (
+        values.academicYear !== "all" &&
+        !uniqueYears.includes(values.academicYear)
+      ) {
+        updates.academicYear = null;
+      }
+      if (!validDateRanges.has(values.dateRange)) {
+        updates.dateRange = null;
+      }
+      if (values.dateRange !== "custom") {
+        if (values.startDate) updates.startDate = null;
+        if (values.endDate) updates.endDate = null;
+      }
+
+      return Object.keys(updates).length > 0 ? updates : null;
+    },
+    [uniqueGrades, uniqueYears],
+  );
+
+  const { values, setValue, setValues, reset } = useAdmissionsUrlQueryState<{
+    search: string;
+    grade: string;
+    academicYear: string;
+    dateRange: string;
+    startDate: string;
+    endDate: string;
+  }>({
+    defaults: {
+      search: "",
+      grade: "all",
+      academicYear: "all",
+      dateRange: "all",
+      startDate: "",
+      endDate: "",
+    },
+    debouncedKeys: ["search"],
+    modeByKey: {
+      search: "replace",
+    },
+    normalize: normalizeQueryValues,
+  });
+
+  const searchQuery = values.search;
+  const gradeFilter = values.grade;
+  const academicYearFilter = values.academicYear;
+  const dateRange = values.dateRange as DateRangeValue;
+  const customStartDate = values.startDate;
+  const customEndDate = values.endDate;
 
   // Filter and search enrollments
   const filteredEnrollments = useMemo(() => {
@@ -142,7 +164,7 @@ export default function EnrollmentList() {
       customEndDate,
     );
 
-    return enrollments.filter((enrollment) => {
+    return scopedEnrollments.filter((enrollment) => {
       const matchesSearch =
         searchQuery === "" ||
         enrollment.studentName
@@ -167,25 +189,14 @@ export default function EnrollmentList() {
       return matchesSearch && matchesGrade && matchesYear && matchesDateRange;
     });
   }, [
-    enrollments,
-    searchQuery,
-    gradeFilter,
     academicYearFilter,
-    dateRange,
-    customStartDate,
     customEndDate,
+    customStartDate,
+    dateRange,
+    scopedEnrollments,
+    gradeFilter,
+    searchQuery,
   ]);
-
-  // Get unique values for filters
-  const uniqueGrades = useMemo(() => {
-    const grades = new Set(enrollments.map((e) => e.grade));
-    return Array.from(grades).sort();
-  }, [enrollments]);
-
-  const uniqueYears = useMemo(() => {
-    const years = new Set(enrollments.map((e) => e.academicYear));
-    return Array.from(years).sort();
-  }, [enrollments]);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
@@ -195,7 +206,7 @@ export default function EnrollmentList() {
       customEndDate,
     );
 
-    const enrollmentsInRange = enrollments.filter((enrollment) =>
+    const enrollmentsInRange = scopedEnrollments.filter((enrollment) =>
       isDateInRange(enrollment.enrolledDate, filterResult),
     );
 
@@ -219,7 +230,7 @@ export default function EnrollmentList() {
     );
 
     return { total, thisWeek, gradeDistribution };
-  }, [enrollments, dateRange, customStartDate, customEndDate]);
+  }, [customEndDate, customStartDate, dateRange, scopedEnrollments]);
 
   const columns = [
     { key: "id", label: t("enrollment_id"), searchable: true },
@@ -247,14 +258,13 @@ export default function EnrollmentList() {
     searchQuery !== "" || gradeFilter !== "all" || academicYearFilter !== "all";
 
   const clearFilters = () => {
-    setSearchQuery("");
-    setGradeFilter("all");
-    setAcademicYearFilter("all");
+    reset(undefined, "replace");
   };
 
   const handleRowClick = (
     enrollment: Enrollment & { studentName: string; [key: string]: unknown },
   ) => {
+    if (isReadOnly) return;
     const app = mockApplications.find((a) => a.id === enrollment.applicationId);
     if (app) {
       setSelectedApplication(app);
@@ -270,53 +280,6 @@ export default function EnrollmentList() {
     setIsEnrollmentFormOpen(false);
   };
 
-  const handlePromoteStudents = async () => {
-    if (!promotionYear || !promotionDate) return;
-    setIsActionLoading(true);
-    try {
-      const promoted = await promoteActiveStudentsToAcademicYear(
-        promotionYear,
-        promotionDate,
-      );
-      setEnrollmentVersion((prev) => prev + 1);
-      setIsPromotionOpen(false);
-      showToast(
-        t("messages.promotion_complete", { count: promoted.length }),
-        "success",
-      );
-    } catch (error) {
-      console.error("Failed to promote students:", error);
-      showToast(t("messages.action_failed"), "error");
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
-  const handleRebalanceClassrooms = async () => {
-    if (!rebalanceAcademicYear || !rebalanceSectionId) return;
-    setIsActionLoading(true);
-    try {
-      const result = await bulkAssignStudentsToClassrooms({
-        academicYear: rebalanceAcademicYear,
-        sectionId: rebalanceSectionId,
-      });
-      setEnrollmentVersion((prev) => prev + 1);
-      setIsRebalanceOpen(false);
-      showToast(
-        t("messages.rebalance_complete", {
-          count: result.assignedCount,
-          unassigned: result.unassignedCount,
-        }),
-        "success",
-      );
-    } catch (error) {
-      console.error("Failed to rebalance classrooms:", error);
-      showToast(t("messages.action_failed"), "error");
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
   const handleExport = () => {
     const formattedData = formatEnrollmentsForExport(mockApplications);
     const filename = generateFilename("enrollments", "csv");
@@ -328,12 +291,28 @@ export default function EnrollmentList() {
       {/* Date Range Filter */}
       <DateRangeFilter
         value={dateRange}
-        onChange={setDateRange}
+        onChange={(nextRange) => {
+          const shouldResetCustom = nextRange !== "custom";
+          setValues(
+            {
+              dateRange: nextRange,
+              startDate: shouldResetCustom ? null : customStartDate || null,
+              endDate: shouldResetCustom ? null : customEndDate || null,
+            },
+            "push",
+          );
+        }}
         customStartDate={customStartDate}
         customEndDate={customEndDate}
         onCustomDateChange={(start, end) => {
-          setCustomStartDate(start);
-          setCustomEndDate(end);
+          setValues(
+            {
+              dateRange: "custom",
+              startDate: start || null,
+              endDate: end || null,
+            },
+            "replace",
+          );
         }}
         showAllTime={true}
       />
@@ -400,21 +379,9 @@ export default function EnrollmentList() {
           <Download className="w-4 h-4" />
           {t("export")}
         </button>
-        <button
-          onClick={() => setIsPromotionOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
-        >
-          <ArrowUpCircle className="w-4 h-4" />
-          {t("promote_students")}
-        </button>
-        <button
-          onClick={() => setIsRebalanceOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
-        >
-          <Shuffle className="w-4 h-4" />
-          {t("rebalance_classrooms")}
-        </button>
       </div>
+
+      {isReadOnly && <AdmissionsReadOnlyBanner />}
 
       {/* Filters */}
       <div className="space-y-3">
@@ -425,7 +392,7 @@ export default function EnrollmentList() {
               type="text"
               placeholder={t("search_placeholder")}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setValue("search", e.target.value, "replace")}
               className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
                 searchQuery
                   ? "border-primary ring-2 ring-primary/20"
@@ -464,7 +431,7 @@ export default function EnrollmentList() {
               </label>
               <select
                 value={gradeFilter}
-                onChange={(e) => setGradeFilter(e.target.value)}
+                onChange={(e) => setValue("grade", e.target.value, "push")}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("all_grades")}</option>
@@ -481,7 +448,9 @@ export default function EnrollmentList() {
               </label>
               <select
                 value={academicYearFilter}
-                onChange={(e) => setAcademicYearFilter(e.target.value)}
+                onChange={(e) =>
+                  setValue("academicYear", e.target.value, "push")
+                }
                 className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("all_years")}</option>
@@ -524,6 +493,11 @@ export default function EnrollmentList() {
           data={filteredEnrollments}
           onRowClick={handleRowClick}
           searchQuery={searchQuery}
+          urlState={{
+            keyPrefix: "enrollmentTable",
+            syncPagination: true,
+            syncSorting: true,
+          }}
         />
       )}
 
@@ -539,106 +513,6 @@ export default function EnrollmentList() {
           onSubmit={handleEnrollmentSubmit}
         />
       )}
-
-      <Modal
-        isOpen={isPromotionOpen}
-        onClose={() => setIsPromotionOpen(false)}
-        title={t("promote_students")}
-        size="md"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setIsPromotionOpen(false)}>
-              {t("cancel")}
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handlePromoteStudents}
-              disabled={!promotionYear || !promotionDate || isActionLoading}
-              loading={isActionLoading}
-            >
-              {t("confirm")}
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <Select
-            label={t("target_academic_year")}
-            value={promotionYear}
-            onChange={setPromotionYear}
-            options={academicYears.map((year) => ({
-              value: year.name,
-              label: year.name,
-            }))}
-          />
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("effective_date")}
-            </label>
-            <input
-              type="date"
-              value={promotionDate}
-              onChange={(event) => setPromotionDate(event.target.value)}
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-            />
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={isRebalanceOpen}
-        onClose={() => setIsRebalanceOpen(false)}
-        title={t("rebalance_classrooms")}
-        size="md"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setIsRebalanceOpen(false)}>
-              {t("cancel")}
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleRebalanceClassrooms}
-              disabled={!rebalanceAcademicYear || !rebalanceSectionId || isActionLoading}
-              loading={isActionLoading}
-            >
-              {t("confirm")}
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <Select
-            label={t("academic_year")}
-            value={rebalanceAcademicYear}
-            onChange={(value) => {
-              setRebalanceAcademicYear(value);
-              setRebalanceGradeId("");
-              setRebalanceSectionId("");
-            }}
-            options={academicYears.map((year) => ({
-              value: year.name,
-              label: year.name,
-            }))}
-          />
-          <Select
-            label={t("grade")}
-            value={rebalanceGradeId}
-            onChange={(value) => {
-              setRebalanceGradeId(value);
-              setRebalanceSectionId("");
-            }}
-            options={rebalanceGradeOptions}
-            disabled={!rebalanceAcademicYear}
-          />
-          <Select
-            label={t("section")}
-            value={rebalanceSectionId}
-            onChange={setRebalanceSectionId}
-            options={rebalanceSectionOptions}
-            disabled={!rebalanceGradeId}
-          />
-        </div>
-      </Modal>
     </div>
   );
 }

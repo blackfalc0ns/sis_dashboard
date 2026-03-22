@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   FileText,
@@ -27,6 +27,7 @@ import DocumentsTab from "@/features/admissions/applications/components/tabs/Doc
 import TestsTab from "@/features/admissions/applications/components/tabs/TestsTab";
 import InterviewsTab from "@/features/admissions/applications/components/tabs/InterviewsTab";
 import TimelineTab from "@/features/admissions/applications/components/tabs/TimelineTab";
+import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 
 interface ApplicationDetailsPageProps {
   applicationId: string;
@@ -38,10 +39,30 @@ export default function ApplicationDetailsPage({
   const t = useTranslations("admissions.application360");
   const locale = useLocale();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const normalizeQueryValues = useCallback(
+    (values: Record<"tab", string>) => {
+      const validTabs = new Set([
+        "details",
+        "guardians",
+        "documents",
+        "tests",
+        "interviews",
+        "timeline",
+      ]);
 
-  // Get active tab from URL, default to "details"
-  const activeTab = searchParams.get("tab") || "details";
+      return validTabs.has(values.tab) ? null : { tab: null };
+    },
+    [],
+  );
+  const { values, setValue } = useAdmissionsUrlQueryState<{
+    tab: string;
+  }>({
+    defaults: {
+      tab: "details",
+    },
+    normalize: normalizeQueryValues,
+  });
+  const activeTab = values.tab;
 
   // Modal states
   const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false);
@@ -104,9 +125,7 @@ export default function ApplicationDetailsPage({
   ];
 
   const handleTabChange = (tabId: string) => {
-    router.push(
-      `/${locale}/admissions/applications/${applicationId}?tab=${tabId}`,
-    );
+    setValue("tab", tabId, "push");
   };
 
   const handleScheduleTest = () => {

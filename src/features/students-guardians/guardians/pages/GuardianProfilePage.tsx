@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -17,6 +17,7 @@ import {
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import OverviewTab from "@/features/students-guardians/guardians/components/tabs/OverviewTab";
 import StudentsTab from "@/features/students-guardians/guardians/components/tabs/StudentsTab";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 
 interface GuardianProfilePageProps {
   guardianId: string;
@@ -48,18 +49,50 @@ export default function GuardianProfilePage({
   const params = useParams();
   const lang = (params.lang as string) || "en";
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [guardian, setGuardian] = useState<studentsService.StudentGuardian | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const guardian = useMemo(() => {
-    return studentsService
-      .getAllGuardians()
-      .find((g) => g.guardianId === guardianId);
-  }, [guardianId]);
+  useEffect(() => {
+    let isCancelled = false;
+
+    void Promise.resolve().then(async () => {
+      try {
+        const guardianData = await studentsService.fetchGuardianById(guardianId);
+        if (!isCancelled) {
+          setGuardian(guardianData ?? null);
+          setLoadError(null);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setGuardian(null);
+          setLoadError(
+            error instanceof Error ? error.message : t("guardian_not_found"),
+          );
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [guardianId, t]);
+
+  if (isLoading) {
+    return <MainLoader />;
+  }
 
   if (!guardian) {
     return (
       <div className="p-6">
         <div className="bg-white rounded-xl p-12 text-center">
-          <p className="text-gray-500 mb-4">{t("guardian_not_found")}</p>
+          <p className="text-gray-500 mb-4">
+            {loadError || t("guardian_not_found")}
+          </p>
           <button
             onClick={() => router.push(`/${lang}/students-guardians/guardians`)}
             className="text-primary hover:text-hover font-medium"

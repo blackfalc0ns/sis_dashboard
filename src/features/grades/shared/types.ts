@@ -175,6 +175,8 @@ export interface StudentSubjectGradeSummary {
 
 export interface StudentGradesSnapshot {
   studentId: string;
+  academicYearId?: string;
+  termId?: string;
   subjectRows: StudentSubjectGradeSummary[];
   currentAverage: number;
   highestAverage: number;

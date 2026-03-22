@@ -12,6 +12,7 @@ import type {
   RiskFlag,
   StudentEnrollment,
   EnrollmentTerm,
+  UpdateStudentPayload,
 } from "@/features/students-guardians/students/types";
 import {
   mockStudents,
@@ -23,15 +24,41 @@ import {
   mockStudentTimelineEvents,
   mockStudentEnrollments,
   getEnrollmentByStudentId,
+  getEnrollmentByStudentIdAndAcademicYear,
   getEnrollmentsByStudentId,
   getEnrollmentsByClassroomId,
   getCurrentTerm,
+  getTermsByEnrollmentId,
   getYearToDateAverages,
 } from "@/data/mockStudents";
 import {
   getOrGenerateStudentEmail,
   getOrGenerateGuardianEmail,
 } from "./emailService";
+import type { StudentsAdapter } from "./studentsAdapter";
+import {
+  createStudentsApiAdapter,
+  studentsApiAdapter,
+} from "./studentsApiAdapter";
+
+const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const withResolvedStudentEmail = (student: Student): Student => ({
+  ...student,
+  contact: {
+    ...student.contact,
+    student_email:
+      student.contact?.student_email ||
+      getOrGenerateStudentEmail({
+        id: student.id,
+        email: student.contact?.student_email,
+        full_name_en: student.full_name_en,
+        full_name_ar: student.full_name_ar,
+      }),
+  },
+});
+
+let currentStudentsAdapter: StudentsAdapter | null = null;
 
 // ============================================================================
 // STUDENT OPERATIONS
@@ -40,60 +67,85 @@ import {
 /**
  * Get all students
  */
-export function getAllStudents(): Student[] {
-  // Ensure all students have emails
-  return mockStudents.map((student) => ({
-    ...student,
-    contact: {
-      ...student.contact,
-      student_email: getOrGenerateStudentEmail(student),
-    },
-  }));
-}
+const getAllStudentsImpl = (): Student[] => {
+  return mockStudents.map(withResolvedStudentEmail);
+};
 
 /**
  * Get student by ID
  */
-export function getStudentById(id: string): Student | undefined {
+const getStudentByIdImpl = (id: string): Student | undefined => {
   const student = mockStudents.find((s) => s.id === id);
   if (!student) return undefined;
+  return withResolvedStudentEmail(student);
+};
 
-  return {
-    ...student,
+const updateStudentImpl = async (
+  studentId: string,
+  payload: UpdateStudentPayload,
+): Promise<Student> => {
+  await delay();
+
+  const index = mockStudents.findIndex((student) => student.id === studentId);
+  if (index === -1) {
+    throw new Error("student_not_found");
+  }
+
+  const existingStudent = mockStudents[index];
+  const resolvedFullNameEn =
+    payload.full_name_en ?? payload.name ?? existingStudent.full_name_en;
+  const resolvedDateOfBirth =
+    payload.dateOfBirth ?? payload.date_of_birth ?? existingStudent.dateOfBirth;
+
+  const updatedStudent: Student = {
+    ...existingStudent,
+    ...payload,
+    name: payload.name ?? resolvedFullNameEn,
+    full_name_en: resolvedFullNameEn,
+    full_name_ar: payload.full_name_ar ?? existingStudent.full_name_ar,
+    dateOfBirth: resolvedDateOfBirth,
+    date_of_birth: resolvedDateOfBirth,
+    gender: payload.gender ?? existingStudent.gender,
+    nationality: payload.nationality ?? existingStudent.nationality,
+    status: payload.status ?? existingStudent.status,
     contact: {
-      ...student.contact,
-      student_email: getOrGenerateStudentEmail(student),
+      ...existingStudent.contact,
+      ...payload.contact,
     },
+    updated_at: new Date().toISOString(),
   };
-}
+
+  mockStudents[index] = updatedStudent;
+  return withResolvedStudentEmail(updatedStudent);
+};
 
 /**
  * Get students by status
  */
-export function getStudentsByStatus(status: StudentStatus): Student[] {
+const getStudentsByStatusImpl = (status: StudentStatus): Student[] => {
   return mockStudents.filter((s) => s.status === status);
-}
+};
 
 /**
  * Get students by grade
  */
-export function getStudentsByGrade(grade: string): Student[] {
+const getStudentsByGradeImpl = (grade: string): Student[] => {
   return mockStudents.filter(
     (s) => s.gradeRequested === grade || s.grade === grade,
   );
-}
+};
 
 /**
  * Get students with risk flags
  */
-export function getAtRiskStudents(): Student[] {
+const getAtRiskStudentsImpl = (): Student[] => {
   return mockStudents.filter((s) => s.risk_flags && s.risk_flags.length > 0);
-}
+};
 
 /**
  * Search students by name or ID
  */
-export function searchStudents(query: string): Student[] {
+const searchStudentsImpl = (query: string): Student[] => {
   const lowerQuery = query.toLowerCase();
   return mockStudents.filter(
     (s) =>
@@ -103,7 +155,7 @@ export function searchStudents(query: string): Student[] {
       (s.student_id && s.student_id.toLowerCase().includes(lowerQuery)) ||
       s.id.toLowerCase().includes(lowerQuery),
   );
-}
+};
 
 // ============================================================================
 // GUARDIAN OPERATIONS
@@ -112,7 +164,7 @@ export function searchStudents(query: string): Student[] {
 /**
  * Get all guardians for a student
  */
-export function getStudentGuardians(studentId: string): StudentGuardian[] {
+const getStudentGuardiansImpl = (studentId: string): StudentGuardian[] => {
   const links = mockStudentGuardianLinks.filter(
     (l) => l.studentId === studentId,
   );
@@ -125,14 +177,14 @@ export function getStudentGuardians(studentId: string): StudentGuardian[] {
       ...guardian,
       email: getOrGenerateGuardianEmail(guardian),
     }));
-}
+};
 
 /**
  * Get primary guardian for a student
  */
-export function getPrimaryGuardian(
+const getPrimaryGuardianImpl = (
   studentId: string,
-): StudentGuardian | undefined {
+): StudentGuardian | undefined => {
   const primaryLink = mockStudentGuardianLinks.find(
     (l) => l.studentId === studentId && l.is_primary,
   );
@@ -140,35 +192,35 @@ export function getPrimaryGuardian(
   return mockStudentGuardians.find(
     (g) => g.guardianId === primaryLink.guardianId,
   );
-}
+};
 
 /**
  * Get all students for a guardian
  */
-export function getGuardianStudents(guardianId: string): Student[] {
+const getGuardianStudentsImpl = (guardianId: string): Student[] => {
   const links = mockStudentGuardianLinks.filter(
     (l) => l.guardianId === guardianId,
   );
   return links
     .map((link) => mockStudents.find((s) => s.id === link.studentId))
     .filter((s): s is Student => s !== undefined);
-}
+};
 
 /**
  * Get all guardians
  */
-export function getAllGuardians(): StudentGuardian[] {
+const getAllGuardiansImpl = (): StudentGuardian[] => {
   return mockStudentGuardians;
-}
+};
 
 /**
  * Get guardian by ID
  */
-export function getGuardianById(
+const getGuardianByIdImpl = (
   guardianId: string,
-): StudentGuardian | undefined {
+): StudentGuardian | undefined => {
   return mockStudentGuardians.find((g) => g.guardianId === guardianId);
-}
+};
 
 // ============================================================================
 // DOCUMENT OPERATIONS
@@ -177,18 +229,18 @@ export function getGuardianById(
 /**
  * Get all documents for a student
  */
-export function getStudentDocuments(studentId: string): StudentDocument[] {
+const getStudentDocumentsImpl = (studentId: string): StudentDocument[] => {
   return mockStudentDocuments.filter((d) => d.studentId === studentId);
-}
+};
 
 /**
  * Get missing documents for a student
  */
-export function getMissingDocuments(studentId: string): StudentDocument[] {
+const getMissingDocumentsImpl = (studentId: string): StudentDocument[] => {
   return mockStudentDocuments.filter(
     (d) => d.studentId === studentId && d.status === "missing",
   );
-}
+};
 
 // ============================================================================
 // MEDICAL OPERATIONS
@@ -439,36 +491,311 @@ export function getStudentYTDPerformance(studentId: string): {
   return getYearToDateAverages(enrollment.enrollmentId);
 }
 
+export type StudentWithEnrollmentContext = Student & {
+  enrollment?: StudentEnrollment;
+  currentTerm?: EnrollmentTerm;
+  selectedTerm?: EnrollmentTerm;
+  ytdPerformance?: ReturnType<typeof getYearToDateAverages>;
+  contextPerformance?: {
+    attendance: number;
+    gradeAverage: number;
+    riskFlags: RiskFlag[];
+  };
+};
+
+const mapTermToPerformance = (
+  term: EnrollmentTerm | undefined,
+): StudentWithEnrollmentContext["contextPerformance"] =>
+  term
+    ? {
+        attendance: term.attendancePercentage,
+        gradeAverage: term.gradeAverage,
+        riskFlags: [...term.riskFlags],
+      }
+    : undefined;
+
 /**
  * Get students with current enrollment data (for display)
  */
-export function getStudentsWithEnrollment(): Array<
-  Student & {
-    enrollment?: StudentEnrollment;
-    currentTerm?: EnrollmentTerm;
-    ytdPerformance?: ReturnType<typeof getYearToDateAverages>;
-  }
-> {
+const getStudentsWithEnrollmentImpl = (): StudentWithEnrollmentContext[] =>
+  getStudentsWithEnrollmentForContextImpl();
+
+const getStudentsWithEnrollmentForContextImpl = (
+  academicYearId?: string | null,
+  termId?: string | null,
+): StudentWithEnrollmentContext[] => {
   return mockStudents.map((student) => {
-    const enrollment = getEnrollmentByStudentId(student.id);
+    const enrollment =
+      academicYearId
+        ? getEnrollmentByStudentIdAndAcademicYear(student.id, academicYearId)
+        : getEnrollmentByStudentId(student.id);
+    const enrollmentTerms = enrollment
+      ? getTermsByEnrollmentId(enrollment.enrollmentId)
+      : [];
     const currentTerm = enrollment
       ? getCurrentTerm(enrollment.enrollmentId)
       : undefined;
+    const selectedTerm =
+      enrollmentTerms.find(
+        (enrollmentTerm) => enrollmentTerm.termRecordId === termId,
+      ) ||
+      undefined;
     const ytdPerformance = enrollment
       ? getYearToDateAverages(enrollment.enrollmentId)
       : undefined;
+    const contextPerformance =
+      mapTermToPerformance(selectedTerm || currentTerm) || ytdPerformance;
 
     return {
-      ...student,
-      contact: {
-        ...student.contact,
-        student_email: getOrGenerateStudentEmail(student),
-      },
+      ...withResolvedStudentEmail(student),
       enrollment,
       currentTerm,
+      selectedTerm,
       ytdPerformance,
+      contextPerformance,
     };
+  }).filter((student) => {
+    const matchesAcademicYear =
+      !academicYearId || student.enrollment?.academicYearId === academicYearId;
+    const matchesTerm = !termId || student.selectedTerm?.termRecordId === termId;
+
+    return matchesAcademicYear && matchesTerm;
   });
+};
+
+const mockStudentsAdapter: StudentsAdapter = {
+  getAllStudents: getAllStudentsImpl,
+  getStudentById: getStudentByIdImpl,
+  updateStudent: updateStudentImpl,
+  getStudentsByStatus: getStudentsByStatusImpl,
+  getStudentsByGrade: getStudentsByGradeImpl,
+  getAtRiskStudents: getAtRiskStudentsImpl,
+  searchStudents: searchStudentsImpl,
+  getStudentGuardians: getStudentGuardiansImpl,
+  getPrimaryGuardian: getPrimaryGuardianImpl,
+  getGuardianStudents: getGuardianStudentsImpl,
+  getAllGuardians: getAllGuardiansImpl,
+  getGuardianById: getGuardianByIdImpl,
+  getStudentDocuments: getStudentDocumentsImpl,
+  getMissingDocuments: getMissingDocumentsImpl,
+  getStudentsWithEnrollment: getStudentsWithEnrollmentImpl,
+  getStudentsWithEnrollmentForContext: getStudentsWithEnrollmentForContextImpl,
+  fetchAllGuardians: async () => Promise.resolve(getAllGuardiansImpl()),
+  fetchAllStudents: async () => Promise.resolve(getAllStudentsImpl()),
+  fetchStudentById: async (id) => Promise.resolve(getStudentByIdImpl(id)),
+  fetchStudentGuardians: async (studentId) =>
+    Promise.resolve(getStudentGuardiansImpl(studentId)),
+  fetchPrimaryGuardian: async (studentId) =>
+    Promise.resolve(getPrimaryGuardianImpl(studentId)),
+  fetchGuardianStudents: async (guardianId) =>
+    Promise.resolve(getGuardianStudentsImpl(guardianId)),
+  fetchGuardianById: async (guardianId) =>
+    Promise.resolve(getGuardianByIdImpl(guardianId)),
+  fetchStudentsWithEnrollment: async () =>
+    Promise.resolve(getStudentsWithEnrollmentImpl()),
+  fetchStudentsWithEnrollmentForContext: async (academicYearId, termId) =>
+    Promise.resolve(getStudentsWithEnrollmentForContextImpl(academicYearId, termId)),
+};
+
+currentStudentsAdapter = mockStudentsAdapter;
+
+if (process.env.NEXT_PUBLIC_USE_STUDENTS_GUARDIANS_STUDENTS_API === "true") {
+  currentStudentsAdapter = studentsApiAdapter;
+}
+
+export function getStudentsAdapter(): StudentsAdapter {
+  return currentStudentsAdapter || mockStudentsAdapter;
+}
+
+export function setStudentsAdapter(adapter: StudentsAdapter) {
+  currentStudentsAdapter = adapter;
+}
+
+export function resetStudentsAdapter() {
+  currentStudentsAdapter =
+    process.env.NEXT_PUBLIC_USE_STUDENTS_GUARDIANS_STUDENTS_API === "true"
+      ? createStudentsApiAdapter()
+      : mockStudentsAdapter;
+}
+
+export function activateStudentsAdapter(adapter: StudentsAdapter) {
+  setStudentsAdapter(adapter);
+  return adapter;
+}
+
+export function getAllStudents(): Student[] {
+  return getStudentsAdapter().getAllStudents();
+}
+
+export async function fetchAllStudents(): Promise<Student[]> {
+  const adapter = getStudentsAdapter();
+  if (adapter.fetchAllStudents) {
+    return adapter.fetchAllStudents();
+  }
+
+  return Promise.resolve(adapter.getAllStudents());
+}
+
+export function getStudentById(id: string): Student | undefined {
+  return getStudentsAdapter().getStudentById(id);
+}
+
+export async function fetchStudentById(
+  id: string,
+): Promise<Student | undefined> {
+  const adapter = getStudentsAdapter();
+  if (adapter.fetchStudentById) {
+    return adapter.fetchStudentById(id);
+  }
+
+  return Promise.resolve(adapter.getStudentById(id));
+}
+
+export async function fetchStudentGuardians(
+  studentId: string,
+): Promise<StudentGuardian[]> {
+  const adapter = getStudentsAdapter();
+  if (adapter.fetchStudentGuardians) {
+    return adapter.fetchStudentGuardians(studentId);
+  }
+
+  return Promise.resolve(adapter.getStudentGuardians(studentId));
+}
+
+export async function fetchPrimaryGuardian(
+  studentId: string,
+): Promise<StudentGuardian | undefined> {
+  const adapter = getStudentsAdapter();
+  if (adapter.fetchPrimaryGuardian) {
+    return adapter.fetchPrimaryGuardian(studentId);
+  }
+
+  return Promise.resolve(adapter.getPrimaryGuardian(studentId));
+}
+
+export async function fetchGuardianStudents(
+  guardianId: string,
+): Promise<Student[]> {
+  const adapter = getStudentsAdapter();
+  if (adapter.fetchGuardianStudents) {
+    return adapter.fetchGuardianStudents(guardianId);
+  }
+
+  return Promise.resolve(adapter.getGuardianStudents(guardianId));
+}
+
+export async function updateStudent(
+  studentId: string,
+  payload: UpdateStudentPayload,
+): Promise<Student> {
+  return getStudentsAdapter().updateStudent(studentId, payload);
+}
+
+export function getStudentsByStatus(status: StudentStatus): Student[] {
+  return getStudentsAdapter().getStudentsByStatus(status);
+}
+
+export function getStudentsByGrade(grade: string): Student[] {
+  return getStudentsAdapter().getStudentsByGrade(grade);
+}
+
+export function getAtRiskStudents(): Student[] {
+  return getStudentsAdapter().getAtRiskStudents();
+}
+
+export function searchStudents(query: string): Student[] {
+  return getStudentsAdapter().searchStudents(query);
+}
+
+export function getStudentGuardians(studentId: string): StudentGuardian[] {
+  return getStudentsAdapter().getStudentGuardians(studentId);
+}
+
+export function getPrimaryGuardian(
+  studentId: string,
+): StudentGuardian | undefined {
+  return getStudentsAdapter().getPrimaryGuardian(studentId);
+}
+
+export function getGuardianStudents(guardianId: string): Student[] {
+  return getStudentsAdapter().getGuardianStudents(guardianId);
+}
+
+export function getAllGuardians(): StudentGuardian[] {
+  return getStudentsAdapter().getAllGuardians();
+}
+
+export async function fetchAllGuardians(): Promise<StudentGuardian[]> {
+  const adapter = getStudentsAdapter();
+  if (adapter.fetchAllGuardians) {
+    return adapter.fetchAllGuardians();
+  }
+
+  return Promise.resolve(adapter.getAllGuardians());
+}
+
+export function getGuardianById(
+  guardianId: string,
+): StudentGuardian | undefined {
+  return getStudentsAdapter().getGuardianById(guardianId);
+}
+
+export async function fetchGuardianById(
+  guardianId: string,
+): Promise<StudentGuardian | undefined> {
+  const adapter = getStudentsAdapter();
+  if (adapter.fetchGuardianById) {
+    return adapter.fetchGuardianById(guardianId);
+  }
+
+  return Promise.resolve(adapter.getGuardianById(guardianId));
+}
+
+export function getStudentDocuments(studentId: string): StudentDocument[] {
+  return getStudentsAdapter().getStudentDocuments(studentId);
+}
+
+export function getMissingDocuments(studentId: string): StudentDocument[] {
+  return getStudentsAdapter().getMissingDocuments(studentId);
+}
+
+export function getStudentsWithEnrollment(): StudentWithEnrollmentContext[] {
+  return getStudentsAdapter().getStudentsWithEnrollment();
+}
+
+export async function fetchStudentsWithEnrollment(): Promise<
+  StudentWithEnrollmentContext[]
+> {
+  const adapter = getStudentsAdapter();
+  if (adapter.fetchStudentsWithEnrollment) {
+    return adapter.fetchStudentsWithEnrollment();
+  }
+
+  return Promise.resolve(adapter.getStudentsWithEnrollment());
+}
+
+export function getStudentsWithEnrollmentForContext(
+  academicYearId?: string | null,
+  termId?: string | null,
+): StudentWithEnrollmentContext[] {
+  return getStudentsAdapter().getStudentsWithEnrollmentForContext(
+    academicYearId,
+    termId,
+  );
+}
+
+export async function fetchStudentsWithEnrollmentForContext(
+  academicYearId?: string | null,
+  termId?: string | null,
+): Promise<StudentWithEnrollmentContext[]> {
+  const adapter = getStudentsAdapter();
+  if (adapter.fetchStudentsWithEnrollmentForContext) {
+    return adapter.fetchStudentsWithEnrollmentForContext(academicYearId, termId);
+  }
+
+  return Promise.resolve(
+    adapter.getStudentsWithEnrollmentForContext(academicYearId, termId),
+  );
 }
 
 /**

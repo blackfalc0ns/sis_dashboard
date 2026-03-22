@@ -26,6 +26,11 @@ export interface AdmissionsAnalyticsData {
   gradeDistribution: GradeDistribution[];
 }
 
+interface AdmissionsAnalyticsOptions {
+  applications?: typeof mockApplications;
+  leads?: ReturnType<typeof getLeads>;
+}
+
 /**
  * Get the start of the week (Sunday) for a given date
  */
@@ -53,11 +58,13 @@ function formatDate(date: Date): string {
  */
 export function getAdmissionsAnalytics(
   daysBack: number = 30,
+  options: AdmissionsAnalyticsOptions = {},
 ): AdmissionsAnalyticsData {
   const now = new Date();
 
   // Get all leads
-  const allLeads = getLeads();
+  const allLeads = options.leads ?? getLeads();
+  const applications = options.applications ?? mockApplications;
 
   // 1. FUNNEL DATA (use daysBack parameter)
   const funnelCutoff = new Date(now);
@@ -71,13 +78,13 @@ export function getAdmissionsAnalytics(
   }).length;
 
   // Count applications created in period
-  const applicationsCount = mockApplications.filter((app) => {
+  const applicationsCount = applications.filter((app) => {
     const submittedDate = new Date(app.submittedDate);
     return submittedDate >= funnelCutoff;
   }).length;
 
   // Count accepted applications in period
-  const acceptedCount = mockApplications.filter((app) => {
+  const acceptedCount = applications.filter((app) => {
     const submittedDate = new Date(app.submittedDate);
     return submittedDate >= funnelCutoff && app.status === "accepted";
   }).length;
@@ -128,7 +135,7 @@ export function getAdmissionsAnalytics(
     .sort((a, b) => a.weekStart.localeCompare(b.weekStart));
 
   // 3. GRADE DISTRIBUTION DATA
-  const applicationsInPeriod = mockApplications.filter((app) => {
+  const applicationsInPeriod = applications.filter((app) => {
     const submittedDate = new Date(app.submittedDate);
     return submittedDate >= funnelCutoff;
   });

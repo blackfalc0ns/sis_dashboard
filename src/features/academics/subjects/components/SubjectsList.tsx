@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useDebouncedCallback } from "use-debounce";
 import { Plus, Search, MoreVertical, Edit2, Trash2 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
@@ -35,13 +37,42 @@ export default function SubjectsList({
 }: SubjectsListProps) {
   const t = useTranslations("academics.subjects");
   const locale = useLocale();
-  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get("subjectSearch") || "";
+  const [searchInputValue, setSearchInputValue] = useState(searchQuery);
   const [deleteConfirm, setDeleteConfirm] = useState<Subject | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const syncSearchQueryParam = useDebouncedCallback((value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) {
+      params.set("subjectSearch", value);
+    } else {
+      params.delete("subjectSearch");
+    }
+
+    const nextQuery = params.toString();
+    const currentQuery = searchParams.toString();
+    if (nextQuery === currentQuery) {
+      return;
+    }
+
+    const nextUrl = nextQuery ? `?${nextQuery}` : "?";
+    router.replace(nextUrl, { scroll: false });
+  }, 250);
+
+  useEffect(() => {
+    setSearchInputValue(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => () => {
+    syncSearchQueryParam.cancel();
+  }, [syncSearchQueryParam]);
+
   const filteredSubjects = useMemo(() => {
-    if (!searchQuery.trim()) return subjects;
-    const query = searchQuery.toLowerCase();
+    if (!searchInputValue.trim()) return subjects;
+    const query = searchInputValue.toLowerCase();
     return subjects.filter(
       (s) =>
         s.nameAr.toLowerCase().includes(query) ||
@@ -50,7 +81,7 @@ export default function SubjectsList({
         s.code?.toLowerCase().includes(query) ||
         s.stage?.toLowerCase().includes(query)
     );
-  }, [subjects, searchQuery]);
+  }, [searchInputValue, subjects]);
 
   const getSubjectAllocationStatus = (subjectId: string): "allocated" | "not_allocated" => {
     return allocations.some((a) => a.subjectId === subjectId && a.weeklyHours > 0)
@@ -84,8 +115,12 @@ export default function SubjectsList({
           
           {/* Search */}
           <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInputValue}
+            onChange={(e) => {
+              const value = e.target.value;
+              setSearchInputValue(value);
+              syncSearchQueryParam(value);
+            }}
             placeholder={t("subjects_list.search_placeholder")}
             leftIcon={<Search className="w-4 h-4" />}
             inputSize="md"
@@ -109,7 +144,7 @@ export default function SubjectsList({
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {filteredSubjects.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              {searchQuery ? t("subjects_list.no_results") : t("subjects_list.empty")}
+              {searchInputValue ? t("subjects_list.no_results") : t("subjects_list.empty")}
             </div>
           )}
 

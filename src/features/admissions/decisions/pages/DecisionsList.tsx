@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import {
   Search,
@@ -22,23 +22,89 @@ import { downloadCSV, generateFilename } from "@/utils/simpleExport";
 import { formatDecisionsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
 import { mockApplications, mockDecisions } from "@/data/mockAdmissions";
 import { Decision, DecisionType, Application } from "@/features/admissions/types/admissions";
+import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
+import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import {
+  filterAdmissionsRecordsByDateContext,
+  resolveAdmissionsContextScope,
+} from "@/features/admissions/shared/utils/admissionsContextScope";
 
 export default function DecisionsList() {
   const t = useTranslations("admissions.decisions");
   const locale = useLocale();
+  const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
   const [selectedApplication, setSelectedApplication] =
     useState<Application | null>(null);
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
 
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [decisionFilter, setDecisionFilter] = useState<DecisionType | "all">(
-    "all",
-  );
   const [showFilters, setShowFilters] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRangeValue>("all");
-  const [customStartDate, setCustomStartDate] = useState<string>("");
-  const [customEndDate, setCustomEndDate] = useState<string>("");
+  const admissionsScope = useMemo(
+    () => resolveAdmissionsContextScope(yearId, termId),
+    [termId, yearId],
+  );
+
+  const normalizeQueryValues = useCallback(
+    (
+      values: Record<
+        "search" | "decision" | "dateRange" | "startDate" | "endDate",
+        string
+      >,
+    ) => {
+      const updates: Partial<Record<keyof typeof values, string | null>> = {};
+      const validDecisions = new Set(["all", "accept", "waitlist", "reject"]);
+      const validDateRanges = new Set([
+        "all",
+        "7",
+        "14",
+        "30",
+        "60",
+        "90",
+        "custom",
+      ]);
+
+      if (!validDecisions.has(values.decision)) {
+        updates.decision = null;
+      }
+      if (!validDateRanges.has(values.dateRange)) {
+        updates.dateRange = null;
+      }
+      if (values.dateRange !== "custom") {
+        if (values.startDate) updates.startDate = null;
+        if (values.endDate) updates.endDate = null;
+      }
+
+      return Object.keys(updates).length > 0 ? updates : null;
+    },
+    [],
+  );
+
+  const { values, setValue, setValues, reset } = useAdmissionsUrlQueryState<{
+    search: string;
+    decision: string;
+    dateRange: string;
+    startDate: string;
+    endDate: string;
+  }>({
+    defaults: {
+      search: "",
+      decision: "all",
+      dateRange: "all",
+      startDate: "",
+      endDate: "",
+    },
+    debouncedKeys: ["search"],
+    modeByKey: {
+      search: "replace",
+    },
+    normalize: normalizeQueryValues,
+  });
+
+  const searchQuery = values.search;
+  const decisionFilter = values.decision as DecisionType | "all";
+  const dateRange = values.dateRange as DateRangeValue;
+  const customStartDate = values.startDate;
+  const customEndDate = values.endDate;
 
   // Get applications with decisions by linking decisions array to applications
   const applicationsWithDecisions = useMemo(() => {
@@ -66,6 +132,15 @@ export default function DecisionsList() {
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);
   }, [locale]);
+  const scopedDecisions = useMemo(
+    () =>
+      filterAdmissionsRecordsByDateContext(
+        applicationsWithDecisions,
+        (decision) => decision.decisionDate,
+        admissionsScope,
+      ),
+    [admissionsScope, applicationsWithDecisions],
+  );
 
   // Filter and search decisions
   const filteredDecisions = useMemo(() => {
@@ -75,7 +150,7 @@ export default function DecisionsList() {
       customEndDate,
     );
 
-    return applicationsWithDecisions.filter((decision) => {
+    return scopedDecisions.filter((decision) => {
       const matchesSearch =
         searchQuery === "" ||
         decision.studentName
@@ -96,7 +171,7 @@ export default function DecisionsList() {
       return matchesSearch && matchesDecision && matchesDateRange;
     });
   }, [
-    applicationsWithDecisions,
+    scopedDecisions,
     searchQuery,
     decisionFilter,
     dateRange,
@@ -112,7 +187,7 @@ export default function DecisionsList() {
       customEndDate,
     );
 
-    const decisionsInRange = applicationsWithDecisions.filter((decision) =>
+    const decisionsInRange = scopedDecisions.filter((decision) =>
       isDateInRange(decision.decisionDate, filterResult),
     );
 
@@ -131,7 +206,7 @@ export default function DecisionsList() {
       total > 0 ? ((accepted / total) * 100).toFixed(1) : "0.0";
 
     return { total, accepted, waitlisted, rejected, acceptanceRate };
-  }, [applicationsWithDecisions, dateRange, customStartDate, customEndDate]);
+  }, [customEndDate, customStartDate, dateRange, scopedDecisions]);
 
   const columns = [
     { key: "applicationId", label: t("application_id"), searchable: true },
@@ -171,8 +246,7 @@ export default function DecisionsList() {
   const hasActiveFilters = searchQuery !== "" || decisionFilter !== "all";
 
   const clearFilters = () => {
-    setSearchQuery("");
-    setDecisionFilter("all");
+    reset(undefined, "replace");
   };
 
   const handleRowClick = (
@@ -182,6 +256,7 @@ export default function DecisionsList() {
       [key: string]: unknown;
     },
   ) => {
+    if (isReadOnly) return;
     setSelectedApplication(decision.application);
     setIsDecisionModalOpen(true);
   };
@@ -210,12 +285,28 @@ export default function DecisionsList() {
       {/* Date Range Filter */}
       <DateRangeFilter
         value={dateRange}
-        onChange={setDateRange}
+        onChange={(nextRange) => {
+          const shouldResetCustom = nextRange !== "custom";
+          setValues(
+            {
+              dateRange: nextRange,
+              startDate: shouldResetCustom ? null : customStartDate || null,
+              endDate: shouldResetCustom ? null : customEndDate || null,
+            },
+            "push",
+          );
+        }}
         customStartDate={customStartDate}
         customEndDate={customEndDate}
         onCustomDateChange={(start, end) => {
-          setCustomStartDate(start);
-          setCustomEndDate(end);
+          setValues(
+            {
+              dateRange: "custom",
+              startDate: start || null,
+              endDate: end || null,
+            },
+            "replace",
+          );
         }}
         showAllTime={true}
       />
@@ -284,6 +375,8 @@ export default function DecisionsList() {
         />
       </div>
 
+      {isReadOnly && <AdmissionsReadOnlyBanner />}
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -308,7 +401,7 @@ export default function DecisionsList() {
               type="text"
               placeholder={t("search_placeholder")}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setValue("search", e.target.value, "replace")}
               className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
                 searchQuery
                   ? "border-primary ring-2 ring-primary/20"
@@ -347,7 +440,11 @@ export default function DecisionsList() {
             <select
               value={decisionFilter}
               onChange={(e) =>
-                setDecisionFilter(e.target.value as DecisionType | "all")
+                setValue(
+                  "decision",
+                  e.target.value as DecisionType | "all",
+                  "push",
+                )
               }
               className="w-full text-black max-w-xs px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
             >
@@ -388,6 +485,11 @@ export default function DecisionsList() {
           data={filteredDecisions}
           onRowClick={handleRowClick}
           searchQuery={searchQuery}
+          urlState={{
+            keyPrefix: "decisionsTable",
+            syncPagination: true,
+            syncSorting: true,
+          }}
         />
       )}
 

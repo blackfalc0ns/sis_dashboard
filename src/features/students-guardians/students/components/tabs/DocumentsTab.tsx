@@ -27,7 +27,7 @@ interface DocumentsTabProps {
 
 export default function DocumentsTab({ student }: DocumentsTabProps) {
   const t = useTranslations("students_guardians.profile.documents");
-  const documents = getStudentDocuments(student.student_id || "");
+  const documents = getStudentDocuments(student.id);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{
     type: string;

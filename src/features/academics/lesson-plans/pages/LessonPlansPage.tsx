@@ -1,394 +1,454 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useTranslations } from "next-intl";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, AlertTitle, CircularProgress, useMediaQuery, useTheme } from "@mui/material";
+import { useDebouncedCallback } from "use-debounce";
 import { useToast } from "@/components/ui/toast/Toast";
 import ContextBar from "../../components/shared/ContextBar";
-import { fetchStructureTree, fetchTermsByYear, fetchAcademicYears, Term, Stage, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
-import { fetchSubjects, Subject } from "@/features/academics/subjects/services/subjectsService";
-import { fetchTeacherAllocations, Teacher, fetchTeachers } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import { fetchTermEvents } from "@/features/academics/calendar/services/calendarService";
-import { fetchCurriculum, fetchAllLessons, Lesson, Unit, fetchUnits } from "@/features/academics/curriculum/services/curriculumService";
-import {
-  fetchLessonPlans,
-  computeTermWeeks,
-  getLessonPlanSummary,
-  upsertLessonPlanItem,
-  LessonPlan,
-  WeekInfo,
-  LessonPlanSummary,
-} from "@/features/academics/lesson-plans/services/lessonPlansService";
 import LessonPlansFilters from "../components/LessonPlansFilters";
 import LessonPlansBoard from "../components/LessonPlansBoard";
 import FiltersDrawer from "../components/FiltersDrawer";
 import LessonLibraryDrawer from "../components/LessonLibraryDrawer";
 import AddLessonDialog from "../components/AddLessonDialog";
 import MobileBottomBar from "../components/MobileBottomBar";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import MainLoader from "@/components/ui/loaders/MainLoader";
+import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
+import { useLessonPlansData } from "../hooks/useLessonPlansData";
+import { useLessonPlansFilters } from "../hooks/useLessonPlansFilters";
+import { useLessonPlanMutations } from "../hooks/useLessonPlanMutations";
 
 export default function LessonPlansPage() {
   const t = useTranslations("academics.lessonPlans");
   const tCommon = useTranslations("common");
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showError, showSuccess } = useToast();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-
-  // URL params - Academic Context
-  const [academicYearId, setAcademicYearId] = useState("");
-  const [termId, setTermId] = useState("");
-  const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
+  const {
+    academicYearId,
+    termId,
+    termStatus,
+    terms,
+    isInitializing,
+    changeAcademicYear,
+    changeTerm,
+  } = useAcademicYearTermContext();
   const isReadOnly = termStatus === "closed";
-
-  // Context data
-  const [terms, setTerms] = useState<Term[]>([]);
-
-  // Structure data
-  const [stages, setStages] = useState<Stage[]>([]);
-  const [grades, setGrades] = useState<Grade[]>([]);
-  const [sections, setSections] = useState<Section[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-
-  // Filters
-  const [selectedStageId, setSelectedStageId] = useState<string>("");
-  const [selectedGradeId, setSelectedGradeId] = useState<string>("");
-  const [selectedSectionId, setSelectedSectionId] = useState<string>("");
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
-
-  // Curriculum data
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-
-  // Lesson plans data
-  const [plans, setPlans] = useState<LessonPlan[]>([]);
-  const [weeks, setWeeks] = useState<WeekInfo[]>([]);
-  const [summary, setSummary] = useState<LessonPlanSummary | null>(null);
-  const [assignedTeacherId, setAssignedTeacherId] = useState<string>("");
-
-  // Loading states
-  const [loading, setLoading] = useState(true);
-  const [plansLoading, setPlansLoading] = useState(false);
+  const handleLoadError = useCallback(() => {
+    showError(tCommon("error"));
+  }, [showError, tCommon]);
+  const queryFilters = useMemo(
+    () => ({
+      stageId: searchParams.get("stage") || "",
+      gradeId: searchParams.get("grade") || "",
+      sectionId: searchParams.get("section") || "",
+      classroomId: searchParams.get("classroom") || "",
+      subjectId: searchParams.get("subject") || "",
+    }),
+    [searchParams]
+  );
+  const {
+    selectedStageId,
+    selectedGradeId,
+    selectedSectionId,
+    selectedClassroomId,
+    selectedSubjectId,
+    hasFilters,
+    getFilteredGrades,
+    getFilteredSections,
+    getFilteredClassrooms,
+  } = useLessonPlansFilters({
+    initialFilters: queryFilters,
+  });
 
   // Mobile drawer states
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
-  const [libraryDrawerOpen, setLibraryDrawerOpen] = useState(false);
-  const [addLessonDialog, setAddLessonDialog] = useState<{
-    isOpen: boolean;
-    lesson: Lesson | null;
-    preselectedWeekIndex?: number;
-  }>({ isOpen: false, lesson: null });
-
-  // Initialize from URL
+  const libraryQueryState = useMemo(
+    () => ({
+      isOpen: searchParams.get("library") === "1",
+      search: searchParams.get("librarySearch") || "",
+      unitId: searchParams.get("libraryUnit") || "",
+    }),
+    [searchParams]
+  );
+  const [librarySearchInput, setLibrarySearchInput] = useState(libraryQueryState.search);
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    const initializeContext = async () => {
-      try {
-        const years = await fetchAcademicYears();
+    setLibrarySearchInput(libraryQueryState.search);
+  }, [libraryQueryState.search]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+  const {
+    stages,
+    grades,
+    sections,
+    classrooms,
+    subjects,
+    teachers,
+    units,
+    lessons,
+    plans,
+    weeks,
+    summary,
+    assignedTeacherId,
+    resolvedClassroomId,
+    loading,
+    plansLoading,
+    refreshPlans,
+  } = useLessonPlansData({
+    academicYearId,
+    termId,
+    isInitializing,
+    terms,
+    selectedGradeId,
+    selectedSectionId,
+    selectedClassroomId,
+    selectedSubjectId,
+    onLoadError: handleLoadError,
+  });
+  const filteredGrades = useMemo(
+    () => getFilteredGrades(grades),
+    [getFilteredGrades, grades]
+  );
+  const filteredSections = useMemo(
+    () => getFilteredSections(sections),
+    [getFilteredSections, sections]
+  );
+  const filteredClassrooms = useMemo(
+    () => getFilteredClassrooms(classrooms),
+    [classrooms, getFilteredClassrooms]
+  );
+  const displayedClassroomId = selectedClassroomId || resolvedClassroomId;
+  const syncFilterParams = useCallback(
+    (
+      filters: {
+        stageId: string;
+        gradeId: string;
+        sectionId: string;
+        classroomId: string;
+        subjectId: string;
+      },
+      historyMode: "push" | "replace" = "push"
+    ) => {
+      const params = new URLSearchParams(searchParams.toString());
+      const entries: Array<[string, string]> = [
+        ["stage", filters.stageId],
+        ["grade", filters.gradeId],
+        ["section", filters.sectionId],
+        ["classroom", filters.classroomId],
+        ["subject", filters.subjectId],
+      ];
 
-        const urlYear = searchParams.get("year");
-        const urlTerm = searchParams.get("term");
-
-        const selectedYear = years.find((y) => y.id === urlYear) || years[0];
-        if (!selectedYear) return;
-
-        const yearTerms = await fetchTermsByYear(selectedYear.id);
-        setTerms(yearTerms);
-
-        let selectedTerm = yearTerms.find((t) => t.id === urlTerm);
-        if (!selectedTerm) {
-          selectedTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
+      entries.forEach(([key, value]) => {
+        if (value) {
+          params.set(key, value);
+        } else {
+          params.delete(key);
         }
+      });
 
-        if (selectedYear && selectedTerm) {
-          setAcademicYearId(selectedYear.id);
-          setTermId(selectedTerm.id);
-          setTermStatus(selectedTerm.status);
-
-          const params = new URLSearchParams();
-          params.set("year", selectedYear.id);
-          params.set("term", selectedTerm.id);
-          router.replace(`?${params.toString()}`, { scroll: false });
-        }
-      } catch (error) {
-        console.error("Failed to initialize context:", error);
-      } finally {
-        setLoading(false);
+      const nextUrl = `?${params.toString()}`;
+      if (historyMode === "push") {
+        router.push(nextUrl, { scroll: false });
+        return;
       }
-    };
+      router.replace(nextUrl, { scroll: false });
+    },
+    [router, searchParams]
+  );
+  const syncLibraryParams = useCallback(
+    (
+      nextLibraryState: {
+        isOpen?: boolean;
+        search?: string;
+        unitId?: string;
+      },
+      historyMode: "push" | "replace" = "replace"
+    ) => {
+      const params = new URLSearchParams(searchParams.toString());
+      const isOpen =
+        nextLibraryState.isOpen ?? libraryQueryState.isOpen;
+      const search = nextLibraryState.search ?? libraryQueryState.search;
+      const unitId = nextLibraryState.unitId ?? libraryQueryState.unitId;
 
-    initializeContext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      if (isOpen) {
+        params.set("library", "1");
+      } else {
+        params.delete("library");
+      }
 
-  // Load structure and subjects when term changes
-  useEffect(() => {
-    const loadData = async () => {
-      if (!termId || !academicYearId) {
+      if (search) {
+        params.set("librarySearch", search);
+      } else {
+        params.delete("librarySearch");
+      }
+
+      if (unitId) {
+        params.set("libraryUnit", unitId);
+      } else {
+        params.delete("libraryUnit");
+      }
+
+      const nextQuery = params.toString();
+      const currentQuery = searchParams.toString();
+      if (nextQuery === currentQuery) {
         return;
       }
 
-      try {
-        const [structureData, subjectsData, teachersData] = await Promise.all([
-          fetchStructureTree(academicYearId, termId),
-          fetchSubjects(termId),
-          fetchTeachers(),
-        ]);
-
-        setStages(structureData.stages);
-        setGrades(structureData.grades);
-        setSections(structureData.sections);
-        setSubjects(subjectsData);
-        setTeachers(teachersData);
-      } catch (error) {
-        console.error("Failed to load data:", error);
-        showError(tCommon("error"));
+      const nextUrl = nextQuery ? `?${nextQuery}` : "?";
+      if (historyMode === "push") {
+        router.push(nextUrl, { scroll: false });
+        return;
       }
-    };
+      router.replace(nextUrl, { scroll: false });
+    },
+    [libraryQueryState.isOpen, libraryQueryState.search, libraryQueryState.unitId, router, searchParams]
+  );
+  const syncLibrarySearchParam = useDebouncedCallback((value: string) => {
+    syncLibraryParams({ search: value }, "replace");
+  }, 250);
+  useEffect(() => {
+    if (!selectedSectionId) {
+      return;
+    }
 
-    loadData();
-  }, [termId, academicYearId, showError, tCommon]);
+    const hasValidSelectedClassroom =
+      !!selectedClassroomId &&
+      filteredClassrooms.some((classroom) => classroom.id === selectedClassroomId);
+
+    if (hasValidSelectedClassroom) {
+      return;
+    }
+
+    if (!resolvedClassroomId && !selectedClassroomId) {
+      return;
+    }
+
+    syncFilterParams(
+      {
+        stageId: selectedStageId,
+        gradeId: selectedGradeId,
+        sectionId: selectedSectionId,
+        classroomId: resolvedClassroomId,
+        subjectId: selectedSubjectId,
+      },
+      "replace"
+    );
+  }, [
+    resolvedClassroomId,
+    filteredClassrooms,
+    selectedClassroomId,
+    selectedGradeId,
+    selectedSectionId,
+    selectedStageId,
+    selectedSubjectId,
+    syncFilterParams,
+  ]);
+  useEffect(() => () => {
+    syncLibrarySearchParam.cancel();
+  }, [syncLibrarySearchParam]);
+  const {
+    addLessonDialog,
+    handleSelectLessonFromLibrary,
+    handleAddLessonFromWeek,
+    handleConfirmAddLesson,
+    closeAddLessonDialog,
+  } = useLessonPlanMutations({
+    termId,
+    selectedSectionId,
+    selectedSubjectId,
+    selectedClassroomId: resolvedClassroomId,
+    assignedTeacherId,
+    lessons,
+    refreshPlans,
+    showSuccess,
+    showError,
+    onLessonSelected: () => syncLibraryParams({ isOpen: false }, "replace"),
+  });
 
   // Handle academic year change
   const handleAcademicYearChange = async (yearId: string) => {
-    setAcademicYearId(yearId);
-    
-    // Load terms for new year
-    const yearTerms = await fetchTermsByYear(yearId);
-    setTerms(yearTerms);
-    
-    // Select first open term or first term
-    const selectedTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
-    if (selectedTerm) {
-      setTermId(selectedTerm.id);
-      setTermStatus(selectedTerm.status);
-      
-      const params = new URLSearchParams();
-      params.set("year", yearId);
-      params.set("term", selectedTerm.id);
-      router.replace(`?${params.toString()}`, { scroll: false });
-    }
+    await changeAcademicYear(yearId);
   };
 
   // Handle term change
   const handleTermChange = (newTermId: string) => {
-    const term = terms.find((t) => t.id === newTermId);
-    if (term) {
-      setTermId(newTermId);
-      setTermStatus(term.status);
-      
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("term", newTermId);
-      router.replace(`?${params.toString()}`, { scroll: false });
-    }
+    changeTerm(newTermId);
   };
 
-  // Load curriculum when grade and subject are selected
-  useEffect(() => {
-    const loadCurriculum = async () => {
-      if (!termId || !selectedGradeId || !selectedSubjectId) {
-        setUnits([]);
-        setLessons([]);
-        return;
-      }
-
-      try {
-        const curriculum = await fetchCurriculum(termId, selectedGradeId, selectedSubjectId);
-        if (curriculum) {
-          const [unitsData, lessonsData] = await Promise.all([
-            fetchUnits(curriculum.id),
-            fetchAllLessons(curriculum.id),
-          ]);
-          setUnits(unitsData);
-          setLessons(lessonsData);
-        } else {
-          setUnits([]);
-          setLessons([]);
-        }
-      } catch (error) {
-        console.error("Failed to load curriculum:", error);
-        showError(tCommon("error"));
-      }
-    };
-
-    loadCurriculum();
-  }, [termId, selectedGradeId, selectedSubjectId, showError, tCommon]);
-
-  // Load lesson plans and compute weeks when section and subject are selected
-  useEffect(() => {
-    const loadPlans = async () => {
-      if (!termId || !selectedSectionId || !selectedSubjectId) {
-        setPlans([]);
-        setWeeks([]);
-        setSummary(null);
-        setAssignedTeacherId("");
-        return;
-      }
-
-      try {
-        setPlansLoading(true);
-
-        // Get term from state
-        const term = terms.find((t) => t.id === termId);
-        if (!term) return;
-
-        // Fetch calendar events (holidays)
-        const events = await fetchTermEvents(termId);
-        const holidays = events.filter((e) => e.type === "HOLIDAY");
-
-        // Compute weeks
-        const weeksData = await computeTermWeeks(
-          term.startDate,
-          term.endDate,
-          holidays.map((h) => ({ startDate: h.startDate, endDate: h.endDate }))
-        );
-        setWeeks(weeksData);
-
-        // Fetch lesson plans
-        const plansData = await fetchLessonPlans(termId, selectedSectionId, selectedSubjectId);
-        setPlans(plansData);
-
-        // Get summary
-        const summaryData = await getLessonPlanSummary(termId, selectedSectionId, selectedSubjectId);
-        setSummary(summaryData);
-
-        // Get assigned teacher
-        const allocations = await fetchTeacherAllocations(termId);
-        const allocation = allocations.find(
-          (a) => a.sectionId === selectedSectionId && a.subjectId === selectedSubjectId
-        );
-        setAssignedTeacherId(allocation?.teacherId || "");
-      } catch (error) {
-        console.error("Failed to load lesson plans:", error);
-        showError(tCommon("error"));
-      } finally {
-        setPlansLoading(false);
-      }
-    };
-
-    loadPlans();
-  }, [termId, selectedSectionId, selectedSubjectId, terms, showError, tCommon]);
-
-  // Filtered data
-  const filteredGrades = useMemo(() => {
-    if (!selectedStageId) return grades;
-    return grades.filter((g) => g.stageId === selectedStageId);
-  }, [grades, selectedStageId]);
-
-  const filteredSections = useMemo(() => {
-    if (!selectedGradeId) return sections;
-    return sections.filter((s) => s.gradeId === selectedGradeId);
-  }, [sections, selectedGradeId]);
-
-  // Handlers
-  const handleStageChange = useCallback((stageId: string) => {
-    setSelectedStageId(stageId);
-    setSelectedGradeId("");
-    setSelectedSectionId("");
-  }, []);
-
-  const handleGradeChange = useCallback((gradeId: string) => {
-    setSelectedGradeId(gradeId);
-    setSelectedSectionId("");
-  }, []);
-
-  const handleSectionChange = useCallback((sectionId: string) => {
-    setSelectedSectionId(sectionId);
-  }, []);
-
-  const handleSubjectChange = useCallback((subjectId: string) => {
-    setSelectedSubjectId(subjectId);
-  }, []);
-
   const handlePlansUpdate = useCallback(async () => {
-    // Reload plans after changes
-    if (termId && selectedSectionId && selectedSubjectId) {
-      try {
-        const [plansData, summaryData] = await Promise.all([
-          fetchLessonPlans(termId, selectedSectionId, selectedSubjectId),
-          getLessonPlanSummary(termId, selectedSectionId, selectedSubjectId),
-        ]);
-        setPlans(plansData);
-        setSummary(summaryData);
-      } catch (error) {
-        console.error("Failed to reload plans:", error);
-      }
+    await refreshPlans();
+  }, [refreshPlans]);
+
+  const handleStageFilterChange = useCallback(
+    (stageId: string) => {
+      syncFilterParams(
+        {
+          stageId,
+          gradeId: "",
+          sectionId: "",
+          classroomId: "",
+          subjectId: selectedSubjectId,
+        },
+        "push"
+      );
+    },
+    [selectedSubjectId, syncFilterParams]
+  );
+
+  const handleGradeFilterChange = useCallback(
+    (gradeId: string) => {
+      syncFilterParams(
+        {
+          stageId: selectedStageId,
+          gradeId,
+          sectionId: "",
+          classroomId: "",
+          subjectId: selectedSubjectId,
+        },
+        "push"
+      );
+    },
+    [selectedStageId, selectedSubjectId, syncFilterParams]
+  );
+
+  const handleSectionFilterChange = useCallback(
+    (sectionId: string) => {
+      syncFilterParams(
+        {
+          stageId: selectedStageId,
+          gradeId: selectedGradeId,
+          sectionId,
+          classroomId: "",
+          subjectId: selectedSubjectId,
+        },
+        "push"
+      );
+    },
+    [
+      selectedGradeId,
+      selectedStageId,
+      selectedSubjectId,
+      syncFilterParams,
+    ]
+  );
+
+  const handleClassroomFilterChange = useCallback(
+    (classroomId: string) => {
+      syncFilterParams(
+        {
+          stageId: selectedStageId,
+          gradeId: selectedGradeId,
+          sectionId: selectedSectionId,
+          classroomId,
+          subjectId: selectedSubjectId,
+        },
+        "push"
+      );
+    },
+    [
+      selectedGradeId,
+      selectedSectionId,
+      selectedStageId,
+      selectedSubjectId,
+      syncFilterParams,
+    ]
+  );
+
+  const handleSubjectFilterChange = useCallback(
+    (subjectId: string) => {
+      syncFilterParams(
+        {
+          stageId: selectedStageId,
+          gradeId: selectedGradeId,
+          sectionId: selectedSectionId,
+          classroomId: selectedClassroomId,
+          subjectId,
+        },
+        "push"
+      );
+    },
+    [
+      selectedClassroomId,
+      selectedGradeId,
+      selectedSectionId,
+      selectedStageId,
+      syncFilterParams,
+    ]
+  );
+
+  const handleApplyFilters = useCallback(
+    (filters: {
+      stageId: string;
+      gradeId: string;
+      sectionId: string;
+      classroomId: string;
+      subjectId: string;
+    }) => {
+      syncFilterParams(filters, "push");
+    },
+    [syncFilterParams]
+  );
+  const handleOpenLibrary = useCallback(() => {
+    syncLibraryParams({ isOpen: true }, "push");
+  }, [syncLibraryParams]);
+
+  const handleCloseLibrary = useCallback(() => {
+    syncLibraryParams({ isOpen: false }, "replace");
+  }, [syncLibraryParams]);
+
+  const handleLibrarySearchChange = useCallback(
+    (value: string) => {
+      setLibrarySearchInput(value);
+      syncLibrarySearchParam(value);
+    },
+    [syncLibrarySearchParam]
+  );
+
+  const handleLibraryUnitChange = useCallback(
+    (value: string) => {
+      syncLibraryParams({ unitId: value }, "replace");
+    },
+    [syncLibraryParams]
+  );
+
+  const handleAddLessonFromWeekWithLibrary = useCallback(
+    (weekIndex: number) => {
+      handleAddLessonFromWeek(weekIndex);
+      syncLibraryParams({ isOpen: true }, "push");
+    },
+    [handleAddLessonFromWeek, syncLibraryParams]
+  );
+
+  const handleGoToCurriculum = useCallback(() => {
+    const params = new URLSearchParams();
+    if (academicYearId) {
+      params.set("year", academicYearId);
     }
-  }, [termId, selectedSectionId, selectedSubjectId]);
-
-  // Mobile handlers
-  const handleApplyFilters = useCallback((filters: {
-    stageId: string;
-    gradeId: string;
-    sectionId: string;
-    subjectId: string;
-  }) => {
-    setSelectedStageId(filters.stageId);
-    setSelectedGradeId(filters.gradeId);
-    setSelectedSectionId(filters.sectionId);
-    setSelectedSubjectId(filters.subjectId);
-  }, []);
-
-  const handleSelectLessonFromLibrary = useCallback((lesson: Lesson) => {
-    setAddLessonDialog((prev) => ({ 
-      isOpen: true, 
-      lesson, 
-      preselectedWeekIndex: prev.preselectedWeekIndex 
-    }));
-    setLibraryDrawerOpen(false);
-  }, []);
-
-  const handleAddLessonFromWeek = useCallback((weekIndex: number) => {
-    setLibraryDrawerOpen(true);
-    // Store the week index for later use
-    setAddLessonDialog((prev) => ({ ...prev, preselectedWeekIndex: weekIndex }));
-  }, []);
-
-  const handleConfirmAddLesson = useCallback(async (lessonId: string, weekIndex: number) => {
-    if (!termId || !selectedSectionId || !selectedSubjectId) {
-      console.error("Missing required IDs:", { termId, selectedSectionId, selectedSubjectId });
-      return;
+    if (termId) {
+      params.set("term", termId);
+    }
+    if (selectedGradeId) {
+      params.set("grade", selectedGradeId);
+    }
+    if (selectedSubjectId) {
+      params.set("subject", selectedSubjectId);
     }
 
-    try {
-      const lesson = lessons.find((l) => l.id === lessonId);
-      if (!lesson) {
-        console.error("Lesson not found:", lessonId);
-        return;
-      }
-
-      console.log("Adding lesson to plan:", { lessonId, weekIndex, lesson, assignedTeacherId });
-
-      await upsertLessonPlanItem({
-        termId,
-        sectionId: selectedSectionId,
-        subjectId: selectedSubjectId,
-        teacherId: assignedTeacherId || undefined,
-        weekIndex,
-        lessonId: lesson.id,
-        unitId: lesson.unitId,
-        status: "PLANNED",
-      });
-
-      console.log("Lesson added, updating plans...");
-      await handlePlansUpdate();
-      console.log("Plans updated");
-      
-      showSuccess("Saved successfully");
-      setAddLessonDialog({ isOpen: false, lesson: null });
-    } catch (error) {
-      console.error("Failed to add lesson:", error);
-      showError("Failed to save");
-    }
-  }, [termId, selectedSectionId, selectedSubjectId, assignedTeacherId, lessons, handlePlansUpdate, showSuccess, showError]);
-
-  const hasFilters = !!(selectedStageId || selectedGradeId || selectedSectionId || selectedSubjectId);
+    const query = params.toString();
+    router.push(
+      `/${locale}/academics/curriculum${query ? `?${query}` : ""}`
+    );
+  }, [academicYearId, locale, router, selectedGradeId, selectedSubjectId, termId]);
 
   if (loading) {
     return (
-        <PartialLoader />
+      <div className="flex items-center justify-center h-screen">
+        <MainLoader />
+      </div>
     );
   }
 
@@ -421,17 +481,20 @@ export default function LessonPlansPage() {
             stages={stages}
             grades={filteredGrades}
             sections={filteredSections}
+            classrooms={filteredClassrooms}
             subjects={subjects}
             teachers={teachers}
             selectedStageId={selectedStageId}
             selectedGradeId={selectedGradeId}
             selectedSectionId={selectedSectionId}
+            selectedClassroomId={displayedClassroomId}
             selectedSubjectId={selectedSubjectId}
             assignedTeacherId={assignedTeacherId}
-            onStageChange={handleStageChange}
-            onGradeChange={handleGradeChange}
-            onSectionChange={handleSectionChange}
-            onSubjectChange={handleSubjectChange}
+            onStageChange={handleStageFilterChange}
+            onGradeChange={handleGradeFilterChange}
+            onSectionChange={handleSectionFilterChange}
+            onClassroomChange={handleClassroomFilterChange}
+            onSubjectChange={handleSubjectFilterChange}
           />
         )}
 
@@ -444,13 +507,28 @@ export default function LessonPlansPage() {
               </h3>
               <p className="text-gray-600">{t("emptyState.noSelection.message")}</p>
             </div>
+          ) : filteredClassrooms.length > 1 && !resolvedClassroomId ? (
+            <div className="text-center py-12">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {locale === "ar" ? "اختر الفصل" : "Select Classroom"}
+              </h3>
+              <p className="text-gray-600">
+                {locale === "ar"
+                  ? "يرجى اختيار الفصل المطلوب لعرض خطة الدروس لهذه الشعبة"
+                  : "Choose the classroom to load the lesson plan for this section."}
+              </p>
+            </div>
           ) : lessons.length === 0 ? (
             <div className="text-center py-12">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {t("emptyState.noLessons.title")}
               </h3>
               <p className="text-gray-600 mb-4">{t("emptyState.noLessons.message")}</p>
-              <button className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">
+              <button
+                type="button"
+                onClick={handleGoToCurriculum}
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark"
+              >
                 {t("emptyState.noLessons.cta")}
               </button>
             </div>
@@ -463,6 +541,7 @@ export default function LessonPlansPage() {
               termId={termId}
               sectionId={selectedSectionId}
               subjectId={selectedSubjectId}
+              classroomId={resolvedClassroomId}
               teacherId={assignedTeacherId}
               lessons={lessons}
               units={units}
@@ -470,8 +549,12 @@ export default function LessonPlansPage() {
               weeks={weeks}
               summary={summary}
               isReadOnly={isReadOnly}
+              librarySearchQuery={librarySearchInput}
+              librarySelectedUnitId={libraryQueryState.unitId}
+              onLibrarySearchQueryChange={handleLibrarySearchChange}
+              onLibrarySelectedUnitIdChange={handleLibraryUnitChange}
               onUpdate={handlePlansUpdate}
-              onAddLessonMobile={handleAddLessonFromWeek}
+              onAddLessonMobile={handleAddLessonFromWeekWithLibrary}
             />
           )}
         </div>
@@ -486,26 +569,28 @@ export default function LessonPlansPage() {
             stages={stages}
             grades={filteredGrades}
             sections={filteredSections}
+            classrooms={filteredClassrooms}
             subjects={subjects}
             teachers={teachers}
             selectedStageId={selectedStageId}
             selectedGradeId={selectedGradeId}
             selectedSectionId={selectedSectionId}
+            selectedClassroomId={displayedClassroomId}
             selectedSubjectId={selectedSubjectId}
             assignedTeacherId={assignedTeacherId}
             onApply={handleApplyFilters}
           />
 
           <LessonLibraryDrawer
-            isOpen={libraryDrawerOpen}
-            onClose={() => {
-              setLibraryDrawerOpen(false);
-              // Clear preselected week when closing without selection
-              setAddLessonDialog((prev) => ({ ...prev, preselectedWeekIndex: undefined }));
-            }}
+            isOpen={libraryQueryState.isOpen}
+            onClose={handleCloseLibrary}
             lessons={lessons}
             units={units}
             plans={plans}
+            searchQuery={librarySearchInput}
+            selectedUnitId={libraryQueryState.unitId}
+            onSearchQueryChange={handleLibrarySearchChange}
+            onSelectedUnitIdChange={handleLibraryUnitChange}
             onSelectLesson={handleSelectLessonFromLibrary}
             isReadOnly={isReadOnly}
           />
@@ -515,13 +600,13 @@ export default function LessonPlansPage() {
             lesson={addLessonDialog.lesson}
             weeks={weeks}
             preselectedWeekIndex={addLessonDialog.preselectedWeekIndex}
-            onClose={() => setAddLessonDialog({ isOpen: false, lesson: null })}
+            onClose={closeAddLessonDialog}
             onConfirm={handleConfirmAddLesson}
           />
 
           <MobileBottomBar
             onOpenFilters={() => setFiltersDrawerOpen(true)}
-            onOpenLibrary={() => setLibraryDrawerOpen(true)}
+            onOpenLibrary={handleOpenLibrary}
             hasFilters={hasFilters}
             isReadOnly={isReadOnly}
           />

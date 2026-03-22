@@ -13,6 +13,7 @@ interface WithdrawalsTableProps {
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
   onExecute?: (id: string) => void;
+  urlStateKeyPrefix?: string;
 }
 
 export default function WithdrawalsTable({
@@ -20,6 +21,7 @@ export default function WithdrawalsTable({
   onApprove,
   onReject,
   onExecute,
+  urlStateKeyPrefix,
 }: WithdrawalsTableProps) {
   const t = useTranslations("students_guardians.transfers_withdrawals");
   const locale = useLocale();
@@ -189,6 +191,15 @@ export default function WithdrawalsTable({
           showPagination={true}
           itemsPerPage={10}
           onRowClick={handleRowClick}
+          urlState={
+            urlStateKeyPrefix
+              ? {
+                  keyPrefix: urlStateKeyPrefix,
+                  syncPagination: true,
+                  syncSorting: true,
+                }
+              : undefined
+          }
         />
       )}
     </div>

@@ -15,18 +15,39 @@ import {
   subscribeTransfersWithdrawals,
   updateTransferStatus,
 } from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
+import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 
 export default function TransfersApplicationsPage() {
   const t = useTranslations("students_guardians.transfers_withdrawals");
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<FiltersType>({
-    stage: "all",
-    type: "all",
-    status: "all",
-    behaviorBand: "all",
+  const { values, setValue, reset } = useUrlQueryState<{
+    search: string;
+    stage: string;
+    type: string;
+    status: string;
+    behaviorBand: string;
+  }>({
+    defaults: {
+      search: "",
+      stage: "all",
+      type: "all",
+      status: "all",
+      behaviorBand: "all",
+    },
+    debouncedKeys: ["search"],
+    modeByKey: {
+      search: "replace",
+    },
   });
+
+  const searchQuery = values.search;
+  const filters: FiltersType = {
+    stage: values.stage as FiltersType["stage"],
+    type: values.type as FiltersType["type"],
+    status: values.status as FiltersType["status"],
+    behaviorBand: values.behaviorBand as FiltersType["behaviorBand"],
+  };
 
   useSyncExternalStore(
     subscribeTransfersWithdrawals,
@@ -44,13 +65,7 @@ export default function TransfersApplicationsPage() {
     filters.behaviorBand !== "all";
 
   const clearFilters = () => {
-    setSearchQuery("");
-    setFilters({
-      stage: "all",
-      type: "all",
-      status: "all",
-      behaviorBand: "all",
-    });
+    reset(undefined, "replace");
   };
 
   return (
@@ -83,7 +98,7 @@ export default function TransfersApplicationsPage() {
               type="text"
               placeholder={t("filters.search_placeholder")}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setValue("search", e.target.value, "replace")}
               className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
                 searchQuery
                   ? "border-primary ring-2 ring-primary/20"
@@ -123,16 +138,9 @@ export default function TransfersApplicationsPage() {
               </label>
               <select
                 value={filters.stage || "all"}
-                onChange={(e) =>
-                  setFilters({
-                    ...filters,
-                    stage: e.target.value as
-                      | "all"
-                      | "primary"
-                      | "preparatory"
-                      | "secondary",
-                  })
-                }
+                onChange={(e) => {
+                  setValue("stage", e.target.value as FiltersType["stage"], "push");
+                }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("filters.all_stages")}</option>
@@ -153,12 +161,9 @@ export default function TransfersApplicationsPage() {
               </label>
               <select
                 value={filters.type || "all"}
-                onChange={(e) =>
-                  setFilters({
-                    ...filters,
-                    type: e.target.value as "all" | "internal" | "external",
-                  })
-                }
+                onChange={(e) => {
+                  setValue("type", e.target.value as FiltersType["type"], "push");
+                }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("filters.all_types")}</option>
@@ -174,19 +179,9 @@ export default function TransfersApplicationsPage() {
               </label>
               <select
                 value={filters.status || "all"}
-                onChange={(e) =>
-                  setFilters({
-                    ...filters,
-                    status: e.target.value as
-                      | "all"
-                      | "draft"
-                      | "submitted"
-                      | "under_review"
-                      | "approved"
-                      | "rejected"
-                      | "executed",
-                  })
-                }
+                onChange={(e) => {
+                  setValue("status", e.target.value as FiltersType["status"], "push");
+                }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("filters.all_statuses")}</option>
@@ -216,16 +211,13 @@ export default function TransfersApplicationsPage() {
               </label>
               <select
                 value={filters.behaviorBand || "all"}
-                onChange={(e) =>
-                  setFilters({
-                    ...filters,
-                    behaviorBand: e.target.value as
-                      | "all"
-                      | "low"
-                      | "medium"
-                      | "high",
-                  })
-                }
+                onChange={(e) => {
+                  setValue(
+                    "behaviorBand",
+                    e.target.value as FiltersType["behaviorBand"],
+                    "push",
+                  );
+                }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">{t("filters.all_bands")}</option>
@@ -243,6 +235,7 @@ export default function TransfersApplicationsPage() {
       {/* Table */}
       <TransfersTable
         data={filteredData}
+        urlStateKeyPrefix="transferApplicationsTable"
         onApprove={async (id) => {
           await updateTransferStatus(id, "approved");
         }}

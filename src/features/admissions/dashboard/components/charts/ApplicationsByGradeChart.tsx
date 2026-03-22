@@ -73,14 +73,17 @@ export default function ApplicationsByGradeChart({
   });
 
   // Get most requested grade with translation
-  const mostRequestedGrade = (() => {
-    const mostRequested = sortedData.reduce((max, item) =>
-      item.count > max.count ? item : max,
-    );
-    const key = getGradeKey(mostRequested.grade);
-    const translated = t_grades(key);
-    return translated !== key ? translated : mostRequested.grade;
-  })();
+  const mostRequestedGrade =
+    sortedData.length > 0
+      ? (() => {
+          const mostRequested = sortedData.reduce((max, item) =>
+            item.count > max.count ? item : max,
+          );
+          const key = getGradeKey(mostRequested.grade);
+          const translated = t_grades(key);
+          return translated !== key ? translated : mostRequested.grade;
+        })()
+      : t("no_data");
 
   const periodOptions = [
     { label: t("all_time"), value: "all" },
@@ -89,7 +92,7 @@ export default function ApplicationsByGradeChart({
     { label: t("this_year"), value: "year" },
   ];
 
-  if (total === 0 || data.length === 0) {
+  if (total === 0 || sortedData.length === 0) {
     return (
       <ChartCard
         title={t("applications_by_grade")}

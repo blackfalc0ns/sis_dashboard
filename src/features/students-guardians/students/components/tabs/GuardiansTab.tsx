@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import {
   Plus,
   Phone,
@@ -23,6 +23,7 @@ import AddGuardianModal, {
   GuardianFormData,
 } from "@/features/students-guardians/students/components/modals/AddGuardianModal";
 import { useTranslations } from "next-intl";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 interface GuardiansTabProps {
   student: Student;
@@ -30,18 +31,41 @@ interface GuardiansTabProps {
 
 export default function GuardiansTab({ student }: GuardiansTabProps) {
   const t = useTranslations("students_guardians.profile.guardians");
-  // Load guardians from service
-  const guardians = useMemo(
-    () => studentsService.getStudentGuardians(student.id),
-    [student.id],
-  );
-
-  const primaryGuardian = useMemo(
-    () => studentsService.getPrimaryGuardian(student.id),
-    [student.id],
-  );
-
   const [showAddModal, setShowAddModal] = useState(false);
+  const [guardians, setGuardians] = useState<studentsService.StudentGuardian[]>([]);
+  const [primaryGuardian, setPrimaryGuardian] =
+    useState<studentsService.StudentGuardian | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    void Promise.resolve().then(async () => {
+      setIsLoading(true);
+
+      try {
+        const [guardiansData, primaryGuardianData] = await Promise.all([
+          studentsService.fetchStudentGuardians(student.id),
+          studentsService.fetchPrimaryGuardian(student.id),
+        ]);
+
+        if (isCancelled) {
+          return;
+        }
+
+        setGuardians(guardiansData);
+        setPrimaryGuardian(primaryGuardianData);
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [student.id]);
 
   const handleAddGuardian = (guardianData: GuardianFormData) => {
     // TODO: Implement API call to add guardian
@@ -89,6 +113,8 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
 
   return (
     <div className="space-y-6">
+      {isLoading ? <PartialLoader /> : null}
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>

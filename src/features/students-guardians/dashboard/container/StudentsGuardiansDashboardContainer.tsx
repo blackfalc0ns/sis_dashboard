@@ -3,70 +3,110 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import {
   calculateStudentStats,
   calculateRiskDistribution,
-  extractFilterOptions,
 } from "@/features/students-guardians/dashboard/utils/studentStatsCalculator";
-import { filterStudents, type StudentFilterValues } from "@/features/students-guardians/dashboard/utils/studentFilters";
+import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import StudentsGuardiansDashboardView from "../pages/StudentsGuardiansDashboardView";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 
 export default function StudentsGuardiansDashboardContainer() {
-  // State management
-  const [filterValues, setFilterValues] = useState<StudentFilterValues>({
-    academicYear: "all",
-    term: "all",
-    dateRange: "all",
-    customStartDate: "",
-    customEndDate: "",
-  });
+  const {
+    yearId,
+    termId,
+    isLoading: isContextLoading,
+    error: contextError,
+  } = useStudentsGuardiansYearTermContext();
+  const [allStudents, setAllStudents] = useState<
+    studentsService.StudentWithEnrollmentContext[]
+  >([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Data fetching
-  const allStudents = useMemo(
-    () => studentsService.getStudentsWithEnrollment(),
-    []
-  );
+  useEffect(() => {
+    let isCancelled = false;
 
-  // Extract filter options
-  const { academicYears, terms } = useMemo(
-    () => extractFilterOptions(allStudents),
-    [allStudents]
-  );
+    if (isContextLoading) {
+      return () => {
+        isCancelled = true;
+      };
+    }
 
-  // Apply filters
-  const filteredStudents = useMemo(
-    () => filterStudents(allStudents, filterValues),
-    [allStudents, filterValues]
-  );
+    if (!yearId || !termId) {
+      setAllStudents([]);
+      setLoadError(null);
+      setIsLoading(false);
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    void Promise.resolve().then(async () => {
+      if (isCancelled) {
+        return;
+      }
+
+      setIsLoading(true);
+      setLoadError(null);
+
+      try {
+        const students = await studentsService.fetchStudentsWithEnrollmentForContext(
+          yearId,
+          termId,
+        );
+        if (!isCancelled) {
+          setAllStudents(students);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setLoadError(error instanceof Error ? error.message : "Failed to load dashboard");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isContextLoading, termId, yearId]);
 
   // Calculate statistics
   const stats = useMemo(
-    () => calculateStudentStats(filteredStudents),
-    [filteredStudents]
+    () => calculateStudentStats(allStudents),
+    [allStudents]
   );
 
   // Calculate risk distribution
   const riskDistribution = useMemo(
-    () => calculateRiskDistribution(filteredStudents),
-    [filteredStudents]
+    () => calculateRiskDistribution(allStudents),
+    [allStudents]
   );
 
-  // Event handlers
-  const handleFilterChange = (newFilters: StudentFilterValues) => {
-    setFilterValues(newFilters);
-  };
+  if (isContextLoading || isLoading) {
+    return <MainLoader />;
+  }
 
-  // Pass everything to presenter
+  if (contextError || loadError || !yearId || !termId) {
+    return (
+      <div className="bg-white rounded-xl p-10 text-center shadow-sm">
+        <p className="text-sm text-red-600">
+          {contextError || loadError || "Failed to load dashboard"}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <StudentsGuardiansDashboardView
       stats={stats}
       riskDistribution={riskDistribution}
-      filterValues={filterValues}
-      onFilterChange={handleFilterChange}
-      academicYears={academicYears}
-      terms={terms}
     />
   );
 }

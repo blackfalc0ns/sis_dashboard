@@ -221,18 +221,12 @@ export default function EventDialog({
         notify: (type === "EXAM" || type === "HOLIDAY") ? notify : undefined,
       };
 
-      console.log("Saving event for term:", term.id, "payload:", payload);
-
       if (event) {
-        console.log("Updating existing event:", event.id);
         await updateEvent(event.id, payload);
       } else {
-        console.log("Creating new event");
-        const newEvent = await createTermEvent(term.id, payload);
-        console.log("New event created:", newEvent);
+        await createTermEvent(term.id, payload);
       }
 
-      console.log("Calling onSuccess to reload events");
       onSuccess();
     } catch (error) {
       console.error("Failed to save event:", error);
@@ -244,18 +238,15 @@ export default function EventDialog({
 
   const handleDelete = async () => {
     if (!event) {
-      console.error("Cannot delete: event is null");
       return;
     }
 
     if (!event.id) {
-      console.error("Cannot delete: event.id is missing", event);
       setErrors({ general: "Invalid event: missing ID" });
       setShowDeleteConfirm(false);
       return;
     }
 
-    console.log("Attempting to delete event:", event.id);
     setIsDeleting(true);
     try {
       await deleteEvent(event.id);

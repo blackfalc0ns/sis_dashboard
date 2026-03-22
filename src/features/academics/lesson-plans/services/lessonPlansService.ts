@@ -1,6 +1,12 @@
 // Mock service for Lesson Plans (TERM + SECTION + SUBJECT SCOPED)
 // Replace with real API calls when backend is ready
 
+import type {
+  LessonPlanItemUpsertPayload,
+  LessonPlansAdapter,
+} from "@/features/academics/lesson-plans/services/lessonPlansAdapter";
+import { lessonPlansApiAdapter } from "@/features/academics/lesson-plans/services/lessonPlansApiAdapter";
+
 export interface LessonPlanItem {
   id: string;
   planId: string;
@@ -25,6 +31,7 @@ export interface LessonPlan {
   termId: string;
   sectionId: string;
   subjectId: string;
+  classroomId?: string;
   teacherId?: string; // default from teacher allocation
   weekIndex: number; // 1..N
   items: LessonPlanItem[];
@@ -35,7 +42,7 @@ export interface WeekInfo {
   weekIndex: number;
   startDate: string; // ISO date
   endDate: string; // ISO date
-  holidayCount: number;
+  lostTeachingDays: number;
   hasHolidays: boolean;
 }
 
@@ -58,6 +65,10 @@ export interface LessonPlanSummary {
 const plansByKey: Record<string, LessonPlan[]> = {};
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const isWeekendDay = (date: Date) => {
+  const day = date.getDay();
+  return day === 5 || day === 6;
+};
 
 let idCounter = 3000;
 const generateId = (prefix: string) => {
@@ -65,8 +76,12 @@ const generateId = (prefix: string) => {
   return `${prefix}-${Date.now()}-${idCounter}`;
 };
 
-const getPlanKey = (termId: string, sectionId: string, subjectId: string) =>
-  `${termId}-${sectionId}-${subjectId}`;
+const getPlanKey = (
+  termId: string,
+  sectionId: string,
+  subjectId: string,
+  classroomId?: string
+) => `${termId}-${sectionId}-${subjectId}-${classroomId || "section"}`;
 
 /**
  * Compute teaching weeks for a term
@@ -95,15 +110,23 @@ export const computeTermWeeks = async (
       currentEnd.setTime(end.getTime());
     }
 
-    // Count holidays in this week
-    let holidayCount = 0;
+    // Count unique affected teaching days in this week, not just holiday events.
+    const affectedTeachingDays = new Set<string>();
     for (const holiday of holidays) {
       const holidayStart = new Date(holiday.startDate);
       const holidayEnd = new Date(holiday.endDate);
 
-      // Check if holiday overlaps with this week
-      if (holidayStart <= currentEnd && holidayEnd >= currentStart) {
-        holidayCount++;
+      const overlapStart = holidayStart > currentStart ? holidayStart : currentStart;
+      const overlapEnd = holidayEnd < currentEnd ? holidayEnd : currentEnd;
+
+      if (overlapStart <= overlapEnd) {
+        const cursor = new Date(overlapStart);
+        while (cursor <= overlapEnd) {
+          if (!isWeekendDay(cursor)) {
+            affectedTeachingDays.add(cursor.toISOString().split("T")[0]);
+          }
+          cursor.setDate(cursor.getDate() + 1);
+        }
       }
     }
 
@@ -111,8 +134,8 @@ export const computeTermWeeks = async (
       weekIndex,
       startDate: currentStart.toISOString().split("T")[0],
       endDate: currentEnd.toISOString().split("T")[0],
-      holidayCount,
-      hasHolidays: holidayCount > 0,
+      lostTeachingDays: affectedTeachingDays.size,
+      hasHolidays: affectedTeachingDays.size > 0,
     });
 
     // Move to next week
@@ -127,37 +150,39 @@ export const computeTermWeeks = async (
  * Fetch all lesson plans for a term/section/subject
  * Returns items grouped by week
  */
-export const fetchLessonPlans = async (
+const fetchLessonPlansImpl = async (
   termId: string,
   sectionId: string,
-  subjectId: string
+  subjectId: string,
+  classroomId?: string
 ): Promise<LessonPlan[]> => {
   await delay(300);
-  const key = getPlanKey(termId, sectionId, subjectId);
+  const key = getPlanKey(termId, sectionId, subjectId, classroomId);
   const plans = plansByKey[key] || [];
-  // Return a deep copy to ensure React detects changes
-  return JSON.parse(JSON.stringify(plans));
+  return plans.map((plan) => ({
+    ...plan,
+    items: plan.items.map((item) => ({
+      ...item,
+      resources: item.resources?.map((resource) => ({ ...resource })),
+      assignmentIds: item.assignmentIds ? [...item.assignmentIds] : undefined,
+    })),
+  }));
 };
 
 /**
  * Create or update a lesson plan item
  */
-export const upsertLessonPlanItem = async (payload: {
-  termId: string;
-  sectionId: string;
-  subjectId: string;
-  teacherId?: string;
-  weekIndex: number;
-  lessonId: string;
-  unitId?: string;
-  status?: "PLANNED" | "IN_PROGRESS" | "DONE" | "SKIPPED";
-  order?: number;
-  notesAr?: string;
-  notesEn?: string;
-}): Promise<LessonPlanItem> => {
+const upsertLessonPlanItemImpl = async (
+  payload: LessonPlanItemUpsertPayload
+): Promise<LessonPlanItem> => {
   await delay(300);
 
-  const key = getPlanKey(payload.termId, payload.sectionId, payload.subjectId);
+  const key = getPlanKey(
+    payload.termId,
+    payload.sectionId,
+    payload.subjectId,
+    payload.classroomId
+  );
   const plans = plansByKey[key] || [];
 
   // Find or create plan for this week
@@ -169,6 +194,7 @@ export const upsertLessonPlanItem = async (payload: {
       termId: payload.termId,
       sectionId: payload.sectionId,
       subjectId: payload.subjectId,
+      classroomId: payload.classroomId,
       teacherId: payload.teacherId,
       weekIndex: payload.weekIndex,
       items: [],
@@ -216,15 +242,16 @@ export const upsertLessonPlanItem = async (payload: {
 /**
  * Delete a lesson plan item
  */
-export const deleteLessonPlanItem = async (
+const deleteLessonPlanItemImpl = async (
   termId: string,
   sectionId: string,
   subjectId: string,
-  itemId: string
+  itemId: string,
+  classroomId?: string
 ): Promise<void> => {
   await delay(300);
 
-  const key = getPlanKey(termId, sectionId, subjectId);
+  const key = getPlanKey(termId, sectionId, subjectId, classroomId);
   const plans = plansByKey[key] || [];
 
   for (const plan of plans) {
@@ -241,16 +268,17 @@ export const deleteLessonPlanItem = async (
 /**
  * Reorder items within a week
  */
-export const reorderLessonPlanItems = async (
+const reorderLessonPlanItemsImpl = async (
   termId: string,
   sectionId: string,
   subjectId: string,
   weekIndex: number,
-  orderedItemIds: string[]
+  orderedItemIds: string[],
+  classroomId?: string
 ): Promise<void> => {
   await delay(300);
 
-  const key = getPlanKey(termId, sectionId, subjectId);
+  const key = getPlanKey(termId, sectionId, subjectId, classroomId);
   const plans = plansByKey[key] || [];
   const plan = plans.find((p) => p.weekIndex === weekIndex);
 
@@ -270,17 +298,18 @@ export const reorderLessonPlanItems = async (
 /**
  * Move an item to a different week
  */
-export const moveLessonPlanItem = async (
+const moveLessonPlanItemImpl = async (
   termId: string,
   sectionId: string,
   subjectId: string,
   itemId: string,
   toWeekIndex: number,
-  toOrder?: number
+  toOrder?: number,
+  classroomId?: string
 ): Promise<void> => {
   await delay(300);
 
-  const key = getPlanKey(termId, sectionId, subjectId);
+  const key = getPlanKey(termId, sectionId, subjectId, classroomId);
   const plans = plansByKey[key] || [];
 
   // Find the item in any week
@@ -311,6 +340,7 @@ export const moveLessonPlanItem = async (
       termId,
       sectionId,
       subjectId,
+      classroomId,
       teacherId: sourcePlan.teacherId,
       weekIndex: toWeekIndex,
       items: [],
@@ -332,16 +362,17 @@ export const moveLessonPlanItem = async (
 /**
  * Update item status
  */
-export const updateLessonPlanItemStatus = async (
+const updateLessonPlanItemStatusImpl = async (
   termId: string,
   sectionId: string,
   subjectId: string,
   itemId: string,
-  status: "PLANNED" | "IN_PROGRESS" | "DONE" | "SKIPPED"
+  status: "PLANNED" | "IN_PROGRESS" | "DONE" | "SKIPPED",
+  classroomId?: string
 ): Promise<void> => {
   await delay(300);
 
-  const key = getPlanKey(termId, sectionId, subjectId);
+  const key = getPlanKey(termId, sectionId, subjectId, classroomId);
   const plans = plansByKey[key] || [];
 
   for (const plan of plans) {
@@ -358,17 +389,18 @@ export const updateLessonPlanItemStatus = async (
 /**
  * Update item notes
  */
-export const updateLessonPlanItemNotes = async (
+const updateLessonPlanItemNotesImpl = async (
   termId: string,
   sectionId: string,
   subjectId: string,
   itemId: string,
   notesAr?: string,
-  notesEn?: string
+  notesEn?: string,
+  classroomId?: string
 ): Promise<void> => {
   await delay(300);
 
-  const key = getPlanKey(termId, sectionId, subjectId);
+  const key = getPlanKey(termId, sectionId, subjectId, classroomId);
   const plans = plansByKey[key] || [];
 
   for (const plan of plans) {
@@ -386,14 +418,15 @@ export const updateLessonPlanItemNotes = async (
 /**
  * Get summary analytics
  */
-export const getLessonPlanSummary = async (
+const getLessonPlanSummaryImpl = async (
   termId: string,
   sectionId: string,
-  subjectId: string
+  subjectId: string,
+  classroomId?: string
 ): Promise<LessonPlanSummary> => {
   await delay(200);
 
-  const key = getPlanKey(termId, sectionId, subjectId);
+  const key = getPlanKey(termId, sectionId, subjectId, classroomId);
   const plans = plansByKey[key] || [];
 
   let totalPlanned = 0;
@@ -456,17 +489,18 @@ export const getLessonPlanSummary = async (
  * Bulk auto-plan lessons (optional feature)
  * Distributes lessons evenly across weeks
  */
-export const bulkAutoPlan = async (
+const bulkAutoPlanImpl = async (
   termId: string,
   sectionId: string,
   subjectId: string,
+  classroomId: string | undefined,
   teacherId: string | undefined,
   lessonIds: string[],
   weekCount: number
 ): Promise<void> => {
   await delay(500);
 
-  const key = getPlanKey(termId, sectionId, subjectId);
+  const key = getPlanKey(termId, sectionId, subjectId, classroomId);
   const plans: LessonPlan[] = [];
 
   const lessonsPerWeek = Math.ceil(lessonIds.length / weekCount);
@@ -483,6 +517,7 @@ export const bulkAutoPlan = async (
       termId,
       sectionId,
       subjectId,
+      classroomId,
       teacherId,
       weekIndex,
       items: weekLessonIds.map((lessonId, idx) => ({
@@ -505,3 +540,170 @@ export const bulkAutoPlan = async (
 
   plansByKey[key] = plans;
 };
+
+const mockLessonPlansAdapter: LessonPlansAdapter = {
+  fetchLessonPlans: fetchLessonPlansImpl,
+  upsertLessonPlanItem: upsertLessonPlanItemImpl,
+  deleteLessonPlanItem: deleteLessonPlanItemImpl,
+  reorderLessonPlanItems: reorderLessonPlanItemsImpl,
+  moveLessonPlanItem: moveLessonPlanItemImpl,
+  updateLessonPlanItemStatus: updateLessonPlanItemStatusImpl,
+  updateLessonPlanItemNotes: updateLessonPlanItemNotesImpl,
+  getLessonPlanSummary: getLessonPlanSummaryImpl,
+  bulkAutoPlan: bulkAutoPlanImpl,
+};
+
+let lessonPlansAdapter: LessonPlansAdapter = mockLessonPlansAdapter;
+
+if (process.env.NEXT_PUBLIC_USE_LESSON_PLANS_API === "true") {
+  lessonPlansAdapter = lessonPlansApiAdapter;
+}
+
+export const getLessonPlansAdapter = (): LessonPlansAdapter => lessonPlansAdapter;
+
+export const setLessonPlansAdapter = (adapter: LessonPlansAdapter) => {
+  lessonPlansAdapter = adapter;
+};
+
+export const resetLessonPlansAdapter = () => {
+  lessonPlansAdapter =
+    process.env.NEXT_PUBLIC_USE_LESSON_PLANS_API === "true"
+      ? lessonPlansApiAdapter
+      : mockLessonPlansAdapter;
+};
+
+export const activateLessonPlansAdapter = (adapter: LessonPlansAdapter) => {
+  setLessonPlansAdapter(adapter);
+  return adapter;
+};
+
+export const fetchLessonPlans = (
+  termId: string,
+  sectionId: string,
+  subjectId: string,
+  classroomId?: string
+): Promise<LessonPlan[]> =>
+  lessonPlansAdapter.fetchLessonPlans(termId, sectionId, subjectId, classroomId);
+
+export const upsertLessonPlanItem = (
+  payload: LessonPlanItemUpsertPayload
+): Promise<LessonPlanItem> => lessonPlansAdapter.upsertLessonPlanItem(payload);
+
+export const deleteLessonPlanItem = (
+  termId: string,
+  sectionId: string,
+  subjectId: string,
+  itemId: string,
+  classroomId?: string
+): Promise<void> =>
+  lessonPlansAdapter.deleteLessonPlanItem(
+    termId,
+    sectionId,
+    subjectId,
+    itemId,
+    classroomId
+  );
+
+export const reorderLessonPlanItems = (
+  termId: string,
+  sectionId: string,
+  subjectId: string,
+  weekIndex: number,
+  orderedItemIds: string[],
+  classroomId?: string
+): Promise<void> =>
+  lessonPlansAdapter.reorderLessonPlanItems(
+    termId,
+    sectionId,
+    subjectId,
+    weekIndex,
+    orderedItemIds,
+    classroomId
+  );
+
+export const moveLessonPlanItem = (
+  termId: string,
+  sectionId: string,
+  subjectId: string,
+  itemId: string,
+  toWeekIndex: number,
+  toOrder?: number,
+  classroomId?: string
+): Promise<void> =>
+  lessonPlansAdapter.moveLessonPlanItem(
+    termId,
+    sectionId,
+    subjectId,
+    itemId,
+    toWeekIndex,
+    toOrder,
+    classroomId
+  );
+
+export const updateLessonPlanItemStatus = (
+  termId: string,
+  sectionId: string,
+  subjectId: string,
+  itemId: string,
+  status: "PLANNED" | "IN_PROGRESS" | "DONE" | "SKIPPED",
+  classroomId?: string
+): Promise<void> =>
+  lessonPlansAdapter.updateLessonPlanItemStatus(
+    termId,
+    sectionId,
+    subjectId,
+    itemId,
+    status,
+    classroomId
+  );
+
+export const updateLessonPlanItemNotes = (
+  termId: string,
+  sectionId: string,
+  subjectId: string,
+  itemId: string,
+  notesAr?: string,
+  notesEn?: string,
+  classroomId?: string
+): Promise<void> =>
+  lessonPlansAdapter.updateLessonPlanItemNotes(
+    termId,
+    sectionId,
+    subjectId,
+    itemId,
+    notesAr,
+    notesEn,
+    classroomId
+  );
+
+export const getLessonPlanSummary = (
+  termId: string,
+  sectionId: string,
+  subjectId: string,
+  classroomId?: string
+): Promise<LessonPlanSummary> =>
+  lessonPlansAdapter.getLessonPlanSummary(
+    termId,
+    sectionId,
+    subjectId,
+    classroomId
+  );
+
+export const bulkAutoPlan = (
+  termId: string,
+  sectionId: string,
+  subjectId: string,
+  classroomId: string | undefined,
+  teacherId: string | undefined,
+  lessonIds: string[],
+  weekCount: number
+): Promise<void> =>
+  lessonPlansAdapter.bulkAutoPlan(
+    termId,
+    sectionId,
+    subjectId,
+    classroomId,
+    teacherId,
+    lessonIds,
+    weekCount
+  );

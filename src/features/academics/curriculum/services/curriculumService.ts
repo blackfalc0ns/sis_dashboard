@@ -1,6 +1,9 @@
 // Mock service for Curriculum (TERM + GRADE + SUBJECT SCOPED)
 // Replace with real API calls when backend is ready
 
+import type { CurriculumAdapter } from "@/features/academics/curriculum/services/curriculumAdapter";
+import { curriculumApiAdapter } from "@/features/academics/curriculum/services/curriculumApiAdapter";
+
 export interface Curriculum {
   id: string;
   termId: string;
@@ -201,7 +204,7 @@ const getCurriculumKey = (termId: string, gradeId: string, subjectId: string) =>
   `${termId}-${gradeId}-${subjectId}`;
 
 // Curriculum CRUD
-export const fetchCurriculum = async (
+const fetchCurriculumImpl = async (
   termId: string,
   gradeId: string,
   subjectId: string
@@ -211,7 +214,7 @@ export const fetchCurriculum = async (
   return curriculumByKey[key] || null;
 };
 
-export const createCurriculum = async (
+const createCurriculumImpl = async (
   termId: string,
   gradeId: string,
   subjectId: string,
@@ -232,7 +235,7 @@ export const createCurriculum = async (
   return newCurriculum;
 };
 
-export const updateCurriculum = async (
+const updateCurriculumImpl = async (
   curriculumId: string,
   payload: Partial<Omit<Curriculum, "id" | "termId" | "gradeId" | "subjectId">>
 ): Promise<Curriculum> => {
@@ -246,12 +249,12 @@ export const updateCurriculum = async (
 };
 
 // Units CRUD
-export const fetchUnits = async (curriculumId: string): Promise<Unit[]> => {
+const fetchUnitsImpl = async (curriculumId: string): Promise<Unit[]> => {
   await delay(200);
   return (unitsByCurriculum[curriculumId] || []).sort((a, b) => a.order - b.order);
 };
 
-export const createUnit = async (
+const createUnitImpl = async (
   curriculumId: string,
   payload: Omit<Unit, "id" | "curriculumId" | "order">
 ): Promise<Unit> => {
@@ -272,7 +275,7 @@ export const createUnit = async (
   return newUnit;
 };
 
-export const updateUnit = async (
+const updateUnitImpl = async (
   unitId: string,
   payload: Partial<Omit<Unit, "id" | "curriculumId">>
 ): Promise<Unit> => {
@@ -295,7 +298,7 @@ export const updateUnit = async (
   throw new Error("Unit not found");
 };
 
-export const deleteUnit = async (unitId: string): Promise<void> => {
+const deleteUnitImpl = async (unitId: string): Promise<void> => {
   await delay(200);
   
   for (const currId in unitsByCurriculum) {
@@ -305,7 +308,7 @@ export const deleteUnit = async (unitId: string): Promise<void> => {
   delete lessonsByUnit[unitId];
 };
 
-export const reorderUnits = async (curriculumId: string, orderedUnitIds: string[]): Promise<void> => {
+const reorderUnitsImpl = async (curriculumId: string, orderedUnitIds: string[]): Promise<void> => {
   await delay(200);
   const units = unitsByCurriculum[curriculumId] || [];
   
@@ -318,12 +321,12 @@ export const reorderUnits = async (curriculumId: string, orderedUnitIds: string[
 };
 
 // Lessons CRUD
-export const fetchLessons = async (unitId: string): Promise<Lesson[]> => {
+const fetchLessonsImpl = async (unitId: string): Promise<Lesson[]> => {
   await delay(200);
   return (lessonsByUnit[unitId] || []).sort((a, b) => a.order - b.order);
 };
 
-export const fetchAllLessons = async (curriculumId: string): Promise<Lesson[]> => {
+const fetchAllLessonsImpl = async (curriculumId: string): Promise<Lesson[]> => {
   await delay(200);
   const units = unitsByCurriculum[curriculumId] || [];
   const allLessons: Lesson[] = [];
@@ -336,7 +339,7 @@ export const fetchAllLessons = async (curriculumId: string): Promise<Lesson[]> =
   return allLessons;
 };
 
-export const createLesson = async (
+const createLessonImpl = async (
   unitId: string,
   payload: Omit<Lesson, "id" | "unitId" | "order" | "status" | "doneAt">
 ): Promise<Lesson> => {
@@ -357,7 +360,7 @@ export const createLesson = async (
   return newLesson;
 };
 
-export const updateLesson = async (
+const updateLessonImpl = async (
   lessonId: string,
   payload: Partial<Omit<Lesson, "id" | "unitId">>
 ): Promise<Lesson> => {
@@ -380,7 +383,7 @@ export const updateLesson = async (
   throw new Error("Lesson not found");
 };
 
-export const deleteLesson = async (lessonId: string): Promise<void> => {
+const deleteLessonImpl = async (lessonId: string): Promise<void> => {
   await delay(200);
   
   for (const unitId in lessonsByUnit) {
@@ -388,7 +391,7 @@ export const deleteLesson = async (lessonId: string): Promise<void> => {
   }
 };
 
-export const reorderLessons = async (unitId: string, orderedLessonIds: string[]): Promise<void> => {
+const reorderLessonsImpl = async (unitId: string, orderedLessonIds: string[]): Promise<void> => {
   await delay(200);
   const lessons = lessonsByUnit[unitId] || [];
   
@@ -400,22 +403,22 @@ export const reorderLessons = async (unitId: string, orderedLessonIds: string[])
   });
 };
 
-export const updateLessonSchedule = async (
+const updateLessonScheduleImpl = async (
   lessonId: string,
   plannedWeek: number
 ): Promise<Lesson> => {
-  return updateLesson(lessonId, { plannedWeek });
+  return updateLessonImpl(lessonId, { plannedWeek });
 };
 
-export const markLessonDone = async (lessonId: string): Promise<Lesson> => {
-  return updateLesson(lessonId, {
+const markLessonDoneImpl = async (lessonId: string): Promise<Lesson> => {
+  return updateLessonImpl(lessonId, {
     status: "done",
     doneAt: new Date().toISOString(),
   });
 };
 
-export const undoLessonDone = async (lessonId: string): Promise<Lesson> => {
-  return updateLesson(lessonId, {
+const undoLessonDoneImpl = async (lessonId: string): Promise<Lesson> => {
+  return updateLessonImpl(lessonId, {
     status: "planned",
     doneAt: undefined,
   });
@@ -435,7 +438,7 @@ export interface CarryOverCurriculumOptions {
   };
 }
 
-export const carryOverCurriculum = async (params: CarryOverCurriculumOptions): Promise<void> => {
+const carryOverCurriculumImpl = async (params: CarryOverCurriculumOptions): Promise<void> => {
   await delay(500);
   const { fromTermId, toTermId, gradeId, subjectId, options } = params;
   
@@ -523,7 +526,7 @@ let attachmentIdCounter = 1;
 /**
  * Fetch all attachments for a lesson
  */
-export const fetchLessonAttachments = async (
+const fetchLessonAttachmentsImpl = async (
   lessonId: string
 ): Promise<LessonAttachment[]> => {
   await delay(300);
@@ -534,7 +537,7 @@ export const fetchLessonAttachments = async (
  * Upload a file attachment to a lesson
  * In production: POST /lessons/{lessonId}/attachments with multipart/form-data
  */
-export const uploadLessonAttachmentFile = async (
+const uploadLessonAttachmentFileImpl = async (
   lessonId: string,
   file: File,
   meta?: { title?: string; category?: string }
@@ -567,7 +570,7 @@ export const uploadLessonAttachmentFile = async (
  * Create a link attachment for a lesson
  * In production: POST /lessons/{lessonId}/attachments with JSON body
  */
-export const createLessonAttachmentLink = async (
+const createLessonAttachmentLinkImpl = async (
   lessonId: string,
   payload: { title: string; url: string; category?: string }
 ): Promise<LessonAttachment> => {
@@ -595,7 +598,7 @@ export const createLessonAttachmentLink = async (
  * Delete an attachment
  * In production: DELETE /attachments/{attachmentId}
  */
-export const deleteAttachment = async (attachmentId: string): Promise<void> => {
+const deleteAttachmentImpl = async (attachmentId: string): Promise<void> => {
   await delay(300);
 
   // Find and remove from mock data
@@ -612,17 +615,17 @@ export const deleteAttachment = async (attachmentId: string): Promise<void> => {
 // LESSON VIDEO API
 // ============================================
 
-export async function fetchLessonVideo(lessonId: string): Promise<LessonVideo | null> {
+const fetchLessonVideoImpl = async (lessonId: string): Promise<LessonVideo | null> => {
   // Mock implementation - replace with real API
   const stored = localStorage.getItem(`lesson-video-${lessonId}`);
   if (!stored) return null;
   return JSON.parse(stored);
-}
+};
 
-export async function upsertLessonVideoLink(
+const upsertLessonVideoLinkImpl = async (
   lessonId: string,
   payload: { titleAr: string; titleEn: string; url: string }
-): Promise<LessonVideo> {
+): Promise<LessonVideo> => {
   // Mock implementation - replace with real API
   const video: LessonVideo = {
     id: `video-${Date.now()}`,
@@ -633,13 +636,13 @@ export async function upsertLessonVideoLink(
   };
   localStorage.setItem(`lesson-video-${lessonId}`, JSON.stringify(video));
   return video;
-}
+};
 
-export async function uploadLessonVideoFile(
+const uploadLessonVideoFileImpl = async (
   lessonId: string,
   file: File,
   payload: { titleAr: string; titleEn: string }
-): Promise<LessonVideo> {
+): Promise<LessonVideo> => {
   // Mock implementation - replace with real API using multipart/form-data
   const video: LessonVideo = {
     id: `video-${Date.now()}`,
@@ -654,28 +657,36 @@ export async function uploadLessonVideoFile(
   };
   localStorage.setItem(`lesson-video-${lessonId}`, JSON.stringify(video));
   return video;
-}
+};
 
-export async function deleteLessonVideo(lessonId: string): Promise<void> {
+const deleteLessonVideoImpl = async (lessonId: string): Promise<void> => {
   // Mock implementation - replace with real API
   localStorage.removeItem(`lesson-video-${lessonId}`);
-}
+};
 
 // ============================================
 // ASSIGNMENTS API
 // ============================================
 
-export async function fetchLessonAssignments(lessonId: string): Promise<Assignment[]> {
+const fetchLessonAssignmentsImpl = async (lessonId: string): Promise<Assignment[]> => {
   // Mock implementation - replace with real API
   const stored = localStorage.getItem(`lesson-assignments-${lessonId}`);
   if (!stored) return [];
   return JSON.parse(stored);
-}
+};
 
-export async function createAssignment(
+const fetchAssignmentByIdImpl = async (
+  lessonId: string,
+  assignmentId: string
+): Promise<Assignment | null> => {
+  const assignments = await fetchLessonAssignmentsImpl(lessonId);
+  return assignments.find((assignment) => assignment.id === assignmentId) || null;
+};
+
+const createAssignmentImpl = async (
   lessonId: string,
   payload: Omit<Assignment, "id" | "lessonId" | "createdAt">
-): Promise<Assignment> {
+): Promise<Assignment> => {
   // Mock implementation - replace with real API
   const assignment: Assignment = {
     id: `assignment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -684,16 +695,16 @@ export async function createAssignment(
     createdAt: new Date().toISOString(),
   };
   
-  const existing = await fetchLessonAssignments(lessonId);
+  const existing = await fetchLessonAssignmentsImpl(lessonId);
   existing.push(assignment);
   localStorage.setItem(`lesson-assignments-${lessonId}`, JSON.stringify(existing));
   return assignment;
-}
+};
 
-export async function updateAssignment(
+const updateAssignmentImpl = async (
   assignmentId: string,
   payload: Partial<Omit<Assignment, "id" | "lessonId" | "createdAt">>
-): Promise<Assignment> {
+): Promise<Assignment> => {
   // Mock implementation - replace with real API
   // Find assignment across all lessons (in real API, backend handles this)
   const allKeys = Object.keys(localStorage).filter(k => k.startsWith('lesson-assignments-'));
@@ -710,9 +721,9 @@ export async function updateAssignment(
   }
   
   throw new Error('Assignment not found');
-}
+};
 
-export async function deleteAssignment(assignmentId: string): Promise<void> {
+const deleteAssignmentImpl = async (assignmentId: string): Promise<void> => {
   // Mock implementation - replace with real API
   const allKeys = Object.keys(localStorage).filter(k => k.startsWith('lesson-assignments-'));
   
@@ -727,24 +738,26 @@ export async function deleteAssignment(assignmentId: string): Promise<void> {
       return;
     }
   }
-}
+};
 
 // ============================================
 // ASSIGNMENT ATTACHMENTS API
 // ============================================
 
-export async function fetchAssignmentAttachments(assignmentId: string): Promise<AssignmentAttachment[]> {
+const fetchAssignmentAttachmentsImpl = async (
+  assignmentId: string
+): Promise<AssignmentAttachment[]> => {
   // Mock implementation - replace with real API
   const stored = localStorage.getItem(`assignment-attachments-${assignmentId}`);
   if (!stored) return [];
   return JSON.parse(stored);
-}
+};
 
-export async function uploadAssignmentAttachmentFile(
+const uploadAssignmentAttachmentFileImpl = async (
   assignmentId: string,
   file: File,
   meta?: { title?: string }
-): Promise<AssignmentAttachment> {
+): Promise<AssignmentAttachment> => {
   // Mock implementation - replace with real API using multipart/form-data
   const attachment: AssignmentAttachment = {
     id: `attach-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -758,16 +771,16 @@ export async function uploadAssignmentAttachmentFile(
     createdAt: new Date().toISOString(),
   };
   
-  const existing = await fetchAssignmentAttachments(assignmentId);
+  const existing = await fetchAssignmentAttachmentsImpl(assignmentId);
   existing.push(attachment);
   localStorage.setItem(`assignment-attachments-${assignmentId}`, JSON.stringify(existing));
   return attachment;
-}
+};
 
-export async function createAssignmentAttachmentLink(
+const createAssignmentAttachmentLinkImpl = async (
   assignmentId: string,
   payload: { title: string; url: string }
-): Promise<AssignmentAttachment> {
+): Promise<AssignmentAttachment> => {
   // Mock implementation - replace with real API
   const attachment: AssignmentAttachment = {
     id: `attach-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -777,13 +790,13 @@ export async function createAssignmentAttachmentLink(
     createdAt: new Date().toISOString(),
   };
   
-  const existing = await fetchAssignmentAttachments(assignmentId);
+  const existing = await fetchAssignmentAttachmentsImpl(assignmentId);
   existing.push(attachment);
   localStorage.setItem(`assignment-attachments-${assignmentId}`, JSON.stringify(existing));
   return attachment;
-}
+};
 
-export async function deleteAssignmentAttachment(attachmentId: string): Promise<void> {
+const deleteAssignmentAttachmentImpl = async (attachmentId: string): Promise<void> => {
   // Mock implementation - replace with real API
   const allKeys = Object.keys(localStorage).filter(k => k.startsWith('assignment-attachments-'));
   
@@ -796,27 +809,29 @@ export async function deleteAssignmentAttachment(attachmentId: string): Promise<
       return;
     }
   }
-}
+};
 
 
 // ============================================
 // ASSIGNMENT QUESTIONS API
 // ============================================
 
-export async function fetchAssignmentQuestions(assignmentId: string): Promise<AssignmentQuestion[]> {
+const fetchAssignmentQuestionsImpl = async (
+  assignmentId: string
+): Promise<AssignmentQuestion[]> => {
   // Mock implementation - replace with real API
   const stored = localStorage.getItem(`assignment-questions-${assignmentId}`);
   if (!stored) return [];
   const questions: AssignmentQuestion[] = JSON.parse(stored);
   return questions.sort((a, b) => a.order - b.order);
-}
+};
 
-export async function createAssignmentQuestion(
+const createAssignmentQuestionImpl = async (
   assignmentId: string,
   payload: Omit<AssignmentQuestion, "id" | "assignmentId" | "createdAt" | "order">
-): Promise<AssignmentQuestion> {
+): Promise<AssignmentQuestion> => {
   // Mock implementation - replace with real API
-  const existing = await fetchAssignmentQuestions(assignmentId);
+  const existing = await fetchAssignmentQuestionsImpl(assignmentId);
   const maxOrder = existing.reduce((max, q) => Math.max(max, q.order), 0);
   
   const question: AssignmentQuestion = {
@@ -830,12 +845,12 @@ export async function createAssignmentQuestion(
   existing.push(question);
   localStorage.setItem(`assignment-questions-${assignmentId}`, JSON.stringify(existing));
   return question;
-}
+};
 
-export async function updateAssignmentQuestion(
+const updateAssignmentQuestionImpl = async (
   questionId: string,
   payload: Partial<Omit<AssignmentQuestion, "id" | "assignmentId" | "createdAt">>
-): Promise<AssignmentQuestion> {
+): Promise<AssignmentQuestion> => {
   // Mock implementation - replace with real API
   const allKeys = Object.keys(localStorage).filter(k => k.startsWith('assignment-questions-'));
   
@@ -851,9 +866,9 @@ export async function updateAssignmentQuestion(
   }
   
   throw new Error('Question not found');
-}
+};
 
-export async function deleteAssignmentQuestion(questionId: string): Promise<void> {
+const deleteAssignmentQuestionImpl = async (questionId: string): Promise<void> => {
   // Mock implementation - replace with real API
   const allKeys = Object.keys(localStorage).filter(k => k.startsWith('assignment-questions-'));
   
@@ -866,14 +881,14 @@ export async function deleteAssignmentQuestion(questionId: string): Promise<void
       return;
     }
   }
-}
+};
 
-export async function reorderAssignmentQuestions(
+const reorderAssignmentQuestionsImpl = async (
   assignmentId: string,
   orderedQuestionIds: string[]
-): Promise<void> {
+): Promise<void> => {
   // Mock implementation - replace with real API
-  const questions = await fetchAssignmentQuestions(assignmentId);
+  const questions = await fetchAssignmentQuestionsImpl(assignmentId);
   
   orderedQuestionIds.forEach((questionId, index) => {
     const question = questions.find(q => q.id === questionId);
@@ -883,20 +898,20 @@ export async function reorderAssignmentQuestions(
   });
   
   localStorage.setItem(`assignment-questions-${assignmentId}`, JSON.stringify(questions));
-}
+};
 
 /**
  * Bulk update question points (for auto-distribute feature)
  * In production: PATCH /assignments/{assignmentId}/questions/points
  */
-export async function bulkUpdateQuestionPoints(
+const bulkUpdateQuestionPointsImpl = async (
   assignmentId: string,
   updates: Array<{ questionId: string; points: number }>
-): Promise<void> {
+): Promise<void> => {
   // Mock implementation - replace with real API
   await delay(300);
   
-  const questions = await fetchAssignmentQuestions(assignmentId);
+  const questions = await fetchAssignmentQuestionsImpl(assignmentId);
   
   updates.forEach(update => {
     const question = questions.find(q => q.id === update.questionId);
@@ -906,4 +921,258 @@ export async function bulkUpdateQuestionPoints(
   });
   
   localStorage.setItem(`assignment-questions-${assignmentId}`, JSON.stringify(questions));
+};
+
+const mockCurriculumAdapter: CurriculumAdapter = {
+  fetchCurriculum: fetchCurriculumImpl,
+  createCurriculum: createCurriculumImpl,
+  updateCurriculum: updateCurriculumImpl,
+  fetchUnits: fetchUnitsImpl,
+  createUnit: createUnitImpl,
+  updateUnit: updateUnitImpl,
+  deleteUnit: deleteUnitImpl,
+  reorderUnits: reorderUnitsImpl,
+  fetchLessons: fetchLessonsImpl,
+  fetchAllLessons: fetchAllLessonsImpl,
+  createLesson: createLessonImpl,
+  updateLesson: updateLessonImpl,
+  deleteLesson: deleteLessonImpl,
+  reorderLessons: reorderLessonsImpl,
+  updateLessonSchedule: updateLessonScheduleImpl,
+  markLessonDone: markLessonDoneImpl,
+  undoLessonDone: undoLessonDoneImpl,
+  carryOverCurriculum: carryOverCurriculumImpl,
+  fetchLessonAttachments: fetchLessonAttachmentsImpl,
+  uploadLessonAttachmentFile: uploadLessonAttachmentFileImpl,
+  createLessonAttachmentLink: createLessonAttachmentLinkImpl,
+  deleteAttachment: deleteAttachmentImpl,
+  fetchLessonVideo: fetchLessonVideoImpl,
+  upsertLessonVideoLink: upsertLessonVideoLinkImpl,
+  uploadLessonVideoFile: uploadLessonVideoFileImpl,
+  deleteLessonVideo: deleteLessonVideoImpl,
+  fetchLessonAssignments: fetchLessonAssignmentsImpl,
+  fetchAssignmentById: fetchAssignmentByIdImpl,
+  createAssignment: createAssignmentImpl,
+  updateAssignment: updateAssignmentImpl,
+  deleteAssignment: deleteAssignmentImpl,
+  fetchAssignmentAttachments: fetchAssignmentAttachmentsImpl,
+  uploadAssignmentAttachmentFile: uploadAssignmentAttachmentFileImpl,
+  createAssignmentAttachmentLink: createAssignmentAttachmentLinkImpl,
+  deleteAssignmentAttachment: deleteAssignmentAttachmentImpl,
+  fetchAssignmentQuestions: fetchAssignmentQuestionsImpl,
+  createAssignmentQuestion: createAssignmentQuestionImpl,
+  updateAssignmentQuestion: updateAssignmentQuestionImpl,
+  deleteAssignmentQuestion: deleteAssignmentQuestionImpl,
+  reorderAssignmentQuestions: reorderAssignmentQuestionsImpl,
+  bulkUpdateQuestionPoints: bulkUpdateQuestionPointsImpl,
+};
+
+let curriculumAdapter: CurriculumAdapter = mockCurriculumAdapter;
+
+if (process.env.NEXT_PUBLIC_USE_CURRICULUM_API === "true") {
+  curriculumAdapter = curriculumApiAdapter;
 }
+
+export const getCurriculumAdapter = (): CurriculumAdapter => curriculumAdapter;
+
+export const setCurriculumAdapter = (adapter: CurriculumAdapter) => {
+  curriculumAdapter = adapter;
+};
+
+export const resetCurriculumAdapter = () => {
+  curriculumAdapter =
+    process.env.NEXT_PUBLIC_USE_CURRICULUM_API === "true"
+      ? curriculumApiAdapter
+      : mockCurriculumAdapter;
+};
+
+export const activateCurriculumAdapter = (adapter: CurriculumAdapter) => {
+  setCurriculumAdapter(adapter);
+  return adapter;
+};
+
+export const fetchCurriculum = (
+  termId: string,
+  gradeId: string,
+  subjectId: string
+): Promise<Curriculum | null> =>
+  curriculumAdapter.fetchCurriculum(termId, gradeId, subjectId);
+
+export const createCurriculum = (
+  termId: string,
+  gradeId: string,
+  subjectId: string,
+  name?: string
+): Promise<Curriculum> =>
+  curriculumAdapter.createCurriculum(termId, gradeId, subjectId, name);
+
+export const updateCurriculum = (
+  curriculumId: string,
+  payload: Partial<Omit<Curriculum, "id" | "termId" | "gradeId" | "subjectId">>
+): Promise<Curriculum> =>
+  curriculumAdapter.updateCurriculum(curriculumId, payload);
+
+export const fetchUnits = (curriculumId: string): Promise<Unit[]> =>
+  curriculumAdapter.fetchUnits(curriculumId);
+
+export const createUnit = (
+  curriculumId: string,
+  payload: Omit<Unit, "id" | "curriculumId" | "order">
+): Promise<Unit> => curriculumAdapter.createUnit(curriculumId, payload);
+
+export const updateUnit = (
+  unitId: string,
+  payload: Partial<Omit<Unit, "id" | "curriculumId">>
+): Promise<Unit> => curriculumAdapter.updateUnit(unitId, payload);
+
+export const deleteUnit = (unitId: string): Promise<void> =>
+  curriculumAdapter.deleteUnit(unitId);
+
+export const reorderUnits = (
+  curriculumId: string,
+  orderedUnitIds: string[]
+): Promise<void> => curriculumAdapter.reorderUnits(curriculumId, orderedUnitIds);
+
+export const fetchLessons = (unitId: string): Promise<Lesson[]> =>
+  curriculumAdapter.fetchLessons(unitId);
+
+export const fetchAllLessons = (curriculumId: string): Promise<Lesson[]> =>
+  curriculumAdapter.fetchAllLessons(curriculumId);
+
+export const createLesson = (
+  unitId: string,
+  payload: Omit<Lesson, "id" | "unitId" | "order" | "status" | "doneAt">
+): Promise<Lesson> => curriculumAdapter.createLesson(unitId, payload);
+
+export const updateLesson = (
+  lessonId: string,
+  payload: Partial<Omit<Lesson, "id" | "unitId">>
+): Promise<Lesson> => curriculumAdapter.updateLesson(lessonId, payload);
+
+export const deleteLesson = (lessonId: string): Promise<void> =>
+  curriculumAdapter.deleteLesson(lessonId);
+
+export const reorderLessons = (
+  unitId: string,
+  orderedLessonIds: string[]
+): Promise<void> => curriculumAdapter.reorderLessons(unitId, orderedLessonIds);
+
+export const updateLessonSchedule = (
+  lessonId: string,
+  plannedWeek: number
+): Promise<Lesson> => curriculumAdapter.updateLessonSchedule(lessonId, plannedWeek);
+
+export const markLessonDone = (lessonId: string): Promise<Lesson> =>
+  curriculumAdapter.markLessonDone(lessonId);
+
+export const undoLessonDone = (lessonId: string): Promise<Lesson> =>
+  curriculumAdapter.undoLessonDone(lessonId);
+
+export const carryOverCurriculum = (
+  params: CarryOverCurriculumOptions
+): Promise<void> => curriculumAdapter.carryOverCurriculum(params);
+
+export const fetchLessonAttachments = (
+  lessonId: string
+): Promise<LessonAttachment[]> => curriculumAdapter.fetchLessonAttachments(lessonId);
+
+export const uploadLessonAttachmentFile = (
+  lessonId: string,
+  file: File,
+  meta?: { title?: string; category?: string }
+): Promise<LessonAttachment> =>
+  curriculumAdapter.uploadLessonAttachmentFile(lessonId, file, meta);
+
+export const createLessonAttachmentLink = (
+  lessonId: string,
+  payload: { title: string; url: string; category?: string }
+): Promise<LessonAttachment> =>
+  curriculumAdapter.createLessonAttachmentLink(lessonId, payload);
+
+export const deleteAttachment = (attachmentId: string): Promise<void> =>
+  curriculumAdapter.deleteAttachment(attachmentId);
+
+export const fetchLessonVideo = (lessonId: string): Promise<LessonVideo | null> =>
+  curriculumAdapter.fetchLessonVideo(lessonId);
+
+export const upsertLessonVideoLink = (
+  lessonId: string,
+  payload: { titleAr: string; titleEn: string; url: string }
+): Promise<LessonVideo> => curriculumAdapter.upsertLessonVideoLink(lessonId, payload);
+
+export const uploadLessonVideoFile = (
+  lessonId: string,
+  file: File,
+  payload: { titleAr: string; titleEn: string }
+): Promise<LessonVideo> => curriculumAdapter.uploadLessonVideoFile(lessonId, file, payload);
+
+export const deleteLessonVideo = (lessonId: string): Promise<void> =>
+  curriculumAdapter.deleteLessonVideo(lessonId);
+
+export const fetchLessonAssignments = (lessonId: string): Promise<Assignment[]> =>
+  curriculumAdapter.fetchLessonAssignments(lessonId);
+
+export const fetchAssignmentById = (
+  lessonId: string,
+  assignmentId: string
+): Promise<Assignment | null> => curriculumAdapter.fetchAssignmentById(lessonId, assignmentId);
+
+export const createAssignment = (
+  lessonId: string,
+  payload: Omit<Assignment, "id" | "lessonId" | "createdAt">
+): Promise<Assignment> => curriculumAdapter.createAssignment(lessonId, payload);
+
+export const updateAssignment = (
+  assignmentId: string,
+  payload: Partial<Omit<Assignment, "id" | "lessonId" | "createdAt">>
+): Promise<Assignment> => curriculumAdapter.updateAssignment(assignmentId, payload);
+
+export const deleteAssignment = (assignmentId: string): Promise<void> =>
+  curriculumAdapter.deleteAssignment(assignmentId);
+
+export const fetchAssignmentAttachments = (
+  assignmentId: string
+): Promise<AssignmentAttachment[]> => curriculumAdapter.fetchAssignmentAttachments(assignmentId);
+
+export const uploadAssignmentAttachmentFile = (
+  assignmentId: string,
+  file: File,
+  meta?: { title?: string }
+): Promise<AssignmentAttachment> =>
+  curriculumAdapter.uploadAssignmentAttachmentFile(assignmentId, file, meta);
+
+export const createAssignmentAttachmentLink = (
+  assignmentId: string,
+  payload: { title: string; url: string }
+): Promise<AssignmentAttachment> =>
+  curriculumAdapter.createAssignmentAttachmentLink(assignmentId, payload);
+
+export const deleteAssignmentAttachment = (attachmentId: string): Promise<void> =>
+  curriculumAdapter.deleteAssignmentAttachment(attachmentId);
+
+export const fetchAssignmentQuestions = (
+  assignmentId: string
+): Promise<AssignmentQuestion[]> => curriculumAdapter.fetchAssignmentQuestions(assignmentId);
+
+export const createAssignmentQuestion = (
+  assignmentId: string,
+  payload: Omit<AssignmentQuestion, "id" | "assignmentId" | "createdAt" | "order">
+): Promise<AssignmentQuestion> => curriculumAdapter.createAssignmentQuestion(assignmentId, payload);
+
+export const updateAssignmentQuestion = (
+  questionId: string,
+  payload: Partial<Omit<AssignmentQuestion, "id" | "assignmentId" | "createdAt">>
+): Promise<AssignmentQuestion> => curriculumAdapter.updateAssignmentQuestion(questionId, payload);
+
+export const deleteAssignmentQuestion = (questionId: string): Promise<void> =>
+  curriculumAdapter.deleteAssignmentQuestion(questionId);
+
+export const reorderAssignmentQuestions = (
+  assignmentId: string,
+  orderedQuestionIds: string[]
+): Promise<void> => curriculumAdapter.reorderAssignmentQuestions(assignmentId, orderedQuestionIds);
+
+export const bulkUpdateQuestionPoints = (
+  assignmentId: string,
+  updates: Array<{ questionId: string; points: number }>
+): Promise<void> => curriculumAdapter.bulkUpdateQuestionPoints(assignmentId, updates);

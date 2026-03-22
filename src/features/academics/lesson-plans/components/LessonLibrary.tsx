@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
@@ -12,6 +12,10 @@ interface LessonLibraryProps {
   lessons: Lesson[];
   units: Unit[];
   plans: LessonPlan[];
+  searchQuery: string;
+  selectedUnitId: string;
+  onSearchQueryChange: (value: string) => void;
+  onSelectedUnitIdChange: (value: string) => void;
   onDragStart: (lesson: Lesson) => void;
   onDragEnd: () => void;
   isReadOnly: boolean;
@@ -21,6 +25,10 @@ export default function LessonLibrary({
   lessons,
   units,
   plans,
+  searchQuery,
+  selectedUnitId,
+  onSearchQueryChange,
+  onSelectedUnitIdChange,
   onDragStart,
   onDragEnd,
   isReadOnly,
@@ -28,9 +36,6 @@ export default function LessonLibrary({
   const t = useTranslations("academics.lessonPlans.library");
   const locale = useLocale();
   const isRTL = locale === "ar";
-
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedUnitId, setSelectedUnitId] = useState<string>("");
 
   // Get planned lesson IDs - recalculate whenever plans change
   const plannedLessonIds = useMemo(() => {
@@ -74,7 +79,7 @@ export default function LessonLibrary({
           <Input
             placeholder={t("searchPlaceholder")}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => onSearchQueryChange(e.target.value)}
             leftIcon={<Search className="w-4 h-4 text-gray-400" />}
             inputSize="sm"
           />
@@ -84,7 +89,7 @@ export default function LessonLibrary({
         <Select
           label={t("filterByUnit")}
           value={selectedUnitId}
-          onChange={setSelectedUnitId}
+          onChange={onSelectedUnitIdChange}
           options={[
             { value: "", label: t("allUnits") },
             ...units.map((unit) => ({
@@ -138,7 +143,7 @@ export default function LessonLibrary({
                     )}
                     {isPlanned && (
                       <span className="inline-block mt-1 px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded">
-                        Planned
+                        {t("planned")}
                       </span>
                     )}
                   </div>

@@ -1,112 +1,117 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, Tab } from "@mui/material";
 import { useDirtyKey } from "@/hooks/useDirtyKey";
 import ContextBar from "../../components/shared/ContextBar";
-import {
-  fetchAcademicYears,
-  fetchTermsByYear,
-  Term,
-} from "@/features/academics/academic-structure-tree/services/structureService";
 import TimetableView from "../components/TimetableView";
 import RoomsView from "../../rooms/components/RoomsView";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
+import { DEFAULT_SCHOOL_ID } from "@/features/academics/constants/school";
 
 export default function TimetablePageContent() {
   const t = useTranslations("academics.timetable");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { markDirty, clearDirty, isDirty } = useDirtyKey("timetable");
+  const {
+    academicYearId,
+    termId,
+    termStatus,
+    isInitializing,
+    changeAcademicYear,
+    changeTerm,
+  } = useAcademicYearTermContext();
 
-  // URL params
-  const [academicYearId, setAcademicYearId] = useState("");
-  const [termId, setTermId] = useState("");
-  const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
-
-  // Context data
-  const [terms, setTerms] = useState<Term[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // UI State
-  const [activeTab, setActiveTab] = useState<"timetable" | "rooms">("timetable");
+  const queryState = useMemo(
+    () => ({
+      activeTab:
+        searchParams.get("tab") === "rooms" ? "rooms" : "timetable",
+      stageId: searchParams.get("stage") || "",
+      gradeId: searchParams.get("grade") || "",
+      sectionId: searchParams.get("section") || "",
+      classroomId: searchParams.get("classroom") || "",
+    }),
+    [searchParams]
+  );
 
   const isReadOnly = termStatus === "closed";
+  const schoolId = DEFAULT_SCHOOL_ID;
 
-  // Initialize from URL
-  useEffect(() => {
-    const initializeContext = async () => {
-      try {
-        const years = await fetchAcademicYears();
+  const syncQueryParams = useCallback(
+    (
+      nextState: Partial<{
+        activeTab: "timetable" | "rooms";
+        stageId: string;
+        gradeId: string;
+        sectionId: string;
+        classroomId: string;
+      }>,
+      historyMode: "push" | "replace" = "push"
+    ) => {
+      const params = new URLSearchParams(searchParams.toString());
+      const mergedState = {
+        activeTab: nextState.activeTab ?? queryState.activeTab,
+        stageId: nextState.stageId ?? queryState.stageId,
+        gradeId: nextState.gradeId ?? queryState.gradeId,
+        sectionId: nextState.sectionId ?? queryState.sectionId,
+        classroomId: nextState.classroomId ?? queryState.classroomId,
+      };
 
-        const urlYear = searchParams.get("year");
-        const urlTerm = searchParams.get("term");
-
-        const selectedYear = years.find((y) => y.id === urlYear) || years[0];
-        if (!selectedYear) return;
-
-        const yearTerms = await fetchTermsByYear(selectedYear.id);
-        setTerms(yearTerms);
-
-        let selectedTerm = yearTerms.find((t) => t.id === urlTerm);
-        if (!selectedTerm) {
-          selectedTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
-        }
-
-        if (selectedYear && selectedTerm) {
-          setAcademicYearId(selectedYear.id);
-          setTermId(selectedTerm.id);
-          setTermStatus(selectedTerm.status);
-
-          const params = new URLSearchParams();
-          params.set("year", selectedYear.id);
-          params.set("term", selectedTerm.id);
-          router.replace(`?${params.toString()}`, { scroll: false });
-        }
-      } catch (error) {
-        console.error("Failed to initialize context:", error);
-      } finally {
-        setIsLoading(false);
+      if (mergedState.activeTab === "rooms") {
+        params.set("tab", "rooms");
+      } else {
+        params.delete("tab");
       }
-    };
 
-    initializeContext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      const entries: Array<[string, string]> = [
+        ["stage", mergedState.stageId],
+        ["grade", mergedState.gradeId],
+        ["section", mergedState.sectionId],
+        ["classroom", mergedState.classroomId],
+      ];
+
+      entries.forEach(([key, value]) => {
+        if (value) {
+          params.set(key, value);
+        } else {
+          params.delete(key);
+        }
+      });
+
+      const nextQuery = params.toString();
+      const currentQuery = searchParams.toString();
+      if (nextQuery === currentQuery) {
+        return;
+      }
+
+      const nextUrl = nextQuery ? `?${nextQuery}` : "?";
+      if (historyMode === "push") {
+        router.push(nextUrl, { scroll: false });
+        return;
+      }
+      router.replace(nextUrl, { scroll: false });
+    },
+    [
+      queryState.activeTab,
+      queryState.classroomId,
+      queryState.gradeId,
+      queryState.sectionId,
+      queryState.stageId,
+      router,
+      searchParams,
+    ]
+  );
 
   const handleAcademicYearChange = async (yearId: string) => {
-    setAcademicYearId(yearId);
-    
-    // Load terms for new year
-    const yearTerms = await fetchTermsByYear(yearId);
-    setTerms(yearTerms);
-    
-    // Select first open term or first term
-    const selectedTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
-    if (selectedTerm) {
-      setTermId(selectedTerm.id);
-      setTermStatus(selectedTerm.status);
-      
-      const params = new URLSearchParams();
-      params.set("year", yearId);
-      params.set("term", selectedTerm.id);
-      router.replace(`?${params.toString()}`, { scroll: false });
-    }
+    await changeAcademicYear(yearId);
   };
 
   const handleTermChange = (newTermId: string) => {
-    const term = terms.find((t) => t.id === newTermId);
-    if (term) {
-      setTermId(newTermId);
-      setTermStatus(term.status);
-      
-      const params = new URLSearchParams();
-      params.set("year", academicYearId);
-      params.set("term", newTermId);
-      router.replace(`?${params.toString()}`, { scroll: false });
-    }
+    changeTerm(newTermId);
   };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: "timetable" | "rooms") => {
@@ -115,7 +120,7 @@ export default function TimetablePageContent() {
       if (!confirmed) return;
       clearDirty();
     }
-    setActiveTab(newValue);
+    syncQueryParams({ activeTab: newValue }, "push");
   };
 
   const handleDirtyChange = useCallback((dirty: boolean) => {
@@ -123,7 +128,67 @@ export default function TimetablePageContent() {
     else clearDirty();
   }, [markDirty, clearDirty]);
 
-  if (isLoading) {
+  const handleStageChange = useCallback((stageId: string) => {
+    syncQueryParams(
+      {
+        stageId,
+        gradeId: "",
+        sectionId: "",
+        classroomId: "",
+      },
+      "push"
+    );
+  }, [syncQueryParams]);
+
+  const handleGradeChange = useCallback((gradeId: string) => {
+    syncQueryParams(
+      {
+        stageId: queryState.stageId,
+        gradeId,
+        sectionId: "",
+        classroomId: "",
+      },
+      "push"
+    );
+  }, [queryState.stageId, syncQueryParams]);
+
+  const handleSectionChange = useCallback((sectionId: string) => {
+    syncQueryParams(
+      {
+        stageId: queryState.stageId,
+        gradeId: queryState.gradeId,
+        sectionId,
+        classroomId: "",
+      },
+      "push"
+    );
+  }, [queryState.gradeId, queryState.stageId, syncQueryParams]);
+
+  const handleClassroomChange = useCallback((classroomId: string) => {
+    syncQueryParams(
+      {
+        stageId: queryState.stageId,
+        gradeId: queryState.gradeId,
+        sectionId: queryState.sectionId,
+        classroomId,
+      },
+      "push"
+    );
+  }, [queryState.gradeId, queryState.sectionId, queryState.stageId, syncQueryParams]);
+
+  const handleNormalizeSelection = useCallback(
+    (selection: {
+      stageId: string;
+      gradeId: string;
+      sectionId: string;
+      classroomId: string;
+    }) => {
+      syncQueryParams(selection, "replace");
+    },
+    [syncQueryParams]
+  );
+
+  if (isInitializing) {
     return (
       <div className="flex items-center justify-center h-screen">
        <MainLoader />
@@ -162,7 +227,7 @@ export default function TimetablePageContent() {
       {/* Tabs */}
       <div className="bg-white border-b border-gray-200 px-6">
         <Tabs
-          value={activeTab}
+          value={queryState.activeTab}
           onChange={handleTabChange}
           sx={{
             "& .MuiTab-root": {
@@ -180,18 +245,28 @@ export default function TimetablePageContent() {
 
       {/* Content */}
       <div className="flex-1 overflow-hidden">
-        {activeTab === "timetable" && (
+        {queryState.activeTab === "timetable" && (
           <TimetableView
+            schoolId={schoolId}
             academicYearId={academicYearId}
             termId={termId}
             termStatus={termStatus}
             isReadOnly={isReadOnly}
             onDirtyChange={handleDirtyChange}
+            selectedStageId={queryState.stageId}
+            selectedGradeId={queryState.gradeId}
+            selectedSectionId={queryState.sectionId}
+            selectedClassroomId={queryState.classroomId}
+            onStageChange={handleStageChange}
+            onGradeChange={handleGradeChange}
+            onSectionChange={handleSectionChange}
+            onClassroomChange={handleClassroomChange}
+            onNormalizeSelection={handleNormalizeSelection}
           />
         )}
-        {activeTab === "rooms" && (
+        {queryState.activeTab === "rooms" && (
           <RoomsView
-            schoolId="school-1" // TODO: Get from context
+            schoolId={schoolId}
             academicYearId={academicYearId}
             termId={termId}
             isReadOnly={isReadOnly}

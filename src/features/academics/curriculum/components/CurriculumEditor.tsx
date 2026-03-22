@@ -116,13 +116,13 @@ export default function CurriculumEditor({
         }
       }
     }
-  }, [selectedNode, units, lessons]);
+  }, [selectedNode, units, lessons, onDirtyChange]);
 
   useEffect(() => {
     const dirty = JSON.stringify(formData) !== JSON.stringify(originalData);
     setIsDirty(dirty);
     onDirtyChange(dirty);
-  }, [formData, originalData]);
+  }, [formData, originalData, onDirtyChange]);
 
   const handleSave = async () => {
     if (!selectedNode) return;

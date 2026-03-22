@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -33,26 +33,98 @@ import {
 } from "@/features/admissions/leads/services/mockLeadsApi";
 import { mockLeadConversations } from "@/data/mockLeadMessages";
 import { Lead, LeadStatus, LeadChannel } from "@/features/admissions";
+import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
+import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import {
+  filterAdmissionsRecordsByDateContext,
+  resolveAdmissionsContextScope,
+} from "@/features/admissions/shared/utils/admissionsContextScope";
 
 export default function LeadsList() {
   const router = useRouter();
   const t = useTranslations("admissions.leads");
   const t_grades = useTranslations("admissions.grades");
   const locale = useLocale();
+  const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
   const [leads, setLeads] = useState<Lead[]>(getLeads());
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  // Filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
-  const [channelFilter, setChannelFilter] = useState<LeadChannel | "all">(
-    "all",
-  );
   const [showFilters, setShowFilters] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRangeValue>("all");
-  const [customStartDate, setCustomStartDate] = useState<string>("");
-  const [customEndDate, setCustomEndDate] = useState<string>("");
+  const admissionsScope = useMemo(
+    () => resolveAdmissionsContextScope(yearId, termId),
+    [termId, yearId],
+  );
+  const scopedLeads = useMemo(
+    () =>
+      filterAdmissionsRecordsByDateContext(
+        leads,
+        (lead) => lead.createdAt,
+        admissionsScope,
+      ),
+    [admissionsScope, leads],
+  );
+  const normalizeQueryValues = useCallback(
+    (
+      values: Record<
+        "search" | "status" | "channel" | "dateRange" | "startDate" | "endDate",
+        string
+      >,
+    ) => {
+      const updates: Partial<Record<keyof typeof values, string | null>> = {};
+      const validStatuses = new Set(["all", "New", "Contacted", "Converted", "Closed"]);
+      const validChannels = new Set(["all", "In-app", "Referral", "Walk-in", "Other"]);
+      const validDateRanges = new Set(["all", "7", "14", "30", "60", "90", "custom"]);
+
+      if (!validStatuses.has(values.status)) {
+        updates.status = null;
+      }
+      if (!validChannels.has(values.channel)) {
+        updates.channel = null;
+      }
+      if (!validDateRanges.has(values.dateRange)) {
+        updates.dateRange = null;
+      }
+      if (values.dateRange !== "custom") {
+        if (values.startDate) updates.startDate = null;
+        if (values.endDate) updates.endDate = null;
+      }
+
+      return Object.keys(updates).length > 0 ? updates : null;
+    },
+    [],
+  );
+
+  const { values, setValue, setValues, reset } = useAdmissionsUrlQueryState<{
+    search: string;
+    status: string;
+    channel: string;
+    dateRange: string;
+    startDate: string;
+    endDate: string;
+  }>({
+    defaults: {
+      search: "",
+      status: "all",
+      channel: "all",
+      dateRange: "all",
+      startDate: "",
+      endDate: "",
+    },
+    debouncedKeys: ["search"],
+    modeByKey: {
+      search: "replace",
+    },
+    normalize: normalizeQueryValues,
+  });
+
+  const searchQuery = values.search;
+  const statusFilter = values.status as LeadStatus | "all";
+  const channelFilter = values.channel as LeadChannel | "all";
+  const dateRange = values.dateRange as DateRangeValue;
+  const customStartDate = values.startDate;
+  const customEndDate = values.endDate;
 
   // Filter leads
   const filteredLeads = useMemo(() => {
@@ -62,7 +134,7 @@ export default function LeadsList() {
       customEndDate,
     );
 
-    return leads.filter((lead) => {
+    return scopedLeads.filter((lead) => {
       const matchesSearch =
         searchQuery === "" ||
         lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -81,13 +153,13 @@ export default function LeadsList() {
       );
     });
   }, [
-    leads,
+    channelFilter,
+    customEndDate,
+    customStartDate,
+    dateRange,
+    scopedLeads,
     searchQuery,
     statusFilter,
-    channelFilter,
-    dateRange,
-    customStartDate,
-    customEndDate,
   ]);
 
   // Calculate KPIs
@@ -99,7 +171,7 @@ export default function LeadsList() {
     );
 
     // Filter leads by date range
-    const leadsInRange = leads.filter((lead) =>
+    const leadsInRange = scopedLeads.filter((lead) =>
       isDateInRange(lead.createdAt, filterResult),
     );
 
@@ -117,15 +189,13 @@ export default function LeadsList() {
       newLeads,
       converted,
     };
-  }, [leads, dateRange, customStartDate, customEndDate]);
+  }, [customEndDate, customStartDate, dateRange, scopedLeads]);
 
   const hasActiveFilters =
     searchQuery !== "" || statusFilter !== "all" || channelFilter !== "all";
 
   const clearFilters = () => {
-    setSearchQuery("");
-    setStatusFilter("all");
-    setChannelFilter("all");
+    reset(undefined, "replace");
   };
 
   const handleCreateLead = (data: Omit<Lead, "id" | "createdAt">) => {
@@ -260,12 +330,28 @@ export default function LeadsList() {
       {/* Date Range Filter */}
       <DateRangeFilter
         value={dateRange}
-        onChange={setDateRange}
+        onChange={(nextRange) => {
+          const shouldResetCustom = nextRange !== "custom";
+          setValues(
+            {
+              dateRange: nextRange,
+              startDate: shouldResetCustom ? null : customStartDate || null,
+              endDate: shouldResetCustom ? null : customEndDate || null,
+            },
+            "push",
+          );
+        }}
         customStartDate={customStartDate}
         customEndDate={customEndDate}
         onCustomDateChange={(start, end) => {
-          setCustomStartDate(start);
-          setCustomEndDate(end);
+          setValues(
+            {
+              dateRange: "custom",
+              startDate: start || null,
+              endDate: end || null,
+            },
+            "replace",
+          );
         }}
         showAllTime={true}
       />
@@ -359,6 +445,7 @@ export default function LeadsList() {
           </button>
           <button
             onClick={() => setIsImportModalOpen(true)}
+            disabled={isReadOnly}
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
           >
             <Upload className="w-4 h-4" />
@@ -366,6 +453,7 @@ export default function LeadsList() {
           </button>
           <button
             onClick={() => setIsCreateModalOpen(true)}
+            disabled={isReadOnly}
             className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg font-medium text-sm transition-colors"
           >
             <Plus className="w-4 h-4" />
@@ -373,6 +461,8 @@ export default function LeadsList() {
           </button>
         </div>
       </div>
+
+      {isReadOnly && <AdmissionsReadOnlyBanner />}
 
       {/* Filters */}
       <div className="space-y-3">
@@ -383,7 +473,7 @@ export default function LeadsList() {
               type="text"
               placeholder={t("search_placeholder")}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setValue("search", e.target.value, "replace")}
               className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
                 searchQuery
                   ? "border-primary ring-2 ring-primary/20"
@@ -423,7 +513,7 @@ export default function LeadsList() {
               <select
                 value={statusFilter}
                 onChange={(e) =>
-                  setStatusFilter(e.target.value as LeadStatus | "all")
+                  setValue("status", e.target.value as LeadStatus | "all", "push")
                 }
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -441,7 +531,7 @@ export default function LeadsList() {
               <select
                 value={channelFilter}
                 onChange={(e) =>
-                  setChannelFilter(e.target.value as LeadChannel | "all")
+                  setValue("channel", e.target.value as LeadChannel | "all", "push")
                 }
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -477,6 +567,11 @@ export default function LeadsList() {
           data={filteredLeads}
           onRowClick={handleRowClick}
           searchQuery={searchQuery}
+          urlState={{
+            keyPrefix: "leadsTable",
+            syncPagination: true,
+            syncSorting: true,
+          }}
         />
       )}
 

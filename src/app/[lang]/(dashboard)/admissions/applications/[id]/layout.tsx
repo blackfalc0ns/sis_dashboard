@@ -22,6 +22,8 @@ import EnrollmentForm from "@/features/admissions/enrollment/components/Enrollme
 import { submitApplicationEnrollment } from "@/features/admissions/enrollment/services/enrollmentService";
 import { useSectionTabs } from "@/hooks/useSectionTabs";
 import { buildLocalePath } from "@/lib/routing/localePath";
+import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 
 const tabs = [
   { key: "details", labelKey: "tabs.details", icon: FileText },
@@ -42,6 +44,7 @@ export default function ApplicationProfileLayout({
   const router = useRouter();
   const params = useParams();
   const lang = (params.lang as string) || "en";
+  const { isReadOnly } = useAdmissionsYearTermContext();
 
   const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false);
   const [isScheduleInterviewOpen, setIsScheduleInterviewOpen] = useState(false);
@@ -129,22 +132,27 @@ export default function ApplicationProfileLayout({
         {/* Content */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">{children}</div>
 
+        {isReadOnly && <AdmissionsReadOnlyBanner />}
+
         {/* Sticky Action Bar */}
         <div className="bg-white rounded-xl shadow-sm p-6 sticky bottom-4">
           <div className="flex items-center gap-3 flex-wrap">
             <button
+              disabled={isReadOnly}
               onClick={() => setIsScheduleTestOpen(true)}
               className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
             >
               {t("actions.schedule_test")}
             </button>
             <button
+              disabled={isReadOnly}
               onClick={() => setIsScheduleInterviewOpen(true)}
               className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
             >
               {t("actions.schedule_interview")}
             </button>
             <button
+              disabled={isReadOnly}
               onClick={() => setIsDecisionOpen(true)}
               className="px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors"
             >
@@ -152,6 +160,7 @@ export default function ApplicationProfileLayout({
             </button>
             {application.status === "accepted" && (
               <button
+                disabled={isReadOnly}
                 onClick={() => setIsEnrollmentOpen(true)}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
               >

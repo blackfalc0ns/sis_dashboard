@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter, useParams } from "next/navigation";
 import {
@@ -23,32 +23,141 @@ import {
 import { DataTable } from "@/components/ui/data-table";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { downloadCSV, generateFilename } from "@/utils/simpleExport";
+import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import { StudentGuardian } from "@/features/students-guardians/students/types";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import ChangePasswordModal from "@/features/students-guardians/students/components/modals/ChangePasswordModal";
+import MainLoader from "@/components/ui/loaders/MainLoader";
+import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 
 export default function GuardiansList() {
   const t = useTranslations("students_guardians.guardians_list");
   const router = useRouter();
   const params = useParams();
   const lang = (params.lang as string) || "en";
+  const {
+    yearId,
+    termId,
+    isLoading: isContextLoading,
+    error: contextError,
+  } =
+    useStudentsGuardiansYearTermContext();
 
-  // Load guardians from service
-  const [guardians] = useState<StudentGuardian[]>(
-    studentsService.getAllGuardians(),
+  const [guardians, setGuardians] = useState<StudentGuardian[]>([]);
+  const [scopedGuardianIds, setScopedGuardianIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [isPageLoading, setIsPageLoading] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (isContextLoading) {
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    if (!yearId || !termId) {
+      setGuardians([]);
+      setScopedGuardianIds(new Set());
+      setPageError(null);
+      setIsPageLoading(false);
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    void Promise.resolve().then(async () => {
+      if (isCancelled) {
+        return;
+      }
+
+      setIsPageLoading(true);
+      setPageError(null);
+
+      try {
+        const [guardiansData, studentsInContext] = await Promise.all([
+          studentsService.fetchAllGuardians(),
+          studentsService.fetchStudentsWithEnrollmentForContext(yearId, termId),
+        ]);
+        const guardianStudentGroups = await Promise.all(
+          guardiansData.map(async (guardian) => ({
+            guardianId: guardian.guardianId,
+            students: await studentsService.fetchGuardianStudents(
+              guardian.guardianId,
+            ),
+          })),
+        );
+
+        if (isCancelled) {
+          return;
+        }
+
+        setGuardians(guardiansData);
+        const scopedIds = new Set(studentsInContext.map((student) => student.id));
+        const guardianIdsInScope = new Set(
+          guardianStudentGroups
+            .filter((group) =>
+              group.students.some((student) => scopedIds.has(student.id)),
+            )
+            .map((group) => group.guardianId),
+        );
+        setScopedGuardianIds(guardianIdsInScope);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        setGuardians([]);
+        setScopedGuardianIds(new Set());
+        setPageError(
+          error instanceof Error ? error.message : t("loading_error"),
+        );
+      } finally {
+        if (!isCancelled) {
+          setIsPageLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isContextLoading, termId, t, yearId]);
+
+  const guardiansInContext = useMemo(
+    () => guardians.filter((guardian) => scopedGuardianIds.has(guardian.guardianId)),
+    [guardians, scopedGuardianIds],
   );
 
   // Filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [relationFilter, setRelationFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [passwordChangeGuardian, setPasswordChangeGuardian] =
     useState<StudentGuardian | null>(null);
+  const { values, setValue, replaceValues, reset } = useUrlQueryState<{
+    search: string;
+    relation: string;
+  }>({
+    defaults: {
+      search: "",
+      relation: "all",
+    },
+    debouncedKeys: ["search"],
+    modeByKey: {
+      search: "replace",
+    },
+  });
+
+  const searchQuery = values.search;
+  const relationFilter = values.relation;
 
   // Filter guardians
   const filteredGuardians = useMemo(() => {
-    return guardians.filter((guardian) => {
+    return guardiansInContext.filter((guardian) => {
       const matchesSearch =
         searchQuery === "" ||
         guardian.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -61,32 +170,37 @@ export default function GuardiansList() {
 
       return matchesSearch && matchesRelation;
     });
-  }, [guardians, searchQuery, relationFilter]);
+  }, [guardiansInContext, searchQuery, relationFilter]);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
-    const total = guardians.length;
-    const primary = guardians.filter((g) => g.is_primary).length;
-    const canPickup = guardians.filter((g) => g.can_pickup).length;
-    const receiveNotifications = guardians.filter(
+    const total = guardiansInContext.length;
+    const primary = guardiansInContext.filter((g) => g.is_primary).length;
+    const canPickup = guardiansInContext.filter((g) => g.can_pickup).length;
+    const receiveNotifications = guardiansInContext.filter(
       (g) => g.can_receive_notifications,
     ).length;
 
     return { total, primary, canPickup, receiveNotifications };
-  }, [guardians]);
+  }, [guardiansInContext]);
 
   // Get unique relations
   const uniqueRelations = useMemo(() => {
     const relations = new Set<string>();
-    guardians.forEach((g) => relations.add(g.relation));
+    guardiansInContext.forEach((g) => relations.add(g.relation));
     return Array.from(relations).sort();
-  }, [guardians]);
+  }, [guardiansInContext]);
+
+  useEffect(() => {
+    if (relationFilter !== "all" && !uniqueRelations.includes(relationFilter)) {
+      replaceValues({ relation: null });
+    }
+  }, [relationFilter, replaceValues, uniqueRelations]);
 
   const hasActiveFilters = searchQuery !== "" || relationFilter !== "all";
 
   const clearFilters = () => {
-    setSearchQuery("");
-    setRelationFilter("all");
+    reset(undefined, "replace");
   };
 
   const getRelationBadge = (relation: string) => {
@@ -265,6 +379,22 @@ export default function GuardiansList() {
     },
   ];
 
+  if (isContextLoading || isPageLoading) {
+    return <MainLoader />;
+  }
+
+  if (contextError || pageError || !yearId || !termId) {
+    return (
+      <div className="p-4 sm:p-6">
+        <div className="bg-white rounded-xl p-10 text-center shadow-sm">
+          <p className="text-sm text-red-600">
+            {contextError || pageError || t("loading_error")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
@@ -347,7 +477,7 @@ export default function GuardiansList() {
               type="text"
               placeholder={t("search_placeholder")}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setValue("search", e.target.value, "replace")}
               className="w-full pl-10 pr-4 py-2.5 border border-gray-300 placeholder:text-black/60 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
@@ -385,7 +515,9 @@ export default function GuardiansList() {
                 </label>
                 <select
                   value={relationFilter}
-                  onChange={(e) => setRelationFilter(e.target.value)}
+                  onChange={(e) => {
+                    setValue("relation", e.target.value, "push");
+                  }}
                   className="w-full text-black px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="all">{t("all_relations")}</option>
@@ -445,6 +577,11 @@ export default function GuardiansList() {
           onRowClick={(row) =>
             handleRowClick(row as unknown as StudentGuardian)
           }
+          urlState={{
+            keyPrefix: "guardiansTable",
+            syncPagination: true,
+            syncSorting: true,
+          }}
         />
       )}
 

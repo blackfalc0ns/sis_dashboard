@@ -2,10 +2,11 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { ChartFilterValues } from "../../../shared/ChartFilter";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import { useOptionalStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 interface HeatmapData {
   week: string;
@@ -18,64 +19,46 @@ interface AbsenceHeatmapProps {
 
 export default function AbsenceHeatmap({ data }: AbsenceHeatmapProps) {
   const t = useTranslations("students_guardians.overview");
-
-  // Filter state
-  const [filterValues] = useState<ChartFilterValues>({
-    academicYear: "all",
-    term: "all",
-    dateRange: "all",
-    customStartDate: "",
-    customEndDate: "",
-  });
+  const context = useOptionalStudentsGuardiansYearTermContext();
+  const yearId = context?.yearId ?? null;
+  const termId = context?.termId ?? null;
+  const isContextLoading = context?.isLoading ?? false;
 
   // Get all students
-  const allStudents = useMemo(
-    () => studentsService.getStudentsWithEnrollment(),
-    [],
-  );
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Get unique academic years and terms
-  useMemo(() => {
-    const years = new Set<string>();
-    const termSet = new Set<string>();
+  useEffect(() => {
+    let isCancelled = false;
 
-    allStudents.forEach((student) => {
-      if (student.enrollment?.academicYear) {
-        years.add(student.enrollment.academicYear);
-      }
-      if (student.currentTerm?.term) {
-        termSet.add(student.currentTerm.term);
+    if (isContextLoading) {
+      setIsLoading(true);
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    void Promise.resolve().then(async () => {
+      setIsLoading(true);
+      try {
+        if (yearId && termId) {
+          await studentsService.fetchStudentsWithEnrollmentForContext(
+            yearId,
+            termId,
+          );
+        } else {
+          await studentsService.fetchStudentsWithEnrollment();
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     });
 
-    return {
-      academicYears: Array.from(years).sort(),
-      terms: Array.from(termSet).sort(),
+    return () => {
+      isCancelled = true;
     };
-  }, [allStudents]);
-
-  // Filter students
-  // TODO: Use filteredStudents to calculate real absence data
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const filteredStudents = useMemo(() => {
-    return allStudents.filter((student) => {
-      const academicYear = student.enrollment?.academicYear;
-      const term = student.currentTerm?.term;
-
-      if (
-        filterValues.academicYear !== "all" &&
-        academicYear !== filterValues.academicYear
-      ) {
-        return false;
-      }
-
-      if (filterValues.term !== "all" && term !== filterValues.term) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [allStudents, filterValues]);
+  }, [isContextLoading, termId, yearId]);
 
   // Default data if none provided - 6 days starting from Saturday
   // In a real implementation, this would be calculated from filteredStudents
@@ -113,6 +96,9 @@ export default function AbsenceHeatmap({ data }: AbsenceHeatmapProps) {
       <h3 className="text-base sm:text-lg font-bold text-gray-900">
         {t("charts.absence_heatmap")}
       </h3>
+      {isLoading ? (
+        <PartialLoader />
+      ) : (
       <div className="overflow-x-auto overflow-y-hidden -mx-4 sm:mx-0 px-4 sm:px-0">
         <div className="min-w-[480px] sm:min-w-[500px]">
           {/* Heatmap Header */}
@@ -166,6 +152,7 @@ export default function AbsenceHeatmap({ data }: AbsenceHeatmapProps) {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

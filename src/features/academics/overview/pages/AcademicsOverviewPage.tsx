@@ -1,14 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import ContextBar from "../../components/shared/ContextBar";
 import KPICards from "../components/KPICards";
 import SetupChecklist from "../components/SetupChecklist";
 import OverviewCharts from "../components/OverviewCharts";
 import AlertsPanel from "../components/AlertsPanel";
 import QuickLinks from "../components/QuickLinks";
+import AcademicsOverviewFiltersBar, {
+  type AcademicsOverviewAlertSeverityFilter,
+  type AcademicsOverviewChartFilter,
+  type AcademicsOverviewChecklistStatusFilter,
+  type AcademicsOverviewExportDataset,
+} from "../components/AcademicsOverviewFiltersBar";
 import {
   fetchOverviewMetrics,
   generateChecklist,
@@ -18,20 +24,38 @@ import {
   type Alert,
 } from "../services/overviewService";
 import { fetchTeachers, calculateTeacherLoads } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import { fetchStructureTree, fetchAcademicYears, fetchTermsByYear } from "@/features/academics/academic-structure-tree/services/structureService";
+import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import { fetchSubjectAllocations } from "@/features/academics/subjects/services/subjectsService";
+import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
+import {
+  exportAcademicsData,
+  formatExportDate,
+  generateExportFilename,
+  type ExportColumn,
+  type ExportMetadata,
+} from "@/features/academics/utils/exportAdapter";
 
 export default function AcademicsOverviewPage() {
   const t = useTranslations();
+  const locale = useLocale();
   const params = useParams();
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const lang = params.lang as string;
-
-  // Context state
-  const [academicYearId, setAcademicYearId] = useState("");
-  const [termId, setTermId] = useState("");
-  const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
+  const {
+    academicYearId,
+    termId,
+    termStatus,
+    isInitializing,
+    academicYears,
+    terms,
+    changeAcademicYear,
+    changeTerm,
+  } = useAcademicYearTermContext({
+    yearParamKey: "yearId",
+    termParamKey: "termId",
+    termStatusParamKey: "termStatus",
+  });
 
   const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
@@ -41,53 +65,195 @@ export default function AcademicsOverviewPage() {
   // Chart data
   const [lessonPlansData, setLessonPlansData] = useState<Array<{ week: string; planned: number; done: number }>>([]);
   const [teacherLoadsData, setTeacherLoadsData] = useState<Array<{ name: string; load: number; isOverloaded: boolean }>>([]);
-  const [readinessData, setReadinessData] = useState<Array<{ name: string; value: number; color: string }>>([]);
+  const [readinessData, setReadinessData] = useState<
+    Array<{ key: "ready" | "notReady"; name: string; value: number; color: string }>
+  >([]);
+  const checklistStatusFilter = useMemo<AcademicsOverviewChecklistStatusFilter>(() => {
+    const value = searchParams.get("checklistStatus");
+    if (
+      value === "done" ||
+      value === "warning" ||
+      value === "error"
+    ) {
+      return value;
+    }
+    return "all";
+  }, [searchParams]);
+  const alertSeverityFilter = useMemo<AcademicsOverviewAlertSeverityFilter>(() => {
+    const value = searchParams.get("alertSeverity");
+    if (value === "error" || value === "warning" || value === "info") {
+      return value;
+    }
+    return "all";
+  }, [searchParams]);
+  const chartFilter = useMemo<AcademicsOverviewChartFilter>(() => {
+    const value = searchParams.get("chart");
+    if (
+      value === "lessonPlans" ||
+      value === "teacherLoads" ||
+      value === "readiness"
+    ) {
+      return value;
+    }
+    return "all";
+  }, [searchParams]);
+  const exportDataset = useMemo<AcademicsOverviewExportDataset>(() => {
+    const value = searchParams.get("exportDataset");
+    if (
+      value === "checklist" ||
+      value === "alerts" ||
+      value === "lessonPlans" ||
+      value === "teacherLoads" ||
+      value === "readiness"
+    ) {
+      return value;
+    }
+    return "summary";
+  }, [searchParams]);
 
-  // Initialize from URL or defaults
-  useEffect(() => {
-    const initializeContext = async () => {
-      try {
-        const years = await fetchAcademicYears();
+  const exportLabels = useMemo(
+    () =>
+      locale === "ar"
+        ? {
+            group: "المجموعة",
+            metric: "المؤشر",
+            value: "القيمة",
+            title: "العنوان",
+            status: "الحالة",
+            reason: "السبب",
+            link: "الرابط",
+            severity: "الشدة",
+            description: "الوصف",
+            count: "العدد",
+            week: "الأسبوع",
+            teacher: "المعلم",
+            totalStages: "إجمالي المراحل",
+            totalGrades: "إجمالي الصفوف",
+            totalSections: "إجمالي الشعب",
+            sectionsWithoutCapacity: "شعب بدون سعة",
+            totalSubjects: "إجمالي المواد",
+            subjectCompletion: "نسبة اكتمال توزيع المواد",
+            missingTeacherAllocations: "توزيعات المعلمين المفقودة",
+            overloadedTeachers: "المعلمون المحملون زائد",
+            lessonPlansPlanned: "خطط الدروس المخططة",
+            lessonPlansDone: "خطط الدروس المنجزة",
+            lessonPlansCompletion: "نسبة اكتمال خطط الدروس",
+            overloaded: "محمل زائد",
+            normal: "طبيعي",
+            done: "مكتمل",
+            warning: "تحذير",
+            error: "خطأ",
+            info: "معلومات",
+          }
+        : {
+            group: "Group",
+            metric: "Metric",
+            value: "Value",
+            title: "Title",
+            status: "Status",
+            reason: "Reason",
+            link: "Link",
+            severity: "Severity",
+            description: "Description",
+            count: "Count",
+            week: "Week",
+            teacher: "Teacher",
+            totalStages: "Total stages",
+            totalGrades: "Total grades",
+            totalSections: "Total sections",
+            sectionsWithoutCapacity: "Sections without capacity",
+            totalSubjects: "Total subjects",
+            subjectCompletion: "Subject allocation completion",
+            missingTeacherAllocations: "Missing teacher allocations",
+            overloadedTeachers: "Overloaded teachers",
+            lessonPlansPlanned: "Lesson plans planned",
+            lessonPlansDone: "Lesson plans done",
+            lessonPlansCompletion: "Lesson plans completion",
+            overloaded: "Overloaded",
+            normal: "Normal",
+            done: "Done",
+            warning: "Warning",
+            error: "Error",
+            info: "Info",
+          },
+    [locale]
+  );
 
-        // Read from URL or use defaults
-        const urlYear = searchParams.get("yearId");
-        const urlTerm = searchParams.get("termId");
+  const resetOverviewState = () => {
+    setMetrics(null);
+    setChecklist([]);
+    setAlerts([]);
+    setLessonPlansData([]);
+    setTeacherLoadsData([]);
+    setReadinessData([]);
+  };
 
-        const selectedYear = years.find((y) => y.id === urlYear) || years[0];
-        if (!selectedYear) return;
-
-        const yearTerms = await fetchTermsByYear(selectedYear.id);
-
-        // Auto-select term: prefer Open, else first term
-        let selectedTerm = yearTerms.find((t) => t.id === urlTerm);
-        if (!selectedTerm) {
-          selectedTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
-        }
-
-        if (selectedYear && selectedTerm) {
-          setAcademicYearId(selectedYear.id);
-          setTermId(selectedTerm.id);
-          setTermStatus(selectedTerm.status);
-
-          // Update URL
-          const params = new URLSearchParams();
-          params.set("yearId", selectedYear.id);
-          params.set("termId", selectedTerm.id);
-          params.set("termStatus", selectedTerm.status);
-          router.replace(`?${params.toString()}`, { scroll: false });
-        }
-      } catch (error) {
-        console.error("Failed to initialize:", error);
-      }
+  const syncOverviewQueryParams = (
+    nextState: Partial<{
+      checklistStatus: AcademicsOverviewChecklistStatusFilter;
+      alertSeverity: AcademicsOverviewAlertSeverityFilter;
+      chart: AcademicsOverviewChartFilter;
+      exportDataset: AcademicsOverviewExportDataset;
+    }>,
+    historyMode: "push" | "replace" = "push"
+  ) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const mergedState = {
+      checklistStatus:
+        nextState.checklistStatus ?? checklistStatusFilter,
+      alertSeverity:
+        nextState.alertSeverity ?? alertSeverityFilter,
+      chart: nextState.chart ?? chartFilter,
+      exportDataset: nextState.exportDataset ?? exportDataset,
     };
 
-    initializeContext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (mergedState.checklistStatus === "all") {
+      params.delete("checklistStatus");
+    } else {
+      params.set("checklistStatus", mergedState.checklistStatus);
+    }
+
+    if (mergedState.alertSeverity === "all") {
+      params.delete("alertSeverity");
+    } else {
+      params.set("alertSeverity", mergedState.alertSeverity);
+    }
+
+    if (mergedState.chart === "all") {
+      params.delete("chart");
+    } else {
+      params.set("chart", mergedState.chart);
+    }
+
+    if (mergedState.exportDataset === "summary") {
+      params.delete("exportDataset");
+    } else {
+      params.set("exportDataset", mergedState.exportDataset);
+    }
+
+    const nextQuery = params.toString();
+    const currentQuery = searchParams.toString();
+    if (nextQuery === currentQuery) {
+      return;
+    }
+
+    const nextUrl = nextQuery ? `?${nextQuery}` : "?";
+    if (historyMode === "push") {
+      router.push(nextUrl, { scroll: false });
+      return;
+    }
+
+    router.replace(nextUrl, { scroll: false });
+  };
 
   // Load data when year/term changes
   useEffect(() => {
-    if (!academicYearId || !termId) return;
+    if (isInitializing) return;
+    if (!academicYearId || !termId) {
+      resetOverviewState();
+      setIsLoading(false);
+      return;
+    }
 
     const loadData = async () => {
       try {
@@ -103,15 +269,7 @@ export default function AcademicsOverviewPage() {
         setChecklist(checklistItems);
         setAlerts(alertsItems);
 
-        // Prepare lesson plans chart data (mock weekly data)
-        const weeklyData = [
-          { week: "W1", planned: 8, done: 7 },
-          { week: "W2", planned: 10, done: 9 },
-          { week: "W3", planned: 9, done: 8 },
-          { week: "W4", planned: 11, done: 10 },
-          { week: "W5", planned: 7, done: 6 },
-        ];
-        setLessonPlansData(weeklyData);
+        setLessonPlansData(metricsData.lessonPlans.weeklyBreakdown || []);
 
         // Prepare teacher loads chart data
         const structure = await fetchStructureTree(academicYearId, termId);
@@ -149,52 +307,258 @@ export default function AcademicsOverviewPage() {
         const notReadyPercentage = 100 - readyPercentage;
 
         setReadinessData([
-          { name: t("academics.overview.charts.readiness.ready"), value: readyPercentage, color: "#10b981" },
-          { name: t("academics.overview.charts.readiness.notReady"), value: notReadyPercentage, color: "#ef4444" },
+          {
+            key: "ready",
+            name: t("academics.overview.charts.readiness.ready"),
+            value: readyPercentage,
+            color: "#10b981",
+          },
+          {
+            key: "notReady",
+            name: t("academics.overview.charts.readiness.notReady"),
+            value: notReadyPercentage,
+            color: "#ef4444",
+          },
         ]);
       } catch (error) {
         console.error("Failed to load overview data:", error);
+        resetOverviewState();
       } finally {
         setIsLoading(false);
       }
     };
 
     loadData();
-  }, [academicYearId, termId, lang, t]);
+  }, [academicYearId, isInitializing, termId, lang, t]);
 
   const handleYearChange = async (yearId: string) => {
-    setAcademicYearId(yearId);
-    const yearTerms = await fetchTermsByYear(yearId);
-    
-    // Auto-select first open term or first term
-    const selectedTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
-    if (selectedTerm) {
-      setTermId(selectedTerm.id);
-      setTermStatus(selectedTerm.status);
-      
-      // Update URL
-      const params = new URLSearchParams();
-      params.set("yearId", yearId);
-      params.set("termId", selectedTerm.id);
-      params.set("termStatus", selectedTerm.status);
-      router.replace(`?${params.toString()}`, { scroll: false });
-    }
+    await changeAcademicYear(yearId);
   };
 
-  const handleTermChange = async (newTermId: string) => {
-    const yearTerms = await fetchTermsByYear(academicYearId);
-    const selectedTerm = yearTerms.find((t) => t.id === newTermId);
-    if (selectedTerm) {
-      setTermId(newTermId);
-      setTermStatus(selectedTerm.status);
-      
-      // Update URL
-      const params = new URLSearchParams();
-      params.set("yearId", academicYearId);
-      params.set("termId", newTermId);
-      params.set("termStatus", selectedTerm.status);
-      router.replace(`?${params.toString()}`, { scroll: false });
+  const handleTermChange = (newTermId: string) => {
+    changeTerm(newTermId);
+  };
+
+  const filteredChecklist = useMemo(() => {
+    if (checklistStatusFilter === "all") {
+      return checklist;
     }
+
+    return checklist.filter((item) => item.status === checklistStatusFilter);
+  }, [checklist, checklistStatusFilter]);
+
+  const filteredAlerts = useMemo(() => {
+    if (alertSeverityFilter === "all") {
+      return alerts;
+    }
+
+    return alerts.filter((item) => item.severity === alertSeverityFilter);
+  }, [alertSeverityFilter, alerts]);
+
+  const handleResetFilters = () => {
+    syncOverviewQueryParams(
+      {
+        checklistStatus: "all",
+        alertSeverity: "all",
+        chart: "all",
+        exportDataset: "summary",
+      },
+      "replace"
+    );
+  };
+
+  const handleExport = (format: "csv" | "excel") => {
+    if (!metrics || !academicYearId || !termId) {
+      return;
+    }
+
+    const metadata: ExportMetadata = {
+      yearName:
+        academicYears.find((item) => item.id === academicYearId)?.name ||
+        academicYearId,
+      termName: terms.find((item) => item.id === termId)?.name || termId,
+      exportDate: formatExportDate(locale),
+    };
+
+    let title = t("academics.overview.title");
+    let filename = generateExportFilename("academics-overview", termId);
+    let columns: ExportColumn[] = [];
+    let rows: Record<string, unknown>[] = [];
+
+    if (exportDataset === "summary") {
+      title = t("academics.overview.filters.options.summary");
+      columns = [
+        { key: "group", label: exportLabels.group },
+        { key: "metric", label: exportLabels.metric },
+        { key: "value", label: exportLabels.value },
+      ];
+      rows = [
+        {
+          group: t("academics.overview.kpi.structure.title"),
+          metric: exportLabels.totalStages,
+          value: metrics.structure.totalStages,
+        },
+        {
+          group: t("academics.overview.kpi.structure.title"),
+          metric: exportLabels.totalGrades,
+          value: metrics.structure.totalGrades,
+        },
+        {
+          group: t("academics.overview.kpi.structure.title"),
+          metric: exportLabels.totalSections,
+          value: metrics.structure.totalSections,
+        },
+        {
+          group: t("academics.overview.kpi.structure.title"),
+          metric: exportLabels.sectionsWithoutCapacity,
+          value: metrics.structure.sectionsWithoutCapacity,
+        },
+        {
+          group: t("academics.overview.kpi.subjects.title"),
+          metric: exportLabels.totalSubjects,
+          value: metrics.subjects.totalSubjects,
+        },
+        {
+          group: t("academics.overview.kpi.subjects.title"),
+          metric: exportLabels.subjectCompletion,
+          value: `${metrics.subjects.completionPercentage}%`,
+        },
+        {
+          group: t("academics.overview.kpi.teachers.title"),
+          metric: exportLabels.missingTeacherAllocations,
+          value: metrics.teacherAllocation.missingAllocations,
+        },
+        {
+          group: t("academics.overview.kpi.teachers.title"),
+          metric: exportLabels.overloadedTeachers,
+          value: metrics.teacherAllocation.overloadedTeachers,
+        },
+        {
+          group: t("academics.overview.kpi.lessonPlans.title"),
+          metric: exportLabels.lessonPlansPlanned,
+          value: metrics.lessonPlans.totalPlanned,
+        },
+        {
+          group: t("academics.overview.kpi.lessonPlans.title"),
+          metric: exportLabels.lessonPlansDone,
+          value: metrics.lessonPlans.totalDone,
+        },
+        {
+          group: t("academics.overview.kpi.lessonPlans.title"),
+          metric: exportLabels.lessonPlansCompletion,
+          value: `${metrics.lessonPlans.completionPercentage}%`,
+        },
+      ];
+    } else if (exportDataset === "checklist") {
+      title = t("academics.overview.checklist.title");
+      filename = generateExportFilename("academics-overview-checklist", termId);
+      columns = [
+        { key: "title", label: exportLabels.title },
+        { key: "status", label: exportLabels.status },
+        { key: "reason", label: exportLabels.reason },
+        { key: "link", label: exportLabels.link },
+      ];
+      rows = filteredChecklist.map((item) => ({
+        title: t(item.titleKey),
+        status: exportLabels[item.status],
+        reason:
+          item.id === "structure"
+            ? metrics.structure.gradesWithoutSections > 0
+              ? t("academics.overview.checklist.structure.reason", {
+                  count: metrics.structure.gradesWithoutSections,
+                })
+              : metrics.structure.sectionsWithoutCapacity > 0
+                ? t("academics.overview.checklist.structure.reasonCapacity", {
+                    count: metrics.structure.sectionsWithoutCapacity,
+                  })
+                : t("academics.overview.checklist.allGood")
+            : item.id === "subjects"
+              ? metrics.subjects.completionPercentage < 100
+                ? t("academics.overview.checklist.subjects.reason", {
+                    percentage: metrics.subjects.completionPercentage,
+                  })
+                : t("academics.overview.checklist.allGood")
+              : item.id === "teachers"
+                ? metrics.teacherAllocation.missingAllocations > 0
+                  ? t("academics.overview.checklist.teachers.reason", {
+                      count: metrics.teacherAllocation.missingAllocations,
+                    })
+                  : metrics.teacherAllocation.overloadedTeachers > 0
+                    ? t(
+                        "academics.overview.checklist.teachers.reasonOverloaded",
+                        { count: metrics.teacherAllocation.overloadedTeachers }
+                      )
+                    : t("academics.overview.checklist.allGood")
+                : item.id === "calendar"
+                  ? item.status === "done"
+                    ? t("academics.overview.checklist.allGood")
+                    : t("academics.overview.checklist.calendar.reason")
+                  : t("academics.overview.checklist.lessonPlans.reason", {
+                      count: metrics.lessonPlans.totalPlanned,
+                    }),
+        link: item.link,
+      }));
+    } else if (exportDataset === "alerts") {
+      title = t("academics.overview.alerts.title");
+      filename = generateExportFilename("academics-overview-alerts", termId);
+      columns = [
+        { key: "title", label: exportLabels.title },
+        { key: "severity", label: exportLabels.severity },
+        { key: "description", label: exportLabels.description },
+        { key: "count", label: exportLabels.count },
+        { key: "link", label: exportLabels.link },
+      ];
+      rows = filteredAlerts.map((item) => ({
+        title: t(item.titleKey),
+        severity: exportLabels[item.severity],
+        description: t(item.descriptionKey),
+        count: item.count ?? "",
+        link: item.link,
+      }));
+    } else if (exportDataset === "lessonPlans") {
+      title = t("academics.overview.charts.lessonPlans.title");
+      filename = generateExportFilename("academics-overview-lesson-plans", termId);
+      columns = [
+        { key: "week", label: exportLabels.week },
+        { key: "planned", label: t("academics.overview.charts.lessonPlans.planned") },
+        { key: "done", label: t("academics.overview.charts.lessonPlans.done") },
+      ];
+      rows = lessonPlansData;
+    } else if (exportDataset === "teacherLoads") {
+      title = t("academics.overview.charts.teacherLoads.title");
+      filename = generateExportFilename("academics-overview-teacher-loads", termId);
+      columns = [
+        { key: "name", label: exportLabels.teacher },
+        { key: "load", label: t("academics.overview.charts.teacherLoads.weeklyPeriods") },
+        { key: "status", label: exportLabels.status },
+      ];
+      rows = teacherLoadsData.map((item) => ({
+        name: item.name,
+        load: item.load,
+        status: item.isOverloaded ? exportLabels.overloaded : exportLabels.normal,
+      }));
+    } else {
+      title = t("academics.overview.charts.readiness.title");
+      filename = generateExportFilename("academics-overview-readiness", termId);
+      columns = [
+        { key: "name", label: exportLabels.title },
+        { key: "value", label: exportLabels.value },
+      ];
+      rows = readinessData.map((item) => ({
+        name: item.name,
+        value: `${item.value}%`,
+      }));
+    }
+
+    exportAcademicsData({
+      title,
+      metadata,
+      filename,
+      format,
+      columns,
+      rows,
+      locale,
+    });
   };
 
   return (
@@ -214,18 +578,94 @@ export default function AcademicsOverviewPage() {
 
       {/* Main Content */}
       <div className="px-4 sm:px-6 my-6 space-y-6">
+        <AcademicsOverviewFiltersBar
+          checklistStatus={checklistStatusFilter}
+          alertSeverity={alertSeverityFilter}
+          chartFilter={chartFilter}
+          exportDataset={exportDataset}
+          onChecklistStatusChange={(value) =>
+            syncOverviewQueryParams({ checklistStatus: value }, "push")
+          }
+          onAlertSeverityChange={(value) =>
+            syncOverviewQueryParams({ alertSeverity: value }, "push")
+          }
+          onChartFilterChange={(value) =>
+            syncOverviewQueryParams({ chart: value }, "push")
+          }
+          onExportDatasetChange={(value) =>
+            syncOverviewQueryParams({ exportDataset: value }, "push")
+          }
+          onReset={handleResetFilters}
+          onExport={handleExport}
+        />
+
         {/* Section A: Summary (KPIs) */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             {t("academics.overview.summary.title")}
           </h2>
-          {metrics && <KPICards metrics={metrics} isLoading={isLoading} />}
+          {isLoading ? (
+            <KPICards
+              metrics={
+                {
+                  structure: {
+                    totalStages: 0,
+                    totalGrades: 0,
+                    totalSections: 0,
+                    sectionsWithoutCapacity: 0,
+                    gradesWithoutSections: 0,
+                  },
+                  subjects: {
+                    totalSubjects: 0,
+                    totalAllocations: 0,
+                    expectedAllocations: 0,
+                    completionPercentage: 0,
+                    missingAllocations: 0,
+                  },
+                  teacherAllocation: {
+                    totalAllocations: 0,
+                    missingAllocations: 0,
+                    overloadedTeachers: 0,
+                    averageLoad: 0,
+                  },
+                  calendar: {
+                    upcomingEvents: 0,
+                    nextHolidayDate: null,
+                    nextExamDate: null,
+                  },
+                  lessonPlans: {
+                    totalPlanned: 0,
+                    totalDone: 0,
+                    completionPercentage: 0,
+                    weeklyBreakdown: [],
+                  },
+                }
+              }
+              isLoading
+            />
+          ) : metrics ? (
+            <KPICards metrics={metrics} isLoading={isLoading} />
+          ) : (
+            <p className="text-sm text-gray-500">{t("common.noData")}</p>
+          )}
         </div>
 
         {/* Section B: Setup & Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <SetupChecklist items={checklist} metrics={metrics!} isLoading={isLoading} />
-          <AlertsPanel alerts={alerts} isLoading={isLoading} />
+          {isLoading ? (
+            <SetupChecklist items={[]} isLoading />
+          ) : metrics ? (
+            <SetupChecklist
+              items={filteredChecklist}
+              metrics={metrics}
+              isLoading={isLoading}
+            />
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-200 p-6">
+              <p className="text-sm text-gray-500">{t("common.noData")}</p>
+            </div>
+          )}
+          <AlertsPanel alerts={filteredAlerts} isLoading={isLoading} />
         </div>
 
         {/* Section C: Analytics (Charts) */}
@@ -238,6 +678,7 @@ export default function AcademicsOverviewPage() {
             teacherLoadsData={teacherLoadsData}
             readinessData={readinessData}
             isLoading={isLoading}
+            chartFilter={chartFilter}
           />
         </div>
 

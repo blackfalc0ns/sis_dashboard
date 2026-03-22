@@ -4,12 +4,17 @@ import { Lesson } from "@/features/academics/curriculum/services/curriculumServi
 import { LessonPlan, WeekInfo } from "@/features/academics/lesson-plans/services/lessonPlansService";
 import WeekColumn from "./WeekColumn";
 
+interface DraggedPlanItem {
+  itemId: string;
+  fromWeekIndex: number;
+}
+
 interface WeeksBoardDesktopProps {
   weeks: WeekInfo[];
   plans: LessonPlan[];
   lessons: Lesson[];
-  draggedLesson: any;
-  draggedItem: any;
+  draggedLesson: Lesson | null;
+  draggedItem: DraggedPlanItem | null;
   isReadOnly: boolean;
   onDropOnWeek: (weekIndex: number) => void;
   onDragStartItem: (itemId: string, weekIndex: number) => void;

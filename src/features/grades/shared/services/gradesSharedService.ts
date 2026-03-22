@@ -1023,7 +1023,10 @@ export async function bulkUpdateAssessmentQuestionPoints(
   syncAssessmentMaxScoreFromQuestions(seedKey, assessmentId);
 }
 
-export async function fetchStudentGradesSnapshot(studentId: string): Promise<StudentGradesSnapshot | null> {
+export async function fetchStudentGradesSnapshot(
+  studentId: string,
+  options?: { academicYearId?: string; termId?: string },
+): Promise<StudentGradesSnapshot | null> {
   await delay();
 
   const enrollment = getStudentEnrollment(studentId);
@@ -1032,20 +1035,30 @@ export async function fetchStudentGradesSnapshot(studentId: string): Promise<Stu
   }
 
   const years = await fetchAcademicYears();
-  const academicYear = years.find((year) => year.name === enrollment.academicYear) || years[0];
+  const academicYear =
+    years.find((year) => year.id === options?.academicYearId) ||
+    years.find((year) => year.name === enrollment.academicYear) ||
+    years[0];
   if (!academicYear) {
     return null;
   }
 
   const terms = await fetchTermsByYear(academicYear.id);
-  const termId = terms.find((term) => term.status === "open")?.id || terms[0]?.id;
+  const termId =
+    terms.find((term) => term.id === options?.termId)?.id ||
+    terms.find((term) => term.status === "open")?.id ||
+    terms[0]?.id;
   if (!termId) {
     return null;
   }
 
   await ensureSeedData(termId, academicYear.id);
   const seedKey = buildSeedKey(termId, academicYear.id);
-  const assessments = (assessmentsByTerm[seedKey] || []).filter((assessment) => assessment.sectionId === enrollment.sectionId);
+  const assessments = (assessmentsByTerm[seedKey] || []).filter(
+    (assessment) =>
+      assessment.sectionId === enrollment.sectionId &&
+      (!assessment.classroomId || assessment.classroomId === enrollment.classroomId),
+  );
   const gradeItems = (gradeItemsByTerm[seedKey] || []).filter((item) => item.studentId === enrollment.studentId);
   const subjects = await fetchSubjects(termId);
 
@@ -1099,6 +1112,8 @@ export async function fetchStudentGradesSnapshot(studentId: string): Promise<Stu
 
   return {
     studentId,
+    academicYearId: academicYear.id,
+    termId,
     subjectRows,
     currentAverage:
       subjectAverages.length > 0

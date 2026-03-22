@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useDebouncedCallback } from "use-debounce";
 import { ChevronDown, ChevronUp, Users, UserX, TrendingUp, Zap, Search, Filter } from "lucide-react";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import DataTable from "@/components/ui/data-table/DataTable";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import {
   Classroom,
   Grade,
@@ -56,14 +59,79 @@ export default function TeacherLoadView({
 }: TeacherLoadViewProps) {
   const t = useTranslations("academics.teacherAllocation.load");
   const locale = useLocale();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [teacherLoads, setTeacherLoads] = useState<TeacherLoad[]>([]);
   const [expandedTeacherId, setExpandedTeacherId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "normal" | "warning" | "overloaded" | "zero">("all");
+  const queryState = useMemo(
+    () => ({
+      searchQuery: searchParams.get("loadSearch") || "",
+      statusFilter: (
+        ["all", "normal", "warning", "overloaded", "zero"].includes(
+          searchParams.get("loadStatus") || ""
+        )
+          ? searchParams.get("loadStatus")
+          : "all"
+      ) as "all" | "normal" | "warning" | "overloaded" | "zero",
+    }),
+    [searchParams]
+  );
+  const [searchInputValue, setSearchInputValue] = useState(queryState.searchQuery);
+
+  useEffect(() => {
+    setSearchInputValue(queryState.searchQuery);
+  }, [queryState.searchQuery]);
+
+  const syncQueryParams = useCallback(
+    (
+      nextState: Partial<{
+        searchQuery: string;
+        statusFilter: "all" | "normal" | "warning" | "overloaded" | "zero";
+      }>,
+      historyMode: "push" | "replace" = "replace"
+    ) => {
+      const params = new URLSearchParams(searchParams.toString());
+      const mergedState = {
+        searchQuery: nextState.searchQuery ?? queryState.searchQuery,
+        statusFilter: nextState.statusFilter ?? queryState.statusFilter,
+      };
+
+      if (mergedState.searchQuery) {
+        params.set("loadSearch", mergedState.searchQuery);
+      } else {
+        params.delete("loadSearch");
+      }
+
+      if (mergedState.statusFilter !== "all") {
+        params.set("loadStatus", mergedState.statusFilter);
+      } else {
+        params.delete("loadStatus");
+      }
+
+      const nextQuery = params.toString();
+      const currentQuery = searchParams.toString();
+      if (nextQuery === currentQuery) {
+        return;
+      }
+
+      const nextUrl = nextQuery ? `?${nextQuery}` : "?";
+      if (historyMode === "push") {
+        router.push(nextUrl, { scroll: false });
+        return;
+      }
+      router.replace(nextUrl, { scroll: false });
+    },
+    [queryState.searchQuery, queryState.statusFilter, router, searchParams]
+  );
+  const syncSearchQueryParam = useDebouncedCallback((value: string) => {
+    syncQueryParams({ searchQuery: value }, "replace");
+  }, 250);
+
+  useEffect(() => () => {
+    syncSearchQueryParam.cancel();
+  }, [syncSearchQueryParam]);
 
   // Calculate loads
   useEffect(() => {
@@ -150,19 +218,19 @@ export default function TeacherLoadView({
     let filtered = tableData;
 
     // Search filter
-    if (searchQuery) {
+    if (searchInputValue) {
       filtered = filtered.filter((row) =>
-        row.teacherName.toLowerCase().includes(searchQuery.toLowerCase())
+        row.teacherName.toLowerCase().includes(searchInputValue.toLowerCase())
       );
     }
 
     // Status filter
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((row) => row.status === statusFilter);
+    if (queryState.statusFilter !== "all") {
+      filtered = filtered.filter((row) => row.status === queryState.statusFilter);
     }
 
     return filtered;
-  }, [tableData, searchQuery, statusFilter]);
+  }, [queryState.statusFilter, searchInputValue, tableData]);
 
   // Define table columns
   const columns = useMemo(() => [
@@ -259,9 +327,7 @@ export default function TeacherLoadView({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-gray-500">{t("loading")}</div>
-      </div>
+        <PartialLoader />
     );
   }
 
@@ -330,8 +396,12 @@ export default function TeacherLoadView({
                 <input
                   type="text"
                   placeholder={t("filters.searchPlaceholder")}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchInputValue}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSearchInputValue(value);
+                    syncSearchQueryParam(value);
+                  }}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
@@ -342,8 +412,20 @@ export default function TeacherLoadView({
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                  value={queryState.statusFilter}
+                  onChange={(e) =>
+                    syncQueryParams(
+                      {
+                        statusFilter: e.target.value as
+                          | "all"
+                          | "normal"
+                          | "warning"
+                          | "overloaded"
+                          | "zero",
+                      },
+                      "push"
+                    )
+                  }
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white"
                 >
                   <option value="all">{t("filters.allStatus")}</option>
@@ -361,7 +443,7 @@ export default function TeacherLoadView({
         <DataTable
           columns={columns}
           data={filteredData}
-          searchQuery={searchQuery}
+          searchQuery={searchInputValue}
           itemsPerPage={10}
           showPagination={true}
         />

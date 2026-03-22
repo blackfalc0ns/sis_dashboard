@@ -2,12 +2,13 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Users, GraduationCap, ArrowRight } from "lucide-react";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
-import type { StudentGuardian } from "@/features/students-guardians/students/types";
+import type { Student, StudentGuardian } from "@/features/students-guardians/students/types";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 interface StudentsTabProps {
   guardian: StudentGuardian;
@@ -19,8 +20,35 @@ export default function StudentsTab({ guardian }: StudentsTabProps) {
   const params = useParams();
   const lang = (params.lang as string) || "en";
 
-  const linkedStudents = useMemo(() => {
-    return studentsService.getGuardianStudents(guardian.guardianId);
+  const [linkedStudents, setLinkedStudents] = useState<Student[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    void Promise.resolve().then(async () => {
+      setIsLoading(true);
+
+      try {
+        const students = await studentsService.fetchGuardianStudents(
+          guardian.guardianId,
+        );
+
+        if (isCancelled) {
+          return;
+        }
+
+        setLinkedStudents(students);
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [guardian.guardianId]);
 
   const handleStudentClick = (studentId: string) => {
@@ -30,6 +58,8 @@ export default function StudentsTab({ guardian }: StudentsTabProps) {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl p-6 shadow-sm">
+        {isLoading ? <PartialLoader /> : null}
+
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Users className="w-5 h-5 text-primary" />

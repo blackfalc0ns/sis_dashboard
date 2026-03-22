@@ -17,13 +17,22 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import ChartCard from "@/components/ui/chart-card/ChartCard";
-import { TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
+import { TrendingUp, AlertTriangle } from "lucide-react";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
+
+interface ReadinessDatum {
+  key: "ready" | "notReady";
+  name: string;
+  value: number;
+  color: string;
+}
 
 interface OverviewChartsProps {
   lessonPlansData: Array<{ week: string; planned: number; done: number }>;
   teacherLoadsData: Array<{ name: string; load: number; isOverloaded: boolean }>;
-  readinessData: Array<{ name: string; value: number; color: string }>;
+  readinessData: ReadinessDatum[];
   isLoading?: boolean;
+  chartFilter?: "all" | "lessonPlans" | "teacherLoads" | "readiness";
 }
 
 export default function OverviewCharts({
@@ -31,19 +40,13 @@ export default function OverviewCharts({
   teacherLoadsData,
   readinessData,
   isLoading,
+  chartFilter = "all",
 }: OverviewChartsProps) {
   const t = useTranslations("academics.overview.charts");
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-200 p-6 animate-pulse">
-            <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
-            <div className="h-64 bg-gray-100 rounded"></div>
-          </div>
-        ))}
-      </div>
+        <PartialLoader />
     );
   }
 
@@ -76,7 +79,7 @@ export default function OverviewCharts({
 
   const readinessInsight = hasReadinessData
     ? (() => {
-        const readyData = readinessData.find((d) => d.name.includes("Ready") || d.name.includes("جاهز"));
+        const readyData = readinessData.find((datum) => datum.key === "ready");
         const percentage = readyData?.value || 0;
         return percentage >= 75
           ? t("readiness.insightGood", { percentage })
@@ -84,9 +87,14 @@ export default function OverviewCharts({
       })()
     : "";
 
+  const showLessonPlans = chartFilter === "all" || chartFilter === "lessonPlans";
+  const showTeacherLoads = chartFilter === "all" || chartFilter === "teacherLoads";
+  const showReadiness = chartFilter === "all" || chartFilter === "readiness";
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
       {/* Lesson Plans Progress */}
+      {showLessonPlans && (
       <ChartCard title={t("lessonPlans.title")} showPeriodFilter={false}>
         {lessonPlansInsight && (
           <div className="mb-4 flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -135,12 +143,14 @@ export default function OverviewCharts({
           </div>
         )}
       </ChartCard>
+      )}
 
       {/* Teacher Load Distribution */}
+      {showTeacherLoads && (
       <ChartCard title={t("teacherLoads.title")} showPeriodFilter={false}>
         {teacherLoadsInsight && (
           <div className="mb-4 flex items-start gap-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-            <AlertTriangle className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+            <AlertTriangle className="w-4 h-4 text-purple-600 mt-0.5 shrink-0" />
             <p className="text-xs text-purple-800">{teacherLoadsInsight}</p>
           </div>
         )}
@@ -180,8 +190,10 @@ export default function OverviewCharts({
           </div>
         )}
       </ChartCard>
+      )}
 
       {/* Readiness Donut */}
+      {showReadiness && (
       <ChartCard title={t("readiness.title")} showPeriodFilter={false}>
         {readinessInsight && (
           <div className="mb-4 flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
@@ -223,6 +235,7 @@ export default function OverviewCharts({
           </div>
         )}
       </ChartCard>
+      )}
     </div>
   );
 }

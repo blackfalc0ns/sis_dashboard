@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { AlertCircle, AlertTriangle, Info, ChevronRight } from "lucide-react";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import type { Alert } from "../services/overviewService";
 
 interface AlertsPanelProps {
@@ -16,17 +17,8 @@ export default function AlertsPanel({ alerts, isLoading }: AlertsPanelProps) {
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="h-6 bg-gray-200 rounded w-1/4 mb-4 animate-pulse"></div>
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg animate-pulse">
-              <div className="w-5 h-5 bg-gray-200 rounded-full mt-0.5"></div>
-              <div className="flex-1">
-                <div className="h-4 bg-gray-200 rounded w-2/3 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-full"></div>
-              </div>
-            </div>
-          ))}
+        <div className="flex min-h-[160px] items-center justify-center">
+          <PartialLoader />
         </div>
       </div>
     );

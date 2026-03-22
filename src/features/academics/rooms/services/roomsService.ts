@@ -1,4 +1,6 @@
 import { Room } from "@/features/academics/timetable/types/timetable";
+import type { RoomsAdapter } from "@/features/academics/rooms/services/roomsAdapter";
+import { roomsApiAdapter } from "@/features/academics/rooms/services/roomsApiAdapter";
 
 export interface RoomDefaultAssignment {
   id: string;
@@ -103,24 +105,24 @@ const findRoomDefaultIndex = (params: {
       item.id !== params.excludeId
   );
 
-export async function fetchRooms(schoolId: string): Promise<Room[]> {
+const fetchRoomsImpl = async (schoolId: string): Promise<Room[]> => {
   // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   return mockRooms.filter((room) => room.schoolId === schoolId);
-}
+};
 
-export async function fetchRoomDefaultAssignments(
+const fetchRoomDefaultAssignmentsImpl = async (
   schoolId: string
-): Promise<RoomDefaultAssignment[]> {
+): Promise<RoomDefaultAssignment[]> => {
   await new Promise((resolve) => setTimeout(resolve, 300));
   return mockRoomDefaults.filter((item) => item.schoolId === schoolId);
-}
+};
 
-export async function createRoomDefaultAssignment(
+const createRoomDefaultAssignmentImpl = async (
   schoolId: string,
   payload: Omit<RoomDefaultAssignment, "id" | "schoolId">
-): Promise<RoomDefaultAssignment> {
+): Promise<RoomDefaultAssignment> => {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
   const existingIndex = findRoomDefaultIndex({
@@ -145,12 +147,12 @@ export async function createRoomDefaultAssignment(
 
   mockRoomDefaults.push(newAssignment);
   return newAssignment;
-}
+};
 
-export async function updateRoomDefaultAssignment(
+const updateRoomDefaultAssignmentImpl = async (
   assignmentId: string,
   payload: Partial<Omit<RoomDefaultAssignment, "id" | "schoolId">>
-): Promise<RoomDefaultAssignment> {
+): Promise<RoomDefaultAssignment> => {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
   const index = mockRoomDefaults.findIndex((item) => item.id === assignmentId);
@@ -182,9 +184,9 @@ export async function updateRoomDefaultAssignment(
   mockRoomDefaults[index] = nextAssignment;
 
   return mockRoomDefaults[index];
-}
+};
 
-export async function deleteRoomDefaultAssignment(assignmentId: string): Promise<void> {
+const deleteRoomDefaultAssignmentImpl = async (assignmentId: string): Promise<void> => {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
   const index = mockRoomDefaults.findIndex((item) => item.id === assignmentId);
@@ -193,7 +195,7 @@ export async function deleteRoomDefaultAssignment(assignmentId: string): Promise
   }
 
   mockRoomDefaults.splice(index, 1);
-}
+};
 
 export function resolveDefaultRoomAssignmentForTarget(
   defaults: RoomDefaultAssignment[],
@@ -260,10 +262,10 @@ export function resolveDefaultRoomForTarget(
   return assignment ? rooms.find((room) => room.id === assignment.roomId) || null : null;
 }
 
-export async function createRoom(
+const createRoomImpl = async (
   schoolId: string,
   room: Omit<Room, "id" | "schoolId" | "createdAt" | "updatedAt">
-): Promise<Room> {
+): Promise<Room> => {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   const newRoom: Room = {
@@ -276,12 +278,12 @@ export async function createRoom(
 
   mockRooms.push(newRoom);
   return newRoom;
-}
+};
 
-export async function updateRoom(
+const updateRoomImpl = async (
   roomId: string,
   updates: Partial<Omit<Room, "id" | "schoolId" | "createdAt">>
-): Promise<Room> {
+): Promise<Room> => {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   const index = mockRooms.findIndex((r) => r.id === roomId);
@@ -296,9 +298,9 @@ export async function updateRoom(
   };
 
   return mockRooms[index];
-}
+};
 
-export async function deleteRoom(roomId: string): Promise<void> {
+const deleteRoomImpl = async (roomId: string): Promise<void> => {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
   const index = mockRooms.findIndex((r) => r.id === roomId);
@@ -307,4 +309,75 @@ export async function deleteRoom(roomId: string): Promise<void> {
   }
 
   mockRooms.splice(index, 1);
+};
+
+const mockRoomsAdapter: RoomsAdapter = {
+  fetchRooms: fetchRoomsImpl,
+  fetchRoomDefaultAssignments: fetchRoomDefaultAssignmentsImpl,
+  createRoomDefaultAssignment: createRoomDefaultAssignmentImpl,
+  updateRoomDefaultAssignment: updateRoomDefaultAssignmentImpl,
+  deleteRoomDefaultAssignment: deleteRoomDefaultAssignmentImpl,
+  createRoom: createRoomImpl,
+  updateRoom: updateRoomImpl,
+  deleteRoom: deleteRoomImpl,
+};
+
+let roomsAdapter: RoomsAdapter = mockRoomsAdapter;
+
+if (process.env.NEXT_PUBLIC_USE_ROOMS_API === "true") {
+  roomsAdapter = roomsApiAdapter;
 }
+
+export const getRoomsAdapter = (): RoomsAdapter => roomsAdapter;
+
+export const setRoomsAdapter = (adapter: RoomsAdapter) => {
+  roomsAdapter = adapter;
+};
+
+export const resetRoomsAdapter = () => {
+  roomsAdapter =
+    process.env.NEXT_PUBLIC_USE_ROOMS_API === "true"
+      ? roomsApiAdapter
+      : mockRoomsAdapter;
+};
+
+export const activateRoomsAdapter = (adapter: RoomsAdapter) => {
+  setRoomsAdapter(adapter);
+  return adapter;
+};
+
+export const fetchRooms = (schoolId: string): Promise<Room[]> =>
+  roomsAdapter.fetchRooms(schoolId);
+
+export const fetchRoomDefaultAssignments = (
+  schoolId: string
+): Promise<RoomDefaultAssignment[]> =>
+  roomsAdapter.fetchRoomDefaultAssignments(schoolId);
+
+export const createRoomDefaultAssignment = (
+  schoolId: string,
+  payload: Omit<RoomDefaultAssignment, "id" | "schoolId">
+): Promise<RoomDefaultAssignment> =>
+  roomsAdapter.createRoomDefaultAssignment(schoolId, payload);
+
+export const updateRoomDefaultAssignment = (
+  assignmentId: string,
+  payload: Partial<Omit<RoomDefaultAssignment, "id" | "schoolId">>
+): Promise<RoomDefaultAssignment> =>
+  roomsAdapter.updateRoomDefaultAssignment(assignmentId, payload);
+
+export const deleteRoomDefaultAssignment = (assignmentId: string): Promise<void> =>
+  roomsAdapter.deleteRoomDefaultAssignment(assignmentId);
+
+export const createRoom = (
+  schoolId: string,
+  room: Omit<Room, "id" | "schoolId" | "createdAt" | "updatedAt">
+): Promise<Room> => roomsAdapter.createRoom(schoolId, room);
+
+export const updateRoom = (
+  roomId: string,
+  updates: Partial<Omit<Room, "id" | "schoolId" | "createdAt">>
+): Promise<Room> => roomsAdapter.updateRoom(roomId, updates);
+
+export const deleteRoom = (roomId: string): Promise<void> =>
+  roomsAdapter.deleteRoom(roomId);

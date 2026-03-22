@@ -2,81 +2,72 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { PieChart } from "@mui/x-charts/PieChart";
-import { ChartFilterValues } from "../../../shared/ChartFilter";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import { useOptionalStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import { useResponsiveChart } from "@/hooks/useResponsiveChart";
 import { ChartCard } from "@/components/ui/chart-card";
 import { DropdownItem } from "@/components/ui/dropdown";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 export default function StudentsByGradeChart() {
   const t = useTranslations("students_guardians.overview");
   const t_grades = useTranslations("students_guardians.overview.grades");
   const { height, width } = useResponsiveChart();
-
-  // Filter state
-  const [filterValues] = useState<ChartFilterValues>({
-    academicYear: "all",
-    term: "all",
-    dateRange: "all",
-    customStartDate: "",
-    customEndDate: "",
-  });
+  const context = useOptionalStudentsGuardiansYearTermContext();
+  const yearId = context?.yearId ?? null;
+  const termId = context?.termId ?? null;
+  const isContextLoading = context?.isLoading ?? false;
 
   // Get all students
-  const allStudents = useMemo(
-    () => studentsService.getStudentsWithEnrollment(),
-    [],
-  );
+  const [allStudents, setAllStudents] = useState<
+    studentsService.StudentWithEnrollmentContext[]
+  >([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Get unique academic years and terms
-  useMemo(() => {
-    const years = new Set<string>();
-    const termSet = new Set<string>();
+  useEffect(() => {
+    let isCancelled = false;
 
-    allStudents.forEach((student) => {
-      if (student.enrollment?.academicYear) {
-        years.add(student.enrollment.academicYear);
-      }
-      if (student.currentTerm?.term) {
-        termSet.add(student.currentTerm.term);
+    if (isContextLoading) {
+      setAllStudents([]);
+      setIsLoading(true);
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    void Promise.resolve().then(async () => {
+      setIsLoading(true);
+      try {
+        const students =
+          yearId && termId
+            ? await studentsService.fetchStudentsWithEnrollmentForContext(
+                yearId,
+                termId,
+              )
+            : await studentsService.fetchStudentsWithEnrollment();
+        if (!isCancelled) {
+          setAllStudents(students);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     });
 
-    return {
-      academicYears: Array.from(years).sort(),
-      terms: Array.from(termSet).sort(),
+    return () => {
+      isCancelled = true;
     };
-  }, [allStudents]);
-
-  // Filter students
-  const filteredStudents = useMemo(() => {
-    return allStudents.filter((student) => {
-      const academicYear = student.enrollment?.academicYear;
-      const term = student.currentTerm?.term;
-
-      if (
-        filterValues.academicYear !== "all" &&
-        academicYear !== filterValues.academicYear
-      ) {
-        return false;
-      }
-
-      if (filterValues.term !== "all" && term !== filterValues.term) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [allStudents, filterValues]);
+  }, [isContextLoading, termId, yearId]);
 
   // Calculate grade data
   const gradeData = useMemo(() => {
     const gradeCount: Record<string, number> = {};
 
-    filteredStudents.forEach((student) => {
+    allStudents.forEach((student) => {
       const grade = student.enrollment?.grade || student.gradeRequested;
       if (grade) {
         gradeCount[grade] = (gradeCount[grade] || 0) + 1;
@@ -95,7 +86,7 @@ export default function StudentsByGradeChart() {
         value: count,
       };
     });
-  }, [filteredStudents, t_grades]);
+  }, [allStudents, t_grades]);
 
   // Period options for ChartCard
   const periodOptions: DropdownItem[] = [
@@ -115,7 +106,9 @@ export default function StudentsByGradeChart() {
     >
       {/* Chart */}
       <div className="h-64 sm:h-80 w-full flex flex-col items-center justify-center mt-4">
-        {gradeData.length > 0 ? (
+        {isLoading ? (
+          <PartialLoader />
+        ) : gradeData.length > 0 ? (
           <div className="w-full flex justify-center">
             <PieChart
               series={[

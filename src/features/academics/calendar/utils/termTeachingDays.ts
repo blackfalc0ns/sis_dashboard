@@ -91,9 +91,9 @@ export function getTeachingDays(
   while (current.isBefore(end) || current.isSame(end, "day")) {
     const currentDate = current.toDate();
 
-    // Exclude weekends (Saturday = 6, Sunday = 0)
+    // Exclude weekends (Friday = 5, Saturday = 6)
     const dayOfWeek = current.day();
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
 
     // Check if it's a holiday
     const isHoliday = isHolidayDate(currentDate, events, scope);
@@ -155,9 +155,9 @@ export function getTeachingWeeks(
         (current.isAfter(start) || current.isSame(start, "day")) &&
         (current.isBefore(end) || current.isSame(end, "day"))
       ) {
-        // Exclude weekends
+        // Exclude weekends (Friday = 5, Saturday = 6)
         const dayOfWeek = current.day();
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
 
         // Check if it's a holiday
         const isHoliday = isHolidayDate(currentDate, events, scope);

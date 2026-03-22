@@ -20,17 +20,47 @@ import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
 import { mockApplications } from "@/data/mockAdmissions";
 import { getAdmissionsAnalytics } from "@/features/admissions/dashboard/services/admissionsAnalytics";
 import { ApplicationStatus, Application } from "@/features/admissions/types/admissions";
+import { getLeads } from "@/features/admissions/leads/services/mockLeadsApi";
+import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import {
+  filterAdmissionsRecordsByDateContext,
+  resolveAdmissionsContextScope,
+} from "@/features/admissions/shared/utils/admissionsContextScope";
 
 export default function AdmissionsDashboardContent() {
   const t = useTranslations("admissions");
   const locale = useLocale();
   const router = useRouter();
+  const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
 
   // Date range state
   const [dateRange, setDateRange] = useState<DateRangeValue>("30");
   const [customStartDate, setCustomStartDate] = useState<string>("");
   const [customEndDate, setCustomEndDate] = useState<string>("");
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const admissionsScope = useMemo(
+    () => resolveAdmissionsContextScope(yearId, termId),
+    [termId, yearId],
+  );
+  const scopedApplications = useMemo(
+    () =>
+      filterAdmissionsRecordsByDateContext(
+        mockApplications,
+        (application) => application.submittedDate,
+        admissionsScope,
+      ),
+    [admissionsScope],
+  );
+  const scopedLeads = useMemo(
+    () =>
+      filterAdmissionsRecordsByDateContext(
+        getLeads(),
+        (lead) => lead.createdAt,
+        admissionsScope,
+      ),
+    [admissionsScope],
+  );
 
   // Calculate days back for analytics based on date range
   const daysBack = useMemo(() => {
@@ -51,8 +81,12 @@ export default function AdmissionsDashboardContent() {
 
   // Get analytics data based on selected date range
   const analyticsData = useMemo(
-    () => getAdmissionsAnalytics(daysBack),
-    [daysBack],
+    () =>
+      getAdmissionsAnalytics(daysBack, {
+        applications: scopedApplications,
+        leads: scopedLeads,
+      }),
+    [daysBack, scopedApplications, scopedLeads],
   );
 
   // Calculate KPIs based on selected date range
@@ -64,7 +98,7 @@ export default function AdmissionsDashboardContent() {
     );
 
     // 1. Applications in selected period
-    const applicationsInPeriodList = mockApplications.filter((app) =>
+    const applicationsInPeriodList = scopedApplications.filter((app) =>
       isDateInRange(app.submittedDate, filterResult),
     );
 
@@ -120,7 +154,7 @@ export default function AdmissionsDashboardContent() {
       totalApplications,
       avgProcessingDisplay,
     };
-  }, [dateRange, customStartDate, customEndDate]);
+  }, [customEndDate, customStartDate, dateRange, scopedApplications]);
 
   const columns = [
     {
@@ -198,7 +232,7 @@ export default function AdmissionsDashboardContent() {
     );
 
     // Filter applications by date range
-    const applicationsInPeriod = mockApplications.filter((app) =>
+    const applicationsInPeriod = scopedApplications.filter((app) =>
       isDateInRange(app.submittedDate, filterResult),
     );
 
@@ -226,7 +260,7 @@ export default function AdmissionsDashboardContent() {
     return Object.entries(sourceMap)
       .map(([source, count]) => ({ source, count }))
       .filter((item) => item.count > 0);
-  }, [dateRange, customStartDate, customEndDate]);
+  }, [customEndDate, customStartDate, dateRange, scopedApplications]);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -263,6 +297,7 @@ export default function AdmissionsDashboardContent() {
       />
 
       {/* KPI Cards */}
+      {isReadOnly && <AdmissionsReadOnlyBanner />}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <KPICardV2
           title={t("kpi.applications")}
@@ -354,6 +389,9 @@ export default function AdmissionsDashboardContent() {
         <DataTable
           columns={columns}
           data={mockApplications
+            .filter((application) =>
+              scopedApplications.some((item) => item.id === application.id),
+            )
             .sort(
               (a, b) =>
                 new Date(b.submittedDate).getTime() -
@@ -363,6 +401,10 @@ export default function AdmissionsDashboardContent() {
           searchQuery=""
           onRowClick={handleRowClick}
           showPagination={false}
+          urlState={{
+            keyPrefix: "admissionsDashboardTable",
+            syncSorting: true,
+          }}
         />
       </div>
 

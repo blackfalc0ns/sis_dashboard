@@ -21,6 +21,8 @@ import { mockApplications, mockTests } from "@/data/mockAdmissions";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import TestScoreModal from "@/features/admissions/tests/components/TestScoreModal";
 import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTestModal";
+import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 
 interface TestDetailsPageProps {
   testId: string;
@@ -30,6 +32,7 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
   const t = useTranslations("admissions.tests");
   const locale = useLocale();
   const router = useRouter();
+  const { isReadOnly } = useAdmissionsYearTermContext();
 
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false);
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
@@ -94,6 +97,7 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
   const { test, application, studentName } = testData;
 
   const handleAddScore = () => {
+    if (isReadOnly) return;
     setIsScoreModalOpen(true);
   };
 
@@ -111,6 +115,7 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
   };
 
   const handleReschedule = () => {
+    if (isReadOnly) return;
     setIsRescheduleModalOpen(true);
   };
 
@@ -177,6 +182,7 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
         </div>
 
         {/* Test Details */}
+        {isReadOnly && <AdmissionsReadOnlyBanner />}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <h2 className="text-lg font-bold text-gray-900 mb-6">
             {t("details.test_information")}
@@ -371,6 +377,7 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
             {test.status !== "cancelled" && (
               <button
                 onClick={handleAddScore}
+                disabled={isReadOnly}
                 className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
               >
                 <Edit className="w-4 h-4" />
@@ -440,6 +447,7 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
               <>
                 <button
                   onClick={handleReschedule}
+                  disabled={isReadOnly}
                   className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
                 >
                   {t("actions.reschedule")}
@@ -457,6 +465,7 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
               test.score === undefined && (
                 <button
                   onClick={handleAddScore}
+                  disabled={isReadOnly}
                   className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
                 >
                   {t("actions.add_score")}

@@ -1,6 +1,12 @@
 ﻿// Mock service for Academic Structure
 // Replace with real API calls when backend is ready
 
+import type { StructureAdapter } from "@/features/academics/academic-structure-tree/services/structureAdapter";
+import { structureApiAdapter } from "@/features/academics/academic-structure-tree/services/structureApiAdapter";
+
+// Mock service for Academic Structure
+// Replace with real API calls when backend is ready
+
 export interface Stage {
   id: string;
   name: string; // Display name (for backward compatibility)
@@ -166,6 +172,36 @@ const mockTerms: Term[] = [
     startDate: "2026-04-01",
     endDate: "2026-06-30",
   },
+  {
+    id: "term-3-1",
+    name: "Term 1",
+    nameAr: "الفصل الأول",
+    nameEn: "Term 1",
+    yearId: "year-3",
+    status: "open",
+    startDate: "2026-09-01",
+    endDate: "2026-12-31",
+  },
+  {
+    id: "term-3-2",
+    name: "Term 2",
+    nameAr: "الفصل الثاني",
+    nameEn: "Term 2",
+    yearId: "year-3",
+    status: "open",
+    startDate: "2027-01-01",
+    endDate: "2027-03-31",
+  },
+  {
+    id: "term-3-3",
+    name: "Term 3",
+    nameAr: "الفصل الثالث",
+    nameEn: "Term 3",
+    yearId: "year-3",
+    status: "open",
+    startDate: "2027-04-01",
+    endDate: "2027-06-30",
+  },
 ];
 
 // Term-scoped structure data: key = `${yearId}-${termId}`
@@ -257,6 +293,20 @@ const cloneStructureTree = (data: StructureTree): StructureTree => ({
   classrooms: data.classrooms.map((classroom) => ({ ...classroom })),
 });
 
+const baseStructureKey = "year-1-term-1-1";
+const baseStructureTemplate = cloneStructureTree(mockStructureData[baseStructureKey]!);
+
+mockAcademicYears.forEach((year) => {
+  mockTerms
+    .filter((term) => term.yearId === year.id)
+    .forEach((term) => {
+      const key = `${year.id}-${term.id}`;
+      if (!mockStructureData[key]) {
+        mockStructureData[key] = cloneStructureTree(baseStructureTemplate);
+      }
+    });
+});
+
 const setStructureForTerm = (yearId: string, termId: string, data: StructureTree) => {
   const key = getTermKey(yearId, termId);
   mockStructureData[key] = data;
@@ -309,17 +359,29 @@ const normalizeGradesForStage = (data: StructureTree, stageId: string) => {
 };
 
 // Academic Years & Terms
-export const fetchAcademicYears = async (): Promise<AcademicYear[]> => {
+const fetchAcademicYearsImpl = async (): Promise<AcademicYear[]> => {
   await delay(200);
   return [...mockAcademicYears];
 };
 
-export const fetchTermsByYear = async (yearId: string): Promise<Term[]> => {
+const fetchTermsByYearImpl = async (yearId: string): Promise<Term[]> => {
   await delay(200);
   return mockTerms.filter((t) => t.yearId === yearId);
 };
 
-export const createAcademicYear = async (payload: Omit<AcademicYear, "id">): Promise<AcademicYear> => {
+export const getAcademicYearsSnapshot = (): AcademicYear[] =>
+  mockAcademicYears.map((year) => ({ ...year }));
+
+export const getTermsSnapshotByYear = (yearId: string): Term[] =>
+  mockTerms.filter((term) => term.yearId === yearId).map((term) => ({ ...term }));
+
+export const getAcademicYearById = (yearId: string): AcademicYear | undefined =>
+  mockAcademicYears.find((year) => year.id === yearId);
+
+export const getTermById = (termId: string): Term | undefined =>
+  mockTerms.find((term) => term.id === termId);
+
+const createAcademicYearImpl = async (payload: Omit<AcademicYear, "id">): Promise<AcademicYear> => {
   await delay(200);
   const newYear: AcademicYear = {
     id: generateId("year"),
@@ -329,7 +391,7 @@ export const createAcademicYear = async (payload: Omit<AcademicYear, "id">): Pro
   return newYear;
 };
 
-export const updateAcademicYear = async (id: string, payload: Partial<Omit<AcademicYear, "id">>): Promise<AcademicYear> => {
+const updateAcademicYearImpl = async (id: string, payload: Partial<Omit<AcademicYear, "id">>): Promise<AcademicYear> => {
   await delay(200);
   const index = mockAcademicYears.findIndex((y) => y.id === id);
   if (index === -1) throw new Error("Academic year not found");
@@ -337,7 +399,7 @@ export const updateAcademicYear = async (id: string, payload: Partial<Omit<Acade
   return mockAcademicYears[index];
 };
 
-export const createTerm = async (payload: Omit<Term, "id">): Promise<Term> => {
+const createTermImpl = async (payload: Omit<Term, "id">): Promise<Term> => {
   await delay(200);
   const newTerm: Term = {
     id: generateId("term"),
@@ -347,7 +409,7 @@ export const createTerm = async (payload: Omit<Term, "id">): Promise<Term> => {
   return newTerm;
 };
 
-export const updateTerm = async (id: string, payload: Partial<Omit<Term, "id">>): Promise<Term> => {
+const updateTermImpl = async (id: string, payload: Partial<Omit<Term, "id">>): Promise<Term> => {
   await delay(200);
   const index = mockTerms.findIndex((t) => t.id === id);
   if (index === -1) throw new Error("Term not found");
@@ -355,7 +417,7 @@ export const updateTerm = async (id: string, payload: Partial<Omit<Term, "id">>)
   return mockTerms[index];
 };
 
-export const fetchStructureTree = async (yearId: string, termId: string): Promise<StructureTree> => {
+const fetchStructureTreeImpl = async (yearId: string, termId: string): Promise<StructureTree> => {
   await delay(300);
   const data = getStructureForTerm(yearId, termId);
   return cloneStructureTree(data);
@@ -396,7 +458,7 @@ export const resolveStructureContextForAcademicYear = (
   return termId ? { academicYearId, termId: `term-${termId}` } : null;
 };
 
-export const createStage = async (yearId: string, termId: string, payload: Omit<Stage, "id">): Promise<Stage> => {
+const createStageImpl = async (yearId: string, termId: string, payload: Omit<Stage, "id">): Promise<Stage> => {
   await delay(200);
   const newStage: Stage = {
     id: generateId("stage"),
@@ -409,7 +471,7 @@ export const createStage = async (yearId: string, termId: string, payload: Omit<
   return newStage;
 };
 
-export const updateStage = async (yearId: string, termId: string, id: string, payload: Partial<Stage>): Promise<Stage> => {
+const updateStageImpl = async (yearId: string, termId: string, id: string, payload: Partial<Stage>): Promise<Stage> => {
   await delay(200);
   const data = getStructureForTerm(yearId, termId);
   const index = data.stages.findIndex((s) => s.id === id);
@@ -423,7 +485,7 @@ export const updateStage = async (yearId: string, termId: string, id: string, pa
   return data.stages[index];
 };
 
-export const deleteStage = async (yearId: string, termId: string, id: string): Promise<void> => {
+const deleteStageImpl = async (yearId: string, termId: string, id: string): Promise<void> => {
   await delay(200);
   const data = getStructureForTerm(yearId, termId);
   const gradeIds = data.grades.filter((grade) => grade.stageId === id).map((grade) => grade.id);
@@ -435,7 +497,7 @@ export const deleteStage = async (yearId: string, termId: string, id: string): P
   setStructureForTerm(yearId, termId, data);
 };
 
-export const createGrade = async (yearId: string, termId: string, payload: Omit<Grade, "id">): Promise<Grade> => {
+const createGradeImpl = async (yearId: string, termId: string, payload: Omit<Grade, "id">): Promise<Grade> => {
   await delay(200);
   const data = getStructureForTerm(yearId, termId);
   const siblingGrades = data.grades.filter((grade) => grade.stageId === payload.stageId);
@@ -452,7 +514,7 @@ export const createGrade = async (yearId: string, termId: string, payload: Omit<
   return newGrade;
 };
 
-export const updateGrade = async (yearId: string, termId: string, id: string, payload: Partial<Grade>): Promise<Grade> => {
+const updateGradeImpl = async (yearId: string, termId: string, id: string, payload: Partial<Grade>): Promise<Grade> => {
   await delay(200);
   const data = getStructureForTerm(yearId, termId);
   const index = data.grades.findIndex((g) => g.id === id);
@@ -478,7 +540,7 @@ export const updateGrade = async (yearId: string, termId: string, id: string, pa
   return data.grades[index];
 };
 
-export const deleteGrade = async (yearId: string, termId: string, id: string): Promise<void> => {
+const deleteGradeImpl = async (yearId: string, termId: string, id: string): Promise<void> => {
   await delay(200);
   const data = getStructureForTerm(yearId, termId);
   const deletedGrade = data.grades.find((grade) => grade.id === id);
@@ -492,7 +554,7 @@ export const deleteGrade = async (yearId: string, termId: string, id: string): P
   setStructureForTerm(yearId, termId, data);
 };
 
-export const createSection = async (yearId: string, termId: string, payload: Omit<Section, "id">): Promise<Section> => {
+const createSectionImpl = async (yearId: string, termId: string, payload: Omit<Section, "id">): Promise<Section> => {
   await delay(200);
   const data = getStructureForTerm(yearId, termId);
   const siblingSections = data.sections.filter((section) => section.gradeId === payload.gradeId);
@@ -509,7 +571,7 @@ export const createSection = async (yearId: string, termId: string, payload: Omi
   return newSection;
 };
 
-export const updateSection = async (yearId: string, termId: string, id: string, payload: Partial<Section>): Promise<Section> => {
+const updateSectionImpl = async (yearId: string, termId: string, id: string, payload: Partial<Section>): Promise<Section> => {
   await delay(200);
   const data = getStructureForTerm(yearId, termId);
   const index = data.sections.findIndex((s) => s.id === id);
@@ -535,7 +597,7 @@ export const updateSection = async (yearId: string, termId: string, id: string, 
   return data.sections[index];
 };
 
-export const deleteSection = async (yearId: string, termId: string, id: string): Promise<void> => {
+const deleteSectionImpl = async (yearId: string, termId: string, id: string): Promise<void> => {
   await delay(200);
   const data = getStructureForTerm(yearId, termId);
   const deletedSection = data.sections.find((section) => section.id === id);
@@ -546,7 +608,7 @@ export const deleteSection = async (yearId: string, termId: string, id: string):
   setStructureForTerm(yearId, termId, data);
 };
 
-export const createClassroom = async (yearId: string, termId: string, payload: Omit<Classroom, "id">): Promise<Classroom> => {
+const createClassroomImpl = async (yearId: string, termId: string, payload: Omit<Classroom, "id">): Promise<Classroom> => {
   await delay(200);
   const data = getStructureForTerm(yearId, termId);
   const siblingClassrooms = data.classrooms.filter((classroom) => classroom.sectionId === payload.sectionId);
@@ -563,7 +625,7 @@ export const createClassroom = async (yearId: string, termId: string, payload: O
   return newClassroom;
 };
 
-export const updateClassroom = async (yearId: string, termId: string, id: string, payload: Partial<Classroom>): Promise<Classroom> => {
+const updateClassroomImpl = async (yearId: string, termId: string, id: string, payload: Partial<Classroom>): Promise<Classroom> => {
   await delay(200);
   const data = getStructureForTerm(yearId, termId);
   const index = data.classrooms.findIndex((classroom) => classroom.id === id);
@@ -589,7 +651,7 @@ export const updateClassroom = async (yearId: string, termId: string, id: string
   return data.classrooms[index];
 };
 
-export const deleteClassroom = async (yearId: string, termId: string, id: string): Promise<void> => {
+const deleteClassroomImpl = async (yearId: string, termId: string, id: string): Promise<void> => {
   await delay(200);
   const data = getStructureForTerm(yearId, termId);
   const deletedClassroom = data.classrooms.find((classroom) => classroom.id === id);
@@ -600,7 +662,7 @@ export const deleteClassroom = async (yearId: string, termId: string, id: string
   setStructureForTerm(yearId, termId, data);
 };
 
-export const reorderGrades = async (yearId: string, termId: string, stageId: string, orderedGradeIds: string[]): Promise<void> => {
+const reorderGradesImpl = async (yearId: string, termId: string, stageId: string, orderedGradeIds: string[]): Promise<void> => {
   await delay(200);
   const data = getStructureForTerm(yearId, termId);
   orderedGradeIds.forEach((gradeId, index) => {
@@ -612,7 +674,7 @@ export const reorderGrades = async (yearId: string, termId: string, stageId: str
   setStructureForTerm(yearId, termId, data);
 };
 
-export const reorderSections = async (
+const reorderSectionsImpl = async (
   yearId: string,
   termId: string,
   gradeId: string,
@@ -629,7 +691,7 @@ export const reorderSections = async (
   setStructureForTerm(yearId, termId, data);
 };
 
-export const reorderClassrooms = async (
+const reorderClassroomsImpl = async (
   yearId: string,
   termId: string,
   sectionId: string,
@@ -646,7 +708,7 @@ export const reorderClassrooms = async (
   setStructureForTerm(yearId, termId, data);
 };
 
-export const carryOverStructure = async (options: CarryOverOptions): Promise<void> => {
+const carryOverStructureImpl = async (options: CarryOverOptions): Promise<void> => {
   await delay(500);
   const { fromYearId, fromTermId, toYearId, toTermId, copyCapacities = true, copyOrdering = true } = options;
 
@@ -701,6 +763,183 @@ export const carryOverStructure = async (options: CarryOverOptions): Promise<voi
     classrooms: newClassrooms,
   });
 };
+
+const mockStructureAdapter: StructureAdapter = {
+  fetchAcademicYears: fetchAcademicYearsImpl,
+  fetchTermsByYear: fetchTermsByYearImpl,
+  createAcademicYear: createAcademicYearImpl,
+  updateAcademicYear: updateAcademicYearImpl,
+  createTerm: createTermImpl,
+  updateTerm: updateTermImpl,
+  fetchStructureTree: fetchStructureTreeImpl,
+  createStage: createStageImpl,
+  updateStage: updateStageImpl,
+  deleteStage: deleteStageImpl,
+  createGrade: createGradeImpl,
+  updateGrade: updateGradeImpl,
+  deleteGrade: deleteGradeImpl,
+  createSection: createSectionImpl,
+  updateSection: updateSectionImpl,
+  deleteSection: deleteSectionImpl,
+  createClassroom: createClassroomImpl,
+  updateClassroom: updateClassroomImpl,
+  deleteClassroom: deleteClassroomImpl,
+  reorderGrades: reorderGradesImpl,
+  reorderSections: reorderSectionsImpl,
+  reorderClassrooms: reorderClassroomsImpl,
+  carryOverStructure: carryOverStructureImpl,
+};
+
+let structureAdapter: StructureAdapter =
+  process.env.NEXT_PUBLIC_USE_STRUCTURE_API === "true"
+    ? structureApiAdapter
+    : mockStructureAdapter;
+
+export const getStructureAdapter = (): StructureAdapter => structureAdapter;
+
+export const setStructureAdapter = (adapter: StructureAdapter) => {
+  structureAdapter = adapter;
+};
+
+export const resetStructureAdapter = () => {
+  structureAdapter =
+    process.env.NEXT_PUBLIC_USE_STRUCTURE_API === "true"
+      ? structureApiAdapter
+      : mockStructureAdapter;
+};
+
+export const activateStructureAdapter = () => {
+  structureAdapter = structureApiAdapter;
+};
+
+export const fetchAcademicYears = async (): Promise<AcademicYear[]> =>
+  getStructureAdapter().fetchAcademicYears();
+
+export const fetchTermsByYear = async (yearId: string): Promise<Term[]> =>
+  getStructureAdapter().fetchTermsByYear(yearId);
+
+export const createAcademicYear = async (
+  payload: Omit<AcademicYear, "id">
+): Promise<AcademicYear> => getStructureAdapter().createAcademicYear(payload);
+
+export const updateAcademicYear = async (
+  id: string,
+  payload: Partial<Omit<AcademicYear, "id">>
+): Promise<AcademicYear> => getStructureAdapter().updateAcademicYear(id, payload);
+
+export const createTerm = async (payload: Omit<Term, "id">): Promise<Term> =>
+  getStructureAdapter().createTerm(payload);
+
+export const updateTerm = async (
+  id: string,
+  payload: Partial<Omit<Term, "id">>
+): Promise<Term> => getStructureAdapter().updateTerm(id, payload);
+
+export const fetchStructureTree = async (
+  yearId: string,
+  termId: string
+): Promise<StructureTree> => getStructureAdapter().fetchStructureTree(yearId, termId);
+
+export const createStage = async (
+  yearId: string,
+  termId: string,
+  payload: Omit<Stage, "id">
+): Promise<Stage> => getStructureAdapter().createStage(yearId, termId, payload);
+
+export const updateStage = async (
+  yearId: string,
+  termId: string,
+  id: string,
+  payload: Partial<Stage>
+): Promise<Stage> => getStructureAdapter().updateStage(yearId, termId, id, payload);
+
+export const deleteStage = async (
+  yearId: string,
+  termId: string,
+  id: string
+): Promise<void> => getStructureAdapter().deleteStage(yearId, termId, id);
+
+export const createGrade = async (
+  yearId: string,
+  termId: string,
+  payload: Omit<Grade, "id">
+): Promise<Grade> => getStructureAdapter().createGrade(yearId, termId, payload);
+
+export const updateGrade = async (
+  yearId: string,
+  termId: string,
+  id: string,
+  payload: Partial<Grade>
+): Promise<Grade> => getStructureAdapter().updateGrade(yearId, termId, id, payload);
+
+export const deleteGrade = async (
+  yearId: string,
+  termId: string,
+  id: string
+): Promise<void> => getStructureAdapter().deleteGrade(yearId, termId, id);
+
+export const createSection = async (
+  yearId: string,
+  termId: string,
+  payload: Omit<Section, "id">
+): Promise<Section> => getStructureAdapter().createSection(yearId, termId, payload);
+
+export const updateSection = async (
+  yearId: string,
+  termId: string,
+  id: string,
+  payload: Partial<Section>
+): Promise<Section> => getStructureAdapter().updateSection(yearId, termId, id, payload);
+
+export const deleteSection = async (
+  yearId: string,
+  termId: string,
+  id: string
+): Promise<void> => getStructureAdapter().deleteSection(yearId, termId, id);
+
+export const createClassroom = async (
+  yearId: string,
+  termId: string,
+  payload: Omit<Classroom, "id">
+): Promise<Classroom> => getStructureAdapter().createClassroom(yearId, termId, payload);
+
+export const updateClassroom = async (
+  yearId: string,
+  termId: string,
+  id: string,
+  payload: Partial<Classroom>
+): Promise<Classroom> => getStructureAdapter().updateClassroom(yearId, termId, id, payload);
+
+export const deleteClassroom = async (
+  yearId: string,
+  termId: string,
+  id: string
+): Promise<void> => getStructureAdapter().deleteClassroom(yearId, termId, id);
+
+export const reorderGrades = async (
+  yearId: string,
+  termId: string,
+  stageId: string,
+  orderedGradeIds: string[]
+): Promise<void> => getStructureAdapter().reorderGrades(yearId, termId, stageId, orderedGradeIds);
+
+export const reorderSections = async (
+  yearId: string,
+  termId: string,
+  gradeId: string,
+  orderedSectionIds: string[]
+): Promise<void> => getStructureAdapter().reorderSections(yearId, termId, gradeId, orderedSectionIds);
+
+export const reorderClassrooms = async (
+  yearId: string,
+  termId: string,
+  sectionId: string,
+  orderedClassroomIds: string[]
+): Promise<void> =>
+  getStructureAdapter().reorderClassrooms(yearId, termId, sectionId, orderedClassroomIds);
+
+export const carryOverStructure = async (options: CarryOverOptions): Promise<void> =>
+  getStructureAdapter().carryOverStructure(options);
 
 // ============================================================================
 // VALIDATION HELPERS

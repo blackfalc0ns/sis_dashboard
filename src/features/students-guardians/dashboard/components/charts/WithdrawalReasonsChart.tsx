@@ -1,13 +1,13 @@
-// FILE: src/components/students-guardians/charts/WithdrawalReasonsChart.tsx
-
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { useResponsiveChart } from "@/hooks/useResponsiveChart";
 import { ChartCard } from "@/components/ui/chart-card";
 import { DropdownItem } from "@/components/ui/dropdown";
+import { fetchWithdrawalReasonsBreakdown } from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 type Stage = "all" | "primary" | "preparatory" | "secondary";
 
@@ -15,23 +15,48 @@ export default function WithdrawalReasonsChart() {
   const t = useTranslations("students_guardians.transfers_withdrawals");
   const { width } = useResponsiveChart();
   const [selectedStage, setSelectedStage] = useState<Stage>("all");
+  const [reasons, setReasons] = useState<{ reason: string; value: number }[]>(
+    [],
+  );
+  const [isLoading, setIsLoading] = useState(true);
 
-  // TODO: Replace with actual API data
-  const mockReasonsData = [
-    { reason: "relocation", value: 35, color: "#036b80" },
-    { reason: "financial", value: 25, color: "#3b82f6" },
-    { reason: "academic", value: 20, color: "#8b5cf6" },
-    { reason: "behavior", value: 12, color: "#ef4444" },
-    { reason: "other", value: 8, color: "#6b7280" },
-  ];
+  useEffect(() => {
+    let isCancelled = false;
 
-  // TODO: Filter data based on selected stage when API is integrated
-  const chartData = mockReasonsData.map((item, index) => ({
-    id: index,
-    value: item.value,
-    label: t(`filters.reasons.${item.reason}`),
-    color: item.color,
-  }));
+    void Promise.resolve().then(async () => {
+      if (isCancelled) {
+        return;
+      }
+
+      setIsLoading(true);
+
+      try {
+        const data = await fetchWithdrawalReasonsBreakdown(selectedStage);
+        if (!isCancelled) {
+          setReasons(data);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedStage]);
+
+  const chartData = useMemo(
+    () =>
+      reasons.map((item, index) => ({
+        id: index,
+        value: item.value,
+        label: t(`filters.reasons.${item.reason}`),
+        color: ["#036b80", "#3b82f6", "#8b5cf6", "#ef4444", "#6b7280"][index % 5],
+      })),
+    [reasons, t],
+  );
 
   const stageOptions: DropdownItem[] = [
     { label: t("filters.all_stages"), value: "all" },
@@ -50,29 +75,33 @@ export default function WithdrawalReasonsChart() {
       bgColor="#fef3c7"
     >
       <div className="w-full flex flex-col items-center mt-4">
-        <PieChart
-          series={[
-            {
-              data: chartData,
-              highlightScope: { fade: "global", highlight: "item" },
-              innerRadius: 60,
-              outerRadius: 120,
-              paddingAngle: 2,
-              cornerRadius: 5,
-              arcLabel: (item) => `${item.value}%`,
-              arcLabelMinAngle: 35,
-            },
-          ]}
-          width={Math.min(width, 500)}
-          height={300}
-          margin={{ top: 20, right: 20, bottom: 80, left: 20 }}
-          slotProps={{
-            legend: {
-              direction: "horizontal",
-              position: { vertical: 'bottom', horizontal: 'center' },
-            },
-          }}
-        />
+        {isLoading ? (
+          <PartialLoader />
+        ) : (
+          <PieChart
+            series={[
+              {
+                data: chartData,
+                highlightScope: { fade: "global", highlight: "item" },
+                innerRadius: 60,
+                outerRadius: 120,
+                paddingAngle: 2,
+                cornerRadius: 5,
+                arcLabel: (item) => `${item.value}`,
+                arcLabelMinAngle: 35,
+              },
+            ]}
+            width={Math.min(width, 500)}
+            height={300}
+            margin={{ top: 20, right: 20, bottom: 80, left: 20 }}
+            slotProps={{
+              legend: {
+                direction: "horizontal",
+                position: { vertical: "bottom", horizontal: "center" },
+              },
+            }}
+          />
+        )}
       </div>
     </ChartCard>
   );

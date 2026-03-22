@@ -21,6 +21,8 @@ import { mockApplications, mockInterviews } from "@/data/mockAdmissions";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import InterviewRatingModal from "@/features/admissions/interviews/components/InterviewRatingModal";
 import ScheduleInterviewModal from "@/features/admissions/interviews/components/ScheduleInterviewModal";
+import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 
 interface InterviewDetailsPageProps {
   interviewId: string;
@@ -32,6 +34,7 @@ export default function InterviewDetailsPage({
   const t = useTranslations("admissions.interviews");
   const locale = useLocale();
   const router = useRouter();
+  const { isReadOnly } = useAdmissionsYearTermContext();
 
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
@@ -99,6 +102,7 @@ export default function InterviewDetailsPage({
   const { interview, application, studentName } = interviewData;
 
   const handleRateInterview = () => {
+    if (isReadOnly) return;
     setIsRatingModalOpen(true);
   };
 
@@ -115,6 +119,7 @@ export default function InterviewDetailsPage({
   };
 
   const handleReschedule = () => {
+    if (isReadOnly) return;
     setIsRescheduleModalOpen(true);
   };
 
@@ -180,6 +185,7 @@ export default function InterviewDetailsPage({
         </div>
 
         {/* Interview Details */}
+        {isReadOnly && <AdmissionsReadOnlyBanner />}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <h2 className="text-lg font-bold text-gray-900 mb-6">
             {t("details.interview_information")}
@@ -356,6 +362,7 @@ export default function InterviewDetailsPage({
               interview.status === "completed") && (
               <button
                 onClick={handleRateInterview}
+                disabled={isReadOnly}
                 className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
               >
                 <Edit className="w-4 h-4" />
@@ -424,6 +431,7 @@ export default function InterviewDetailsPage({
               <>
                 <button
                   onClick={handleReschedule}
+                  disabled={isReadOnly}
                   className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
                 >
                   {t("actions.reschedule")}
@@ -440,6 +448,7 @@ export default function InterviewDetailsPage({
               !interview.rating && (
                 <button
                   onClick={handleRateInterview}
+                  disabled={isReadOnly}
                   className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
                 >
                   {t("actions.rate_interview")}

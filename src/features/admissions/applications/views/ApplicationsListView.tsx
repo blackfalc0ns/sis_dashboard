@@ -479,6 +479,11 @@ export default function ApplicationsListView({
           data={filteredApplications}
           onRowClick={handleRowClick}
           searchQuery={filterValues.searchQuery}
+          urlState={{
+            keyPrefix: "applicationsListViewTable",
+            syncPagination: true,
+            syncSorting: true,
+          }}
         />
       )}
 

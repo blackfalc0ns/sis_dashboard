@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Drawer } from "@mui/material";
 import { X } from "lucide-react";
@@ -15,17 +15,20 @@ interface FiltersDrawerProps {
   stages: { id: string; nameAr: string; nameEn: string }[];
   grades: { id: string; nameAr: string; nameEn: string; stageId: string }[];
   sections: { id: string; nameAr: string; nameEn: string; gradeId: string }[];
+  classrooms: { id: string; nameAr: string; nameEn: string; sectionId: string }[];
   subjects: Subject[];
   teachers: Teacher[];
   selectedStageId: string;
   selectedGradeId: string;
   selectedSectionId: string;
+  selectedClassroomId: string;
   selectedSubjectId: string;
   assignedTeacherId: string;
   onApply: (filters: {
     stageId: string;
     gradeId: string;
     sectionId: string;
+    classroomId: string;
     subjectId: string;
   }) => void;
 }
@@ -36,45 +39,61 @@ export default function FiltersDrawer({
   stages,
   grades,
   sections,
+  classrooms,
   subjects,
   teachers,
   selectedStageId,
   selectedGradeId,
   selectedSectionId,
+  selectedClassroomId,
   selectedSubjectId,
   assignedTeacherId,
   onApply,
 }: FiltersDrawerProps) {
   const t = useTranslations("academics.lessonPlans");
-  const tCommon = useTranslations("common");
   const locale = useLocale();
   const isRTL = locale === "ar";
+  const classroomLabel = isRTL ? "\u0627\u0644\u0641\u0635\u0644" : "Classroom";
+  const selectClassroomLabel = isRTL
+    ? "\u0627\u062e\u062a\u0631 \u0627\u0644\u0641\u0635\u0644"
+    : "Select Classroom";
 
   // Local state for filters
   const [localStageId, setLocalStageId] = useState(selectedStageId);
   const [localGradeId, setLocalGradeId] = useState(selectedGradeId);
   const [localSectionId, setLocalSectionId] = useState(selectedSectionId);
+  const [localClassroomId, setLocalClassroomId] = useState(selectedClassroomId);
   const [localSubjectId, setLocalSubjectId] = useState(selectedSubjectId);
 
-  // Reset local state when drawer opens
+  // Reset the local draft filters whenever the drawer opens with external values.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (isOpen) {
       setLocalStageId(selectedStageId);
       setLocalGradeId(selectedGradeId);
       setLocalSectionId(selectedSectionId);
+      setLocalClassroomId(selectedClassroomId);
       setLocalSubjectId(selectedSubjectId);
     }
-  }, [isOpen, selectedStageId, selectedGradeId, selectedSectionId, selectedSubjectId]);
+  }, [isOpen, selectedStageId, selectedGradeId, selectedSectionId, selectedClassroomId, selectedSubjectId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleStageChange = (stageId: string) => {
     setLocalStageId(stageId);
     setLocalGradeId("");
     setLocalSectionId("");
+    setLocalClassroomId("");
   };
 
   const handleGradeChange = (gradeId: string) => {
     setLocalGradeId(gradeId);
     setLocalSectionId("");
+    setLocalClassroomId("");
+  };
+
+  const handleSectionChange = (sectionId: string) => {
+    setLocalSectionId(sectionId);
+    setLocalClassroomId("");
   };
 
   const handleApply = () => {
@@ -82,6 +101,7 @@ export default function FiltersDrawer({
       stageId: localStageId,
       gradeId: localGradeId,
       sectionId: localSectionId,
+      classroomId: localClassroomId,
       subjectId: localSubjectId,
     });
     onClose();
@@ -91,10 +111,26 @@ export default function FiltersDrawer({
     setLocalStageId("");
     setLocalGradeId("");
     setLocalSectionId("");
+    setLocalClassroomId("");
     setLocalSubjectId("");
   };
 
   const assignedTeacher = teachers.find((t) => t.id === assignedTeacherId);
+  const filteredGrades = useMemo(
+    () => grades.filter((grade) => !localStageId || grade.stageId === localStageId),
+    [grades, localStageId]
+  );
+  const filteredSections = useMemo(
+    () => sections.filter((section) => !localGradeId || section.gradeId === localGradeId),
+    [sections, localGradeId]
+  );
+  const filteredClassrooms = useMemo(
+    () =>
+      classrooms.filter(
+        (classroom) => !localSectionId || classroom.sectionId === localSectionId
+      ),
+    [classrooms, localSectionId]
+  );
 
   return (
     <Drawer
@@ -142,7 +178,7 @@ export default function FiltersDrawer({
             onChange={handleGradeChange}
             options={[
               { value: "", label: t("filters.selectGrade") },
-              ...grades.map((grade) => ({
+              ...filteredGrades.map((grade) => ({
                 value: grade.id,
                 label: isRTL ? grade.nameAr : grade.nameEn,
               })),
@@ -154,16 +190,32 @@ export default function FiltersDrawer({
           <Select
             label={t("filters.section")}
             value={localSectionId}
-            onChange={setLocalSectionId}
+            onChange={handleSectionChange}
             options={[
               { value: "", label: t("filters.selectSection") },
-              ...sections.map((section) => ({
+              ...filteredSections.map((section) => ({
                 value: section.id,
                 label: isRTL ? section.nameAr : section.nameEn,
               })),
             ]}
             disabled={!localGradeId}
           />
+
+          {filteredClassrooms.length > 0 && (
+            <Select
+              label={classroomLabel}
+              value={localClassroomId}
+              onChange={setLocalClassroomId}
+              options={[
+                { value: "", label: selectClassroomLabel },
+                ...filteredClassrooms.map((classroom) => ({
+                  value: classroom.id,
+                  label: isRTL ? classroom.nameAr : classroom.nameEn,
+                })),
+              ]}
+              disabled={!localSectionId}
+            />
+          )}
 
           {/* Subject */}
           <Select

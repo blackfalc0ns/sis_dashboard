@@ -16,6 +16,7 @@ export {
   mockStudentEnrollments,
   mockEnrollmentMovements,
   getEnrollmentByStudentId,
+  getEnrollmentByStudentIdAndAcademicYear,
   getEnrollmentsByStudentId,
   getEnrollmentsByGrade,
   getEnrollmentsBySection,

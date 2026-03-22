@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useDebouncedCallback } from "use-debounce";
 import { AlertCircle, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { Drawer, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import ContextBar from "../../components/shared/ContextBar";
@@ -49,19 +50,24 @@ export default function CurriculumPageContent() {
   const LEFT_PANEL_WIDTH = 280;
   const RIGHT_PANEL_WIDTH = 320;
 
-  // Panel visibility state
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
-
-  // Mobile drawers
-  const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
-  const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
-
-  // URL params
   const [academicYearId, setAcademicYearId] = useState("");
   const [termId, setTermId] = useState("");
   const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
-  const [urlUnitId, setUrlUnitId] = useState<string | null>(null);
-  const [urlLessonId, setUrlLessonId] = useState<string | null>(null);
+  const queryState = useMemo(
+    () => ({
+      yearId: searchParams.get("year"),
+      termId: searchParams.get("term"),
+      gradeId: searchParams.get("grade"),
+      subjectId: searchParams.get("subject"),
+      unitId: searchParams.get("unit"),
+      lessonId: searchParams.get("lesson"),
+      searchQuery: searchParams.get("search") || "",
+      filtersCollapsed: searchParams.get("filters") === "collapsed",
+      leftDrawerOpen: searchParams.get("leftDrawer") === "1",
+      rightDrawerOpen: searchParams.get("rightDrawer") === "1",
+    }),
+    [searchParams]
+  );
 
   // Context data
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -79,6 +85,9 @@ export default function CurriculumPageContent() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [termWeeks, setTermWeeks] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [contextError, setContextError] = useState("");
+  const [curriculumError, setCurriculumError] = useState("");
+  const [searchInputValue, setSearchInputValue] = useState(queryState.searchQuery);
 
   // UI State
   const [selectedNode, setSelectedNode] = useState<
@@ -87,142 +96,356 @@ export default function CurriculumPageContent() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showCarryOverDialog, setShowCarryOverDialog] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const initializeRequestIdRef = useRef(0);
+  const optionsRequestIdRef = useRef(0);
+  const curriculumRequestIdRef = useRef(0);
 
   const isReadOnly = termStatus === "closed";
 
-  // Initialize from URL
   useEffect(() => {
-    const initializeContext = async () => {
-      try {
-        const years = await fetchAcademicYears();
-        setAcademicYears(years);
-
-        const urlYear = searchParams.get("year");
-        const urlTerm = searchParams.get("term");
-        const urlUnit = searchParams.get("unit");
-        const urlLesson = searchParams.get("lesson");
-
-        setUrlUnitId(urlUnit);
-        setUrlLessonId(urlLesson);
-
-        const selectedYear = years.find((y) => y.id === urlYear) || years[0];
-        if (!selectedYear) return;
-
-        const yearTerms = await fetchTermsByYear(selectedYear.id);
-        setTerms(yearTerms);
-
-        let selectedTerm = yearTerms.find((t) => t.id === urlTerm);
-        if (!selectedTerm) {
-          selectedTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
-        }
-
-        if (selectedYear && selectedTerm) {
-          setAcademicYearId(selectedYear.id);
-          setTermId(selectedTerm.id);
-          setTermStatus(selectedTerm.status);
-
-          const weeks = calculateTermWeeks(selectedTerm.startDate, selectedTerm.endDate);
-          setTermWeeks(weeks);
-
-          const params = new URLSearchParams();
-          params.set("year", selectedYear.id);
-          params.set("term", selectedTerm.id);
-          if (urlUnit) params.set("unit", urlUnit);
-          if (urlLesson) params.set("lesson", urlLesson);
-          router.replace(`?${params.toString()}`, { scroll: false });
-        }
-      } catch (error) {
-        console.error("Failed to initialize:", error);
-      }
-    };
-
-    initializeContext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Load grades and subjects when term changes
-  useEffect(() => {
-    if (!academicYearId || !termId) return;
-
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const [structureData, subjectsData] = await Promise.all([
-          fetchStructureTree(academicYearId, termId),
-          fetchSubjects(termId),
-        ]);
-
-        setGrades(structureData.grades);
-        setSubjects(subjectsData);
-
-        if (structureData.grades.length > 0 && !selectedGradeId) {
-          setSelectedGradeId(structureData.grades[0].id);
-        }
-        if (subjectsData.length > 0 && !selectedSubjectId) {
-          setSelectedSubjectId(subjectsData[0].id);
-        }
-      } catch (error) {
-        console.error("Failed to load data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [academicYearId, termId, selectedGradeId, selectedSubjectId]);
-
-  // Load curriculum when grade/subject changes
-  useEffect(() => {
-    if (!termId || !selectedGradeId || !selectedSubjectId) return;
-
-    const loadCurriculum = async () => {
-      try {
-        const curriculumData = await fetchCurriculum(termId, selectedGradeId, selectedSubjectId);
-        setCurriculum(curriculumData);
-
-        if (curriculumData) {
-          const [unitsData, lessonsData] = await Promise.all([
-            fetchUnits(curriculumData.id),
-            fetchAllLessons(curriculumData.id),
-          ]);
-          setUnits(unitsData);
-          setLessons(lessonsData);
-
-          // Set selected node from URL after data is loaded
-          if (urlLessonId) {
-            const lessonExists = lessonsData.some((l) => l.id === urlLessonId);
-            if (lessonExists) {
-              setSelectedNode({ type: "lesson", id: urlLessonId });
-            }
-          } else if (urlUnitId) {
-            const unitExists = unitsData.some((u) => u.id === urlUnitId);
-            if (unitExists) {
-              setSelectedNode({ type: "unit", id: urlUnitId });
-            }
-          }
-        } else {
-          setUnits([]);
-          setLessons([]);
-        }
-      } catch (error) {
-        console.error("Failed to load curriculum:", error);
-      }
-    };
-
-    loadCurriculum();
-  }, [termId, selectedGradeId, selectedSubjectId, urlUnitId, urlLessonId]);
+    setSearchInputValue(queryState.searchQuery);
+  }, [queryState.searchQuery]);
 
   const updateURL = useCallback(
-    (yearId: string, tId: string, unitId?: string | null, lessonId?: string | null) => {
+    (
+      nextState: {
+        yearId: string;
+        termId: string;
+        gradeId?: string | null;
+        subjectId?: string | null;
+        unitId?: string | null;
+        lessonId?: string | null;
+        searchQuery?: string;
+        filtersCollapsed?: boolean;
+        leftDrawerOpen?: boolean;
+        rightDrawerOpen?: boolean;
+      },
+      historyMode: "push" | "replace" = "replace"
+    ) => {
       const params = new URLSearchParams();
-      params.set("year", yearId);
-      params.set("term", tId);
-      if (unitId) params.set("unit", unitId);
-      if (lessonId) params.set("lesson", lessonId);
-      router.replace(`?${params.toString()}`, { scroll: false });
+      params.set("year", nextState.yearId);
+      params.set("term", nextState.termId);
+      if (nextState.gradeId) params.set("grade", nextState.gradeId);
+      if (nextState.subjectId) params.set("subject", nextState.subjectId);
+      if (nextState.unitId) params.set("unit", nextState.unitId);
+      if (nextState.lessonId) params.set("lesson", nextState.lessonId);
+      if (nextState.searchQuery) params.set("search", nextState.searchQuery);
+      if (nextState.filtersCollapsed) params.set("filters", "collapsed");
+      if (nextState.leftDrawerOpen) params.set("leftDrawer", "1");
+      if (nextState.rightDrawerOpen) params.set("rightDrawer", "1");
+
+      const nextQuery = params.toString();
+      const currentQuery = searchParams.toString();
+      if (nextQuery === currentQuery) {
+        return;
+      }
+
+      const nextUrl = nextQuery ? `?${nextQuery}` : "?";
+      if (historyMode === "push") {
+        router.push(nextUrl, { scroll: false });
+        return;
+      }
+      router.replace(nextUrl, { scroll: false });
     },
-    [router]
+    [router, searchParams]
   );
+  const syncSearchQueryParam = useDebouncedCallback((value: string) => {
+    updateURL(
+      {
+        yearId: academicYearId,
+        termId,
+        gradeId: selectedGradeId,
+        subjectId: selectedSubjectId,
+        unitId: queryState.unitId,
+        lessonId: queryState.lessonId,
+        searchQuery: value,
+        filtersCollapsed: queryState.filtersCollapsed,
+        leftDrawerOpen: queryState.leftDrawerOpen,
+        rightDrawerOpen: queryState.rightDrawerOpen,
+      },
+      "replace"
+    );
+  }, 250);
+
+  useEffect(() => () => {
+    syncSearchQueryParam.cancel();
+  }, [syncSearchQueryParam]);
+
+  // Initialize from URL
+  const initializeContext = useCallback(async () => {
+    const requestId = ++initializeRequestIdRef.current;
+
+    try {
+      setContextError("");
+      const years = await fetchAcademicYears();
+      if (requestId !== initializeRequestIdRef.current) return;
+      setAcademicYears(years);
+
+      const selectedYear = years.find((y) => y.id === queryState.yearId) || years[0];
+      if (!selectedYear) return;
+
+      const yearTerms = await fetchTermsByYear(selectedYear.id);
+      if (requestId !== initializeRequestIdRef.current) return;
+      setTerms(yearTerms);
+
+      let selectedTerm = yearTerms.find((t) => t.id === queryState.termId);
+      if (!selectedTerm) {
+        selectedTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
+      }
+
+      if (selectedYear && selectedTerm) {
+        setAcademicYearId(selectedYear.id);
+        setTermId(selectedTerm.id);
+        setTermStatus(selectedTerm.status);
+
+        const weeks = calculateTermWeeks(selectedTerm.startDate, selectedTerm.endDate);
+        setTermWeeks(weeks);
+
+        updateURL({
+          yearId: selectedYear.id,
+          termId: selectedTerm.id,
+          gradeId: queryState.gradeId,
+          subjectId: queryState.subjectId,
+          unitId: queryState.unitId,
+          lessonId: queryState.lessonId,
+          searchQuery: queryState.searchQuery,
+          filtersCollapsed: queryState.filtersCollapsed,
+          leftDrawerOpen: queryState.leftDrawerOpen,
+          rightDrawerOpen: queryState.rightDrawerOpen,
+        });
+      }
+    } catch (error) {
+      if (requestId !== initializeRequestIdRef.current) return;
+      console.error("Failed to initialize:", error);
+      setContextError(tCommon("error"));
+      setIsLoading(false);
+    }
+  }, [
+    queryState.gradeId,
+    queryState.filtersCollapsed,
+    queryState.leftDrawerOpen,
+    queryState.lessonId,
+    queryState.rightDrawerOpen,
+    queryState.searchQuery,
+    queryState.subjectId,
+    queryState.termId,
+    queryState.unitId,
+    queryState.yearId,
+    tCommon,
+    updateURL,
+  ]);
+
+  useEffect(() => {
+    initializeContext();
+  }, [initializeContext]);
+
+  // Load grades and subjects when term changes
+  const loadOptionsData = useCallback(async () => {
+    if (!academicYearId || !termId) return;
+
+    const requestId = ++optionsRequestIdRef.current;
+    setIsLoading(true);
+    try {
+      setContextError("");
+      const [structureData, subjectsData] = await Promise.all([
+        fetchStructureTree(academicYearId, termId),
+        fetchSubjects(termId),
+      ]);
+      if (requestId !== optionsRequestIdRef.current) return;
+
+      setGrades(structureData.grades);
+      setSubjects(subjectsData);
+
+      if (structureData.grades.length > 0) {
+        const nextGradeId =
+          (queryState.gradeId &&
+            structureData.grades.some((grade) => grade.id === queryState.gradeId) &&
+            queryState.gradeId) ||
+          selectedGradeId ||
+          structureData.grades[0]!.id;
+        setSelectedGradeId(nextGradeId);
+      } else {
+        setSelectedGradeId("");
+      }
+      if (subjectsData.length > 0) {
+        const nextSubjectId =
+          (queryState.subjectId &&
+            subjectsData.some((subject) => subject.id === queryState.subjectId) &&
+            queryState.subjectId) ||
+          selectedSubjectId ||
+          subjectsData[0]!.id;
+        setSelectedSubjectId(nextSubjectId);
+      } else {
+        setSelectedSubjectId("");
+      }
+    } catch (error) {
+      if (requestId !== optionsRequestIdRef.current) return;
+      console.error("Failed to load data:", error);
+      setGrades([]);
+      setSubjects([]);
+      setSelectedGradeId("");
+      setSelectedSubjectId("");
+      setContextError(tCommon("error"));
+    } finally {
+      if (requestId === optionsRequestIdRef.current) {
+        setIsLoading(false);
+      }
+    }
+  }, [academicYearId, queryState.gradeId, queryState.subjectId, selectedGradeId, selectedSubjectId, tCommon, termId]);
+
+  useEffect(() => {
+    loadOptionsData();
+  }, [loadOptionsData]);
+  useEffect(() => {
+    if (!academicYearId || !termId) {
+      return;
+    }
+
+    const normalizedGradeId =
+      selectedGradeId && grades.some((grade) => grade.id === selectedGradeId)
+        ? selectedGradeId
+        : "";
+    const normalizedSubjectId =
+      selectedSubjectId && subjects.some((subject) => subject.id === selectedSubjectId)
+        ? selectedSubjectId
+        : "";
+
+    if (
+      normalizedGradeId === queryState.gradeId &&
+      normalizedSubjectId === queryState.subjectId
+    ) {
+      return;
+    }
+
+    updateURL({
+      yearId: academicYearId,
+      termId,
+      gradeId: normalizedGradeId || null,
+      subjectId: normalizedSubjectId || null,
+      searchQuery: queryState.searchQuery,
+      filtersCollapsed: queryState.filtersCollapsed,
+      leftDrawerOpen: queryState.leftDrawerOpen,
+      rightDrawerOpen: queryState.rightDrawerOpen,
+    });
+  }, [
+    academicYearId,
+    grades,
+    queryState.filtersCollapsed,
+    queryState.gradeId,
+    queryState.leftDrawerOpen,
+    queryState.rightDrawerOpen,
+    queryState.searchQuery,
+    queryState.subjectId,
+    selectedGradeId,
+    selectedSubjectId,
+    subjects,
+    termId,
+    updateURL,
+  ]);
+
+  // Load curriculum when grade/subject changes
+  const loadCurriculumData = useCallback(async () => {
+    if (!termId || !selectedGradeId || !selectedSubjectId) return;
+
+    const requestId = ++curriculumRequestIdRef.current;
+    try {
+      setCurriculumError("");
+      const curriculumData = await fetchCurriculum(termId, selectedGradeId, selectedSubjectId);
+      if (requestId !== curriculumRequestIdRef.current) return;
+      setCurriculum(curriculumData);
+
+      if (curriculumData) {
+        const [unitsData, lessonsData] = await Promise.all([
+          fetchUnits(curriculumData.id),
+          fetchAllLessons(curriculumData.id),
+        ]);
+        if (requestId !== curriculumRequestIdRef.current) return;
+        setUnits(unitsData);
+        setLessons(lessonsData);
+
+        if (queryState.lessonId) {
+          const lessonExists = lessonsData.some((l) => l.id === queryState.lessonId);
+          setSelectedNode(
+            lessonExists ? { type: "lesson", id: queryState.lessonId } : null
+          );
+        } else if (queryState.unitId) {
+          const unitExists = unitsData.some((u) => u.id === queryState.unitId);
+          setSelectedNode(unitExists ? { type: "unit", id: queryState.unitId } : null);
+        } else {
+          setSelectedNode(null);
+        }
+      } else {
+        setUnits([]);
+        setLessons([]);
+        setSelectedNode(null);
+      }
+    } catch (error) {
+      if (requestId !== curriculumRequestIdRef.current) return;
+      console.error("Failed to load curriculum:", error);
+      setCurriculum(null);
+      setUnits([]);
+      setLessons([]);
+      setSelectedNode(null);
+      setCurriculumError(tCommon("error"));
+    }
+  }, [queryState.lessonId, queryState.unitId, selectedGradeId, selectedSubjectId, tCommon, termId]);
+
+  useEffect(() => {
+    loadCurriculumData();
+  }, [loadCurriculumData]);
+
+  useEffect(() => {
+    if (!academicYearId || !termId || !selectedGradeId || !selectedSubjectId) {
+      return;
+    }
+
+    const normalizedLessonId =
+      queryState.lessonId && lessons.some((lesson) => lesson.id === queryState.lessonId)
+        ? queryState.lessonId
+        : null;
+    const normalizedUnitId =
+      !normalizedLessonId &&
+      queryState.unitId &&
+      units.some((unit) => unit.id === queryState.unitId)
+        ? queryState.unitId
+        : null;
+
+    if (
+      normalizedLessonId === queryState.lessonId &&
+      normalizedUnitId === queryState.unitId
+    ) {
+      return;
+    }
+
+    updateURL({
+      yearId: academicYearId,
+      termId,
+      gradeId: selectedGradeId,
+      subjectId: selectedSubjectId,
+      unitId: normalizedUnitId,
+      lessonId: normalizedLessonId,
+      searchQuery: queryState.searchQuery,
+      filtersCollapsed: queryState.filtersCollapsed,
+      leftDrawerOpen: queryState.leftDrawerOpen,
+      rightDrawerOpen: queryState.rightDrawerOpen,
+    });
+  }, [
+    academicYearId,
+    lessons,
+    queryState.filtersCollapsed,
+    queryState.leftDrawerOpen,
+    queryState.lessonId,
+    queryState.rightDrawerOpen,
+    queryState.searchQuery,
+    queryState.unitId,
+    selectedGradeId,
+    selectedSubjectId,
+    termId,
+    units,
+    updateURL,
+  ]);
+
+ 
 
   const handleAcademicYearChange = async (yearId: string) => {
     if (hasUnsavedChanges) {
@@ -241,9 +464,17 @@ export default function CurriculumPageContent() {
       setTermStatus(defaultTerm.status);
       const weeks = calculateTermWeeks(defaultTerm.startDate, defaultTerm.endDate);
       setTermWeeks(weeks);
-      setUrlUnitId(null);
-      setUrlLessonId(null);
-      updateURL(yearId, defaultTerm.id, null, null);
+      updateURL(
+        {
+          yearId,
+          termId: defaultTerm.id,
+          gradeId: selectedGradeId,
+          subjectId: selectedSubjectId,
+          searchQuery: queryState.searchQuery,
+          filtersCollapsed: queryState.filtersCollapsed,
+        },
+        "push"
+      );
     }
   };
 
@@ -259,9 +490,17 @@ export default function CurriculumPageContent() {
       setTermStatus(selectedTerm.status);
       const weeks = calculateTermWeeks(selectedTerm.startDate, selectedTerm.endDate);
       setTermWeeks(weeks);
-      setUrlUnitId(null);
-      setUrlLessonId(null);
-      updateURL(academicYearId, tId, null, null);
+      updateURL(
+        {
+          yearId: academicYearId,
+          termId: tId,
+          gradeId: selectedGradeId,
+          subjectId: selectedSubjectId,
+          searchQuery: queryState.searchQuery,
+          filtersCollapsed: queryState.filtersCollapsed,
+        },
+        "push"
+      );
     }
   };
 
@@ -276,9 +515,17 @@ export default function CurriculumPageContent() {
     }
     setSelectedGradeId(gradeId);
     setSelectedNode(null);
-    setUrlUnitId(null);
-    setUrlLessonId(null);
-    updateURL(academicYearId, termId, null, null);
+    updateURL(
+      {
+        yearId: academicYearId,
+        termId,
+        gradeId,
+        subjectId: selectedSubjectId,
+        searchQuery: queryState.searchQuery,
+        filtersCollapsed: queryState.filtersCollapsed,
+      },
+      "push"
+    );
   };
 
   const handleSubjectChange = (subjectId: string) => {
@@ -288,25 +535,23 @@ export default function CurriculumPageContent() {
     }
     setSelectedSubjectId(subjectId);
     setSelectedNode(null);
-    setUrlUnitId(null);
-    setUrlLessonId(null);
-    updateURL(academicYearId, termId, null, null);
+    updateURL(
+      {
+        yearId: academicYearId,
+        termId,
+        gradeId: selectedGradeId,
+        subjectId,
+        searchQuery: queryState.searchQuery,
+        filtersCollapsed: queryState.filtersCollapsed,
+      },
+      "push"
+    );
   };
 
   const refreshCurriculum = async () => {
     if (!termId || !selectedGradeId || !selectedSubjectId) return;
 
-    const curriculumData = await fetchCurriculum(termId, selectedGradeId, selectedSubjectId);
-    setCurriculum(curriculumData);
-
-    if (curriculumData) {
-      const [unitsData, lessonsData] = await Promise.all([
-        fetchUnits(curriculumData.id),
-        fetchAllLessons(curriculumData.id),
-      ]);
-      setUnits(unitsData);
-      setLessons(lessonsData);
-    }
+    await loadCurriculumData();
   };
 
   const handleSelectNode = (node: { type: "unit" | "lesson"; id: string } | null) => {
@@ -314,20 +559,151 @@ export default function CurriculumPageContent() {
     
     if (node) {
       if (node.type === "lesson") {
-        setUrlLessonId(node.id);
-        setUrlUnitId(null);
-        updateURL(academicYearId, termId, null, node.id);
+        updateURL(
+          {
+            yearId: academicYearId,
+            termId,
+            gradeId: selectedGradeId,
+            subjectId: selectedSubjectId,
+            lessonId: node.id,
+            searchQuery: queryState.searchQuery,
+            filtersCollapsed: queryState.filtersCollapsed,
+            rightDrawerOpen: queryState.rightDrawerOpen,
+          },
+          "push"
+        );
       } else if (node.type === "unit") {
-        setUrlUnitId(node.id);
-        setUrlLessonId(null);
-        updateURL(academicYearId, termId, node.id, null);
+        updateURL(
+          {
+            yearId: academicYearId,
+            termId,
+            gradeId: selectedGradeId,
+            subjectId: selectedSubjectId,
+            unitId: node.id,
+            searchQuery: queryState.searchQuery,
+            filtersCollapsed: queryState.filtersCollapsed,
+            rightDrawerOpen: queryState.rightDrawerOpen,
+          },
+          "push"
+        );
       }
     } else {
-      setUrlUnitId(null);
-      setUrlLessonId(null);
-      updateURL(academicYearId, termId, null, null);
+      updateURL(
+        {
+          yearId: academicYearId,
+          termId,
+          gradeId: selectedGradeId,
+          subjectId: selectedSubjectId,
+          searchQuery: queryState.searchQuery,
+          filtersCollapsed: queryState.filtersCollapsed,
+          rightDrawerOpen: queryState.rightDrawerOpen,
+        },
+        "push"
+      );
     }
   };
+
+  const handleToggleFilters = useCallback(() => {
+    updateURL(
+      {
+        yearId: academicYearId,
+        termId,
+        gradeId: selectedGradeId,
+        subjectId: selectedSubjectId,
+        unitId: queryState.unitId,
+        lessonId: queryState.lessonId,
+        searchQuery: queryState.searchQuery,
+        filtersCollapsed: !queryState.filtersCollapsed,
+        leftDrawerOpen: queryState.leftDrawerOpen,
+        rightDrawerOpen: queryState.rightDrawerOpen,
+      },
+      "push"
+    );
+  }, [
+    academicYearId,
+    queryState.filtersCollapsed,
+    queryState.leftDrawerOpen,
+    queryState.lessonId,
+    queryState.rightDrawerOpen,
+    queryState.searchQuery,
+    queryState.unitId,
+    selectedGradeId,
+    selectedSubjectId,
+    termId,
+    updateURL,
+  ]);
+
+  const handleSetLeftDrawerOpen = useCallback(
+    (isOpen: boolean) => {
+      updateURL(
+        {
+          yearId: academicYearId,
+          termId,
+          gradeId: selectedGradeId,
+          subjectId: selectedSubjectId,
+          unitId: queryState.unitId,
+          lessonId: queryState.lessonId,
+          searchQuery: queryState.searchQuery,
+          filtersCollapsed: queryState.filtersCollapsed,
+          leftDrawerOpen: isOpen,
+          rightDrawerOpen: queryState.rightDrawerOpen,
+        },
+        isOpen ? "push" : "replace"
+      );
+    },
+    [
+      academicYearId,
+      queryState.filtersCollapsed,
+      queryState.lessonId,
+      queryState.rightDrawerOpen,
+      queryState.searchQuery,
+      queryState.unitId,
+      selectedGradeId,
+      selectedSubjectId,
+      termId,
+      updateURL,
+    ]
+  );
+
+  const handleSetRightDrawerOpen = useCallback(
+    (isOpen: boolean) => {
+      updateURL(
+        {
+          yearId: academicYearId,
+          termId,
+          gradeId: selectedGradeId,
+          subjectId: selectedSubjectId,
+          unitId: queryState.unitId,
+          lessonId: queryState.lessonId,
+          searchQuery: queryState.searchQuery,
+          filtersCollapsed: queryState.filtersCollapsed,
+          leftDrawerOpen: queryState.leftDrawerOpen,
+          rightDrawerOpen: isOpen,
+        },
+        isOpen ? "push" : "replace"
+      );
+    },
+    [
+      academicYearId,
+      queryState.filtersCollapsed,
+      queryState.leftDrawerOpen,
+      queryState.lessonId,
+      queryState.searchQuery,
+      queryState.unitId,
+      selectedGradeId,
+      selectedSubjectId,
+      termId,
+      updateURL,
+    ]
+  );
+
+  const handleSearchQueryChange = useCallback(
+    (value: string) => {
+      setSearchInputValue(value);
+      syncSearchQueryParam(value);
+    },
+    [syncSearchQueryParam]
+  );
 
   const handleCreateSuccess = async () => {
     await refreshCurriculum();
@@ -370,12 +746,12 @@ export default function CurriculumPageContent() {
       {/* Filters Bar */}
       <div className="bg-white border-b border-border">
         <button
-          onClick={() => setFiltersCollapsed(!filtersCollapsed)}
+          onClick={handleToggleFilters}
           className="w-full px-6 py-3 flex items-center justify-between border-b border-border hover:bg-gray-50 transition-colors cursor-pointer"
         >
           <h3 className="text-sm font-semibold text-gray-900">{t("filters.title")}</h3>
           <div className="text-gray-600">
-            {filtersCollapsed ? (
+            {queryState.filtersCollapsed ? (
               <ChevronDown className="w-4 h-4" />
             ) : (
               <ChevronUp className="w-4 h-4" />
@@ -383,7 +759,7 @@ export default function CurriculumPageContent() {
           </div>
         </button>
         
-        {!filtersCollapsed && (
+        {!queryState.filtersCollapsed && (
           <div className="px-6 py-4">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
               <div className="flex-1 min-w-[200px]">
@@ -428,7 +804,21 @@ export default function CurriculumPageContent() {
       </div>
 
       {/* Empty States */}
-      {!isLoading && !hasGrades && (
+      {!isLoading && contextError && (
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-center max-w-md px-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {tCommon("error")}
+            </h3>
+            <p className="text-gray-600 mb-6">{contextError}</p>
+            <Button variant="primary" onClick={loadOptionsData}>
+              {tCommon("retry")}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!isLoading && !contextError && !hasGrades && (
         <div className="flex-1 flex items-center justify-center bg-gray-50">
           <div className="text-center max-w-md px-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -445,7 +835,7 @@ export default function CurriculumPageContent() {
         </div>
       )}
 
-      {!isLoading && hasGrades && !hasSubjects && (
+      {!isLoading && !contextError && hasGrades && !hasSubjects && (
         <div className="flex-1 flex items-center justify-center bg-gray-50">
           <div className="text-center max-w-md px-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -462,20 +852,28 @@ export default function CurriculumPageContent() {
         </div>
       )}
 
-      {!isLoading && hasGrades && hasSubjects && !hasCurriculum && (
+      {!isLoading && !contextError && hasGrades && hasSubjects && !hasCurriculum && (
         <div className="flex-1 flex items-center justify-center bg-gray-50">
           <div className="text-center max-w-md px-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {t("empty_state.no_curriculum.title")}
+              {curriculumError || t("empty_state.no_curriculum.title")}
             </h3>
-            <p className="text-gray-600 mb-6">{t("empty_state.no_curriculum.message")}</p>
-            <Button
-              variant="primary"
-              onClick={() => setShowCreateDialog(true)}
-              disabled={isReadOnly}
-            >
-              {t("actions.create_curriculum")}
-            </Button>
+            <p className="text-gray-600 mb-6">
+              {curriculumError || t("empty_state.no_curriculum.message")}
+            </p>
+            {curriculumError ? (
+              <Button variant="primary" onClick={loadCurriculumData}>
+                {tCommon("retry")}
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                onClick={() => setShowCreateDialog(true)}
+                disabled={isReadOnly}
+              >
+                {t("actions.create_curriculum")}
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -488,7 +886,7 @@ export default function CurriculumPageContent() {
             <div className="hidden lg:flex flex-1 overflow-hidden">
               {/* Left Panel */}
               <div
-                className="border-r border-border bg-white shrink-0 transition-all duration-300 overflow-hidden"
+                className="border-r border-l border-border bg-white shrink-0 transition-all duration-300 overflow-hidden"
                 style={{ width: LEFT_PANEL_WIDTH }}
               >
                 <div className="h-full flex flex-col">
@@ -497,6 +895,8 @@ export default function CurriculumPageContent() {
                       curriculum={curriculum!}
                       units={units}
                       lessons={lessons}
+                      searchQuery={searchInputValue}
+                      onSearchQueryChange={handleSearchQueryChange}
                       selectedNode={selectedNode}
                       onSelectNode={handleSelectNode}
                       onRefresh={refreshCurriculum}
@@ -524,7 +924,7 @@ export default function CurriculumPageContent() {
 
               {/* Right Panel */}
               <div
-                className="border-l border-border bg-white min-w-[400px] transition-all duration-300 overflow-hidden"
+                className="border-l border-r border-border bg-white min-w-[400px] transition-all duration-300 overflow-hidden"
                 style={{ width: RIGHT_PANEL_WIDTH }}
               >
                 <div className="h-full flex flex-col">
@@ -550,14 +950,14 @@ export default function CurriculumPageContent() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => setLeftDrawerOpen(true)}
+                  onClick={() => handleSetLeftDrawerOpen(true)}
                 >
                   {tCommon("lessons")}
                 </Button>
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => setRightDrawerOpen(true)}
+                  onClick={() => handleSetRightDrawerOpen(true)}
                 >
                   {tCommon("details")}
                 </Button>
@@ -581,8 +981,8 @@ export default function CurriculumPageContent() {
               {/* Left Drawer */}
               <Drawer
                 anchor={isRTL ? "right" : "left"}
-                open={leftDrawerOpen}
-                onClose={() => setLeftDrawerOpen(false)}
+                open={queryState.leftDrawerOpen}
+                onClose={() => handleSetLeftDrawerOpen(false)}
                 slotProps={{
                   paper: {
                     sx: { width: "80%", maxWidth: 360 },
@@ -592,7 +992,7 @@ export default function CurriculumPageContent() {
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                     <h3 className="font-semibold">{tCommon("lessons")}</h3>
-                    <IconButton size="small" onClick={() => setLeftDrawerOpen(false)}>
+                    <IconButton size="small" onClick={() => handleSetLeftDrawerOpen(false)}>
                       <ChevronLeft className="w-5 h-5" />
                     </IconButton>
                   </div>
@@ -601,10 +1001,12 @@ export default function CurriculumPageContent() {
                       curriculum={curriculum!}
                       units={units}
                       lessons={lessons}
+                      searchQuery={searchInputValue}
+                      onSearchQueryChange={handleSearchQueryChange}
                       selectedNode={selectedNode}
                       onSelectNode={(node) => {
                         handleSelectNode(node);
-                        setLeftDrawerOpen(false);
+                        handleSetLeftDrawerOpen(false);
                       }}
                       onRefresh={refreshCurriculum}
                       isReadOnly={isReadOnly}
@@ -616,8 +1018,8 @@ export default function CurriculumPageContent() {
               {/* Right Drawer */}
               <Drawer
                 anchor={isRTL ? "left" : "right"}
-                open={rightDrawerOpen}
-                onClose={() => setRightDrawerOpen(false)}
+                open={queryState.rightDrawerOpen}
+                onClose={() => handleSetRightDrawerOpen(false)}
                 slotProps={{
                   paper: {
                     sx: { width: "80%", maxWidth: 400 },
@@ -627,7 +1029,7 @@ export default function CurriculumPageContent() {
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                     <h3 className="font-semibold">{tCommon("details")}</h3>
-                    <IconButton size="small" onClick={() => setRightDrawerOpen(false)}>
+                    <IconButton size="small" onClick={() => handleSetRightDrawerOpen(false)}>
                       <ChevronRight className="w-5 h-5" />
                     </IconButton>
                   </div>
@@ -674,4 +1076,3 @@ export default function CurriculumPageContent() {
     </div>
   );
 }
-

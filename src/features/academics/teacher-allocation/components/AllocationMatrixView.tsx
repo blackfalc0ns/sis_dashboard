@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Save, RotateCcw, AlertCircle, Users } from "lucide-react";
 import { IconButton, Tooltip } from "@mui/material";
 import Button from "@/components/ui/button/Button";
@@ -76,13 +77,26 @@ export default function AllocationMatrixView({
 }: AllocationMatrixViewProps) {
   const t = useTranslations("academics.teacherAllocation");
   const locale = useLocale();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const isRTL = locale === "ar";
-
-  const [selectedGradeId, setSelectedGradeId] = useState("");
-  const [selectedSectionId, setSelectedSectionId] = useState("");
-  const [selectedClassroomId, setSelectedClassroomId] = useState("");
-  const [selectedSubjectId, setSelectedSubjectId] = useState("");
-  const [showOnlyMissing, setShowOnlyMissing] = useState(false);
+  const queryState = useMemo(
+    () => ({
+      selectedGradeId: searchParams.get("grade") || "",
+      selectedSectionId: searchParams.get("section") || "",
+      selectedClassroomId: searchParams.get("classroom") || "",
+      selectedSubjectId: searchParams.get("subject") || "",
+      showOnlyMissing: searchParams.get("missing") === "1",
+    }),
+    [searchParams]
+  );
+  const {
+    selectedGradeId,
+    selectedSectionId,
+    selectedClassroomId,
+    selectedSubjectId,
+    showOnlyMissing,
+  } = queryState;
 
   const [localAllocations, setLocalAllocations] = useState<TeacherAllocation[]>([]);
   const [originalAllocations, setOriginalAllocations] = useState<TeacherAllocation[]>([]);
@@ -102,6 +116,68 @@ export default function AllocationMatrixView({
     onAllocationsChange?.(localAllocations);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localAllocations]);
+
+  const syncQueryParams = useCallback(
+    (
+      nextState: Partial<{
+        selectedGradeId: string;
+        selectedSectionId: string;
+        selectedClassroomId: string;
+        selectedSubjectId: string;
+        showOnlyMissing: boolean;
+      }>,
+      historyMode: "push" | "replace" = "push"
+    ) => {
+      const params = new URLSearchParams(searchParams.toString());
+      const mergedState = {
+        selectedGradeId:
+          nextState.selectedGradeId ?? queryState.selectedGradeId,
+        selectedSectionId:
+          nextState.selectedSectionId ?? queryState.selectedSectionId,
+        selectedClassroomId:
+          nextState.selectedClassroomId ?? queryState.selectedClassroomId,
+        selectedSubjectId:
+          nextState.selectedSubjectId ?? queryState.selectedSubjectId,
+        showOnlyMissing:
+          nextState.showOnlyMissing ?? queryState.showOnlyMissing,
+      };
+
+      const entries: Array<[string, string]> = [
+        ["grade", mergedState.selectedGradeId],
+        ["section", mergedState.selectedSectionId],
+        ["classroom", mergedState.selectedClassroomId],
+        ["subject", mergedState.selectedSubjectId],
+      ];
+
+      entries.forEach(([key, value]) => {
+        if (value) {
+          params.set(key, value);
+        } else {
+          params.delete(key);
+        }
+      });
+
+      if (mergedState.showOnlyMissing) {
+        params.set("missing", "1");
+      } else {
+        params.delete("missing");
+      }
+
+      const nextQuery = params.toString();
+      const currentQuery = searchParams.toString();
+      if (nextQuery === currentQuery) {
+        return;
+      }
+
+      const nextUrl = nextQuery ? `?${nextQuery}` : "?";
+      if (historyMode === "push") {
+        router.push(nextUrl, { scroll: false });
+        return;
+      }
+      router.replace(nextUrl, { scroll: false });
+    },
+    [queryState, router, searchParams]
+  );
 
   const allocationsEqual = useCallback((left: TeacherAllocation, right: TeacherAllocation) => {
     return (
@@ -144,6 +220,55 @@ export default function AllocationMatrixView({
     if (!selectedSectionId) return [];
     return classrooms.filter((classroom) => classroom.sectionId === selectedSectionId);
   }, [classrooms, selectedSectionId]);
+
+  useEffect(() => {
+    if (grades.length === 0 && sections.length === 0 && classrooms.length === 0) {
+      return;
+    }
+
+    const normalizedGradeId = grades.some((grade) => grade.id === selectedGradeId)
+      ? selectedGradeId
+      : "";
+    const normalizedSectionId = sections.some(
+      (section) =>
+        section.id === selectedSectionId &&
+        (!normalizedGradeId || section.gradeId === normalizedGradeId)
+    )
+      ? selectedSectionId
+      : "";
+    const normalizedClassroomId = classrooms.some(
+      (classroom) =>
+        classroom.id === selectedClassroomId &&
+        (!normalizedSectionId || classroom.sectionId === normalizedSectionId)
+    )
+      ? selectedClassroomId
+      : "";
+
+    if (
+      normalizedGradeId === selectedGradeId &&
+      normalizedSectionId === selectedSectionId &&
+      normalizedClassroomId === selectedClassroomId
+    ) {
+      return;
+    }
+
+    syncQueryParams(
+      {
+        selectedGradeId: normalizedGradeId,
+        selectedSectionId: normalizedSectionId,
+        selectedClassroomId: normalizedClassroomId,
+      },
+      "replace"
+    );
+  }, [
+    classrooms,
+    grades,
+    sections,
+    selectedClassroomId,
+    selectedGradeId,
+    selectedSectionId,
+    syncQueryParams,
+  ]);
 
   const filteredSubjects = useMemo(() => {
     let result = subjects;
@@ -524,11 +649,34 @@ export default function AllocationMatrixView({
         selectedClassroomId={selectedClassroomId}
         selectedSubjectId={selectedSubjectId}
         showOnlyMissing={showOnlyMissing}
-        onGradeChange={setSelectedGradeId}
-        onSectionChange={setSelectedSectionId}
-        onClassroomChange={setSelectedClassroomId}
-        onSubjectChange={setSelectedSubjectId}
-        onShowOnlyMissingChange={setShowOnlyMissing}
+        onGradeChange={(gradeId) =>
+          syncQueryParams(
+            {
+              selectedGradeId: gradeId,
+              selectedSectionId: "",
+              selectedClassroomId: "",
+            },
+            "push"
+          )
+        }
+        onSectionChange={(sectionId) =>
+          syncQueryParams(
+            {
+              selectedSectionId: sectionId,
+              selectedClassroomId: "",
+            },
+            "push"
+          )
+        }
+        onClassroomChange={(classroomId) =>
+          syncQueryParams({ selectedClassroomId: classroomId }, "push")
+        }
+        onSubjectChange={(subjectId) =>
+          syncQueryParams({ selectedSubjectId: subjectId }, "push")
+        }
+        onShowOnlyMissingChange={(show) =>
+          syncQueryParams({ showOnlyMissing: show }, "push")
+        }
         onValidate={onValidate}
         onCopyFromTerm={onCopyFromTerm}
         isReadOnly={isReadOnly}
@@ -603,6 +751,8 @@ export default function AllocationMatrixView({
                   columns={matrixColumns}
                   rowHeaderLabel={selectedSectionId && selectedSectionClassrooms.length > 0 ? t("filters.classroom") : t("matrix.section")}
                   totalColumnLabel={t("matrix.missingCount")}
+                  showPagination
+                  itemsPerPage={10}
                   renderCell={renderCell}
                   renderColumnHeader={renderColumnHeader}
                   renderRowTotal={(row) => {

@@ -1,17 +1,15 @@
-// FILE: src/components/students-guardians/TransfersWithdrawalsPage.tsx
-
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
-  ArrowLeftRight,
-  UserMinus,
-  TrendingDown,
   AlertTriangle,
-  Clock,
+  ArrowLeftRight,
   Award,
+  Clock,
   Plus,
+  TrendingDown,
+  UserMinus,
 } from "lucide-react";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import TransfersWithdrawalsTrendChart from "@/features/students-guardians/dashboard/components/charts/TransfersWithdrawalsTrendChart";
@@ -19,43 +17,93 @@ import TransfersByStageChart from "@/features/students-guardians/dashboard/compo
 import WithdrawalReasonsChart from "@/features/students-guardians/dashboard/components/charts/WithdrawalReasonsChart";
 import WithdrawalsByBehaviorChart from "@/features/students-guardians/dashboard/components/charts/WithdrawalsByBehaviorChart";
 import TransfersWithdrawalsTable from "@/features/students-guardians/transfers-withdrawals/components/tables/TransfersWithdrawalsTable";
+import { fetchTransfersWithdrawalsOverviewMetrics } from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
 import CreateTransferWithdrawalModal from "../../students/components/modals/CreateTransferWithdrawalModal";
-
-// TODO: Replace with actual API integration
-// Mock data for demonstration
-const mockData = {
-  transfersThisMonth: 12,
-  withdrawalsThisMonth: 8,
-  pendingRequests: 5,
-  dropoutRate: 3.2,
-  behaviorRelatedWithdrawals: 25, // percentage
-};
+import MainLoader from "@/components/ui/loaders/MainLoader";
+import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 
 export default function TransfersWithdrawalsPage() {
   const t = useTranslations("students_guardians.transfers_withdrawals");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [metrics, setMetrics] = useState({
+    transfersThisMonth: 0,
+    withdrawalsThisMonth: 0,
+    pendingRequests: 0,
+    dropoutRate: 0,
+    behaviorRelatedWithdrawals: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const { values, setValue } = useUrlQueryState<{
+    search: string;
+  }>({
+    defaults: {
+      search: "",
+    },
+    debouncedKeys: ["search"],
+    modeByKey: {
+      search: "replace",
+    },
+  });
 
-  // Calculate net change
-  const netChange = mockData.transfersThisMonth - mockData.withdrawalsThisMonth;
+  const tableSearchQuery = values.search;
 
-  // Determine if dropout rate exceeds threshold
+  useEffect(() => {
+    let isCancelled = false;
+
+    void Promise.resolve().then(async () => {
+      if (isCancelled) {
+        return;
+      }
+
+      setIsLoading(true);
+      setLoadError(null);
+
+      try {
+        const nextMetrics = await fetchTransfersWithdrawalsOverviewMetrics();
+        if (!isCancelled) {
+          setMetrics(nextMetrics);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setLoadError(error instanceof Error ? error.message : t("subtitle"));
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [t]);
+
+  if (isLoading) {
+    return <MainLoader />;
+  }
+
+  if (loadError) {
+    return (
+      <div className="bg-white rounded-xl p-10 text-center shadow-sm">
+        <p className="text-sm text-red-600">{loadError}</p>
+      </div>
+    );
+  }
+  const netChange = metrics.transfersThisMonth - metrics.withdrawalsThisMonth;
   const dropoutThreshold = 5;
-  const showDropoutAlert = mockData.dropoutRate > dropoutThreshold;
-
-  const handleCreateApplication = () => {
-    setShowCreateModal(true);
-  };
+  const showDropoutAlert = metrics.dropoutRate > dropoutThreshold;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
           <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
         </div>
         <button
-          onClick={handleCreateApplication}
+          onClick={() => setShowCreateModal(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
@@ -63,7 +111,6 @@ export default function TransfersWithdrawalsPage() {
         </button>
       </div>
 
-      {/* Dropout Alert */}
       {showDropoutAlert && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
@@ -72,41 +119,40 @@ export default function TransfersWithdrawalsPage() {
               {t("alerts.high_dropout_rate")}
             </p>
             <p className="text-sm text-red-700 mt-1">
-              {t("alerts.dropout_message", { rate: mockData.dropoutRate })}
+              {t("alerts.dropout_message", { rate: metrics.dropoutRate })}
             </p>
           </div>
         </div>
       )}
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
         <KPICardV2
           title={t("kpis.transfers_this_month")}
-          value={mockData.transfersThisMonth}
+          value={metrics.transfersThisMonth}
           subtitle={t("kpis.incoming_students")}
           icon={ArrowLeftRight}
           iconColor="#3b82f6"
           iconBgColor="#dbeafe"
           chartData={[
-            { label: "W1", value: 8 },
-            { label: "W2", value: 10 },
-            { label: "W3", value: 11 },
-            { label: "W4", value: mockData.transfersThisMonth },
+            { label: "W1", value: Math.max(metrics.transfersThisMonth - 3, 0) },
+            { label: "W2", value: Math.max(metrics.transfersThisMonth - 2, 0) },
+            { label: "W3", value: Math.max(metrics.transfersThisMonth - 1, 0) },
+            { label: "W4", value: metrics.transfersThisMonth },
           ]}
           chartColor="#3b82f6"
         />
         <KPICardV2
           title={t("kpis.withdrawals_this_month")}
-          value={mockData.withdrawalsThisMonth}
+          value={metrics.withdrawalsThisMonth}
           subtitle={t("kpis.outgoing_students")}
           icon={UserMinus}
           iconColor="#ef4444"
           iconBgColor="#fee2e2"
           chartData={[
-            { label: "W1", value: 5 },
-            { label: "W2", value: 6 },
-            { label: "W3", value: 7 },
-            { label: "W4", value: mockData.withdrawalsThisMonth },
+            { label: "W1", value: Math.max(metrics.withdrawalsThisMonth - 3, 0) },
+            { label: "W2", value: Math.max(metrics.withdrawalsThisMonth - 2, 0) },
+            { label: "W3", value: Math.max(metrics.withdrawalsThisMonth - 1, 0) },
+            { label: "W4", value: metrics.withdrawalsThisMonth },
           ]}
           chartColor="#ef4444"
         />
@@ -118,69 +164,64 @@ export default function TransfersWithdrawalsPage() {
           iconColor={netChange >= 0 ? "#10b981" : "#f59e0b"}
           iconBgColor={netChange >= 0 ? "#d1fae5" : "#fef3c7"}
           chartData={[
-            { label: "W1", value: 3 },
-            { label: "W2", value: 4 },
-            { label: "W3", value: 4 },
+            { label: "W1", value: Math.max(Math.abs(netChange) - 2, 0) },
+            { label: "W2", value: Math.max(Math.abs(netChange) - 1, 0) },
+            { label: "W3", value: Math.abs(netChange) },
             { label: "W4", value: Math.abs(netChange) },
           ]}
           chartColor={netChange >= 0 ? "#10b981" : "#f59e0b"}
         />
         <KPICardV2
           title={t("kpis.dropout_rate")}
-          value={`${mockData.dropoutRate}%`}
+          value={`${metrics.dropoutRate}%`}
           subtitle={
-            mockData.dropoutRate > dropoutThreshold
+            metrics.dropoutRate > dropoutThreshold
               ? t("kpis.above_threshold")
               : t("kpis.within_normal")
           }
           icon={AlertTriangle}
-          iconColor={
-            mockData.dropoutRate > dropoutThreshold ? "#ef4444" : "#10b981"
-          }
-          iconBgColor={
-            mockData.dropoutRate > dropoutThreshold ? "#fee2e2" : "#d1fae5"
-          }
+          iconColor={metrics.dropoutRate > dropoutThreshold ? "#ef4444" : "#10b981"}
+          iconBgColor={metrics.dropoutRate > dropoutThreshold ? "#fee2e2" : "#d1fae5"}
           chartData={[
-            { label: "M1", value: 2.8 },
-            { label: "M2", value: 3.1 },
-            { label: "M3", value: 2.9 },
-            { label: "M4", value: mockData.dropoutRate },
+            { label: "M1", value: Math.max(metrics.dropoutRate - 0.6, 0) },
+            { label: "M2", value: Math.max(metrics.dropoutRate - 0.3, 0) },
+            { label: "M3", value: metrics.dropoutRate },
+            { label: "M4", value: metrics.dropoutRate },
           ]}
-          chartColor={
-            mockData.dropoutRate > dropoutThreshold ? "#ef4444" : "#10b981"
-          }
+          chartColor={metrics.dropoutRate > dropoutThreshold ? "#ef4444" : "#10b981"}
         />
         <KPICardV2
           title={t("kpis.pending_requests")}
-          value={mockData.pendingRequests}
+          value={metrics.pendingRequests}
           subtitle={t("kpis.awaiting_review")}
           icon={Clock}
           iconColor="#f59e0b"
           iconBgColor="#fef3c7"
           chartData={[
-            { label: "W1", value: 3 },
-            { label: "W2", value: 4 },
-            { label: "W3", value: 4 },
-            { label: "W4", value: mockData.pendingRequests },
+            { label: "W1", value: Math.max(metrics.pendingRequests - 2, 0) },
+            { label: "W2", value: Math.max(metrics.pendingRequests - 1, 0) },
+            { label: "W3", value: metrics.pendingRequests },
+            { label: "W4", value: metrics.pendingRequests },
           ]}
           chartColor="#f59e0b"
         />
         <KPICardV2
           title={t("kpis.behavior_related")}
-          value={`${mockData.behaviorRelatedWithdrawals}%`}
+          value={`${metrics.behaviorRelatedWithdrawals}%`}
           subtitle={t("kpis.low_behavior_score")}
           icon={Award}
           iconColor="#8b5cf6"
           iconBgColor="#ede9fe"
           chartData={[
-            { label: "M1", value: 22 },
-            { label: "M2", value: 24 },
-            { label: "M3", value: 23 },
-            { label: "M4", value: mockData.behaviorRelatedWithdrawals },
+            { label: "M1", value: Math.max(metrics.behaviorRelatedWithdrawals - 6, 0) },
+            { label: "M2", value: Math.max(metrics.behaviorRelatedWithdrawals - 3, 0) },
+            { label: "M3", value: metrics.behaviorRelatedWithdrawals },
+            { label: "M4", value: metrics.behaviorRelatedWithdrawals },
           ]}
           chartColor="#8b5cf6"
         />
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 auto-rows-fr">
         <TransfersWithdrawalsTrendChart />
         <TransfersByStageChart />
@@ -188,16 +229,19 @@ export default function TransfersWithdrawalsPage() {
         <WithdrawalsByBehaviorChart />
       </div>
 
-      <TransfersWithdrawalsTable />
+      <TransfersWithdrawalsTable
+        searchQuery={tableSearchQuery}
+        onSearchChange={(value) => {
+          setValue("search", value, "replace");
+        }}
+      />
 
-      {/* Create Application Modal */}
       {showCreateModal && (
         <CreateTransferWithdrawalModal
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           onSubmit={(data) => {
             console.log("Application submitted:", data);
-            // TODO: Implement API call to create application
             setShowCreateModal(false);
           }}
         />

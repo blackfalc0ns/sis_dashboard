@@ -1,23 +1,16 @@
-// FILE: src/components/students-guardians/charts/TransfersWithdrawalsTrendChart.tsx
-
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { LineChart } from "@mui/x-charts/LineChart";
 import { useResponsiveChart } from "@/hooks/useResponsiveChart";
 import { ChartCard } from "@/components/ui/chart-card";
 import { DropdownItem } from "@/components/ui/dropdown";
-
-// TODO: Replace with actual API data
-const mockMonthlyData = [
-  { month: "Sep", transfers: 15, withdrawals: 8 },
-  { month: "Oct", transfers: 12, withdrawals: 10 },
-  { month: "Nov", transfers: 18, withdrawals: 7 },
-  { month: "Dec", transfers: 10, withdrawals: 12 },
-  { month: "Jan", transfers: 14, withdrawals: 9 },
-  { month: "Feb", transfers: 12, withdrawals: 8 },
-];
+import {
+  fetchTransfersWithdrawalsTrendData,
+  type TransfersWithdrawalsTrendPoint,
+} from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 type Stage = "all" | "primary" | "preparatory" | "secondary";
 
@@ -25,12 +18,37 @@ export default function TransfersWithdrawalsTrendChart() {
   const t = useTranslations("students_guardians.transfers_withdrawals");
   const { width, height } = useResponsiveChart();
   const [selectedStage, setSelectedStage] = useState<Stage>("all");
+  const [chartData, setChartData] = useState<TransfersWithdrawalsTrendPoint[]>(
+    [],
+  );
+  const [isLoading, setIsLoading] = useState(true);
 
-  // TODO: Filter data based on selected stage when API is integrated
-  const chartData = useMemo(() => {
-    // Currently returning all data, will filter by selectedStage when API is ready
-    return mockMonthlyData;
-  }, []);
+  useEffect(() => {
+    let isCancelled = false;
+
+    void Promise.resolve().then(async () => {
+      if (isCancelled) {
+        return;
+      }
+
+      setIsLoading(true);
+
+      try {
+        const data = await fetchTransfersWithdrawalsTrendData(selectedStage);
+        if (!isCancelled) {
+          setChartData(data);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedStage]);
 
   const months = chartData.map((d) => d.month);
   const transfers = chartData.map((d) => d.transfers);
@@ -53,43 +71,47 @@ export default function TransfersWithdrawalsTrendChart() {
       bgColor="#dbeafe"
     >
       <div className="w-full overflow-x-auto mt-4">
-        <LineChart
-          width={width}
-          height={height}
-          series={[
-            {
-              data: transfers,
-              label: t("charts.trend.transfers"),
-              color: "#036b80",
-              curve: "linear",
-            },
-            {
-              data: withdrawals,
-              label: t("charts.trend.withdrawals"),
-              color: "#ef4444",
-              curve: "linear",
-            },
-          ]}
-          xAxis={[
-            {
-              scaleType: "point",
-              data: months,
-              tickLabelStyle: {
-                fontSize: 14,
-                fontWeight: 500,
+        {isLoading ? (
+          <PartialLoader />
+        ) : (
+          <LineChart
+            width={width}
+            height={height}
+            series={[
+              {
+                data: transfers,
+                label: t("charts.trend.transfers"),
+                color: "#036b80",
+                curve: "linear",
               },
-            },
-          ]}
-          yAxis={[
-            {
-              tickLabelStyle: {
-                fontSize: 14,
-                fontWeight: 500,
+              {
+                data: withdrawals,
+                label: t("charts.trend.withdrawals"),
+                color: "#ef4444",
+                curve: "linear",
               },
-            },
-          ]}
-          margin={{ top: 20, right: 20, bottom: 30, left: 40 }}
-        />
+            ]}
+            xAxis={[
+              {
+                scaleType: "point",
+                data: months,
+                tickLabelStyle: {
+                  fontSize: 14,
+                  fontWeight: 500,
+                },
+              },
+            ]}
+            yAxis={[
+              {
+                tickLabelStyle: {
+                  fontSize: 14,
+                  fontWeight: 500,
+                },
+              },
+            ]}
+            margin={{ top: 20, right: 20, bottom: 30, left: 40 }}
+          />
+        )}
       </div>
     </ChartCard>
   );

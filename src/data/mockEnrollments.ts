@@ -6,19 +6,15 @@ import type {
   StudentEnrollment,
 } from "@/features/students-guardians/students/types";
 import {
+  getAcademicYearsSnapshot,
   getStructureTreeSnapshot,
-  resolveStructureContextForAcademicYear,
+  getTermsSnapshotByYear,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import { mockStudents } from "./mockDataLinked";
 
-const deriveAcademicYear = (studentId: string) => {
-  if (studentId.startsWith("2024-")) return "2024-2025";
-  if (studentId.startsWith("2025-")) return "2025-2026";
-  if (studentId.startsWith("STU-APP-2024") || studentId.startsWith("STU-APP-2026")) {
-    return "2026-2027";
-  }
-  return "2026-2027";
-};
+const academicYears = getAcademicYearsSnapshot().sort((left, right) =>
+  left.startDate.localeCompare(right.startDate),
+);
 
 const getLegacySectionLabel = (name: string) => {
   const englishMatch = name.match(/section\s+(.+)$/i);
@@ -30,19 +26,24 @@ const getLegacySectionLabel = (name: string) => {
   return name;
 };
 
-const buildPlacement = (academicYear: string, gradeName: string, seedIndex: number) => {
-  const structureContext = resolveStructureContextForAcademicYear(academicYear);
-  if (!structureContext) {
+const parseGradeNumber = (gradeName: string) => {
+  const match = gradeName.match(/(\d+)/);
+  return match ? Number.parseInt(match[1], 10) : 1;
+};
+
+const toGradeName = (gradeNumber: number) => `Grade ${Math.max(1, Math.min(10, gradeNumber))}`;
+
+const buildPlacement = (academicYearId: string, gradeName: string, seedIndex: number) => {
+  const yearTerms = getTermsSnapshotByYear(academicYearId);
+  const structureTerm = yearTerms[0];
+  if (!structureTerm) {
     return {
       grade: gradeName,
       section: ["A", "B", "C"][seedIndex % 3],
     };
   }
 
-  const structure = getStructureTreeSnapshot(
-    structureContext.academicYearId,
-    structureContext.termId,
-  );
+  const structure = getStructureTreeSnapshot(academicYearId, structureTerm.id);
   const grade =
     structure.grades.find(
       (item) =>
@@ -86,36 +87,44 @@ const buildPlacement = (academicYear: string, gradeName: string, seedIndex: numb
   };
 };
 
-const buildEnrollment = (
+const buildHistoricalEnrollments = (
   student: (typeof mockStudents)[number],
   index: number,
-): StudentEnrollment => {
-  const academicYear = deriveAcademicYear(student.id);
-  const placement = buildPlacement(academicYear, student.gradeRequested, index);
-  const enrollmentDate = student.submittedDate || "2026-09-01";
+): StudentEnrollment[] => {
+  const historyDepth = (index % academicYears.length) + 1;
+  const startingYearIndex = academicYears.length - historyDepth;
+  const latestGradeNumber = parseGradeNumber(student.gradeRequested);
 
-  let status: StudentEnrollment["status"] = "active";
-  if (student.status === "Withdrawn") {
-    status = "withdrawn";
-  }
+  return academicYears.slice(startingYearIndex).map((academicYear, historyIndex, scopedYears) => {
+    const reverseOffset = scopedYears.length - historyIndex - 1;
+    const gradeName = toGradeName(Math.max(1, latestGradeNumber - reverseOffset));
+    const placement = buildPlacement(academicYear.id, gradeName, index + historyIndex);
+    const isLatestEnrollment = historyIndex === scopedYears.length - 1;
 
-  return {
-    enrollmentId: `ENR-${student.id}`,
-    studentId: student.id,
-    academicYear,
-    grade: placement.grade,
-    section: placement.section,
-    classroom: placement.classroom,
-    gradeId: placement.gradeId,
-    sectionId: placement.sectionId,
-    classroomId: placement.classroomId,
-    enrollmentDate,
-    status,
-  };
+    let status: StudentEnrollment["status"] = isLatestEnrollment ? "active" : "completed";
+    if (isLatestEnrollment && student.status === "Withdrawn") {
+      status = "withdrawn";
+    }
+
+    return {
+      enrollmentId: `ENR-${student.id}-${academicYear.id}`,
+      studentId: student.id,
+      academicYearId: academicYear.id,
+      academicYear: academicYear.nameEn || academicYear.nameAr || academicYear.name,
+      grade: placement.grade,
+      section: placement.section,
+      classroom: placement.classroom,
+      gradeId: placement.gradeId,
+      sectionId: placement.sectionId,
+      classroomId: placement.classroomId,
+      enrollmentDate: academicYear.startDate,
+      status,
+    };
+  });
 };
 
-export const mockStudentEnrollments: StudentEnrollment[] = mockStudents.map((student, index) =>
-  buildEnrollment(student, index),
+export const mockStudentEnrollments: StudentEnrollment[] = mockStudents.flatMap((student, index) =>
+  buildHistoricalEnrollments(student, index),
 );
 
 export const mockEnrollmentMovements: EnrollmentMovement[] = mockStudentEnrollments.map(
@@ -123,7 +132,8 @@ export const mockEnrollmentMovements: EnrollmentMovement[] = mockStudentEnrollme
     id: `MOVE-${enrollment.enrollmentId}`,
     studentId: enrollment.studentId,
     academicYear: enrollment.academicYear,
-    actionType: "enrolled",
+    actionType:
+      enrollment.status === "withdrawn" ? "withdrawn" : "enrolled",
     toGradeId: enrollment.gradeId,
     toSectionId: enrollment.sectionId,
     toClassroomId: enrollment.classroomId,
@@ -135,29 +145,41 @@ export const mockEnrollmentMovements: EnrollmentMovement[] = mockStudentEnrollme
   }),
 );
 
-const compareAcademicYears = (left: string, right: string) => {
-  const leftStart = parseInt(left.split("-")[0] || "0", 10);
-  const rightStart = parseInt(right.split("-")[0] || "0", 10);
-  return leftStart - rightStart;
+const compareAcademicYears = (left: StudentEnrollment, right: StudentEnrollment) => {
+  const leftIndex = academicYears.findIndex((year) => year.id === left.academicYearId);
+  const rightIndex = academicYears.findIndex((year) => year.id === right.academicYearId);
+  return leftIndex - rightIndex;
 };
+
+const sortEnrollmentsForCurrentView = (enrollments: StudentEnrollment[]) =>
+  [...enrollments].sort((left, right) => {
+    if (left.status === "active" && right.status !== "active") return -1;
+    if (left.status !== "active" && right.status === "active") return 1;
+    return compareAcademicYears(right, left);
+  });
 
 export function getEnrollmentByStudentId(
   studentId: string,
 ): StudentEnrollment | undefined {
-  return mockStudentEnrollments
-    .filter((enrollment) => enrollment.studentId === studentId)
-    .sort((left, right) => compareAcademicYears(right.academicYear, left.academicYear))
-    .sort((left, right) => {
-      if (left.status === "active" && right.status !== "active") return -1;
-      if (left.status !== "active" && right.status === "active") return 1;
-      return 0;
-    })[0];
+  return sortEnrollmentsForCurrentView(
+    mockStudentEnrollments.filter((enrollment) => enrollment.studentId === studentId),
+  )[0];
+}
+
+export function getEnrollmentByStudentIdAndAcademicYear(
+  studentId: string,
+  academicYearId: string,
+): StudentEnrollment | undefined {
+  return mockStudentEnrollments.find(
+    (enrollment) =>
+      enrollment.studentId === studentId && enrollment.academicYearId === academicYearId,
+  );
 }
 
 export function getEnrollmentsByStudentId(studentId: string): StudentEnrollment[] {
   return mockStudentEnrollments
     .filter((enrollment) => enrollment.studentId === studentId)
-    .sort((left, right) => compareAcademicYears(left.academicYear, right.academicYear));
+    .sort(compareAcademicYears);
 }
 
 export function getEnrollmentMovementsByStudentId(studentId: string): EnrollmentMovement[] {
@@ -200,11 +222,13 @@ export function upsertStudentEnrollment(
   const existingIndex = mockStudentEnrollments.findIndex(
     (enrollment) =>
       enrollment.studentId === payload.studentId &&
-      enrollment.academicYear === payload.academicYear,
+      enrollment.academicYearId === payload.academicYearId,
   );
 
   const nextEnrollment: StudentEnrollment = {
-    enrollmentId: payload.enrollmentId || `ENR-${payload.studentId}`,
+    enrollmentId:
+      payload.enrollmentId ||
+      `ENR-${payload.studentId}-${payload.academicYearId || payload.academicYear}`,
     ...payload,
   };
 

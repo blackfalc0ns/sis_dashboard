@@ -5,6 +5,7 @@ import {
   Assignment,
   AssignmentQuestion,
   AssignmentAttachment,
+  fetchAssignmentById,
   updateAssignment,
   deleteAssignment,
   createAssignmentQuestion,
@@ -124,22 +125,18 @@ export function useAssignmentMutations({
     if (!assignment) return;
 
     try {
-      const stored = localStorage.getItem(`lesson-assignments-${lessonId}`);
-      if (stored) {
-        const assignments: Assignment[] = JSON.parse(stored);
-        const found = assignments.find((a) => a.id === assignment.id);
-        if (found) {
-          setAssignment(found);
+      const found = await fetchAssignmentById(lessonId, assignment.id);
+      if (found) {
+        setAssignment(found);
 
-          const qs = await fetchAssignmentQuestions(assignment.id);
-          setQuestions(qs);
+        const qs = await fetchAssignmentQuestions(assignment.id);
+        setQuestions(qs);
 
-          const atts = await fetchAssignmentAttachments(assignment.id);
-          setAttachments(atts);
+        const atts = await fetchAssignmentAttachments(assignment.id);
+        setAttachments(atts);
 
-          clearDirty();
-          showSuccess(tCommon("reset_success"));
-        }
+        clearDirty();
+        showSuccess(tCommon("reset_success"));
       }
     } catch (error) {
       console.error("Failed to reset assignment:", error);

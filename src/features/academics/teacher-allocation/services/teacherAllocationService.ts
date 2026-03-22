@@ -3,6 +3,8 @@
 
 import { Classroom, Grade, Section } from '@/features/academics/academic-structure-tree/services/structureService';
 import { Subject, SubjectAllocation } from '@/features/academics/subjects/services/subjectsService';
+import type { TeacherAllocationAdapter } from '@/features/academics/teacher-allocation/services/teacherAllocationAdapter';
+import { teacherAllocationApiAdapter } from '@/features/academics/teacher-allocation/services/teacherAllocationApiAdapter';
 
 interface StructureData {
   grades?: Grade[];
@@ -106,9 +108,9 @@ const teachers: Teacher[] = [
 
 const allocationsByTerm: Record<string, TeacherAllocation[]> = {
   "term-1-1": [
-    { id: "alloc-1", termId: "term-1-1", sectionId: "section-1-1", subjectId: "subj-1", teacherId: "teacher-1" },
-    { id: "alloc-2", termId: "term-1-1", sectionId: "section-1-1", subjectId: "subj-2", teacherId: "teacher-1" },
-    { id: "alloc-3", termId: "term-1-1", sectionId: "section-1-2", subjectId: "subj-1", teacherId: "teacher-3" },
+    { id: "alloc-1", termId: "term-1-1", sectionId: "section-1", subjectId: "subj-1", teacherId: "teacher-1" },
+    { id: "alloc-2", termId: "term-1-1", sectionId: "section-1", subjectId: "subj-2", teacherId: "teacher-1" },
+    { id: "alloc-3", termId: "term-1-1", sectionId: "section-2", subjectId: "subj-1", teacherId: "teacher-3" },
   ],
   "term-2-1": [],
 };
@@ -170,12 +172,12 @@ export const resolveTeacherAllocationForTarget = (
 };
 
 // Teachers CRUD
-export const fetchTeachers = async (): Promise<Teacher[]> => {
+const fetchTeachersImpl = async (): Promise<Teacher[]> => {
   await delay(200);
   return teachers.filter(t => t.isActive);
 };
 
-export const createTeacher = async (payload: Omit<Teacher, "id">): Promise<Teacher> => {
+const createTeacherImpl = async (payload: Omit<Teacher, "id">): Promise<Teacher> => {
   await delay(200);
   const newTeacher: Teacher = {
     id: generateId("teacher"),
@@ -185,7 +187,7 @@ export const createTeacher = async (payload: Omit<Teacher, "id">): Promise<Teach
   return newTeacher;
 };
 
-export const updateTeacher = async (
+const updateTeacherImpl = async (
   teacherId: string,
   payload: Partial<Omit<Teacher, "id">>
 ): Promise<Teacher> => {
@@ -197,7 +199,7 @@ export const updateTeacher = async (
   return teachers[index];
 };
 
-export const deleteTeacher = async (teacherId: string): Promise<void> => {
+const deleteTeacherImpl = async (teacherId: string): Promise<void> => {
   await delay(200);
   const index = teachers.findIndex((t) => t.id === teacherId);
   if (index === -1) throw new Error("Teacher not found");
@@ -213,12 +215,12 @@ export const deleteTeacher = async (teacherId: string): Promise<void> => {
 };
 
 // Allocations CRUD (term-scoped)
-export const fetchTeacherAllocations = async (termId: string): Promise<TeacherAllocation[]> => {
+const fetchTeacherAllocationsImpl = async (termId: string): Promise<TeacherAllocation[]> => {
   await delay(200);
   return allocationsByTerm[termId] || [];
 };
 
-export const bulkUpsertTeacherAllocations = async (
+const bulkUpsertTeacherAllocationsImpl = async (
   termId: string,
   items: Omit<TeacherAllocation, "id" | "termId">[]
 ): Promise<void> => {
@@ -257,7 +259,7 @@ export const bulkUpsertTeacherAllocations = async (
   allocationsByTerm[termId] = allocations;
 };
 
-export const clearAllocationsForSubject = async (
+const clearAllocationsForSubjectImpl = async (
   termId: string,
   gradeId: string,
   subjectId: string
@@ -273,7 +275,7 @@ export const clearAllocationsForSubject = async (
   );
 };
 
-export const applyTeacherToGrade = async (
+const applyTeacherToGradeImpl = async (
   termId: string,
   gradeId: string,
   subjectId: string,
@@ -341,7 +343,7 @@ export const applyTeacherToGrade = async (
 };
 
 // Analytics
-export const calculateTeacherLoads = async (
+const calculateTeacherLoadsImpl = async (
   termId: string,
   structureData: StructureData,
   subjectAllocations: SubjectAllocation[],
@@ -440,7 +442,7 @@ export const calculateTeacherLoads = async (
 };
 
 // Validation
-export const validateAllocations = async (
+const validateAllocationsImpl = async (
   termId: string,
   structureData: StructureData,
   subjectAllocations: SubjectAllocation[]
@@ -703,7 +705,7 @@ export interface CarryOverTeacherAllocationsOptions {
   toTermId: string;
 }
 
-export const carryOverTeacherAllocations = async (
+const carryOverTeacherAllocationsImpl = async (
   params: CarryOverTeacherAllocationsOptions
 ): Promise<void> => {
   await delay(500);
@@ -723,3 +725,114 @@ export const carryOverTeacherAllocations = async (
   
   allocationsByTerm[toTermId] = copiedAllocations;
 };
+
+const mockTeacherAllocationAdapter: TeacherAllocationAdapter = {
+  fetchTeachers: fetchTeachersImpl,
+  createTeacher: createTeacherImpl,
+  updateTeacher: updateTeacherImpl,
+  deleteTeacher: deleteTeacherImpl,
+  fetchTeacherAllocations: fetchTeacherAllocationsImpl,
+  bulkUpsertTeacherAllocations: bulkUpsertTeacherAllocationsImpl,
+  clearAllocationsForSubject: clearAllocationsForSubjectImpl,
+  applyTeacherToGrade: applyTeacherToGradeImpl,
+  calculateTeacherLoads: calculateTeacherLoadsImpl,
+  validateAllocations: validateAllocationsImpl,
+  carryOverTeacherAllocations: carryOverTeacherAllocationsImpl,
+};
+
+let teacherAllocationAdapter: TeacherAllocationAdapter = mockTeacherAllocationAdapter;
+
+if (process.env.NEXT_PUBLIC_USE_TEACHER_ALLOCATION_API === "true") {
+  teacherAllocationAdapter = teacherAllocationApiAdapter;
+}
+
+export const getTeacherAllocationAdapter = (): TeacherAllocationAdapter =>
+  teacherAllocationAdapter;
+
+export const setTeacherAllocationAdapter = (adapter: TeacherAllocationAdapter) => {
+  teacherAllocationAdapter = adapter;
+};
+
+export const resetTeacherAllocationAdapter = () => {
+  teacherAllocationAdapter =
+    process.env.NEXT_PUBLIC_USE_TEACHER_ALLOCATION_API === "true"
+      ? teacherAllocationApiAdapter
+      : mockTeacherAllocationAdapter;
+};
+
+export const activateTeacherAllocationAdapter = (
+  adapter: TeacherAllocationAdapter
+) => {
+  setTeacherAllocationAdapter(adapter);
+  return adapter;
+};
+
+export const fetchTeachers = (): Promise<Teacher[]> =>
+  teacherAllocationAdapter.fetchTeachers();
+
+export const createTeacher = (payload: Omit<Teacher, "id">): Promise<Teacher> =>
+  teacherAllocationAdapter.createTeacher(payload);
+
+export const updateTeacher = (
+  teacherId: string,
+  payload: Partial<Omit<Teacher, "id">>
+): Promise<Teacher> => teacherAllocationAdapter.updateTeacher(teacherId, payload);
+
+export const deleteTeacher = (teacherId: string): Promise<void> =>
+  teacherAllocationAdapter.deleteTeacher(teacherId);
+
+export const fetchTeacherAllocations = (
+  termId: string
+): Promise<TeacherAllocation[]> => teacherAllocationAdapter.fetchTeacherAllocations(termId);
+
+export const bulkUpsertTeacherAllocations = (
+  termId: string,
+  items: Omit<TeacherAllocation, "id" | "termId">[]
+): Promise<void> => teacherAllocationAdapter.bulkUpsertTeacherAllocations(termId, items);
+
+export const clearAllocationsForSubject = (
+  termId: string,
+  gradeId: string,
+  subjectId: string
+): Promise<void> => teacherAllocationAdapter.clearAllocationsForSubject(termId, gradeId, subjectId);
+
+export const applyTeacherToGrade = (
+  termId: string,
+  gradeId: string,
+  subjectId: string,
+  teacherId: string | null,
+  sectionIds: string[],
+  classroomIdsBySection?: Record<string, string[]>
+): Promise<void> =>
+  teacherAllocationAdapter.applyTeacherToGrade(
+    termId,
+    gradeId,
+    subjectId,
+    teacherId,
+    sectionIds,
+    classroomIdsBySection
+  );
+
+export const calculateTeacherLoads = (
+  termId: string,
+  structureData: StructureData,
+  subjectAllocations: SubjectAllocation[],
+  teacherAllocations?: TeacherAllocation[]
+): Promise<TeacherLoad[]> =>
+  teacherAllocationAdapter.calculateTeacherLoads(
+    termId,
+    structureData,
+    subjectAllocations,
+    teacherAllocations
+  );
+
+export const validateAllocations = (
+  termId: string,
+  structureData: StructureData,
+  subjectAllocations: SubjectAllocation[]
+): Promise<ValidationResult> =>
+  teacherAllocationAdapter.validateAllocations(termId, structureData, subjectAllocations);
+
+export const carryOverTeacherAllocations = (
+  params: CarryOverTeacherAllocationsOptions
+): Promise<void> => teacherAllocationAdapter.carryOverTeacherAllocations(params);

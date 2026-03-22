@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Stage, Grade, Section, Classroom } from "@/features/academics/academic-structure-tree/services/structureService";
 import { AlertCircle, Layers, BookOpen, Users, DoorOpen } from "lucide-react";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 interface InsightsPanelProps {
   stages: Stage[];
@@ -22,13 +23,8 @@ export default function InsightsPanel({ stages, grades, sections, classrooms, is
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-white rounded-lg border border-border p-4 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          </div>
-        ))}
+      <div className="flex min-h-[220px] items-center justify-center p-6">
+        <PartialLoader />
       </div>
     );
   }
