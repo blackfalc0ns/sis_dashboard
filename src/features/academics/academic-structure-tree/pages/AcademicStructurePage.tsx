@@ -25,6 +25,11 @@ import { useStructureCreateFlow } from "../hooks/useStructureCreateFlow";
 import { useStructureCarryOverFlow } from "../hooks/useStructureCarryOverFlow";
 import { useDebouncedCallback } from "use-debounce";
 
+type TreeNodeRef = {
+  type: "stage" | "grade" | "section" | "classroom";
+  id: string;
+};
+
 export default function AcademicStructurePage() {
   const t = useTranslations("academics.structure");
   const router = useRouter();
@@ -115,7 +120,7 @@ export default function AcademicStructurePage() {
     onCarryOver: carryOver,
   });
 
-  const querySelectedNode = useMemo(() => {
+  const querySelectedNode = useMemo<TreeNodeRef | null>(() => {
     const nodeType = searchParams.get("nodeType");
     const nodeId = searchParams.get("nodeId");
 
@@ -154,13 +159,7 @@ export default function AcademicStructurePage() {
   }, [searchParams]);
 
   const syncSelectedNodeUrl = useCallback(
-    (
-      node: {
-        type: "stage" | "grade" | "section" | "classroom";
-        id: string;
-      } | null,
-      historyMode: "push" | "replace" = "replace"
-    ) => {
+    (node: TreeNodeRef | null, historyMode: "push" | "replace" = "replace") => {
       const params = new URLSearchParams(searchParams.toString());
       if (node) {
         params.set("nodeType", node.type);
@@ -214,7 +213,7 @@ export default function AcademicStructurePage() {
     [router, searchParams]
   );
 
-  const effectiveSelectedNode = useMemo(() => {
+  const effectiveSelectedNode = useMemo<TreeNodeRef | null>(() => {
     if (!querySelectedNode) {
       return null;
     }
@@ -258,10 +257,7 @@ export default function AcademicStructurePage() {
     changeTerm(nextTermId);
   };
 
-  const handleSelectNode = (node: {
-    type: "stage" | "grade" | "section" | "classroom";
-    id: string;
-  }) => {
+  const handleSelectNode = (node: TreeNodeRef) => {
     if (hasUnsavedChanges) {
       if (!confirm(t("details.discard_dialog.message"))) return;
       setHasUnsavedChanges(false);

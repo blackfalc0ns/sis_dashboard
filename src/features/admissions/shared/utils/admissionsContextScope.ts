@@ -72,23 +72,25 @@ export const filterAdmissionsEnrollmentsByContext = <
   scope: AdmissionsContextScope,
 ): T[] => {
   if (!scope.year) return records;
+  const year = scope.year;
+  const term = scope.term;
 
   return records.filter((record) => {
     const matchesYear =
-      record.academicYear === scope.year?.name ||
+      record.academicYear === year.name ||
       isDateWithinRange(
         record.enrolledDate || record.startDate,
-        scope.year.startDate,
-        scope.year.endDate,
+        year.startDate,
+        year.endDate,
       );
 
     if (!matchesYear) return false;
-    if (!scope.term) return true;
+    if (!term) return true;
 
     return isDateWithinRange(
       record.enrolledDate || record.startDate,
-      scope.term.startDate,
-      scope.term.endDate,
+      term.startDate,
+      term.endDate,
     );
   });
 };

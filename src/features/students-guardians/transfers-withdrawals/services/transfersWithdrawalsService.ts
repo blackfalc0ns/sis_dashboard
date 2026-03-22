@@ -23,6 +23,15 @@ import type {
   TransfersWithdrawalsOverviewMetrics,
   TransfersWithdrawalsTrendPoint,
 } from "./transfersWithdrawalsAdapter";
+
+export type {
+  BehaviorBreakdownPoint,
+  ReasonBreakdownPoint,
+  StageBreakdownPoint,
+  TransferWithdrawalRequestRow,
+  TransfersWithdrawalsOverviewMetrics,
+  TransfersWithdrawalsTrendPoint,
+} from "./transfersWithdrawalsAdapter";
 import {
   createTransfersWithdrawalsApiAdapter,
   transfersWithdrawalsApiAdapter,

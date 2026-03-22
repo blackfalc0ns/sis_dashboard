@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -229,7 +229,7 @@ export default function StudentProfilePage({
 
   const profileStudent = enrichedStudent ?? student;
 
-  const tabContent: Record<TabKey, JSX.Element> = {
+  const tabContent: Record<TabKey, ReactNode> = {
     overview: <StudentOverviewTab student={profileStudent} />,
     personal: (
       <StudentPersonalInfoTab

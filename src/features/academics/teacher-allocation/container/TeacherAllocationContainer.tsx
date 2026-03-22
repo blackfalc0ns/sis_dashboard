@@ -27,6 +27,10 @@ import {
 import TeacherAllocationView from "../views/TeacherAllocationView";
 import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
 
+type TeacherAllocationQueryState = {
+  activeTab: "matrix" | "load";
+};
+
 export default function TeacherAllocationContainer() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -54,7 +58,7 @@ export default function TeacherAllocationContainer() {
   // UI State
   const [validationPanelOpen, setValidationPanelOpen] = useState(false);
   const [carryOverDialogOpen, setCarryOverDialogOpen] = useState(false);
-  const queryState = useMemo(
+  const queryState = useMemo<TeacherAllocationQueryState>(
     () => ({
       activeTab: searchParams.get("tab") === "load" ? "load" : "matrix",
     }),

@@ -19,6 +19,10 @@ import {
 import SubjectsAllocationView from "../views/SubjectsAllocationView";
 import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
 
+type SubjectsAllocationQueryState = {
+  activeTab: "subjects" | "matrix";
+};
+
 export default function SubjectsAllocationContainer() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -43,7 +47,7 @@ export default function SubjectsAllocationContainer() {
   const [showSubjectDialog, setShowSubjectDialog] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [showCarryOverDialog, setShowCarryOverDialog] = useState(false);
-  const queryState = useMemo(
+  const queryState = useMemo<SubjectsAllocationQueryState>(
     () => ({
       activeTab: searchParams.get("tab") === "matrix" ? "matrix" : "subjects",
     }),

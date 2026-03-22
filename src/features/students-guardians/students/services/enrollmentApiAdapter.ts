@@ -48,16 +48,9 @@ const buildQuery = (params: Record<string, string>) => {
 export const createEnrollmentApiAdapter = (
   basePath: string = "/students-guardians/enrollments",
 ): EnrollmentAdapter => ({
-  validateEnrollmentPlacement: (payload, options) =>
-    unwrap<EnrollmentPlacementValidationResult>(
-      apiWithToken(`${basePath}/validation`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ payload, options }),
-      }),
-    ),
+  validateEnrollmentPlacement: () => {
+    throw new Error("enrollment_api_sync_not_supported");
+  },
   createEnrollment: (payload) =>
     unwrap<StudentEnrollment>(
       apiWithToken(basePath, {
@@ -88,30 +81,15 @@ export const createEnrollmentApiAdapter = (
         body: JSON.stringify(payload),
       }),
     ),
-  getCurrentActiveEnrollment: (studentId, academicYear) =>
-    unwrap<StudentEnrollment | undefined>(
-      apiWithToken(
-        `${basePath}/current${buildQuery({
-          studentId,
-          ...(academicYear ? { academicYear } : {}),
-        })}`,
-        {
-          method: "GET",
-        },
-      ),
-    ),
-  getEnrollmentHistory: (studentId) =>
-    unwrap<StudentEnrollment[]>(
-      apiWithToken(`${basePath}/history${buildQuery({ studentId })}`, {
-        method: "GET",
-      }),
-    ),
-  getPlacementHistory: (studentId) =>
-    unwrap<EnrollmentMovement[]>(
-      apiWithToken(`${basePath}/placements${buildQuery({ studentId })}`, {
-        method: "GET",
-      }),
-    ),
+  getCurrentActiveEnrollment: () => {
+    throw new Error("enrollment_api_sync_not_supported");
+  },
+  getEnrollmentHistory: () => {
+    throw new Error("enrollment_api_sync_not_supported");
+  },
+  getPlacementHistory: () => {
+    throw new Error("enrollment_api_sync_not_supported");
+  },
   transferStudent: (payload: TransferStudentPayload) =>
     unwrap<StudentEnrollment>(
       apiWithToken(`${basePath}/transfer`, {

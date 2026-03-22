@@ -15,6 +15,7 @@ import {
   Star,
 } from "lucide-react";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import type { StudentGuardian } from "@/features/students-guardians/students/types";
 import OverviewTab from "@/features/students-guardians/guardians/components/tabs/OverviewTab";
 import StudentsTab from "@/features/students-guardians/guardians/components/tabs/StudentsTab";
 import MainLoader from "@/components/ui/loaders/MainLoader";
@@ -49,7 +50,7 @@ export default function GuardianProfilePage({
   const params = useParams();
   const lang = (params.lang as string) || "en";
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
-  const [guardian, setGuardian] = useState<studentsService.StudentGuardian | null>(null);
+  const [guardian, setGuardian] = useState<StudentGuardian | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 

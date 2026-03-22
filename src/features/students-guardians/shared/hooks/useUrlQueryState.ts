@@ -52,8 +52,10 @@ export function useUrlQueryState<T extends Record<string, string>>(
   const {
     defaults,
     debouncedKeys = [],
-    modeByKey = {},
-    shouldOmit = {},
+    modeByKey = {} as Partial<Record<keyof T, UrlUpdateMode>>,
+    shouldOmit = {} as Partial<
+      Record<keyof T, (value: string, defaultValue: string) => boolean>
+    >,
     normalize,
     debounceMs = 300,
   } = config;

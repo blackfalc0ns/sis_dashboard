@@ -15,10 +15,14 @@ export type AcademicTermName = "Term 1" | "Term 2" | "Term 3";
 export interface StudentEnrollment {
   enrollmentId: string;
   studentId: string;
+  academicYearId?: string;
   academicYear: string;
   grade: string;
+  gradeId?: string;
   section: string;
+  sectionId?: string;
   classroom?: string;
+  classroomId?: string;
   enrollmentDate: string;
   status: EnrollmentStatus;
 }
@@ -67,6 +71,7 @@ export interface EnrollmentMovement {
  */
 export interface EnrollmentTerm {
   termId: string;
+  termRecordId?: string;
   enrollmentId: string;
   term: AcademicTermName;
   startDate: string;
@@ -85,6 +90,7 @@ export interface ClassTeacherAssignment {
   academicYear: string;
   grade: string;
   section: string;
+  classroomId?: string;
   teacherId: string;
   teacherName: string;
   teacherNameArabic?: string;
@@ -99,6 +105,7 @@ export interface SubjectTeacherAssignment {
   academicYear: string;
   grade: string;
   section: string;
+  classroomId?: string;
   subject: string;
   teacherId: string;
   teacherName: string;

@@ -60,69 +60,39 @@ export const createStudentsApiAdapter = (
         body: JSON.stringify(payload),
       }),
     ),
-  getStudentsByStatus: (status: StudentStatus) =>
-    unwrap<Student[]>(
-      apiWithToken(`${basePath}${buildQuery({ status })}`, {
-        method: "GET",
-      }),
-    ),
-  getStudentsByGrade: (grade) =>
-    unwrap<Student[]>(
-      apiWithToken(`${basePath}${buildQuery({ grade })}`, {
-        method: "GET",
-      }),
-    ),
-  getAtRiskStudents: () =>
-    unwrap<Student[]>(
-      apiWithToken(`${basePath}/at-risk`, {
-        method: "GET",
-      }),
-    ),
-  searchStudents: (query) =>
-    unwrap<Student[]>(
-      apiWithToken(`${basePath}/search${buildQuery({ q: query })}`, {
-        method: "GET",
-      }),
-    ),
-  getStudentGuardians: (studentId) =>
-    unwrap<StudentGuardian[]>(
-      apiWithToken(`${basePath}/${studentId}/guardians`, {
-        method: "GET",
-      }),
-    ),
-  getPrimaryGuardian: (studentId) =>
-    unwrap<StudentGuardian | undefined>(
-      apiWithToken(`${basePath}/${studentId}/guardians/primary`, {
-        method: "GET",
-      }),
-    ),
-  getGuardianStudents: (guardianId) =>
-    unwrap<Student[]>(
-      apiWithToken(`${basePath}/guardians/${guardianId}/students`, {
-        method: "GET",
-      }),
-    ),
+  getStudentsByStatus: (_status: StudentStatus) => {
+    throw new Error("students_api_sync_not_supported");
+  },
+  getStudentsByGrade: (_grade) => {
+    throw new Error("students_api_sync_not_supported");
+  },
+  getAtRiskStudents: () => {
+    throw new Error("students_api_sync_not_supported");
+  },
+  searchStudents: (_query) => {
+    throw new Error("students_api_sync_not_supported");
+  },
+  getStudentGuardians: (_studentId) => {
+    throw new Error("students_api_sync_not_supported");
+  },
+  getPrimaryGuardian: (_studentId) => {
+    throw new Error("students_api_sync_not_supported");
+  },
+  getGuardianStudents: (_guardianId) => {
+    throw new Error("students_api_sync_not_supported");
+  },
   getAllGuardians: () => {
     throw new Error("students_api_sync_not_supported");
   },
-  getGuardianById: (guardianId) =>
-    unwrap<StudentGuardian | undefined>(
-      apiWithToken(`${basePath}/guardians/${guardianId}`, {
-        method: "GET",
-      }),
-    ),
-  getStudentDocuments: (studentId) =>
-    unwrap<StudentDocument[]>(
-      apiWithToken(`${basePath}/${studentId}/documents`, {
-        method: "GET",
-      }),
-    ),
-  getMissingDocuments: (studentId) =>
-    unwrap<StudentDocument[]>(
-      apiWithToken(`${basePath}/${studentId}/documents/missing`, {
-        method: "GET",
-      }),
-    ),
+  getGuardianById: (_guardianId) => {
+    throw new Error("students_api_sync_not_supported");
+  },
+  getStudentDocuments: (_studentId) => {
+    throw new Error("students_api_sync_not_supported");
+  },
+  getMissingDocuments: (_studentId) => {
+    throw new Error("students_api_sync_not_supported");
+  },
   getStudentsWithEnrollment: () => {
     throw new Error("students_api_sync_not_supported");
   },

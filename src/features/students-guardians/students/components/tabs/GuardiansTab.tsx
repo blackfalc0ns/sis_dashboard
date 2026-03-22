@@ -17,7 +17,7 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
-import { Student } from "@/features/students-guardians/students/types";
+import { Student, type StudentGuardian } from "@/features/students-guardians/students/types";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import AddGuardianModal, {
   GuardianFormData,
@@ -32,9 +32,9 @@ interface GuardiansTabProps {
 export default function GuardiansTab({ student }: GuardiansTabProps) {
   const t = useTranslations("students_guardians.profile.guardians");
   const [showAddModal, setShowAddModal] = useState(false);
-  const [guardians, setGuardians] = useState<studentsService.StudentGuardian[]>([]);
+  const [guardians, setGuardians] = useState<StudentGuardian[]>([]);
   const [primaryGuardian, setPrimaryGuardian] =
-    useState<studentsService.StudentGuardian | undefined>(undefined);
+    useState<StudentGuardian | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

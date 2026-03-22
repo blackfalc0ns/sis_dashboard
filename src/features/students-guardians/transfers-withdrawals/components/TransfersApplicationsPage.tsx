@@ -139,7 +139,7 @@ export default function TransfersApplicationsPage() {
               <select
                 value={filters.stage || "all"}
                 onChange={(e) => {
-                  setValue("stage", e.target.value as FiltersType["stage"], "push");
+                  setValue("stage", e.target.value, "push");
                 }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -162,7 +162,7 @@ export default function TransfersApplicationsPage() {
               <select
                 value={filters.type || "all"}
                 onChange={(e) => {
-                  setValue("type", e.target.value as FiltersType["type"], "push");
+                  setValue("type", e.target.value, "push");
                 }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -180,7 +180,7 @@ export default function TransfersApplicationsPage() {
               <select
                 value={filters.status || "all"}
                 onChange={(e) => {
-                  setValue("status", e.target.value as FiltersType["status"], "push");
+                  setValue("status", e.target.value, "push");
                 }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -214,7 +214,7 @@ export default function TransfersApplicationsPage() {
                 onChange={(e) => {
                   setValue(
                     "behaviorBand",
-                    e.target.value as FiltersType["behaviorBand"],
+                    e.target.value,
                     "push",
                   );
                 }}

@@ -144,7 +144,7 @@ export default function WithdrawalsApplicationsPage() {
               <select
                 value={filters.stage || "all"}
                 onChange={(e) => {
-                  setValue("stage", e.target.value as FiltersType["stage"], "push");
+                  setValue("stage", e.target.value, "push");
                 }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -167,7 +167,7 @@ export default function WithdrawalsApplicationsPage() {
               <select
                 value={filters.reason || "all"}
                 onChange={(e) => {
-                  setValue("reason", e.target.value as FiltersType["reason"], "push");
+                  setValue("reason", e.target.value, "push");
                 }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -197,7 +197,7 @@ export default function WithdrawalsApplicationsPage() {
               <select
                 value={filters.status || "all"}
                 onChange={(e) => {
-                  setValue("status", e.target.value as FiltersType["status"], "push");
+                  setValue("status", e.target.value, "push");
                 }}
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -237,7 +237,7 @@ export default function WithdrawalsApplicationsPage() {
                 onChange={(e) => {
                   setValue(
                     "behaviorBand",
-                    e.target.value as FiltersType["behaviorBand"],
+                    e.target.value,
                     "push",
                   );
                 }}

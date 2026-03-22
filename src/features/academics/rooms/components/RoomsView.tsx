@@ -39,6 +39,15 @@ interface RoomsViewProps {
   isReadOnly: boolean;
 }
 
+type RoomsQueryState = {
+  searchQuery: string;
+  defaultScopeType: "SECTION" | "CLASSROOM";
+  defaultStageId: string;
+  defaultGradeId: string;
+  defaultSectionId: string;
+  defaultClassroomId: string;
+};
+
 export default function RoomsView({
   schoolId,
   academicYearId,
@@ -59,7 +68,7 @@ export default function RoomsView({
   const [sections, setSections] = useState<Section[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const queryState = useMemo(
+  const queryState = useMemo<RoomsQueryState>(
     () => ({
       searchQuery: searchParams.get("roomSearch") || "",
       defaultScopeType:

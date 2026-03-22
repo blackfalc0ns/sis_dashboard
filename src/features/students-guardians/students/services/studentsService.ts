@@ -30,6 +30,8 @@ import {
   getCurrentTerm,
   getTermsByEnrollmentId,
   getYearToDateAverages,
+  getClassTeacher,
+  getSubjectTeacher,
 } from "@/data/mockStudents";
 import {
   getOrGenerateStudentEmail,
@@ -467,6 +469,15 @@ export function getStudentEnrollment(
   return getEnrollmentByStudentId(studentId);
 }
 
+export function getStudentEnrollmentByAcademicYear(
+  studentId: string,
+  academicYear: string,
+): StudentEnrollment | undefined {
+  return getEnrollmentsByStudentId(studentId).find(
+    (enrollment) => enrollment.academicYear === academicYear,
+  );
+}
+
 /**
  * Get current term for a student
  */
@@ -489,6 +500,83 @@ export function getStudentYTDPerformance(studentId: string): {
   const enrollment = getEnrollmentByStudentId(studentId);
   if (!enrollment) return null;
   return getYearToDateAverages(enrollment.enrollmentId);
+}
+
+export function getStudentYTDPerformanceByAcademicYear(
+  studentId: string,
+  academicYear: string,
+): {
+  attendance: number;
+  gradeAverage: number;
+  riskFlags: RiskFlag[];
+} | null {
+  const enrollment = getStudentEnrollmentByAcademicYear(studentId, academicYear);
+  if (!enrollment) return null;
+  return getYearToDateAverages(enrollment.enrollmentId);
+}
+
+export function getStudentTerms(studentId: string): EnrollmentTerm[] {
+  const enrollment = getEnrollmentByStudentId(studentId);
+  if (!enrollment) return [];
+  return getTermsByEnrollmentId(enrollment.enrollmentId);
+}
+
+export function getStudentTermsByAcademicYear(
+  studentId: string,
+  academicYear: string,
+): EnrollmentTerm[] {
+  const enrollment = getStudentEnrollmentByAcademicYear(studentId, academicYear);
+  if (!enrollment) return [];
+  return getTermsByEnrollmentId(enrollment.enrollmentId);
+}
+
+export function getStudentTermByName(
+  studentId: string,
+  termName: EnrollmentTerm["term"],
+): EnrollmentTerm | undefined {
+  return getStudentTerms(studentId).find((term) => term.term === termName);
+}
+
+export function getStudentTermByNameForAcademicYear(
+  studentId: string,
+  academicYear: string,
+  termName: EnrollmentTerm["term"],
+): EnrollmentTerm | undefined {
+  return getStudentTermsByAcademicYear(studentId, academicYear).find(
+    (term) => term.term === termName,
+  );
+}
+
+export function getStudentClassTeacher(
+  studentId: string,
+  academicYear?: string,
+) {
+  const enrollment = academicYear
+    ? getStudentEnrollmentByAcademicYear(studentId, academicYear)
+    : getStudentEnrollment(studentId);
+
+  if (!enrollment) return undefined;
+
+  return getClassTeacher(enrollment.grade, enrollment.section, enrollment.academicYear);
+}
+
+export function getStudentSubjectTeacher(
+  studentId: string,
+  subject: string,
+  academicYear?: string,
+) {
+  const enrollment = academicYear
+    ? getStudentEnrollmentByAcademicYear(studentId, academicYear)
+    : getStudentEnrollment(studentId);
+
+  if (!enrollment) return undefined;
+
+  return getSubjectTeacher(
+    enrollment.grade,
+    enrollment.section,
+    subject,
+    enrollment.academicYear,
+  );
 }
 
 export type StudentWithEnrollmentContext = Student & {

@@ -8,6 +8,8 @@ import {
   getDefaultTimetableConfig,
 } from "@/features/academics/timetable/types/timetableConfig";
 
+export type { TimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
+
 // Mock data store (replace with actual API calls)
 let configStore: TimetableConfig[] = [];
 

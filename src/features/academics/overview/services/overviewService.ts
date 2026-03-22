@@ -157,7 +157,15 @@ const fetchOverviewMetricsImpl = async (
     .filter((e) => e.type === "EXAM" && new Date(e.startDate) > today)
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0];
 
-  const lessonPlanTargets = structure.sections.flatMap((section) => {
+  const lessonPlanTargets: Array<{
+    sectionId: string;
+    subjectId: string;
+    classroomId?: string;
+  }> = structure.sections.flatMap<{
+    sectionId: string;
+    subjectId: string;
+    classroomId?: string;
+  }>((section) => {
     const subjectTargets = allocations.filter(
       (allocation) =>
         allocation.gradeId === section.gradeId && allocation.weeklyHours > 0
@@ -179,7 +187,6 @@ const fetchOverviewMetricsImpl = async (
     return subjectTargets.map((allocation) => ({
       sectionId: section.id,
       subjectId: allocation.subjectId,
-      classroomId: undefined,
     }));
   });
 
