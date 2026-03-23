@@ -6,7 +6,8 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import GuardedLink from "@/components/navigation/GuardedLink";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { usePermissions, type PermissionKey } from "@/hooks/usePermissions";
 
 interface SidebarProps {
   activeItem?: string;
@@ -26,10 +27,45 @@ export default function Sidebar({
 }: SidebarProps) {
   const t = useTranslations("sidebar");
   const pathname = usePathname();
+  const { hasPermission } = usePermissions();
   const isArabic = pathname.startsWith("/ar");
   const [pendingHref, setPendingHref] = useState<string | null>(null);
 
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
+  const visibleMenuItems = useMemo(
+    () =>
+      menuItems
+        .map((item) => {
+      if (item.key !== "settings" || !item.children) {
+        return item;
+      }
+
+      const permissionByChild: Record<string, PermissionKey> = {
+        "settings-overview": "settings.overview.view",
+        "settings-branding": "settings.branding.view",
+        "settings-users": "settings.users.view",
+        "settings-roles": "settings.roles.view",
+        "settings-policies": "settings.policies.view",
+        "settings-templates": "settings.templates.view",
+        "settings-integrations": "settings.integrations.view",
+        "settings-security": "settings.security.view",
+        "settings-backup": "settings.backup.view",
+      };
+
+      const nextChildren = item.children.filter((child) => {
+        const permission = permissionByChild[child.key];
+        return permission ? hasPermission(permission) : true;
+      });
+
+          return {
+            ...item,
+            children: nextChildren,
+          };
+        })
+        .filter((item) => !item.children || item.children.length > 0),
+    [hasPermission],
+  );
   
   // Clear pending state when pathname changes (navigation complete)
   useEffect(() => {
@@ -41,7 +77,7 @@ export default function Sidebar({
   
   // Auto-expand parent if current route is a child or grandchild
   useEffect(() => {
-    menuItems.forEach((item) => {
+    visibleMenuItems.forEach((item) => {
       if (item.children) {
         const isChildActive = item.children.some((child) => {
           const childHref = isArabic ? child.href_ar : child.href_en;
@@ -86,7 +122,7 @@ export default function Sidebar({
         }
       }
     });
-  }, [pathname, isArabic]);
+  }, [pathname, isArabic, visibleMenuItems]);
 
   const handleItemClick = (key: string) => {
     onSelect?.(key);
@@ -193,7 +229,7 @@ export default function Sidebar({
       {/* ✅ Scrollable Menu Only */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 sidebar-scroll">
         <nav className="space-y-1 pb-4">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             const isActive = isItemActive(item);
             const isExpanded = expandedItems.includes(item.key);
@@ -473,4 +509,3 @@ export default function Sidebar({
   </>
 );
 }
-

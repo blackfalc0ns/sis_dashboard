@@ -316,7 +316,7 @@
   },
   "admissions": {
     "context_bar": {
-      "title": "سياق القبول",
+      "title": "السياق الأكاديمي",
       "academic_year": "العام الأكاديمي",
       "term": "الفصل الدراسي",
       "status_open": "مفتوح",
@@ -574,6 +574,21 @@
       "guardian_phone": "هاتف ولي الأمر",
       "guardian_email": "بريد ولي الأمر الإلكتروني",
       "guardian_contact": "معلومات ولي الأمر/الوالد",
+      "import_modal": {
+        "title": "استيراد الاستفسارات",
+        "file_requirements": "متطلبات الملف:",
+        "supported_formats": "الصيغ المدعومة: CSV وExcel (.xlsx و.xls)",
+        "required_columns": "الأعمدة المطلوبة: الاسم، الهاتف، القناة، الحالة، المسؤول",
+        "optional_columns": "الأعمدة الاختيارية: البريد الإلكتروني، الصف المهتم به، المصدر، الملاحظات",
+        "maximum_file_size": "الحد الأقصى لحجم الملف: 5 ميجابايت",
+        "remove_file": "إزالة الملف",
+        "drop_or_browse": "أسقط الملف هنا أو انقر للتصفح",
+        "file_hint": "ملفات CSV أو Excel حتى 5 ميجابايت",
+        "no_file_ready": "ليس لديك ملف جاهز؟",
+        "download_csv_template": "تحميل قالب CSV",
+        "cancel": "إلغاء",
+        "submit": "استيراد الاستفسارات"
+      },
       "chat": {
         "no_messages": "لا توجد رسائل بعد",
         "start_conversation": "ابدأ محادثة مع ولي الأمر",
@@ -1777,8 +1792,8 @@
         "transfers_trend": "التحويلات عبر الوقت",
         "withdrawals_trend": "الانسحاب عبر الوقت",
         "withdrawals_by_stage": {
-         "title": "الانسحاب حسب المرحلة",
-  "description": "توزيع حالات الانسحاب عبر المراحل التعليمية"
+          "title": "الانسحاب حسب المرحلة",
+          "description": "توزيع حالات الانسحاب عبر المراحل التعليمية"
         },
         "total_withdrawals": "إجمالي الانسحاب",
         "total_transfers": "إجمالي التحويلات",
@@ -1801,26 +1816,26 @@
           "insight_title": "رؤية رئيسية",
           "insight_text": "الطلاب ذوو التقييمات السلوكية المنخفضة (0-40) يظهرون معدلات انسحاب أعلى بشكل ملحوظ، مما يشير إلى وجود علاقة قوية بين المشاكل السلوكية والاحتفاظ بالطلاب."
         },
-    "transfers_by_type": {
-  "title": "التحويلات حسب النوع",
-  "description": "توزيع عدد حالات التحويل الداخلية والخارجية حسب نوع التحويل"
-},
-"transfers_by_stage": {
-  "title": "التحويلات حسب المرحلة",
-  "description": "توزيع حالات التحويل عبر المراحل التعليمية"
-},
-"transfers_by_status": {
-  "title": "التحويلات حسب الحالة",
-  "description": "توزيع الحالات حسب حالة طلب التحويل"
-},
-"withdrawals_by_status": {
-  "title": "الانسحاب حسب الحالة",
-  "description": "توزيع الحالات حسب حالة طلب الانسحاب"
-},
-"withdrawals_by_clearance": {
-  "title": "الانسحاب حسب حالة المخالصة",
-  "description": "توزيع عدد حالات الانسحاب المكتملة وغير المكتملة حسب المخالصة"
-}
+        "transfers_by_type": {
+          "title": "التحويلات حسب النوع",
+          "description": "توزيع عدد حالات التحويل الداخلية والخارجية حسب نوع التحويل"
+        },
+        "transfers_by_stage": {
+          "title": "التحويلات حسب المرحلة",
+          "description": "توزيع حالات التحويل عبر المراحل التعليمية"
+        },
+        "transfers_by_status": {
+          "title": "التحويلات حسب الحالة",
+          "description": "توزيع الحالات حسب حالة طلب التحويل"
+        },
+        "withdrawals_by_status": {
+          "title": "الانسحاب حسب الحالة",
+          "description": "توزيع الحالات حسب حالة طلب الانسحاب"
+        },
+        "withdrawals_by_clearance": {
+          "title": "الانسحاب حسب حالة المخالصة",
+          "description": "توزيع عدد حالات الانسحاب المكتملة وغير المكتملة حسب المخالصة"
+        }
       },
       "modals": {
         "transfer": {
@@ -2401,19 +2416,19 @@
         "no_history": "لا توجد سجلات انسحاب متاحة"
       }
     },
-   "shared": {
-  "year_term_context": {
-    "title": "السياق الأكاديمي",
-    "academic_year": "العام الدراسي",
-    "term": "الفصل",
-    "status_open": "مفتوح",
-    "status_closed": "مغلق",
-    "errors": {
-      "failed_to_load": "تعذر تحميل السياق الأكاديمي الحالي.",
-      "failed_to_load_terms": "تعذر تحميل فصول العام الدراسي."
+    "shared": {
+      "year_term_context": {
+        "title": "السياق الأكاديمي",
+        "academic_year": "العام الدراسي",
+        "term": "الفصل",
+        "status_open": "مفتوح",
+        "status_closed": "مغلق",
+        "errors": {
+          "failed_to_load": "تعذر تحميل السياق الأكاديمي الحالي.",
+          "failed_to_load_terms": "تعذر تحميل فصول العام الدراسي."
+        }
+      }
     }
-  }
-}
   },
   "academics": {
     "structure": {
@@ -5118,6 +5133,298 @@
           "lateEarly": "فتح في التأخر/المغادرة المبكرة",
           "excuses": "فتح في الأعذار"
         }
+      }
+    }
+  },
+  "settings": {
+    "access": {
+      "title": "عدم وجود صلاحية",
+      "description": "اطلب من مدير النظام تحديث الصلاحيات للوصول إلى هذا القسم."
+    },
+    "session": {
+      "label": "الدور النشط",
+      "switched": "تم تبديل جلسة الإعدادات.",
+      "switch_failed": "فشل تبديل جلسة الإعدادات.",
+      "load_failed": "فشل تحميل مستخدمي الإعدادات."
+    },
+    "shared": {
+      "status": {
+        "active": "نشط",
+        "draft": "مسودة",
+        "connected": "متصل",
+        "disconnected": "غير متصل",
+        "needs_attention": "يحتاج متابعة",
+        "invited": "مدعو",
+        "inactive": "غير نشط",
+        "completed": "مكتمل",
+        "running": "جارٍ",
+        "failed": "فاشل",
+        "info": "معلومة",
+        "warning": "تحذير",
+        "critical": "حرج"
+      }
+    },
+    "overview": {
+      "title": "نظرة عامة على الإعدادات",
+      "subtitle": "متابعة جاهزية ملف المدرسة والتكاملات والصلاحيات ووضع الأمان.",
+      "messages": {
+        "load_failed": "فشل تحميل نظرة عامة الإعدادات."
+      },
+      "cards": {
+        "profile_completeness": "اكتمال ملف المدرسة",
+        "profile_completeness_hint": "حقول الهوية والبيانات الأساسية",
+        "active_integrations": "التكاملات النشطة",
+        "active_integrations_hint": "المزوّدات المتصلة حالياً",
+        "active_users": "المستخدمون النشطون",
+        "pending_invites": "{count} دعوات معلقة",
+        "audit_events": "أحداث المراجعة الأخيرة",
+        "audit_events_hint": "نشاطات الأمان والإعدادات",
+        "template_health": "جاهزية القوالب",
+        "template_health_hint": "القوالب النشطة الجاهزة للإرسال"
+      },
+      "recent_audit": {
+        "title": "نشاط المراجعة الأخير",
+        "description": "أحدث أحداث الإعدادات والأمان عبر منصة المدرسة."
+      },
+      "integrations_snapshot": {
+        "title": "ملخص التكاملات",
+        "description": "الحالة الحالية لاتصال المزوّدات عبر القنوات الأساسية."
+      }
+    },
+    "branding": {
+      "title": "ملف المدرسة والهوية",
+      "subtitle": "إدارة هوية المدرسة والتوقيع السفلي والإعدادات البصرية الأساسية.",
+      "logo_title": "شعار المدرسة",
+      "logo_description": "مساحة رفع مهيكلة لربطها لاحقاً بخدمة وسائط حقيقية.",
+      "upload_placeholder": "رفع شعار المدرسة",
+      "upload_hint": "الإصدار الأول يترك رفع الشعار كواجهة جاهزة إلى حين ربط تخزين الملفات من الخلفية.",
+      "upload_button": "اختيار شعار",
+      "cancel_changes": "إلغاء التغييرات",
+      "profile_title": "بيانات الملف",
+      "profile_description": "تظهر هذه البيانات في التقارير والمستندات المصدّرة والإشعارات.",
+      "school_name": "اسم المدرسة",
+      "short_name": "الاسم المختصر",
+      "timezone": "المنطقة الزمنية",
+      "address": "العنوان",
+      "city": "المدينة",
+      "country": "الدولة",
+      "footer_signature": "تذييل / توقيع",
+      "validation": {
+        "school_name_required": "اسم المدرسة مطلوب.",
+        "short_name_required": "الاسم المختصر مطلوب.",
+        "timezone_required": "المنطقة الزمنية مطلوبة.",
+        "address_required": "العنوان مطلوب.",
+        "city_required": "المدينة مطلوبة.",
+        "country_required": "الدولة مطلوبة.",
+        "footer_required": "التوقيع السفلي مطلوب."
+      },
+      "messages": {
+        "saved": "تم حفظ ملف المدرسة بنجاح.",
+        "load_failed": "فشل تحميل ملف المدرسة.",
+        "logo_upload_failed": "فشل تجهيز الشعار المرفوع."
+      }
+    },
+    "users": {
+      "title": "المستخدمون",
+      "subtitle": "إدارة المستخدمين والدعوات وتفعيل الحسابات.",
+      "directory_title": "دليل المستخدمين",
+      "directory_description": "إدارة الدعوات وإسناد الأدوار وحالة الحسابات.",
+      "search": "البحث عن مستخدم",
+      "invite_user": "دعوة مستخدم",
+      "create_user": "إنشاء مستخدم",
+      "edit_user": "تعديل مستخدم",
+      "send_invite": "إرسال الدعوة",
+      "resend_invite": "إعادة إرسال الدعوة",
+      "reset_password": "إعادة تعيين كلمة المرور",
+      "activate": "تفعيل",
+      "deactivate": "إيقاف",
+      "refresh": "تحديث",
+      "not_available": "غير متاح",
+      "filters": {
+        "role": "الدور",
+        "status": "الحالة"
+      },
+      "statuses": {
+        "active": "نشط",
+        "invited": "مدعو",
+        "inactive": "غير نشط"
+      },
+      "table": {
+        "name": "الاسم",
+        "email": "البريد الإلكتروني",
+        "role": "الدور",
+        "status": "الحالة",
+        "last_active": "آخر نشاط",
+        "actions": "الإجراءات"
+      },
+      "messages": {
+        "load_failed": "فشل تحميل المستخدمين.",
+        "created": "تم إنشاء المستخدم بنجاح.",
+        "updated": "تم تحديث المستخدم بنجاح.",
+        "invited": "تم إرسال الدعوة بنجاح.",
+        "invite_resent": "تمت إعادة إرسال الدعوة.",
+        "password_reset_sent": "تم تنفيذ إجراء إعادة تعيين كلمة المرور.",
+        "activated": "تم تفعيل المستخدم.",
+        "deactivated": "تم إيقاف المستخدم."
+      }
+    },
+    "roles": {
+      "title": "الأدوار والصلاحيات",
+      "subtitle": "تعريف الأدوار الإدارية وإدارة الوصول عبر عمليات المدرسة المختلفة.",
+      "create_role": "إنشاء دور",
+      "edit_role": "تعديل دور",
+      "delete_role": "حذف دور",
+      "clone_role": "نسخ دور",
+      "role_name": "اسم الدور",
+      "role_name_placeholder": "مثال: مشرف الحرم",
+      "role_description": "وصف الدور",
+      "role_description_placeholder": "اشرح مسؤوليات هذا الدور.",
+      "role_list_title": "قائمة الأدوار",
+      "role_list_description": "الأدوار النظامية والمخصصة المتاحة لإسنادها للموظفين.",
+      "permission_matrix_title": "مصفوفة الصلاحيات",
+      "permission_matrix_description": "تعديل نطاق صلاحيات الدور {role}.",
+      "permission_matrix_empty": "اختر دوراً لمراجعة صلاحياته.",
+      "save_permissions": "حفظ الصلاحيات",
+      "table": {
+        "role": "الدور",
+        "members": "الأعضاء",
+        "permissions": "الصلاحيات",
+        "type": "النوع"
+      },
+      "messages": {
+        "load_failed": "فشل تحميل الأدوار والصلاحيات.",
+        "role_created": "تم إنشاء الدور بنجاح.",
+        "role_updated": "تم تحديث الدور بنجاح.",
+        "role_deleted": "تم حذف الدور بنجاح.",
+        "role_cloned": "تم نسخ الدور بنجاح.",
+        "role_in_use": "لا يمكن حذف الدور طالما يوجد مستخدمون مسندون إليه.",
+        "permissions_saved": "تم تحديث الصلاحيات بنجاح."
+      }
+    },
+    "policies": {
+      "title": "السياسات",
+      "subtitle": "إدارة إعدادات الحضور والدرجات والانضباط من صفحة تشغيلية موحدة.",
+      "cancel_changes": "إلغاء التغييرات",
+      "attendance": {
+        "title": "سياسة الحضور",
+        "description": "الحدود التي تتحكم في التنبيهات ومنطق التأخير ووقت إقفال الإدخال.",
+        "absence_threshold": "حد الغياب",
+        "late_threshold": "حد التأخير (بالدقائق)",
+        "lock_time": "وقت الإقفال",
+        "guardian_alert": "إرسال تنبيه لولي الأمر عند تجاوز حدود الحضور",
+        "portal_toggle": "إظهار أحداث الحضور في بوابة الطالب وولي الأمر"
+      },
+      "grades": {
+        "title": "سياسة الدرجات",
+        "description": "تحديد درجة النجاح وضوابط نشر الدرجات.",
+        "passing_score": "درجة النجاح",
+        "publish_approval": "يتطلب اعتماداً قبل نشر الدرجات",
+        "allow_teacher_drafts": "السماح للمعلمين بحفظ المسودات",
+        "weighting_lock": "قفل أوزان التقييمات بعد نشر الدرجات"
+      },
+      "behavior": {
+        "title": "سياسة السلوك والانضباط",
+        "description": "التحكم في تصعيد المخالفات وإشعارات أولياء الأمور.",
+        "incident_threshold": "حد المخالفات",
+        "approval_required": "يتطلب اعتماداً قبل إجراءات الإيقاف",
+        "guardian_notification": "إشعار ولي الأمر بالمخالفات السلوكية",
+        "portal_toggle": "إظهار المخالفات في بوابة الطالب"
+      },
+      "messages": {
+        "saved": "تم تحديث السياسات بنجاح.",
+        "load_failed": "فشل تحميل السياسات.",
+        "validation_failed": "يرجى مراجعة القيم والحدود قبل الحفظ."
+      }
+    },
+    "templates": {
+      "title": "قوالب الإشعارات",
+      "subtitle": "مراجعة القنوات والمتغيرات ومحتوى الإشعارات المحلي.",
+      "variables": "المتغيرات",
+      "edit_template": "تعديل القالب",
+      "test_send": "إرسال اختباري",
+      "last_test": "آخر اختبار: {date}",
+      "channel_controls": "تحكم القنوات",
+      "subject_label": "عنوان البريد",
+      "message_label": "نص الرسالة",
+      "sms_label": "رسالة SMS",
+      "messages": {
+        "saved": "تم تحديث القالب بنجاح.",
+        "load_failed": "فشل تحميل قوالب الإشعارات.",
+        "test_sent": "تم تنفيذ اختبار القالب."
+      }
+    },
+    "integrations": {
+      "title": "التكاملات",
+      "subtitle": "متابعة جاهزية المزوّدات وتحضير مسارات الإعداد والاختبار.",
+      "configure": "تهيئة",
+      "test_connection": "اختبار الاتصال",
+      "last_checked": "آخر فحص: {date}",
+      "messages": {
+        "load_failed": "فشل تحميل التكاملات.",
+        "configuration_saved": "تم حفظ إعدادات التكامل.",
+        "test_success": "تم إكمال اختبار الاتصال."
+      }
+    },
+    "security": {
+      "title": "الأمان وسجل المراجعة",
+      "subtitle": "مراجعة نشاط الأمان وإدارة الضوابط الأمنية الأساسية.",
+      "controls": {
+        "title": "ضوابط الأمان",
+        "description": "ضوابط أساسية مكتملة بصرياً في الإصدار الأول وجاهزة للربط الفعلي لاحقاً.",
+        "two_factor": "فرض التحقق الثنائي على المستخدمين الإداريين",
+        "ip_allowlist": "تفعيل قائمة السماح لعناوين IP",
+        "ip_allowlist_values": "عناوين IP المسموح بها / نطاقات CIDR",
+        "suspicious_logins": "إرسال تنبيهات لمحاولات الدخول المشبوهة",
+        "session_timeout": "مهلة الجلسة (بالدقائق)",
+        "password_min_length": "الحد الأدنى لطول كلمة المرور",
+        "password_rotation": "مدة تدوير كلمة المرور (بالأيام)"
+      },
+      "audit": {
+        "title": "سجل المراجعة",
+        "description": "أحدث تغييرات الإعدادات وأحداث الأمان في المنصة.",
+        "filters": {
+          "search": "البحث في السجل",
+          "severity": "الخطورة",
+          "info": "معلومة",
+          "warning": "تحذير",
+          "critical": "حرج"
+        },
+        "columns": {
+          "timestamp": "الوقت",
+          "actor": "المنفذ",
+          "action": "الإجراء",
+          "module": "الوحدة",
+          "severity": "الخطورة",
+          "ip_address": "عنوان IP"
+        }
+      },
+      "messages": {
+        "saved": "تم تحديث إعدادات الأمان بنجاح.",
+        "load_failed": "فشل تحميل إعدادات الأمان."
+      }
+    },
+    "backup": {
+      "title": "النسخ الاحتياطي والترحيل",
+      "subtitle": "التحضير لنسخ احتياطي منظم ومسارات ترحيل مضبوطة.",
+      "migration_title": "أدوات الترحيل",
+      "migration_description": "الاستعداد للتصدير والاستيراد وتجربة الترحيل قبل أي تغييرات حرجة.",
+      "migration_warning": "دائماً قم بالتصدير والنسخ الاحتياطي قبل تنفيذ أي ترحيل أو استيراد.",
+      "prepare_migration": "تجهيز تجربة ترحيل",
+      "create_backup": "إنشاء نسخة احتياطية",
+      "export_settings": "تصدير الإعدادات",
+      "import_settings": "استيراد الإعدادات",
+      "history_title": "سجل النسخ والترحيل",
+      "history_description": "أحدث عمليات النسخ والتصدير والاستيراد والترحيل.",
+      "table": {
+        "file": "الملف",
+        "type": "النوع",
+        "status": "الحالة",
+        "created_by": "أُنشئ بواسطة",
+        "created_at": "تاريخ الإنشاء"
+      },
+      "messages": {
+        "load_failed": "فشل تحميل سجل النسخ الاحتياطي.",
+        "action_completed": "تم اكتمال العملية بنجاح."
       }
     }
   }

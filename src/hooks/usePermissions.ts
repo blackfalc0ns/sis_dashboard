@@ -1,26 +1,81 @@
 /**
  * Permission management hook
- * TODO: Replace with real RBAC implementation later
+ * Legacy attendance permissions are preserved while settings permissions now resolve
+ * from the persisted settings session and role model.
  */
 
-export type PermissionKey = 
+import { useEffect, useMemo, useState } from "react";
+import {
+  SETTINGS_SESSION_EVENT,
+  getCurrentSettingsPermissions,
+  getCurrentSettingsSessionUser,
+} from "@/features/settings/services/settingsService";
+
+export type PermissionKey =
   | "attendance.rollcall.submit"
   | "attendance.rollcall.unsubmit"
   | "attendance.excuses.approve"
-  | "attendance.lateEarly.editMinutes";
+  | "attendance.lateEarly.editMinutes"
+  | "settings.overview.view"
+  | "settings.branding.view"
+  | "settings.branding.manage"
+  | "settings.users.view"
+  | "settings.users.manage"
+  | "settings.roles.view"
+  | "settings.roles.manage"
+  | "settings.policies.view"
+  | "settings.policies.manage"
+  | "settings.templates.view"
+  | "settings.templates.manage"
+  | "settings.integrations.view"
+  | "settings.integrations.configure"
+  | "settings.security.view"
+  | "settings.security.manage"
+  | "settings.backup.view"
+  | "settings.backup.manage";
+
+const legacyAdminPermissions: PermissionKey[] = [
+  "attendance.rollcall.submit",
+  "attendance.rollcall.unsubmit",
+  "attendance.excuses.approve",
+  "attendance.lateEarly.editMinutes",
+];
 
 export function usePermissions() {
-  // TODO: Replace with real RBAC later
-  // If you already have user/role in a global store/context, read it here.
-  const role = "admin"; // placeholder, or read from existing user/session state if available
+  const [sessionUser, setSessionUser] = useState(() => getCurrentSettingsSessionUser());
+  const [resolvedSettingsPermissions, setResolvedSettingsPermissions] = useState<PermissionKey[]>(
+    () => getCurrentSettingsPermissions() as PermissionKey[],
+  );
 
-  const hasPermission = (key: PermissionKey): boolean => {
-    // For now: allow everything for admin only.
-    return role === "admin";
-  };
+  useEffect(() => {
+    const sync = () => {
+      setSessionUser(getCurrentSettingsSessionUser());
+      setResolvedSettingsPermissions(getCurrentSettingsPermissions() as PermissionKey[]);
+    };
+
+    window.addEventListener(SETTINGS_SESSION_EVENT, sync);
+    return () => {
+      window.removeEventListener(SETTINGS_SESSION_EVENT, sync);
+    };
+  }, []);
+
+  const grantedPermissions = useMemo(
+    () => new Set<PermissionKey>([...legacyAdminPermissions, ...resolvedSettingsPermissions]),
+    [resolvedSettingsPermissions],
+  );
+
+  const hasPermission = (key: PermissionKey): boolean => grantedPermissions.has(key);
+  const hasAnyPermission = (keys: PermissionKey[]): boolean =>
+    keys.some((key) => grantedPermissions.has(key));
+  const hasAllPermissions = (keys: PermissionKey[]): boolean =>
+    keys.every((key) => grantedPermissions.has(key));
 
   return {
-    role,
+    role: sessionUser.roleId,
+    currentUser: sessionUser,
+    grantedPermissions: Array.from(grantedPermissions),
     hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
   };
 }

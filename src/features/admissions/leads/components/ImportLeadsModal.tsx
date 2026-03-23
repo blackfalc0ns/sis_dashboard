@@ -3,6 +3,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { X, Upload, FileSpreadsheet, AlertCircle } from "lucide-react";
 
 interface ImportLeadsModalProps {
@@ -16,6 +17,7 @@ export default function ImportLeadsModal({
   onClose,
   onSubmit,
 }: ImportLeadsModalProps) {
+  const t = useTranslations("admissions.leads.import_modal");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
@@ -59,7 +61,7 @@ export default function ImportLeadsModal({
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full">
         {/* Header */}
         <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Import Leads</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -75,14 +77,12 @@ export default function ImportLeadsModal({
             <div className="flex gap-3">
               <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
               <div className="text-sm text-blue-900">
-                <p className="font-medium mb-1">File Requirements:</p>
+                <p className="font-medium mb-1">{t("file_requirements")}</p>
                 <ul className="list-disc list-inside space-y-1 text-blue-800">
-                  <li>Supported formats: CSV, Excel (.xlsx, .xls)</li>
-                  <li>Required columns: Name, Phone, Channel, Status, Owner</li>
-                  <li>
-                    Optional columns: Email, Grade Interest, Source, Notes
-                  </li>
-                  <li>Maximum file size: 5MB</li>
+                  <li>{t("supported_formats")}</li>
+                  <li>{t("required_columns")}</li>
+                  <li>{t("optional_columns")}</li>
+                  <li>{t("maximum_file_size")}</li>
                 </ul>
               </div>
             </div>
@@ -128,17 +128,17 @@ export default function ImportLeadsModal({
                     }}
                     className="mt-3 text-sm text-red-600 hover:text-red-700"
                   >
-                    Remove file
+                    {t("remove_file")}
                   </button>
                 </>
               ) : (
                 <>
                   <Upload className="w-12 h-12 text-gray-400 mb-3" />
                   <p className="text-sm font-medium text-gray-900 mb-1">
-                    Drop your file here or click to browse
+                    {t("drop_or_browse")}
                   </p>
                   <p className="text-xs text-gray-500">
-                    CSV or Excel files up to 5MB
+                    {t("file_hint")}
                   </p>
                 </>
               )}
@@ -148,13 +148,13 @@ export default function ImportLeadsModal({
           {/* Template Download */}
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-2">
-              Don&apos;t have a file ready?
+              {t("no_file_ready")}
             </p>
             <button
               type="button"
               className="text-sm text-primary hover:text-hover font-medium underline"
             >
-              Download CSV Template
+              {t("download_csv_template")}
             </button>
           </div>
         </div>
@@ -166,14 +166,14 @@ export default function ImportLeadsModal({
             onClick={onClose}
             className="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
           >
-            Cancel
+            {t("cancel")}
           </button>
           <button
             onClick={handleSubmit}
             disabled={!selectedFile}
             className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Import Leads
+            {t("submit")}
           </button>
         </div>
       </div>

@@ -316,7 +316,7 @@
   },
   "admissions": {
     "context_bar": {
-      "title": "Admissions Context",
+      "title": "Academic Context",
       "academic_year": "Academic year",
       "term": "Term",
       "status_open": "Open",
@@ -574,6 +574,21 @@
       "guardian_phone": "Guardian Phone",
       "guardian_email": "Guardian Email",
       "guardian_contact": "Guardian/Parent Contact",
+      "import_modal": {
+        "title": "Import Leads",
+        "file_requirements": "File Requirements:",
+        "supported_formats": "Supported formats: CSV, Excel (.xlsx, .xls)",
+        "required_columns": "Required columns: Name, Phone, Channel, Status, Owner",
+        "optional_columns": "Optional columns: Email, Grade Interest, Source, Notes",
+        "maximum_file_size": "Maximum file size: 5MB",
+        "remove_file": "Remove file",
+        "drop_or_browse": "Drop your file here or click to browse",
+        "file_hint": "CSV or Excel files up to 5MB",
+        "no_file_ready": "Don't have a file ready?",
+        "download_csv_template": "Download CSV Template",
+        "cancel": "Cancel",
+        "submit": "Import Leads"
+      },
       "chat": {
         "no_messages": "No messages yet",
         "start_conversation": "Start a conversation with the parent",
@@ -5171,6 +5186,298 @@
           "lateEarly": "Open in Late / Early",
           "excuses": "Open in Excuses"
         }
+      }
+    }
+  },
+  "settings": {
+    "access": {
+      "title": "You do not have access to this settings area",
+      "description": "Ask a system administrator to update your role permissions if you need access."
+    },
+    "session": {
+      "label": "Acting as",
+      "switched": "Settings session switched successfully.",
+      "switch_failed": "Failed to switch the settings session.",
+      "load_failed": "Failed to load available settings users."
+    },
+    "shared": {
+      "status": {
+        "active": "Active",
+        "draft": "Draft",
+        "connected": "Connected",
+        "disconnected": "Disconnected",
+        "needs_attention": "Needs attention",
+        "invited": "Invited",
+        "inactive": "Inactive",
+        "completed": "Completed",
+        "running": "Running",
+        "failed": "Failed",
+        "info": "Info",
+        "warning": "Warning",
+        "critical": "Critical"
+      }
+    },
+    "overview": {
+      "title": "Settings Overview",
+      "subtitle": "Monitor profile readiness, integrations, permissions, and security posture.",
+      "messages": {
+        "load_failed": "Failed to load settings overview."
+      },
+      "cards": {
+        "profile_completeness": "Profile completeness",
+        "profile_completeness_hint": "Core profile and branding fields",
+        "active_integrations": "Active integrations",
+        "active_integrations_hint": "Providers currently connected",
+        "active_users": "Active users",
+        "pending_invites": "{count} pending invites",
+        "audit_events": "Recent audit events",
+        "audit_events_hint": "Security and configuration activity",
+        "template_health": "Template health",
+        "template_health_hint": "Active templates ready for delivery"
+      },
+      "recent_audit": {
+        "title": "Recent audit activity",
+        "description": "Latest configuration and security events across the school platform."
+      },
+      "integrations_snapshot": {
+        "title": "Integrations snapshot",
+        "description": "Current provider connection status across core channels."
+      }
+    },
+    "branding": {
+      "title": "School Profile & Branding",
+      "subtitle": "Manage the school identity, footer signature, and brand defaults.",
+      "logo_title": "School logo",
+      "logo_description": "A placeholder upload area structured for future media APIs.",
+      "upload_placeholder": "Upload school logo",
+      "upload_hint": "Upload and persist the visible school identity used across exports and notifications.",
+      "upload_button": "Choose logo",
+      "cancel_changes": "Cancel changes",
+      "profile_title": "Profile details",
+      "profile_description": "These settings appear across reports, exported documents, and notifications.",
+      "school_name": "School name",
+      "short_name": "Short name",
+      "timezone": "Timezone",
+      "address": "Address",
+      "city": "City",
+      "country": "Country",
+      "footer_signature": "Footer / signature",
+      "validation": {
+        "school_name_required": "School name is required.",
+        "short_name_required": "Short name is required.",
+        "timezone_required": "Timezone is required.",
+        "address_required": "Address is required.",
+        "city_required": "City is required.",
+        "country_required": "Country is required.",
+        "footer_required": "Footer signature is required."
+      },
+      "messages": {
+        "saved": "School profile saved successfully.",
+        "load_failed": "Failed to load school profile.",
+        "logo_upload_failed": "Failed to process the selected logo."
+      }
+    },
+    "users": {
+      "title": "Users",
+      "subtitle": "Manage staff users, invitations, and account provisioning.",
+      "directory_title": "User directory",
+      "directory_description": "Invite users, assign operational roles, and control account status.",
+      "search": "Search users",
+      "invite_user": "Invite user",
+      "create_user": "Create user",
+      "edit_user": "Edit user",
+      "send_invite": "Send invite",
+      "resend_invite": "Resend invite",
+      "reset_password": "Reset password",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "refresh": "Refresh",
+      "not_available": "Not available",
+      "filters": {
+        "role": "Role",
+        "status": "Status"
+      },
+      "statuses": {
+        "active": "Active",
+        "invited": "Invited",
+        "inactive": "Inactive"
+      },
+      "table": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status",
+        "last_active": "Last active",
+        "actions": "Actions"
+      },
+      "messages": {
+        "load_failed": "Failed to load users.",
+        "created": "User created successfully.",
+        "updated": "User updated successfully.",
+        "invited": "User invite sent successfully.",
+        "invite_resent": "Invite resent successfully.",
+        "password_reset_sent": "Password reset placeholder action completed.",
+        "activated": "User activated successfully.",
+        "deactivated": "User deactivated successfully."
+      }
+    },
+    "roles": {
+      "title": "Roles & Permissions",
+      "subtitle": "Define administrative roles and manage access across school operations.",
+      "create_role": "Create role",
+      "edit_role": "Edit role",
+      "delete_role": "Delete role",
+      "clone_role": "Clone role",
+      "role_name": "Role name",
+      "role_name_placeholder": "e.g. Campus Supervisor",
+      "role_description": "Role description",
+      "role_description_placeholder": "Describe what this role manages.",
+      "role_list_title": "Role list",
+      "role_list_description": "System and custom roles available for staff assignment.",
+      "permission_matrix_title": "Permission matrix",
+      "permission_matrix_description": "Edit permission coverage for {role}.",
+      "permission_matrix_empty": "Select a role to review its permissions.",
+      "save_permissions": "Save permissions",
+      "table": {
+        "role": "Role",
+        "members": "Members",
+        "permissions": "Permissions",
+        "type": "Type"
+      },
+      "messages": {
+        "load_failed": "Failed to load roles and permissions.",
+        "role_created": "Role created successfully.",
+        "role_updated": "Role updated successfully.",
+        "role_deleted": "Role deleted successfully.",
+        "role_cloned": "Role cloned successfully.",
+        "role_in_use": "This role cannot be deleted while users are assigned to it.",
+        "permissions_saved": "Permissions updated successfully."
+      }
+    },
+    "policies": {
+      "title": "Policies",
+      "subtitle": "Control attendance, grading, and behavior defaults from one operational page.",
+      "cancel_changes": "Cancel changes",
+      "attendance": {
+        "title": "Attendance policy",
+        "description": "Thresholds that drive alerts, lateness logic, and submission lock timing.",
+        "absence_threshold": "Absence threshold",
+        "late_threshold": "Late threshold (minutes)",
+        "lock_time": "Lock time",
+        "guardian_alert": "Send guardian alert when attendance thresholds are exceeded",
+        "portal_toggle": "Show attendance incidents in the student and parent portal"
+      },
+      "grades": {
+        "title": "Grade policy",
+        "description": "Define passing score and grade publication controls.",
+        "passing_score": "Passing score",
+        "publish_approval": "Require approval before publishing grades",
+        "allow_teacher_drafts": "Allow teachers to save grade drafts",
+        "weighting_lock": "Lock assessment weighting after grades are published"
+      },
+      "behavior": {
+        "title": "Behavior / discipline policy",
+        "description": "Control incident escalation and guardian communications.",
+        "incident_threshold": "Incident threshold",
+        "approval_required": "Require approval before suspension actions",
+        "guardian_notification": "Notify guardians for discipline incidents",
+        "portal_toggle": "Show behavior incidents in the student portal"
+      },
+      "messages": {
+        "saved": "Policies updated successfully.",
+        "load_failed": "Failed to load policies.",
+        "validation_failed": "Please review policy thresholds before saving."
+      }
+    },
+    "templates": {
+      "title": "Notification Templates",
+      "subtitle": "Review channel coverage, variables, and localized notification content.",
+      "variables": "Variables",
+      "edit_template": "Edit template",
+      "test_send": "Test send",
+      "last_test": "Last test: {date}",
+      "channel_controls": "Channel controls",
+      "subject_label": "Email subject",
+      "message_label": "Message body",
+      "sms_label": "SMS message",
+      "messages": {
+        "saved": "Template updated successfully.",
+        "load_failed": "Failed to load notification templates.",
+        "test_sent": "Template test placeholder completed successfully."
+      }
+    },
+    "integrations": {
+      "title": "Integrations",
+      "subtitle": "Track connection health and prepare provider configuration workflows.",
+      "configure": "Configure",
+      "test_connection": "Test connection",
+      "last_checked": "Last checked: {date}",
+      "messages": {
+        "load_failed": "Failed to load integrations.",
+        "configuration_saved": "Integration configuration saved successfully.",
+        "test_success": "Connection test completed successfully."
+      }
+    },
+    "security": {
+      "title": "Security & Audit",
+      "subtitle": "Review audit activity and manage baseline security controls.",
+      "controls": {
+        "title": "Security controls",
+        "description": "Core controls that are visually complete in V1 and ready for real API wiring.",
+        "two_factor": "Enforce two-factor authentication for admin users",
+        "ip_allowlist": "Enable office IP allowlist",
+        "ip_allowlist_values": "Allowed IPs / CIDR ranges",
+        "suspicious_logins": "Alert on suspicious login attempts",
+        "session_timeout": "Session timeout (minutes)",
+        "password_min_length": "Minimum password length",
+        "password_rotation": "Password rotation (days)"
+      },
+      "audit": {
+        "title": "Audit log",
+        "description": "Recent configuration changes and security-related platform events.",
+        "filters": {
+          "search": "Search audit log",
+          "severity": "Severity",
+          "info": "Info",
+          "warning": "Warning",
+          "critical": "Critical"
+        },
+        "columns": {
+          "timestamp": "Timestamp",
+          "actor": "Actor",
+          "action": "Action",
+          "module": "Module",
+          "severity": "Severity",
+          "ip_address": "IP address"
+        }
+      },
+      "messages": {
+        "saved": "Security settings updated successfully.",
+        "load_failed": "Failed to load security settings."
+      }
+    },
+    "backup": {
+      "title": "Backup & Migration",
+      "subtitle": "Prepare backup routines and controlled migration workflows.",
+      "migration_title": "Migration tools",
+      "migration_description": "Prepare exports, imports, and migration dry-runs before risky changes.",
+      "migration_warning": "Always export and back up settings before running migration or import operations.",
+      "prepare_migration": "Prepare migration dry-run",
+      "create_backup": "Create backup",
+      "export_settings": "Export settings",
+      "import_settings": "Import settings",
+      "history_title": "Backup history",
+      "history_description": "Recent backups, exports, imports, and migration actions.",
+      "table": {
+        "file": "File",
+        "type": "Type",
+        "status": "Status",
+        "created_by": "Created by",
+        "created_at": "Created at"
+      },
+      "messages": {
+        "load_failed": "Failed to load backup history.",
+        "action_completed": "Backup action completed successfully."
       }
     }
   }

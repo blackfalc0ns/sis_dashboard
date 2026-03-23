@@ -2,7 +2,6 @@
   Home,
   Users,
   HelpCircle,
-  Settings,
   UserPlus,
   LayoutDashboard,
   FileText,
@@ -19,7 +18,10 @@
   Clock,
   Calendar,
   ClipboardList,
-  BarChart3,
+  ShieldCheck,
+  BellRing,
+  PlugZap,
+  Building2,
 } from "lucide-react";
 import {
   mockLeads,
@@ -393,6 +395,88 @@ export const menuItems: MenuItem[] = [
      
     ],
   },
+  {
+    key: "settings",
+    label_en: "Settings & Integrations",
+    label_ar: "الإعدادات والتكاملات",
+    href_en: "/en/settings",
+    href_ar: "/ar/settings",
+    icon: ShieldCheck,
+    children: [
+      {
+        key: "settings-overview",
+        label_en: "Overview",
+        label_ar: "نظرة عامة",
+        href_en: "/en/settings",
+        href_ar: "/ar/settings",
+        icon: LayoutDashboard,
+      },
+      {
+        key: "settings-branding",
+        label_en: "Branding & Profile",
+        label_ar: "الهوية وملف المدرسة",
+        href_en: "/en/settings/branding",
+        href_ar: "/ar/settings/branding",
+        icon: Building2,
+      },
+      {
+        key: "settings-users",
+        label_en: "Users",
+        label_ar: "المستخدمون",
+        href_en: "/en/settings/users",
+        href_ar: "/ar/settings/users",
+        icon: Users,
+      },
+      {
+        key: "settings-roles",
+        label_en: "Roles & Permissions",
+        label_ar: "الأدوار والصلاحيات",
+        href_en: "/en/settings/roles",
+        href_ar: "/ar/settings/roles",
+        icon: ShieldCheck,
+      },
+      {
+        key: "settings-policies",
+        label_en: "Policies",
+        label_ar: "السياسات",
+        href_en: "/en/settings/policies",
+        href_ar: "/ar/settings/policies",
+        icon: FileText,
+      },
+      {
+        key: "settings-templates",
+        label_en: "Notification Templates",
+        label_ar: "قوالب الإشعارات",
+        href_en: "/en/settings/templates",
+        href_ar: "/ar/settings/templates",
+        icon: BellRing,
+      },
+      {
+        key: "settings-integrations",
+        label_en: "Integrations",
+        label_ar: "التكاملات",
+        href_en: "/en/settings/integrations",
+        href_ar: "/ar/settings/integrations",
+        icon: PlugZap,
+      },
+      {
+        key: "settings-security",
+        label_en: "Security & Audit",
+        label_ar: "الأمان وسجل المراجعة",
+        href_en: "/en/settings/security",
+        href_ar: "/ar/settings/security",
+        icon: ShieldCheck,
+      },
+      {
+        key: "settings-backup",
+        label_en: "Backup & Migration",
+        label_ar: "النسخ الاحتياطي والترحيل",
+        href_en: "/en/settings/backup",
+        href_ar: "/ar/settings/backup",
+        icon: FolderOpen,
+      },
+    ],
+  },
 ];
 
 export const bottomItems = [
@@ -403,14 +487,6 @@ export const bottomItems = [
     href_en: "/en/dashboard/help",
     href_ar: "/ar/dashboard/help",
     icon: HelpCircle,
-  },
-  {
-    key: "settings",
-    label_en: "Settings",
-    label_ar: "ألاعدادات",
-    href_en: "/en/dashboard/settings",
-    href_ar: "/ar/dashboard/settings",
-    icon: Settings,
   },
 ];
 

@@ -661,6 +661,27 @@ export default function StructureTree({
 
     const gradeById = new Map(uniqueGrades.map((grade) => [grade.id, grade]));
     const sectionById = new Map(uniqueSections.map((section) => [section.id, section]));
+    const gradesByStageId = new Map<string, Grade[]>();
+    const sectionsByGradeId = new Map<string, Section[]>();
+    const classroomsBySectionId = new Map<string, Classroom[]>();
+
+    uniqueGrades.forEach((grade) => {
+      const existing = gradesByStageId.get(grade.stageId) || [];
+      existing.push(grade);
+      gradesByStageId.set(grade.stageId, existing);
+    });
+
+    uniqueSections.forEach((section) => {
+      const existing = sectionsByGradeId.get(section.gradeId) || [];
+      existing.push(section);
+      sectionsByGradeId.set(section.gradeId, existing);
+    });
+
+    uniqueClassrooms.forEach((classroom) => {
+      const existing = classroomsBySectionId.get(classroom.sectionId) || [];
+      existing.push(classroom);
+      classroomsBySectionId.set(classroom.sectionId, existing);
+    });
 
     const directlyMatchedStageIds = new Set(
       uniqueStages
@@ -683,55 +704,72 @@ export default function StructureTree({
         .map((classroom) => classroom.id)
     );
 
+    const includedStageIds = new Set<string>();
     const includedGradeIds = new Set<string>();
-    uniqueGrades.forEach((grade) => {
-      if (directlyMatchedStageIds.has(grade.stageId) || directlyMatchedGradeIds.has(grade.id)) {
-        includedGradeIds.add(grade.id);
-      }
-    });
-
     const includedSectionIds = new Set<string>();
-    uniqueSections.forEach((section) => {
-      if (
-        directlyMatchedSectionIds.has(section.id) ||
-        includedGradeIds.has(section.gradeId) ||
-        uniqueClassrooms.some(
-          (classroom) =>
-            classroom.sectionId === section.id &&
-            directlyMatchedClassroomIds.has(classroom.id)
-        )
-      ) {
-        includedSectionIds.add(section.id);
+    const includedClassroomIds = new Set<string>();
+
+    const includeSectionBranch = (sectionId: string) => {
+      const section = sectionById.get(sectionId);
+      if (!section) return;
+
+      includedSectionIds.add(section.id);
+      includedGradeIds.add(section.gradeId);
+
+      const parentGrade = gradeById.get(section.gradeId);
+      if (parentGrade) {
+        includedStageIds.add(parentGrade.stageId);
       }
+
+      (classroomsBySectionId.get(section.id) || []).forEach((classroom) => {
+        includedClassroomIds.add(classroom.id);
+      });
+    };
+
+    const includeGradeBranch = (gradeId: string) => {
+      const grade = gradeById.get(gradeId);
+      if (!grade) return;
+
+      includedGradeIds.add(grade.id);
+      includedStageIds.add(grade.stageId);
+
+      (sectionsByGradeId.get(grade.id) || []).forEach((section) => {
+        includeSectionBranch(section.id);
+      });
+    };
+
+    const includeStageBranch = (stageId: string) => {
+      includedStageIds.add(stageId);
+      (gradesByStageId.get(stageId) || []).forEach((grade) => {
+        includeGradeBranch(grade.id);
+      });
+    };
+
+    directlyMatchedStageIds.forEach((stageId) => {
+      includeStageBranch(stageId);
     });
 
-    uniqueGrades.forEach((grade) => {
-      if (Array.from(includedSectionIds).some((sectionId) => sectionById.get(sectionId)?.gradeId === grade.id)) {
-        includedGradeIds.add(grade.id);
-      }
+    directlyMatchedGradeIds.forEach((gradeId) => {
+      includeGradeBranch(gradeId);
     });
 
-    const includedStageIds = new Set<string>(directlyMatchedStageIds);
-    uniqueGrades.forEach((grade) => {
-      if (includedGradeIds.has(grade.id)) {
-        includedStageIds.add(grade.stageId);
-      }
+    directlyMatchedSectionIds.forEach((sectionId) => {
+      includeSectionBranch(sectionId);
     });
 
-    const matchedClassrooms = uniqueClassrooms.filter((classroom) => {
-      if (directlyMatchedClassroomIds.has(classroom.id)) {
-        return true;
-      }
-
-      if (includedSectionIds.has(classroom.sectionId)) {
-        return true;
-      }
-
-      const parentSection = sectionById.get(classroom.sectionId);
-      const parentGrade = parentSection ? gradeById.get(parentSection.gradeId) : null;
-      return !!parentGrade && includedStageIds.has(parentGrade.stageId);
+    directlyMatchedClassroomIds.forEach((classroomId) => {
+      includedClassroomIds.add(classroomId);
+      const classroom = uniqueClassrooms.find((item) => item.id === classroomId);
+      if (!classroom) return;
+      includeSectionBranch(classroom.sectionId);
     });
-    const matchedSections = uniqueSections.filter((section) => includedSectionIds.has(section.id));
+
+    const matchedClassrooms = uniqueClassrooms.filter((classroom) =>
+      includedClassroomIds.has(classroom.id)
+    );
+    const matchedSections = uniqueSections.filter((section) =>
+      includedSectionIds.has(section.id)
+    );
     const matchedGrades = uniqueGrades.filter((grade) => includedGradeIds.has(grade.id));
     const matchedStages = uniqueStages.filter((stage) => includedStageIds.has(stage.id));
 
