@@ -4,6 +4,7 @@ export type {
   AssessmentQuestion,
   AssessmentRosterItem,
   AssessmentType,
+  ExamScopeType,
   BulkGradeItemPayload,
   CreateAssessmentPayload,
   GradeItemStatus,

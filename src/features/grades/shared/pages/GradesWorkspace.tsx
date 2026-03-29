@@ -14,8 +14,10 @@ import {
   type Term,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
+  fetchAssessmentSubmissionReview,
   fetchGradesFiltersData,
   fetchGradeItemDetail,
+  saveAssessmentSubmissionCorrection,
   updateGradeItem,
 } from "../../gradebook/services/gradesGradebookService";
 import {
@@ -30,11 +32,10 @@ import {
 import {
   fetchAssessments,
   fetchOverviewGradebook,
-  fetchSectionGradeRule,
+  fetchScopeGradeRule,
 } from "../../overview/services/gradesOverviewService";
 import type { Assessment } from "../../overview/types";
-import type { CreateAssessmentPayload } from "../../assessments/types";
-import type { GradeItemStatus, GradebookStudentRow } from "../../gradebook/types";
+import type { CreateAssessmentPayload, ExamScopeType, GradeItemStatus, GradebookStudentRow, ScopeEntityOption } from "../../shared/types";
 import GradesFiltersPanel from "../components/GradesFiltersPanel";
 import GradesAnalyticsSection from "../../analytics/components/GradesAnalyticsSection";
 import GradesOverviewSection from "../../overview/components/GradesOverviewSection";
@@ -42,9 +43,11 @@ import GradesAssessmentsSection from "../../assessments/components/GradesAssessm
 import GradesGradebookSection from "../../gradebook/components/GradesGradebookSection";
 import CreateAssessmentDialog from "../../assessments/components/CreateAssessmentDialog";
 import EditGradeDialog from "../../gradebook/components/EditGradeDialog";
+import ReviewAssessmentSubmissionDialog from "../../gradebook/components/ReviewAssessmentSubmissionDialog";
 import BulkGradeEntryDialog from "../../assessments/components/BulkGradeEntryDialog";
 import { fetchGradesAnalytics } from "../../analytics/services/gradesAnalyticsService";
 import type { GradesAnalyticsReport } from "../../analytics/types";
+import type { AssessmentSubmissionReview } from "../../shared/types";
 
 interface GradesWorkspaceProps {
   view: "overview" | "assessments" | "gradebook";
@@ -69,19 +72,23 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [isCreatingAssessment, setIsCreatingAssessment] = useState(false);
   const [isSavingGrade, setIsSavingGrade] = useState(false);
+  const [isSavingSubmissionCorrection, setIsSavingSubmissionCorrection] = useState(false);
   const [isBulkLoading, setIsBulkLoading] = useState(false);
   const [isBulkSaving, setIsBulkSaving] = useState(false);
   const [assessmentActionId, setAssessmentActionId] = useState<string | null>(null);
   const [assessmentActionType, setAssessmentActionType] = useState<"publish" | "approve" | "lock" | "bulk" | "delete" | null>(null);
 
-  const [grades, setGrades] = useState<Array<{ id: string; name: string; nameAr: string; nameEn: string; stageId: string }>>([]);
-  const [sections, setSections] = useState<Array<{ id: string; name: string; nameAr: string; nameEn: string; gradeId: string }>>([]);
-  const [classrooms, setClassrooms] = useState<Array<{ id: string; name: string; nameAr: string; nameEn: string; sectionId: string }>>([]);
+  const [scopeTypes, setScopeTypes] = useState<ExamScopeType[]>([]);
+  const [scopeEntitiesByType, setScopeEntitiesByType] = useState<Record<ExamScopeType, ScopeEntityOption[]>>({
+    school: [],
+    stage: [],
+    grade: [],
+    section: [],
+    classroom: [],
+  });
   const [subjects, setSubjects] = useState<Array<{ id: string; name: string; nameAr: string; nameEn: string }>>([]);
-
-  const [selectedGradeId, setSelectedGradeId] = useState("");
-  const [selectedSectionId, setSelectedSectionId] = useState("");
-  const [selectedClassroomId, setSelectedClassroomId] = useState("");
+  const [selectedScopeType, setSelectedScopeType] = useState<ExamScopeType>("school");
+  const [selectedScopeId, setSelectedScopeId] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
@@ -97,12 +104,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   const [trend, setTrend] = useState<Array<{ label: string; average: number }>>([]);
   const [gradeRule, setGradeRule] = useState<{ passMark: number } | null>(null);
   const [analyticsReport, setAnalyticsReport] = useState<GradesAnalyticsReport>({
-    kpis: {
-      classAverage: 0,
-      passRate: 0,
-      completionRate: 0,
-      failingStudents: 0,
-    },
+    kpis: { classAverage: 0, passRate: 0, completionRate: 0, failingStudents: 0 },
     distribution: [],
     assessmentPerformance: [],
     topStudents: [],
@@ -111,35 +113,28 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
 
   const [editingAssessment, setEditingAssessment] = useState<Assessment | null>(null);
   const [assessmentToDelete, setAssessmentToDelete] = useState<Assessment | null>(null);
-  const [editGradeState, setEditGradeState] = useState<{
-    assessment: Assessment;
-    row: GradebookStudentRow;
-    comment?: string;
-  } | null>(null);
+  const [editGradeState, setEditGradeState] = useState<{ assessment: Assessment; row: GradebookStudentRow; comment?: string } | null>(null);
+  const [submissionReviewState, setSubmissionReviewState] = useState<AssessmentSubmissionReview | null>(null);
   const [bulkEntryState, setBulkEntryState] = useState<{
     assessment: Assessment;
-    rows: Array<{
-      studentId: string;
-      studentNameEn: string;
-      studentNameAr: string;
-      classroomName?: string;
-      score: number | null;
-      status: GradeItemStatus;
-      comment?: string;
-    }>;
+    rows: Array<{ studentId: string; studentNameEn: string; studentNameAr: string; classroomName?: string; score: number | null; status: GradeItemStatus; comment?: string }>;
   } | null>(null);
 
   const isReadOnly = termStatus === "closed";
   const filtersHydratedRef = useRef(false);
+  const showSubjectFilter = true;
 
   const replaceQuery = useCallback((nextParams: URLSearchParams) => {
     const nextQuery = nextParams.toString();
     const currentQuery = searchParams.toString();
-    if (nextQuery == currentQuery) {
-      return;
-    }
+    if (nextQuery === currentQuery) return;
     router.replace(nextQuery ? `?${nextQuery}` : `/${locale}/grades`, { scroll: false });
   }, [locale, router, searchParams]);
+
+  const availableScopeEntities = useMemo(
+    () => scopeEntitiesByType[selectedScopeType] || [],
+    [scopeEntitiesByType, selectedScopeType],
+  );
 
   useEffect(() => {
     const initialize = async () => {
@@ -179,25 +174,24 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
       setIsDataLoading(true);
       try {
         const data = await fetchGradesFiltersData(academicYearId, termId);
-        setGrades(data.grades);
-        setSections(data.sections);
-        setClassrooms(data.classrooms);
+        setScopeTypes(data.scopeTypes);
+        setScopeEntitiesByType(data.scopeEntities);
         setSubjects(data.subjects);
-        const urlGradeId = searchParams.get("gradeId") || "";
-        const urlSectionId = searchParams.get("sectionId") || "";
-        const urlClassroomId = searchParams.get("classroomId") || "";
+
+        const urlScopeType = (searchParams.get("scopeType") as ExamScopeType) || data.scopeTypes[0] || "school";
+        const nextScopeType = data.scopeTypes.includes(urlScopeType) ? urlScopeType : data.scopeTypes[0] || "school";
+        const availableEntities = data.scopeEntities[nextScopeType] || [];
+        const urlScopeId = searchParams.get("scopeId") || "";
+        const nextScopeId = availableEntities.some((entity) => entity.id === urlScopeId)
+          ? urlScopeId
+          : availableEntities[0]?.id || "";
         const urlSubjectId = searchParams.get("subjectId") || "";
+        const nextSubjectId = data.subjects.some((subject) => subject.id === urlSubjectId)
+          ? urlSubjectId
+          : data.subjects[0]?.id || "";
 
-        const nextGradeId = data.grades.some((grade) => grade.id === urlGradeId) ? urlGradeId : data.grades[0]?.id || "";
-        const nextSections = data.sections.filter((section) => !nextGradeId || section.gradeId === nextGradeId);
-        const nextSectionId = nextSections.some((section) => section.id === urlSectionId) ? urlSectionId : nextSections[0]?.id || "";
-        const nextClassrooms = data.classrooms.filter((classroom) => !nextSectionId || classroom.sectionId === nextSectionId);
-        const nextClassroomId = nextClassrooms.some((classroom) => classroom.id === urlClassroomId) ? urlClassroomId : "";
-        const nextSubjectId = data.subjects.some((subject) => subject.id === urlSubjectId) ? urlSubjectId : data.subjects[0]?.id || "";
-
-        setSelectedGradeId(nextGradeId);
-        setSelectedSectionId(nextSectionId);
-        setSelectedClassroomId(nextClassroomId);
+        setSelectedScopeType(nextScopeType);
+        setSelectedScopeId(nextScopeId);
         setSelectedSubjectId(nextSubjectId);
         filtersHydratedRef.current = true;
       } catch {
@@ -210,43 +204,22 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     void loadFilters();
   }, [academicYearId, searchParams, showError, tCommon, termId]);
 
-  const filteredSections = useMemo(
-    () => sections.filter((section) => !selectedGradeId || section.gradeId === selectedGradeId),
-    [sections, selectedGradeId],
-  );
-
-  const filteredClassrooms = useMemo(
-    () => classrooms.filter((classroom) => !selectedSectionId || classroom.sectionId === selectedSectionId),
-    [classrooms, selectedSectionId],
-  );
-
   useEffect(() => {
-    if (!filtersHydratedRef.current || !academicYearId || !termId) {
-      return;
-    }
+    if (!filtersHydratedRef.current || !academicYearId || !termId) return;
 
     const params = new URLSearchParams(searchParams.toString());
     params.set("year", academicYearId);
     params.set("term", termId);
-
-    if (selectedGradeId) params.set("gradeId", selectedGradeId);
-    else params.delete("gradeId");
-
-    if (selectedSectionId) params.set("sectionId", selectedSectionId);
-    else params.delete("sectionId");
-
-    if (selectedClassroomId) params.set("classroomId", selectedClassroomId);
-    else params.delete("classroomId");
-
+    params.set("scopeType", selectedScopeType);
+    if (selectedScopeId) params.set("scopeId", selectedScopeId);
+    else params.delete("scopeId");
     if (selectedSubjectId) params.set("subjectId", selectedSubjectId);
     else params.delete("subjectId");
-
     replaceQuery(params);
-  }, [academicYearId, replaceQuery, searchParams, selectedClassroomId, selectedGradeId, selectedSectionId, selectedSubjectId, termId]);
-
+  }, [academicYearId, replaceQuery, searchParams, selectedScopeId, selectedScopeType, selectedSubjectId, termId]);
 
   const refreshGradebook = useCallback(async () => {
-    if (!academicYearId || !termId || !selectedSectionId || !selectedSubjectId) {
+    if (!academicYearId || !termId || !selectedScopeId || !selectedSubjectId) {
       setAssessments([]);
       setRows([]);
       setTrend([]);
@@ -255,23 +228,32 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
 
     setIsDataLoading(true);
     try {
+      if (view === "assessments") {
+        const scopedAssessments = await fetchAssessments(academicYearId, termId, {
+          scopeType: selectedScopeType,
+          scopeId: selectedScopeId,
+          subjectId: selectedSubjectId,
+        });
+        setAssessments(scopedAssessments);
+        setRows([]);
+        setSummary({ totalStudents: 0, totalAssessments: 0, classAverage: 0, highestAverage: 0, lowestAverage: 0, completionRate: 0 });
+        setTrend([]);
+        setGradeRule(null);
+        setAnalyticsReport({ kpis: { classAverage: 0, passRate: 0, completionRate: 0, failingStudents: 0 }, distribution: [], assessmentPerformance: [], topStudents: [], lowestStudents: [] });
+        return;
+      }
+
+      const filters = {
+        scopeType: selectedScopeType,
+        scopeId: selectedScopeId,
+        subjectId: selectedSubjectId,
+      };
+
       const [gradebook, scopedAssessments, rule, analytics] = await Promise.all([
-        fetchOverviewGradebook(academicYearId, termId, {
-          sectionId: selectedSectionId,
-          classroomId: selectedClassroomId || undefined,
-          subjectId: selectedSubjectId,
-        }),
-        fetchAssessments(academicYearId, termId, {
-          sectionId: selectedSectionId,
-          classroomId: selectedClassroomId || undefined,
-          subjectId: selectedSubjectId,
-        }),
-        fetchSectionGradeRule(academicYearId, termId, selectedSectionId),
-        fetchGradesAnalytics(academicYearId, termId, {
-          sectionId: selectedSectionId,
-          classroomId: selectedClassroomId || undefined,
-          subjectId: selectedSubjectId,
-        }),
+        fetchOverviewGradebook(academicYearId, termId, filters),
+        fetchAssessments(academicYearId, termId, filters),
+        fetchScopeGradeRule(academicYearId, termId, selectedScopeType, selectedScopeId),
+        fetchGradesAnalytics(academicYearId, termId, filters),
       ]);
 
       setAssessments(scopedAssessments);
@@ -285,7 +267,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     } finally {
       setIsDataLoading(false);
     }
-  }, [academicYearId, selectedClassroomId, selectedSectionId, selectedSubjectId, showError, tCommon, termId]);
+  }, [academicYearId, selectedScopeId, selectedScopeType, selectedSubjectId, showError, tCommon, termId, view]);
 
   useEffect(() => {
     void refreshGradebook();
@@ -317,15 +299,26 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   };
 
   const openEditGradeDialog = useCallback(async (assessment: Assessment, row: GradebookStudentRow) => {
-    const detail = await fetchGradeItemDetail(academicYearId, termId, assessment.id, row.studentId);
-    setEditGradeState({
-      assessment,
-      row,
-      comment: detail?.comment,
-    });
-  }, [academicYearId, termId]);
+    if (assessment.deliveryMode === "QUESTION_BASED") {
+      try {
+        const review = await fetchAssessmentSubmissionReview(
+          academicYearId,
+          termId,
+          assessment.id,
+          row.studentId,
+        );
+        setSubmissionReviewState(review);
+      } catch (error) {
+        showError(t(`errors.${error instanceof Error ? error.message : "generic"}`));
+      }
+      return;
+    }
 
-  const handleCreateAssessment = async (payload: CreateAssessmentPayload) => {
+    const detail = await fetchGradeItemDetail(academicYearId, termId, assessment.id, row.studentId);
+    setEditGradeState({ assessment, row, comment: detail?.comment });
+  }, [academicYearId, showError, t, termId]);
+
+  const handleSaveAssessment = async (payload: CreateAssessmentPayload) => {
     try {
       setIsCreatingAssessment(true);
       await updateAssessment(academicYearId, termId, editingAssessment!.id, payload);
@@ -377,16 +370,36 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     }
   };
 
+  const handleSaveSubmissionCorrection = async (
+    answers: Array<{ answerId: string; awardedPoints: number | null; teacherComment?: string }>,
+  ) => {
+    if (!submissionReviewState) return;
+    try {
+      setIsSavingSubmissionCorrection(true);
+      await saveAssessmentSubmissionCorrection(
+        academicYearId,
+        termId,
+        submissionReviewState.assessment.id,
+        submissionReviewState.submission.studentId,
+        answers,
+      );
+      setSubmissionReviewState(null);
+      await refreshGradebook();
+      showSuccess(t("messages.questionsCorrected"));
+    } catch (error) {
+      showError(t(`errors.${error instanceof Error ? error.message : "generic"}`));
+    } finally {
+      setIsSavingSubmissionCorrection(false);
+    }
+  };
+
   const openBulkEntryDialog = async (assessment: Assessment) => {
     try {
       setAssessmentActionId(assessment.id);
       setAssessmentActionType("bulk");
       setIsBulkLoading(true);
       const roster = await fetchAssessmentRoster(academicYearId, termId, assessment.id);
-      setBulkEntryState({
-        assessment,
-        rows: roster,
-      });
+      setBulkEntryState({ assessment, rows: roster });
     } catch (error) {
       showError(t(`errors.${error instanceof Error ? error.message : "generic"}`));
     } finally {
@@ -396,9 +409,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     }
   };
 
-  const handleBulkSave = async (
-    items: Array<{ studentId: string; score: number | null; status: GradeItemStatus; comment?: string }>,
-  ) => {
+  const handleBulkSave = async (items: Array<{ studentId: string; score: number | null; status: GradeItemStatus; comment?: string }>) => {
     if (!bulkEntryState) return;
     try {
       setIsBulkSaving(true);
@@ -413,28 +424,15 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     }
   };
 
-  const handleApproveAssessment = async (assessmentId: string) => {
+  const handleAssessmentAction = async (assessmentId: string, type: "publish" | "approve" | "lock") => {
     try {
       setAssessmentActionId(assessmentId);
-      setAssessmentActionType("approve");
-      await approveAssessment(academicYearId, termId, assessmentId);
+      setAssessmentActionType(type);
+      if (type === "publish") await publishAssessment(academicYearId, termId, assessmentId);
+      if (type === "approve") await approveAssessment(academicYearId, termId, assessmentId);
+      if (type === "lock") await lockAssessment(academicYearId, termId, assessmentId);
       await refreshGradebook();
-      showSuccess(t("messages.assessmentApproved"));
-    } catch (error) {
-      showError(t(`errors.${error instanceof Error ? error.message : "generic"}`));
-    } finally {
-      setAssessmentActionId(null);
-      setAssessmentActionType(null);
-    }
-  };
-
-  const handleLockAssessment = async (assessmentId: string) => {
-    try {
-      setAssessmentActionId(assessmentId);
-      setAssessmentActionType("lock");
-      await lockAssessment(academicYearId, termId, assessmentId);
-      await refreshGradebook();
-      showSuccess(t("messages.assessmentLocked"));
+      showSuccess(t(`messages.assessment${type === "publish" ? "Published" : type === "approve" ? "Approved" : "Locked"}`));
     } catch (error) {
       showError(t(`errors.${error instanceof Error ? error.message : "generic"}`));
     } finally {
@@ -486,7 +484,9 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
       },
     }));
 
-    const trailingColumns = [
+    return [
+      ...baseColumns,
+      ...assessmentColumns,
       {
         key: "average",
         label: t("table.average"),
@@ -498,51 +498,28 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         render: (_value: unknown, row: GradebookStudentRow) => `${row.completedItems}/${row.totalItems}`,
       },
     ];
-
-    return [...baseColumns, ...assessmentColumns, ...trailingColumns];
   }, [assessments, isReadOnly, locale, openEditGradeDialog, t]);
 
   const tableRows: GradebookTableRow[] = rows.map((row) => ({
     ...row,
     studentName: locale === "ar" ? row.studentNameAr : row.studentNameEn,
-    classroomName: row.classroomName,
     completion: row.completedItems,
     ...Object.fromEntries(assessments.map((assessment) => [assessment.id, row.scoresByAssessmentId[assessment.id]])),
   }));
 
+  const selectedScopeEntity = availableScopeEntities.find((entity) => entity.id === selectedScopeId);
   const selectedSubject = subjects.find((subject) => subject.id === selectedSubjectId);
-  const selectedSection = sections.find((section) => section.id === selectedSectionId);
-  const selectedContext =
-    selectedSubject && selectedSection
-      ? {
-          subjectNameAr: selectedSubject.nameAr,
-          subjectNameEn: selectedSubject.nameEn,
-          sectionNameAr: selectedSection.nameAr,
-          sectionNameEn: selectedSection.nameEn,
-        }
-      : null;
+  const selectedContextText =
+    selectedScopeEntity && selectedSubject
+      ? t("filters.activeContext", {
+          subject: locale === "ar" ? selectedSubject.nameAr : selectedSubject.nameEn,
+          scope: locale === "ar" ? selectedScopeEntity.nameAr : selectedScopeEntity.nameEn,
+        })
+      : selectedScopeEntity
+        ? locale === "ar" ? selectedScopeEntity.nameAr : selectedScopeEntity.nameEn
+        : null;
 
   const visibleAssessments = view === "overview" ? assessments.slice(0, 6) : assessments;
-  const handleManageQuestions = (assessment: Assessment) => {
-    const params = searchParams.toString();
-    const path = `/${locale}/grades/assessments/${assessment.id}/questions`;
-    router.push(params ? `${path}?${params}` : path);
-  };
-
-  const handlePublishAssessment = async (assessmentId: string) => {
-    try {
-      setAssessmentActionId(assessmentId);
-      setAssessmentActionType("publish");
-      await publishAssessment(academicYearId, termId, assessmentId);
-      await refreshGradebook();
-      showSuccess(t("messages.assessmentPublished"));
-    } catch (error) {
-      showError(t(`errors.${error instanceof Error ? error.message : "generic"}`));
-    } finally {
-      setAssessmentActionId(null);
-      setAssessmentActionType(null);
-    }
-  };
 
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center"><MainLoader /></div>;
@@ -560,49 +537,29 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         showPromoteCarryOver={false}
       />
 
-      {isReadOnly && (
-        <div className="border-b px-6 py-3 text-sm" style={{ borderColor: "var(--border-color)", color: "var(--warning-text)", backgroundColor: "var(--warning-bg)" }}>
-          {t("readOnlyBanner")}
-        </div>
-      )}
-
       <div className="space-y-6 p-6">
         <GradesFiltersPanel
-          grades={grades}
-          sections={filteredSections}
-          classrooms={filteredClassrooms}
+          scopeTypes={scopeTypes}
+          scopeEntities={availableScopeEntities}
           subjects={subjects}
-          selectedGradeId={selectedGradeId}
-          selectedSectionId={selectedSectionId}
-          selectedClassroomId={selectedClassroomId}
+          selectedScopeType={selectedScopeType}
+          selectedScopeId={selectedScopeId}
           selectedSubjectId={selectedSubjectId}
-          onGradeChange={(gradeId) => {
-            setSelectedGradeId(gradeId);
-            const nextSections = sections.filter((section) => !gradeId || section.gradeId === gradeId);
-            const nextSectionId = nextSections[0]?.id || "";
-            setSelectedSectionId(nextSectionId);
-            const nextClassrooms = classrooms.filter((classroom) => !nextSectionId || classroom.sectionId === nextSectionId);
-            setSelectedClassroomId(nextClassrooms.some((classroom) => classroom.id === selectedClassroomId) ? selectedClassroomId : "");
+          onScopeTypeChange={(scopeType) => {
+            setSelectedScopeType(scopeType);
+            setSelectedScopeId((scopeEntitiesByType[scopeType] || [])[0]?.id || "");
           }}
-          onSectionChange={(sectionId) => {
-            setSelectedSectionId(sectionId);
-            const nextClassrooms = classrooms.filter((classroom) => !sectionId || classroom.sectionId === sectionId);
-            setSelectedClassroomId((current) => (current && nextClassrooms.some((classroom) => classroom.id === current) ? current : ""));
-          }}
-          onClassroomChange={setSelectedClassroomId}
+          onScopeIdChange={setSelectedScopeId}
           onSubjectChange={setSelectedSubjectId}
-          selectedContext={selectedContext}
+          selectedContextText={selectedContextText}
           isReadOnly={isReadOnly}
+          showSubjectFilter={showSubjectFilter}
           onCreateAssessment={() => {
             const params = new URLSearchParams(searchParams.toString());
             params.set("year", academicYearId);
             params.set("term", termId);
-            params.set("sectionId", selectedSectionId);
-            if (selectedClassroomId) {
-              params.set("classroomId", selectedClassroomId);
-            } else {
-              params.delete("classroomId");
-            }
+            params.set("scopeType", selectedScopeType);
+            params.set("scopeId", selectedScopeId);
             params.set("subjectId", selectedSubjectId);
             router.push(`/${locale}/grades/assessments/new?${params.toString()}`);
           }}
@@ -620,18 +577,17 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
               assessmentActionId={assessmentActionId}
               assessmentActionType={assessmentActionType}
               onBulkEntry={(assessment) => void openBulkEntryDialog(assessment)}
-              onPublish={(assessmentId) => void handlePublishAssessment(assessmentId)}
-              onApprove={(assessmentId) => void handleApproveAssessment(assessmentId)}
-              onLock={(assessmentId) => void handleLockAssessment(assessmentId)}
-              onEdit={(assessment) => {
-                setEditingAssessment(assessment);
+              onPublish={(assessmentId) => void handleAssessmentAction(assessmentId, "publish")}
+              onApprove={(assessmentId) => void handleAssessmentAction(assessmentId, "approve")}
+              onLock={(assessmentId) => void handleAssessmentAction(assessmentId, "lock")}
+              onEdit={setEditingAssessment}
+              onManageQuestions={(assessment) => {
+                const params = searchParams.toString();
+                const path = `/${locale}/grades/assessments/${assessment.id}/questions`;
+                router.push(params ? `${path}?${params}` : path);
               }}
-              onManageQuestions={handleManageQuestions}
             />
-            <GradesAnalyticsSection
-              isLoading={isDataLoading}
-              report={analyticsReport}
-            />
+            <GradesAnalyticsSection isLoading={isDataLoading} report={analyticsReport} />
           </>
         )}
 
@@ -643,66 +599,67 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
             assessmentActionId={assessmentActionId}
             assessmentActionType={assessmentActionType}
             onBulkEntry={(assessment) => void openBulkEntryDialog(assessment)}
-            onPublish={(assessmentId) => void handlePublishAssessment(assessmentId)}
-            onApprove={(assessmentId) => void handleApproveAssessment(assessmentId)}
-            onLock={(assessmentId) => void handleLockAssessment(assessmentId)}
-            onEdit={(assessment) => {
-              setEditingAssessment(assessment);
+            onPublish={(assessmentId) => void handleAssessmentAction(assessmentId, "publish")}
+            onApprove={(assessmentId) => void handleAssessmentAction(assessmentId, "approve")}
+            onLock={(assessmentId) => void handleAssessmentAction(assessmentId, "lock")}
+            onEdit={setEditingAssessment}
+            onDelete={setAssessmentToDelete}
+            onManageQuestions={(assessment) => {
+              const params = searchParams.toString();
+              const path = `/${locale}/grades/assessments/${assessment.id}/questions`;
+              router.push(params ? `${path}?${params}` : path);
             }}
-            onDelete={(assessment) => setAssessmentToDelete(assessment)}
-            onManageQuestions={handleManageQuestions}
           />
         )}
 
-        {view === "gradebook" && (
-          <GradesGradebookSection
-            isLoading={isDataLoading}
-            rows={tableRows}
-            columns={gradebookColumns}
-          />
-        )}
-
+        {view === "gradebook" && <GradesGradebookSection isLoading={isDataLoading} rows={tableRows} columns={gradebookColumns} />}
       </div>
 
       <CreateAssessmentDialog
         key={editingAssessment ? `edit-assessment-${editingAssessment.id}` : "edit-assessment-closed"}
         isOpen={!!editingAssessment}
-        onClose={() => {
-          setEditingAssessment(null);
-        }}
-        onSubmit={handleCreateAssessment}
+        onClose={() => setEditingAssessment(null)}
+        onSubmit={handleSaveAssessment}
         termId={termId}
-        sectionId={selectedSectionId}
-        classroomId={selectedClassroomId || undefined}
-        subjectId={selectedSubjectId}
+        scopeTypes={scopeTypes}
+        scopeEntitiesByType={scopeEntitiesByType}
+        subjects={subjects}
+        selectedScopeType={selectedScopeType}
+        selectedScopeId={selectedScopeId}
+        selectedSubjectId={selectedSubjectId}
         isSubmitting={isCreatingAssessment}
         mode="edit"
         initialAssessment={editingAssessment}
       />
 
       <EditGradeDialog
-        key={
-          editGradeState
-            ? `${editGradeState.assessment.id}-${editGradeState.row.studentId}-${editGradeState.row.statusByAssessmentId[editGradeState.assessment.id]}-${editGradeState.row.scoresByAssessmentId[editGradeState.assessment.id] ?? ""}-${editGradeState.comment ?? ""}`
-            : "edit-grade-closed"
-        }
+        key={editGradeState ? `${editGradeState.assessment.id}-${editGradeState.row.studentId}` : "edit-grade-closed"}
         isOpen={!!editGradeState}
         onClose={() => setEditGradeState(null)}
         onSubmit={handleSaveGrade}
         assessment={editGradeState?.assessment || null}
-        studentName={editGradeState ? locale === "ar" ? editGradeState.row.studentNameAr : editGradeState.row.studentNameEn : ""}
+        studentName={editGradeState ? (locale === "ar" ? editGradeState.row.studentNameAr : editGradeState.row.studentNameEn) : ""}
         initialScore={editGradeState ? editGradeState.row.scoresByAssessmentId[editGradeState.assessment.id] : null}
         initialStatus={editGradeState ? editGradeState.row.statusByAssessmentId[editGradeState.assessment.id] : "missing"}
         initialComment={editGradeState?.comment}
         isSubmitting={isSavingGrade}
       />
 
-      <BulkGradeEntryDialog
+      <ReviewAssessmentSubmissionDialog
         key={
-          bulkEntryState
-            ? `${bulkEntryState.assessment.id}-${bulkEntryState.rows.map((row) => `${row.studentId}:${row.status}:${row.score ?? ""}:${row.comment ?? ""}`).join("|")}`
-            : "bulk-grade-entry-closed"
+          submissionReviewState
+            ? `${submissionReviewState.assessment.id}-${submissionReviewState.submission.studentId}`
+            : "review-submission-closed"
         }
+        isOpen={!!submissionReviewState}
+        onClose={() => setSubmissionReviewState(null)}
+        review={submissionReviewState}
+        onSubmit={handleSaveSubmissionCorrection}
+        isSubmitting={isSavingSubmissionCorrection}
+      />
+
+      <BulkGradeEntryDialog
+        key={bulkEntryState ? `${bulkEntryState.assessment.id}-${bulkEntryState.rows.length}` : "bulk-grade-entry-closed"}
         isOpen={!!bulkEntryState}
         onClose={() => setBulkEntryState(null)}
         onSubmit={handleBulkSave}
@@ -717,7 +674,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         onConfirm={() => void handleDeleteAssessment()}
         title={t("dialogs.deleteAssessment.title")}
         description={t("dialogs.deleteAssessment.description", {
-          assessment: assessmentToDelete ? locale === "ar" ? assessmentToDelete.titleAr : assessmentToDelete.title : "",
+          assessment: assessmentToDelete ? (locale === "ar" ? assessmentToDelete.titleAr : assessmentToDelete.title) : "",
         })}
         confirmLabel={t("dialogs.deleteAssessment.confirm")}
         cancelLabel={t("dialogs.deleteAssessment.cancel")}

@@ -22,6 +22,7 @@
   BellRing,
   PlugZap,
   Building2,
+  Award,
 } from "lucide-react";
 import {
   mockLeads,
@@ -128,7 +129,7 @@ export const menuItems: MenuItem[] = [
       },
     ],
   },
-  
+
   {
     key: "students-guardians",
     label_en: "Students & Guardians",
@@ -344,7 +345,7 @@ export const menuItems: MenuItem[] = [
     href_ar: "/ar/attendance/policies",
     icon: ClipboardList,
     children: [
-       {
+      {
         key: "attendance-reports",
         label_en: "Overview",
         label_ar: "نظرة عامة",
@@ -392,7 +393,56 @@ export const menuItems: MenuItem[] = [
         href_ar: "/ar/attendance/excuses",
         icon: MessageSquare,
       },
-     
+    ],
+  },
+  {
+    key: "reinforcement",
+    label_en: "Reinforcement",
+    label_ar: "التعزيز",
+    href_en: "/en/reinforcement",
+    href_ar: "/ar/reinforcement",
+    icon: Award,
+    children: [
+      {
+        key: "reinforcement-overview",
+        label_en: "Overview",
+        label_ar: "نظرة عامة",
+        href_en: "/en/reinforcement",
+        href_ar: "/ar/reinforcement",
+        icon: LayoutDashboard,
+      },
+      {
+        key: "reinforcement-tasks",
+        label_en: "Tasks",
+        label_ar: "المهام",
+        href_en: "/en/reinforcement/tasks",
+        href_ar: "/ar/reinforcement/tasks",
+        icon: ClipboardCheck,
+      },
+      {
+        key: "reinforcement-templates",
+        label_en: "Templates",
+        label_ar: "القوالب",
+        href_en: "/en/reinforcement/templates",
+        href_ar: "/ar/reinforcement/templates",
+        icon: FileText,
+      },
+      {
+        key: "reinforcement-rewards",
+        label_en: "Rewards",
+        label_ar: "المكافآت",
+        href_en: "/en/reinforcement/rewards",
+        href_ar: "/ar/reinforcement/rewards",
+        icon: Award,
+      },
+      {
+        key: "reinforcement-review",
+        label_en: "Review Queue",
+        label_ar: "طابور المراجعة",
+        href_en: "/en/reinforcement/review",
+        href_ar: "/ar/reinforcement/review",
+        icon: CheckCircle,
+      },
     ],
   },
   {
@@ -489,5 +539,3 @@ export const bottomItems = [
     icon: HelpCircle,
   },
 ];
-
-

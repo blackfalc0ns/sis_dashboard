@@ -1,8 +1,17 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { MailPlus, RefreshCcw, UserPlus } from "lucide-react";
+import {
+  KeyRound,
+  Mail,
+  MailPlus,
+  Pencil,
+  RefreshCcw,
+  UserCheck,
+  UserPlus,
+  UserX,
+} from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { DataTable } from "@/components/ui/data-table";
 import Input from "@/components/ui/input/Input";
@@ -24,7 +33,10 @@ import {
   triggerUserPasswordReset,
   updateUser,
 } from "@/features/settings/services/settingsService";
-import type { RoleDefinition, SettingsUserRecord } from "@/features/settings/types";
+import type {
+  RoleDefinition,
+  SettingsUserRecord,
+} from "@/features/settings/types";
 import { usePermissions } from "@/hooks/usePermissions";
 
 export default function SettingsUsersPage() {
@@ -37,8 +49,12 @@ export default function SettingsUsersPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [modalMode, setModalMode] = useState<"create" | "invite" | "edit" | null>(null);
-  const [selectedUser, setSelectedUser] = useState<SettingsUserRecord | null>(null);
+  const [modalMode, setModalMode] = useState<
+    "create" | "invite" | "edit" | null
+  >(null);
+  const [selectedUser, setSelectedUser] = useState<SettingsUserRecord | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -46,7 +62,10 @@ export default function SettingsUsersPage() {
     void Promise.resolve().then(async () => {
       setIsLoading(true);
       try {
-        const [nextUsers, nextRoles] = await Promise.all([fetchUsers(), fetchRoles()]);
+        const [nextUsers, nextRoles] = await Promise.all([
+          fetchUsers(),
+          fetchRoles(),
+        ]);
         if (cancelled) {
           return;
         }
@@ -81,7 +100,8 @@ export default function SettingsUsersPage() {
           user.fullName.toLowerCase().includes(search.toLowerCase()) ||
           user.email.toLowerCase().includes(search.toLowerCase());
         const matchesRole = roleFilter === "all" || user.roleId === roleFilter;
-        const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+        const matchesStatus =
+          statusFilter === "all" || user.status === statusFilter;
         return matchesSearch && matchesRole && matchesStatus;
       }),
     [roleFilter, search, statusFilter, users],
@@ -137,10 +157,15 @@ export default function SettingsUsersPage() {
 
   const handleToggleStatus = async (user: SettingsUserRecord) => {
     try {
-      await setUserStatus(user.id, user.status === "inactive" ? "active" : "inactive");
+      await setUserStatus(
+        user.id,
+        user.status === "inactive" ? "active" : "inactive",
+      );
       await refresh();
       showSuccess(
-        user.status === "inactive" ? t("messages.activated") : t("messages.deactivated"),
+        user.status === "inactive"
+          ? t("messages.activated")
+          : t("messages.deactivated"),
       );
     } catch {
       showError(tCommon("save_failed"));
@@ -191,44 +216,70 @@ export default function SettingsUsersPage() {
             {hasPermission("settings.users.manage") ? (
               <>
                 <Button
-                  variant="secondary"
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 rounded-lg border border-gray-200 p-0"
+                  title={tCommon("edit")}
+                  aria-label={tCommon("edit")}
                   onClick={(event) => {
                     event.stopPropagation();
                     setSelectedUser(user);
                     setModalMode("edit");
                   }}
                 >
-                  {tCommon("edit")}
+                  <Pencil className="h-4 w-4 text-info" />
                 </Button>
                 {user.status === "invited" ? (
                   <Button
-                    variant="secondary"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 rounded-lg border border-gray-200 p-0"
+                    title={t("resend_invite")}
+                    aria-label={t("resend_invite")}
                     onClick={(event) => {
                       event.stopPropagation();
                       void handleResendInvite(user.id);
                     }}
                   >
-                    {t("resend_invite")}
+                    <Mail className="h-4 w-4 text-red-400" />
                   </Button>
                 ) : (
                   <Button
-                    variant="secondary"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 rounded-lg border border-gray-200 p-0"
+                    title={t("reset_password")}
+                    aria-label={t("reset_password")}
                     onClick={(event) => {
                       event.stopPropagation();
                       void handlePasswordReset(user.id);
                     }}
                   >
-                    {t("reset_password")}
+                    <KeyRound className="h-4 w-4 text-warning" />
                   </Button>
                 )}
                 <Button
-                  variant={user.status === "inactive" ? "primary" : "secondary"}
+                  variant={user.status === "inactive" ? "primary" : "ghost"}
+                  size="sm"
+                  className={`h-9 w-9 rounded-lg p-0 ${
+                    user.status === "inactive" ? "" : "border border-gray-200"
+                  }`}
+                  title={
+                    user.status === "inactive" ? t("activate") : t("deactivate")
+                  }
+                  aria-label={
+                    user.status === "inactive" ? t("activate") : t("deactivate")
+                  }
                   onClick={(event) => {
                     event.stopPropagation();
                     void handleToggleStatus(user);
                   }}
                 >
-                  {user.status === "inactive" ? t("activate") : t("deactivate")}
+                  {user.status === "inactive" ? (
+                    <UserCheck className="h-4 w-4" />
+                  ) : (
+                    <UserX className="h-4 w-4" />
+                  )}
                 </Button>
               </>
             ) : null}

@@ -31,7 +31,7 @@ import {
   updateAssessment,
   updateAssessmentQuestion,
 } from "../services/gradesAssessmentsService";
-import type { Assessment, AssessmentQuestion } from "../types";
+import type { Assessment, AssessmentDeliveryMode, AssessmentQuestion, AssessmentType } from "../types";
 
 interface AssessmentQuestionsPageProps {
   assessmentId?: string;
@@ -110,9 +110,17 @@ export default function AssessmentQuestionsPage({
   const [isQuestionSaving, setIsQuestionSaving] = useState(false);
   const [confirmDeleteQuestionId, setConfirmDeleteQuestionId] = useState<string | null>(null);
   const [tempQuestionCounter, setTempQuestionCounter] = useState(0);
-  const sectionIdParam = searchParams.get("sectionId") || "";
-  const classroomIdParam = searchParams.get("classroomId") || "";
+  const scopeTypeParam = (searchParams.get("scopeType") as Assessment["scopeType"]) || "school";
+  const scopeIdParam = searchParams.get("scopeId") || "";
   const subjectIdParam = searchParams.get("subjectId") || "";
+  const typeParam = (searchParams.get("type") as AssessmentType) || "QUIZ";
+  const titleParam = searchParams.get("title") || "";
+  const titleArParam = searchParams.get("titleAr") || "";
+  const dateParam = searchParams.get("date") || new Date().toISOString().slice(0, 10);
+  const weightParam = Number(searchParams.get("weight") || "15");
+  const maxScoreParam = Number(searchParams.get("maxScore") || "20");
+  const deliveryModeParam =
+    (searchParams.get("deliveryMode") as AssessmentDeliveryMode) || "QUESTION_BASED";
 
   const isReadOnly = termStatus === "closed";
   const isCreateMode = mode === "create";
@@ -186,16 +194,16 @@ export default function AssessmentQuestionsPage({
       const baseAssessment: Assessment = {
         id: "draft-assessment",
         termId,
-        sectionId: sectionIdParam,
-        classroomId: classroomIdParam || undefined,
+        scopeType: scopeTypeParam,
+        scopeId: scopeIdParam,
         subjectId: subjectIdParam,
-        title: "",
-        titleAr: "",
-        type: "QUIZ",
+        title: titleParam,
+        titleAr: titleArParam,
+        type: typeParam,
         deliveryMode: "QUESTION_BASED",
-        date: new Date().toISOString().slice(0, 10),
-        weight: 15,
-        maxScore: 20,
+        date: dateParam,
+        weight: Number.isFinite(weightParam) && weightParam > 0 ? weightParam : 15,
+        maxScore: Number.isFinite(maxScoreParam) && maxScoreParam > 0 ? maxScoreParam : 20,
         approvalStatus: "draft",
         isLocked: false,
       };
@@ -209,7 +217,22 @@ export default function AssessmentQuestionsPage({
     }
 
     void refresh();
-  }, [assessmentDraft, classroomIdParam, isCreateMode, refresh, sectionIdParam, subjectIdParam, termId]);
+  }, [
+    assessmentDraft,
+    dateParam,
+    deliveryModeParam,
+    isCreateMode,
+    maxScoreParam,
+    refresh,
+    scopeIdParam,
+    scopeTypeParam,
+    subjectIdParam,
+    termId,
+    titleArParam,
+    titleParam,
+    typeParam,
+    weightParam,
+  ]);
 
   useEffect(() => {
     if (!isCreateMode || !termId) {
@@ -220,8 +243,8 @@ export default function AssessmentQuestionsPage({
         ? {
             ...current,
             termId,
-            sectionId: sectionIdParam || current.sectionId,
-            classroomId: classroomIdParam || undefined,
+            scopeType: scopeTypeParam || current.scopeType,
+            scopeId: scopeIdParam || current.scopeId,
             subjectId: subjectIdParam || current.subjectId,
           }
         : current,
@@ -231,13 +254,13 @@ export default function AssessmentQuestionsPage({
         ? {
             ...current,
             termId,
-            sectionId: sectionIdParam || current.sectionId,
-            classroomId: classroomIdParam || undefined,
+            scopeType: scopeTypeParam || current.scopeType,
+            scopeId: scopeIdParam || current.scopeId,
             subjectId: subjectIdParam || current.subjectId,
           }
         : current,
     );
-  }, [classroomIdParam, isCreateMode, sectionIdParam, subjectIdParam, termId]);
+  }, [isCreateMode, scopeIdParam, scopeTypeParam, subjectIdParam, termId]);
 
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
@@ -324,7 +347,9 @@ export default function AssessmentQuestionsPage({
 
   const handleBack = () => {
     const params = searchParams.toString();
-    const path = `/${locale}/grades/assessments`;
+    const path = isCreateMode
+      ? `/${locale}/grades/assessments/new`
+      : `/${locale}/grades/assessments`;
     router.push(params ? `${path}?${params}` : path);
   };
 
@@ -345,12 +370,13 @@ export default function AssessmentQuestionsPage({
         const createdAssessment = await createAssessmentWithQuestions(academicYearId, {
           assessment: {
             termId,
-            sectionId: assessmentDraft.sectionId,
-            classroomId: assessmentDraft.classroomId,
+            scopeType: assessmentDraft.scopeType,
+            scopeId: assessmentDraft.scopeId,
             subjectId: assessmentDraft.subjectId,
             title: assessmentDraft.title,
             titleAr: assessmentDraft.titleAr,
-            type: assessmentDraft.type,
+            type: assessmentDraft.type as "QUIZ" | "MONTH_EXAM" | "MIDTERM" | "TERM_EXAM",
+            deliveryMode: "QUESTION_BASED",
             date: assessmentDraft.date,
             weight: assessmentDraft.weight,
             maxScore: assessmentDraft.maxScore,
@@ -376,12 +402,13 @@ export default function AssessmentQuestionsPage({
 
       const nextAssessment = await updateAssessment(academicYearId, termId, assessment!.id, {
         termId,
-        sectionId: assessment!.sectionId,
-        classroomId: assessment!.classroomId,
+        scopeType: assessmentDraft.scopeType,
+        scopeId: assessmentDraft.scopeId,
         subjectId: assessment!.subjectId,
         title: assessmentDraft.title,
         titleAr: assessmentDraft.titleAr,
-        type: assessment!.type,
+        type: assessment!.type as "QUIZ" | "MONTH_EXAM" | "MIDTERM" | "TERM_EXAM",
+        deliveryMode: assessment!.deliveryMode,
         date: assessmentDraft.date,
         weight: assessment!.weight,
         maxScore: assessmentDraft.maxScore,
@@ -596,6 +623,19 @@ export default function AssessmentQuestionsPage({
         <div className="p-6">
           <div className="rounded-xl border p-6 text-sm" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)", color: "var(--text-secondary)" }}>
             {isCreateMode ? tGrades("emptyState.selectFilters") : t("notFound")}
+          </div>
+        </div>
+      ) : !isCreateMode && assessment.deliveryMode !== "QUESTION_BASED" ? (
+        <div className="p-6">
+          <div
+            className="rounded-xl border p-6 text-sm"
+            style={{
+              borderColor: "var(--border-color)",
+              backgroundColor: "var(--surface-color)",
+              color: "var(--text-secondary)",
+            }}
+          >
+            {t("notQuestionBased")}
           </div>
         </div>
       ) : isDataLoading && questions.length === 0 ? (

@@ -71,14 +71,16 @@ export default function GradesAssessmentsSection({
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => onManageQuestions(assessment)}
-                  leftIcon={<FileQuestion className="h-4 w-4" />}
-                >
-                  {t("actions.manageQuestions")}
-                </Button>
+                {assessment.deliveryMode === "QUESTION_BASED" ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => onManageQuestions(assessment)}
+                    leftIcon={<FileQuestion className="h-4 w-4" />}
+                  >
+                    {t("actions.manageQuestions")}
+                  </Button>
+                ) : null}
                 <Button
                   variant="secondary"
                   size="sm"
@@ -91,7 +93,12 @@ export default function GradesAssessmentsSection({
                 <Button
                   variant="secondary"
                   size="sm"
-                  disabled={assessment.isLocked || isReadOnly || isBulkLoading}
+                  disabled={
+                    assessment.deliveryMode === "QUESTION_BASED" ||
+                    assessment.isLocked ||
+                    isReadOnly ||
+                    isBulkLoading
+                  }
                   loading={assessmentActionId === assessment.id && assessmentActionType === "bulk" && isBulkLoading}
                   onClick={() => onBulkEntry(assessment)}
                 >

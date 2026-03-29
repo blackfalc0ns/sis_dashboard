@@ -33,10 +33,34 @@ export interface SchoolProfileSettings {
   shortName: string;
   timezone: string;
   addressLine: string;
+  formattedAddress: string;
   city: string;
   country: string;
   footerSignature: string;
   logoUrl?: string;
+  latitude: number | null;
+  longitude: number | null;
+  mapPlaceLabel?: string;
+}
+
+export interface LocationSuggestion {
+  id: string;
+  label: string;
+  formattedAddress: string;
+  city: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface ResolvedSchoolLocation {
+  label: string;
+  formattedAddress: string;
+  addressLine: string;
+  city: string;
+  country: string;
+  latitude: number;
+  longitude: number;
 }
 
 export interface PermissionDefinition {

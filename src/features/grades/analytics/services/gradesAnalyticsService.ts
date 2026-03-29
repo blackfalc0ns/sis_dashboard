@@ -1,4 +1,5 @@
-import { fetchOverviewGradebook, fetchSectionGradeRule } from "../../overview/services/gradesOverviewService";
+import { fetchOverviewGradebook, fetchScopeGradeRule } from "../../overview/services/gradesOverviewService";
+import type { GradesScopeFilters } from "../../shared/types";
 import type { GradesAnalyticsReport, GradesDistributionBucket, GradesStudentAnalyticsRow } from "../types";
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
@@ -25,15 +26,13 @@ const buildDistribution = (averages: number[]): GradesDistributionBucket[] => {
 export async function fetchGradesAnalytics(
   academicYearId: string,
   termId: string,
-  filters: {
-    sectionId: string;
-    classroomId?: string;
-    subjectId: string;
-  },
+  filters: GradesScopeFilters,
 ): Promise<GradesAnalyticsReport> {
   const [gradebook, rule] = await Promise.all([
     fetchOverviewGradebook(academicYearId, termId, filters),
-    fetchSectionGradeRule(academicYearId, termId, filters.sectionId),
+    filters.scopeType && filters.scopeId
+      ? fetchScopeGradeRule(academicYearId, termId, filters.scopeType, filters.scopeId)
+      : Promise.resolve(null),
   ]);
 
   const passMark = rule?.passMark ?? 50;

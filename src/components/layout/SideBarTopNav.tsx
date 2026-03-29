@@ -20,7 +20,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
   // Set initial sidebar state based on screen size
   useEffect(() => {
     setIsClient(true);
-    
+
     const handleResize = () => {
       if (window.innerWidth >= 1024) {
         setIsSidebarOpen(true);

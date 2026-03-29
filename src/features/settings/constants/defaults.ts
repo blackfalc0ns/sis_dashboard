@@ -24,10 +24,14 @@ export const defaultSchoolProfileSettings: SchoolProfileSettings = {
   shortName: "MIS",
   timezone: "Africa/Cairo",
   addressLine: "North 90 Street, New Cairo",
+  formattedAddress: "North 90 Street, Fifth Settlement, New Cairo, Cairo Governorate, Egypt",
   city: "Cairo",
   country: "Egypt",
   footerSignature: "Moazzez School Management Platform",
   logoUrl: "",
+  latitude: 30.0284,
+  longitude: 31.4913,
+  mapPlaceLabel: "Moazzez International School",
 };
 
 export const defaultRoles: RoleDefinition[] = [

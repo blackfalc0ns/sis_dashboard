@@ -1,23 +1,42 @@
 export type AssessmentType =
   | "QUIZ"
-  | "ASSIGNMENT"
+  | "MONTH_EXAM"
   | "MIDTERM"
+  | "TERM_EXAM";
+
+export type LegacyAssessmentType =
+  | "ASSIGNMENT"
   | "FINAL"
   | "PRACTICAL";
+
+export type ExamScopeType =
+  | "school"
+  | "stage"
+  | "grade"
+  | "section"
+  | "classroom";
 
 export type AssessmentDeliveryMode = "SCORE_ONLY" | "QUESTION_BASED";
 
 export type GradeItemStatus = "entered" | "missing" | "absent";
+export type AssessmentSubmissionStatus =
+  | "not_started"
+  | "submitted"
+  | "in_progress"
+  | "corrected";
+export type AssessmentCorrectionStatus = "pending" | "corrected";
 
 export interface Assessment {
   id: string;
   termId: string;
   subjectId: string;
-  sectionId: string;
+  scopeType: ExamScopeType;
+  scopeId: string;
+  sectionId?: string;
   classroomId?: string;
   title: string;
   titleAr: string;
-  type: AssessmentType;
+  type: AssessmentType | LegacyAssessmentType;
   deliveryMode: AssessmentDeliveryMode;
   date: string;
   weight: number;
@@ -103,15 +122,46 @@ export interface GradebookResponse {
 export interface CreateAssessmentPayload {
   termId: string;
   subjectId: string;
-  sectionId: string;
+  scopeType: ExamScopeType;
+  scopeId: string;
+  sectionId?: string;
   classroomId?: string;
   title: string;
   titleAr: string;
   type: AssessmentType;
-  deliveryMode?: AssessmentDeliveryMode;
+  deliveryMode: AssessmentDeliveryMode;
   date: string;
   weight: number;
   maxScore: number;
+}
+
+export interface GradesScopeFilters {
+  scopeType?: ExamScopeType;
+  scopeId?: string;
+  subjectId?: string;
+  includeDrafts?: boolean;
+}
+
+export interface ScopeOption {
+  id: string;
+  name: string;
+  nameAr: string;
+  nameEn: string;
+}
+
+export interface ScopeEntityOption extends ScopeOption {
+  scopeType: ExamScopeType;
+  parentId?: string;
+}
+
+export interface GradesFiltersData {
+  scopeTypes: ExamScopeType[];
+  scopeEntities: Record<ExamScopeType, ScopeEntityOption[]>;
+  stages: ScopeEntityOption[];
+  grades: ScopeEntityOption[];
+  sections: ScopeEntityOption[];
+  classrooms: ScopeEntityOption[];
+  subjects: ScopeOption[];
 }
 
 export interface QuestionOption {
@@ -136,6 +186,44 @@ export interface AssessmentQuestion extends Record<string, unknown> {
   sampleAnswerAr?: string;
   sampleAnswerEn?: string;
   createdAt: string;
+}
+
+export interface AssessmentSubmission {
+  id: string;
+  termId: string;
+  assessmentId: string;
+  studentId: string;
+  status: AssessmentSubmissionStatus;
+  submittedAt?: string;
+  totalScore: number | null;
+  maxScore: number;
+}
+
+export interface AssessmentQuestionAnswer {
+  id: string;
+  submissionId: string;
+  assessmentId: string;
+  questionId: string;
+  studentId: string;
+  selectedOptionIds?: string[];
+  booleanAnswer?: boolean;
+  answerText?: string;
+  awardedPoints: number | null;
+  correctionStatus: AssessmentCorrectionStatus;
+  teacherComment?: string;
+}
+
+export interface AssessmentSubmissionQuestionReview {
+  question: AssessmentQuestion;
+  answer: AssessmentQuestionAnswer | null;
+}
+
+export interface AssessmentSubmissionReview {
+  submission: AssessmentSubmission;
+  assessment: Assessment;
+  studentNameEn: string;
+  studentNameAr: string;
+  questions: AssessmentSubmissionQuestionReview[];
 }
 
 export interface UpdateGradeItemPayload {

@@ -1,6 +1,5 @@
-import AssessmentQuestionsPage from "@/features/grades/assessments/pages/AssessmentQuestionsPage";
+import CreateAssessmentPage from "@/features/grades/assessments/pages/CreateAssessmentPage";
 
 export default function Page() {
-  return <AssessmentQuestionsPage mode="create" />;
+  return <CreateAssessmentPage />;
 }
-

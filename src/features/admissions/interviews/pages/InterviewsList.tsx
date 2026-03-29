@@ -20,12 +20,17 @@ import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import { KPICardV2 } from "@/components/ui/kpi-card";
 import ScheduleInterviewModal from "@/features/admissions/interviews/components/ScheduleInterviewModal";
 import InterviewRatingModal from "@/features/admissions/interviews/components/InterviewRatingModal";
-import DateRangeFilter, { DateRangeValue } from "@/features/admissions/shared/DateRangeFilter";
+import DateRangeFilter, {
+  DateRangeValue,
+} from "@/features/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
 import { downloadCSV, generateFilename } from "@/utils/simpleExport";
 import { formatInterviewsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
 import { mockApplications, mockInterviews } from "@/data/mockAdmissions";
-import { Interview, InterviewStatus } from "@/features/admissions/types/admissions";
+import {
+  Interview,
+  InterviewStatus,
+} from "@/features/admissions/types/admissions";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
@@ -101,7 +106,15 @@ export default function InterviewsList() {
     ) => {
       const updates: Partial<Record<keyof typeof values, string | null>> = {};
       const validStatuses = new Set(["all", "scheduled", "completed"]);
-      const validDateRanges = new Set(["all", "7", "14", "30", "60", "90", "custom"]);
+      const validDateRanges = new Set([
+        "all",
+        "7",
+        "14",
+        "30",
+        "60",
+        "90",
+        "custom",
+      ]);
 
       if (!validStatuses.has(values.status)) {
         updates.status = null;
@@ -181,6 +194,8 @@ export default function InterviewsList() {
     customStartDate,
     customEndDate,
   ]);
+
+  console.log("filterResult", filteredInterviews);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
@@ -421,7 +436,7 @@ export default function InterviewsList() {
       {/* Filters */}
       <div className="space-y-3">
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px] max-w-md">
+          <div className="relative flex-1 min-w-50 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
@@ -466,7 +481,11 @@ export default function InterviewsList() {
             <select
               value={statusFilter}
               onChange={(e) =>
-                setValue("status", e.target.value as InterviewStatus | "all", "push")
+                setValue(
+                  "status",
+                  e.target.value as InterviewStatus | "all",
+                  "push",
+                )
               }
               className="w-full text-black max-w-xs px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
             >

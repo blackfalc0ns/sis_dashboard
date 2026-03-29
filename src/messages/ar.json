@@ -117,7 +117,13 @@
     "activity": "النشاط",
     "get_help": "الحصول على مساعدة",
     "settings": "الإعدادات",
-    "school": "المدرسة"
+    "school": "المدرسة",
+    "sections": {
+      "overview": "نظرة عامة",
+      "settings": "الإعدادات",
+      "support": "الدعم"
+    },
+    "reinforcement": "???????"
   },
   "overview": {
     "attendance_rate": "نسبة الحضور اليوم",
@@ -3772,20 +3778,25 @@
       "readOnlyBanner": "أنت في وضع العرض فقط. لا يمكنك إجراء أي تعديلات.",
       "tabs": {
         "overview": "نظرة عامة",
-        "assessments": "التقييمات",
+        "assessments": "الاختبارات",
         "analytics": "التحليلات",
         "gradebook": "سجل الدرجات"
       },
       "filters": {
-        "grade": "الصف",
-        "section": "الفصل",
-        "classroom": "الفصل الدراسي",
+        "scopeType": "نوع النطاق",
+        "scope": "النطاق",
         "subject": "المادة",
-        "allClassrooms": "كل الفصول",
-        "selectGrade": "اختر الصف",
-        "selectSection": "اختر الفصل",
+        "selectScopeType": "اختر نوع النطاق",
+        "selectScope": "اختر النطاق",
         "selectSubject": "اختر المادة",
-        "activeContext": "{subject} - {section}"
+        "activeContext": "{subject} - {scope}",
+        "scopeTypes": {
+          "school": "المدرسة كاملة",
+          "stage": "المرحلة",
+          "grade": "الصف",
+          "section": "الشعبة",
+          "classroom": "القاعة الدراسية"
+        }
       },
       "kpis": {
         "students": "الطلاب",
@@ -3820,18 +3831,17 @@
       },
       "assessmentTypes": {
         "quiz": "اختبار قصير",
-        "assignment": "واجب",
+        "monthExam": "اختبار الشهر",
         "midterm": "اختبار منتصف الفصل",
-        "final": "الاختبار النهائي",
-        "practical": "عملي"
+        "termExam": "اختبار الفصل"
       },
       "emptyState": {
-        "selectFilters": "اختر الصفوف المناسبة لعرض البيانات.",
-        "noAssessments": "لا توجد تقييمات ضمن المعايير المحددة.",
+        "selectFilters": "اختر نطاقًا ومادة لعرض سجل الدرجات.",
+        "noAssessments": "لا توجد اختبارات ضمن المعايير المحددة.",
         "noStudents": "لا يوجد طلاب ضمن المعايير المحددة."
       },
       "actions": {
-        "createAssessment": "إنشاء تقييم",
+        "createAssessment": "إنشاء اختبار",
         "bulkEntry": "إدخال جماعي",
         "approve": "اعتماد",
         "lock": "قفل",
@@ -3867,38 +3877,54 @@
         "empty": "لا توجد بيانات تحليلية ضمن المعايير المحددة."
       },
       "messages": {
-        "assessmentCreated": "تم إنشاء التقييم بنجاح",
-        "assessmentUpdated": "تم تحديث التقييم بنجاح",
-        "assessmentDeleted": "تم حذف التقييم بنجاح",
+        "assessmentCreated": "تم إنشاء الاختبار بنجاح",
+        "assessmentUpdated": "تم تحديث الاختبار بنجاح",
+        "assessmentDeleted": "تم حذف الاختبار بنجاح",
         "gradeSaved": "تم حفظ الدرجة بنجاح",
+        "questionsCorrected": "تم حفظ تصحيح الأسئلة بنجاح",
         "bulkGradesSaved": "تم حفظ الدرجات بنجاح",
-        "assessmentApproved": "تم اعتماد التقييم بنجاح",
-        "assessmentLocked": "تم قفل التقييم بنجاح",
-        "assessmentPublished": "تم نشر التقييم بنجاح"
+        "assessmentApproved": "تم اعتماد الاختبار بنجاح",
+        "assessmentLocked": "تم قفل الاختبار بنجاح",
+        "assessmentPublished": "تم نشر الاختبار بنجاح"
       },
       "dialogs": {
         "createAssessment": {
-          "title": "إنشاء تقييم",
-          "description": "أدخل بيانات التقييم الجديد.",
+          "title": "إنشاء اختبار",
+          "description": "أضف اختبارًا جديدًا للنطاق والمادة المحددين.",
+          "scopeType": "نوع النطاق",
+          "scope": "النطاق",
+          "subject": "المادة",
+          "testMode": "نوع الاختبار",
           "titleEn": "العنوان (بالإنجليزية)",
           "titleAr": "العنوان (بالعربية)",
           "type": "النوع",
           "date": "التاريخ",
           "weight": "الوزن",
           "maxScore": "الدرجة النهائية",
-          "save": "حفظ",
+          "save": "إنشاء",
+          "continueToBuilder": "المتابعة إلى منشئ الأسئلة",
           "cancel": "إلغاء",
           "types": {
             "quiz": "اختبار قصير",
-            "assignment": "واجب",
+            "monthExam": "اختبار الشهر",
             "midterm": "اختبار منتصف الفصل",
-            "final": "الاختبار النهائي",
-            "practical": "عملي"
+            "termExam": "اختبار الفصل",
+            "scopeTypes": {
+              "school": "المدرسة كاملة",
+              "stage": "المرحلة",
+              "grade": "الصف",
+              "section": "الشعبة",
+              "classroom": "القاعة الدراسية"
+            }
           },
           "deliveryMode": "طريقة الإدخال",
           "deliveryModes": {
             "scoreOnly": "درجة فقط",
             "questionBased": "بناءً على الأسئلة"
+          },
+          "testModes": {
+            "paper": "اختبار ورقي",
+            "electronic": "اختبار إلكتروني"
           }
         },
         "editGrade": {
@@ -3916,6 +3942,29 @@
             "absent": "غائب"
           }
         },
+        "reviewSubmission": {
+          "title": "تصحيح الأسئلة",
+          "description": "مراجعة إجابات {student} في {assessment}.",
+          "submissionStatus": "حالة التسليم",
+          "submittedAt": "وقت التسليم",
+          "runningTotal": "المجموع الحالي",
+          "studentAnswer": "إجابة الطالب",
+          "referenceAnswer": "الإجابة المرجعية",
+          "awardedPoints": "الدرجة الممنوحة",
+          "pointsHelp": "النطاق المسموح: 0 - {max}",
+          "teacherComment": "ملاحظة المعلم",
+          "questionLabel": "السؤال {number}",
+          "points": "درجة",
+          "save": "حفظ التصحيح",
+          "cancel": "إلغاء",
+          "noAnswer": "لا توجد إجابة مرسلة لهذا السؤال.",
+          "submissionStatuses": {
+            "not_started": "لم يبدأ",
+            "submitted": "تم التسليم",
+            "in_progress": "التصحيح قيد التنفيذ",
+            "corrected": "تم التصحيح"
+          }
+        },
         "deleteAssessment": {
           "title": "حذف التقييم",
           "description": "هل أنت متأكد من حذف {assessment}؟ لا يمكن التراجع عن هذا الإجراء بعد الحذف.",
@@ -3923,8 +3972,11 @@
           "cancel": "إلغاء"
         },
         "editAssessment": {
-          "title": "تعديل التقييم",
-          "description": "تحديث بيانات التقييم الحالية.",
+          "title": "تعديل الاختبار",
+          "description": "تحديث بيانات الاختبار الحالي.",
+          "scopeType": "نوع النطاق",
+          "scope": "النطاق",
+          "subject": "المادة",
           "titleEn": "العنوان (بالإنجليزية)",
           "titleAr": "العنوان (بالعربية)",
           "type": "النوع",
@@ -3935,10 +3987,16 @@
           "cancel": "إلغاء",
           "types": {
             "quiz": "اختبار قصير",
-            "assignment": "واجب",
+            "monthExam": "اختبار الشهر",
             "midterm": "اختبار منتصف الفصل",
-            "final": "الاختبار النهائي",
-            "practical": "عملي"
+            "termExam": "اختبار الفصل",
+            "scopeTypes": {
+              "school": "المدرسة كاملة",
+              "stage": "المرحلة",
+              "grade": "الصف",
+              "section": "الشعبة",
+              "classroom": "القاعة الدراسية"
+            }
           },
           "deliveryMode": "طريقة الإدخال",
           "deliveryModes": {
@@ -3969,6 +4027,7 @@
         "missing_scope": "يرجى تحديد نطاق العمل أولاً.",
         "title_required": "عنوان التقييم مطلوب.",
         "invalid_weight": "يجب أن يكون الوزن رقمًا بين 1 و100.",
+        "weight_limit_reached": "لا يمكن أن يتجاوز مجموع أوزان الاختبارات 100% لنفس النطاق والمادة.",
         "invalid_max_score": "يجب أن تكون الدرجة النهائية أكبر من 0.",
         "assessment_not_found": "التقييم غير موجود.",
         "assessment_locked": "هذا التقييم مقفل.",
@@ -3979,6 +4038,10 @@
         "score_out_of_range": "الدرجة خارج النطاق المسموح.",
         "generic": "حدث خطأ غير متوقع.",
         "question_not_found": "السؤال المطلوب غير موجود.",
+        "submission_not_found": "لم يتم العثور على تسليم الطالب.",
+        "answer_not_found": "لم يتم العثور على إجابة الطالب.",
+        "not_question_based": "هذا الاختبار ليس إلكترونيًا.",
+        "question_based_grading_managed_per_question": "يجب تصحيح الاختبارات الإلكترونية سؤالًا بسؤال.",
         "assessment_structure_locked": "لا يمكن تعديل بنية التقييم بعد اعتماده.",
         "grading_started": "لا يمكن تعديل التقييم بعد بدء عملية التصحيح.",
         "last_question_required": "يجب أن يحتوي التقييم على سؤال واحد على الأقل.",
@@ -4003,7 +4066,7 @@
         "deleteCancel": "إلغاء",
         "back": "العودة إلى التقييمات",
         "notFound": "لم يتم العثور على التقييم المطلوب أو لا تملك صلاحية الوصول إليه.",
-        "notQuestionBased": "هذا التقييم ليس من نوع التقييم القائم على الأسئلة. يجب تغيير طريقة الإدخال إلى بناءً على الأسئلة أولًا.",
+        "notQuestionBased": "هذا الاختبار ورقي ولا يستخدم منشئ الأسئلة.",
         "loading": "جار تحميل الأسئلة...",
         "messages": {
           "saved": "تم حفظ السؤال بنجاح",
@@ -5426,6 +5489,238 @@
         "load_failed": "فشل تحميل سجل النسخ الاحتياطي.",
         "action_completed": "تم اكتمال العملية بنجاح."
       }
+    }
+  },
+  "reinforcement": {
+    "overview": "نظرة عامة",
+    "tasks": "المهام",
+    "templates": "القوالب",
+    "rewards": "المكافآت",
+    "reviewQueue": "قائمة المراجعة",
+    "overviewDescription": "تابع حالة مهام التعزيز والمؤشرات الرئيسية وأداء الطلاب من مكان واحد.",
+    "tasksDescription": "إدارة المهام التعزيزية النشطة وتتبع التقدم والحالات المختلفة.",
+    "templatesDescription": "أنشئ قوالب جاهزة للمهام لتسريع إعداد التعزيزات المتكررة والمنظمة.",
+    "rewardsDescription": "إدارة المكافآت التعزيزية المختلفة حسب نوعها وقيمتها.",
+    "reviewDescription": "مراجعة العناصر المرسلة لاعتمادها أو رفضها أو طلب إعادة التقديم.",
+    "recentActivity": "أحدث النشاطات",
+    "recentActivitySubtitle": "آخر التحديثات المرتبطة بمهام التعزيز الحالية.",
+    "quickActions": "إجراءات سريعة",
+    "quickActionsSubtitle": "اختصارات مفيدة لإدارة مهام التعزيز والمكافآت.",
+    "loading": "جارٍ تحميل بيانات التعزيز...",
+    "status": {
+      "draft": "مسودة",
+      "active": "نشط",
+      "in_progress": "قيد التنفيذ",
+      "under_review": "قيد المراجعة",
+      "completed": "مكتمل",
+      "rejected": "مرفوض",
+      "archived": "مؤرشف"
+    },
+    "source": {
+      "teacher": "المعلم",
+      "parent": "ولي الأمر",
+      "system": "النظام"
+    },
+    "rewardType": {
+      "moral": "معنوية",
+      "financial": "مالية",
+      "xp": "نقاط خبرة",
+      "badge": "شارة"
+    },
+    "proofType": {
+      "image": "صورة",
+      "video": "فيديو",
+      "document": "مستند",
+      "none": "بدون إثبات"
+    },
+    "activeState": {
+      "active": "نشط",
+      "inactive": "غير نشط"
+    },
+    "actions": {
+      "exportCsv": "تصدير CSV",
+      "createTemplate": "إنشاء قالب",
+      "createReward": "إنشاء مكافأة"
+    },
+    "empty": {
+      "tasks": "لا توجد أي مهام تعزيز متاحة حالياً.",
+      "templates": "لا توجد قوالب مهام حتى الآن.",
+      "rewards": "لا توجد مكافآت مضافة حتى الآن.",
+      "reviewQueue": "لا توجد عناصر بانتظار المراجعة."
+    },
+    "kpi": {
+      "activeTasks": "المهام النشطة",
+      "underReview": "قيد المراجعة",
+      "completedThisWeek": "المكتملة هذا الأسبوع",
+      "rewardedStudents": "الطلاب المُكافأون",
+      "averageCompletionRate": "متوسط نسبة الإنجاز",
+      "totalRewardsIssued": "إجمالي المكافآت الممنوحة"
+    },
+    "charts": {
+      "tasksByStatus": "المهام حسب الحالة",
+      "tasksByStatusSubtitle": "توزيع جميع المهام الحالية وفقاً لحالتها.",
+      "tasksBySource": "المهام حسب المصدر",
+      "tasksBySourceSubtitle": "توضيح مصدر إنشاء المهام بين المعلم وولي الأمر والنظام.",
+      "rewardsByType": "المكافآت حسب النوع",
+      "rewardsByTypeSubtitle": "توزيع المكافآت الحالية بحسب نوع التعزيز.",
+      "topPerformance": "أفضل أداء تعزيزي",
+      "topPerformanceSubtitle": "عرض أفضل الفصول أو الطلاب أداءً في إنجاز مهام التعزيز الحالية.",
+      "topClasses": "أفضل الفصول",
+      "topStudents": "أفضل الطلاب"
+    },
+    "filters": {
+      "search": "بحث",
+      "searchPlaceholder": "ابحث بالعنوان أو الطالب أو الصف أو المصدر",
+      "student": "الطالب",
+      "class": "الصف",
+      "source": "المصدر",
+      "status": "الحالة",
+      "rewardType": "نوع المكافأة",
+      "dueDate": "تاريخ الاستحقاق",
+      "allStudents": "كل الطلاب",
+      "allClasses": "كل الصفوف",
+      "allSources": "كل المصادر",
+      "allStatuses": "كل الحالات",
+      "allRewardTypes": "كل أنواع المكافآت"
+    },
+    "table": {
+      "task": "المهمة",
+      "student": "الطالب",
+      "class": "الصف",
+      "source": "المصدر",
+      "status": "الحالة",
+      "reward": "المكافأة",
+      "progress": "التقدم",
+      "dueDate": "تاريخ الاستحقاق",
+      "actions": "الإجراءات",
+      "view": "عرض",
+      "review": "مراجعة",
+      "duplicate": "نسخ",
+      "archive": "أرشفة"
+    },
+    "templatesTable": {
+      "title": "العنوان",
+      "stages": "المراحل",
+      "rewardType": "نوع المكافأة",
+      "status": "الحالة",
+      "createdAt": "تاريخ الإنشاء",
+      "actions": "الإجراءات",
+      "edit": "تعديل"
+    },
+    "rewardsTable": {
+      "name": "المكافأة",
+      "type": "النوع",
+      "defaultValue": "القيمة الافتراضية",
+      "status": "الحالة",
+      "actions": "الإجراءات",
+      "edit": "تعديل"
+    },
+    "reviewTable": {
+      "task": "المهمة",
+      "student": "الطالب",
+      "submittedAt": "تاريخ الإرسال",
+      "stageCountCompleted": "المراحل المكتملة",
+      "proofType": "نوع الإثبات",
+      "source": "المصدر",
+      "status": "الحالة",
+      "actions": "الإجراءات",
+      "view": "عرض",
+      "approve": "اعتماد",
+      "reject": "رفض",
+      "resubmit": "طلب إعادة التقديم"
+    },
+    "modal": {
+      "template": {
+        "createTitle": "إنشاء قالب مهمة",
+        "editTitle": "تعديل قالب مهمة",
+        "saveChanges": "حفظ التغييرات",
+        "create": "إنشاء القالب",
+        "titleAr": "العنوان (عربي)",
+        "titleEn": "العنوان (إنجليزي)",
+        "descriptionAr": "الوصف (عربي)",
+        "descriptionEn": "الوصف (إنجليزي)",
+        "rewardType": "نوع المكافأة",
+        "rewardValue": "قيمة المكافأة",
+        "active": "نشط حالياً",
+        "stages": "المراحل الافتراضية",
+        "addStage": "إضافة مرحلة",
+        "stageTitleAr": "عنوان المرحلة (عربي)",
+        "stageTitleEn": "عنوان المرحلة (إنجليزي)",
+        "stageDescriptionAr": "وصف المرحلة (عربي)",
+        "stageDescriptionEn": "وصف المرحلة (إنجليزي)",
+        "proofType": "نوع الإثبات",
+        "removeStage": "حذف المرحلة",
+        "rewardTypeOptions": {
+          "moral": "معنوية",
+          "financial": "مالية",
+          "xp": "نقاط خبرة",
+          "badge": "شارة"
+        },
+        "proofTypeOptions": {
+          "none": "بدون إثبات",
+          "image": "صورة",
+          "video": "فيديو",
+          "document": "مستند"
+        }
+      },
+      "reward": {
+        "createTitle": "إنشاء مكافأة",
+        "editTitle": "تعديل مكافأة",
+        "saveChanges": "حفظ التغييرات",
+        "create": "إنشاء المكافأة",
+        "nameAr": "الاسم (عربي)",
+        "nameEn": "الاسم (إنجليزي)",
+        "type": "نوع المكافأة",
+        "defaultValue": "القيمة الافتراضية",
+        "active": "مفعلة حالياً",
+        "typeOptions": {
+          "moral": "معنوية",
+          "financial": "مالية",
+          "xp": "نقاط خبرة",
+          "badge": "شارة"
+        }
+      }
+    },
+    "rewardsKpi": {
+      "total": "إجمالي المكافآت",
+      "active": "المكافآت النشطة",
+      "financial": "المكافآت المالية",
+      "badges": "الشارات الممنوحة"
+    },
+    "details": {
+      "notFound": "لم يتم العثور على مهمة التعزيز.",
+      "back": "العودة إلى المهام",
+      "rewardSection": "المكافأة",
+      "assignedBy": "تم الإسناد بواسطة",
+      "dueDate": "تاريخ الاستحقاق",
+      "description": "الوصف",
+      "stages": "المراحل",
+      "attachments": "المرفقات والإثباتات",
+      "noAttachments": "لا توجد أي مرفقات أو ملفات مرتبطة بهذه المهمة.",
+      "reviewActions": "إجراءات المراجعة",
+      "approve": "اعتماد هذه المهمة",
+      "reject": "رفض المهمة",
+      "requestResubmission": "طلب إعادة التقديم",
+      "yes": "نعم",
+      "no": "لا",
+      "stageStatus": {
+        "completed": "مكتملة",
+        "approved": "معتمدة",
+        "submittedAt": "تاريخ الإرسال"
+      },
+      "timeline": {
+        "title": "الجدول الزمني / سجل النشاط",
+        "created": "تم إنشاء المهمة",
+        "updated": "آخر تحديث"
+      }
+    },
+    "dashboardWidget": {
+      "title": "التعزيز",
+      "subtitle": "عرض سريع لحالة التعزيزات على مستوى المدرسة.",
+      "cta": "عرض الكل",
+      "activeTasks": "المهام النشطة",
+      "underReview": "قيد المراجعة",
+      "completionRate": "نسبة الإنجاز"
     }
   }
 }

@@ -117,7 +117,13 @@
     "activity": "Activity",
     "get_help": "Get Help",
     "settings": "Settings",
-    "school": "School"
+    "school": "School",
+    "sections": {
+      "overview": "Overview",
+      "settings": "Settings",
+      "support": "Support"
+    },
+    "reinforcement": "Reinforcement"
   },
   "overview": {
     "attendance_rate": "Today Attendance Rate",
@@ -369,9 +375,9 @@
       "accepted": "Accepted",
       "enrolled": "Enrolled",
       "conversion": "conversion",
-      "leads_to_apps": "Leads → Apps",
-      "apps_to_accepted": "Apps → Accepted",
-      "accepted_to_enrolled": "Accepted → Enrolled",
+      "leads_to_apps": "Leads â†’ Apps",
+      "apps_to_accepted": "Apps â†’ Accepted",
+      "accepted_to_enrolled": "Accepted â†’ Enrolled",
       "total_applications": "Total Applications",
       "grade_levels": "Grade Levels",
       "most_requested": "Most Requested",
@@ -567,7 +573,7 @@
       "student_name_en": "Student Name (English)",
       "student_name_ar": "Student Name (Arabic)",
       "student_name_en_placeholder": "e.g., Ahmed Hassan",
-      "student_name_ar_placeholder": "مثال: أحمد حسن",
+      "student_name_ar_placeholder": "Ù…Ø«Ø§Ù„: Ø£Ø­Ù…Ø¯ Ø­Ø³Ù†",
       "guardian_information": "Guardian Information",
       "guardian_name": "Guardian Name",
       "guardian_name_placeholder": "Enter guardian name",
@@ -669,7 +675,7 @@
       "student": {
         "title": "Student Information",
         "full_name_ar": "Full Name (Arabic)",
-        "full_name_ar_placeholder": "أحمد محمد",
+        "full_name_ar_placeholder": "Ø£Ø­Ù…Ø¯ Ù…Ø­Ù…Ø¯",
         "full_name_en": "Full Name (English)",
         "full_name_en_placeholder": "Ahmed Mohammed",
         "gender": "Gender",
@@ -1159,7 +1165,7 @@
         "excellent": "Outstanding candidate"
       },
       "interview_notes": "Interview Notes",
-      "notes_placeholder": "Provide detailed feedback about the interview:\n• Communication skills\n• Motivation and interest\n• Academic readiness\n• Behavioral observations\n• Strengths and areas of concern\n• Recommendation",
+      "notes_placeholder": "Provide detailed feedback about the interview:\nâ€¢ Communication skills\nâ€¢ Motivation and interest\nâ€¢ Academic readiness\nâ€¢ Behavioral observations\nâ€¢ Strengths and areas of concern\nâ€¢ Recommendation",
       "notes_help": "These notes will be reviewed by the admissions committee",
       "assessment_areas": "Quick Assessment Areas",
       "areas": {
@@ -3191,9 +3197,9 @@
       "validation": {
         "start_after_end": "End date must be after start date",
         "outside_term_range": "Event must be within term date range",
-        "outside_term_range_with_dates": "Event must be within the term range ({start} – {end})"
+        "outside_term_range_with_dates": "Event must be within the term range ({start} â€“ {end})"
       },
-      "term_range_hint": "Term range: {start} – {end}",
+      "term_range_hint": "Term range: {start} â€“ {end}",
       "date_helper_text": "Must be within term range",
       "clear_filters": "Clear",
       "apply": "Apply",
@@ -3546,8 +3552,8 @@
           "actions": "Actions"
         },
         "editSlot": {
-          "cancel": "إلغاء",
-          "save": "حفظ"
+          "cancel": "Ø¥Ù„ØºØ§Ø¡",
+          "save": "Ø­ÙØ¸"
         },
         "emptyState": "No rooms found. Add your first room.",
         "searchPlaceholder": "Search rooms...",
@@ -3824,20 +3830,25 @@
       "readOnlyBanner": "This term is closed. Grades are read-only.",
       "tabs": {
         "overview": "Overview",
-        "assessments": "Assessments",
+        "assessments": "Exams",
         "analytics": "Analytics",
         "gradebook": "Gradebook"
       },
       "filters": {
-        "grade": "Grade",
-        "section": "Section",
-        "classroom": "Classroom",
+        "scopeType": "Scope Type",
+        "scope": "Scope",
         "subject": "Subject",
-        "allClassrooms": "All Classrooms",
-        "selectGrade": "Select Grade",
-        "selectSection": "Select Section",
+        "selectScopeType": "Select Scope Type",
+        "selectScope": "Select Scope",
         "selectSubject": "Select Subject",
-        "activeContext": "{subject} - {section}"
+        "activeContext": "{subject} - {scope}",
+        "scopeTypes": {
+          "school": "Whole School",
+          "stage": "Stage",
+          "grade": "Grade",
+          "section": "Section",
+          "classroom": "Classroom"
+        }
       },
       "kpis": {
         "students": "Students",
@@ -3851,7 +3862,7 @@
         "average": "Average Score"
       },
       "summaryPanel": {
-        "title": "Section Summary",
+        "title": "Scope Summary",
         "highest": "Highest Average",
         "lowest": "Lowest Average",
         "passMark": "Pass Mark",
@@ -3859,7 +3870,7 @@
       },
       "gradebook": {
         "title": "Gradebook",
-        "subtitle": "Students by rows, assessments by columns"
+        "subtitle": "Students by rows, exams by columns"
       },
       "analytics": {
         "kpis": {
@@ -3874,8 +3885,8 @@
           "count": "Students"
         },
         "assessments": {
-          "title": "Assessment performance",
-          "subtitle": "Average score by assessment",
+          "title": "Exam performance",
+          "subtitle": "Average score by exam",
           "average": "Average"
         },
         "topStudents": "Top students",
@@ -3898,18 +3909,17 @@
       },
       "assessmentTypes": {
         "quiz": "Quiz",
-        "assignment": "Assignment",
+        "monthExam": "Month Exam",
         "midterm": "Midterm",
-        "final": "Final",
-        "practical": "Practical"
+        "termExam": "Term Exam"
       },
       "emptyState": {
-        "selectFilters": "Select a section and subject to view the gradebook.",
-        "noAssessments": "No assessments available for the selected filters.",
+        "selectFilters": "Select a scope and subject to view the gradebook.",
+        "noAssessments": "No exams available for the selected filters.",
         "noStudents": "No enrolled students found for the selected filters."
       },
       "actions": {
-        "createAssessment": "Create Assessment",
+        "createAssessment": "Create Exam",
         "bulkEntry": "Bulk Entry",
         "approve": "Approve",
         "lock": "Lock",
@@ -3919,19 +3929,24 @@
         "publish": "Publish"
       },
       "messages": {
-        "assessmentCreated": "Assessment created successfully",
-        "assessmentUpdated": "Assessment updated successfully",
-        "assessmentDeleted": "Assessment deleted successfully",
+        "assessmentCreated": "Exam created successfully",
+        "assessmentUpdated": "Exam updated successfully",
+        "assessmentDeleted": "Exam deleted successfully",
         "gradeSaved": "Grade saved successfully",
+        "questionsCorrected": "Question correction saved successfully",
         "bulkGradesSaved": "Grades saved successfully",
-        "assessmentApproved": "Assessment approved successfully",
-        "assessmentLocked": "Assessment locked successfully",
-        "assessmentPublished": "Assessment published successfully"
+        "assessmentApproved": "Exam approved successfully",
+        "assessmentLocked": "Exam locked successfully",
+        "assessmentPublished": "Exam published successfully"
       },
       "dialogs": {
         "createAssessment": {
-          "title": "Create Assessment",
-          "description": "Add a new assessment to the current gradebook.",
+          "title": "Create Exam",
+          "description": "Add a new exam for the selected scope and subject.",
+          "scopeType": "Scope Type",
+          "scope": "Scope",
+          "subject": "Subject",
+          "testMode": "Test Mode",
           "titleEn": "Title (English)",
           "titleAr": "Title (Arabic)",
           "type": "Type",
@@ -3939,23 +3954,37 @@
           "weight": "Weight",
           "maxScore": "Max Score",
           "save": "Create",
+          "continueToBuilder": "Continue to Question Builder",
           "cancel": "Cancel",
           "types": {
             "quiz": "Quiz",
-            "assignment": "Assignment",
+            "monthExam": "Month Exam",
             "midterm": "Midterm",
-            "final": "Final",
-            "practical": "Practical"
+            "termExam": "Term Exam",
+            "scopeTypes": {
+              "school": "Whole School",
+              "stage": "Stage",
+              "grade": "Grade",
+              "section": "Section",
+              "classroom": "Classroom"
+            }
           },
           "deliveryMode": "Delivery Mode",
           "deliveryModes": {
             "scoreOnly": "Score only",
             "questionBased": "Question-based"
+          },
+          "testModes": {
+            "paper": "Paper Test",
+            "electronic": "Electronic Test"
           }
         },
         "editAssessment": {
-          "title": "Edit Assessment",
-          "description": "Update the selected assessment details.",
+          "title": "Edit Exam",
+          "description": "Update the selected exam details.",
+          "scopeType": "Scope Type",
+          "scope": "Scope",
+          "subject": "Subject",
           "titleEn": "Title (English)",
           "titleAr": "Title (Arabic)",
           "type": "Type",
@@ -3966,10 +3995,16 @@
           "cancel": "Cancel",
           "types": {
             "quiz": "Quiz",
-            "assignment": "Assignment",
+            "monthExam": "Month Exam",
             "midterm": "Midterm",
-            "final": "Final",
-            "practical": "Practical"
+            "termExam": "Term Exam",
+            "scopeTypes": {
+              "school": "Whole School",
+              "stage": "Stage",
+              "grade": "Grade",
+              "section": "Section",
+              "classroom": "Classroom"
+            }
           },
           "deliveryMode": "Delivery Mode",
           "deliveryModes": {
@@ -3990,6 +4025,29 @@
             "entered": "Entered",
             "missing": "Missing",
             "absent": "Absent"
+          }
+        },
+        "reviewSubmission": {
+          "title": "Correct Questions",
+          "description": "Review {student} answers for {assessment}.",
+          "submissionStatus": "Submission Status",
+          "submittedAt": "Submitted At",
+          "runningTotal": "Running Total",
+          "studentAnswer": "Student Answer",
+          "referenceAnswer": "Reference Answer",
+          "awardedPoints": "Awarded Points",
+          "pointsHelp": "Allowed range: 0 - {max}",
+          "teacherComment": "Teacher Comment",
+          "questionLabel": "Question {number}",
+          "points": "pts",
+          "save": "Save Correction",
+          "cancel": "Cancel",
+          "noAnswer": "No answer submitted for this question.",
+          "submissionStatuses": {
+            "not_started": "Not started",
+            "submitted": "Submitted",
+            "in_progress": "Correction in progress",
+            "corrected": "Corrected"
           }
         },
         "deleteAssessment": {
@@ -4021,6 +4079,7 @@
         "missing_scope": "Please select a valid subject and section.",
         "title_required": "Assessment title is required in both languages.",
         "invalid_weight": "Weight must be between 1 and 100.",
+        "weight_limit_reached": "Total exam weight for this scope and subject cannot exceed 100%.",
         "invalid_max_score": "Max score must be greater than 0.",
         "assessment_not_found": "Assessment not found.",
         "assessment_locked": "This assessment is locked.",
@@ -4031,6 +4090,10 @@
         "score_out_of_range": "Score is outside the allowed range.",
         "generic": "Unable to complete this action.",
         "question_not_found": "Question not found.",
+        "submission_not_found": "Student submission not found.",
+        "answer_not_found": "Student answer not found.",
+        "not_question_based": "This exam is not electronic.",
+        "question_based_grading_managed_per_question": "Electronic tests must be corrected question by question.",
         "assessment_structure_locked": "Assessment structure cannot be changed after approval or lock.",
         "grading_started": "Question structure cannot be changed after grade entry has started.",
         "last_question_required": "At least one question must remain on the assessment.",
@@ -4055,7 +4118,7 @@
         "deleteCancel": "Cancel",
         "back": "Back to Assessments",
         "notFound": "Assessment not found for the current term context.",
-        "notQuestionBased": "This assessment is score-only. Edit it and switch the delivery mode to question-based first.",
+        "notQuestionBased": "This test is a paper test and does not use the question builder.",
         "loading": "Loading questions...",
         "messages": {
           "saved": "Question saved successfully",
@@ -4094,7 +4157,7 @@
     "invalidType": "Unsupported file type",
     "tooLarge": "File is too large",
     "termClosed": "Term is closed. Upload is disabled.",
-    "allowedHint": "Allowed: {types} • Max: {size}",
+    "allowedHint": "Allowed: {types} â€¢ Max: {size}",
     "invalidTypeStudy": "Unsupported file type for educational content.",
     "fileBlocked": "This file type is blocked for security reasons.",
     "maxSizeExceeded": "File exceeds max size ({size}).",
@@ -4924,7 +4987,7 @@
           "absentIfMissed": "Mark Absent if Missed",
           "absentIfMissedDesc": "Mark as absent if student missed this many periods",
           "dailyAbsentThreshold": "Daily Absent Threshold (Periods)",
-          "dailyAbsentThresholdDesc": "If student misses ≥ {max} of the selected periods, they are absent for the day",
+          "dailyAbsentThresholdDesc": "If student misses â‰¥ {max} of the selected periods, they are absent for the day",
           "excuseSettings": "Excuse Settings",
           "allowExcuses": "Allow Excuses",
           "requireReason": "Require Reason",
@@ -4978,7 +5041,7 @@
         "optional": "Optional",
         "apply": "Apply",
         "useFirstN": "Use first",
-        "termRangeHint": "Policy must be within term dates: {start} → {end}",
+        "termRangeHint": "Policy must be within term dates: {start} â†’ {end}",
         "reviewSummary": "Policy Summary",
         "overridesWarning": "This policy will override school-wide settings for the selected scope",
         "periodOnlyInfo": {
@@ -5269,13 +5332,46 @@
         "address_required": "Address is required.",
         "city_required": "City is required.",
         "country_required": "Country is required.",
-        "footer_required": "Footer signature is required."
+        "footer_required": "Footer signature is required.",
+        "location_required": "Select the school location from the map to save the address."
       },
       "messages": {
         "saved": "School profile saved successfully.",
         "load_failed": "Failed to load school profile.",
         "logo_upload_failed": "Failed to process the selected logo."
-      }
+      },
+      "location_helper": "Use the map picker to select the official school address and coordinates.",
+      "location_stale": "The address was edited manually. Re-select it from the map to restore coordinates.",
+      "pick_from_map": "Pick from map",
+      "clear_location": "Clear location",
+      "selected_location_title": "Selected map location",
+      "no_location_selected": "No map location selected yet.",
+      "coordinates": "Lat {lat}, Lng {lng}",
+      "location_picker": {
+        "title": "Pick school address from map",
+        "description": "Search for the school area, then confirm or fine-tune the pin position.",
+        "search_label": "Search address",
+        "search_placeholder": "Search by district, city, or landmark",
+        "results": "Search results",
+        "searching": "Searching locations...",
+        "no_results": "No matching locations were found.",
+        "map_title": "Map preview and pin placement",
+        "move_hint": "Click anywhere in the map preview to refine the pin.",
+        "preview_note": "Preview uses the provider-ready coordinates currently selected.",
+        "selected_location": "Selected location",
+        "empty_state": "Search for a place or click on the map to choose the school location.",
+        "resolving": "Resolving address details...",
+        "confirm": "Use this location",
+        "iframe_title": "School location preview",
+        "coordinates": "Lat {lat}, Lng {lng}",
+        "errors": {
+          "search_failed": "Failed to search for locations.",
+          "resolve_failed": "Failed to resolve the selected map position."
+        },
+        "dropzone_title": "Click anywhere inside this area to place the school pin"
+      },
+      "upload_preview_hint": "A saved logo is already available. Drop a new file here to replace it.",
+      "upload_drop_hint": "Drag and drop a logo file here, or click to browse."
     },
     "users": {
       "title": "Users",
@@ -5352,7 +5448,9 @@
         "role_cloned": "Role cloned successfully.",
         "role_in_use": "This role cannot be deleted while users are assigned to it.",
         "permissions_saved": "Permissions updated successfully."
-      }
+      },
+      "edit": "Edit",
+      "delete": "Delete"
     },
     "policies": {
       "title": "Policies",
@@ -5479,6 +5577,238 @@
         "load_failed": "Failed to load backup history.",
         "action_completed": "Backup action completed successfully."
       }
+    }
+  },
+  "reinforcement": {
+    "overview": "Overview",
+    "tasks": "Tasks",
+    "templates": "Templates",
+    "rewards": "Rewards",
+    "reviewQueue": "Review Queue",
+    "overviewDescription": "Track task activity, approvals, reward issuance, and top-performing classes from one reinforcement workspace.",
+    "tasksDescription": "Search, filter, export, and manage reinforcement tasks assigned across the school.",
+    "templatesDescription": "Maintain reusable reinforcement task templates with bilingual titles, stages, and default rewards.",
+    "rewardsDescription": "Manage the reward catalog used across reinforcement workflows.",
+    "reviewDescription": "Handle pending submissions with quick approval, rejection, or resubmission actions.",
+    "recentActivity": "Recent activity",
+    "recentActivitySubtitle": "Latest operational updates across student reinforcement tasks.",
+    "quickActions": "Quick actions",
+    "quickActionsSubtitle": "Jump into the most common reinforcement workflows.",
+    "loading": "Loading reinforcement data...",
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "in_progress": "In progress",
+      "under_review": "Under review",
+      "completed": "Completed",
+      "rejected": "Rejected",
+      "archived": "Archived"
+    },
+    "source": {
+      "teacher": "Teacher",
+      "parent": "Parent",
+      "system": "System"
+    },
+    "rewardType": {
+      "moral": "Moral",
+      "financial": "Financial",
+      "xp": "XP",
+      "badge": "Badge"
+    },
+    "proofType": {
+      "image": "Image",
+      "video": "Video",
+      "document": "Document",
+      "none": "No proof"
+    },
+    "activeState": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "exportCsv": "Export CSV",
+      "createTemplate": "Create template",
+      "createReward": "Create reward"
+    },
+    "empty": {
+      "tasks": "No reinforcement tasks matched the current filters.",
+      "templates": "No templates available yet.",
+      "rewards": "No rewards configured yet.",
+      "reviewQueue": "No submissions are waiting for review."
+    },
+    "kpi": {
+      "activeTasks": "Active tasks",
+      "underReview": "Under review",
+      "completedThisWeek": "Completed this week",
+      "rewardedStudents": "Rewarded students",
+      "averageCompletionRate": "Average completion rate",
+      "totalRewardsIssued": "Total rewards issued"
+    },
+    "charts": {
+      "tasksByStatus": "Tasks by status",
+      "tasksByStatusSubtitle": "Current distribution of reinforcement tasks by workflow state.",
+      "tasksBySource": "Tasks by source",
+      "tasksBySourceSubtitle": "Where reinforcement assignments are coming from.",
+      "rewardsByType": "Rewards by type",
+      "rewardsByTypeSubtitle": "Completed tasks grouped by reward type.",
+      "topPerformance": "Top classes and students",
+      "topPerformanceSubtitle": "Highest reinforcement activity based on current mock performance data.",
+      "topClasses": "Top classes",
+      "topStudents": "Top students"
+    },
+    "filters": {
+      "search": "Search",
+      "searchPlaceholder": "Task title, student, class, or assignee",
+      "student": "Student",
+      "class": "Class",
+      "source": "Source",
+      "status": "Status",
+      "rewardType": "Reward type",
+      "dueDate": "Due date",
+      "allStudents": "All students",
+      "allClasses": "All classes",
+      "allSources": "All sources",
+      "allStatuses": "All statuses",
+      "allRewardTypes": "All reward types"
+    },
+    "table": {
+      "task": "Task",
+      "student": "Student",
+      "class": "Class",
+      "source": "Source",
+      "status": "Status",
+      "reward": "Reward",
+      "progress": "Progress",
+      "dueDate": "Due date",
+      "actions": "Actions",
+      "view": "View",
+      "review": "Review",
+      "duplicate": "Duplicate",
+      "archive": "Archive"
+    },
+    "templatesTable": {
+      "title": "Template",
+      "stages": "Stages",
+      "rewardType": "Default reward",
+      "status": "Status",
+      "createdAt": "Created at",
+      "actions": "Actions",
+      "edit": "Edit"
+    },
+    "rewardsTable": {
+      "name": "Reward",
+      "type": "Type",
+      "defaultValue": "Default value",
+      "status": "Status",
+      "actions": "Actions",
+      "edit": "Edit"
+    },
+    "reviewTable": {
+      "task": "Task",
+      "student": "Student",
+      "submittedAt": "Submitted at",
+      "stageCountCompleted": "Completed stages",
+      "proofType": "Proof type",
+      "source": "Source",
+      "status": "Status",
+      "actions": "Actions",
+      "view": "View",
+      "approve": "Approve",
+      "reject": "Reject",
+      "resubmit": "Request resubmission"
+    },
+    "modal": {
+      "template": {
+        "createTitle": "Create reinforcement template",
+        "editTitle": "Edit reinforcement template",
+        "saveChanges": "Save changes",
+        "create": "Create template",
+        "titleAr": "Title (AR)",
+        "titleEn": "Title (EN)",
+        "descriptionAr": "Description (AR)",
+        "descriptionEn": "Description (EN)",
+        "rewardType": "Reward type",
+        "rewardValue": "Reward value",
+        "active": "Active template",
+        "stages": "Default stages",
+        "addStage": "Add stage",
+        "stageTitleAr": "Stage title (AR)",
+        "stageTitleEn": "Stage title (EN)",
+        "stageDescriptionAr": "Stage description (AR)",
+        "stageDescriptionEn": "Stage description (EN)",
+        "proofType": "Proof type",
+        "removeStage": "Remove stage",
+        "rewardTypeOptions": {
+          "moral": "Moral",
+          "financial": "Financial",
+          "xp": "XP",
+          "badge": "Badge"
+        },
+        "proofTypeOptions": {
+          "none": "No proof",
+          "image": "Image",
+          "video": "Video",
+          "document": "Document"
+        }
+      },
+      "reward": {
+        "createTitle": "Create reward",
+        "editTitle": "Edit reward",
+        "saveChanges": "Save changes",
+        "create": "Create reward",
+        "nameAr": "Name (AR)",
+        "nameEn": "Name (EN)",
+        "type": "Reward type",
+        "defaultValue": "Default value",
+        "active": "Active reward",
+        "typeOptions": {
+          "moral": "Moral",
+          "financial": "Financial",
+          "xp": "XP",
+          "badge": "Badge"
+        }
+      }
+    },
+    "rewardsKpi": {
+      "total": "Total rewards",
+      "active": "Active rewards",
+      "financial": "Financial rewards",
+      "badges": "Badge rewards"
+    },
+    "details": {
+      "notFound": "Reinforcement task not found.",
+      "back": "Back to tasks",
+      "rewardSection": "Reward",
+      "assignedBy": "Assigned by",
+      "dueDate": "Due date",
+      "description": "Description",
+      "stages": "Stages",
+      "attachments": "Proof attachments",
+      "noAttachments": "No proof attachments were submitted for this task.",
+      "reviewActions": "Review actions",
+      "approve": "Approve task",
+      "reject": "Reject task",
+      "requestResubmission": "Request resubmission",
+      "yes": "Yes",
+      "no": "No",
+      "stageStatus": {
+        "completed": "Completed",
+        "approved": "Approved",
+        "submittedAt": "Submitted at"
+      },
+      "timeline": {
+        "title": "Timeline / activity log",
+        "created": "Task created",
+        "updated": "Last update"
+      }
+    },
+    "dashboardWidget": {
+      "title": "Reinforcement",
+      "subtitle": "Compact view of school-wide reinforcement activity.",
+      "cta": "Open module",
+      "activeTasks": "Active tasks",
+      "underReview": "Under review",
+      "completionRate": "Completion rate"
     }
   }
 }

@@ -4,6 +4,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { AlertTriangle, BookOpen, MapPin, UserX, Users } from "lucide-react";
 
@@ -21,6 +22,8 @@ import TodayMonitoring from "../components/monitoring/TodayMonitoring";
 
 import AttendanceTrendChart from "../components/charts/AttendanceTrendChart";
 import StudentsPerGradeChart from "../components/charts/StudentsPerGradeChart";
+import ReinforcementSummaryWidget from "@/features/reinforcement/views/ReinforcementSummaryWidget";
+import { getReinforcementSummaryCard } from "@/features/reinforcement/services/reinforcementService";
 
 import type { DashboardKPIs, ChartData } from "@/features/dashboard/utils/dashboardStatsCalculator";
 
@@ -56,6 +59,15 @@ export default function SchoolDashboardView({
   onPeriodChange,
 }: SchoolDashboardViewProps) {
   const t_kpi = useTranslations("kpi");
+  const [reinforcementSummary, setReinforcementSummary] = useState<{
+    activeTasks: number;
+    underReview: number;
+    completionRate: number;
+  } | null>(null);
+
+  useEffect(() => {
+    getReinforcementSummaryCard().then(setReinforcementSummary);
+  }, []);
 
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
@@ -190,6 +202,16 @@ export default function SchoolDashboardView({
             <div className="flex-1 w-full">
               <AcademicPerformanceCard />
             </div>
+
+            {reinforcementSummary ? (
+              <div className="flex-1 w-full">
+                <ReinforcementSummaryWidget
+                  activeTasks={reinforcementSummary.activeTasks}
+                  underReview={reinforcementSummary.underReview}
+                  completionRate={reinforcementSummary.completionRate}
+                />
+              </div>
+            ) : null}
           </div>
           <div className="flex-2">
             <QuickActionPanel />

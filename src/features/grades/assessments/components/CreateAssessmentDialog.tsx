@@ -1,20 +1,35 @@
-﻿"use client";
+"use client";
 
+import { useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import { DatePicker, Input, Select } from "@/components/ui/input";
-import type { Assessment, AssessmentType, CreateAssessmentPayload } from "../types";
-import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import type { Assessment, AssessmentType, CreateAssessmentPayload, ExamScopeType } from "../types";
+
+interface ScopeEntityOption {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+}
+
+interface SubjectOption {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+}
 
 interface CreateAssessmentDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (payload: CreateAssessmentPayload) => Promise<void>;
   termId: string;
-  sectionId: string;
-  classroomId?: string;
-  subjectId: string;
+  scopeTypes: ExamScopeType[];
+  scopeEntitiesByType: Record<ExamScopeType, ScopeEntityOption[]>;
+  subjects: SubjectOption[];
+  selectedScopeType: ExamScopeType;
+  selectedScopeId: string;
+  selectedSubjectId: string;
   isSubmitting: boolean;
   mode?: "create" | "edit";
   initialAssessment?: Assessment | null;
@@ -25,31 +40,49 @@ export default function CreateAssessmentDialog({
   onClose,
   onSubmit,
   termId,
-  sectionId,
-  classroomId,
-  subjectId,
+  scopeTypes,
+  scopeEntitiesByType,
+  subjects,
+  selectedScopeType,
+  selectedScopeId,
+  selectedSubjectId,
   isSubmitting,
   mode = "create",
   initialAssessment = null,
 }: CreateAssessmentDialogProps) {
   const t = useTranslations(`academics.grades.dialogs.${mode === "edit" ? "editAssessment" : "createAssessment"}`);
+  const locale = useLocale();
   const isMetadataLocked =
     mode === "edit" &&
     (initialAssessment?.approvalStatus === "approved" || initialAssessment?.approvalStatus === "published");
-  const [type, setType] = useState<AssessmentType>(initialAssessment?.type || "QUIZ");
+
+  const [scopeType, setScopeType] = useState<ExamScopeType>(initialAssessment?.scopeType || selectedScopeType);
+  const [scopeId, setScopeId] = useState(initialAssessment?.scopeId || selectedScopeId);
+  const [subjectId, setSubjectId] = useState(initialAssessment?.subjectId || selectedSubjectId);
+  const [type, setType] = useState<AssessmentType>((initialAssessment?.type as AssessmentType) || "QUIZ");
   const [title, setTitle] = useState(initialAssessment?.title || "");
   const [titleAr, setTitleAr] = useState(initialAssessment?.titleAr || "");
   const [date, setDate] = useState<Date | null>(initialAssessment?.date ? new Date(initialAssessment.date) : new Date());
   const [weight, setWeight] = useState(initialAssessment ? String(initialAssessment.weight) : "15");
   const [maxScore, setMaxScore] = useState(initialAssessment ? String(initialAssessment.maxScore) : "20");
 
+  const scopeOptions = useMemo(
+    () =>
+      scopeTypes.map((value) => ({
+        value,
+        label: t(`types.scopeTypes.${value}`),
+      })),
+    [scopeTypes, t],
+  );
+
+  const currentScopeEntities = useMemo(() => scopeEntitiesByType[scopeType] || [], [scopeEntitiesByType, scopeType]);
+
   const typeOptions = useMemo(
     () => [
       { value: "QUIZ", label: t("types.quiz") },
-      { value: "ASSIGNMENT", label: t("types.assignment") },
+      { value: "MONTH_EXAM", label: t("types.monthExam") },
       { value: "MIDTERM", label: t("types.midterm") },
-      { value: "FINAL", label: t("types.final") },
-      { value: "PRACTICAL", label: t("types.practical") },
+      { value: "TERM_EXAM", label: t("types.termExam") },
     ],
     [t],
   );
@@ -59,14 +92,22 @@ export default function CreateAssessmentDialog({
     onClose();
   };
 
+  const handleScopeTypeChange = (value: string) => {
+    const nextScopeType = value as ExamScopeType;
+    setScopeType(nextScopeType);
+    const nextScopeId = scopeEntitiesByType[nextScopeType]?.[0]?.id || "";
+    setScopeId(nextScopeId);
+  };
+
   const handleSubmit = async () => {
     if (!date) return;
     await onSubmit({
       termId: initialAssessment?.termId || termId,
-      sectionId: initialAssessment?.sectionId || sectionId,
-      classroomId: initialAssessment?.classroomId ?? classroomId,
-      subjectId: initialAssessment?.subjectId || subjectId,
+      scopeType,
+      scopeId,
+      subjectId,
       type,
+      deliveryMode: initialAssessment?.deliveryMode || "QUESTION_BASED",
       title,
       titleAr,
       date: date.toISOString().slice(0, 10),
@@ -94,8 +135,33 @@ export default function CreateAssessmentDialog({
       }
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Input label={t("titleEn")} value={title} onChange={(event) => setTitle(event.target.value)} required />
-        <Input label={t("titleAr")} value={titleAr} onChange={(event) => setTitleAr(event.target.value)} required />
+        <Select
+          label={t("scopeType")}
+          value={scopeType}
+          onChange={handleScopeTypeChange}
+          options={scopeOptions}
+          disabled={isMetadataLocked}
+        />
+        <Select
+          label={t("scope")}
+          value={scopeId}
+          onChange={setScopeId}
+          options={currentScopeEntities.map((entity) => ({
+            value: entity.id,
+            label: locale === "ar" ? entity.nameAr : entity.nameEn,
+          }))}
+          disabled={isMetadataLocked}
+        />
+        <Select
+          label={t("subject")}
+          value={subjectId}
+          onChange={setSubjectId}
+          options={subjects.map((subject) => ({
+            value: subject.id,
+            label: locale === "ar" ? subject.nameAr : subject.nameEn,
+          }))}
+          disabled={isMetadataLocked}
+        />
         <Select
           label={t("type")}
           value={type}
@@ -103,6 +169,8 @@ export default function CreateAssessmentDialog({
           options={typeOptions}
           disabled={isMetadataLocked}
         />
+        <Input label={t("titleEn")} value={title} onChange={(event) => setTitle(event.target.value)} required />
+        <Input label={t("titleAr")} value={titleAr} onChange={(event) => setTitleAr(event.target.value)} required />
         <DatePicker label={t("date")} value={date} onChange={setDate} disabled={isMetadataLocked} />
         <Input
           label={t("weight")}

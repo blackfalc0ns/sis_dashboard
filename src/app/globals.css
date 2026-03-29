@@ -9,16 +9,16 @@
   --gray-color: grey;
   --white-color: #fefefe;
   --black-color: black;
-
+  --blue-color: rgb(40, 107, 250);
   --border-color: #cccccccc;
 
   --main-box-shadow-value: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
 
   /* Extended palette for matrix/table components */
   --primary-dark: #003043;
-  --accent-color: #F7A201;
+  --accent-color: #f7a201;
   --surface-color: #fefefe;
-  --neutral-color: #AFADB2;
+  --neutral-color: #afadb2;
 }
 
 /* tokens */
@@ -34,6 +34,9 @@
   --color-black: var(--black-color);
   --color-border: var(--border-color);
   --color-warning: #ffcc00;
+  --color-error: #ff0000;
+  --color-success: #00ff00;
+  --color-info: var(--blue-color);
   --shadow-main: var(--main-box-shadow-value);
   /* PRIMARY SCALE */
   --color-primary-50: color-mix(in oklab, var(--primary-color) 6%, white);
