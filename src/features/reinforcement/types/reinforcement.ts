@@ -1,16 +1,20 @@
 export type ReinforcementSource = "teacher" | "parent" | "system";
 
 export type ReinforcementStatus =
-  | "draft"
-  | "active"
+  | "cancel"
   | "in_progress"
-  | "under_review"
   | "completed"
-  | "rejected"
-  | "archived";
+  | "not_completed";
 
 export type ReinforcementProofType = "image" | "video" | "document" | "none";
 export type ReinforcementRewardType = "moral" | "financial" | "xp" | "badge";
+export type ReinforcementAssignmentScope =
+  | "school"
+  | "stage"
+  | "grade"
+  | "section"
+  | "classroom"
+  | "student";
 
 export interface ReinforcementStage {
   id: string;
@@ -25,14 +29,47 @@ export interface ReinforcementStage {
   proofUrl?: string;
 }
 
+export interface ReinforcementTaskTarget {
+  scopeType: ReinforcementAssignmentScope;
+  scopeId: string;
+  nameAr: string;
+  nameEn: string;
+  stageId?: string;
+  stageNameAr?: string;
+  stageNameEn?: string;
+  gradeId?: string;
+  gradeNameAr?: string;
+  gradeNameEn?: string;
+  sectionId?: string;
+  sectionNameAr?: string;
+  sectionNameEn?: string;
+  classroomId?: string;
+  classroomNameAr?: string;
+  classroomNameEn?: string;
+  audienceCount?: number;
+}
+
+export interface ReinforcementTaskTargetInput {
+  scopeType: ReinforcementAssignmentScope;
+  scopeId: string;
+}
+
+export interface CreateReinforcementStagePayload {
+  titleAr: string;
+  titleEn: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
+  proofType: ReinforcementProofType;
+}
+
 export interface ReinforcementTask {
   id: string;
   titleAr: string;
   titleEn: string;
   descriptionAr?: string;
   descriptionEn?: string;
-  studentId: string;
-  studentName: string;
+  studentId?: string;
+  studentName?: string;
   classId?: string;
   className?: string;
   source: ReinforcementSource;
@@ -45,51 +82,48 @@ export interface ReinforcementTask {
   createdAt: string;
   updatedAt: string;
   stages: ReinforcementStage[];
+  targets: ReinforcementTaskTarget[];
+  primaryTargetType: ReinforcementAssignmentScope;
+  primaryTargetId: string;
+  targetSummaryAr: string;
+  targetSummaryEn: string;
+  audienceCount: number;
 }
 
-export type ReinforcementTemplateStage = Omit<
-  ReinforcementStage,
-  "isCompleted" | "isApproved" | "submittedAt" | "proofUrl"
->;
-
-export interface ReinforcementTemplate {
-  id: string;
+export interface CreateReinforcementTaskPayload {
   titleAr: string;
   titleEn: string;
   descriptionAr?: string;
   descriptionEn?: string;
+  targets: ReinforcementTaskTargetInput[];
+  stages: CreateReinforcementStagePayload[];
+  source: ReinforcementSource;
   rewardType: ReinforcementRewardType;
   rewardValue: string;
-  stages: ReinforcementTemplateStage[];
-  isActive: boolean;
-  createdAt: string;
+  dueDate?: string;
+  assignedById?: string;
+  assignedByName?: string;
 }
 
-export interface ReinforcementReward {
-  id: string;
+export interface ReinforcementScopeOption {
+  value: string;
+  scopeType: ReinforcementAssignmentScope;
   nameAr: string;
   nameEn: string;
-  type: ReinforcementRewardType;
-  defaultValue: string;
-  isActive: boolean;
+  audienceCount: number;
+  searchText?: string;
 }
 
-export interface ReinforcementReviewItem {
-  id: string;
-  taskId: string;
-  taskTitleAr: string;
-  taskTitleEn: string;
-  studentId: string;
-  studentName: string;
-  submittedAt: string;
-  proofType: ReinforcementProofType;
-  source: ReinforcementSource;
-  status: Extract<ReinforcementStatus, "under_review">;
-  stageCountCompleted: number;
+export interface ReinforcementFilterOptions {
+  students: Array<{ studentId: string; studentName: string }>;
+  classes: string[];
+  scopeTargets: Record<ReinforcementAssignmentScope, ReinforcementScopeOption[]>;
 }
 
 export interface ReinforcementTaskFilters {
   search?: string;
+  assignmentScope?: ReinforcementAssignmentScope | "all";
+  targetId?: string;
   student?: string;
   className?: string;
   source?: ReinforcementSource | "all";
@@ -99,8 +133,8 @@ export interface ReinforcementTaskFilters {
 }
 
 export interface ReinforcementOverviewKpis {
-  activeTasks: number;
-  underReview: number;
+  inProgress: number;
+  notCompleted: number;
   completedThisWeek: number;
   rewardedStudents: number;
   averageCompletionRate: number;
@@ -126,7 +160,7 @@ export interface ReinforcementActivityItem {
   descriptionAr: string;
   descriptionEn: string;
   timestamp: string;
-  type: "review" | "reward" | "task" | "submission";
+  type: "reward" | "task" | "submission";
 }
 
 export interface ReinforcementQuickAction {
@@ -148,13 +182,3 @@ export interface ReinforcementOverview {
   recentActivity: ReinforcementActivityItem[];
   quickActions: ReinforcementQuickAction[];
 }
-
-export type CreateReinforcementTemplatePayload = Omit<
-  ReinforcementTemplate,
-  "id" | "createdAt"
->;
-
-export type CreateReinforcementRewardPayload = Omit<
-  ReinforcementReward,
-  "id"
->;

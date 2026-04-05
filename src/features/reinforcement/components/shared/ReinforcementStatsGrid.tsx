@@ -23,15 +23,15 @@ export default function ReinforcementStatsGrid({
 
   const cards = [
     {
-      key: "activeTasks",
-      value: kpis.activeTasks,
+      key: "inProgress",
+      value: kpis.inProgress,
       icon: ListChecks,
       color: "#036b80",
       bg: "#e0f2f5",
     },
     {
-      key: "underReview",
-      value: kpis.underReview,
+      key: "notCompleted",
+      value: kpis.notCompleted,
       icon: CircleDashed,
       color: "#d97706",
       bg: "#fef3c7",

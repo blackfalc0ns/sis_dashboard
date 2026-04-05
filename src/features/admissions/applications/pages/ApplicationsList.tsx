@@ -6,7 +6,6 @@ import { useCallback, useMemo, useState } from "react";
 import {
   Plus,
   Search,
-  Filter,
   X,
   Users,
   Clock,
@@ -16,7 +15,7 @@ import {
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable, FilterPanel } from "@/components/ui";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import StatusTagsBar from "@/features/admissions/shared/StatusTagsBar";
 import { KPICardV2 } from "@/components/ui/kpi-card";
@@ -637,46 +636,35 @@ export default function ApplicationsList() {
       {isReadOnly && <AdmissionsReadOnlyBanner />}
 
       {/* Filters */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder={t("search_placeholder")}
-              value={searchQuery}
-              onChange={(e) => setValue("search", e.target.value, "replace")}
-              className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
-                searchQuery
-                  ? "border-primary ring-2 ring-primary/20"
-                  : "border-gray-200"
-              }`}
-            />
+      <FilterPanel
+        searchSlot={
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative flex-1 min-w-[200px] max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder={t("search_placeholder")}
+                value={searchQuery}
+                onChange={(e) => setValue("search", e.target.value, "replace")}
+                className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
+                  searchQuery
+                    ? "border-primary ring-2 ring-primary/20"
+                    : "border-gray-200"
+                }`}
+              />
+            </div>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 hover:bg-red-100 text-red-700 rounded-lg font-medium text-sm transition-colors"
+              >
+                <X className="w-4 h-4" />
+                {t("clear_filters")}
+              </button>
+            )}
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
-              showFilters
-                ? "bg-primary text-white"
-                : "bg-white border border-gray-200 hover:bg-gray-50 text-gray-700"
-            }`}
-          >
-            <Filter className="w-4 h-4" />
-            {tFilters("filters_button")}
-          </button>
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 hover:bg-red-100 text-red-700 rounded-lg font-medium text-sm transition-colors"
-            >
-              <X className="w-4 h-4" />
-              {t("clear_filters")}
-            </button>
-          )}
-        </div>
-
-        {/* Advanced Filters */}
-        {showFilters && (
+        }
+        filtersSlot={
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -762,8 +750,15 @@ export default function ApplicationsList() {
               </select>
             </div>
           </div>
-        )}
-      </div>
+        }
+        showFilters={showFilters}
+        onToggleFilters={() => setShowFilters(!showFilters)}
+        clearAction={null}
+        hasActiveFilters={hasActiveFilters}
+        toggleTitle={tFilters("filters_button")}
+        toggleAriaLabel={tFilters("filters_button")}
+        className="p-0 bg-transparent shadow-none"
+      />
 
       {/* Status Tags Bar */}
       <StatusTagsBar

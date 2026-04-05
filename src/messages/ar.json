@@ -123,7 +123,9 @@
       "settings": "الإعدادات",
       "support": "الدعم"
     },
-    "reinforcement": "???????"
+    "reinforcement": "التعزيز",
+    "logout": "تسجيل الخروج",
+    "nedaa": "نداء"
   },
   "overview": {
     "attendance_rate": "نسبة الحضور اليوم",
@@ -5496,25 +5498,20 @@
     "tasks": "المهام",
     "templates": "القوالب",
     "rewards": "المكافآت",
-    "reviewQueue": "قائمة المراجعة",
     "overviewDescription": "تابع حالة مهام التعزيز والمؤشرات الرئيسية وأداء الطلاب من مكان واحد.",
     "tasksDescription": "إدارة المهام التعزيزية النشطة وتتبع التقدم والحالات المختلفة.",
     "templatesDescription": "أنشئ قوالب جاهزة للمهام لتسريع إعداد التعزيزات المتكررة والمنظمة.",
     "rewardsDescription": "إدارة المكافآت التعزيزية المختلفة حسب نوعها وقيمتها.",
-    "reviewDescription": "مراجعة العناصر المرسلة لاعتمادها أو رفضها أو طلب إعادة التقديم.",
     "recentActivity": "أحدث النشاطات",
     "recentActivitySubtitle": "آخر التحديثات المرتبطة بمهام التعزيز الحالية.",
     "quickActions": "إجراءات سريعة",
     "quickActionsSubtitle": "اختصارات مفيدة لإدارة مهام التعزيز والمكافآت.",
     "loading": "جارٍ تحميل بيانات التعزيز...",
     "status": {
-      "draft": "مسودة",
-      "active": "نشط",
+      "cancel": "ملغي",
       "in_progress": "قيد التنفيذ",
-      "under_review": "قيد المراجعة",
       "completed": "مكتمل",
-      "rejected": "مرفوض",
-      "archived": "مؤرشف"
+      "not_completed": "غير مكتمل"
     },
     "source": {
       "teacher": "المعلم",
@@ -5540,17 +5537,17 @@
     "actions": {
       "exportCsv": "تصدير CSV",
       "createTemplate": "إنشاء قالب",
-      "createReward": "إنشاء مكافأة"
+      "createReward": "إنشاء مكافأة",
+      "newTask": "مهمة جديدة"
     },
     "empty": {
       "tasks": "لا توجد أي مهام تعزيز متاحة حالياً.",
       "templates": "لا توجد قوالب مهام حتى الآن.",
-      "rewards": "لا توجد مكافآت مضافة حتى الآن.",
-      "reviewQueue": "لا توجد عناصر بانتظار المراجعة."
+      "rewards": "لا توجد مكافآت مضافة حتى الآن."
     },
     "kpi": {
-      "activeTasks": "المهام النشطة",
-      "underReview": "قيد المراجعة",
+      "inProgress": "قيد التنفيذ",
+      "notCompleted": "غير مكتملة",
       "completedThisWeek": "المكتملة هذا الأسبوع",
       "rewardedStudents": "الطلاب المُكافأون",
       "averageCompletionRate": "متوسط نسبة الإنجاز",
@@ -5564,7 +5561,7 @@
       "rewardsByType": "المكافآت حسب النوع",
       "rewardsByTypeSubtitle": "توزيع المكافآت الحالية بحسب نوع التعزيز.",
       "topPerformance": "أفضل أداء تعزيزي",
-      "topPerformanceSubtitle": "عرض أفضل الفصول أو الطلاب أداءً في إنجاز مهام التعزيز الحالية.",
+      "topPerformanceSubtitle": "عرض أفضل الفصول أو الطلاب أداءً في مهام التعزيز الحالية.",
       "topClasses": "أفضل الفصول",
       "topStudents": "أفضل الطلاب"
     },
@@ -5581,7 +5578,11 @@
       "allClasses": "كل الصفوف",
       "allSources": "كل المصادر",
       "allStatuses": "كل الحالات",
-      "allRewardTypes": "كل أنواع المكافآت"
+      "allRewardTypes": "كل أنواع المكافآت",
+      "assignmentLevel": "مستوى التعيين",
+      "target": "الهدف",
+      "allAssignmentLevels": "كل مستويات التعيين",
+      "allTargets": "كل الأهداف"
     },
     "table": {
       "task": "المهمة",
@@ -5594,9 +5595,10 @@
       "dueDate": "تاريخ الاستحقاق",
       "actions": "الإجراءات",
       "view": "عرض",
-      "review": "مراجعة",
       "duplicate": "نسخ",
-      "archive": "أرشفة"
+      "cancelTask": "إلغاء المهمة",
+      "audience": "الجمهور",
+      "audienceCount": "{count} مستخدمين"
     },
     "templatesTable": {
       "title": "العنوان",
@@ -5614,20 +5616,6 @@
       "status": "الحالة",
       "actions": "الإجراءات",
       "edit": "تعديل"
-    },
-    "reviewTable": {
-      "task": "المهمة",
-      "student": "الطالب",
-      "submittedAt": "تاريخ الإرسال",
-      "stageCountCompleted": "المراحل المكتملة",
-      "proofType": "نوع الإثبات",
-      "source": "المصدر",
-      "status": "الحالة",
-      "actions": "الإجراءات",
-      "view": "عرض",
-      "approve": "اعتماد",
-      "reject": "رفض",
-      "resubmit": "طلب إعادة التقديم"
     },
     "modal": {
       "template": {
@@ -5679,6 +5667,46 @@
           "xp": "نقاط خبرة",
           "badge": "شارة"
         }
+      },
+      "task": {
+        "createTitle": "إنشاء مهمة",
+        "create": "إنشاء المهمة",
+        "titleAr": "العنوان (عربي)",
+        "titleEn": "العنوان (إنجليزي)",
+        "descriptionAr": "الوصف (عربي)",
+        "descriptionEn": "الوصف (إنجليزي)",
+        "student": "الطالب",
+        "source": "المصدر",
+        "rewardType": "نوع المكافأة",
+        "rewardValue": "قيمة المكافأة",
+        "dueDate": "تاريخ الاستحقاق",
+        "stages": "مراحل المهمة",
+        "stagesDescription": "حدّد الخطوات التي يجب تنفيذها ضمن هذه المهمة.",
+        "addStage": "إضافة مرحلة",
+        "stageLabel": "المرحلة {number}",
+        "stageTitleAr": "عنوان المرحلة (عربي)",
+        "stageTitleEn": "عنوان المرحلة (إنجليزي)",
+        "stageDescriptionAr": "وصف المرحلة (عربي)",
+        "stageDescriptionEn": "وصف المرحلة (إنجليزي)",
+        "proofType": "نوع الإثبات",
+        "removeStage": "حذف المرحلة",
+        "assignedBy": "تم الإسناد بواسطة",
+        "sourceOptions": {
+          "teacher": "المعلم",
+          "parent": "الوالد",
+          "system": "النظام"
+        },
+        "rewardTypeOptions": {
+          "moral": "معنوية",
+          "financial": "مالية",
+          "xp": "نقاط خبرة",
+          "badge": "شارة"
+        },
+        "assignmentLevel": "مستوى التعيين",
+        "target": "الهدف",
+        "addTarget": "إضافة هدف",
+        "selectedTargets": "الأهداف المحددة",
+        "noTargets": "لا توجد أهداف محددة."
       }
     },
     "rewardsKpi": {
@@ -5697,10 +5725,6 @@
       "stages": "المراحل",
       "attachments": "المرفقات والإثباتات",
       "noAttachments": "لا توجد أي مرفقات أو ملفات مرتبطة بهذه المهمة.",
-      "reviewActions": "إجراءات المراجعة",
-      "approve": "اعتماد هذه المهمة",
-      "reject": "رفض المهمة",
-      "requestResubmission": "طلب إعادة التقديم",
       "yes": "نعم",
       "no": "لا",
       "stageStatus": {
@@ -5712,15 +5736,213 @@
         "title": "الجدول الزمني / سجل النشاط",
         "created": "تم إنشاء المهمة",
         "updated": "آخر تحديث"
-      }
+      },
+      "audienceSummary": "ملخص الجمهور",
+      "assignmentLevel": "مستوى التعيين",
+      "targetList": "قائمة الأهداف",
+      "audienceCount": "{count} مستخدمين في هذا الهدف"
     },
     "dashboardWidget": {
       "title": "التعزيز",
       "subtitle": "عرض سريع لحالة التعزيزات على مستوى المدرسة.",
       "cta": "عرض الكل",
-      "activeTasks": "المهام النشطة",
-      "underReview": "قيد المراجعة",
+      "inProgress": "قيد التنفيذ",
+      "notCompleted": "غير مكتملة",
       "completionRate": "نسبة الإنجاز"
+    },
+    "assignmentScope": {
+      "school": "المدرسة",
+      "stage": "المرحلة",
+      "grade": "الصف",
+      "section": "القسم",
+      "classroom": "الفصل",
+      "student": "الطالب"
+    },
+    "overviewControls": {
+      "chart": " المخططات",
+      "activity": "النشاط",
+      "emptyActivity": "لا توجد أنشطة لعرضها.",
+      "chartOptions": {
+        "status": "الحالة",
+        "source": "المصدر",
+        "rewardType": "نوع المكافأة",
+        "topPerformance": "أفضل الأداء"
+      },
+      "activityOptions": {
+        "all": "كل الأنشطة",
+        "reward": "المكافآت",
+        "task": "المهام",
+        "submission": "الإرسال"
+      }
+    }
+  },
+  "nedaa": {
+    "actions": {
+      "open_requests": "شكاوى مفتوحة",
+      "open_gates": " أبواب مفتوحة",
+      "open_history": "تاريخ مفتوح",
+      "view_module": "عرض الوحدة",
+      "acknowledged": "تم الاعتراف",
+      "preparing": "قيد التحضير",
+      "ready": "جاهز",
+      "completed": "مكتمل",
+      "cancelled": "ملغى"
+    },
+    "status": {
+      "pending": "معلق",
+      "acknowledged": "تم الاعتراف",
+      "preparing": "قيد التحضير",
+      "ready": "جاهز",
+      "completed": "مكتمل",
+      "cancelled": "ملغى"
+    },
+    "kpis": {
+      "active_requests": "طلبات نشطة",
+      "avg_pickup_time": "متوسط وقت الاستلام",
+      "completed_today": "مكتملة اليوم",
+      "cancelled_today": "ملغاة اليوم",
+      "blocked_attempts": "محاولات محظورة / غير صالحة",
+      "total_visible_requests": "إجمالي الطلبات المرئية"
+    },
+    "table": {
+      "request_id": "رقم الطلب",
+      "student": "الطالب",
+      "guardian": "ولي الأمر",
+      "relation": "العلاقة",
+      "gate": "البوابة",
+      "status": "الحالة",
+      "created_at": "تاريخ الإنشاء",
+      "updated_at": "تاريخ التحديث",
+      "can_pickup": "يمكن الاستلام",
+      "notifications": "الإشعارات",
+      "actions": "الإجراءات",
+      "allowed": "مسموح",
+      "blocked": "محظور",
+      "enabled": "مفعّل",
+      "disabled": "معطل",
+      "no_actions": "لا توجد إجراءات"
+    },
+    "filters": {
+      "search_placeholder": "بحث بالطلب، الطالب، او الولي الامر",
+      "history_search_placeholder": "بحث في التاريخ",
+      "status": "الحالة",
+      "gate": "البوابة",
+      "all_statuses": "كل الحالات",
+      "all_gates": "كل البوابات",
+      "show_filters": "عرض الفلاتر",
+      "clear_filters": "مسح الفلاتر"
+    },
+    "gates": {
+      "main_gate": "البوابة الرئيسية",
+      "north_gate": "البوابة الشمالية",
+      "south_gate": "البوابة الجنوبية",
+      "staff_gate": "بوابة الموظفين",
+      "waiting": "قيد الانتظار",
+      "preparing": "قيد التحضير",
+      "ready": "جاهز",
+      "completed_today": "مكتملة اليوم",
+      "avg_handling_time": "متوسط وقت المعالجة",
+      "active_requests": "{count} طلبات نشطة"
+    },
+    "overview": {
+      "title": "نظرة عامة",
+      "subtitle": "نظرة عامة على الطلبات والبوابات والنشاطات.",
+      "active_requests_subtitle": "طلبات نشطة في الوقت الحالي.",
+      "avg_pickup_subtitle": "متوسط وقت الاستلام.",
+
+      "completed_today_subtitle": "مكتملة اليوم",
+      "cancelled_today_subtitle": "ملغاة اليوم",
+      "blocked_attempts_subtitle": "محاولات محظورة / غير صالحة",
+      "latest_requests": "أحدث الطلبات",
+      "latest_requests_subtitle": "أحدث الطلبات التي تم إنشاؤها.",
+      "quick_actions": "إجراءات سريعة",
+      "quick_actions_subtitle": "إجراءات سريعة للتحكم في الطلبات.",
+      "open_requests_description": "طلبات مفتوحة للتعامل معها.",
+      "open_gates_description": "بوابات مفتوحة للتحكم في الوصول.",
+      "open_history_description": "سجل الأنشطة المفتوحة.",
+      "gate_summary": "ملخص البوابة",
+      "gate_summary_subtitle": "عدد الطلبات النشطة لكل بوابة ومتوسط وقت المعالجة."
+    },
+    "requests": {
+      "title": "الطلبات",
+      "subtitle": "نظرة عامة على الطلبات والبوابات والنشاطات.",
+      "visible_subtitle": "طلبات مرئية.",
+      "pending_subtitle": "طلبات معلقة.",
+      "ready_subtitle": "طلبات جاهزة.",
+      "completed_subtitle": "طلبات مكتملة.",
+      "filter_summary": "ملخص الفلاتر"
+    },
+    "gates_page": {
+      "title": "البوابات",
+      "subtitle": "نظرة عامة على البوابات والنشاطات.",
+      "active_gates": "البوابات النشطة",
+      "active_gates_subtitle": "البوابات التي تقبل الطلبات في الوقت الحالي.",
+      "waiting_subtitle": "طلبات قيد الانتظار.",
+      "ready_subtitle": "طلبات جاهزة.",
+      "completed_today_subtitle": "مكتملة اليوم",
+      "board": "لوحة التحكم",
+      "board_subtitle": "نظرة عامة على الطلبات والبوابات والنشاطات.",
+      "live_queue": "القائمة الحية",
+      "live_queue_subtitle": "طلبات قيد المعالجة."
+    },
+    "history": {
+      "title": "التاريخ",
+      "subtitle": "نظرة عامة على السجلات التاريخية.",
+      "filter_summary": "ملخص الفلاتر",
+      "records": "السجلات",
+      "records_subtitle": "سجلات الأنشطة والطلبات.",
+      "selected_request": "الطلب المحدد",
+      "no_selection": "لم يتم اختيار أي طلب.",
+      "timeline": "الجدول الزمني",
+      "timeline_subtitle": "نظرة عامة على الأحداث الزمنية.",
+      "no_timeline": "لا توجد أحداث زمنية."
+    },
+    "settings": {
+      "title": "الإعدادات",
+      "subtitle": "إعدادات النظام والمستخدم.",
+      "save": "حفظ",
+      "reset": "إعادة تعيين",
+      "rules_title": "قواعد النظام",
+      "rules_subtitle": "إدارة قواعد النظام والمتطلبات.",
+      "allowed_radius": "نصف قطر مسموح (م)",
+      "duplicate_cooldown": "فترة الانتظار للطلبات المكررة (ث)",
+      "auto_cancel_timeout": "وقت إلغاء السيارات (ث)",
+      "pickup_window_title": "نافذة الاستلام",
+      "pickup_window_subtitle": "تحديد النطاق الزمني لاستلام الطلبات.",
+      "pickup_start": "بداية نافذة الاستلام",
+      "pickup_end": "نهاية نافذة الاستلام",
+      "active_gates_title": "البوابات النشطة",
+      "active_gates_subtitle": "البوابات التي تقبل الطلبات في الوقت الحالي."
+    },
+    "read_only_notice": "هذه الصفحة للقراءة فقط. أي تغييرات لن تتم حفظها.",
+    "timeline": {
+      "created": "تم الإنشاء",
+      "notification_sent": "تم إرسال الإشعار",
+      "notification_skipped": "تم تخطي الإشعار",
+      "unauthorized_attempt": "محاولة غير مصرح بها",
+      "updated": "تم التحديث",
+      "status_acknowledged": "تم الاعتراف بالحالة",
+      "status_preparing": "قيد التحضير",
+      "status_ready": "جاهز",
+      "status_completed": "مكتمل",
+      "status_cancelled": "ملغى"
+    },
+    "timeline_notes": {
+      "guardian_notifications_disabled": "تم تعطيل التنبيهات للقارئ.",
+      "guardian_not_authorized_for_pickup": "القارئ غير مصرح له باستلام الطلب.",
+      "pickup_request_cancelled": "تم إلغاء طلب الاستلام.",
+      "blocked_unauthorized_attempt": "تم حظر محاولة غير مصرح بها."
+    },
+    "messages": {
+      "request_updated": "تم تحديث الطلب بنجاح.",
+      "request_update_failed": "فشل تحديث الطلب.",
+      "settings_saved": "تم حفظ الإعدادات.",
+      "settings_save_failed": "فشل حفظ الإعدادات.",
+      "load_overview_failed": "فشل تحميل النظرة العامة.",
+      "load_requests_failed": "فشل تحميل الطلبات.",
+      "load_gates_failed": "فشل تحميل البوابات.",
+      "load_history_failed": "فشل تحميل التاريخ.",
+      "load_settings_failed": "فشل تحميل الإعدادات."
     }
   }
 }

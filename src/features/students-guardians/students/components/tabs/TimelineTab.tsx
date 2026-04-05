@@ -10,11 +10,11 @@ import {
   AlertTriangle,
   MessageSquare,
   GraduationCap,
-  Filter,
 } from "lucide-react";
 import { Student } from "@/features/students-guardians/students/types";
 import { getStudentTimeline } from "@/features/students-guardians/students/services/studentsService";
 import { useTranslations } from "next-intl";
+import { FilterPanel } from "@/components/ui";
 
 interface TimelineTabProps {
   student: Student;
@@ -79,39 +79,34 @@ export default function TimelineTab({ student }: TimelineTabProps) {
           <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
           <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
         </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            showFilters
-              ? "bg-primary text-white"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-        >
-          <Filter className="w-4 h-4" />
-          {t("filters")}
-        </button>
       </div>
 
-      {/* Filters */}
-      {showFilters && (
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("event_type")}
-          </label>
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="w-full md:w-64 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-          >
-            <option value="all">{t("all_events")}</option>
-            <option value="application_submitted">{t("application")}</option>
-            <option value="document_uploaded">{t("documents")}</option>
-            <option value="test_completed">{t("tests")}</option>
-            <option value="interview_completed">{t("interviews")}</option>
-            <option value="decision_made">{t("decisions")}</option>
-          </select>
-        </div>
-      )}
+      <FilterPanel
+        showFilters={showFilters}
+        onToggleFilters={() => setShowFilters((current) => !current)}
+        toggleTitle={t("filters")}
+        toggleAriaLabel={t("filters")}
+        className="px-0 py-0 bg-transparent shadow-none"
+        filtersSlot={
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              {t("event_type")}
+            </label>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-transparent focus:ring-2 focus:ring-primary md:w-64"
+            >
+              <option value="all">{t("all_events")}</option>
+              <option value="application_submitted">{t("application")}</option>
+              <option value="document_uploaded">{t("documents")}</option>
+              <option value="test_completed">{t("tests")}</option>
+              <option value="interview_completed">{t("interviews")}</option>
+              <option value="decision_made">{t("decisions")}</option>
+            </select>
+          </div>
+        }
+      />
 
       {/* Timeline */}
       <div className="bg-white rounded-xl p-6 shadow-sm">

@@ -3,20 +3,25 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowRight, ClipboardList, ShieldCheck, Sparkles } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ArrowRight, ClipboardList, Sparkles } from "lucide-react";
+import Select from "@/components/ui/input/Select";
 import type { ReinforcementOverview } from "../types/reinforcement";
 import { getReinforcementOverview } from "../services/reinforcementService";
 import { useReinforcementLocale } from "../hooks/useReinforcementLocale";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
 import ReinforcementStatsGrid from "../components/shared/ReinforcementStatsGrid";
 import ReinforcementOverviewCharts from "../components/charts/ReinforcementOverviewCharts";
+import {
+  buildReinforcementOverviewQueryState,
+  parseReinforcementOverviewQueryState,
+} from "../utils/reinforcementQueryState";
 
 interface ReinforcementOverviewPageProps {
   initialOverview?: ReinforcementOverview | null;
 }
 
 const activityIcons = {
-  review: ShieldCheck,
   reward: Sparkles,
   task: ClipboardList,
   submission: ClipboardList,
@@ -26,10 +31,16 @@ export default function ReinforcementOverviewPage({
   initialOverview = null,
 }: ReinforcementOverviewPageProps) {
   const locale = useLocale();
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations("reinforcement");
   const { getLocalizedText } = useReinforcementLocale();
   const [overview, setOverview] = useState<ReinforcementOverview | null>(
     initialOverview,
+  );
+  const queryState = parseReinforcementOverviewQueryState(
+    new URLSearchParams(searchParams.toString()),
   );
 
   useEffect(() => {
@@ -41,6 +52,26 @@ export default function ReinforcementOverviewPage({
     return <div className="rounded-xl bg-white p-6 shadow-sm">{t("loading")}</div>;
   }
 
+  const filteredActivity =
+    queryState.activity === "all"
+      ? overview.recentActivity
+      : overview.recentActivity.filter((item) => item.type === queryState.activity);
+
+  const replaceQuery = (next: {
+    chart: typeof queryState.chart;
+    activity: typeof queryState.activity;
+  }) => {
+    const nextQuery = buildReinforcementOverviewQueryState(
+      next,
+      new URLSearchParams(searchParams.toString()),
+    );
+    const currentQuery = searchParams.toString();
+    if (nextQuery === currentQuery) return;
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+      scroll: false,
+    });
+  };
+
   return (
     <div className="space-y-6 bg-gray-50 min-h-screen">
       <ReinforcementPageHeader
@@ -49,7 +80,54 @@ export default function ReinforcementOverviewPage({
       />
 
       <ReinforcementStatsGrid kpis={overview.kpis} />
-      <ReinforcementOverviewCharts overview={overview} />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="rounded-xl bg-white p-4 shadow-sm">
+          <Select
+            label={t("overviewControls.chart")}
+            value={queryState.chart}
+            onChange={(value) =>
+              replaceQuery({
+                chart: value as typeof queryState.chart,
+                activity: queryState.activity,
+              })
+            }
+            options={[
+              { value: "status", label: t("overviewControls.chartOptions.status") },
+              { value: "source", label: t("overviewControls.chartOptions.source") },
+              { value: "rewardType", label: t("overviewControls.chartOptions.rewardType") },
+              {
+                value: "topPerformance",
+                label: t("overviewControls.chartOptions.topPerformance"),
+              },
+            ]}
+          />
+        </div>
+        <div className="rounded-xl bg-white p-4 shadow-sm">
+          <Select
+            label={t("overviewControls.activity")}
+            value={queryState.activity}
+            onChange={(value) =>
+              replaceQuery({
+                chart: queryState.chart,
+                activity: value as typeof queryState.activity,
+              })
+            }
+            options={[
+              { value: "all", label: t("overviewControls.activityOptions.all") },
+              { value: "reward", label: t("overviewControls.activityOptions.reward") },
+              { value: "task", label: t("overviewControls.activityOptions.task") },
+              {
+                value: "submission",
+                label: t("overviewControls.activityOptions.submission"),
+              },
+            ]}
+          />
+        </div>
+      </div>
+      <ReinforcementOverviewCharts
+        overview={overview}
+        focusedChart={queryState.chart}
+      />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr,1fr]">
         <div className="rounded-xl bg-white p-4 shadow-sm">
@@ -62,7 +140,7 @@ export default function ReinforcementOverviewPage({
             </div>
           </div>
           <div className="space-y-4">
-            {overview.recentActivity.map((item) => {
+            {filteredActivity.map((item) => {
               const Icon = activityIcons[item.type];
 
               return (
@@ -85,6 +163,11 @@ export default function ReinforcementOverviewPage({
                 </div>
               );
             })}
+            {filteredActivity.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-gray-200 px-4 py-6 text-sm text-gray-500">
+                {t("overviewControls.emptyActivity")}
+              </div>
+            ) : null}
           </div>
         </div>
 

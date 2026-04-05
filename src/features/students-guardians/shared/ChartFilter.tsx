@@ -3,8 +3,9 @@
 "use client";
 
 import { useState } from "react";
-import { Filter, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { FilterPanel } from "@/components/ui";
 
 export type DateRangeValue = "7" | "30" | "60" | "90" | "all" | "custom";
 
@@ -56,72 +57,69 @@ export default function ChartFilter({
   };
 
   return (
-    <div className="space-y-3 flex items-center justify-between gap-10">
-      {/* Filters Toggle */}
-      {showAdvancedFilters && (
-        <div className="flex items-center gap-3 flex-wrap">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
-              showFilters
-                ? "bg-primary text-white"
-                : "bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 shadow-sm"
-            }`}
-          >
-            <Filter className="w-4 h-4" />
-            {t("filters")}
-          </button>
-          {hasActiveFilters && (
+    <FilterPanel
+      showFilters={showAdvancedFilters && showFilters}
+      onToggleFilters={() => setShowFilters((current) => !current)}
+      hasActiveFilters={hasActiveFilters}
+      toggleTitle={t("filters")}
+      toggleAriaLabel={t("filters")}
+      className="bg-transparent p-0 shadow-none"
+      clearAction={null}
+      searchSlot={
+        hasActiveFilters ? (
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={clearFilters}
-              className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 hover:bg-red-100 text-red-700 rounded-lg font-medium text-sm transition-colors shadow-sm"
+              className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 shadow-sm transition-colors hover:bg-red-100"
             >
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4" />
               {t("clear")}
             </button>
-          )}
-        </div>
-      )}
-
-      {/* Filters Panel */}
-      {showAdvancedFilters && showFilters && (
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              {t("filter_labels.academic_year")}
-            </label>
-            <select
-              value={values.academicYear}
-              onChange={(e) => updateFilter("academicYear", e.target.value)}
-              className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="all">{t("filter_options.all_years")}</option>
-              {academicYears.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              {t("filter_labels.term")}
-            </label>
-            <select
-              value={values.term}
-              onChange={(e) => updateFilter("term", e.target.value)}
-              className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="all">{t("filter_options.all_terms")}</option>
-              {terms.map((term) => (
-                <option key={term} value={term}>
-                  {term}
-                </option>
-              ))}
-            </select>
+        ) : (
+          <div />
+        )
+      }
+      filtersSlot={
+        showAdvancedFilters ? (
+          <div className="grid flex-1 grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 shadow-sm md:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-700">
+                {t("filter_labels.academic_year")}
+              </label>
+              <select
+                value={values.academicYear}
+                onChange={(e) => updateFilter("academicYear", e.target.value)}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-black focus:border-transparent focus:ring-2 focus:ring-primary"
+              >
+                <option value="all">{t("filter_options.all_years")}</option>
+                {academicYears.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-700">
+                {t("filter_labels.term")}
+              </label>
+              <select
+                value={values.term}
+                onChange={(e) => updateFilter("term", e.target.value)}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-black focus:border-transparent focus:ring-2 focus:ring-primary"
+              >
+                <option value="all">{t("filter_options.all_terms")}</option>
+                {terms.map((term) => (
+                  <option key={term} value={term}>
+                    {term}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        ) : null
+      }
+    />
   );
 }

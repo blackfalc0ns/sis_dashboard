@@ -5,14 +5,14 @@ import { Award, ArrowRight } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 interface ReinforcementSummaryWidgetProps {
-  activeTasks: number;
-  underReview: number;
+  inProgress: number;
+  notCompleted: number;
   completionRate: number;
 }
 
 export default function ReinforcementSummaryWidget({
-  activeTasks,
-  underReview,
+  inProgress,
+  notCompleted,
   completionRate,
 }: ReinforcementSummaryWidgetProps) {
   const locale = useLocale();
@@ -43,16 +43,12 @@ export default function ReinforcementSummaryWidget({
 
       <div className="mt-4 grid grid-cols-3 gap-3">
         <div className="rounded-lg bg-gray-50 p-3">
-          <div className="text-xs text-gray-500">{t("activeTasks")}</div>
-          <div className="mt-1 text-lg font-bold text-gray-900">
-            {activeTasks}
-          </div>
+          <div className="text-xs text-gray-500">{t("inProgress")}</div>
+          <div className="mt-1 text-lg font-bold text-gray-900">{inProgress}</div>
         </div>
         <div className="rounded-lg bg-gray-50 p-3">
-          <div className="text-xs text-gray-500">{t("underReview")}</div>
-          <div className="mt-1 text-lg font-bold text-gray-900">
-            {underReview}
-          </div>
+          <div className="text-xs text-gray-500">{t("notCompleted")}</div>
+          <div className="mt-1 text-lg font-bold text-gray-900">{notCompleted}</div>
         </div>
         <div className="rounded-lg bg-gray-50 p-3">
           <div className="text-xs text-gray-500">{t("completionRate")}</div>

@@ -10,7 +10,6 @@ import {
   Phone,
   Mail,
   Search,
-  Filter,
   X,
   Eye,
   Edit,
@@ -20,7 +19,7 @@ import {
   XCircle,
   Lock,
 } from "lucide-react";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable, FilterPanel } from "@/components/ui";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { downloadCSV, generateFilename } from "@/utils/simpleExport";
 import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
@@ -468,46 +467,33 @@ export default function GuardiansList() {
       </div>
 
       {/* Filters and Actions */}
-      <div className="bg-white rounded-xl p-4 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          {/* Search */}
-          <div className="relative flex-1 w-full sm:max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder={t("search_placeholder")}
-              value={searchQuery}
-              onChange={(e) => setValue("search", e.target.value, "replace")}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 placeholder:text-black/60 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-          </div>
+      <FilterPanel
+        searchSlot={
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative flex-1 w-full sm:max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder={t("search_placeholder")}
+                value={searchQuery}
+                onChange={(e) => setValue("search", e.target.value, "replace")}
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 placeholder:text-black/60 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                showFilters
-                  ? "bg-primary text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              <Filter className="w-4 h-4" />
-              {t("filters")}
-            </button>
-            <button
-              onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              {t("export")}
-            </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={handleExport}
+                className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                {t("export")}
+              </button>
+            </div>
           </div>
-        </div>
-
-        {/* Advanced Filters */}
-        {showFilters && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
+        }
+        filtersSlot={
+          <div className="pt-4 border-t border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -529,24 +515,28 @@ export default function GuardiansList() {
                 </select>
               </div>
             </div>
-
-            {hasActiveFilters && (
-              <div className="mt-4 flex items-center gap-2">
-                <span className="text-sm text-gray-600">
-                  {t("active_filters")}
-                </span>
-                <button
-                  onClick={clearFilters}
-                  className="flex items-center gap-1 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-sm transition-colors"
-                >
-                  <X className="w-3 h-3" />
-                  {t("clear_all")}
-                </button>
-              </div>
-            )}
           </div>
-        )}
-      </div>
+        }
+        showFilters={showFilters}
+        onToggleFilters={() => setShowFilters(!showFilters)}
+        clearAction={
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">
+              {t("active_filters")}
+            </span>
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-sm transition-colors"
+            >
+              <X className="w-3 h-3" />
+              {t("clear_all")}
+            </button>
+          </div>
+        }
+        hasActiveFilters={hasActiveFilters}
+        toggleTitle={t("filters")}
+        toggleAriaLabel={t("filters")}
+      />
 
       {/* Guardians Table */}
       {filteredGuardians.length === 0 ? (

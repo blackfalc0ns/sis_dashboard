@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { Eye, Archive, Copy, CheckSquare } from "lucide-react";
+import { Eye, Copy, Ban } from "lucide-react";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import type { ReinforcementTask } from "../../types/reinforcement";
 import ReinforcementBadge from "../shared/ReinforcementBadge";
@@ -9,18 +9,18 @@ import { getProgressLabel } from "../../utils/reinforcementPresentation";
 
 interface ReinforcementTasksTableProps {
   tasks: ReinforcementTask[];
+  searchQuery?: string;
   onRowClick: (task: ReinforcementTask) => void;
-  onReview: (task: ReinforcementTask) => void;
   onDuplicate: (task: ReinforcementTask) => void;
-  onArchive: (task: ReinforcementTask) => void;
+  onCancel: (task: ReinforcementTask) => void;
 }
 
 export default function ReinforcementTasksTable({
   tasks,
+  searchQuery,
   onRowClick,
-  onReview,
   onDuplicate,
-  onArchive,
+  onCancel,
 }: ReinforcementTasksTableProps) {
   const t = useTranslations("reinforcement.table");
   const locale = useLocale();
@@ -39,8 +39,24 @@ export default function ReinforcementTasksTable({
         </div>
       ),
     },
-    { key: "studentName", label: t("student"), searchable: true },
-    { key: "className", label: t("class") },
+    {
+      key: "targetSummaryEn",
+      label: t("audience"),
+      searchable: true,
+      render: (_value, row) => (
+        <div className="min-w-0">
+          <div className="truncate text-sm font-medium text-gray-900">
+            {locale === "ar" ? row.targetSummaryAr : row.targetSummaryEn}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <ReinforcementBadge type="scope" value={row.primaryTargetType} />
+            <span className="text-xs text-gray-500">
+              {t("audienceCount", { count: row.audienceCount })}
+            </span>
+          </div>
+        </div>
+      ),
+    },
     {
       key: "source",
       label: t("source"),
@@ -105,13 +121,6 @@ export default function ReinforcementTasksTable({
             <Eye className="h-4 w-4" />
           </button>
           <button
-            onClick={() => onReview(row)}
-            className="rounded p-1.5 text-amber-600 hover:bg-amber-50"
-            title={t("review")}
-          >
-            <CheckSquare className="h-4 w-4" />
-          </button>
-          <button
             onClick={() => onDuplicate(row)}
             className="rounded p-1.5 text-blue-600 hover:bg-blue-50"
             title={t("duplicate")}
@@ -119,11 +128,12 @@ export default function ReinforcementTasksTable({
             <Copy className="h-4 w-4" />
           </button>
           <button
-            onClick={() => onArchive(row)}
-            className="rounded p-1.5 text-rose-600 hover:bg-rose-50"
-            title={t("archive")}
+            onClick={() => onCancel(row)}
+            disabled={row.status === "cancel"}
+            className="rounded p-1.5 text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"
+            title={t("cancelTask")}
           >
-            <Archive className="h-4 w-4" />
+            <Ban className="h-4 w-4" />
           </button>
         </div>
       ),
@@ -135,7 +145,14 @@ export default function ReinforcementTasksTable({
       columns={columns as unknown as Column<{ [key: string]: unknown }>[]}
       data={tasks as unknown as Array<{ [key: string]: unknown }>}
       onRowClick={(row) => onRowClick(row as unknown as ReinforcementTask)}
+      searchQuery={searchQuery}
+      showPagination={true}
       itemsPerPage={10}
+      urlState={{
+        keyPrefix: "reinforcementTasksTable",
+        syncPagination: true,
+        syncSorting: true,
+      }}
     />
   );
 }

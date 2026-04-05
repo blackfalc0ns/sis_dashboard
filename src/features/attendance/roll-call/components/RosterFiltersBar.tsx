@@ -1,10 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Search, Filter, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
+import { FilterPanel } from "@/components/ui";
 import RollCallQuickPresets from "./RollCallQuickPresets";
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
 import type { AttendanceStatus } from "../types";
@@ -74,50 +75,62 @@ export default function RosterFiltersBar({
   };
 
   return (
-    <div style={{ backgroundColor: "var(--background)", borderBottom: "1px solid var(--color-border)" }} className="px-4 py-3">
-      {/* Search Bar with Filter Toggle */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="relative flex-1">
-          <Search style={{ color: "var(--color-neutral-400)" }} className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" />
-          <Input
-            type="text"
-            placeholder={t("searchPlaceholder")}
-            value={filters.search}
-            onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
-            className="pl-10"
+    <div
+      style={{
+        backgroundColor: "var(--background)",
+        borderBottom: "1px solid var(--color-border)",
+      }}
+      className="px-4 py-3"
+    >
+      <FilterPanel
+        showFilters={showFilters}
+        onToggleFilters={onToggleFilters}
+        toggleTitle={showFilters ? t("hideFilters") : t("showFilters")}
+        toggleAriaLabel={showFilters ? t("hideFilters") : t("showFilters")}
+        className="border-0 bg-transparent p-0 shadow-none"
+        clearAction={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleReset}
+            leftIcon={<X className="w-4 h-4" />}
+          >
+            {t("reset")}
+          </Button>
+        }
+        hasActiveFilters={
+          filters.search !== "" ||
+          filters.status !== "ALL" ||
+          filters.excuseCompleteness !== "ALL" ||
+          filters.lateMin !== undefined ||
+          filters.earlyLeaveMin !== undefined
+        }
+        searchSlot={
+          <div className="relative flex-1">
+            <Search
+              style={{ color: "var(--color-neutral-400)" }}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+            />
+            <Input
+              type="text"
+              placeholder={t("searchPlaceholder")}
+              value={filters.search}
+              onChange={(e) =>
+                onFiltersChange({ ...filters, search: e.target.value })
+              }
+              className="pl-10"
+            />
+          </div>
+        }
+        bodySlot={
+          <RollCallQuickPresets
+            selectedStatus={filters.status}
+            onSelect={handlePresetSelect}
+            allowExcuses={allowExcuses}
           />
-        </div>
-        <button
-          onClick={onToggleFilters}
-          style={{
-            backgroundColor: showFilters ? "var(--color-primary)" : "var(--background)",
-            color: showFilters ? "var(--color-white)" : "var(--color-gray-600)",
-            borderColor: showFilters ? "var(--color-primary)" : "var(--color-neutral-300)",
-          }}
-          className={`p-2 rounded-lg border transition-colors ${
-            showFilters ? "" : "hover:bg-[var(--color-neutral-50)]"
-          }`}
-          title={showFilters ? t("hideFilters") : t("showFilters")}
-        >
-          <Filter className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Quick Presets - Always Visible */}
-      <div className="mb-3">
-        <RollCallQuickPresets
-          selectedStatus={filters.status}
-          onSelect={handlePresetSelect}
-          allowExcuses={allowExcuses}
-        />
-      </div>
-
-      {/* Filter Dropdowns (Collapsible) */}
-      {showFilters && (
-        <div className="space-y-3">
-          {/* Filter Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Status Filter */}
+        }
+        filtersSlot={
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Select
               value={filters.status}
               onChange={(value) =>
@@ -131,14 +144,14 @@ export default function RosterFiltersBar({
               label={t("statusLabel")}
             />
 
-            {/* Excuse Completeness (only if excuses allowed) */}
             {allowExcuses && (
               <Select
                 value={filters.excuseCompleteness || "ALL"}
                 onChange={(value) =>
                   onFiltersChange({
                     ...filters,
-                    excuseCompleteness: value as RosterFilters["excuseCompleteness"],
+                    excuseCompleteness:
+                      value as RosterFilters["excuseCompleteness"],
                   })
                 }
                 options={excuseCompletenessOptions}
@@ -147,9 +160,11 @@ export default function RosterFiltersBar({
               />
             )}
 
-            {/* Late Minutes Filter */}
             <div>
-              <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-1">
+              <label
+                style={{ color: "var(--color-gray-700)" }}
+                className="mb-1 block text-sm font-medium"
+              >
                 {t("lateMinLabel")}
               </label>
               <Input
@@ -158,7 +173,9 @@ export default function RosterFiltersBar({
                 onChange={(e) =>
                   onFiltersChange({
                     ...filters,
-                    lateMin: e.target.value ? parseInt(e.target.value) : undefined,
+                    lateMin: e.target.value
+                      ? parseInt(e.target.value)
+                      : undefined,
                   })
                 }
                 placeholder="0"
@@ -167,9 +184,11 @@ export default function RosterFiltersBar({
               />
             </div>
 
-            {/* Early Leave Minutes Filter */}
             <div>
-              <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-1">
+              <label
+                style={{ color: "var(--color-gray-700)" }}
+                className="mb-1 block text-sm font-medium"
+              >
                 {t("earlyLeaveMinLabel")}
               </label>
               <Input
@@ -178,7 +197,9 @@ export default function RosterFiltersBar({
                 onChange={(e) =>
                   onFiltersChange({
                     ...filters,
-                    earlyLeaveMin: e.target.value ? parseInt(e.target.value) : undefined,
+                    earlyLeaveMin: e.target.value
+                      ? parseInt(e.target.value)
+                      : undefined,
                   })
                 }
                 placeholder="0"
@@ -187,20 +208,8 @@ export default function RosterFiltersBar({
               />
             </div>
           </div>
-
-          {/* Reset Button */}
-          <div className="flex items-center justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
-              leftIcon={<X className="w-4 h-4" />}
-            >
-              {t("reset")}
-            </Button>
-          </div>
-        </div>
-      )}
+        }
+      />
     </div>
   );
 }

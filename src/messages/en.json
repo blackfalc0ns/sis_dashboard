@@ -123,7 +123,8 @@
       "settings": "Settings",
       "support": "Support"
     },
-    "reinforcement": "Reinforcement"
+    "reinforcement": "Reinforcement",
+    "nedaa": "Nedaa"
   },
   "overview": {
     "attendance_rate": "Today Attendance Rate",
@@ -375,9 +376,9 @@
       "accepted": "Accepted",
       "enrolled": "Enrolled",
       "conversion": "conversion",
-      "leads_to_apps": "Leads â†’ Apps",
-      "apps_to_accepted": "Apps â†’ Accepted",
-      "accepted_to_enrolled": "Accepted â†’ Enrolled",
+      "leads_to_apps": "Leads Ã¢â€ â€™ Apps",
+      "apps_to_accepted": "Apps Ã¢â€ â€™ Accepted",
+      "accepted_to_enrolled": "Accepted Ã¢â€ â€™ Enrolled",
       "total_applications": "Total Applications",
       "grade_levels": "Grade Levels",
       "most_requested": "Most Requested",
@@ -573,7 +574,7 @@
       "student_name_en": "Student Name (English)",
       "student_name_ar": "Student Name (Arabic)",
       "student_name_en_placeholder": "e.g., Ahmed Hassan",
-      "student_name_ar_placeholder": "Ù…Ø«Ø§Ù„: Ø£Ø­Ù…Ø¯ Ø­Ø³Ù†",
+      "student_name_ar_placeholder": "Ã™â€¦Ã˜Â«Ã˜Â§Ã™â€ž: Ã˜Â£Ã˜Â­Ã™â€¦Ã˜Â¯ Ã˜Â­Ã˜Â³Ã™â€ ",
       "guardian_information": "Guardian Information",
       "guardian_name": "Guardian Name",
       "guardian_name_placeholder": "Enter guardian name",
@@ -675,7 +676,7 @@
       "student": {
         "title": "Student Information",
         "full_name_ar": "Full Name (Arabic)",
-        "full_name_ar_placeholder": "Ø£Ø­Ù…Ø¯ Ù…Ø­Ù…Ø¯",
+        "full_name_ar_placeholder": "Ã˜Â£Ã˜Â­Ã™â€¦Ã˜Â¯ Ã™â€¦Ã˜Â­Ã™â€¦Ã˜Â¯",
         "full_name_en": "Full Name (English)",
         "full_name_en_placeholder": "Ahmed Mohammed",
         "gender": "Gender",
@@ -1165,7 +1166,7 @@
         "excellent": "Outstanding candidate"
       },
       "interview_notes": "Interview Notes",
-      "notes_placeholder": "Provide detailed feedback about the interview:\nâ€¢ Communication skills\nâ€¢ Motivation and interest\nâ€¢ Academic readiness\nâ€¢ Behavioral observations\nâ€¢ Strengths and areas of concern\nâ€¢ Recommendation",
+      "notes_placeholder": "Provide detailed feedback about the interview:\nÃ¢â‚¬Â¢ Communication skills\nÃ¢â‚¬Â¢ Motivation and interest\nÃ¢â‚¬Â¢ Academic readiness\nÃ¢â‚¬Â¢ Behavioral observations\nÃ¢â‚¬Â¢ Strengths and areas of concern\nÃ¢â‚¬Â¢ Recommendation",
       "notes_help": "These notes will be reviewed by the admissions committee",
       "assessment_areas": "Quick Assessment Areas",
       "areas": {
@@ -1729,6 +1730,7 @@
       },
       "filters": {
         "filters_button": "Filters",
+        "clear_filters": "Clear filters",
         "search_placeholder": "Search by student name or ID...",
         "stage": "Stage",
         "all_stages": "All Stages",
@@ -3197,9 +3199,9 @@
       "validation": {
         "start_after_end": "End date must be after start date",
         "outside_term_range": "Event must be within term date range",
-        "outside_term_range_with_dates": "Event must be within the term range ({start} â€“ {end})"
+        "outside_term_range_with_dates": "Event must be within the term range ({start} Ã¢â‚¬â€œ {end})"
       },
-      "term_range_hint": "Term range: {start} â€“ {end}",
+      "term_range_hint": "Term range: {start} Ã¢â‚¬â€œ {end}",
       "date_helper_text": "Must be within term range",
       "clear_filters": "Clear",
       "apply": "Apply",
@@ -3552,8 +3554,8 @@
           "actions": "Actions"
         },
         "editSlot": {
-          "cancel": "Ø¥Ù„ØºØ§Ø¡",
-          "save": "Ø­ÙØ¸"
+          "cancel": "Ã˜Â¥Ã™â€žÃ˜ÂºÃ˜Â§Ã˜Â¡",
+          "save": "Ã˜Â­Ã™ÂÃ˜Â¸"
         },
         "emptyState": "No rooms found. Add your first room.",
         "searchPlaceholder": "Search rooms...",
@@ -4157,7 +4159,7 @@
     "invalidType": "Unsupported file type",
     "tooLarge": "File is too large",
     "termClosed": "Term is closed. Upload is disabled.",
-    "allowedHint": "Allowed: {types} â€¢ Max: {size}",
+    "allowedHint": "Allowed: {types} Ã¢â‚¬Â¢ Max: {size}",
     "invalidTypeStudy": "Unsupported file type for educational content.",
     "fileBlocked": "This file type is blocked for security reasons.",
     "maxSizeExceeded": "File exceeds max size ({size}).",
@@ -4987,7 +4989,7 @@
           "absentIfMissed": "Mark Absent if Missed",
           "absentIfMissedDesc": "Mark as absent if student missed this many periods",
           "dailyAbsentThreshold": "Daily Absent Threshold (Periods)",
-          "dailyAbsentThresholdDesc": "If student misses â‰¥ {max} of the selected periods, they are absent for the day",
+          "dailyAbsentThresholdDesc": "If student misses Ã¢â€°Â¥ {max} of the selected periods, they are absent for the day",
           "excuseSettings": "Excuse Settings",
           "allowExcuses": "Allow Excuses",
           "requireReason": "Require Reason",
@@ -5041,7 +5043,7 @@
         "optional": "Optional",
         "apply": "Apply",
         "useFirstN": "Use first",
-        "termRangeHint": "Policy must be within term dates: {start} â†’ {end}",
+        "termRangeHint": "Policy must be within term dates: {start} Ã¢â€ â€™ {end}",
         "reviewSummary": "Policy Summary",
         "overridesWarning": "This policy will override school-wide settings for the selected scope",
         "periodOnlyInfo": {
@@ -5584,25 +5586,20 @@
     "tasks": "Tasks",
     "templates": "Templates",
     "rewards": "Rewards",
-    "reviewQueue": "Review Queue",
-    "overviewDescription": "Track task activity, approvals, reward issuance, and top-performing classes from one reinforcement workspace.",
+    "overviewDescription": "Track task activity, completion patterns, reward issuance, and top-performing classes from one reinforcement workspace.",
     "tasksDescription": "Search, filter, export, and manage reinforcement tasks assigned across the school.",
     "templatesDescription": "Maintain reusable reinforcement task templates with bilingual titles, stages, and default rewards.",
     "rewardsDescription": "Manage the reward catalog used across reinforcement workflows.",
-    "reviewDescription": "Handle pending submissions with quick approval, rejection, or resubmission actions.",
     "recentActivity": "Recent activity",
     "recentActivitySubtitle": "Latest operational updates across student reinforcement tasks.",
     "quickActions": "Quick actions",
     "quickActionsSubtitle": "Jump into the most common reinforcement workflows.",
     "loading": "Loading reinforcement data...",
     "status": {
-      "draft": "Draft",
-      "active": "Active",
+      "cancel": "Cancel",
       "in_progress": "In progress",
-      "under_review": "Under review",
       "completed": "Completed",
-      "rejected": "Rejected",
-      "archived": "Archived"
+      "not_completed": "Not completed"
     },
     "source": {
       "teacher": "Teacher",
@@ -5622,23 +5619,23 @@
       "none": "No proof"
     },
     "activeState": {
-      "active": "Active",
-      "inactive": "Inactive"
+      "active": "Approved",
+      "inactive": "Pending"
     },
     "actions": {
       "exportCsv": "Export CSV",
       "createTemplate": "Create template",
-      "createReward": "Create reward"
+      "createReward": "Create reward",
+      "newTask": "New task"
     },
     "empty": {
       "tasks": "No reinforcement tasks matched the current filters.",
       "templates": "No templates available yet.",
-      "rewards": "No rewards configured yet.",
-      "reviewQueue": "No submissions are waiting for review."
+      "rewards": "No rewards configured yet."
     },
     "kpi": {
-      "activeTasks": "Active tasks",
-      "underReview": "Under review",
+      "inProgress": "In Progress",
+      "notCompleted": "Not completed",
       "completedThisWeek": "Completed this week",
       "rewardedStudents": "Rewarded students",
       "averageCompletionRate": "Average completion rate",
@@ -5657,8 +5654,13 @@
       "topStudents": "Top students"
     },
     "filters": {
+      "title": "Task filters",
+      "subtitle": "Search reinforcement tasks or narrow the list by audience, workflow status, reward, and due date.",
       "search": "Search",
       "searchPlaceholder": "Task title, student, class, or assignee",
+      "showFilters": "Show filters",
+      "hideFilters": "Hide filters",
+      "clearFilters": "Clear filters",
       "student": "Student",
       "class": "Class",
       "source": "Source",
@@ -5669,7 +5671,11 @@
       "allClasses": "All classes",
       "allSources": "All sources",
       "allStatuses": "All statuses",
-      "allRewardTypes": "All reward types"
+      "allRewardTypes": "All reward types",
+      "assignmentLevel": "Assignment level",
+      "target": "Target",
+      "allAssignmentLevels": "All assignment levels",
+      "allTargets": "All targets"
     },
     "table": {
       "task": "Task",
@@ -5682,9 +5688,10 @@
       "dueDate": "Due date",
       "actions": "Actions",
       "view": "View",
-      "review": "Review",
       "duplicate": "Duplicate",
-      "archive": "Archive"
+      "cancelTask": "Cancel task",
+      "audience": "Audience",
+      "audienceCount": "{count} audience"
     },
     "templatesTable": {
       "title": "Template",
@@ -5702,20 +5709,6 @@
       "status": "Status",
       "actions": "Actions",
       "edit": "Edit"
-    },
-    "reviewTable": {
-      "task": "Task",
-      "student": "Student",
-      "submittedAt": "Submitted at",
-      "stageCountCompleted": "Completed stages",
-      "proofType": "Proof type",
-      "source": "Source",
-      "status": "Status",
-      "actions": "Actions",
-      "view": "View",
-      "approve": "Approve",
-      "reject": "Reject",
-      "resubmit": "Request resubmission"
     },
     "modal": {
       "template": {
@@ -5767,6 +5760,46 @@
           "xp": "XP",
           "badge": "Badge"
         }
+      },
+      "task": {
+        "createTitle": "Create reinforcement task",
+        "create": "Create task",
+        "titleAr": "Title (AR)",
+        "titleEn": "Title (EN)",
+        "descriptionAr": "Description (AR)",
+        "descriptionEn": "Description (EN)",
+        "student": "Student",
+        "source": "Source",
+        "rewardType": "Reward type",
+        "rewardValue": "Reward value",
+        "dueDate": "Due date",
+        "stages": "Task stages",
+        "stagesDescription": "Define the steps students or groups need to complete for this task.",
+        "addStage": "Add stage",
+        "stageLabel": "Stage {number}",
+        "stageTitleAr": "Stage title (AR)",
+        "stageTitleEn": "Stage title (EN)",
+        "stageDescriptionAr": "Stage description (AR)",
+        "stageDescriptionEn": "Stage description (EN)",
+        "proofType": "Proof type",
+        "removeStage": "Remove stage",
+        "assignedBy": "Assigned by",
+        "sourceOptions": {
+          "teacher": "Teacher",
+          "parent": "Parent",
+          "system": "System"
+        },
+        "rewardTypeOptions": {
+          "moral": "Moral",
+          "financial": "Financial",
+          "xp": "XP",
+          "badge": "Badge"
+        },
+        "assignmentLevel": "Assignment level",
+        "target": "Target",
+        "addTarget": "Add target",
+        "selectedTargets": "Selected targets",
+        "noTargets": "No targets selected yet."
       }
     },
     "rewardsKpi": {
@@ -5785,10 +5818,6 @@
       "stages": "Stages",
       "attachments": "Proof attachments",
       "noAttachments": "No proof attachments were submitted for this task.",
-      "reviewActions": "Review actions",
-      "approve": "Approve task",
-      "reject": "Reject task",
-      "requestResubmission": "Request resubmission",
       "yes": "Yes",
       "no": "No",
       "stageStatus": {
@@ -5800,15 +5829,212 @@
         "title": "Timeline / activity log",
         "created": "Task created",
         "updated": "Last update"
-      }
+      },
+      "audienceSummary": "Audience summary",
+      "assignmentLevel": "Assignment level",
+      "targetList": "Target list",
+      "audienceCount": "{count} audience in this task"
     },
     "dashboardWidget": {
       "title": "Reinforcement",
       "subtitle": "Compact view of school-wide reinforcement activity.",
       "cta": "Open module",
-      "activeTasks": "Active tasks",
-      "underReview": "Under review",
+      "inProgress": "In Progress",
+      "notCompleted": "Not completed",
       "completionRate": "Completion rate"
+    },
+    "assignmentScope": {
+      "school": "School",
+      "stage": "Stage",
+      "grade": "Grade",
+      "section": "Section",
+      "classroom": "Classroom",
+      "student": "Student"
+    },
+    "overviewControls": {
+      "chart": "Chart focus",
+      "activity": "Activity filter",
+      "emptyActivity": "No activity items match the current filter.",
+      "chartOptions": {
+        "status": "Tasks by status",
+        "source": "Tasks by source",
+        "rewardType": "Rewards by type",
+        "topPerformance": "Top performance"
+      },
+      "activityOptions": {
+        "all": "All activity",
+        "reward": "Rewards",
+        "task": "Tasks",
+        "submission": "Submissions"
+      }
+    }
+  },
+  "nedaa": {
+    "actions": {
+      "open_requests": "Open Requests",
+      "open_gates": "Open Gates",
+      "open_history": "Open History",
+      "view_module": "View Nedaa",
+      "acknowledged": "Mark acknowledged",
+      "preparing": "Mark preparing",
+      "ready": "Mark ready",
+      "completed": "Mark completed",
+      "cancelled": "Cancel request"
+    },
+    "status": {
+      "pending": "Pending",
+      "acknowledged": "Acknowledged",
+      "preparing": "Preparing",
+      "ready": "Ready",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "kpis": {
+      "active_requests": "Active Requests",
+      "avg_pickup_time": "Avg Pickup Time",
+      "completed_today": "Completed Today",
+      "cancelled_today": "Cancelled Today",
+      "blocked_attempts": "Blocked / Unauthorized Attempts",
+      "total_visible_requests": "Total Visible Requests"
+    },
+    "table": {
+      "request_id": "Request ID",
+      "student": "Student",
+      "guardian": "Guardian",
+      "relation": "Relation",
+      "gate": "Gate",
+      "status": "Status",
+      "created_at": "Created At",
+      "updated_at": "Updated At",
+      "can_pickup": "Can Pickup",
+      "notifications": "Notifications",
+      "actions": "Actions",
+      "allowed": "Allowed",
+      "blocked": "Blocked",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "no_actions": "No actions"
+    },
+    "filters": {
+      "search_placeholder": "Search by request, student, or guardian",
+      "history_search_placeholder": "Search completed or cancelled requests",
+      "status": "Status",
+      "gate": "Gate",
+      "all_statuses": "All statuses",
+      "all_gates": "All gates",
+      "show_filters": "Filters",
+      "clear_filters": "Clear filters"
+    },
+    "gates": {
+      "main_gate": "Main Gate",
+      "north_gate": "North Gate",
+      "south_gate": "South Gate",
+      "staff_gate": "Staff Gate",
+      "waiting": "Waiting",
+      "preparing": "Preparing",
+      "ready": "Ready",
+      "completed_today": "Completed Today",
+      "avg_handling_time": "Avg Handling Time",
+      "active_requests": "{count} active requests"
+    },
+    "overview": {
+      "title": "Nedaa Overview",
+      "subtitle": "Monitor live pickup flow, request readiness, and gate pressure from one operational view.",
+      "active_requests_subtitle": "Requests still moving through the pickup workflow.",
+      "avg_pickup_subtitle": "Average handling time across completed Nedaa requests.",
+      "completed_today_subtitle": "Students successfully handed over today.",
+      "cancelled_today_subtitle": "Requests closed before pickup completion.",
+      "blocked_attempts_subtitle": "Unauthorized or out-of-zone attempts that need review.",
+      "latest_requests": "Latest Requests",
+      "latest_requests_subtitle": "The newest pickup requests reaching the school team.",
+      "quick_actions": "Quick Actions",
+      "quick_actions_subtitle": "Jump straight into the most common Nedaa workflows.",
+      "open_requests_description": "Review operational requests and move them through the workflow.",
+      "open_gates_description": "See waiting, preparing, and ready counts by active gate.",
+      "open_history_description": "Audit completed and cancelled pickup activity.",
+      "gate_summary": "Gate Summary",
+      "gate_summary_subtitle": "Compact live gate performance across the active Nedaa board."
+    },
+    "requests": {
+      "title": "Nedaa Requests",
+      "subtitle": "Search, filter, and advance live pickup requests without leaving the Nedaa workspace.",
+      "visible_subtitle": "Requests currently matching the active filters.",
+      "pending_subtitle": "Waiting for the operations team to start handling.",
+      "ready_subtitle": "Students prepared and ready at the assigned gate.",
+      "completed_subtitle": "Requests already closed as completed.",
+      "filter_summary": "Operational filters"
+    },
+    "gates_page": {
+      "title": "Nedaa Gates",
+      "subtitle": "Track queue pressure and readiness for each active pickup gate.",
+      "active_gates": "Active Gates",
+      "active_gates_subtitle": "Gate checkpoints currently available for pickup handling.",
+      "waiting_subtitle": "Requests still waiting for acknowledgement or processing.",
+      "ready_subtitle": "Students ready to be released at the gate.",
+      "completed_today_subtitle": "Requests completed today across all gates.",
+      "board": "Gate Operations Board",
+      "board_subtitle": "Lean operational summary for each gate team.",
+      "live_queue": "Live Queue Snapshot",
+      "live_queue_subtitle": "Active requests currently moving through the Nedaa workflow."
+    },
+    "history": {
+      "title": "Nedaa History",
+      "subtitle": "Review completed and cancelled pickup activity with a lightweight timeline.",
+      "filter_summary": "History filters",
+      "records": "Historical Records",
+      "records_subtitle": "Completed and cancelled Nedaa requests in the selected academic context.",
+      "selected_request": "Selected Request",
+      "no_selection": "Select a history record to view its timeline.",
+      "timeline": "Timeline",
+      "timeline_subtitle": "Operational events captured for the selected Nedaa request.",
+      "no_timeline": "No timeline events are available for this request yet."
+    },
+    "settings": {
+      "title": "Nedaa Settings",
+      "subtitle": "Configure radius rules, pickup windows, and active gates for the Nedaa workflow.",
+      "save": "Save Settings",
+      "reset": "Reset",
+      "rules_title": "Operational Rules",
+      "rules_subtitle": "Controls that shape request validation and queue behavior.",
+      "allowed_radius": "Allowed Radius (meters)",
+      "duplicate_cooldown": "Duplicate Request Cooldown (minutes)",
+      "auto_cancel_timeout": "Auto-cancel Timeout (minutes)",
+      "pickup_window_title": "Pickup Window",
+      "pickup_window_subtitle": "Operational time range when Nedaa requests can be processed.",
+      "pickup_start": "Pickup Start Time",
+      "pickup_end": "Pickup End Time",
+      "active_gates_title": "Active Gates",
+      "active_gates_subtitle": "Enable the gates that should appear in the Nedaa workflow."
+    },
+    "read_only_notice": "The selected term is closed. Nedaa actions are currently read-only.",
+    "timeline": {
+      "created": "Request created",
+      "notification_sent": "Guardian notification sent",
+      "notification_skipped": "Guardian notification skipped",
+      "unauthorized_attempt": "Unauthorized pickup attempt flagged",
+      "updated": "Request updated",
+      "status_acknowledged": "Request acknowledged",
+      "status_preparing": "Student preparing for pickup",
+      "status_ready": "Student ready at gate",
+      "status_completed": "Pickup completed",
+      "status_cancelled": "Request cancelled"
+    },
+    "timeline_notes": {
+      "guardian_notifications_disabled": "Notifications are disabled for this guardian.",
+      "guardian_not_authorized_for_pickup": "The selected guardian is not authorized to pick up the student.",
+      "pickup_request_cancelled": "The pickup request was cancelled before completion.",
+      "blocked_unauthorized_attempt": "The request was blocked because the guardian was not authorized."
+    },
+    "messages": {
+      "request_updated": "Nedaa request updated successfully.",
+      "request_update_failed": "Failed to update the Nedaa request.",
+      "settings_saved": "Nedaa settings saved successfully.",
+      "settings_save_failed": "Failed to save Nedaa settings.",
+      "load_overview_failed": "Failed to load Nedaa overview.",
+      "load_requests_failed": "Failed to load Nedaa requests.",
+      "load_gates_failed": "Failed to load Nedaa gates.",
+      "load_history_failed": "Failed to load Nedaa history.",
+      "load_settings_failed": "Failed to load Nedaa settings."
     }
   }
 }

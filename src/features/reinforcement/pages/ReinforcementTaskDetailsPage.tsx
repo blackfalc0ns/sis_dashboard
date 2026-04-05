@@ -3,15 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import Button from "@/components/ui/button/Button";
 import ReinforcementBadge from "../components/shared/ReinforcementBadge";
 import type { ReinforcementTask } from "../types/reinforcement";
-import {
-  approveTask,
-  getReinforcementTaskById,
-  rejectTask,
-  requestResubmission,
-} from "../services/reinforcementService";
+import { getReinforcementTaskById } from "../services/reinforcementService";
 import { useReinforcementLocale } from "../hooks/useReinforcementLocale";
 
 interface ReinforcementTaskDetailsPageProps {
@@ -35,16 +29,8 @@ export default function ReinforcementTaskDetailsPage({
     if (!task) return [];
 
     return [
-      {
-        id: "created",
-        label: t("timeline.created"),
-        value: task.createdAt,
-      },
-      {
-        id: "updated",
-        label: t("timeline.updated"),
-        value: task.updatedAt,
-      },
+      { id: "created", label: t("timeline.created"), value: task.createdAt },
+      { id: "updated", label: t("timeline.updated"), value: task.updatedAt },
       ...task.stages
         .filter((stage) => stage.submittedAt)
         .map((stage) => ({
@@ -58,6 +44,9 @@ export default function ReinforcementTaskDetailsPage({
   if (!task) {
     return <div className="rounded-xl bg-white p-6 shadow-sm">{t("notFound")}</div>;
   }
+
+  const isSingleStudentTask =
+    task.primaryTargetType === "student" && task.targets.length === 1;
 
   return (
     <div className="space-y-6 bg-gray-50 min-h-screen">
@@ -75,14 +64,25 @@ export default function ReinforcementTaskDetailsPage({
               {getLocalizedText(task.titleAr, task.titleEn)}
             </h1>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-gray-500">
-              <span>{task.studentName}</span>
-              <span>•</span>
-              <span>{task.className}</span>
+              {isSingleStudentTask ? (
+                <>
+                  <span>{task.studentName}</span>
+                  <span>•</span>
+                  <span>{task.className}</span>
+                </>
+              ) : (
+                <>
+                  <span>{getLocalizedText(task.targetSummaryAr, task.targetSummaryEn)}</span>
+                  <span>•</span>
+                  <span>{t("audienceCount", { count: task.audienceCount })}</span>
+                </>
+              )}
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <ReinforcementBadge type="status" value={task.status} />
               <ReinforcementBadge type="source" value={task.source} />
               <ReinforcementBadge type="rewardType" value={task.rewardType} />
+              <ReinforcementBadge type="scope" value={task.primaryTargetType} />
             </div>
           </div>
 
@@ -173,6 +173,38 @@ export default function ReinforcementTaskDetailsPage({
 
         <div className="space-y-6">
           <section className="rounded-xl bg-white p-5 shadow-sm">
+            <h2 className="text-base font-semibold text-gray-900">{t("audienceSummary")}</h2>
+            <div className="mt-4 space-y-3">
+              <div className="rounded-lg bg-gray-50 px-4 py-3">
+                <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  {t("assignmentLevel")}
+                </div>
+                <div className="mt-2">
+                  <ReinforcementBadge type="scope" value={task.primaryTargetType} />
+                </div>
+              </div>
+              <div className="rounded-lg bg-gray-50 px-4 py-3">
+                <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  {t("targetList")}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {task.targets.map((target) => (
+                    <span
+                      key={`${target.scopeType}:${target.scopeId}`}
+                      className="inline-flex rounded-full bg-white px-3 py-1 text-sm text-gray-700 ring-1 ring-gray-200"
+                    >
+                      {getLocalizedText(target.nameAr, target.nameEn)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                {t("audienceCount", { count: task.audienceCount })}
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-xl bg-white p-5 shadow-sm">
             <h2 className="text-base font-semibold text-gray-900">{t("timeline.title")}</h2>
             <div className="mt-4 space-y-3">
               {timelineItems.map((item) => (
@@ -181,30 +213,6 @@ export default function ReinforcementTaskDetailsPage({
                   <div className="mt-1 text-xs text-gray-500">{item.value}</div>
                 </div>
               ))}
-            </div>
-          </section>
-
-          <section className="rounded-xl bg-white p-5 shadow-sm">
-            <h2 className="text-base font-semibold text-gray-900">{t("reviewActions")}</h2>
-            <div className="mt-4 grid gap-3">
-              <Button
-                variant="success"
-                onClick={async () => setTask(await approveTask(task.id))}
-              >
-                {t("approve")}
-              </Button>
-              <Button
-                variant="danger"
-                onClick={async () => setTask(await rejectTask(task.id))}
-              >
-                {t("reject")}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={async () => setTask(await requestResubmission(task.id))}
-              >
-                {t("requestResubmission")}
-              </Button>
             </div>
           </section>
         </div>

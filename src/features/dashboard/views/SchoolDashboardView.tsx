@@ -1,11 +1,12 @@
-// Presenter component for School Dashboard
+﻿// Presenter component for School Dashboard
 // Pure presentation - receives data via props, no business logic
 
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { AlertTriangle, BookOpen, MapPin, UserX, Users } from "lucide-react";
 
 import AcademicPerformanceCard from "../components/charts/AcademicPerformanceCard";
@@ -27,7 +28,6 @@ import { getReinforcementSummaryCard } from "@/features/reinforcement/services/r
 
 import type { DashboardKPIs, ChartData } from "@/features/dashboard/utils/dashboardStatsCalculator";
 
-// Dynamically import AbsenceReasonsChart with SSR disabled to prevent MUI Charts hydration issues
 const AbsenceReasonsChart = dynamic(
   () => import("../components/charts/AbsenceReasonsChart"),
   { ssr: false }
@@ -58,10 +58,12 @@ export default function SchoolDashboardView({
   periodOptions,
   onPeriodChange,
 }: SchoolDashboardViewProps) {
-  const t_kpi = useTranslations("kpi");
+  const locale = useLocale();
+  const tKpi = useTranslations("kpi");
+  const tNedaa = useTranslations("nedaa");
   const [reinforcementSummary, setReinforcementSummary] = useState<{
-    activeTasks: number;
-    underReview: number;
+    inProgress: number;
+    notCompleted: number;
     completionRate: number;
   } | null>(null);
 
@@ -70,13 +72,12 @@ export default function SchoolDashboardView({
   }, []);
 
   return (
-    <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <FilterBar />
 
-      {/* KPI Cards - 3 columns on desktop, 2 on tablet, 1 on mobile */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <KPICardV2
-          title={t_kpi("total_students")}
+          title={tKpi("total_students")}
           value={kpis.totalStudents}
           icon={Users}
           iconColor="#036b80"
@@ -91,7 +92,7 @@ export default function SchoolDashboardView({
         />
 
         <KPICardV2
-          title={t_kpi("today_attendance_rate")}
+          title={tKpi("today_attendance_rate")}
           value={kpis.avgAttendance}
           valueSuffix="%"
           icon={Users}
@@ -111,7 +112,7 @@ export default function SchoolDashboardView({
         />
 
         <KPICardV2
-          title={t_kpi("delivered_classes")}
+          title={tKpi("delivered_classes")}
           value={48}
           icon={BookOpen}
           iconColor="#3b82f6"
@@ -130,7 +131,7 @@ export default function SchoolDashboardView({
         />
 
         <KPICardV2
-          title={t_kpi("today_violations")}
+          title={tKpi("today_violations")}
           value={kpis.atRiskStudents}
           icon={AlertTriangle}
           iconColor="#ef4444"
@@ -145,7 +146,7 @@ export default function SchoolDashboardView({
         />
 
         <KPICardV2
-          title={t_kpi("staff_absenteeism")}
+          title={tKpi("staff_absenteeism")}
           value="3.2"
           valueSuffix="%"
           icon={UserX}
@@ -164,50 +165,56 @@ export default function SchoolDashboardView({
           onPeriodChange={onPeriodChange}
         />
 
-        <KPICardV2
-          title={t_kpi("nedaa_efficiency")}
-          value={4}
-          valueSuffix=" min"
-          icon={MapPin}
-          iconColor="#8b5cf6"
-          iconBgColor="#ede9fe"
-          chartData={chartData.nedaa}
-          chartColor="#8b5cf6"
-          change={{
-            value: -1,
-            percentage: -20,
-            isPositive: true,
-          }}
-          showPeriodFilter={true}
-          periodOptions={periodOptions}
-          defaultPeriod="today"
-          onPeriodChange={onPeriodChange}
-        />
+        <div className="flex h-full flex-col gap-2">
+          <KPICardV2
+            title={tKpi("nedaa_efficiency")}
+            value={4}
+            valueSuffix=" min"
+            icon={MapPin}
+            iconColor="#8b5cf6"
+            iconBgColor="#ede9fe"
+            chartData={chartData.nedaa}
+            chartColor="#8b5cf6"
+            change={{
+              value: -1,
+              percentage: -20,
+              isPositive: true,
+            }}
+            showPeriodFilter={true}
+            periodOptions={periodOptions}
+            defaultPeriod="today"
+            onPeriodChange={onPeriodChange}
+          />
+          <Link
+            href={`/${locale}/nedaa`}
+            className="inline-flex items-center justify-center rounded-xl border border-primary/20 bg-white px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
+          >
+            {tNedaa("actions.view_module")}
+          </Link>
+        </div>
       </div>
 
-      {/* Main Layout */}
       <div className="space-y-6">
-        {/* Row 1: Attendance, Activities, and Quick Actions */}
-        <div className="flex gap-4 flex-wrap">
-          <div className="flex flex-col gap-4 flex-5 w-full">
-            <div className="flex gap-4 flex-1 w-full flex-wrap">
-              <div className="flex-1 w-full">
+        <div className="flex flex-wrap gap-4">
+          <div className="flex flex-5 w-full flex-col gap-4">
+            <div className="flex w-full flex-1 flex-wrap gap-4">
+              <div className="w-full flex-1">
                 <AttendanceCard />
               </div>
-              <div className="flex-1 w-full">
+              <div className="w-full flex-1">
                 <ActivitiesCard />
               </div>
             </div>
 
-            <div className="flex-1 w-full">
+            <div className="w-full flex-1">
               <AcademicPerformanceCard />
             </div>
 
             {reinforcementSummary ? (
-              <div className="flex-1 w-full">
+              <div className="w-full flex-1">
                 <ReinforcementSummaryWidget
-                  activeTasks={reinforcementSummary.activeTasks}
-                  underReview={reinforcementSummary.underReview}
+                  inProgress={reinforcementSummary.inProgress}
+                  notCompleted={reinforcementSummary.notCompleted}
                   completionRate={reinforcementSummary.completionRate}
                 />
               </div>
@@ -217,23 +224,23 @@ export default function SchoolDashboardView({
             <QuickActionPanel />
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 auto-rows-fr">
-          <div className="">
+        <div className="grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2">
+          <div>
             <StudentsPerGradeChart />
           </div>
-          <div className="">
+          <div>
             <AbsenceReasonsChart />
           </div>
           <div className="h-full">
             <AttendanceTrendChart />
           </div>
-          <div className="">
+          <div>
             <CriticalAlerts />
           </div>
-          <div className="">
+          <div>
             <PassFailRatioChart />
           </div>
-          <div className="">
+          <div>
             <TodayMonitoring />
           </div>
         </div>

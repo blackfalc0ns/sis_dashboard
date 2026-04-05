@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import type {
+  ReinforcementAssignmentScope,
   ReinforcementProofType,
   ReinforcementRewardType,
   ReinforcementSource,
@@ -10,6 +11,7 @@ import type {
 import {
   proofTypeStyles,
   rewardTypeStyles,
+  scopeStyles,
   sourceStyles,
   statusStyles,
 } from "../../utils/reinforcementPresentation";
@@ -20,9 +22,10 @@ interface ReinforcementBadgeProps {
     | ReinforcementSource
     | ReinforcementRewardType
     | ReinforcementProofType
+    | ReinforcementAssignmentScope
     | "active"
     | "inactive";
-  type: "status" | "source" | "rewardType" | "proofType" | "active";
+  type: "status" | "source" | "rewardType" | "proofType" | "scope" | "active";
 }
 
 export default function ReinforcementBadge({
@@ -36,6 +39,7 @@ export default function ReinforcementBadge({
     if (type === "source") return t(`source.${value}`);
     if (type === "rewardType") return t(`rewardType.${value}`);
     if (type === "proofType") return t(`proofType.${value}`);
+    if (type === "scope") return t(`assignmentScope.${value}`);
     return t(`activeState.${value}`);
   };
 
@@ -46,6 +50,7 @@ export default function ReinforcementBadge({
       return rewardTypeStyles[value as ReinforcementRewardType];
     if (type === "proofType")
       return proofTypeStyles[value as ReinforcementProofType];
+    if (type === "scope") return scopeStyles[value as ReinforcementAssignmentScope];
     return value === "active"
       ? "bg-emerald-100 text-emerald-700"
       : "bg-gray-100 text-gray-700";

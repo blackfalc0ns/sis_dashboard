@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { Search, Plus, Edit2, Trash2, Power, PowerOff, Filter, Bell, AlertTriangle as AlertTriangleIcon } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, Power, PowerOff, Bell, AlertTriangle as AlertTriangleIcon } from "lucide-react";
 import { Tooltip } from "@mui/material";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import DataTable from "@/components/ui/data-table/DataTable";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
+import { FilterPanel } from "@/components/ui";
+import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import { isPolicyConfigComplete, hasNotificationsEnabled } from "../utils/policyKpis";
 import { getPeriodDisplayLabel } from "../../utils/periodIdNormalization";
 import type { AttendancePolicy, AttendanceScopeType } from "../types";
@@ -44,15 +46,69 @@ export default function PoliciesListPanel({
   const tCommon = useTranslations("common");
   const locale = useLocale();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [scopeFilter, setScopeFilter] = useState<"ALL" | AttendanceScopeType>("ALL");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
   const [showFilters, setShowFilters] = useState(false);
-  const [notificationsFilter, setNotificationsFilter] = useState<"ALL" | "ENABLED" | "DISABLED">("ALL");
-
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [policyToDelete, setPolicyToDelete] = useState<AttendancePolicy | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const normalizeQueryValues = useCallback(
+    (
+      values: Record<
+        "search" | "scope" | "status" | "notifications",
+        string
+      >,
+    ) => {
+      const updates: Partial<Record<keyof typeof values, string | null>> = {};
+      const validScopes = new Set([
+        "ALL",
+        "SCHOOL",
+        "STAGE",
+        "GRADE",
+        "SECTION",
+        "CLASSROOM",
+      ]);
+      const validStatuses = new Set(["ALL", "ACTIVE", "INACTIVE"]);
+      const validNotifications = new Set(["ALL", "ENABLED", "DISABLED"]);
+
+      if (!validScopes.has(values.scope)) {
+        updates.scope = null;
+      }
+      if (!validStatuses.has(values.status)) {
+        updates.status = null;
+      }
+      if (!validNotifications.has(values.notifications)) {
+        updates.notifications = null;
+      }
+
+      return Object.keys(updates).length > 0 ? updates : null;
+    },
+    [],
+  );
+
+  const { values, setValue, reset } = useUrlQueryState<{
+    search: string;
+    scope: string;
+    status: string;
+    notifications: string;
+  }>({
+    defaults: {
+      search: "",
+      scope: "ALL",
+      status: "ALL",
+      notifications: "ALL",
+    },
+    debouncedKeys: ["search"],
+    modeByKey: {
+      search: "replace",
+    },
+    normalize: normalizeQueryValues,
+  });
+
+  const searchQuery = values.search;
+  const scopeFilter = values.scope as "ALL" | AttendanceScopeType;
+  const statusFilter = values.status as "ALL" | "ACTIVE" | "INACTIVE";
+  const notificationsFilter =
+    values.notifications as "ALL" | "ENABLED" | "DISABLED";
 
   // Get scope display name
   const getScopeName = useCallback((policy: AttendancePolicy): string => {
@@ -99,6 +155,22 @@ export default function PoliciesListPanel({
       return true;
     });
   }, [policies, searchQuery, scopeFilter, statusFilter, notificationsFilter, getScopeName]);
+
+  const hasActiveFilters =
+    searchQuery !== "" ||
+    scopeFilter !== "ALL" ||
+    statusFilter !== "ALL" ||
+    notificationsFilter !== "ALL";
+
+  const clearFilters = useCallback(() => {
+    reset(undefined, "replace");
+  }, [reset]);
+
+  useEffect(() => {
+    if (hasActiveFilters && !showFilters) {
+      setShowFilters(true);
+    }
+  }, [hasActiveFilters, showFilters]);
 
   const handleDeleteClick = (policy: AttendancePolicy) => {
     setPolicyToDelete(policy);
@@ -367,38 +439,24 @@ export default function PoliciesListPanel({
         </div>
 
         {/* Search and Filters */}
-        <div className="space-y-3">
-          {/* Search Bar with Filter Toggle */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
+        <FilterPanel
+          searchSlot={
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 type="text"
                 placeholder={t("searchPlaceholder")}
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => setValue("search", e.target.value, "replace")}
                 className="pl-10"
               />
             </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`p-2 rounded-lg border transition-colors ${
-                showFilters
-                  ? "bg-primary text-white border-primary"
-                  : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-              }`}
-              title={showFilters ? "Hide filters" : "Show filters"}
-            >
-              <Filter className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Filter Dropdowns (Collapsible) */}
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          }
+          filtersSlot={
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
               <Select
                 value={scopeFilter}
-                onChange={(value) => setScopeFilter(value as "ALL" | AttendanceScopeType)}
+                onChange={(value) => setValue("scope", value as "ALL" | AttendanceScopeType, "push")}
                 options={[
                   { value: "ALL", label: tCommon("all_scopes") },
                   { value: "SCHOOL", label: t("scopeType.school") },
@@ -412,7 +470,7 @@ export default function PoliciesListPanel({
 
               <Select
                 value={statusFilter}
-                onChange={(value) => setStatusFilter(value as "ALL" | "ACTIVE" | "INACTIVE")}
+                onChange={(value) => setValue("status", value as "ALL" | "ACTIVE" | "INACTIVE", "push")}
                 options={[
                   { value: "ALL", label: tCommon("all_statuses") },
                   { value: "ACTIVE", label: t("active") },
@@ -423,7 +481,7 @@ export default function PoliciesListPanel({
 
               <Select
                 value={notificationsFilter}
-                onChange={(value) => setNotificationsFilter(value as "ALL" | "ENABLED" | "DISABLED")}
+                onChange={(value) => setValue("notifications", value as "ALL" | "ENABLED" | "DISABLED", "push")}
                 options={[
                   { value: "ALL", label: tCommon("all") },
                   { value: "ENABLED", label: t("list.notifications") },
@@ -432,8 +490,23 @@ export default function PoliciesListPanel({
                 selectSize="sm"
               />
             </div>
-          )}
-        </div>
+          }
+          showFilters={showFilters}
+          onToggleFilters={() => setShowFilters(!showFilters)}
+          clearAction={
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-sm font-medium text-primary hover:text-primary/80"
+            >
+              {t("clear_filters")}
+            </button>
+          }
+          hasActiveFilters={hasActiveFilters}
+          toggleTitle={t("filters_button")}
+          toggleAriaLabel={t("filters_button")}
+          className="rounded-none bg-transparent p-0 shadow-none"
+        />
       </div>
 
       {/* Table */}

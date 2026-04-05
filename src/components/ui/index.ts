@@ -12,3 +12,4 @@ export * from "./confirm-dialog";
 export * from "./file-upload";
 export * from "./attachment-list-item";
 export * from "./bilingual-text-field";
+export * from "./filter-panel";

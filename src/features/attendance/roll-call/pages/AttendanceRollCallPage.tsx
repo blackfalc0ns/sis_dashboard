@@ -39,12 +39,14 @@ import { exportAttendanceSession } from "../utils/attendanceExport";
 import { computeAttendanceKpis } from "../utils/attendanceKpis";
 import type { AttendanceScopeType } from "@/features/attendance/policies/types";
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
+import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import { isScopeSelectionComplete, type AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
 import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
 import type {
   AttendanceSession,
   AttendanceEntry,
   RosterStudent,
+  AttendanceStatus,
 } from "../types";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 
@@ -90,13 +92,115 @@ export default function AttendanceRollCallPage() {
   // Filter state
   const [showFilters, setShowFilters] = useState(false);
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
-  const [filters, setFilters] = useState<RosterFilters>({
-    search: "",
-    status: "ALL",
-    excuseCompleteness: "ALL",
-    lateMin: undefined,
-    earlyLeaveMin: undefined,
+  const { values, setValues, reset } = useUrlQueryState<{
+    search: string;
+    status: string;
+    excuseCompleteness: string;
+    lateMin: string;
+    earlyLeaveMin: string;
+  }>({
+    defaults: {
+      search: "",
+      status: "ALL",
+      excuseCompleteness: "ALL",
+      lateMin: "",
+      earlyLeaveMin: "",
+    },
+    debouncedKeys: ["search"],
+    modeByKey: {
+      search: "replace",
+    },
+    normalize: (current) => {
+      const nextUpdates: Partial<
+        Record<
+          keyof typeof current,
+          string | null
+        >
+      > = {};
+      const validStatuses = [
+        "ALL",
+        "UNMARKED",
+        "PRESENT",
+        "ABSENT",
+        "LATE",
+        "EXCUSED",
+        "EARLY_LEAVE",
+      ] satisfies Array<"ALL" | "UNMARKED" | AttendanceStatus>;
+      const validExcuseCompleteness = ["ALL", "COMPLETE", "MISSING"];
+
+      if (!validStatuses.includes(current.status as (typeof validStatuses)[number])) {
+        nextUpdates.status = null;
+      }
+
+      if (!validExcuseCompleteness.includes(current.excuseCompleteness)) {
+        nextUpdates.excuseCompleteness = null;
+      }
+
+      const lateMin = current.lateMin.trim();
+      if (lateMin && (!/^\d+$/.test(lateMin) || Number(lateMin) < 0)) {
+        nextUpdates.lateMin = null;
+      }
+
+      const earlyLeaveMin = current.earlyLeaveMin.trim();
+      if (
+        earlyLeaveMin &&
+        (!/^\d+$/.test(earlyLeaveMin) || Number(earlyLeaveMin) < 0)
+      ) {
+        nextUpdates.earlyLeaveMin = null;
+      }
+
+      return Object.keys(nextUpdates).length > 0 ? nextUpdates : null;
+    },
   });
+
+  const filters = useMemo<RosterFilters>(() => {
+    const parseMinutes = (value: string) => {
+      if (!value) {
+        return undefined;
+      }
+
+      const parsed = Number.parseInt(value, 10);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+
+    return {
+      search: values.search,
+      status: values.status as RosterFilters["status"],
+      excuseCompleteness:
+        values.excuseCompleteness as RosterFilters["excuseCompleteness"],
+      lateMin: parseMinutes(values.lateMin),
+      earlyLeaveMin: parseMinutes(values.earlyLeaveMin),
+    };
+  }, [values]);
+
+  const setFilters = useCallback(
+    (nextFilters: RosterFilters) => {
+      const onlySearchChanged =
+        nextFilters.search !== filters.search &&
+        nextFilters.status === filters.status &&
+        nextFilters.excuseCompleteness === filters.excuseCompleteness &&
+        nextFilters.lateMin === filters.lateMin &&
+        nextFilters.earlyLeaveMin === filters.earlyLeaveMin;
+
+      setValues(
+        {
+          search: nextFilters.search || null,
+          status: nextFilters.status,
+          excuseCompleteness: nextFilters.excuseCompleteness || "ALL",
+          lateMin:
+            nextFilters.lateMin !== undefined
+              ? String(nextFilters.lateMin)
+              : null,
+          earlyLeaveMin:
+            nextFilters.earlyLeaveMin !== undefined
+              ? String(nextFilters.earlyLeaveMin)
+              : null,
+        },
+        onlySearchChanged ? "replace" : "push",
+      );
+    },
+    [filters, setValues],
+  );
 
   const isReadOnly = termContext.isReadOnly;
   const isDirty = JSON.stringify(entries) !== JSON.stringify(originalEntries);
@@ -166,6 +270,19 @@ export default function AttendanceRollCallPage() {
       return true;
     });
   }, [roster, entries, filters, policy]);
+
+  const hasActiveFilters =
+    filters.search !== "" ||
+    filters.status !== "ALL" ||
+    filters.excuseCompleteness !== "ALL" ||
+    filters.lateMin !== undefined ||
+    filters.earlyLeaveMin !== undefined;
+
+  useEffect(() => {
+    if (hasActiveFilters && !showFilters) {
+      setShowFilters(true);
+    }
+  }, [hasActiveFilters, showFilters]);
 
   // Load structure tree
   useEffect(() => {
@@ -508,13 +625,7 @@ export default function AttendanceRollCallPage() {
   );
 
   const handleResetFilters = () => {
-    setFilters({
-      search: "",
-      status: "ALL",
-      excuseCompleteness: "ALL",
-      lateMin: undefined,
-      earlyLeaveMin: undefined,
-    });
+    reset(undefined, "replace");
   };
 
   if (isLoading && !term) {

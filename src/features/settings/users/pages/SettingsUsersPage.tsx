@@ -11,9 +11,10 @@ import {
   UserCheck,
   UserPlus,
   UserX,
+  X,
 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable, FilterPanel } from "@/components/ui";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import MainLoader from "@/components/ui/loaders/MainLoader";
@@ -37,6 +38,7 @@ import type {
   RoleDefinition,
   SettingsUserRecord,
 } from "@/features/settings/types";
+import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import { usePermissions } from "@/hooks/usePermissions";
 
 export default function SettingsUsersPage() {
@@ -46,9 +48,7 @@ export default function SettingsUsersPage() {
   const { showSuccess, showError, showInfo } = useToast();
   const [users, setUsers] = useState<SettingsUserRecord[]>([]);
   const [roles, setRoles] = useState<RoleDefinition[]>([]);
-  const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
   const [modalMode, setModalMode] = useState<
     "create" | "invite" | "edit" | null
   >(null);
@@ -56,6 +56,36 @@ export default function SettingsUsersPage() {
     null,
   );
   const [isLoading, setIsLoading] = useState(true);
+  const { values, setValue, replaceValues, reset } = useUrlQueryState<{
+    search: string;
+    role: string;
+    status: string;
+  }>({
+    defaults: {
+      search: "",
+      role: "all",
+      status: "all",
+    },
+    debouncedKeys: ["search"],
+    modeByKey: {
+      search: "replace",
+    },
+    normalize: (current) => {
+      const nextUpdates: Partial<Record<keyof typeof current, string | null>> =
+        {};
+      const validStatuses = ["all", "active", "invited", "inactive"];
+
+      if (!validStatuses.includes(current.status)) {
+        nextUpdates.status = null;
+      }
+
+      return Object.keys(nextUpdates).length > 0 ? nextUpdates : null;
+    },
+  });
+
+  const search = values.search;
+  const roleFilter = values.role;
+  const statusFilter = values.status;
 
   useEffect(() => {
     let cancelled = false;
@@ -92,6 +122,12 @@ export default function SettingsUsersPage() {
     [roles],
   );
 
+  useEffect(() => {
+    if (roleFilter !== "all" && !roles.some((role) => role.id === roleFilter)) {
+      replaceValues({ role: null });
+    }
+  }, [replaceValues, roleFilter, roles]);
+
   const filteredUsers = useMemo(
     () =>
       users.filter((user) => {
@@ -106,6 +142,15 @@ export default function SettingsUsersPage() {
       }),
     [roleFilter, search, statusFilter, users],
   );
+
+  const hasActiveFilters =
+    search.trim() !== "" || roleFilter !== "all" || statusFilter !== "all";
+
+  useEffect(() => {
+    if (hasActiveFilters && !showFilters) {
+      setShowFilters(true);
+    }
+  }, [hasActiveFilters, showFilters]);
 
   const refresh = async () => {
     const nextUsers = await fetchUsers();
@@ -340,34 +385,64 @@ export default function SettingsUsersPage() {
             </Button>
           }
         >
-          <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-            <Input
-              label={t("search")}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <Select
-              label={t("filters.role")}
-              value={roleFilter}
-              onChange={setRoleFilter}
-              options={[
-                { value: "all", label: tCommon("all") },
-                ...roles.map((role) => ({
-                  value: role.id,
-                  label: role.name,
-                })),
-              ]}
-            />
-            <Select
-              label={t("filters.status")}
-              value={statusFilter}
-              onChange={setStatusFilter}
-              options={[
-                { value: "all", label: tCommon("all") },
-                { value: "active", label: t("statuses.active") },
-                { value: "invited", label: t("statuses.invited") },
-                { value: "inactive", label: t("statuses.inactive") },
-              ]}
+          <div className="mb-4">
+            <FilterPanel
+              showFilters={showFilters}
+              onToggleFilters={() => setShowFilters((current) => !current)}
+              hasActiveFilters={hasActiveFilters}
+              toggleTitle={t("filter_button")}
+              toggleAriaLabel={t("filter_button")}
+              className="bg-transparent p-0 shadow-none"
+              clearAction={null}
+              searchSlot={
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="min-w-60 flex-1">
+                    <Input
+                      value={search}
+                      onChange={(event) =>
+                        setValue("search", event.target.value, "replace")
+                      }
+                      placeholder={t("search")}
+                    />
+                  </div>
+                  {hasActiveFilters ? (
+                    <Button
+                      variant="outline"
+                      leftIcon={<X className="h-4 w-4" />}
+                      onClick={() => reset(undefined, "replace")}
+                    >
+                      {t("clear_filters")}
+                    </Button>
+                  ) : null}
+                </div>
+              }
+              filtersSlot={
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <Select
+                    label={t("filters.role")}
+                    value={roleFilter}
+                    onChange={(value) => setValue("role", value, "push")}
+                    options={[
+                      { value: "all", label: tCommon("all") },
+                      ...roles.map((role) => ({
+                        value: role.id,
+                        label: role.name,
+                      })),
+                    ]}
+                  />
+                  <Select
+                    label={t("filters.status")}
+                    value={statusFilter}
+                    onChange={(value) => setValue("status", value, "push")}
+                    options={[
+                      { value: "all", label: tCommon("all") },
+                      { value: "active", label: t("statuses.active") },
+                      { value: "invited", label: t("statuses.invited") },
+                      { value: "inactive", label: t("statuses.inactive") },
+                    ]}
+                  />
+                </div>
+              }
             />
           </div>
 

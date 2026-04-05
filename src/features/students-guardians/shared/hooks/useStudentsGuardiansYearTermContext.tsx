@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   createContext,
@@ -60,7 +60,12 @@ function useStudentsGuardiansYearTermContextState(): StudentsGuardiansYearTermCo
 
   const updateURL = useCallback(
     (newYearId: string, newTermId: string) => {
-      if (!pathname.includes("/students-guardians")) return;
+      if (
+        !pathname.includes("/students-guardians") &&
+        !pathname.includes("/nedaa")
+      ) {
+        return;
+      }
 
       const params = new URLSearchParams(
         typeof window !== "undefined" ? window.location.search : searchParams.toString(),
@@ -319,3 +324,6 @@ export function useStudentsGuardiansYearTermContext(): StudentsGuardiansYearTerm
 export function useOptionalStudentsGuardiansYearTermContext(): StudentsGuardiansYearTermContext | null {
   return useContext(StudentsGuardiansYearTermContextValue);
 }
+
+
+

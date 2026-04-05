@@ -8,12 +8,11 @@ import {
   CheckCircle,
   AlertCircle,
   Search,
-  Filter,
   X,
   Download,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable, FilterPanel } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import DocumentViewerModal from "@/features/admissions/applications/components/modals/DocumentViewerModal";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
@@ -327,34 +326,23 @@ export default function DocumentsCenter() {
         </div>
 
         {/* Filters */}
-        <div className="space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="relative flex-1 min-w-0">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-              type="text"
-              placeholder={t("search_placeholder")}
-              value={searchQuery}
-              onChange={(e) => setValue("search", e.target.value, "replace")}
-              className={`w-full pl-10 pr-4 py-2.5 bg-white border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-black/60 focus:border-transparent text-sm min-h-[44px] ${
-                searchQuery
-                  ? "border-primary ring-2 ring-primary/20"
-                    : "border-gray-200"
-                }`}
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors min-h-[44px] ${
-                  showFilters
-                    ? "bg-primary text-white"
-                    : "bg-white border border-gray-200 hover:bg-gray-50 text-gray-700"
-                }`}
-              >
-                <Filter className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">{t("filters")}</span>
-              </button>
+        <FilterPanel
+          searchSlot={
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative flex-1 min-w-0">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder={t("search_placeholder")}
+                  value={searchQuery}
+                  onChange={(e) => setValue("search", e.target.value, "replace")}
+                  className={`w-full pl-10 pr-4 py-2.5 bg-white border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-black/60 focus:border-transparent text-sm min-h-[44px] ${
+                    searchQuery
+                      ? "border-primary ring-2 ring-primary/20"
+                      : "border-gray-200"
+                  }`}
+                />
+              </div>
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
@@ -365,9 +353,8 @@ export default function DocumentsCenter() {
                 </button>
               )}
             </div>
-          </div>
-
-          {showFilters && (
+          }
+          filtersSlot={
             <div className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
               <label className="block text-xs font-medium text-gray-700 mb-2">
                 {t("document_status")}
@@ -384,8 +371,15 @@ export default function DocumentsCenter() {
                 <option value="missing">{t("missing")}</option>
               </select>
             </div>
-          )}
-        </div>
+          }
+          showFilters={showFilters}
+          onToggleFilters={() => setShowFilters(!showFilters)}
+          clearAction={null}
+          hasActiveFilters={hasActiveFilters}
+          toggleTitle={t("filters")}
+          toggleAriaLabel={t("filters")}
+          className="p-0 bg-transparent shadow-none"
+        />
 
         {/* Documents Table */}
         {filteredDocuments.length === 0 ? (
