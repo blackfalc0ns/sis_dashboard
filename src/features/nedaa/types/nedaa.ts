@@ -6,11 +6,18 @@ export type NedaaStatus =
   | "completed"
   | "cancelled";
 
-export type NedaaGateId =
-  | "main_gate"
-  | "north_gate"
-  | "south_gate"
-  | "staff_gate";
+export type NedaaGateId = string;
+
+export interface NedaaGate {
+  id: NedaaGateId;
+  nameEn: string;
+  nameAr: string;
+  locationHint?: string;
+  sortOrder: number;
+  isActive: boolean;
+  supportsPickup: boolean;
+  isStaffOnly?: boolean;
+}
 
 export type NedaaTimelineEventType =
   | "created"
@@ -57,7 +64,7 @@ export interface NedaaOverviewStats {
 }
 
 export interface NedaaGateStats {
-  gate: NedaaGateId;
+  gate: NedaaGate;
   waitingCount: number;
   preparingCount: number;
   readyCount: number;
@@ -72,7 +79,9 @@ export interface NedaaSettings {
   pickupEndTime: string;
   duplicateRequestCooldownMinutes: number;
   autoCancelTimeoutMinutes: number;
-  activeGates: NedaaGateId[];
+  gates: NedaaGate[];
+  defaultGateId?: NedaaGateId | null;
+  activeGates?: NedaaGateId[];
 }
 
 export interface NedaaOverviewData {

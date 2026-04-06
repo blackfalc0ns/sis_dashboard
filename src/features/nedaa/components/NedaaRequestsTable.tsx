@@ -1,15 +1,23 @@
-﻿"use client";
+"use client";
 
 import { CheckCircle2, XCircle } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { DataTable } from "@/components/ui";
 import NedaaStatusBadge from "@/features/nedaa/components/NedaaStatusBadge";
-import type { NedaaRequest, NedaaStatus } from "@/features/nedaa/types/nedaa";
-import { getNedaaActionStatuses } from "@/features/nedaa/utils/nedaaPresentation";
+import type {
+  NedaaGate,
+  NedaaRequest,
+  NedaaStatus,
+} from "@/features/nedaa/types/nedaa";
+import {
+  getNedaaActionStatuses,
+  getNedaaGateLabel,
+} from "@/features/nedaa/utils/nedaaPresentation";
 import { formatDateTime } from "@/utils/formatters/dateTime";
 
 interface NedaaRequestsTableProps {
   requests: NedaaRequest[];
+  gates?: NedaaGate[];
   searchQuery?: string;
   mode?: "operations" | "history" | "latest";
   onRowClick?: (request: NedaaRequest) => void;
@@ -45,6 +53,7 @@ function PermissionBadge({
 
 export default function NedaaRequestsTable({
   requests,
+  gates = [],
   searchQuery = "",
   mode = "operations",
   onRowClick,
@@ -91,7 +100,8 @@ export default function NedaaRequestsTable({
     {
       key: "gate",
       label: t("table.gate"),
-      render: (value: unknown) => t(`gates.${String(value)}`),
+      render: (value: unknown) =>
+        getNedaaGateLabel(String(value), gates, locale),
     },
     {
       key: "status",

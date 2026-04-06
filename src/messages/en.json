@@ -5935,7 +5935,9 @@
       "ready": "Ready",
       "completed_today": "Completed Today",
       "avg_handling_time": "Avg Handling Time",
-      "active_requests": "{count} active requests"
+      "active_requests": "{count} active requests",
+      "empty_state": "No pickup-enabled gates are active yet.",
+      "active_requests_label": "Live queue"
     },
     "overview": {
       "title": "Nedaa Overview",
@@ -5991,7 +5993,7 @@
     },
     "settings": {
       "title": "Nedaa Settings",
-      "subtitle": "Configure radius rules, pickup windows, and active gates for the Nedaa workflow.",
+      "subtitle": "Configure radius rules, pickup windows, default routing, and gate management for the Nedaa workflow.",
       "save": "Save Settings",
       "reset": "Reset",
       "rules_title": "Operational Rules",
@@ -6004,7 +6006,52 @@
       "pickup_start": "Pickup Start Time",
       "pickup_end": "Pickup End Time",
       "active_gates_title": "Active Gates",
-      "active_gates_subtitle": "Enable the gates that should appear in the Nedaa workflow."
+      "active_gates_subtitle": "Enable the gates that should appear in the Nedaa workflow.",
+      "default_gate": "Default Gate",
+      "no_default_gate": "No default gate selected",
+      "default_gate_badge": "Default gate",
+      "no_location_hint": "No location hint added",
+      "gate_management_title": "Gate Management",
+      "gate_management_subtitle": "Create, update, and control the gates available to the Nedaa pickup workflow.",
+      "gate_management_empty_title": "No gates configured",
+      "gate_management_empty_description": "Add a gate to start routing Nedaa requests through operational checkpoints.",
+      "gate_management_delete_confirm": "Delete {gateName}? Active request history will keep the last known gate label until it is reassigned.",
+      "add_gate": "Add Gate",
+      "edit_gate": "Edit Gate",
+      "delete_gate": "Delete Gate",
+      "activate_gate": "Enable Gate",
+      "deactivate_gate": "Disable Gate",
+      "gate_status": {
+        "active": "Active",
+        "inactive": "Inactive",
+        "supports_pickup": "Supports pickup",
+        "no_pickup": "Not in pickup flow",
+        "staff_only": "Staff only"
+      },
+      "gate_form": {
+        "create_title": "Add Nedaa gate",
+        "edit_title": "Edit Nedaa gate",
+        "create_action": "Create gate",
+        "save_action": "Save gate",
+        "name_ar": "Gate Name (AR)",
+        "name_en": "Gate Name (EN)",
+        "generated_id": "Gate ID",
+        "generated_id_help": "Generated automatically from the English name when creating a new gate.",
+        "location_hint": "Location Hint",
+        "location_hint_placeholder": "Example: North parking lane near the reception building",
+        "active_toggle": "Gate is active",
+        "active_toggle_help": "Inactive gates stay configured but do not appear on the active Nedaa board.",
+        "supports_pickup_toggle": "Supports pickup workflow",
+        "supports_pickup_toggle_help": "Only active pickup-enabled gates appear in Nedaa request routing and gate statistics.",
+        "staff_only_toggle": "Staff-only gate",
+        "staff_only_toggle_help": "Use this for internal or controlled-access gates that require additional operator awareness.",
+        "validation": {
+          "name_ar_required": "Arabic gate name is required.",
+          "name_en_required": "English gate name is required.",
+          "invalid_id": "A valid gate ID could not be generated from the English name.",
+          "duplicate_id": "Another gate already uses this generated ID. Adjust the English name and try again."
+        }
+      }
     },
     "read_only_notice": "The selected term is closed. Nedaa actions are currently read-only.",
     "timeline": {
@@ -6035,6 +6082,11 @@
       "load_gates_failed": "Failed to load Nedaa gates.",
       "load_history_failed": "Failed to load Nedaa history.",
       "load_settings_failed": "Failed to load Nedaa settings."
+    },
+    "access": {
+      "denied_title": "You do not have access to this Nedaa area",
+      "denied_description": "Ask a system administrator to update your Nedaa permissions if you need access.",
+      "manage_notice": "You can view this Nedaa area, but your role cannot make changes here."
     }
   }
 }

@@ -1,28 +1,33 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
+import NedaaAccessNotice from "@/features/nedaa/components/NedaaAccessNotice";
 import {
   fetchNedaaRequests,
   fetchNedaaSettings,
   updateNedaaRequestStatus,
 } from "@/features/nedaa/services/nedaaService";
 import type {
-  NedaaGateId,
   NedaaRequest,
   NedaaSettings,
   NedaaStatus,
 } from "@/features/nedaa/types/nedaa";
 import NedaaRequestsView from "@/features/nedaa/views/NedaaRequestsView";
 import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
+import { getNedaaGateOptionIds } from "@/features/nedaa/utils/nedaaPresentation";
 
 export default function NedaaRequestsPage() {
   const t = useTranslations("nedaa");
   const { showSuccess, showError } = useToast();
+  const { hasPermission } = usePermissions();
   const { yearId, termId, isLoading: isContextLoading, error, isReadOnly } =
     useStudentsGuardiansYearTermContext();
+  const canViewRequests = hasPermission("nedaa.requests.view");
+  const canManageRequests = hasPermission("nedaa.requests.manage");
   const [requests, setRequests] = useState<NedaaRequest[]>([]);
   const [settings, setSettings] = useState<NedaaSettings | null>(null);
   const [search, setSearch] = useState("");
@@ -36,7 +41,8 @@ export default function NedaaRequestsPage() {
   useEffect(() => {
     let cancelled = false;
 
-    if (isContextLoading || !yearId || !termId) {
+    if (!canViewRequests || isContextLoading || !yearId || !termId) {
+      setIsLoading(false);
       return () => {
         cancelled = true;
       };
@@ -72,7 +78,7 @@ export default function NedaaRequestsPage() {
     return () => {
       cancelled = true;
     };
-  }, [isContextLoading, t, termId, yearId]);
+  }, [canViewRequests, isContextLoading, t, termId, yearId]);
 
   const visibleRequests = useMemo(
     () =>
@@ -94,16 +100,23 @@ export default function NedaaRequestsPage() {
   const hasActiveFilters =
     search.trim() !== "" || status !== "all" || gate !== "all";
 
-  const gateOptions = useMemo<NedaaGateId[]>(() => {
-    const values = new Set<NedaaGateId>(settings?.activeGates || []);
-    requests.forEach((request) => values.add(request.gate));
-    return Array.from(values);
-  }, [requests, settings?.activeGates]);
+  const gateOptions = useMemo(
+    () =>
+      getNedaaGateOptionIds(
+        settings?.gates || [],
+        requests.map((request) => request.gate),
+      ),
+    [requests, settings?.gates],
+  );
 
   const handleStatusUpdate = async (
     requestId: string,
     nextStatus: NedaaStatus,
   ) => {
+    if (!canManageRequests || isReadOnly) {
+      return;
+    }
+
     setPendingRequestId(requestId);
     try {
       const updatedRequest = await updateNedaaRequestStatus(requestId, nextStatus);
@@ -119,6 +132,10 @@ export default function NedaaRequestsPage() {
       setPendingRequestId(null);
     }
   };
+
+  if (!canViewRequests) {
+    return <NedaaAccessNotice />;
+  }
 
   if (isContextLoading || isLoading) {
     return <MainLoader />;
@@ -137,12 +154,15 @@ export default function NedaaRequestsPage() {
   return (
     <NedaaRequestsView
       requests={visibleRequests}
+      gates={settings.gates}
       search={search}
       status={status}
       gate={gate}
       gateOptions={gateOptions}
       showFilters={showFilters}
       hasActiveFilters={hasActiveFilters}
+      canManage={canManageRequests}
+      manageNotice={!canManageRequests ? t("access.manage_notice") : null}
       onSearchChange={setSearch}
       onStatusChange={setStatus}
       onGateChange={setGate}

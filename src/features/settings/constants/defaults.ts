@@ -59,6 +59,11 @@ export const defaultRoles: RoleDefinition[] = [
       "settings.backup.view",
       "settings.backup.manage",
       "settings.overview.view",
+      "nedaa.overview.view",
+      "nedaa.requests.view",
+      "nedaa.requests.manage",
+      "nedaa.settings.view",
+      "nedaa.settings.manage",
     ],
   },
   {
@@ -76,6 +81,11 @@ export const defaultRoles: RoleDefinition[] = [
       "settings.templates.view",
       "settings.templates.manage",
       "settings.users.view",
+      "nedaa.overview.view",
+      "nedaa.requests.view",
+      "nedaa.requests.manage",
+      "nedaa.settings.view",
+      "nedaa.settings.manage",
     ],
   },
   {

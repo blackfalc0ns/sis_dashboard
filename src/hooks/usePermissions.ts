@@ -32,7 +32,12 @@ export type PermissionKey =
   | "settings.security.view"
   | "settings.security.manage"
   | "settings.backup.view"
-  | "settings.backup.manage";
+  | "settings.backup.manage"
+  | "nedaa.overview.view"
+  | "nedaa.requests.view"
+  | "nedaa.requests.manage"
+  | "nedaa.settings.view"
+  | "nedaa.settings.manage";
 
 const legacyAdminPermissions: PermissionKey[] = [
   "attendance.rollcall.submit",
@@ -42,15 +47,18 @@ const legacyAdminPermissions: PermissionKey[] = [
 ];
 
 export function usePermissions() {
-  const [sessionUser, setSessionUser] = useState(() => getCurrentSettingsSessionUser());
-  const [resolvedSettingsPermissions, setResolvedSettingsPermissions] = useState<PermissionKey[]>(
-    () => getCurrentSettingsPermissions() as PermissionKey[],
+  const [sessionUser, setSessionUser] = useState(() =>
+    getCurrentSettingsSessionUser(),
   );
+  const [resolvedSettingsPermissions, setResolvedSettingsPermissions] =
+    useState<PermissionKey[]>(() => getCurrentSettingsPermissions() as PermissionKey[]);
 
   useEffect(() => {
     const sync = () => {
       setSessionUser(getCurrentSettingsSessionUser());
-      setResolvedSettingsPermissions(getCurrentSettingsPermissions() as PermissionKey[]);
+      setResolvedSettingsPermissions(
+        getCurrentSettingsPermissions() as PermissionKey[],
+      );
     };
 
     window.addEventListener(SETTINGS_SESSION_EVENT, sync);

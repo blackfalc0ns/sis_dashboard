@@ -3,6 +3,7 @@ import type { StudentGuardian } from "@/features/students-guardians/students/typ
 import type { StudentWithEnrollmentContext } from "@/features/students-guardians/students/services/studentsService";
 import type {
   NedaaContext,
+  NedaaGate,
   NedaaGateId,
   NedaaGateStats,
   NedaaOverviewData,
@@ -13,21 +14,82 @@ import type {
 } from "@/features/nedaa/types/nedaa";
 import {
   NEDAA_ACTIVE_STATUSES,
-  NEDAA_GATE_OPTIONS,
+  createNedaaGateIdFromName,
+  getNedaaActivePickupGates,
+  getNedaaOrderedGates,
   isNedaaActiveStatus,
 } from "@/features/nedaa/utils/nedaaPresentation";
 
 const delay = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
 
-let nedaaSettingsStore: NedaaSettings = {
+const DEFAULT_NEDAA_GATES: NedaaGate[] = [
+  {
+    id: "main_gate",
+    nameEn: "Main Gate",
+    nameAr: "البوابة الرئيسية",
+    locationHint: "Front reception entrance",
+    sortOrder: 0,
+    isActive: true,
+    supportsPickup: true,
+    isStaffOnly: false,
+  },
+  {
+    id: "north_gate",
+    nameEn: "North Gate",
+    nameAr: "البوابة الشمالية",
+    locationHint: "North parking drop-off lane",
+    sortOrder: 1,
+    isActive: true,
+    supportsPickup: true,
+    isStaffOnly: false,
+  },
+  {
+    id: "south_gate",
+    nameEn: "South Gate",
+    nameAr: "البوابة الجنوبية",
+    locationHint: "Bus lane exit",
+    sortOrder: 2,
+    isActive: true,
+    supportsPickup: true,
+    isStaffOnly: false,
+  },
+  {
+    id: "staff_gate",
+    nameEn: "Staff Gate",
+    nameAr: "البوابة للموظفين",
+    locationHint: "Administration block access",
+    sortOrder: 3,
+    isActive: false,
+    supportsPickup: false,
+    isStaffOnly: true,
+  },
+];
+
+const DEFAULT_NEDAA_SETTINGS: NedaaSettings = {
   allowedRadiusMeters: 250,
   pickupStartTime: "13:15",
   pickupEndTime: "15:30",
   duplicateRequestCooldownMinutes: 7,
   autoCancelTimeoutMinutes: 25,
-  activeGates: ["main_gate", "north_gate", "south_gate"],
+  gates: DEFAULT_NEDAA_GATES,
+  defaultGateId: "main_gate",
+  activeGates: DEFAULT_NEDAA_GATES.filter(
+    (gate) => gate.isActive && gate.supportsPickup,
+  ).map((gate) => gate.id),
 };
 
+type LegacyNedaaSettings = Omit<NedaaSettings, "gates"> & {
+  gates?: NedaaGate[];
+  activeGates?: NedaaGateId[];
+};
+
+type NedaaGatePayload = Omit<NedaaGate, "sortOrder"> & {
+  sortOrder?: number;
+};
+
+let nedaaSettingsStore: LegacyNedaaSettings = cloneSettings(
+  DEFAULT_NEDAA_SETTINGS,
+);
 let nedaaRequestsStore: NedaaRequest[] | null = null;
 
 const statusSeed: NedaaStatus[] = [
@@ -39,14 +101,16 @@ const statusSeed: NedaaStatus[] = [
   "cancelled",
 ];
 
-const gateSeed: NedaaGateId[] = ["main_gate", "north_gate", "south_gate"];
-
 function toIsoMinutesAgo(minutesAgo: number): string {
   return new Date(Date.now() - minutesAgo * 60 * 1000).toISOString();
 }
 
 function normalizeRelation(relation: string): string {
   return relation.toLowerCase() || "guardian";
+}
+
+function cloneGate(gate: NedaaGate): NedaaGate {
+  return { ...gate };
 }
 
 function cloneTimelineEvent(event: NedaaTimelineEvent): NedaaTimelineEvent {
@@ -60,11 +124,194 @@ function cloneRequest(request: NedaaRequest): NedaaRequest {
   };
 }
 
+function deriveActiveGateIds(gates: NedaaGate[]): NedaaGateId[] {
+  return gates
+    .filter((gate) => gate.isActive && gate.supportsPickup)
+    .map((gate) => gate.id);
+}
+
 function cloneSettings(settings: NedaaSettings): NedaaSettings {
+  const orderedGates = getNedaaOrderedGates(settings.gates).map(cloneGate);
+
   return {
     ...settings,
-    activeGates: [...settings.activeGates],
+    gates: orderedGates,
+    defaultGateId: settings.defaultGateId ?? null,
+    activeGates: deriveActiveGateIds(orderedGates),
   };
+}
+
+function normalizeGate(gate: Partial<NedaaGate>, index: number): NedaaGate {
+  const generatedId =
+    gate.id?.trim() ||
+    createNedaaGateIdFromName(gate.nameEn || "") ||
+    `gate_${index + 1}`;
+  const locationHint = gate.locationHint?.trim();
+
+  return {
+    id: generatedId,
+    nameEn: gate.nameEn?.trim() || `Gate ${index + 1}`,
+    nameAr: gate.nameAr?.trim() || `Ø¨ÙˆØ§Ø¨Ø© ${index + 1}`,
+    locationHint: locationHint || undefined,
+    sortOrder: typeof gate.sortOrder === "number" ? gate.sortOrder : index,
+    isActive: Boolean(gate.isActive),
+    supportsPickup:
+      typeof gate.supportsPickup === "boolean" ? gate.supportsPickup : true,
+    isStaffOnly: Boolean(gate.isStaffOnly),
+  };
+}
+
+function resolveDefaultGateId(
+  gates: NedaaGate[],
+  preferred?: NedaaGateId | null,
+): NedaaGateId | null {
+  const activePickupGateIds = getNedaaActivePickupGates(gates).map(
+    (gate) => gate.id,
+  );
+
+  if (preferred === null) {
+    return null;
+  }
+
+  if (preferred && activePickupGateIds.includes(preferred)) {
+    return preferred;
+  }
+
+  return activePickupGateIds[0] || null;
+}
+
+function normalizeSettings(
+  settings?: LegacyNedaaSettings | null,
+): NedaaSettings {
+  const source = settings ?? DEFAULT_NEDAA_SETTINGS;
+  const defaultGateMap = new Map(
+    DEFAULT_NEDAA_GATES.map((gate) => [gate.id, gate] as const),
+  );
+  const sourceGates =
+    Array.isArray(source.gates) && source.gates.length > 0
+      ? source.gates
+      : DEFAULT_NEDAA_GATES;
+  const legacyActiveGates = Array.isArray(source.activeGates)
+    ? new Set(source.activeGates)
+    : null;
+  const hasExplicitDefaultGate = Object.prototype.hasOwnProperty.call(
+    source,
+    "defaultGateId",
+  );
+  const gateMap = new Map<NedaaGateId, NedaaGate>();
+
+  sourceGates.forEach((gate, index) => {
+    const defaultGate = defaultGateMap.get(gate.id || "");
+    const normalized = normalizeGate(
+      {
+        ...defaultGate,
+        ...gate,
+        isActive: legacyActiveGates
+          ? legacyActiveGates.has(gate.id || defaultGate?.id || "")
+          : (gate.isActive ?? defaultGate?.isActive),
+        supportsPickup: gate.supportsPickup ?? defaultGate?.supportsPickup,
+        isStaffOnly: gate.isStaffOnly ?? defaultGate?.isStaffOnly,
+      },
+      index,
+    );
+
+    gateMap.set(normalized.id, normalized);
+  });
+
+  const gates = getNedaaOrderedGates(Array.from(gateMap.values())).map(
+    (gate, index) => ({
+      ...gate,
+      sortOrder: index,
+    }),
+  );
+
+  return {
+    allowedRadiusMeters:
+      typeof source.allowedRadiusMeters === "number"
+        ? source.allowedRadiusMeters
+        : DEFAULT_NEDAA_SETTINGS.allowedRadiusMeters,
+    pickupStartTime:
+      source.pickupStartTime || DEFAULT_NEDAA_SETTINGS.pickupStartTime,
+    pickupEndTime: source.pickupEndTime || DEFAULT_NEDAA_SETTINGS.pickupEndTime,
+    duplicateRequestCooldownMinutes:
+      typeof source.duplicateRequestCooldownMinutes === "number"
+        ? source.duplicateRequestCooldownMinutes
+        : DEFAULT_NEDAA_SETTINGS.duplicateRequestCooldownMinutes,
+    autoCancelTimeoutMinutes:
+      typeof source.autoCancelTimeoutMinutes === "number"
+        ? source.autoCancelTimeoutMinutes
+        : DEFAULT_NEDAA_SETTINGS.autoCancelTimeoutMinutes,
+    gates,
+    defaultGateId: resolveDefaultGateId(
+      gates,
+      hasExplicitDefaultGate ? (source.defaultGateId ?? null) : undefined,
+    ),
+    activeGates: deriveActiveGateIds(gates),
+  };
+}
+
+function persistSettings(
+  settings: LegacyNedaaSettings | NedaaSettings,
+): NedaaSettings {
+  const normalized = normalizeSettings(settings);
+  nedaaSettingsStore = cloneSettings(normalized);
+  return cloneSettings(normalized);
+}
+
+function getCurrentSettings(): NedaaSettings {
+  return normalizeSettings(nedaaSettingsStore);
+}
+
+function getSeedGateIds(settings: NedaaSettings): NedaaGateId[] {
+  const activePickupGateIds = getNedaaActivePickupGates(settings.gates).map(
+    (gate) => gate.id,
+  );
+
+  if (activePickupGateIds.length > 0) {
+    return activePickupGateIds;
+  }
+
+  const pickupGateIds = getNedaaOrderedGates(settings.gates)
+    .filter((gate) => gate.supportsPickup)
+    .map((gate) => gate.id);
+
+  if (pickupGateIds.length > 0) {
+    return pickupGateIds;
+  }
+
+  if (settings.defaultGateId) {
+    return [settings.defaultGateId];
+  }
+
+  return DEFAULT_NEDAA_GATES.map((gate) => gate.id);
+}
+
+function resolveFallbackGateId(
+  settings: NedaaSettings,
+  preferred?: NedaaGateId | null,
+): NedaaGateId | null {
+  const configuredGateIds = new Set(settings.gates.map((gate) => gate.id));
+
+  if (preferred && configuredGateIds.has(preferred)) {
+    return preferred;
+  }
+
+  if (settings.defaultGateId && configuredGateIds.has(settings.defaultGateId)) {
+    return settings.defaultGateId;
+  }
+
+  return getSeedGateIds(settings)[0] || null;
+}
+
+function normalizeRequestGateId(
+  gateId: NedaaGateId,
+  settings: NedaaSettings,
+): NedaaGateId {
+  if (settings.gates.some((gate) => gate.id === gateId)) {
+    return gateId;
+  }
+
+  return resolveFallbackGateId(settings, null) || gateId;
 }
 
 function isSameDay(dateIso: string, reference: Date): boolean {
@@ -189,12 +436,18 @@ async function buildSeedRequest(
   student: StudentWithEnrollmentContext,
   guardian: StudentGuardian,
   index: number,
+  settings: NedaaSettings,
 ): Promise<NedaaRequest> {
   const id = `NED-${(1001 + index).toString()}`;
   const baseStatus = statusSeed[index % statusSeed.length];
-  const gate = gateSeed[index % gateSeed.length];
+  const gateIds = getSeedGateIds(settings);
+  const gate =
+    gateIds[index % Math.max(gateIds.length, 1)] ||
+    resolveFallbackGateId(settings) ||
+    settings.gates[0]?.id ||
+    "gate_1";
   const distanceMeters = 80 + (index % 5) * 55;
-  const insideZone = distanceMeters <= nedaaSettingsStore.allowedRadiusMeters;
+  const insideZone = distanceMeters <= settings.allowedRadiusMeters;
   const canPickup = index % 7 === 0 ? false : guardian.can_pickup;
   const note = !canPickup
     ? "Guardian attempted pickup without permission."
@@ -240,6 +493,7 @@ async function ensureSeededRequests(): Promise<NedaaRequest[]> {
     return nedaaRequestsStore;
   }
 
+  const settings = getCurrentSettings();
   const students = await studentsService.fetchStudentsWithEnrollment();
   const candidateStudents = students.slice(0, 18);
 
@@ -254,7 +508,7 @@ async function ensureSeededRequests(): Promise<NedaaRequest[]> {
         return null;
       }
 
-      return buildSeedRequest(student, guardian, index);
+      return buildSeedRequest(student, guardian, index, settings);
     }),
   );
 
@@ -262,44 +516,60 @@ async function ensureSeededRequests(): Promise<NedaaRequest[]> {
     .filter((request): request is NedaaRequest => request !== null)
     .sort(
       (left, right) =>
-        new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+        new Date(right.createdAt).getTime() -
+        new Date(left.createdAt).getTime(),
     );
 
   return nedaaRequestsStore;
 }
 
+function withNormalizedGate(
+  request: NedaaRequest,
+  settings: NedaaSettings,
+): NedaaRequest {
+  return cloneRequest({
+    ...request,
+    gate: normalizeRequestGateId(request.gate, settings),
+  });
+}
+
 async function getScopedRequests(
   context?: NedaaContext,
 ): Promise<NedaaRequest[]> {
-  const requests = await ensureSeededRequests();
+  const settings = getCurrentSettings();
+  const requests = (await ensureSeededRequests()).map((request) =>
+    withNormalizedGate(request, settings),
+  );
 
   if (!context?.yearId && !context?.termId) {
-    return requests.map(cloneRequest);
+    return requests;
   }
 
-  const scopedStudents = await studentsService.fetchStudentsWithEnrollmentForContext(
-    context?.yearId,
-    context?.termId,
-  );
+  const scopedStudents =
+    await studentsService.fetchStudentsWithEnrollmentForContext(
+      context?.yearId,
+      context?.termId,
+    );
   const scopedIds = new Set(scopedStudents.map((student) => student.id));
 
-  return requests
-    .filter((request) => scopedIds.has(request.studentId))
-    .map(cloneRequest);
+  return requests.filter((request) => scopedIds.has(request.studentId));
 }
 
-function buildGateStats(requests: NedaaRequest[]): NedaaGateStats[] {
+function buildGateStats(
+  requests: NedaaRequest[],
+  settings: NedaaSettings,
+): NedaaGateStats[] {
   const today = new Date();
 
-  return nedaaSettingsStore.activeGates.map((gate) => {
-    const gateRequests = requests.filter((request) => request.gate === gate);
+  return getNedaaActivePickupGates(settings.gates).map((gate) => {
+    const gateRequests = requests.filter((request) => request.gate === gate.id);
     const completedTodayRequests = gateRequests.filter(
       (request) =>
         request.status === "completed" && isSameDay(request.updatedAt, today),
     );
 
     return {
-      gate,
+      gate: cloneGate(gate),
       waitingCount: gateRequests.filter((request) =>
         ["pending", "acknowledged"].includes(request.status),
       ).length,
@@ -319,9 +589,34 @@ function buildGateStats(requests: NedaaRequest[]): NedaaGateStats[] {
   });
 }
 
-export async function seedNedaaRequestsFromGuardians(): Promise<NedaaRequest[]> {
+function syncRequestsWithDeletedGate(
+  deletedGateId: NedaaGateId,
+  settings: NedaaSettings,
+) {
+  if (!nedaaRequestsStore) {
+    return;
+  }
+
+  const fallbackGateId = resolveFallbackGateId(settings, null);
+
+  nedaaRequestsStore = nedaaRequestsStore.map((request) => {
+    if (request.gate !== deletedGateId) {
+      return request;
+    }
+
+    return {
+      ...request,
+      gate: fallbackGateId || request.gate,
+    };
+  });
+}
+
+export async function seedNedaaRequestsFromGuardians(): Promise<
+  NedaaRequest[]
+> {
+  const settings = getCurrentSettings();
   const requests = await ensureSeededRequests();
-  return requests.map(cloneRequest);
+  return requests.map((request) => withNormalizedGate(request, settings));
 }
 
 export async function fetchNedaaOverview(
@@ -329,6 +624,7 @@ export async function fetchNedaaOverview(
 ): Promise<NedaaOverviewData> {
   await delay();
 
+  const settings = getCurrentSettings();
   const requests = await getScopedRequests(context);
   const today = new Date();
   const activeRequests = requests.filter((request) =>
@@ -357,7 +653,7 @@ export async function fetchNedaaOverview(
       blockedAttempts: blockedAttempts.length,
     },
     latestRequests: requests.slice(0, 5),
-    gates: buildGateStats(requests),
+    gates: buildGateStats(requests, settings),
   };
 }
 
@@ -372,8 +668,9 @@ export async function fetchNedaaGateBoard(
   context?: NedaaContext,
 ): Promise<NedaaGateStats[]> {
   await delay();
+  const settings = getCurrentSettings();
   const requests = await getScopedRequests(context);
-  return buildGateStats(requests);
+  return buildGateStats(requests, settings);
 }
 
 export async function fetchNedaaHistory(
@@ -388,7 +685,7 @@ export async function fetchNedaaHistory(
 
 export async function fetchNedaaSettings(): Promise<NedaaSettings> {
   await delay();
-  return cloneSettings(nedaaSettingsStore);
+  return cloneSettings(getCurrentSettings());
 }
 
 export async function saveNedaaSettings(
@@ -396,14 +693,158 @@ export async function saveNedaaSettings(
 ): Promise<NedaaSettings> {
   await delay();
 
-  nedaaSettingsStore = cloneSettings({
-    ...settings,
-    activeGates:
-      settings.activeGates.length > 0 ? settings.activeGates : NEDAA_GATE_OPTIONS,
-  });
+  const savedSettings = persistSettings(settings);
 
   // TODO: Replace this mock in-memory settings persistence with Nedaa settings API wiring.
-  return cloneSettings(nedaaSettingsStore);
+  return cloneSettings(savedSettings);
+}
+
+export async function createNedaaGate(
+  payload: NedaaGatePayload,
+): Promise<NedaaGate> {
+  await delay();
+
+  const current = getCurrentSettings();
+  const nextId =
+    payload.id.trim() || createNedaaGateIdFromName(payload.nameEn) || "gate";
+
+  if (current.gates.some((gate) => gate.id === nextId)) {
+    throw new Error("nedaa_gate_duplicate_id");
+  }
+
+  const nextGate = normalizeGate(
+    {
+      ...payload,
+      id: nextId,
+      sortOrder: current.gates.length,
+    },
+    current.gates.length,
+  );
+
+  const savedSettings = persistSettings({
+    ...current,
+    gates: [...current.gates, nextGate],
+    defaultGateId:
+      current.defaultGateId === undefined
+        ? nextGate.isActive && nextGate.supportsPickup
+          ? nextGate.id
+          : null
+        : (current.defaultGateId ?? null),
+  });
+
+  // TODO: Replace this mock gate creation with a dedicated Nedaa gates API endpoint.
+  return cloneGate(
+    savedSettings.gates.find((gate) => gate.id === nextGate.id) || nextGate,
+  );
+}
+
+export async function updateNedaaGate(
+  gateId: NedaaGateId,
+  payload: Partial<Omit<NedaaGate, "id">>,
+): Promise<NedaaGate> {
+  await delay();
+
+  const current = getCurrentSettings();
+  const currentGate = current.gates.find((gate) => gate.id === gateId);
+
+  if (!currentGate) {
+    throw new Error("nedaa_gate_not_found");
+  }
+
+  const savedSettings = persistSettings({
+    ...current,
+    gates: current.gates.map((gate) =>
+      gate.id === gateId
+        ? normalizeGate(
+            {
+              ...gate,
+              ...payload,
+              id: gate.id,
+              sortOrder: gate.sortOrder,
+            },
+            gate.sortOrder,
+          )
+        : gate,
+    ),
+  });
+
+  // TODO: Replace this mock gate update with a dedicated Nedaa gates API endpoint.
+  return cloneGate(
+    savedSettings.gates.find((gate) => gate.id === gateId) || currentGate,
+  );
+}
+
+export async function deleteNedaaGate(
+  gateId: NedaaGateId,
+): Promise<NedaaSettings> {
+  await delay();
+
+  const current = getCurrentSettings();
+  const nextGates = current.gates.filter((gate) => gate.id !== gateId);
+
+  if (nextGates.length === current.gates.length) {
+    throw new Error("nedaa_gate_not_found");
+  }
+
+  const savedSettings = persistSettings({
+    ...current,
+    gates: nextGates,
+    defaultGateId:
+      current.defaultGateId === gateId ? null : (current.defaultGateId ?? null),
+  });
+
+  syncRequestsWithDeletedGate(gateId, savedSettings);
+
+  // TODO: Replace this mock gate deletion with a dedicated Nedaa gates API endpoint.
+  return cloneSettings(savedSettings);
+}
+
+export async function toggleNedaaGateActive(
+  gateId: NedaaGateId,
+): Promise<NedaaGate> {
+  await delay();
+
+  const current = getCurrentSettings();
+  const currentGate = current.gates.find((gate) => gate.id === gateId);
+
+  if (!currentGate) {
+    throw new Error("nedaa_gate_not_found");
+  }
+
+  const updatedGate = await updateNedaaGate(gateId, {
+    isActive: !currentGate.isActive,
+  });
+
+  // TODO: Replace this mock gate activation toggle with a dedicated Nedaa gates API endpoint.
+  return updatedGate;
+}
+
+export async function reorderNedaaGates(
+  gateIds: NedaaGateId[],
+): Promise<NedaaSettings> {
+  await delay();
+
+  const current = getCurrentSettings();
+  const orderedIds = gateIds.filter((gateId) =>
+    current.gates.some((gate) => gate.id === gateId),
+  );
+  const remainingIds = current.gates
+    .map((gate) => gate.id)
+    .filter((gateId) => !orderedIds.includes(gateId));
+  const finalIds = [...orderedIds, ...remainingIds];
+
+  const savedSettings = persistSettings({
+    ...current,
+    gates: finalIds
+      .map((gateId, index) => {
+        const gate = current.gates.find((item) => item.id === gateId);
+        return gate ? { ...gate, sortOrder: index } : null;
+      })
+      .filter((gate): gate is NedaaGate => gate !== null),
+  });
+
+  // TODO: Replace this mock gate ordering with a dedicated Nedaa gates ordering API endpoint.
+  return cloneSettings(savedSettings);
 }
 
 export async function updateNedaaRequestStatus(
@@ -413,7 +854,9 @@ export async function updateNedaaRequestStatus(
   await delay();
 
   const requests = await ensureSeededRequests();
-  const requestIndex = requests.findIndex((request) => request.id === requestId);
+  const requestIndex = requests.findIndex(
+    (request) => request.id === requestId,
+  );
 
   if (requestIndex === -1) {
     throw new Error("nedaa_request_not_found");
@@ -421,7 +864,7 @@ export async function updateNedaaRequestStatus(
 
   const currentRequest = requests[requestIndex];
   if (currentRequest.status === status) {
-    return cloneRequest(currentRequest);
+    return withNormalizedGate(currentRequest, getCurrentSettings());
   }
 
   const updatedRequest: NedaaRequest = {
@@ -437,10 +880,7 @@ export async function updateNedaaRequestStatus(
         status,
         actor: status === "cancelled" ? "Security Desk" : "Front Desk",
         timestamp: new Date().toISOString(),
-        note:
-          status === "cancelled"
-            ? "pickup_request_cancelled"
-            : undefined,
+        note: status === "cancelled" ? "pickup_request_cancelled" : undefined,
       },
     ],
   };
@@ -452,5 +892,5 @@ export async function updateNedaaRequestStatus(
   );
 
   // TODO: Replace mock in-memory mutation with real Nedaa request status API.
-  return cloneRequest(updatedRequest);
+  return withNormalizedGate(updatedRequest, getCurrentSettings());
 }

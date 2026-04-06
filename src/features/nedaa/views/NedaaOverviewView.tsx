@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import {
@@ -13,14 +13,16 @@ import { useLocale, useTranslations } from "next-intl";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import NedaaGateBoard from "@/features/nedaa/components/NedaaGateBoard";
 import NedaaRequestsTable from "@/features/nedaa/components/NedaaRequestsTable";
-import type { NedaaOverviewData } from "@/features/nedaa/types/nedaa";
+import type { NedaaGate, NedaaOverviewData } from "@/features/nedaa/types/nedaa";
 import { formatNedaaMinutes } from "@/features/nedaa/utils/nedaaPresentation";
 
 export default function NedaaOverviewView({
   overview,
+  gates,
   isReadOnly = false,
 }: {
   overview: NedaaOverviewData;
+  gates: NedaaGate[];
   isReadOnly?: boolean;
 }) {
   const locale = useLocale();
@@ -117,6 +119,7 @@ export default function NedaaOverviewView({
           </div>
           <NedaaRequestsTable
             requests={overview.latestRequests}
+            gates={gates}
             mode="latest"
             showPagination={false}
           />

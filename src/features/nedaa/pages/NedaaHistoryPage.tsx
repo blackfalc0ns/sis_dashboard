@@ -1,24 +1,28 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import { usePermissions } from "@/hooks/usePermissions";
+import NedaaAccessNotice from "@/features/nedaa/components/NedaaAccessNotice";
 import {
   fetchNedaaHistory,
   fetchNedaaSettings,
 } from "@/features/nedaa/services/nedaaService";
 import type {
-  NedaaGateId,
   NedaaRequest,
   NedaaSettings,
 } from "@/features/nedaa/types/nedaa";
 import NedaaHistoryView from "@/features/nedaa/views/NedaaHistoryView";
 import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
+import { getNedaaGateOptionIds } from "@/features/nedaa/utils/nedaaPresentation";
 
 export default function NedaaHistoryPage() {
   const t = useTranslations("nedaa");
+  const { hasPermission } = usePermissions();
   const { yearId, termId, isLoading: isContextLoading, error } =
     useStudentsGuardiansYearTermContext();
+  const canViewRequests = hasPermission("nedaa.requests.view");
   const [history, setHistory] = useState<NedaaRequest[]>([]);
   const [settings, setSettings] = useState<NedaaSettings | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
@@ -32,7 +36,8 @@ export default function NedaaHistoryPage() {
   useEffect(() => {
     let cancelled = false;
 
-    if (isContextLoading || !yearId || !termId) {
+    if (!canViewRequests || isContextLoading || !yearId || !termId) {
+      setIsLoading(false);
       return () => {
         cancelled = true;
       };
@@ -69,13 +74,16 @@ export default function NedaaHistoryPage() {
     return () => {
       cancelled = true;
     };
-  }, [isContextLoading, t, termId, yearId]);
+  }, [canViewRequests, isContextLoading, t, termId, yearId]);
 
-  const gateOptions = useMemo<NedaaGateId[]>(() => {
-    const values = new Set<NedaaGateId>(settings?.activeGates || []);
-    history.forEach((request) => values.add(request.gate));
-    return Array.from(values);
-  }, [history, settings?.activeGates]);
+  const gateOptions = useMemo(
+    () =>
+      getNedaaGateOptionIds(
+        settings?.gates || [],
+        history.map((request) => request.gate),
+      ),
+    [history, settings?.gates],
+  );
 
   const filteredHistory = useMemo(
     () =>
@@ -111,6 +119,10 @@ export default function NedaaHistoryPage() {
   const hasActiveFilters =
     search.trim() !== "" || status !== "all" || gate !== "all";
 
+  if (!canViewRequests) {
+    return <NedaaAccessNotice />;
+  }
+
   if (isContextLoading || isLoading) {
     return <MainLoader />;
   }
@@ -128,6 +140,7 @@ export default function NedaaHistoryPage() {
   return (
     <NedaaHistoryView
       requests={filteredHistory}
+      gates={settings.gates}
       selectedRequest={selectedRequest}
       search={search}
       status={status}

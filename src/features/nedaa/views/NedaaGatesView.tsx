@@ -1,19 +1,25 @@
-﻿"use client";
+"use client";
 
 import { CheckCircle2, RadioTower, TimerReset } from "lucide-react";
 import { useTranslations } from "next-intl";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import NedaaGateBoard from "@/features/nedaa/components/NedaaGateBoard";
 import NedaaRequestsTable from "@/features/nedaa/components/NedaaRequestsTable";
-import type { NedaaGateStats, NedaaRequest } from "@/features/nedaa/types/nedaa";
+import type {
+  NedaaGate,
+  NedaaGateStats,
+  NedaaRequest,
+} from "@/features/nedaa/types/nedaa";
 
 export default function NedaaGatesView({
   gates,
   activeRequests,
+  requestGates,
   isReadOnly = false,
 }: {
   gates: NedaaGateStats[];
   activeRequests: NedaaRequest[];
+  requestGates: NedaaGate[];
   isReadOnly?: boolean;
 }) {
   const t = useTranslations("nedaa");
@@ -99,6 +105,7 @@ export default function NedaaGatesView({
         </div>
         <NedaaRequestsTable
           requests={activeRequests}
+          gates={requestGates}
           mode="latest"
           showPagination={false}
         />

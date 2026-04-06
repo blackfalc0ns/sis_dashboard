@@ -1,4 +1,5 @@
 import type {
+  NedaaGate,
   NedaaGateId,
   NedaaStatus,
   NedaaTimelineEvent,
@@ -18,13 +19,6 @@ export const NEDAA_ALL_STATUSES: NedaaStatus[] = [
   "ready",
   "completed",
   "cancelled",
-];
-
-export const NEDAA_GATE_OPTIONS: NedaaGateId[] = [
-  "main_gate",
-  "north_gate",
-  "south_gate",
-  "staff_gate",
 ];
 
 export function isNedaaActiveStatus(status: NedaaStatus): boolean {
@@ -68,4 +62,70 @@ export function getNedaaTimelineLabelKey(event: NedaaTimelineEvent): string {
     default:
       return "timeline.updated";
   }
+}
+
+export function getNedaaOrderedGates(gates: NedaaGate[]): NedaaGate[] {
+  return [...gates].sort(
+    (left, right) =>
+      left.sortOrder - right.sortOrder || left.nameEn.localeCompare(right.nameEn),
+  );
+}
+
+export function getNedaaActivePickupGates(gates: NedaaGate[]): NedaaGate[] {
+  return getNedaaOrderedGates(gates).filter(
+    (gate) => gate.isActive && gate.supportsPickup,
+  );
+}
+
+export function getNedaaDefaultGateOptions(gates: NedaaGate[]): NedaaGate[] {
+  return getNedaaOrderedGates(gates).filter(
+    (gate) => gate.isActive && gate.supportsPickup,
+  );
+}
+
+export function humanizeNedaaGateId(gateId: NedaaGateId): string {
+  const normalized = gateId.trim();
+
+  if (!normalized) {
+    return "Gate";
+  }
+
+  return normalized
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(" ");
+}
+
+export function getNedaaGateLabel(
+  gateId: NedaaGateId,
+  gates: NedaaGate[],
+  locale: string,
+): string {
+  const gate = gates.find((item) => item.id === gateId);
+
+  if (!gate) {
+    return humanizeNedaaGateId(gateId);
+  }
+
+  return locale === "ar" ? gate.nameAr : gate.nameEn;
+}
+
+export function getNedaaGateOptionIds(
+  gates: NedaaGate[],
+  requestGateIds: NedaaGateId[] = [],
+): NedaaGateId[] {
+  const knownGateIds = getNedaaOrderedGates(gates).map((gate) => gate.id);
+  const extras = requestGateIds.filter((gateId) => !knownGateIds.includes(gateId));
+
+  return [...knownGateIds, ...extras];
+}
+
+export function createNedaaGateIdFromName(nameEn: string): string {
+  return nameEn
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_{2,}/g, "_");
 }

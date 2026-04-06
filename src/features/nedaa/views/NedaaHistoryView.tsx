@@ -1,13 +1,19 @@
-﻿"use client";
+"use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import NedaaFilters from "@/features/nedaa/components/NedaaFilters";
 import NedaaRequestsTable from "@/features/nedaa/components/NedaaRequestsTable";
 import NedaaTimeline from "@/features/nedaa/components/NedaaTimeline";
-import type { NedaaGateId, NedaaRequest } from "@/features/nedaa/types/nedaa";
+import type {
+  NedaaGate,
+  NedaaGateId,
+  NedaaRequest,
+} from "@/features/nedaa/types/nedaa";
+import { getNedaaGateLabel } from "@/features/nedaa/utils/nedaaPresentation";
 
 interface NedaaHistoryViewProps {
   requests: NedaaRequest[];
+  gates: NedaaGate[];
   selectedRequest: NedaaRequest | null;
   search: string;
   status: string;
@@ -25,6 +31,7 @@ interface NedaaHistoryViewProps {
 
 export default function NedaaHistoryView({
   requests,
+  gates,
   selectedRequest,
   search,
   status,
@@ -39,6 +46,7 @@ export default function NedaaHistoryView({
   onClearFilters,
   onSelectRequest,
 }: NedaaHistoryViewProps) {
+  const locale = useLocale();
   const t = useTranslations("nedaa");
 
   return (
@@ -69,7 +77,7 @@ export default function NedaaHistoryView({
         gateLabel={t("filters.gate")}
         filterButtonLabel={t("filters.show_filters")}
         clearFiltersLabel={t("filters.clear_filters")}
-        gateLabelForValue={(value) => t(`gates.${value}`)}
+        gateLabelForValue={(value) => getNedaaGateLabel(value, gates, locale)}
         statusLabelForValue={(value) => t(`status.${value}`)}
       />
 
@@ -85,6 +93,7 @@ export default function NedaaHistoryView({
           </div>
           <NedaaRequestsTable
             requests={requests}
+            gates={gates}
             mode="history"
             searchQuery={search}
             onRowClick={onSelectRequest}

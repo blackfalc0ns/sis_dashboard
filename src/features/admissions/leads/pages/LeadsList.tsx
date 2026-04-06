@@ -35,6 +35,7 @@ import { Lead, LeadStatus, LeadChannel } from "@/features/admissions";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 import {
   filterAdmissionsRecordsByDateContext,
   resolveAdmissionsContextScope,
@@ -45,7 +46,8 @@ export default function LeadsList() {
   const t = useTranslations("admissions.leads");
   const t_grades = useTranslations("admissions.grades");
   const locale = useLocale();
-  const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
+  const { yearId, termId, isReadOnly, isLoading, error } =
+    useAdmissionsYearTermContext();
   const [leads, setLeads] = useState<Lead[]>(getLeads());
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -323,6 +325,18 @@ export default function LeadsList() {
       ),
     },
   ];
+
+  if (isLoading) {
+    return <MainLoader />;
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-xl p-12 shadow-sm text-center">
+        <p className="text-sm text-red-600">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

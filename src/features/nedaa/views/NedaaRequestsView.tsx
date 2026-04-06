@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   CheckCircle2,
@@ -6,24 +6,29 @@ import {
   RadioTower,
   Workflow,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import NedaaFilters from "@/features/nedaa/components/NedaaFilters";
 import NedaaRequestsTable from "@/features/nedaa/components/NedaaRequestsTable";
 import type {
+  NedaaGate,
   NedaaGateId,
   NedaaRequest,
   NedaaStatus,
 } from "@/features/nedaa/types/nedaa";
+import { getNedaaGateLabel } from "@/features/nedaa/utils/nedaaPresentation";
 
 interface NedaaRequestsViewProps {
   requests: NedaaRequest[];
+  gates: NedaaGate[];
   search: string;
   status: string;
   gate: string;
   gateOptions: NedaaGateId[];
   showFilters: boolean;
   hasActiveFilters: boolean;
+  canManage?: boolean;
+  manageNotice?: string | null;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onGateChange: (value: string) => void;
@@ -36,12 +41,15 @@ interface NedaaRequestsViewProps {
 
 export default function NedaaRequestsView({
   requests,
+  gates,
   search,
   status,
   gate,
   gateOptions,
   showFilters,
   hasActiveFilters,
+  canManage = true,
+  manageNotice = null,
   onSearchChange,
   onStatusChange,
   onGateChange,
@@ -51,6 +59,7 @@ export default function NedaaRequestsView({
   pendingRequestId = null,
   isReadOnly = false,
 }: NedaaRequestsViewProps) {
+  const locale = useLocale();
   const t = useTranslations("nedaa");
 
   const totals = {
@@ -71,6 +80,12 @@ export default function NedaaRequestsView({
       {isReadOnly ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           {t("read_only_notice")}
+        </div>
+      ) : null}
+
+      {!isReadOnly && !canManage && manageNotice ? (
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          {manageNotice}
         </div>
       ) : null}
 
@@ -141,17 +156,18 @@ export default function NedaaRequestsView({
         gateLabel={t("filters.gate")}
         filterButtonLabel={t("filters.show_filters")}
         clearFiltersLabel={t("filters.clear_filters")}
-        gateLabelForValue={(value) => t(`gates.${value}`)}
+        gateLabelForValue={(value) => getNedaaGateLabel(value, gates, locale)}
         statusLabelForValue={(value) => t(`status.${value}`)}
       />
 
       <NedaaRequestsTable
         requests={requests}
+        gates={gates}
         searchQuery={search}
         mode="operations"
         onStatusChange={onStatusUpdate}
         pendingRequestId={pendingRequestId}
-        isReadOnly={isReadOnly}
+        isReadOnly={isReadOnly || !canManage}
       />
     </div>
   );
