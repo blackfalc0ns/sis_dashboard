@@ -1,12 +1,14 @@
-// FILE: src/components/students-guardians/profile-tabs/NotesTab.tsx
-
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, Eye, EyeOff, Edit2, Trash2 } from "lucide-react";
 import { Student } from "@/features/students-guardians/students/types";
 import { DataTable, FilterPanel } from "@/components/ui";
-import { getStudentNotes } from "@/features/students-guardians/students/services/studentsService";
+import {
+  addStudentNote,
+  getStudentNotes,
+  getStudentXpSummary,
+} from "@/features/students-guardians/students/services/studentsService";
 import { getStudentDisplayName } from "@/features/students-guardians/students/utils/studentUtils";
 import AddNoteModal, {
   NoteFormData,
@@ -19,21 +21,34 @@ interface NotesTabProps {
 
 export default function NotesTab({ student }: NotesTabProps) {
   const t = useTranslations("students_guardians.profile.notes");
-  const notes = getStudentNotes(student.student_id || "");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [visibilityFilter, setVisibilityFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [notesRevision, setNotesRevision] = useState(0);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  const notes = useMemo(
+    () => getStudentNotes(student.id),
+    [notesRevision, student.id],
+  );
+  const xpSummary = useMemo(
+    () => getStudentXpSummary(student.id),
+    [notesRevision, student.id],
+  );
 
   const handleAddNote = (noteData: NoteFormData) => {
-    // TODO: Implement API call to add note
-    console.log("Adding note:", noteData);
+    addStudentNote(student.id, {
+      category: noteData.category,
+      note: noteData.note,
+      xpAdjustment: noteData.xpAdjustment as number,
+      visibility: noteData.visibility,
+      created_by: noteData.created_by,
+    });
 
-    // Close modal
     setShowAddModal(false);
-
-    // Show success message (you can add a toast notification here)
-    alert("Note added successfully!");
+    setNotesRevision((current) => current + 1);
+    setFeedback(t("note_added_successfully"));
   };
 
   const getCategoryBadge = (category: string) => {
@@ -52,7 +67,7 @@ export default function NotesTab({ student }: NotesTabProps) {
 
     return (
       <span
-        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors[category]}`}
+        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${colors[category]}`}
       >
         {t(categoryKey)}
       </span>
@@ -63,14 +78,14 @@ export default function NotesTab({ student }: NotesTabProps) {
     if (visibility === "visible_to_guardian") {
       return (
         <span className="inline-flex items-center gap-1 text-xs text-green-600">
-          <Eye className="w-3 h-3" />
+          <Eye className="h-3 w-3" />
           {t("visible")}
         </span>
       );
     }
     return (
       <span className="inline-flex items-center gap-1 text-xs text-gray-600">
-        <EyeOff className="w-3 h-3" />
+        <EyeOff className="h-3 w-3" />
         {t("internal")}
       </span>
     );
@@ -101,11 +116,24 @@ export default function NotesTab({ student }: NotesTabProps) {
       label: t("note"),
       render: (value: unknown) => (
         <div className="max-w-md">
-          <p className="text-sm text-gray-900 line-clamp-2">
-            {value as string}
-          </p>
+          <p className="line-clamp-2 text-sm text-gray-900">{value as string}</p>
         </div>
       ),
+    },
+    {
+      key: "xpAdjustment",
+      label: t("xp"),
+      render: (value: unknown) => {
+        const xp = value as number;
+        const isPositive = xp > 0;
+        return (
+          <span
+            className={`font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}
+          >
+            {isPositive ? `+${xp}` : xp}
+          </span>
+        );
+      },
     },
     {
       key: "visibility",
@@ -123,16 +151,18 @@ export default function NotesTab({ student }: NotesTabProps) {
       render: () => (
         <div className="flex items-center gap-1">
           <button
-            className="p-1.5 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+            className="rounded p-1.5 text-gray-600 transition-colors hover:bg-gray-100"
             title={t("edit")}
+            disabled
           >
-            <Edit2 className="w-4 h-4" />
+            <Edit2 className="h-4 w-4" />
           </button>
           <button
-            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+            className="rounded p-1.5 text-red-600 transition-colors hover:bg-red-50"
             title={t("delete")}
+            disabled
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       ),
@@ -141,17 +171,22 @@ export default function NotesTab({ student }: NotesTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      {feedback ? (
+        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          {feedback}
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
-          <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
+          <p className="mt-1 text-sm text-gray-500">{t("subtitle")}</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-hover"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="h-4 w-4" />
           {t("add_note")}
         </button>
       </div>
@@ -161,7 +196,7 @@ export default function NotesTab({ student }: NotesTabProps) {
         onToggleFilters={() => setShowFilters((current) => !current)}
         toggleTitle={t("filters")}
         toggleAriaLabel={t("filters")}
-        className="px-0 py-0 bg-transparent shadow-none"
+        className="bg-transparent px-0 py-0 shadow-none"
         filtersSlot={
           <div className="grid grid-cols-1 gap-4 rounded-xl bg-white p-6 shadow-sm md:grid-cols-2">
             <div>
@@ -200,39 +235,33 @@ export default function NotesTab({ student }: NotesTabProps) {
         }
       />
 
-      {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <p className="text-sm text-gray-600 mb-1">{t("total_notes")}</p>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="rounded-xl bg-white p-4 shadow-sm">
+          <p className="mb-1 text-sm text-gray-600">{t("total_notes")}</p>
           <p className="text-2xl font-bold text-gray-900">{notes.length}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <p className="text-sm text-gray-600 mb-1">{t("academic")}</p>
-          <p className="text-2xl font-bold text-blue-600">
-            {notes.filter((n) => n.category === "academic").length}
-          </p>
+        <div className="rounded-xl bg-white p-4 shadow-sm">
+          <p className="mb-1 text-sm text-gray-600">{t("total_xp")}</p>
+          <p className="text-2xl font-bold text-primary">{xpSummary.totalXp}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <p className="text-sm text-gray-600 mb-1">{t("behavioral")}</p>
-          <p className="text-2xl font-bold text-purple-600">
-            {notes.filter((n) => n.category === "behavioral").length}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <p className="text-sm text-gray-600 mb-1">
-            {t("visible_to_guardian")}
-          </p>
+        <div className="rounded-xl bg-white p-4 shadow-sm">
+          <p className="mb-1 text-sm text-gray-600">{t("positive_notes")}</p>
           <p className="text-2xl font-bold text-green-600">
-            {notes.filter((n) => n.visibility === "visible_to_guardian").length}
+            {xpSummary.positiveNotesCount}
+          </p>
+        </div>
+        <div className="rounded-xl bg-white p-4 shadow-sm">
+          <p className="mb-1 text-sm text-gray-600">{t("negative_notes")}</p>
+          <p className="text-2xl font-bold text-red-600">
+            {xpSummary.negativeNotesCount}
           </p>
         </div>
       </div>
 
-      {/* Notes Table */}
-      <div className="bg-white rounded-xl shadow-sm">
+      <div className="rounded-xl bg-white shadow-sm">
         <div className="p-6">
           {filteredNotes.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="py-12 text-center">
               <p className="text-gray-500">{t("no_match")}</p>
             </div>
           ) : (
@@ -246,7 +275,6 @@ export default function NotesTab({ student }: NotesTabProps) {
         </div>
       </div>
 
-      {/* Add Note Modal */}
       <AddNoteModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}

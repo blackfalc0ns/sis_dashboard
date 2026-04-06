@@ -34,6 +34,10 @@ import { downloadCSV, generateFilename } from "@/utils/simpleExport";
 import { formatApplicationsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
 import { mockApplications } from "@/data/mockAdmissions";
 import {
+  createApplication,
+  type ApplicationCreationPayload,
+} from "@/features/admissions/applications/services/applicationCreationService";
+import {
   Application,
   ApplicationStatus,
   DecisionType,
@@ -61,6 +65,7 @@ export default function ApplicationsList() {
   const [isDecisionOpen, setIsDecisionOpen] = useState(false);
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
   const [isCreateAppOpen, setIsCreateAppOpen] = useState(false);
+  const [applicationsVersion, setApplicationsVersion] = useState(0);
 
   const [showFilters, setShowFilters] = useState(false);
   const admissionsScope = useMemo(
@@ -75,7 +80,7 @@ export default function ApplicationsList() {
         (application) => application.submittedDate,
         admissionsScope,
       ),
-    [admissionsScope],
+    [admissionsScope, applicationsVersion],
   );
 
   const uniqueGrades = useMemo(() => {
@@ -387,7 +392,7 @@ export default function ApplicationsList() {
       key: "gradeRequested",
       label: t("grade"),
       render: (value: unknown) => {
-        if (!value) return "—";
+        if (!value) return "ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â";
         const grade = String(value);
         // Convert grade to translation key (e.g., "Grade 6" -> "grade_6")
         const gradeKey = grade.toLowerCase().replace(/\s+/g, "_");
@@ -460,9 +465,14 @@ export default function ApplicationsList() {
     });
   };
 
-  const handleCreateApplicationSubmit = (data: Record<string, unknown>) => {
-    console.log("New application created:", data);
-    alert("Application created successfully!");
+  const handleCreateApplicationSubmit = (data: ApplicationCreationPayload) => {
+    const createdApplication = createApplication(data);
+    alert(
+      createdApplication.status === "documents_pending"
+        ? "Application submitted with pending required documents."
+        : "Application created successfully!",
+    );
+    setApplicationsVersion((current) => current + 1);
     setIsCreateAppOpen(false);
   };
 

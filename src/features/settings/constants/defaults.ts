@@ -1,4 +1,5 @@
 import type {
+  AdmissionsRequiredDocumentConfig,
   AuditLogEntry,
   BackupHistoryEntry,
   IntegrationProviderStatus,
@@ -24,7 +25,8 @@ export const defaultSchoolProfileSettings: SchoolProfileSettings = {
   shortName: "MIS",
   timezone: "Africa/Cairo",
   addressLine: "North 90 Street, New Cairo",
-  formattedAddress: "North 90 Street, Fifth Settlement, New Cairo, Cairo Governorate, Egypt",
+  formattedAddress:
+    "North 90 Street, Fifth Settlement, New Cairo, Cairo Governorate, Egypt",
   city: "Cairo",
   country: "Egypt",
   footerSignature: "Moazzez School Management Platform",
@@ -50,6 +52,8 @@ export const defaultRoles: RoleDefinition[] = [
       "settings.roles.manage",
       "settings.policies.view",
       "settings.policies.manage",
+      "settings.admissionsDocuments.view",
+      "settings.admissionsDocuments.manage",
       "settings.templates.view",
       "settings.templates.manage",
       "settings.integrations.view",
@@ -78,6 +82,8 @@ export const defaultRoles: RoleDefinition[] = [
       "settings.branding.manage",
       "settings.policies.view",
       "settings.policies.manage",
+      "settings.admissionsDocuments.view",
+      "settings.admissionsDocuments.manage",
       "settings.templates.view",
       "settings.templates.manage",
       "settings.users.view",
@@ -172,6 +178,42 @@ export const defaultPolicies: PolicySettings = {
   },
 };
 
+export const defaultAdmissionsDocumentRequirements: AdmissionsRequiredDocumentConfig[] =
+  [
+    {
+      id: "birth-certificate",
+      nameEn: "Birth Certificate",
+      nameAr: "شهادة الميلاد",
+      required: true,
+      active: true,
+      sortOrder: 1,
+    },
+    {
+      id: "passport-copy",
+      nameEn: "Passport Copy",
+      nameAr: "نسخة جواز السفر",
+      required: true,
+      active: true,
+      sortOrder: 2,
+    },
+    {
+      id: "medical-report",
+      nameEn: "Medical Report",
+      nameAr: "التقرير الطبي",
+      required: false,
+      active: true,
+      sortOrder: 3,
+    },
+    {
+      id: "previous-school-certificate",
+      nameEn: "Previous School Certificate",
+      nameAr: "شهادة المدرسة السابقة",
+      required: false,
+      active: true,
+      sortOrder: 4,
+    },
+  ];
+
 export const defaultNotificationTemplates: NotificationTemplateConfig[] = [
   {
     id: "template-attendance-alert",
@@ -187,13 +229,17 @@ export const defaultNotificationTemplates: NotificationTemplateConfig[] = [
     template: {
       stage: "documents_pending",
       title: "Attendance alert",
-      titleAr: "تنبيه حضور",
+      titleAr:
+        "ÃƒËœÃ‚ÂªÃƒâ„¢Ã¢â‚¬Â ÃƒËœÃ‚Â¨Ãƒâ„¢Ã…Â Ãƒâ„¢Ã¢â‚¬Â¡ ÃƒËœÃ‚Â­ÃƒËœÃ‚Â¶Ãƒâ„¢Ã‹â€ ÃƒËœÃ‚Â±",
       message: "Attendance alert for {{student_name}} on {{date}}.",
-      messageAr: "تنبيه حضور للطالب {{student_name}} بتاريخ {{date}}.",
+      messageAr:
+        "ÃƒËœÃ‚ÂªÃƒâ„¢Ã¢â‚¬Â ÃƒËœÃ‚Â¨Ãƒâ„¢Ã…Â Ãƒâ„¢Ã¢â‚¬Â¡ ÃƒËœÃ‚Â­ÃƒËœÃ‚Â¶Ãƒâ„¢Ã‹â€ ÃƒËœÃ‚Â± Ãƒâ„¢Ã¢â‚¬Å¾Ãƒâ„¢Ã¢â‚¬Å¾ÃƒËœÃ‚Â·ÃƒËœÃ‚Â§Ãƒâ„¢Ã¢â‚¬Å¾ÃƒËœÃ‚Â¨ {{student_name}} ÃƒËœÃ‚Â¨ÃƒËœÃ‚ÂªÃƒËœÃ‚Â§ÃƒËœÃ‚Â±Ãƒâ„¢Ã…Â ÃƒËœÃ‚Â® {{date}}.",
       emailSubject: "Attendance alert",
-      emailSubjectAr: "تنبيه حضور",
+      emailSubjectAr:
+        "ÃƒËœÃ‚ÂªÃƒâ„¢Ã¢â‚¬Â ÃƒËœÃ‚Â¨Ãƒâ„¢Ã…Â Ãƒâ„¢Ã¢â‚¬Â¡ ÃƒËœÃ‚Â­ÃƒËœÃ‚Â¶Ãƒâ„¢Ã‹â€ ÃƒËœÃ‚Â±",
       smsMessage: "{{student_name}} was marked {{status}} on {{date}}.",
-      smsMessageAr: "تم تسجيل {{student_name}} بحالة {{status}} بتاريخ {{date}}.",
+      smsMessageAr:
+        "ÃƒËœÃ‚ÂªÃƒâ„¢Ã¢â‚¬Â¦ ÃƒËœÃ‚ÂªÃƒËœÃ‚Â³ÃƒËœÃ‚Â¬Ãƒâ„¢Ã…Â Ãƒâ„¢Ã¢â‚¬Å¾ {{student_name}} ÃƒËœÃ‚Â¨ÃƒËœÃ‚Â­ÃƒËœÃ‚Â§Ãƒâ„¢Ã¢â‚¬Å¾ÃƒËœÃ‚Â© {{status}} ÃƒËœÃ‚Â¨ÃƒËœÃ‚ÂªÃƒËœÃ‚Â§ÃƒËœÃ‚Â±Ãƒâ„¢Ã…Â ÃƒËœÃ‚Â® {{date}}.",
       channels: ["email", "sms", "in_app"],
       priority: "high",
     },
@@ -213,15 +259,18 @@ export const defaultNotificationTemplates: NotificationTemplateConfig[] = [
     template: {
       stage: "enrollment_complete",
       title: "Fee reminder",
-      titleAr: "تذكير رسوم",
+      titleAr:
+        "ÃƒËœÃ‚ÂªÃƒËœÃ‚Â°Ãƒâ„¢Ã†â€™Ãƒâ„¢Ã…Â ÃƒËœÃ‚Â± ÃƒËœÃ‚Â±ÃƒËœÃ‚Â³Ãƒâ„¢Ã‹â€ Ãƒâ„¢Ã¢â‚¬Â¦",
       message:
         "Dear {{guardian_name}}, your due amount is {{amount_due}} before {{due_date}}.",
       messageAr:
-        "عزيزي {{guardian_name}}، المبلغ المستحق {{amount_due}} قبل {{due_date}}.",
+        "ÃƒËœÃ‚Â¹ÃƒËœÃ‚Â²Ãƒâ„¢Ã…Â ÃƒËœÃ‚Â²Ãƒâ„¢Ã…Â  {{guardian_name}}ÃƒËœÃ…â€™ ÃƒËœÃ‚Â§Ãƒâ„¢Ã¢â‚¬Å¾Ãƒâ„¢Ã¢â‚¬Â¦ÃƒËœÃ‚Â¨Ãƒâ„¢Ã¢â‚¬Å¾ÃƒËœÃ‚Âº ÃƒËœÃ‚Â§Ãƒâ„¢Ã¢â‚¬Å¾Ãƒâ„¢Ã¢â‚¬Â¦ÃƒËœÃ‚Â³ÃƒËœÃ‚ÂªÃƒËœÃ‚Â­Ãƒâ„¢Ã¢â‚¬Å¡ {{amount_due}} Ãƒâ„¢Ã¢â‚¬Å¡ÃƒËœÃ‚Â¨Ãƒâ„¢Ã¢â‚¬Å¾ {{due_date}}.",
       emailSubject: "School fee reminder",
-      emailSubjectAr: "تذكير رسوم المدرسة",
+      emailSubjectAr:
+        "ÃƒËœÃ‚ÂªÃƒËœÃ‚Â°Ãƒâ„¢Ã†â€™Ãƒâ„¢Ã…Â ÃƒËœÃ‚Â± ÃƒËœÃ‚Â±ÃƒËœÃ‚Â³Ãƒâ„¢Ã‹â€ Ãƒâ„¢Ã¢â‚¬Â¦ ÃƒËœÃ‚Â§Ãƒâ„¢Ã¢â‚¬Å¾Ãƒâ„¢Ã¢â‚¬Â¦ÃƒËœÃ‚Â¯ÃƒËœÃ‚Â±ÃƒËœÃ‚Â³ÃƒËœÃ‚Â©",
       smsMessage: "Reminder: {{amount_due}} due before {{due_date}}.",
-      smsMessageAr: "تذكير: {{amount_due}} مستحق قبل {{due_date}}.",
+      smsMessageAr:
+        "ÃƒËœÃ‚ÂªÃƒËœÃ‚Â°Ãƒâ„¢Ã†â€™Ãƒâ„¢Ã…Â ÃƒËœÃ‚Â±: {{amount_due}} Ãƒâ„¢Ã¢â‚¬Â¦ÃƒËœÃ‚Â³ÃƒËœÃ‚ÂªÃƒËœÃ‚Â­Ãƒâ„¢Ã¢â‚¬Å¡ Ãƒâ„¢Ã¢â‚¬Å¡ÃƒËœÃ‚Â¨Ãƒâ„¢Ã¢â‚¬Å¾ {{due_date}}.",
       channels: ["email", "sms"],
       priority: "medium",
     },
@@ -287,7 +336,12 @@ export const defaultIntegrations: IntegrationProviderStatus[] = [
     lastCheckedAt: "2026-03-22T18:40:00Z",
     fields: [
       { key: "merchantId", label: "Merchant ID", type: "text", required: true },
-      { key: "secretKey", label: "Secret Key", type: "password", required: true },
+      {
+        key: "secretKey",
+        label: "Secret Key",
+        type: "password",
+        required: true,
+      },
       { key: "webhookUrl", label: "Webhook URL", type: "url", required: true },
     ],
     configuration: {
@@ -311,7 +365,12 @@ export const defaultIntegrations: IntegrationProviderStatus[] = [
     fields: [
       { key: "issuerUrl", label: "Issuer URL", type: "url", required: true },
       { key: "clientId", label: "Client ID", type: "text", required: true },
-      { key: "clientSecret", label: "Client Secret", type: "password", required: true },
+      {
+        key: "clientSecret",
+        label: "Client Secret",
+        type: "password",
+        required: true,
+      },
     ],
     configuration: {
       providerId: "integration-sso",

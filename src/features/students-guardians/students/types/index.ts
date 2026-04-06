@@ -44,8 +44,11 @@ export type {
 export type {
   StudentNote,
   StudentNoteMock,
+  CreateStudentNotePayload,
   NoteCategory,
   NoteVisibility,
+  StudentXpEvent,
+  StudentXpSummary,
 } from "./note";
 
 // Timeline

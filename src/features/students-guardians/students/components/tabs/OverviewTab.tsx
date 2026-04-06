@@ -9,6 +9,7 @@ import { Student, RiskFlag } from "@/features/students-guardians/students/types"
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { getRiskFlagColor } from "@/features/students-guardians/students/utils/studentUtils";
 import { generateWeeklyTimestamps, generateMonthlyTimestamps } from "@/utils/formatters/chartDataHelpers";
+import { getStudentXpSummary } from "@/features/students-guardians/students/services/studentsService";
 
 interface OverviewTabProps {
   student: Student;
@@ -16,6 +17,7 @@ interface OverviewTabProps {
 
 export default function OverviewTab({ student }: OverviewTabProps) {
   const t = useTranslations("students_guardians.profile.overview");
+  const xpSummary = getStudentXpSummary(student.id);
   
   // Generate timestamps for chart data
   const weeklyTimestamps = generateWeeklyTimestamps(4);
@@ -130,22 +132,22 @@ export default function OverviewTab({ student }: OverviewTabProps) {
         />
         <KPICardV2
           title={t("behavior_points")}
-          value="245"
-          subtitle={t("this_week", { count: 15 })}
+          value={xpSummary.totalXp}
+          subtitle={t("xp_this_week", { count: xpSummary.weeklyXpDelta })}
           icon={Award}
           iconColor="#8b5cf6"
           iconBgColor="#ede9fe"
           chartData={[
-            { label: "W1", value: 220, ts: weeklyTimestamps[0] },
-            { label: "W2", value: 230, ts: weeklyTimestamps[1] },
-            { label: "W3", value: 238, ts: weeklyTimestamps[2] },
-            { label: "W4", value: 245, ts: weeklyTimestamps[3] },
+            { label: "W1", value: Math.max(xpSummary.totalXp - 15, 0), ts: weeklyTimestamps[0] },
+            { label: "W2", value: Math.max(xpSummary.totalXp - 10, 0), ts: weeklyTimestamps[1] },
+            { label: "W3", value: Math.max(xpSummary.totalXp - 5, 0), ts: weeklyTimestamps[2] },
+            { label: "W4", value: xpSummary.totalXp, ts: weeklyTimestamps[3] },
           ]}
           chartColor="#8b5cf6"
         />
         <KPICardV2
           title={t("incidents")}
-          value="2"
+          value={xpSummary.negativeNotesCount}
           subtitle={t("this_semester")}
           icon={AlertCircle}
           iconColor="#f59e0b"

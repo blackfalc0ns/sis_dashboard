@@ -228,28 +228,6 @@ export default function Application360Modal({
                         )}
                       </div>
                     )}
-                    {application.student_phone && (
-                      <div>
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
-                          <Phone className="w-3 h-3" />{" "}
-                          {t("details.student_phone")}
-                        </p>
-                        <p className="text-sm font-medium text-gray-900">
-                          {application.student_phone}
-                        </p>
-                      </div>
-                    )}
-                    {application.student_email && (
-                      <div>
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
-                          <Mail className="w-3 h-3" />{" "}
-                          {t("details.student_email")}
-                        </p>
-                        <p className="text-sm font-medium text-gray-900">
-                          {application.student_email}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>

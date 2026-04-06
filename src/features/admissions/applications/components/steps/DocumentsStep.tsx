@@ -1,7 +1,8 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { AlertCircle, Upload, FileCheck, FileX } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { AlertCircle, FileCheck, FileX, Upload } from "lucide-react";
+import type { AdmissionsRequiredDocumentConfig } from "@/features/settings/types";
 
 interface DocumentData {
   uploaded: boolean;
@@ -9,13 +10,11 @@ interface DocumentData {
 }
 
 interface DocumentsStepProps {
-  documents: {
-    birthCertificate: DocumentData;
-    passportCopy: DocumentData;
-    medicalReport: DocumentData;
-    schoolCertificate: DocumentData;
-  };
+  requirements: AdmissionsRequiredDocumentConfig[];
+  documents: Record<string, DocumentData>;
   errors: Record<string, string>;
+  isLoading: boolean;
+  missingRequiredDocuments: AdmissionsRequiredDocumentConfig[];
   handleFileUpload: (docKey: string, file: File | null) => void;
   handleFileRemove: (docKey: string) => void;
   handleDragOver: (e: React.DragEvent<HTMLLabelElement>) => void;
@@ -25,8 +24,11 @@ interface DocumentsStepProps {
 }
 
 export default function DocumentsStep({
+  requirements,
   documents,
   errors,
+  isLoading,
+  missingRequiredDocuments,
   handleFileUpload,
   handleFileRemove,
   handleDragOver,
@@ -35,79 +37,79 @@ export default function DocumentsStep({
   handleDrop,
 }: DocumentsStepProps) {
   const t = useTranslations("admissions.create_application");
+  const locale = useLocale();
 
-  const documentsList = [
-    {
-      key: "birthCertificate",
-      label: t("documents.birth_certificate"),
-      required: true,
-    },
-    {
-      key: "passportCopy",
-      label: t("documents.passport_copy"),
-      required: false,
-    },
-    {
-      key: "medicalReport",
-      label: t("documents.medical_report"),
-      required: false,
-    },
-    {
-      key: "schoolCertificate",
-      label: t("documents.school_certificate"),
-      required: false,
-    },
-  ];
+  const getLabel = (requirement: AdmissionsRequiredDocumentConfig) =>
+    locale === "ar" ? requirement.nameAr : requirement.nameEn;
+
+  if (isLoading) {
+    return <div className="py-12 text-center text-sm text-gray-500">{t("documents.loading")}</div>;
+  }
 
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-gray-900 mb-4">
-        {t("documents.title")}
-      </h3>
-      <p className="text-sm text-gray-600 mb-4">
+      <h3 className="mb-4 font-semibold text-gray-900">{t("documents.title")}</h3>
+      <p className="mb-4 text-sm text-gray-600">
         {t("documents.subtitle")} - {t("documents.file_types")}
       </p>
 
+      {requirements.length === 0 && (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+          {t("documents.configured_empty")}
+        </div>
+      )}
+
+      {missingRequiredDocuments.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-medium">{t("documents.pending_warning")}</p>
+              <p className="mt-1">{t("documents.pending_submit_note")}</p>
+              <p className="mt-2 text-xs">
+                {missingRequiredDocuments.map((requirement) => getLabel(requirement)).join(" • ")}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {errors.documents && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-          <AlertCircle className="w-4 h-4" />
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+          <AlertCircle className="h-4 w-4" />
           <span>{errors.documents}</span>
         </div>
       )}
 
       <div className="space-y-3">
-        {documentsList.map((doc) => {
-          const docData = documents[doc.key as keyof typeof documents];
-          const hasError = errors[doc.key];
+        {requirements.map((requirement) => {
+          const docData = documents[requirement.id] || { uploaded: false, file: null };
+          const hasError = errors[requirement.id];
 
           return (
             <div
-              key={doc.key}
-              className={`p-4 border rounded-lg ${
-                hasError
-                  ? "border-red-300 bg-red-50"
-                  : "border-gray-200 bg-white"
-              }`}
+              key={requirement.id}
+              className={`rounded-lg border p-4 ${hasError ? "border-red-300 bg-red-50" : "border-gray-200 bg-white"}`}
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="mb-2 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-900">
-                    {doc.label}
-                    {doc.required && (
-                      <span className="text-red-500 ml-1">*</span>
-                    )}
+                  <span className="text-sm font-medium text-gray-900">{getLabel(requirement)}</span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                      requirement.required ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {requirement.required ? t("documents.required") : t("documents.optional")}
                   </span>
-                  {docData.uploaded && (
-                    <FileCheck className="w-4 h-4 text-green-600" />
-                  )}
+                  {docData.uploaded && <FileCheck className="h-4 w-4 text-green-600" />}
                 </div>
                 {docData.uploaded ? (
                   <button
                     type="button"
-                    onClick={() => handleFileRemove(doc.key)}
-                    className="flex items-center gap-1 text-red-600 hover:text-red-700 text-xs font-medium"
+                    onClick={() => handleFileRemove(requirement.id)}
+                    className="flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700"
                   >
-                    <FileX className="w-4 h-4" />
+                    <FileX className="h-4 w-4" />
                     {t("documents.remove")}
                   </button>
                 ) : null}
@@ -115,7 +117,7 @@ export default function DocumentsStep({
 
               {docData.uploaded ? (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <FileCheck className="w-4 h-4 text-green-600" />
+                  <FileCheck className="h-4 w-4 text-green-600" />
                   <span className="font-medium">{docData.file?.name}</span>
                   <span className="text-xs text-gray-500">
                     ({((docData.file?.size || 0) / 1024).toFixed(0)} KB)
@@ -123,24 +125,20 @@ export default function DocumentsStep({
                 </div>
               ) : (
                 <label
-                  className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-gray-50 cursor-pointer transition-colors"
+                  className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 p-3 transition-colors hover:border-primary hover:bg-gray-50"
                   onDragOver={handleDragOver}
                   onDragEnter={handleDragEnter}
                   onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, doc.key)}
+                  onDrop={(e) => handleDrop(e, requirement.id)}
                 >
-                  <Upload className="w-5 h-5 text-gray-400" />
-                  <span className="text-sm text-gray-600">
-                    {t("documents.drag_drop")}
-                  </span>
+                  <Upload className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm text-gray-600">{t("documents.drag_drop")}</span>
                   <input
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) {
-                        handleFileUpload(doc.key, file);
-                      }
+                      if (file) handleFileUpload(requirement.id, file);
                     }}
                     className="hidden"
                   />
@@ -148,18 +146,14 @@ export default function DocumentsStep({
               )}
 
               {hasError && (
-                <div className="flex items-center gap-1 mt-2 text-red-600 text-xs">
-                  <AlertCircle className="w-3 h-3" />
+                <div className="mt-2 flex items-center gap-1 text-xs text-red-600">
+                  <AlertCircle className="h-3 w-3" />
                   <span>{hasError}</span>
                 </div>
               )}
             </div>
           );
         })}
-      </div>
-
-      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <p className="text-xs text-blue-800">{t("documents.subtitle")}</p>
       </div>
     </div>
   );

@@ -202,10 +202,20 @@ export interface BackupHistoryEntry {
   note?: string;
 }
 
+export interface AdmissionsRequiredDocumentConfig {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  required: boolean;
+  active: boolean;
+  sortOrder: number;
+}
+
 export interface SettingsStoreSnapshot {
   schoolProfile: SchoolProfileSettings;
   roles: RoleDefinition[];
   policies: PolicySettings;
+  admissionsDocuments: AdmissionsRequiredDocumentConfig[];
   notificationTemplates: NotificationTemplateConfig[];
   integrations: IntegrationProviderStatus[];
   securitySettings: SecuritySettings;

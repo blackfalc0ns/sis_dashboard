@@ -7,7 +7,13 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { AlertTriangle, BookOpen, MapPin, UserX, Users } from "lucide-react";
+import {
+  AlertTriangle,
+  BookOpen,
+  MapPin,
+  TrendingDown,
+  Users,
+} from "lucide-react";
 
 import AcademicPerformanceCard from "../components/charts/AcademicPerformanceCard";
 import { KPICardV2 } from "@/components/ui/kpi-card";
@@ -26,11 +32,14 @@ import StudentsPerGradeChart from "../components/charts/StudentsPerGradeChart";
 import ReinforcementSummaryWidget from "@/features/reinforcement/views/ReinforcementSummaryWidget";
 import { getReinforcementSummaryCard } from "@/features/reinforcement/services/reinforcementService";
 
-import type { DashboardKPIs, ChartData } from "@/features/dashboard/utils/dashboardStatsCalculator";
+import type {
+  DashboardKPIs,
+  ChartData,
+} from "@/features/dashboard/utils/dashboardStatsCalculator";
 
 const AbsenceReasonsChart = dynamic(
   () => import("../components/charts/AbsenceReasonsChart"),
-  { ssr: false }
+  { ssr: false },
 );
 
 interface PeriodOption {
@@ -45,7 +54,7 @@ interface SchoolDashboardViewProps {
     attendance: ChartData[];
     classes: ChartData[];
     violations: ChartData[];
-    staffAbsence: ChartData[];
+    lowAttendance: ChartData[];
     nedaa: ChartData[];
   };
   periodOptions: PeriodOption[];
@@ -146,17 +155,16 @@ export default function SchoolDashboardView({
         />
 
         <KPICardV2
-          title={tKpi("staff_absenteeism")}
-          value="3.2"
-          valueSuffix="%"
-          icon={UserX}
-          iconColor="#f59e0b"
-          iconBgColor="#fef3c7"
-          chartData={chartData.staffAbsence}
-          chartColor="#f59e0b"
+          title={tKpi("students_below_threshold")}
+          value={14}
+          icon={TrendingDown}
+          iconColor="#f97316"
+          iconBgColor="#ffedd5"
+          chartData={chartData.lowAttendance}
+          chartColor="#f97316"
           change={{
-            value: -0.3,
-            percentage: -8.6,
+            value: -3,
+            percentage: -17.6,
             isPositive: true,
           }}
           showPeriodFilter={true}
@@ -185,12 +193,6 @@ export default function SchoolDashboardView({
             defaultPeriod="today"
             onPeriodChange={onPeriodChange}
           />
-          <Link
-            href={`/${locale}/nedaa`}
-            className="inline-flex items-center justify-center rounded-xl border border-primary/20 bg-white px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
-          >
-            {tNedaa("actions.view_module")}
-          </Link>
         </div>
       </div>
 

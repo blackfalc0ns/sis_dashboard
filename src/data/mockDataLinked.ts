@@ -25,6 +25,39 @@ import {
   guardianLinkDummyData,
 } from "./studentDummyData";
 
+const splitStudentName = (fullName: string) => {
+  const parts = fullName
+    .split(" ")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  return {
+    firstName: parts[0] || "",
+    fatherName: parts[1] || "",
+    grandfatherName: parts[2] || "",
+    familyName: parts.slice(3).join(" "),
+  };
+};
+
+const enrichApplicationStudentNames = (application: Application): Application => {
+  const arabicNameParts = splitStudentName(application.full_name_ar);
+  const englishNameParts = splitStudentName(application.full_name_en);
+
+  return {
+    ...application,
+    first_name_ar: application.first_name_ar || arabicNameParts.firstName,
+    father_name_ar: application.father_name_ar || arabicNameParts.fatherName,
+    grandfather_name_ar:
+      application.grandfather_name_ar || arabicNameParts.grandfatherName,
+    family_name_ar: application.family_name_ar || arabicNameParts.familyName,
+    first_name_en: application.first_name_en || englishNameParts.firstName,
+    father_name_en: application.father_name_en || englishNameParts.fatherName,
+    grandfather_name_en:
+      application.grandfather_name_en || englishNameParts.grandfatherName,
+    family_name_en: application.family_name_en || englishNameParts.familyName,
+  };
+};
+
 // ============================================================================
 // STEP 1: LEADS (Initial Inquiries)
 // ============================================================================
@@ -322,7 +355,7 @@ export const mockLeads: Lead[] = [
 // STEP 2: APPLICATIONS (Formal Applications from Leads)
 // ============================================================================
 
-export const mockApplications: Application[] = [
+const baseMockApplications: Application[] = [
   {
     id: "APP-2024-001",
     leadId: "L001", // Linked to lead
@@ -1252,6 +1285,10 @@ export const mockApplications: Application[] = [
   },
 ];
 
+export const mockApplications: Application[] = baseMockApplications.map(
+  enrichApplicationStudentNames,
+);
+
 // ============================================================================
 // STEP 3: TESTS (Placement/Entrance Tests)
 // ============================================================================
@@ -2050,6 +2087,14 @@ const studentsFromApplications: Student[] = mockApplications
       id: studentId,
       applicationId: application.id,
       leadId: application.leadId,
+      first_name_ar: application.first_name_ar,
+      father_name_ar: application.father_name_ar,
+      grandfather_name_ar: application.grandfather_name_ar,
+      family_name_ar: application.family_name_ar,
+      first_name_en: application.first_name_en,
+      father_name_en: application.father_name_en,
+      grandfather_name_en: application.grandfather_name_en,
+      family_name_en: application.family_name_en,
       full_name_ar: application.full_name_ar,
       full_name_en: application.full_name_en,
       gender: application.gender,
@@ -2717,6 +2762,10 @@ export const mockStudentNotes: StudentNote[] = mockStudents.flatMap(
         date: new Date(2026, 1, 1 + i * 7).toISOString(),
         category,
         note: seededPick(`${student.id}-note-${i}`, noteTexts[category]),
+        xpAdjustment:
+          seededNumber(`${student.id}-xp-sign-${i}`, 0, 1) === 0
+            ? seededNumber(`${student.id}-xp-negative-${i}`, -18, -3)
+            : seededNumber(`${student.id}-xp-positive-${i}`, 4, 20),
         visibility,
         created_by: [
           "Ms. Sarah Johnson",

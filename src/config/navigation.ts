@@ -1,4 +1,4 @@
-﻿import {
+import {
   Home,
   Users,
   HelpCircle,
@@ -520,6 +520,14 @@ export const menuItems: MenuItem[] = [
         icon: FileText,
       },
       {
+        key: "settings-admissions-documents",
+        label_en: "Admissions Documents",
+        label_ar: "مستندات التقديم",
+        href_en: "/en/settings/admissions-documents",
+        href_ar: "/ar/settings/admissions-documents",
+        icon: FolderOpen,
+      },
+      {
         key: "settings-templates",
         label_en: "Notification Templates",
         label_ar: "قوالب الإشعارات",
@@ -565,4 +573,3 @@ export const bottomItems = [
     icon: HelpCircle,
   },
 ];
-

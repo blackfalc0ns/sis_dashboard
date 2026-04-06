@@ -77,14 +77,14 @@ export function generateViolationsChartData(): ChartData[] {
   ];
 }
 
-export function generateStaffAbsenceChartData(): ChartData[] {
+export function generateLowAttendanceChartData(): ChartData[] {
   return [
-    { label: "Week 1", value: 3.5 },
-    { label: "Week 2", value: 3.8 },
-    { label: "Week 3", value: 3.2 },
-    { label: "Week 4", value: 3.0 },
-    { label: "Week 5", value: 3.2 },
-    { label: "Week 6", value: 3.2 },
+    { label: "Week 1", value: 22 },
+    { label: "Week 2", value: 20 },
+    { label: "Week 3", value: 18 },
+    { label: "Week 4", value: 17 },
+    { label: "Week 5", value: 15 },
+    { label: "Week 6", value: 14 },
   ];
 }
 

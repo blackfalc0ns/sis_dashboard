@@ -34,6 +34,7 @@ import type {
   DecisionType,
 } from "@/features/admissions/types/admissions";
 import type { EnrollmentSubmission } from "@/features/admissions/enrollment/services/enrollmentService";
+import type { ApplicationCreationPayload } from "@/features/admissions/applications/services/applicationCreationService";
 import type {
   ApplicationFilterValues,
   ApplicationKPIs,
@@ -66,7 +67,7 @@ interface ApplicationsListViewProps {
   onInterviewSubmit: (data: Record<string, unknown>) => void;
   onDecisionSubmit: (decision: DecisionType, reason: string, date: string) => void;
   onEnrollmentSubmit: (application: Application, data: EnrollmentSubmission) => void;
-  onCreateApplicationSubmit: (data: Record<string, unknown>) => void;
+  onCreateApplicationSubmit: (data: ApplicationCreationPayload) => void;
   setIsScheduleTestOpen: (value: boolean) => void;
   setIsScheduleInterviewOpen: (value: boolean) => void;
   setIsDecisionOpen: (value: boolean) => void;

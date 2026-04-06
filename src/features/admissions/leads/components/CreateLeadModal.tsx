@@ -17,7 +17,6 @@ interface CreateLeadModalProps {
     channel: LeadChannel;
     status: LeadStatus;
     owner: string;
-    gradeInterest?: string;
     source?: string;
   }) => void;
 }
@@ -34,10 +33,7 @@ export default function CreateLeadModal({
     email: "",
     channel: "In-app" as LeadChannel,
     status: "New" as LeadStatus,
-    gradeInterest: "",
     source: "",
-    studentName: "",
-    studentNameArabic: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -46,7 +42,6 @@ export default function CreateLeadModal({
       ...formData,
       owner: "System", // Default owner
       email: formData.email || undefined,
-      gradeInterest: formData.gradeInterest || undefined,
       source: formData.source || undefined,
     });
     // Reset form
@@ -56,10 +51,7 @@ export default function CreateLeadModal({
       email: "",
       channel: "In-app",
       status: "New",
-      gradeInterest: "",
       source: "",
-      studentName: "",
-      studentNameArabic: "",
     });
   };
 
@@ -135,58 +127,6 @@ export default function CreateLeadModal({
                   placeholder={t("email_placeholder")}
                 />
               </div>
-            </div>
-
-            {/* Student Name (English & Arabic) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("student_name_en")}
-                </label>
-                <input
-                  type="text"
-                  value={formData.studentName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, studentName: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder={t("student_name_en_placeholder")}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("student_name_ar")}
-                </label>
-                <input
-                  type="text"
-                  value={formData.studentNameArabic}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      studentNameArabic: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder={t("student_name_ar_placeholder")}
-                  dir="rtl"
-                />
-              </div>
-            </div>
-
-            {/* Grade Interest */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("grade_interest")}
-              </label>
-              <input
-                type="text"
-                value={formData.gradeInterest}
-                onChange={(e) =>
-                  setFormData({ ...formData, gradeInterest: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder={t("grade_placeholder")}
-              />
             </div>
 
             {/* Channel & Status */}

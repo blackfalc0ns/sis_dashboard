@@ -1,78 +1,76 @@
-// FILE: src/components/students-guardians/profile-tabs/BehaviorTab.tsx
-
 "use client";
 
-import { useState } from "react";
-import { Award, AlertTriangle, Plus, TrendingUp } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Award, AlertTriangle, TrendingUp } from "lucide-react";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { Student } from "@/features/students-guardians/students/types";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { DataTable } from "@/components/ui/data-table";
 import { useTranslations } from "next-intl";
+import {
+  getStudentXpEvents,
+  getStudentXpSummary,
+} from "@/features/students-guardians/students/services/studentsService";
 
 interface BehaviorTabProps {
   student: Student;
 }
 
-// Mock behavior data
-const mockReinforcementEvents = [
-  {
-    id: "1",
-    date: "2024-02-10",
-    category: "Academic Excellence",
-    points: 10,
-    note: "Excellent performance in Math quiz",
-    created_by: "Mr. Ahmed",
-  },
-  {
-    id: "2",
-    date: "2024-02-08",
-    category: "Helping Others",
-    points: 5,
-    note: "Helped classmate with homework",
-    created_by: "Ms. Fatima",
-  },
-  {
-    id: "3",
-    date: "2024-02-05",
-    category: "Participation",
-    points: 3,
-    note: "Active participation in class discussion",
-    created_by: "Mr. Hassan",
-  },
-];
-
-const mockIncidents = [
-  {
-    id: "1",
-    date: "2024-02-06",
-    severity: "low",
-    description: "Late to class",
-    action_taken: "Verbal warning",
-    status: "resolved",
-    created_by: "Mr. Ahmed",
-  },
-  {
-    id: "2",
-    date: "2024-01-28",
-    severity: "medium",
-    description: "Disrupting class",
-    action_taken: "Parent meeting scheduled",
-    status: "resolved",
-    created_by: "Ms. Fatima",
-  },
-];
-
-export default function BehaviorTab({}: BehaviorTabProps) {
+export default function BehaviorTab({ student }: BehaviorTabProps) {
   const t = useTranslations("students_guardians.profile.behavior");
   const [activeView, setActiveView] = useState<"reinforcement" | "incidents">(
     "reinforcement",
   );
 
-  // Mock chart data
-  const months = ["Sep", "Oct", "Nov", "Dec", "Jan", "Feb"];
-  const positivePoints = [45, 52, 48, 55, 50, 58];
-  const negativePoints = [5, 3, 8, 4, 6, 2];
+  const xpEvents = useMemo(() => getStudentXpEvents(student.id), [student.id]);
+  const xpSummary = useMemo(() => getStudentXpSummary(student.id), [student.id]);
+
+  const reinforcementEvents = xpEvents.filter((event) => event.points > 0);
+  const incidents = xpEvents
+    .filter((event) => event.points < 0)
+    .map((event) => ({
+      id: event.id,
+      date: event.date,
+      severity:
+        Math.abs(event.points) >= 35
+          ? "high"
+          : Math.abs(event.points) >= 15
+            ? "medium"
+            : "low",
+      description: event.note,
+      action_taken: t("xp_deduction", { count: Math.abs(event.points) }),
+      status: "resolved",
+      created_by: event.created_by,
+    }));
+
+  const monthFormatter = new Intl.DateTimeFormat(undefined, { month: "short" });
+  const monthlyChart = useMemo(() => {
+    const now = new Date();
+    const buckets = Array.from({ length: 6 }, (_, index) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+      return {
+        key: `${date.getFullYear()}-${date.getMonth()}`,
+        label: monthFormatter.format(date),
+        positive: 0,
+        negative: 0,
+      };
+    });
+
+    xpEvents.forEach((event) => {
+      const eventDate = new Date(event.date);
+      const key = `${eventDate.getFullYear()}-${eventDate.getMonth()}`;
+      const bucket = buckets.find((entry) => entry.key === key);
+      if (!bucket) return;
+
+      if (event.points > 0) {
+        bucket.positive += event.points;
+      } else {
+        bucket.negative += Math.abs(event.points);
+      }
+    });
+
+    return buckets;
+  }, [xpEvents, monthFormatter]);
 
   const getSeverityBadge = (severity: string) => {
     const colors: Record<string, string> = {
@@ -85,7 +83,7 @@ export default function BehaviorTab({}: BehaviorTabProps) {
 
     return (
       <span
-        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors[severity]}`}
+        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${colors[severity]}`}
       >
         {t(severityKey)}
       </span>
@@ -102,7 +100,7 @@ export default function BehaviorTab({}: BehaviorTabProps) {
 
     return (
       <span
-        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors[status]}`}
+        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${colors[status]}`}
       >
         {t(statusKey)}
       </span>
@@ -164,45 +162,36 @@ export default function BehaviorTab({}: BehaviorTabProps) {
     },
   ];
 
-  const totalPoints = mockReinforcementEvents.reduce(
-    (sum, e) => sum + e.points,
-    0,
-  );
-  const totalIncidents = mockIncidents.length;
-  const openIncidents = mockIncidents.filter((i) => i.status === "open").length;
+  const totalIncidents = incidents.length;
+  const openIncidents = incidents.filter((incident) => incident.status === "open").length;
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KPICardV2
           title={t("total_points")}
-          value={245}
-          subtitle={t("this_week", { count: 18 })}
+          value={xpSummary.totalXp}
+          subtitle={t("net_change", { count: xpSummary.weeklyXpDelta })}
           icon={Award}
           iconColor="#8b5cf6"
           iconBgColor="#ede9fe"
-          chartData={[
-            { label: "W1", value: 220 },
-            { label: "W2", value: 230 },
-            { label: "W3", value: 238 },
-            { label: "W4", value: 245 },
-          ]}
+          chartData={monthlyChart.map((entry) => ({
+            label: entry.label,
+            value: entry.positive - entry.negative,
+          }))}
           chartColor="#8b5cf6"
         />
         <KPICardV2
           title={t("recent_points")}
-          value={totalPoints}
+          value={xpSummary.recentXp}
           subtitle={t("last_7_days")}
           icon={TrendingUp}
           iconColor="#10b981"
           iconBgColor="#d1fae5"
-          chartData={[
-            { label: "D1", value: 12 },
-            { label: "D2", value: 15 },
-            { label: "D3", value: 14 },
-            { label: "D4", value: totalPoints },
-          ]}
+          chartData={monthlyChart.map((entry) => ({
+            label: entry.label,
+            value: entry.positive,
+          }))}
           chartColor="#10b981"
         />
         <KPICardV2
@@ -212,12 +201,10 @@ export default function BehaviorTab({}: BehaviorTabProps) {
           icon={AlertTriangle}
           iconColor="#f59e0b"
           iconBgColor="#fef3c7"
-          chartData={[
-            { label: "M1", value: 1 },
-            { label: "M2", value: 3 },
-            { label: "M3", value: 2 },
-            { label: "M4", value: totalIncidents },
-          ]}
+          chartData={monthlyChart.map((entry) => ({
+            label: entry.label,
+            value: entry.negative,
+          }))}
           chartColor="#f59e0b"
         />
         <KPICardV2
@@ -227,33 +214,30 @@ export default function BehaviorTab({}: BehaviorTabProps) {
           icon={AlertTriangle}
           iconColor="#ef4444"
           iconBgColor="#fee2e2"
-          chartData={[
-            { label: "W1", value: 2 },
-            { label: "W2", value: 1 },
-            { label: "W3", value: 1 },
-            { label: "W4", value: openIncidents },
-          ]}
+          chartData={monthlyChart.map((entry) => ({
+            label: entry.label,
+            value: entry.negative,
+          }))}
           chartColor="#ef4444"
         />
       </div>
 
-      {/* Behavior Trend Chart */}
-      <div className="bg-white rounded-xl p-6 shadow-sm">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h3 className="mb-4 text-lg font-bold text-gray-900">
           {t("behavior_trend")}
         </h3>
         <div className="h-80">
           <BarChart
-            xAxis={[{ scaleType: "band", data: months }]}
+            xAxis={[{ scaleType: "band", data: monthlyChart.map((entry) => entry.label) }]}
             series={[
               {
-                data: positivePoints,
+                data: monthlyChart.map((entry) => entry.positive),
                 label: t("positive_points"),
                 color: "#10b981",
                 stack: "total",
               },
               {
-                data: negativePoints,
+                data: monthlyChart.map((entry) => entry.negative),
                 label: t("incidents"),
                 color: "#ef4444",
                 stack: "total",
@@ -265,14 +249,13 @@ export default function BehaviorTab({}: BehaviorTabProps) {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-sm">
+      <div className="rounded-xl bg-white shadow-sm">
         <div className="border-b border-gray-200">
           <div className="flex items-center justify-between p-6">
             <div className="flex gap-2">
               <button
                 onClick={() => setActiveView("reinforcement")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   activeView === "reinforcement"
                     ? "bg-primary text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -282,7 +265,7 @@ export default function BehaviorTab({}: BehaviorTabProps) {
               </button>
               <button
                 onClick={() => setActiveView("incidents")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   activeView === "incidents"
                     ? "bg-primary text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -291,28 +274,32 @@ export default function BehaviorTab({}: BehaviorTabProps) {
                 {t("incidents")}
               </button>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors">
-              <Plus className="w-4 h-4" />
-              {activeView === "reinforcement"
-                ? t("add_points")
-                : t("add_incident")}
-            </button>
           </div>
         </div>
 
         <div className="p-6">
           {activeView === "reinforcement" ? (
+            reinforcementEvents.length > 0 ? (
+              <DataTable
+                columns={reinforcementColumns}
+                data={reinforcementEvents as unknown as Record<string, unknown>[]}
+                showPagination={false}
+              />
+            ) : (
+              <div className="py-10 text-center text-sm text-gray-500">
+                {t("no_reinforcement")}
+              </div>
+            )
+          ) : incidents.length > 0 ? (
             <DataTable
-              columns={reinforcementColumns}
-              data={mockReinforcementEvents}
+              columns={incidentColumns}
+              data={incidents as unknown as Record<string, unknown>[]}
               showPagination={false}
             />
           ) : (
-            <DataTable
-              columns={incidentColumns}
-              data={mockIncidents}
-              showPagination={false}
-            />
+            <div className="py-10 text-center text-sm text-gray-500">
+              {t("no_incidents")}
+            </div>
           )}
         </div>
       </div>

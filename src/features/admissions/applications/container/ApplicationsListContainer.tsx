@@ -3,18 +3,21 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { mockApplications } from "@/data/mockAdmissions";
 import {
-  filterApplications,
+  createApplication,
+  type ApplicationCreationPayload,
+} from "@/features/admissions/applications/services/applicationCreationService";
+import {
   calculateApplicationKPIs,
   extractFilterOptions,
+  filterApplications,
   hasActiveFilters,
   type ApplicationFilterValues,
 } from "@/features/admissions/applications/utils/applicationsFilters";
 import type { DateRangeValue } from "../../shared/DateRangeFilter";
-import type { ApplicationStatus, DecisionType } from "@/features/admissions/types/admissions";
-import type { Application } from "@/features/admissions/types/admissions";
+import type { Application, ApplicationStatus, DecisionType } from "@/features/admissions/types/admissions";
 import ApplicationsListView from "@/features/admissions/applications/views/ApplicationsListView";
 import {
   submitApplicationEnrollment,
@@ -22,7 +25,6 @@ import {
 } from "@/features/admissions/enrollment/services/enrollmentService";
 
 export default function ApplicationsListContainer() {
-  // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "all">("all");
   const [gradeFilter, setGradeFilter] = useState<string>("all");
@@ -33,14 +35,13 @@ export default function ApplicationsListContainer() {
   const [customStartDate, setCustomStartDate] = useState<string>("");
   const [customEndDate, setCustomEndDate] = useState<string>("");
 
-  // Modal states
   const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false);
   const [isScheduleInterviewOpen, setIsScheduleInterviewOpen] = useState(false);
   const [isDecisionOpen, setIsDecisionOpen] = useState(false);
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
   const [isCreateAppOpen, setIsCreateAppOpen] = useState(false);
+  const [applicationsVersion, setApplicationsVersion] = useState(0);
 
-  // Build filter values object
   const filterValues: ApplicationFilterValues = useMemo(
     () => ({
       searchQuery,
@@ -61,99 +62,31 @@ export default function ApplicationsListContainer() {
       dateRange,
       customStartDate,
       customEndDate,
-    ]
+    ],
   );
 
-  // Filter applications
   const filteredApplications = useMemo(
     () => filterApplications(mockApplications, filterValues),
-    [filterValues]
+    [applicationsVersion, filterValues],
   );
 
-  // Calculate KPIs
   const kpis = useMemo(
     () =>
       calculateApplicationKPIs(
         mockApplications,
         dateRange,
         customStartDate,
-        customEndDate
+        customEndDate,
       ),
-    [dateRange, customStartDate, customEndDate]
+    [applicationsVersion, dateRange, customStartDate, customEndDate],
   );
 
-  // Extract filter options
   const { uniqueGrades, uniqueGenders, uniqueNationalities } = useMemo(
     () => extractFilterOptions(mockApplications),
-    []
+    [applicationsVersion],
   );
 
-  // Check if filters are active
   const filtersActive = hasActiveFilters(filterValues);
-
-  // Event handlers
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
-  };
-
-  const handleStatusFilterChange = (value: ApplicationStatus | "all") => {
-    setStatusFilter(value);
-  };
-
-  const handleGradeFilterChange = (value: string) => {
-    setGradeFilter(value);
-  };
-
-  const handleGenderFilterChange = (value: string) => {
-    setGenderFilter(value);
-  };
-
-  const handleNationalityFilterChange = (value: string) => {
-    setNationalityFilter(value);
-  };
-
-  const handleToggleFilters = () => {
-    setShowFilters(!showFilters);
-  };
-
-  const handleClearFilters = () => {
-    setSearchQuery("");
-    setStatusFilter("all");
-    setGradeFilter("all");
-    setGenderFilter("all");
-    setNationalityFilter("all");
-  };
-
-  const handleDateRangeChange = (value: DateRangeValue) => {
-    setDateRange(value);
-  };
-
-  const handleCustomDateChange = (start: string, end: string) => {
-    setCustomStartDate(start);
-    setCustomEndDate(end);
-  };
-
-  const handleTestSubmit = (data: Record<string, unknown>) => {
-    console.log("Test scheduled:", data);
-    alert("Test scheduled successfully!");
-    setIsScheduleTestOpen(false);
-  };
-
-  const handleInterviewSubmit = (data: Record<string, unknown>) => {
-    console.log("Interview scheduled:", data);
-    alert("Interview scheduled successfully!");
-    setIsScheduleInterviewOpen(false);
-  };
-
-  const handleDecisionSubmit = (
-    decision: DecisionType,
-    reason: string,
-    date: string
-  ) => {
-    console.log("Decision made:", { decision, reason, date });
-    alert(`Decision recorded: ${decision.toUpperCase()}`);
-    setIsDecisionOpen(false);
-  };
 
   const handleEnrollmentSubmit = (
     application: Application,
@@ -165,13 +98,17 @@ export default function ApplicationsListContainer() {
     });
   };
 
-  const handleCreateApplicationSubmit = (data: Record<string, unknown>) => {
-    console.log("New application created:", data);
-    alert("Application created successfully!");
+  const handleCreateApplicationSubmit = (data: ApplicationCreationPayload) => {
+    const createdApplication = createApplication(data);
+    alert(
+      createdApplication.status === "documents_pending"
+        ? "Application submitted with pending required documents."
+        : "Application created successfully!",
+    );
+    setApplicationsVersion((current) => current + 1);
     setIsCreateAppOpen(false);
   };
 
-  // Pass everything to presenter
   return (
     <ApplicationsListView
       filteredApplications={filteredApplications}
@@ -187,18 +124,39 @@ export default function ApplicationsListContainer() {
       isDecisionOpen={isDecisionOpen}
       isEnrollmentOpen={isEnrollmentOpen}
       isCreateAppOpen={isCreateAppOpen}
-      onSearchChange={handleSearchChange}
-      onStatusFilterChange={handleStatusFilterChange}
-      onGradeFilterChange={handleGradeFilterChange}
-      onGenderFilterChange={handleGenderFilterChange}
-      onNationalityFilterChange={handleNationalityFilterChange}
-      onToggleFilters={handleToggleFilters}
-      onClearFilters={handleClearFilters}
-      onDateRangeChange={handleDateRangeChange}
-      onCustomDateChange={handleCustomDateChange}
-      onTestSubmit={handleTestSubmit}
-      onInterviewSubmit={handleInterviewSubmit}
-      onDecisionSubmit={handleDecisionSubmit}
+      onSearchChange={setSearchQuery}
+      onStatusFilterChange={setStatusFilter}
+      onGradeFilterChange={setGradeFilter}
+      onGenderFilterChange={setGenderFilter}
+      onNationalityFilterChange={setNationalityFilter}
+      onToggleFilters={() => setShowFilters((current) => !current)}
+      onClearFilters={() => {
+        setSearchQuery("");
+        setStatusFilter("all");
+        setGradeFilter("all");
+        setGenderFilter("all");
+        setNationalityFilter("all");
+      }}
+      onDateRangeChange={setDateRange}
+      onCustomDateChange={(start, end) => {
+        setCustomStartDate(start);
+        setCustomEndDate(end);
+      }}
+      onTestSubmit={(data) => {
+        console.log("Test scheduled:", data);
+        alert("Test scheduled successfully!");
+        setIsScheduleTestOpen(false);
+      }}
+      onInterviewSubmit={(data) => {
+        console.log("Interview scheduled:", data);
+        alert("Interview scheduled successfully!");
+        setIsScheduleInterviewOpen(false);
+      }}
+      onDecisionSubmit={(decision: DecisionType, reason: string, date: string) => {
+        console.log("Decision made:", { decision, reason, date });
+        alert(`Decision recorded: ${decision.toUpperCase()}`);
+        setIsDecisionOpen(false);
+      }}
       onEnrollmentSubmit={handleEnrollmentSubmit}
       onCreateApplicationSubmit={handleCreateApplicationSubmit}
       setIsScheduleTestOpen={setIsScheduleTestOpen}

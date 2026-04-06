@@ -53,6 +53,7 @@ export default function Sidebar({
             "settings-users": "settings.users.view",
             "settings-roles": "settings.roles.view",
             "settings-policies": "settings.policies.view",
+            "settings-admissions-documents": "settings.admissionsDocuments.view",
             "settings-templates": "settings.templates.view",
             "settings-integrations": "settings.integrations.view",
             "settings-security": "settings.security.view",
@@ -234,7 +235,7 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* ✅ Scrollable Menu Only */}
+        {/* âœ… Scrollable Menu Only */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 sidebar-scroll">
           <nav className="space-y-1 pb-4">
             {visibleMenuItems.map((item) => {
@@ -488,7 +489,7 @@ export default function Sidebar({
           </nav>
         </div>
 
-        {/* ✅ Bottom Section ثابت تحت */}
+        {/* âœ… Bottom Section Ø«Ø§Ø¨Øª ØªØ­Øª */}
         <div className="pb-6 space-y-1 shrink-0 border-t border-gray-100 pt-3">
           {bottomItems.map((item) => {
             const Icon = item.icon;

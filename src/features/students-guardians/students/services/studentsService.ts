@@ -7,6 +7,9 @@ import type {
   StudentDocument,
   StudentMedicalProfile,
   StudentNote,
+  CreateStudentNotePayload,
+  StudentXpEvent,
+  StudentXpSummary,
   StudentTimelineEvent,
   StudentStatus,
   RiskFlag,
@@ -33,10 +36,11 @@ import {
   getClassTeacher,
   getSubjectTeacher,
 } from "@/data/mockStudents";
+import { getOrGenerateGuardianEmail } from "./emailService";
 import {
-  getOrGenerateStudentEmail,
-  getOrGenerateGuardianEmail,
-} from "./emailService";
+  composeNameParts,
+  splitFullName,
+} from "@/features/students-guardians/students/utils/studentUtils";
 import type { StudentsAdapter } from "./studentsAdapter";
 import {
   createStudentsApiAdapter,
@@ -45,20 +49,7 @@ import {
 
 const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const withResolvedStudentEmail = (student: Student): Student => ({
-  ...student,
-  contact: {
-    ...student.contact,
-    student_email:
-      student.contact?.student_email ||
-      getOrGenerateStudentEmail({
-        id: student.id,
-        email: student.contact?.student_email,
-        full_name_en: student.full_name_en,
-        full_name_ar: student.full_name_ar,
-      }),
-  },
-});
+const withResolvedStudentEmail = (student: Student): Student => student;
 
 let currentStudentsAdapter: StudentsAdapter | null = null;
 
@@ -94,8 +85,65 @@ const updateStudentImpl = async (
   }
 
   const existingStudent = mockStudents[index];
+  const fallbackEnglishParts = splitFullName(existingStudent.full_name_en);
+  const fallbackArabicParts = splitFullName(existingStudent.full_name_ar);
+  const existingEnglishParts = {
+    ...fallbackEnglishParts,
+    firstName: existingStudent.first_name_en || fallbackEnglishParts.firstName,
+    fatherName:
+      existingStudent.father_name_en || fallbackEnglishParts.fatherName,
+    grandfatherName:
+      existingStudent.grandfather_name_en ||
+      fallbackEnglishParts.grandfatherName,
+    familyName:
+      existingStudent.family_name_en || fallbackEnglishParts.familyName,
+  };
+  const existingArabicParts = {
+    ...fallbackArabicParts,
+    firstName: existingStudent.first_name_ar || fallbackArabicParts.firstName,
+    fatherName:
+      existingStudent.father_name_ar || fallbackArabicParts.fatherName,
+    grandfatherName:
+      existingStudent.grandfather_name_ar ||
+      fallbackArabicParts.grandfatherName,
+    familyName:
+      existingStudent.family_name_ar || fallbackArabicParts.familyName,
+  };
+  const resolvedFirstNameEn =
+    payload.first_name_en ?? existingEnglishParts.firstName;
+  const resolvedFatherNameEn =
+    payload.father_name_en ?? existingEnglishParts.fatherName;
+  const resolvedGrandfatherNameEn =
+    payload.grandfather_name_en ?? existingEnglishParts.grandfatherName;
+  const resolvedFamilyNameEn =
+    payload.family_name_en ?? existingEnglishParts.familyName;
+  const resolvedFirstNameAr =
+    payload.first_name_ar ?? existingArabicParts.firstName;
+  const resolvedFatherNameAr =
+    payload.father_name_ar ?? existingArabicParts.fatherName;
+  const resolvedGrandfatherNameAr =
+    payload.grandfather_name_ar ?? existingArabicParts.grandfatherName;
+  const resolvedFamilyNameAr =
+    payload.family_name_ar ?? existingArabicParts.familyName;
   const resolvedFullNameEn =
-    payload.full_name_en ?? payload.name ?? existingStudent.full_name_en;
+    payload.full_name_en ??
+    (composeNameParts(
+      resolvedFirstNameEn,
+      resolvedFatherNameEn,
+      resolvedGrandfatherNameEn,
+      resolvedFamilyNameEn,
+    ) ||
+      payload.name ||
+      existingStudent.full_name_en);
+  const resolvedFullNameAr =
+    payload.full_name_ar ??
+    (composeNameParts(
+      resolvedFirstNameAr,
+      resolvedFatherNameAr,
+      resolvedGrandfatherNameAr,
+      resolvedFamilyNameAr,
+    ) ||
+      existingStudent.full_name_ar);
   const resolvedDateOfBirth =
     payload.dateOfBirth ?? payload.date_of_birth ?? existingStudent.dateOfBirth;
 
@@ -103,8 +151,16 @@ const updateStudentImpl = async (
     ...existingStudent,
     ...payload,
     name: payload.name ?? resolvedFullNameEn,
+    first_name_en: resolvedFirstNameEn,
+    father_name_en: resolvedFatherNameEn,
+    grandfather_name_en: resolvedGrandfatherNameEn,
+    family_name_en: resolvedFamilyNameEn,
+    first_name_ar: resolvedFirstNameAr,
+    father_name_ar: resolvedFatherNameAr,
+    grandfather_name_ar: resolvedGrandfatherNameAr,
+    family_name_ar: resolvedFamilyNameAr,
     full_name_en: resolvedFullNameEn,
-    full_name_ar: payload.full_name_ar ?? existingStudent.full_name_ar,
+    full_name_ar: resolvedFullNameAr,
     dateOfBirth: resolvedDateOfBirth,
     date_of_birth: resolvedDateOfBirth,
     gender: payload.gender ?? existingStudent.gender,
@@ -271,11 +327,36 @@ export function getStudentsWithMedicalConditions(): Student[] {
 // NOTE OPERATIONS
 // ============================================================================
 
+const normalizeStudentNote = (
+  note: StudentNote | (StudentNote & { xpAdjustment?: number }),
+): StudentNote => ({
+  ...note,
+  xpAdjustment:
+    typeof note.xpAdjustment === "number" && Number.isInteger(note.xpAdjustment)
+      ? note.xpAdjustment
+      : 0,
+});
+
+const validateXpAdjustment = (xpAdjustment: number) => {
+  if (!Number.isInteger(xpAdjustment)) {
+    throw new Error("xp_must_be_integer");
+  }
+  if (xpAdjustment < -50 || xpAdjustment > 50) {
+    throw new Error("xp_out_of_range");
+  }
+  if (xpAdjustment === 0) {
+    throw new Error("xp_cannot_be_zero");
+  }
+};
+
 /**
  * Get all notes for a student
  */
 export function getStudentNotes(studentId: string): StudentNote[] {
-  return mockStudentNotes.filter((n) => n.studentId === studentId);
+  return mockStudentNotes
+    .filter((n) => n.studentId === studentId)
+    .map(normalizeStudentNote)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 /**
@@ -285,9 +366,7 @@ export function getStudentNotesByCategory(
   studentId: string,
   category: StudentNote["category"],
 ): StudentNote[] {
-  return mockStudentNotes.filter(
-    (n) => n.studentId === studentId && n.category === category,
-  );
+  return getStudentNotes(studentId).filter((n) => n.category === category);
 }
 
 /**
@@ -297,9 +376,68 @@ export function getStudentNotesByVisibility(
   studentId: string,
   visibility: StudentNote["visibility"],
 ): StudentNote[] {
-  return mockStudentNotes.filter(
-    (n) => n.studentId === studentId && n.visibility === visibility,
+  return getStudentNotes(studentId).filter((n) => n.visibility === visibility);
+}
+
+export function addStudentNote(
+  studentId: string,
+  payload: CreateStudentNotePayload,
+): StudentNote {
+  validateXpAdjustment(payload.xpAdjustment);
+
+  const newNote: StudentNote = {
+    id: `NOTE-${studentId}-${Date.now()}`,
+    studentId,
+    date: new Date().toISOString(),
+    category: payload.category,
+    note: payload.note.trim(),
+    xpAdjustment: payload.xpAdjustment,
+    visibility: payload.visibility,
+    created_by: payload.created_by.trim(),
+  };
+
+  mockStudentNotes.unshift(newNote);
+  return normalizeStudentNote(newNote);
+}
+
+export function getStudentXpEvents(studentId: string): StudentXpEvent[] {
+  return getStudentNotes(studentId)
+    .filter((note) => note.xpAdjustment !== 0)
+    .map((note) => ({
+      id: note.id,
+      studentId: note.studentId,
+      date: note.date,
+      category: note.category,
+      points: note.xpAdjustment,
+      note: note.note,
+      visibility: note.visibility,
+      created_by: note.created_by,
+    }));
+}
+
+export function getStudentXpSummary(studentId: string): StudentXpSummary {
+  const events = getStudentXpEvents(studentId);
+  const last7DaysThreshold = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const recentEvents = events.filter(
+    (event) => new Date(event.date).getTime() >= last7DaysThreshold,
   );
+
+  return {
+    totalXp: events.reduce((sum, event) => sum + event.points, 0),
+    recentXp: recentEvents.reduce((sum, event) => sum + event.points, 0),
+    weeklyXpDelta: recentEvents.reduce((sum, event) => sum + event.points, 0),
+    positiveNotesCount: events.filter((event) => event.points > 0).length,
+    negativeNotesCount: events.filter((event) => event.points < 0).length,
+    totalNotesCount: getStudentNotes(studentId).length,
+    positivePointsTotal: events
+      .filter((event) => event.points > 0)
+      .reduce((sum, event) => sum + event.points, 0),
+    negativePointsTotal: Math.abs(
+      events
+        .filter((event) => event.points < 0)
+        .reduce((sum, event) => sum + event.points, 0),
+    ),
+  };
 }
 
 // ============================================================================
@@ -428,9 +566,13 @@ export function getClassroomDistribution(
 
 export function getStudentsByClassroomId(classroomId: string): Student[] {
   const classroomEnrollments = getEnrollmentsByClassroomId(classroomId);
-  const enrolledStudentIds = new Set(classroomEnrollments.map((enrollment) => enrollment.studentId));
+  const enrolledStudentIds = new Set(
+    classroomEnrollments.map((enrollment) => enrollment.studentId),
+  );
 
-  return getAllStudents().filter((student) => enrolledStudentIds.has(student.id));
+  return getAllStudents().filter((student) =>
+    enrolledStudentIds.has(student.id),
+  );
 }
 
 /**
@@ -510,7 +652,10 @@ export function getStudentYTDPerformanceByAcademicYear(
   gradeAverage: number;
   riskFlags: RiskFlag[];
 } | null {
-  const enrollment = getStudentEnrollmentByAcademicYear(studentId, academicYear);
+  const enrollment = getStudentEnrollmentByAcademicYear(
+    studentId,
+    academicYear,
+  );
   if (!enrollment) return null;
   return getYearToDateAverages(enrollment.enrollmentId);
 }
@@ -525,7 +670,10 @@ export function getStudentTermsByAcademicYear(
   studentId: string,
   academicYear: string,
 ): EnrollmentTerm[] {
-  const enrollment = getStudentEnrollmentByAcademicYear(studentId, academicYear);
+  const enrollment = getStudentEnrollmentByAcademicYear(
+    studentId,
+    academicYear,
+  );
   if (!enrollment) return [];
   return getTermsByEnrollmentId(enrollment.enrollmentId);
 }
@@ -557,7 +705,11 @@ export function getStudentClassTeacher(
 
   if (!enrollment) return undefined;
 
-  return getClassTeacher(enrollment.grade, enrollment.section, enrollment.academicYear);
+  return getClassTeacher(
+    enrollment.grade,
+    enrollment.section,
+    enrollment.academicYear,
+  );
 }
 
 export function getStudentSubjectTeacher(
@@ -612,43 +764,45 @@ const getStudentsWithEnrollmentForContextImpl = (
   academicYearId?: string | null,
   termId?: string | null,
 ): StudentWithEnrollmentContext[] => {
-  return mockStudents.map((student) => {
-    const enrollment =
-      academicYearId
+  return mockStudents
+    .map((student) => {
+      const enrollment = academicYearId
         ? getEnrollmentByStudentIdAndAcademicYear(student.id, academicYearId)
         : getEnrollmentByStudentId(student.id);
-    const enrollmentTerms = enrollment
-      ? getTermsByEnrollmentId(enrollment.enrollmentId)
-      : [];
-    const currentTerm = enrollment
-      ? getCurrentTerm(enrollment.enrollmentId)
-      : undefined;
-    const selectedTerm =
-      enrollmentTerms.find(
-        (enrollmentTerm) => enrollmentTerm.termRecordId === termId,
-      ) ||
-      undefined;
-    const ytdPerformance = enrollment
-      ? getYearToDateAverages(enrollment.enrollmentId)
-      : undefined;
-    const contextPerformance =
-      mapTermToPerformance(selectedTerm || currentTerm) || ytdPerformance;
+      const enrollmentTerms = enrollment
+        ? getTermsByEnrollmentId(enrollment.enrollmentId)
+        : [];
+      const currentTerm = enrollment
+        ? getCurrentTerm(enrollment.enrollmentId)
+        : undefined;
+      const selectedTerm =
+        enrollmentTerms.find(
+          (enrollmentTerm) => enrollmentTerm.termRecordId === termId,
+        ) || undefined;
+      const ytdPerformance = enrollment
+        ? getYearToDateAverages(enrollment.enrollmentId)
+        : undefined;
+      const contextPerformance =
+        mapTermToPerformance(selectedTerm || currentTerm) || ytdPerformance;
 
-    return {
-      ...withResolvedStudentEmail(student),
-      enrollment,
-      currentTerm,
-      selectedTerm,
-      ytdPerformance,
-      contextPerformance,
-    };
-  }).filter((student) => {
-    const matchesAcademicYear =
-      !academicYearId || student.enrollment?.academicYearId === academicYearId;
-    const matchesTerm = !termId || student.selectedTerm?.termRecordId === termId;
+      return {
+        ...withResolvedStudentEmail(student),
+        enrollment,
+        currentTerm,
+        selectedTerm,
+        ytdPerformance,
+        contextPerformance,
+      };
+    })
+    .filter((student) => {
+      const matchesAcademicYear =
+        !academicYearId ||
+        student.enrollment?.academicYearId === academicYearId;
+      const matchesTerm =
+        !termId || student.selectedTerm?.termRecordId === termId;
 
-    return matchesAcademicYear && matchesTerm;
-  });
+      return matchesAcademicYear && matchesTerm;
+    });
 };
 
 const mockStudentsAdapter: StudentsAdapter = {
@@ -682,7 +836,9 @@ const mockStudentsAdapter: StudentsAdapter = {
   fetchStudentsWithEnrollment: async () =>
     Promise.resolve(getStudentsWithEnrollmentImpl()),
   fetchStudentsWithEnrollmentForContext: async (academicYearId, termId) =>
-    Promise.resolve(getStudentsWithEnrollmentForContextImpl(academicYearId, termId)),
+    Promise.resolve(
+      getStudentsWithEnrollmentForContextImpl(academicYearId, termId),
+    ),
 };
 
 currentStudentsAdapter = mockStudentsAdapter;
@@ -878,7 +1034,10 @@ export async function fetchStudentsWithEnrollmentForContext(
 ): Promise<StudentWithEnrollmentContext[]> {
   const adapter = getStudentsAdapter();
   if (adapter.fetchStudentsWithEnrollmentForContext) {
-    return adapter.fetchStudentsWithEnrollmentForContext(academicYearId, termId);
+    return adapter.fetchStudentsWithEnrollmentForContext(
+      academicYearId,
+      termId,
+    );
   }
 
   return Promise.resolve(

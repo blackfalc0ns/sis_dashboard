@@ -1,7 +1,10 @@
 // FILE: src/types/admissions/application.ts
 // Application model (main entity)
 
-import type { ApplicationStatus, ApplicationSource } from "@/features/admissions/types/enums";
+import type {
+  ApplicationStatus,
+  ApplicationSource,
+} from "@/features/admissions/types/enums";
 import type { Guardian } from "./guardian";
 import type { Document } from "./document";
 import type { Test } from "@/features/admissions/tests/types/test";
@@ -20,6 +23,14 @@ export interface Application {
   submittedDate: string;
 
   // Student Information
+  first_name_ar?: string;
+  father_name_ar?: string;
+  grandfather_name_ar?: string;
+  family_name_ar?: string;
+  first_name_en?: string;
+  father_name_en?: string;
+  grandfather_name_en?: string;
+  family_name_en?: string;
   full_name_ar: string;
   full_name_en: string;
   studentName: string; // Display name (backward compatibility)
@@ -40,6 +51,7 @@ export interface Application {
   grade_requested: string;
   gradeRequested: string; // Alias for grade_requested
   stage?: string; // Educational stage (Primary, Preparatory, Secondary)
+  section?: string; // Section/Class name
   previous_school?: string;
   previousSchool?: string; // Alias for previous_school
   join_date?: string;

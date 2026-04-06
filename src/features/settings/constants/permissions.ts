@@ -65,6 +65,20 @@ export const permissionCatalog: PermissionDefinition[] = [
     description: "Configure attendance, grading, and discipline policies.",
   },
   {
+    key: "settings.admissionsDocuments.view",
+    module: "admissions_documents",
+    action: "view",
+    label: "View admissions documents settings",
+    description: "Access the school-wide admissions document requirement list.",
+  },
+  {
+    key: "settings.admissionsDocuments.manage",
+    module: "admissions_documents",
+    action: "manage",
+    label: "Manage admissions documents settings",
+    description: "Create, edit, reorder, activate, and remove admissions document requirements.",
+  },
+  {
     key: "settings.templates.view",
     module: "templates",
     action: "view",

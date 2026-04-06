@@ -1,8 +1,6 @@
-// FILE: src/components/admissions/ApplicationCreateStepper.tsx
-
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Modal } from "@/components/ui/modal";
 import Stepper from "@/features/admissions/shared/Stepper";
@@ -10,12 +8,22 @@ import StudentInfoStep from "./steps/StudentInfoStep";
 import GuardianInfoStep from "./steps/GuardianInfoStep";
 import DocumentsStep from "./steps/DocumentsStep";
 import { Lead } from "@/features/admissions/leads/types/lead";
+import { fetchAdmissionsDocumentRequirements } from "@/features/settings/services/settingsService";
+import {
+  fetchStructureTree,
+  type Stage,
+  type Grade,
+  type Section,
+} from "@/features/academics/academic-structure-tree/services/structureService";
+import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import type { AdmissionsRequiredDocumentConfig } from "@/features/settings/types";
+import type { ApplicationCreationPayload } from "@/features/admissions/applications/services/applicationCreationService";
 
 interface ApplicationCreateStepperProps {
   lead?: Lead;
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: Record<string, unknown>) => void;
+  onSubmit: (data: ApplicationCreationPayload) => void;
 }
 
 interface Guardian {
@@ -36,6 +44,25 @@ interface ValidationErrors {
   [key: string]: string;
 }
 
+interface DocumentData {
+  uploaded: boolean;
+  file: File | null;
+}
+
+type DocumentsState = Record<string, DocumentData>;
+
+const createEmptyDocumentState = (
+  requirements: AdmissionsRequiredDocumentConfig[],
+  currentDocuments: DocumentsState = {},
+): DocumentsState =>
+  requirements.reduce<DocumentsState>((accumulator, requirement) => {
+    accumulator[requirement.id] = currentDocuments[requirement.id] || {
+      uploaded: false,
+      file: null,
+    };
+    return accumulator;
+  }, {});
+
 export default function ApplicationCreateStepper({
   lead,
   isOpen,
@@ -43,6 +70,12 @@ export default function ApplicationCreateStepper({
   onSubmit,
 }: ApplicationCreateStepperProps) {
   const t = useTranslations("admissions.create_application");
+  const composeFullName = (...parts: string[]) =>
+    parts
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .join(" ");
+
   const [currentStep, setCurrentStep] = useState(0);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [guardianErrors, setGuardianErrors] = useState<ValidationErrors[]>([
@@ -63,33 +96,57 @@ export default function ApplicationCreateStepper({
       can_receive_notifications: true,
     },
   ]);
+  const [documentRequirements, setDocumentRequirements] = useState<
+    AdmissionsRequiredDocumentConfig[]
+  >([]);
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
+  const [stages, setStages] = useState<Stage[]>([]);
+  const [grades, setGrades] = useState<Grade[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [isLoadingStructure, setIsLoadingStructure] = useState(false);
+  const { yearId, termId } = useAdmissionsYearTermContext();
   const [formData, setFormData] = useState({
-    // Step 1: Student Info
-    full_name_ar: lead?.name || "",
-    full_name_en: "",
+    first_name_ar: "",
+    father_name_ar: "",
+    grandfather_name_ar: "",
+    family_name_ar: "",
+    first_name_en: "",
+    father_name_en: "",
+    grandfather_name_en: "",
+    family_name_en: "",
     gender: "",
     date_of_birth: "",
     nationality: "",
     stage: "",
+    grade_requested: lead?.gradeInterest || "",
+    section: "",
     address_line: "",
     city: "",
     district: "",
-    student_phone: "",
-    student_email: "",
-    grade_requested: lead?.gradeInterest || "",
     previous_school: "",
     medical_conditions: "",
     notes: "",
     join_date: new Date().toISOString().split("T")[0],
     status: "pending",
-    // Step 3: Documents
-    documents: {
-      birthCertificate: { uploaded: false, file: null as File | null },
-      passportCopy: { uploaded: false, file: null as File | null },
-      medicalReport: { uploaded: false, file: null as File | null },
-      schoolCertificate: { uploaded: false, file: null as File | null },
-    },
+    documents: {} as DocumentsState,
   });
+
+  const activeDocumentRequirements = useMemo(
+    () =>
+      documentRequirements
+        .filter((requirement) => requirement.active)
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    [documentRequirements],
+  );
+
+  const missingRequiredDocuments = useMemo(
+    () =>
+      activeDocumentRequirements.filter(
+        (requirement) =>
+          requirement.required && !formData.documents[requirement.id]?.uploaded,
+      ),
+    [activeDocumentRequirements, formData.documents],
+  );
 
   const steps = [
     {
@@ -103,9 +160,64 @@ export default function ApplicationCreateStepper({
     { label: t("steps.documents"), description: t("steps.documents_desc") },
   ];
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let cancelled = false;
+    setIsLoadingDocuments(true);
+    void fetchAdmissionsDocumentRequirements()
+      .then((requirements) => {
+        if (cancelled) return;
+        setDocumentRequirements(requirements);
+        setFormData((current) => ({
+          ...current,
+          documents: createEmptyDocumentState(
+            requirements.filter((requirement) => requirement.active),
+            current.documents,
+          ),
+        }));
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingDocuments(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !yearId || !termId) return;
+
+    let cancelled = false;
+    setIsLoadingStructure(true);
+    void fetchStructureTree(yearId, termId)
+      .then((data) => {
+        if (cancelled) return;
+        setStages(data.stages);
+        setGrades(data.grades);
+        setSections(data.sections);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error("Failed to load structure tree:", error);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingStructure(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, yearId, termId]);
+
   if (!isOpen) return null;
 
-  // Validation functions
   const validateEmail = (email: string): boolean => {
     if (!email) return true;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -121,37 +233,35 @@ export default function ApplicationCreateStepper({
   const validateStep1 = (): boolean => {
     const newErrors: ValidationErrors = {};
 
-    if (!formData.full_name_ar.trim()) {
-      newErrors.full_name_ar = t("errors.full_name_ar_required");
-    }
-    if (!formData.full_name_en.trim()) {
-      newErrors.full_name_en = t("errors.full_name_en_required");
-    }
-    if (!formData.gender) {
-      newErrors.gender = t("errors.gender_required");
-    }
+    if (!formData.first_name_ar.trim())
+      newErrors.first_name_ar = t("errors.first_name_ar_required");
+    if (!formData.father_name_ar.trim())
+      newErrors.father_name_ar = t("errors.father_name_ar_required");
+    if (!formData.grandfather_name_ar.trim())
+      newErrors.grandfather_name_ar = t("errors.grandfather_name_ar_required");
+    if (!formData.family_name_ar.trim())
+      newErrors.family_name_ar = t("errors.family_name_ar_required");
+    if (!formData.first_name_en.trim())
+      newErrors.first_name_en = t("errors.first_name_en_required");
+    if (!formData.father_name_en.trim())
+      newErrors.father_name_en = t("errors.father_name_en_required");
+    if (!formData.grandfather_name_en.trim())
+      newErrors.grandfather_name_en = t("errors.grandfather_name_en_required");
+    if (!formData.family_name_en.trim())
+      newErrors.family_name_en = t("errors.family_name_en_required");
+    if (!formData.gender) newErrors.gender = t("errors.gender_required");
     if (!formData.date_of_birth) {
       newErrors.date_of_birth = t("errors.date_of_birth_required");
     } else {
       const birthDate = new Date(formData.date_of_birth);
       const today = new Date();
       const age = today.getFullYear() - birthDate.getFullYear();
-      if (age < 3 || age > 20) {
-        newErrors.date_of_birth = t("errors.age_range");
-      }
+      if (age < 3 || age > 20) newErrors.date_of_birth = t("errors.age_range");
     }
-    if (!formData.nationality.trim()) {
+    if (!formData.nationality)
       newErrors.nationality = t("errors.nationality_required");
-    }
-    if (!formData.grade_requested) {
+    if (!formData.grade_requested)
       newErrors.grade_requested = t("errors.grade_required");
-    }
-    if (formData.student_email && !validateEmail(formData.student_email)) {
-      newErrors.student_email = t("errors.invalid_email");
-    }
-    if (formData.student_phone && !validatePhone(formData.student_phone)) {
-      newErrors.student_phone = t("errors.invalid_phone");
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -193,8 +303,7 @@ export default function ApplicationCreateStepper({
       newGuardianErrors[index] = guardianError;
     });
 
-    const hasPrimary = guardians.some((g) => g.is_primary);
-    if (!hasPrimary) {
+    if (!guardians.some((guardian) => guardian.is_primary)) {
       newGuardianErrors[0] = {
         ...newGuardianErrors[0],
         is_primary: t("errors.primary_guardian_required"),
@@ -207,55 +316,51 @@ export default function ApplicationCreateStepper({
   };
 
   const validateStep3 = (): boolean => {
-    const newErrors: ValidationErrors = {};
-
-    const hasAnyDocument = Object.values(formData.documents).some(
-      (doc) => doc.uploaded,
-    );
-
-    if (!hasAnyDocument) {
-      newErrors.documents = t("errors.document_required");
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors((current) => {
+      const nextErrors = { ...current };
+      delete nextErrors.documents;
+      return nextErrors;
+    });
+    return true;
   };
 
   const handleFileUpload = (docKey: string, file: File | null) => {
-    if (file) {
-      const allowedTypes = [
-        "application/pdf",
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-      ];
-      if (!allowedTypes.includes(file.type)) {
-        setErrors({
-          ...errors,
-          [docKey]: t("errors.file_type_error"),
-        });
-        return;
-      }
+    if (!file) return;
 
-      const maxSize = 5 * 1024 * 1024;
-      if (file.size > maxSize) {
-        setErrors({
-          ...errors,
-          [docKey]: t("errors.file_size_error"),
-        });
-        return;
-      }
-
-      const newErrors = { ...errors };
-      delete newErrors[docKey];
-      delete newErrors.documents;
-      setErrors(newErrors);
-
-      updateFormData("documents", {
-        ...formData.documents,
-        [docKey]: { uploaded: true, file: file },
-      });
+    const allowedTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      setErrors((current) => ({
+        ...current,
+        [docKey]: t("errors.file_type_error"),
+      }));
+      return;
     }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setErrors((current) => ({
+        ...current,
+        [docKey]: t("errors.file_size_error"),
+      }));
+      return;
+    }
+
+    setErrors((current) => {
+      const nextErrors = { ...current };
+      delete nextErrors[docKey];
+      delete nextErrors.documents;
+      return nextErrors;
+    });
+
+    updateFormData("documents", {
+      ...formData.documents,
+      [docKey]: { uploaded: true, file },
+    });
   };
 
   const handleFileRemove = (docKey: string) => {
@@ -294,51 +399,67 @@ export default function ApplicationCreateStepper({
   };
 
   const handleNext = () => {
-    if (currentStep === 0 && !validateStep1()) {
-      return;
-    }
-    if (currentStep === 1 && !validateStep2()) {
-      return;
-    }
-    if (currentStep === 2 && !validateStep3()) {
-      return;
-    }
+    if (currentStep === 0 && !validateStep1()) return;
+    if (currentStep === 1 && !validateStep2()) return;
+    if (currentStep === 2 && !validateStep3()) return;
 
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
       setErrors({});
       setGuardianErrors([{}]);
-    } else {
-      const submissionData = {
-        student: {
-          full_name_ar: formData.full_name_ar,
-          full_name_en: formData.full_name_en,
-          gender: formData.gender,
-          date_of_birth: formData.date_of_birth,
-          nationality: formData.nationality,
-          stage: formData.stage,
-          address_line: formData.address_line,
-          city: formData.city,
-          district: formData.district,
-          student_phone: formData.student_phone,
-          email: formData.student_email,
-          status: formData.status,
-          join_date: formData.join_date,
-          grade_requested: formData.grade_requested,
-          notes: formData.notes,
-          previous_school: formData.previous_school,
-          medical_conditions: formData.medical_conditions,
-        },
-        guardians: guardians,
-        documents: {
-          birthCertificate: formData.documents.birthCertificate.uploaded,
-          passportCopy: formData.documents.passportCopy.uploaded,
-          medicalReport: formData.documents.medicalReport.uploaded,
-          schoolCertificate: formData.documents.schoolCertificate.uploaded,
-        },
-      };
-      onSubmit(submissionData);
+      return;
     }
+
+    onSubmit({
+      student: {
+        first_name_ar: formData.first_name_ar,
+        father_name_ar: formData.father_name_ar,
+        grandfather_name_ar: formData.grandfather_name_ar,
+        family_name_ar: formData.family_name_ar,
+        first_name_en: formData.first_name_en,
+        father_name_en: formData.father_name_en,
+        grandfather_name_en: formData.grandfather_name_en,
+        family_name_en: formData.family_name_en,
+        full_name_ar: composeFullName(
+          formData.first_name_ar,
+          formData.father_name_ar,
+          formData.grandfather_name_ar,
+          formData.family_name_ar,
+        ),
+        full_name_en: composeFullName(
+          formData.first_name_en,
+          formData.father_name_en,
+          formData.grandfather_name_en,
+          formData.family_name_en,
+        ),
+        gender: formData.gender,
+        date_of_birth: formData.date_of_birth,
+        nationality: formData.nationality,
+        stage: formData.stage,
+        grade_requested: formData.grade_requested,
+        section: formData.section,
+        address_line: formData.address_line,
+        city: formData.city,
+        district: formData.district,
+        status: formData.status,
+        join_date: formData.join_date,
+        notes: formData.notes,
+        previous_school: formData.previous_school,
+        medical_conditions: formData.medical_conditions,
+      },
+      guardians,
+      documents: activeDocumentRequirements.map((requirement) => {
+        const documentState = formData.documents[requirement.id];
+        return {
+          configId: requirement.id,
+          labelEn: requirement.nameEn,
+          labelAr: requirement.nameAr,
+          required: requirement.required,
+          uploaded: Boolean(documentState?.uploaded),
+          fileName: documentState?.file?.name,
+        };
+      }),
+    });
   };
 
   const handleBack = () => {
@@ -350,7 +471,7 @@ export default function ApplicationCreateStepper({
   };
 
   const updateFormData = (field: string, value: unknown) => {
-    setFormData({ ...formData, [field]: value });
+    setFormData((current) => ({ ...current, [field]: value }));
     if (errors[field]) {
       const newErrors = { ...errors };
       delete newErrors[field];
@@ -406,7 +527,7 @@ export default function ApplicationCreateStepper({
       closeOnEscape={false}
       className="max-h-[90vh]"
     >
-      <p className="text-sm text-gray-500 mb-6">{t("subtitle")}</p>
+      <p className="mb-6 text-sm text-gray-500">{t("subtitle")}</p>
 
       <div className="mb-6">
         <Stepper steps={steps} currentStep={currentStep} />
@@ -417,6 +538,10 @@ export default function ApplicationCreateStepper({
           formData={formData}
           errors={errors}
           updateFormData={updateFormData}
+          stages={stages}
+          grades={grades}
+          sections={sections}
+          isLoadingStructure={isLoadingStructure}
         />
       )}
 
@@ -434,8 +559,11 @@ export default function ApplicationCreateStepper({
 
       {currentStep === 2 && (
         <DocumentsStep
+          requirements={activeDocumentRequirements}
           documents={formData.documents}
           errors={errors}
+          isLoading={isLoadingDocuments}
+          missingRequiredDocuments={missingRequiredDocuments}
           handleFileUpload={handleFileUpload}
           handleFileRemove={handleFileRemove}
           handleDragOver={handleDragOver}
@@ -445,16 +573,16 @@ export default function ApplicationCreateStepper({
         />
       )}
 
-      <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-200">
+      <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-6">
         <button
           onClick={currentStep === 0 ? onClose : handleBack}
-          className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+          className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
         >
           {currentStep === 0 ? t("buttons.cancel") : t("buttons.previous")}
         </button>
         <button
           onClick={handleNext}
-          className="px-6 py-2.5 bg-primary hover:bg-hover text-white rounded-lg font-medium text-sm transition-colors"
+          className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-hover"
         >
           {currentStep === steps.length - 1
             ? t("buttons.submit")

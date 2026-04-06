@@ -25,6 +25,8 @@ export type PermissionKey =
   | "settings.roles.manage"
   | "settings.policies.view"
   | "settings.policies.manage"
+  | "settings.admissionsDocuments.view"
+  | "settings.admissionsDocuments.manage"
   | "settings.templates.view"
   | "settings.templates.manage"
   | "settings.integrations.view"

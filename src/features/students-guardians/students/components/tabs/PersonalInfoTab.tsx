@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Edit2, Save, X, AlertTriangle } from "lucide-react";
 import { Student, RiskFlag } from "@/features/students-guardians/students/types";
 import {
+  composeNameParts,
   getRiskFlagColor,
   getRiskFlagLabel,
+  splitFullName,
 } from "@/features/students-guardians/students/utils/studentUtils";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
@@ -29,6 +31,14 @@ interface PersonalInfoTabProps {
 
 type PersonalInfoFormData = {
   name: string;
+  first_name_en: string;
+  father_name_en: string;
+  grandfather_name_en: string;
+  family_name_en: string;
+  first_name_ar: string;
+  father_name_ar: string;
+  grandfather_name_ar: string;
+  family_name_ar: string;
   full_name_en: string;
   full_name_ar: string;
   date_of_birth: string;
@@ -43,15 +53,27 @@ type PersonalInfoFormData = {
   address_line: string;
   city: string;
   district: string;
-  student_phone: string;
-  student_email: string;
 };
 
 const buildPersonalInfoFormData = (
   student: Student,
   enrollment?: ReturnType<typeof getCurrentActiveEnrollment>,
-): PersonalInfoFormData => ({
+): PersonalInfoFormData => {
+  const englishParts = splitFullName(student.full_name_en || student.name || "");
+  const arabicParts = splitFullName(student.full_name_ar || "");
+
+  return {
   name: student.name || student.full_name_en,
+  first_name_en: student.first_name_en || englishParts.firstName,
+  father_name_en: student.father_name_en || englishParts.fatherName,
+  grandfather_name_en:
+    student.grandfather_name_en || englishParts.grandfatherName,
+  family_name_en: student.family_name_en || englishParts.familyName,
+  first_name_ar: student.first_name_ar || arabicParts.firstName,
+  father_name_ar: student.father_name_ar || arabicParts.fatherName,
+  grandfather_name_ar:
+    student.grandfather_name_ar || arabicParts.grandfatherName,
+  family_name_ar: student.family_name_ar || arabicParts.familyName,
   full_name_en: student.full_name_en || student.name || "",
   full_name_ar: student.full_name_ar || "",
   date_of_birth: student.date_of_birth || student.dateOfBirth || "",
@@ -69,14 +91,35 @@ const buildPersonalInfoFormData = (
   address_line: student.contact?.address_line || "",
   city: student.contact?.city || "",
   district: student.contact?.district || "",
-  student_phone: student.contact?.student_phone || "",
-  student_email: student.contact?.student_email || "",
-});
+  };
+};
 
-const normalizeProfileValues = (formData: PersonalInfoFormData) => ({
-  name: formData.name.trim(),
-  full_name_en: formData.full_name_en.trim(),
-  full_name_ar: formData.full_name_ar.trim(),
+const normalizeProfileValues = (formData: PersonalInfoFormData) => {
+  const fullNameEn = composeNameParts(
+    formData.first_name_en,
+    formData.father_name_en,
+    formData.grandfather_name_en,
+    formData.family_name_en,
+  );
+  const fullNameAr = composeNameParts(
+    formData.first_name_ar,
+    formData.father_name_ar,
+    formData.grandfather_name_ar,
+    formData.family_name_ar,
+  );
+
+  return {
+  name: fullNameEn,
+  first_name_en: formData.first_name_en.trim(),
+  father_name_en: formData.father_name_en.trim(),
+  grandfather_name_en: formData.grandfather_name_en.trim(),
+  family_name_en: formData.family_name_en.trim(),
+  first_name_ar: formData.first_name_ar.trim(),
+  father_name_ar: formData.father_name_ar.trim(),
+  grandfather_name_ar: formData.grandfather_name_ar.trim(),
+  family_name_ar: formData.family_name_ar.trim(),
+  full_name_en: fullNameEn,
+  full_name_ar: fullNameAr,
   date_of_birth: formData.date_of_birth,
   gender: formData.gender,
   nationality: formData.nationality.trim(),
@@ -85,10 +128,11 @@ const normalizeProfileValues = (formData: PersonalInfoFormData) => ({
     address_line: formData.address_line.trim(),
     city: formData.city.trim(),
     district: formData.district.trim(),
-    student_phone: formData.student_phone.trim(),
-    student_email: formData.student_email.trim(),
+    student_phone: undefined,
+    student_email: undefined,
   },
-});
+  };
+};
 
 const getDisplayName = (item?: { name?: string; nameEn?: string; nameAr?: string }) =>
   item?.nameEn || item?.nameAr || item?.name || "";
@@ -229,12 +273,30 @@ export default function PersonalInfoTab({
   }, [selectedSection, structure.classrooms]);
 
   const profileValidationError = useMemo(() => {
-    if (!formData.full_name_en.trim()) return t("full_name_en");
-    if (!formData.full_name_ar.trim()) return t("full_name_ar");
+    if (!formData.first_name_en.trim()) return t("first_name_en");
+    if (!formData.father_name_en.trim()) return t("father_name_en");
+    if (!formData.grandfather_name_en.trim()) return t("grandfather_name_en");
+    if (!formData.family_name_en.trim()) return t("family_name_en");
+    if (!formData.first_name_ar.trim()) return t("first_name_ar");
+    if (!formData.father_name_ar.trim()) return t("father_name_ar");
+    if (!formData.grandfather_name_ar.trim()) return t("grandfather_name_ar");
+    if (!formData.family_name_ar.trim()) return t("family_name_ar");
     if (!formData.date_of_birth) return t("date_of_birth");
     if (!formData.nationality.trim()) return t("nationality");
     return null;
-  }, [formData.date_of_birth, formData.full_name_ar, formData.full_name_en, formData.nationality, t]);
+  }, [
+    formData.date_of_birth,
+    formData.family_name_ar,
+    formData.family_name_en,
+    formData.father_name_ar,
+    formData.father_name_en,
+    formData.first_name_ar,
+    formData.first_name_en,
+    formData.grandfather_name_ar,
+    formData.grandfather_name_en,
+    formData.nationality,
+    t,
+  ]);
 
   const placementValidationError = useMemo(() => {
     if (!formData.enrollment_year) return t("enrollment_year");
@@ -298,6 +360,14 @@ export default function PersonalInfoTab({
 
       await updateStudent(student.id, {
         name: normalizedProfile.name,
+        first_name_en: normalizedProfile.first_name_en,
+        father_name_en: normalizedProfile.father_name_en,
+        grandfather_name_en: normalizedProfile.grandfather_name_en,
+        family_name_en: normalizedProfile.family_name_en,
+        first_name_ar: normalizedProfile.first_name_ar,
+        father_name_ar: normalizedProfile.father_name_ar,
+        grandfather_name_ar: normalizedProfile.grandfather_name_ar,
+        family_name_ar: normalizedProfile.family_name_ar,
         full_name_en: normalizedProfile.full_name_en,
         full_name_ar: normalizedProfile.full_name_ar,
         gender: normalizedProfile.gender,
@@ -487,9 +557,27 @@ export default function PersonalInfoTab({
             </label>
             <input
               type="text"
-              value={formData.name}
+              value={composeNameParts(
+                formData.first_name_en,
+                formData.father_name_en,
+                formData.grandfather_name_en,
+                formData.family_name_en,
+              )}
+              disabled
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500 cursor-not-allowed"
+            />
+            <p className="text-xs text-gray-500 mt-1">{t("auto_generated")}</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t("first_name_en")}
+            </label>
+            <input
+              type="text"
+              value={formData.first_name_en}
               onChange={(e) =>
-                setFormData((prev) => ({ ...prev, name: e.target.value }))
+                setFormData((prev) => ({ ...prev, first_name_en: e.target.value }))
               }
               disabled={!isEditing}
               className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
@@ -502,13 +590,33 @@ export default function PersonalInfoTab({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t("full_name_en")}
+              {t("first_name_ar")}
             </label>
             <input
               type="text"
-              value={formData.full_name_en}
+              value={formData.first_name_ar}
               onChange={(e) =>
-                setFormData((prev) => ({ ...prev, full_name_en: e.target.value }))
+                setFormData((prev) => ({ ...prev, first_name_ar: e.target.value }))
+              }
+              disabled={!isEditing}
+              dir="rtl"
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
+                isEditing
+                  ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  : "bg-gray-50 border-gray-200 text-gray-700"
+              }`}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t("father_name_en")}
+            </label>
+            <input
+              type="text"
+              value={formData.father_name_en}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, father_name_en: e.target.value }))
               }
               disabled={!isEditing}
               className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
@@ -521,13 +629,97 @@ export default function PersonalInfoTab({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t("full_name_ar")}
+              {t("father_name_ar")}
             </label>
             <input
               type="text"
-              value={formData.full_name_ar}
+              value={formData.father_name_ar}
               onChange={(e) =>
-                setFormData((prev) => ({ ...prev, full_name_ar: e.target.value }))
+                setFormData((prev) => ({ ...prev, father_name_ar: e.target.value }))
+              }
+              disabled={!isEditing}
+              dir="rtl"
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
+                isEditing
+                  ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  : "bg-gray-50 border-gray-200 text-gray-700"
+              }`}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t("grandfather_name_en")}
+            </label>
+            <input
+              type="text"
+              value={formData.grandfather_name_en}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  grandfather_name_en: e.target.value,
+                }))
+              }
+              disabled={!isEditing}
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
+                isEditing
+                  ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  : "bg-gray-50 border-gray-200 text-gray-700"
+              }`}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t("grandfather_name_ar")}
+            </label>
+            <input
+              type="text"
+              value={formData.grandfather_name_ar}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  grandfather_name_ar: e.target.value,
+                }))
+              }
+              disabled={!isEditing}
+              dir="rtl"
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
+                isEditing
+                  ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  : "bg-gray-50 border-gray-200 text-gray-700"
+              }`}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t("family_name_en")}
+            </label>
+            <input
+              type="text"
+              value={formData.family_name_en}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, family_name_en: e.target.value }))
+              }
+              disabled={!isEditing}
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
+                isEditing
+                  ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  : "bg-gray-50 border-gray-200 text-gray-700"
+              }`}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t("family_name_ar")}
+            </label>
+            <input
+              type="text"
+              value={formData.family_name_ar}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, family_name_ar: e.target.value }))
               }
               disabled={!isEditing}
               dir="rtl"
@@ -850,45 +1042,6 @@ export default function PersonalInfoTab({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t("student_phone")}
-              </label>
-              <input
-                type="tel"
-                value={formData.student_phone}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, student_phone: e.target.value }))
-                }
-                disabled={!isEditing}
-                placeholder="+966 XX XXX XXXX"
-                className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
-                  isEditing
-                    ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
-                    : "bg-gray-50 border-gray-200 text-gray-700"
-                }`}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t("student_email")}
-              </label>
-              <input
-                type="email"
-                value={formData.student_email}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, student_email: e.target.value }))
-                }
-                disabled={!isEditing}
-                placeholder="student@example.com"
-                className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
-                  isEditing
-                    ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
-                    : "bg-gray-50 border-gray-200 text-gray-700"
-                }`}
-              />
-            </div>
           </div>
         </div>
       </div>

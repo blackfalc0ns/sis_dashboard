@@ -12,7 +12,7 @@ import {
   generateAttendanceChartData,
   generateClassesChartData,
   generateViolationsChartData,
-  generateStaffAbsenceChartData,
+  generateLowAttendanceChartData,
   generateNedaaChartData,
 } from "@/features/dashboard/utils/dashboardStatsCalculator";
 import SchoolDashboardView from "../views/SchoolDashboardView";
@@ -44,7 +44,7 @@ export default function SchoolDashboardContainer() {
       attendance: generateAttendanceChartData(),
       classes: generateClassesChartData(),
       violations: generateViolationsChartData(),
-      staffAbsence: generateStaffAbsenceChartData(),
+      lowAttendance: generateLowAttendanceChartData(),
       nedaa: generateNedaaChartData(),
     }),
     []

@@ -31,6 +31,14 @@ export interface Student {
   // ============================================================================
   // PERSONAL INFORMATION
   // ============================================================================
+  first_name_ar?: string;
+  father_name_ar?: string;
+  grandfather_name_ar?: string;
+  family_name_ar?: string;
+  first_name_en?: string;
+  father_name_en?: string;
+  grandfather_name_en?: string;
+  family_name_en?: string;
   full_name_ar: string; // Arabic name
   full_name_en: string; // English name
   name?: string; // Alias for full_name_en (backward compatibility)
@@ -76,6 +84,14 @@ export interface Student {
 
 export interface UpdateStudentPayload {
   name?: string;
+  first_name_ar?: string;
+  father_name_ar?: string;
+  grandfather_name_ar?: string;
+  family_name_ar?: string;
+  first_name_en?: string;
+  father_name_en?: string;
+  grandfather_name_en?: string;
+  family_name_en?: string;
   full_name_en?: string;
   full_name_ar?: string;
   gender?: string;

@@ -1,17 +1,56 @@
 // FILE: src/utils/studentUtils.ts
 // Utility functions for student data manipulation and formatting
 
-import type { Student, StudentStatus, RiskFlag } from "@/features/students-guardians/students/types";
+import type {
+  Student,
+  StudentStatus,
+  RiskFlag,
+} from "@/features/students-guardians/students/types";
 
 // ============================================================================
 // NAME UTILITIES
 // ============================================================================
 
+export function composeNameParts(...parts: Array<string | undefined>): string {
+  return parts
+    .map((part) => part?.trim() || "")
+    .filter(Boolean)
+    .join(" ");
+}
+
+export function splitFullName(fullName?: string): {
+  firstName: string;
+  fatherName: string;
+  grandfatherName: string;
+  familyName: string;
+} {
+  const parts = (fullName || "")
+    .split(" ")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  return {
+    firstName: parts[0] || "",
+    fatherName: parts[1] || "",
+    grandfatherName: parts[2] || "",
+    familyName: parts.slice(3).join(" "),
+  };
+}
+
 /**
  * Get display name for a student (handles backward compatibility)
  */
 export function getStudentDisplayName(student: Student): string {
-  return student.name ?? student.full_name_en;
+  return (
+    student.name ??
+    (composeNameParts(
+      student.first_name_en,
+      student.father_name_en,
+      student.grandfather_name_en,
+      student.family_name_en,
+    ) ||
+      student.full_name_en)
+  );
 }
 
 /**
@@ -52,9 +91,11 @@ export function getStudentGrade(student: Student): string {
 /**
  * Get display classroom for a student when available
  */
-export function getStudentClassroom(student: Student & {
-  enrollment?: { classroom?: string };
-}): string {
+export function getStudentClassroom(
+  student: Student & {
+    enrollment?: { classroom?: string };
+  },
+): string {
   return student.enrollment?.classroom ?? "N/A";
 }
 
@@ -331,7 +372,8 @@ export function formatStudentForExport(
     "Name (English)": student.full_name_en,
     "Name (Arabic)": student.full_name_ar,
     Grade: getStudentGrade(student),
-    Section: studentWithEnrollment.enrollment?.section ?? student.section ?? "N/A",
+    Section:
+      studentWithEnrollment.enrollment?.section ?? student.section ?? "N/A",
     Classroom: getStudentClassroom(studentWithEnrollment),
     Status: student.status,
     Gender: student.gender,

@@ -1,5 +1,6 @@
 import { permissionCatalog } from "@/features/settings/constants/permissions";
 import {
+  defaultAdmissionsDocumentRequirements,
   defaultAuditLogEntries,
   defaultBackupHistory,
   defaultCurrentSettingsUser,
@@ -12,6 +13,7 @@ import {
   defaultUsers,
 } from "@/features/settings/constants/defaults";
 import type {
+  AdmissionsRequiredDocumentConfig,
   AuditLogEntry,
   BackupHistoryEntry,
   IntegrationProviderStatus,
@@ -39,6 +41,7 @@ function createDefaultStore(): SettingsStoreSnapshot {
     schoolProfile: cloneStore(defaultSchoolProfileSettings),
     roles: cloneStore(defaultRoles),
     policies: cloneStore(defaultPolicies),
+    admissionsDocuments: cloneStore(defaultAdmissionsDocumentRequirements),
     notificationTemplates: cloneStore(defaultNotificationTemplates),
     integrations: cloneStore(defaultIntegrations),
     securitySettings: cloneStore(defaultSecuritySettings),
@@ -123,6 +126,9 @@ function ensureStoreLoaded() {
           ...parsed.policies?.behavior,
         },
       },
+      admissionsDocuments: cloneStore(
+        parsed.admissionsDocuments || defaultAdmissionsDocumentRequirements,
+      ),
       securitySettings: {
         ...defaultSecuritySettings,
         ...parsed.securitySettings,
@@ -471,6 +477,44 @@ export async function updatePolicySettings(payload: PolicySettings): Promise<Pol
     ipAddress: "10.0.0.10",
   });
   return fetchPolicySettings();
+}
+
+export async function fetchAdmissionsDocumentRequirements(): Promise<
+  AdmissionsRequiredDocumentConfig[]
+> {
+  await delay();
+  return cloneStore(getStore().admissionsDocuments).sort(
+    (a, b) => a.sortOrder - b.sortOrder,
+  );
+}
+
+export async function updateAdmissionsDocumentRequirements(
+  payload: AdmissionsRequiredDocumentConfig[],
+): Promise<AdmissionsRequiredDocumentConfig[]> {
+  await delay();
+  const normalized = cloneStore(payload)
+    .map((item, index) => ({
+      ...item,
+      id: item.id.trim(),
+      nameEn: item.nameEn.trim(),
+      nameAr: item.nameAr.trim(),
+      sortOrder: index + 1,
+    }))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+
+  setStore((current) => ({
+    ...current,
+    admissionsDocuments: normalized,
+  }));
+  prependAuditEntry({
+    actor: getCurrentUserName(),
+    action: "Updated admissions document requirements",
+    module: "Admissions Documents",
+    entity: "settings-admissions-documents",
+    severity: "warning",
+    ipAddress: "10.0.0.10",
+  });
+  return fetchAdmissionsDocumentRequirements();
 }
 
 export async function fetchNotificationTemplates(): Promise<NotificationTemplateConfig[]> {
