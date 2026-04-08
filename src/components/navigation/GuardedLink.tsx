@@ -9,6 +9,7 @@ interface GuardedLinkProps {
   href: string;
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
   replace?: boolean;
   prefetch?: boolean;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
@@ -64,6 +65,7 @@ export default function GuardedLink({
   href,
   children,
   className,
+  style,
   replace = false,
   prefetch = true,
   onClick,
@@ -144,7 +146,7 @@ export default function GuardedLink({
       className={className}
       title={title}
       aria-disabled={disabled}
-      style={{ cursor: disabled ? "not-allowed" : "pointer" }}
+      style={{ ...style, cursor: disabled ? "not-allowed" : "pointer" }}
     >
       {children}
     </a>

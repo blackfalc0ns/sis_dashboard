@@ -23,6 +23,9 @@ import {
   PlugZap,
   Building2,
   Award,
+  Map,
+  ListChecks,
+  TrendingUp,
 } from "lucide-react";
 import {
   mockLeads,
@@ -41,9 +44,20 @@ interface MenuItem {
   icon: React.ComponentType<{ className?: string }>;
   children?: MenuItem[];
   badge?: () => number; // Function to get dynamic badge count
+  buttonVariant?: "default" | "highlight";
+  buttonBackgroundImage?: string;
 }
 
 export const menuItems: MenuItem[] = [
+  {
+    key: "hero-journey",
+    label_en: "Hero Journey",
+    label_ar: "رحلة البطل",
+    href_en: "/en/hero-journey",
+    href_ar: "/ar/hero-journey",
+    icon: Award,
+    buttonBackgroundImage: "/images/hero_journey/hero_journey_bg.svg",
+  },
   {
     key: "dashboard",
     label_en: "Dashboard",
@@ -301,8 +315,17 @@ export const menuItems: MenuItem[] = [
         href_ar: "/ar/academics/teacher-allocation",
         icon: UserCheck,
       },
+      {
+        key: "teachers",
+        label_en: "Teachers Management",
+        label_ar: "إدارة المعلمين",
+        href_en: "/en/teachers",
+        href_ar: "/ar/teachers",
+        icon: Users,
+      },
     ],
   },
+
   {
     key: "grades",
     label_en: "Assessments & Grades",
@@ -563,7 +586,7 @@ export const menuItems: MenuItem[] = [
   },
 ];
 
-export const bottomItems = [
+export const bottomItems: MenuItem[] = [
   {
     key: "help",
     label_en: "Get Help",

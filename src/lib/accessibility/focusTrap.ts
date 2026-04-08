@@ -1,3 +1,5 @@
+import * as React from "react";
+
 /**
  * Focus trap utility for modals and dialogs
  * Ensures keyboard navigation stays within the modal
@@ -32,7 +34,6 @@ export function getFocusableElements(container: HTMLElement): HTMLElement[] {
 export function createFocusTrap(container: HTMLElement): () => void {
   const focusableElements = getFocusableElements(container);
   const firstFocusable = focusableElements[0];
-  const lastFocusable = focusableElements[focusableElements.length - 1];
 
   // Store the element that had focus before the trap
   const previouslyFocused = document.activeElement as HTMLElement;
@@ -84,15 +85,12 @@ export function useFocusTrap(
   containerRef: React.RefObject<HTMLElement>,
   isActive: boolean
 ): void {
-  if (typeof window === 'undefined') return;
-
   React.useEffect(() => {
-    if (!isActive || !containerRef.current) return;
+    if (typeof window === "undefined" || !isActive || !containerRef.current) {
+      return;
+    }
 
     const cleanup = createFocusTrap(containerRef.current);
     return cleanup;
   }, [containerRef, isActive]);
 }
-
-// For non-React usage
-import * as React from 'react';

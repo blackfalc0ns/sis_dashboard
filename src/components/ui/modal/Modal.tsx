@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { X, Info } from "lucide-react";
 import { useLocale } from "next-intl";
 import { createFocusTrap } from "@/lib/accessibility/focusTrap";
@@ -40,8 +40,11 @@ export default function Modal({
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
-  const titleId = useRef(generateAriaId('modal-title')).current;
-  const descriptionId = useRef(generateAriaId('modal-description')).current;
+  const titleId = useMemo(() => generateAriaId("modal-title"), []);
+  const descriptionId = useMemo(
+    () => generateAriaId("modal-description"),
+    [],
+  );
   const locale = useLocale();
   const isRTL = locale === "ar";
 

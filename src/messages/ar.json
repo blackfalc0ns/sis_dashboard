@@ -137,6 +137,7 @@
   "kpi": {
     "total_students": "إجمالي الطلاب",
     "today_attendance_rate": "نسبة الحضور اليوم",
+    "students_below_threshold": "طلاب أقل من حد الحضور",
     "delivered_classes": "الحصص التي تم تقديمها",
     "today_violations": "مخالفات اليوم",
     "staff_absenteeism": "غياب الموظفين",
@@ -5579,6 +5580,147 @@
       }
     }
   },
+  "heroJourney": {
+    "sectionTitle": "رحلة البطل",
+    "sectionEyebrow": "عالم التحدي",
+    "overview": "نظرة عامة",
+    "missions": "المهام",
+    "studentsProgress": "تقدم الطلاب",
+    "overviewDescription": "راقب التبني العام، وأداء المهام، وزخم XP، ومؤشرات التدخل داخل تجربة رحلة البطل.",
+    "missionsDescription": "ابحث وصفِّ وراجع إعدادات المهام، والمحتوى المرتبط، ومعاينات المكافآت، وحالة النشر.",
+    "studentsProgressDescription": "تابع تقدم المهمة الحالية، وزخم XP، والشارات، والسلاسل، والطلاب الذين قد يحتاجون إلى تدخل.",
+    "loading": "جارٍ تحميل بيانات رحلة البطل...",
+    "status": {
+      "draft": "مسودة",
+      "published": "منشورة",
+      "scheduled": "مجدولة",
+      "archived": "مؤرشفة"
+    },
+    "progressStatus": {
+      "on_track": "على المسار",
+      "at_risk": "معرّض للخطر",
+      "inactive": "غير نشط"
+    },
+    "stages": {
+      "primary": "الابتدائية",
+      "middle": "المتوسطة",
+      "secondary": "الثانوية"
+    },
+    "actions": {
+      "view": "عرض",
+      "edit": "تحرير تجريبي",
+      "togglePublish": "تبديل النشر",
+      "badgesGuide": "دليل أصول الشارات"
+    },
+    "messages": {
+      "loadOverviewFailed": "تعذر تحميل نظرة رحلة البطل.",
+      "editPlaceholder": "وضع التحرير الحالي مجرد عنصر تجريبي آمن حتى يتم ربط تعديل المهام بالخلفية.",
+      "publishStateUpdated": "تم تحديث حالة نشر المهمة في وضع البيانات التجريبية.",
+      "badgesReady": "ضع أرشيف الشارات داخل مساحة العمل ثم شغّل أداة الاستيراد لنسخ الصور إلى المجلد العام."
+    },
+    "kpi": {
+      "enrolledStudents": "الطلاب المسجلون",
+      "activeThisWeek": "النشطون هذا الأسبوع",
+      "completionRate": "معدل الإكمال",
+      "totalXpEarned": "إجمالي XP المكتسب",
+      "averageStreak": "متوسط السلسلة",
+      "badgesAwarded": "الشارات الممنوحة"
+    },
+    "summary": {
+      "nearLevelUp": {
+        "title": "قريبون من المستوى التالي",
+        "description": "طلاب تجاوزوا 85% من التقدم وجاهزون للدفعة التالية."
+      },
+      "attentionQueue": {
+        "title": "قائمة التدخل",
+        "description": "طلاب معرضون للخطر أو غير نشطين ويحتاجون متابعة من المعلم."
+      },
+      "bestStage": {
+        "title": "أفضل مرحلة أداءً",
+        "description": "أعلى متوسط تقدم في بيانات الرحلة الحالية."
+      }
+    },
+    "charts": {
+      "missionStatusBreakdown": "توزيع حالات المهام",
+      "missionStatusBreakdownSubtitle": "التوزيع الحالي لمحتوى المهام بحسب حالة النشر.",
+      "xpTrend": "اتجاه XP المكتسب",
+      "xpTrendSubtitle": "نمو XP أسبوعيًا عبر المجموعة النشطة في رحلة البطل.",
+      "completionByStage": "الإكمال حسب المرحلة",
+      "completionByStageSubtitle": "متوسط تقدم الطلاب عبر المراحل الدراسية الحالية.",
+      "streakDistribution": "توزيع السلاسل",
+      "streakDistributionSubtitle": "كيف تتوزع سلاسل الطلاب عبر مستويات النشاط الحالية.",
+      "topMissionDropOff": "أعلى المهام في معدل التسرب",
+      "topMissionDropOffSubtitle": "التجارب التي يظهر فيها أكبر فرق بين بدء المهمة وإكمالها."
+    },
+    "filters": {
+      "title": "عوامل التصفية",
+      "missionsSubtitle": "ضيّق قائمة المهام بحسب المرحلة أو الحالة أو البحث في المحتوى المرتبط.",
+      "studentsSubtitle": "صفِّ تقدم الطلاب بحسب الصف أو الشعبة أو الحالة أو المهمة الحالية.",
+      "searchMissionsPlaceholder": "ابحث في عنوان المهمة أو الدرس أو الاختبار أو رقم المهمة",
+      "searchStudentsPlaceholder": "ابحث عن الطالب أو لقب الرتبة أو المهمة الحالية",
+      "allStatuses": "كل الحالات",
+      "allStages": "كل المراحل",
+      "allGrades": "كل الصفوف",
+      "allSections": "كل الشعب"
+    },
+    "table": {
+      "missionId": "رقم المهمة",
+      "title": "العنوان",
+      "requiredLevel": "المستوى المطلوب",
+      "linkedLesson": "الدرس المرتبط",
+      "linkedQuiz": "الاختبار المرتبط",
+      "status": "الحالة",
+      "rewardXp": "XP المكافأة",
+      "badgeReward": "شارة المكافأة",
+      "studentsStarted": "بدأوا",
+      "studentsCompleted": "أكملوا",
+      "completionRate": "معدل الإكمال",
+      "actions": "الإجراءات"
+    },
+    "studentsTable": {
+      "studentName": "اسم الطالب",
+      "gradeSection": "الصف / الشعبة",
+      "sectionLabel": "الشعبة {section}",
+      "currentLevel": "المستوى الحالي",
+      "currentMission": "المهمة الحالية",
+      "xpProgress": "تقدم XP",
+      "rankTitle": "لقب الرتبة",
+      "badgesCollected": "الشارات",
+      "streakDays": "أيام السلسلة",
+      "lastActivity": "آخر نشاط",
+      "progressStatus": "حالة التقدم",
+      "actions": "الإجراءات"
+    },
+    "missionsSummary": {
+      "totalMissions": "إجمالي المهام",
+      "publishedMissions": "المهام المنشورة",
+      "averageCompletion": "متوسط الإكمال"
+    },
+    "progressSummary": {
+      "onTrack": "على المسار",
+      "atRisk": "معرّض للخطر",
+      "inactive": "غير نشط"
+    },
+    "detail": {
+      "requiredLevel": "المستوى المطلوب",
+      "lastUpdated": "آخر تحديث",
+      "linkedContent": "المحتوى المرتبط",
+      "rewardPreview": "معاينة المكافأة",
+      "engagement": "تفاعل المهمة",
+      "currentLevel": "المستوى الحالي",
+      "completedMissions": "المهام المكتملة",
+      "currentMission": "المهمة الحالية",
+      "currentObjectives": "أهداف المهمة الحالية",
+      "recentBadges": "آخر الشارات المفتوحة",
+      "coachNote": "ملاحظة المشرف",
+      "lastActivityLabel": "آخر نشاط: {date}"
+    },
+    "empty": {
+      "missions": "لا توجد مهام تطابق عوامل التصفية الحالية.",
+      "students": "لا يوجد طلاب يطابقون عوامل التصفية الحالية.",
+      "badges": "لا توجد شارات حديثة حتى الآن."
+    }
+  },
   "reinforcement": {
     "overview": "نظرة عامة",
     "tasks": "المهام",
@@ -6080,6 +6222,185 @@
       "denied_title": "ليس لديك الوصول إلى هذا الجزء من نداء",
       "denied_description": "اطلب من مسؤول النظام تحديث أذونات نداء الخاصة بك إذا كنت بحاجة إلى الوصول.",
       "manage_notice": "يمكنك عرض هذا الجزء من نداء، لكن دورك لا يمكنه إجراء تغييرات هنا."
+    }
+  },
+  "teachers": {
+    "title": "إدارة المعلمين",
+    "subtitle": "إدارة ملفات المعلمين والتكليفات وكلمات المرور وحالة التفعيل.",
+    "actions": {
+      "add_teacher": "إضافة معلم",
+      "view_details": "عرض التفاصيل",
+      "edit": "تعديل",
+      "change_password": "تغيير كلمة المرور",
+      "activate": "تفعيل",
+      "deactivate": "تعطيل",
+      "delete": "حذف",
+      "close": "إغلاق",
+      "cancel": "إلغاء"
+    },
+    "columns": {
+      "code": "الرمز",
+      "full_name": "الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "phone": "رقم الجوال",
+      "status": "الحالة",
+      "subjects_count": "عدد المواد",
+      "assignment_summary": "ملخص التكليف",
+      "actions": "الإجراءات"
+    },
+    "fields": {
+      "code": "رمز المعلم",
+      "first_name": "الاسم الأول",
+      "last_name": "اسم العائلة",
+      "email": "البريد الإلكتروني",
+      "phone": "رقم الجوال",
+      "gender": "الجنس",
+      "select_gender": "اختر الجنس",
+      "hire_date": "تاريخ التعيين",
+      "subjects": "المواد",
+      "stages": "المراحل",
+      "grades": "الصفوف",
+      "sections": "الشعب",
+      "notes_ar": "ملاحظات (عربي)",
+      "notes_en": "ملاحظات (إنجليزي)",
+      "status": "الحالة"
+    },
+    "gender": {
+      "male": "ذكر",
+      "female": "أنثى"
+    },
+    "status": {
+      "active": "نشط",
+      "inactive": "غير نشط"
+    },
+    "filters": {
+      "title": "الفلاتر",
+      "search_placeholder": "ابحث بالرمز أو الاسم أو البريد الإلكتروني أو رقم الجوال",
+      "results": "{filteredCount} من {totalCount} معلم",
+      "clear": "مسح الفلاتر",
+      "status": "الحالة",
+      "all_statuses": "كل الحالات",
+      "gender": "الجنس",
+      "all_genders": "كل الأنواع",
+      "subject": "المادة",
+      "all_subjects": "كل المواد",
+      "stage": "المرحلة",
+      "all_stages": "كل المراحل",
+      "grade": "الصف",
+      "all_grades": "كل الصفوف"
+    },
+    "summary": {
+      "stages": "مراحل",
+      "grades": "صفوف",
+      "sections": "شعب",
+      "empty": "لا توجد تكليفات"
+    },
+    "list": {
+      "no_email": "لا يوجد بريد إلكتروني",
+      "no_phone": "لا يوجد رقم جوال"
+    },
+    "details": {
+      "title": "تفاصيل المعلم",
+      "teacher_code": "رمز المعلم",
+      "names": "الاسم باللغتين",
+      "full_name_ar": "الاسم الكامل (عربي)",
+      "full_name_en": "الاسم الكامل (إنجليزي)",
+      "contact": "بيانات التواصل",
+      "hire_date": "تاريخ التعيين",
+      "assignments": "التكليفات",
+      "subjects": "المواد",
+      "stages": "المراحل",
+      "grades": "الصفوف",
+      "sections": "الشعب",
+      "notes": "الملاحظات",
+      "metadata": "بيانات النشاط",
+      "created_at": "تاريخ الإنشاء",
+      "updated_at": "تاريخ التحديث",
+      "no_value": "غير متوفر",
+      "no_notes": "لا توجد ملاحظات"
+    },
+    "dialog": {
+      "create_title": "إضافة معلم",
+      "edit_title": "تعديل معلم",
+      "create_action": "إنشاء معلم",
+      "save_action": "حفظ التعديلات",
+      "assignment_help": "حدد النطاق الأكاديمي الذي يدعمه هذا المعلم."
+    },
+    "form": {
+      "general_section": "المعلومات الأساسية",
+      "general_help": "بيانات الملف الشخصي ومعلومات التواصل.",
+      "assignment_section": "التكليفات",
+      "notes_section": "الملاحظات",
+      "notes_help": "استخدم ملاحظات باللغتين عند الحاجة لعرض نفس المعلومات بالعربية والإنجليزية.",
+      "no_subjects": "لا توجد مواد متاحة في السياق الأكاديمي الحالي.",
+      "no_stages": "لا توجد مراحل متاحة في السياق الأكاديمي الحالي.",
+      "select_stage_first": "اختر مرحلة واحدة على الأقل أولاً.",
+      "select_grade_first": "اختر صفًا واحدًا على الأقل أولاً."
+    },
+    "change_password": {
+      "title": "تغيير كلمة المرور",
+      "description": "تعيين كلمة مرور جديدة للمعلم {teacher}.",
+      "helper": "يجب مشاركة كلمة المرور الجديدة مع المعلم بطريقة آمنة بعد الحفظ.",
+      "new_password": "كلمة المرور الجديدة",
+      "confirm_new_password": "تأكيد كلمة المرور الجديدة",
+      "submit": "تحديث كلمة المرور"
+    },
+    "delete_dialog": {
+      "title": "حذف المعلم",
+      "description": "هل أنت متأكد من حذف المعلم {teacher}؟ لا يمكن التراجع عن هذا الإجراء.",
+      "confirm": "حذف المعلم"
+    },
+    "empty": {
+      "title": "لا يوجد معلمون حتى الآن",
+      "description": "أنشئ أول ملف معلم لبدء إدارة فريق التدريس.",
+      "filtered_title": "لا يوجد معلمون مطابقون",
+      "filtered_description": "جرّب تعديل البحث أو الفلاتر الحالية.",
+      "action": "إضافة معلم"
+    },
+    "states": {
+      "error_title": "تعذر تحميل المعلمين",
+      "retry": "إعادة المحاولة"
+    },
+    "messages": {
+      "load_failed": "فشل تحميل المعلمين. يرجى المحاولة مرة أخرى.",
+      "save_failed": "فشل حفظ بيانات المعلم. يرجى المحاولة مرة أخرى.",
+      "create_success": "تم إنشاء المعلم بنجاح.",
+      "update_success": "تم تحديث بيانات المعلم بنجاح.",
+      "activated_success": "تم تفعيل المعلم بنجاح.",
+      "deactivated_success": "تم تعطيل المعلم بنجاح.",
+      "status_update_failed": "فشل تحديث حالة المعلم.",
+      "delete_success": "تم حذف المعلم بنجاح.",
+      "delete_failed": "فشل حذف المعلم.",
+      "password_changed_success": "تم تغيير كلمة مرور المعلم بنجاح.",
+      "password_change_failed": "فشل تغيير كلمة مرور المعلم."
+    },
+    "validation": {
+      "code_required": "رمز المعلم مطلوب.",
+      "code_max_length": "رمز المعلم طويل جدًا.",
+      "code_unique": "رمز المعلم يجب أن يكون فريدًا.",
+      "first_name_ar_required": "الاسم الأول بالعربية مطلوب.",
+      "first_name_ar_max_length": "الاسم الأول بالعربية طويل جدًا.",
+      "first_name_en_required": "الاسم الأول بالإنجليزية مطلوب.",
+      "first_name_en_max_length": "الاسم الأول بالإنجليزية طويل جدًا.",
+      "last_name_ar_required": "اسم العائلة بالعربية مطلوب.",
+      "last_name_ar_max_length": "اسم العائلة بالعربية طويل جدًا.",
+      "last_name_en_required": "اسم العائلة بالإنجليزية مطلوب.",
+      "last_name_en_max_length": "اسم العائلة بالإنجليزية طويل جدًا.",
+      "email_required": "البريد الإلكتروني مطلوب.",
+      "email_max_length": "البريد الإلكتروني طويل جدًا.",
+      "email_invalid": "أدخل بريدًا إلكترونيًا صحيحًا.",
+      "email_unique": "البريد الإلكتروني يجب أن يكون فريدًا.",
+      "phone_max_length": "رقم الجوال طويل جدًا.",
+      "subjects_required": "اختر مادة واحدة على الأقل.",
+      "stages_required": "اختر مرحلة واحدة على الأقل.",
+      "grades_required": "اختر صفًا واحدًا على الأقل.",
+      "sections_required": "اختر شعبة واحدة على الأقل.",
+      "notes_ar_max_length": "الملاحظات بالعربية طويلة جدًا.",
+      "notes_en_max_length": "الملاحظات بالإنجليزية طويلة جدًا.",
+      "password_required": "كلمة المرور الجديدة مطلوبة.",
+      "password_min_length": "يجب ألا تقل كلمة المرور عن 8 أحرف.",
+      "password_confirmation_required": "تأكيد كلمة المرور مطلوب.",
+      "password_mismatch": "تأكيد كلمة المرور غير متطابق."
     }
   },
   "nationalities": {

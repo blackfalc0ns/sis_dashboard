@@ -5671,6 +5671,147 @@
       }
     }
   },
+  "heroJourney": {
+    "sectionTitle": "Hero Journey",
+    "sectionEyebrow": "Game World",
+    "overview": "Overview",
+    "missions": "Missions",
+    "studentsProgress": "Students Progress",
+    "overviewDescription": "Monitor adoption, mission performance, XP momentum, and intervention signals across the Hero Journey experience.",
+    "missionsDescription": "Search, filter, and review mission configuration, linked content, reward previews, and publishing readiness.",
+    "studentsProgressDescription": "Track current mission progress, XP momentum, badges, streaks, and students who may need intervention.",
+    "loading": "Loading Hero Journey data...",
+    "status": {
+      "draft": "Draft",
+      "published": "Published",
+      "scheduled": "Scheduled",
+      "archived": "Archived"
+    },
+    "progressStatus": {
+      "on_track": "On Track",
+      "at_risk": "At Risk",
+      "inactive": "Inactive"
+    },
+    "stages": {
+      "primary": "Primary",
+      "middle": "Middle",
+      "secondary": "Secondary"
+    },
+    "actions": {
+      "view": "View",
+      "edit": "Edit placeholder",
+      "togglePublish": "Toggle publish",
+      "badgesGuide": "Badge assets guide"
+    },
+    "messages": {
+      "loadOverviewFailed": "Unable to load Hero Journey overview.",
+      "editPlaceholder": "Edit mode is a safe placeholder until backend mission editing is connected.",
+      "publishStateUpdated": "Mission publish state updated in mock mode.",
+      "badgesReady": "Drop your badge archive into the workspace, then run the import helper to populate the public badge folder."
+    },
+    "kpi": {
+      "enrolledStudents": "Enrolled Students",
+      "activeThisWeek": "Active This Week",
+      "completionRate": "Completion Rate",
+      "totalXpEarned": "Total XP Earned",
+      "averageStreak": "Average Streak",
+      "badgesAwarded": "Badges Awarded"
+    },
+    "summary": {
+      "nearLevelUp": {
+        "title": "Near Level-Up",
+        "description": "Students already above 85% progress and ready for the next push."
+      },
+      "attentionQueue": {
+        "title": "Attention Queue",
+        "description": "At-risk and inactive students who may need teacher follow-up."
+      },
+      "bestStage": {
+        "title": "Best Performing Stage",
+        "description": "Highest average progress in the current mock journey dataset."
+      }
+    },
+    "charts": {
+      "missionStatusBreakdown": "Mission Status Breakdown",
+      "missionStatusBreakdownSubtitle": "Current distribution of mission content by publishing state.",
+      "xpTrend": "XP Earned Trend",
+      "xpTrendSubtitle": "Weekly XP growth across the active Hero Journey cohort.",
+      "completionByStage": "Completion by Stage",
+      "completionByStageSubtitle": "Average student progress across the current school stages.",
+      "streakDistribution": "Streak Distribution",
+      "streakDistributionSubtitle": "How student streaks are distributed across current activity buckets.",
+      "topMissionDropOff": "Top Missions by Drop-off",
+      "topMissionDropOffSubtitle": "Mission experiences with the highest fall-off between start and completion."
+    },
+    "filters": {
+      "title": "Filters",
+      "missionsSubtitle": "Narrow the mission list by stage, status, or a linked-content search.",
+      "studentsSubtitle": "Filter student progress by grade, section, status, or current mission.",
+      "searchMissionsPlaceholder": "Search mission title, lesson, quiz, or mission ID",
+      "searchStudentsPlaceholder": "Search student, rank title, or current mission",
+      "allStatuses": "All statuses",
+      "allStages": "All stages",
+      "allGrades": "All grades",
+      "allSections": "All sections"
+    },
+    "table": {
+      "missionId": "Mission ID",
+      "title": "Title",
+      "requiredLevel": "Required Level",
+      "linkedLesson": "Linked Lesson",
+      "linkedQuiz": "Linked Quiz",
+      "status": "Status",
+      "rewardXp": "Reward XP",
+      "badgeReward": "Badge Reward",
+      "studentsStarted": "Started",
+      "studentsCompleted": "Completed",
+      "completionRate": "Completion Rate",
+      "actions": "Actions"
+    },
+    "studentsTable": {
+      "studentName": "Student Name",
+      "gradeSection": "Grade / Section",
+      "sectionLabel": "Section {section}",
+      "currentLevel": "Current Level",
+      "currentMission": "Current Mission",
+      "xpProgress": "XP Progress",
+      "rankTitle": "Rank Title",
+      "badgesCollected": "Badges",
+      "streakDays": "Streak Days",
+      "lastActivity": "Last Activity",
+      "progressStatus": "Progress Status",
+      "actions": "Actions"
+    },
+    "missionsSummary": {
+      "totalMissions": "Total Missions",
+      "publishedMissions": "Published Missions",
+      "averageCompletion": "Average Completion"
+    },
+    "progressSummary": {
+      "onTrack": "On Track",
+      "atRisk": "At Risk",
+      "inactive": "Inactive"
+    },
+    "detail": {
+      "requiredLevel": "Required Level",
+      "lastUpdated": "Last Updated",
+      "linkedContent": "Linked Content",
+      "rewardPreview": "Reward Preview",
+      "engagement": "Mission Engagement",
+      "currentLevel": "Current Level",
+      "completedMissions": "Completed Missions",
+      "currentMission": "Current Mission",
+      "currentObjectives": "Current Mission Objectives",
+      "recentBadges": "Recent Badge Unlocks",
+      "coachNote": "Coach Note",
+      "lastActivityLabel": "Last activity: {date}"
+    },
+    "empty": {
+      "missions": "No missions matched the current filters.",
+      "students": "No students matched the current filters.",
+      "badges": "No recent badge unlocks yet."
+    }
+  },
   "reinforcement": {
     "overview": "Overview",
     "tasks": "Tasks",
@@ -6177,6 +6318,185 @@
       "denied_title": "You do not have access to this Nedaa area",
       "denied_description": "Ask a system administrator to update your Nedaa permissions if you need access.",
       "manage_notice": "You can view this Nedaa area, but your role cannot make changes here."
+    }
+  },
+  "teachers": {
+    "title": "Teachers Management",
+    "subtitle": "Manage teacher profiles, assignments, passwords, and activation status.",
+    "actions": {
+      "add_teacher": "Add Teacher",
+      "view_details": "View Details",
+      "edit": "Edit",
+      "change_password": "Change Password",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "delete": "Delete",
+      "close": "Close",
+      "cancel": "Cancel"
+    },
+    "columns": {
+      "code": "Code",
+      "full_name": "Full Name",
+      "email": "Email",
+      "phone": "Phone",
+      "status": "Status",
+      "subjects_count": "Subjects",
+      "assignment_summary": "Assignment Summary",
+      "actions": "Actions"
+    },
+    "fields": {
+      "code": "Teacher Code",
+      "first_name": "First Name",
+      "last_name": "Last Name",
+      "email": "Email",
+      "phone": "Phone",
+      "gender": "Gender",
+      "select_gender": "Select gender",
+      "hire_date": "Hire Date",
+      "subjects": "Subjects",
+      "stages": "Stages",
+      "grades": "Grades",
+      "sections": "Sections",
+      "notes_ar": "Notes (AR)",
+      "notes_en": "Notes (EN)",
+      "status": "Status"
+    },
+    "gender": {
+      "male": "Male",
+      "female": "Female"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "filters": {
+      "title": "Filters",
+      "search_placeholder": "Search by code, name, email, or phone",
+      "results": "{filteredCount} of {totalCount} teachers",
+      "clear": "Clear Filters",
+      "status": "Status",
+      "all_statuses": "All statuses",
+      "gender": "Gender",
+      "all_genders": "All genders",
+      "subject": "Subject",
+      "all_subjects": "All subjects",
+      "stage": "Stage",
+      "all_stages": "All stages",
+      "grade": "Grade",
+      "all_grades": "All grades"
+    },
+    "summary": {
+      "stages": "stages",
+      "grades": "grades",
+      "sections": "sections",
+      "empty": "No assignments"
+    },
+    "list": {
+      "no_email": "No email",
+      "no_phone": "No phone"
+    },
+    "details": {
+      "title": "Teacher Details",
+      "teacher_code": "Teacher Code",
+      "names": "Bilingual Name",
+      "full_name_ar": "Full Name (AR)",
+      "full_name_en": "Full Name (EN)",
+      "contact": "Contact Information",
+      "hire_date": "Hire Date",
+      "assignments": "Assignments",
+      "subjects": "Subjects",
+      "stages": "Stages",
+      "grades": "Grades",
+      "sections": "Sections",
+      "notes": "Notes",
+      "metadata": "Activity",
+      "created_at": "Created At",
+      "updated_at": "Updated At",
+      "no_value": "Not provided",
+      "no_notes": "No notes added"
+    },
+    "dialog": {
+      "create_title": "Add Teacher",
+      "edit_title": "Edit Teacher",
+      "create_action": "Create Teacher",
+      "save_action": "Save Changes",
+      "assignment_help": "Select the academic scope this teacher supports."
+    },
+    "form": {
+      "general_section": "General Information",
+      "general_help": "Basic profile and contact information.",
+      "assignment_section": "Assignments",
+      "notes_section": "Notes",
+      "notes_help": "Use bilingual notes when the same information should be available in both languages.",
+      "no_subjects": "No subjects available for the current academic context.",
+      "no_stages": "No stages available for the current academic context.",
+      "select_stage_first": "Select at least one stage first.",
+      "select_grade_first": "Select at least one grade first."
+    },
+    "change_password": {
+      "title": "Change Password",
+      "description": "Set a new password for {teacher}.",
+      "helper": "Passwords should be shared securely with the teacher after saving.",
+      "new_password": "New Password",
+      "confirm_new_password": "Confirm New Password",
+      "submit": "Update Password"
+    },
+    "delete_dialog": {
+      "title": "Delete Teacher",
+      "description": "Are you sure you want to delete {teacher}? This action cannot be undone.",
+      "confirm": "Delete Teacher"
+    },
+    "empty": {
+      "title": "No Teachers Yet",
+      "description": "Create the first teacher profile to start managing the teaching team.",
+      "filtered_title": "No Matching Teachers",
+      "filtered_description": "Try adjusting the current search or filters.",
+      "action": "Add Teacher"
+    },
+    "states": {
+      "error_title": "Unable to load teachers",
+      "retry": "Retry"
+    },
+    "messages": {
+      "load_failed": "Failed to load teachers. Please try again.",
+      "save_failed": "Failed to save the teacher. Please try again.",
+      "create_success": "Teacher created successfully.",
+      "update_success": "Teacher updated successfully.",
+      "activated_success": "Teacher activated successfully.",
+      "deactivated_success": "Teacher deactivated successfully.",
+      "status_update_failed": "Failed to update the teacher status.",
+      "delete_success": "Teacher deleted successfully.",
+      "delete_failed": "Failed to delete the teacher.",
+      "password_changed_success": "Teacher password changed successfully.",
+      "password_change_failed": "Failed to change the teacher password."
+    },
+    "validation": {
+      "code_required": "Teacher code is required.",
+      "code_max_length": "Teacher code is too long.",
+      "code_unique": "Teacher code must be unique.",
+      "first_name_ar_required": "Arabic first name is required.",
+      "first_name_ar_max_length": "Arabic first name is too long.",
+      "first_name_en_required": "English first name is required.",
+      "first_name_en_max_length": "English first name is too long.",
+      "last_name_ar_required": "Arabic last name is required.",
+      "last_name_ar_max_length": "Arabic last name is too long.",
+      "last_name_en_required": "English last name is required.",
+      "last_name_en_max_length": "English last name is too long.",
+      "email_required": "Email is required.",
+      "email_max_length": "Email is too long.",
+      "email_invalid": "Enter a valid email address.",
+      "email_unique": "Email must be unique.",
+      "phone_max_length": "Phone number is too long.",
+      "subjects_required": "Select at least one subject.",
+      "stages_required": "Select at least one stage.",
+      "grades_required": "Select at least one grade.",
+      "sections_required": "Select at least one section.",
+      "notes_ar_max_length": "Arabic notes are too long.",
+      "notes_en_max_length": "English notes are too long.",
+      "password_required": "New password is required.",
+      "password_min_length": "Password must be at least 8 characters.",
+      "password_confirmation_required": "Password confirmation is required.",
+      "password_mismatch": "Password confirmation does not match."
     }
   },
   "nationalities": {

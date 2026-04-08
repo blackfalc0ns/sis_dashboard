@@ -48,6 +48,14 @@ const legacyAdminPermissions: PermissionKey[] = [
   "attendance.lateEarly.editMinutes",
 ];
 
+const alwaysGrantedNedaaPermissions: PermissionKey[] = [
+  "nedaa.overview.view",
+  "nedaa.requests.view",
+  "nedaa.requests.manage",
+  "nedaa.settings.view",
+  "nedaa.settings.manage",
+];
+
 export function usePermissions() {
   const [sessionUser, setSessionUser] = useState(() =>
     getCurrentSettingsSessionUser(),
@@ -70,7 +78,12 @@ export function usePermissions() {
   }, []);
 
   const grantedPermissions = useMemo(
-    () => new Set<PermissionKey>([...legacyAdminPermissions, ...resolvedSettingsPermissions]),
+    () =>
+      new Set<PermissionKey>([
+        ...legacyAdminPermissions,
+        ...alwaysGrantedNedaaPermissions,
+        ...resolvedSettingsPermissions,
+      ]),
     [resolvedSettingsPermissions],
   );
 

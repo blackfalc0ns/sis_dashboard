@@ -13,6 +13,7 @@ import Image from "next/image";
 import GuardedLink from "@/components/navigation/GuardedLink";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
+import type { CSSProperties } from "react";
 import { usePermissions, type PermissionKey } from "@/hooks/usePermissions";
 
 interface SidebarProps {
@@ -53,7 +54,8 @@ export default function Sidebar({
             "settings-users": "settings.users.view",
             "settings-roles": "settings.roles.view",
             "settings-policies": "settings.policies.view",
-            "settings-admissions-documents": "settings.admissionsDocuments.view",
+            "settings-admissions-documents":
+              "settings.admissionsDocuments.view",
             "settings-templates": "settings.templates.view",
             "settings-integrations": "settings.integrations.view",
             "settings-security": "settings.security.view",
@@ -171,6 +173,49 @@ export default function Sidebar({
     }
     return false;
   };
+
+  const getVariantClasses = (
+    variant?: "default" | "highlight",
+    options?: { active?: boolean; pending?: boolean; backgroundImage?: string },
+  ) => {
+    if (options?.backgroundImage) {
+      if (options?.active || options?.pending) {
+        return "text-white border border-white/35 ring-1 ring-white/25 shadow-md";
+      }
+      return "text-white border border-white/20 hover:text-white hover:brightness-110";
+    }
+
+    if (options?.active || options?.pending) {
+      return "";
+    }
+
+    if (variant !== "highlight") {
+      return "";
+    }
+
+    return "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15";
+  };
+
+  const getVariantStyle = (options?: {
+    active?: boolean;
+    pending?: boolean;
+    backgroundImage?: string;
+  }): CSSProperties | undefined => {
+    const locale = isArabic ? "ar" : "en";
+    if (!options?.backgroundImage) {
+      return undefined;
+    }
+
+    const overlayStrength = options.active || options.pending ? 0.28 : 0.5;
+
+    return {
+      backgroundImage: `linear-gradient(${locale === "ar" ? "-90deg" : "90deg"}, rgba(15, 23, 42, ${overlayStrength}) 0%, rgba(15, 23, 42, 0.24) 42%, rgba(15, 23, 42, 0.05) 100%), url(${options.backgroundImage})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+    };
+  };
+
   return (
     <>
       {/* Mobile Overlay - only on small screens when open */}
@@ -240,12 +285,27 @@ export default function Sidebar({
           <nav className="space-y-1 pb-4">
             {visibleMenuItems.map((item) => {
               const Icon = item.icon;
+              const isHeroJourneyItem = item.key === "hero-journey";
+
               const isActive = isItemActive(item);
               const isExpanded = expandedItems.includes(item.key);
               const hasChildren = item.children && item.children.length > 0;
+              const itemVariantClasses = getVariantClasses(item.buttonVariant, {
+                active: isActive,
+                backgroundImage: item.buttonBackgroundImage,
+              });
+              const itemVariantStyle = getVariantStyle({
+                active: isActive,
+                backgroundImage: item.buttonBackgroundImage,
+              });
+              const isHighlighted =
+                item.buttonVariant === "highlight" &&
+                !isActive &&
+                !item.buttonBackgroundImage;
+              const hasImageBackground = Boolean(item.buttonBackgroundImage);
 
               return (
-                <div key={item.key}>
+                <div key={item.key} className="px-2">
                   {/* Parent Item */}
                   {hasChildren ? (
                     <button
@@ -271,13 +331,22 @@ export default function Sidebar({
                         isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
                       } ${
                         isActive
-                          ? "bg-primary text-white shadow-sm"
+                          ? item.buttonBackgroundImage
+                            ? "text-white shadow-sm"
+                            : "bg-primary text-white shadow-sm"
                           : "text-gray-700 hover:bg-teal-50 hover:text-primary"
-                      } ${isArabic ? "text-right" : "text-left"}`}
+                      } ${isArabic ? "text-right" : "text-left"} ${itemVariantClasses}`}
+                      style={itemVariantStyle}
                     >
                       <Icon
                         className={`w-5 h-5 shrink-0 ${
-                          isActive ? "text-white" : "text-[#A4B4CB]"
+                          isActive
+                            ? "text-white"
+                            : hasImageBackground
+                              ? "text-white"
+                              : isHighlighted
+                                ? "text-primary"
+                                : "text-[#A4B4CB]"
                         }`}
                       />
                       {isOpen && (
@@ -315,19 +384,40 @@ export default function Sidebar({
                       } ${
                         isActive ||
                         pendingHref === (isArabic ? item.href_ar : item.href_en)
-                          ? "bg-primary text-white shadow-sm"
+                          ? item.buttonBackgroundImage
+                            ? "text-white shadow-sm"
+                            : "bg-primary text-white shadow-sm"
                           : "text-gray-700 hover:bg-teal-50 hover:text-primary"
-                      }`}
-                    >
-                      <Icon
-                        className={`w-5 h-5 shrink-0 ${
-                          isActive ||
+                      } ${getVariantClasses(item.buttonVariant, {
+                        active: isActive,
+                        pending:
                           pendingHref ===
-                            (isArabic ? item.href_ar : item.href_en)
-                            ? "text-white"
-                            : "text-[#A4B4CB]"
-                        }`}
-                      />
+                          (isArabic ? item.href_ar : item.href_en),
+                        backgroundImage: item.buttonBackgroundImage,
+                      })} ${isHeroJourneyItem ? "h-27.5" : ""}`}
+                      style={getVariantStyle({
+                        active: isActive,
+                        pending:
+                          pendingHref ===
+                          (isArabic ? item.href_ar : item.href_en),
+                        backgroundImage: item.buttonBackgroundImage,
+                      })}
+                    >
+                      {!isHeroJourneyItem && (
+                        <Icon
+                          className={`w-5 h-5 shrink-0 ${
+                            isActive ||
+                            pendingHref ===
+                              (isArabic ? item.href_ar : item.href_en)
+                              ? "text-white"
+                              : item.buttonBackgroundImage
+                                ? "text-white"
+                                : item.buttonVariant === "highlight"
+                                  ? "text-primary"
+                                  : "text-[#A4B4CB]"
+                          }`}
+                        />
+                      )}
                       {isOpen && (
                         <>
                           <span className="font-semibold text-[16px] truncate">
@@ -495,6 +585,14 @@ export default function Sidebar({
             const Icon = item.icon;
             const itemHref = isArabic ? item.href_ar : item.href_en;
             const isPendingItem = pendingHref === itemHref;
+            const itemVariantClasses = getVariantClasses(item.buttonVariant, {
+              pending: isPendingItem,
+              backgroundImage: item.buttonBackgroundImage,
+            });
+            const itemVariantStyle = getVariantStyle({
+              pending: isPendingItem,
+              backgroundImage: item.buttonBackgroundImage,
+            });
 
             return (
               <GuardedLink
@@ -514,11 +612,22 @@ export default function Sidebar({
                   isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
                 } ${
                   isPendingItem
-                    ? "bg-gray-100 text-gray-900"
+                    ? item.buttonBackgroundImage
+                      ? "text-white shadow-sm"
+                      : "bg-gray-100 text-gray-900"
                     : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-                }`}
+                } ${itemVariantClasses}`}
+                style={itemVariantStyle}
               >
-                <Icon className="w-5 h-5 shrink-0" />
+                <Icon
+                  className={`w-5 h-5 shrink-0 ${
+                    item.buttonBackgroundImage && !isPendingItem
+                      ? "text-white"
+                      : item.buttonVariant === "highlight" && !isPendingItem
+                        ? "text-primary"
+                        : ""
+                  }`}
+                />
                 {isOpen && (
                   <>
                     <span className="font-medium text-sm truncate">
