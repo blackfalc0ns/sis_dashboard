@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, ListChecks, PencilLine, Power, Search, Target } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { Button, DataTable, FilterPanel, Input, KPICardV2, Select } from "@/components/ui";
+import { Button, DataTable, FilterPanel, Input, KPICardV2, Modal, Select } from "@/components/ui";
 import type { Column } from "@/components/ui/data-table";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
-import { formatDate } from "@/utils/formatters/dateTime";
 import { heroJourneySectionBanners } from "../config/heroJourneySectionBanners";
+import useHeroJourneyOverlayMode from "../hooks/useHeroJourneyOverlayMode";
 import {
   getHeroJourneyBadgeCatalog,
   getHeroJourneyMissions,
@@ -24,6 +24,8 @@ import {
   formatHeroJourneyPercent,
 } from "../utils/heroJourneyPresentation";
 import HeroJourneyBadgeThumb from "./HeroJourneyBadgeThumb";
+import HeroJourneyMobilePagination from "./HeroJourneyMobilePagination";
+import HeroJourneyMissionDetailContent from "./HeroJourneyMissionDetailContent";
 import HeroJourneyPageHeader from "./HeroJourneyPageHeader";
 import HeroJourneyStatusPill from "./HeroJourneyStatusPill";
 
@@ -36,6 +38,7 @@ function getMissionCompletionRate(mission: HeroJourneyMission) {
 }
 
 export default function HeroJourneyMissionsPage() {
+  const mobilePageSize = 5;
   const locale = useLocale();
   const t = useTranslations("heroJourney");
   const { showInfo, showSuccess } = useToast();
@@ -44,11 +47,14 @@ export default function HeroJourneyMissionsPage() {
   const [badges, setBadges] = useState<HeroJourneyBadge[]>([]);
   const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState<string | null>(null);
+  const [isMissionModalOpen, setIsMissionModalOpen] = useState(false);
+  const isOverlayMode = useHeroJourneyOverlayMode();
   const queryState = useUrlQueryState({
     defaults: {
       q: "",
       status: "all",
       stage: "all",
+      heroJourneyMissionsPage: "1",
     },
     debouncedKeys: ["q"],
     modeByKey: {
@@ -101,12 +107,20 @@ export default function HeroJourneyMissionsPage() {
   );
 
   const selectedMission = useMemo(
-    () =>
-      missions.find((mission) => mission.id === selectedMissionId) ||
-      missions[0] ||
-      null,
+    () => missions.find((mission) => mission.id === selectedMissionId) || null,
     [missions, selectedMissionId],
   );
+  const detailMission = selectedMission || missions[0] || null;
+  const mobileCurrentPage = Math.max(
+    1,
+    Number.parseInt(queryState.values.heroJourneyMissionsPage || "1", 10) || 1,
+  );
+  const mobileTotalPages = Math.max(1, Math.ceil(missions.length / mobilePageSize));
+  const safeMobilePage = Math.min(mobileCurrentPage, mobileTotalPages);
+  const mobileVisibleMissions = useMemo(() => {
+    const startIndex = (safeMobilePage - 1) * mobilePageSize;
+    return missions.slice(startIndex, startIndex + mobilePageSize);
+  }, [missions, safeMobilePage]);
 
   const averageCompletion = useMemo(() => {
     if (missions.length === 0) {
@@ -151,6 +165,14 @@ export default function HeroJourneyMissionsPage() {
     ],
     [averageCompletion, missions, t],
   );
+
+  const openMissionDetail = (missionId: string) => {
+    setSelectedMissionId(missionId);
+
+    if (isOverlayMode) {
+      setIsMissionModalOpen(true);
+    }
+  };
 
   const columns: Column<HeroJourneyMission>[] = [
     { key: "id", label: t("table.missionId"), searchable: true },
@@ -234,7 +256,7 @@ export default function HeroJourneyMissionsPage() {
           onClick={(event) => event.stopPropagation()}
         >
           <button
-            onClick={() => setSelectedMissionId(row.id)}
+            onClick={() => openMissionDetail(row.id)}
             className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-primary"
             title={t("actions.view")}
           >
@@ -309,7 +331,12 @@ export default function HeroJourneyMissionsPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
               value={queryState.values.q}
-              onChange={(event) => queryState.setValue("q", event.target.value)}
+              onChange={(event) =>
+                queryState.setValues({
+                  q: event.target.value,
+                  heroJourneyMissionsPage: "1",
+                })
+              }
               className="pl-10"
               placeholder={t("filters.searchMissionsPlaceholder")}
             />
@@ -326,7 +353,12 @@ export default function HeroJourneyMissionsPage() {
                 { value: "scheduled", label: t("status.scheduled") },
                 { value: "archived", label: t("status.archived") },
               ]}
-              onChange={(value) => queryState.setValue("status", value)}
+              onChange={(value) =>
+                queryState.setValues({
+                  status: value,
+                  heroJourneyMissionsPage: "1",
+                })
+              }
             />
             <Select
               value={queryState.values.stage}
@@ -336,132 +368,149 @@ export default function HeroJourneyMissionsPage() {
                 { value: "Middle", label: t("stages.middle") },
                 { value: "Secondary", label: t("stages.secondary") },
               ]}
-              onChange={(value) => queryState.setValue("stage", value)}
+              onChange={(value) =>
+                queryState.setValues({
+                  stage: value,
+                  heroJourneyMissionsPage: "1",
+                })
+              }
             />
           </div>
         }
       />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_360px]">
-        <DataTable
-          columns={columns as unknown as Column<{ [key: string]: unknown }>[]}
-          data={missions as unknown as Array<{ [key: string]: unknown }>}
-          onRowClick={(row) =>
-            setSelectedMissionId(
-              (row as unknown as HeroJourneyMission).id,
-            )
-          }
-          searchQuery={queryState.values.q}
-          itemsPerPage={8}
-          showPagination={true}
-          urlState={{
-            keyPrefix: "heroJourneyMissions",
-            syncPagination: true,
-            syncSorting: true,
-          }}
-        />
-
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          {selectedMission ? (
-            <div className="space-y-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    {locale === "ar"
-                      ? selectedMission.titleAr
-                      : selectedMission.titleEn}
-                  </h2>
-                  <p className="mt-1 text-sm text-gray-500">{selectedMission.id}</p>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {mobileVisibleMissions.map((mission) => (
+              <button
+                key={mission.id}
+                type="button"
+                onClick={() => openMissionDetail(mission.id)}
+                className="rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-primary/30"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-semibold text-gray-900">
+                      {locale === "ar" ? mission.titleAr : mission.titleEn}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">{mission.id}</p>
+                  </div>
+                  <HeroJourneyStatusPill kind="mission" value={mission.status} />
                 </div>
-                <HeroJourneyStatusPill
-                  kind="mission"
-                  value={selectedMission.status}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg bg-gray-50 p-3">
-                  <p className="text-gray-500">{t("detail.requiredLevel")}</p>
-                  <p className="mt-1 font-semibold text-gray-900">
-                    {selectedMission.requiredLevel}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-gray-50 p-3">
-                  <p className="text-gray-500">{t("detail.lastUpdated")}</p>
-                  <p className="mt-1 font-semibold text-gray-900">
-                    {formatDate(selectedMission.updatedAt, locale)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-gray-100 p-4">
-                <p className="text-sm font-medium text-gray-500">
-                  {t("detail.linkedContent")}
-                </p>
-                <p className="mt-2 text-sm text-gray-900">
-                  {locale === "ar"
-                    ? selectedMission.linkedLessonTitleAr
-                    : selectedMission.linkedLessonTitleEn}
-                </p>
-                <p className="mt-1 text-sm text-gray-600">
-                  {locale === "ar"
-                    ? selectedMission.linkedQuizTitleAr
-                    : selectedMission.linkedQuizTitleEn}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-gray-100 p-4">
-                <p className="text-sm font-medium text-gray-500">
-                  {t("detail.rewardPreview")}
-                </p>
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm text-gray-600">{t("table.rewardXp")}</p>
-                    <p className="font-semibold text-gray-900">
-                      {selectedMission.rewardXp} XP
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs text-gray-500">{t("table.rewardXp")}</p>
+                    <p className="mt-1 font-semibold text-gray-900">
+                      {mission.rewardXp} XP
                     </p>
                   </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs text-gray-500">{t("table.completionRate")}</p>
+                    <p className="mt-1 font-semibold text-gray-900">
+                      {formatHeroJourneyPercent(getMissionCompletionRate(mission))}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <p className="truncate text-sm text-gray-600">
+                    {locale === "ar" ? mission.stageNameAr : mission.stageNameEn}
+                  </p>
                   <HeroJourneyBadgeThumb
-                    badge={badgeMap.get(selectedMission.badgeRewardSlug || "")}
-                    size="md"
+                    badge={badgeMap.get(mission.badgeRewardSlug || "")}
                     showLabel
                   />
                 </div>
-              </div>
+              </button>
+            ))}
+          </div>
 
-              <div className="rounded-lg border border-gray-100 p-4">
-                <p className="text-sm font-medium text-gray-500">
-                  {t("detail.engagement")}
-                </p>
-                <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <p className="text-gray-500">{t("table.studentsStarted")}</p>
-                    <p className="font-semibold text-gray-900">
-                      {selectedMission.studentsStarted}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">{t("table.studentsCompleted")}</p>
-                    <p className="font-semibold text-gray-900">
-                      {selectedMission.studentsCompleted}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">{t("table.completionRate")}</p>
-                    <p className="font-semibold text-gray-900">
-                      {formatHeroJourneyPercent(
-                        getMissionCompletionRate(selectedMission),
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-sm text-gray-500">{t("empty.missions")}</div>
-          )}
+          <HeroJourneyMobilePagination
+            currentPage={safeMobilePage}
+            totalItems={missions.length}
+            pageSize={mobilePageSize}
+            onPageChange={(page) =>
+              queryState.setValue("heroJourneyMissionsPage", String(page), "replace")
+            }
+          />
+
+          <div className="hidden md:block">
+            <DataTable
+              columns={columns as unknown as Column<{ [key: string]: unknown }>[]}
+              data={missions as unknown as Array<{ [key: string]: unknown }>}
+              onRowClick={(row) =>
+                openMissionDetail((row as unknown as HeroJourneyMission).id)
+              }
+              searchQuery={queryState.values.q}
+              itemsPerPage={8}
+              showPagination={true}
+              urlState={{
+                keyPrefix: "heroJourneyMissions",
+                syncPagination: true,
+                syncSorting: true,
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="hidden rounded-xl bg-white p-5 shadow-sm xl:block">
+          <HeroJourneyMissionDetailContent
+            mission={detailMission}
+            badgeMap={badgeMap}
+          />
         </div>
       </div>
+
+      <Modal
+        isOpen={isOverlayMode && isMissionModalOpen && Boolean(selectedMission)}
+        onClose={() => setIsMissionModalOpen(false)}
+        size="full"
+        title={
+          selectedMission
+            ? locale === "ar"
+              ? selectedMission.titleAr
+              : selectedMission.titleEn
+            : ""
+        }
+        description={selectedMission ? selectedMission.id : undefined}
+        footer={
+          selectedMission ? (
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => showInfo(t("messages.editPlaceholder"))}
+              >
+                {t("actions.edit")}
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!selectedMission) {
+                    return;
+                  }
+
+                  setIsPublishing(selectedMission.id);
+                  await toggleHeroJourneyMissionPublishState(selectedMission.id);
+                  const refreshed = await getHeroJourneyMissions(filters);
+                  setMissions(refreshed);
+                  setIsPublishing(null);
+                  showSuccess(t("messages.publishStateUpdated"));
+                }}
+                disabled={
+                  isPublishing === selectedMission.id ||
+                  !canToggleHeroJourneyMissionPublishStatus(selectedMission.status)
+                }
+              >
+                {t("actions.togglePublish")}
+              </Button>
+            </>
+          ) : undefined
+        }
+      >
+        <HeroJourneyMissionDetailContent
+          mission={selectedMission}
+          badgeMap={badgeMap}
+        />
+      </Modal>
     </div>
   );
 }

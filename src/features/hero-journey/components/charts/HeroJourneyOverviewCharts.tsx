@@ -5,6 +5,7 @@ import { BarChart } from "@mui/x-charts/BarChart";
 import { LineChart } from "@mui/x-charts/LineChart";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { ChartCard } from "@/components/ui";
+import { useResponsiveChart } from "@/hooks/useResponsiveChart";
 import type { HeroJourneyOverviewMetrics } from "../../types";
 
 interface HeroJourneyOverviewChartsProps {
@@ -23,14 +24,14 @@ function LegendList({
       {items.map((item) => (
         <div
           key={item.id}
-          className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
+          className="flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <span
               className="h-2.5 w-2.5 rounded-full"
               style={{ backgroundColor: item.color }}
             />
-            <span className="text-sm text-gray-700">
+            <span className="truncate text-sm text-gray-700">
               {locale === "ar" ? item.labelAr : item.labelEn}
             </span>
           </div>
@@ -46,6 +47,7 @@ export default function HeroJourneyOverviewCharts({
 }: HeroJourneyOverviewChartsProps) {
   const locale = useLocale();
   const t = useTranslations("heroJourney.charts");
+  const chart = useResponsiveChart();
 
   const stageDataset = overview.completionByStage.map((item) => ({
     label: locale === "ar" ? item.stageNameAr : item.stageNameEn,
@@ -72,9 +74,10 @@ export default function HeroJourneyOverviewCharts({
         title={t("missionStatusBreakdown")}
         subtitle={t("missionStatusBreakdownSubtitle")}
         showPeriodFilter={false}
+        className="overflow-hidden p-4 sm:p-6"
       >
         <PieChart
-          height={260}
+          height={chart.isMobile ? 220 : 260}
           series={[
             {
               data: overview.missionStatusBreakdown.map((item) => ({
@@ -95,6 +98,7 @@ export default function HeroJourneyOverviewCharts({
         title={t("xpTrend")}
         subtitle={t("xpTrendSubtitle")}
         showPeriodFilter={false}
+        className="overflow-hidden p-4 sm:p-6"
       >
         <LineChart
           dataset={
@@ -102,8 +106,8 @@ export default function HeroJourneyOverviewCharts({
           }
           xAxis={[{ scaleType: "point", dataKey: "label" }]}
           series={[{ dataKey: "value", color: "#0f766e" }]}
-          height={260}
-          margin={{ top: 16, right: 20, left: 32, bottom: 36 }}
+          height={chart.height}
+          margin={{ top: 16, right: 20, left: chart.leftMargin, bottom: 36 }}
         />
       </ChartCard>
 
@@ -111,13 +115,14 @@ export default function HeroJourneyOverviewCharts({
         title={t("completionByStage")}
         subtitle={t("completionByStageSubtitle")}
         showPeriodFilter={false}
+        className="overflow-hidden p-4 sm:p-6"
       >
         <BarChart
           dataset={stageDataset as Array<Record<string, string | number>>}
           xAxis={[{ scaleType: "band", dataKey: "label" }]}
           series={[{ dataKey: "completionRate", color: "#036b80" }]}
-          height={260}
-          margin={{ top: 16, right: 20, left: 32, bottom: 36 }}
+          height={chart.height}
+          margin={{ top: 16, right: 20, left: chart.leftMargin, bottom: 36 }}
         />
       </ChartCard>
 
@@ -125,13 +130,14 @@ export default function HeroJourneyOverviewCharts({
         title={t("streakDistribution")}
         subtitle={t("streakDistributionSubtitle")}
         showPeriodFilter={false}
+        className="overflow-hidden p-4 sm:p-6"
       >
         <BarChart
           dataset={streakDataset as Array<Record<string, string | number>>}
           xAxis={[{ scaleType: "band", dataKey: "label" }]}
           series={[{ dataKey: "value", color: "#0ea5e9" }]}
-          height={260}
-          margin={{ top: 16, right: 20, left: 32, bottom: 36 }}
+          height={chart.height}
+          margin={{ top: 16, right: 20, left: chart.leftMargin, bottom: 36 }}
         />
       </ChartCard>
 
@@ -139,14 +145,14 @@ export default function HeroJourneyOverviewCharts({
         title={t("topMissionDropOff")}
         subtitle={t("topMissionDropOffSubtitle")}
         showPeriodFilter={false}
-        className="xl:col-span-2"
+        className="overflow-hidden p-4 sm:p-6 xl:col-span-2"
       >
         <BarChart
           dataset={dropOffDataset as Array<Record<string, string | number>>}
           xAxis={[{ scaleType: "band", dataKey: "label" }]}
           series={[{ dataKey: "value", color: "#f59e0b" }]}
-          height={300}
-          margin={{ top: 16, right: 20, left: 32, bottom: 56 }}
+          height={chart.isMobile ? 260 : 300}
+          margin={{ top: 16, right: 20, left: chart.leftMargin, bottom: 56 }}
         />
       </ChartCard>
     </div>

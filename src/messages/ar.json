@@ -5677,6 +5677,13 @@
       "completionRate": "معدل الإكمال",
       "actions": "الإجراءات"
     },
+    "pagination": {
+      "showing": "عرض",
+      "to": "إلى",
+      "of": "من",
+      "previous_page": "الصفحة السابقة",
+      "next_page": "الصفحة التالية"
+    },
     "studentsTable": {
       "studentName": "اسم الطالب",
       "gradeSection": "الصف / الشعبة",

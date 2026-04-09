@@ -5792,6 +5792,13 @@
       "atRisk": "At Risk",
       "inactive": "Inactive"
     },
+    "pagination": {
+      "showing": "Showing",
+      "to": "to",
+      "of": "of",
+      "previous_page": "Previous page",
+      "next_page": "Next page"
+    },
     "detail": {
       "requiredLevel": "Required Level",
       "lastUpdated": "Last Updated",

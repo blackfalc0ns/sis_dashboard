@@ -8,12 +8,14 @@ import {
   FilterPanel,
   Input,
   KPICardV2,
+  Modal,
   Select,
 } from "@/components/ui";
 import type { Column } from "@/components/ui/data-table";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import { formatDate } from "@/utils/formatters/dateTime";
 import { heroJourneySectionBanners } from "../config/heroJourneySectionBanners";
+import useHeroJourneyOverlayMode from "../hooks/useHeroJourneyOverlayMode";
 import {
   getHeroJourneyBadgeCatalog,
   getHeroJourneyStudentProgress,
@@ -27,8 +29,11 @@ import { formatHeroJourneyPercent } from "../utils/heroJourneyPresentation";
 import HeroJourneyBadgeThumb from "./HeroJourneyBadgeThumb";
 import HeroJourneyPageHeader from "./HeroJourneyPageHeader";
 import HeroJourneyStatusPill from "./HeroJourneyStatusPill";
+import HeroJourneyMobilePagination from "./HeroJourneyMobilePagination";
+import HeroJourneyStudentDetailContent from "./HeroJourneyStudentDetailContent";
 
 export default function HeroJourneyStudentsProgressPage() {
+  const mobilePageSize = 5;
   const locale = useLocale();
   const t = useTranslations("heroJourney");
   const [showFilters, setShowFilters] = useState(true);
@@ -37,12 +42,15 @@ export default function HeroJourneyStudentsProgressPage() {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
     null,
   );
+  const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
+  const isOverlayMode = useHeroJourneyOverlayMode();
   const queryState = useUrlQueryState({
     defaults: {
       q: "",
       grade: "all",
       section: "all",
       status: "all",
+      heroJourneyStudentsPage: "1",
     },
     debouncedKeys: ["q"],
     modeByKey: {
@@ -102,12 +110,20 @@ export default function HeroJourneyStudentsProgressPage() {
   );
 
   const selectedStudent = useMemo(
-    () =>
-      students.find((student) => student.id === selectedStudentId) ||
-      students[0] ||
-      null,
+    () => students.find((student) => student.id === selectedStudentId) || null,
     [students, selectedStudentId],
   );
+  const detailStudent = selectedStudent || students[0] || null;
+  const mobileCurrentPage = Math.max(
+    1,
+    Number.parseInt(queryState.values.heroJourneyStudentsPage || "1", 10) || 1,
+  );
+  const mobileTotalPages = Math.max(1, Math.ceil(students.length / mobilePageSize));
+  const safeMobilePage = Math.min(mobileCurrentPage, mobileTotalPages);
+  const mobileVisibleStudents = useMemo(() => {
+    const startIndex = (safeMobilePage - 1) * mobilePageSize;
+    return students.slice(startIndex, startIndex + mobilePageSize);
+  }, [students, safeMobilePage]);
 
   const filteredStats = useMemo(
     () => ({
@@ -152,6 +168,14 @@ export default function HeroJourneyStudentsProgressPage() {
     ],
     [filteredStats, t],
   );
+
+  const openStudentDetail = (studentId: string) => {
+    setSelectedStudentId(studentId);
+
+    if (isOverlayMode) {
+      setIsStudentModalOpen(true);
+    }
+  };
 
   const columns: Column<HeroJourneyStudentProgress>[] = [
     {
@@ -257,7 +281,7 @@ export default function HeroJourneyStudentsProgressPage() {
         <button
           onClick={(event) => {
             event.stopPropagation();
-            setSelectedStudentId(row.id);
+            openStudentDetail(row.id);
           }}
           className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-primary"
           title={t("actions.view")}
@@ -301,7 +325,12 @@ export default function HeroJourneyStudentsProgressPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
               value={queryState.values.q}
-              onChange={(event) => queryState.setValue("q", event.target.value)}
+              onChange={(event) =>
+                queryState.setValues({
+                  q: event.target.value,
+                  heroJourneyStudentsPage: "1",
+                })
+              }
               className="pl-10"
               placeholder={t("filters.searchStudentsPlaceholder")}
             />
@@ -320,7 +349,12 @@ export default function HeroJourneyStudentsProgressPage() {
                 { value: "Grade 8", label: "Grade 8" },
                 { value: "Grade 9", label: "Grade 9" },
               ]}
-              onChange={(value) => queryState.setValue("grade", value)}
+              onChange={(value) =>
+                queryState.setValues({
+                  grade: value,
+                  heroJourneyStudentsPage: "1",
+                })
+              }
             />
             <Select
               value={queryState.values.section}
@@ -329,7 +363,12 @@ export default function HeroJourneyStudentsProgressPage() {
                 { value: "A", label: "A" },
                 { value: "B", label: "B" },
               ]}
-              onChange={(value) => queryState.setValue("section", value)}
+              onChange={(value) =>
+                queryState.setValues({
+                  section: value,
+                  heroJourneyStudentsPage: "1",
+                })
+              }
             />
             <Select
               value={queryState.values.status}
@@ -339,151 +378,130 @@ export default function HeroJourneyStudentsProgressPage() {
                 { value: "at_risk", label: t("progressStatus.at_risk") },
                 { value: "inactive", label: t("progressStatus.inactive") },
               ]}
-              onChange={(value) => queryState.setValue("status", value)}
+              onChange={(value) =>
+                queryState.setValues({
+                  status: value,
+                  heroJourneyStudentsPage: "1",
+                })
+              }
             />
           </div>
         }
       />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_360px]">
-        <DataTable
-          columns={columns as unknown as Column<{ [key: string]: unknown }>[]}
-          data={students as unknown as Array<{ [key: string]: unknown }>}
-          onRowClick={(row) =>
-            setSelectedStudentId(
-              (row as unknown as HeroJourneyStudentProgress).id,
-            )
-          }
-          searchQuery={queryState.values.q}
-          itemsPerPage={8}
-          showPagination={true}
-          urlState={{
-            keyPrefix: "heroJourneyStudents",
-            syncPagination: true,
-            syncSorting: true,
-          }}
-        />
-
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          {selectedStudent ? (
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {selectedStudent.studentName}
-                </h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  {locale === "ar"
-                    ? `${selectedStudent.gradeNameAr} - ${selectedStudent.sectionNameAr}`
-                    : `${selectedStudent.gradeNameEn} - ${selectedStudent.sectionNameEn}`}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg bg-gray-50 p-3">
-                  <p className="text-gray-500">{t("detail.currentLevel")}</p>
-                  <p className="mt-1 font-semibold text-gray-900">
-                    {selectedStudent.currentLevel}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-gray-50 p-3">
-                  <p className="text-gray-500">
-                    {t("detail.completedMissions")}
-                  </p>
-                  <p className="mt-1 font-semibold text-gray-900">
-                    {selectedStudent.completedMissionsCount}
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-gray-100 p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-sm font-medium text-gray-500">
-                    {t("detail.currentMission")}
-                  </p>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {mobileVisibleStudents.map((student) => (
+              <button
+                key={student.id}
+                type="button"
+                onClick={() => openStudentDetail(student.id)}
+                className="rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-primary/30"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-semibold text-gray-900">
+                      {student.studentName}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-gray-500">
+                      {locale === "ar"
+                        ? `${student.gradeNameAr} - ${student.sectionNameAr}`
+                        : `${student.gradeNameEn} - ${student.sectionNameEn}`}
+                    </p>
+                  </div>
                   <HeroJourneyStatusPill
                     kind="progress"
-                    value={selectedStudent.progressStatus}
+                    value={student.progressStatus}
                   />
                 </div>
-                <p className="text-sm font-semibold text-gray-900">
-                  {locale === "ar"
-                    ? selectedStudent.currentMissionTitleAr
-                    : selectedStudent.currentMissionTitleEn}
-                </p>
-                <p className="mt-2 text-sm text-gray-600">
-                  {selectedStudent.xpCurrent}/{selectedStudent.xpTarget} XP
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-gray-100 p-4">
-                <p className="text-sm font-medium text-gray-500">
-                  {t("detail.currentObjectives")}
-                </p>
-                <div className="mt-3 space-y-2">
-                  {selectedStudent.currentObjectives.map((objective) => (
+                <div className="mt-4 rounded-xl bg-slate-50 p-3">
+                  <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
+                    <span>
+                      {student.xpCurrent}/{student.xpTarget} XP
+                    </span>
+                    <span>{formatHeroJourneyPercent(student.progressPercent)}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-gray-100">
                     <div
-                      key={objective.id}
-                      className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm"
-                    >
-                      <span
-                        className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-semibold ${
-                          objective.isCompleted
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-slate-100 text-slate-500"
-                        }`}
-                      >
-                        {objective.isCompleted ? "✓" : "•"}
-                      </span>
-                      <span className="text-gray-700">
-                        {locale === "ar"
-                          ? objective.titleAr
-                          : objective.titleEn}
-                      </span>
-                    </div>
-                  ))}
+                      className="h-2 rounded-full bg-primary"
+                      style={{ width: `${Math.min(student.progressPercent, 100)}%` }}
+                    />
+                  </div>
                 </div>
-              </div>
-
-              <div className="rounded-lg border border-gray-100 p-4">
-                <p className="text-sm font-medium text-gray-500">
-                  {t("detail.recentBadges")}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {selectedStudent.recentBadgeSlugs.length > 0 ? (
-                    selectedStudent.recentBadgeSlugs.map((slug) => (
-                      <HeroJourneyBadgeThumb
-                        key={slug}
-                        badge={badgeMap.get(slug)}
-                        showLabel
-                      />
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">{t("empty.badges")}</p>
-                  )}
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-gray-700">
+                      {locale === "ar" ? student.rankTitleAr : student.rankTitleEn}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {t("studentsTable.streakDays")}: {student.streakDays}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {student.badgeSlugs.slice(0, 2).map((slug) => (
+                      <HeroJourneyBadgeThumb key={slug} badge={badgeMap.get(slug)} />
+                    ))}
+                  </div>
                 </div>
-              </div>
+              </button>
+            ))}
+          </div>
 
-              <div className="rounded-lg bg-gray-50 p-4">
-                <p className="text-sm font-medium text-gray-500">
-                  {t("detail.coachNote")}
-                </p>
-                <p className="mt-2 text-sm text-gray-700">
-                  {locale === "ar"
-                    ? selectedStudent.coachNoteAr
-                    : selectedStudent.coachNoteEn}
-                </p>
-                <p className="mt-3 text-xs text-gray-500">
-                  {t("detail.lastActivityLabel", {
-                    date: formatDate(selectedStudent.lastActivityAt, locale),
-                  })}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="text-sm text-gray-500">{t("empty.students")}</div>
-          )}
+          <HeroJourneyMobilePagination
+            currentPage={safeMobilePage}
+            totalItems={students.length}
+            pageSize={mobilePageSize}
+            onPageChange={(page) =>
+              queryState.setValue("heroJourneyStudentsPage", String(page), "replace")
+            }
+          />
+
+          <div className="hidden md:block">
+            <DataTable
+              columns={columns as unknown as Column<{ [key: string]: unknown }>[]}
+              data={students as unknown as Array<{ [key: string]: unknown }>}
+              onRowClick={(row) =>
+                openStudentDetail((row as unknown as HeroJourneyStudentProgress).id)
+              }
+              searchQuery={queryState.values.q}
+              itemsPerPage={8}
+              showPagination={true}
+              urlState={{
+                keyPrefix: "heroJourneyStudents",
+                syncPagination: true,
+                syncSorting: true,
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="hidden rounded-xl bg-white p-5 shadow-sm xl:block">
+          <HeroJourneyStudentDetailContent
+            student={detailStudent}
+            badgeMap={badgeMap}
+          />
         </div>
       </div>
+
+      <Modal
+        isOpen={isOverlayMode && isStudentModalOpen && Boolean(selectedStudent)}
+        onClose={() => setIsStudentModalOpen(false)}
+        size="full"
+        title={selectedStudent?.studentName}
+        description={
+          selectedStudent
+            ? locale === "ar"
+              ? `${selectedStudent.gradeNameAr} - ${selectedStudent.sectionNameAr}`
+              : `${selectedStudent.gradeNameEn} - ${selectedStudent.sectionNameEn}`
+            : undefined
+        }
+      >
+        <HeroJourneyStudentDetailContent
+          student={selectedStudent}
+          badgeMap={badgeMap}
+        />
+      </Modal>
     </div>
   );
 }
