@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Menu, AlertCircle } from "lucide-react";
+import { Menu, AlertCircle, Download } from "lucide-react";
 import ContextBar from "../../components/shared/ContextBar";
 import StructureTree from "../components/StructureTree";
 import DetailsPanel from "../../components/shared/DetailsPanel";
@@ -24,6 +24,15 @@ import { useAcademicStructureData } from "../hooks/useAcademicStructureData";
 import { useStructureCreateFlow } from "../hooks/useStructureCreateFlow";
 import { useStructureCarryOverFlow } from "../hooks/useStructureCarryOverFlow";
 import { useDebouncedCallback } from "use-debounce";
+import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
+import {
+  type AcademicsExportFormat,
+  exportAcademicsData,
+  formatExportDate,
+  generateExportFilename,
+  type ExportColumn,
+  type ExportMetadata,
+} from "@/features/academics/utils/exportAdapter";
 
 type TreeNodeRef = {
   type: "stage" | "grade" | "section" | "classroom";
@@ -32,6 +41,8 @@ type TreeNodeRef = {
 
 export default function AcademicStructurePage() {
   const t = useTranslations("academics.structure");
+  const tExport = useTranslations("academics.export");
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const {
@@ -45,6 +56,7 @@ export default function AcademicStructurePage() {
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showTreeDrawer, setShowTreeDrawer] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const isReadOnly = termStatus === "closed";
   const {
@@ -314,6 +326,83 @@ export default function AcademicStructurePage() {
     }
   };
 
+  const structureExportRows = useMemo(() => {
+    const rows: Record<string, unknown>[] = [];
+    stages.forEach((stage) => {
+      rows.push({
+        level: locale === "ar" ? "مرحلة" : "Stage",
+        name: locale === "ar" ? stage.nameAr : stage.nameEn,
+        parent: "",
+        capacity: "",
+        order: "",
+      });
+    });
+    grades.forEach((grade) => {
+      const stage = stages.find((item) => item.id === grade.stageId);
+      rows.push({
+        level: locale === "ar" ? "صف" : "Grade",
+        name: locale === "ar" ? grade.nameAr : grade.nameEn,
+        parent: stage ? (locale === "ar" ? stage.nameAr : stage.nameEn) : "",
+        capacity: "",
+        order: grade.order,
+      });
+    });
+    sections.forEach((section) => {
+      const grade = grades.find((item) => item.id === section.gradeId);
+      rows.push({
+        level: locale === "ar" ? "شعبة" : "Section",
+        name: locale === "ar" ? section.nameAr : section.nameEn,
+        parent: grade ? (locale === "ar" ? grade.nameAr : grade.nameEn) : "",
+        capacity: section.capacity,
+        order: section.order,
+      });
+    });
+    classrooms.forEach((classroom) => {
+      const section = sections.find((item) => item.id === classroom.sectionId);
+      rows.push({
+        level: locale === "ar" ? "فصل" : "Classroom",
+        name: locale === "ar" ? classroom.nameAr : classroom.nameEn,
+        parent: section ? (locale === "ar" ? section.nameAr : section.nameEn) : "",
+        capacity: classroom.capacity,
+        order: classroom.order,
+      });
+    });
+    return rows;
+  }, [classrooms, grades, locale, sections, stages]);
+
+  const handleExport = (format: AcademicsExportFormat) => {
+    const metadata: ExportMetadata = {
+      yearName: academicYearId || undefined,
+      termName: termId || undefined,
+      exportDate: formatExportDate(locale),
+    };
+    const columns: ExportColumn[] = [
+      { key: "level", label: locale === "ar" ? "المستوى" : "Level" },
+      { key: "name", label: locale === "ar" ? "الاسم" : "Name" },
+      { key: "parent", label: locale === "ar" ? "العنصر الأب" : "Parent" },
+      { key: "capacity", label: locale === "ar" ? "السعة" : "Capacity" },
+      { key: "order", label: locale === "ar" ? "الترتيب" : "Order" },
+    ];
+
+    exportAcademicsData({
+      title: t("context_bar.title"),
+      metadata,
+      filename: generateExportFilename("academic-structure", termId),
+      format,
+      columns,
+      rows: structureExportRows,
+      locale,
+      jsonData: {
+        title: "Academic Structure",
+        metadata,
+        stages,
+        grades,
+        sections,
+        classrooms,
+      },
+    });
+  };
+
   return (
     <div className="flex flex-col h-screen">
       <ContextBar
@@ -325,6 +414,19 @@ export default function AcademicStructurePage() {
         onPromoteCarryOver={openCarryOverDialog}
         isReadOnly={isReadOnly}
       />
+
+      <div className="border-b border-gray-200 bg-white px-6 py-3">
+        <div className="flex items-center justify-end">
+          <Button
+            variant="secondary"
+            onClick={() => setShowExportModal(true)}
+            leftIcon={<Download className="w-4 h-4" />}
+            disabled={structureExportRows.length === 0}
+          >
+            {tExport("button")}
+          </Button>
+        </div>
+      </div>
 
       {isReadOnly && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3 flex items-center gap-2">
@@ -657,6 +759,15 @@ export default function AcademicStructurePage() {
           </div>
         </div>
       )}
+
+      <AcademicsGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={tExport("title")}
+        subtitle={t("context_bar.title")}
+        datasetCount={structureExportRows.length}
+      />
     </div>
   );
 }

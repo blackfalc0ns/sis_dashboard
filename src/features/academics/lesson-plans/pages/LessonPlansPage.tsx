@@ -4,7 +4,10 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, AlertTitle, CircularProgress, useMediaQuery, useTheme } from "@mui/material";
+import { Download } from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
+import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
+import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
 import ContextBar from "../../components/shared/ContextBar";
 import LessonPlansFilters from "../components/LessonPlansFilters";
@@ -18,10 +21,19 @@ import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcadem
 import { useLessonPlansData } from "../hooks/useLessonPlansData";
 import { useLessonPlansFilters } from "../hooks/useLessonPlansFilters";
 import { useLessonPlanMutations } from "../hooks/useLessonPlanMutations";
+import {
+  type AcademicsExportFormat,
+  exportAcademicsData,
+  formatExportDate,
+  generateExportFilename,
+  type ExportColumn,
+  type ExportMetadata,
+} from "@/features/academics/utils/exportAdapter";
 
 export default function LessonPlansPage() {
   const t = useTranslations("academics.lessonPlans");
   const tCommon = useTranslations("common");
+  const tExport = useTranslations("academics.export");
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -67,6 +79,7 @@ export default function LessonPlansPage() {
 
   // Mobile drawer states
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const libraryQueryState = useMemo(
     () => ({
       isOpen: searchParams.get("library") === "1",
@@ -444,6 +457,85 @@ export default function LessonPlansPage() {
     );
   }, [academicYearId, locale, router, selectedGradeId, selectedSubjectId, termId]);
 
+  const lessonPlanExportRows = useMemo(() => {
+    const unitMap = new Map(units.map((unit) => [unit.id, unit]));
+    const lessonMap = new Map(lessons.map((lesson) => [lesson.id, lesson]));
+
+    return plans.flatMap((plan) =>
+      plan.items.map((item) => {
+        const lesson = lessonMap.get(item.lessonId);
+        const unit = item.unitId ? unitMap.get(item.unitId) : undefined;
+        return {
+          week: plan.weekIndex,
+          status: t(`status.${item.status}`),
+          lesson:
+            locale === "ar"
+              ? lesson?.titleAr || lesson?.titleEn || lesson?.title || ""
+              : lesson?.titleEn || lesson?.titleAr || lesson?.title || "",
+          unit:
+            locale === "ar"
+              ? unit?.titleAr || unit?.titleEn || unit?.title || ""
+              : unit?.titleEn || unit?.titleAr || unit?.title || "",
+          order: item.order,
+          notes:
+            locale === "ar"
+              ? item.notesAr || item.notesEn || ""
+              : item.notesEn || item.notesAr || "",
+        };
+      }),
+    );
+  }, [lessons, locale, plans, t, units]);
+
+  const handleExport = (format: AcademicsExportFormat) => {
+    const metadata: ExportMetadata = {
+      yearName: academicYearId || undefined,
+      termName: termId || undefined,
+      gradeName: selectedGradeId || undefined,
+      sectionName: selectedSectionId || undefined,
+      classroomName: displayedClassroomId || undefined,
+      exportDate: formatExportDate(locale),
+    };
+    const columns: ExportColumn[] = [
+      { key: "week", label: locale === "ar" ? "الأسبوع" : "Week" },
+      { key: "status", label: locale === "ar" ? "الحالة" : "Status" },
+      { key: "unit", label: locale === "ar" ? "الوحدة" : "Unit" },
+      { key: "lesson", label: locale === "ar" ? "الدرس" : "Lesson" },
+      { key: "order", label: locale === "ar" ? "الترتيب" : "Order" },
+      { key: "notes", label: locale === "ar" ? "الملاحظات" : "Notes" },
+    ];
+
+    exportAcademicsData({
+      title: t("title"),
+      metadata,
+      filename: generateExportFilename(
+        "lesson-plans",
+        termId,
+        displayedClassroomId || selectedSectionId || selectedGradeId || undefined,
+      ),
+      format,
+      columns,
+      rows: lessonPlanExportRows,
+      locale,
+      jsonData: {
+        title: "Lesson Plans",
+        metadata,
+        filters: {
+          stageId: selectedStageId,
+          gradeId: selectedGradeId,
+          sectionId: selectedSectionId,
+          classroomId: displayedClassroomId,
+          subjectId: selectedSubjectId,
+        },
+        summary,
+        rows: plans.map((plan) => ({
+          weekIndex: plan.weekIndex,
+          updatedAt: plan.updatedAt,
+          items: plan.items,
+        })),
+      },
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -466,6 +558,21 @@ export default function LessonPlansPage() {
       />
 
       <div className="flex-1 overflow-auto">
+        <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 md:px-6">
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900">{t("title")}</h1>
+            <p className="text-sm text-gray-500">{t("subtitle")}</p>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={() => setShowExportModal(true)}
+            leftIcon={<Download className="w-4 h-4" />}
+            disabled={lessonPlanExportRows.length === 0}
+          >
+            {tExport("button")}
+          </Button>
+        </div>
+
         {/* Read-only banner */}
         {isReadOnly && (
           <div className="p-4">
@@ -612,6 +719,15 @@ export default function LessonPlansPage() {
           />
         </>
       )}
+
+      <AcademicsGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={tExport("title")}
+        subtitle={t("title")}
+        datasetCount={lessonPlanExportRows.length}
+      />
     </div>
   );
 }

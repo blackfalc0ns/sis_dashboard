@@ -37,6 +37,14 @@ import { fetchTimetableConfig } from "@/features/academics/timetable/services/ti
 import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 import { exportAttendanceSession } from "../utils/attendanceExport";
 import { computeAttendanceKpis } from "../utils/attendanceKpis";
+import AttendanceGlobalExportModal from "@/features/attendance/shared/components/AttendanceGlobalExportModal";
+import {
+  exportAttendanceData,
+  formatAttendanceExportDate,
+  generateAttendanceExportFilename,
+  type AttendanceExportFormat,
+  type ExportColumn,
+} from "@/features/attendance/shared/utils/attendanceExport";
 import type { AttendanceScopeType } from "@/features/attendance/policies/types";
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
@@ -88,6 +96,7 @@ export default function AttendanceRollCallPage() {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showUnsubmitConfirm, setShowUnsubmitConfirm] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Filter state
   const [showFilters, setShowFilters] = useState(false);
@@ -542,7 +551,7 @@ export default function AttendanceRollCallPage() {
   }, [originalEntries]);
 
   // Export
-  const handleExport = useCallback(() => {
+  const handleLegacyExport = useCallback(() => {
     if (!session) return;
 
     const scopeName = getAttendanceScopeLabel({
@@ -562,6 +571,178 @@ export default function AttendanceRollCallPage() {
       scopeName,
     });
   }, [classrooms, entries, grades, locale, roster, scopeIds, scopeType, sections, session, stages]);
+
+  const selectedYearName =
+    (locale === "ar"
+      ? termContext.academicYears.find((item) => item.id === termContext.yearId)
+          ?.nameAr
+      : termContext.academicYears.find((item) => item.id === termContext.yearId)
+          ?.nameEn) ||
+    termContext.yearId ||
+    "";
+
+  const selectedTermName = term
+    ? locale === "ar"
+      ? term.nameAr || term.name
+      : term.nameEn || term.name
+    : "";
+
+  const handleExport = useCallback(
+    async (format: AttendanceExportFormat) => {
+      if (!session) return;
+
+      const scopeName = getAttendanceScopeLabel({
+        scopeType,
+        scopeIds,
+        stages,
+        grades,
+        sections,
+        classrooms,
+        locale,
+      });
+
+      if (format === "excel") {
+        handleLegacyExport();
+        return;
+      }
+
+      const columns: ExportColumn[] = [
+        { key: "studentNumber", label: locale === "ar" ? "رقم الطالب" : "Student Number" },
+        { key: "studentName", label: locale === "ar" ? "الطالب" : "Student" },
+        { key: "studentNameEn", label: locale === "ar" ? "الطالب (بالإنجليزية)" : "Student (English)" },
+        { key: "studentNameAr", label: locale === "ar" ? "الطالب (بالعربية)" : "Student (Arabic)" },
+        { key: "status", label: locale === "ar" ? "الحالة" : "Status" },
+        { key: "minutesLate", label: locale === "ar" ? "دقائق التأخير" : "Minutes Late" },
+        { key: "minutesEarlyLeave", label: locale === "ar" ? "دقائق المغادرة المبكرة" : "Minutes Early Leave" },
+        { key: "excuseReason", label: locale === "ar" ? "سبب العذر" : "Excuse Reason" },
+        { key: "note", label: locale === "ar" ? "ملاحظة" : "Note" },
+      ];
+
+      const rowsForExport = filteredRoster.map((student) => {
+        const entry = entries.find((item) => item.studentId === student.id);
+        return {
+          studentNumber: student.studentNumber,
+          studentName: locale === "ar" ? student.nameAr : student.nameEn,
+          studentNameEn: student.nameEn,
+          studentNameAr: student.nameAr,
+          status: entry?.status || "UNMARKED",
+          minutesLate: entry?.minutesLate ?? "",
+          minutesEarlyLeave: entry?.minutesEarlyLeave ?? "",
+          excuseReason: entry?.excuseReason || "",
+          note: entry?.note || "",
+        };
+      });
+
+      exportAttendanceData({
+        title:
+          locale === "ar"
+            ? session.mode === "DAILY"
+              ? "كشف الحضور المباشر"
+              : `كشف الحضور - ${session.periodNameAr || session.periodIndex || ""}`
+            : session.mode === "DAILY"
+              ? "Roll Call"
+              : `Roll Call - ${session.periodNameEn || session.periodIndex || ""}`,
+        metadata: {
+          yearName: selectedYearName,
+          termName: selectedTermName,
+          scopeTypeName: scopeType,
+          scopeName,
+          dateLabel: session.date,
+          viewName: locale === "ar" ? "الحضور المباشر" : "Roll Call",
+          exportDate: formatAttendanceExportDate(locale),
+        },
+        filename: generateAttendanceExportFilename(
+          "attendance-roll-call",
+          termContext.termId || undefined,
+          scopeType.toLowerCase(),
+        ),
+        format,
+        columns,
+        rows: rowsForExport,
+        jsonData: {
+          title: "Attendance Roll Call",
+          metadata: {
+            yearName:
+              termContext.academicYears.find((item) => item.id === termContext.yearId)
+                ?.nameEn || termContext.yearId || "",
+            termName: term?.nameEn || term?.name || "",
+            scopeTypeName: scopeType,
+            scopeName: getAttendanceScopeLabel({
+              scopeType,
+              scopeIds,
+              stages,
+              grades,
+              sections,
+              classrooms,
+              locale: "en",
+            }),
+            dateLabel: session.date,
+            viewName: "Roll Call",
+            exportDate: formatAttendanceExportDate("en"),
+          },
+          filters: {
+            search: filters.search,
+            status: filters.status,
+            excuseCompleteness: filters.excuseCompleteness,
+            lateMin: filters.lateMin,
+            earlyLeaveMin: filters.earlyLeaveMin,
+          },
+          session,
+          scope: { scopeType, scopeIds },
+          policy: policy
+            ? {
+                id: policy.id,
+                nameEn: policy.nameEn,
+                nameAr: policy.nameAr,
+                mode: policy.mode,
+              }
+            : null,
+          roster: filteredRoster.map((student) => {
+            const entry = entries.find((item) => item.studentId === student.id);
+            return {
+              studentId: student.id,
+              studentNumber: student.studentNumber,
+              studentNameEn: student.nameEn,
+              studentNameAr: student.nameAr,
+              entry: entry || null,
+            };
+          }),
+        },
+        locale,
+        emptyMessage: t("empty.noStudentsDesc"),
+      });
+
+      showSuccess(t("actions.export"));
+    },
+    [
+      classrooms,
+      entries,
+      filteredRoster,
+      filters.earlyLeaveMin,
+      filters.excuseCompleteness,
+      filters.lateMin,
+      filters.search,
+      filters.status,
+      grades,
+      handleLegacyExport,
+      locale,
+      policy,
+      scopeIds,
+      scopeType,
+      sections,
+      selectedTermName,
+      selectedYearName,
+      session,
+      showSuccess,
+      stages,
+      t,
+      term?.name,
+      term?.nameEn,
+      termContext.academicYears,
+      termContext.termId,
+      termContext.yearId,
+    ],
+  );
 
   // Bulk actions
   const handleMarkAllPresent = useCallback(() => {
@@ -697,7 +878,7 @@ export default function AttendanceRollCallPage() {
               onSubmit={handleSubmit}
               onUnsubmit={() => setShowUnsubmitConfirm(true)}
               onReset={handleReset}
-              onExport={handleExport}
+              onExport={() => setShowExportModal(true)}
               onMarkAllPresent={handleMarkAllPresent}
               onClearAll={handleClearAll}
               isSaving={isSaving}
@@ -819,6 +1000,14 @@ export default function AttendanceRollCallPage() {
         confirmLabel={t("confirm.unsubmitConfirm")}
         cancelLabel={tCommon("cancel")}
         severity="warning"
+      />
+
+      <AttendanceGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        datasetCount={filteredRoster.length}
+        emptyStateMessage={t("empty.noStudentsDesc")}
       />
     </div>
   );

@@ -13,11 +13,12 @@ import ConversionFunnelChart from "@/features/admissions/dashboard/components/ch
 import WeeklyInquiriesChart from "@/features/admissions/dashboard/components/charts/WeeklyInquiriesChart";
 import ApplicationsByGradeChart from "@/features/admissions/dashboard/components/charts/ApplicationsByGradeChart";
 import DateRangeFilter, { DateRangeValue } from "@/features/admissions/shared/DateRangeFilter";
-import AdmissionsExportModal from "@/features/admissions/applications/components/modals/AdmissionsExportModal";
+import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { mockApplications } from "@/data/mockAdmissions";
 import { ApplicationStatus, Application } from "@/features/admissions/types/admissions";
+import { createAdmissionsDashboardExportHandler } from "@/features/admissions/shared/utils/admissionsDashboardExport";
 import type { AdmissionsKPIs, ApplicationSourceData } from "@/features/admissions/dashboard/utils/admissionsStatsCalculator";
 
 interface AdmissionsDashboardViewProps {
@@ -65,6 +66,11 @@ export default function AdmissionsDashboardView({
   const t = useTranslations("admissions");
   const locale = useLocale();
   const router = useRouter();
+  const handleExport = createAdmissionsDashboardExportHandler(locale, {
+    value: dateRange,
+    customStart: customStartDate,
+    customEnd: customEndDate,
+  });
 
   const columns = [
     {
@@ -256,9 +262,11 @@ export default function AdmissionsDashboardView({
       </div>
 
       {/* Export Modal */}
-      <AdmissionsExportModal
+      <AdmissionsGlobalExportModal
         isOpen={isExportModalOpen}
         onClose={onExportModalClose}
+        onExport={handleExport}
+        mode="dashboard"
         currentDateRange={{
           value: dateRange,
           customStart: customStartDate,

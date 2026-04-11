@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { Search, Plus, Edit2, Trash2, Power, PowerOff, Bell, AlertTriangle as AlertTriangleIcon } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, Power, PowerOff, Bell, AlertTriangle as AlertTriangleIcon, Download } from "lucide-react";
 import { Tooltip } from "@mui/material";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
@@ -25,6 +25,8 @@ interface PoliciesListPanelProps {
   classrooms: Classroom[];
   isReadOnly: boolean;
   onCreatePolicy: () => void;
+  onOpenExport: () => void;
+  onFilteredPoliciesChange?: (policies: AttendancePolicy[]) => void;
   onEditPolicy: (policy: AttendancePolicy) => void;
   onDeletePolicy: (policyId: string) => Promise<void>;
   onToggleActive: (policyId: string, isActive: boolean) => Promise<void>;
@@ -38,6 +40,8 @@ export default function PoliciesListPanel({
   classrooms,
   isReadOnly,
   onCreatePolicy,
+  onOpenExport,
+  onFilteredPoliciesChange,
   onEditPolicy,
   onDeletePolicy,
   onToggleActive,
@@ -171,6 +175,10 @@ export default function PoliciesListPanel({
       setShowFilters(true);
     }
   }, [hasActiveFilters, showFilters]);
+
+  useEffect(() => {
+    onFilteredPoliciesChange?.(filteredPolicies);
+  }, [filteredPolicies, onFilteredPoliciesChange]);
 
   const handleDeleteClick = (policy: AttendancePolicy) => {
     setPolicyToDelete(policy);
@@ -427,15 +435,26 @@ export default function PoliciesListPanel({
           <h2 className="text-lg font-semibold text-gray-900">
             {t("policiesList")}
           </h2>
-          <Button
-            variant="primary"
-            size="sm"
-            leftIcon={<Plus className="w-4 h-4" />}
-            onClick={onCreatePolicy}
-            disabled={isReadOnly}
-          >
-            {t("createPolicy")}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<Download className="w-4 h-4" />}
+              onClick={onOpenExport}
+              disabled={filteredPolicies.length === 0}
+            >
+              {tCommon("export.button")}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus className="w-4 h-4" />}
+              onClick={onCreatePolicy}
+              disabled={isReadOnly}
+            >
+              {t("createPolicy")}
+            </Button>
+          </div>
         </div>
 
         {/* Search and Filters */}

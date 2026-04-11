@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Download } from "lucide-react";
 import { Snackbar, Alert } from "@mui/material";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
+import Button from "@/components/ui/button/Button";
 import ContextBar from "../../components/shared/ContextBar";
 import CalendarToolbar from "../components/CalendarToolbar";
 import MonthCalendar from "../components/MonthCalendar";
@@ -13,6 +15,14 @@ import WeekCalendar from "../components/WeekCalendar";
 import AgendaView from "../components/AgendaView";
 import EventDialog from "../components/EventDialog";
 import MoveEventDialog from "../components/MoveEventDialog";
+import {
+  type AcademicsExportFormat,
+  exportAcademicsData,
+  formatExportDate,
+  generateExportFilename,
+  type ExportColumn,
+  type ExportMetadata,
+} from "@/features/academics/utils/exportAdapter";
 import {
   fetchTermEvents,
   updateEvent,
@@ -22,6 +32,8 @@ import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcadem
 
 export default function AcademicCalendarPage() {
   const t = useTranslations("academics.calendar");
+  const tExport = useTranslations("academics.export");
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const {
@@ -103,6 +115,7 @@ export default function AcademicCalendarPage() {
   // Move dialog state
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [movingEvent, setMovingEvent] = useState<AcademicEvent | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
   
   // Snackbar state
   const [snackbar, setSnackbar] = useState<{
@@ -117,6 +130,70 @@ export default function AcademicCalendarPage() {
 
   const isReadOnly = termStatus === "closed";
   const term = selectedTerm;
+
+  const handleExport = (format: AcademicsExportFormat) => {
+    const metadata: ExportMetadata = {
+      yearName: academicYearId || undefined,
+      termName: term?.name || termId || undefined,
+      exportDate: formatExportDate(locale),
+    };
+    const columns: ExportColumn[] = [
+      { key: "title", label: locale === "ar" ? "العنوان" : "Title" },
+      { key: "type", label: locale === "ar" ? "النوع" : "Type" },
+      { key: "scope", label: locale === "ar" ? "النطاق" : "Scope" },
+      { key: "allDay", label: locale === "ar" ? "طوال اليوم" : "All day" },
+      {
+        key: "startDate",
+        label: locale === "ar" ? "تاريخ البداية" : "Start date",
+      },
+      { key: "endDate", label: locale === "ar" ? "تاريخ النهاية" : "End date" },
+      { key: "notes", label: locale === "ar" ? "ملاحظات" : "Notes" },
+    ];
+
+    exportAcademicsData({
+      title: t("title"),
+      metadata,
+      filename: generateExportFilename("academic-calendar", termId),
+      format,
+      columns,
+      rows: filteredEvents.map((event) => ({
+        title: locale === "ar" ? event.titleAr : event.titleEn,
+        type: t(`event_types.${event.type.toLowerCase()}`),
+        scope: t(`scopes.${event.scopeType.toLowerCase()}`),
+        allDay: event.allDay ? (locale === "ar" ? "نعم" : "Yes") : locale === "ar" ? "لا" : "No",
+        startDate: event.startDate,
+        endDate: event.endDate,
+        notes:
+          locale === "ar"
+            ? event.notesAr || event.notesEn || ""
+            : event.notesEn || event.notesAr || "",
+      })),
+      locale: format === "json" ? "en" : undefined,
+      jsonData: {
+        title: "Academic Calendar",
+        metadata,
+        filters: {
+          scope: scopeFilter,
+          view,
+          displayMode,
+          typeFilters,
+          currentDate: currentDate.toISOString(),
+        },
+        events: filteredEvents.map((event) => ({
+          id: event.id,
+          titleEn: event.titleEn,
+          titleAr: event.titleAr,
+          type: event.type,
+          scopeType: event.scopeType,
+          allDay: event.allDay,
+          startDate: event.startDate,
+          endDate: event.endDate,
+          notesEn: event.notesEn || "",
+          notesAr: event.notesAr || "",
+        })),
+      },
+    });
+  };
 
   // Load events when term changes
   useEffect(() => {
@@ -438,6 +515,16 @@ export default function AcademicCalendarPage() {
       {/* Main Content Container */}
       <div className="flex-1 overflow-auto">
         <div className="max-w-[1400px] mx-auto p-4 md:p-6">
+          <div className="mb-4 flex items-center justify-end">
+            <Button
+              variant="secondary"
+              onClick={() => setShowExportModal(true)}
+              leftIcon={<Download className="w-4 h-4" />}
+            >
+              {tExport("button")}
+            </Button>
+          </div>
+
           {/* Calendar Toolbar */}
           <CalendarToolbar
             currentDate={currentDate}
@@ -540,6 +627,15 @@ export default function AcademicCalendarPage() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <AcademicsGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={tExport("title")}
+        subtitle={t("title")}
+        datasetCount={filteredEvents.length}
+      />
     </div>
   );
 }

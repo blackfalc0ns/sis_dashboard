@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import ContextBar from "../../components/shared/ContextBar";
 import KPICards from "../components/KPICards";
 import SetupChecklist from "../components/SetupChecklist";
@@ -28,6 +29,7 @@ import { fetchStructureTree } from "@/features/academics/academic-structure-tree
 import { fetchSubjectAllocations } from "@/features/academics/subjects/services/subjectsService";
 import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
 import {
+  type AcademicsExportFormat,
   exportAcademicsData,
   formatExportDate,
   generateExportFilename,
@@ -37,6 +39,7 @@ import {
 
 export default function AcademicsOverviewPage() {
   const t = useTranslations();
+  const tExport = useTranslations("academics.export");
   const locale = useLocale();
   const params = useParams();
   const router = useRouter();
@@ -61,6 +64,7 @@ export default function AcademicsOverviewPage() {
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Chart data
   const [lessonPlansData, setLessonPlansData] = useState<Array<{ week: string; planned: number; done: number }>>([]);
@@ -309,13 +313,13 @@ export default function AcademicsOverviewPage() {
         setReadinessData([
           {
             key: "ready",
-            name: t("academics.overview.charts.readiness.ready"),
+            name: t("charts.readiness.ready"),
             value: readyPercentage,
             color: "#10b981",
           },
           {
             key: "notReady",
-            name: t("academics.overview.charts.readiness.notReady"),
+            name: t("charts.readiness.notReady"),
             value: notReadyPercentage,
             color: "#ef4444",
           },
@@ -367,11 +371,10 @@ export default function AcademicsOverviewPage() {
     );
   };
 
-  const handleExport = (format: "csv" | "excel") => {
+  const overviewExportData = useMemo(() => {
     if (!metrics || !academicYearId || !termId) {
-      return;
+      return null;
     }
-
     const metadata: ExportMetadata = {
       yearName:
         academicYears.find((item) => item.id === academicYearId)?.name ||
@@ -380,13 +383,13 @@ export default function AcademicsOverviewPage() {
       exportDate: formatExportDate(locale),
     };
 
-    let title = t("academics.overview.title");
+    let title = t("title");
     let filename = generateExportFilename("academics-overview", termId);
     let columns: ExportColumn[] = [];
     let rows: Record<string, unknown>[] = [];
 
     if (exportDataset === "summary") {
-      title = t("academics.overview.filters.options.summary");
+      title = t("filters.options.summary");
       columns = [
         { key: "group", label: exportLabels.group },
         { key: "metric", label: exportLabels.metric },
@@ -394,63 +397,63 @@ export default function AcademicsOverviewPage() {
       ];
       rows = [
         {
-          group: t("academics.overview.kpi.structure.title"),
+          group: t("kpi.structure.title"),
           metric: exportLabels.totalStages,
           value: metrics.structure.totalStages,
         },
         {
-          group: t("academics.overview.kpi.structure.title"),
+          group: t("kpi.structure.title"),
           metric: exportLabels.totalGrades,
           value: metrics.structure.totalGrades,
         },
         {
-          group: t("academics.overview.kpi.structure.title"),
+          group: t("kpi.structure.title"),
           metric: exportLabels.totalSections,
           value: metrics.structure.totalSections,
         },
         {
-          group: t("academics.overview.kpi.structure.title"),
+          group: t("kpi.structure.title"),
           metric: exportLabels.sectionsWithoutCapacity,
           value: metrics.structure.sectionsWithoutCapacity,
         },
         {
-          group: t("academics.overview.kpi.subjects.title"),
+          group: t("kpi.subjects.title"),
           metric: exportLabels.totalSubjects,
           value: metrics.subjects.totalSubjects,
         },
         {
-          group: t("academics.overview.kpi.subjects.title"),
+          group: t("kpi.subjects.title"),
           metric: exportLabels.subjectCompletion,
           value: `${metrics.subjects.completionPercentage}%`,
         },
         {
-          group: t("academics.overview.kpi.teachers.title"),
+          group: t("kpi.teachers.title"),
           metric: exportLabels.missingTeacherAllocations,
           value: metrics.teacherAllocation.missingAllocations,
         },
         {
-          group: t("academics.overview.kpi.teachers.title"),
+          group: t("kpi.teachers.title"),
           metric: exportLabels.overloadedTeachers,
           value: metrics.teacherAllocation.overloadedTeachers,
         },
         {
-          group: t("academics.overview.kpi.lessonPlans.title"),
+          group: t("kpi.lessonPlans.title"),
           metric: exportLabels.lessonPlansPlanned,
           value: metrics.lessonPlans.totalPlanned,
         },
         {
-          group: t("academics.overview.kpi.lessonPlans.title"),
+          group: t("kpi.lessonPlans.title"),
           metric: exportLabels.lessonPlansDone,
           value: metrics.lessonPlans.totalDone,
         },
         {
-          group: t("academics.overview.kpi.lessonPlans.title"),
+          group: t("kpi.lessonPlans.title"),
           metric: exportLabels.lessonPlansCompletion,
           value: `${metrics.lessonPlans.completionPercentage}%`,
         },
       ];
     } else if (exportDataset === "checklist") {
-      title = t("academics.overview.checklist.title");
+      title = t("checklist.title");
       filename = generateExportFilename("academics-overview-checklist", termId);
       columns = [
         { key: "title", label: exportLabels.title },
@@ -464,42 +467,42 @@ export default function AcademicsOverviewPage() {
         reason:
           item.id === "structure"
             ? metrics.structure.gradesWithoutSections > 0
-              ? t("academics.overview.checklist.structure.reason", {
+              ? t("checklist.structure.reason", {
                   count: metrics.structure.gradesWithoutSections,
                 })
               : metrics.structure.sectionsWithoutCapacity > 0
-                ? t("academics.overview.checklist.structure.reasonCapacity", {
+                ? t("checklist.structure.reasonCapacity", {
                     count: metrics.structure.sectionsWithoutCapacity,
                   })
-                : t("academics.overview.checklist.allGood")
+                : t("checklist.allGood")
             : item.id === "subjects"
               ? metrics.subjects.completionPercentage < 100
-                ? t("academics.overview.checklist.subjects.reason", {
+                ? t("checklist.subjects.reason", {
                     percentage: metrics.subjects.completionPercentage,
                   })
-                : t("academics.overview.checklist.allGood")
+                : t("checklist.allGood")
               : item.id === "teachers"
                 ? metrics.teacherAllocation.missingAllocations > 0
-                  ? t("academics.overview.checklist.teachers.reason", {
+                  ? t("checklist.teachers.reason", {
                       count: metrics.teacherAllocation.missingAllocations,
                     })
                   : metrics.teacherAllocation.overloadedTeachers > 0
                     ? t(
-                        "academics.overview.checklist.teachers.reasonOverloaded",
+                        "checklist.teachers.reasonOverloaded",
                         { count: metrics.teacherAllocation.overloadedTeachers }
                       )
-                    : t("academics.overview.checklist.allGood")
+                    : t("checklist.allGood")
                 : item.id === "calendar"
                   ? item.status === "done"
-                    ? t("academics.overview.checklist.allGood")
-                    : t("academics.overview.checklist.calendar.reason")
-                  : t("academics.overview.checklist.lessonPlans.reason", {
+                    ? t("checklist.allGood")
+                    : t("checklist.calendar.reason")
+                  : t("checklist.lessonPlans.reason", {
                       count: metrics.lessonPlans.totalPlanned,
                     }),
         link: item.link,
       }));
     } else if (exportDataset === "alerts") {
-      title = t("academics.overview.alerts.title");
+      title = t("alerts.title");
       filename = generateExportFilename("academics-overview-alerts", termId);
       columns = [
         { key: "title", label: exportLabels.title },
@@ -516,20 +519,20 @@ export default function AcademicsOverviewPage() {
         link: item.link,
       }));
     } else if (exportDataset === "lessonPlans") {
-      title = t("academics.overview.charts.lessonPlans.title");
+      title = t("charts.lessonPlans.title");
       filename = generateExportFilename("academics-overview-lesson-plans", termId);
       columns = [
         { key: "week", label: exportLabels.week },
-        { key: "planned", label: t("academics.overview.charts.lessonPlans.planned") },
-        { key: "done", label: t("academics.overview.charts.lessonPlans.done") },
+        { key: "planned", label: t("charts.lessonPlans.planned") },
+        { key: "done", label: t("charts.lessonPlans.done") },
       ];
       rows = lessonPlansData;
     } else if (exportDataset === "teacherLoads") {
-      title = t("academics.overview.charts.teacherLoads.title");
+      title = t("charts.teacherLoads.title");
       filename = generateExportFilename("academics-overview-teacher-loads", termId);
       columns = [
         { key: "name", label: exportLabels.teacher },
-        { key: "load", label: t("academics.overview.charts.teacherLoads.weeklyPeriods") },
+        { key: "load", label: t("charts.teacherLoads.weeklyPeriods") },
         { key: "status", label: exportLabels.status },
       ];
       rows = teacherLoadsData.map((item) => ({
@@ -538,7 +541,7 @@ export default function AcademicsOverviewPage() {
         status: item.isOverloaded ? exportLabels.overloaded : exportLabels.normal,
       }));
     } else {
-      title = t("academics.overview.charts.readiness.title");
+      title = t("charts.readiness.title");
       filename = generateExportFilename("academics-overview-readiness", termId);
       columns = [
         { key: "name", label: exportLabels.title },
@@ -550,14 +553,39 @@ export default function AcademicsOverviewPage() {
       }));
     }
 
+    return { title, metadata, filename, columns, rows };
+  }, [
+    academicYearId,
+    academicYears,
+    exportDataset,
+    exportLabels,
+    filteredAlerts,
+    filteredChecklist,
+    lessonPlansData,
+    locale,
+    metrics,
+    t,
+    teacherLoadsData,
+    termId,
+    terms,
+    readinessData,
+  ]);
+
+  const handleExport = (format: AcademicsExportFormat) => {
+    if (!overviewExportData) {
+      return;
+    }
+
     exportAcademicsData({
-      title,
-      metadata,
-      filename,
+      ...overviewExportData,
       format,
-      columns,
-      rows,
       locale,
+      jsonData: {
+        title: overviewExportData.title,
+        metadata: overviewExportData.metadata,
+        dataset: exportDataset,
+        rows: overviewExportData.rows,
+      },
     });
   };
 
@@ -596,13 +624,13 @@ export default function AcademicsOverviewPage() {
             syncOverviewQueryParams({ exportDataset: value }, "push")
           }
           onReset={handleResetFilters}
-          onExport={handleExport}
+          onExportClick={() => setShowExportModal(true)}
         />
 
         {/* Section A: Summary (KPIs) */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            {t("academics.overview.summary.title")}
+            {t("summary.title")}
           </h2>
           {isLoading ? (
             <KPICards
@@ -671,7 +699,7 @@ export default function AcademicsOverviewPage() {
         {/* Section C: Analytics (Charts) */}
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4 px-2">
-            {t("academics.overview.analytics.title")}
+            {t("analytics.title")}
           </h2>
           <OverviewCharts
             lessonPlansData={lessonPlansData}
@@ -685,6 +713,15 @@ export default function AcademicsOverviewPage() {
         {/* Quick Links */}
         <QuickLinks lang={lang} />
       </div>
+
+      <AcademicsGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={tExport("title")}
+        subtitle={t("title")}
+        datasetCount={overviewExportData?.rows.length ?? 0}
+      />
     </div>
   );
 }

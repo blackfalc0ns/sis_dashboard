@@ -6,6 +6,7 @@ import {
   Ban,
   CheckCircle2,
   Clock3,
+  Download,
   MapPin,
   RadioTower,
 } from "lucide-react";
@@ -20,10 +21,12 @@ export default function NedaaOverviewView({
   overview,
   gates,
   isReadOnly = false,
+  onOpenExport,
 }: {
   overview: NedaaOverviewData;
   gates: NedaaGate[];
   isReadOnly?: boolean;
+  onOpenExport: () => void;
 }) {
   const locale = useLocale();
   const t = useTranslations("nedaa");
@@ -36,6 +39,14 @@ export default function NedaaOverviewView({
           <p className="mt-1 text-sm text-gray-500">{t("overview.subtitle")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onOpenExport}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary"
+          >
+            <Download className="h-4 w-4" />
+            {t("export.button")}
+          </button>
           <Link
             href={`/${locale}/nedaa/requests`}
             className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary"

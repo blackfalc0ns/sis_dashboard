@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, RadioTower, TimerReset } from "lucide-react";
+import { CheckCircle2, Download, RadioTower, TimerReset } from "lucide-react";
 import { useTranslations } from "next-intl";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import NedaaGateBoard from "@/features/nedaa/components/NedaaGateBoard";
@@ -16,11 +16,13 @@ export default function NedaaGatesView({
   activeRequests,
   requestGates,
   isReadOnly = false,
+  onOpenExport,
 }: {
   gates: NedaaGateStats[];
   activeRequests: NedaaRequest[];
   requestGates: NedaaGate[];
   isReadOnly?: boolean;
+  onOpenExport: () => void;
 }) {
   const t = useTranslations("nedaa");
   const totals = {
@@ -32,9 +34,19 @@ export default function NedaaGatesView({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">{t("gates_page.title")}</h1>
-        <p className="mt-1 text-sm text-gray-500">{t("gates_page.subtitle")}</p>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{t("gates_page.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("gates_page.subtitle")}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenExport}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary"
+        >
+          <Download className="h-4 w-4" />
+          {t("export.button")}
+        </button>
       </div>
 
       {isReadOnly ? (

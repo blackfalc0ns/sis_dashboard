@@ -21,14 +21,17 @@ import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTe
 import TestScoreModal from "@/features/admissions/tests/components/TestScoreModal";
 import DateRangeFilter, { DateRangeValue } from "@/features/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
-import { downloadCSV, generateFilename } from "@/utils/simpleExport";
-import { formatTestsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
+import {
+  formatVisibleTestsForExport,
+} from "@/features/admissions/applications/utils/admissionsExportUtils";
 import { mockApplications, mockTests } from "@/data/mockAdmissions";
 import { Test, TestStatus } from "@/features/admissions/types/admissions";
 import { KPICardV2 } from "@/components/ui";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
+import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
 import {
   filterAdmissionsRecordsByDateContext,
   resolveAdmissionsContextScope,
@@ -44,6 +47,7 @@ export default function TestsList() {
   >(null);
   const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false);
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const [showFilters, setShowFilters] = useState(false);
   const admissionsScope = useMemo(
@@ -61,6 +65,7 @@ export default function TestsList() {
             ? app.full_name_ar || app.studentNameArabic || app.studentName
             : app.full_name_en || app.studentName,
         applicationId: app.id,
+        gradeRequested: app.gradeRequested,
       })),
     );
     const standaloneTests = mockTests.map((test) => {
@@ -73,6 +78,7 @@ export default function TestsList() {
             : app.full_name_en || app.studentName
           : "Unknown",
         applicationId: test.applicationId,
+        gradeRequested: app?.gradeRequested,
       };
     });
     return [...testsFromApps, ...standaloneTests];
@@ -290,10 +296,14 @@ export default function TestsList() {
     setIsScheduleTestOpen(false);
   };
 
-  const handleExport = () => {
-    const formattedData = formatTestsForExport(mockApplications);
-    const filename = generateFilename("tests", "csv");
-    downloadCSV(formattedData, filename);
+  const handleExport = async (format: "csv" | "json" | "excel") => {
+    const exportLocale = format === "json" ? "en" : locale;
+    downloadAdmissionsExport({
+      data: formatVisibleTestsForExport(filteredTests, exportLocale),
+      format,
+      filenameBase: "tests",
+      emptyMessage: hasActiveFilters ? t("no_match") : t("no_tests"),
+    });
   };
 
   const handleScoreSubmit = (
@@ -419,7 +429,7 @@ export default function TestsList() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={handleExport}
+            onClick={() => setIsExportModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
           >
             <Download className="w-4 h-4" />
@@ -569,6 +579,15 @@ export default function TestsList() {
           onSubmit={handleScoreSubmit}
         />
       )}
+      <AdmissionsGlobalExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={({ format }) => handleExport(format)}
+        mode="list"
+        confirmLabel={t("export")}
+        datasetCount={filteredTests.length}
+        emptyStateMessage={hasActiveFilters ? t("no_match") : t("no_tests")}
+      />
     </div>
   );
 }

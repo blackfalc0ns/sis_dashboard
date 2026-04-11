@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import { 
   AlertCircle, 
   Save, 
@@ -20,7 +21,6 @@ import GenerateDialog from "./GenerateDialog";
 import TimetableConfigDialog from "./TimetableConfigDialog";
 import ConfigChangeWarningDialog from "./ConfigChangeWarningDialog";
 import { Button } from "@/components/ui";
-import ExportButton from "@/components/ui/button/ExportButton";
 import { useToast } from "@/components/ui/toast/Toast";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import {
@@ -45,6 +45,7 @@ import { useTimetableData } from "@/features/academics/timetable/hooks/useTimeta
 import { useTimetableConfigFlow } from "@/features/academics/timetable/hooks/useTimetableConfigFlow";
 import { useTimetableGeneration } from "@/features/academics/timetable/hooks/useTimetableGeneration";
 import {
+  type AcademicsExportFormat,
   exportAcademicsData,
   generateExportFilename,
   type ExportColumn,
@@ -97,6 +98,7 @@ export default function TimetableView({
 
   const [isDirty, setIsDirty] = useState(false);
   const [validationPanelOpen, setValidationPanelOpen] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Edit Dialog State
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -518,7 +520,7 @@ export default function TimetableView({
     ? t(`config.scope.${resolvedConfig.source.scope.toLowerCase()}`)
     : "";
 
-  const handleExport = (format: "csv" | "excel") => {
+  const handleExport = (format: AcademicsExportFormat) => {
     if (!selectedSection || !resolvedConfig) return;
 
     const columns: ExportColumn[] = [
@@ -586,6 +588,11 @@ export default function TimetableView({
       columns,
       rows,
       locale,
+      jsonData: {
+        title: t("title"),
+        metadata,
+        rows,
+      },
     });
   };
 
@@ -733,7 +740,13 @@ export default function TimetableView({
               >
                 {t("actions.validate")}
               </Button>
-              <ExportButton onExport={handleExport} disabled={!selectedSectionId} />
+              <Button
+                onClick={() => setShowExportModal(true)}
+                variant="secondary"
+                disabled={!selectedSectionId}
+              >
+                {t("actions.export")}
+              </Button>
             </div>
             {isDirty && (
               <span className="text-sm text-orange-600">
@@ -816,7 +829,14 @@ export default function TimetableView({
               >
                 {t("actions.validate")}
               </Button>
-              <ExportButton onExport={handleExport} disabled={!selectedSectionId} />
+              <Button
+                onClick={() => setShowExportModal(true)}
+                variant="secondary"
+                disabled={!selectedSectionId}
+                size="sm"
+              >
+                {t("actions.export")}
+              </Button>
             </div>
 
             {/* Unsaved changes indicator */}
@@ -976,6 +996,20 @@ export default function TimetableView({
         confirmLabel={t("publish.confirm")}
         cancelLabel={t("publish.cancel")}
         severity={publishWithErrors ? "warning" : "info"}
+      />
+
+      <AcademicsGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={t("actions.export")}
+        subtitle={t("title")}
+        datasetCount={
+          resolvedConfig
+            ? resolvedConfig.days.filter((day) => day.isActive).length *
+              resolvedConfig.periods.length
+            : 0
+        }
       />
     </div>
   );

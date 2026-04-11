@@ -1,8 +1,9 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
+  Download,
   KeyRound,
   Mail,
   MailPlus,
@@ -24,6 +25,13 @@ import SettingsPageHeader from "@/features/settings/components/SettingsPageHeade
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
 import SettingsStatusBadge from "@/features/settings/components/SettingsStatusBadge";
 import UserEditorModal from "@/features/settings/components/UserEditorModal";
+import SettingsGlobalExportModal from "@/features/settings/shared/components/export/SettingsGlobalExportModal";
+import {
+  exportSettingsData,
+  formatSettingsExportDate,
+  type ExportColumn,
+  type SettingsExportFormat,
+} from "@/features/settings/shared/utils/settingsExport";
 import {
   createUser,
   fetchRoles,
@@ -42,7 +50,9 @@ import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/use
 import { usePermissions } from "@/hooks/usePermissions";
 
 export default function SettingsUsersPage() {
+  const locale = useLocale();
   const t = useTranslations("settings.users");
+  const tExport = useTranslations("settings.export");
   const tCommon = useTranslations("common");
   const { hasPermission } = usePermissions();
   const { showSuccess, showError, showInfo } = useToast();
@@ -56,6 +66,7 @@ export default function SettingsUsersPage() {
     null,
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const { values, setValue, replaceValues, reset } = useUrlQueryState<{
     search: string;
     role: string;
@@ -145,6 +156,65 @@ export default function SettingsUsersPage() {
 
   const hasActiveFilters =
     search.trim() !== "" || roleFilter !== "all" || statusFilter !== "all";
+
+  const handleExport = (format: SettingsExportFormat) => {
+    const metadata = {
+      viewName: t("title"),
+      exportDate: formatSettingsExportDate(locale),
+      visibleCount: filteredUsers.length,
+    };
+    const columns: ExportColumn[] = [
+      { key: "id", label: "ID" },
+      { key: "fullName", label: t("table.name") },
+      { key: "email", label: t("table.email") },
+      { key: "role", label: t("table.role") },
+      { key: "status", label: t("table.status") },
+      { key: "lastActiveAt", label: t("table.last_active") },
+      { key: "invitedAt", label: locale === "ar" ? "تاريخ الدعوة" : "Invited at" },
+      {
+        key: "lastInviteSentAt",
+        label: locale === "ar" ? "آخر إعادة إرسال" : "Last invite sent",
+      },
+    ];
+    const rows = filteredUsers.map((user) => ({
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      role: rolesMap.get(user.roleId) || user.roleId,
+      status: t(`statuses.${user.status}`),
+      lastActiveAt: user.lastActiveAt
+        ? new Date(user.lastActiveAt).toLocaleString()
+        : t("not_available"),
+      invitedAt: user.invitedAt ? new Date(user.invitedAt).toLocaleString() : "",
+      lastInviteSentAt: user.lastInviteSentAt
+        ? new Date(user.lastInviteSentAt).toLocaleString()
+        : "",
+    }));
+
+    exportSettingsData({
+      title: t("title"),
+      metadata,
+      filename: "settings-users",
+      format,
+      columns,
+      rows,
+      locale,
+      emptyMessage: tExport("errors.noData"),
+      jsonData: {
+        title: "Settings Users",
+        metadata,
+        filters: {
+          search,
+          role: roleFilter,
+          status: statusFilter,
+        },
+        users: filteredUsers.map((user) => ({
+          ...user,
+          roleName: rolesMap.get(user.roleId) || user.roleId,
+        })),
+      },
+    });
+  };
 
   useEffect(() => {
     if (hasActiveFilters && !showFilters) {
@@ -349,6 +419,13 @@ export default function SettingsUsersPage() {
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="secondary"
+                  leftIcon={<Download className="h-4 w-4" />}
+                  onClick={() => setIsExportModalOpen(true)}
+                >
+                  {tExport("button")}
+                </Button>
+                <Button
+                  variant="secondary"
                   leftIcon={<MailPlus className="h-4 w-4" />}
                   onClick={() => {
                     setSelectedUser(null);
@@ -472,6 +549,13 @@ export default function SettingsUsersPage() {
             setSelectedUser(null);
           }}
           onSubmit={handleModalSubmit}
+        />
+        <SettingsGlobalExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          onExport={handleExport}
+          datasetCount={filteredUsers.length}
+          emptyStateMessage={tExport("errors.noData")}
         />
       </main>
     </SettingsAccessGuard>

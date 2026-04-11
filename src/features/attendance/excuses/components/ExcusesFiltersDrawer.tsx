@@ -19,7 +19,7 @@ interface ExcusesFiltersDrawerProps {
   onApply: () => void;
   onFiltersChange: (patch: Partial<ExcuseRequestFilters>) => void;
   onReset: () => void;
-  onExport: (format: "csv" | "excel") => void;
+  onOpenExport: () => void;
 }
 
 export default function ExcusesFiltersDrawer({
@@ -33,7 +33,7 @@ export default function ExcusesFiltersDrawer({
   onApply,
   onFiltersChange,
   onReset,
-  onExport,
+  onOpenExport,
 }: ExcusesFiltersDrawerProps) {
   const t = useTranslations("attendance.excuses.filters");
   const tCommon = useTranslations("common");
@@ -57,7 +57,7 @@ export default function ExcusesFiltersDrawer({
             classrooms={classrooms}
             onFiltersChange={onFiltersChange}
             onReset={onReset}
-            onExport={onExport}
+            onOpenExport={onOpenExport}
           />
         </div>
 

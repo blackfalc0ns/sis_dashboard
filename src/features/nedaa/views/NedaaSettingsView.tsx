@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { Download, Plus, Trash2 } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
@@ -26,6 +26,7 @@ interface NedaaSettingsViewProps {
   onChange: (updates: Partial<NedaaSettings>) => void;
   onReset: () => void;
   onSave: () => void;
+  onOpenExport: () => void;
   onOpenCreateGate: () => void;
   onOpenEditGate: (gate: NedaaGate) => void;
   onCloseGateModal: () => void;
@@ -78,6 +79,7 @@ export default function NedaaSettingsView({
   onChange,
   onReset,
   onSave,
+  onOpenExport,
   onOpenCreateGate,
   onOpenEditGate,
   onCloseGateModal,
@@ -105,6 +107,13 @@ export default function NedaaSettingsView({
           <p className="mt-1 text-sm text-gray-500">{t("settings.subtitle")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={onOpenExport}
+          >
+            <Download className="h-4 w-4" />
+            {t("export.button")}
+          </Button>
           <Button
             variant="secondary"
             disabled={!isDirty || isSaving || !canEdit}

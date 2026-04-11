@@ -48,7 +48,7 @@ export default function HeroJourneyBadgeThumb({
   return (
     <div className="inline-flex items-center gap-2">
       <div
-        className={`inline-flex ${sizeClasses[size]} items-center justify-center overflow-hidden rounded-xl border border-teal-100 bg-teal-50`}
+        className={`inline-flex ${sizeClasses[size]} items-center justify-center overflow-hidden rounded-xl`}
       >
         {badge ? (
           <Image

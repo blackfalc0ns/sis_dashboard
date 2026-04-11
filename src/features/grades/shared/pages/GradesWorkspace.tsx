@@ -9,6 +9,7 @@ import MainLoader from "@/components/ui/loaders/MainLoader";
 import ContextBar from "@/features/academics/components/shared/ContextBar";
 import { useToast } from "@/components/ui/toast/Toast";
 import {
+  type AcademicYear,
   fetchAcademicYears,
   fetchTermsByYear,
   type Term,
@@ -25,6 +26,7 @@ import {
   bulkUpdateAssessmentGrades,
   deleteAssessment,
   fetchAssessmentRoster,
+  getAssessmentTypeLabelKey,
   lockAssessment,
   publishAssessment,
   updateAssessment,
@@ -48,12 +50,26 @@ import BulkGradeEntryDialog from "../../assessments/components/BulkGradeEntryDia
 import { fetchGradesAnalytics } from "../../analytics/services/gradesAnalyticsService";
 import type { GradesAnalyticsReport } from "../../analytics/types";
 import type { AssessmentSubmissionReview } from "../../shared/types";
+import GradesGlobalExportModal from "../components/export/GradesGlobalExportModal";
+import {
+  exportGradesData,
+  formatGradesExportDate,
+  generateGradesExportFilename,
+  type ExportColumn,
+  type GradesExportFormat,
+} from "../utils/gradesExport";
 
 interface GradesWorkspaceProps {
   view: "overview" | "assessments" | "gradebook";
 }
 
 type GradebookTableRow = GradebookStudentRow & Record<string, unknown>;
+type GradesOverviewExportDataset =
+  | "summary"
+  | "assessments"
+  | "analytics_distribution"
+  | "analytics_assessments"
+  | "analytics_students";
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
 export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
@@ -64,6 +80,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   const searchParams = useSearchParams();
   const { showError, showSuccess } = useToast();
 
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [academicYearId, setAcademicYearId] = useState("");
   const [termId, setTermId] = useState("");
   const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
@@ -115,6 +132,9 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   const [assessmentToDelete, setAssessmentToDelete] = useState<Assessment | null>(null);
   const [editGradeState, setEditGradeState] = useState<{ assessment: Assessment; row: GradebookStudentRow; comment?: string } | null>(null);
   const [submissionReviewState, setSubmissionReviewState] = useState<AssessmentSubmissionReview | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [selectedOverviewExportDataset, setSelectedOverviewExportDataset] =
+    useState<GradesOverviewExportDataset>("summary");
   const [bulkEntryState, setBulkEntryState] = useState<{
     assessment: Assessment;
     rows: Array<{ studentId: string; studentNameEn: string; studentNameAr: string; classroomName?: string; score: number | null; status: GradeItemStatus; comment?: string }>;
@@ -139,6 +159,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   useEffect(() => {
     const initialize = async () => {
       const years = await fetchAcademicYears();
+      setAcademicYears(years);
       const urlYear = searchParams.get("year");
       const urlTerm = searchParams.get("term");
       const year = years.find((item) => item.id === urlYear) || years[0];
@@ -520,6 +541,799 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         : null;
 
   const visibleAssessments = view === "overview" ? assessments.slice(0, 6) : assessments;
+  const selectedAcademicYear = academicYears.find((year) => year.id === academicYearId);
+  const selectedTerm = terms.find((term) => term.id === termId);
+
+  const getLocalizedText = useCallback(
+    (valueAr: string | undefined, valueEn: string | undefined) =>
+      locale === "ar" ? valueAr || valueEn || "" : valueEn || valueAr || "",
+    [locale],
+  );
+
+  const getLocalizedAssessmentTitle = useCallback(
+    (assessment: Assessment) =>
+      locale === "ar"
+        ? assessment.titleAr || assessment.title
+        : assessment.title || assessment.titleAr,
+    [locale],
+  );
+
+  const getStatusLabel = useCallback(
+    (status: GradeItemStatus) => {
+      if (status === "absent") return t("table.absent");
+      if (status === "entered") return t("dialogs.editGrade.statuses.entered");
+      return t("table.pending");
+    },
+    [t],
+  );
+
+  const getApprovalStatusLabel = useCallback(
+    (status: Assessment["approvalStatus"]) => {
+      if (status === "approved") return t("actions.approve");
+      if (status === "published") return t("actions.publish");
+      return tCommon("unsaved");
+    },
+    [t, tCommon],
+  );
+
+  const getDeliveryModeLabel = useCallback(
+    (deliveryMode: Assessment["deliveryMode"]) =>
+      deliveryMode === "QUESTION_BASED"
+        ? t("dialogs.createAssessment.deliveryModes.questionBased")
+        : t("dialogs.createAssessment.deliveryModes.scoreOnly"),
+    [t],
+  );
+
+  const getScopeTypeEnglishLabel = useCallback((scopeType: ExamScopeType) => {
+    const labels: Record<ExamScopeType, string> = {
+      school: "Whole School",
+      stage: "Stage",
+      grade: "Grade",
+      section: "Section",
+      classroom: "Classroom",
+    };
+    return labels[scopeType];
+  }, []);
+
+  const getCurrentViewEnglishLabel = useCallback(() => {
+    const labels: Record<GradesWorkspaceProps["view"], string> = {
+      overview: "Overview",
+      assessments: "Assessments",
+      gradebook: "Gradebook",
+    };
+    return labels[view];
+  }, [view]);
+
+  const getCurrentViewLocalizedLabel = useCallback(
+    () => t(`tabs.${view}`),
+    [t, view],
+  );
+
+  const getOverviewDatasetLocalizedLabel = useCallback(
+    (dataset: GradesOverviewExportDataset) => t(`export.datasets.${dataset}.label`),
+    [t],
+  );
+
+  const getOverviewDatasetLocalizedDescription = useCallback(
+    (dataset: GradesOverviewExportDataset) =>
+      t(`export.datasets.${dataset}.description`),
+    [t],
+  );
+
+  const getOverviewDatasetEnglishLabel = useCallback(
+    (dataset: GradesOverviewExportDataset) => {
+      const labels: Record<GradesOverviewExportDataset, string> = {
+        summary: "Summary",
+        assessments: "Assessments",
+        analytics_distribution: "Analytics Distribution",
+        analytics_assessments: "Assessment Analytics",
+        analytics_students: "Student Analytics",
+      };
+      return labels[dataset];
+    },
+    [],
+  );
+
+  const localizedMetadata = useMemo(
+    () => ({
+      yearName: getLocalizedText(
+        selectedAcademicYear?.nameAr,
+        selectedAcademicYear?.nameEn || selectedAcademicYear?.name,
+      ),
+      termName: getLocalizedText(
+        selectedTerm?.nameAr,
+        selectedTerm?.nameEn || selectedTerm?.name,
+      ),
+      scopeTypeName: t(`filters.scopeTypes.${selectedScopeType}`),
+      scopeName: selectedScopeEntity
+        ? getLocalizedText(selectedScopeEntity.nameAr, selectedScopeEntity.nameEn)
+        : "",
+      subjectName: selectedSubject
+        ? getLocalizedText(selectedSubject.nameAr, selectedSubject.nameEn)
+        : "",
+      viewName: getCurrentViewLocalizedLabel(),
+      exportDate: formatGradesExportDate(locale),
+    }),
+    [
+      getCurrentViewLocalizedLabel,
+      getLocalizedText,
+      locale,
+      selectedAcademicYear,
+      selectedScopeEntity,
+      selectedScopeType,
+      selectedSubject,
+      selectedTerm,
+      t,
+    ],
+  );
+
+  const englishMetadata = useMemo(
+    () => ({
+      yearName: selectedAcademicYear?.nameEn || selectedAcademicYear?.name || "",
+      termName: selectedTerm?.nameEn || selectedTerm?.name || "",
+      scopeTypeName: getScopeTypeEnglishLabel(selectedScopeType),
+      scopeName: selectedScopeEntity?.nameEn || "",
+      subjectName: selectedSubject?.nameEn || "",
+      viewName: getCurrentViewEnglishLabel(),
+      exportDate: formatGradesExportDate("en"),
+    }),
+    [
+      getCurrentViewEnglishLabel,
+      getScopeTypeEnglishLabel,
+      selectedAcademicYear,
+      selectedScopeEntity,
+      selectedScopeType,
+      selectedSubject,
+      selectedTerm,
+    ],
+  );
+
+  const overviewDatasetOptions = useMemo(
+    () => [
+      {
+        value: "summary",
+        label: getOverviewDatasetLocalizedLabel("summary"),
+        description: getOverviewDatasetLocalizedDescription("summary"),
+      },
+      {
+        value: "assessments",
+        label: getOverviewDatasetLocalizedLabel("assessments"),
+        description: getOverviewDatasetLocalizedDescription("assessments"),
+      },
+      {
+        value: "analytics_distribution",
+        label: getOverviewDatasetLocalizedLabel("analytics_distribution"),
+        description: getOverviewDatasetLocalizedDescription("analytics_distribution"),
+      },
+      {
+        value: "analytics_assessments",
+        label: getOverviewDatasetLocalizedLabel("analytics_assessments"),
+        description: getOverviewDatasetLocalizedDescription("analytics_assessments"),
+      },
+      {
+        value: "analytics_students",
+        label: getOverviewDatasetLocalizedLabel("analytics_students"),
+        description: getOverviewDatasetLocalizedDescription("analytics_students"),
+      },
+    ],
+    [
+      getOverviewDatasetLocalizedDescription,
+      getOverviewDatasetLocalizedLabel,
+    ],
+  );
+
+  const buildOverviewSummaryExport = useCallback(() => {
+    const rowsForExport = [
+      { metric: t("kpis.students"), value: summary.totalStudents },
+      { metric: t("kpis.assessments"), value: summary.totalAssessments },
+      { metric: t("kpis.classAverage"), value: formatPercent(summary.classAverage) },
+      { metric: t("kpis.completionRate"), value: formatPercent(summary.completionRate) },
+      { metric: t("summaryPanel.highest"), value: formatPercent(summary.highestAverage) },
+      { metric: t("summaryPanel.lowest"), value: formatPercent(summary.lowestAverage) },
+      { metric: t("summaryPanel.passMark"), value: `${gradeRule?.passMark ?? 50}%` },
+      ...trend.map((point) => ({
+        metric: `${t("trend.average")} - ${point.label}`,
+        value: formatPercent(point.average),
+      })),
+    ];
+
+    return {
+      title: getOverviewDatasetLocalizedLabel("summary"),
+      filename: generateGradesExportFilename(
+        "grades-overview-summary",
+        termId,
+        selectedScopeId,
+      ),
+      columns: [
+        { key: "metric", label: t("export.columns.metric") },
+        { key: "value", label: t("export.columns.value") },
+      ] satisfies ExportColumn[],
+      rows: rowsForExport,
+      jsonData: {
+        title: "Grades Overview Summary",
+        metadata: {
+          ...englishMetadata,
+          datasetName: getOverviewDatasetEnglishLabel("summary"),
+        },
+        filters: {
+          academicYearId,
+          termId,
+          scopeType: selectedScopeType,
+          scopeId: selectedScopeId,
+          subjectId: selectedSubjectId,
+          view,
+          dataset: "summary",
+        },
+        summary: {
+          ...summary,
+          passMark: gradeRule?.passMark ?? 50,
+        },
+        trend,
+      },
+      count:
+        trend.length > 0 || assessments.length > 0 || rows.length > 0
+          ? rowsForExport.length
+          : 0,
+    };
+  }, [
+    academicYearId,
+    assessments.length,
+    englishMetadata,
+    getOverviewDatasetEnglishLabel,
+    getOverviewDatasetLocalizedLabel,
+    gradeRule?.passMark,
+    rows.length,
+    selectedScopeId,
+    selectedScopeType,
+    selectedSubjectId,
+    summary,
+    t,
+    termId,
+    trend,
+    view,
+  ]);
+
+  const buildAssessmentsRows = useCallback(
+    (sourceAssessments: Assessment[]) =>
+      sourceAssessments.map((assessment) => ({
+        id: assessment.id,
+        title: getLocalizedAssessmentTitle(assessment),
+        titleEn: assessment.title,
+        titleAr: assessment.titleAr,
+        type: t(`assessmentTypes.${getAssessmentTypeLabelKey(assessment.type)}`),
+        deliveryMode: getDeliveryModeLabel(assessment.deliveryMode),
+        date: assessment.date,
+        weight: `${assessment.weight}%`,
+        maxScore: assessment.maxScore,
+        approvalStatus: getApprovalStatusLabel(assessment.approvalStatus),
+        locked: assessment.isLocked ? tCommon("yes") : tCommon("no"),
+        scopeType: t(`filters.scopeTypes.${assessment.scopeType}`),
+        scopeId: assessment.scopeId,
+        sectionId: assessment.sectionId || "",
+        classroomId: assessment.classroomId || "",
+        subjectId: assessment.subjectId,
+        termId: assessment.termId,
+      })),
+    [
+      getApprovalStatusLabel,
+      getDeliveryModeLabel,
+      getLocalizedAssessmentTitle,
+      t,
+      tCommon,
+    ],
+  );
+
+  const buildAssessmentsJsonRows = useCallback(
+    (sourceAssessments: Assessment[]) =>
+      sourceAssessments.map((assessment) => ({
+        id: assessment.id,
+        titleEn: assessment.title,
+        titleAr: assessment.titleAr,
+        type: assessment.type,
+        deliveryMode: assessment.deliveryMode,
+        date: assessment.date,
+        weight: assessment.weight,
+        maxScore: assessment.maxScore,
+        scopeType: assessment.scopeType,
+        scopeId: assessment.scopeId,
+        sectionId: assessment.sectionId || null,
+        classroomId: assessment.classroomId || null,
+        approvalStatus: assessment.approvalStatus,
+        isLocked: assessment.isLocked,
+        subjectId: assessment.subjectId,
+        termId: assessment.termId,
+      })),
+    [],
+  );
+
+  const buildOverviewAssessmentsExport = useCallback(() => {
+    const rowsForExport = buildAssessmentsRows(visibleAssessments);
+    return {
+      title: getOverviewDatasetLocalizedLabel("assessments"),
+      filename: generateGradesExportFilename(
+        "grades-overview-assessments",
+        termId,
+        selectedScopeId,
+      ),
+      columns: [
+        { key: "id", label: t("export.columns.assessmentId") },
+        { key: "title", label: t("export.columns.title") },
+        { key: "titleEn", label: t("export.columns.titleEn") },
+        { key: "titleAr", label: t("export.columns.titleAr") },
+        { key: "type", label: t("export.columns.type") },
+        { key: "deliveryMode", label: t("export.columns.deliveryMode") },
+        { key: "date", label: t("export.columns.date") },
+        { key: "weight", label: t("export.columns.weight") },
+        { key: "maxScore", label: t("export.columns.maxScore") },
+        { key: "approvalStatus", label: t("export.columns.approvalStatus") },
+        { key: "locked", label: t("export.columns.locked") },
+        { key: "scopeType", label: t("export.columns.scopeType") },
+        { key: "scopeId", label: t("export.columns.scopeId") },
+        { key: "sectionId", label: t("export.columns.sectionId") },
+        { key: "classroomId", label: t("export.columns.classroomId") },
+      ] satisfies ExportColumn[],
+      rows: rowsForExport,
+      jsonData: {
+        title: "Grades Overview Assessments",
+        metadata: {
+          ...englishMetadata,
+          datasetName: getOverviewDatasetEnglishLabel("assessments"),
+        },
+        filters: {
+          academicYearId,
+          termId,
+          scopeType: selectedScopeType,
+          scopeId: selectedScopeId,
+          subjectId: selectedSubjectId,
+          view,
+          dataset: "assessments",
+        },
+        assessments: buildAssessmentsJsonRows(visibleAssessments),
+      },
+      count: visibleAssessments.length,
+    };
+  }, [
+    academicYearId,
+    buildAssessmentsJsonRows,
+    buildAssessmentsRows,
+    englishMetadata,
+    getOverviewDatasetEnglishLabel,
+    getOverviewDatasetLocalizedLabel,
+    selectedScopeId,
+    selectedScopeType,
+    selectedSubjectId,
+    t,
+    termId,
+    view,
+    visibleAssessments,
+  ]);
+
+  const buildOverviewDistributionExport = useCallback(() => {
+    const rowsForExport = analyticsReport.distribution.map((item) => ({
+      label: item.label,
+      count: item.count,
+    }));
+
+    return {
+      title: getOverviewDatasetLocalizedLabel("analytics_distribution"),
+      filename: generateGradesExportFilename(
+        "grades-overview-distribution",
+        termId,
+        selectedScopeId,
+      ),
+      columns: [
+        { key: "label", label: t("export.columns.band") },
+        { key: "count", label: t("export.columns.count") },
+      ] satisfies ExportColumn[],
+      rows: rowsForExport,
+      jsonData: {
+        title: "Grades Analytics Distribution",
+        metadata: {
+          ...englishMetadata,
+          datasetName: getOverviewDatasetEnglishLabel("analytics_distribution"),
+        },
+        filters: {
+          academicYearId,
+          termId,
+          scopeType: selectedScopeType,
+          scopeId: selectedScopeId,
+          subjectId: selectedSubjectId,
+          view,
+          dataset: "analytics_distribution",
+        },
+        distribution: analyticsReport.distribution,
+      },
+      count: analyticsReport.distribution.some((item) => item.count > 0)
+        ? rowsForExport.length
+        : 0,
+    };
+  }, [
+    academicYearId,
+    analyticsReport.distribution,
+    englishMetadata,
+    getOverviewDatasetEnglishLabel,
+    getOverviewDatasetLocalizedLabel,
+    selectedScopeId,
+    selectedScopeType,
+    selectedSubjectId,
+    t,
+    termId,
+    view,
+  ]);
+
+  const buildOverviewAssessmentAnalyticsExport = useCallback(() => {
+    const rowsForExport = analyticsReport.assessmentPerformance.map((item) => ({
+      assessmentId: item.assessmentId,
+      label: item.label,
+      average: formatPercent(item.average),
+      enteredCount: item.enteredCount,
+      maxScore: item.maxScore,
+    }));
+
+    return {
+      title: getOverviewDatasetLocalizedLabel("analytics_assessments"),
+      filename: generateGradesExportFilename(
+        "grades-overview-assessment-analytics",
+        termId,
+        selectedScopeId,
+      ),
+      columns: [
+        { key: "assessmentId", label: t("export.columns.assessmentId") },
+        { key: "label", label: t("export.columns.title") },
+        { key: "average", label: t("export.columns.average") },
+        { key: "enteredCount", label: t("export.columns.enteredCount") },
+        { key: "maxScore", label: t("export.columns.maxScore") },
+      ] satisfies ExportColumn[],
+      rows: rowsForExport,
+      jsonData: {
+        title: "Grades Assessment Analytics",
+        metadata: {
+          ...englishMetadata,
+          datasetName: getOverviewDatasetEnglishLabel("analytics_assessments"),
+        },
+        filters: {
+          academicYearId,
+          termId,
+          scopeType: selectedScopeType,
+          scopeId: selectedScopeId,
+          subjectId: selectedSubjectId,
+          view,
+          dataset: "analytics_assessments",
+        },
+        assessments: analyticsReport.assessmentPerformance,
+      },
+      count: analyticsReport.assessmentPerformance.length,
+    };
+  }, [
+    academicYearId,
+    analyticsReport.assessmentPerformance,
+    englishMetadata,
+    getOverviewDatasetEnglishLabel,
+    getOverviewDatasetLocalizedLabel,
+    selectedScopeId,
+    selectedScopeType,
+    selectedSubjectId,
+    t,
+    termId,
+    view,
+  ]);
+
+  const buildOverviewStudentAnalyticsExport = useCallback(() => {
+    const studentRows = [
+      ...analyticsReport.topStudents.map((item) => ({
+        group: t("export.groups.top"),
+        ...item,
+      })),
+      ...analyticsReport.lowestStudents.map((item) => ({
+        group: t("export.groups.lowest"),
+        ...item,
+      })),
+    ];
+
+    const rowsForExport = studentRows.map((item) => ({
+      group: item.group,
+      studentId: item.studentId,
+      studentName: locale === "ar" ? item.studentNameAr : item.studentNameEn,
+      studentNameEn: item.studentNameEn,
+      studentNameAr: item.studentNameAr,
+      classroomName: item.classroomName || t("table.notAssigned"),
+      average: formatPercent(item.average),
+      completionRate: formatPercent(item.completionRate),
+      completedItems: item.completedItems,
+      totalItems: item.totalItems,
+      status: item.status,
+    }));
+
+    return {
+      title: getOverviewDatasetLocalizedLabel("analytics_students"),
+      filename: generateGradesExportFilename(
+        "grades-overview-student-analytics",
+        termId,
+        selectedScopeId,
+      ),
+      columns: [
+        { key: "group", label: t("export.columns.group") },
+        { key: "studentId", label: t("export.columns.studentId") },
+        { key: "studentName", label: t("export.columns.studentName") },
+        { key: "studentNameEn", label: t("export.columns.studentNameEn") },
+        { key: "studentNameAr", label: t("export.columns.studentNameAr") },
+        { key: "classroomName", label: t("table.classroom") },
+        { key: "average", label: t("export.columns.average") },
+        { key: "completionRate", label: t("analytics.table.completionRate") },
+        { key: "completedItems", label: t("export.columns.completedItems") },
+        { key: "totalItems", label: t("export.columns.totalItems") },
+        { key: "status", label: t("export.columns.status") },
+      ] satisfies ExportColumn[],
+      rows: rowsForExport,
+      jsonData: {
+        title: "Grades Student Analytics",
+        metadata: {
+          ...englishMetadata,
+          datasetName: getOverviewDatasetEnglishLabel("analytics_students"),
+        },
+        filters: {
+          academicYearId,
+          termId,
+          scopeType: selectedScopeType,
+          scopeId: selectedScopeId,
+          subjectId: selectedSubjectId,
+          view,
+          dataset: "analytics_students",
+        },
+        students: [
+          ...analyticsReport.topStudents.map((item) => ({
+            group: "top",
+            ...item,
+          })),
+          ...analyticsReport.lowestStudents.map((item) => ({
+            group: "lowest",
+            ...item,
+          })),
+        ],
+      },
+      count: studentRows.length,
+    };
+  }, [
+    academicYearId,
+    analyticsReport.lowestStudents,
+    analyticsReport.topStudents,
+    englishMetadata,
+    getOverviewDatasetEnglishLabel,
+    getOverviewDatasetLocalizedLabel,
+    locale,
+    selectedScopeId,
+    selectedScopeType,
+    selectedSubjectId,
+    t,
+    termId,
+    view,
+  ]);
+
+  const buildAssessmentsViewExport = useCallback(() => {
+    const rowsForExport = buildAssessmentsRows(assessments);
+
+    return {
+      title: t("export.datasets.assessmentsView.label"),
+      filename: generateGradesExportFilename(
+        "grades-assessments",
+        termId,
+        selectedScopeId,
+      ),
+      columns: [
+        { key: "id", label: t("export.columns.assessmentId") },
+        { key: "title", label: t("export.columns.title") },
+        { key: "titleEn", label: t("export.columns.titleEn") },
+        { key: "titleAr", label: t("export.columns.titleAr") },
+        { key: "type", label: t("export.columns.type") },
+        { key: "deliveryMode", label: t("export.columns.deliveryMode") },
+        { key: "date", label: t("export.columns.date") },
+        { key: "weight", label: t("export.columns.weight") },
+        { key: "maxScore", label: t("export.columns.maxScore") },
+        { key: "approvalStatus", label: t("export.columns.approvalStatus") },
+        { key: "locked", label: t("export.columns.locked") },
+        { key: "scopeType", label: t("export.columns.scopeType") },
+        { key: "scopeId", label: t("export.columns.scopeId") },
+        { key: "sectionId", label: t("export.columns.sectionId") },
+        { key: "classroomId", label: t("export.columns.classroomId") },
+        { key: "subjectId", label: t("export.columns.subjectId") },
+        { key: "termId", label: t("export.columns.termId") },
+      ] satisfies ExportColumn[],
+      rows: rowsForExport,
+      jsonData: {
+        title: "Grades Assessments",
+        metadata: englishMetadata,
+        filters: {
+          academicYearId,
+          termId,
+          scopeType: selectedScopeType,
+          scopeId: selectedScopeId,
+          subjectId: selectedSubjectId,
+          view,
+        },
+        assessments: buildAssessmentsJsonRows(assessments),
+      },
+      count: rowsForExport.length,
+    };
+  }, [
+    academicYearId,
+    assessments,
+    buildAssessmentsJsonRows,
+    buildAssessmentsRows,
+    englishMetadata,
+    selectedScopeId,
+    selectedScopeType,
+    selectedSubjectId,
+    t,
+    termId,
+    view,
+  ]);
+
+  const buildGradebookViewExport = useCallback(() => {
+    const dynamicColumns = assessments.map((assessment) => ({
+      key: `assessment_${assessment.id}`,
+      label: getLocalizedAssessmentTitle(assessment),
+    }));
+
+    const rowsForExport = rows.map((row) => {
+      const dynamicValues = Object.fromEntries(
+        assessments.map((assessment) => {
+          const score = row.scoresByAssessmentId[assessment.id];
+          const status = row.statusByAssessmentId[assessment.id];
+          const value =
+            status === "entered" && score != null
+              ? `${score}/${assessment.maxScore}`
+              : getStatusLabel(status);
+          return [`assessment_${assessment.id}`, value];
+        }),
+      );
+
+      return {
+        studentId: row.studentId,
+        studentName: locale === "ar" ? row.studentNameAr : row.studentNameEn,
+        studentNameEn: row.studentNameEn,
+        studentNameAr: row.studentNameAr,
+        classroomName: row.classroomName || t("table.notAssigned"),
+        average: formatPercent(row.average),
+        completion: `${row.completedItems}/${row.totalItems}`,
+        ...dynamicValues,
+      };
+    });
+
+    return {
+      title: t("export.datasets.gradebook.label"),
+      filename: generateGradesExportFilename(
+        "grades-gradebook",
+        termId,
+        selectedScopeId,
+      ),
+      columns: [
+        { key: "studentId", label: t("export.columns.studentId") },
+        { key: "studentName", label: t("export.columns.studentName") },
+        { key: "studentNameEn", label: t("export.columns.studentNameEn") },
+        { key: "studentNameAr", label: t("export.columns.studentNameAr") },
+        { key: "classroomName", label: t("table.classroom") },
+        ...dynamicColumns,
+        { key: "average", label: t("table.average") },
+        { key: "completion", label: t("table.completion") },
+      ] satisfies ExportColumn[],
+      rows: rowsForExport,
+      jsonData: {
+        title: "Grades Gradebook",
+        metadata: englishMetadata,
+        filters: {
+          academicYearId,
+          termId,
+          scopeType: selectedScopeType,
+          scopeId: selectedScopeId,
+          subjectId: selectedSubjectId,
+          view,
+        },
+        assessments: assessments.map((assessment) => ({
+          id: assessment.id,
+          titleEn: assessment.title,
+          titleAr: assessment.titleAr,
+          maxScore: assessment.maxScore,
+          date: assessment.date,
+          type: assessment.type,
+        })),
+        students: rows.map((row) => ({
+          studentId: row.studentId,
+          studentNameEn: row.studentNameEn,
+          studentNameAr: row.studentNameAr,
+          classroomName: row.classroomName || null,
+          scoresByAssessmentId: row.scoresByAssessmentId,
+          statusByAssessmentId: row.statusByAssessmentId,
+          average: row.average,
+          completedItems: row.completedItems,
+          totalItems: row.totalItems,
+        })),
+      },
+      count: rowsForExport.length,
+    };
+  }, [
+    academicYearId,
+    assessments,
+    englishMetadata,
+    getLocalizedAssessmentTitle,
+    getStatusLabel,
+    locale,
+    rows,
+    selectedScopeId,
+    selectedScopeType,
+    selectedSubjectId,
+    t,
+    termId,
+    view,
+  ]);
+
+  const currentExportPayload = useMemo(() => {
+    if (view === "overview") {
+      switch (selectedOverviewExportDataset) {
+        case "assessments":
+          return buildOverviewAssessmentsExport();
+        case "analytics_distribution":
+          return buildOverviewDistributionExport();
+        case "analytics_assessments":
+          return buildOverviewAssessmentAnalyticsExport();
+        case "analytics_students":
+          return buildOverviewStudentAnalyticsExport();
+        case "summary":
+        default:
+          return buildOverviewSummaryExport();
+      }
+    }
+
+    if (view === "assessments") {
+      return buildAssessmentsViewExport();
+    }
+
+    return buildGradebookViewExport();
+  }, [
+    buildAssessmentsViewExport,
+    buildGradebookViewExport,
+    buildOverviewAssessmentAnalyticsExport,
+    buildOverviewAssessmentsExport,
+    buildOverviewDistributionExport,
+    buildOverviewStudentAnalyticsExport,
+    buildOverviewSummaryExport,
+    selectedOverviewExportDataset,
+    view,
+  ]);
+
+  const handleExport = async (format: GradesExportFormat) => {
+    const localizedDatasetName =
+      view === "overview"
+        ? getOverviewDatasetLocalizedLabel(selectedOverviewExportDataset)
+        : undefined;
+    const englishDatasetName =
+      view === "overview"
+        ? getOverviewDatasetEnglishLabel(selectedOverviewExportDataset)
+        : undefined;
+
+    exportGradesData({
+      title: currentExportPayload.title,
+      metadata: {
+        ...localizedMetadata,
+        ...(localizedDatasetName ? { datasetName: localizedDatasetName } : {}),
+      },
+      filename: currentExportPayload.filename,
+      format,
+      columns: currentExportPayload.columns,
+      rows: currentExportPayload.rows,
+      jsonData:
+        format === "json" && currentExportPayload.jsonData
+          ? {
+              ...(currentExportPayload.jsonData as Record<string, unknown>),
+              metadata: {
+                ...englishMetadata,
+                ...(englishDatasetName ? { datasetName: englishDatasetName } : {}),
+              },
+            }
+          : currentExportPayload.jsonData,
+      locale,
+      emptyMessage: t("export.errors.noData"),
+    });
+  };
 
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center"><MainLoader /></div>;
@@ -554,6 +1368,8 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
           selectedContextText={selectedContextText}
           isReadOnly={isReadOnly}
           showSubjectFilter={showSubjectFilter}
+          onExport={() => setIsExportModalOpen(true)}
+          isExportDisabled={!currentExportPayload.count}
           onCreateAssessment={() => {
             const params = new URLSearchParams(searchParams.toString());
             params.set("year", academicYearId);
@@ -656,6 +1472,26 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         review={submissionReviewState}
         onSubmit={handleSaveSubmissionCorrection}
         isSubmitting={isSavingSubmissionCorrection}
+      />
+
+      <GradesGlobalExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        datasetCount={currentExportPayload.count}
+        emptyStateMessage={t("export.errors.noData")}
+        datasetOptions={view === "overview" ? overviewDatasetOptions : undefined}
+        selectedDataset={
+          view === "overview" ? selectedOverviewExportDataset : undefined
+        }
+        onDatasetChange={
+          view === "overview"
+            ? (value) =>
+                setSelectedOverviewExportDataset(
+                  value as GradesOverviewExportDataset,
+                )
+            : undefined
+        }
       />
 
       <BulkGradeEntryDialog

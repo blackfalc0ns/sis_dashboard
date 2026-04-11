@@ -3,8 +3,9 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
+  Download,
   Plus,
   ArrowLeftRight,
   ArrowRight,
@@ -28,10 +29,19 @@ import {
   subscribeTransfersWithdrawals,
   updateTransferStatus,
 } from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
+import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
+import {
+  downloadStudentsGuardiansExport,
+  getStudentsGuardiansExportLocaleForFormat,
+  type StudentsGuardiansExportFormat,
+} from "@/features/students-guardians/shared/utils/studentsGuardiansExport";
+import { formatTransfersForExport } from "@/features/students-guardians/shared/utils/studentsGuardiansExportFormatters";
 
 export default function TransfersTab() {
   const t = useTranslations("students_guardians.transfers_withdrawals");
+  const locale = useLocale();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FiltersType>({
@@ -76,6 +86,20 @@ export default function TransfersTab() {
     });
   };
 
+  const handleExport = (format: StudentsGuardiansExportFormat) => {
+    const exportLocale = getStudentsGuardiansExportLocaleForFormat(
+      format,
+      locale,
+    );
+
+    downloadStudentsGuardiansExport({
+      data: formatTransfersForExport(filteredData, exportLocale),
+      format,
+      filenameBase: "transfers",
+      emptyMessage: t("transfers.table.no_data"),
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header with Action Button */}
@@ -88,13 +112,22 @@ export default function TransfersTab() {
             {t("transfers.subtitle")}
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          {t("transfers.new_transfer")}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            <Download className="w-4 h-4" />
+            {t("export")}
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            {t("transfers.new_transfer")}
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -357,6 +390,16 @@ export default function TransfersTab() {
           }}
         />
       )}
+
+      <StudentsGuardiansGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={t("export")}
+        subtitle={t("transfers.subtitle")}
+        datasetCount={filteredData.length}
+        emptyStateMessage={t("transfers.table.no_data")}
+      />
     </div>
   );
 }

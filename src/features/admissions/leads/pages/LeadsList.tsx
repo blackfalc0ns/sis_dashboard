@@ -23,7 +23,6 @@ import DateRangeFilter, {
   DateRangeValue,
 } from "@/features/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
-import { downloadCSV, generateFilename } from "@/utils/simpleExport";
 import { formatLeadsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
 import {
   getLeads,
@@ -40,6 +39,8 @@ import {
   filterAdmissionsRecordsByDateContext,
   resolveAdmissionsContextScope,
 } from "@/features/admissions/shared/utils/admissionsContextScope";
+import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
+import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
 
 export default function LeadsList() {
   const router = useRouter();
@@ -51,6 +52,7 @@ export default function LeadsList() {
   const [leads, setLeads] = useState<Lead[]>(getLeads());
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const [showFilters, setShowFilters] = useState(false);
   const admissionsScope = useMemo(
@@ -212,10 +214,14 @@ export default function LeadsList() {
     setIsImportModalOpen(false);
   };
 
-  const handleExport = () => {
-    const formattedData = formatLeadsForExport(filteredLeads);
-    const filename = generateFilename("leads", "csv");
-    downloadCSV(formattedData, filename);
+  const handleExport = async (format: "csv" | "json" | "excel") => {
+    const exportLocale = format === "json" ? "en" : locale;
+    downloadAdmissionsExport({
+      data: formatLeadsForExport(filteredLeads, exportLocale),
+      format,
+      filenameBase: "leads",
+      emptyMessage: hasActiveFilters ? t("no_match") : t("no_leads"),
+    });
   };
 
   const handleRowClick = (lead: Lead) => {
@@ -450,7 +456,7 @@ export default function LeadsList() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={handleExport}
+            onClick={() => setIsExportModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
           >
             <Download className="w-4 h-4" />
@@ -594,6 +600,15 @@ export default function LeadsList() {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onSubmit={handleImportLeads}
+      />
+      <AdmissionsGlobalExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={({ format }) => handleExport(format)}
+        mode="list"
+        confirmLabel={t("export")}
+        datasetCount={filteredLeads.length}
+        emptyStateMessage={hasActiveFilters ? t("no_match") : t("no_leads")}
       />
     </div>
   );

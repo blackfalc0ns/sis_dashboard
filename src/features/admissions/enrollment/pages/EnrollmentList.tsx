@@ -17,8 +17,9 @@ import { KPICardV2 } from "@/components/ui/kpi-card";
 import EnrollmentForm from "@/features/admissions/enrollment/components/EnrollmentForm";
 import DateRangeFilter, { DateRangeValue } from "@/features/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
-import { downloadCSV, generateFilename } from "@/utils/simpleExport";
-import { formatEnrollmentsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
+import {
+  formatVisibleEnrollmentsForExport,
+} from "@/features/admissions/applications/utils/admissionsExportUtils";
 import { mockApplications } from "@/data/mockAdmissions";
 import { mockStudentEnrollments, mockStudents } from "@/data/mockStudents";
 import { Enrollment, Application } from "@/features/admissions/types/admissions";
@@ -30,6 +31,8 @@ import { useToast } from "@/components/ui/toast/Toast";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
+import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
 import {
   filterAdmissionsEnrollmentsByContext,
   resolveAdmissionsContextScope,
@@ -43,6 +46,7 @@ export default function EnrollmentList() {
   const [selectedApplication, setSelectedApplication] =
     useState<Application | null>(null);
   const [isEnrollmentFormOpen, setIsEnrollmentFormOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [, setEnrollmentVersion] = useState(0);
 
   const [showFilters, setShowFilters] = useState(false);
@@ -279,10 +283,14 @@ export default function EnrollmentList() {
     setIsEnrollmentFormOpen(false);
   };
 
-  const handleExport = () => {
-    const formattedData = formatEnrollmentsForExport(mockApplications);
-    const filename = generateFilename("enrollments", "csv");
-    downloadCSV(formattedData, filename);
+  const handleExport = async (format: "csv" | "json" | "excel") => {
+    const exportLocale = format === "json" ? "en" : locale;
+    downloadAdmissionsExport({
+      data: formatVisibleEnrollmentsForExport(filteredEnrollments, exportLocale),
+      format,
+      filenameBase: "enrollments",
+      emptyMessage: hasActiveFilters ? t("no_match") : t("no_enrollments"),
+    });
   };
 
   return (
@@ -372,7 +380,7 @@ export default function EnrollmentList() {
           <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
         </div>
         <button
-          onClick={handleExport}
+          onClick={() => setIsExportModalOpen(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
         >
           <Download className="w-4 h-4" />
@@ -508,6 +516,15 @@ export default function EnrollmentList() {
           onSubmit={handleEnrollmentSubmit}
         />
       )}
+      <AdmissionsGlobalExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={({ format }) => handleExport(format)}
+        mode="list"
+        confirmLabel={t("export")}
+        datasetCount={filteredEnrollments.length}
+        emptyStateMessage={hasActiveFilters ? t("no_match") : t("no_enrollments")}
+      />
     </div>
   );
 }

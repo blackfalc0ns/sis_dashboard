@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
-import { CopyPlus, Pencil, Plus, Trash, Trash2 } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { CopyPlus, Download, Pencil, Plus, Trash, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import Button from "@/components/ui/button/Button";
 import MainLoader from "@/components/ui/loaders/MainLoader";
@@ -12,6 +12,13 @@ import SettingsAccessGuard from "@/features/settings/components/SettingsAccessGu
 import SettingsPageHeader from "@/features/settings/components/SettingsPageHeader";
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
 import SettingsStatusBadge from "@/features/settings/components/SettingsStatusBadge";
+import SettingsGlobalExportModal from "@/features/settings/shared/components/export/SettingsGlobalExportModal";
+import {
+  exportSettingsData,
+  formatSettingsExportDate,
+  type ExportColumn,
+  type SettingsExportFormat,
+} from "@/features/settings/shared/utils/settingsExport";
 import {
   cloneRole,
   createRole,
@@ -28,7 +35,9 @@ import type {
 import { usePermissions } from "@/hooks/usePermissions";
 
 export default function SettingsRolesPage() {
+  const locale = useLocale();
   const t = useTranslations("settings.roles");
+  const tExport = useTranslations("settings.export");
   const tCommon = useTranslations("common");
   const { hasPermission } = usePermissions();
   const { showSuccess, showError } = useToast();
@@ -40,6 +49,7 @@ export default function SettingsRolesPage() {
   >(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingPermissions, setIsSavingPermissions] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -89,6 +99,57 @@ export default function SettingsRolesPage() {
 
     return Array.from(groups.entries());
   }, [permissions]);
+
+  const handleExport = (format: SettingsExportFormat) => {
+    const metadata = {
+      viewName: t("title"),
+      exportDate: formatSettingsExportDate(locale),
+      visibleCount: roles.length,
+    };
+    const columns: ExportColumn[] = [
+      { key: "id", label: "ID" },
+      { key: "name", label: t("table.role") },
+      { key: "description", label: locale === "ar" ? "الوصف" : "Description" },
+      { key: "type", label: t("table.type") },
+      { key: "memberCount", label: t("table.members") },
+      { key: "permissionCount", label: t("table.permissions") },
+      {
+        key: "permissionsSummary",
+        label: locale === "ar" ? "ملخص الصلاحيات" : "Permissions summary",
+      },
+    ];
+    const rows = roles.map((role) => ({
+      id: role.id,
+      name: role.name,
+      description: role.description,
+      type: role.isSystem
+        ? locale === "ar"
+          ? "نظام"
+          : "System"
+        : locale === "ar"
+          ? "مخصص"
+          : "Custom",
+      memberCount: role.memberCount,
+      permissionCount: role.permissions.length,
+      permissionsSummary: role.permissions.join(", "),
+    }));
+
+    exportSettingsData({
+      title: t("title"),
+      metadata,
+      filename: "settings-roles",
+      format,
+      columns,
+      rows,
+      locale,
+      emptyMessage: tExport("errors.noData"),
+      jsonData: {
+        title: "Settings Roles",
+        metadata,
+        roles,
+      },
+    });
+  };
 
   const handleCreateOrClone = async (payload: {
     name: string;
@@ -280,6 +341,13 @@ export default function SettingsRolesPage() {
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="secondary"
+                  leftIcon={<Download className="h-4 w-4" />}
+                  onClick={() => setIsExportModalOpen(true)}
+                >
+                  {tExport("button")}
+                </Button>
+                <Button
+                  variant="secondary"
                   leftIcon={<Pencil className="h-4 w-4" />}
                   disabled={!selectedRole}
                   onClick={() => setModalMode("edit")}
@@ -421,6 +489,13 @@ export default function SettingsRolesPage() {
           }
           onClose={() => setModalMode(null)}
           onSubmit={handleCreateOrClone}
+        />
+        <SettingsGlobalExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          onExport={handleExport}
+          datasetCount={roles.length}
+          emptyStateMessage={tExport("errors.noData")}
         />
       </main>
     </SettingsAccessGuard>

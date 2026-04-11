@@ -4,8 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Save, RotateCcw } from "lucide-react";
+import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import Button from "@/components/ui/button/Button";
-import ExportButton from "@/components/ui/button/ExportButton";
 import Select from "@/components/ui/input/Select";
 import AllocationMatrixTable, { MatrixColumn, MatrixRow } from "../../components/shared/AllocationMatrixTable";
 import {
@@ -14,7 +14,14 @@ import {
   bulkUpsertSubjectAllocations,
 } from "@/features/academics/subjects/services/subjectsService";
 import { Grade } from "@/features/academics/academic-structure-tree/services/structureService";
-import { exportAcademicsData, generateExportFilename, ExportColumn, ExportMetadata, formatExportDate } from "@/features/academics/utils/exportAdapter";
+import {
+  type AcademicsExportFormat,
+  exportAcademicsData,
+  generateExportFilename,
+  ExportColumn,
+  ExportMetadata,
+  formatExportDate,
+} from "@/features/academics/utils/exportAdapter";
 
 interface AllocationMatrixProps {
   grades: Grade[];
@@ -57,6 +64,7 @@ export default function AllocationMatrix({
   const [originalAllocations, setOriginalAllocations] = useState<SubjectAllocation[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [focusedCell, setFocusedCell] = useState<string | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Initialize local allocations
   useEffect(() => {
@@ -232,7 +240,7 @@ export default function AllocationMatrix({
   };
 
   // Export handler
-  const handleExport = (format: "csv" | "excel") => {
+  const handleExport = (format: AcademicsExportFormat) => {
     // Prepare title
     const title = t("title");
 
@@ -430,11 +438,13 @@ export default function AllocationMatrix({
           <h2 className="text-lg font-semibold" style={{ color: 'var(--color-primary-900)' }}>{t("title")}</h2>
           
           <div className="flex items-center gap-2">
-            <ExportButton
-              onExport={handleExport}
+            <Button
+              onClick={() => setShowExportModal(true)}
+              variant="secondary"
               disabled={filteredGrades.length === 0 || subjects.length === 0}
-              label={t("actions.export")}
-            />
+            >
+              {t("actions.export")}
+            </Button>
             <Button
               onClick={handleReset}
               variant="secondary"
@@ -510,6 +520,15 @@ export default function AllocationMatrix({
           />
         </div>
       </div>
+
+      <AcademicsGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={t("actions.export")}
+        subtitle={t("title")}
+        datasetCount={filteredGrades.length}
+      />
     </div>
   );
 }

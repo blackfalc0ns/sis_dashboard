@@ -26,7 +26,6 @@ import DateRangeFilter, {
   DateRangeValue,
 } from "@/features/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
-import { downloadCSV, generateFilename } from "@/utils/simpleExport";
 import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import {
   Student,
@@ -38,7 +37,6 @@ import {
   getStudentDisplayId,
   getStatusColor,
   getRiskFlagColor,
-  formatStudentForExport,
   getStudentClassroom,
 } from "@/features/students-guardians/students/utils/studentUtils";
 import AddNoteModal, {
@@ -48,6 +46,13 @@ import BulkUploadModal from "@/features/students-guardians/students/components/m
 import ChangePasswordModal from "@/features/students-guardians/students/components/modals/ChangePasswordModal";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
+import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
+import {
+  downloadStudentsGuardiansExport,
+  getStudentsGuardiansExportLocaleForFormat,
+  type StudentsGuardiansExportFormat,
+} from "@/features/students-guardians/shared/utils/studentsGuardiansExport";
+import { formatStudentsForExport } from "@/features/students-guardians/shared/utils/studentsGuardiansExportFormatters";
 
 export default function StudentsList() {
   const t = useTranslations("students_guardians.students");
@@ -131,6 +136,7 @@ export default function StudentsList() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [passwordChangeStudent, setPasswordChangeStudent] =
     useState<Student | null>(null);
   const {
@@ -391,10 +397,22 @@ export default function StudentsList() {
     alert(t("change_password.success"));
   };
 
-  const handleExport = () => {
-    const formattedData = filteredStudents.map(formatStudentForExport);
-    const filename = generateFilename("students", "csv");
-    downloadCSV(formattedData, filename);
+  const handleExport = (format: StudentsGuardiansExportFormat) => {
+    const exportLocale = getStudentsGuardiansExportLocaleForFormat(
+      format,
+      locale,
+    );
+    const formattedData = formatStudentsForExport(
+      filteredStudents as unknown as Student[],
+      exportLocale,
+    );
+
+    downloadStudentsGuardiansExport({
+      data: formattedData,
+      format,
+      filenameBase: "students",
+      emptyMessage: t("no_students"),
+    });
   };
 
   const handleBulkUpload = async (file: File) => {
@@ -746,7 +764,7 @@ export default function StudentsList() {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <button
-            onClick={handleExport}
+            onClick={() => setShowExportModal(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
           >
             <Download className="w-4 h-4" />
@@ -1008,6 +1026,16 @@ export default function StudentsList() {
           userType="student"
         />
       )}
+
+      <StudentsGuardiansGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={t("export")}
+        subtitle={t("subtitle")}
+        datasetCount={filteredStudents.length}
+        emptyStateMessage={t("no_students")}
+      />
     </div>
   );
 }

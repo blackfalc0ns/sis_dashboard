@@ -107,6 +107,7 @@ export default function StudentsGuardiansDashboardContainer() {
     <StudentsGuardiansDashboardView
       stats={stats}
       riskDistribution={riskDistribution}
+      students={allStudents}
     />
   );
 }

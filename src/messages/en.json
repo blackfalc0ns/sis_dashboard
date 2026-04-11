@@ -402,6 +402,7 @@
     "document_center": {
       "title": "Document Center",
       "subtitle": "Centralized document tracking and management",
+      "export": "Export",
       "total_documents": "Total Documents",
       "complete": "Complete",
       "unsubmitted": "Unsubmitted",
@@ -1332,10 +1333,18 @@
           "title": "CSV",
           "description": "Excel compatible"
         },
+        "excel": {
+          "title": "Excel",
+          "description": "Excel-compatible CSV with Arabic support"
+        },
         "json": {
           "title": "JSON",
           "description": "Structured data"
         }
+      },
+      "selection": {
+        "title": "Current Selection",
+        "visibleRows": "{count} visible rows will be exported"
       },
       "dateRange": {
         "title": "Date Range",
@@ -1347,10 +1356,12 @@
       "actions": {
         "cancel": "Cancel",
         "exporting": "Exporting...",
+        "export": "Export",
         "exportData": "Export Data",
         "exportAnalytics": "Export Analytics"
       },
       "errors": {
+        "noData": "No data found for the current view",
         "noDatasets": "Please select at least one dataset to export",
         "exportFailed": "Export failed",
         "exportFailedGeneric": "Export failed. Please try again."
@@ -1377,6 +1388,7 @@
     "overview": {
       "title": "Students & Guardians Overview",
       "subtitle": "Comprehensive view of students, guardians, and academic performance",
+      "export": "Export",
       "kpis": {
         "total_students": "Total Students",
         "active_count": "{count} active",
@@ -1658,6 +1670,7 @@
       "title": "Transfers & Withdrawals",
       "subtitle": "Monitor student transfers and withdrawal trends",
       "create_application": "Create Application",
+      "export": "Export",
       "kpis": {
         "transfers_this_month": "Transfers This Month",
         "incoming_students": "Incoming students",
@@ -2505,6 +2518,39 @@
     }
   },
   "academics": {
+    "export": {
+      "title": "Export Academics Data",
+      "subtitle": "Choose a format for the current Academics view.",
+      "button": "Export",
+      "format": {
+        "label": "Export format",
+        "csv": {
+          "title": "CSV",
+          "description": "Localized flat rows"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "Structured English data"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "Excel-compatible CSV"
+        }
+      },
+      "selection": {
+        "title": "Current data",
+        "visibleRows": "{count} visible rows will be exported"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "exporting": "Exporting...",
+        "export": "Export"
+      },
+      "errors": {
+        "noData": "No data in the current view to export",
+        "exportFailedGeneric": "Export failed. Please try again."
+      }
+    },
     "structure": {
       "context_bar": {
         "title": "Academic Context",
@@ -3989,6 +4035,7 @@
       },
       "actions": {
         "createAssessment": "Create Exam",
+        "export": "Export",
         "bulkEntry": "Bulk Entry",
         "approve": "Approve",
         "lock": "Lock",
@@ -3996,6 +4043,104 @@
         "delete": "Delete",
         "manageQuestions": "Manage Questions",
         "publish": "Publish"
+      },
+      "export": {
+        "title": "Export Grades Data",
+        "subtitle": "Download the current grades view using the selected format.",
+        "datasets": {
+          "label": "Select dataset",
+          "summary": {
+            "label": "Summary",
+            "description": "KPIs, pass mark, and performance trend"
+          },
+          "assessments": {
+            "label": "Overview assessments",
+            "description": "Visible assessments from the overview panel"
+          },
+          "analytics_distribution": {
+            "label": "Distribution analytics",
+            "description": "Grade distribution buckets for the current filters"
+          },
+          "analytics_assessments": {
+            "label": "Assessment analytics",
+            "description": "Average performance by assessment"
+          },
+          "analytics_students": {
+            "label": "Student analytics",
+            "description": "Top and lowest student analytics in one export"
+          },
+          "assessmentsView": {
+            "label": "Assessments"
+          },
+          "gradebook": {
+            "label": "Gradebook"
+          }
+        },
+        "format": {
+          "label": "Export format",
+          "csv": {
+            "title": "CSV",
+            "description": "Localized table-style export"
+          },
+          "json": {
+            "title": "JSON",
+            "description": "Structured English export"
+          },
+          "excel": {
+            "title": "Excel",
+            "description": "Excel-compatible CSV with UTF-8 support"
+          }
+        },
+        "selection": {
+          "title": "Current data",
+          "visibleRows": "{count} visible row(s) will be exported"
+        },
+        "groups": {
+          "top": "Top",
+          "lowest": "Lowest"
+        },
+        "columns": {
+          "metric": "Metric",
+          "value": "Value",
+          "assessmentId": "Assessment ID",
+          "title": "Title",
+          "titleEn": "Title (English)",
+          "titleAr": "Title (Arabic)",
+          "type": "Type",
+          "deliveryMode": "Delivery mode",
+          "date": "Date",
+          "weight": "Weight",
+          "maxScore": "Max score",
+          "approvalStatus": "Approval status",
+          "locked": "Locked",
+          "scopeType": "Scope type",
+          "scopeId": "Scope ID",
+          "sectionId": "Section ID",
+          "classroomId": "Classroom ID",
+          "subjectId": "Subject ID",
+          "termId": "Term ID",
+          "band": "Band",
+          "count": "Count",
+          "average": "Average",
+          "enteredCount": "Entered count",
+          "group": "Group",
+          "studentId": "Student ID",
+          "studentName": "Student",
+          "studentNameEn": "Student (English)",
+          "studentNameAr": "Student (Arabic)",
+          "completedItems": "Completed items",
+          "totalItems": "Total items",
+          "status": "Status"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "exporting": "Exporting...",
+          "export": "Export"
+        },
+        "errors": {
+          "noData": "No data in the current view to export",
+          "exportFailedGeneric": "Export failed. Please try again."
+        }
       },
       "messages": {
         "assessmentCreated": "Exam created successfully",
@@ -5319,6 +5464,41 @@
           "excuses": "Open in Excuses"
         }
       }
+    },
+    "export": {
+      "title": "Export attendance data",
+      "subtitle": "Download the current attendance view in your preferred format.",
+      "datasets": {
+        "label": "Choose dataset"
+      },
+      "format": {
+        "label": "Export format",
+        "csv": {
+          "title": "CSV",
+          "description": "Localized table data for spreadsheets"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "Structured English payload for integrations"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "Excel-compatible CSV with UTF-8 support"
+        }
+      },
+      "selection": {
+        "title": "Current selection",
+        "visibleRows": "{count} visible rows will be exported"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "exporting": "Exporting...",
+        "export": "Export"
+      },
+      "errors": {
+        "noData": "There is no data in the current view to export.",
+        "exportFailedGeneric": "Export failed. Please try again."
+      }
     }
   },
   "settings": {
@@ -5347,6 +5527,54 @@
         "info": "Info",
         "warning": "Warning",
         "critical": "Critical"
+      }
+    },
+    "export": {
+      "title": "Export settings data",
+      "subtitle": "Download the current settings view in your preferred format.",
+      "button": "Export",
+      "datasets": {
+        "label": "Dataset",
+        "summary": {
+          "label": "Summary KPIs",
+          "description": "Export the settings overview KPI snapshot."
+        },
+        "audit": {
+          "label": "Recent audit activity",
+          "description": "Export the currently displayed recent audit activity list."
+        },
+        "integrations": {
+          "label": "Integrations snapshot",
+          "description": "Export the integrations status snapshot shown on the overview page."
+        }
+      },
+      "format": {
+        "label": "Export format",
+        "csv": {
+          "title": "CSV",
+          "description": "Localized spreadsheet-friendly export"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "Structured English-oriented data"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "Excel-compatible CSV with UTF-8 support"
+        }
+      },
+      "selection": {
+        "title": "Current selection",
+        "visibleRows": "{count} visible rows will be exported"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "exporting": "Exporting...",
+        "export": "Export"
+      },
+      "errors": {
+        "noData": "There is no data in the current view to export.",
+        "exportFailedGeneric": "Export failed. Please try again."
       }
     },
     "overview": {
@@ -5703,6 +5931,54 @@
       "togglePublish": "Toggle publish",
       "badgesGuide": "Badge assets guide"
     },
+    "export": {
+      "title": "Export Nedaa data",
+      "subtitle": "Download the current Nedaa view in your preferred format.",
+      "button": "Export",
+      "datasets": {
+        "label": "Choose dataset",
+        "summary": {
+          "title": "Summary",
+          "description": "KPI snapshot from the overview"
+        },
+        "latest_requests": {
+          "title": "Latest requests",
+          "description": "Most recent pickup requests from the overview"
+        },
+        "gates": {
+          "title": "Gates",
+          "description": "Gate board metrics from the overview"
+        }
+      },
+      "format": {
+        "label": "Export format",
+        "csv": {
+          "title": "CSV",
+          "description": "Localized spreadsheet-friendly export"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "Structured English-oriented data"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "Excel-compatible CSV with UTF-8 support"
+        }
+      },
+      "selection": {
+        "title": "Current selection",
+        "visibleRows": "{count} visible records will be exported"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "exporting": "Exporting...",
+        "export": "Export"
+      },
+      "errors": {
+        "noData": "There is no Nedaa data in the current view to export.",
+        "exportFailedGeneric": "Export failed. Please try again."
+      }
+    },
     "messages": {
       "loadOverviewFailed": "Unable to load Hero Journey overview.",
       "editPlaceholder": "Edit mode is a safe placeholder until backend mission editing is connected.",
@@ -5865,6 +6141,54 @@
       "createTemplate": "Create template",
       "createReward": "Create reward",
       "newTask": "New task"
+    },
+    "export": {
+      "title": "Export reinforcement data",
+      "subtitle": "Download the current reinforcement view in your preferred format.",
+      "button": "Export",
+      "datasets": {
+        "label": "Dataset",
+        "summary": {
+          "label": "Summary KPIs",
+          "description": "Export the reinforcement overview KPI snapshot."
+        },
+        "activity": {
+          "label": "Recent activity",
+          "description": "Export the currently visible reinforcement activity feed."
+        },
+        "chart": {
+          "label": "Focused chart",
+          "description": "Export the chart currently selected in the overview controls."
+        }
+      },
+      "format": {
+        "label": "Export format",
+        "csv": {
+          "title": "CSV",
+          "description": "Localized spreadsheet-friendly export"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "Structured English-oriented data"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "Excel-compatible CSV with UTF-8 support"
+        }
+      },
+      "selection": {
+        "title": "Current selection",
+        "visibleRows": "{count} visible records will be exported"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "exporting": "Exporting...",
+        "export": "Export"
+      },
+      "errors": {
+        "noData": "No reinforcement data is available in the current view to export",
+        "exportFailedGeneric": "Export failed. Please try again."
+      }
     },
     "empty": {
       "tasks": "No reinforcement tasks matched the current filters.",
@@ -6476,6 +6800,39 @@
       "delete_failed": "Failed to delete the teacher.",
       "password_changed_success": "Teacher password changed successfully.",
       "password_change_failed": "Failed to change the teacher password."
+    },
+    "export": {
+      "title": "Export teachers",
+      "subtitle": "Download the currently filtered teacher directory.",
+      "button": "Export",
+      "format": {
+        "label": "Export format",
+        "csv": {
+          "title": "CSV",
+          "description": "Localized spreadsheet-friendly export"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "Structured English-oriented data"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "Excel-compatible CSV with UTF-8 support"
+        }
+      },
+      "selection": {
+        "title": "Current selection",
+        "visibleRows": "{count} visible teacher records will be exported"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "exporting": "Exporting...",
+        "export": "Export"
+      },
+      "errors": {
+        "noData": "No teachers are available in the current view to export",
+        "exportFailedGeneric": "Export failed. Please try again."
+      }
     },
     "validation": {
       "code_required": "Teacher code is required.",

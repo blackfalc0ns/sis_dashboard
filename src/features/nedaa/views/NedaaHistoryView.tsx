@@ -1,5 +1,6 @@
 "use client";
 
+import { Download } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import NedaaFilters from "@/features/nedaa/components/NedaaFilters";
 import NedaaRequestsTable from "@/features/nedaa/components/NedaaRequestsTable";
@@ -21,6 +22,7 @@ interface NedaaHistoryViewProps {
   gateOptions: NedaaGateId[];
   showFilters: boolean;
   hasActiveFilters: boolean;
+  onOpenExport: () => void;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onGateChange: (value: string) => void;
@@ -39,6 +41,7 @@ export default function NedaaHistoryView({
   gateOptions,
   showFilters,
   hasActiveFilters,
+  onOpenExport,
   onSearchChange,
   onStatusChange,
   onGateChange,
@@ -51,9 +54,19 @@ export default function NedaaHistoryView({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">{t("history.title")}</h1>
-        <p className="mt-1 text-sm text-gray-500">{t("history.subtitle")}</p>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{t("history.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("history.subtitle")}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenExport}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary"
+        >
+          <Download className="h-4 w-4" />
+          {t("export.button")}
+        </button>
       </div>
 
       <NedaaFilters

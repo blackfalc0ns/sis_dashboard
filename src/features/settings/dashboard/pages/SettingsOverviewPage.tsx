@@ -1,14 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
-import { BellRing, PlugZap, ShieldAlert, Users, Building2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import {
+  BellRing,
+  Building2,
+  Download,
+  PlugZap,
+  ShieldAlert,
+  Users,
+} from "lucide-react";
+import Button from "@/components/ui/button/Button";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import SettingsAccessGuard from "@/features/settings/components/SettingsAccessGuard";
 import SettingsPageHeader from "@/features/settings/components/SettingsPageHeader";
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
 import SettingsStatusBadge from "@/features/settings/components/SettingsStatusBadge";
+import SettingsGlobalExportModal from "@/features/settings/shared/components/export/SettingsGlobalExportModal";
+import {
+  exportSettingsData,
+  formatSettingsExportDate,
+  type ExportColumn,
+  type SettingsExportFormat,
+} from "@/features/settings/shared/utils/settingsExport";
 import {
   fetchAuditLogEntries,
   fetchIntegrations,
@@ -30,12 +45,18 @@ const emptyMetrics: SettingsOverviewMetrics = {
 };
 
 export default function SettingsOverviewPage() {
+  const locale = useLocale();
   const t = useTranslations("settings.overview");
+  const tExport = useTranslations("settings.export");
   const [metrics, setMetrics] = useState<SettingsOverviewMetrics>(emptyMetrics);
   const [integrations, setIntegrations] = useState<IntegrationProviderStatus[]>([]);
   const [auditEntries, setAuditEntries] = useState<AuditLogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [selectedDataset, setSelectedDataset] = useState<
+    "summary" | "audit" | "integrations"
+  >("summary");
 
   useEffect(() => {
     let isCancelled = false;
@@ -75,6 +96,168 @@ export default function SettingsOverviewPage() {
     };
   }, [t]);
 
+  const datasetCount = useMemo(() => {
+    if (selectedDataset === "summary") return 5;
+    if (selectedDataset === "audit") return auditEntries.length;
+    return integrations.length;
+  }, [auditEntries.length, integrations.length, selectedDataset]);
+
+  const datasetOptions = [
+    {
+      value: "summary",
+      label: tExport("datasets.summary.label"),
+      description: tExport("datasets.summary.description"),
+    },
+    {
+      value: "audit",
+      label: tExport("datasets.audit.label"),
+      description: tExport("datasets.audit.description"),
+    },
+    {
+      value: "integrations",
+      label: tExport("datasets.integrations.label"),
+      description: tExport("datasets.integrations.description"),
+    },
+  ];
+
+  const handleExport = (format: SettingsExportFormat) => {
+    const metadata = {
+      viewName: t("title"),
+      datasetName:
+        selectedDataset === "summary"
+          ? tExport("datasets.summary.label")
+          : selectedDataset === "audit"
+            ? tExport("datasets.audit.label")
+            : tExport("datasets.integrations.label"),
+      exportDate: formatSettingsExportDate(locale),
+      visibleCount: datasetCount,
+    };
+
+    if (selectedDataset === "summary") {
+      const columns: ExportColumn[] = [
+        { key: "metric", label: locale === "ar" ? "المؤشر" : "Metric" },
+        { key: "value", label: locale === "ar" ? "القيمة" : "Value" },
+        { key: "hint", label: locale === "ar" ? "الوصف" : "Hint" },
+      ];
+      const rows = [
+        {
+          metric: t("cards.profile_completeness"),
+          value: `${metrics.profileCompleteness}%`,
+          hint: t("cards.profile_completeness_hint"),
+        },
+        {
+          metric: t("cards.active_integrations"),
+          value: metrics.activeIntegrations,
+          hint: t("cards.active_integrations_hint"),
+        },
+        {
+          metric: t("cards.active_users"),
+          value: metrics.activeUsers,
+          hint: t("cards.pending_invites", { count: metrics.pendingInvites }),
+        },
+        {
+          metric: t("cards.audit_events"),
+          value: metrics.recentAuditEvents,
+          hint: t("cards.audit_events_hint"),
+        },
+        {
+          metric: t("cards.template_health"),
+          value: `${metrics.templateHealth}%`,
+          hint: t("cards.template_health_hint"),
+        },
+      ];
+
+      exportSettingsData({
+        title: t("title"),
+        metadata,
+        filename: "settings-overview-summary",
+        format,
+        columns,
+        rows,
+        locale,
+        emptyMessage: tExport("errors.noData"),
+        jsonData: {
+          title: "Settings Overview Summary",
+          metadata,
+          summary: {
+            profileCompleteness: metrics.profileCompleteness,
+            activeIntegrations: metrics.activeIntegrations,
+            activeUsers: metrics.activeUsers,
+            pendingInvites: metrics.pendingInvites,
+            recentAuditEvents: metrics.recentAuditEvents,
+            templateHealth: metrics.templateHealth,
+          },
+        },
+      });
+      return;
+    }
+
+    if (selectedDataset === "audit") {
+      const columns: ExportColumn[] = [
+        { key: "timestamp", label: locale === "ar" ? "التاريخ والوقت" : "Timestamp" },
+        { key: "actor", label: locale === "ar" ? "المنفذ" : "Actor" },
+        { key: "action", label: locale === "ar" ? "الإجراء" : "Action" },
+        { key: "module", label: locale === "ar" ? "الوحدة" : "Module" },
+        { key: "severity", label: locale === "ar" ? "الخطورة" : "Severity" },
+        { key: "ipAddress", label: locale === "ar" ? "عنوان IP" : "IP address" },
+      ];
+      const rows = auditEntries.map((entry) => ({
+        timestamp: new Date(entry.timestamp).toLocaleString(),
+        actor: entry.actor,
+        action: entry.action,
+        module: entry.module,
+        severity: entry.severity,
+        ipAddress: entry.ipAddress,
+      }));
+
+      exportSettingsData({
+        title: t("recent_audit.title"),
+        metadata,
+        filename: "settings-overview-audit",
+        format,
+        columns,
+        rows,
+        locale,
+        emptyMessage: tExport("errors.noData"),
+        jsonData: {
+          title: "Settings Overview Audit",
+          metadata,
+          auditEntries,
+        },
+      });
+      return;
+    }
+
+    const columns: ExportColumn[] = [
+      { key: "provider", label: locale === "ar" ? "المزوّد" : "Provider" },
+      { key: "category", label: locale === "ar" ? "الفئة" : "Category" },
+      { key: "status", label: locale === "ar" ? "الحالة" : "Status" },
+      { key: "description", label: locale === "ar" ? "الوصف" : "Description" },
+    ];
+    const rows = integrations.map((integration) => ({
+      provider: integration.provider,
+      category: integration.category,
+      status: integration.status,
+      description: integration.description,
+    }));
+
+    exportSettingsData({
+      title: t("integrations_snapshot.title"),
+      metadata,
+      filename: "settings-overview-integrations",
+      format,
+      columns,
+      rows,
+      locale,
+      emptyMessage: tExport("errors.noData"),
+      jsonData: {
+        title: "Settings Overview Integrations",
+        metadata,
+        integrations,
+      },
+    });
+  };
+
   if (isLoading) {
     return <MainLoader />;
   }
@@ -82,7 +265,19 @@ export default function SettingsOverviewPage() {
   return (
     <SettingsAccessGuard permission="settings.overview.view">
       <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
-      <SettingsPageHeader title={t("title")} subtitle={t("subtitle")} />
+      <SettingsPageHeader
+        title={t("title")}
+        subtitle={t("subtitle")}
+        actions={
+          <Button
+            variant="secondary"
+            leftIcon={<Download className="h-4 w-4" />}
+            onClick={() => setIsExportModalOpen(true)}
+          >
+            {tExport("button")}
+          </Button>
+        }
+      />
 
       {error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -214,6 +409,18 @@ export default function SettingsOverviewPage() {
           </div>
         </SettingsSectionCard>
       </div>
+      <SettingsGlobalExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        datasetCount={datasetCount}
+        datasetOptions={datasetOptions}
+        selectedDataset={selectedDataset}
+        onDatasetChange={(value) =>
+          setSelectedDataset(value as "summary" | "audit" | "integrations")
+        }
+        emptyStateMessage={tExport("errors.noData")}
+      />
       </main>
     </SettingsAccessGuard>
   );

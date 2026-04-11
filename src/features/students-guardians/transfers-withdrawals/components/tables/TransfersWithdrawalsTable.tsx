@@ -2,13 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { FileText, Search } from "lucide-react";
+import { Download, FileText, Search } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import {
   fetchTransfersWithdrawalsRequestRows,
   type TransferWithdrawalRequestRow,
 } from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
+import {
+  downloadStudentsGuardiansExport,
+  getStudentsGuardiansExportLocaleForFormat,
+  type StudentsGuardiansExportFormat,
+} from "@/features/students-guardians/shared/utils/studentsGuardiansExport";
+import { formatTransferWithdrawalRequestsForExport } from "@/features/students-guardians/shared/utils/studentsGuardiansExportFormatters";
 
 interface TransfersWithdrawalsTableProps {
   searchQuery: string;
@@ -24,6 +31,7 @@ export default function TransfersWithdrawalsTable({
   const [requests, setRequests] = useState<TransferWithdrawalRequestRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -183,6 +191,23 @@ export default function TransfersWithdrawalsTable({
     },
   ];
 
+  const handleExport = (format: StudentsGuardiansExportFormat) => {
+    const exportLocale = getStudentsGuardiansExportLocaleForFormat(
+      format,
+      locale,
+    );
+
+    downloadStudentsGuardiansExport({
+      data: formatTransferWithdrawalRequestsForExport(
+        filteredRequests,
+        exportLocale,
+      ),
+      format,
+      filenameBase: "transfers-withdrawals",
+      emptyMessage: t("table.no_requests"),
+    });
+  };
+
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
@@ -193,15 +218,24 @@ export default function TransfersWithdrawalsTable({
           </h2>
         </div>
 
-        <div className="relative w-full sm:max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder={t("table.search_placeholder")}
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 placeholder:text-black/60 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-          />
+        <div className="flex w-full flex-col gap-3 sm:max-w-xl sm:flex-row sm:items-center sm:justify-end">
+          <div className="relative w-full sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder={t("table.search_placeholder")}
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 placeholder:text-black/60 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+          </div>
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            <Download className="h-4 w-4" />
+            {t("export")}
+          </button>
         </div>
       </div>
 
@@ -225,6 +259,16 @@ export default function TransfersWithdrawalsTable({
           searchQuery={searchQuery}
         />
       )}
+
+      <StudentsGuardiansGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={t("export")}
+        subtitle={t("table.title")}
+        datasetCount={filteredRequests.length}
+        emptyStateMessage={t("table.no_requests")}
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { DataTable } from "@/components/ui/data-table";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
@@ -13,12 +13,21 @@ import SettingsAccessGuard from "@/features/settings/components/SettingsAccessGu
 import SettingsPageHeader from "@/features/settings/components/SettingsPageHeader";
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
 import SettingsStatusBadge from "@/features/settings/components/SettingsStatusBadge";
+import SettingsGlobalExportModal from "@/features/settings/shared/components/export/SettingsGlobalExportModal";
 import {
   fetchAuditLogEntries,
   fetchSecuritySettings,
   updateSecuritySettings,
 } from "@/features/settings/services/settingsService";
+import {
+  exportSettingsData,
+  formatSettingsExportDate,
+  type ExportColumn,
+  type ExportSection,
+  type SettingsExportFormat,
+} from "@/features/settings/shared/utils/settingsExport";
 import type { AuditLogEntry, SecuritySettings } from "@/features/settings/types";
+import { Download } from "lucide-react";
 
 const emptySecuritySettings: SecuritySettings = {
   enforceTwoFactor: false,
@@ -31,7 +40,9 @@ const emptySecuritySettings: SecuritySettings = {
 };
 
 export default function SettingsSecurityPage() {
+  const locale = useLocale();
   const t = useTranslations("settings.security");
+  const tExport = useTranslations("settings.export");
   const tCommon = useTranslations("common");
   const { hasPermission } = usePermissions();
   const { showSuccess, showError } = useToast();
@@ -43,6 +54,7 @@ export default function SettingsSecurityPage() {
   const [severityFilter, setSeverityFilter] = useState<AuditLogEntry["severity"] | "all">("all");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -151,6 +163,74 @@ export default function SettingsSecurityPage() {
     },
   ];
 
+  const handleExport = (format: SettingsExportFormat) => {
+    const metadata = {
+      viewName: t("title"),
+      exportDate: formatSettingsExportDate(locale),
+      visibleCount: filteredAuditEntries.length,
+    };
+    const controlsColumns: ExportColumn[] = [
+      { key: "field", label: locale === "ar" ? "الحقل" : "Field" },
+      { key: "value", label: locale === "ar" ? "القيمة" : "Value" },
+    ];
+    const auditColumns: ExportColumn[] = [
+      { key: "timestamp", label: t("audit.columns.timestamp") },
+      { key: "actor", label: t("audit.columns.actor") },
+      { key: "action", label: t("audit.columns.action") },
+      { key: "module", label: t("audit.columns.module") },
+      { key: "severity", label: t("audit.columns.severity") },
+      { key: "ipAddress", label: t("audit.columns.ip_address") },
+    ];
+    const bool = (value: boolean) => (value ? "Yes" : "No");
+    const sections: ExportSection[] = [
+      {
+        title: locale === "ar" ? "عناصر الأمان" : "Security controls",
+        columns: controlsColumns,
+        rows: [
+          { field: t("controls.two_factor"), value: bool(settings.enforceTwoFactor) },
+          { field: t("controls.ip_allowlist"), value: bool(settings.ipAllowlistEnabled) },
+          { field: t("controls.ip_allowlist_values"), value: settings.ipAllowlist },
+          { field: t("controls.suspicious_logins"), value: bool(settings.suspiciousLoginAlerts) },
+          { field: t("controls.session_timeout"), value: settings.sessionTimeoutMinutes },
+          { field: t("controls.password_min_length"), value: settings.passwordMinLength },
+          { field: t("controls.password_rotation"), value: settings.passwordRotationDays },
+        ],
+      },
+      {
+        title: t("audit.title"),
+        columns: auditColumns,
+        rows: filteredAuditEntries.map((entry) => ({
+          timestamp: new Date(entry.timestamp).toLocaleString(),
+          actor: entry.actor,
+          action: entry.action,
+          module: entry.module,
+          severity: entry.severity,
+          ipAddress: entry.ipAddress,
+        })),
+      },
+    ];
+
+    exportSettingsData({
+      title: t("title"),
+      metadata,
+      filename: "settings-security",
+      format,
+      sections,
+      locale,
+      emptyMessage: tExport("errors.noData"),
+      jsonData: {
+        title: "Settings Security",
+        metadata,
+        securitySettings: settings,
+        auditFilters: {
+          search: auditSearch,
+          severity: severityFilter,
+        },
+        auditEntries: filteredAuditEntries,
+      },
+    });
+  };
+
   if (isLoading) {
     return <MainLoader />;
   }
@@ -162,14 +242,23 @@ export default function SettingsSecurityPage() {
         title={t("title")}
         subtitle={t("subtitle")}
         actions={
-          <Button
-            variant="primary"
-            loading={isSaving}
-            disabled={!isDirty || !hasPermission("settings.security.manage")}
-            onClick={handleSave}
-          >
-            {isSaving ? tCommon("saving") : tCommon("save")}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              leftIcon={<Download className="h-4 w-4" />}
+              onClick={() => setIsExportModalOpen(true)}
+            >
+              {tExport("button")}
+            </Button>
+            <Button
+              variant="primary"
+              loading={isSaving}
+              disabled={!isDirty || !hasPermission("settings.security.manage")}
+              onClick={handleSave}
+            >
+              {isSaving ? tCommon("saving") : tCommon("save")}
+            </Button>
+          </div>
         }
       />
 
@@ -320,6 +409,13 @@ export default function SettingsSecurityPage() {
           />
         </SettingsSectionCard>
       </div>
+      <SettingsGlobalExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        datasetCount={filteredAuditEntries.length || 1}
+        emptyStateMessage={tExport("errors.noData")}
+      />
       </main>
     </SettingsAccessGuard>
   );

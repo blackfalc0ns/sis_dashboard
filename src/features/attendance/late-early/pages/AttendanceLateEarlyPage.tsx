@@ -26,6 +26,14 @@ import {
 import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
 import { fetchIncidents, updateIncidentMinutes } from "../services/attendanceLateEarlyService";
 import { exportLateEarly } from "../utils/lateEarlyExport";
+import AttendanceGlobalExportModal from "@/features/attendance/shared/components/AttendanceGlobalExportModal";
+import {
+  exportAttendanceData,
+  formatAttendanceExportDate,
+  generateAttendanceExportFilename,
+  type AttendanceExportFormat,
+  type ExportColumn,
+} from "@/features/attendance/shared/utils/attendanceExport";
 import type { Incident, LateEarlyFilters, LateEarlyKpis } from "../types";
 import LateEarlyKpisBar from "../components/LateEarlyKpisBar";
 import LateEarlyFiltersBar from "../components/LateEarlyFiltersBar";
@@ -98,6 +106,7 @@ export default function AttendanceLateEarlyPage() {
   const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
   const [minutesEditorOpen, setMinutesEditorOpen] = useState(false);
   const [editingIncident, setEditingIncident] = useState<Incident | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const isReadOnly = termContext.isReadOnly;
   const kpis = useMemo(() => computeKpis(incidents), [incidents]);
@@ -165,7 +174,22 @@ export default function AttendanceLateEarlyPage() {
     reloadIncidents();
   }, [reloadIncidents]);
 
-  const handleExport = (format: "csv" | "excel") => {
+  const selectedYearName =
+    (locale === "ar"
+      ? termContext.academicYears.find((item) => item.id === termContext.yearId)
+          ?.nameAr
+      : termContext.academicYears.find((item) => item.id === termContext.yearId)
+          ?.nameEn) ||
+    termContext.yearId ||
+    "";
+
+  const selectedTermName = term
+    ? locale === "ar"
+      ? term.nameAr || term.name
+      : term.nameEn || term.name
+    : "";
+
+  const handleLegacyExport = (format: "csv" | "excel") => {
     if (!term) return;
 
     exportLateEarly(incidents, locale, format, {
@@ -182,6 +206,138 @@ export default function AttendanceLateEarlyPage() {
         schoolLabel: t("scopeSchool"),
       }),
       dateRange: filters.dateFrom && filters.dateTo ? `${filters.dateFrom} - ${filters.dateTo}` : t("allDates"),
+    });
+
+    showSuccess(t("exportSuccess"));
+  };
+
+  const handleExport = async (format: AttendanceExportFormat) => {
+    if (!term) return;
+
+    const scopeName = getAttendanceScopeLabel({
+      scopeType: filters.scopeType,
+      scopeIds: filters.scopeIds,
+      stages,
+      grades,
+      sections,
+      classrooms,
+      locale,
+      schoolLabel: t("scopeSchool"),
+    });
+
+    if (format === "excel") {
+      handleLegacyExport("excel");
+      return;
+    }
+
+    const columns: ExportColumn[] = [
+      { key: "date", label: locale === "ar" ? "التاريخ" : "Date" },
+      { key: "period", label: locale === "ar" ? "الحصة" : "Period" },
+      { key: "studentNumber", label: locale === "ar" ? "رقم الطالب" : "Student Number" },
+      { key: "studentName", label: locale === "ar" ? "الطالب" : "Student" },
+      { key: "studentNameEn", label: locale === "ar" ? "الطالب (بالإنجليزية)" : "Student (English)" },
+      { key: "studentNameAr", label: locale === "ar" ? "الطالب (بالعربية)" : "Student (Arabic)" },
+      { key: "grade", label: locale === "ar" ? "الصف" : "Grade" },
+      { key: "section", label: locale === "ar" ? "الشعبة" : "Section" },
+      { key: "classroom", label: locale === "ar" ? "الفصل" : "Classroom" },
+      { key: "type", label: locale === "ar" ? "النوع" : "Type" },
+      { key: "minutes", label: locale === "ar" ? "الدقائق" : "Minutes" },
+      { key: "threshold", label: locale === "ar" ? "الحد" : "Threshold" },
+      { key: "violation", label: locale === "ar" ? "مخالفة" : "Violation" },
+      { key: "sessionStatus", label: locale === "ar" ? "حالة الجلسة" : "Session Status" },
+    ];
+
+    const rowsForExport = incidents.map((incident) => ({
+      date: incident.date,
+      period:
+        locale === "ar"
+          ? incident.periodNameAr || incident.periodIndex
+          : incident.periodNameEn || incident.periodIndex,
+      studentNumber: incident.studentNumber || "-",
+      studentName: locale === "ar" ? incident.studentNameAr : incident.studentNameEn,
+      studentNameEn: incident.studentNameEn,
+      studentNameAr: incident.studentNameAr,
+      grade: locale === "ar"
+        ? incident.gradeNameAr || incident.gradeNameEn || "-"
+        : incident.gradeNameEn || incident.gradeNameAr || "-",
+      section: locale === "ar"
+        ? incident.sectionNameAr || incident.sectionNameEn || "-"
+        : incident.sectionNameEn || incident.sectionNameAr || "-",
+      classroom: locale === "ar"
+        ? incident.classroomNameAr || incident.classroomNameEn || "-"
+        : incident.classroomNameEn || incident.classroomNameAr || "-",
+      type:
+        incident.type === "LATE"
+          ? locale === "ar"
+            ? "تأخير"
+            : "Late"
+          : locale === "ar"
+            ? "مغادرة مبكرة"
+            : "Early Leave",
+      minutes: incident.minutes,
+      threshold: incident.threshold ?? "",
+      violation: incident.isViolation
+        ? locale === "ar"
+          ? "نعم"
+          : "Yes"
+        : locale === "ar"
+          ? "لا"
+          : "No",
+      sessionStatus: incident.sessionStatus || "",
+    }));
+
+    exportAttendanceData({
+      title: locale === "ar" ? "التأخير والمغادرة المبكرة" : "Late & Early Leave",
+      metadata: {
+        yearName: selectedYearName,
+        termName: selectedTermName,
+        scopeTypeName: filters.scopeType,
+        scopeName,
+        dateLabel:
+          filters.dateFrom && filters.dateTo
+            ? `${filters.dateFrom} - ${filters.dateTo}`
+            : t("allDates"),
+        viewName: locale === "ar" ? "التأخير والمغادرة المبكرة" : "Late & Early Leave",
+        exportDate: formatAttendanceExportDate(locale),
+      },
+      filename: generateAttendanceExportFilename(
+        "attendance-late-early",
+        termContext.termId || undefined,
+        filters.scopeType.toLowerCase(),
+      ),
+      format,
+      columns,
+      rows: rowsForExport,
+      jsonData: {
+        title: "Attendance Late Early",
+        metadata: {
+          yearName:
+            termContext.academicYears.find((item) => item.id === termContext.yearId)
+              ?.nameEn || termContext.yearId || "",
+          termName: term.nameEn || term.name,
+          scopeTypeName: filters.scopeType,
+          scopeName: getAttendanceScopeLabel({
+            scopeType: filters.scopeType,
+            scopeIds: filters.scopeIds,
+            stages,
+            grades,
+            sections,
+            classrooms,
+            locale: "en",
+            schoolLabel: "School",
+          }),
+          dateLabel:
+            filters.dateFrom && filters.dateTo
+              ? `${filters.dateFrom} - ${filters.dateTo}`
+              : "All dates",
+          viewName: "Late & Early Leave",
+          exportDate: formatAttendanceExportDate("en"),
+        },
+        filters,
+        incidents,
+      },
+      locale,
+      emptyMessage: t("emptyStates.noRecords.description"),
     });
 
     showSuccess(t("exportSuccess"));
@@ -293,7 +449,7 @@ export default function AttendanceLateEarlyPage() {
                     setFilters((prev) => ({ ...prev, ...patch }));
                   }}
                   onResetFilters={resetFilters}
-                  onExport={handleExport}
+                  onOpenExport={() => setShowExportModal(true)}
                 />
               </AttendanceFiltersPanel>
 
@@ -384,7 +540,7 @@ export default function AttendanceLateEarlyPage() {
           setFilters((prev) => ({ ...prev, ...patch }));
         }}
         onResetFilters={resetFilters}
-        onExport={handleExport}
+        onOpenExport={() => setShowExportModal(true)}
       />
 
       <AttendanceBottomDrawer isOpen={detailsDrawerOpen} onClose={() => setDetailsDrawerOpen(false)}>
@@ -407,9 +563,15 @@ export default function AttendanceLateEarlyPage() {
         }}
         onSave={handleSaveMinutes}
       />
+
+      <AttendanceGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        datasetCount={incidents.length}
+        emptyStateMessage={t("emptyStates.noRecords.description")}
+      />
     </div>
   );
 }
-
-
 

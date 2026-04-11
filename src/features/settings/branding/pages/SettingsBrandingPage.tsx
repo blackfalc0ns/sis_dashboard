@@ -1,8 +1,8 @@
 ﻿"use client";
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
-import { ImagePlus, MapPin } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { Download, ImagePlus, MapPin } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
 import Input from "@/components/ui/input/Input";
@@ -15,11 +15,18 @@ import SchoolLocationPickerModal from "@/features/settings/components/SchoolLoca
 import SettingsAccessGuard from "@/features/settings/components/SettingsAccessGuard";
 import SettingsPageHeader from "@/features/settings/components/SettingsPageHeader";
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
+import SettingsGlobalExportModal from "@/features/settings/shared/components/export/SettingsGlobalExportModal";
 import { timezones } from "@/features/settings/constants/defaults";
 import {
   fetchSchoolProfileSettings,
   updateSchoolProfileSettings,
 } from "@/features/settings/services/settingsService";
+import {
+  exportSettingsData,
+  formatSettingsExportDate,
+  type ExportColumn,
+  type SettingsExportFormat,
+} from "@/features/settings/shared/utils/settingsExport";
 import type {
   ResolvedSchoolLocation,
   SchoolProfileSettings,
@@ -57,7 +64,9 @@ function profileToLocation(profile: SchoolProfileSettings): ResolvedSchoolLocati
 }
 
 export default function SettingsBrandingPage() {
+  const locale = useLocale();
   const t = useTranslations("settings.branding");
+  const tExport = useTranslations("settings.export");
   const tCommon = useTranslations("common");
   const { hasPermission } = usePermissions();
   const { showSuccess, showError } = useToast();
@@ -68,6 +77,7 @@ export default function SettingsBrandingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [locationWasEdited, setLocationWasEdited] = useState(false);
 
   useEffect(() => {
@@ -202,6 +212,51 @@ export default function SettingsBrandingPage() {
 
   const canSave = useMemo(() => isDirty && !isSaving, [isDirty, isSaving]);
 
+  const handleExport = (format: SettingsExportFormat) => {
+    const metadata = {
+      viewName: t("title"),
+      exportDate: formatSettingsExportDate(locale),
+      visibleCount: 1,
+    };
+    const columns: ExportColumn[] = [
+      { key: "field", label: locale === "ar" ? "الحقل" : "Field" },
+      { key: "value", label: locale === "ar" ? "القيمة" : "Value" },
+    ];
+    const rows = [
+      { field: t("school_name"), value: profile.schoolName },
+      { field: t("short_name"), value: profile.shortName },
+      { field: t("timezone"), value: profile.timezone },
+      { field: t("address"), value: profile.addressLine },
+      { field: t("city"), value: profile.city },
+      { field: t("country"), value: profile.country },
+      { field: t("footer_signature"), value: profile.footerSignature },
+      { field: t("selected_location_title"), value: profile.formattedAddress },
+      {
+        field: "Coordinates",
+        value:
+          profile.latitude !== null && profile.longitude !== null
+            ? `${profile.latitude}, ${profile.longitude}`
+            : "",
+      },
+    ];
+
+    exportSettingsData({
+      title: t("title"),
+      metadata,
+      filename: "settings-branding",
+      format,
+      columns,
+      rows,
+      locale,
+      emptyMessage: tExport("errors.noData"),
+      jsonData: {
+        title: "Settings Branding",
+        metadata,
+        schoolProfile: profile,
+      },
+    });
+  };
+
   const handleLogoUpload = async (files: File[]) => {
     const [file] = files;
     if (!file) {
@@ -270,6 +325,13 @@ export default function SettingsBrandingPage() {
                 onClick={handleCancel}
               >
                 {t("cancel_changes")}
+              </Button>
+              <Button
+                variant="secondary"
+                leftIcon={<Download className="h-4 w-4" />}
+                onClick={() => setIsExportModalOpen(true)}
+              >
+                {tExport("button")}
               </Button>
               <Button
                 variant="secondary"
@@ -425,6 +487,13 @@ export default function SettingsBrandingPage() {
           initialLocation={profileToLocation(profile)}
           onClose={() => setIsLocationModalOpen(false)}
           onConfirm={handleLocationConfirm}
+        />
+        <SettingsGlobalExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          onExport={handleExport}
+          datasetCount={1}
+          emptyStateMessage={tExport("errors.noData")}
         />
       </main>
     </SettingsAccessGuard>

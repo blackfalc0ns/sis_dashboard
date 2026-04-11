@@ -3,7 +3,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useParams } from "next/navigation";
 import {
   Users,
@@ -21,16 +21,23 @@ import {
 } from "lucide-react";
 import { DataTable, FilterPanel } from "@/components/ui";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
-import { downloadCSV, generateFilename } from "@/utils/simpleExport";
 import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import { StudentGuardian } from "@/features/students-guardians/students/types";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import ChangePasswordModal from "@/features/students-guardians/students/components/modals/ChangePasswordModal";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
+import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
+import {
+  downloadStudentsGuardiansExport,
+  getStudentsGuardiansExportLocaleForFormat,
+  type StudentsGuardiansExportFormat,
+} from "@/features/students-guardians/shared/utils/studentsGuardiansExport";
+import { formatGuardiansForExport } from "@/features/students-guardians/shared/utils/studentsGuardiansExportFormatters";
 
 export default function GuardiansList() {
   const t = useTranslations("students_guardians.guardians_list");
+  const locale = useLocale();
   const router = useRouter();
   const params = useParams();
   const lang = (params.lang as string) || "en";
@@ -135,6 +142,7 @@ export default function GuardiansList() {
   // Filters
   const [showFilters, setShowFilters] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [passwordChangeGuardian, setPasswordChangeGuardian] =
     useState<StudentGuardian | null>(null);
   const { values, setValue, replaceValues, reset } = useUrlQueryState<{
@@ -221,25 +229,18 @@ export default function GuardiansList() {
     );
   };
 
-  const handleExport = () => {
-    const exportData = filteredGuardians.map((guardian) => ({
-      "Guardian ID": guardian.guardianId,
-      "Full Name": guardian.full_name,
-      Relation: guardian.relation,
-      "National ID": guardian.national_id,
-      "Primary Phone": guardian.phone_primary,
-      "Secondary Phone": guardian.phone_secondary || "N/A",
-      Email: guardian.email,
-      "Job Title": guardian.job_title || "N/A",
-      Workplace: guardian.workplace || "N/A",
-      "Primary Guardian": guardian.is_primary ? "Yes" : "No",
-      "Can Pickup": guardian.can_pickup ? "Yes" : "No",
-      "Receive Notifications": guardian.can_receive_notifications
-        ? "Yes"
-        : "No",
-    }));
+  const handleExport = (format: StudentsGuardiansExportFormat) => {
+    const exportLocale = getStudentsGuardiansExportLocaleForFormat(
+      format,
+      locale,
+    );
 
-    downloadCSV(exportData, generateFilename("guardians", "csv"));
+    downloadStudentsGuardiansExport({
+      data: formatGuardiansForExport(filteredGuardians, exportLocale),
+      format,
+      filenameBase: "guardians",
+      emptyMessage: t("no_guardians_message"),
+    });
   };
 
   const handleChangePasswordClick = (
@@ -483,7 +484,7 @@ export default function GuardiansList() {
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
-                onClick={handleExport}
+                onClick={() => setShowExportModal(true)}
                 className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
               >
                 <Download className="w-4 h-4" />
@@ -588,6 +589,16 @@ export default function GuardiansList() {
           userType="guardian"
         />
       )}
+
+      <StudentsGuardiansGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={t("export")}
+        subtitle={t("subtitle")}
+        datasetCount={filteredGuardians.length}
+        emptyStateMessage={t("no_guardians_message")}
+      />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { Download } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import MainLoader from "@/components/ui/loaders/MainLoader";
@@ -11,6 +12,13 @@ import { usePermissions } from "@/hooks/usePermissions";
 import SettingsAccessGuard from "@/features/settings/components/SettingsAccessGuard";
 import SettingsPageHeader from "@/features/settings/components/SettingsPageHeader";
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
+import SettingsGlobalExportModal from "@/features/settings/shared/components/export/SettingsGlobalExportModal";
+import {
+  exportSettingsData,
+  formatSettingsExportDate,
+  type ExportColumn,
+  type SettingsExportFormat,
+} from "@/features/settings/shared/utils/settingsExport";
 import {
   fetchPolicySettings,
   updatePolicySettings,
@@ -40,7 +48,9 @@ const emptyPolicies: PolicySettings = {
 };
 
 export default function SettingsPoliciesPage() {
+  const locale = useLocale();
   const t = useTranslations("settings.policies");
+  const tExport = useTranslations("settings.export");
   const tCommon = useTranslations("common");
   const { hasPermission } = usePermissions();
   const { showError, showSuccess } = useToast();
@@ -49,6 +59,7 @@ export default function SettingsPoliciesPage() {
   const [initialPolicies, setInitialPolicies] = useState<PolicySettings>(emptyPolicies);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -117,6 +128,51 @@ export default function SettingsPoliciesPage() {
 
   const canSave = useMemo(() => isDirty && !isSaving, [isDirty, isSaving]);
 
+  const handleExport = (format: SettingsExportFormat) => {
+    const metadata = {
+      viewName: t("title"),
+      exportDate: formatSettingsExportDate(locale),
+      visibleCount: 10,
+    };
+    const columns: ExportColumn[] = [
+      { key: "section", label: locale === "ar" ? "القسم" : "Section" },
+      { key: "field", label: locale === "ar" ? "الحقل" : "Field" },
+      { key: "value", label: locale === "ar" ? "القيمة" : "Value" },
+    ];
+    const bool = (value: boolean) => (value ? tCommon("yes") : tCommon("no"));
+    const rows = [
+      { section: t("attendance.title"), field: t("attendance.absence_threshold"), value: policies.attendance.absenceThreshold },
+      { section: t("attendance.title"), field: t("attendance.late_threshold"), value: policies.attendance.lateThresholdMinutes },
+      { section: t("attendance.title"), field: t("attendance.lock_time"), value: policies.attendance.lockTime },
+      { section: t("attendance.title"), field: t("attendance.guardian_alert"), value: bool(policies.attendance.guardianAlertEnabled) },
+      { section: t("attendance.title"), field: t("attendance.portal_toggle"), value: bool(policies.attendance.portalAbsenceVisible) },
+      { section: t("grades.title"), field: t("grades.passing_score"), value: policies.grades.passingScore },
+      { section: t("grades.title"), field: t("grades.publish_approval"), value: bool(policies.grades.publishApprovalRequired) },
+      { section: t("grades.title"), field: t("grades.allow_teacher_drafts"), value: bool(policies.grades.allowTeacherDrafts) },
+      { section: t("grades.title"), field: t("grades.weighting_lock"), value: bool(policies.grades.weightingLockedAfterPublish) },
+      { section: t("behavior.title"), field: t("behavior.incident_threshold"), value: policies.behavior.incidentThreshold },
+      { section: t("behavior.title"), field: t("behavior.approval_required"), value: bool(policies.behavior.suspensionRequiresApproval) },
+      { section: t("behavior.title"), field: t("behavior.guardian_notification"), value: bool(policies.behavior.guardianNotificationEnabled) },
+      { section: t("behavior.title"), field: t("behavior.portal_toggle"), value: bool(policies.behavior.studentPortalVisibility) },
+    ];
+
+    exportSettingsData({
+      title: t("title"),
+      metadata,
+      filename: "settings-policies",
+      format,
+      columns,
+      rows,
+      locale,
+      emptyMessage: tExport("errors.noData"),
+      jsonData: {
+        title: "Settings Policies",
+        metadata,
+        policies,
+      },
+    });
+  };
+
   if (isLoading) {
     return <MainLoader />;
   }
@@ -131,6 +187,13 @@ export default function SettingsPoliciesPage() {
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" disabled={!isDirty || isSaving || !hasPermission("settings.policies.manage")} onClick={handleCancel}>
               {t("cancel_changes")}
+            </Button>
+            <Button
+              variant="secondary"
+              leftIcon={<Download className="h-4 w-4" />}
+              onClick={() => setIsExportModalOpen(true)}
+            >
+              {tExport("button")}
             </Button>
             <Button variant="primary" loading={isSaving} disabled={!canSave || !hasPermission("settings.policies.manage")} onClick={handleSave}>
               {isSaving ? tCommon("saving") : tCommon("save")}
@@ -374,6 +437,13 @@ export default function SettingsPoliciesPage() {
           </div>
         </SettingsSectionCard>
       </div>
+      <SettingsGlobalExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        datasetCount={13}
+        emptyStateMessage={tExport("errors.noData")}
+      />
       </main>
     </SettingsAccessGuard>
   );

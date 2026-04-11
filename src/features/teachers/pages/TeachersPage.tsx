@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Users } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { Download, Plus, Users } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { Button, ConfirmDialog, EmptyState } from "@/components/ui";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
 import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
+import ContextBar from "@/features/academics/components/shared/ContextBar";
 import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
 import { fetchSubjects } from "@/features/academics/subjects/services/subjectsService";
 import ChangeTeacherPasswordModal from "@/features/teachers/components/ChangeTeacherPasswordModal";
@@ -14,6 +15,7 @@ import TeacherDetailsDrawer from "@/features/teachers/components/TeacherDetailsD
 import TeacherFiltersBar from "@/features/teachers/components/TeacherFiltersBar";
 import TeacherFormDialog from "@/features/teachers/components/TeacherFormDialog";
 import TeachersListPanel from "@/features/teachers/components/TeachersListPanel";
+import TeachersGlobalExportModal from "@/features/teachers/shared/components/export/TeachersGlobalExportModal";
 import {
   changeTeacherPassword,
   createTeacher,
@@ -28,6 +30,19 @@ import type {
   TeacherFormData,
   TeacherReferenceData,
 } from "@/features/teachers/types";
+import {
+  buildTeacherAssignmentSummary,
+  getTeacherDisplayName,
+  resolveTeacherAssignmentNames,
+} from "@/features/teachers/utils/teacherMappers";
+import {
+  type ExportColumn,
+  type ExportMetadata,
+  exportTeachersData,
+  formatTeachersExportDate,
+  generateTeachersExportFilename,
+  type TeachersExportFormat,
+} from "@/features/teachers/shared/utils/teachersExport";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 
 const emptyReferenceData: TeacherReferenceData = {
@@ -41,8 +56,20 @@ type PendingAction = "toggle" | "delete" | "password";
 
 export default function TeachersPage() {
   const t = useTranslations("teachers");
+  const tExport = useTranslations("teachers.export");
+  const locale = useLocale();
   const { showSuccess, showError } = useToast();
-  const { academicYearId, termId, isInitializing } = useAcademicYearTermContext();
+  const {
+    academicYearId,
+    termId,
+    termStatus,
+    isInitializing,
+    selectedAcademicYear,
+    selectedTerm,
+    changeAcademicYear,
+    changeTerm,
+  } = useAcademicYearTermContext();
+  const displayLocale = locale === "ar" ? "ar" : "en";
 
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [referenceData, setReferenceData] =
@@ -56,6 +83,7 @@ export default function TeachersPage() {
   const [teacherForDetails, setTeacherForDetails] = useState<Teacher | null>(null);
   const [teacherForPassword, setTeacherForPassword] = useState<Teacher | null>(null);
   const [teacherToDelete, setTeacherToDelete] = useState<Teacher | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [actionInProgress, setActionInProgress] = useState<{
     id: string;
@@ -237,6 +265,220 @@ export default function TeachersPage() {
     });
   }, [filters, teachers]);
 
+  const formatDate = useCallback(
+    (value?: string) => {
+      if (!value) {
+        return "";
+      }
+
+      return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
+        new Date(value),
+      );
+    },
+    [locale],
+  );
+
+  const formatDateTime = useCallback(
+    (value?: string) => {
+      if (!value) {
+        return "";
+      }
+
+      return new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(value));
+    },
+    [locale],
+  );
+
+  const teacherExportRows = useMemo(() => {
+    return filteredTeachers.map((teacher) => {
+      const localizedAssignments = resolveTeacherAssignmentNames(
+        teacher,
+        referenceData,
+        displayLocale,
+      );
+
+      return {
+        code: teacher.code,
+        fullName: getTeacherDisplayName(teacher, displayLocale),
+        alternateFullName:
+          displayLocale === "ar" ? teacher.fullNameEn : teacher.fullNameAr,
+        email: teacher.email || "",
+        phone: teacher.phone || "",
+        gender: teacher.gender
+          ? t(teacher.gender === "MALE" ? "gender.male" : "gender.female")
+          : "",
+        status: t(
+          teacher.status === "ACTIVE" ? "status.active" : "status.inactive",
+        ),
+        hireDate: formatDate(teacher.hireDate),
+        subjectsCount: teacher.subjectIds.length,
+        assignmentSummary: buildTeacherAssignmentSummary(teacher, {
+          stages: t("summary.stages"),
+          grades: t("summary.grades"),
+          sections: t("summary.sections"),
+          empty: t("summary.empty"),
+        }),
+        subjects: localizedAssignments.subjects.join(" | "),
+        stages: localizedAssignments.stages.join(" | "),
+        grades: localizedAssignments.grades.join(" | "),
+        sections: localizedAssignments.sections.join(" | "),
+        notesAr: teacher.notesAr || "",
+        notesEn: teacher.notesEn || "",
+        createdAt: formatDateTime(teacher.createdAt),
+        updatedAt: formatDateTime(teacher.updatedAt),
+      };
+    });
+  }, [
+    displayLocale,
+    filteredTeachers,
+    formatDate,
+    formatDateTime,
+    referenceData,
+    t,
+  ]);
+
+  const teacherExportColumns = useMemo<ExportColumn[]>(
+    () => [
+      { key: "code", label: locale === "ar" ? "رمز المعلم" : "Teacher code" },
+      {
+        key: "fullName",
+        label: locale === "ar" ? "الاسم الكامل" : "Full name",
+      },
+      {
+        key: "alternateFullName",
+        label:
+          locale === "ar"
+            ? "الاسم باللغة الأخرى"
+            : "Alternate-language name",
+      },
+      { key: "email", label: t("fields.email") },
+      { key: "phone", label: t("fields.phone") },
+      { key: "gender", label: t("fields.gender") },
+      { key: "status", label: t("columns.status") },
+      { key: "hireDate", label: t("fields.hire_date") },
+      {
+        key: "subjectsCount",
+        label: locale === "ar" ? "عدد المواد" : "Subjects count",
+      },
+      {
+        key: "assignmentSummary",
+        label: t("columns.assignment_summary"),
+      },
+      { key: "subjects", label: t("details.subjects") },
+      { key: "stages", label: t("details.stages") },
+      { key: "grades", label: t("details.grades") },
+      { key: "sections", label: t("details.sections") },
+      { key: "notesAr", label: t("fields.notes_ar") },
+      { key: "notesEn", label: t("fields.notes_en") },
+      { key: "createdAt", label: t("details.created_at") },
+      { key: "updatedAt", label: t("details.updated_at") },
+    ],
+    [locale, t],
+  );
+
+  const teacherJsonExportData = useMemo(() => {
+    return {
+      title: "Teachers Directory",
+      metadata: {
+        yearName: selectedAcademicYear?.name || academicYearId || undefined,
+        termName: selectedTerm?.name || termId || undefined,
+        exportDate: formatTeachersExportDate("en"),
+        visibleTeacherCount: filteredTeachers.length,
+      },
+      filters: {
+        search: filters.search || null,
+        status: filters.status === "ALL" ? null : filters.status,
+        gender: filters.gender === "ALL" ? null : filters.gender,
+        subjectId: filters.subjectId || null,
+        stageId: filters.stageId || null,
+        gradeId: filters.gradeId || null,
+      },
+      teachers: filteredTeachers.map((teacher) => {
+        const englishAssignments = resolveTeacherAssignmentNames(
+          teacher,
+          referenceData,
+          "en",
+        );
+
+        return {
+          id: teacher.id,
+          code: teacher.code,
+          fullNameEn: teacher.fullNameEn,
+          fullNameAr: teacher.fullNameAr,
+          firstNameEn: teacher.firstNameEn,
+          firstNameAr: teacher.firstNameAr,
+          lastNameEn: teacher.lastNameEn,
+          lastNameAr: teacher.lastNameAr,
+          email: teacher.email || null,
+          phone: teacher.phone || null,
+          gender: teacher.gender || null,
+          status: teacher.status,
+          hireDate: teacher.hireDate || null,
+          subjectCount: teacher.subjectIds.length,
+          assignmentSummary: buildTeacherAssignmentSummary(teacher, {
+            stages: "stages",
+            grades: "grades",
+            sections: "sections",
+            empty: "No assignments",
+            separator: " | ",
+          }),
+          subjects: englishAssignments.subjects,
+          stages: englishAssignments.stages,
+          grades: englishAssignments.grades,
+          sections: englishAssignments.sections,
+          notesEn: teacher.notesEn || null,
+          notesAr: teacher.notesAr || null,
+          createdAt: teacher.createdAt,
+          updatedAt: teacher.updatedAt,
+        };
+      }),
+    };
+  }, [
+    academicYearId,
+    filteredTeachers,
+    filters.gender,
+    filters.gradeId,
+    filters.search,
+    filters.stageId,
+    filters.status,
+    filters.subjectId,
+    referenceData,
+    selectedAcademicYear?.name,
+    selectedTerm?.name,
+    termId,
+  ]);
+
+  const handleExport = async (format: TeachersExportFormat) => {
+    const metadata: ExportMetadata = {
+      yearName: selectedAcademicYear?.name || academicYearId || undefined,
+      termName: selectedTerm?.name || termId || undefined,
+      exportDate: formatTeachersExportDate(locale),
+    };
+
+    exportTeachersData({
+      title: t("title"),
+      metadata,
+      filename: generateTeachersExportFilename("teachers-directory", termId),
+      format,
+      columns: teacherExportColumns,
+      rows: teacherExportRows,
+      jsonData: teacherJsonExportData,
+      locale,
+      emptyMessage: tExport("errors.noData"),
+    });
+  };
+
+  const handleAcademicYearChange = async (yearId: string) => {
+    await changeAcademicYear(yearId);
+  };
+
+  const handleTermChange = (nextTermId: string) => {
+    changeTerm(nextTermId);
+  };
+
   const hasActiveFilters =
     filters.search.trim() !== "" ||
     filters.status !== "ALL" ||
@@ -373,20 +615,40 @@ export default function TeachersPage() {
   }
 
   return (
-    <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
-      <div className="space-y-6">
+    <div className="flex min-h-screen flex-col bg-gray-50">
+      <ContextBar
+        academicYearId={academicYearId}
+        termId={termId}
+        termStatus={termStatus}
+        onAcademicYearChange={handleAcademicYearChange}
+        onTermChange={handleTermChange}
+        isReadOnly={termStatus === "closed"}
+        showPromoteCarryOver={false}
+      />
+
+      <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
+        <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
             <p className="text-sm text-gray-500">{t("subtitle")}</p>
           </div>
-          <Button
-            variant="primary"
-            leftIcon={<Plus className="h-4 w-4" />}
-            onClick={() => setTeacherForForm(null)}
-          >
-            {t("actions.add_teacher")}
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="outline"
+              leftIcon={<Download className="h-4 w-4" />}
+              onClick={() => setShowExportModal(true)}
+            >
+              {tExport("button")}
+            </Button>
+            <Button
+              variant="primary"
+              leftIcon={<Plus className="h-4 w-4" />}
+              onClick={() => setTeacherForForm(null)}
+            >
+              {t("actions.add_teacher")}
+            </Button>
+          </div>
         </div>
 
         <TeacherFiltersBar
@@ -458,47 +720,58 @@ export default function TeachersPage() {
             onDelete={setTeacherToDelete}
           />
         )}
-      </div>
+        </div>
 
-      <TeacherFormDialog
-        isOpen={teacherForForm !== undefined}
-        teacher={teacherForForm || null}
-        referenceData={referenceData}
-        isSubmitting={isFormSubmitting}
-        onClose={() => setTeacherForForm(undefined)}
-        onSubmit={handleFormSubmit}
-      />
+        <TeacherFormDialog
+          isOpen={teacherForForm !== undefined}
+          teacher={teacherForForm || null}
+          referenceData={referenceData}
+          isSubmitting={isFormSubmitting}
+          onClose={() => setTeacherForForm(undefined)}
+          onSubmit={handleFormSubmit}
+        />
 
-      <TeacherDetailsDrawer
-        isOpen={Boolean(teacherForDetails)}
-        teacher={teacherForDetails}
-        referenceData={referenceData}
-        onClose={() => setTeacherForDetails(null)}
-      />
+        <TeacherDetailsDrawer
+          isOpen={Boolean(teacherForDetails)}
+          teacher={teacherForDetails}
+          referenceData={referenceData}
+          onClose={() => setTeacherForDetails(null)}
+        />
 
-      <ChangeTeacherPasswordModal
-        isOpen={Boolean(teacherForPassword)}
-        teacher={teacherForPassword}
-        isSubmitting={actionInProgress?.type === "password"}
-        onClose={() => setTeacherForPassword(null)}
-        onSubmit={handlePasswordSubmit}
-      />
+        <ChangeTeacherPasswordModal
+          isOpen={Boolean(teacherForPassword)}
+          teacher={teacherForPassword}
+          isSubmitting={actionInProgress?.type === "password"}
+          onClose={() => setTeacherForPassword(null)}
+          onSubmit={handlePasswordSubmit}
+        />
 
-      <ConfirmDialog
-        isOpen={Boolean(teacherToDelete)}
-        onClose={() => setTeacherToDelete(null)}
-        onConfirm={() => {
-          void handleDeleteConfirm();
-        }}
-        title={t("delete_dialog.title")}
-        description={t("delete_dialog.description", {
-          teacher: teacherToDelete?.fullNameEn || teacherToDelete?.fullNameAr || "",
-        })}
-        confirmLabel={t("delete_dialog.confirm")}
-        cancelLabel={t("actions.cancel")}
-        loading={actionInProgress?.type === "delete"}
-        severity="danger"
-      />
-    </main>
+        <ConfirmDialog
+          isOpen={Boolean(teacherToDelete)}
+          onClose={() => setTeacherToDelete(null)}
+          onConfirm={() => {
+            void handleDeleteConfirm();
+          }}
+          title={t("delete_dialog.title")}
+          description={t("delete_dialog.description", {
+            teacher: teacherToDelete?.fullNameEn || teacherToDelete?.fullNameAr || "",
+          })}
+          confirmLabel={t("delete_dialog.confirm")}
+          cancelLabel={t("actions.cancel")}
+          loading={actionInProgress?.type === "delete"}
+          severity="danger"
+        />
+
+        <TeachersGlobalExportModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          onExport={handleExport}
+          title={tExport("title")}
+          subtitle={t("subtitle")}
+          datasetCount={filteredTeachers.length}
+          emptyStateMessage={tExport("errors.noData")}
+        />
+      </main>
+    </div>
   );
 }

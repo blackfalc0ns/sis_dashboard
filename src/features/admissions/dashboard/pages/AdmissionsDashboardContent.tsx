@@ -13,7 +13,7 @@ import ConversionFunnelChart from "@/features/admissions/dashboard/components/ch
 import WeeklyInquiriesChart from "@/features/admissions/dashboard/components/charts/WeeklyInquiriesChart";
 import ApplicationsByGradeChart from "@/features/admissions/dashboard/components/charts/ApplicationsByGradeChart";
 import DateRangeFilter, { DateRangeValue } from "@/features/admissions/shared/DateRangeFilter";
-import AdmissionsExportModal from "@/features/admissions/applications/components/modals/AdmissionsExportModal";
+import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
@@ -23,6 +23,7 @@ import { ApplicationStatus, Application } from "@/features/admissions/types/admi
 import { getLeads } from "@/features/admissions/leads/services/mockLeadsApi";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import { createAdmissionsDashboardExportHandler } from "@/features/admissions/shared/utils/admissionsDashboardExport";
 import {
   filterAdmissionsRecordsByDateContext,
   resolveAdmissionsContextScope,
@@ -39,6 +40,11 @@ export default function AdmissionsDashboardContent() {
   const [customStartDate, setCustomStartDate] = useState<string>("");
   const [customEndDate, setCustomEndDate] = useState<string>("");
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const handleExport = createAdmissionsDashboardExportHandler(locale, {
+    value: dateRange,
+    customStart: customStartDate,
+    customEnd: customEndDate,
+  });
   const admissionsScope = useMemo(
     () => resolveAdmissionsContextScope(yearId, termId),
     [termId, yearId],
@@ -409,9 +415,11 @@ export default function AdmissionsDashboardContent() {
       </div>
 
       {/* Export Modal */}
-      <AdmissionsExportModal
+      <AdmissionsGlobalExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        mode="dashboard"
         currentDateRange={{
           value: dateRange,
           customStart: customStartDate,

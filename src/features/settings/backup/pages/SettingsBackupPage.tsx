@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Download, Upload } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { DataTable } from "@/components/ui/data-table";
@@ -11,22 +11,32 @@ import SettingsAccessGuard from "@/features/settings/components/SettingsAccessGu
 import SettingsPageHeader from "@/features/settings/components/SettingsPageHeader";
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
 import SettingsStatusBadge from "@/features/settings/components/SettingsStatusBadge";
+import SettingsGlobalExportModal from "@/features/settings/shared/components/export/SettingsGlobalExportModal";
 import {
   createBackupJob,
   exportSettingsSnapshot,
   fetchBackupHistory,
   importSettingsSnapshot,
 } from "@/features/settings/services/settingsService";
+import {
+  exportSettingsData,
+  formatSettingsExportDate,
+  type ExportColumn,
+  type SettingsExportFormat,
+} from "@/features/settings/shared/utils/settingsExport";
 import type { BackupHistoryEntry } from "@/features/settings/types";
 import { usePermissions } from "@/hooks/usePermissions";
 
 export default function SettingsBackupPage() {
+  const locale = useLocale();
   const t = useTranslations("settings.backup");
+  const tExport = useTranslations("settings.export");
   const tCommon = useTranslations("common");
   const { hasPermission } = usePermissions();
   const { showSuccess, showError } = useToast();
   const [history, setHistory] = useState<BackupHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,6 +82,44 @@ export default function SettingsBackupPage() {
     }
   };
 
+  const handleExport = (format: SettingsExportFormat) => {
+    const metadata = {
+      viewName: t("title"),
+      exportDate: formatSettingsExportDate(locale),
+      visibleCount: history.length,
+    };
+    const columns: ExportColumn[] = [
+      { key: "id", label: "ID" },
+      { key: "fileName", label: t("table.file") },
+      { key: "type", label: t("table.type") },
+      { key: "status", label: t("table.status") },
+      { key: "createdBy", label: t("table.created_by") },
+      { key: "createdAt", label: t("table.created_at") },
+      { key: "note", label: locale === "ar" ? "ملاحظة" : "Note" },
+    ];
+    const rows = history.map((entry) => ({
+      ...entry,
+      createdAt: new Date(entry.createdAt).toLocaleString(),
+      note: entry.note || "",
+    }));
+
+    exportSettingsData({
+      title: t("history_title"),
+      metadata,
+      filename: "settings-backup-history",
+      format,
+      columns,
+      rows,
+      locale,
+      emptyMessage: tExport("errors.noData"),
+      jsonData: {
+        title: "Settings Backup History",
+        metadata,
+        history,
+      },
+    });
+  };
+
   const columns = [
     {
       key: "fileName",
@@ -113,6 +161,13 @@ export default function SettingsBackupPage() {
                 <Button variant="secondary" leftIcon={<Download className="h-4 w-4" />} onClick={() => void runAction("export")}>
                   {t("export_settings")}
                 </Button>
+                <Button
+                  variant="secondary"
+                  leftIcon={<Download className="h-4 w-4" />}
+                  onClick={() => setIsExportModalOpen(true)}
+                >
+                  {tExport("button")}
+                </Button>
                 <Button variant="secondary" leftIcon={<Upload className="h-4 w-4" />} onClick={() => void runAction("import")}>
                   {t("import_settings")}
                 </Button>
@@ -149,6 +204,13 @@ export default function SettingsBackupPage() {
             />
           </SettingsSectionCard>
         </div>
+        <SettingsGlobalExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          onExport={handleExport}
+          datasetCount={history.length}
+          emptyStateMessage={tExport("errors.noData")}
+        />
       </main>
     </SettingsAccessGuard>
   );

@@ -21,11 +21,10 @@ interface ReportsFiltersBarProps {
   sections: Section[];
   classrooms: Classroom[];
   students: ReportsStudentOption[];
-  exportDataset: "summary" | "detailed" | "risk" | "performance";
   onFiltersChange: (patch: Partial<AttendanceReportsFilters>) => void;
   onReset: () => void;
-  onExportDatasetChange: (dataset: "summary" | "detailed" | "risk" | "performance") => void;
-  onExport: (format: "csv" | "excel") => void;
+  onOpenExport: () => void;
+  exportDisabled?: boolean;
 }
 
 export default function ReportsFiltersBar({
@@ -35,11 +34,10 @@ export default function ReportsFiltersBar({
   sections,
   classrooms,
   students,
-  exportDataset,
   onFiltersChange,
   onReset,
-  onExportDatasetChange,
-  onExport,
+  onOpenExport,
+  exportDisabled = false,
 }: ReportsFiltersBarProps) {
   const t = useTranslations("attendance.reportsPage.filters");
   const tCommon = useTranslations("common");
@@ -130,9 +128,8 @@ export default function ReportsFiltersBar({
 
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
         <ReportsExportActions
-          dataset={exportDataset}
-          onDatasetChange={onExportDatasetChange}
-          onExport={onExport}
+          onOpenExport={onOpenExport}
+          disabled={exportDisabled}
         />
         <Button variant="outline" onClick={onReset}>
           {t("reset")}

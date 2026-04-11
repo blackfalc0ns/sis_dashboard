@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { ClipboardCheck } from "lucide-react";
+import { ClipboardCheck, Download } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
 import type { ExamScopeType } from "../types";
@@ -25,6 +25,8 @@ interface GradesFiltersPanelProps {
   selectedContextText?: string | null;
   isReadOnly: boolean;
   onCreateAssessment: () => void;
+  onExport: () => void;
+  isExportDisabled?: boolean;
   showSubjectFilter?: boolean;
 }
 
@@ -41,6 +43,8 @@ export default function GradesFiltersPanel({
   selectedContextText,
   isReadOnly,
   onCreateAssessment,
+  onExport,
+  isExportDisabled = false,
   showSubjectFilter = true,
 }: GradesFiltersPanelProps) {
   const t = useTranslations("academics.grades");
@@ -92,14 +96,26 @@ export default function GradesFiltersPanel({
         <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
           {selectedContextText || t("emptyState.selectFilters")}
         </div>
-        <Button
-          variant="primary"
-          onClick={onCreateAssessment}
-          disabled={!selectedScopeId || (showSubjectFilter && !selectedSubjectId) || isReadOnly}
-          leftIcon={<ClipboardCheck className="h-4 w-4" />}
-        >
-          {t("actions.createAssessment")}
-        </Button>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
+            variant="secondary"
+            onClick={onExport}
+            disabled={isExportDisabled}
+            leftIcon={<Download className="h-4 w-4" />}
+          >
+            {t("actions.export")}
+          </Button>
+          <Button
+            variant="primary"
+            onClick={onCreateAssessment}
+            disabled={
+              !selectedScopeId || (showSubjectFilter && !selectedSubjectId) || isReadOnly
+            }
+            leftIcon={<ClipboardCheck className="h-4 w-4" />}
+          >
+            {t("actions.createAssessment")}
+          </Button>
+        </div>
       </div>
     </div>
   );

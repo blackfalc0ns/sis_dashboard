@@ -42,6 +42,14 @@ import {
 } from "@/features/attendance/policies/services/attendancePolicyService";
 import type { ExcuseRequest, ExcuseRequestFilters, ExcusesKpis } from "../types";
 import { exportExcuses } from "../utils/excusesExport";
+import AttendanceGlobalExportModal from "@/features/attendance/shared/components/AttendanceGlobalExportModal";
+import {
+  exportAttendanceData,
+  formatAttendanceExportDate,
+  generateAttendanceExportFilename,
+  type AttendanceExportFormat,
+  type ExportColumn,
+} from "@/features/attendance/shared/utils/attendanceExport";
 import ExcusesKpisBar from "../components/ExcusesKpisBar";
 import ExcusesFiltersBar from "../components/ExcusesFiltersBar";
 import ExcusesFiltersDrawer from "../components/ExcusesFiltersDrawer";
@@ -98,6 +106,7 @@ export default function AttendanceExcusesPage() {
   const [decisionAction, setDecisionAction] = useState<"APPROVE" | "REJECT">("APPROVE");
   const [deleteTarget, setDeleteTarget] = useState<ExcuseRequest | null>(null);
   const [selectedRequestPolicy, setSelectedRequestPolicy] = useState<EffectiveExcusePolicy | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const isReadOnly = termContext.isReadOnly;
   const kpis = useMemo(() => computeKpis(requests), [requests]);
@@ -204,7 +213,22 @@ export default function AttendanceExcusesPage() {
     return t("messages.excusesDisabledOnDate", { date: issue.date });
   };
 
-  const handleExport = (format: "csv" | "excel") => {
+  const selectedYearName =
+    (locale === "ar"
+      ? termContext.academicYears.find((item) => item.id === termContext.yearId)
+          ?.nameAr
+      : termContext.academicYears.find((item) => item.id === termContext.yearId)
+          ?.nameEn) ||
+    termContext.yearId ||
+    "";
+
+  const selectedTermName = term
+    ? locale === "ar"
+      ? term.nameAr || term.name
+      : term.nameEn || term.name
+    : "";
+
+  const handleLegacyExport = (format: "csv" | "excel") => {
     if (!term) return;
 
     exportExcuses(requests, locale, format, {
@@ -221,6 +245,110 @@ export default function AttendanceExcusesPage() {
         schoolLabel: t("scopeSchool"),
       }),
       dateRange: filters.dateFrom && filters.dateTo ? `${filters.dateFrom} - ${filters.dateTo}` : t("allDates"),
+    });
+
+    showSuccess(t("exportSuccess"));
+  };
+
+  const handleExport = async (format: AttendanceExportFormat) => {
+    if (!term) return;
+
+    const scopeName = getAttendanceScopeLabel({
+      scopeType: filters.scopeType,
+      scopeIds: filters.scopeIds,
+      stages,
+      grades,
+      sections,
+      classrooms,
+      locale,
+      schoolLabel: t("scopeSchool"),
+    });
+
+    if (format === "excel") {
+      handleLegacyExport("excel");
+      return;
+    }
+
+    const columns: ExportColumn[] = [
+      { key: "submittedAt", label: locale === "ar" ? "تاريخ الإرسال" : "Submitted At" },
+      { key: "studentNumber", label: locale === "ar" ? "رقم الطالب" : "Student Number" },
+      { key: "studentName", label: locale === "ar" ? "الطالب" : "Student" },
+      { key: "studentNameEn", label: locale === "ar" ? "الطالب (بالإنجليزية)" : "Student (English)" },
+      { key: "studentNameAr", label: locale === "ar" ? "الطالب (بالعربية)" : "Student (Arabic)" },
+      { key: "type", label: locale === "ar" ? "النوع" : "Type" },
+      { key: "range", label: locale === "ar" ? "الفترة" : "Range" },
+      { key: "attachments", label: locale === "ar" ? "المرفقات" : "Attachments" },
+      { key: "status", label: locale === "ar" ? "الحالة" : "Status" },
+      { key: "decisionBy", label: locale === "ar" ? "اتخذ القرار بواسطة" : "Decided By" },
+      { key: "decisionAt", label: locale === "ar" ? "تاريخ القرار" : "Decided At" },
+    ];
+
+    const rowsForExport = requests.map((request) => ({
+      submittedAt: request.createdAt.split("T")[0],
+      studentNumber: request.studentNumber || "-",
+      studentName: locale === "ar" ? request.studentNameAr : request.studentNameEn,
+      studentNameEn: request.studentNameEn,
+      studentNameAr: request.studentNameAr,
+      type: request.type,
+      range: `${request.dateFrom} -> ${request.dateTo}`,
+      attachments: request.attachments.length,
+      status: request.status,
+      decisionBy: request.decidedBy || "",
+      decisionAt: request.decidedAt || "",
+    }));
+
+    exportAttendanceData({
+      title: locale === "ar" ? "الأعذار" : "Excuses",
+      metadata: {
+        yearName: selectedYearName,
+        termName: selectedTermName,
+        scopeTypeName: filters.scopeType,
+        scopeName,
+        dateLabel:
+          filters.dateFrom && filters.dateTo
+            ? `${filters.dateFrom} - ${filters.dateTo}`
+            : t("allDates"),
+        viewName: locale === "ar" ? "الأعذار" : "Excuses",
+        exportDate: formatAttendanceExportDate(locale),
+      },
+      filename: generateAttendanceExportFilename(
+        "attendance-excuses",
+        termContext.termId || undefined,
+        filters.scopeType.toLowerCase(),
+      ),
+      format,
+      columns,
+      rows: rowsForExport,
+      jsonData: {
+        title: "Attendance Excuses",
+        metadata: {
+          yearName:
+            termContext.academicYears.find((item) => item.id === termContext.yearId)
+              ?.nameEn || termContext.yearId || "",
+          termName: term.nameEn || term.name,
+          scopeTypeName: filters.scopeType,
+          scopeName: getAttendanceScopeLabel({
+            scopeType: filters.scopeType,
+            scopeIds: filters.scopeIds,
+            stages,
+            grades,
+            sections,
+            classrooms,
+            locale: "en",
+            schoolLabel: "School",
+          }),
+          dateLabel:
+            filters.dateFrom && filters.dateTo
+              ? `${filters.dateFrom} - ${filters.dateTo}`
+              : "All dates",
+          viewName: "Excuses",
+          exportDate: formatAttendanceExportDate("en"),
+        },
+        filters,
+        requests,
+      },
+      locale,
+      emptyMessage: t("emptyStates.noRecords.description"),
     });
 
     showSuccess(t("exportSuccess"));
@@ -429,7 +557,7 @@ export default function AttendanceExcusesPage() {
                   classrooms={classrooms}
                   onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
                   onReset={resetFilters}
-                  onExport={handleExport}
+                  onOpenExport={() => setShowExportModal(true)}
                 />
               </AttendanceFiltersPanel>
 
@@ -526,7 +654,7 @@ export default function AttendanceExcusesPage() {
         onApply={() => setShowFiltersDrawer(false)}
         onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
         onReset={resetFilters}
-        onExport={handleExport}
+        onOpenExport={() => setShowExportModal(true)}
       />
 
       <AttendanceBottomDrawer isOpen={showDetailsDrawer} onClose={() => setShowDetailsDrawer(false)} heightClassName="h-[85vh]">
@@ -579,6 +707,14 @@ export default function AttendanceExcusesPage() {
         confirmLabel={tCommon("delete")}
         cancelLabel={tCommon("cancel")}
         severity="danger"
+      />
+
+      <AttendanceGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        datasetCount={requests.length}
+        emptyStateMessage={t("emptyStates.noRecords.description")}
       />
     </div>
   );

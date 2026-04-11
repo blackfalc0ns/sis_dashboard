@@ -14,7 +14,8 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { format, startDate, endDate, daysBack } = body;
+    const { format, startDate, endDate, daysBack, locale } = body;
+    const exportLocale = locale === "ar" ? "ar" : "en";
 
     // Validate format
     if (!["csv", "json"].includes(format)) {
@@ -73,28 +74,41 @@ export async function POST(request: NextRequest) {
     let csvContent = "";
 
     // Add date range header
-    csvContent += `Admissions Analytics Report\n`;
-    csvContent += `Date Range: ${dateRange.from} to ${dateRange.to}\n`;
-    csvContent += `Generated: ${new Date().toLocaleString()}\n\n`;
+    csvContent +=
+      exportLocale === "ar"
+        ? `تقرير تحليلات القبول\n`
+        : `Admissions Analytics Report\n`;
+    csvContent +=
+      exportLocale === "ar"
+        ? `النطاق الزمني: ${dateRange.from} إلى ${dateRange.to}\n`
+        : `Date Range: ${dateRange.from} to ${dateRange.to}\n`;
+    csvContent +=
+      exportLocale === "ar"
+        ? `تاريخ الإنشاء: ${new Date().toLocaleString("ar")}\n\n`
+        : `Generated: ${new Date().toLocaleString()}\n\n`;
 
     // Funnel data
-    csvContent += "CONVERSION FUNNEL\n";
-    const funnelData = formatFunnelForExport(analyticsData.funnel);
+    csvContent +=
+      exportLocale === "ar" ? "قمع التحويل\n" : "CONVERSION FUNNEL\n";
+    const funnelData = formatFunnelForExport(analyticsData.funnel, exportLocale);
     csvContent += convertToCSV(funnelData);
     csvContent += "\n\n";
 
     // Weekly inquiries
-    csvContent += "WEEKLY LEADS\n";
+    csvContent += exportLocale === "ar" ? "الاستفسارات الأسبوعية\n" : "WEEKLY LEADS\n";
     const weeklyData = formatWeeklyInquiriesForExport(
       analyticsData.weeklyInquiries,
+      exportLocale,
     );
     csvContent += convertToCSV(weeklyData);
     csvContent += "\n\n";
 
     // Grade distribution
-    csvContent += "APPLICATIONS BY GRADE\n";
+    csvContent +=
+      exportLocale === "ar" ? "الطلبات حسب الصف\n" : "APPLICATIONS BY GRADE\n";
     const gradeData = formatGradeDistributionForExport(
       analyticsData.gradeDistribution,
+      exportLocale,
     );
     csvContent += convertToCSV(gradeData);
 

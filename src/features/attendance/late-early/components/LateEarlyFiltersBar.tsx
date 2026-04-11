@@ -1,11 +1,10 @@
 ﻿"use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { Search, RotateCcw } from "lucide-react";
+import { Search, RotateCcw, Download } from "lucide-react";
 import Input from "@/components/ui/input/Input";
 import DatePicker from "@/components/ui/input/DatePicker";
 import Select from "@/components/ui/input/Select";
-import ExportButton from "@/components/ui/button/ExportButton";
 import Button from "@/components/ui/button/Button";
 import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
 import type { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
@@ -20,7 +19,7 @@ interface LateEarlyFiltersBarProps {
   classrooms: Classroom[];
   onFiltersChange: (patch: Partial<LateEarlyFilters>) => void;
   onResetFilters: () => void;
-  onExport: (format: "csv" | "excel") => void;
+  onOpenExport: () => void;
 }
 
 export default function LateEarlyFiltersBar({
@@ -32,7 +31,7 @@ export default function LateEarlyFiltersBar({
   classrooms,
   onFiltersChange,
   onResetFilters,
-  onExport,
+  onOpenExport,
 }: LateEarlyFiltersBarProps) {
   const t = useTranslations("attendance.lateEarly.filters");
   const tCommon = useTranslations("common");
@@ -161,7 +160,14 @@ export default function LateEarlyFiltersBar({
           <Button variant="outline" size="sm" leftIcon={<RotateCcw className="w-4 h-4" />} onClick={onResetFilters}>
             {tCommon("reset")}
           </Button>
-          <ExportButton onExport={onExport} label={t("export")} />
+          <Button
+            variant="outline"
+            size="sm"
+            leftIcon={<Download className="w-4 h-4" />}
+            onClick={onOpenExport}
+          >
+            {t("export")}
+          </Button>
         </div>
       </div>
     </div>

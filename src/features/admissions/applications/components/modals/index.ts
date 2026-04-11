@@ -1,4 +1,3 @@
-export { default as AdmissionsExportModal } from "./AdmissionsExportModal";
 export { default as Application360Modal } from "./Application360Modal";
 export { default as DecisionModal } from "../../../decisions/components/DecisionModal";
 export { default as DocumentViewerModal } from "./DocumentViewerModal";

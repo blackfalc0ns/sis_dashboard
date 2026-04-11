@@ -3,6 +3,7 @@
 import {
   CheckCircle2,
   ClipboardList,
+  Download,
   RadioTower,
   Workflow,
 } from "lucide-react";
@@ -37,6 +38,7 @@ interface NedaaRequestsViewProps {
   onStatusUpdate: (requestId: string, status: NedaaStatus) => void;
   pendingRequestId?: string | null;
   isReadOnly?: boolean;
+  onOpenExport: () => void;
 }
 
 export default function NedaaRequestsView({
@@ -58,6 +60,7 @@ export default function NedaaRequestsView({
   onStatusUpdate,
   pendingRequestId = null,
   isReadOnly = false,
+  onOpenExport,
 }: NedaaRequestsViewProps) {
   const locale = useLocale();
   const t = useTranslations("nedaa");
@@ -72,9 +75,19 @@ export default function NedaaRequestsView({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">{t("requests.title")}</h1>
-        <p className="mt-1 text-sm text-gray-500">{t("requests.subtitle")}</p>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{t("requests.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("requests.subtitle")}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenExport}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary"
+        >
+          <Download className="h-4 w-4" />
+          {t("export.button")}
+        </button>
       </div>
 
       {isReadOnly ? (

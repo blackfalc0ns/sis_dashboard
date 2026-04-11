@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { ArrowDown, ArrowUp, Download, Plus, Trash2 } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -11,10 +11,17 @@ import { usePermissions } from "@/hooks/usePermissions";
 import SettingsAccessGuard from "@/features/settings/components/SettingsAccessGuard";
 import SettingsPageHeader from "@/features/settings/components/SettingsPageHeader";
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
+import SettingsGlobalExportModal from "@/features/settings/shared/components/export/SettingsGlobalExportModal";
 import {
   fetchAdmissionsDocumentRequirements,
   updateAdmissionsDocumentRequirements,
 } from "@/features/settings/services/settingsService";
+import {
+  exportSettingsData,
+  formatSettingsExportDate,
+  type ExportColumn,
+  type SettingsExportFormat,
+} from "@/features/settings/shared/utils/settingsExport";
 import type { AdmissionsRequiredDocumentConfig } from "@/features/settings/types";
 
 const createDocumentId = () => "admissions-document-" + Date.now();
@@ -28,7 +35,9 @@ const normalizeSortOrder = (
   }));
 
 export default function SettingsAdmissionsDocumentsPage() {
+  const locale = useLocale();
   const t = useTranslations("settings.admissions_documents");
+  const tExport = useTranslations("settings.export");
   const tCommon = useTranslations("common");
   const { hasPermission } = usePermissions();
   const { showError, showSuccess } = useToast();
@@ -37,6 +46,7 @@ export default function SettingsAdmissionsDocumentsPage() {
   const [initialDocuments, setInitialDocuments] = useState<AdmissionsRequiredDocumentConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,6 +86,43 @@ export default function SettingsAdmissionsDocumentsPage() {
 
   const canManage = hasPermission("settings.admissionsDocuments.manage");
   const canSave = useMemo(() => isDirty && !isSaving && canManage, [canManage, isDirty, isSaving]);
+
+  const handleExport = (format: SettingsExportFormat) => {
+    const metadata = {
+      viewName: t("title"),
+      exportDate: formatSettingsExportDate(locale),
+      visibleCount: documents.length,
+    };
+    const columns: ExportColumn[] = [
+      { key: "id", label: "ID" },
+      { key: "nameEn", label: t("name_en") },
+      { key: "nameAr", label: t("name_ar") },
+      { key: "required", label: t("required") },
+      { key: "active", label: t("active") },
+      { key: "sortOrder", label: locale === "ar" ? "الترتيب" : "Sort order" },
+    ];
+    const rows = documents.map((document) => ({
+      ...document,
+      required: document.required ? tCommon("yes") : tCommon("no"),
+      active: document.active ? tCommon("yes") : tCommon("no"),
+    }));
+
+    exportSettingsData({
+      title: t("title"),
+      metadata,
+      filename: "settings-admissions-documents",
+      format,
+      columns,
+      rows,
+      locale,
+      emptyMessage: tExport("errors.noData"),
+      jsonData: {
+        title: "Settings Admissions Documents",
+        metadata,
+        documents,
+      },
+    });
+  };
 
   const validate = () => {
     if (documents.some((document) => !document.nameEn.trim() || !document.nameAr.trim())) {
@@ -180,6 +227,13 @@ export default function SettingsAdmissionsDocumentsPage() {
                 onClick={handleCancel}
               >
                 {t("cancel_changes")}
+              </Button>
+              <Button
+                variant="secondary"
+                leftIcon={<Download className="h-4 w-4" />}
+                onClick={() => setIsExportModalOpen(true)}
+              >
+                {tExport("button")}
               </Button>
               <Button variant="primary" loading={isSaving} disabled={!canSave} onClick={handleSave}>
                 {isSaving ? tCommon("saving") : tCommon("save")}
@@ -291,6 +345,13 @@ export default function SettingsAdmissionsDocumentsPage() {
             </div>
           </SettingsSectionCard>
         </div>
+        <SettingsGlobalExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          onExport={handleExport}
+          datasetCount={documents.length}
+          emptyStateMessage={tExport("errors.noData")}
+        />
       </main>
     </SettingsAccessGuard>
   );

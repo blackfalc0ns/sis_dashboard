@@ -15,7 +15,7 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { datasets, format, startDate, endDate } = body;
+    const { datasets, format, startDate, endDate, locale } = body;
 
     // Validate inputs
     if (!datasets || !Array.isArray(datasets) || datasets.length === 0) {
@@ -49,28 +49,40 @@ export async function POST(request: NextRequest) {
       });
     };
 
+    const exportLocale = format === "json" ? "en" : locale === "ar" ? "ar" : "en";
+
     // Prepare data for each dataset
     const exportData: Record<string, Array<Record<string, unknown>>> = {};
 
     if (datasets.includes("leads")) {
       const allLeads = getLeads();
       const filteredLeads = filterByDate(allLeads, "createdAt");
-      exportData.leads = formatLeadsForExport(filteredLeads);
+      exportData.leads = formatLeadsForExport(filteredLeads, exportLocale);
     }
 
     if (datasets.includes("applications")) {
       const filteredApps = filterByDate(mockApplications, "submittedDate");
-      exportData.applications = formatApplicationsForExport(filteredApps);
+      exportData.applications = formatApplicationsForExport(
+        filteredApps,
+        exportLocale,
+      );
     }
 
     if (datasets.includes("decisions")) {
       const filteredApps = filterByDate(mockApplications, "submittedDate");
-      exportData.decisions = formatDecisionsForExport(filteredApps);
+      exportData.decisions = formatDecisionsForExport(
+        filteredApps,
+        undefined,
+        exportLocale,
+      );
     }
 
     if (datasets.includes("enrollments")) {
       const filteredApps = filterByDate(mockApplications, "submittedDate");
-      exportData.enrollments = formatEnrollmentsForExport(filteredApps);
+      exportData.enrollments = formatEnrollmentsForExport(
+        filteredApps,
+        exportLocale,
+      );
     }
 
     // Generate export based on format

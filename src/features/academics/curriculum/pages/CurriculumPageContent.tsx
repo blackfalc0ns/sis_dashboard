@@ -4,8 +4,16 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useDebouncedCallback } from "use-debounce";
-import { AlertCircle, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+} from "lucide-react";
 import { Drawer, IconButton, useMediaQuery, useTheme } from "@mui/material";
+import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import ContextBar from "../../components/shared/ContextBar";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
@@ -35,10 +43,19 @@ import CurriculumEditor from "../components/CurriculumEditor";
 import CurriculumPlan from "../components/CurriculumPlan";
 import CreateCurriculumDialog from "../components/CreateCurriculumDialog";
 import CurriculumCarryOverDialog from "../components/CurriculumCarryOverDialog";
+import {
+  type AcademicsExportFormat,
+  exportAcademicsData,
+  formatExportDate,
+  generateExportFilename,
+  type ExportColumn,
+  type ExportMetadata,
+} from "@/features/academics/utils/exportAdapter";
 
 export default function CurriculumPageContent() {
   const t = useTranslations("academics.curriculum");
   const tCommon = useTranslations("common");
+  const tExport = useTranslations("academics.export");
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
@@ -95,6 +112,7 @@ export default function CurriculumPageContent() {
   >(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showCarryOverDialog, setShowCarryOverDialog] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const initializeRequestIdRef = useRef(0);
   const optionsRequestIdRef = useRef(0);
@@ -721,6 +739,68 @@ export default function CurriculumPageContent() {
   const hasCurriculum = !!curriculum;
   const hasGrades = grades.length > 0;
   const hasSubjects = subjects.length > 0;
+  const curriculumExportRows = useMemo(() => {
+    return units.flatMap((unit) => {
+      const unitTitle =
+        locale === "ar"
+          ? unit.titleAr || unit.titleEn || unit.title
+          : unit.titleEn || unit.titleAr || unit.title;
+      const unitLessons = lessons.filter((lesson) => lesson.unitId === unit.id);
+      return unitLessons.map((lesson) => ({
+        unit: unitTitle,
+        lesson:
+          locale === "ar"
+            ? lesson.titleAr || lesson.titleEn || lesson.title
+            : lesson.titleEn || lesson.titleAr || lesson.title,
+        plannedWeek: lesson.plannedWeek,
+        status: lesson.status === "done" ? t("plan.done") : t("plan.planned"),
+        durationMinutes: lesson.durationMinutes || "",
+      }));
+    });
+  }, [lessons, locale, t, units]);
+
+  const handleExport = (format: AcademicsExportFormat) => {
+    const metadata: ExportMetadata = {
+      yearName: academicYearId || undefined,
+      termName: termId || undefined,
+      gradeName: selectedGradeId || undefined,
+      exportDate: formatExportDate(locale),
+    };
+    const columns: ExportColumn[] = [
+      { key: "unit", label: locale === "ar" ? "الوحدة" : "Unit" },
+      { key: "lesson", label: locale === "ar" ? "الدرس" : "Lesson" },
+      {
+        key: "plannedWeek",
+        label: locale === "ar" ? "الأسبوع المخطط" : "Planned week",
+      },
+      { key: "status", label: locale === "ar" ? "الحالة" : "Status" },
+      {
+        key: "durationMinutes",
+        label: locale === "ar" ? "المدة (دقائق)" : "Duration (minutes)",
+      },
+    ];
+
+    exportAcademicsData({
+      title: t("outline.title"),
+      metadata,
+      filename: generateExportFilename(
+        "curriculum",
+        termId,
+        selectedSubjectId || selectedGradeId || undefined,
+      ),
+      format,
+      columns,
+      rows: curriculumExportRows,
+      locale,
+      jsonData: {
+        title: "Curriculum",
+        metadata,
+        curriculum,
+        units,
+        lessons,
+      },
+    });
+  };
 
   return (
     <div className="flex flex-col h-screen">
@@ -787,6 +867,15 @@ export default function CurriculumPageContent() {
               </div>
 
               <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={() => setShowExportModal(true)}
+                  disabled={!hasCurriculum || curriculumExportRows.length === 0}
+                  leftIcon={<Download className="w-4 h-4" />}
+                >
+                  {tExport("button")}
+                </Button>
                 {!hasCurriculum && selectedGradeId && selectedSubjectId && (
                   <Button
                     variant="primary"
@@ -1072,6 +1161,15 @@ export default function CurriculumPageContent() {
         gradeId={selectedGradeId}
         subjectId={selectedSubjectId}
         isReadOnly={isReadOnly}
+      />
+
+      <AcademicsGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={tExport("title")}
+        subtitle={t("outline.title")}
+        datasetCount={curriculumExportRows.length}
       />
     </div>
   );

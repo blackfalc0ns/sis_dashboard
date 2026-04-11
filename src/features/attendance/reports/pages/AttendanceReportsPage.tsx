@@ -31,6 +31,7 @@ import { useAttendanceTermContext } from "@/features/attendance/shared/hooks/use
 import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
 import { fetchAttendanceReportSummary } from "../services/attendanceReportsService";
 import { exportAttendanceReports } from "../utils/exportReports";
+import { buildAttendanceReportsExportPayload } from "../utils/exportReports";
 import {
   applyReportsStateToSearchParams,
   areReportsFiltersEqual,
@@ -48,6 +49,13 @@ import type {
   ReportsScopeBreakdownRow,
   ReportsTrendPoint,
 } from "../types";
+import AttendanceGlobalExportModal from "@/features/attendance/shared/components/AttendanceGlobalExportModal";
+import {
+  exportAttendanceData,
+  formatAttendanceExportDate,
+  type AttendanceExportFormat,
+  type ExportColumn,
+} from "@/features/attendance/shared/utils/attendanceExport";
 
 const DEFAULT_FILTERS: AttendanceReportsFilters = {
   scopeType: "SCHOOL",
@@ -75,6 +83,7 @@ export default function AttendanceReportsPage() {
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
   const [drilldown, setDrilldown] = useState<ReportsDrilldownState | null>(null);
   const [exportDataset, setExportDataset] = useState<ReportsExportDataset>("summary");
+  const [showExportModal, setShowExportModal] = useState(false);
   const [hasHydratedFiltersFromUrl, setHasHydratedFiltersFromUrl] = useState(false);
   const lastSyncedQuery = useRef<string | null>(null);
 
@@ -322,7 +331,7 @@ export default function AttendanceReportsPage() {
     router.push(`${targetPath}${query ? `?${query}` : ""}`);
   };
 
-  const handleExport = (format: "csv" | "excel") => {
+  const handleLegacyExport = (format: "csv" | "excel") => {
     if (!report || !structure || !term) return;
 
     exportAttendanceReports({
@@ -348,6 +357,220 @@ export default function AttendanceReportsPage() {
         schoolLabel: t("scopeSchool"),
       }),
       dateRange: `${filters.dateFrom || "-"} - ${filters.dateTo || "-"}`,
+    });
+
+    showSuccess(t("export.success"));
+  };
+
+  const exportDatasetOptions = useMemo(
+    () => [
+      { value: "summary", label: t("export.summary") },
+      { value: "detailed", label: t("export.detailed") },
+      { value: "risk", label: t("export.risk") },
+      { value: "performance", label: t("export.performance") },
+    ],
+    [t],
+  );
+
+  const selectedYearName =
+    (locale === "ar"
+      ? termContext.academicYears.find((item) => item.id === termContext.yearId)
+          ?.nameAr
+      : termContext.academicYears.find((item) => item.id === termContext.yearId)
+          ?.nameEn) ||
+    termContext.yearId ||
+    "";
+
+  const selectedTermName = term
+    ? locale === "ar"
+      ? term.nameAr || term.name
+      : term.nameEn || term.name
+    : "";
+
+  const exportPayload = useMemo(() => {
+    if (!report || !structure || !term) return null;
+    return buildAttendanceReportsExportPayload({
+      dataset: exportDataset,
+      report,
+      locale,
+      yearName: selectedYearName,
+      termName: selectedTermName,
+      scopeName: getAttendanceScopeLabel({
+        scopeType: filters.scopeType,
+        scopeIds: filters.scopeIds,
+        stages: structure.stages,
+        grades: structure.grades,
+        sections: structure.sections,
+        classrooms: structure.classrooms,
+        locale,
+        schoolLabel: t("scopeSchool"),
+      }),
+      dateRange: `${filters.dateFrom || "-"} - ${filters.dateTo || "-"}`,
+    });
+  }, [
+    exportDataset,
+    filters.dateFrom,
+    filters.dateTo,
+    filters.scopeIds,
+    filters.scopeType,
+    locale,
+    report,
+    selectedTermName,
+    selectedYearName,
+    structure,
+    t,
+    term,
+  ]);
+
+  const handleExport = async (format: AttendanceExportFormat) => {
+    if (!report || !structure || !term || !exportPayload) return;
+
+    if (format === "excel") {
+      handleLegacyExport("excel");
+      return;
+    }
+
+    const columns: ExportColumn[] = Object.keys(exportPayload.data[0] || {}).map((key) => ({
+      key,
+      label: key,
+    }));
+
+    const jsonDataByDataset = {
+      summary: {
+        title: "Attendance Reports Summary",
+        metadata: {
+          yearName:
+            termContext.academicYears.find((item) => item.id === termContext.yearId)
+              ?.nameEn || termContext.yearId || "",
+          termName: term.nameEn || term.name,
+          scopeTypeName: filters.scopeType,
+          scopeName: getAttendanceScopeLabel({
+            scopeType: filters.scopeType,
+            scopeIds: filters.scopeIds,
+            stages: structure.stages,
+            grades: structure.grades,
+            sections: structure.sections,
+            classrooms: structure.classrooms,
+            locale: "en",
+            schoolLabel: "School",
+          }),
+          dateLabel: `${filters.dateFrom || "-"} - ${filters.dateTo || "-"}`,
+          viewName: "Reports",
+          datasetName: exportDataset,
+          exportDate: formatAttendanceExportDate("en"),
+        },
+        filters,
+        overview: report.overview,
+        trend: report.trend,
+      },
+      detailed: {
+        title: "Attendance Reports Detailed",
+        metadata: {
+          yearName:
+            termContext.academicYears.find((item) => item.id === termContext.yearId)
+              ?.nameEn || termContext.yearId || "",
+          termName: term.nameEn || term.name,
+          scopeTypeName: filters.scopeType,
+          scopeName: getAttendanceScopeLabel({
+            scopeType: filters.scopeType,
+            scopeIds: filters.scopeIds,
+            stages: structure.stages,
+            grades: structure.grades,
+            sections: structure.sections,
+            classrooms: structure.classrooms,
+            locale: "en",
+            schoolLabel: "School",
+          }),
+          dateLabel: `${filters.dateFrom || "-"} - ${filters.dateTo || "-"}`,
+          viewName: "Reports",
+          datasetName: exportDataset,
+          exportDate: formatAttendanceExportDate("en"),
+        },
+        filters,
+        attendanceRows: report.attendanceRows,
+      },
+      risk: {
+        title: "Attendance Reports Risk",
+        metadata: {
+          yearName:
+            termContext.academicYears.find((item) => item.id === termContext.yearId)
+              ?.nameEn || termContext.yearId || "",
+          termName: term.nameEn || term.name,
+          scopeTypeName: filters.scopeType,
+          scopeName: getAttendanceScopeLabel({
+            scopeType: filters.scopeType,
+            scopeIds: filters.scopeIds,
+            stages: structure.stages,
+            grades: structure.grades,
+            sections: structure.sections,
+            classrooms: structure.classrooms,
+            locale: "en",
+            schoolLabel: "School",
+          }),
+          dateLabel: `${filters.dateFrom || "-"} - ${filters.dateTo || "-"}`,
+          viewName: "Reports",
+          datasetName: exportDataset,
+          exportDate: formatAttendanceExportDate("en"),
+        },
+        filters,
+        riskStudents: report.riskStudents,
+      },
+      performance: {
+        title: "Attendance Reports Performance",
+        metadata: {
+          yearName:
+            termContext.academicYears.find((item) => item.id === termContext.yearId)
+              ?.nameEn || termContext.yearId || "",
+          termName: term.nameEn || term.name,
+          scopeTypeName: filters.scopeType,
+          scopeName: getAttendanceScopeLabel({
+            scopeType: filters.scopeType,
+            scopeIds: filters.scopeIds,
+            stages: structure.stages,
+            grades: structure.grades,
+            sections: structure.sections,
+            classrooms: structure.classrooms,
+            locale: "en",
+            schoolLabel: "School",
+          }),
+          dateLabel: `${filters.dateFrom || "-"} - ${filters.dateTo || "-"}`,
+          viewName: "Reports",
+          datasetName: exportDataset,
+          exportDate: formatAttendanceExportDate("en"),
+        },
+        filters,
+        performance: report.performance,
+      },
+    } satisfies Record<ReportsExportDataset, Record<string, unknown>>;
+
+    exportAttendanceData({
+      title: exportPayload.title,
+      metadata: {
+        yearName: selectedYearName,
+        termName: selectedTermName,
+        scopeTypeName: filters.scopeType,
+        scopeName: getAttendanceScopeLabel({
+          scopeType: filters.scopeType,
+          scopeIds: filters.scopeIds,
+          stages: structure.stages,
+          grades: structure.grades,
+          sections: structure.sections,
+          classrooms: structure.classrooms,
+          locale,
+          schoolLabel: t("scopeSchool"),
+        }),
+        dateLabel: `${filters.dateFrom || "-"} - ${filters.dateTo || "-"}`,
+        viewName: locale === "ar" ? "التقارير" : "Reports",
+        datasetName: t(`export.${exportDataset}`),
+        exportDate: formatAttendanceExportDate(locale),
+      },
+      filename: exportPayload.filename,
+      format,
+      columns,
+      rows: exportPayload.data,
+      jsonData: jsonDataByDataset[exportDataset],
+      locale,
+      emptyMessage: t("emptyStates.noData.description"),
     });
 
     showSuccess(t("export.success"));
@@ -430,11 +653,10 @@ export default function AttendanceReportsPage() {
               sections={structure?.sections || []}
               classrooms={structure?.classrooms || []}
               students={report?.studentOptions || []}
-              exportDataset={exportDataset}
               onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
               onReset={resetFilters}
-              onExportDatasetChange={setExportDataset}
-              onExport={handleExport}
+              onOpenExport={() => setShowExportModal(true)}
+              exportDisabled={!exportPayload?.data.length}
             />
           </AttendanceFiltersPanel>
         ) : (
@@ -584,11 +806,10 @@ export default function AttendanceReportsPage() {
             sections={structure?.sections || []}
             classrooms={structure?.classrooms || []}
             students={report?.studentOptions || []}
-            exportDataset={exportDataset}
             onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
             onReset={resetFilters}
-            onExportDatasetChange={setExportDataset}
-            onExport={handleExport}
+            onOpenExport={() => setShowExportModal(true)}
+            exportDisabled={!exportPayload?.data.length}
           />
         </div>
       </AttendanceBottomDrawer>
@@ -598,6 +819,17 @@ export default function AttendanceReportsPage() {
         open={!!drilldown}
         onClose={() => setDrilldown(null)}
         onOpenRoute={openRoute}
+      />
+
+      <AttendanceGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        datasetCount={exportPayload?.data.length || 0}
+        emptyStateMessage={t("emptyStates.noData.description")}
+        datasetOptions={exportDatasetOptions}
+        selectedDataset={exportDataset}
+        onDatasetChange={(value) => setExportDataset(value as ReportsExportDataset)}
       />
     </div>
   );

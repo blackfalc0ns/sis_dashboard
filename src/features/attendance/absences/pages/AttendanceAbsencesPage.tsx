@@ -29,6 +29,14 @@ import {
   updateEarlyLeaveMinutes,
 } from "../services/attendanceAbsencesService";
 import { exportAbsencesToExcel } from "../utils/absencesExport";
+import AttendanceGlobalExportModal from "@/features/attendance/shared/components/AttendanceGlobalExportModal";
+import {
+  exportAttendanceData,
+  formatAttendanceExportDate,
+  generateAttendanceExportFilename,
+  type AttendanceExportFormat,
+  type ExportColumn,
+} from "@/features/attendance/shared/utils/attendanceExport";
 import {
   fetchStructureTree,
   type StructureTree,
@@ -62,6 +70,7 @@ export default function AttendanceAbsencesPage() {
   const [selectedRecord, setSelectedRecord] = useState<AbsenceRecord | null>(null);
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
   const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [searchInput, setSearchInput] = useState("");
 
   // Filters - Updated to single status and PERIOD only
@@ -227,7 +236,24 @@ export default function AttendanceAbsencesPage() {
     }
   };
 
-  const handleExport = () => {
+  const selectedYearName =
+    (locale === "ar"
+      ? termContext.academicYears.find((item) => item.id === termContext.yearId)
+          ?.nameAr
+      : termContext.academicYears.find((item) => item.id === termContext.yearId)
+          ?.nameEn) ||
+    termContext.yearId ||
+    "";
+
+  const selectedTermName = termContext.terms.find((item) => item.id === termContext.termId)
+    ? locale === "ar"
+      ? termContext.terms.find((item) => item.id === termContext.termId)?.nameAr ||
+        termContext.terms.find((item) => item.id === termContext.termId)?.name
+      : termContext.terms.find((item) => item.id === termContext.termId)?.nameEn ||
+        termContext.terms.find((item) => item.id === termContext.termId)?.name
+    : termContext.termId || "";
+
+  const handleLegacyExport = () => {
     if (!termContext.yearId || !termContext.termId) return;
 
     // Get year and term names
@@ -252,6 +278,127 @@ export default function AttendanceAbsencesPage() {
         : locale === "ar"
         ? "جميع التواريخ"
         : "All dates",
+    });
+
+    showSuccess(t("exportSuccess"));
+  };
+
+  const handleExport = async (format: AttendanceExportFormat) => {
+    if (!termContext.yearId || !termContext.termId) return;
+
+    if (format === "excel") {
+      handleLegacyExport();
+      return;
+    }
+
+    const scopeName = getAttendanceScopeLabel({
+      scopeType: filters.scopeType,
+      scopeIds: filters.scopeIds,
+      stages: structureTree?.stages || [],
+      grades: structureTree?.grades || [],
+      sections: structureTree?.sections || [],
+      classrooms: structureTree?.classrooms || [],
+      locale,
+    });
+
+    const columns: ExportColumn[] = [
+      { key: "date", label: locale === "ar" ? "التاريخ" : "Date" },
+      { key: "studentNumber", label: locale === "ar" ? "رقم الطالب" : "Student Number" },
+      { key: "studentName", label: locale === "ar" ? "الطالب" : "Student" },
+      { key: "studentNameEn", label: locale === "ar" ? "الطالب (بالإنجليزية)" : "Student (English)" },
+      { key: "studentNameAr", label: locale === "ar" ? "الطالب (بالعربية)" : "Student (Arabic)" },
+      { key: "grade", label: locale === "ar" ? "الصف" : "Grade" },
+      { key: "section", label: locale === "ar" ? "الشعبة" : "Section" },
+      { key: "classroom", label: locale === "ar" ? "الفصل" : "Classroom" },
+      { key: "status", label: locale === "ar" ? "الحالة" : "Status" },
+      { key: "granularity", label: locale === "ar" ? "النوع" : "Granularity" },
+      { key: "period", label: locale === "ar" ? "الحصة" : "Period" },
+      { key: "minutes", label: locale === "ar" ? "الدقائق" : "Minutes" },
+      { key: "hasExcuse", label: locale === "ar" ? "العذر" : "Has Excuse" },
+    ];
+
+    const rowsForExport = records.map((record) => ({
+      date: record.date,
+      studentNumber: record.studentNumber,
+      studentName: locale === "ar" ? record.studentNameAr : record.studentNameEn,
+      studentNameEn: record.studentNameEn,
+      studentNameAr: record.studentNameAr,
+      grade: locale === "ar"
+        ? record.gradeNameAr || record.gradeNameEn || "-"
+        : record.gradeNameEn || record.gradeNameAr || "-",
+      section: locale === "ar"
+        ? record.sectionNameAr || record.sectionNameEn || "-"
+        : record.sectionNameEn || record.sectionNameAr || "-",
+      classroom: locale === "ar"
+        ? record.classroomNameAr || record.classroomNameEn || "-"
+        : record.classroomNameEn || record.classroomNameAr || "-",
+      status: record.status,
+      granularity: record.granularity,
+      period:
+        locale === "ar"
+          ? record.periodNameAr || record.periodIndex || "-"
+          : record.periodNameEn || record.periodIndex || "-",
+      minutes: record.minutesLate || record.minutesEarlyLeave || "",
+      hasExcuse: record.excuse ? (locale === "ar" ? "نعم" : "Yes") : locale === "ar" ? "لا" : "No",
+    }));
+
+    exportAttendanceData({
+      title: locale === "ar" ? "الغياب والإجازات" : "Absences & Leaves",
+      metadata: {
+        yearName: selectedYearName,
+        termName: selectedTermName,
+        scopeTypeName: filters.scopeType,
+        scopeName,
+        dateLabel:
+          filters.dateFrom && filters.dateTo
+            ? `${filters.dateFrom} - ${filters.dateTo}`
+            : locale === "ar"
+              ? "جميع التواريخ"
+              : "All dates",
+        viewName: locale === "ar" ? "الغياب والإجازات" : "Absences",
+        exportDate: formatAttendanceExportDate(locale),
+      },
+      filename: generateAttendanceExportFilename(
+        "attendance-absences",
+        termContext.termId || undefined,
+        filters.scopeType.toLowerCase(),
+      ),
+      format,
+      columns,
+      rows: rowsForExport,
+      jsonData: {
+        title: "Attendance Absences",
+        metadata: {
+          yearName:
+            termContext.academicYears.find((item) => item.id === termContext.yearId)
+              ?.nameEn || termContext.yearId || "",
+          termName:
+            termContext.terms.find((item) => item.id === termContext.termId)?.nameEn ||
+            termContext.terms.find((item) => item.id === termContext.termId)?.name ||
+            termContext.termId ||
+            "",
+          scopeTypeName: filters.scopeType,
+          scopeName: getAttendanceScopeLabel({
+            scopeType: filters.scopeType,
+            scopeIds: filters.scopeIds,
+            stages: structureTree?.stages || [],
+            grades: structureTree?.grades || [],
+            sections: structureTree?.sections || [],
+            classrooms: structureTree?.classrooms || [],
+            locale: "en",
+          }),
+          dateLabel:
+            filters.dateFrom && filters.dateTo
+              ? `${filters.dateFrom} - ${filters.dateTo}`
+              : "All dates",
+          viewName: "Absences",
+          exportDate: formatAttendanceExportDate("en"),
+        },
+        filters,
+        records,
+      },
+      locale,
+      emptyMessage: t("emptyStates.noRecords.description"),
     });
 
     showSuccess(t("exportSuccess"));
@@ -320,7 +467,7 @@ export default function AttendanceAbsencesPage() {
                   filters={{ ...filters, search: searchInput }}
                   onFiltersChange={handleFiltersChange}
                   onClearFilters={handleClearFilters}
-                  onExport={handleExport}
+                  onExport={() => setShowExportModal(true)}
                   isReadOnly={isReadOnly}
                   structureTree={structureTree}
                 />
@@ -414,7 +561,7 @@ export default function AttendanceAbsencesPage() {
           filters={{ ...filters, search: searchInput }}
           onFiltersChange={handleFiltersChange}
           onClearFilters={handleClearFilters}
-          onExport={handleExport}
+          onExport={() => setShowExportModal(true)}
           structureTree={structureTree}
         />
 
@@ -454,6 +601,14 @@ export default function AttendanceAbsencesPage() {
           onSave={handleSaveEarlyLeave}
           initialMinutes={recordToEdit?.minutesEarlyLeave || 0}
           isReadOnly={isReadOnly}
+        />
+
+        <AttendanceGlobalExportModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          onExport={handleExport}
+          datasetCount={records.length}
+          emptyStateMessage={t("emptyStates.noRecords.description")}
         />
       </div>
     </div>

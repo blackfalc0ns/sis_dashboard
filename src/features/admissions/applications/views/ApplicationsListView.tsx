@@ -3,6 +3,7 @@
 
 "use client";
 
+import { useState } from "react";
 import {
   Plus,
   Search,
@@ -26,8 +27,9 @@ import ScheduleInterviewModal from "@/features/admissions/interviews/components/
 import DecisionModal from "@/features/admissions/decisions/components/DecisionModal";
 import EnrollmentForm from "@/features/admissions/enrollment/components/EnrollmentForm";
 import DateRangeFilter, { DateRangeValue } from "@/features/admissions/shared/DateRangeFilter";
-import { downloadCSV, generateFilename } from "@/utils/simpleExport";
 import { formatApplicationsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
+import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
+import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
 import type {
   Application,
   ApplicationStatus,
@@ -115,6 +117,7 @@ export default function ApplicationsListView({
   const t_grades = useTranslations("admissions.grades");
   const locale = useLocale();
   const router = useRouter();
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const columns = [
     {
@@ -181,10 +184,14 @@ export default function ApplicationsListView({
     router.push(`/${locale}/admissions/applications/${app.id}`);
   };
 
-  const handleExport = () => {
-    const formattedData = formatApplicationsForExport(filteredApplications);
-    const filename = generateFilename("applications", "csv");
-    downloadCSV(formattedData, filename);
+  const handleExport = async (format: "csv" | "json" | "excel") => {
+    const exportLocale = format === "json" ? "en" : locale;
+    downloadAdmissionsExport({
+      data: formatApplicationsForExport(filteredApplications, exportLocale),
+      format,
+      filenameBase: "applications",
+      emptyMessage: filtersActive ? t("no_match") : t("no_applications"),
+    });
   };
 
   const selectedApp = filteredApplications[0] || null;
@@ -314,7 +321,7 @@ export default function ApplicationsListView({
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <button
-            onClick={handleExport}
+            onClick={() => setIsExportModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
           >
             <Download className="w-4 h-4" />
@@ -521,6 +528,15 @@ export default function ApplicationsListView({
         isOpen={isCreateAppOpen}
         onClose={() => setIsCreateAppOpen(false)}
         onSubmit={onCreateApplicationSubmit}
+      />
+      <AdmissionsGlobalExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={({ format }) => handleExport(format)}
+        mode="list"
+        confirmLabel={t("export")}
+        datasetCount={filteredApplications.length}
+        emptyStateMessage={filtersActive ? t("no_match") : t("no_applications")}
       />
     </div>
   );

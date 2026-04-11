@@ -30,8 +30,9 @@ import {
 } from "@/features/admissions/enrollment/services/enrollmentService";
 import DateRangeFilter, { DateRangeValue } from "@/features/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
-import { downloadCSV, generateFilename } from "@/utils/simpleExport";
 import { formatApplicationsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
+import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
+import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
 import { mockApplications } from "@/data/mockAdmissions";
 import {
   createApplication,
@@ -65,6 +66,7 @@ export default function ApplicationsList() {
   const [isDecisionOpen, setIsDecisionOpen] = useState(false);
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
   const [isCreateAppOpen, setIsCreateAppOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [applicationsVersion, setApplicationsVersion] = useState(0);
 
   const [showFilters, setShowFilters] = useState(false);
@@ -476,10 +478,14 @@ export default function ApplicationsList() {
     setIsCreateAppOpen(false);
   };
 
-  const handleExport = () => {
-    const formattedData = formatApplicationsForExport(filteredApplications);
-    const filename = generateFilename("applications", "csv");
-    downloadCSV(formattedData, filename);
+  const handleExport = async (format: "csv" | "json" | "excel") => {
+    const exportLocale = format === "json" ? "en" : locale;
+    downloadAdmissionsExport({
+      data: formatApplicationsForExport(filteredApplications, exportLocale),
+      format,
+      filenameBase: "applications",
+      emptyMessage: hasActiveFilters ? t("no_match") : t("no_applications"),
+    });
   };
 
   return (
@@ -626,7 +632,7 @@ export default function ApplicationsList() {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <button
-            onClick={handleExport}
+            onClick={() => setIsExportModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
           >
             <Download className="w-4 h-4" />
@@ -851,6 +857,15 @@ export default function ApplicationsList() {
         isOpen={isCreateAppOpen}
         onClose={() => setIsCreateAppOpen(false)}
         onSubmit={handleCreateApplicationSubmit}
+      />
+      <AdmissionsGlobalExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={({ format }) => handleExport(format)}
+        mode="list"
+        confirmLabel={t("export")}
+        datasetCount={filteredApplications.length}
+        emptyStateMessage={hasActiveFilters ? t("no_match") : t("no_applications")}
       />
     </div>
   );

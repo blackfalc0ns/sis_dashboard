@@ -298,11 +298,6 @@ export default function HeroJourneyMissionsPage() {
         title={t("missions")}
         description={t("missionsDescription")}
         bannerImageSrc={heroJourneySectionBanners.missions}
-        actions={
-          <Button variant="secondary" onClick={() => showInfo(t("messages.badgesReady"))}>
-            {t("actions.badgesGuide")}
-          </Button>
-        }
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

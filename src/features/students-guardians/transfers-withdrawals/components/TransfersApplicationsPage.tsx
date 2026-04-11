@@ -3,8 +3,8 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { useTranslations } from "next-intl";
-import { Plus, Search, X } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { Download, Plus, Search, X } from "lucide-react";
 import { FilterPanel } from "@/components/ui";
 import TransfersTable from "./TransfersTable";
 import CreateTransferModal from "./modals/CreateTransferModal";
@@ -17,11 +17,20 @@ import {
   updateTransferStatus,
 } from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
+import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
+import {
+  downloadStudentsGuardiansExport,
+  getStudentsGuardiansExportLocaleForFormat,
+  type StudentsGuardiansExportFormat,
+} from "@/features/students-guardians/shared/utils/studentsGuardiansExport";
+import { formatTransfersForExport } from "@/features/students-guardians/shared/utils/studentsGuardiansExportFormatters";
 
 export default function TransfersApplicationsPage() {
   const t = useTranslations("students_guardians.transfers_withdrawals");
+  const locale = useLocale();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const { values, setValue, reset } = useUrlQueryState<{
     search: string;
     stage: string;
@@ -69,6 +78,20 @@ export default function TransfersApplicationsPage() {
     reset(undefined, "replace");
   };
 
+  const handleExport = (format: StudentsGuardiansExportFormat) => {
+    const exportLocale = getStudentsGuardiansExportLocaleForFormat(
+      format,
+      locale,
+    );
+
+    downloadStudentsGuardiansExport({
+      data: formatTransfersForExport(filteredData, exportLocale),
+      format,
+      filenameBase: "transfers",
+      emptyMessage: t("transfers.table.no_data"),
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header with Action Button */}
@@ -81,13 +104,22 @@ export default function TransfersApplicationsPage() {
             {t("transfers.applications_subtitle")}
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          {t("transfers.new_transfer")}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            <Download className="w-4 h-4" />
+            {t("export")}
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            {t("transfers.new_transfer")}
+          </button>
+        </div>
       </div>
 
       <FilterPanel
@@ -246,6 +278,16 @@ export default function TransfersApplicationsPage() {
           }}
         />
       )}
+
+      <StudentsGuardiansGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={t("export")}
+        subtitle={t("transfers.applications_subtitle")}
+        datasetCount={filteredData.length}
+        emptyStateMessage={t("transfers.table.no_data")}
+      />
     </div>
   );
 }

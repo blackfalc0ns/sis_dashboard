@@ -1,16 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import NedaaAccessNotice from "@/features/nedaa/components/NedaaAccessNotice";
+import NedaaGlobalExportModal from "@/features/nedaa/shared/components/export/NedaaGlobalExportModal";
 import {
   fetchNedaaRequests,
   fetchNedaaSettings,
   updateNedaaRequestStatus,
 } from "@/features/nedaa/services/nedaaService";
+import {
+  exportNedaaData,
+  formatNedaaExportDate,
+  generateNedaaExportFilename,
+  type ExportColumn,
+  type NedaaExportFormat,
+} from "@/features/nedaa/shared/utils/nedaaExport";
 import type {
   NedaaRequest,
   NedaaSettings,
@@ -18,14 +26,25 @@ import type {
 } from "@/features/nedaa/types/nedaa";
 import NedaaRequestsView from "@/features/nedaa/views/NedaaRequestsView";
 import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
-import { getNedaaGateOptionIds } from "@/features/nedaa/utils/nedaaPresentation";
+import {
+  getNedaaGateLabel,
+  getNedaaGateOptionIds,
+} from "@/features/nedaa/utils/nedaaPresentation";
 
 export default function NedaaRequestsPage() {
+  const locale = useLocale();
   const t = useTranslations("nedaa");
   const { showSuccess, showError } = useToast();
   const { hasPermission } = usePermissions();
-  const { yearId, termId, isLoading: isContextLoading, error, isReadOnly } =
-    useStudentsGuardiansYearTermContext();
+  const {
+    academicYears,
+    terms,
+    yearId,
+    termId,
+    isLoading: isContextLoading,
+    error,
+    isReadOnly,
+  } = useStudentsGuardiansYearTermContext();
   const canViewRequests = hasPermission("nedaa.requests.view");
   const canManageRequests = hasPermission("nedaa.requests.manage");
   const [requests, setRequests] = useState<NedaaRequest[]>([]);
@@ -37,6 +56,7 @@ export default function NedaaRequestsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,6 +120,124 @@ export default function NedaaRequestsPage() {
   const hasActiveFilters =
     search.trim() !== "" || status !== "all" || gate !== "all";
 
+  const selectedYearName =
+    ((locale === "ar"
+      ? academicYears.find((item) => item.id === yearId)?.nameAr
+      : academicYears.find((item) => item.id === yearId)?.nameEn) ||
+      academicYears.find((item) => item.id === yearId)?.nameEn ||
+      yearId ||
+      "");
+  const selectedTerm = terms.find((item) => item.id === termId) || null;
+  const selectedTermName =
+    (locale === "ar" ? selectedTerm?.nameAr : selectedTerm?.nameEn) ||
+    selectedTerm?.nameEn ||
+    selectedTerm?.nameAr ||
+    selectedTerm?.name ||
+    termId ||
+    "";
+
+  const handleExport = async (format: NedaaExportFormat) => {
+    if (!settings) return;
+
+    const columns: ExportColumn[] =
+      locale === "ar"
+        ? [
+            { key: "requestId", label: "رقم الطلب" },
+            { key: "studentId", label: "رقم الطالب" },
+            { key: "studentName", label: "الطالب" },
+            { key: "guardianId", label: "رقم ولي الأمر" },
+            { key: "guardianName", label: "ولي الأمر" },
+            { key: "guardianRelation", label: "صلة القرابة" },
+            { key: "gate", label: "البوابة" },
+            { key: "status", label: "الحالة" },
+            { key: "createdAt", label: "تاريخ الإنشاء" },
+            { key: "updatedAt", label: "آخر تحديث" },
+            { key: "canPickup", label: "يمكنه الاستلام" },
+            { key: "canReceiveNotifications", label: "يستقبل الإشعارات" },
+            { key: "note", label: "ملاحظة" },
+            { key: "distanceMeters", label: "المسافة (متر)" },
+            { key: "insideZone", label: "داخل النطاق" },
+          ]
+        : [
+            { key: "requestId", label: "Request ID" },
+            { key: "studentId", label: "Student ID" },
+            { key: "studentName", label: "Student" },
+            { key: "guardianId", label: "Guardian ID" },
+            { key: "guardianName", label: "Guardian" },
+            { key: "guardianRelation", label: "Relation" },
+            { key: "gate", label: "Gate" },
+            { key: "status", label: "Status" },
+            { key: "createdAt", label: "Created At" },
+            { key: "updatedAt", label: "Updated At" },
+            { key: "canPickup", label: "Can Pickup" },
+            { key: "canReceiveNotifications", label: "Can Receive Notifications" },
+            { key: "note", label: "Note" },
+            { key: "distanceMeters", label: "Distance (Meters)" },
+            { key: "insideZone", label: "Inside Zone" },
+          ];
+
+    const rows = visibleRequests.map((request) => ({
+      requestId: request.id,
+      studentId: request.studentId,
+      studentName: request.studentName,
+      guardianId: request.guardianId,
+      guardianName: request.guardianName,
+      guardianRelation: request.guardianRelation,
+      gate: getNedaaGateLabel(request.gate, settings.gates, locale),
+      status: t(`status.${request.status}`),
+      createdAt: request.createdAt,
+      updatedAt: request.updatedAt,
+      canPickup: request.canPickup ? (locale === "ar" ? "نعم" : "Yes") : locale === "ar" ? "لا" : "No",
+      canReceiveNotifications:
+        request.canReceiveNotifications
+          ? locale === "ar"
+            ? "نعم"
+            : "Yes"
+          : locale === "ar"
+            ? "لا"
+            : "No",
+      note: request.note || "",
+      distanceMeters: request.distanceMeters ?? "",
+      insideZone:
+        typeof request.insideZone === "boolean"
+          ? request.insideZone
+            ? locale === "ar"
+              ? "نعم"
+              : "Yes"
+            : locale === "ar"
+              ? "لا"
+              : "No"
+          : "",
+    }));
+
+    exportNedaaData({
+      title: t("requests.title"),
+      metadata: {
+        yearName: selectedYearName,
+        termName: selectedTermName,
+        viewName: t("requests.title"),
+        exportDate: formatNedaaExportDate(locale),
+      },
+      filename: generateNedaaExportFilename("nedaa-requests", termId),
+      format,
+      columns,
+      rows,
+        jsonData: {
+          title: "Nedaa Requests",
+          metadata: {
+            yearName: academicYears.find((item) => item.id === yearId)?.nameEn || yearId || "",
+            termName: selectedTerm?.nameEn || selectedTerm?.name || termId || "",
+            viewName: "Requests",
+            exportDate: formatNedaaExportDate("en"),
+        },
+        filters: { search, status, gate },
+        requests: visibleRequests,
+      },
+      locale,
+      emptyMessage: t("export.errors.noData"),
+    });
+  };
+
   const gateOptions = useMemo(
     () =>
       getNedaaGateOptionIds(
@@ -152,29 +290,39 @@ export default function NedaaRequestsPage() {
   }
 
   return (
-    <NedaaRequestsView
-      requests={visibleRequests}
-      gates={settings.gates}
-      search={search}
-      status={status}
-      gate={gate}
-      gateOptions={gateOptions}
-      showFilters={showFilters}
-      hasActiveFilters={hasActiveFilters}
-      canManage={canManageRequests}
-      manageNotice={!canManageRequests ? t("access.manage_notice") : null}
-      onSearchChange={setSearch}
-      onStatusChange={setStatus}
-      onGateChange={setGate}
-      onToggleFilters={() => setShowFilters((current) => !current)}
-      onClearFilters={() => {
-        setSearch("");
-        setStatus("all");
-        setGate("all");
-      }}
-      onStatusUpdate={handleStatusUpdate}
-      pendingRequestId={pendingRequestId}
-      isReadOnly={isReadOnly}
-    />
+    <>
+      <NedaaRequestsView
+        requests={visibleRequests}
+        gates={settings.gates}
+        search={search}
+        status={status}
+        gate={gate}
+        gateOptions={gateOptions}
+        showFilters={showFilters}
+        hasActiveFilters={hasActiveFilters}
+        canManage={canManageRequests}
+        manageNotice={!canManageRequests ? t("access.manage_notice") : null}
+        onSearchChange={setSearch}
+        onStatusChange={setStatus}
+        onGateChange={setGate}
+        onToggleFilters={() => setShowFilters((current) => !current)}
+        onClearFilters={() => {
+          setSearch("");
+          setStatus("all");
+          setGate("all");
+        }}
+        onStatusUpdate={handleStatusUpdate}
+        pendingRequestId={pendingRequestId}
+        isReadOnly={isReadOnly}
+        onOpenExport={() => setShowExportModal(true)}
+      />
+      <NedaaGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        datasetCount={visibleRequests.length}
+        emptyStateMessage={t("export.errors.noData")}
+      />
+    </>
   );
 }

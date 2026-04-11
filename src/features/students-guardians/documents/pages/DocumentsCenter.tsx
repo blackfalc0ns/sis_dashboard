@@ -11,7 +11,7 @@ import {
   X,
   Download,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { DataTable, FilterPanel } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import DocumentViewerModal from "@/features/admissions/applications/components/modals/DocumentViewerModal";
@@ -23,10 +23,19 @@ import {
 import type { StudentDocumentCenterItem } from "@/features/students-guardians/documents/services/documentsAdapter";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
+import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
+import {
+  downloadStudentsGuardiansExport,
+  getStudentsGuardiansExportLocaleForFormat,
+  type StudentsGuardiansExportFormat,
+} from "@/features/students-guardians/shared/utils/studentsGuardiansExport";
+import { formatDocumentsForExport } from "@/features/students-guardians/shared/utils/studentsGuardiansExportFormatters";
 
 export default function DocumentsCenter() {
   const t = useTranslations("admissions.document_center");
+  const locale = useLocale();
   const [showFilters, setShowFilters] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{
     type: string;
     name: string;
@@ -163,6 +172,20 @@ export default function DocumentsCenter() {
 
   const hasActiveFilters = searchQuery !== "" || statusFilter !== "all";
 
+  const handleExport = (format: StudentsGuardiansExportFormat) => {
+    const exportLocale = getStudentsGuardiansExportLocaleForFormat(
+      format,
+      locale,
+    );
+
+    downloadStudentsGuardiansExport({
+      data: formatDocumentsForExport(filteredDocuments, exportLocale),
+      format,
+      filenameBase: "documents",
+      emptyMessage: t("no_documents"),
+    });
+  };
+
   // Define columns for DataTable
   const columns = [
     {
@@ -284,6 +307,13 @@ export default function DocumentsCenter() {
               {t("subtitle")}
             </p>
           </div>
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            {t("export")}
+          </button>
         </div>
 
         {/* Stats Cards */}
@@ -417,6 +447,16 @@ export default function DocumentsCenter() {
         isOpen={!!selectedDocument}
         onClose={() => setSelectedDocument(null)}
         document={selectedDocument}
+      />
+
+      <StudentsGuardiansGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={t("export")}
+        subtitle={t("subtitle")}
+        datasetCount={filteredDocuments.length}
+        emptyStateMessage={t("no_documents")}
       />
     </>
   );

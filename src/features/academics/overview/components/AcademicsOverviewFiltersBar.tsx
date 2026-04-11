@@ -1,9 +1,9 @@
 "use client";
 
 import { useLocale } from "next-intl";
+import { Download } from "lucide-react";
 import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
-import ExportButton from "@/components/ui/button/ExportButton";
 
 export type AcademicsOverviewChecklistStatusFilter =
   | "all"
@@ -44,7 +44,7 @@ interface AcademicsOverviewFiltersBarProps {
     value: AcademicsOverviewExportDataset
   ) => void;
   onReset: () => void;
-  onExport: (format: "csv" | "excel") => void;
+  onExportClick: () => void;
 }
 
 export default function AcademicsOverviewFiltersBar({
@@ -57,7 +57,7 @@ export default function AcademicsOverviewFiltersBar({
   onChartFilterChange,
   onExportDatasetChange,
   onReset,
-  onExport,
+  onExportClick,
 }: AcademicsOverviewFiltersBarProps) {
   const locale = useLocale();
   const labels =
@@ -171,7 +171,13 @@ export default function AcademicsOverviewFiltersBar({
           <Button variant="secondary" onClick={onReset}>
             {labels.reset}
           </Button>
-          <ExportButton onExport={onExport} />
+          <Button
+            variant="secondary"
+            onClick={onExportClick}
+            leftIcon={<Download className="w-4 h-4" />}
+          >
+            {locale === "ar" ? "تصدير" : "Export"}
+          </Button>
         </div>
       </div>
     </div>

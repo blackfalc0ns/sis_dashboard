@@ -4,10 +4,22 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDebouncedCallback } from "use-debounce";
-import { ChevronDown, ChevronUp, Users, UserX, TrendingUp, Zap, Search, Filter } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Users,
+  UserX,
+  TrendingUp,
+  Zap,
+  Search,
+  Filter,
+  Download,
+} from "lucide-react";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import DataTable from "@/components/ui/data-table/DataTable";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
+import Button from "@/components/ui/button/Button";
 import {
   Classroom,
   Grade,
@@ -23,6 +35,14 @@ import {
   TeacherLoad,
   calculateTeacherLoads,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
+import {
+  type AcademicsExportFormat,
+  exportAcademicsData,
+  formatExportDate,
+  generateExportFilename,
+  type ExportColumn,
+  type ExportMetadata,
+} from "@/features/academics/utils/exportAdapter";
 
 interface TeacherLoadViewProps {
   termId: string;
@@ -58,6 +78,7 @@ export default function TeacherLoadView({
   teacherAllocations,
 }: TeacherLoadViewProps) {
   const t = useTranslations("academics.teacherAllocation.load");
+  const tExport = useTranslations("academics.export");
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -65,6 +86,7 @@ export default function TeacherLoadView({
   const [teacherLoads, setTeacherLoads] = useState<TeacherLoad[]>([]);
   const [expandedTeacherId, setExpandedTeacherId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showExportModal, setShowExportModal] = useState(false);
   const queryState = useMemo(
     () => ({
       searchQuery: searchParams.get("loadSearch") || "",
@@ -325,6 +347,105 @@ export default function TeacherLoadView({
     },
   ], [t, expandedTeacherId]);
 
+  const teacherLoadExportRows = useMemo<Record<string, unknown>[]>(() => {
+    return filteredData.flatMap((row) => {
+      if (row.assignments.length === 0) {
+        return [
+          {
+            teacherName: row.teacherName,
+            weeklyLoad: row.weeklyLoad,
+            maxLoad: row.maxLoad || "",
+            status:
+              row.status === "warning"
+                ? t("filters.warning")
+                : row.status === "overloaded"
+                  ? t("filters.overloaded")
+                  : row.status === "zero"
+                    ? t("filters.zero")
+                    : t("filters.normal"),
+            grade: "",
+            section: "",
+            classroom: "",
+            subject: "",
+            periods: 0,
+          },
+        ];
+      }
+
+      return row.assignments.map((assignment) => ({
+        teacherName: row.teacherName,
+        weeklyLoad: row.weeklyLoad,
+        maxLoad: row.maxLoad || "",
+        status:
+          row.status === "warning"
+            ? t("filters.warning")
+            : row.status === "overloaded"
+              ? t("filters.overloaded")
+              : row.status === "zero"
+                ? t("filters.zero")
+                : t("filters.normal"),
+        grade:
+          locale === "ar"
+            ? assignment.gradeNameAr || assignment.gradeNameEn || assignment.gradeName
+            : assignment.gradeNameEn || assignment.gradeNameAr || assignment.gradeName,
+        section:
+          locale === "ar"
+            ? assignment.sectionNameAr || assignment.sectionNameEn || assignment.sectionName
+            : assignment.sectionNameEn || assignment.sectionNameAr || assignment.sectionName,
+        classroom: assignment.classroomId
+          ? locale === "ar"
+            ? assignment.classroomNameAr ||
+              assignment.classroomNameEn ||
+              assignment.classroomName
+            : assignment.classroomNameEn ||
+              assignment.classroomNameAr ||
+              assignment.classroomName
+          : "",
+        subject:
+          locale === "ar"
+            ? assignment.subjectNameAr || assignment.subjectNameEn || assignment.subjectName
+            : assignment.subjectNameEn || assignment.subjectNameAr || assignment.subjectName,
+        periods: assignment.weeklyHours,
+      }));
+    });
+  }, [filteredData, locale, t]);
+
+  const handleExport = (format: AcademicsExportFormat) => {
+    const metadata: ExportMetadata = {
+      termName: termId,
+      exportDate: formatExportDate(locale),
+    };
+    const exportColumns: ExportColumn[] = [
+      { key: "teacherName", label: locale === "ar" ? "المعلم" : "Teacher" },
+      {
+        key: "weeklyLoad",
+        label: locale === "ar" ? "التوزيع الأسبوعي" : "Weekly load",
+      },
+      { key: "maxLoad", label: locale === "ar" ? "الحد الأقصى" : "Max load" },
+      { key: "status", label: locale === "ar" ? "الحالة" : "Status" },
+      { key: "grade", label: locale === "ar" ? "الصف" : "Grade" },
+      { key: "section", label: locale === "ar" ? "الشعبة" : "Section" },
+      { key: "classroom", label: locale === "ar" ? "الفصل" : "Classroom" },
+      { key: "subject", label: locale === "ar" ? "المادة" : "Subject" },
+      { key: "periods", label: locale === "ar" ? "الحصص" : "Periods" },
+    ];
+
+    exportAcademicsData({
+      title: t("title"),
+      metadata,
+      filename: generateExportFilename("teacher-loads", termId),
+      format,
+      columns: exportColumns,
+      rows: teacherLoadExportRows,
+      locale,
+      jsonData: {
+        title: "Teacher Loads",
+        metadata,
+        summary: filteredData,
+      },
+    });
+  };
+
   if (isLoading) {
     return (
         <PartialLoader />
@@ -388,6 +509,17 @@ export default function TeacherLoadView({
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="mb-4 flex items-center justify-end">
+            <Button
+              variant="secondary"
+              onClick={() => setShowExportModal(true)}
+              leftIcon={<Download className="w-4 h-4" />}
+              disabled={teacherLoadExportRows.length === 0}
+            >
+              {tExport("button")}
+            </Button>
+          </div>
+
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Search */}
             <div className="flex-1">
@@ -531,6 +663,15 @@ export default function TeacherLoadView({
           </div>
         )}
       </div>
+
+      <AcademicsGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={tExport("title")}
+        subtitle={t("title")}
+        datasetCount={teacherLoadExportRows.length}
+      />
     </div>
   );
 }

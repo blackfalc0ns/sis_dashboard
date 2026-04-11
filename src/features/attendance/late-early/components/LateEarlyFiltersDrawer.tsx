@@ -20,7 +20,7 @@ interface LateEarlyFiltersDrawerProps {
   onFiltersChange: (patch: Partial<LateEarlyFilters>) => void;
   onResetFilters: () => void;
   onApply: () => void;
-  onExport: (format: "csv" | "excel") => void;
+  onOpenExport: () => void;
 }
 
 export default function LateEarlyFiltersDrawer({
@@ -35,7 +35,7 @@ export default function LateEarlyFiltersDrawer({
   onFiltersChange,
   onResetFilters,
   onApply,
-  onExport,
+  onOpenExport,
 }: LateEarlyFiltersDrawerProps) {
   const t = useTranslations("attendance.lateEarly.filters");
   const tCommon = useTranslations("common");
@@ -62,7 +62,7 @@ export default function LateEarlyFiltersDrawer({
             periods={periods}
             onFiltersChange={onFiltersChange}
             onResetFilters={onResetFilters}
-            onExport={onExport}
+            onOpenExport={onOpenExport}
           />
         </div>
 

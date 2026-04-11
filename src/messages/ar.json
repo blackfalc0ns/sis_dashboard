@@ -97,6 +97,11 @@
   },
   "filter_bar": {
     "filters": {
+      "title": "عوامل تصفية المهام",
+      "subtitle": "ابحث في مهام التعزيز أو ضيّق القائمة حسب الجمهور والحالة ونوع المكافأة وتاريخ الاستحقاق.",
+      "showFilters": "إظهار التصفية",
+      "hideFilters": "إخفاء التصفية",
+      "clearFilters": "مسح التصفية",
       "today": "اليوم",
       "grade": "الصف",
       "academic_year": "السنة الدراسية"
@@ -403,6 +408,7 @@
     "document_center": {
       "title": "مركز المستندات",
       "subtitle": "تتبع وإدارة المستندات المركزية",
+      "export": "تصدير",
       "total_documents": "إجمالي المستندات",
       "complete": "مكتمل",
       "unsubmitted": "غير مقدم",
@@ -1309,10 +1315,18 @@
           "title": "CSV",
           "description": "متوافق مع Excel"
         },
+        "excel": {
+          "title": "Excel",
+          "description": "ملف CSV متوافق مع Excel ويدعم العربية"
+        },
         "json": {
           "title": "JSON",
           "description": "بيانات منظمة"
         }
+      },
+      "selection": {
+        "title": "البيانات الحالية",
+        "visibleRows": "سيتم تصدير {count} صفًا ظاهرًا"
       },
       "dateRange": {
         "title": "النطاق الزمني",
@@ -1324,10 +1338,12 @@
       "actions": {
         "cancel": "إلغاء",
         "exporting": "جاري التصدير...",
+        "export": "تصدير",
         "exportData": "تصدير البيانات",
         "exportAnalytics": "تصدير التحليلات"
       },
       "errors": {
+        "noData": "لا توجد بيانات في العرض الحالي للتصدير",
         "noDatasets": "يرجى اختيار مجموعة بيانات واحدة على الأقل للتصدير",
         "exportFailed": "فشل التصدير",
         "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
@@ -1354,6 +1370,7 @@
     "overview": {
       "title": "نظرة عامة على الطلاب وأولياء الأمور",
       "subtitle": "عرض شامل للطلاب وأولياء الأمور والأداء الأكاديمي",
+      "export": "تصدير",
       "kpis": {
         "total_students": "إجمالي الطلاب",
         "active_count": "{count} نشط",
@@ -1637,6 +1654,7 @@
       "title": "التحويلات والانسحاب",
       "subtitle": "مراقبة اتجاهات تحويلات وانسحاب الطلاب",
       "create_application": "إنشاء طلب",
+      "export": "تصدير",
       "kpis": {
         "transfers_this_month": "التحويلات هذا الشهر",
         "incoming_students": "طلاب وافدون",
@@ -1738,6 +1756,7 @@
       },
       "filters": {
         "filters_button": "التصفية",
+        "clear_filters": "مسح التصفية",
         "search_placeholder": "البحث باسم الطالب أو الرقم...",
         "stage": "المرحلة",
         "all_stages": "جميع المراحل",
@@ -2503,6 +2522,39 @@
     }
   },
   "academics": {
+    "export": {
+      "title": "تصدير بيانات الأكاديميات",
+      "subtitle": "اختر تنسيق التصدير للعرض الحالي في الأكاديميات.",
+      "button": "تصدير",
+      "format": {
+        "label": "تنسيق التصدير",
+        "csv": {
+          "title": "CSV",
+          "description": "صفوف مسطحة مترجمة"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "بيانات منظمة باللغة الإنجليزية"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "ملف CSV متوافق مع Excel"
+        }
+      },
+      "selection": {
+        "title": "البيانات الحالية",
+        "visibleRows": "سيتم تصدير {count} صفًا ظاهرًا"
+      },
+      "actions": {
+        "cancel": "إلغاء",
+        "exporting": "جاري التصدير...",
+        "export": "تصدير"
+      },
+      "errors": {
+        "noData": "لا توجد بيانات في العرض الحالي للتصدير",
+        "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
+      }
+    },
     "structure": {
       "context_bar": {
         "title": "السياق الأكاديمي",
@@ -3908,6 +3960,7 @@
       },
       "actions": {
         "createAssessment": "إنشاء اختبار",
+        "export": "تصدير",
         "bulkEntry": "إدخال جماعي",
         "approve": "اعتماد",
         "lock": "قفل",
@@ -3915,6 +3968,104 @@
         "delete": "حذف",
         "manageQuestions": "إدارة الأسئلة",
         "publish": "نشر"
+      },
+      "export": {
+        "title": "تصدير بيانات الدرجات",
+        "subtitle": "حمّل عرض الدرجات الحالي بالتنسيق الذي تختاره.",
+        "datasets": {
+          "label": "اختيار مجموعة البيانات",
+          "summary": {
+            "label": "الملخص",
+            "description": "مؤشرات الأداء ودرجة النجاح واتجاه الأداء"
+          },
+          "assessments": {
+            "label": "اختبارات النظرة العامة",
+            "description": "الاختبارات الظاهرة في لوحة النظرة العامة"
+          },
+          "analytics_distribution": {
+            "label": "تحليلات التوزيع",
+            "description": "نطاقات توزيع الدرجات حسب الفلاتر الحالية"
+          },
+          "analytics_assessments": {
+            "label": "تحليلات الاختبارات",
+            "description": "متوسط الأداء حسب كل اختبار"
+          },
+          "analytics_students": {
+            "label": "تحليلات الطلاب",
+            "description": "أفضل الطلاب والطلاب الأقل أداءً في ملف واحد"
+          },
+          "assessmentsView": {
+            "label": "الاختبارات"
+          },
+          "gradebook": {
+            "label": "سجل الدرجات"
+          }
+        },
+        "format": {
+          "label": "تنسيق التصدير",
+          "csv": {
+            "title": "CSV",
+            "description": "تصدير جدولي مترجم"
+          },
+          "json": {
+            "title": "JSON",
+            "description": "تصدير منظم بمفاتيح إنجليزية"
+          },
+          "excel": {
+            "title": "Excel",
+            "description": "CSV متوافق مع Excel ويدعم UTF-8"
+          }
+        },
+        "selection": {
+          "title": "البيانات الحالية",
+          "visibleRows": "سيتم تصدير {count} صف ظاهر"
+        },
+        "groups": {
+          "top": "الأعلى",
+          "lowest": "الأقل"
+        },
+        "columns": {
+          "metric": "المؤشر",
+          "value": "القيمة",
+          "assessmentId": "رقم الاختبار",
+          "title": "العنوان",
+          "titleEn": "العنوان (بالإنجليزية)",
+          "titleAr": "العنوان (بالعربية)",
+          "type": "النوع",
+          "deliveryMode": "طريقة الإدخال",
+          "date": "التاريخ",
+          "weight": "الوزن",
+          "maxScore": "الدرجة النهائية",
+          "approvalStatus": "حالة الاعتماد",
+          "locked": "مقفل",
+          "scopeType": "نوع النطاق",
+          "scopeId": "رقم النطاق",
+          "sectionId": "رقم الشعبة",
+          "classroomId": "رقم الفصل",
+          "subjectId": "رقم المادة",
+          "termId": "رقم الفصل الدراسي",
+          "band": "النطاق",
+          "count": "العدد",
+          "average": "المتوسط",
+          "enteredCount": "عدد المدخلات",
+          "group": "المجموعة",
+          "studentId": "رقم الطالب",
+          "studentName": "الطالب",
+          "studentNameEn": "الطالب (بالإنجليزية)",
+          "studentNameAr": "الطالب (بالعربية)",
+          "completedItems": "العناصر المكتملة",
+          "totalItems": "إجمالي العناصر",
+          "status": "الحالة"
+        },
+        "actions": {
+          "cancel": "إلغاء",
+          "exporting": "جارٍ التصدير...",
+          "export": "تصدير"
+        },
+        "errors": {
+          "noData": "لا توجد بيانات في العرض الحالي للتصدير",
+          "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
+        }
       },
       "analytics": {
         "kpis": {
@@ -5263,6 +5414,41 @@
           "excuses": "فتح في الأعذار"
         }
       }
+    },
+    "export": {
+      "title": "تصدير بيانات الحضور",
+      "subtitle": "حمّل عرض الحضور الحالي بالتنسيق الذي تفضله.",
+      "datasets": {
+        "label": "اختر مجموعة البيانات"
+      },
+      "format": {
+        "label": "تنسيق التصدير",
+        "csv": {
+          "title": "CSV",
+          "description": "بيانات جدول محلية مناسبة لبرامج الجداول"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "بيانات منظمة بمفاتيح إنجليزية للتكاملات"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "ملف CSV متوافق مع Excel ويدعم UTF-8"
+        }
+      },
+      "selection": {
+        "title": "البيانات الحالية",
+        "visibleRows": "سيتم تصدير {count} صفًا ظاهرًا"
+      },
+      "actions": {
+        "cancel": "إلغاء",
+        "exporting": "جاري التصدير...",
+        "export": "تصدير"
+      },
+      "errors": {
+        "noData": "لا توجد بيانات في العرض الحالي للتصدير.",
+        "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
+      }
     }
   },
   "settings": {
@@ -5291,6 +5477,54 @@
         "info": "معلومة",
         "warning": "تحذير",
         "critical": "حرج"
+      }
+    },
+    "export": {
+      "title": "تصدير بيانات الإعدادات",
+      "subtitle": "نزّل عرض الإعدادات الحالي بالتنسيق الذي تفضله.",
+      "button": "تصدير",
+      "datasets": {
+        "label": "مجموعة البيانات",
+        "summary": {
+          "label": "مؤشرات الملخص",
+          "description": "تصدير ملخص مؤشرات صفحة نظرة عامة الإعدادات."
+        },
+        "audit": {
+          "label": "نشاط المراجعة الأخير",
+          "description": "تصدير قائمة نشاط المراجعة الأخيرة الظاهرة حالياً."
+        },
+        "integrations": {
+          "label": "ملخص التكاملات",
+          "description": "تصدير ملخص حالة التكاملات المعروض في صفحة النظرة العامة."
+        }
+      },
+      "format": {
+        "label": "تنسيق التصدير",
+        "csv": {
+          "title": "CSV",
+          "description": "تصدير محلي مناسب للجداول"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "بيانات منظمة بمفاتيح إنجليزية"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "ملف CSV متوافق مع Excel ويدعم UTF-8"
+        }
+      },
+      "selection": {
+        "title": "التحديد الحالي",
+        "visibleRows": "سيتم تصدير {count} صف ظاهر"
+      },
+      "actions": {
+        "cancel": "إلغاء",
+        "exporting": "جارٍ التصدير...",
+        "export": "تصدير"
+      },
+      "errors": {
+        "noData": "لا توجد بيانات في العرض الحالي للتصدير.",
+        "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
       }
     },
     "overview": {
@@ -5612,6 +5846,54 @@
       "togglePublish": "تبديل النشر",
       "badgesGuide": "دليل أصول الشارات"
     },
+    "export": {
+      "title": "تصدير بيانات نداء",
+      "subtitle": "حمّل عرض نداء الحالي بالتنسيق الذي تفضله.",
+      "button": "تصدير",
+      "datasets": {
+        "label": "اختر مجموعة البيانات",
+        "summary": {
+          "title": "الملخص",
+          "description": "لقطة لمؤشرات الأداء من النظرة العامة"
+        },
+        "latest_requests": {
+          "title": "أحدث الطلبات",
+          "description": "أحدث طلبات الاستلام من النظرة العامة"
+        },
+        "gates": {
+          "title": "البوابات",
+          "description": "مؤشرات لوحة البوابات من النظرة العامة"
+        }
+      },
+      "format": {
+        "label": "تنسيق التصدير",
+        "csv": {
+          "title": "CSV",
+          "description": "ملف مناسب للجداول ببيانات مترجمة"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "بيانات منظمة بمفاتيح إنجليزية"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "ملف CSV متوافق مع Excel ويدعم UTF-8"
+        }
+      },
+      "selection": {
+        "title": "البيانات الحالية",
+        "visibleRows": "سيتم تصدير {count} سجلًا ظاهرًا"
+      },
+      "actions": {
+        "cancel": "إلغاء",
+        "exporting": "جاري التصدير...",
+        "export": "تصدير"
+      },
+      "errors": {
+        "noData": "لا توجد بيانات نداء في العرض الحالي للتصدير.",
+        "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
+      }
+    },
     "messages": {
       "loadOverviewFailed": "تعذر تحميل نظرة رحلة البطل.",
       "editPlaceholder": "وضع التحرير الحالي مجرد عنصر تجريبي آمن حتى يتم ربط تعديل المهام بالخلفية.",
@@ -5722,6 +6004,102 @@
       "coachNote": "ملاحظة المشرف",
       "lastActivityLabel": "آخر نشاط: {date}"
     },
+    "export": {
+      "title": "تصدير بيانات التعزيز",
+      "subtitle": "حمّل العرض الحالي في وحدة التعزيز بالتنسيق الذي تفضله.",
+      "button": "تصدير",
+      "datasets": {
+        "label": "مجموعة البيانات",
+        "summary": {
+          "label": "المؤشرات الرئيسية",
+          "description": "تصدير ملخص مؤشرات لوحة التعزيز."
+        },
+        "activity": {
+          "label": "أحدث النشاطات",
+          "description": "تصدير النشاطات الظاهرة حالياً في العرض."
+        },
+        "chart": {
+          "label": "الرسم المحدد",
+          "description": "تصدير الرسم البياني المحدد حالياً في عناصر التحكم."
+        }
+      },
+      "format": {
+        "label": "تنسيق التصدير",
+        "csv": {
+          "title": "CSV",
+          "description": "تصدير محلي مناسب للجداول"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "بيانات منظمة بمفاتيح إنجليزية"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "ملف CSV متوافق مع Excel ويدعم UTF-8"
+        }
+      },
+      "selection": {
+        "title": "التحديد الحالي",
+        "visibleRows": "سيتم تصدير {count} سجل ظاهر"
+      },
+      "actions": {
+        "cancel": "إلغاء",
+        "exporting": "جارٍ التصدير...",
+        "export": "تصدير"
+      },
+      "errors": {
+        "noData": "لا توجد بيانات تعزيز متاحة في العرض الحالي للتصدير",
+        "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
+      }
+    },
+    "export": {
+      "title": "تصدير بيانات التعزيز",
+      "subtitle": "حمّل العرض الحالي في وحدة التعزيز بالتنسيق الذي تفضله.",
+      "button": "تصدير",
+      "datasets": {
+        "label": "مجموعة البيانات",
+        "summary": {
+          "label": "المؤشرات الرئيسية",
+          "description": "تصدير ملخص مؤشرات لوحة التعزيز."
+        },
+        "activity": {
+          "label": "أحدث النشاطات",
+          "description": "تصدير النشاطات الظاهرة حالياً في العرض."
+        },
+        "chart": {
+          "label": "الرسم المحدد",
+          "description": "تصدير الرسم البياني المحدد حالياً في عناصر التحكم."
+        }
+      },
+      "format": {
+        "label": "تنسيق التصدير",
+        "csv": {
+          "title": "CSV",
+          "description": "تصدير محلي مناسب للجداول"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "بيانات منظمة بمفاتيح إنجليزية"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "ملف CSV متوافق مع Excel ويدعم UTF-8"
+        }
+      },
+      "selection": {
+        "title": "التحديد الحالي",
+        "visibleRows": "سيتم تصدير {count} سجل ظاهر"
+      },
+      "actions": {
+        "cancel": "إلغاء",
+        "exporting": "جارٍ التصدير...",
+        "export": "تصدير"
+      },
+      "errors": {
+        "noData": "لا توجد بيانات تعزيز متاحة في العرض الحالي للتصدير",
+        "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
+      }
+    },
     "empty": {
       "missions": "لا توجد مهام تطابق عوامل التصفية الحالية.",
       "students": "لا يوجد طلاب يطابقون عوامل التصفية الحالية.",
@@ -5775,6 +6153,54 @@
       "createReward": "إنشاء مكافأة",
       "newTask": "مهمة جديدة"
     },
+    "export": {
+      "title": "تصدير بيانات التعزيز",
+      "subtitle": "نزّل عرض التعزيز الحالي بالتنسيق الذي تفضله.",
+      "button": "تصدير",
+      "datasets": {
+        "label": "مجموعة البيانات",
+        "summary": {
+          "label": "مؤشرات الملخص",
+          "description": "تصدير ملخص مؤشرات لوحة التعزيز."
+        },
+        "activity": {
+          "label": "النشاط الأخير",
+          "description": "تصدير موجز نشاط التعزيز الظاهر حالياً."
+        },
+        "chart": {
+          "label": "الرسم المحدد",
+          "description": "تصدير الرسم البياني المحدد حالياً في لوحة النظرة العامة."
+        }
+      },
+      "format": {
+        "label": "تنسيق التصدير",
+        "csv": {
+          "title": "CSV",
+          "description": "تصدير محلي مناسب للجداول"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "بيانات منظمة بمفاتيح إنجليزية"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "ملف CSV متوافق مع Excel ويدعم UTF-8"
+        }
+      },
+      "selection": {
+        "title": "التحديد الحالي",
+        "visibleRows": "سيتم تصدير {count} سجل ظاهر"
+      },
+      "actions": {
+        "cancel": "إلغاء",
+        "exporting": "جارٍ التصدير...",
+        "export": "تصدير"
+      },
+      "errors": {
+        "noData": "لا توجد بيانات تعزيز متاحة في العرض الحالي للتصدير",
+        "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
+      }
+    },
     "empty": {
       "tasks": "لا توجد أي مهام تعزيز متاحة حالياً.",
       "templates": "لا توجد قوالب مهام حتى الآن.",
@@ -5801,8 +6227,12 @@
       "topStudents": "أفضل الطلاب"
     },
     "filters": {
+      "title": "فلاتر المهام",
+      "subtitle": "ابحث في مهام التعزيز أو ضيّق القائمة حسب الفئة والحالة ونوع المكافأة وتاريخ الاستحقاق.",
       "search": "بحث",
       "searchPlaceholder": "ابحث بالعنوان أو الطالب أو الصف أو المصدر",
+      "showFilters": "إظهار الفلاتر",
+      "hideFilters": "إخفاء الفلاتر",
       "student": "الطالب",
       "class": "الصف",
       "source": "المصدر",
@@ -5817,7 +6247,8 @@
       "assignmentLevel": "مستوى التعيين",
       "target": "الهدف",
       "allAssignmentLevels": "كل مستويات التعيين",
-      "allTargets": "كل الأهداف"
+      "allTargets": "كل الأهداف",
+      "clearFilters": "مسح الفلاتر"
     },
     "table": {
       "task": "المهمة",
@@ -6380,6 +6811,39 @@
       "delete_failed": "فشل حذف المعلم.",
       "password_changed_success": "تم تغيير كلمة مرور المعلم بنجاح.",
       "password_change_failed": "فشل تغيير كلمة مرور المعلم."
+    },
+    "export": {
+      "title": "تصدير المعلمين",
+      "subtitle": "تحميل دليل المعلمين وفق التصفية الحالية.",
+      "button": "تصدير",
+      "format": {
+        "label": "صيغة التصدير",
+        "csv": {
+          "title": "CSV",
+          "description": "ملف مناسب للجداول ببيانات مترجمة"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "بيانات منظمة بمفاتيح إنجليزية"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "ملف CSV متوافق مع Excel ويدعم UTF-8"
+        }
+      },
+      "selection": {
+        "title": "البيانات الحالية",
+        "visibleRows": "سيتم تصدير {count} سجل معلمين ظاهر"
+      },
+      "actions": {
+        "cancel": "إلغاء",
+        "exporting": "جارٍ التصدير...",
+        "export": "تصدير"
+      },
+      "errors": {
+        "noData": "لا يوجد معلمون في العرض الحالي للتصدير",
+        "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
+      }
     },
     "validation": {
       "code_required": "رمز المعلم مطلوب.",

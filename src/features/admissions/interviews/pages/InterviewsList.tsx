@@ -23,8 +23,9 @@ import DateRangeFilter, {
   DateRangeValue,
 } from "@/features/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
-import { downloadCSV, generateFilename } from "@/utils/simpleExport";
-import { formatInterviewsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
+import {
+  formatVisibleInterviewsForExport,
+} from "@/features/admissions/applications/utils/admissionsExportUtils";
 import { mockApplications, mockInterviews } from "@/data/mockAdmissions";
 import {
   Interview,
@@ -33,6 +34,8 @@ import {
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
+import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
 import {
   filterAdmissionsRecordsByDateContext,
   resolveAdmissionsContextScope,
@@ -48,6 +51,7 @@ export default function InterviewsList() {
   >(null);
   const [isScheduleInterviewOpen, setIsScheduleInterviewOpen] = useState(false);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const [showFilters, setShowFilters] = useState(false);
   const admissionsScope = useMemo(
@@ -66,6 +70,7 @@ export default function InterviewsList() {
             : app.full_name_en || app.studentName,
         applicationId: app.id,
         interviewId: interview.id,
+        gradeRequested: app.gradeRequested,
       })),
     );
     const standaloneInterviews = mockInterviews.map((interview) => {
@@ -82,6 +87,7 @@ export default function InterviewsList() {
               "Unknown"
             : app?.full_name_en || app?.studentName || "Unknown",
         applicationId: interview.applicationId,
+        gradeRequested: app?.gradeRequested,
       };
     });
     return [...interviewsFromApps, ...standaloneInterviews];
@@ -194,8 +200,6 @@ export default function InterviewsList() {
     customEndDate,
   ]);
 
-  console.log("filterResult", filteredInterviews);
-
   // Calculate KPIs
   const kpis = useMemo(() => {
     const filterResult = getDateFilterBoundaries(
@@ -300,10 +304,14 @@ export default function InterviewsList() {
     setIsScheduleInterviewOpen(false);
   };
 
-  const handleExport = () => {
-    const formattedData = formatInterviewsForExport(mockApplications);
-    const filename = generateFilename("interviews", "csv");
-    downloadCSV(formattedData, filename);
+  const handleExport = async (format: "csv" | "json" | "excel") => {
+    const exportLocale = format === "json" ? "en" : locale;
+    downloadAdmissionsExport({
+      data: formatVisibleInterviewsForExport(filteredInterviews, exportLocale),
+      format,
+      filenameBase: "interviews",
+      emptyMessage: hasActiveFilters ? t("no_match") : t("no_interviews"),
+    });
   };
 
   const handleRatingSubmit = (
@@ -421,7 +429,7 @@ export default function InterviewsList() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={handleExport}
+            onClick={() => setIsExportModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
           >
             <Download className="w-4 h-4" />
@@ -547,6 +555,15 @@ export default function InterviewsList() {
           onSubmit={handleRatingSubmit}
         />
       )}
+      <AdmissionsGlobalExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={({ format }) => handleExport(format)}
+        mode="list"
+        confirmLabel={t("export")}
+        datasetCount={filteredInterviews.length}
+        emptyStateMessage={hasActiveFilters ? t("no_match") : t("no_interviews")}
+      />
     </div>
   );
 }

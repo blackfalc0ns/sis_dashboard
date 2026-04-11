@@ -17,13 +17,16 @@ import { KPICardV2 } from "@/components/ui/kpi-card";
 import DecisionModal from "@/features/admissions/decisions/components/DecisionModal";
 import DateRangeFilter, { DateRangeValue } from "@/features/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
-import { downloadCSV, generateFilename } from "@/utils/simpleExport";
-import { formatDecisionsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
+import {
+  formatVisibleDecisionsForExport,
+} from "@/features/admissions/applications/utils/admissionsExportUtils";
 import { mockApplications, mockDecisions } from "@/data/mockAdmissions";
 import { Decision, DecisionType, Application } from "@/features/admissions/types/admissions";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
+import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
 import {
   filterAdmissionsRecordsByDateContext,
   resolveAdmissionsContextScope,
@@ -36,6 +39,7 @@ export default function DecisionsList() {
   const [selectedApplication, setSelectedApplication] =
     useState<Application | null>(null);
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const [showFilters, setShowFilters] = useState(false);
   const admissionsScope = useMemo(
@@ -270,13 +274,14 @@ export default function DecisionsList() {
     setIsDecisionModalOpen(false);
   };
 
-  const handleExport = () => {
-    const formattedData = formatDecisionsForExport(
-      mockApplications,
-      mockDecisions,
-    );
-    const filename = generateFilename("decisions", "csv");
-    downloadCSV(formattedData, filename);
+  const handleExport = async (format: "csv" | "json" | "excel") => {
+    const exportLocale = format === "json" ? "en" : locale;
+    downloadAdmissionsExport({
+      data: formatVisibleDecisionsForExport(filteredDecisions, exportLocale),
+      format,
+      filenameBase: "decisions",
+      emptyMessage: hasActiveFilters ? t("no_match") : t("no_decisions"),
+    });
   };
 
   return (
@@ -383,7 +388,7 @@ export default function DecisionsList() {
           <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
         </div>
         <button
-          onClick={handleExport}
+          onClick={() => setIsExportModalOpen(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
         >
           <Download className="w-4 h-4" />
@@ -500,6 +505,15 @@ export default function DecisionsList() {
           onSubmit={handleDecisionSubmit}
         />
       )}
+      <AdmissionsGlobalExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={({ format }) => handleExport(format)}
+        mode="list"
+        confirmLabel={t("export")}
+        datasetCount={filteredDecisions.length}
+        emptyStateMessage={hasActiveFilters ? t("no_match") : t("no_decisions")}
+      />
     </div>
   );
 }

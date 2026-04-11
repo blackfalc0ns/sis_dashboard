@@ -1,12 +1,11 @@
 ﻿"use client";
 
 import { useTranslations } from "next-intl";
-import { Search, RotateCcw } from "lucide-react";
+import { Search, RotateCcw, Download } from "lucide-react";
 import Input from "@/components/ui/input/Input";
 import DatePicker from "@/components/ui/input/DatePicker";
 import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
-import ExportButton from "@/components/ui/button/ExportButton";
 import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
 import type { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { ExcuseRequestFilters } from "../types";
@@ -19,7 +18,7 @@ interface ExcusesFiltersBarProps {
   classrooms: Classroom[];
   onFiltersChange: (patch: Partial<ExcuseRequestFilters>) => void;
   onReset: () => void;
-  onExport: (format: "csv" | "excel") => void;
+  onOpenExport: () => void;
 }
 
 export default function ExcusesFiltersBar({
@@ -30,7 +29,7 @@ export default function ExcusesFiltersBar({
   classrooms,
   onFiltersChange,
   onReset,
-  onExport,
+  onOpenExport,
 }: ExcusesFiltersBarProps) {
   const t = useTranslations("attendance.excuses.filters");
   const tCommon = useTranslations("common");
@@ -119,7 +118,14 @@ export default function ExcusesFiltersBar({
         <Button variant="outline" size="sm" leftIcon={<RotateCcw className="w-4 h-4" />} onClick={onReset}>
           {tCommon("reset")}
         </Button>
-        <ExportButton onExport={onExport} label={t("export")} />
+        <Button
+          variant="outline"
+          size="sm"
+          leftIcon={<Download className="w-4 h-4" />}
+          onClick={onOpenExport}
+        >
+          {t("export")}
+        </Button>
       </div>
     </div>
   );

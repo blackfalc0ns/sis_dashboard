@@ -4,13 +4,22 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDebouncedCallback } from "use-debounce";
-import { Plus, Edit2, Trash2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Download } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui";
+import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import Select from "@/components/ui/input/Select";
 import { useToast } from "@/components/ui/toast/Toast";
 import RoomDialog from "./RoomDialog";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
+import {
+  type AcademicsExportFormat,
+  exportAcademicsData,
+  formatExportDate,
+  generateExportFilename,
+  type ExportColumn,
+  type ExportMetadata,
+} from "@/features/academics/utils/exportAdapter";
 import {
   fetchRooms,
   createRoom,
@@ -56,6 +65,7 @@ export default function RoomsView({
 }: RoomsViewProps) {
   const t = useTranslations("academics.timetable.rooms");
   const tCommon = useTranslations("common");
+  const tExport = useTranslations("academics.export");
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -88,6 +98,7 @@ export default function RoomsView({
   }, [queryState.searchQuery]);
   const [defaultRoomId, setDefaultRoomId] = useState("");
   const [editingDefault, setEditingDefault] = useState<RoomDefaultAssignment | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Dialog states
   const [roomDialogOpen, setRoomDialogOpen] = useState(false);
@@ -449,8 +460,15 @@ export default function RoomsView({
     ? classrooms.filter((classroom) => classroom.sectionId === queryState.defaultSectionId)
     : [];
 
-  const getDisplayName = (item?: { nameAr?: string; nameEn?: string }) =>
-    item ? (locale === "ar" ? item.nameAr || item.nameEn || "" : item.nameEn || item.nameAr || "") : "";
+  const getDisplayName = useCallback(
+    (item?: { nameAr?: string; nameEn?: string }) =>
+      item
+        ? locale === "ar"
+          ? item.nameAr || item.nameEn || ""
+          : item.nameEn || item.nameAr || ""
+        : "",
+    [locale],
+  );
 
   const stageOptions = stages.map((stage) => ({
     value: stage.id,
@@ -541,20 +559,139 @@ export default function RoomsView({
     },
   ];
 
+  const roomExportRows = useMemo(() => {
+    const roomRows = filteredRooms.map((room) => ({
+      dataset: locale === "ar" ? "الغرف" : "Rooms",
+      name: locale === "ar" ? room.nameAr : room.nameEn,
+      secondaryName: locale === "ar" ? room.nameEn : room.nameAr,
+      type: t(`types.${room.type}`),
+      capacity: room.capacity,
+      status: room.isActive ? t("active") : t("inactive"),
+      scopeType: "",
+      scopePath: "",
+      assignedRoom: "",
+    }));
+
+    const defaultRows = roomDefaults.map((assignment) => {
+      const room = rooms.find((item) => item.id === assignment.roomId);
+      const classroom =
+        assignment.scopeType === "CLASSROOM"
+          ? classrooms.find((item) => item.id === assignment.scopeId)
+          : undefined;
+      const section =
+        assignment.scopeType === "SECTION"
+          ? sections.find((item) => item.id === assignment.scopeId)
+          : classroom
+            ? sections.find((item) => item.id === classroom.sectionId)
+            : undefined;
+      const grade = section
+        ? grades.find((item) => item.id === section.gradeId)
+        : undefined;
+      const stage = grade
+        ? stages.find((item) => item.id === grade.stageId)
+        : undefined;
+
+      return {
+        dataset: locale === "ar" ? "التعيينات الافتراضية" : "Default Assignments",
+        name: "",
+        secondaryName: "",
+        type: "",
+        capacity: "",
+        status: "",
+        scopeType: assignment.scopeType,
+        scopePath: [stage, grade, section, classroom]
+          .filter(Boolean)
+          .map((item) => getDisplayName(item))
+          .join(" / "),
+        assignedRoom: room ? getDisplayName(room) : "",
+      };
+    });
+
+    return [...roomRows, ...defaultRows];
+  }, [
+    classrooms,
+    filteredRooms,
+    getDisplayName,
+    grades,
+    locale,
+    roomDefaults,
+    rooms,
+    sections,
+    stages,
+    t,
+  ]);
+
+  const handleExport = (format: AcademicsExportFormat) => {
+    const metadata: ExportMetadata = {
+      yearName: academicYearId || undefined,
+      termName: termId || undefined,
+      exportDate: formatExportDate(locale),
+    };
+    const columnsForExport: ExportColumn[] = [
+      { key: "dataset", label: locale === "ar" ? "مجموعة البيانات" : "Dataset" },
+      { key: "name", label: locale === "ar" ? "الاسم" : "Name" },
+      {
+        key: "secondaryName",
+        label: locale === "ar" ? "الاسم الثانوي" : "Secondary name",
+      },
+      { key: "type", label: locale === "ar" ? "النوع" : "Type" },
+      { key: "capacity", label: locale === "ar" ? "السعة" : "Capacity" },
+      { key: "status", label: locale === "ar" ? "الحالة" : "Status" },
+      {
+        key: "scopeType",
+        label: locale === "ar" ? "نوع النطاق" : "Scope type",
+      },
+      {
+        key: "scopePath",
+        label: locale === "ar" ? "مسار النطاق" : "Scope path",
+      },
+      {
+        key: "assignedRoom",
+        label: locale === "ar" ? "الغرفة المعيّنة" : "Assigned room",
+      },
+    ];
+
+    exportAcademicsData({
+      title: t("title"),
+      metadata,
+      filename: generateExportFilename("rooms", termId),
+      format,
+      columns: columnsForExport,
+      rows: roomExportRows,
+      locale,
+      jsonData: {
+        title: "Rooms",
+        metadata,
+        rooms: filteredRooms,
+        roomDefaults,
+      },
+    });
+  };
+
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">{t("title")}</h2>
-          <Button
-            onClick={handleAddRoom}
-            disabled={isReadOnly}
-            variant="primary"
-            leftIcon={<Plus className="w-4 h-4" />}
-          >
-            {t("addRoom")}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setShowExportModal(true)}
+              variant="secondary"
+              leftIcon={<Download className="w-4 h-4" />}
+              disabled={roomExportRows.length === 0}
+            >
+              {tExport("button")}
+            </Button>
+            <Button
+              onClick={handleAddRoom}
+              disabled={isReadOnly}
+              variant="primary"
+              leftIcon={<Plus className="w-4 h-4" />}
+            >
+              {t("addRoom")}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -817,6 +954,15 @@ export default function RoomsView({
           severity="danger"
         />
       )}
+
+      <AcademicsGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={tExport("title")}
+        subtitle={t("title")}
+        datasetCount={roomExportRows.length}
+      />
     </div>
   );
 }

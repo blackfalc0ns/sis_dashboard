@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
-import { Edit3, FlaskConical } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { Download, Edit3, FlaskConical } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -11,16 +11,25 @@ import SettingsPageHeader from "@/features/settings/components/SettingsPageHeade
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
 import SettingsStatusBadge from "@/features/settings/components/SettingsStatusBadge";
 import TemplateEditorModal from "@/features/settings/components/TemplateEditorModal";
+import SettingsGlobalExportModal from "@/features/settings/shared/components/export/SettingsGlobalExportModal";
 import {
   fetchNotificationTemplates,
   runTemplateTest,
   updateNotificationTemplate,
 } from "@/features/settings/services/settingsService";
+import {
+  exportSettingsData,
+  formatSettingsExportDate,
+  type ExportColumn,
+  type SettingsExportFormat,
+} from "@/features/settings/shared/utils/settingsExport";
 import type { NotificationTemplateConfig } from "@/features/settings/types";
 import { usePermissions } from "@/hooks/usePermissions";
 
 export default function SettingsTemplatesPage() {
+  const locale = useLocale();
   const t = useTranslations("settings.templates");
+  const tExport = useTranslations("settings.export");
   const tCommon = useTranslations("common");
   const { hasPermission } = usePermissions();
   const { showError, showSuccess } = useToast();
@@ -29,6 +38,7 @@ export default function SettingsTemplatesPage() {
     null,
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -85,6 +95,54 @@ export default function SettingsTemplatesPage() {
     }
   };
 
+  const handleExport = (format: SettingsExportFormat) => {
+    const metadata = {
+      viewName: t("title"),
+      exportDate: formatSettingsExportDate(locale),
+      visibleCount: templates.length,
+    };
+    const columns: ExportColumn[] = [
+      { key: "id", label: "ID" },
+      { key: "key", label: "Key" },
+      { key: "name", label: locale === "ar" ? "الاسم" : "Name" },
+      { key: "status", label: locale === "ar" ? "الحالة" : "Status" },
+      { key: "channels", label: locale === "ar" ? "القنوات" : "Channels" },
+      { key: "variableCount", label: locale === "ar" ? "عدد المتغيرات" : "Variable count" },
+      { key: "variables", label: t("variables") },
+      { key: "emailSubject", label: t("subject_label") },
+      { key: "lastTestAt", label: locale === "ar" ? "آخر اختبار" : "Last test" },
+    ];
+    const rows = templates.map((template) => ({
+      id: template.id,
+      key: template.key,
+      name: template.name,
+      status: template.status,
+      channels: template.template.channels.join(", "),
+      variableCount: template.variables.length,
+      variables: template.variables.join(", "),
+      emailSubject: template.template.emailSubject,
+      lastTestAt: template.lastTestAt
+        ? new Date(template.lastTestAt).toLocaleString()
+        : "",
+    }));
+
+    exportSettingsData({
+      title: t("title"),
+      metadata,
+      filename: "settings-templates",
+      format,
+      columns,
+      rows,
+      locale,
+      emptyMessage: tExport("errors.noData"),
+      jsonData: {
+        title: "Settings Templates",
+        metadata,
+        templates,
+      },
+    });
+  };
+
   if (isLoading) {
     return <MainLoader />;
   }
@@ -92,7 +150,19 @@ export default function SettingsTemplatesPage() {
   return (
     <SettingsAccessGuard permission="settings.templates.view">
       <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
-      <SettingsPageHeader title={t("title")} subtitle={t("subtitle")} />
+      <SettingsPageHeader
+        title={t("title")}
+        subtitle={t("subtitle")}
+        actions={
+          <Button
+            variant="secondary"
+            leftIcon={<Download className="h-4 w-4" />}
+            onClick={() => setIsExportModalOpen(true)}
+          >
+            {tExport("button")}
+          </Button>
+        }
+      />
 
       <div className="space-y-4">
         {templates.map((template) => (
@@ -183,6 +253,13 @@ export default function SettingsTemplatesPage() {
         template={selectedTemplate}
         onClose={() => setSelectedTemplate(null)}
         onSave={handleSave}
+      />
+      <SettingsGlobalExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        datasetCount={templates.length}
+        emptyStateMessage={tExport("errors.noData")}
       />
       </main>
     </SettingsAccessGuard>

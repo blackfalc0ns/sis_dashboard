@@ -4,9 +4,9 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Save, RotateCcw, AlertCircle, Users } from "lucide-react";
+import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import { IconButton, Tooltip } from "@mui/material";
 import Button from "@/components/ui/button/Button";
-import ExportButton from "@/components/ui/button/ExportButton";
 import FilterBar from "./FilterBar";
 import TeacherSelect from "./TeacherSelect";
 import BulkActionDialog from "./BulkActionDialog";
@@ -27,6 +27,7 @@ import {
   resolveTeacherAllocationForTarget,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import {
+  type AcademicsExportFormat,
   exportAcademicsData,
   generateExportFilename,
   ExportColumn,
@@ -106,6 +107,7 @@ export default function AllocationMatrixView({
   const [bulkActionGrade, setBulkActionGrade] = useState<Grade | null>(null);
   const [bulkActionSubject, setBulkActionSubject] = useState<Subject | null>(null);
   const [bulkActionTeacher, setBulkActionTeacher] = useState<Teacher | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     setLocalAllocations(teacherAllocations);
@@ -479,7 +481,7 @@ export default function AllocationMatrixView({
     return Math.round((filledCells / totalCells) * 100);
   }, [filteredSubjects, localAllocations, matrixRows]);
 
-  const handleExport = (format: "csv" | "excel") => {
+  const handleExport = (format: AcademicsExportFormat) => {
     const metadata: ExportMetadata = {
       yearName,
       termName,
@@ -557,6 +559,11 @@ export default function AllocationMatrixView({
       columns,
       rows,
       locale,
+      jsonData: {
+        title: t("title"),
+        metadata,
+        rows,
+      },
     });
   };
 
@@ -707,11 +714,13 @@ export default function AllocationMatrixView({
                   <span>{t("unsavedChanges.message")}</span>
                 </div>
               )}
-              <ExportButton
-                onExport={handleExport}
+              <Button
+                onClick={() => setShowExportModal(true)}
+                variant="secondary"
                 disabled={matrixRows.length === 0 || filteredSubjects.length === 0}
-                label={t("actions.export")}
-              />
+              >
+                {t("actions.export")}
+              </Button>
               <Button
                 onClick={handleReset}
                 variant="secondary"
@@ -787,6 +796,15 @@ export default function AllocationMatrixView({
         sections={sections}
         classrooms={classrooms}
         onSuccess={handleBulkActionSuccess}
+      />
+
+      <AcademicsGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        title={t("actions.export")}
+        subtitle={t("matrix.title")}
+        datasetCount={matrixRows.length}
       />
     </div>
   );
