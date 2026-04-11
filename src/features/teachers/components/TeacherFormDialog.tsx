@@ -19,6 +19,7 @@ import type {
   TeacherFormData,
   TeacherFormErrors,
   TeacherReferenceData,
+  TeacherWorkDay,
 } from "@/features/teachers/types";
 import {
   getLocalizedReferenceLabel,
@@ -65,6 +66,11 @@ function createEmptyTeacherFormData(): TeacherFormData {
     stageIds: [],
     gradeIds: [],
     sectionIds: [],
+    experienceYears: "",
+    workDayFrom: "",
+    workDayTo: "",
+    workStartTime: "",
+    workEndTime: "",
     hireDate: "",
     notesAr: "",
     notesEn: "",
@@ -297,6 +303,17 @@ export default function TeacherFormDialog({
     { value: "INACTIVE", label: t("status.inactive") },
   ];
 
+  const workDayOptions = [
+    { value: "", label: t("fields.select_work_day") },
+    { value: "SUNDAY", label: t("work_days.sunday") },
+    { value: "MONDAY", label: t("work_days.monday") },
+    { value: "TUESDAY", label: t("work_days.tuesday") },
+    { value: "WEDNESDAY", label: t("work_days.wednesday") },
+    { value: "THURSDAY", label: t("work_days.thursday") },
+    { value: "FRIDAY", label: t("work_days.friday") },
+    { value: "SATURDAY", label: t("work_days.saturday") },
+  ];
+
   return (
     <Modal
       isOpen={isOpen}
@@ -365,6 +382,68 @@ export default function TeacherFormDialog({
                 )
               }
               error={resolveError("phone")}
+            />
+            <Input
+              label={t("fields.experience_years")}
+              type="number"
+              min="0"
+              max="60"
+              value={formData.experienceYears}
+              onChange={(event) =>
+                updateFormData(
+                  { experienceYears: event.target.value },
+                  "experienceYears",
+                )
+              }
+              error={resolveError("experienceYears")}
+            />
+            <Select
+              label={t("fields.work_day_from")}
+              value={formData.workDayFrom}
+              onChange={(value) =>
+                updateFormData(
+                  { workDayFrom: value as TeacherWorkDay | "" },
+                  "workDayFrom",
+                )
+              }
+              options={workDayOptions}
+              error={resolveError("workDayFrom")}
+            />
+            <Select
+              label={t("fields.work_day_to")}
+              value={formData.workDayTo}
+              onChange={(value) =>
+                updateFormData(
+                  { workDayTo: value as TeacherWorkDay | "" },
+                  "workDayTo",
+                )
+              }
+              options={workDayOptions}
+              error={resolveError("workDayTo")}
+            />
+            <Input
+              label={t("fields.work_start_time")}
+              type="time"
+              value={formData.workStartTime}
+              onChange={(event) =>
+                updateFormData(
+                  { workStartTime: event.target.value },
+                  "workStartTime",
+                )
+              }
+              error={resolveError("workStartTime")}
+            />
+            <Input
+              label={t("fields.work_end_time")}
+              type="time"
+              value={formData.workEndTime}
+              onChange={(event) =>
+                updateFormData(
+                  { workEndTime: event.target.value },
+                  "workEndTime",
+                )
+              }
+              error={resolveError("workEndTime")}
             />
             <Input
               label={t("fields.hire_date")}

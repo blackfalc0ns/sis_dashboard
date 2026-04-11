@@ -3,6 +3,8 @@ import type { Teacher, TeacherFormData, TeacherReferenceData } from "@/features/
 import {
   buildTeacherAssignmentSummary,
   buildTeacherFullNames,
+  buildTeacherWorkingDaysLabel,
+  buildTeacherWorkingHoursLabel,
   getTeacherDisplayName,
   mapTeacherFormDataToTeacherInput,
   mapTeacherToFormData,
@@ -26,6 +28,11 @@ const teacher: Teacher = {
   stageIds: ["stage-1"],
   gradeIds: ["grade-1"],
   sectionIds: ["section-1"],
+  experienceYears: 5,
+  workDayFrom: "SUNDAY",
+  workDayTo: "THURSDAY",
+  workStartTime: "07:30",
+  workEndTime: "14:30",
   hireDate: "2026-01-01",
   notesAr: "ملاحظة",
   notesEn: "Note",
@@ -81,6 +88,11 @@ describe("teacherMappers", () => {
     expect(mapped.fullNameAr).toBe("سارة أحمد");
     expect(mapped.fullNameEn).toBe("Sara Ahmed");
     expect(mapped.email).toBe("sara@example.com");
+    expect(mapped.experienceYears).toBe(5);
+    expect(mapped.workDayFrom).toBe("SUNDAY");
+    expect(mapped.workDayTo).toBe("THURSDAY");
+    expect(mapped.workStartTime).toBe("07:30");
+    expect(mapped.workEndTime).toBe("14:30");
   });
 
   it("resolves assignment names and builds summaries", () => {
@@ -99,5 +111,9 @@ describe("teacherMappers", () => {
         empty: "No assignments",
       }),
     ).toBe("1 stages • 1 grades • 1 sections");
+    expect(buildTeacherWorkingDaysLabel(teacher, "en")).toBe(
+      "Sunday - Thursday",
+    );
+    expect(buildTeacherWorkingHoursLabel(teacher)).toBe("07:30 - 14:30");
   });
 });

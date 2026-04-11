@@ -24,6 +24,7 @@ import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTe
 import { AssignmentQuestion, QuestionOption } from "@/features/academics/curriculum/services/curriculumService";
 import { useQuestionFormState } from "@/features/academics/curriculum/hooks/useQuestionFormState";
 import QuestionOptionRow from "./QuestionOptionRow";
+import QuestionTypeSpecificFields from "./QuestionTypeSpecificFields";
 
 interface QuestionEditorProps {
   question: AssignmentQuestion;
@@ -35,6 +36,9 @@ interface QuestionEditorProps {
     points?: string;
     options?: string;
     correctAnswer?: string;
+    acceptedAnswers?: string;
+    matchingPairs?: string;
+    media?: string;
   };
 }
 
@@ -61,6 +65,15 @@ export default function QuestionEditor({
     correctAnswer,
     sampleAnswerAr,
     sampleAnswerEn,
+    acceptedAnswersAr,
+    acceptedAnswersEn,
+    matchingPairs,
+    mediaMode,
+    mediaTitle,
+    mediaUrl,
+    mediaFileName,
+    mediaMimeType,
+    mediaSize,
     setQuestionText,
     setPointsValue,
     handleTypeChange,
@@ -74,6 +87,18 @@ export default function QuestionEditor({
     setTrueFalseAnswer,
     setSampleAnswerArValue,
     setSampleAnswerEnValue,
+    setAcceptedAnswersArValue,
+    setAcceptedAnswersEnValue,
+    addMatchingPair,
+    updateMatchingPair,
+    removeMatchingPair,
+    moveMatchingPairUp,
+    moveMatchingPairDown,
+    setMediaModeValue,
+    setMediaTitleValue,
+    setMediaUrlValue,
+    setMediaFileValue,
+    clearMedia,
   } = useQuestionFormState({
     question,
     resetKey: question.id,
@@ -131,12 +156,14 @@ export default function QuestionEditor({
     { value: "TRUE_FALSE", label: t("question_types.TRUE_FALSE") },
     { value: "SHORT_ANSWER", label: t("question_types.SHORT_ANSWER") },
     { value: "ESSAY", label: t("question_types.ESSAY") },
+    { value: "FILL_IN_BLANK", label: t("question_types.FILL_IN_BLANK") },
+    { value: "MATCHING", label: t("question_types.MATCHING") },
+    { value: "MEDIA", label: t("question_types.MEDIA") },
   ];
 
   const isMCQ = questionType === "MCQ_SINGLE" || questionType === "MCQ_MULTI";
   const canRemoveOption = options.length > 2;
   const radioGroupName = `editor-correct-option-${question.id}`;
-  const trueFalseGroupName = `editor-true-false-${question.id}`;
 
   return (
     <div>
@@ -146,8 +173,8 @@ export default function QuestionEditor({
             label={t("question_text")}
             value={{ ar: questionTextAr, en: questionTextEn }}
             onChange={setQuestionText}
-            requiredAr
-            requiredEn
+            requiredAr={questionType !== "MEDIA"}
+            requiredEn={questionType !== "MEDIA"}
             disabled={isReadOnly}
             placeholder={{
               ar: "\u0623\u062f\u062e\u0644 \u0646\u0635 \u0627\u0644\u0633\u0624\u0627\u0644 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629",
@@ -201,7 +228,12 @@ export default function QuestionEditor({
         </div>
 
         <div className="border-t pt-6">
-          <label className="text-sm font-medium block mb-4">{t("answers")} *</label>
+          <label className="text-sm font-medium block mb-4">
+            {questionType === "MEDIA" ? t("media") : t("answers")}
+            {questionType !== "ESSAY" && questionType !== "SHORT_ANSWER" && questionType !== "MEDIA"
+              ? " *"
+              : ""}
+          </label>
 
           {isMCQ && (
             <div className="space-y-3">
@@ -268,86 +300,40 @@ export default function QuestionEditor({
             </div>
           )}
 
-          {questionType === "TRUE_FALSE" && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-600">{t("correct_answer")}</label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name={trueFalseGroupName}
-                    checked={correctAnswer === true}
-                    onChange={() => setTrueFalseAnswer(true)}
-                    disabled={isReadOnly}
-                    className="w-4 h-4"
-                  />
-                  <span>{t("true")}</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name={trueFalseGroupName}
-                    checked={correctAnswer === false}
-                    onChange={() => setTrueFalseAnswer(false)}
-                    disabled={isReadOnly}
-                    className="w-4 h-4"
-                  />
-                  <span>{t("false")}</span>
-                </label>
-              </div>
-            </div>
-          )}
-
-          {questionType === "SHORT_ANSWER" && (
-            <div className="space-y-3">
-              <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800">
-                {t("manual_grading_hint")}
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-gray-600">{t("sample_answer")}</label>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 text-right">
-                    {t("sample_answer")} (\u0639\u0631\u0628\u064a)
-                  </label>
-                  <textarea
-                    value={sampleAnswerAr}
-                    onChange={(event) => {
-                      setSampleAnswerArValue(event.target.value);
-                    }}
-                    placeholder="\u0625\u062c\u0627\u0628\u0629 \u0646\u0645\u0648\u0630\u062c\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a)"
-                    disabled={isReadOnly}
-                    rows={3}
-                    dir="rtl"
-                    className="w-full px-4 py-2.5 text-sm bg-white border rounded-lg transition-colors placeholder:text-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none border-gray-200"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t("sample_answer")} (English)
-                  </label>
-                  <textarea
-                    value={sampleAnswerEn}
-                    onChange={(event) => {
-                      setSampleAnswerEnValue(event.target.value);
-                    }}
-                    placeholder="Sample answer (optional)"
-                    disabled={isReadOnly}
-                    rows={3}
-                    dir="ltr"
-                    className="w-full px-4 py-2.5 text-sm bg-white border rounded-lg transition-colors placeholder:text-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none border-gray-200"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {questionType === "ESSAY" && (
-            <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800">
-              {t("manual_grading_hint")}
-            </div>
+          {!isMCQ && (
+            <QuestionTypeSpecificFields
+              questionId={question.id}
+              questionType={questionType}
+              isReadOnly={isReadOnly}
+              correctAnswer={correctAnswer}
+              sampleAnswerAr={sampleAnswerAr}
+              sampleAnswerEn={sampleAnswerEn}
+              acceptedAnswersAr={acceptedAnswersAr}
+              acceptedAnswersEn={acceptedAnswersEn}
+              matchingPairs={matchingPairs}
+              mediaMode={mediaMode}
+              mediaTitle={mediaTitle}
+              mediaUrl={mediaUrl}
+              mediaFileName={mediaFileName}
+              mediaMimeType={mediaMimeType}
+              mediaSize={mediaSize}
+              setTrueFalseAnswer={setTrueFalseAnswer}
+              setSampleAnswerArValue={setSampleAnswerArValue}
+              setSampleAnswerEnValue={setSampleAnswerEnValue}
+              setAcceptedAnswersArValue={setAcceptedAnswersArValue}
+              setAcceptedAnswersEnValue={setAcceptedAnswersEnValue}
+              addMatchingPair={addMatchingPair}
+              updateMatchingPair={updateMatchingPair}
+              removeMatchingPair={removeMatchingPair}
+              moveMatchingPairUp={moveMatchingPairUp}
+              moveMatchingPairDown={moveMatchingPairDown}
+              setMediaModeValue={setMediaModeValue}
+              setMediaTitleValue={setMediaTitleValue}
+              setMediaUrlValue={setMediaUrlValue}
+              setMediaFileValue={setMediaFileValue}
+              clearMedia={clearMedia}
+              validationErrors={validationErrors}
+            />
           )}
         </div>
       </div>

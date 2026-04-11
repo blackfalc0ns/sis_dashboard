@@ -73,6 +73,7 @@ export interface Assignment {
   descriptionEn?: string;
   dueDate?: string; // ISO date string
   maxScore?: number;
+  expectedTimeMinutes?: number;
   isPublished?: boolean;
   createdAt?: string;
 }
@@ -97,18 +98,44 @@ export interface QuestionOption {
   order: number;
 }
 
+export interface MatchingPair {
+  id: string;
+  promptAr: string;
+  promptEn: string;
+  matchAr: string;
+  matchEn: string;
+  order: number;
+}
+
 export interface AssignmentQuestion {
   id: string;
   assignmentId: string;
   questionTextAr: string;
   questionTextEn: string;
-  questionType: "MCQ_SINGLE" | "MCQ_MULTI" | "TRUE_FALSE" | "SHORT_ANSWER" | "ESSAY";
+  questionType:
+    | "MCQ_SINGLE"
+    | "MCQ_MULTI"
+    | "TRUE_FALSE"
+    | "SHORT_ANSWER"
+    | "ESSAY"
+    | "FILL_IN_BLANK"
+    | "MATCHING"
+    | "MEDIA";
   points: number;
   order: number;
   options?: QuestionOption[]; // For MCQ questions
   correctAnswer?: boolean; // For TRUE_FALSE questions (true or false)
   sampleAnswerAr?: string; // For SHORT_ANSWER questions (optional)
   sampleAnswerEn?: string; // For SHORT_ANSWER questions (optional)
+  acceptedAnswersAr?: string[];
+  acceptedAnswersEn?: string[];
+  matchingPairs?: MatchingPair[];
+  mediaMode?: "FILE" | "LINK";
+  mediaTitle?: string;
+  mediaUrl?: string;
+  mediaFileName?: string;
+  mediaMimeType?: string;
+  mediaSize?: number;
   createdAt: string;
 }
 

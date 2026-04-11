@@ -40,12 +40,28 @@ export default function QuestionCard({
   const questionText = locale === "ar"
     ? question.questionTextAr || question.questionTextEn
     : question.questionTextEn || question.questionTextAr;
+  const displayText = questionText || question.mediaTitle || question.mediaFileName || tQuestions("media");
 
   // Get subtitle based on question type
   const getSubtitle = () => {
     if (question.questionType === "MCQ_SINGLE" || question.questionType === "MCQ_MULTI") {
       const optionsCount = question.options?.length || 0;
       return `${tQuestions("options_count")}: ${optionsCount}`;
+    }
+    if (question.questionType === "FILL_IN_BLANK") {
+      const answersCount =
+        (question.acceptedAnswersAr?.length || 0) + (question.acceptedAnswersEn?.length || 0);
+      return answersCount > 0
+        ? `${tQuestions("answers_count")}: ${answersCount}`
+        : tQuestions("manual_grading");
+    }
+    if (question.questionType === "MATCHING") {
+      return `${tQuestions("pairs_count")}: ${question.matchingPairs?.length || 0}`;
+    }
+    if (question.questionType === "MEDIA") {
+      return question.mediaFileName || question.mediaUrl
+        ? tQuestions("media_attached")
+        : tQuestions("media_pending");
     }
     if (question.questionType === "SHORT_ANSWER" || question.questionType === "ESSAY") {
       return tQuestions("manual_grading");
@@ -112,7 +128,6 @@ export default function QuestionCard({
               color: "primary.main",
             }}
           />
-          
           {/* Status Chip */}
           {isValid ? (
             <Chip
@@ -185,9 +200,9 @@ export default function QuestionCard({
         <p
           className="text-sm font-bold text-gray-900 truncate"
           style={{ fontWeight: 700 }}
-          title={questionText}
+          title={displayText}
         >
-          {questionText}
+          {displayText}
         </p>
       </div>
 

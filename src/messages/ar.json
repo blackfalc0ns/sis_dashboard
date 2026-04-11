@@ -3191,7 +3191,10 @@
           "MCQ_MULTI": "اختيار من متعدد (أكثر من إجابة)",
           "TRUE_FALSE": "صح أو خطأ",
           "SHORT_ANSWER": "إجابة قصيرة",
-          "ESSAY": "مقال"
+          "ESSAY": "مقال",
+          "FILL_IN_BLANK": "املأ الفراغ",
+          "MATCHING": "مزاوجة",
+          "MEDIA": "وسائط"
         },
         "options": "الاختيارات",
         "add_option": "إضافة اختيار",
@@ -3206,6 +3209,38 @@
         "false": "خطأ",
         "sample_answer": "إجابة نموذجية (اختياري)",
         "manual_grading_hint": "هذا السؤال يحتاج تصحيحًا يدويًا.",
+        "fill_in_blank_hint": "الإجابات المقبولة اختيارية. إذا تُركت فارغة فسيبقى السؤال للتصحيح اليدوي.",
+        "sample_answer_ar_placeholder": "إجابة نموذجية بالعربية (اختياري)",
+        "sample_answer_en_placeholder": "إجابة نموذجية بالإنجليزية (اختياري)",
+        "accepted_answers_ar": "الإجابات المقبولة (عربي)",
+        "accepted_answers_en": "الإجابات المقبولة (إنجليزي)",
+        "accepted_answers_ar_placeholder": "إجابة واحدة في كل سطر",
+        "accepted_answers_en_placeholder": "إجابة واحدة في كل سطر",
+        "accepted_answers_help": "أدخل إجابة مقبولة واحدة في كل سطر. يتم تجاهل السطور الفارغة.",
+        "matching_pairs": "أزواج المزاوجة",
+        "matching_pairs_help": "أضف زوجين على الأقل من العناصر والمطابقات باللغتين.",
+        "matching_prompt_ar": "العنصر (عربي)",
+        "matching_prompt_en": "العنصر (إنجليزي)",
+        "matching_answer_ar": "المطابقة (عربي)",
+        "matching_answer_en": "المطابقة (إنجليزي)",
+        "add_pair": "إضافة زوج",
+        "remove_pair": "حذف الزوج",
+        "pair_label": "الزوج {number}",
+        "media": "وسائط",
+        "media_hint": "أرفق ملفًا أو أضف رابطًا. يمكن استخدام نص السؤال كتعليمات أو وصف اختياري.",
+        "media_mode": "مصدر الوسائط",
+        "media_mode_link": "رابط",
+        "media_mode_file": "ملف",
+        "media_title": "عنوان الوسائط",
+        "media_title_placeholder": "عنوان اختياري للوسائط",
+        "media_url": "رابط الوسائط",
+        "media_link_help": "استخدم رابط http أو https كاملًا.",
+        "attach_file": "إرفاق ملف",
+        "remove_media": "إزالة الوسائط",
+        "media_attached": "تم إرفاق وسائط",
+        "media_pending": "الوسائط مطلوبة",
+        "pairs_count": "عدد الأزواج",
+        "answers_count": "عدد الإجابات المقبولة",
         "description": "الوصف",
         "due_date": "تاريخ التسليم",
         "points_distributed": "تم توزيع الدرجات بنجاح",
@@ -3213,7 +3248,10 @@
         "add_question_failed": "فشل إضافة السؤال",
         "update_question_failed": "فشل تحديث السؤال",
         "delete_question_failed": "فشل حذف السؤال",
-        "reorder_failed": "فشل إعادة الترتيب"
+        "reorder_failed": "فشل إعادة الترتيب",
+        "expected_time_minutes": "????? ??????? (????????)",
+        "expected_time_short": "?????",
+        "minutes_short": "?"
       },
       "teachingWeeksHint": "أسابيع الدراسة: {count} (مع استبعاد الإجازات)"
     },
@@ -4167,6 +4205,13 @@
           "runningTotal": "المجموع الحالي",
           "studentAnswer": "إجابة الطالب",
           "referenceAnswer": "الإجابة المرجعية",
+          "manualReviewPlaceholder": "يتطلب مراجعة يدوية",
+          "matchingStudentAnswerPlaceholder": "إجابة المزاوجة تحتاج مراجعة يدوية.",
+          "matchingReferencePlaceholder": "راجع أزواج المزاوجة في إعداد السؤال.",
+          "mediaStudentAnswerPlaceholder": "الاستجابة المعتمدة على المرفقات تحتاج مراجعة يدوية.",
+          "mediaReferencePlaceholder": "سؤال يعتمد على وسائط مرفقة",
+          "trueLabel": "صح",
+          "falseLabel": "خطأ",
           "awardedPoints": "الدرجة الممنوحة",
           "pointsHelp": "النطاق المسموح: 0 - {max}",
           "teacherComment": "ملاحظة المعلم",
@@ -4296,6 +4341,7 @@
         "assessmentTitle": "عنوان التقييم",
         "assessmentDate": "تاريخ التقييم",
         "maxScore": "الدرجة النهائية",
+        "expected_time_minutes": "الوقت المتوقع (بالدقائق)",
         "totalPoints": "إجمالي النقاط",
         "difference": "الفرق",
         "pointsSummary": "ملخص النقاط",
@@ -4377,12 +4423,25 @@
     "question_text_required": "نص السؤال مطلوب",
     "invalid_max_score": "يجب أن تكون الدرجة النهائية أكبر من 0",
     "invalid_points": "يجب أن تكون الدرجات 0 أو أكثر",
+    "duplicateAcceptedAnswersAr": "إجابة عربية مقبولة مكررة",
+    "duplicateAcceptedAnswersEn": "إجابة إنجليزية مقبولة مكررة",
+    "minMatchingPairs": "أضف زوجين على الأقل للمزاوجة",
+    "matchingPairFieldsRequired": "كل زوج مزاوجة يحتاج عناصر ومطابقات بالعربية والإنجليزية",
+    "matchingPromptArEnMustDiffer": "يجب أن يختلف النص العربي والإنجليزي في عنصر المزاوجة",
+    "matchingAnswerArEnMustDiffer": "يجب أن يختلف النص العربي والإنجليزي في المطابقة",
+    "duplicateMatchingPromptAr": "عنصر مزاوجة عربي مكرر",
+    "duplicateMatchingPromptEn": "عنصر مزاوجة إنجليزي مكرر",
+    "duplicateMatchingAnswerAr": "قيمة مطابقة عربية مكررة",
+    "duplicateMatchingAnswerEn": "قيمة مطابقة إنجليزية مكررة",
+    "media_required": "أرفق ملفًا أو أدخل رابط وسائط",
+    "invalid_media_url": "أدخل رابط وسائط صالحًا",
     "points_sum_mismatch": "يجب أن يساوي مجموع درجات الأسئلة الدرجة النهائية",
     "validation_failed": "فشل التحقق من الصحة",
     "cannot_publish": "لا يمكن نشر الواجب",
     "confirm_auto_distribute_body": "سيتم تعديل درجات جميع الأسئلة لتطابق الدرجة النهائية.",
     "delete_question_confirm": "هل أنت متأكد من حذف هذا السؤال ",
-    "fix_errors_before_save": "يرجى تصحيح الاخطاء قبل الحفظ."
+    "fix_errors_before_save": "يرجى تصحيح الاخطاء قبل الحفظ.",
+    "invalid_expected_time": "??? ?? ???? ????? ??????? ???? ?? 0 ?????"
   },
   "helper": {
     "urlExample": "مثال: https://example.com"
@@ -5847,29 +5906,29 @@
       "badgesGuide": "دليل أصول الشارات"
     },
     "export": {
-      "title": "تصدير بيانات نداء",
-      "subtitle": "حمّل عرض نداء الحالي بالتنسيق الذي تفضله.",
+      "title": "تصدير بيانات التعزيز",
+      "subtitle": "حمّل العرض الحالي في وحدة التعزيز بالتنسيق الذي تفضله.",
       "button": "تصدير",
       "datasets": {
-        "label": "اختر مجموعة البيانات",
+        "label": "مجموعة البيانات",
         "summary": {
-          "title": "الملخص",
-          "description": "لقطة لمؤشرات الأداء من النظرة العامة"
+          "label": "المؤشرات الرئيسية",
+          "description": "تصدير ملخص مؤشرات لوحة التعزيز."
         },
-        "latest_requests": {
-          "title": "أحدث الطلبات",
-          "description": "أحدث طلبات الاستلام من النظرة العامة"
+        "activity": {
+          "label": "أحدث النشاطات",
+          "description": "تصدير النشاطات الظاهرة حالياً في العرض."
         },
-        "gates": {
-          "title": "البوابات",
-          "description": "مؤشرات لوحة البوابات من النظرة العامة"
+        "chart": {
+          "label": "الرسم المحدد",
+          "description": "تصدير الرسم البياني المحدد حالياً في عناصر التحكم."
         }
       },
       "format": {
         "label": "تنسيق التصدير",
         "csv": {
           "title": "CSV",
-          "description": "ملف مناسب للجداول ببيانات مترجمة"
+          "description": "تصدير محلي مناسب للجداول"
         },
         "json": {
           "title": "JSON",
@@ -5881,16 +5940,16 @@
         }
       },
       "selection": {
-        "title": "البيانات الحالية",
-        "visibleRows": "سيتم تصدير {count} سجلًا ظاهرًا"
+        "title": "التحديد الحالي",
+        "visibleRows": "سيتم تصدير {count} سجل ظاهر"
       },
       "actions": {
         "cancel": "إلغاء",
-        "exporting": "جاري التصدير...",
+        "exporting": "جارٍ التصدير...",
         "export": "تصدير"
       },
       "errors": {
-        "noData": "لا توجد بيانات نداء في العرض الحالي للتصدير.",
+        "noData": "لا توجد بيانات تعزيز متاحة في العرض الحالي للتصدير",
         "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
       }
     },
@@ -6003,102 +6062,6 @@
       "recentBadges": "آخر الشارات المفتوحة",
       "coachNote": "ملاحظة المشرف",
       "lastActivityLabel": "آخر نشاط: {date}"
-    },
-    "export": {
-      "title": "تصدير بيانات التعزيز",
-      "subtitle": "حمّل العرض الحالي في وحدة التعزيز بالتنسيق الذي تفضله.",
-      "button": "تصدير",
-      "datasets": {
-        "label": "مجموعة البيانات",
-        "summary": {
-          "label": "المؤشرات الرئيسية",
-          "description": "تصدير ملخص مؤشرات لوحة التعزيز."
-        },
-        "activity": {
-          "label": "أحدث النشاطات",
-          "description": "تصدير النشاطات الظاهرة حالياً في العرض."
-        },
-        "chart": {
-          "label": "الرسم المحدد",
-          "description": "تصدير الرسم البياني المحدد حالياً في عناصر التحكم."
-        }
-      },
-      "format": {
-        "label": "تنسيق التصدير",
-        "csv": {
-          "title": "CSV",
-          "description": "تصدير محلي مناسب للجداول"
-        },
-        "json": {
-          "title": "JSON",
-          "description": "بيانات منظمة بمفاتيح إنجليزية"
-        },
-        "excel": {
-          "title": "Excel",
-          "description": "ملف CSV متوافق مع Excel ويدعم UTF-8"
-        }
-      },
-      "selection": {
-        "title": "التحديد الحالي",
-        "visibleRows": "سيتم تصدير {count} سجل ظاهر"
-      },
-      "actions": {
-        "cancel": "إلغاء",
-        "exporting": "جارٍ التصدير...",
-        "export": "تصدير"
-      },
-      "errors": {
-        "noData": "لا توجد بيانات تعزيز متاحة في العرض الحالي للتصدير",
-        "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
-      }
-    },
-    "export": {
-      "title": "تصدير بيانات التعزيز",
-      "subtitle": "حمّل العرض الحالي في وحدة التعزيز بالتنسيق الذي تفضله.",
-      "button": "تصدير",
-      "datasets": {
-        "label": "مجموعة البيانات",
-        "summary": {
-          "label": "المؤشرات الرئيسية",
-          "description": "تصدير ملخص مؤشرات لوحة التعزيز."
-        },
-        "activity": {
-          "label": "أحدث النشاطات",
-          "description": "تصدير النشاطات الظاهرة حالياً في العرض."
-        },
-        "chart": {
-          "label": "الرسم المحدد",
-          "description": "تصدير الرسم البياني المحدد حالياً في عناصر التحكم."
-        }
-      },
-      "format": {
-        "label": "تنسيق التصدير",
-        "csv": {
-          "title": "CSV",
-          "description": "تصدير محلي مناسب للجداول"
-        },
-        "json": {
-          "title": "JSON",
-          "description": "بيانات منظمة بمفاتيح إنجليزية"
-        },
-        "excel": {
-          "title": "Excel",
-          "description": "ملف CSV متوافق مع Excel ويدعم UTF-8"
-        }
-      },
-      "selection": {
-        "title": "التحديد الحالي",
-        "visibleRows": "سيتم تصدير {count} سجل ظاهر"
-      },
-      "actions": {
-        "cancel": "إلغاء",
-        "exporting": "جارٍ التصدير...",
-        "export": "تصدير"
-      },
-      "errors": {
-        "noData": "لا توجد بيانات تعزيز متاحة في العرض الحالي للتصدير",
-        "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
-      }
     },
     "empty": {
       "missions": "لا توجد مهام تطابق عوامل التصفية الحالية.",
@@ -6694,6 +6657,12 @@
       "phone": "رقم الجوال",
       "gender": "الجنس",
       "select_gender": "اختر الجنس",
+      "experience_years": "سنوات الخبرة",
+      "work_day_from": "أيام الدوام من",
+      "work_day_to": "أيام الدوام إلى",
+      "select_work_day": "اختر يوم الدوام",
+      "work_start_time": "وقت الدوام من",
+      "work_end_time": "وقت الدوام إلى",
       "hire_date": "تاريخ التعيين",
       "subjects": "المواد",
       "stages": "المراحل",
@@ -6745,6 +6714,11 @@
       "full_name_en": "الاسم الكامل (إنجليزي)",
       "contact": "بيانات التواصل",
       "hire_date": "تاريخ التعيين",
+      "experience_years": "سنوات الخبرة",
+      "working_days": "أيام الدوام",
+      "no_working_days": "لم يتم تحديد أيام الدوام",
+      "working_hours": "ساعات الدوام",
+      "no_working_hours": "لم يتم تحديد ساعات الدوام",
       "assignments": "التكليفات",
       "subjects": "المواد",
       "stages": "المراحل",
@@ -6862,6 +6836,14 @@
       "email_invalid": "أدخل بريدًا إلكترونيًا صحيحًا.",
       "email_unique": "البريد الإلكتروني يجب أن يكون فريدًا.",
       "phone_max_length": "رقم الجوال طويل جدًا.",
+      "experience_invalid": "الخبرة يجب أن تكون رقمًا صحيحًا.",
+      "experience_min": "لا يمكن أن تكون الخبرة أقل من 0.",
+      "experience_max": "لا يمكن أن تتجاوز الخبرة 60 سنة.",
+      "work_day_invalid": "يرجى اختيار يوم دوام صحيح.",
+      "work_day_pair_required": "يجب إدخال يوم الدوام من وإلى معًا.",
+      "work_day_order_invalid": "يجب أن يكون يوم الدوام إلى مساويًا أو بعد يوم الدوام من.",
+      "work_time_pair_required": "يجب إدخال وقت الدوام من وإلى معًا.",
+      "work_time_order_invalid": "يجب أن يكون وقت انتهاء الدوام بعد وقت البداية.",
       "subjects_required": "اختر مادة واحدة على الأقل.",
       "stages_required": "اختر مرحلة واحدة على الأقل.",
       "grades_required": "اختر صفًا واحدًا على الأقل.",
@@ -6872,6 +6854,15 @@
       "password_min_length": "يجب ألا تقل كلمة المرور عن 8 أحرف.",
       "password_confirmation_required": "تأكيد كلمة المرور مطلوب.",
       "password_mismatch": "تأكيد كلمة المرور غير متطابق."
+    },
+    "work_days": {
+      "sunday": "الأحد",
+      "monday": "الاثنين",
+      "tuesday": "الثلاثاء",
+      "wednesday": "الأربعاء",
+      "thursday": "الخميس",
+      "friday": "الجمعة",
+      "saturday": "السبت"
     }
   },
   "nationalities": {

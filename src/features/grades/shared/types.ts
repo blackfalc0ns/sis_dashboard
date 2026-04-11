@@ -41,6 +41,7 @@ export interface Assessment {
   date: string;
   weight: number;
   maxScore: number;
+  expectedTimeMinutes?: number;
   isLocked: boolean;
   approvalStatus: "draft" | "published" | "approved";
 }
@@ -133,6 +134,7 @@ export interface CreateAssessmentPayload {
   date: string;
   weight: number;
   maxScore: number;
+  expectedTimeMinutes?: number;
 }
 
 export interface GradesScopeFilters {
@@ -172,19 +174,45 @@ export interface QuestionOption {
   order: number;
 }
 
+export interface MatchingPair {
+  id: string;
+  promptAr: string;
+  promptEn: string;
+  matchAr: string;
+  matchEn: string;
+  order: number;
+}
+
 export interface AssessmentQuestion extends Record<string, unknown> {
   id: string;
   assessmentId: string;
   assignmentId: string;
   questionTextAr: string;
   questionTextEn: string;
-  questionType: "MCQ_SINGLE" | "MCQ_MULTI" | "TRUE_FALSE" | "SHORT_ANSWER" | "ESSAY";
+  questionType:
+    | "MCQ_SINGLE"
+    | "MCQ_MULTI"
+    | "TRUE_FALSE"
+    | "SHORT_ANSWER"
+    | "ESSAY"
+    | "FILL_IN_BLANK"
+    | "MATCHING"
+    | "MEDIA";
   points: number;
   order: number;
   options?: QuestionOption[];
   correctAnswer?: boolean;
   sampleAnswerAr?: string;
   sampleAnswerEn?: string;
+  acceptedAnswersAr?: string[];
+  acceptedAnswersEn?: string[];
+  matchingPairs?: MatchingPair[];
+  mediaMode?: "FILE" | "LINK";
+  mediaTitle?: string;
+  mediaUrl?: string;
+  mediaFileName?: string;
+  mediaMimeType?: string;
+  mediaSize?: number;
   createdAt: string;
 }
 

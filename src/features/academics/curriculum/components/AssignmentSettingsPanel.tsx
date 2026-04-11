@@ -131,6 +131,30 @@ export default function AssignmentSettingsPanel({
               </div>
             )}
           </div>
+
+          <div>
+            <Input
+              label={tQuestions("expected_time_minutes")}
+              type="number"
+              value={assignment.expectedTimeMinutes ?? ""}
+              onChange={(e) =>
+                onUpdate({
+                  expectedTimeMinutes:
+                    e.target.value === "" ? undefined : Number(e.target.value),
+                })
+              }
+              onBlur={onBlur}
+              disabled={isReadOnly}
+              min={0}
+              placeholder="30"
+            />
+            {validationErrors?.expectedTimeMinutes && (
+              <div className="mt-1 flex items-center gap-1 text-red-600 text-xs" data-error="true">
+                <AlertCircle className="w-3 h-3" />
+                <span>{validationErrors.expectedTimeMinutes}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

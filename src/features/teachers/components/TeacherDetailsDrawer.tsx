@@ -5,6 +5,8 @@ import { useLocale, useTranslations } from "next-intl";
 import TeacherStatusChip from "@/features/teachers/components/TeacherStatusChip";
 import type { Teacher, TeacherReferenceData } from "@/features/teachers/types";
 import {
+  buildTeacherWorkingDaysLabel,
+  buildTeacherWorkingHoursLabel,
   getTeacherDisplayName,
   resolveTeacherAssignmentNames,
 } from "@/features/teachers/utils/teacherMappers";
@@ -47,9 +49,9 @@ function AssignmentList({
         <p className="text-sm text-gray-500">{emptyLabel}</p>
       ) : (
         <div className="flex flex-wrap gap-2">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <span
-              key={`${label}-${item}`}
+              key={`${label}-${item}-${index}`}
               className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700"
             >
               {item}
@@ -182,6 +184,33 @@ export default function TeacherDetailsDrawer({
             <DetailRow
               label={t("details.hire_date")}
               value={formatDate(teacher.hireDate)}
+            />
+            <DetailRow
+              label={t("details.experience_years")}
+              value={
+                teacher.experienceYears !== undefined
+                  ? String(teacher.experienceYears)
+                  : t("details.no_value")
+              }
+            />
+            <DetailRow
+              label={t("details.working_days")}
+              value={
+                buildTeacherWorkingDaysLabel(
+                  teacher,
+                  displayLocale,
+                  t("details.no_working_days"),
+                ) || t("details.no_working_days")
+              }
+            />
+            <DetailRow
+              label={t("details.working_hours")}
+              value={
+                buildTeacherWorkingHoursLabel(
+                  teacher,
+                  t("details.no_working_hours"),
+                ) || t("details.no_working_hours")
+              }
             />
           </section>
 

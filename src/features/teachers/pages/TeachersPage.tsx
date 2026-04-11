@@ -32,6 +32,8 @@ import type {
 } from "@/features/teachers/types";
 import {
   buildTeacherAssignmentSummary,
+  buildTeacherWorkingDaysLabel,
+  buildTeacherWorkingHoursLabel,
   getTeacherDisplayName,
   resolveTeacherAssignmentNames,
 } from "@/features/teachers/utils/teacherMappers";
@@ -313,6 +315,22 @@ export default function TeachersPage() {
         status: t(
           teacher.status === "ACTIVE" ? "status.active" : "status.inactive",
         ),
+        experienceYears:
+          teacher.experienceYears !== undefined ? teacher.experienceYears : "",
+        workDayFrom: teacher.workDayFrom
+          ? t(`work_days.${teacher.workDayFrom.toLowerCase()}`)
+          : "",
+        workDayTo: teacher.workDayTo
+          ? t(`work_days.${teacher.workDayTo.toLowerCase()}`)
+          : "",
+        workingDaysLabel: buildTeacherWorkingDaysLabel(
+          teacher,
+          displayLocale,
+          "",
+        ),
+        workStartTime: teacher.workStartTime || "",
+        workEndTime: teacher.workEndTime || "",
+        workingHoursLabel: buildTeacherWorkingHoursLabel(teacher, ""),
         hireDate: formatDate(teacher.hireDate),
         subjectsCount: teacher.subjectIds.length,
         assignmentSummary: buildTeacherAssignmentSummary(teacher, {
@@ -358,6 +376,34 @@ export default function TeachersPage() {
       { key: "phone", label: t("fields.phone") },
       { key: "gender", label: t("fields.gender") },
       { key: "status", label: t("columns.status") },
+      {
+        key: "experienceYears",
+        label: t("fields.experience_years"),
+      },
+      {
+        key: "workDayFrom",
+        label: t("fields.work_day_from"),
+      },
+      {
+        key: "workDayTo",
+        label: t("fields.work_day_to"),
+      },
+      {
+        key: "workingDaysLabel",
+        label: t("details.working_days"),
+      },
+      {
+        key: "workStartTime",
+        label: t("fields.work_start_time"),
+      },
+      {
+        key: "workEndTime",
+        label: t("fields.work_end_time"),
+      },
+      {
+        key: "workingHoursLabel",
+        label: t("details.working_hours"),
+      },
       { key: "hireDate", label: t("fields.hire_date") },
       {
         key: "subjectsCount",
@@ -416,6 +462,15 @@ export default function TeachersPage() {
           phone: teacher.phone || null,
           gender: teacher.gender || null,
           status: teacher.status,
+          experienceYears: teacher.experienceYears ?? null,
+          workDayFrom: teacher.workDayFrom || null,
+          workDayTo: teacher.workDayTo || null,
+          workingDaysLabel:
+            buildTeacherWorkingDaysLabel(teacher, "en", "") || null,
+          workStartTime: teacher.workStartTime || null,
+          workEndTime: teacher.workEndTime || null,
+          workingHoursLabel:
+            buildTeacherWorkingHoursLabel(teacher, "") || null,
           hireDate: teacher.hireDate || null,
           subjectCount: teacher.subjectIds.length,
           assignmentSummary: buildTeacherAssignmentSummary(teacher, {

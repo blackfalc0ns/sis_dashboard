@@ -5,6 +5,7 @@ import type {
   TeacherFormData,
   TeacherReferenceData,
   TeacherReferenceOption,
+  TeacherWorkDay,
 } from "@/features/teachers/types";
 
 const normalizeDisplayText = (value?: string) => value?.trim() || "";
@@ -14,6 +15,16 @@ const uniqueIds = (ids: string[]) => Array.from(new Set(ids.filter(Boolean)));
 const toOptionalValue = (value: string) => {
   const trimmed = value.trim();
   return trimmed ? trimmed : undefined;
+};
+
+const toOptionalNumber = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  const parsed = Number(trimmed);
+  return Number.isNaN(parsed) ? undefined : parsed;
 };
 
 export function buildFullName(firstName: string, lastName: string) {
@@ -57,6 +68,11 @@ export function mapTeacherFormDataToTeacherInput(
     stageIds: uniqueIds(formData.stageIds),
     gradeIds: uniqueIds(formData.gradeIds),
     sectionIds: uniqueIds(formData.sectionIds),
+    experienceYears: toOptionalNumber(formData.experienceYears),
+    workDayFrom: (formData.workDayFrom || undefined) as TeacherWorkDay | undefined,
+    workDayTo: (formData.workDayTo || undefined) as TeacherWorkDay | undefined,
+    workStartTime: toOptionalValue(formData.workStartTime),
+    workEndTime: toOptionalValue(formData.workEndTime),
     hireDate: toOptionalValue(formData.hireDate),
     notesAr: toOptionalValue(formData.notesAr),
     notesEn: toOptionalValue(formData.notesEn),
@@ -78,6 +94,12 @@ export function mapTeacherToFormData(teacher: Teacher): TeacherFormData {
     stageIds: [...teacher.stageIds],
     gradeIds: [...teacher.gradeIds],
     sectionIds: [...teacher.sectionIds],
+    experienceYears:
+      teacher.experienceYears !== undefined ? String(teacher.experienceYears) : "",
+    workDayFrom: teacher.workDayFrom || "",
+    workDayTo: teacher.workDayTo || "",
+    workStartTime: teacher.workStartTime || "",
+    workEndTime: teacher.workEndTime || "",
     hireDate: teacher.hireDate || "",
     notesAr: teacher.notesAr || "",
     notesEn: teacher.notesEn || "",
@@ -166,4 +188,51 @@ export function getTeacherSubjectsCount(
   teacher: Pick<Teacher, "subjectIds">,
 ) {
   return teacher.subjectIds.length;
+}
+
+export function buildTeacherWorkingHoursLabel(
+  teacher: Pick<Teacher, "workStartTime" | "workEndTime">,
+  emptyLabel = "",
+) {
+  if (!teacher.workStartTime || !teacher.workEndTime) {
+    return emptyLabel;
+  }
+
+  return `${teacher.workStartTime} - ${teacher.workEndTime}`;
+}
+
+export function getLocalizedWorkDayLabel(
+  day: TeacherWorkDay | undefined,
+  locale: TeacherDisplayLocale,
+) {
+  if (!day) {
+    return "";
+  }
+
+  const labels: Record<TeacherWorkDay, { ar: string; en: string }> = {
+    SUNDAY: { ar: "الأحد", en: "Sunday" },
+    MONDAY: { ar: "الاثنين", en: "Monday" },
+    TUESDAY: { ar: "الثلاثاء", en: "Tuesday" },
+    WEDNESDAY: { ar: "الأربعاء", en: "Wednesday" },
+    THURSDAY: { ar: "الخميس", en: "Thursday" },
+    FRIDAY: { ar: "الجمعة", en: "Friday" },
+    SATURDAY: { ar: "السبت", en: "Saturday" },
+  };
+
+  return labels[day][locale];
+}
+
+export function buildTeacherWorkingDaysLabel(
+  teacher: Pick<Teacher, "workDayFrom" | "workDayTo">,
+  locale: TeacherDisplayLocale,
+  emptyLabel = "",
+) {
+  if (!teacher.workDayFrom || !teacher.workDayTo) {
+    return emptyLabel;
+  }
+
+  return `${getLocalizedWorkDayLabel(
+    teacher.workDayFrom,
+    locale,
+  )} - ${getLocalizedWorkDayLabel(teacher.workDayTo, locale)}`;
 }

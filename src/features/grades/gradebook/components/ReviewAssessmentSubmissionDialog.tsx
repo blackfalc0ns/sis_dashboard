@@ -29,6 +29,7 @@ const formatStudentAnswer = (
   question: AssessmentQuestion,
   reviewItem: AssessmentSubmissionReview["questions"][number],
   locale: string,
+  t: (key: string) => string,
 ) => {
   const { answer } = reviewItem;
   if (!answer) return "-";
@@ -45,13 +46,25 @@ const formatStudentAnswer = (
 
   if (question.questionType === "TRUE_FALSE") {
     if (typeof answer.booleanAnswer !== "boolean") return "-";
-    return answer.booleanAnswer ? "True" : "False";
+    return answer.booleanAnswer ? t("trueLabel") : t("falseLabel");
+  }
+
+  if (question.questionType === "MATCHING") {
+    return t("matchingStudentAnswerPlaceholder");
+  }
+
+  if (question.questionType === "MEDIA") {
+    return t("mediaStudentAnswerPlaceholder");
   }
 
   return answer.answerText?.trim() || "-";
 };
 
-const formatReferenceAnswer = (question: AssessmentQuestion, locale: string) => {
+const formatReferenceAnswer = (
+  question: AssessmentQuestion,
+  locale: string,
+  t: (key: string) => string,
+) => {
   if (question.questionType === "MCQ_SINGLE" || question.questionType === "MCQ_MULTI") {
     const labels = (question.options || [])
       .filter((option) => option.isCorrect)
@@ -62,7 +75,23 @@ const formatReferenceAnswer = (question: AssessmentQuestion, locale: string) => 
 
   if (question.questionType === "TRUE_FALSE") {
     if (typeof question.correctAnswer !== "boolean") return "-";
-    return question.correctAnswer ? "True" : "False";
+    return question.correctAnswer ? t("trueLabel") : t("falseLabel");
+  }
+
+  if (question.questionType === "FILL_IN_BLANK") {
+    const acceptedAnswers =
+      locale === "ar" ? question.acceptedAnswersAr || [] : question.acceptedAnswersEn || [];
+    return acceptedAnswers.length > 0
+      ? acceptedAnswers.join(", ")
+      : t("manualReviewPlaceholder");
+  }
+
+  if (question.questionType === "MATCHING") {
+    return t("matchingReferencePlaceholder");
+  }
+
+  if (question.questionType === "MEDIA") {
+    return question.mediaFileName || question.mediaTitle || question.mediaUrl || t("mediaReferencePlaceholder");
   }
 
   return locale === "ar" ? question.sampleAnswerAr || "-" : question.sampleAnswerEn || "-";
@@ -79,6 +108,7 @@ export default function ReviewAssessmentSubmissionDialog({
   const locale = useLocale();
   const [draftAnswers, setDraftAnswers] = useState<Record<string, DraftAnswerState>>({});
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!review) {
       setDraftAnswers({});
@@ -107,6 +137,7 @@ export default function ReviewAssessmentSubmissionDialog({
       ),
     );
   }, [review]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const runningTotal = useMemo(
     () =>
@@ -194,7 +225,10 @@ export default function ReviewAssessmentSubmissionDialog({
                       {t("questionLabel", { number: index + 1 })}
                     </div>
                     <div className="mt-1 text-sm" style={{ color: "var(--text-primary)" }}>
-                      {locale === "ar" ? item.question.questionTextAr : item.question.questionTextEn}
+                      {(locale === "ar" ? item.question.questionTextAr : item.question.questionTextEn) ||
+                        item.question.mediaTitle ||
+                        item.question.mediaFileName ||
+                        t("mediaReferencePlaceholder")}
                     </div>
                   </div>
                   <div className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
@@ -208,7 +242,7 @@ export default function ReviewAssessmentSubmissionDialog({
                       {t("studentAnswer")}
                     </div>
                     <div className="rounded-lg border p-3 text-sm" style={{ borderColor: "var(--border-color)" }}>
-                      {formatStudentAnswer(item.question, item, locale)}
+                      {formatStudentAnswer(item.question, item, locale, t)}
                     </div>
                   </div>
                   <div>
@@ -216,7 +250,7 @@ export default function ReviewAssessmentSubmissionDialog({
                       {t("referenceAnswer")}
                     </div>
                     <div className="rounded-lg border p-3 text-sm" style={{ borderColor: "var(--border-color)" }}>
-                      {formatReferenceAnswer(item.question, locale)}
+                      {formatReferenceAnswer(item.question, locale, t)}
                     </div>
                   </div>
                 </div>

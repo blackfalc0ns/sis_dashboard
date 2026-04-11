@@ -17,6 +17,7 @@ export interface ValidationErrors {
   descriptionAr?: string;
   descriptionEn?: string;
   maxScore?: string;
+  expectedTimeMinutes?: string;
   dueDate?: string;
   questions?: Record<string, QuestionValidationError>;
   general?: string[];
@@ -28,6 +29,10 @@ export interface QuestionValidationError {
   points?: string;
   options?: string;
   correctAnswer?: string;
+  acceptedAnswers?: string;
+  matchingPairs?: string;
+  media?: string;
+  general?: string;
 }
 
 export interface PointsSummary {
@@ -51,7 +56,15 @@ export interface AssignmentMutations {
   resetAssignment: () => Promise<void>;
 }
 
-export type QuestionType = "MCQ_SINGLE" | "MCQ_MULTI" | "TRUE_FALSE" | "SHORT_ANSWER" | "ESSAY";
+export type QuestionType =
+  | "MCQ_SINGLE"
+  | "MCQ_MULTI"
+  | "TRUE_FALSE"
+  | "SHORT_ANSWER"
+  | "ESSAY"
+  | "FILL_IN_BLANK"
+  | "MATCHING"
+  | "MEDIA";
 
 export interface QuestionOption {
   id: string;

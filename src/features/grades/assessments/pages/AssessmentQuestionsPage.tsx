@@ -55,6 +55,12 @@ function validateAssessmentDraft(
   if (assessment.maxScore <= 0) {
     errors.maxScore = tValidation("invalid_max_score");
   }
+  if (
+    assessment.expectedTimeMinutes != null &&
+    (!Number.isFinite(assessment.expectedTimeMinutes) || assessment.expectedTimeMinutes < 0)
+  ) {
+    errors.expectedTimeMinutes = tValidation("invalid_expected_time");
+  }
   if (questions.length === 0) {
     general.push(tValidation("at_least_one_question"));
   }
@@ -204,6 +210,7 @@ export default function AssessmentQuestionsPage({
         date: dateParam,
         weight: Number.isFinite(weightParam) && weightParam > 0 ? weightParam : 15,
         maxScore: Number.isFinite(maxScoreParam) && maxScoreParam > 0 ? maxScoreParam : 20,
+        expectedTimeMinutes: undefined,
         approvalStatus: "draft",
         isLocked: false,
       };
@@ -380,6 +387,7 @@ export default function AssessmentQuestionsPage({
             date: assessmentDraft.date,
             weight: assessmentDraft.weight,
             maxScore: assessmentDraft.maxScore,
+            expectedTimeMinutes: assessmentDraft.expectedTimeMinutes,
           },
           questions: questions.map((question) => ({
             questionTextAr: question.questionTextAr,
@@ -390,6 +398,15 @@ export default function AssessmentQuestionsPage({
             correctAnswer: question.correctAnswer,
             sampleAnswerAr: question.sampleAnswerAr,
             sampleAnswerEn: question.sampleAnswerEn,
+            acceptedAnswersAr: question.acceptedAnswersAr,
+            acceptedAnswersEn: question.acceptedAnswersEn,
+            matchingPairs: question.matchingPairs,
+            mediaMode: question.mediaMode,
+            mediaTitle: question.mediaTitle,
+            mediaUrl: question.mediaUrl,
+            mediaFileName: question.mediaFileName,
+            mediaMimeType: question.mediaMimeType,
+            mediaSize: question.mediaSize,
           })),
         });
 
@@ -412,6 +429,7 @@ export default function AssessmentQuestionsPage({
         date: assessmentDraft.date,
         weight: assessment!.weight,
         maxScore: assessmentDraft.maxScore,
+        expectedTimeMinutes: assessmentDraft.expectedTimeMinutes,
       });
       setAssessment(nextAssessment);
       setAssessmentDraft(nextAssessment);
@@ -507,6 +525,15 @@ export default function AssessmentQuestionsPage({
         correctAnswer: questionDraft.correctAnswer,
         sampleAnswerAr: questionDraft.sampleAnswerAr,
         sampleAnswerEn: questionDraft.sampleAnswerEn,
+        acceptedAnswersAr: questionDraft.acceptedAnswersAr,
+        acceptedAnswersEn: questionDraft.acceptedAnswersEn,
+        matchingPairs: questionDraft.matchingPairs,
+        mediaMode: questionDraft.mediaMode,
+        mediaTitle: questionDraft.mediaTitle,
+        mediaUrl: questionDraft.mediaUrl,
+        mediaFileName: questionDraft.mediaFileName,
+        mediaMimeType: questionDraft.mediaMimeType,
+        mediaSize: questionDraft.mediaSize,
       });
       setQuestions((current) => current.map((question) => (question.id === saved.id ? saved : question)));
       setQuestionDraft(saved);

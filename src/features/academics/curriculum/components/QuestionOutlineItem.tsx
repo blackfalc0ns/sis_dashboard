@@ -3,7 +3,7 @@
 import { useTranslations, useLocale } from "next-intl";
 import { CheckCircle, AlertCircle, ChevronUp, ChevronDown } from "lucide-react";
 import { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
-import { MIN_OPTIONS_COUNT } from "@/features/academics/curriculum/libs/constants";
+import { validateQuestion } from "@/features/academics/curriculum/utils/validation";
 
 interface QuestionOutlineItemProps {
   question: AssignmentQuestion;
@@ -31,51 +31,16 @@ export default function QuestionOutlineItem({
   isReadOnly,
 }: QuestionOutlineItemProps) {
   const t = useTranslations("academics.curriculum.questions");
+  const tValidation = useTranslations("validation");
   const locale = useLocale();
 
-  const displayText = locale === "ar" ? question.questionTextAr : question.questionTextEn;
+  const displayText =
+    (locale === "ar" ? question.questionTextAr : question.questionTextEn) ||
+    question.mediaTitle ||
+    question.mediaFileName;
 
   const isValid = () => {
-    // Check question text
-    if (!question.questionTextAr?.trim() || !question.questionTextEn?.trim()) {
-      return false;
-    }
-
-    // Check MCQ validation
-    if (question.questionType === "MCQ_SINGLE" || question.questionType === "MCQ_MULTI") {
-      // Check minimum options
-      if (!question.options || question.options.length < MIN_OPTIONS_COUNT) {
-        return false;
-      }
-
-      // Check all options have text
-      const hasEmptyOptions = question.options.some(
-        (o) => !o.textAr?.trim() || !o.textEn?.trim()
-      );
-      if (hasEmptyOptions) {
-        return false;
-      }
-
-      // Check AR != EN for options
-      const hasSameTextOptions = question.options.some(
-        (o) => o.textAr?.trim() && o.textEn?.trim() && 
-               o.textAr.trim().toLowerCase() === o.textEn.trim().toLowerCase()
-      );
-      if (hasSameTextOptions) {
-        return false;
-      }
-
-      // Check correct answer selection
-      const correctCount = question.options.filter((o) => o.isCorrect).length;
-      if (question.questionType === "MCQ_SINGLE" && correctCount !== 1) {
-        return false;
-      }
-      if (question.questionType === "MCQ_MULTI" && correctCount < 1) {
-        return false;
-      }
-    }
-
-    return true;
+    return Object.keys(validateQuestion(question, tValidation)).length === 0;
   };
 
   const valid = isValid();
@@ -116,6 +81,12 @@ export default function QuestionOutlineItem({
                   ? "bg-purple-100 text-purple-700"
                   : question.questionType === "TRUE_FALSE"
                   ? "bg-green-100 text-green-700"
+                  : question.questionType === "FILL_IN_BLANK"
+                  ? "bg-amber-100 text-amber-700"
+                  : question.questionType === "MATCHING"
+                  ? "bg-cyan-100 text-cyan-700"
+                  : question.questionType === "MEDIA"
+                  ? "bg-rose-100 text-rose-700"
                   : "bg-gray-100 text-gray-700"
               }`}
             >

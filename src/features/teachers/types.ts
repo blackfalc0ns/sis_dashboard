@@ -4,6 +4,15 @@ export type TeacherGender = "MALE" | "FEMALE";
 
 export type TeacherDisplayLocale = "ar" | "en";
 
+export type TeacherWorkDay =
+  | "SUNDAY"
+  | "MONDAY"
+  | "TUESDAY"
+  | "WEDNESDAY"
+  | "THURSDAY"
+  | "FRIDAY"
+  | "SATURDAY";
+
 export interface Teacher {
   id: string;
   code: string;
@@ -21,6 +30,11 @@ export interface Teacher {
   stageIds: string[];
   gradeIds: string[];
   sectionIds: string[];
+  experienceYears?: number;
+  workDayFrom?: TeacherWorkDay;
+  workDayTo?: TeacherWorkDay;
+  workStartTime?: string;
+  workEndTime?: string;
   hireDate?: string;
   notesAr?: string;
   notesEn?: string;
@@ -47,6 +61,11 @@ export interface TeacherFormData {
   stageIds: string[];
   gradeIds: string[];
   sectionIds: string[];
+  experienceYears: string;
+  workDayFrom: TeacherWorkDay | "";
+  workDayTo: TeacherWorkDay | "";
+  workStartTime: string;
+  workEndTime: string;
   hireDate: string;
   notesAr: string;
   notesEn: string;
@@ -78,6 +97,11 @@ export interface TeacherFormErrors {
   stageIds?: string;
   gradeIds?: string;
   sectionIds?: string;
+  experienceYears?: string;
+  workDayFrom?: string;
+  workDayTo?: string;
+  workStartTime?: string;
+  workEndTime?: string;
   notesAr?: string;
   notesEn?: string;
 }

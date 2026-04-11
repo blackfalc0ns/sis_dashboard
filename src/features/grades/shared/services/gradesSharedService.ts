@@ -10,7 +10,6 @@ import { getStudentEnrollment } from "@/features/students-guardians/students/ser
 import type { StudentEnrollment } from "@/features/students-guardians/students/types";
 import type {
   Assessment,
-  AssessmentCorrectionStatus,
   AssessmentQuestionAnswer,
   AssessmentQuestion,
   AssessmentSubmission,
@@ -105,9 +104,14 @@ const mapLegacyAssessmentType = (type: Assessment["type"]): AssessmentType => {
 const formatStudentAnswerText = (question: AssessmentQuestion, studentSeed: string) => {
   switch (question.questionType) {
     case "SHORT_ANSWER":
+    case "FILL_IN_BLANK":
       return `Answer ${hashString(studentSeed) % 20 + 1}`;
     case "ESSAY":
       return `This is a longer written response for ${question.questionTextEn || "the question"}.`;
+    case "MATCHING":
+      return undefined;
+    case "MEDIA":
+      return undefined;
     default:
       return undefined;
   }
@@ -560,6 +564,7 @@ async function ensureSeedData(termId: string, academicYearId: string) {
           date: `2025-09-${String(((day - 1) % 28) + 1).padStart(2, "0")}`,
           weight: template.weight,
           maxScore: template.maxScore,
+          expectedTimeMinutes: undefined,
           isLocked: isTermExam,
           approvalStatus: isTermExam ? "approved" : "published",
         });
@@ -885,6 +890,7 @@ export async function createAssessment(
     ...normalizedScope,
     type: mapLegacyAssessmentType(payload.type),
     deliveryMode: payload.deliveryMode,
+    expectedTimeMinutes: payload.expectedTimeMinutes,
     isLocked: false,
     approvalStatus: "draft",
   };
@@ -909,6 +915,15 @@ export async function createAssessmentWithQuestions(
       correctAnswer?: boolean;
       sampleAnswerAr?: string;
       sampleAnswerEn?: string;
+      acceptedAnswersAr?: string[];
+      acceptedAnswersEn?: string[];
+      matchingPairs?: AssessmentQuestion["matchingPairs"];
+      mediaMode?: AssessmentQuestion["mediaMode"];
+      mediaTitle?: string;
+      mediaUrl?: string;
+      mediaFileName?: string;
+      mediaMimeType?: string;
+      mediaSize?: number;
     }>;
   },
 ): Promise<Assessment> {
@@ -1448,6 +1463,15 @@ export async function createAssessmentQuestion(
     correctAnswer?: boolean;
     sampleAnswerAr?: string;
     sampleAnswerEn?: string;
+    acceptedAnswersAr?: string[];
+    acceptedAnswersEn?: string[];
+    matchingPairs?: AssessmentQuestion["matchingPairs"];
+    mediaMode?: AssessmentQuestion["mediaMode"];
+    mediaTitle?: string;
+    mediaUrl?: string;
+    mediaFileName?: string;
+    mediaMimeType?: string;
+    mediaSize?: number;
   },
 ): Promise<AssessmentQuestion> {
   await delay();
@@ -1472,6 +1496,15 @@ export async function createAssessmentQuestion(
     correctAnswer: payload.correctAnswer,
     sampleAnswerAr: payload.sampleAnswerAr,
     sampleAnswerEn: payload.sampleAnswerEn,
+    acceptedAnswersAr: payload.acceptedAnswersAr,
+    acceptedAnswersEn: payload.acceptedAnswersEn,
+    matchingPairs: payload.matchingPairs,
+    mediaMode: payload.mediaMode,
+    mediaTitle: payload.mediaTitle,
+    mediaUrl: payload.mediaUrl,
+    mediaFileName: payload.mediaFileName,
+    mediaMimeType: payload.mediaMimeType,
+    mediaSize: payload.mediaSize,
   };
 
   const questions = assessmentQuestionsByTerm[seedKey] || [];
@@ -1495,6 +1528,15 @@ export async function updateAssessmentQuestion(
     correctAnswer?: boolean;
     sampleAnswerAr?: string;
     sampleAnswerEn?: string;
+    acceptedAnswersAr?: string[];
+    acceptedAnswersEn?: string[];
+    matchingPairs?: AssessmentQuestion["matchingPairs"];
+    mediaMode?: AssessmentQuestion["mediaMode"];
+    mediaTitle?: string;
+    mediaUrl?: string;
+    mediaFileName?: string;
+    mediaMimeType?: string;
+    mediaSize?: number;
     order?: number;
   },
 ): Promise<AssessmentQuestion> {

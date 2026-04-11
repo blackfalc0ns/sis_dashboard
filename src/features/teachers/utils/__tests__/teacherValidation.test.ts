@@ -21,6 +21,11 @@ const baseTeacherFormData: TeacherFormData = {
   stageIds: ["stage-1"],
   gradeIds: ["grade-1"],
   sectionIds: ["section-1"],
+  experienceYears: "",
+  workDayFrom: "",
+  workDayTo: "",
+  workStartTime: "",
+  workEndTime: "",
   hireDate: "2026-01-01",
   notesAr: "",
   notesEn: "",
@@ -42,6 +47,40 @@ describe("teacherValidation", () => {
     expect(result.errors).toEqual({});
     expect(result.normalizedData.code).toBe("TCH-900");
     expect(result.normalizedData.phone).toBe("+201001112233");
+  });
+
+  it("validates work day pairs and ordering", async () => {
+    const result = await validateTeacherForm(
+      {
+        ...baseTeacherFormData,
+        workDayFrom: "THURSDAY",
+        workDayTo: "MONDAY",
+      },
+      {
+        isCodeUnique: async () => true,
+        isEmailUnique: async () => true,
+      },
+    );
+
+    expect(result.isValid).toBe(false);
+    expect(result.errors.workDayTo).toBe("validation.work_day_order_invalid");
+  });
+
+  it("requires paired work day values", async () => {
+    const result = await validateTeacherForm(
+      {
+        ...baseTeacherFormData,
+        workDayFrom: "SUNDAY",
+      },
+      {
+        isCodeUnique: async () => true,
+        isEmailUnique: async () => true,
+      },
+    );
+
+    expect(result.isValid).toBe(false);
+    expect(result.errors.workDayFrom).toBe("validation.work_day_pair_required");
+    expect(result.errors.workDayTo).toBe("validation.work_day_pair_required");
   });
 
   it("returns translated error keys for missing values and duplicates", async () => {

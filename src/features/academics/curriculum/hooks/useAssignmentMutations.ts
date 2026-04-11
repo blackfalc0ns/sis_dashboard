@@ -75,6 +75,7 @@ export function useAssignmentMutations({
         descriptionEn: assignment.descriptionEn?.trim() || undefined,
         dueDate: assignment.dueDate,
         maxScore: assignment.maxScore ?? 0,
+        expectedTimeMinutes: assignment.expectedTimeMinutes,
       });
 
       setAssignment({
@@ -83,6 +84,7 @@ export function useAssignmentMutations({
         titleEn: assignment.titleEn?.trim() || "",
         descriptionAr: assignment.descriptionAr?.trim() || undefined,
         descriptionEn: assignment.descriptionEn?.trim() || undefined,
+        expectedTimeMinutes: assignment.expectedTimeMinutes,
       });
 
       clearDirty();

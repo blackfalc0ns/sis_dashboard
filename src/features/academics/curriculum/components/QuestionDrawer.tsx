@@ -23,10 +23,14 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
-import { validateArEnDifferent } from "@/utils/validation/bilingualValidation";
 import { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import { useQuestionFormState } from "@/features/academics/curriculum/hooks/useQuestionFormState";
+import {
+  normalizeQuestionText,
+  validateQuestion,
+} from "@/features/academics/curriculum/utils/validation";
 import QuestionOptionRow, { QuestionOptionRowErrors } from "./QuestionOptionRow";
+import QuestionTypeSpecificFields from "./QuestionTypeSpecificFields";
 
 interface QuestionDrawerProps {
   isOpen: boolean;
@@ -53,8 +57,10 @@ export default function QuestionDrawer({
     en?: string;
     points?: string;
     options?: Record<string, QuestionOptionRowErrors>;
-    sampleAr?: string;
-    sampleEn?: string;
+    correctAnswer?: string;
+    acceptedAnswers?: string;
+    matchingPairs?: string;
+    media?: string;
     general?: string;
   }>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -68,6 +74,15 @@ export default function QuestionDrawer({
     correctAnswer,
     sampleAnswerAr,
     sampleAnswerEn,
+    acceptedAnswersAr,
+    acceptedAnswersEn,
+    matchingPairs,
+    mediaMode,
+    mediaTitle,
+    mediaUrl,
+    mediaFileName,
+    mediaMimeType,
+    mediaSize,
     setQuestionText,
     setPointsValue,
     handleTypeChange,
@@ -81,6 +96,18 @@ export default function QuestionDrawer({
     setTrueFalseAnswer,
     setSampleAnswerArValue,
     setSampleAnswerEnValue,
+    setAcceptedAnswersArValue,
+    setAcceptedAnswersEnValue,
+    addMatchingPair,
+    updateMatchingPair,
+    removeMatchingPair,
+    moveMatchingPairUp,
+    moveMatchingPairDown,
+    setMediaModeValue,
+    setMediaTitleValue,
+    setMediaUrlValue,
+    setMediaFileValue,
+    clearMedia,
     buildPayload,
   } = useQuestionFormState({
     question,
@@ -127,23 +154,19 @@ export default function QuestionDrawer({
     }
   };
 
-  const normalizeText = (text: string): string => text.trim().toLowerCase().replace(/\s+/g, " ");
-
   const validate = (): boolean => {
     const nextErrors: typeof errors = {};
-
-    if (!questionTextAr.trim()) nextErrors.ar = tValidation("required_ar");
-    if (!questionTextEn.trim()) nextErrors.en = tValidation("required_en");
-
-    if (questionTextAr.trim() && questionTextEn.trim()) {
-      const arEnErrors = validateArEnDifferent(questionTextAr, questionTextEn);
-      if (arEnErrors.arError) nextErrors.ar = tValidation("arEnMustDiffer");
-      if (arEnErrors.enError) nextErrors.en = tValidation("arEnMustDiffer");
-    }
-
-    if (points < 0) {
-      nextErrors.points = "Points must be 0 or greater";
-    }
+    const payload = buildPayload();
+    const validation = validateQuestion(
+      {
+        id: question?.id || "draft-question",
+        assignmentId: question?.assignmentId || "draft-assignment",
+        createdAt: question?.createdAt || new Date().toISOString(),
+        order: question?.order || 1,
+        ...payload,
+      } as AssignmentQuestion,
+      tValidation
+    );
 
     if (questionType === "MCQ_SINGLE" || questionType === "MCQ_MULTI") {
       if (options.length < 2) {
@@ -160,14 +183,17 @@ export default function QuestionDrawer({
         if (!option.textAr.trim()) optionError.ar = tValidation("required_ar");
         if (!option.textEn.trim()) optionError.en = tValidation("required_en");
 
-        if (option.textAr.trim() && option.textEn.trim()) {
-          const arEnErrors = validateArEnDifferent(option.textAr, option.textEn);
-          if (arEnErrors.arError) optionError.ar = tValidation("arEnMustDiffer");
-          if (arEnErrors.enError) optionError.en = tValidation("arEnMustDiffer");
+        if (
+          option.textAr.trim() &&
+          option.textEn.trim() &&
+          option.textAr.trim().toLowerCase() === option.textEn.trim().toLowerCase()
+        ) {
+          optionError.ar = tValidation("arEnMustDiffer");
+          optionError.en = tValidation("arEnMustDiffer");
         }
 
         if (option.textAr.trim()) {
-          const normalized = normalizeText(option.textAr);
+          const normalized = normalizeQuestionText(option.textAr);
           if (normalizedAr.has(normalized)) {
             optionError.ar = tValidation("duplicateOptionAr");
           } else {
@@ -176,7 +202,7 @@ export default function QuestionDrawer({
         }
 
         if (option.textEn.trim()) {
-          const normalized = normalizeText(option.textEn);
+          const normalized = normalizeQuestionText(option.textEn);
           if (normalizedEn.has(normalized)) {
             optionError.en = tValidation("duplicateOptionEn");
           } else {
@@ -193,25 +219,33 @@ export default function QuestionDrawer({
         nextErrors.options = optionErrors;
       }
 
-      const correctCount = options.filter((option) => option.isCorrect).length;
-      if (questionType === "MCQ_SINGLE" && correctCount !== 1) {
-        nextErrors.general = tValidation("selectCorrectSingle");
-      } else if (questionType === "MCQ_MULTI" && correctCount < 1) {
-        nextErrors.general = tValidation("selectCorrectMulti");
-      }
+    } else {
+      nextErrors.correctAnswer = validation.correctAnswer;
+      nextErrors.acceptedAnswers = validation.acceptedAnswers;
+      nextErrors.matchingPairs = validation.matchingPairs;
+      nextErrors.media = validation.media;
     }
 
-    if (questionType === "SHORT_ANSWER") {
-      const bothFilled = sampleAnswerAr.trim() && sampleAnswerEn.trim();
-      if (bothFilled) {
-        const arEnErrors = validateArEnDifferent(sampleAnswerAr, sampleAnswerEn);
-        if (arEnErrors.arError) nextErrors.sampleAr = tValidation("arEnMustDiffer");
-        if (arEnErrors.enError) nextErrors.sampleEn = tValidation("arEnMustDiffer");
-      }
+    nextErrors.ar = validation.textAr;
+    nextErrors.en = validation.textEn;
+    nextErrors.points = validation.points;
+    if (!nextErrors.general) {
+      nextErrors.general = validation.options;
+    }
+    if (!nextErrors.correctAnswer) {
+      nextErrors.correctAnswer = validation.correctAnswer;
     }
 
     setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
+    return Object.values(nextErrors).every((value) => {
+      if (!value) {
+        return true;
+      }
+      if (typeof value === "string") {
+        return false;
+      }
+      return Object.keys(value).length === 0;
+    });
   };
 
   const handleSave = async () => {
@@ -234,12 +268,14 @@ export default function QuestionDrawer({
     { value: "TRUE_FALSE", label: t("question_types.TRUE_FALSE") },
     { value: "SHORT_ANSWER", label: t("question_types.SHORT_ANSWER") },
     { value: "ESSAY", label: t("question_types.ESSAY") },
+    { value: "FILL_IN_BLANK", label: t("question_types.FILL_IN_BLANK") },
+    { value: "MATCHING", label: t("question_types.MATCHING") },
+    { value: "MEDIA", label: t("question_types.MEDIA") },
   ];
 
   const isMCQ = questionType === "MCQ_SINGLE" || questionType === "MCQ_MULTI";
   const canRemoveOption = options.length > 2;
   const radioGroupName = `drawer-correct-option-${question?.id ?? "new"}`;
-  const trueFalseGroupName = `drawer-true-false-${question?.id ?? "new"}`;
 
   return (
     <Drawer
@@ -279,8 +315,8 @@ export default function QuestionDrawer({
               setQuestionText(value);
               setErrors({ ...errors, ar: undefined, en: undefined });
             }}
-            requiredAr
-            requiredEn
+            requiredAr={questionType !== "MEDIA"}
+            requiredEn={questionType !== "MEDIA"}
             errors={errors}
             disabled={isReadOnly}
             placeholder={{
@@ -315,7 +351,9 @@ export default function QuestionDrawer({
 
           <div className="space-y-3">
             <div className="border-t pt-3">
-              <label className="text-sm font-medium block mb-3">{t("answers")} *</label>
+              <label className="text-sm font-medium block mb-3">
+                {questionType === "MEDIA" ? t("media") : t("answers")}
+              </label>
 
               {errors.general && (
                 <div className="text-sm text-red-600 bg-red-50 p-2 rounded mb-3">
@@ -374,104 +412,40 @@ export default function QuestionDrawer({
                 </div>
               )}
 
-              {questionType === "TRUE_FALSE" && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-600">
-                    {t("correct_answer")}
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name={trueFalseGroupName}
-                        checked={correctAnswer === true}
-                        onChange={() => setTrueFalseAnswer(true)}
-                        disabled={isReadOnly}
-                        className="w-4 h-4"
-                      />
-                      <span>{t("true")}</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name={trueFalseGroupName}
-                        checked={correctAnswer === false}
-                        onChange={() => setTrueFalseAnswer(false)}
-                        disabled={isReadOnly}
-                        className="w-4 h-4"
-                      />
-                      <span>{t("false")}</span>
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {questionType === "SHORT_ANSWER" && (
-                <div className="space-y-3">
-                  <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800">
-                    {t("manual_grading_hint")}
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-sm font-medium text-gray-600">
-                      {t("sample_answer")}
-                    </label>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 text-right">
-                        {t("sample_answer")} (\u0639\u0631\u0628\u064a)
-                      </label>
-                      <textarea
-                        value={sampleAnswerAr}
-                        onChange={(event) => {
-                          setSampleAnswerArValue(event.target.value);
-                          setErrors({ ...errors, sampleAr: undefined });
-                        }}
-                        placeholder="\u0625\u062c\u0627\u0628\u0629 \u0646\u0645\u0648\u0630\u062c\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a)"
-                        disabled={isReadOnly}
-                        rows={3}
-                        dir="rtl"
-                        className={`w-full px-4 py-2.5 text-sm bg-white border rounded-lg transition-colors placeholder:text-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none ${
-                          errors.sampleAr
-                            ? "border-red-500 focus:ring-red-500"
-                            : "border-gray-200"
-                        } ${isReadOnly ? "bg-gray-100 cursor-not-allowed opacity-60" : ""}`}
-                      />
-                      {errors.sampleAr && (
-                        <div className="flex items-start gap-1 mt-1 text-xs text-red-600 text-right">
-                          <span>{errors.sampleAr}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {t("sample_answer")} (English)
-                      </label>
-                      <textarea
-                        value={sampleAnswerEn}
-                        onChange={(event) => {
-                          setSampleAnswerEnValue(event.target.value);
-                          setErrors({ ...errors, sampleEn: undefined });
-                        }}
-                        placeholder="Sample answer (optional)"
-                        disabled={isReadOnly}
-                        rows={3}
-                        dir="ltr"
-                        className={`w-full px-4 py-2.5 text-sm bg-white border rounded-lg transition-colors placeholder:text-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none ${
-                          errors.sampleEn
-                            ? "border-red-500 focus:ring-red-500"
-                            : "border-gray-200"
-                        } ${isReadOnly ? "bg-gray-100 cursor-not-allowed opacity-60" : ""}`}
-                      />
-                      {errors.sampleEn && (
-                        <div className="flex items-start gap-1 mt-1 text-xs text-red-600">
-                          <span>{errors.sampleEn}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+              {!isMCQ && (
+                <QuestionTypeSpecificFields
+                  questionId={question?.id ?? "new"}
+                  questionType={questionType}
+                  isReadOnly={isReadOnly}
+                  correctAnswer={correctAnswer}
+                  sampleAnswerAr={sampleAnswerAr}
+                  sampleAnswerEn={sampleAnswerEn}
+                  acceptedAnswersAr={acceptedAnswersAr}
+                  acceptedAnswersEn={acceptedAnswersEn}
+                  matchingPairs={matchingPairs}
+                  mediaMode={mediaMode}
+                  mediaTitle={mediaTitle}
+                  mediaUrl={mediaUrl}
+                  mediaFileName={mediaFileName}
+                  mediaMimeType={mediaMimeType}
+                  mediaSize={mediaSize}
+                  setTrueFalseAnswer={setTrueFalseAnswer}
+                  setSampleAnswerArValue={setSampleAnswerArValue}
+                  setSampleAnswerEnValue={setSampleAnswerEnValue}
+                  setAcceptedAnswersArValue={setAcceptedAnswersArValue}
+                  setAcceptedAnswersEnValue={setAcceptedAnswersEnValue}
+                  addMatchingPair={addMatchingPair}
+                  updateMatchingPair={updateMatchingPair}
+                  removeMatchingPair={removeMatchingPair}
+                  moveMatchingPairUp={moveMatchingPairUp}
+                  moveMatchingPairDown={moveMatchingPairDown}
+                  setMediaModeValue={setMediaModeValue}
+                  setMediaTitleValue={setMediaTitleValue}
+                  setMediaUrlValue={setMediaUrlValue}
+                  setMediaFileValue={setMediaFileValue}
+                  clearMedia={clearMedia}
+                  validationErrors={errors}
+                />
               )}
             </div>
           </div>

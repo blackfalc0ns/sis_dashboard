@@ -74,6 +74,26 @@ export default function AssessmentQuestionSettingsPanel({
               <span>{validationErrors.maxScore}</span>
             </div>
           )}
+
+          <Input
+            label={t("expected_time_minutes")}
+            type="number"
+            value={assessment.expectedTimeMinutes ?? ""}
+            onChange={(event) =>
+              onUpdate({
+                expectedTimeMinutes:
+                  event.target.value === "" ? undefined : Number(event.target.value),
+              })
+            }
+            disabled={isMetadataLocked}
+            min={0}
+          />
+          {validationErrors.expectedTimeMinutes && (
+            <div className="mt-1 flex items-center gap-1 text-xs text-red-600">
+              <AlertCircle className="h-3 w-3" />
+              <span>{validationErrors.expectedTimeMinutes}</span>
+            </div>
+          )}
         </div>
       </div>
 
