@@ -3249,9 +3249,9 @@
         "update_question_failed": "فشل تحديث السؤال",
         "delete_question_failed": "فشل حذف السؤال",
         "reorder_failed": "فشل إعادة الترتيب",
-        "expected_time_minutes": "????? ??????? (????????)",
-        "expected_time_short": "?????",
-        "minutes_short": "?"
+        "expected_time_minutes": "الوقت المتوقع (دقائق)",
+        "expected_time_short": "الوقت المتوقع",
+        "minutes_short": "دقائق"
       },
       "teachingWeeksHint": "أسابيع الدراسة: {count} (مع استبعاد الإجازات)"
     },
@@ -4441,7 +4441,7 @@
     "confirm_auto_distribute_body": "سيتم تعديل درجات جميع الأسئلة لتطابق الدرجة النهائية.",
     "delete_question_confirm": "هل أنت متأكد من حذف هذا السؤال ",
     "fix_errors_before_save": "يرجى تصحيح الاخطاء قبل الحفظ.",
-    "invalid_expected_time": "??? ?? ???? ????? ??????? ???? ?? 0 ?????"
+    "invalid_expected_time": "الوقت المتوقع يجب أن يكون أكبر من 0"
   },
   "helper": {
     "urlExample": "مثال: https://example.com"
