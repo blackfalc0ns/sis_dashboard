@@ -68,6 +68,7 @@ export function mapTeacherFormDataToTeacherInput(
     stageIds: uniqueIds(formData.stageIds),
     gradeIds: uniqueIds(formData.gradeIds),
     sectionIds: uniqueIds(formData.sectionIds),
+    classroomIds: uniqueIds(formData.classroomIds),
     experienceYears: toOptionalNumber(formData.experienceYears),
     workDayFrom: (formData.workDayFrom || undefined) as TeacherWorkDay | undefined,
     workDayTo: (formData.workDayTo || undefined) as TeacherWorkDay | undefined,
@@ -94,6 +95,7 @@ export function mapTeacherToFormData(teacher: Teacher): TeacherFormData {
     stageIds: [...teacher.stageIds],
     gradeIds: [...teacher.gradeIds],
     sectionIds: [...teacher.sectionIds],
+    classroomIds: [...teacher.classroomIds],
     experienceYears:
       teacher.experienceYears !== undefined ? String(teacher.experienceYears) : "",
     workDayFrom: teacher.workDayFrom || "",
@@ -142,7 +144,7 @@ const resolveNames = (
 export function resolveTeacherAssignmentNames(
   teacher: Pick<
     Teacher,
-    "subjectIds" | "stageIds" | "gradeIds" | "sectionIds"
+    "subjectIds" | "stageIds" | "gradeIds" | "sectionIds" | "classroomIds"
   >,
   referenceData: TeacherReferenceData,
   locale: TeacherDisplayLocale,
@@ -152,6 +154,11 @@ export function resolveTeacherAssignmentNames(
     stages: resolveNames(teacher.stageIds, referenceData.stages, locale),
     grades: resolveNames(teacher.gradeIds, referenceData.grades, locale),
     sections: resolveNames(teacher.sectionIds, referenceData.sections, locale),
+    classrooms: resolveNames(
+      teacher.classroomIds,
+      referenceData.classrooms,
+      locale,
+    ),
   };
 }
 
@@ -159,19 +166,29 @@ export interface TeacherAssignmentSummaryLabels {
   stages: string;
   grades: string;
   sections: string;
+  classrooms: string;
   empty: string;
   separator?: string;
 }
 
 export function buildTeacherAssignmentSummary(
-  teacher: Pick<Teacher, "stageIds" | "gradeIds" | "sectionIds">,
+  teacher: Pick<
+    Teacher,
+    "stageIds" | "gradeIds" | "sectionIds" | "classroomIds"
+  >,
   labels: TeacherAssignmentSummaryLabels,
 ) {
   const stageCount = teacher.stageIds.length;
   const gradeCount = teacher.gradeIds.length;
   const sectionCount = teacher.sectionIds.length;
+  const classroomCount = teacher.classroomIds.length;
 
-  if (stageCount === 0 && gradeCount === 0 && sectionCount === 0) {
+  if (
+    stageCount === 0 &&
+    gradeCount === 0 &&
+    sectionCount === 0 &&
+    classroomCount === 0
+  ) {
     return labels.empty;
   }
 
@@ -181,6 +198,7 @@ export function buildTeacherAssignmentSummary(
     `${stageCount} ${labels.stages}`,
     `${gradeCount} ${labels.grades}`,
     `${sectionCount} ${labels.sections}`,
+    `${classroomCount} ${labels.classrooms}`,
   ].join(separator);
 }
 

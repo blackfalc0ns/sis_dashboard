@@ -6752,6 +6752,7 @@
       "stages": "Stages",
       "grades": "Grades",
       "sections": "Sections",
+      "classrooms": "Classrooms",
       "notes_ar": "Notes (AR)",
       "notes_en": "Notes (EN)",
       "status": "Status"
@@ -6784,6 +6785,7 @@
       "stages": "stages",
       "grades": "grades",
       "sections": "sections",
+      "classrooms": "classrooms",
       "empty": "No assignments"
     },
     "list": {
@@ -6808,6 +6810,7 @@
       "stages": "Stages",
       "grades": "Grades",
       "sections": "Sections",
+      "classrooms": "Classrooms",
       "notes": "Notes",
       "metadata": "Activity",
       "created_at": "Created At",
@@ -6831,7 +6834,8 @@
       "no_subjects": "No subjects available for the current academic context.",
       "no_stages": "No stages available for the current academic context.",
       "select_stage_first": "Select at least one stage first.",
-      "select_grade_first": "Select at least one grade first."
+      "select_grade_first": "Select at least one grade first.",
+      "select_section_first": "Select at least one section first."
     },
     "change_password": {
       "title": "Change Password",
@@ -6932,6 +6936,7 @@
       "stages_required": "Select at least one stage.",
       "grades_required": "Select at least one grade.",
       "sections_required": "Select at least one section.",
+      "classrooms_required": "Select at least one classroom.",
       "notes_ar_max_length": "Arabic notes are too long.",
       "notes_en_max_length": "English notes are too long.",
       "password_required": "New password is required.",

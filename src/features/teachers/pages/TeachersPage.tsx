@@ -52,6 +52,7 @@ const emptyReferenceData: TeacherReferenceData = {
   stages: [],
   grades: [],
   sections: [],
+  classrooms: [],
 };
 
 type PendingAction = "toggle" | "delete" | "password";
@@ -179,6 +180,12 @@ export default function TeachersPage() {
           gradeId: section.gradeId,
           labelAr: section.nameAr || section.name,
           labelEn: section.nameEn || section.name,
+        })),
+        classrooms: structureData.classrooms.map((classroom) => ({
+          id: classroom.id,
+          sectionId: classroom.sectionId,
+          labelAr: classroom.nameAr || classroom.name,
+          labelEn: classroom.nameEn || classroom.name,
         })),
       });
     } catch {
@@ -337,12 +344,14 @@ export default function TeachersPage() {
           stages: t("summary.stages"),
           grades: t("summary.grades"),
           sections: t("summary.sections"),
+          classrooms: t("summary.classrooms"),
           empty: t("summary.empty"),
         }),
         subjects: localizedAssignments.subjects.join(" | "),
         stages: localizedAssignments.stages.join(" | "),
         grades: localizedAssignments.grades.join(" | "),
         sections: localizedAssignments.sections.join(" | "),
+        classrooms: localizedAssignments.classrooms.join(" | "),
         notesAr: teacher.notesAr || "",
         notesEn: teacher.notesEn || "",
         createdAt: formatDateTime(teacher.createdAt),
@@ -417,6 +426,7 @@ export default function TeachersPage() {
       { key: "stages", label: t("details.stages") },
       { key: "grades", label: t("details.grades") },
       { key: "sections", label: t("details.sections") },
+      { key: "classrooms", label: t("details.classrooms") },
       { key: "notesAr", label: t("fields.notes_ar") },
       { key: "notesEn", label: t("fields.notes_en") },
       { key: "createdAt", label: t("details.created_at") },
@@ -477,6 +487,7 @@ export default function TeachersPage() {
             stages: "stages",
             grades: "grades",
             sections: "sections",
+            classrooms: "classrooms",
             empty: "No assignments",
             separator: " | ",
           }),
@@ -484,6 +495,7 @@ export default function TeachersPage() {
           stages: englishAssignments.stages,
           grades: englishAssignments.grades,
           sections: englishAssignments.sections,
+          classrooms: englishAssignments.classrooms,
           notesEn: teacher.notesEn || null,
           notesAr: teacher.notesAr || null,
           createdAt: teacher.createdAt,

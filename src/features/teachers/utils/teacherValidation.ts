@@ -70,6 +70,7 @@ export function normalizeTeacherFormData(
     stageIds: uniqueIds(data.stageIds),
     gradeIds: uniqueIds(data.gradeIds),
     sectionIds: uniqueIds(data.sectionIds),
+    classroomIds: uniqueIds(data.classroomIds),
     experienceYears: normalizeOptionalNumberString(data.experienceYears),
     workDayFrom: data.workDayFrom,
     workDayTo: data.workDayTo,
@@ -247,6 +248,10 @@ export async function validateTeacherForm(
 
   if (normalizedData.sectionIds.length === 0) {
     errors.sectionIds = "validation.sections_required";
+  }
+
+  if (normalizedData.classroomIds.length === 0) {
+    errors.classroomIds = "validation.classrooms_required";
   }
 
   if (normalizedData.notesAr.length > TEACHER_NOTES_MAX_LENGTH) {

@@ -218,6 +218,7 @@ export default function TeachersListPanel({
       stages: t("summary.stages"),
       grades: t("summary.grades"),
       sections: t("summary.sections"),
+      classrooms: t("summary.classrooms"),
       empty: t("summary.empty"),
     }),
   }));

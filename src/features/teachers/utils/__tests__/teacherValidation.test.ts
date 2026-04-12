@@ -21,6 +21,7 @@ const baseTeacherFormData: TeacherFormData = {
   stageIds: ["stage-1"],
   gradeIds: ["grade-1"],
   sectionIds: ["section-1"],
+  classroomIds: ["classroom-1"],
   experienceYears: "",
   workDayFrom: "",
   workDayTo: "",
@@ -90,6 +91,7 @@ describe("teacherValidation", () => {
         code: "",
         email: "duplicate@example.com",
         stageIds: [],
+        classroomIds: [],
       },
       {
         isCodeUnique: async () => false,
@@ -101,6 +103,7 @@ describe("teacherValidation", () => {
     expect(result.errors.code).toBe("validation.code_required");
     expect(result.errors.email).toBe("validation.email_unique");
     expect(result.errors.stageIds).toBe("validation.stages_required");
+    expect(result.errors.classroomIds).toBe("validation.classrooms_required");
   });
 
   it("validates teacher password changes", () => {

@@ -6670,7 +6670,8 @@
       "sections": "الشعب",
       "notes_ar": "ملاحظات (عربي)",
       "notes_en": "ملاحظات (إنجليزي)",
-      "status": "الحالة"
+      "status": "الحالة",
+      "classrooms": "الفصول"
     },
     "gender": {
       "male": "ذكر",
@@ -6700,7 +6701,8 @@
       "stages": "مراحل",
       "grades": "صفوف",
       "sections": "شعب",
-      "empty": "لا توجد تكليفات"
+      "empty": "لا توجد تكليفات",
+      "classrooms": "فصول"
     },
     "list": {
       "no_email": "لا يوجد بريد إلكتروني",
@@ -6729,7 +6731,8 @@
       "created_at": "تاريخ الإنشاء",
       "updated_at": "تاريخ التحديث",
       "no_value": "غير متوفر",
-      "no_notes": "لا توجد ملاحظات"
+      "no_notes": "لا توجد ملاحظات",
+      "classrooms": "الفصول"
     },
     "dialog": {
       "create_title": "إضافة معلم",
@@ -6747,7 +6750,8 @@
       "no_subjects": "لا توجد مواد متاحة في السياق الأكاديمي الحالي.",
       "no_stages": "لا توجد مراحل متاحة في السياق الأكاديمي الحالي.",
       "select_stage_first": "اختر مرحلة واحدة على الأقل أولاً.",
-      "select_grade_first": "اختر صفًا واحدًا على الأقل أولاً."
+      "select_grade_first": "اختر صفًا واحدًا على الأقل أولاً.",
+      "select_section_first": "اختر شعبة واحدة على الأقل أولاً."
     },
     "change_password": {
       "title": "تغيير كلمة المرور",
@@ -6853,7 +6857,8 @@
       "password_required": "كلمة المرور الجديدة مطلوبة.",
       "password_min_length": "يجب ألا تقل كلمة المرور عن 8 أحرف.",
       "password_confirmation_required": "تأكيد كلمة المرور مطلوب.",
-      "password_mismatch": "تأكيد كلمة المرور غير متطابق."
+      "password_mismatch": "تأكيد كلمة المرور غير متطابق.",
+      "classrooms_required": "اختر فصلاً واحدًا على الأقل."
     },
     "work_days": {
       "sunday": "الأحد",

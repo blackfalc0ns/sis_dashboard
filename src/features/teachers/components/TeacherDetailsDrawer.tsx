@@ -238,6 +238,11 @@ export default function TeacherDetailsDrawer({
               items={assignments.sections}
               emptyLabel={t("summary.empty")}
             />
+            <AssignmentList
+              label={t("details.classrooms")}
+              items={assignments.classrooms}
+              emptyLabel={t("summary.empty")}
+            />
           </section>
 
           <section className="space-y-3 rounded-2xl border border-gray-200 p-4">

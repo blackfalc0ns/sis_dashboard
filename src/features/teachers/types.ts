@@ -30,6 +30,7 @@ export interface Teacher {
   stageIds: string[];
   gradeIds: string[];
   sectionIds: string[];
+  classroomIds: string[];
   experienceYears?: number;
   workDayFrom?: TeacherWorkDay;
   workDayTo?: TeacherWorkDay;
@@ -61,6 +62,7 @@ export interface TeacherFormData {
   stageIds: string[];
   gradeIds: string[];
   sectionIds: string[];
+  classroomIds: string[];
   experienceYears: string;
   workDayFrom: TeacherWorkDay | "";
   workDayTo: TeacherWorkDay | "";
@@ -97,6 +99,7 @@ export interface TeacherFormErrors {
   stageIds?: string;
   gradeIds?: string;
   sectionIds?: string;
+  classroomIds?: string;
   experienceYears?: string;
   workDayFrom?: string;
   workDayTo?: string;
@@ -131,9 +134,15 @@ export interface TeacherSectionReferenceOption extends TeacherReferenceOption {
   gradeId: string;
 }
 
+export interface TeacherClassroomReferenceOption
+  extends TeacherReferenceOption {
+  sectionId: string;
+}
+
 export interface TeacherReferenceData {
   subjects: TeacherReferenceOption[];
   stages: TeacherReferenceOption[];
   grades: TeacherGradeReferenceOption[];
   sections: TeacherSectionReferenceOption[];
+  classrooms: TeacherClassroomReferenceOption[];
 }

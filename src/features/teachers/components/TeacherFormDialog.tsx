@@ -66,6 +66,7 @@ function createEmptyTeacherFormData(): TeacherFormData {
     stageIds: [],
     gradeIds: [],
     sectionIds: [],
+    classroomIds: [],
     experienceYears: "",
     workDayFrom: "",
     workDayTo: "",
@@ -173,6 +174,14 @@ export default function TeacherFormDialog({
     [formData.gradeIds, referenceData.sections],
   );
 
+  const availableClassrooms = useMemo(
+    () =>
+      referenceData.classrooms.filter((classroom) =>
+        formData.sectionIds.includes(classroom.sectionId),
+      ),
+    [formData.sectionIds, referenceData.classrooms],
+  );
+
   const resolveError = (field: keyof TeacherFormErrors) =>
     errors[field] ? t(errors[field] as string) : undefined;
 
@@ -216,14 +225,24 @@ export default function TeacherFormDialog({
       ),
     );
 
+    const nextClassroomIds = formData.classroomIds.filter((classroomId) =>
+      referenceData.classrooms.some(
+        (classroom) =>
+          classroom.id === classroomId &&
+          nextSectionIds.includes(classroom.sectionId),
+      ),
+    );
+
     setFormData((current) => ({
       ...current,
       stageIds: nextStageIds,
       gradeIds: nextGradeIds,
       sectionIds: nextSectionIds,
+      classroomIds: nextClassroomIds,
     }));
 
     clearError("stageIds");
+    clearError("classroomIds");
   };
 
   const updateGradeSelection = (gradeId: string) => {
@@ -238,13 +257,23 @@ export default function TeacherFormDialog({
       ),
     );
 
+    const nextClassroomIds = formData.classroomIds.filter((classroomId) =>
+      referenceData.classrooms.some(
+        (classroom) =>
+          classroom.id === classroomId &&
+          nextSectionIds.includes(classroom.sectionId),
+      ),
+    );
+
     setFormData((current) => ({
       ...current,
       gradeIds: nextGradeIds,
       sectionIds: nextSectionIds,
+      classroomIds: nextClassroomIds,
     }));
 
     clearError("gradeIds");
+    clearError("classroomIds");
   };
 
   const updateSectionSelection = (sectionId: string) => {
@@ -252,12 +281,35 @@ export default function TeacherFormDialog({
       ? formData.sectionIds.filter((currentId) => currentId !== sectionId)
       : [...formData.sectionIds, sectionId];
 
+    const nextClassroomIds = formData.classroomIds.filter((classroomId) =>
+      referenceData.classrooms.some(
+        (classroom) =>
+          classroom.id === classroomId &&
+          nextSectionIds.includes(classroom.sectionId),
+      ),
+    );
+
     setFormData((current) => ({
       ...current,
       sectionIds: nextSectionIds,
+      classroomIds: nextClassroomIds,
     }));
 
     clearError("sectionIds");
+    clearError("classroomIds");
+  };
+
+  const updateClassroomSelection = (classroomId: string) => {
+    const nextClassroomIds = formData.classroomIds.includes(classroomId)
+      ? formData.classroomIds.filter((currentId) => currentId !== classroomId)
+      : [...formData.classroomIds, classroomId];
+
+    setFormData((current) => ({
+      ...current,
+      classroomIds: nextClassroomIds,
+    }));
+
+    clearError("classroomIds");
   };
 
   const updateSubjectSelection = (subjectId: string) => {
@@ -575,6 +627,19 @@ export default function TeacherFormDialog({
               emptyLabel={t("form.select_grade_first")}
               disabled={formData.gradeIds.length === 0}
               onToggle={updateSectionSelection}
+            />
+            <SelectionChecklist
+              label={t("fields.classrooms")}
+              required
+              options={availableClassrooms.map((classroom) => ({
+                id: classroom.id,
+                label: getLocalizedReferenceLabel(classroom, displayLocale),
+              }))}
+              selectedIds={formData.classroomIds}
+              error={resolveError("classroomIds")}
+              emptyLabel={t("form.select_section_first")}
+              disabled={formData.sectionIds.length === 0}
+              onToggle={updateClassroomSelection}
             />
           </div>
         </section>

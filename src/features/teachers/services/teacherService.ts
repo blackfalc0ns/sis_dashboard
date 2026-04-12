@@ -37,6 +37,7 @@ const seedTeachers: Teacher[] = [
     stageIds: ["stage-1"],
     gradeIds: ["grade-1", "grade-2"],
     sectionIds: ["section-1", "section-3"],
+    classroomIds: ["classroom-1", "classroom-4"],
     experienceYears: 4,
     workDayFrom: "SUNDAY",
     workDayTo: "THURSDAY",
@@ -63,6 +64,7 @@ const seedTeachers: Teacher[] = [
     stageIds: ["stage-1", "stage-2"],
     gradeIds: ["grade-2", "grade-4"],
     sectionIds: ["section-3", "section-5"],
+    classroomIds: ["classroom-4", "classroom-6"],
     experienceYears: 6,
     workDayFrom: "SUNDAY",
     workDayTo: "THURSDAY",
@@ -89,6 +91,7 @@ const seedTeachers: Teacher[] = [
     stageIds: ["stage-1"],
     gradeIds: ["grade-1", "grade-3"],
     sectionIds: ["section-1", "section-4"],
+    classroomIds: ["classroom-2", "classroom-5"],
     experienceYears: 8,
     workDayFrom: "MONDAY",
     workDayTo: "FRIDAY",
@@ -115,6 +118,7 @@ const seedTeachers: Teacher[] = [
     stageIds: ["stage-2", "stage-3"],
     gradeIds: ["grade-4", "grade-7"],
     sectionIds: ["section-6", "section-11"],
+    classroomIds: ["classroom-8", "classroom-13"],
     experienceYears: 10,
     workDayFrom: "SUNDAY",
     workDayTo: "THURSDAY",
@@ -141,6 +145,7 @@ const seedTeachers: Teacher[] = [
     stageIds: ["stage-2"],
     gradeIds: ["grade-5", "grade-6"],
     sectionIds: ["section-7", "section-9"],
+    classroomIds: ["classroom-9", "classroom-11"],
     experienceYears: 3,
     workDayFrom: "SUNDAY",
     workDayTo: "THURSDAY",
@@ -162,6 +167,7 @@ const cloneTeacher = (teacher: Teacher): Teacher => ({
   stageIds: [...teacher.stageIds],
   gradeIds: [...teacher.gradeIds],
   sectionIds: [...teacher.sectionIds],
+  classroomIds: [...teacher.classroomIds],
 });
 
 const cloneTeachers = (teachers: Teacher[]) => teachers.map(cloneTeacher);
