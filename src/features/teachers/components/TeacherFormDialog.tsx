@@ -34,6 +34,8 @@ import {
 interface TeacherFormDialogProps {
   isOpen: boolean;
   teacher: Teacher | null;
+  academicYearId: string;
+  termId: string;
   referenceData: TeacherReferenceData;
   isSubmitting?: boolean;
   onClose: () => void;
@@ -133,6 +135,8 @@ function SelectionChecklist({
 export default function TeacherFormDialog({
   isOpen,
   teacher,
+  academicYearId,
+  termId,
   referenceData,
   isSubmitting = false,
   onClose,
@@ -330,9 +334,10 @@ export default function TeacherFormDialog({
 
     const result = await validateTeacherForm(formData, {
       excludeId: teacher?.id,
-      isCodeUnique: (code, excludeId) => isTeacherCodeUnique(code, excludeId),
+      isCodeUnique: (code, excludeId) =>
+        isTeacherCodeUnique(academicYearId, termId, code, excludeId),
       isEmailUnique: (email, excludeId) =>
-        isTeacherEmailUnique(email, excludeId),
+        isTeacherEmailUnique(academicYearId, termId, email, excludeId),
     });
 
     setErrors(result.errors);
