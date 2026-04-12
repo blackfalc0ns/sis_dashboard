@@ -7,11 +7,6 @@ import {
 
 type TeacherEntity = Teacher;
 
-interface TeacherScope {
-  academicYearId: string;
-  termId: string;
-}
-
 interface TeacherStore {
   ids: string[];
   entities: Record<string, TeacherEntity>;
@@ -191,28 +186,14 @@ const buildInitialStore = (): TeacherStore => {
   };
 };
 
-const teacherStores: Record<string, TeacherStore> = {};
+const teacherStore = buildInitialStore();
 
 const delay = (ms = 250) =>
   new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
 
-const buildScopeKey = ({ academicYearId, termId }: TeacherScope) =>
-  `${academicYearId}::${termId}`;
-
-const getTeacherStore = (scope: TeacherScope) => {
-  const scopeKey = buildScopeKey(scope);
-
-  if (!teacherStores[scopeKey]) {
-    teacherStores[scopeKey] = buildInitialStore();
-  }
-
-  return teacherStores[scopeKey];
-};
-
-const getTeacherByIdOrThrow = (scope: TeacherScope, id: string) => {
-  const teacherStore = getTeacherStore(scope);
+const getTeacherByIdOrThrow = (id: string) => {
   const teacher = teacherStore.entities[id];
 
   if (!teacher) {
@@ -227,13 +208,8 @@ const generateTeacherId = () => {
   return `teacher-${nextTeacherSequence}`;
 };
 
-const hasDuplicateCodeInScope = (
-  scope: TeacherScope,
-  code: string,
-  excludeId?: string,
-) => {
+const hasDuplicateCode = (code: string, excludeId?: string) => {
   const normalizedCode = normalizeTeacherCode(code);
-  const teacherStore = getTeacherStore(scope);
 
   return Object.values(teacherStore.entities).some(
     (teacher) =>
@@ -242,13 +218,8 @@ const hasDuplicateCodeInScope = (
   );
 };
 
-const hasDuplicateEmailInScope = (
-  scope: TeacherScope,
-  email: string,
-  excludeId?: string,
-) => {
+const hasDuplicateEmail = (email: string, excludeId?: string) => {
   const normalizedEmail = email.trim().toLowerCase();
-  const teacherStore = getTeacherStore(scope);
 
   if (!normalizedEmail) {
     return false;
@@ -262,32 +233,24 @@ const hasDuplicateEmailInScope = (
 };
 
 const ensureUniqueTeacherIdentity = (
-  scope: TeacherScope,
   formData: TeacherFormData,
   excludeId?: string,
 ) => {
   const normalizedData = normalizeTeacherFormData(formData);
 
-  if (hasDuplicateCodeInScope(scope, normalizedData.code, excludeId)) {
+  if (hasDuplicateCode(normalizedData.code, excludeId)) {
     throw new Error("Teacher code already exists.");
   }
 
-  if (
-    normalizedData.email &&
-    hasDuplicateEmailInScope(scope, normalizedData.email, excludeId)
-  ) {
+  if (normalizedData.email && hasDuplicateEmail(normalizedData.email, excludeId)) {
     throw new Error("Teacher email already exists.");
   }
 
   return normalizedData;
 };
 
-export async function fetchTeachers(
-  academicYearId: string,
-  termId: string,
-): Promise<Teacher[]> {
+export async function fetchTeachers(): Promise<Teacher[]> {
   await delay(300);
-  const teacherStore = getTeacherStore({ academicYearId, termId });
 
   return cloneTeachers(
     teacherStore.ids
@@ -297,15 +260,11 @@ export async function fetchTeachers(
 }
 
 export async function createTeacher(
-  academicYearId: string,
-  termId: string,
   data: TeacherFormData,
 ): Promise<Teacher> {
   await delay(350);
-  const scope = { academicYearId, termId };
-  const teacherStore = getTeacherStore(scope);
 
-  const normalizedData = ensureUniqueTeacherIdentity(scope, data);
+  const normalizedData = ensureUniqueTeacherIdentity(data);
   const teacherInput = mapTeacherFormDataToTeacherInput(normalizedData);
   const timestamp = new Date().toISOString();
   const id = generateTeacherId();
@@ -325,17 +284,13 @@ export async function createTeacher(
 }
 
 export async function updateTeacher(
-  academicYearId: string,
-  termId: string,
   id: string,
   data: TeacherFormData,
 ): Promise<Teacher> {
   await delay(350);
-  const scope = { academicYearId, termId };
-  const teacherStore = getTeacherStore(scope);
 
-  const existingTeacher = getTeacherByIdOrThrow(scope, id);
-  const normalizedData = ensureUniqueTeacherIdentity(scope, data, id);
+  const existingTeacher = getTeacherByIdOrThrow(id);
+  const normalizedData = ensureUniqueTeacherIdentity(data, id);
   const teacherInput = mapTeacherFormDataToTeacherInput(normalizedData);
 
   teacherStore.entities[id] = {
@@ -347,16 +302,10 @@ export async function updateTeacher(
   return cloneTeacher(teacherStore.entities[id]);
 }
 
-export async function deleteTeacher(
-  academicYearId: string,
-  termId: string,
-  id: string,
-): Promise<void> {
+export async function deleteTeacher(id: string): Promise<void> {
   await delay(350);
-  const scope = { academicYearId, termId };
-  const teacherStore = getTeacherStore(scope);
 
-  getTeacherByIdOrThrow(scope, id);
+  getTeacherByIdOrThrow(id);
 
   teacherStore.ids = teacherStore.ids.filter((teacherId) => teacherId !== id);
   delete teacherStore.entities[id];
@@ -364,15 +313,11 @@ export async function deleteTeacher(
 }
 
 export async function toggleTeacherStatus(
-  academicYearId: string,
-  termId: string,
   id: string,
 ): Promise<Teacher> {
   await delay(300);
-  const scope = { academicYearId, termId };
-  const teacherStore = getTeacherStore(scope);
 
-  const teacher = getTeacherByIdOrThrow(scope, id);
+  const teacher = getTeacherByIdOrThrow(id);
   const nextStatus = teacher.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
 
   teacherStore.entities[id] = {
@@ -385,39 +330,27 @@ export async function toggleTeacherStatus(
 }
 
 export async function changeTeacherPassword(
-  academicYearId: string,
-  termId: string,
   id: string,
   newPassword: string,
 ): Promise<void> {
   await delay(300);
-  const scope = { academicYearId, termId };
-  const teacherStore = getTeacherStore(scope);
 
-  getTeacherByIdOrThrow(scope, id);
+  getTeacherByIdOrThrow(id);
   teacherStore.passwords[id] = newPassword;
 }
 
 export async function isTeacherCodeUnique(
-  academicYearId: string,
-  termId: string,
   code: string,
   excludeId?: string,
 ): Promise<boolean> {
   await delay(150);
-  return !hasDuplicateCodeInScope({ academicYearId, termId }, code, excludeId);
+  return !hasDuplicateCode(code, excludeId);
 }
 
 export async function isTeacherEmailUnique(
-  academicYearId: string,
-  termId: string,
   email: string,
   excludeId?: string,
 ): Promise<boolean> {
   await delay(150);
-  return !hasDuplicateEmailInScope(
-    { academicYearId, termId },
-    email,
-    excludeId,
-  );
+  return !hasDuplicateEmail(email, excludeId);
 }

@@ -150,7 +150,7 @@ export default function TeachersPage() {
 
     try {
       const [teachersData, structureData, subjectsData] = await Promise.all([
-        fetchTeachers(academicYearId, termId),
+        fetchTeachers(),
         fetchStructureTree(academicYearId, termId),
         fetchSubjects(termId),
       ]);
@@ -196,14 +196,9 @@ export default function TeachersPage() {
   }, [academicYearId, termId, t]);
 
   const refreshTeachers = useCallback(async () => {
-    if (!academicYearId || !termId) {
-      setTeachers([]);
-      return;
-    }
-
-    const teachersData = await fetchTeachers(academicYearId, termId);
+    const teachersData = await fetchTeachers();
     setTeachers(teachersData);
-  }, [academicYearId, termId]);
+  }, []);
 
   useEffect(() => {
     if (isInitializing || !academicYearId || !termId) {
@@ -590,19 +585,14 @@ export default function TeachersPage() {
   };
 
   const handleFormSubmit = async (data: TeacherFormData) => {
-    if (!academicYearId || !termId) {
-      showError(t("messages.save_failed"));
-      return;
-    }
-
     setIsFormSubmitting(true);
 
     try {
       if (teacherForForm) {
-        await updateTeacher(academicYearId, termId, teacherForForm.id, data);
+        await updateTeacher(teacherForForm.id, data);
         showSuccess(t("messages.update_success"));
       } else {
-        await createTeacher(academicYearId, termId, data);
+        await createTeacher(data);
         showSuccess(t("messages.create_success"));
       }
 
@@ -616,19 +606,10 @@ export default function TeachersPage() {
   };
 
   const handleToggleStatus = async (teacher: Teacher) => {
-    if (!academicYearId || !termId) {
-      showError(t("messages.status_update_failed"));
-      return;
-    }
-
     setActionInProgress({ id: teacher.id, type: "toggle" });
 
     try {
-      const updatedTeacher = await toggleTeacherStatus(
-        academicYearId,
-        termId,
-        teacher.id,
-      );
+      const updatedTeacher = await toggleTeacherStatus(teacher.id);
       setTeachers((current) =>
         current.map((item) =>
           item.id === updatedTeacher.id ? updatedTeacher : item,
@@ -656,15 +637,10 @@ export default function TeachersPage() {
       return;
     }
 
-    if (!academicYearId || !termId) {
-      showError(t("messages.delete_failed"));
-      return;
-    }
-
     setActionInProgress({ id: teacherToDelete.id, type: "delete" });
 
     try {
-      await deleteTeacher(academicYearId, termId, teacherToDelete.id);
+      await deleteTeacher(teacherToDelete.id);
       await refreshTeachers();
 
       if (teacherForDetails?.id === teacherToDelete.id) {
@@ -688,20 +664,10 @@ export default function TeachersPage() {
       return;
     }
 
-    if (!academicYearId || !termId) {
-      showError(t("messages.password_change_failed"));
-      return;
-    }
-
     setActionInProgress({ id: teacherForPassword.id, type: "password" });
 
     try {
-      await changeTeacherPassword(
-        academicYearId,
-        termId,
-        teacherForPassword.id,
-        data.newPassword,
-      );
+      await changeTeacherPassword(teacherForPassword.id, data.newPassword);
       setTeacherForPassword(null);
       showSuccess(t("messages.password_changed_success"));
     } catch {
@@ -826,8 +792,6 @@ export default function TeachersPage() {
         <TeacherFormDialog
           isOpen={teacherForForm !== undefined}
           teacher={teacherForForm || null}
-          academicYearId={academicYearId || ""}
-          termId={termId || ""}
           referenceData={referenceData}
           isSubmitting={isFormSubmitting}
           onClose={() => setTeacherForForm(undefined)}
