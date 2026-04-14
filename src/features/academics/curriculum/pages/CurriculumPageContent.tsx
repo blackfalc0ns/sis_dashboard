@@ -386,19 +386,35 @@ export default function CurriculumPageContent() {
         setLessons(lessonsData);
 
         if (queryState.lessonId) {
-          const lessonExists = lessonsData.some(
-            (l) => l.id === queryState.lessonId,
-          );
-          setSelectedNode(
-            lessonExists ? { type: "lesson", id: queryState.lessonId } : null,
-          );
+          if (queryState.lessonId.startsWith("new-")) {
+            setSelectedNode({ type: "lesson", id: queryState.lessonId });
+          } else {
+            const lessonExists = lessonsData.some(
+              (l) => l.id === queryState.lessonId,
+            );
+            setSelectedNode(
+              lessonExists ? { type: "lesson", id: queryState.lessonId } : null,
+            );
+          }
         } else if (queryState.unitId) {
-          const unitExists = unitsData.some((u) => u.id === queryState.unitId);
-          setSelectedNode(
-            unitExists ? { type: "unit", id: queryState.unitId } : null,
-          );
+          if (queryState.unitId === "new") {
+            setSelectedNode({ type: "unit", id: "new" });
+          } else {
+            const unitExists = unitsData.some((u) => u.id === queryState.unitId);
+            setSelectedNode(
+              unitExists ? { type: "unit", id: queryState.unitId } : null,
+            );
+          }
         } else {
-          setSelectedNode(null);
+          setSelectedNode((previous) => {
+            if (!previous) {
+              return null;
+            }
+            const isDraftUnit = previous.type === "unit" && previous.id === "new";
+            const isDraftLesson =
+              previous.type === "lesson" && previous.id.startsWith("new-");
+            return isDraftUnit || isDraftLesson ? previous : null;
+          });
         }
       } else {
         setUnits([]);
@@ -432,15 +448,19 @@ export default function CurriculumPageContent() {
       return;
     }
 
+    const isDraftLessonId =
+      !!queryState.lessonId && queryState.lessonId.startsWith("new-");
     const normalizedLessonId =
       queryState.lessonId &&
-      lessons.some((lesson) => lesson.id === queryState.lessonId)
+      (isDraftLessonId ||
+        lessons.some((lesson) => lesson.id === queryState.lessonId))
         ? queryState.lessonId
         : null;
+    const isDraftUnitId = queryState.unitId === "new";
     const normalizedUnitId =
       !normalizedLessonId &&
       queryState.unitId &&
-      units.some((unit) => unit.id === queryState.unitId)
+      (isDraftUnitId || units.some((unit) => unit.id === queryState.unitId))
         ? queryState.unitId
         : null;
 

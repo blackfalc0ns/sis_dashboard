@@ -3051,6 +3051,9 @@
         "copy_schedule": "Copy weekly schedule",
         "schedule_requires_outline": "Schedule can only be copied if outline is also copied",
         "readonly_warning": "This term is closed. Cannot copy data to a closed term.",
+        "no_source_curriculum": "No source curriculum is available for the selected grade and subject in that academic year.",
+        "load_error": "Could not load source terms right now.",
+        "submit_error": "Could not copy the curriculum right now.",
         "cancel": "Cancel",
         "copy": "Copy",
         "copying": "Copying..."

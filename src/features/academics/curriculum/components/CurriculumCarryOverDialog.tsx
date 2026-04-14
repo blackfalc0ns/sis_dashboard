@@ -10,7 +10,10 @@ import {
   Term,
   fetchTermsByYear,
 } from "@/features/academics/academic-structure-tree/services/structureService";
-import { carryOverCurriculum } from "@/features/academics/curriculum/services/curriculumService";
+import {
+  carryOverCurriculum,
+  fetchCurriculum,
+} from "@/features/academics/curriculum/services/curriculumService";
 
 interface CurriculumCarryOverDialogProps {
   isOpen: boolean;
@@ -42,14 +45,18 @@ export default function CurriculumCarryOverDialog({
   const [sourceTerms, setSourceTerms] = useState<Term[]>([]);
   const [copyOutline, setCopyOutline] = useState(true);
   const [copySchedule, setCopySchedule] = useState(true);
+  const [sourceValidationMessage, setSourceValidationMessage] = useState("");
+  const [isLoadingSourceTerms, setIsLoadingSourceTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setSourceYearId(currentYearId);
       setSourceTermId("");
+      setSourceTerms([]);
       setCopyOutline(true);
       setCopySchedule(true);
+      setSourceValidationMessage("");
     }
   }, [isOpen, currentYearId]);
 
@@ -61,12 +68,34 @@ export default function CurriculumCarryOverDialog({
   }, [sourceYearId]);
 
   const loadSourceTerms = async () => {
+    setIsLoadingSourceTerms(true);
+    setSourceValidationMessage("");
     try {
       const terms = await fetchTermsByYear(sourceYearId);
-      setSourceTerms(terms.filter((t) => t.id !== currentTermId));
+      const candidateTerms = terms.filter((term) => term.id !== currentTermId);
+      const matchingTerms = await Promise.all(
+        candidateTerms.map(async (term) => ({
+          term,
+          curriculum: await fetchCurriculum(term.id, gradeId, subjectId),
+        }))
+      );
+      const availableTerms = matchingTerms
+        .filter((entry) => entry.curriculum)
+        .map((entry) => entry.term);
+
+      setSourceTerms(availableTerms);
       setSourceTermId("");
+
+      if (availableTerms.length === 0) {
+        setSourceValidationMessage(t("no_source_curriculum"));
+      }
     } catch (error) {
       console.error("Failed to load source terms:", error);
+      setSourceTerms([]);
+      setSourceTermId("");
+      setSourceValidationMessage(t("load_error"));
+    } finally {
+      setIsLoadingSourceTerms(false);
     }
   };
 
@@ -74,6 +103,7 @@ export default function CurriculumCarryOverDialog({
     if (!sourceYearId || !sourceTermId) return;
 
     setIsSubmitting(true);
+    setSourceValidationMessage("");
     try {
       await carryOverCurriculum({
         fromYearId: sourceYearId,
@@ -91,6 +121,11 @@ export default function CurriculumCarryOverDialog({
       onSuccess();
     } catch (error) {
       console.error("Failed to carry over:", error);
+      setSourceValidationMessage(
+        error instanceof Error && error.message === "Source curriculum not found"
+          ? t("no_source_curriculum")
+          : t("submit_error")
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -142,8 +177,14 @@ export default function CurriculumCarryOverDialog({
           onChange={setSourceTermId}
           options={sourceTerms.map((t) => ({ value: t.id, label: t.name }))}
           selectSize="md"
-          disabled={!sourceYearId}
+          disabled={!sourceYearId || isLoadingSourceTerms}
         />
+
+        {sourceValidationMessage && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <p className="text-sm text-amber-800">{sourceValidationMessage}</p>
+          </div>
+        )}
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700">{t("options")}</label>
