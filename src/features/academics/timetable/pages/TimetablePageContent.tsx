@@ -5,11 +5,10 @@ import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, Tab } from "@mui/material";
 import { useDirtyKey } from "@/hooks/useDirtyKey";
-import ContextBar from "../../components/shared/ContextBar";
 import TimetableView from "../components/TimetableView";
 import RoomsView from "../../rooms/components/RoomsView";
 import MainLoader from "@/components/ui/loaders/MainLoader";
-import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { DEFAULT_SCHOOL_ID } from "@/features/academics/constants/school";
 
 export default function TimetablePageContent() {
@@ -22,9 +21,7 @@ export default function TimetablePageContent() {
     termId,
     termStatus,
     isInitializing,
-    changeAcademicYear,
-    changeTerm,
-  } = useAcademicYearTermContext();
+  } = useAcademicYearTermLayoutContext();
 
   const queryState = useMemo(
     () => ({
@@ -105,14 +102,6 @@ export default function TimetablePageContent() {
       searchParams,
     ]
   );
-
-  const handleAcademicYearChange = async (yearId: string) => {
-    await changeAcademicYear(yearId);
-  };
-
-  const handleTermChange = (newTermId: string) => {
-    changeTerm(newTermId);
-  };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: "timetable" | "rooms") => {
     if (isDirty) {
@@ -205,18 +194,7 @@ export default function TimetablePageContent() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Context Bar */}
-      <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
-        onAcademicYearChange={handleAcademicYearChange}
-        onTermChange={handleTermChange}
-        isReadOnly={isReadOnly}
-        showPromoteCarryOver={false}
-      />
-
+    <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
       {/* Read-only Banner */}
       {isReadOnly && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3">

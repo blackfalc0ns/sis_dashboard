@@ -9,7 +9,6 @@ import { useDebouncedCallback } from "use-debounce";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
-import ContextBar from "../../components/shared/ContextBar";
 import LessonPlansFilters from "../components/LessonPlansFilters";
 import LessonPlansBoard from "../components/LessonPlansBoard";
 import FiltersDrawer from "../components/FiltersDrawer";
@@ -17,7 +16,7 @@ import LessonLibraryDrawer from "../components/LessonLibraryDrawer";
 import AddLessonDialog from "../components/AddLessonDialog";
 import MobileBottomBar from "../components/MobileBottomBar";
 import MainLoader from "@/components/ui/loaders/MainLoader";
-import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { useLessonPlansData } from "../hooks/useLessonPlansData";
 import { useLessonPlansFilters } from "../hooks/useLessonPlansFilters";
 import { useLessonPlanMutations } from "../hooks/useLessonPlanMutations";
@@ -46,9 +45,7 @@ export default function LessonPlansPage() {
     termStatus,
     terms,
     isInitializing,
-    changeAcademicYear,
-    changeTerm,
-  } = useAcademicYearTermContext();
+  } = useAcademicYearTermLayoutContext();
   const isReadOnly = termStatus === "closed";
   const handleLoadError = useCallback(() => {
     showError(tCommon("error"));
@@ -281,16 +278,6 @@ export default function LessonPlansPage() {
     showError,
     onLessonSelected: () => syncLibraryParams({ isOpen: false }, "replace"),
   });
-
-  // Handle academic year change
-  const handleAcademicYearChange = async (yearId: string) => {
-    await changeAcademicYear(yearId);
-  };
-
-  // Handle term change
-  const handleTermChange = (newTermId: string) => {
-    changeTerm(newTermId);
-  };
 
   const handlePlansUpdate = useCallback(async () => {
     await refreshPlans();
@@ -545,18 +532,7 @@ export default function LessonPlansPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Academic Context Bar */}
-      <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
-        isReadOnly={isReadOnly}
-        onAcademicYearChange={handleAcademicYearChange}
-        onTermChange={handleTermChange}
-        showPromoteCarryOver={false}
-      />
-
+    <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
       <div className="flex-1 overflow-auto">
         <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 md:px-6">
           <div>

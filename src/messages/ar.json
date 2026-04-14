@@ -2766,8 +2766,59 @@
       "summary": {
         "title": "ملخص"
       },
+      "filters": {
+        "checklistStatus": "حالة قائمة الإعداد",
+        "alertSeverity": "شدة التنبيه",
+        "chart": "الرسم البياني",
+        "exportDataset": "بيانات التصدير",
+        "reset": "إعادة ضبط الفلاتر",
+        "options": {
+          "all": "الكل",
+          "done": "مكتمل",
+          "warning": "تحذير",
+          "error": "خطأ",
+          "info": "معلومات",
+          "lessonPlans": "خطط الدروس",
+          "teacherLoads": "أحمال المعلمين",
+          "readiness": "الجاهزية",
+          "summary": "الملخص",
+          "checklist": "قائمة الإعداد",
+          "alerts": "التنبيهات"
+        }
+      },
       "analytics": {
         "title": "التحليلات"
+      },
+      "export": {
+        "columns": {
+          "group": "المجموعة",
+          "metric": "المؤشر",
+          "value": "القيمة",
+          "title": "العنوان",
+          "status": "الحالة",
+          "reason": "السبب",
+          "link": "الرابط",
+          "severity": "الشدة",
+          "description": "الوصف",
+          "count": "العدد",
+          "week": "الأسبوع",
+          "teacher": "المعلم"
+        },
+        "metrics": {
+          "totalStages": "إجمالي المراحل",
+          "totalGrades": "إجمالي الصفوف",
+          "totalSections": "إجمالي الشعب",
+          "sectionsWithoutCapacity": "شعب بدون سعة",
+          "totalSubjects": "إجمالي المواد",
+          "subjectCompletion": "نسبة اكتمال توزيع المواد",
+          "missingTeacherAllocations": "توزيعات المعلمين المفقودة",
+          "overloadedTeachers": "المعلمون المحملون زائد",
+          "lessonPlansPlanned": "خطط الدروس المخططة",
+          "lessonPlansDone": "خطط الدروس المنجزة",
+          "lessonPlansCompletion": "نسبة اكتمال خطط الدروس"
+        },
+        "overloaded": "محمل زائد",
+        "normal": "طبيعي"
       },
       "checklist": {
         "title": "قائمة الإعداد",
@@ -3795,11 +3846,13 @@
         "stage": "المرحلة",
         "grade": "الصف",
         "section": "الشعبة",
+        "classroom": "الفصل",
         "subject": "المادة",
         "teacher": "المعلم",
         "selectStage": "اختر المرحلة",
         "selectGrade": "اختر الصف",
         "selectSection": "اختر الشعبة",
+        "selectClassroom": "اختر الفصل",
         "selectSubject": "اختر المادة",
         "assignedTeacher": "المعلم المعين",
         "apply": "تطبيق",

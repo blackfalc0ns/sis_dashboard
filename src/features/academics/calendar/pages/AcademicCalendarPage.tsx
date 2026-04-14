@@ -8,7 +8,6 @@ import { Snackbar, Alert } from "@mui/material";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import Button from "@/components/ui/button/Button";
-import ContextBar from "../../components/shared/ContextBar";
 import CalendarToolbar from "../components/CalendarToolbar";
 import MonthCalendar from "../components/MonthCalendar";
 import WeekCalendar from "../components/WeekCalendar";
@@ -28,7 +27,7 @@ import {
   updateEvent,
   AcademicEvent,
 } from "@/features/academics/calendar/services/calendarService";
-import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 
 export default function AcademicCalendarPage() {
   const t = useTranslations("academics.calendar");
@@ -42,9 +41,7 @@ export default function AcademicCalendarPage() {
     termStatus,
     isInitializing,
     selectedTerm,
-    changeAcademicYear,
-    changeTerm,
-  } = useAcademicYearTermContext();
+  } = useAcademicYearTermLayoutContext();
 
   const queryState = useMemo(() => {
     const rawDate = searchParams.get("date");
@@ -323,14 +320,6 @@ export default function AcademicCalendarPage() {
     [currentDate, displayMode, router, scopeFilter, searchParams, typeFilters, view]
   );
 
-  const handleAcademicYearChange = async (yearId: string) => {
-    await changeAcademicYear(yearId);
-  };
-
-  const handleTermChange = (tId: string) => {
-    changeTerm(tId);
-  };
-
   const handleViewChange = (newView: "month" | "week" | "agenda") => {
     setView(newView);
     updateURL(
@@ -399,10 +388,6 @@ export default function AcademicCalendarPage() {
     },
     [academicYearId, termId, updateURL]
   );
-
-  const handlePromoteCarryOver = () => {
-    // Not applicable for calendar
-  };
 
   const handleAddEvent = (date?: Date) => {
     setEditingEvent(null);
@@ -491,19 +476,7 @@ export default function AcademicCalendarPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Context Bar */}
-      <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
-        onAcademicYearChange={handleAcademicYearChange}
-        onTermChange={handleTermChange}
-        onPromoteCarryOver={handlePromoteCarryOver}
-        isReadOnly={isReadOnly}
-        showPromoteCarryOver={false}
-      />
-
+    <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
       {/* Read-Only Banner */}
       {isReadOnly && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3 flex items-center gap-2">

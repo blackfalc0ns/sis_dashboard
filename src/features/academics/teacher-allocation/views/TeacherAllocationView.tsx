@@ -7,7 +7,6 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { AlertCircle, Grid3x3, BarChart3 } from "lucide-react";
 import { Tabs, Tab } from "@mui/material";
-import ContextBar from "../../components/shared/ContextBar";
 import type {
   AcademicYear,
   Classroom,
@@ -48,8 +47,6 @@ interface TeacherAllocationViewProps {
   validationPanelOpen: boolean;
   carryOverDialogOpen: boolean;
   isReadOnly: boolean;
-  onAcademicYearChange: (yearId: string) => void;
-  onTermChange: (termId: string) => void;
   onPromoteCarryOver: () => void;
   onCarryOverSuccess: () => void;
   onValidate: () => void;
@@ -79,8 +76,6 @@ export default function TeacherAllocationView({
   validationPanelOpen,
   carryOverDialogOpen,
   isReadOnly,
-  onAcademicYearChange,
-  onTermChange,
   onPromoteCarryOver,
   onCarryOverSuccess,
   onValidate,
@@ -97,18 +92,7 @@ export default function TeacherAllocationView({
   const termName = terms.find((t) => t.id === termId)?.name;
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Context Bar */}
-      <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
-        onAcademicYearChange={onAcademicYearChange}
-        onTermChange={onTermChange}
-        onPromoteCarryOver={onPromoteCarryOver}
-        isReadOnly={isReadOnly}
-      />
-
+    <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
       {/* Read-Only Banner */}
       {isReadOnly && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3 flex items-center gap-2">

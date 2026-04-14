@@ -25,7 +25,7 @@ import {
   type TeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import TeacherAllocationView from "../views/TeacherAllocationView";
-import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 
 type TeacherAllocationQueryState = {
   activeTab: "matrix" | "load";
@@ -41,9 +41,7 @@ export default function TeacherAllocationContainer() {
     termStatus,
     academicYears,
     terms,
-    changeAcademicYear,
-    changeTerm,
-  } = useAcademicYearTermContext();
+  } = useAcademicYearTermLayoutContext();
 
   // Context data
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -112,14 +110,6 @@ export default function TeacherAllocationContainer() {
   useEffect(() => {
     setCurrentAllocations(teacherAllocations);
   }, [teacherAllocations]);
-
-  const handleAcademicYearChange = async (yearId: string) => {
-    await changeAcademicYear(yearId);
-  };
-
-  const handleTermChange = (tId: string) => {
-    changeTerm(tId);
-  };
 
   const handlePromoteCarryOver = () => {
     setCarryOverDialogOpen(true);
@@ -206,8 +196,6 @@ export default function TeacherAllocationContainer() {
       validationPanelOpen={validationPanelOpen}
       carryOverDialogOpen={carryOverDialogOpen}
       isReadOnly={isReadOnly}
-      onAcademicYearChange={handleAcademicYearChange}
-      onTermChange={handleTermChange}
       onPromoteCarryOver={handlePromoteCarryOver}
       onCarryOverSuccess={handleCarryOverSuccess}
       onValidate={handleValidate}

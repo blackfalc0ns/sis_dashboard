@@ -6,7 +6,6 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
-import ContextBar from "@/features/academics/components/shared/ContextBar";
 import Button from "@/components/ui/button/Button";
 import type {
   AcademicYear,
@@ -37,8 +36,6 @@ interface SubjectsAllocationViewProps {
   editingSubject: Subject | null;
   showCarryOverDialog: boolean;
   isReadOnly: boolean;
-  onAcademicYearChange: (yearId: string) => void;
-  onTermChange: (termId: string) => void;
   onPromoteCarryOver: () => void;
   onTabChange: (tab: "subjects" | "matrix") => void;
   onAddSubject: () => void;
@@ -67,8 +64,6 @@ export default function SubjectsAllocationView({
   editingSubject,
   showCarryOverDialog,
   isReadOnly,
-  onAcademicYearChange,
-  onTermChange,
   onPromoteCarryOver,
   onTabChange,
   onAddSubject,
@@ -89,18 +84,7 @@ export default function SubjectsAllocationView({
   const termName = terms.find((t) => t.id === termId)?.name;
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Context Bar */}
-      <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
-        onAcademicYearChange={onAcademicYearChange}
-        onTermChange={onTermChange}
-        onPromoteCarryOver={onPromoteCarryOver}
-        isReadOnly={isReadOnly}
-      />
-
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* Read-Only Banner */}
       {isReadOnly && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3 flex items-center gap-2">
@@ -184,6 +168,7 @@ export default function SubjectsAllocationView({
                 allocations={allocations}
                 termId={termId}
                 isReadOnly={isReadOnly}
+                onCopyFromTerm={onPromoteCarryOver}
                 onAdd={onAddSubject}
                 onEdit={onEditSubject}
                 onRefresh={onRefresh}
@@ -215,6 +200,7 @@ export default function SubjectsAllocationView({
                 allocations={allocations}
                 termId={termId}
                 isReadOnly={isReadOnly}
+                onCopyFromTerm={onPromoteCarryOver}
                 onAdd={onAddSubject}
                 onEdit={onEditSubject}
                 onRefresh={onRefresh}

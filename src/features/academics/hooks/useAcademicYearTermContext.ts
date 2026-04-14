@@ -9,7 +9,7 @@ import {
   type Term,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 
-interface UseAcademicYearTermContextOptions {
+export interface UseAcademicYearTermContextOptions {
   preserveParams?: boolean;
   preferOpenTerm?: boolean;
   yearParamKey?: string;
@@ -17,7 +17,7 @@ interface UseAcademicYearTermContextOptions {
   termStatusParamKey?: string;
 }
 
-interface UseAcademicYearTermContextResult {
+export interface UseAcademicYearTermContextResult {
   academicYearId: string;
   termId: string;
   termStatus: "open" | "closed";

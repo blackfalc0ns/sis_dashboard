@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
-import ContextBar from "../../components/shared/ContextBar";
 import KPICards from "../components/KPICards";
 import SetupChecklist from "../components/SetupChecklist";
 import OverviewCharts from "../components/OverviewCharts";
@@ -27,7 +26,11 @@ import {
 import { fetchTeachers, calculateTeacherLoads } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import { fetchSubjectAllocations } from "@/features/academics/subjects/services/subjectsService";
-import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
+import type {
+  AcademicYear,
+  Term,
+} from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   type AcademicsExportFormat,
   exportAcademicsData,
@@ -38,7 +41,8 @@ import {
 } from "@/features/academics/utils/exportAdapter";
 
 export default function AcademicsOverviewPage() {
-  const t = useTranslations();
+  const t = useTranslations("academics.overview");
+  const tCommon = useTranslations("common");
   const tExport = useTranslations("academics.export");
   const locale = useLocale();
   const params = useParams();
@@ -48,17 +52,10 @@ export default function AcademicsOverviewPage() {
   const {
     academicYearId,
     termId,
-    termStatus,
     isInitializing,
     academicYears,
     terms,
-    changeAcademicYear,
-    changeTerm,
-  } = useAcademicYearTermContext({
-    yearParamKey: "yearId",
-    termParamKey: "termId",
-    termStatusParamKey: "termStatus",
-  });
+  } = useAcademicYearTermLayoutContext();
 
   const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
@@ -335,14 +332,6 @@ export default function AcademicsOverviewPage() {
     loadData();
   }, [academicYearId, isInitializing, termId, lang, t]);
 
-  const handleYearChange = async (yearId: string) => {
-    await changeAcademicYear(yearId);
-  };
-
-  const handleTermChange = (newTermId: string) => {
-    changeTerm(newTermId);
-  };
-
   const filteredChecklist = useMemo(() => {
     if (checklistStatusFilter === "all") {
       return checklist;
@@ -377,9 +366,9 @@ export default function AcademicsOverviewPage() {
     }
     const metadata: ExportMetadata = {
       yearName:
-        academicYears.find((item) => item.id === academicYearId)?.name ||
+        academicYears.find((item: AcademicYear) => item.id === academicYearId)?.name ||
         academicYearId,
-      termName: terms.find((item) => item.id === termId)?.name || termId,
+      termName: terms.find((item: Term) => item.id === termId)?.name || termId,
       exportDate: formatExportDate(locale),
     };
 
@@ -590,21 +579,7 @@ export default function AcademicsOverviewPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Context Bar */}
-
-          <ContextBar
-            academicYearId={academicYearId}
-            termId={termId}
-            termStatus={termStatus}
-            onAcademicYearChange={handleYearChange}
-            onTermChange={handleTermChange}
-            isReadOnly={termStatus === "closed"}
-            showPromoteCarryOver={false}
-          />
-
-
-      {/* Main Content */}
+    <div className="flex flex-1 flex-col bg-gray-50">
       <div className="px-4 sm:px-6 my-6 space-y-6">
         <AcademicsOverviewFiltersBar
           checklistStatus={checklistStatusFilter}
@@ -674,7 +649,7 @@ export default function AcademicsOverviewPage() {
           ) : metrics ? (
             <KPICards metrics={metrics} isLoading={isLoading} />
           ) : (
-            <p className="text-sm text-gray-500">{t("common.noData")}</p>
+            <p className="text-sm text-gray-500">{tCommon("noData")}</p>
           )}
         </div>
 
@@ -690,7 +665,7 @@ export default function AcademicsOverviewPage() {
             />
           ) : (
             <div className="bg-white rounded-2xl border border-gray-200 p-6">
-              <p className="text-sm text-gray-500">{t("common.noData")}</p>
+              <p className="text-sm text-gray-500">{tCommon("noData")}</p>
             </div>
           )}
           <AlertsPanel alerts={filteredAlerts} isLoading={isLoading} />

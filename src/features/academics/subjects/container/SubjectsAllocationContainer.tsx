@@ -17,7 +17,7 @@ import {
   type SubjectAllocation,
 } from "@/features/academics/subjects/services/subjectsService";
 import SubjectsAllocationView from "../views/SubjectsAllocationView";
-import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 
 type SubjectsAllocationQueryState = {
   activeTab: "subjects" | "matrix";
@@ -33,9 +33,7 @@ export default function SubjectsAllocationContainer() {
     termStatus,
     academicYears,
     terms,
-    changeAcademicYear,
-    changeTerm,
-  } = useAcademicYearTermContext();
+  } = useAcademicYearTermLayoutContext();
 
   // Data
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -81,14 +79,6 @@ export default function SubjectsAllocationContainer() {
 
     loadData();
   }, [academicYearId, termId]);
-
-  const handleAcademicYearChange = async (yearId: string) => {
-    await changeAcademicYear(yearId);
-  };
-
-  const handleTermChange = (tId: string) => {
-    changeTerm(tId);
-  };
 
   const handlePromoteCarryOver = () => {
     setShowCarryOverDialog(true);
@@ -190,8 +180,6 @@ export default function SubjectsAllocationContainer() {
       editingSubject={editingSubject}
       showCarryOverDialog={showCarryOverDialog}
       isReadOnly={isReadOnly}
-      onAcademicYearChange={handleAcademicYearChange}
-      onTermChange={handleTermChange}
       onPromoteCarryOver={handlePromoteCarryOver}
       onTabChange={handleTabChange}
       onAddSubject={handleAddSubject}
