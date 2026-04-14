@@ -16,8 +16,8 @@ function AcademicsContextLayoutContent({
     academicYearId,
     termId,
     termStatus,
-    changeAcademicYear,
-    changeTerm,
+    requestAcademicYearChange,
+    requestTermChange,
   } = useAcademicYearTermLayoutContext();
 
   return (
@@ -27,9 +27,9 @@ function AcademicsContextLayoutContent({
         termId={termId}
         termStatus={termStatus}
         onAcademicYearChange={(yearId) => {
-          void changeAcademicYear(yearId);
+          void requestAcademicYearChange(yearId);
         }}
-        onTermChange={changeTerm}
+        onTermChange={requestTermChange}
         isReadOnly={termStatus === "closed"}
         showPromoteCarryOver={false}
       />

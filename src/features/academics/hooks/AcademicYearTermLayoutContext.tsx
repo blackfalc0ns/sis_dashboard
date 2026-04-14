@@ -2,7 +2,10 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
+  useMemo,
+  useRef,
   type PropsWithChildren,
 } from "react";
 import {
@@ -11,8 +14,23 @@ import {
   type UseAcademicYearTermContextResult,
 } from "@/features/academics/hooks/useAcademicYearTermContext";
 
+type AcademicYearChangeHandler = (yearId: string) => Promise<void>;
+type TermChangeHandler = (termId: string) => void;
+
+interface AcademicYearTermLayoutGuardHandlers {
+  onAcademicYearChange?: AcademicYearChangeHandler;
+  onTermChange?: TermChangeHandler;
+}
+
+interface AcademicYearTermLayoutContextValue
+  extends UseAcademicYearTermContextResult {
+  requestAcademicYearChange: AcademicYearChangeHandler;
+  requestTermChange: TermChangeHandler;
+  setGuardHandlers: (handlers: AcademicYearTermLayoutGuardHandlers | null) => void;
+}
+
 const AcademicYearTermLayoutContext =
-  createContext<UseAcademicYearTermContextResult | null>(null);
+  createContext<AcademicYearTermLayoutContextValue | null>(null);
 
 interface AcademicYearTermLayoutProviderProps
   extends PropsWithChildren {
@@ -24,9 +42,60 @@ export function AcademicYearTermLayoutProvider({
   options,
 }: AcademicYearTermLayoutProviderProps) {
   const value = useAcademicYearTermContext(options);
+  const guardHandlersRef = useRef<AcademicYearTermLayoutGuardHandlers | null>(null);
+
+  const setGuardHandlers = useCallback(
+    (handlers: AcademicYearTermLayoutGuardHandlers | null) => {
+      guardHandlersRef.current = handlers;
+    },
+    []
+  );
+
+  const requestAcademicYearChange = useCallback<AcademicYearChangeHandler>(
+    async (yearId: string) => {
+      const guardedHandler = guardHandlersRef.current?.onAcademicYearChange;
+
+      if (guardedHandler) {
+        await guardedHandler(yearId);
+        return;
+      }
+
+      await value.changeAcademicYear(yearId);
+    },
+    [value]
+  );
+
+  const requestTermChange = useCallback<TermChangeHandler>(
+    (termId: string) => {
+      const guardedHandler = guardHandlersRef.current?.onTermChange;
+
+      if (guardedHandler) {
+        guardedHandler(termId);
+        return;
+      }
+
+      value.changeTerm(termId);
+    },
+    [value]
+  );
+
+  const contextValue = useMemo<AcademicYearTermLayoutContextValue>(
+    () => ({
+      ...value,
+      requestAcademicYearChange,
+      requestTermChange,
+      setGuardHandlers,
+    }),
+    [
+      requestAcademicYearChange,
+      requestTermChange,
+      setGuardHandlers,
+      value,
+    ]
+  );
 
   return (
-    <AcademicYearTermLayoutContext.Provider value={value}>
+    <AcademicYearTermLayoutContext.Provider value={contextValue}>
       {children}
     </AcademicYearTermLayoutContext.Provider>
   );

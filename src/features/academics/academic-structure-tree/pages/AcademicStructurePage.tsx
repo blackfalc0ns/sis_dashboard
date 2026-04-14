@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Menu, AlertCircle, Download } from "lucide-react";
-import ContextBar from "../../components/shared/ContextBar";
 import StructureTree from "../components/StructureTree";
 import DetailsPanel from "../../components/shared/DetailsPanel";
 import InsightsPanel from "../../components/shared/InsightsPanel";
@@ -19,10 +18,11 @@ import {
   type Classroom,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
-import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { useAcademicStructureData } from "../hooks/useAcademicStructureData";
 import { useStructureCreateFlow } from "../hooks/useStructureCreateFlow";
 import { useStructureCarryOverFlow } from "../hooks/useStructureCarryOverFlow";
+import { useGuardedAcademicContextChange } from "@/features/academics/hooks/useGuardedAcademicContextChange";
 import { useDebouncedCallback } from "use-debounce";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import {
@@ -50,13 +50,15 @@ export default function AcademicStructurePage() {
     termId,
     termStatus,
     academicYears,
-    changeAcademicYear,
-    changeTerm,
-  } = useAcademicYearTermContext();
+  } = useAcademicYearTermLayoutContext();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showTreeDrawer, setShowTreeDrawer] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const confirmDiscardChanges = useCallback(
+    () => confirm(t("details.discard_dialog.message")),
+    [t]
+  );
 
   const isReadOnly = termStatus === "closed";
   const {
@@ -253,25 +255,15 @@ export default function AcademicStructurePage() {
     setSearchInputValue(searchQuery);
   }, [searchQuery]);
 
-  const handleAcademicYearChange = async (yearId: string) => {
-    if (hasUnsavedChanges) {
-      if (!confirm(t("details.discard_dialog.message"))) return;
-      setHasUnsavedChanges(false);
-    }
-    await changeAcademicYear(yearId);
-  };
-
-  const handleTermChange = (nextTermId: string) => {
-    if (hasUnsavedChanges) {
-      if (!confirm(t("details.discard_dialog.message"))) return;
-      setHasUnsavedChanges(false);
-    }
-    changeTerm(nextTermId);
-  };
+  useGuardedAcademicContextChange({
+    hasUnsavedChanges,
+    confirmDiscard: confirmDiscardChanges,
+    onDiscard: () => setHasUnsavedChanges(false),
+  });
 
   const handleSelectNode = (node: TreeNodeRef) => {
     if (hasUnsavedChanges) {
-      if (!confirm(t("details.discard_dialog.message"))) return;
+      if (!confirmDiscardChanges()) return;
       setHasUnsavedChanges(false);
     }
     syncSelectedNodeUrl(node, "push");
@@ -404,17 +396,7 @@ export default function AcademicStructurePage() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
-      <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
-        onAcademicYearChange={handleAcademicYearChange}
-        onTermChange={handleTermChange}
-        onPromoteCarryOver={openCarryOverDialog}
-        isReadOnly={isReadOnly}
-      />
-
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="border-b border-gray-200 bg-white px-6 py-3">
         <div className="flex items-center justify-end">
           <Button
