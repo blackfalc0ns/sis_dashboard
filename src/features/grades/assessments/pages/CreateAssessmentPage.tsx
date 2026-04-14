@@ -3,19 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import ContextBar from "@/features/academics/components/shared/ContextBar";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import Button from "@/components/ui/button/Button";
 import { DatePicker, Input, Select } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast/Toast";
-import {
-  fetchAcademicYears,
-  fetchTermsByYear,
-  type Term,
-} from "@/features/academics/academic-structure-tree/services/structureService";
 import { fetchGradesFiltersData } from "../../gradebook/services/gradesGradebookService";
 import { createAssessment } from "../services/gradesAssessmentsService";
 import type { AssessmentDeliveryMode, AssessmentType, CreateAssessmentPayload, ExamScopeType, ScopeEntityOption } from "../../shared/types";
+import { useGradesYearTermLayoutContext } from "@/features/grades/hooks/GradesYearTermLayoutContext";
 
 const defaultDeliveryMode: AssessmentDeliveryMode = "SCORE_ONLY";
 
@@ -27,11 +22,13 @@ export default function CreateAssessmentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showError, showSuccess } = useToast();
+  const {
+    academicYearId,
+    termId,
+    termStatus,
+    isInitializing,
+  } = useGradesYearTermLayoutContext();
 
-  const [academicYearId, setAcademicYearId] = useState("");
-  const [termId, setTermId] = useState("");
-  const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
-  const [terms, setTerms] = useState<Term[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scopeTypes, setScopeTypes] = useState<ExamScopeType[]>([]);
@@ -51,36 +48,17 @@ export default function CreateAssessmentPage() {
   );
 
   useEffect(() => {
-    const initialize = async () => {
-      const years = await fetchAcademicYears();
-      const urlYear = searchParams.get("year");
-      const urlTerm = searchParams.get("term");
-      const year = years.find((item) => item.id === urlYear) || years[0];
-      if (!year) {
-        setIsLoading(false);
-        return;
-      }
+    if (isInitializing) {
+      return;
+    }
 
-      const yearTerms = await fetchTermsByYear(year.id);
-      const selectedTerm = yearTerms.find((item) => item.id === urlTerm) || yearTerms.find((item) => item.status === "open") || yearTerms[0];
-      if (!selectedTerm) {
-        setIsLoading(false);
-        return;
-      }
-
-      setAcademicYearId(year.id);
-      setTermId(selectedTerm.id);
-      setTermStatus(selectedTerm.status);
-      setTerms(yearTerms);
+    if (!academicYearId || !termId) {
       setIsLoading(false);
-    };
+      return;
+    }
 
-    void initialize();
-  }, [searchParams]);
-
-  useEffect(() => {
     const loadFilters = async () => {
-      if (!academicYearId || !termId) return;
+      setIsLoading(true);
       try {
         const data = await fetchGradesFiltersData(academicYearId, termId);
         setScopeTypes(data.scopeTypes);
@@ -110,28 +88,13 @@ export default function CreateAssessmentPage() {
         });
       } catch {
         showError(tCommon("error_loading"));
+      } finally {
+        setIsLoading(false);
       }
     };
 
     void loadFilters();
-  }, [academicYearId, searchParams, showError, tCommon, termId]);
-
-  const handleAcademicYearChange = async (yearId: string) => {
-    const nextTerms = await fetchTermsByYear(yearId);
-    const nextTerm = nextTerms.find((item) => item.status === "open") || nextTerms[0];
-    if (!nextTerm) return;
-    setAcademicYearId(yearId);
-    setTerms(nextTerms);
-    setTermId(nextTerm.id);
-    setTermStatus(nextTerm.status);
-  };
-
-  const handleTermChange = (nextTermId: string) => {
-    const nextTerm = terms.find((item) => item.id === nextTermId);
-    if (!nextTerm) return;
-    setTermId(nextTermId);
-    setTermStatus(nextTerm.status);
-  };
+  }, [academicYearId, isInitializing, searchParams, showError, tCommon, termId]);
 
   const handleBack = () => {
     const params = new URLSearchParams();
@@ -181,23 +144,20 @@ export default function CreateAssessmentPage() {
     }
   };
 
-  if (isLoading || !draft) {
-    return <div className="flex h-screen items-center justify-center"><MainLoader /></div>;
+  if (isInitializing || isLoading || !draft) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <MainLoader />
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "var(--surface-secondary)" }}>
-      <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
-        onAcademicYearChange={handleAcademicYearChange}
-        onTermChange={handleTermChange}
-        isReadOnly={termStatus === "closed"}
-        showPromoteCarryOver={false}
-      />
-
-      <div className="mx-auto max-w-5xl p-6">
+    <div
+      className="flex min-h-0 flex-1 flex-col"
+      style={{ backgroundColor: "var(--surface-secondary)" }}
+    >
+      <div className="mx-auto w-full max-w-5xl p-6">
         <div className="rounded-xl border p-6" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}>
           <div className="mb-6">
             <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>{tDialog("title")}</h1>
