@@ -6,14 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { Column } from "@/components/ui/data-table";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import MainLoader from "@/components/ui/loaders/MainLoader";
-import ContextBar from "@/features/academics/components/shared/ContextBar";
 import { useToast } from "@/components/ui/toast/Toast";
-import {
-  type AcademicYear,
-  fetchAcademicYears,
-  fetchTermsByYear,
-  type Term,
-} from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   fetchAssessmentSubmissionReview,
   fetchGradesFiltersData,
@@ -58,6 +51,7 @@ import {
   type ExportColumn,
   type GradesExportFormat,
 } from "../utils/gradesExport";
+import { useGradesYearTermLayoutContext } from "@/features/grades/hooks/GradesYearTermLayoutContext";
 
 interface GradesWorkspaceProps {
   view: "overview" | "assessments" | "gradebook";
@@ -79,13 +73,14 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showError, showSuccess } = useToast();
-
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
-  const [academicYearId, setAcademicYearId] = useState("");
-  const [termId, setTermId] = useState("");
-  const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
-  const [terms, setTerms] = useState<Term[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    academicYearId,
+    termId,
+    termStatus,
+    selectedAcademicYear,
+    selectedTerm,
+    isInitializing,
+  } = useGradesYearTermLayoutContext();
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [isCreatingAssessment, setIsCreatingAssessment] = useState(false);
   const [isSavingGrade, setIsSavingGrade] = useState(false);
@@ -155,39 +150,6 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     () => scopeEntitiesByType[selectedScopeType] || [],
     [scopeEntitiesByType, selectedScopeType],
   );
-
-  useEffect(() => {
-    const initialize = async () => {
-      const years = await fetchAcademicYears();
-      setAcademicYears(years);
-      const urlYear = searchParams.get("year");
-      const urlTerm = searchParams.get("term");
-      const year = years.find((item) => item.id === urlYear) || years[0];
-      if (!year) {
-        setIsLoading(false);
-        return;
-      }
-
-      const yearTerms = await fetchTermsByYear(year.id);
-      const term = yearTerms.find((item) => item.id === urlTerm) || yearTerms.find((item) => item.status === "open") || yearTerms[0];
-      if (!term) {
-        setIsLoading(false);
-        return;
-      }
-
-      setAcademicYearId(year.id);
-      setTermId(term.id);
-      setTermStatus(term.status);
-      setTerms(yearTerms);
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("year", year.id);
-      params.set("term", term.id);
-      replaceQuery(params);
-      setIsLoading(false);
-    };
-
-    void initialize();
-  }, [replaceQuery, searchParams]);
 
   useEffect(() => {
     const loadFilters = async () => {
@@ -293,31 +255,6 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   useEffect(() => {
     void refreshGradebook();
   }, [refreshGradebook]);
-
-  const handleAcademicYearChange = async (yearId: string) => {
-    const yearTerms = await fetchTermsByYear(yearId);
-    const selectedTerm = yearTerms.find((item) => item.status === "open") || yearTerms[0];
-    if (!selectedTerm) return;
-    setAcademicYearId(yearId);
-    setTerms(yearTerms);
-    setTermId(selectedTerm.id);
-    setTermStatus(selectedTerm.status);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("year", yearId);
-    params.set("term", selectedTerm.id);
-    replaceQuery(params);
-  };
-
-  const handleTermChange = (nextTermId: string) => {
-    const selectedTerm = terms.find((item) => item.id === nextTermId);
-    if (!selectedTerm) return;
-    setTermId(nextTermId);
-    setTermStatus(selectedTerm.status);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("year", academicYearId);
-    params.set("term", nextTermId);
-    replaceQuery(params);
-  };
 
   const openEditGradeDialog = useCallback(async (assessment: Assessment, row: GradebookStudentRow) => {
     if (assessment.deliveryMode === "QUESTION_BASED") {
@@ -541,9 +478,6 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         : null;
 
   const visibleAssessments = view === "overview" ? assessments.slice(0, 6) : assessments;
-  const selectedAcademicYear = academicYears.find((year) => year.id === academicYearId);
-  const selectedTerm = terms.find((term) => term.id === termId);
-
   const getLocalizedText = useCallback(
     (valueAr: string | undefined, valueEn: string | undefined) =>
       locale === "ar" ? valueAr || valueEn || "" : valueEn || valueAr || "",
@@ -1335,22 +1269,19 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     });
   };
 
-  if (isLoading) {
-    return <div className="flex h-screen items-center justify-center"><MainLoader /></div>;
+  if (isInitializing) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <MainLoader />
+      </div>
+    );
   }
 
   return (
-    <div className="flex min-h-screen flex-col" style={{ backgroundColor: "var(--surface-secondary)" }}>
-      <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
-        onAcademicYearChange={handleAcademicYearChange}
-        onTermChange={handleTermChange}
-        isReadOnly={isReadOnly}
-        showPromoteCarryOver={false}
-      />
-
+    <div
+      className="flex min-h-0 flex-1 flex-col"
+      style={{ backgroundColor: "var(--surface-secondary)" }}
+    >
       <div className="space-y-6 p-6">
         <GradesFiltersPanel
           scopeTypes={scopeTypes}
