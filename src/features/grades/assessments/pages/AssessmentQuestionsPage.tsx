@@ -31,11 +31,18 @@ import {
   updateAssessment,
   updateAssessmentQuestion,
 } from "../services/gradesAssessmentsService";
-import type { Assessment, AssessmentDeliveryMode, AssessmentQuestion, AssessmentType } from "../types";
+import type {
+  Assessment,
+  AssessmentDeliveryMode,
+  AssessmentQuestion,
+  AssessmentType,
+} from "../types";
+import { useGradesRouteYearTerm } from "@/features/grades/hooks/useGradesRouteYearTerm";
 
 interface AssessmentQuestionsPageProps {
   assessmentId?: string;
   mode?: "create" | "edit";
+  showContextBar?: boolean;
 }
 
 function validateAssessmentDraft(
@@ -57,7 +64,8 @@ function validateAssessmentDraft(
   }
   if (
     assessment.expectedTimeMinutes != null &&
-    (!Number.isFinite(assessment.expectedTimeMinutes) || assessment.expectedTimeMinutes < 0)
+    (!Number.isFinite(assessment.expectedTimeMinutes) ||
+      assessment.expectedTimeMinutes < 0)
   ) {
     errors.expectedTimeMinutes = tValidation("invalid_expected_time");
   }
@@ -65,9 +73,15 @@ function validateAssessmentDraft(
     general.push(tValidation("at_least_one_question"));
   }
 
-  const questionErrors: Record<string, ReturnType<typeof validateQuestion>> = {};
+  const questionErrors: Record<
+    string,
+    ReturnType<typeof validateQuestion>
+  > = {};
   questions.forEach((question) => {
-    const nextErrors = validateQuestion(question as AssignmentQuestion, tValidation);
+    const nextErrors = validateQuestion(
+      question as AssignmentQuestion,
+      tValidation,
+    );
     if (Object.keys(nextErrors).length > 0) {
       questionErrors[question.id] = nextErrors;
     }
@@ -86,6 +100,7 @@ function validateAssessmentDraft(
 export default function AssessmentQuestionsPage({
   assessmentId,
   mode = "edit",
+  showContextBar = true,
 }: AssessmentQuestionsPageProps) {
   const t = useTranslations("academics.grades.questions");
   const tGrades = useTranslations("academics.grades");
@@ -95,8 +110,12 @@ export default function AssessmentQuestionsPage({
   const router = useRouter();
   const searchParams = useSearchParams();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("xl"), { noSsr: true, defaultMatches: false });
+  const isMobile = useMediaQuery(theme.breakpoints.down("xl"), {
+    noSsr: true,
+    defaultMatches: false,
+  });
   const { showError, showSuccess } = useToast();
+  const routeYearTerm = useGradesRouteYearTerm();
 
   const [academicYearId, setAcademicYearId] = useState("");
   const [termId, setTermId] = useState("");
@@ -105,33 +124,57 @@ export default function AssessmentQuestionsPage({
   const [isLoading, setIsLoading] = useState(true);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
-  const [assessmentDraft, setAssessmentDraft] = useState<Assessment | null>(null);
-  const [lastSavedAssessment, setLastSavedAssessment] = useState<Assessment | null>(null);
+  const [assessmentDraft, setAssessmentDraft] = useState<Assessment | null>(
+    null,
+  );
+  const [lastSavedAssessment, setLastSavedAssessment] =
+    useState<Assessment | null>(null);
   const [questions, setQuestions] = useState<AssessmentQuestion[]>([]);
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
-  const [questionDraft, setQuestionDraft] = useState<AssessmentQuestion | null>(null);
-  const [lastSavedQuestion, setLastSavedQuestion] = useState<AssessmentQuestion | null>(null);
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
+    null,
+  );
+  const [questionDraft, setQuestionDraft] = useState<AssessmentQuestion | null>(
+    null,
+  );
+  const [lastSavedQuestion, setLastSavedQuestion] =
+    useState<AssessmentQuestion | null>(null);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+    {},
+  );
   const [isAssignmentSaving, setIsAssignmentSaving] = useState(false);
   const [isQuestionSaving, setIsQuestionSaving] = useState(false);
-  const [confirmDeleteQuestionId, setConfirmDeleteQuestionId] = useState<string | null>(null);
+  const [confirmDeleteQuestionId, setConfirmDeleteQuestionId] = useState<
+    string | null
+  >(null);
   const [tempQuestionCounter, setTempQuestionCounter] = useState(0);
-  const scopeTypeParam = (searchParams.get("scopeType") as Assessment["scopeType"]) || "school";
+  const scopeTypeParam =
+    (searchParams.get("scopeType") as Assessment["scopeType"]) || "school";
   const scopeIdParam = searchParams.get("scopeId") || "";
   const subjectIdParam = searchParams.get("subjectId") || "";
   const typeParam = (searchParams.get("type") as AssessmentType) || "QUIZ";
   const titleParam = searchParams.get("title") || "";
   const titleArParam = searchParams.get("titleAr") || "";
-  const dateParam = searchParams.get("date") || new Date().toISOString().slice(0, 10);
+  const dateParam =
+    searchParams.get("date") || new Date().toISOString().slice(0, 10);
   const weightParam = Number(searchParams.get("weight") || "15");
   const maxScoreParam = Number(searchParams.get("maxScore") || "20");
   const deliveryModeParam =
-    (searchParams.get("deliveryMode") as AssessmentDeliveryMode) || "QUESTION_BASED";
+    (searchParams.get("deliveryMode") as AssessmentDeliveryMode) ||
+    "QUESTION_BASED";
 
   const isReadOnly = termStatus === "closed";
   const isCreateMode = mode === "create";
 
   useEffect(() => {
+    if (!showContextBar) {
+      setAcademicYearId(routeYearTerm.academicYearId);
+      setTermId(routeYearTerm.termId);
+      setTermStatus(routeYearTerm.termStatus);
+      setTerms([]);
+      setIsLoading(routeYearTerm.isInitializing);
+      return;
+    }
+
     const initialize = async () => {
       const years = await fetchAcademicYears();
       const urlYear = searchParams.get("year");
@@ -143,7 +186,10 @@ export default function AssessmentQuestionsPage({
       }
 
       const yearTerms = await fetchTermsByYear(year.id);
-      const term = yearTerms.find((item) => item.id === urlTerm) || yearTerms.find((item) => item.status === "open") || yearTerms[0];
+      const term =
+        yearTerms.find((item) => item.id === urlTerm) ||
+        yearTerms.find((item) => item.status === "open") ||
+        yearTerms[0];
       if (!term) {
         setIsLoading(false);
         return;
@@ -162,7 +208,15 @@ export default function AssessmentQuestionsPage({
     };
 
     void initialize();
-  }, [router, searchParams]);
+  }, [
+    routeYearTerm.academicYearId,
+    routeYearTerm.isInitializing,
+    routeYearTerm.termId,
+    routeYearTerm.termStatus,
+    router,
+    searchParams,
+    showContextBar,
+  ]);
 
   const refresh = useCallback(async () => {
     if (!academicYearId || !termId || !assessmentId) {
@@ -208,8 +262,12 @@ export default function AssessmentQuestionsPage({
         type: typeParam,
         deliveryMode: "QUESTION_BASED",
         date: dateParam,
-        weight: Number.isFinite(weightParam) && weightParam > 0 ? weightParam : 15,
-        maxScore: Number.isFinite(maxScoreParam) && maxScoreParam > 0 ? maxScoreParam : 20,
+        weight:
+          Number.isFinite(weightParam) && weightParam > 0 ? weightParam : 15,
+        maxScore:
+          Number.isFinite(maxScoreParam) && maxScoreParam > 0
+            ? maxScoreParam
+            : 20,
         expectedTimeMinutes: undefined,
         approvalStatus: "draft",
         isLocked: false,
@@ -276,7 +334,8 @@ export default function AssessmentQuestionsPage({
       setLastSavedQuestion(null);
       return;
     }
-    const selectedQuestion = questions.find((question) => question.id === selectedQuestionId) || null;
+    const selectedQuestion =
+      questions.find((question) => question.id === selectedQuestionId) || null;
     setQuestionDraft(selectedQuestion);
     setLastSavedQuestion(selectedQuestion);
   }, [selectedQuestionId]);
@@ -286,33 +345,46 @@ export default function AssessmentQuestionsPage({
     if (!selectedQuestionId) {
       return;
     }
-    const selectedQuestion = questions.find((question) => question.id === selectedQuestionId) || null;
+    const selectedQuestion =
+      questions.find((question) => question.id === selectedQuestionId) || null;
     if (!selectedQuestion) {
       setQuestionDraft(null);
       setLastSavedQuestion(null);
       return;
     }
     setQuestionDraft((current) =>
-      current && current.id === selectedQuestion.id ? current : selectedQuestion,
+      current && current.id === selectedQuestion.id
+        ? current
+        : selectedQuestion,
     );
     setLastSavedQuestion((current) =>
-      current && current.id === selectedQuestion.id ? current : selectedQuestion,
+      current && current.id === selectedQuestion.id
+        ? current
+        : selectedQuestion,
     );
   }, [questions, selectedQuestionId]);
 
   const pointsSummary = useMemo(
-    () => calculatePointsSummary(assessmentDraft?.maxScore || 0, questions as AssignmentQuestion[]),
+    () =>
+      calculatePointsSummary(
+        assessmentDraft?.maxScore || 0,
+        questions as AssignmentQuestion[],
+      ),
     [assessmentDraft?.maxScore, questions],
   );
 
   useEffect(() => {
     if (!assessmentDraft) return;
-    setValidationErrors(validateAssessmentDraft(assessmentDraft, questions, tValidation));
+    setValidationErrors(
+      validateAssessmentDraft(assessmentDraft, questions, tValidation),
+    );
   }, [assessmentDraft, questions, tValidation]);
 
   const isAssessmentDirty = useMemo(() => {
     if (!assessmentDraft || !lastSavedAssessment) return false;
-    return JSON.stringify(assessmentDraft) !== JSON.stringify(lastSavedAssessment);
+    return (
+      JSON.stringify(assessmentDraft) !== JSON.stringify(lastSavedAssessment)
+    );
   }, [assessmentDraft, lastSavedAssessment]);
 
   const isQuestionDirty = useMemo(() => {
@@ -322,14 +394,19 @@ export default function AssessmentQuestionsPage({
 
   const canSaveAssessment = useMemo(() => {
     if (isCreateMode) {
-      return Boolean(assessmentDraft?.title.trim() || assessmentDraft?.titleAr.trim() || questions.length > 0);
+      return Boolean(
+        assessmentDraft?.title.trim() ||
+        assessmentDraft?.titleAr.trim() ||
+        questions.length > 0,
+      );
     }
     return isAssessmentDirty;
   }, [assessmentDraft, isAssessmentDirty, isCreateMode, questions.length]);
 
   const handleAcademicYearChange = async (yearId: string) => {
     const nextTerms = await fetchTermsByYear(yearId);
-    const nextTerm = nextTerms.find((item) => item.status === "open") || nextTerms[0];
+    const nextTerm =
+      nextTerms.find((item) => item.status === "open") || nextTerms[0];
     if (!nextTerm) return;
     setAcademicYearId(yearId);
     setTerms(nextTerms);
@@ -361,8 +438,17 @@ export default function AssessmentQuestionsPage({
   };
 
   const handleSaveAssessment = async () => {
-    if (!assessmentDraft || (!isCreateMode && !assessment) || (!isCreateMode && !isAssessmentDirty)) return;
-    const nextValidationErrors = validateAssessmentDraft(assessmentDraft, questions, tValidation);
+    if (
+      !assessmentDraft ||
+      (!isCreateMode && !assessment) ||
+      (!isCreateMode && !isAssessmentDirty)
+    )
+      return;
+    const nextValidationErrors = validateAssessmentDraft(
+      assessmentDraft,
+      questions,
+      tValidation,
+    );
     setValidationErrors(nextValidationErrors);
     if (
       Object.keys(nextValidationErrors).length > 0 ||
@@ -374,41 +460,48 @@ export default function AssessmentQuestionsPage({
     try {
       setIsAssignmentSaving(true);
       if (isCreateMode) {
-        const createdAssessment = await createAssessmentWithQuestions(academicYearId, {
-          assessment: {
-            termId,
-            scopeType: assessmentDraft.scopeType,
-            scopeId: assessmentDraft.scopeId,
-            subjectId: assessmentDraft.subjectId,
-            title: assessmentDraft.title,
-            titleAr: assessmentDraft.titleAr,
-            type: assessmentDraft.type as "QUIZ" | "MONTH_EXAM" | "MIDTERM" | "TERM_EXAM",
-            deliveryMode: "QUESTION_BASED",
-            date: assessmentDraft.date,
-            weight: assessmentDraft.weight,
-            maxScore: assessmentDraft.maxScore,
-            expectedTimeMinutes: assessmentDraft.expectedTimeMinutes,
+        const createdAssessment = await createAssessmentWithQuestions(
+          academicYearId,
+          {
+            assessment: {
+              termId,
+              scopeType: assessmentDraft.scopeType,
+              scopeId: assessmentDraft.scopeId,
+              subjectId: assessmentDraft.subjectId,
+              title: assessmentDraft.title,
+              titleAr: assessmentDraft.titleAr,
+              type: assessmentDraft.type as
+                | "QUIZ"
+                | "MONTH_EXAM"
+                | "MIDTERM"
+                | "TERM_EXAM",
+              deliveryMode: "QUESTION_BASED",
+              date: assessmentDraft.date,
+              weight: assessmentDraft.weight,
+              maxScore: assessmentDraft.maxScore,
+              expectedTimeMinutes: assessmentDraft.expectedTimeMinutes,
+            },
+            questions: questions.map((question) => ({
+              questionTextAr: question.questionTextAr,
+              questionTextEn: question.questionTextEn,
+              questionType: question.questionType,
+              points: question.points,
+              options: question.options,
+              correctAnswer: question.correctAnswer,
+              sampleAnswerAr: question.sampleAnswerAr,
+              sampleAnswerEn: question.sampleAnswerEn,
+              acceptedAnswersAr: question.acceptedAnswersAr,
+              acceptedAnswersEn: question.acceptedAnswersEn,
+              matchingPairs: question.matchingPairs,
+              mediaMode: question.mediaMode,
+              mediaTitle: question.mediaTitle,
+              mediaUrl: question.mediaUrl,
+              mediaFileName: question.mediaFileName,
+              mediaMimeType: question.mediaMimeType,
+              mediaSize: question.mediaSize,
+            })),
           },
-          questions: questions.map((question) => ({
-            questionTextAr: question.questionTextAr,
-            questionTextEn: question.questionTextEn,
-            questionType: question.questionType,
-            points: question.points,
-            options: question.options,
-            correctAnswer: question.correctAnswer,
-            sampleAnswerAr: question.sampleAnswerAr,
-            sampleAnswerEn: question.sampleAnswerEn,
-            acceptedAnswersAr: question.acceptedAnswersAr,
-            acceptedAnswersEn: question.acceptedAnswersEn,
-            matchingPairs: question.matchingPairs,
-            mediaMode: question.mediaMode,
-            mediaTitle: question.mediaTitle,
-            mediaUrl: question.mediaUrl,
-            mediaFileName: question.mediaFileName,
-            mediaMimeType: question.mediaMimeType,
-            mediaSize: question.mediaSize,
-          })),
-        });
+        );
 
         showSuccess(tGrades("messages.assessmentCreated"));
         const params = searchParams.toString();
@@ -417,26 +510,37 @@ export default function AssessmentQuestionsPage({
         return;
       }
 
-      const nextAssessment = await updateAssessment(academicYearId, termId, assessment!.id, {
+      const nextAssessment = await updateAssessment(
+        academicYearId,
         termId,
-        scopeType: assessmentDraft.scopeType,
-        scopeId: assessmentDraft.scopeId,
-        subjectId: assessment!.subjectId,
-        title: assessmentDraft.title,
-        titleAr: assessmentDraft.titleAr,
-        type: assessment!.type as "QUIZ" | "MONTH_EXAM" | "MIDTERM" | "TERM_EXAM",
-        deliveryMode: assessment!.deliveryMode,
-        date: assessmentDraft.date,
-        weight: assessment!.weight,
-        maxScore: assessmentDraft.maxScore,
-        expectedTimeMinutes: assessmentDraft.expectedTimeMinutes,
-      });
+        assessment!.id,
+        {
+          termId,
+          scopeType: assessmentDraft.scopeType,
+          scopeId: assessmentDraft.scopeId,
+          subjectId: assessment!.subjectId,
+          title: assessmentDraft.title,
+          titleAr: assessmentDraft.titleAr,
+          type: assessment!.type as
+            | "QUIZ"
+            | "MONTH_EXAM"
+            | "MIDTERM"
+            | "TERM_EXAM",
+          deliveryMode: assessment!.deliveryMode,
+          date: assessmentDraft.date,
+          weight: assessment!.weight,
+          maxScore: assessmentDraft.maxScore,
+          expectedTimeMinutes: assessmentDraft.expectedTimeMinutes,
+        },
+      );
       setAssessment(nextAssessment);
       setAssessmentDraft(nextAssessment);
       setLastSavedAssessment(nextAssessment);
       showSuccess(tCommon("save_success"));
     } catch (error) {
-      showError(tGrades(`errors.${error instanceof Error ? error.message : "generic"}`));
+      showError(
+        tGrades(`errors.${error instanceof Error ? error.message : "generic"}`),
+      );
     } finally {
       setIsAssignmentSaving(false);
     }
@@ -458,8 +562,20 @@ export default function AssessmentQuestionsPage({
         questionType: "MCQ_SINGLE",
         points: 0,
         options: [
-          { id: `opt-${nextIndex}-1`, textAr: "", textEn: "", isCorrect: true, order: 1 },
-          { id: `opt-${nextIndex}-2`, textAr: "", textEn: "", isCorrect: false, order: 2 },
+          {
+            id: `opt-${nextIndex}-1`,
+            textAr: "",
+            textEn: "",
+            isCorrect: true,
+            order: 1,
+          },
+          {
+            id: `opt-${nextIndex}-2`,
+            textAr: "",
+            textEn: "",
+            isCorrect: false,
+            order: 2,
+          },
         ],
       };
       setQuestions((current) => [...current, nextQuestion]);
@@ -469,33 +585,62 @@ export default function AssessmentQuestionsPage({
       return;
     }
     try {
-      const nextQuestion = await createAssessmentQuestion(academicYearId, termId, assessmentId!, {
-        questionTextAr: "",
-        questionTextEn: "",
-        questionType: "MCQ_SINGLE",
-        points: 0,
-        options: [
-          { id: `opt-${Date.now()}-1`, textAr: "", textEn: "", isCorrect: true, order: 1 },
-          { id: `opt-${Date.now()}-2`, textAr: "", textEn: "", isCorrect: false, order: 2 },
-        ],
-      });
+      const nextQuestion = await createAssessmentQuestion(
+        academicYearId,
+        termId,
+        assessmentId!,
+        {
+          questionTextAr: "",
+          questionTextEn: "",
+          questionType: "MCQ_SINGLE",
+          points: 0,
+          options: [
+            {
+              id: `opt-${Date.now()}-1`,
+              textAr: "",
+              textEn: "",
+              isCorrect: true,
+              order: 1,
+            },
+            {
+              id: `opt-${Date.now()}-2`,
+              textAr: "",
+              textEn: "",
+              isCorrect: false,
+              order: 2,
+            },
+          ],
+        },
+      );
       await refresh();
       setSelectedQuestionId(nextQuestion.id);
     } catch (error) {
-      showError(tGrades(`errors.${error instanceof Error ? error.message : "generic"}`));
+      showError(
+        tGrades(`errors.${error instanceof Error ? error.message : "generic"}`),
+      );
     }
   };
 
-  const handleUpdateQuestionDraft = (questionId: string, updates: Partial<AssignmentQuestion>) => {
+  const handleUpdateQuestionDraft = (
+    questionId: string,
+    updates: Partial<AssignmentQuestion>,
+  ) => {
     if (!questionDraft || questionDraft.id !== questionId) return;
     const nextQuestion = { ...questionDraft, ...updates };
     setQuestionDraft(nextQuestion);
-    setQuestions((current) => current.map((question) => (question.id === questionId ? { ...question, ...updates } : question)));
+    setQuestions((current) =>
+      current.map((question) =>
+        question.id === questionId ? { ...question, ...updates } : question,
+      ),
+    );
   };
 
   const handleSaveQuestion = async () => {
     if (!questionDraft || !isQuestionDirty) return;
-    const errors = validateQuestion(questionDraft as AssignmentQuestion, tValidation);
+    const errors = validateQuestion(
+      questionDraft as AssignmentQuestion,
+      tValidation,
+    );
     if (Object.keys(errors).length > 0) {
       setValidationErrors((current) => ({
         ...current,
@@ -510,35 +655,52 @@ export default function AssessmentQuestionsPage({
 
     try {
       if (isCreateMode) {
-        setQuestions((current) => current.map((question) => (question.id === questionDraft.id ? questionDraft : question)));
+        setQuestions((current) =>
+          current.map((question) =>
+            question.id === questionDraft.id ? questionDraft : question,
+          ),
+        );
         setLastSavedQuestion(questionDraft);
         showSuccess(tCommon("save_success"));
         return;
       }
       setIsQuestionSaving(true);
-      const saved = await updateAssessmentQuestion(academicYearId, termId, questionDraft.id, {
-        questionTextAr: questionDraft.questionTextAr,
-        questionTextEn: questionDraft.questionTextEn,
-        questionType: questionDraft.questionType,
-        points: questionDraft.points,
-        options: questionDraft.options,
-        correctAnswer: questionDraft.correctAnswer,
-        sampleAnswerAr: questionDraft.sampleAnswerAr,
-        sampleAnswerEn: questionDraft.sampleAnswerEn,
-        acceptedAnswersAr: questionDraft.acceptedAnswersAr,
-        acceptedAnswersEn: questionDraft.acceptedAnswersEn,
-        matchingPairs: questionDraft.matchingPairs,
-        mediaMode: questionDraft.mediaMode,
-        mediaTitle: questionDraft.mediaTitle,
-        mediaUrl: questionDraft.mediaUrl,
-        mediaFileName: questionDraft.mediaFileName,
-        mediaMimeType: questionDraft.mediaMimeType,
-        mediaSize: questionDraft.mediaSize,
-      });
-      setQuestions((current) => current.map((question) => (question.id === saved.id ? saved : question)));
+      const saved = await updateAssessmentQuestion(
+        academicYearId,
+        termId,
+        questionDraft.id,
+        {
+          questionTextAr: questionDraft.questionTextAr,
+          questionTextEn: questionDraft.questionTextEn,
+          questionType: questionDraft.questionType,
+          points: questionDraft.points,
+          options: questionDraft.options,
+          correctAnswer: questionDraft.correctAnswer,
+          sampleAnswerAr: questionDraft.sampleAnswerAr,
+          sampleAnswerEn: questionDraft.sampleAnswerEn,
+          acceptedAnswersAr: questionDraft.acceptedAnswersAr,
+          acceptedAnswersEn: questionDraft.acceptedAnswersEn,
+          matchingPairs: questionDraft.matchingPairs,
+          mediaMode: questionDraft.mediaMode,
+          mediaTitle: questionDraft.mediaTitle,
+          mediaUrl: questionDraft.mediaUrl,
+          mediaFileName: questionDraft.mediaFileName,
+          mediaMimeType: questionDraft.mediaMimeType,
+          mediaSize: questionDraft.mediaSize,
+        },
+      );
+      setQuestions((current) =>
+        current.map((question) =>
+          question.id === saved.id ? saved : question,
+        ),
+      );
       setQuestionDraft(saved);
       setLastSavedQuestion(saved);
-      const nextAssessment = await fetchAssessmentById(academicYearId, termId, assessmentId!);
+      const nextAssessment = await fetchAssessmentById(
+        academicYearId,
+        termId,
+        assessmentId!,
+      );
       if (nextAssessment) {
         setAssessment(nextAssessment);
         setAssessmentDraft(nextAssessment);
@@ -546,7 +708,9 @@ export default function AssessmentQuestionsPage({
       }
       showSuccess(tCommon("save_success"));
     } catch (error) {
-      showError(tGrades(`errors.${error instanceof Error ? error.message : "generic"}`));
+      showError(
+        tGrades(`errors.${error instanceof Error ? error.message : "generic"}`),
+      );
     } finally {
       setIsQuestionSaving(false);
     }
@@ -559,7 +723,9 @@ export default function AssessmentQuestionsPage({
           .filter((question) => question.id !== questionId)
           .map((question, index) => ({ ...question, order: index + 1 })),
       );
-      setSelectedQuestionId((current) => (current === questionId ? null : current));
+      setSelectedQuestionId((current) =>
+        current === questionId ? null : current,
+      );
       showSuccess(t("messages.deleted"));
       return;
     }
@@ -568,24 +734,50 @@ export default function AssessmentQuestionsPage({
       await refresh();
       showSuccess(t("messages.deleted"));
     } catch (error) {
-      showError(tGrades(`errors.${error instanceof Error ? error.message : "generic"}`));
+      showError(
+        tGrades(`errors.${error instanceof Error ? error.message : "generic"}`),
+      );
     }
   };
 
-  const handleMoveQuestion = async (questionId: string, direction: "up" | "down") => {
+  const handleMoveQuestion = async (
+    questionId: string,
+    direction: "up" | "down",
+  ) => {
     const index = questions.findIndex((question) => question.id === questionId);
-    if ((direction === "up" && index === 0) || (direction === "down" && index === questions.length - 1)) {
+    if (
+      (direction === "up" && index === 0) ||
+      (direction === "down" && index === questions.length - 1)
+    ) {
       return;
     }
     const nextIndex = direction === "up" ? index - 1 : index + 1;
     const reordered = [...questions];
-    [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
+    [reordered[index], reordered[nextIndex]] = [
+      reordered[nextIndex],
+      reordered[index],
+    ];
     if (isCreateMode) {
-      setQuestions(reordered.map((question, orderIndex) => ({ ...question, order: orderIndex + 1 })));
+      setQuestions(
+        reordered.map((question, orderIndex) => ({
+          ...question,
+          order: orderIndex + 1,
+        })),
+      );
       return;
     }
-    await reorderAssessmentQuestions(academicYearId, termId, assessmentId!, reordered.map((question) => question.id));
-    setQuestions(reordered.map((question, orderIndex) => ({ ...question, order: orderIndex + 1 })));
+    await reorderAssessmentQuestions(
+      academicYearId,
+      termId,
+      assessmentId!,
+      reordered.map((question) => question.id),
+    );
+    setQuestions(
+      reordered.map((question, orderIndex) => ({
+        ...question,
+        order: orderIndex + 1,
+      })),
+    );
   };
 
   const handleAutoDistributePoints = async () => {
@@ -602,34 +794,51 @@ export default function AssessmentQuestionsPage({
     if (isCreateMode) {
       setQuestions((current) =>
         current.map((question) => {
-          const nextUpdate = updates.find((item) => item.questionId === question.id);
-          return nextUpdate ? { ...question, points: nextUpdate.points } : question;
+          const nextUpdate = updates.find(
+            (item) => item.questionId === question.id,
+          );
+          return nextUpdate
+            ? { ...question, points: nextUpdate.points }
+            : question;
         }),
       );
-      setAssessmentDraft((current) => (current ? { ...current, maxScore } : current));
+      setAssessmentDraft((current) =>
+        current ? { ...current, maxScore } : current,
+      );
       showSuccess(t("messages.pointsUpdated"));
       return;
     }
-    await bulkUpdateAssessmentQuestionPoints(academicYearId, termId, assessmentId!, updates);
+    await bulkUpdateAssessmentQuestionPoints(
+      academicYearId,
+      termId,
+      assessmentId!,
+      updates,
+    );
     await refresh();
     showSuccess(t("messages.pointsUpdated"));
   };
 
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center"><MainLoader /></div>;
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <MainLoader />
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
-        onAcademicYearChange={handleAcademicYearChange}
-        onTermChange={handleTermChange}
-        isReadOnly={isReadOnly}
-        showPromoteCarryOver={false}
-      />
+      {showContextBar && (
+        <ContextBar
+          academicYearId={academicYearId}
+          termId={termId}
+          termStatus={termStatus}
+          onAcademicYearChange={handleAcademicYearChange}
+          onTermChange={handleTermChange}
+          isReadOnly={isReadOnly}
+          showPromoteCarryOver={false}
+        />
+      )}
 
       {assessment && (
         <AssessmentQuestionBuilderHeader
@@ -640,7 +849,9 @@ export default function AssessmentQuestionsPage({
           isAssignmentSaving={isAssignmentSaving}
           isQuestionSaving={isQuestionSaving}
           onBack={handleBack}
-          saveLabel={isCreateMode ? tGrades("actions.createAssessment") : undefined}
+          saveLabel={
+            isCreateMode ? tGrades("actions.createAssessment") : undefined
+          }
           canSaveAssessment={canSaveAssessment}
           onSaveAssessment={() => void handleSaveAssessment()}
         />
@@ -648,7 +859,14 @@ export default function AssessmentQuestionsPage({
 
       {!assessment ? (
         <div className="p-6">
-          <div className="rounded-xl border p-6 text-sm" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)", color: "var(--text-secondary)" }}>
+          <div
+            className="rounded-xl border p-6 text-sm"
+            style={{
+              borderColor: "var(--border-color)",
+              backgroundColor: "var(--surface-color)",
+              color: "var(--text-secondary)",
+            }}
+          >
             {isCreateMode ? tGrades("emptyState.selectFilters") : t("notFound")}
           </div>
         </div>
@@ -666,13 +884,19 @@ export default function AssessmentQuestionsPage({
           </div>
         </div>
       ) : isDataLoading && questions.length === 0 ? (
-        <div className="flex h-[calc(100vh-73px)] items-center justify-center"><MainLoader /></div>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <MainLoader />
+        </div>
       ) : isMobile ? (
         <AssessmentQuestionMobileLayout
           questions={questions as AssignmentQuestion[]}
           selectedQuestionId={selectedQuestionId}
-          selectedQuestion={(questionDraft ||
-            questions.find((question) => question.id === selectedQuestionId)) as AssignmentQuestion | undefined}
+          selectedQuestion={
+            (questionDraft ||
+              questions.find(
+                (question) => question.id === selectedQuestionId,
+              )) as AssignmentQuestion | undefined
+          }
           assessment={assessmentDraft || assessment}
           isReadOnly={isReadOnly}
           pointsSummary={pointsSummary}
@@ -682,9 +906,17 @@ export default function AssessmentQuestionsPage({
           onSelectQuestion={setSelectedQuestionId}
           onAddQuestion={() => void handleAddQuestion()}
           onUpdateQuestion={handleUpdateQuestionDraft}
-          onDeleteQuestion={(questionId) => setConfirmDeleteQuestionId(questionId)}
-          onMoveQuestion={(questionId, direction) => void handleMoveQuestion(questionId, direction)}
-          onUpdateAssessment={(updates) => setAssessmentDraft((current) => (current ? { ...current, ...updates } : current))}
+          onDeleteQuestion={(questionId) =>
+            setConfirmDeleteQuestionId(questionId)
+          }
+          onMoveQuestion={(questionId, direction) =>
+            void handleMoveQuestion(questionId, direction)
+          }
+          onUpdateAssessment={(updates) =>
+            setAssessmentDraft((current) =>
+              current ? { ...current, ...updates } : current,
+            )
+          }
           onAutoDistributePoints={() => void handleAutoDistributePoints()}
           onSaveQuestion={handleSaveQuestion}
         />
@@ -692,8 +924,12 @@ export default function AssessmentQuestionsPage({
         <AssessmentQuestionDesktopLayout
           questions={questions as AssignmentQuestion[]}
           selectedQuestionId={selectedQuestionId}
-          selectedQuestion={(questionDraft ||
-            questions.find((question) => question.id === selectedQuestionId)) as AssignmentQuestion | undefined}
+          selectedQuestion={
+            (questionDraft ||
+              questions.find(
+                (question) => question.id === selectedQuestionId,
+              )) as AssignmentQuestion | undefined
+          }
           assessment={assessmentDraft || assessment}
           isReadOnly={isReadOnly}
           pointsSummary={pointsSummary}
@@ -703,9 +939,17 @@ export default function AssessmentQuestionsPage({
           onSelectQuestion={setSelectedQuestionId}
           onAddQuestion={() => void handleAddQuestion()}
           onUpdateQuestion={handleUpdateQuestionDraft}
-          onDeleteQuestion={(questionId) => setConfirmDeleteQuestionId(questionId)}
-          onMoveQuestion={(questionId, direction) => void handleMoveQuestion(questionId, direction)}
-          onUpdateAssessment={(updates) => setAssessmentDraft((current) => (current ? { ...current, ...updates } : current))}
+          onDeleteQuestion={(questionId) =>
+            setConfirmDeleteQuestionId(questionId)
+          }
+          onMoveQuestion={(questionId, direction) =>
+            void handleMoveQuestion(questionId, direction)
+          }
+          onUpdateAssessment={(updates) =>
+            setAssessmentDraft((current) =>
+              current ? { ...current, ...updates } : current,
+            )
+          }
           onAutoDistributePoints={() => void handleAutoDistributePoints()}
           onSaveQuestion={handleSaveQuestion}
         />
@@ -716,7 +960,9 @@ export default function AssessmentQuestionsPage({
         onClose={() => setConfirmDeleteQuestionId(null)}
         onConfirm={() => {
           if (!confirmDeleteQuestionId) return;
-          void handleDeleteQuestion(confirmDeleteQuestionId).then(() => setConfirmDeleteQuestionId(null));
+          void handleDeleteQuestion(confirmDeleteQuestionId).then(() =>
+            setConfirmDeleteQuestionId(null),
+          );
         }}
         title={t("deleteTitle")}
         description={t("deleteDescription")}
