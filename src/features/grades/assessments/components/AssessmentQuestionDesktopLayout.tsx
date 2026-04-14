@@ -53,7 +53,7 @@ export default function AssessmentQuestionDesktopLayout({
   const tCommon = useTranslations("common");
 
   return (
-    <div className="flex h-[calc(100vh-73px)]">
+    <div className="flex min-h-0 flex-1">
       <QuestionsOutline
         questions={questions}
         selectedQuestionId={selectedQuestionId}
@@ -64,9 +64,9 @@ export default function AssessmentQuestionDesktopLayout({
         onDeleteQuestion={onDeleteQuestion}
       />
 
-      <div className="flex-1 overflow-y-auto border-x bg-gray-50" style={{ borderColor: "var(--border-color)" }}>
+      <div className="min-h-0 flex-1 overflow-y-auto border-x bg-gray-50" style={{ borderColor: "var(--border-color)" }}>
         {selectedQuestion ? (
-          <div className="flex h-full flex-col">
+          <div className="flex h-full min-h-0 flex-col">
             <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4" style={{ borderColor: "var(--border-color)" }}>
               <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
                 {tCommon("edit")} {tCommon("question")}
@@ -101,7 +101,7 @@ export default function AssessmentQuestionDesktopLayout({
         )}
       </div>
 
-      <div className="w-96 overflow-y-auto border-l bg-white" style={{ borderColor: "var(--border-color)" }}>
+      <div className="min-h-0 w-96 overflow-y-auto border-l bg-white" style={{ borderColor: "var(--border-color)" }}>
         <div className="p-6">
           <AssessmentQuestionSettingsPanel
             assessment={assessment}

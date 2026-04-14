@@ -58,7 +58,7 @@ export default function AssessmentQuestionMobileLayout({
   const [questionsDrawerOpen, setQuestionsDrawerOpen] = useState(false);
 
   return (
-    <div className="flex h-[calc(100vh-73px)] flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="border-b bg-white" style={{ borderColor: "var(--border-color)" }}>
         <Tabs value={mobileTab} onChange={(_event, value) => setMobileTab(value)} variant="fullWidth">
           <Tab label={t("questions")} value="questions" />
@@ -66,9 +66,9 @@ export default function AssessmentQuestionMobileLayout({
         </Tabs>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-gray-50">
         {mobileTab === "questions" && (
-          <div className="flex h-full flex-col">
+          <div className="flex h-full min-h-0 flex-col">
             <div className="flex items-center justify-between border-b bg-white p-4" style={{ borderColor: "var(--border-color)" }}>
               <Button
                 onClick={() => setQuestionsDrawerOpen(true)}

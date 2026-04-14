@@ -31,12 +31,7 @@ import {
   updateAssessment,
   updateAssessmentQuestion,
 } from "../services/gradesAssessmentsService";
-import type {
-  Assessment,
-  AssessmentDeliveryMode,
-  AssessmentQuestion,
-  AssessmentType,
-} from "../types";
+import type { Assessment, AssessmentQuestion, AssessmentType } from "../types";
 import { useGradesRouteYearTerm } from "@/features/grades/hooks/useGradesRouteYearTerm";
 
 interface AssessmentQuestionsPageProps {
@@ -158,10 +153,6 @@ export default function AssessmentQuestionsPage({
     searchParams.get("date") || new Date().toISOString().slice(0, 10);
   const weightParam = Number(searchParams.get("weight") || "15");
   const maxScoreParam = Number(searchParams.get("maxScore") || "20");
-  const deliveryModeParam =
-    (searchParams.get("deliveryMode") as AssessmentDeliveryMode) ||
-    "QUESTION_BASED";
-
   const isReadOnly = termStatus === "closed";
   const isCreateMode = mode === "create";
 
@@ -246,49 +237,42 @@ export default function AssessmentQuestionsPage({
   }, [academicYearId, assessmentId, showError, tCommon, termId]);
 
   useEffect(() => {
-    if (isCreateMode) {
-      if (!termId || assessmentDraft) {
-        return;
-      }
-
-      const baseAssessment: Assessment = {
-        id: "draft-assessment",
-        termId,
-        scopeType: scopeTypeParam,
-        scopeId: scopeIdParam,
-        subjectId: subjectIdParam,
-        title: titleParam,
-        titleAr: titleArParam,
-        type: typeParam,
-        deliveryMode: "QUESTION_BASED",
-        date: dateParam,
-        weight:
-          Number.isFinite(weightParam) && weightParam > 0 ? weightParam : 15,
-        maxScore:
-          Number.isFinite(maxScoreParam) && maxScoreParam > 0
-            ? maxScoreParam
-            : 20,
-        expectedTimeMinutes: undefined,
-        approvalStatus: "draft",
-        isLocked: false,
-      };
-      setAssessment(baseAssessment);
-      setAssessmentDraft(baseAssessment);
-      setLastSavedAssessment(baseAssessment);
-      setQuestions([]);
-      setSelectedQuestionId(null);
-      setIsDataLoading(false);
+    if (!isCreateMode || !termId || assessmentDraft) {
       return;
     }
 
-    void refresh();
+    const baseAssessment: Assessment = {
+      id: "draft-assessment",
+      termId,
+      scopeType: scopeTypeParam,
+      scopeId: scopeIdParam,
+      subjectId: subjectIdParam,
+      title: titleParam,
+      titleAr: titleArParam,
+      type: typeParam,
+      deliveryMode: "QUESTION_BASED",
+      date: dateParam,
+      weight:
+        Number.isFinite(weightParam) && weightParam > 0 ? weightParam : 15,
+      maxScore:
+        Number.isFinite(maxScoreParam) && maxScoreParam > 0
+          ? maxScoreParam
+          : 20,
+      expectedTimeMinutes: undefined,
+      approvalStatus: "draft",
+      isLocked: false,
+    };
+    setAssessment(baseAssessment);
+    setAssessmentDraft(baseAssessment);
+    setLastSavedAssessment(baseAssessment);
+    setQuestions([]);
+    setSelectedQuestionId(null);
+    setIsDataLoading(false);
   }, [
     assessmentDraft,
     dateParam,
-    deliveryModeParam,
     isCreateMode,
     maxScoreParam,
-    refresh,
     scopeIdParam,
     scopeTypeParam,
     subjectIdParam,
@@ -298,6 +282,14 @@ export default function AssessmentQuestionsPage({
     typeParam,
     weightParam,
   ]);
+
+  useEffect(() => {
+    if (isCreateMode) {
+      return;
+    }
+
+    void refresh();
+  }, [isCreateMode, refresh]);
 
   useEffect(() => {
     if (!isCreateMode || !termId) {
@@ -827,7 +819,7 @@ export default function AssessmentQuestionsPage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-gray-50">
       {showContextBar && (
         <ContextBar
           academicYearId={academicYearId}
@@ -884,7 +876,7 @@ export default function AssessmentQuestionsPage({
           </div>
         </div>
       ) : isDataLoading && questions.length === 0 ? (
-        <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="flex min-h-0 flex-1 items-center justify-center">
           <MainLoader />
         </div>
       ) : isMobile ? (
