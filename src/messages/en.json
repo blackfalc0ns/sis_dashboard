@@ -3004,7 +3004,8 @@
         "subject": "Subject"
       },
       "actions": {
-        "create_curriculum": "Create Curriculum"
+        "create_curriculum": "Create Curriculum",
+        "carry_over": "Carry Over"
       },
       "tabs": {
         "outline": "Outline",

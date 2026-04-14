@@ -22,6 +22,7 @@ interface ContextBarProps {
   onPromoteCarryOver?: () => void;
   isReadOnly: boolean;
   showPromoteCarryOver?: boolean;
+  disablePromoteCarryOver?: boolean;
 }
 
 export default function ContextBar({
@@ -33,6 +34,7 @@ export default function ContextBar({
   onPromoteCarryOver,
   isReadOnly,
   showPromoteCarryOver = true,
+  disablePromoteCarryOver = false,
 }: ContextBarProps) {
   const t = useTranslations("academics.structure.context_bar");
   const locale = useLocale();
@@ -283,7 +285,7 @@ export default function ContextBar({
                     size="md"
                     leftIcon={<ArrowRight className="w-4 h-4" />}
                     onClick={onPromoteCarryOver}
-                    disabled={isReadOnly}
+                    disabled={isReadOnly || disablePromoteCarryOver}
                     title={isReadOnly ? t("status_closed") : ""}
                   >
                     {t("promote_carry_over")}
@@ -323,7 +325,7 @@ export default function ContextBar({
                     size="md"
                     fullWidth
                     onClick={onPromoteCarryOver}
-                    disabled={isReadOnly}
+                    disabled={isReadOnly || disablePromoteCarryOver}
                   >
                     {t("promote_carry_over")}
                   </Button>

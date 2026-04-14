@@ -14,15 +14,10 @@ import {
 } from "lucide-react";
 import { Drawer, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
-import ContextBar from "../../components/shared/ContextBar";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
 import {
-  fetchAcademicYears,
-  fetchTermsByYear,
   fetchStructureTree,
-  AcademicYear,
-  Term,
   Grade,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
@@ -51,6 +46,9 @@ import {
   type ExportColumn,
   type ExportMetadata,
 } from "@/features/academics/utils/exportAdapter";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
+import { useAcademicContextBarActions } from "@/features/academics/hooks/useAcademicContextBarActions";
+import { useGuardedAcademicContextChange } from "@/features/academics/hooks/useGuardedAcademicContextChange";
 
 export default function CurriculumPageContent() {
   const t = useTranslations("academics.curriculum");
@@ -66,14 +64,17 @@ export default function CurriculumPageContent() {
   // Fixed panel widths
   const LEFT_PANEL_WIDTH = 280;
   const RIGHT_PANEL_WIDTH = 320;
+  const {
+    academicYearId,
+    termId,
+    termStatus,
+    academicYears,
+    selectedTerm,
+    isInitializing,
+  } = useAcademicYearTermLayoutContext();
 
-  const [academicYearId, setAcademicYearId] = useState("");
-  const [termId, setTermId] = useState("");
-  const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
   const queryState = useMemo(
     () => ({
-      yearId: searchParams.get("year"),
-      termId: searchParams.get("term"),
       gradeId: searchParams.get("grade"),
       subjectId: searchParams.get("subject"),
       unitId: searchParams.get("unit"),
@@ -83,12 +84,9 @@ export default function CurriculumPageContent() {
       leftDrawerOpen: searchParams.get("leftDrawer") === "1",
       rightDrawerOpen: searchParams.get("rightDrawer") === "1",
     }),
-    [searchParams]
+    [searchParams],
   );
 
-  // Context data
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
-  const [terms, setTerms] = useState<Term[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
 
@@ -104,25 +102,63 @@ export default function CurriculumPageContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [contextError, setContextError] = useState("");
   const [curriculumError, setCurriculumError] = useState("");
-  const [searchInputValue, setSearchInputValue] = useState(queryState.searchQuery);
+  const [searchInputValue, setSearchInputValue] = useState(
+    queryState.searchQuery,
+  );
 
   // UI State
-  const [selectedNode, setSelectedNode] = useState<
-    { type: "unit" | "lesson"; id: string } | null
-  >(null);
+  const [selectedNode, setSelectedNode] = useState<{
+    type: "unit" | "lesson";
+    id: string;
+  } | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showCarryOverDialog, setShowCarryOverDialog] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const initializeRequestIdRef = useRef(0);
   const optionsRequestIdRef = useRef(0);
   const curriculumRequestIdRef = useRef(0);
 
   const isReadOnly = termStatus === "closed";
+  const confirmDiscardChanges = useCallback(
+    () => confirm(t("unsaved_changes.message")),
+    [t],
+  );
+  const handlePromoteCarryOver = useCallback(() => {
+    setShowCarryOverDialog(true);
+  }, []);
+
+  useGuardedAcademicContextChange({
+    hasUnsavedChanges,
+    confirmDiscard: confirmDiscardChanges,
+    onDiscard: () => setHasUnsavedChanges(false),
+  });
+
+  const contextBarActions = useMemo(
+    () => ({
+      onPromoteCarryOver: handlePromoteCarryOver,
+      showPromoteCarryOver: true,
+      disablePromoteCarryOver:
+        !selectedGradeId || !selectedSubjectId || isReadOnly,
+    }),
+    [handlePromoteCarryOver, isReadOnly, selectedGradeId, selectedSubjectId],
+  );
+
+  useAcademicContextBarActions(contextBarActions);
 
   useEffect(() => {
     setSearchInputValue(queryState.searchQuery);
   }, [queryState.searchQuery]);
+
+  useEffect(() => {
+    if (!selectedTerm) {
+      setTermWeeks(0);
+      return;
+    }
+
+    setTermWeeks(
+      calculateTermWeeks(selectedTerm.startDate, selectedTerm.endDate),
+    );
+  }, [selectedTerm]);
 
   const updateURL = useCallback(
     (
@@ -138,7 +174,7 @@ export default function CurriculumPageContent() {
         leftDrawerOpen?: boolean;
         rightDrawerOpen?: boolean;
       },
-      historyMode: "push" | "replace" = "replace"
+      historyMode: "push" | "replace" = "replace",
     ) => {
       const params = new URLSearchParams();
       params.set("year", nextState.yearId);
@@ -165,9 +201,13 @@ export default function CurriculumPageContent() {
       }
       router.replace(nextUrl, { scroll: false });
     },
-    [router, searchParams]
+    [router, searchParams],
   );
   const syncSearchQueryParam = useDebouncedCallback((value: string) => {
+    if (!academicYearId || !termId) {
+      return;
+    }
+
     updateURL(
       {
         yearId: academicYearId,
@@ -181,85 +221,31 @@ export default function CurriculumPageContent() {
         leftDrawerOpen: queryState.leftDrawerOpen,
         rightDrawerOpen: queryState.rightDrawerOpen,
       },
-      "replace"
+      "replace",
     );
   }, 250);
 
-  useEffect(() => () => {
-    syncSearchQueryParam.cancel();
-  }, [syncSearchQueryParam]);
-
-  // Initialize from URL
-  const initializeContext = useCallback(async () => {
-    const requestId = ++initializeRequestIdRef.current;
-
-    try {
-      setContextError("");
-      const years = await fetchAcademicYears();
-      if (requestId !== initializeRequestIdRef.current) return;
-      setAcademicYears(years);
-
-      const selectedYear = years.find((y) => y.id === queryState.yearId) || years[0];
-      if (!selectedYear) return;
-
-      const yearTerms = await fetchTermsByYear(selectedYear.id);
-      if (requestId !== initializeRequestIdRef.current) return;
-      setTerms(yearTerms);
-
-      let selectedTerm = yearTerms.find((t) => t.id === queryState.termId);
-      if (!selectedTerm) {
-        selectedTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
-      }
-
-      if (selectedYear && selectedTerm) {
-        setAcademicYearId(selectedYear.id);
-        setTermId(selectedTerm.id);
-        setTermStatus(selectedTerm.status);
-
-        const weeks = calculateTermWeeks(selectedTerm.startDate, selectedTerm.endDate);
-        setTermWeeks(weeks);
-
-        updateURL({
-          yearId: selectedYear.id,
-          termId: selectedTerm.id,
-          gradeId: queryState.gradeId,
-          subjectId: queryState.subjectId,
-          unitId: queryState.unitId,
-          lessonId: queryState.lessonId,
-          searchQuery: queryState.searchQuery,
-          filtersCollapsed: queryState.filtersCollapsed,
-          leftDrawerOpen: queryState.leftDrawerOpen,
-          rightDrawerOpen: queryState.rightDrawerOpen,
-        });
-      }
-    } catch (error) {
-      if (requestId !== initializeRequestIdRef.current) return;
-      console.error("Failed to initialize:", error);
-      setContextError(tCommon("error"));
-      setIsLoading(false);
-    }
-  }, [
-    queryState.gradeId,
-    queryState.filtersCollapsed,
-    queryState.leftDrawerOpen,
-    queryState.lessonId,
-    queryState.rightDrawerOpen,
-    queryState.searchQuery,
-    queryState.subjectId,
-    queryState.termId,
-    queryState.unitId,
-    queryState.yearId,
-    tCommon,
-    updateURL,
-  ]);
-
-  useEffect(() => {
-    initializeContext();
-  }, [initializeContext]);
+  useEffect(
+    () => () => {
+      syncSearchQueryParam.cancel();
+    },
+    [syncSearchQueryParam],
+  );
 
   // Load grades and subjects when term changes
   const loadOptionsData = useCallback(async () => {
-    if (!academicYearId || !termId) return;
+    if (isInitializing) {
+      return;
+    }
+    if (!academicYearId || !termId) {
+      setGrades([]);
+      setSubjects([]);
+      setSelectedGradeId("");
+      setSelectedSubjectId("");
+      setContextError("");
+      setIsLoading(false);
+      return;
+    }
 
     const requestId = ++optionsRequestIdRef.current;
     setIsLoading(true);
@@ -277,7 +263,9 @@ export default function CurriculumPageContent() {
       if (structureData.grades.length > 0) {
         const nextGradeId =
           (queryState.gradeId &&
-            structureData.grades.some((grade) => grade.id === queryState.gradeId) &&
+            structureData.grades.some(
+              (grade) => grade.id === queryState.gradeId,
+            ) &&
             queryState.gradeId) ||
           selectedGradeId ||
           structureData.grades[0]!.id;
@@ -288,7 +276,9 @@ export default function CurriculumPageContent() {
       if (subjectsData.length > 0) {
         const nextSubjectId =
           (queryState.subjectId &&
-            subjectsData.some((subject) => subject.id === queryState.subjectId) &&
+            subjectsData.some(
+              (subject) => subject.id === queryState.subjectId,
+            ) &&
             queryState.subjectId) ||
           selectedSubjectId ||
           subjectsData[0]!.id;
@@ -309,7 +299,16 @@ export default function CurriculumPageContent() {
         setIsLoading(false);
       }
     }
-  }, [academicYearId, queryState.gradeId, queryState.subjectId, selectedGradeId, selectedSubjectId, tCommon, termId]);
+  }, [
+    academicYearId,
+    isInitializing,
+    queryState.gradeId,
+    queryState.subjectId,
+    selectedGradeId,
+    selectedSubjectId,
+    tCommon,
+    termId,
+  ]);
 
   useEffect(() => {
     loadOptionsData();
@@ -324,7 +323,8 @@ export default function CurriculumPageContent() {
         ? selectedGradeId
         : "";
     const normalizedSubjectId =
-      selectedSubjectId && subjects.some((subject) => subject.id === selectedSubjectId)
+      selectedSubjectId &&
+      subjects.some((subject) => subject.id === selectedSubjectId)
         ? selectedSubjectId
         : "";
 
@@ -368,7 +368,11 @@ export default function CurriculumPageContent() {
     const requestId = ++curriculumRequestIdRef.current;
     try {
       setCurriculumError("");
-      const curriculumData = await fetchCurriculum(termId, selectedGradeId, selectedSubjectId);
+      const curriculumData = await fetchCurriculum(
+        termId,
+        selectedGradeId,
+        selectedSubjectId,
+      );
       if (requestId !== curriculumRequestIdRef.current) return;
       setCurriculum(curriculumData);
 
@@ -382,13 +386,17 @@ export default function CurriculumPageContent() {
         setLessons(lessonsData);
 
         if (queryState.lessonId) {
-          const lessonExists = lessonsData.some((l) => l.id === queryState.lessonId);
+          const lessonExists = lessonsData.some(
+            (l) => l.id === queryState.lessonId,
+          );
           setSelectedNode(
-            lessonExists ? { type: "lesson", id: queryState.lessonId } : null
+            lessonExists ? { type: "lesson", id: queryState.lessonId } : null,
           );
         } else if (queryState.unitId) {
           const unitExists = unitsData.some((u) => u.id === queryState.unitId);
-          setSelectedNode(unitExists ? { type: "unit", id: queryState.unitId } : null);
+          setSelectedNode(
+            unitExists ? { type: "unit", id: queryState.unitId } : null,
+          );
         } else {
           setSelectedNode(null);
         }
@@ -406,7 +414,14 @@ export default function CurriculumPageContent() {
       setSelectedNode(null);
       setCurriculumError(tCommon("error"));
     }
-  }, [queryState.lessonId, queryState.unitId, selectedGradeId, selectedSubjectId, tCommon, termId]);
+  }, [
+    queryState.lessonId,
+    queryState.unitId,
+    selectedGradeId,
+    selectedSubjectId,
+    tCommon,
+    termId,
+  ]);
 
   useEffect(() => {
     loadCurriculumData();
@@ -418,7 +433,8 @@ export default function CurriculumPageContent() {
     }
 
     const normalizedLessonId =
-      queryState.lessonId && lessons.some((lesson) => lesson.id === queryState.lessonId)
+      queryState.lessonId &&
+      lessons.some((lesson) => lesson.id === queryState.lessonId)
         ? queryState.lessonId
         : null;
     const normalizedUnitId =
@@ -463,72 +479,9 @@ export default function CurriculumPageContent() {
     updateURL,
   ]);
 
- 
-
-  const handleAcademicYearChange = async (yearId: string) => {
-    if (hasUnsavedChanges) {
-      if (!confirm(t("unsaved_changes.message"))) return;
-      setHasUnsavedChanges(false);
-    }
-
-    setAcademicYearId(yearId);
-
-    const yearTerms = await fetchTermsByYear(yearId);
-    setTerms(yearTerms);
-
-    const defaultTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
-    if (defaultTerm) {
-      setTermId(defaultTerm.id);
-      setTermStatus(defaultTerm.status);
-      const weeks = calculateTermWeeks(defaultTerm.startDate, defaultTerm.endDate);
-      setTermWeeks(weeks);
-      updateURL(
-        {
-          yearId,
-          termId: defaultTerm.id,
-          gradeId: selectedGradeId,
-          subjectId: selectedSubjectId,
-          searchQuery: queryState.searchQuery,
-          filtersCollapsed: queryState.filtersCollapsed,
-        },
-        "push"
-      );
-    }
-  };
-
-  const handleTermChange = (tId: string) => {
-    if (hasUnsavedChanges) {
-      if (!confirm(t("unsaved_changes.message"))) return;
-      setHasUnsavedChanges(false);
-    }
-
-    const selectedTerm = terms.find((t) => t.id === tId);
-    if (selectedTerm) {
-      setTermId(tId);
-      setTermStatus(selectedTerm.status);
-      const weeks = calculateTermWeeks(selectedTerm.startDate, selectedTerm.endDate);
-      setTermWeeks(weeks);
-      updateURL(
-        {
-          yearId: academicYearId,
-          termId: tId,
-          gradeId: selectedGradeId,
-          subjectId: selectedSubjectId,
-          searchQuery: queryState.searchQuery,
-          filtersCollapsed: queryState.filtersCollapsed,
-        },
-        "push"
-      );
-    }
-  };
-
-  const handlePromoteCarryOver = () => {
-    setShowCarryOverDialog(true);
-  };
-
   const handleGradeChange = (gradeId: string) => {
     if (hasUnsavedChanges) {
-      if (!confirm(t("unsaved_changes.message"))) return;
+      if (!confirmDiscardChanges()) return;
       setHasUnsavedChanges(false);
     }
     setSelectedGradeId(gradeId);
@@ -542,13 +495,13 @@ export default function CurriculumPageContent() {
         searchQuery: queryState.searchQuery,
         filtersCollapsed: queryState.filtersCollapsed,
       },
-      "push"
+      "push",
     );
   };
 
   const handleSubjectChange = (subjectId: string) => {
     if (hasUnsavedChanges) {
-      if (!confirm(t("unsaved_changes.message"))) return;
+      if (!confirmDiscardChanges()) return;
       setHasUnsavedChanges(false);
     }
     setSelectedSubjectId(subjectId);
@@ -562,7 +515,7 @@ export default function CurriculumPageContent() {
         searchQuery: queryState.searchQuery,
         filtersCollapsed: queryState.filtersCollapsed,
       },
-      "push"
+      "push",
     );
   };
 
@@ -572,9 +525,11 @@ export default function CurriculumPageContent() {
     await loadCurriculumData();
   };
 
-  const handleSelectNode = (node: { type: "unit" | "lesson"; id: string } | null) => {
+  const handleSelectNode = (
+    node: { type: "unit" | "lesson"; id: string } | null,
+  ) => {
     setSelectedNode(node);
-    
+
     if (node) {
       if (node.type === "lesson") {
         updateURL(
@@ -588,7 +543,7 @@ export default function CurriculumPageContent() {
             filtersCollapsed: queryState.filtersCollapsed,
             rightDrawerOpen: queryState.rightDrawerOpen,
           },
-          "push"
+          "push",
         );
       } else if (node.type === "unit") {
         updateURL(
@@ -602,7 +557,7 @@ export default function CurriculumPageContent() {
             filtersCollapsed: queryState.filtersCollapsed,
             rightDrawerOpen: queryState.rightDrawerOpen,
           },
-          "push"
+          "push",
         );
       }
     } else {
@@ -616,7 +571,7 @@ export default function CurriculumPageContent() {
           filtersCollapsed: queryState.filtersCollapsed,
           rightDrawerOpen: queryState.rightDrawerOpen,
         },
-        "push"
+        "push",
       );
     }
   };
@@ -635,7 +590,7 @@ export default function CurriculumPageContent() {
         leftDrawerOpen: queryState.leftDrawerOpen,
         rightDrawerOpen: queryState.rightDrawerOpen,
       },
-      "push"
+      "push",
     );
   }, [
     academicYearId,
@@ -666,7 +621,7 @@ export default function CurriculumPageContent() {
           leftDrawerOpen: isOpen,
           rightDrawerOpen: queryState.rightDrawerOpen,
         },
-        isOpen ? "push" : "replace"
+        isOpen ? "push" : "replace",
       );
     },
     [
@@ -680,7 +635,7 @@ export default function CurriculumPageContent() {
       selectedSubjectId,
       termId,
       updateURL,
-    ]
+    ],
   );
 
   const handleSetRightDrawerOpen = useCallback(
@@ -698,7 +653,7 @@ export default function CurriculumPageContent() {
           leftDrawerOpen: queryState.leftDrawerOpen,
           rightDrawerOpen: isOpen,
         },
-        isOpen ? "push" : "replace"
+        isOpen ? "push" : "replace",
       );
     },
     [
@@ -712,7 +667,7 @@ export default function CurriculumPageContent() {
       selectedSubjectId,
       termId,
       updateURL,
-    ]
+    ],
   );
 
   const handleSearchQueryChange = useCallback(
@@ -720,7 +675,7 @@ export default function CurriculumPageContent() {
       setSearchInputValue(value);
       syncSearchQueryParam(value);
     },
-    [syncSearchQueryParam]
+    [syncSearchQueryParam],
   );
 
   const handleCreateSuccess = async () => {
@@ -803,23 +758,14 @@ export default function CurriculumPageContent() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Context Bar */}
-      <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
-        onAcademicYearChange={handleAcademicYearChange}
-        onTermChange={handleTermChange}
-        onPromoteCarryOver={handlePromoteCarryOver}
-        isReadOnly={isReadOnly}
-      />
-
+    <div className="flex h-screen flex-col">
       {/* Read-Only Banner */}
       {isReadOnly && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3 flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-yellow-600" />
-          <span className="text-sm text-yellow-800">{t("readonly_banner.message")}</span>
+          <span className="text-sm text-yellow-800">
+            {t("readonly_banner.message")}
+          </span>
         </div>
       )}
 
@@ -829,7 +775,9 @@ export default function CurriculumPageContent() {
           onClick={handleToggleFilters}
           className="w-full px-6 py-3 flex items-center justify-between border-b border-border hover:bg-gray-50 transition-colors cursor-pointer"
         >
-          <h3 className="text-sm font-semibold text-gray-900">{t("filters.title")}</h3>
+          <h3 className="text-sm font-semibold text-gray-900">
+            {t("filters.title")}
+          </h3>
           <div className="text-gray-600">
             {queryState.filtersCollapsed ? (
               <ChevronDown className="w-4 h-4" />
@@ -838,7 +786,7 @@ export default function CurriculumPageContent() {
             )}
           </div>
         </button>
-        
+
         {!queryState.filtersCollapsed && (
           <div className="px-6 py-4">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
@@ -913,7 +861,9 @@ export default function CurriculumPageContent() {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               {t("empty_state.no_grades.title")}
             </h3>
-            <p className="text-gray-600 mb-6">{t("empty_state.no_grades.message")}</p>
+            <p className="text-gray-600 mb-6">
+              {t("empty_state.no_grades.message")}
+            </p>
             <Button
               variant="primary"
               onClick={() => router.push(`/${locale}/academics/structure`)}
@@ -930,7 +880,9 @@ export default function CurriculumPageContent() {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               {t("empty_state.no_subjects.title")}
             </h3>
-            <p className="text-gray-600 mb-6">{t("empty_state.no_subjects.message")}</p>
+            <p className="text-gray-600 mb-6">
+              {t("empty_state.no_subjects.message")}
+            </p>
             <Button
               variant="primary"
               onClick={() => router.push(`/${locale}/academics/subjects`)}
@@ -941,31 +893,35 @@ export default function CurriculumPageContent() {
         </div>
       )}
 
-      {!isLoading && !contextError && hasGrades && hasSubjects && !hasCurriculum && (
-        <div className="flex-1 flex items-center justify-center bg-gray-50">
-          <div className="text-center max-w-md px-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {curriculumError || t("empty_state.no_curriculum.title")}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {curriculumError || t("empty_state.no_curriculum.message")}
-            </p>
-            {curriculumError ? (
-              <Button variant="primary" onClick={loadCurriculumData}>
-                {tCommon("retry")}
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                onClick={() => setShowCreateDialog(true)}
-                disabled={isReadOnly}
-              >
-                {t("actions.create_curriculum")}
-              </Button>
-            )}
+      {!isLoading &&
+        !contextError &&
+        hasGrades &&
+        hasSubjects &&
+        !hasCurriculum && (
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="text-center max-w-md px-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {curriculumError || t("empty_state.no_curriculum.title")}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {curriculumError || t("empty_state.no_curriculum.message")}
+              </p>
+              {curriculumError ? (
+                <Button variant="primary" onClick={loadCurriculumData}>
+                  {tCommon("retry")}
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  onClick={() => setShowCreateDialog(true)}
+                  disabled={isReadOnly}
+                >
+                  {t("actions.create_curriculum")}
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Main Content */}
       {!isLoading && hasCurriculum && (
@@ -1081,7 +1037,10 @@ export default function CurriculumPageContent() {
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                     <h3 className="font-semibold">{tCommon("lessons")}</h3>
-                    <IconButton size="small" onClick={() => handleSetLeftDrawerOpen(false)}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleSetLeftDrawerOpen(false)}
+                    >
                       <ChevronLeft className="w-5 h-5" />
                     </IconButton>
                   </div>
@@ -1118,7 +1077,10 @@ export default function CurriculumPageContent() {
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                     <h3 className="font-semibold">{tCommon("details")}</h3>
-                    <IconButton size="small" onClick={() => handleSetRightDrawerOpen(false)}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleSetRightDrawerOpen(false)}
+                    >
                       <ChevronRight className="w-5 h-5" />
                     </IconButton>
                   </div>
@@ -1148,7 +1110,9 @@ export default function CurriculumPageContent() {
         gradeId={selectedGradeId}
         subjectId={selectedSubjectId}
         gradeName={grades.find((g) => g.id === selectedGradeId)?.name || ""}
-        subjectName={subjects.find((s) => s.id === selectedSubjectId)?.name || ""}
+        subjectName={
+          subjects.find((s) => s.id === selectedSubjectId)?.name || ""
+        }
       />
 
       <CurriculumCarryOverDialog

@@ -18,6 +18,7 @@ function AcademicsContextLayoutContent({
     termStatus,
     requestAcademicYearChange,
     requestTermChange,
+    contextBarActions,
   } = useAcademicYearTermLayoutContext();
 
   return (
@@ -31,7 +32,11 @@ function AcademicsContextLayoutContent({
         }}
         onTermChange={requestTermChange}
         isReadOnly={termStatus === "closed"}
-        showPromoteCarryOver={false}
+        onPromoteCarryOver={contextBarActions?.onPromoteCarryOver}
+        showPromoteCarryOver={contextBarActions?.showPromoteCarryOver ?? false}
+        disablePromoteCarryOver={
+          contextBarActions?.disablePromoteCarryOver ?? false
+        }
       />
       <div className="flex-1 min-h-0">{children}</div>
     </div>

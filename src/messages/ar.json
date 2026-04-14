@@ -3008,7 +3008,8 @@
         "subject": "المادة"
       },
       "actions": {
-        "create_curriculum": "إنشاء منهج"
+        "create_curriculum": "إنشاء منهج",
+        "carry_over": "نقل"
       },
       "tabs": {
         "outline": "المخطط",

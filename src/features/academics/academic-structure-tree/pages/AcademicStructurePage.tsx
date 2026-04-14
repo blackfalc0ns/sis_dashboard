@@ -19,6 +19,7 @@ import {
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
+import { useAcademicContextBarActions } from "@/features/academics/hooks/useAcademicContextBarActions";
 import { useAcademicStructureData } from "../hooks/useAcademicStructureData";
 import { useStructureCreateFlow } from "../hooks/useStructureCreateFlow";
 import { useStructureCarryOverFlow } from "../hooks/useStructureCarryOverFlow";
@@ -45,19 +46,15 @@ export default function AcademicStructurePage() {
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const {
-    academicYearId,
-    termId,
-    termStatus,
-    academicYears,
-  } = useAcademicYearTermLayoutContext();
+  const { academicYearId, termId, termStatus, academicYears } =
+    useAcademicYearTermLayoutContext();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showTreeDrawer, setShowTreeDrawer] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const confirmDiscardChanges = useCallback(
     () => confirm(t("details.discard_dialog.message")),
-    [t]
+    [t],
   );
 
   const isReadOnly = termStatus === "closed";
@@ -156,7 +153,7 @@ export default function AcademicStructurePage() {
 
   const searchQuery = useMemo(
     () => searchParams.get("search") || "",
-    [searchParams]
+    [searchParams],
   );
   const [searchInputValue, setSearchInputValue] = useState(searchQuery);
   const expandedStages = useMemo(() => {
@@ -189,7 +186,7 @@ export default function AcademicStructurePage() {
       }
       router.replace(nextUrl, { scroll: false });
     },
-    [router, searchParams]
+    [router, searchParams],
   );
 
   const syncSearchQueryUrl = useCallback(
@@ -207,13 +204,13 @@ export default function AcademicStructurePage() {
       }
       router.replace(nextUrl, { scroll: false });
     },
-    [router, searchParams]
+    [router, searchParams],
   );
 
   const syncExpandedUrl = useCallback(
     (
       key: "expandedStages" | "expandedGrades" | "expandedSections",
-      value: Set<string>
+      value: Set<string>,
     ) => {
       const params = new URLSearchParams(searchParams.toString());
       const serialized = Array.from(value).join(",");
@@ -224,7 +221,7 @@ export default function AcademicStructurePage() {
       }
       router.replace(`?${params.toString()}`, { scroll: false });
     },
-    [router, searchParams]
+    [router, searchParams],
   );
 
   const effectiveSelectedNode = useMemo<TreeNodeRef | null>(() => {
@@ -249,7 +246,12 @@ export default function AcademicStructurePage() {
     if (!isLoading && querySelectedNode && !effectiveSelectedNode) {
       syncSelectedNodeUrl(null);
     }
-  }, [effectiveSelectedNode, isLoading, querySelectedNode, syncSelectedNodeUrl]);
+  }, [
+    effectiveSelectedNode,
+    isLoading,
+    querySelectedNode,
+    syncSelectedNodeUrl,
+  ]);
 
   useEffect(() => {
     setSearchInputValue(searchQuery);
@@ -260,6 +262,17 @@ export default function AcademicStructurePage() {
     confirmDiscard: confirmDiscardChanges,
     onDiscard: () => setHasUnsavedChanges(false),
   });
+
+  const contextBarActions = useMemo(
+    () => ({
+      onPromoteCarryOver: openCarryOverDialog,
+      showPromoteCarryOver: true,
+      disablePromoteCarryOver: isReadOnly,
+    }),
+    [isReadOnly, openCarryOverDialog],
+  );
+
+  useAcademicContextBarActions(contextBarActions);
 
   const handleSelectNode = (node: TreeNodeRef) => {
     if (hasUnsavedChanges) {
@@ -282,27 +295,27 @@ export default function AcademicStructurePage() {
     (value: Set<string>) => {
       syncExpandedUrl("expandedStages", value);
     },
-    [syncExpandedUrl]
+    [syncExpandedUrl],
   );
 
   const handleExpandedGradesChange = useCallback(
     (value: Set<string>) => {
       syncExpandedUrl("expandedGrades", value);
     },
-    [syncExpandedUrl]
+    [syncExpandedUrl],
   );
 
   const handleExpandedSectionsChange = useCallback(
     (value: Set<string>) => {
       syncExpandedUrl("expandedSections", value);
     },
-    [syncExpandedUrl]
+    [syncExpandedUrl],
   );
 
   const handleSave = async (
     type: "stage" | "grade" | "section" | "classroom",
     id: string | null,
-    data: Partial<Stage | Grade | Section | Classroom>
+    data: Partial<Stage | Grade | Section | Classroom>,
   ) => {
     await saveItem(type, id, data);
     setHasUnsavedChanges(false);
@@ -310,7 +323,7 @@ export default function AcademicStructurePage() {
 
   const handleDelete = async (
     type: "stage" | "grade" | "section" | "classroom",
-    id: string
+    id: string,
   ) => {
     const deleted = await deleteItem(type, id);
     if (deleted) {
@@ -354,7 +367,11 @@ export default function AcademicStructurePage() {
       rows.push({
         level: locale === "ar" ? "فصل" : "Classroom",
         name: locale === "ar" ? classroom.nameAr : classroom.nameEn,
-        parent: section ? (locale === "ar" ? section.nameAr : section.nameEn) : "",
+        parent: section
+          ? locale === "ar"
+            ? section.nameAr
+            : section.nameEn
+          : "",
         capacity: classroom.capacity,
         order: classroom.order,
       });
@@ -396,24 +413,13 @@ export default function AcademicStructurePage() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="border-b border-gray-200 bg-white px-6 py-3">
-        <div className="flex items-center justify-end">
-          <Button
-            variant="secondary"
-            onClick={() => setShowExportModal(true)}
-            leftIcon={<Download className="w-4 h-4" />}
-            disabled={structureExportRows.length === 0}
-          >
-            {tExport("button")}
-          </Button>
-        </div>
-      </div>
-
+    <div className="flex flex-col h-screen">
       {isReadOnly && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3 flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-yellow-600" />
-          <span className="text-sm text-yellow-800">{t("readonly_banner.message")}</span>
+          <span className="text-sm text-yellow-800">
+            {t("readonly_banner.message")}
+          </span>
         </div>
       )}
 
@@ -421,11 +427,23 @@ export default function AcademicStructurePage() {
         <div className="flex-1 flex items-center justify-center bg-gray-50">
           <div className="text-center max-w-md px-6">
             <div className="text-gray-400 mb-4">
-              <svg className="w-24 h-24 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              <svg
+                className="w-24 h-24 mx-auto"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1}
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t("empty_state.title")}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {t("empty_state.title")}
+            </h3>
             <p className="text-gray-600 mb-6">{t("empty_state.message")}</p>
             <div className="flex gap-3 justify-center">
               {!isReadOnly && (
@@ -433,7 +451,11 @@ export default function AcademicStructurePage() {
                   {t("empty_state.add_stage")}
                 </Button>
               )}
-              <Button variant="secondary" onClick={openCarryOverDialog} disabled={isReadOnly}>
+              <Button
+                variant="secondary"
+                onClick={openCarryOverDialog}
+                disabled={isReadOnly}
+              >
                 {t("empty_state.carry_over")}
               </Button>
             </div>
@@ -486,17 +508,32 @@ export default function AcademicStructurePage() {
 
           {showTreeDrawer && (
             <div className="lg:hidden fixed inset-0 z-40">
-              <div className="absolute inset-0 bg-black/50" onClick={() => setShowTreeDrawer(false)} />
+              <div
+                className="absolute inset-0 bg-black/50"
+                onClick={() => setShowTreeDrawer(false)}
+              />
               <div className="absolute left-0 top-0 bottom-0 w-80 bg-white shadow-xl overflow-hidden flex flex-col">
                 <div className="p-4 border-b border-border bg-gray-50 flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900">{t("tree.search_placeholder")}</h3>
+                  <h3 className="font-semibold text-gray-900">
+                    {t("tree.search_placeholder")}
+                  </h3>
                   <button
                     onClick={() => setShowTreeDrawer(false)}
                     className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
                     aria-label="Close"
                   >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -559,6 +596,18 @@ export default function AcademicStructurePage() {
           </div>
 
           <div className="hidden xl:block w-80 border-l border-border bg-gray-50 overflow-hidden">
+            <div className=" bg-white px-6 pt-6">
+              <div className="flex items-center justify-end">
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowExportModal(true)}
+                  leftIcon={<Download className="w-4 h-4" />}
+                  disabled={structureExportRows.length === 0}
+                >
+                  {tExport("button")}
+                </Button>
+              </div>
+            </div>
             <InsightsPanel
               stages={stages}
               grades={grades}
@@ -593,7 +642,8 @@ export default function AcademicStructurePage() {
               disabled={
                 !newItemNameAr.trim() ||
                 !newItemNameEn.trim() ||
-                ((addModalType === "section" || addModalType === "classroom") && newItemCapacity <= 0) ||
+                ((addModalType === "section" || addModalType === "classroom") &&
+                  newItemCapacity <= 0) ||
                 (addModalType === "classroom" && newItemOrder <= 0)
               }
               variant="primary"
@@ -659,7 +709,11 @@ export default function AcademicStructurePage() {
             </Button>
             <Button
               onClick={submitCarryOver}
-              disabled={!carryOverSourceYearId || !carryOverSourceTermId || isCarryingOver}
+              disabled={
+                !carryOverSourceYearId ||
+                !carryOverSourceTermId ||
+                isCarryingOver
+              }
               variant="primary"
             >
               {t("carry_over_dialog.carry_over")}
@@ -668,14 +722,19 @@ export default function AcademicStructurePage() {
         }
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">{t("carry_over_dialog.description")}</p>
+          <p className="text-sm text-gray-600">
+            {t("carry_over_dialog.description")}
+          </p>
 
           <Select
             label={t("carry_over_dialog.source_year")}
             required
             value={carryOverSourceYearId}
             onChange={handleCarryOverSourceYearChange}
-            options={academicYears.map((year) => ({ value: year.id, label: year.name }))}
+            options={academicYears.map((year) => ({
+              value: year.id,
+              label: year.name,
+            }))}
             selectSize="md"
           />
 
@@ -684,13 +743,18 @@ export default function AcademicStructurePage() {
             required
             value={carryOverSourceTermId}
             onChange={setCarryOverSourceTermId}
-            options={carryOverSourceTerms.map((term) => ({ value: term.id, label: term.name }))}
+            options={carryOverSourceTerms.map((term) => ({
+              value: term.id,
+              label: term.name,
+            }))}
             selectSize="md"
             disabled={!carryOverSourceYearId}
           />
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">{t("carry_over_dialog.options")}</label>
+            <label className="text-sm font-medium text-gray-700">
+              {t("carry_over_dialog.options")}
+            </label>
             <div className="space-y-2">
               <label className="flex items-center gap-2">
                 <input
@@ -699,7 +763,9 @@ export default function AcademicStructurePage() {
                   onChange={(e) => setCopyCapacities(e.target.checked)}
                   className="rounded border-border"
                 />
-                <span className="text-sm text-gray-700">{t("carry_over_dialog.copy_capacities")}</span>
+                <span className="text-sm text-gray-700">
+                  {t("carry_over_dialog.copy_capacities")}
+                </span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -708,7 +774,9 @@ export default function AcademicStructurePage() {
                   onChange={(e) => setCopyOrdering(e.target.checked)}
                   className="rounded border-border"
                 />
-                <span className="text-sm text-gray-700">{t("carry_over_dialog.copy_ordering")}</span>
+                <span className="text-sm text-gray-700">
+                  {t("carry_over_dialog.copy_ordering")}
+                </span>
               </label>
             </div>
           </div>

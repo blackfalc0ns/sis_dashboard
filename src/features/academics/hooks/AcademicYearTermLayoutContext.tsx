@@ -6,6 +6,7 @@ import {
   useContext,
   useMemo,
   useRef,
+  useState,
   type PropsWithChildren,
 } from "react";
 import {
@@ -22,11 +23,21 @@ interface AcademicYearTermLayoutGuardHandlers {
   onTermChange?: TermChangeHandler;
 }
 
+interface AcademicYearTermLayoutContextBarActions {
+  onPromoteCarryOver?: () => void;
+  showPromoteCarryOver?: boolean;
+  disablePromoteCarryOver?: boolean;
+}
+
 interface AcademicYearTermLayoutContextValue
   extends UseAcademicYearTermContextResult {
   requestAcademicYearChange: AcademicYearChangeHandler;
   requestTermChange: TermChangeHandler;
   setGuardHandlers: (handlers: AcademicYearTermLayoutGuardHandlers | null) => void;
+  contextBarActions: AcademicYearTermLayoutContextBarActions | null;
+  setContextBarActions: (
+    actions: AcademicYearTermLayoutContextBarActions | null
+  ) => void;
 }
 
 const AcademicYearTermLayoutContext =
@@ -43,6 +54,8 @@ export function AcademicYearTermLayoutProvider({
 }: AcademicYearTermLayoutProviderProps) {
   const value = useAcademicYearTermContext(options);
   const guardHandlersRef = useRef<AcademicYearTermLayoutGuardHandlers | null>(null);
+  const [contextBarActions, setContextBarActions] =
+    useState<AcademicYearTermLayoutContextBarActions | null>(null);
 
   const setGuardHandlers = useCallback(
     (handlers: AcademicYearTermLayoutGuardHandlers | null) => {
@@ -85,10 +98,14 @@ export function AcademicYearTermLayoutProvider({
       requestAcademicYearChange,
       requestTermChange,
       setGuardHandlers,
+      contextBarActions,
+      setContextBarActions,
     }),
     [
+      contextBarActions,
       requestAcademicYearChange,
       requestTermChange,
+      setContextBarActions,
       setGuardHandlers,
       value,
     ]
