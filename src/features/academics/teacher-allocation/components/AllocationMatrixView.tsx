@@ -50,7 +50,6 @@ interface AllocationMatrixViewProps {
   isReadOnly: boolean;
   onRefresh: () => Promise<void>;
   onValidate: () => void;
-  onCopyFromTerm: () => void;
   onAllocationsChange?: (allocations: TeacherAllocation[]) => void;
 }
 
@@ -73,7 +72,6 @@ export default function AllocationMatrixView({
   isReadOnly,
   onRefresh,
   onValidate,
-  onCopyFromTerm,
   onAllocationsChange,
 }: AllocationMatrixViewProps) {
   const t = useTranslations("academics.teacherAllocation");
@@ -685,8 +683,6 @@ export default function AllocationMatrixView({
           syncQueryParams({ showOnlyMissing: show }, "push")
         }
         onValidate={onValidate}
-        onCopyFromTerm={onCopyFromTerm}
-        isReadOnly={isReadOnly}
       />
 
       <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-4">

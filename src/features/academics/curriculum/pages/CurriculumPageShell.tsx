@@ -10,7 +10,7 @@ import CurriculumPageContent from "./CurriculumPageContent";
  */
 export default function CurriculumPageShell() {
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex min-h-0 flex-1 flex-col">
       <Suspense fallback={<MainLoader />}>
         <CurriculumPageContent />
       </Suspense>

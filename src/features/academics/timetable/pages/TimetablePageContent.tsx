@@ -179,7 +179,7 @@ export default function TimetablePageContent() {
 
   if (isInitializing) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex min-h-0 flex-1 items-center justify-center">
        <MainLoader />
       </div>
     );
@@ -187,7 +187,7 @@ export default function TimetablePageContent() {
 
   if (!academicYearId || !termId) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex min-h-0 flex-1 items-center justify-center">
         <div className="text-gray-500">No academic year or term selected</div>
       </div>
     );

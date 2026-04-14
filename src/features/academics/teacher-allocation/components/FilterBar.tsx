@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations, useLocale } from "next-intl";
-import { Filter, CheckCircle, Copy } from "lucide-react";
+import { Filter, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import { Drawer, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import Button from "@/components/ui/button/Button";
@@ -25,8 +25,6 @@ interface FilterBarProps {
   onSubjectChange: (subjectId: string) => void;
   onShowOnlyMissingChange: (show: boolean) => void;
   onValidate: () => void;
-  onCopyFromTerm: () => void;
-  isReadOnly: boolean;
 }
 
 export default function FilterBar({
@@ -45,8 +43,6 @@ export default function FilterBar({
   onSubjectChange,
   onShowOnlyMissingChange,
   onValidate,
-  onCopyFromTerm,
-  isReadOnly,
 }: FilterBarProps) {
   const t = useTranslations("academics.teacherAllocation");
   const locale = useLocale();
@@ -204,16 +200,6 @@ export default function FilterBar({
                 onClick={onValidate}
               >
                 {t("actions.validate")}
-              </Button>
-
-              <Button
-                variant="secondary"
-                size="sm"
-                leftIcon={<Copy className="w-4 h-4" />}
-                onClick={onCopyFromTerm}
-                disabled={isReadOnly}
-              >
-                {t("actions.copyFromTerm")}
               </Button>
             </div>
           </div>

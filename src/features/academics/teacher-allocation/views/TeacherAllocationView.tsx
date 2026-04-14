@@ -31,7 +31,6 @@ import { Button } from "@/components/ui";
 interface TeacherAllocationViewProps {
   academicYearId: string;
   termId: string;
-  termStatus: "open" | "closed";
   academicYears: AcademicYear[];
   terms: Term[];
   grades: Grade[];
@@ -47,7 +46,6 @@ interface TeacherAllocationViewProps {
   validationPanelOpen: boolean;
   carryOverDialogOpen: boolean;
   isReadOnly: boolean;
-  onPromoteCarryOver: () => void;
   onCarryOverSuccess: () => void;
   onValidate: () => void;
   onAllocationsChange: (allocations: TeacherAllocation[]) => void;
@@ -60,7 +58,6 @@ interface TeacherAllocationViewProps {
 export default function TeacherAllocationView({
   academicYearId,
   termId,
-  termStatus,
   academicYears,
   terms,
   grades,
@@ -76,7 +73,6 @@ export default function TeacherAllocationView({
   validationPanelOpen,
   carryOverDialogOpen,
   isReadOnly,
-  onPromoteCarryOver,
   onCarryOverSuccess,
   onValidate,
   onAllocationsChange,
@@ -273,7 +269,6 @@ export default function TeacherAllocationView({
                   isReadOnly={isReadOnly}
                   onRefresh={onRefresh}
                   onValidate={onValidate}
-                  onCopyFromTerm={onPromoteCarryOver}
                   onAllocationsChange={onAllocationsChange}
                 />
               )}

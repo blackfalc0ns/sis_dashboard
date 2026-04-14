@@ -18,6 +18,7 @@ import {
 } from "@/features/academics/subjects/services/subjectsService";
 import SubjectsAllocationView from "../views/SubjectsAllocationView";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
+import { useAcademicContextBarActions } from "@/features/academics/hooks/useAcademicContextBarActions";
 
 type SubjectsAllocationQueryState = {
   activeTab: "subjects" | "matrix";
@@ -80,9 +81,20 @@ export default function SubjectsAllocationContainer() {
     loadData();
   }, [academicYearId, termId]);
 
-  const handlePromoteCarryOver = () => {
+  const handlePromoteCarryOver = useCallback(() => {
     setShowCarryOverDialog(true);
-  };
+  }, []);
+
+  const contextBarActions = useMemo(
+    () => ({
+      onPromoteCarryOver: handlePromoteCarryOver,
+      showPromoteCarryOver: true,
+      disablePromoteCarryOver: isReadOnly,
+    }),
+    [handlePromoteCarryOver, isReadOnly]
+  );
+
+  useAcademicContextBarActions(contextBarActions);
 
   const handleTabChange = (tab: "subjects" | "matrix") => {
     const params = new URLSearchParams(searchParams.toString());
@@ -168,7 +180,6 @@ export default function SubjectsAllocationContainer() {
     <SubjectsAllocationView
       academicYearId={academicYearId}
       termId={termId}
-      termStatus={termStatus}
       academicYears={academicYears}
       terms={terms}
       grades={grades}
@@ -180,7 +191,6 @@ export default function SubjectsAllocationContainer() {
       editingSubject={editingSubject}
       showCarryOverDialog={showCarryOverDialog}
       isReadOnly={isReadOnly}
-      onPromoteCarryOver={handlePromoteCarryOver}
       onTabChange={handleTabChange}
       onAddSubject={handleAddSubject}
       onEditSubject={handleEditSubject}

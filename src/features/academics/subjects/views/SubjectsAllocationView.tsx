@@ -24,7 +24,6 @@ import CarryOverDialog from "../components/CarryOverDialog";
 interface SubjectsAllocationViewProps {
   academicYearId: string;
   termId: string;
-  termStatus: "open" | "closed";
   academicYears: AcademicYear[];
   terms: Term[];
   grades: Grade[];
@@ -36,7 +35,6 @@ interface SubjectsAllocationViewProps {
   editingSubject: Subject | null;
   showCarryOverDialog: boolean;
   isReadOnly: boolean;
-  onPromoteCarryOver: () => void;
   onTabChange: (tab: "subjects" | "matrix") => void;
   onAddSubject: () => void;
   onEditSubject: (subject: Subject) => void;
@@ -52,7 +50,6 @@ interface SubjectsAllocationViewProps {
 export default function SubjectsAllocationView({
   academicYearId,
   termId,
-  termStatus,
   academicYears,
   terms,
   grades,
@@ -64,7 +61,6 @@ export default function SubjectsAllocationView({
   editingSubject,
   showCarryOverDialog,
   isReadOnly,
-  onPromoteCarryOver,
   onTabChange,
   onAddSubject,
   onEditSubject,
@@ -168,7 +164,6 @@ export default function SubjectsAllocationView({
                 allocations={allocations}
                 termId={termId}
                 isReadOnly={isReadOnly}
-                onCopyFromTerm={onPromoteCarryOver}
                 onAdd={onAddSubject}
                 onEdit={onEditSubject}
                 onRefresh={onRefresh}
@@ -200,7 +195,6 @@ export default function SubjectsAllocationView({
                 allocations={allocations}
                 termId={termId}
                 isReadOnly={isReadOnly}
-                onCopyFromTerm={onPromoteCarryOver}
                 onAdd={onAddSubject}
                 onEdit={onEditSubject}
                 onRefresh={onRefresh}

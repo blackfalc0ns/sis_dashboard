@@ -579,7 +579,7 @@ export default function AcademicsOverviewPage() {
   };
 
   return (
-    <div className="flex flex-1 flex-col bg-gray-50">
+    <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
       <div className="px-4 sm:px-6 my-6 space-y-6">
         <AcademicsOverviewFiltersBar
           checklistStatus={checklistStatusFilter}

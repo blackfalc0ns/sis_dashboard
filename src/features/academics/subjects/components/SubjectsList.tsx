@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDebouncedCallback } from "use-debounce";
-import { Copy, Plus, Search, MoreVertical, Edit2, Trash2 } from "lucide-react";
+import { Plus, Search, MoreVertical, Edit2, Trash2 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Modal from "@/components/ui/modal/Modal";
@@ -21,7 +21,6 @@ interface SubjectsListProps {
   allocations: SubjectAllocation[];
   termId: string;
   isReadOnly: boolean;
-  onCopyFromTerm: () => void;
   onAdd: () => void;
   onEdit: (subject: Subject) => void;
   onRefresh: () => Promise<void>;
@@ -32,13 +31,11 @@ export default function SubjectsList({
   allocations,
   termId,
   isReadOnly,
-  onCopyFromTerm,
   onAdd,
   onEdit,
   onRefresh,
 }: SubjectsListProps) {
   const t = useTranslations("academics.subjects");
-  const tContextBar = useTranslations("academics.structure.context_bar");
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -140,15 +137,6 @@ export default function SubjectsList({
             disabled={isReadOnly}
           >
             {t("subjects_list.add_subject")}
-          </Button>
-          <Button
-            onClick={onCopyFromTerm}
-            variant="secondary"
-            fullWidth
-            leftIcon={<Copy className="w-4 h-4" />}
-            disabled={isReadOnly}
-          >
-            {tContextBar("promote_carry_over")}
           </Button>
         </div>
 
