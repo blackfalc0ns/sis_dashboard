@@ -59,14 +59,18 @@ export default function AttendanceAbsencesPage() {
 
   // Use unified term context
   const termContext = useAttendanceYearTermLayoutContext();
-  const [structureTree, setStructureTree] = useState<StructureTree | null>(null);
+  const [structureTree, setStructureTree] = useState<StructureTree | null>(
+    null,
+  );
 
   const isReadOnly = termContext.isReadOnly;
 
   // State
   const [records, setRecords] = useState<AbsenceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<AbsenceRecord | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<AbsenceRecord | null>(
+    null,
+  );
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
   const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -94,7 +98,8 @@ export default function AttendanceAbsencesPage() {
   const [excuseModalOpen, setExcuseModalOpen] = useState(false);
   const [earlyLeaveModalOpen, setEarlyLeaveModalOpen] = useState(false);
   const [recordToEdit, setRecordToEdit] = useState<AbsenceRecord | null>(null);
-  const [excusePolicy, setExcusePolicy] = useState<EffectiveExcusePolicy | null>(null);
+  const [excusePolicy, setExcusePolicy] =
+    useState<EffectiveExcusePolicy | null>(null);
 
   // Reusable reload function
   const reloadRecords = useCallback(async () => {
@@ -122,7 +127,10 @@ export default function AttendanceAbsencesPage() {
 
     const loadStructure = async () => {
       try {
-        const tree = await fetchStructureTree(termContext.yearId!, termContext.termId!);
+        const tree = await fetchStructureTree(
+          termContext.yearId!,
+          termContext.termId!,
+        );
         setStructureTree(tree);
       } catch (error) {
         console.error("Failed to load structure tree:", error);
@@ -176,7 +184,7 @@ export default function AttendanceAbsencesPage() {
         termContext.termId!,
         record.scopeType,
         record.scopeIds,
-        record.date
+        record.date,
       );
 
       // Check if excuses are allowed by policy
@@ -201,7 +209,10 @@ export default function AttendanceAbsencesPage() {
     setEarlyLeaveModalOpen(true);
   };
 
-  const handleSaveExcuse = async (reason: string, attachments: AttachmentMeta[]) => {
+  const handleSaveExcuse = async (
+    reason: string,
+    attachments: AttachmentMeta[],
+  ) => {
     if (!recordToEdit) return;
 
     try {
@@ -236,20 +247,21 @@ export default function AttendanceAbsencesPage() {
     termContext.yearId ||
     "";
 
-  const selectedTermName = termContext.terms.find((item) => item.id === termContext.termId)
+  const selectedTermName = termContext.terms.find(
+    (item) => item.id === termContext.termId,
+  )
     ? locale === "ar"
-      ? termContext.terms.find((item) => item.id === termContext.termId)?.nameAr ||
+      ? termContext.terms.find((item) => item.id === termContext.termId)
+          ?.nameAr ||
         termContext.terms.find((item) => item.id === termContext.termId)?.name
-      : termContext.terms.find((item) => item.id === termContext.termId)?.nameEn ||
+      : termContext.terms.find((item) => item.id === termContext.termId)
+          ?.nameEn ||
         termContext.terms.find((item) => item.id === termContext.termId)?.name
     : termContext.termId || "";
 
   const handleLegacyExport = () => {
     if (!termContext.yearId || !termContext.termId) return;
 
-    // Get year and term names
-    const yearName = termContext.yearId; // TODO: Get actual name from context
-    const termName = termContext.termId; // TODO: Get actual name from context
     const scopeName = getAttendanceScopeLabel({
       scopeType: filters.scopeType,
       scopeIds: filters.scopeIds,
@@ -261,14 +273,15 @@ export default function AttendanceAbsencesPage() {
     });
 
     exportAbsencesToExcel(records, locale, {
-      yearName,
-      termName,
+      yearName: selectedYearName,
+      termName: selectedTermName || "",
       scopeName,
-      dateRange: filters.dateFrom && filters.dateTo
-        ? `${filters.dateFrom} - ${filters.dateTo}`
-        : locale === "ar"
-        ? "جميع التواريخ"
-        : "All dates",
+      dateRange:
+        filters.dateFrom && filters.dateTo
+          ? `${filters.dateFrom} - ${filters.dateTo}`
+          : locale === "ar"
+            ? "جميع التواريخ"
+            : "All dates",
     });
 
     showSuccess(t("exportSuccess"));
@@ -294,10 +307,19 @@ export default function AttendanceAbsencesPage() {
 
     const columns: ExportColumn[] = [
       { key: "date", label: locale === "ar" ? "التاريخ" : "Date" },
-      { key: "studentNumber", label: locale === "ar" ? "رقم الطالب" : "Student Number" },
+      {
+        key: "studentNumber",
+        label: locale === "ar" ? "رقم الطالب" : "Student Number",
+      },
       { key: "studentName", label: locale === "ar" ? "الطالب" : "Student" },
-      { key: "studentNameEn", label: locale === "ar" ? "الطالب (بالإنجليزية)" : "Student (English)" },
-      { key: "studentNameAr", label: locale === "ar" ? "الطالب (بالعربية)" : "Student (Arabic)" },
+      {
+        key: "studentNameEn",
+        label: locale === "ar" ? "الطالب (بالإنجليزية)" : "Student (English)",
+      },
+      {
+        key: "studentNameAr",
+        label: locale === "ar" ? "الطالب (بالعربية)" : "Student (Arabic)",
+      },
       { key: "grade", label: locale === "ar" ? "الصف" : "Grade" },
       { key: "section", label: locale === "ar" ? "الشعبة" : "Section" },
       { key: "classroom", label: locale === "ar" ? "الفصل" : "Classroom" },
@@ -311,18 +333,22 @@ export default function AttendanceAbsencesPage() {
     const rowsForExport = records.map((record) => ({
       date: record.date,
       studentNumber: record.studentNumber,
-      studentName: locale === "ar" ? record.studentNameAr : record.studentNameEn,
+      studentName:
+        locale === "ar" ? record.studentNameAr : record.studentNameEn,
       studentNameEn: record.studentNameEn,
       studentNameAr: record.studentNameAr,
-      grade: locale === "ar"
-        ? record.gradeNameAr || record.gradeNameEn || "-"
-        : record.gradeNameEn || record.gradeNameAr || "-",
-      section: locale === "ar"
-        ? record.sectionNameAr || record.sectionNameEn || "-"
-        : record.sectionNameEn || record.sectionNameAr || "-",
-      classroom: locale === "ar"
-        ? record.classroomNameAr || record.classroomNameEn || "-"
-        : record.classroomNameEn || record.classroomNameAr || "-",
+      grade:
+        locale === "ar"
+          ? record.gradeNameAr || record.gradeNameEn || "-"
+          : record.gradeNameEn || record.gradeNameAr || "-",
+      section:
+        locale === "ar"
+          ? record.sectionNameAr || record.sectionNameEn || "-"
+          : record.sectionNameEn || record.sectionNameAr || "-",
+      classroom:
+        locale === "ar"
+          ? record.classroomNameAr || record.classroomNameEn || "-"
+          : record.classroomNameEn || record.classroomNameAr || "-",
       status: record.status,
       granularity: record.granularity,
       period:
@@ -330,7 +356,13 @@ export default function AttendanceAbsencesPage() {
           ? record.periodNameAr || record.periodIndex || "-"
           : record.periodNameEn || record.periodIndex || "-",
       minutes: record.minutesLate || record.minutesEarlyLeave || "",
-      hasExcuse: record.excuse ? (locale === "ar" ? "نعم" : "Yes") : locale === "ar" ? "لا" : "No",
+      hasExcuse: record.excuse
+        ? locale === "ar"
+          ? "نعم"
+          : "Yes"
+        : locale === "ar"
+          ? "لا"
+          : "No",
     }));
 
     exportAttendanceData({
@@ -361,11 +393,16 @@ export default function AttendanceAbsencesPage() {
         title: "Attendance Absences",
         metadata: {
           yearName:
-            termContext.academicYears.find((item) => item.id === termContext.yearId)
-              ?.nameEn || termContext.yearId || "",
+            termContext.academicYears.find(
+              (item) => item.id === termContext.yearId,
+            )?.nameEn ||
+            termContext.yearId ||
+            "",
           termName:
-            termContext.terms.find((item) => item.id === termContext.termId)?.nameEn ||
-            termContext.terms.find((item) => item.id === termContext.termId)?.name ||
+            termContext.terms.find((item) => item.id === termContext.termId)
+              ?.nameEn ||
+            termContext.terms.find((item) => item.id === termContext.termId)
+              ?.name ||
             termContext.termId ||
             "",
           scopeTypeName: filters.scopeType,
@@ -409,7 +446,10 @@ export default function AttendanceAbsencesPage() {
     );
   }
 
-  const isScopeSelectionIncomplete = !isScopeSelectionComplete(filters.scopeType, filters.scopeIds);
+  const isScopeSelectionIncomplete = !isScopeSelectionComplete(
+    filters.scopeType,
+    filters.scopeIds,
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -537,7 +577,10 @@ export default function AttendanceAbsencesPage() {
         />
 
         {/* Mobile Details Drawer */}
-        <AttendanceBottomDrawer isOpen={showDetailsDrawer} onClose={() => setShowDetailsDrawer(false)}>
+        <AttendanceBottomDrawer
+          isOpen={showDetailsDrawer}
+          onClose={() => setShowDetailsDrawer(false)}
+        >
           <AbsenceDetailsPanel
             record={selectedRecord}
             onClose={() => setShowDetailsDrawer(false)}
@@ -556,7 +599,11 @@ export default function AttendanceAbsencesPage() {
             setExcusePolicy(null);
           }}
           onSave={handleSaveExcuse}
-          initialReason={recordToEdit?.excuse?.reasonAr || recordToEdit?.excuse?.reasonEn || ""}
+          initialReason={
+            recordToEdit?.excuse?.reasonAr ||
+            recordToEdit?.excuse?.reasonEn ||
+            ""
+          }
           initialAttachments={recordToEdit?.excuse?.attachments || []}
           requireAttachment={excusePolicy?.requireAttachmentForExcuse ?? false}
           isReadOnly={isReadOnly}
@@ -585,8 +632,3 @@ export default function AttendanceAbsencesPage() {
     </div>
   );
 }
-
-
-
-
-
