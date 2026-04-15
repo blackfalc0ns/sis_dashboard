@@ -6,7 +6,6 @@ import { useMediaQuery } from "@mui/material";
 import { Filter } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
-import ContextBar from "@/features/academics/components/shared/ContextBar";
 import AttendanceStatePanel from "@/features/attendance/shared/components/AttendanceStatePanel";
 import AttendanceScopeHeader from "@/features/attendance/shared/components/AttendanceScopeHeader";
 import AttendanceDataPanel from "@/features/attendance/shared/components/AttendanceDataPanel";
@@ -21,7 +20,7 @@ import AbsencesTable from "../components/AbsencesTable";
 import AbsenceDetailsPanel from "../components/AbsenceDetailsPanel";
 import ExcuseModal from "@/features/attendance/roll-call/components/ExcuseModal";
 import EarlyLeaveEditorModal from "../components/EarlyLeaveEditorModal";
-import { useAttendanceTermContext } from "@/features/attendance/shared/hooks/useAttendanceTermContext";
+import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
 import {
   fetchAbsenceRecords,
   computeAbsencesKPIs,
@@ -59,7 +58,7 @@ export default function AttendanceAbsencesPage() {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   // Use unified term context
-  const termContext = useAttendanceTermContext();
+  const termContext = useAttendanceYearTermLayoutContext();
   const [structureTree, setStructureTree] = useState<StructureTree | null>(null);
 
   const isReadOnly = termContext.isReadOnly;
@@ -142,16 +141,8 @@ export default function AttendanceAbsencesPage() {
   const kpis = useMemo(() => computeAbsencesKPIs(records), [records]);
 
   // Handlers
-  const handleAcademicYearChange = (yearId: string) => {
-    termContext.setYearId(yearId);
-  };
-
-  const handleTermChange = (newTermId: string) => {
-    termContext.setTermId(newTermId);
-  };
-
   const handleFiltersChange = (newFilters: Partial<AbsencesFilters>) => {
-    if ('search' in newFilters) {
+    if ("search" in newFilters) {
       setSearchInput(newFilters.search || "");
     }
     setFilters((prev) => ({ ...prev, ...newFilters }));
@@ -407,16 +398,7 @@ export default function AttendanceAbsencesPage() {
   // Empty states
   if (!termContext.yearId || !termContext.termId) {
     return (
-      <div className="flex flex-col h-screen">
-        <ContextBar
-          academicYearId={termContext.yearId || ""}
-          termId={termContext.termId || ""}
-          termStatus={termContext.termStatus || "open"}
-          onAcademicYearChange={handleAcademicYearChange}
-          onTermChange={handleTermChange}
-          isReadOnly={isReadOnly}
-          showPromoteCarryOver={false}
-        />
+      <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex-1 flex items-center justify-center">
           <AttendanceStatePanel
             title={t("emptyStates.noYearTerm.title")}
@@ -430,18 +412,7 @@ export default function AttendanceAbsencesPage() {
   const isScopeSelectionIncomplete = !isScopeSelectionComplete(filters.scopeType, filters.scopeIds);
 
   return (
-    <div className="flex flex-col">
-      {/* Context Bar */}
-      <ContextBar
-        academicYearId={termContext.yearId || ""}
-        termId={termContext.termId || ""}
-        termStatus={termContext.termStatus || "open"}
-        onAcademicYearChange={handleAcademicYearChange}
-        onTermChange={handleTermChange}
-        isReadOnly={isReadOnly}
-        showPromoteCarryOver={false}
-      />
-
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex-1 flex flex-col gap-4 p-4 min-h-0">
         <AttendanceScopeHeader
           isReadOnly={isReadOnly}
