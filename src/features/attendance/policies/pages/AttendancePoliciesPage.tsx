@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useToast } from "@/components/ui/toast/Toast";
-import ContextBar from "@/features/academics/components/shared/ContextBar";
 import AttendanceGlobalExportModal from "@/features/attendance/shared/components/AttendanceGlobalExportModal";
 import {
   exportAttendanceData,
@@ -16,7 +15,7 @@ import { getPeriodDisplayLabel } from "@/features/attendance/utils/periodIdNorma
 import PoliciesListPanel from "../components/PoliciesListPanel";
 import PolicyWizardDialog from "../components/PolicyWizardDialog";
 import PoliciesKpiPanel from "../components/PoliciesKpiPanel";
-import { useAttendanceTermContext } from "@/features/attendance/shared/hooks/useAttendanceTermContext";
+import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
 import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
 import {
   fetchStructureTree,
@@ -43,7 +42,7 @@ export default function AttendancePoliciesPage() {
   const { showSuccess, showError } = useToast();
 
   // Use unified term context
-  const termContext = useAttendanceTermContext();
+  const termContext = useAttendanceYearTermLayoutContext();
 
   // Structure data
   const [stages, setStages] = useState<Stage[]>([]);
@@ -426,31 +425,18 @@ export default function AttendancePoliciesPage() {
   }
 
   return (
-    <div style={{ backgroundColor: "var(--color-neutral-50)" }} className="flex flex-col">
-      {/* Context Bar */}
-      <ContextBar
-        academicYearId={termContext.yearId || ""}
-        termId={termContext.termId || ""}
-        termStatus={termContext.termStatus || "open"}
-        onAcademicYearChange={termContext.setYearId}
-        onTermChange={termContext.setTermId}
-        onPromoteCarryOver={() => {}}
-        isReadOnly={isReadOnly}
-        showPromoteCarryOver={false}
-      />
-
-      {/* Read-Only Banner */}
+    <div
+      style={{ backgroundColor: "var(--color-neutral-50)" }}
+      className="flex min-h-0 flex-1 flex-col"
+    >
       {isReadOnly && (
         <AttendanceReadOnlyBanner message={t("readonly_banner")} />
       )}
 
-      {/* Main Content */}
       <div className="flex-1 overflow-auto">
         <div className="p-4 md:p-6">
-          {/* KPI Panel */}
           <PoliciesKpiPanel kpis={kpis} isLoading={false} />
 
-          {/* Policies List */}
           <PoliciesListPanel
             policies={policies}
             stages={stages}
@@ -468,7 +454,6 @@ export default function AttendancePoliciesPage() {
         </div>
       </div>
 
-      {/* Policy Wizard Dialog */}
       {isEditorOpen && (
         <PolicyWizardDialog
           isOpen={isEditorOpen}
