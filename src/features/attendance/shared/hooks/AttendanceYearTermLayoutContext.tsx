@@ -36,12 +36,24 @@ export function AttendanceYearTermLayoutProvider({
   const guardHandlersRef = useRef<AttendanceYearTermGuardHandlers | null>(null);
 
   const requestYearChange = useCallback(
-    (yearId: string) => guardHandlersRef.current?.onYearChange?.(yearId) ?? value.setYearId(yearId),
+    (yearId: string) => {
+      if (guardHandlersRef.current?.onYearChange) {
+        return guardHandlersRef.current.onYearChange(yearId);
+      }
+
+      return value.setYearId(yearId);
+    },
     [value],
   );
 
   const requestTermChange = useCallback(
-    (termId: string) => guardHandlersRef.current?.onTermChange?.(termId) ?? value.setTermId(termId),
+    (termId: string) => {
+      if (guardHandlersRef.current?.onTermChange) {
+        return guardHandlersRef.current.onTermChange(termId);
+      }
+
+      return value.setTermId(termId);
+    },
     [value],
   );
 
