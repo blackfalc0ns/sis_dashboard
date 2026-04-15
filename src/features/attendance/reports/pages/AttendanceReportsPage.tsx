@@ -5,7 +5,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Filter } from "lucide-react";
 import { useMediaQuery } from "@mui/material";
-import ContextBar from "@/features/academics/components/shared/ContextBar";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
 import {
@@ -27,7 +26,7 @@ import ExcusesAnalysisSection from "../components/ExcusesAnalysisSection";
 import StudentRiskTable from "../components/StudentRiskTable";
 import SectionPerformanceTable from "../components/SectionPerformanceTable";
 import ReportsDrilldownDrawer, { type ReportsDrilldownState } from "../components/ReportsDrilldownDrawer";
-import { useAttendanceTermContext } from "@/features/attendance/shared/hooks/useAttendanceTermContext";
+import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
 import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
 import { fetchAttendanceReportSummary } from "../services/attendanceReportsService";
 import { exportAttendanceReports } from "../utils/exportReports";
@@ -74,7 +73,7 @@ export default function AttendanceReportsPage() {
   const searchParams = useSearchParams();
   const { showSuccess, showError } = useToast();
   const isMobile = useMediaQuery("(max-width: 768px)");
-  const termContext = useAttendanceTermContext();
+  const termContext = useAttendanceYearTermLayoutContext();
 
   const [structure, setStructure] = useState<StructureTree | null>(null);
   const [filters, setFilters] = useState<AttendanceReportsFilters>(DEFAULT_FILTERS);
@@ -339,13 +338,8 @@ export default function AttendanceReportsPage() {
       report,
       locale,
       format,
-      yearName:
-        (locale === "ar"
-          ? termContext.academicYears.find((item) => item.id === termContext.yearId)?.nameAr
-          : termContext.academicYears.find((item) => item.id === termContext.yearId)?.nameEn) ||
-        termContext.yearId ||
-        "",
-      termName: locale === "ar" ? term.nameAr || term.name : term.nameEn || term.name,
+      yearName: selectedYearName,
+      termName: selectedTermName || "",
       scopeName: getAttendanceScopeLabel({
         scopeType: filters.scopeType,
         scopeIds: filters.scopeIds,
@@ -598,16 +592,7 @@ export default function AttendanceReportsPage() {
 
   if (!termContext.yearId || !termContext.termId) {
     return (
-      <div className="flex flex-col h-screen">
-        <ContextBar
-          academicYearId={termContext.yearId || ""}
-          termId={termContext.termId || ""}
-          termStatus={termContext.termStatus || "open"}
-          onAcademicYearChange={termContext.setYearId}
-          onTermChange={termContext.setTermId}
-          isReadOnly={termContext.isReadOnly}
-          showPromoteCarryOver={false}
-        />
+      <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex-1 flex items-center justify-center">
           <ReportsEmptyState
             title={t("emptyStates.noYearTerm.title")}
@@ -619,17 +604,7 @@ export default function AttendanceReportsPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      <ContextBar
-        academicYearId={termContext.yearId || ""}
-        termId={termContext.termId || ""}
-        termStatus={termContext.termStatus || "open"}
-        onAcademicYearChange={termContext.setYearId}
-        onTermChange={termContext.setTermId}
-        isReadOnly={termContext.isReadOnly}
-        showPromoteCarryOver={false}
-      />
-
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex-1 p-4 flex flex-col gap-4 min-h-0 overflow-auto" style={{ backgroundColor: "var(--background)" }}>
         {structure ? (
           <AttendanceScopeHeader
