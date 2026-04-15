@@ -4,11 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useMediaQuery } from "@mui/material";
 import { Filter, Plus } from "lucide-react";
-import ContextBar from "@/features/academics/components/shared/ContextBar";
 import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useToast } from "@/components/ui/toast/Toast";
-import { useAttendanceTermContext } from "@/features/attendance/shared/hooks/useAttendanceTermContext";
+import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
 import AttendanceStatePanel from "@/features/attendance/shared/components/AttendanceStatePanel";
 import AttendanceScopeHeader from "@/features/attendance/shared/components/AttendanceScopeHeader";
 import AttendanceDataPanel from "@/features/attendance/shared/components/AttendanceDataPanel";
@@ -78,7 +77,7 @@ export default function AttendanceExcusesPage() {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   // Use unified term context
-  const termContext = useAttendanceTermContext();
+  const termContext = useAttendanceYearTermLayoutContext();
 
   const [stages, setStages] = useState<Stage[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -232,8 +231,8 @@ export default function AttendanceExcusesPage() {
     if (!term) return;
 
     exportExcuses(requests, locale, format, {
-      yearName: termContext.yearId || "",
-      termName: locale === "ar" ? term.nameAr || term.name : term.nameEn || term.name,
+      yearName: selectedYearName,
+      termName: selectedTermName || "",
       scopeName: getAttendanceScopeLabel({
         scopeType: filters.scopeType,
         scopeIds: filters.scopeIds,
@@ -484,16 +483,7 @@ export default function AttendanceExcusesPage() {
 
   if (!termContext.yearId || !termContext.termId) {
     return (
-      <div className="flex flex-col h-screen">
-        <ContextBar
-          academicYearId={termContext.yearId || ""}
-          termId={termContext.termId || ""}
-          termStatus={termContext.termStatus || "open"}
-          onAcademicYearChange={termContext.setYearId}
-          onTermChange={termContext.setTermId}
-          isReadOnly={isReadOnly}
-          showPromoteCarryOver={false}
-        />
+      <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex-1 flex items-center justify-center">
           <AttendanceStatePanel
             title={t("emptyStates.noYearTerm.title")}
@@ -507,16 +497,7 @@ export default function AttendanceExcusesPage() {
   const isScopeSelectionIncomplete = !isScopeSelectionComplete(filters.scopeType, filters.scopeIds);
 
   return (
-    <div className="flex flex-col">
-      <ContextBar
-        academicYearId={termContext.yearId || ""}
-        termId={termContext.termId || ""}
-        termStatus={termContext.termStatus || "open"}
-        onAcademicYearChange={termContext.setYearId}
-        onTermChange={termContext.setTermId}
-        isReadOnly={isReadOnly}
-        showPromoteCarryOver={false}
-      />
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex-1 p-4 flex flex-col gap-4 min-h-0" style={{ backgroundColor: "var(--background)" }}>
         <AttendanceScopeHeader
           isReadOnly={isReadOnly}
