@@ -6,13 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMediaQuery, useTheme } from "@mui/material";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
-import ContextBar from "@/features/academics/components/shared/ContextBar";
 import { useToast } from "@/components/ui/toast/Toast";
-import {
-  fetchAcademicYears,
-  fetchTermsByYear,
-  type Term,
-} from "@/features/academics/academic-structure-tree/services/structureService";
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import type { ValidationErrors } from "@/features/academics/curriculum/types/types";
 import { calculatePointsSummary } from "@/features/academics/curriculum/utils/points";
@@ -37,7 +31,6 @@ import { useGradesRouteYearTerm } from "@/features/grades/hooks/useGradesRouteYe
 interface AssessmentQuestionsPageProps {
   assessmentId?: string;
   mode?: "create" | "edit";
-  showContextBar?: boolean;
 }
 
 function validateAssessmentDraft(
@@ -95,7 +88,6 @@ function validateAssessmentDraft(
 export default function AssessmentQuestionsPage({
   assessmentId,
   mode = "edit",
-  showContextBar = true,
 }: AssessmentQuestionsPageProps) {
   const t = useTranslations("academics.grades.questions");
   const tGrades = useTranslations("academics.grades");
@@ -110,13 +102,12 @@ export default function AssessmentQuestionsPage({
     defaultMatches: false,
   });
   const { showError, showSuccess } = useToast();
-  const routeYearTerm = useGradesRouteYearTerm();
-
-  const [academicYearId, setAcademicYearId] = useState("");
-  const [termId, setTermId] = useState("");
-  const [termStatus, setTermStatus] = useState<"open" | "closed">("open");
-  const [terms, setTerms] = useState<Term[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    academicYearId,
+    termId,
+    termStatus,
+    isInitializing: isLoading,
+  } = useGradesRouteYearTerm();
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [assessmentDraft, setAssessmentDraft] = useState<Assessment | null>(
@@ -155,59 +146,6 @@ export default function AssessmentQuestionsPage({
   const maxScoreParam = Number(searchParams.get("maxScore") || "20");
   const isReadOnly = termStatus === "closed";
   const isCreateMode = mode === "create";
-
-  useEffect(() => {
-    if (!showContextBar) {
-      setAcademicYearId(routeYearTerm.academicYearId);
-      setTermId(routeYearTerm.termId);
-      setTermStatus(routeYearTerm.termStatus);
-      setTerms([]);
-      setIsLoading(routeYearTerm.isInitializing);
-      return;
-    }
-
-    const initialize = async () => {
-      const years = await fetchAcademicYears();
-      const urlYear = searchParams.get("year");
-      const urlTerm = searchParams.get("term");
-      const year = years.find((item) => item.id === urlYear) || years[0];
-      if (!year) {
-        setIsLoading(false);
-        return;
-      }
-
-      const yearTerms = await fetchTermsByYear(year.id);
-      const term =
-        yearTerms.find((item) => item.id === urlTerm) ||
-        yearTerms.find((item) => item.status === "open") ||
-        yearTerms[0];
-      if (!term) {
-        setIsLoading(false);
-        return;
-      }
-
-      setAcademicYearId(year.id);
-      setTermId(term.id);
-      setTerms(yearTerms);
-      setTermStatus(term.status);
-
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("year", year.id);
-      params.set("term", term.id);
-      router.replace(`?${params.toString()}`, { scroll: false });
-      setIsLoading(false);
-    };
-
-    void initialize();
-  }, [
-    routeYearTerm.academicYearId,
-    routeYearTerm.isInitializing,
-    routeYearTerm.termId,
-    routeYearTerm.termStatus,
-    router,
-    searchParams,
-    showContextBar,
-  ]);
 
   const refresh = useCallback(async () => {
     if (!academicYearId || !termId || !assessmentId) {
@@ -394,32 +332,6 @@ export default function AssessmentQuestionsPage({
     }
     return isAssessmentDirty;
   }, [assessmentDraft, isAssessmentDirty, isCreateMode, questions.length]);
-
-  const handleAcademicYearChange = async (yearId: string) => {
-    const nextTerms = await fetchTermsByYear(yearId);
-    const nextTerm =
-      nextTerms.find((item) => item.status === "open") || nextTerms[0];
-    if (!nextTerm) return;
-    setAcademicYearId(yearId);
-    setTerms(nextTerms);
-    setTermId(nextTerm.id);
-    setTermStatus(nextTerm.status);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("year", yearId);
-    params.set("term", nextTerm.id);
-    router.replace(`?${params.toString()}`, { scroll: false });
-  };
-
-  const handleTermChange = (nextTermId: string) => {
-    const nextTerm = terms.find((item) => item.id === nextTermId);
-    if (!nextTerm) return;
-    setTermId(nextTermId);
-    setTermStatus(nextTerm.status);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("year", academicYearId);
-    params.set("term", nextTermId);
-    router.replace(`?${params.toString()}`, { scroll: false });
-  };
 
   const handleBack = () => {
     const params = searchParams.toString();
@@ -820,18 +732,6 @@ export default function AssessmentQuestionsPage({
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
-      {showContextBar && (
-        <ContextBar
-          academicYearId={academicYearId}
-          termId={termId}
-          termStatus={termStatus}
-          onAcademicYearChange={handleAcademicYearChange}
-          onTermChange={handleTermChange}
-          isReadOnly={isReadOnly}
-          showPromoteCarryOver={false}
-        />
-      )}
-
       {assessment && (
         <AssessmentQuestionBuilderHeader
           assessment={assessmentDraft || assessment}

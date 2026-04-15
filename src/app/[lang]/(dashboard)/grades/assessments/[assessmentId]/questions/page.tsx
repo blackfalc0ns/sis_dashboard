@@ -6,5 +6,5 @@ interface PageProps {
 
 export default async function Page({ params }: PageProps) {
   const { assessmentId } = await params;
-  return <AssessmentQuestionsPage assessmentId={assessmentId} />;
+  return <AssessmentQuestionsPage assessmentId={assessmentId} mode="edit" />;
 }
