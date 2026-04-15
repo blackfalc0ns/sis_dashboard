@@ -192,8 +192,8 @@ export default function AttendanceLateEarlyPage() {
     if (!term) return;
 
     exportLateEarly(incidents, locale, format, {
-      yearName: termContext.yearId || "",
-      termName: locale === "ar" ? term.nameAr || term.name : term.nameEn || term.name,
+      yearName: selectedYearName,
+      termName: selectedTermName || "",
       scopeName: getAttendanceScopeLabel({
         scopeType: filters.scopeType,
         scopeIds: filters.scopeIds,
