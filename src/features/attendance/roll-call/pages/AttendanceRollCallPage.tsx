@@ -7,7 +7,6 @@ import { useMediaQuery } from "@mui/material";
 import { useToast } from "@/components/ui/toast/Toast";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import Button from "@/components/ui/button/Button";
-import ContextBar from "@/features/academics/components/shared/ContextBar";
 import ScopeBreadcrumb from "@/features/attendance/shared/components/ScopeBreadcrumb";
 import AttendanceReadOnlyBanner from "@/features/attendance/shared/components/AttendanceReadOnlyBanner";
 import AttendanceStatePanel from "@/features/attendance/shared/components/AttendanceStatePanel";
@@ -17,7 +16,8 @@ import RollCallFiltersDrawer from "../components/RollCallFiltersDrawer";
 import RollCallHeaderBar from "../components/RollCallHeaderBar";
 import AttendanceKpisBar from "../components/AttendanceKpisBar";
 import RosterTable from "../components/RosterTable";
-import { useAttendanceTermContext } from "@/features/attendance/shared/hooks/useAttendanceTermContext";
+import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
+import { useAttendanceGuardedYearTermChange } from "@/features/attendance/shared/hooks/useAttendanceGuardedYearTermChange";
 import {
   fetchStructureTree,
   type Stage,
@@ -66,7 +66,7 @@ export default function AttendanceRollCallPage() {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   // Use unified term context
-  const termContext = useAttendanceTermContext();
+  const termContext = useAttendanceYearTermLayoutContext();
 
   // Structure data
   const [stages, setStages] = useState<Stage[]>([]);
@@ -809,6 +809,19 @@ export default function AttendanceRollCallPage() {
     reset(undefined, "replace");
   };
 
+  useAttendanceGuardedYearTermChange({
+    onYearChange: (yearId) => {
+      checkUnsavedChanges(() => {
+        void termContext.setYearId(yearId);
+      });
+    },
+    onTermChange: (termId) => {
+      checkUnsavedChanges(() => {
+        termContext.setTermId(termId);
+      });
+    },
+  });
+
   if (isLoading && !term) {
     return (
       <MainLoader />
@@ -821,26 +834,12 @@ export default function AttendanceRollCallPage() {
   const showNoRoster = roster.length === 0 && !isLoading && policy;
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Context Bar */}
-      <ContextBar
-        academicYearId={termContext.yearId || ""}
-        termId={termContext.termId || ""}
-        termStatus={termContext.termStatus || "open"}
-        onAcademicYearChange={termContext.setYearId}
-        onTermChange={termContext.setTermId}
-        isReadOnly={isReadOnly}
-        showPromoteCarryOver={false}
-      />
-
-      {/* Read-only Banner */}
+    <div className="flex min-h-0 flex-1 flex-col">
       {isReadOnly && (
         <AttendanceReadOnlyBanner message={t("readonly_banner")} />
       )}
 
-      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden flex-col md:flex-row">
-        {/* Left Panel - Hidden on mobile */}
         <div className="hidden md:flex">
           <SessionPickerPanel
             scopeType={scopeType}
@@ -864,9 +863,7 @@ export default function AttendanceRollCallPage() {
           />
         </div>
 
-        {/* Right Panel */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header Actions */}
           {session && roster.length > 0 && (
             <RollCallHeaderBar
               isDirty={isDirty}
@@ -884,7 +881,6 @@ export default function AttendanceRollCallPage() {
               isSaving={isSaving}
             />
           )}
-    {/* Scope Breadcrumb */}
           {session && roster.length > 0 && (
             <div className="px-4 py-2">
               <ScopeBreadcrumb
@@ -897,10 +893,8 @@ export default function AttendanceRollCallPage() {
               />
             </div>
           )}
-          {/* KPIs Bar */}
           {session && roster.length > 0 && <AttendanceKpisBar kpis={kpis} />}
 
-          {/* Filters Bar - Desktop */}
           {session && roster.length > 0 && !isMobile && (
             <RosterFiltersBar
               filters={filters}
@@ -911,7 +905,6 @@ export default function AttendanceRollCallPage() {
             />
           )}
 
-          {/* Filters Button - Mobile */}
           {session && roster.length > 0 && isMobile && (
             <div style={{ backgroundColor: "var(--background)", borderBottom: "1px solid var(--color-border)" }} className="px-4 py-3">
               <Button
@@ -926,7 +919,6 @@ export default function AttendanceRollCallPage() {
             </div>
           )}
 
-          {/* Roster Table or Empty States */}
           {showNoPolicy && (
             <div className="flex-1 p-8">
               <AttendanceStatePanel
@@ -967,7 +959,6 @@ export default function AttendanceRollCallPage() {
         </div>
       </div>
 
-      {/* Filters Drawer - Mobile */}
       <RollCallFiltersDrawer
         isOpen={showFiltersDrawer}
         onClose={() => setShowFiltersDrawer(false)}
@@ -978,7 +969,6 @@ export default function AttendanceRollCallPage() {
         onReset={handleResetFilters}
       />
 
-      {/* Discard Changes Dialog */}
       <ConfirmDialog
         isOpen={showDiscardDialog}
         onClose={() => setShowDiscardDialog(false)}
@@ -990,7 +980,6 @@ export default function AttendanceRollCallPage() {
         severity="warning"
       />
 
-      {/* Unsubmit Confirmation Dialog */}
       <ConfirmDialog
         isOpen={showUnsubmitConfirm}
         onClose={() => setShowUnsubmitConfirm(false)}

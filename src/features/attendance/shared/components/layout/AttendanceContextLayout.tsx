@@ -15,8 +15,8 @@ function AttendanceContextLayoutContent({
     yearId,
     termId,
     termStatus,
-    setYearId,
-    setTermId,
+    requestYearChange,
+    requestTermChange,
     isReadOnly,
   } = useAttendanceYearTermLayoutContext();
 
@@ -26,8 +26,12 @@ function AttendanceContextLayoutContent({
         academicYearId={yearId || ""}
         termId={termId || ""}
         termStatus={termStatus || "open"}
-        onAcademicYearChange={setYearId}
-        onTermChange={setTermId}
+        onAcademicYearChange={(nextYearId) => {
+          void requestYearChange(nextYearId);
+        }}
+        onTermChange={(nextTermId) => {
+          void requestTermChange(nextTermId);
+        }}
         isReadOnly={isReadOnly}
         showPromoteCarryOver={false}
       />
