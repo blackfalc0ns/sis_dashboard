@@ -22,6 +22,8 @@ export function GradesYearTermLayoutProvider({
   children,
   options,
 }: GradesYearTermLayoutProviderProps) {
+  // Workspace-style grades pages live under a visible section ContextBar,
+  // so they can reuse the shared layout year/term controller directly.
   const value = useAcademicYearTermContext(options);
 
   return (

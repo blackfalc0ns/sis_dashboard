@@ -26,6 +26,8 @@ export function useGradesRouteYearTerm(): UseGradesRouteYearTermResult {
     let isCancelled = false;
 
     const loadTermStatus = async () => {
+      // Focused builder flows keep year/term in the route without rendering
+      // the shared section ContextBar, so they only need lightweight term metadata.
       if (!academicYearId || !termId) {
         setTermStatus("open");
         setIsInitializing(false);

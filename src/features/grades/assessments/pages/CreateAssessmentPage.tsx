@@ -25,7 +25,6 @@ export default function CreateAssessmentPage() {
   const {
     academicYearId,
     termId,
-    termStatus,
     isInitializing,
   } = useGradesYearTermLayoutContext();
 
@@ -154,7 +153,7 @@ export default function CreateAssessmentPage() {
 
   return (
     <div
-      className="flex min-h-0 flex-1 flex-col"
+      className="flex min-h-0 min-w-0 flex-1 flex-col"
       style={{ backgroundColor: "var(--surface-secondary)" }}
     >
       <div className="mx-auto w-full max-w-5xl p-6">

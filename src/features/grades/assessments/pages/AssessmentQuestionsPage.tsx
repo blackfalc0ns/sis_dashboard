@@ -147,6 +147,9 @@ export default function AssessmentQuestionsPage({
   const isReadOnly = termStatus === "closed";
   const isCreateMode = mode === "create";
 
+  // Question builders are focused flows: they keep year/term in the route
+  // and intentionally stay outside the shared grades ContextBar layout.
+
   const refresh = useCallback(async () => {
     if (!academicYearId || !termId || !assessmentId) {
       return;
@@ -731,7 +734,7 @@ export default function AssessmentQuestionsPage({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
+    <div className="flex min-h-screen min-w-0 flex-col bg-gray-50">
       {assessment && (
         <AssessmentQuestionBuilderHeader
           assessment={assessmentDraft || assessment}

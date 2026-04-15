@@ -19,6 +19,7 @@ function GradesContextLayoutContent({
 
   return (
     <div className="flex min-h-screen min-w-0 flex-col bg-gray-50">
+      {/* Workspace pages keep the shared grades ContextBar visible here. */}
       <ContextBar
         academicYearId={academicYearId}
         termId={termId}
