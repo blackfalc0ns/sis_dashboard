@@ -5,5 +5,6 @@ export default function Layout({
 }: {
   children: React.ReactNode;
 }) {
+  // Academics workspace pages keep the default shared year/term query contract.
   return <AcademicsContextLayout>{children}</AcademicsContextLayout>;
 }

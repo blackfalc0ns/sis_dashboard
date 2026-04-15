@@ -1,7 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
-import { useSelectedLayoutSegment } from "next/navigation";
 import ContextBar from "@/features/academics/components/shared/ContextBar";
 import { AcademicYearTermLayoutProvider } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import type { UseAcademicYearTermContextOptions } from "@/features/academics/hooks/useAcademicYearTermContext";
@@ -45,27 +43,17 @@ function AcademicsContextLayoutContent({
 
 export default function AcademicsContextLayout({
   children,
+  contextOptions,
 }: {
   children: React.ReactNode;
+  contextOptions?: UseAcademicYearTermContextOptions;
 }) {
-  const segment = useSelectedLayoutSegment();
-  const options = useMemo<UseAcademicYearTermContextOptions>(
-    () =>
-      segment === null
-        ? {
-            yearParamKey: "yearId",
-            termParamKey: "termId",
-            termStatusParamKey: "termStatus",
-          }
-        : {},
-    [segment]
-  );
-  const providerKey = `${options.yearParamKey ?? "year"}:${options.termParamKey ?? "term"}:${
-    options.termStatusParamKey ?? "status"
+  const providerKey = `${contextOptions?.yearParamKey ?? "year"}:${contextOptions?.termParamKey ?? "term"}:${
+    contextOptions?.termStatusParamKey ?? "status"
   }`;
 
   return (
-    <AcademicYearTermLayoutProvider key={providerKey} options={options}>
+    <AcademicYearTermLayoutProvider key={providerKey} options={contextOptions}>
       <AcademicsContextLayoutContent>{children}</AcademicsContextLayoutContent>
     </AcademicYearTermLayoutProvider>
   );

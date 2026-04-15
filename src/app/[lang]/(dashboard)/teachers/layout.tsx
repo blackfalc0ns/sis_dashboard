@@ -5,5 +5,15 @@ export default function TeachersLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <AcademicsContextLayout>{children}</AcademicsContextLayout>;
+  return (
+    <AcademicsContextLayout
+      contextOptions={{
+        yearParamKey: "yearId",
+        termParamKey: "termId",
+        termStatusParamKey: "termStatus",
+      }}
+    >
+      {children}
+    </AcademicsContextLayout>
+  );
 }

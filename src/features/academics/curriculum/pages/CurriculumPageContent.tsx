@@ -400,7 +400,9 @@ export default function CurriculumPageContent() {
           if (queryState.unitId === "new") {
             setSelectedNode({ type: "unit", id: "new" });
           } else {
-            const unitExists = unitsData.some((u) => u.id === queryState.unitId);
+            const unitExists = unitsData.some(
+              (u) => u.id === queryState.unitId,
+            );
             setSelectedNode(
               unitExists ? { type: "unit", id: queryState.unitId } : null,
             );
@@ -410,7 +412,8 @@ export default function CurriculumPageContent() {
             if (!previous) {
               return null;
             }
-            const isDraftUnit = previous.type === "unit" && previous.id === "new";
+            const isDraftUnit =
+              previous.type === "unit" && previous.id === "new";
             const isDraftLesson =
               previous.type === "lesson" && previous.id.startsWith("new-");
             return isDraftUnit || isDraftLesson ? previous : null;

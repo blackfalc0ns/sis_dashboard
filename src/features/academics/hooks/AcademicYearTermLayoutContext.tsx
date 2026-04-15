@@ -31,6 +31,8 @@ interface AcademicYearTermLayoutContextBarActions {
 
 interface AcademicYearTermLayoutContextValue
   extends UseAcademicYearTermContextResult {
+  // The shared layout owns the visible ContextBar and routes all year/term
+  // changes through these request APIs so pages can optionally register guards.
   requestAcademicYearChange: AcademicYearChangeHandler;
   requestTermChange: TermChangeHandler;
   setGuardHandlers: (handlers: AcademicYearTermLayoutGuardHandlers | null) => void;
@@ -52,6 +54,8 @@ export function AcademicYearTermLayoutProvider({
   children,
   options,
 }: AcademicYearTermLayoutProviderProps) {
+  // This provider is the non-visual state layer for the shared academics
+  // ContextBar. Route layouts decide which query-param keys it should own.
   const value = useAcademicYearTermContext(options);
   const guardHandlersRef = useRef<AcademicYearTermLayoutGuardHandlers | null>(null);
   const [contextBarActions, setContextBarActions] =
