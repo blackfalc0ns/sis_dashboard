@@ -7,8 +7,7 @@ import { Button, ConfirmDialog, EmptyState } from "@/components/ui";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
 import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
-import ContextBar from "@/features/academics/components/shared/ContextBar";
-import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { fetchSubjects } from "@/features/academics/subjects/services/subjectsService";
 import ChangeTeacherPasswordModal from "@/features/teachers/components/ChangeTeacherPasswordModal";
 import TeacherDetailsDrawer from "@/features/teachers/components/TeacherDetailsDrawer";
@@ -69,9 +68,7 @@ export default function TeachersPage() {
     isInitializing,
     selectedAcademicYear,
     selectedTerm,
-    changeAcademicYear,
-    changeTerm,
-  } = useAcademicYearTermContext();
+  } = useAcademicYearTermLayoutContext();
   const displayLocale = locale === "ar" ? "ar" : "en";
 
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -538,14 +535,6 @@ export default function TeachersPage() {
     });
   };
 
-  const handleAcademicYearChange = async (yearId: string) => {
-    await changeAcademicYear(yearId);
-  };
-
-  const handleTermChange = (nextTermId: string) => {
-    changeTerm(nextTermId);
-  };
-
   const hasActiveFilters =
     filters.search.trim() !== "" ||
     filters.status !== "ALL" ||
@@ -682,18 +671,8 @@ export default function TeachersPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
-      <ContextBar
-        academicYearId={academicYearId}
-        termId={termId}
-        termStatus={termStatus}
-        onAcademicYearChange={handleAcademicYearChange}
-        onTermChange={handleTermChange}
-        isReadOnly={termStatus === "closed"}
-        showPromoteCarryOver={false}
-      />
-
-      <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <main className="min-h-0 flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
         <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1">
