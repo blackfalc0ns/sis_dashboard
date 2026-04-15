@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { useRouter } from "next/navigation";
 import { Filter } from "lucide-react";
 import { useMediaQuery } from "@mui/material";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -62,6 +63,7 @@ export default function AttendanceRollCallPage() {
   const t = useTranslations("attendance.rollCall");
   const tCommon = useTranslations("common");
   const locale = useLocale();
+  const router = useRouter();
   const { showSuccess, showError } = useToast();
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -214,6 +216,8 @@ export default function AttendanceRollCallPage() {
   const isReadOnly = termContext.isReadOnly;
   const isDirty = JSON.stringify(entries) !== JSON.stringify(originalEntries);
   const isSubmitted = session?.status === "SUBMITTED";
+  const shouldGuardNavigation = isDirty && !isReadOnly && !isSubmitted;
+  const suppressNextPopStateRef = useRef(false);
 
   // Get current term object
   const term = useMemo(() => {
@@ -821,6 +825,65 @@ export default function AttendanceRollCallPage() {
       });
     },
   });
+
+  useEffect(() => {
+    if (!shouldGuardNavigation) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const anchor = target.closest("a");
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+      if (!anchor.href || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+
+      const nextUrl = new URL(anchor.href, window.location.href);
+      const currentUrl = new URL(window.location.href);
+
+      if (nextUrl.origin !== currentUrl.origin) return;
+
+      const nextPath = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
+      const currentPath = `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`;
+
+      if (nextPath === currentPath) return;
+
+      event.preventDefault();
+      checkUnsavedChanges(() => {
+        router.push(nextPath);
+      });
+    };
+
+    const handlePopState = () => {
+      if (suppressNextPopStateRef.current) {
+        suppressNextPopStateRef.current = false;
+        return;
+      }
+
+      window.history.go(1);
+      checkUnsavedChanges(() => {
+        suppressNextPopStateRef.current = true;
+        window.history.back();
+      });
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("click", handleDocumentClick, true);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("click", handleDocumentClick, true);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [checkUnsavedChanges, router, shouldGuardNavigation]);
 
   if (isLoading && !term) {
     return (
