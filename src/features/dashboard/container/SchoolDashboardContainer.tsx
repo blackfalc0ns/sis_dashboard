@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { mockStudents } from "@/data/mockStudents";
-import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { getReinforcementSummaryCard } from "@/features/reinforcement/services/reinforcementService";
 import {
   buildDashboardSnapshot,
@@ -21,7 +21,7 @@ export default function SchoolDashboardContainer() {
     isInitializing,
     selectedAcademicYear,
     selectedTerm,
-  } = useAcademicYearTermContext();
+  } = useAcademicYearTermLayoutContext();
   const [reinforcementSummary, setReinforcementSummary] = useState<{
     inProgress: number;
     notCompleted: number;
@@ -67,8 +67,6 @@ export default function SchoolDashboardContainer() {
 
   return (
     <SchoolDashboardView
-      academicYearName={selectedAcademicYear.name}
-      termName={selectedTerm.name}
       dashboardSnapshot={dashboardSnapshot}
       reinforcementSummary={reinforcementSummary}
     />

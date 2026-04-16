@@ -37,8 +37,6 @@ const AbsenceReasonsChart = dynamic(
 );
 
 interface SchoolDashboardViewProps {
-  academicYearName: string;
-  termName: string;
   dashboardSnapshot: DashboardSnapshot;
   reinforcementSummary: {
     inProgress: number;
@@ -48,8 +46,6 @@ interface SchoolDashboardViewProps {
 }
 
 export default function SchoolDashboardView({
-  academicYearName,
-  termName,
   dashboardSnapshot,
   reinforcementSummary,
 }: SchoolDashboardViewProps) {
@@ -58,8 +54,6 @@ export default function SchoolDashboardView({
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <FilterBar
-        academicYearName={academicYearName}
-        termName={termName}
         exportData={dashboardSnapshot.exportData}
       />
 
