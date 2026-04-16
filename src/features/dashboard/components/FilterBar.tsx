@@ -1,50 +1,50 @@
 "use client";
 
-import {
-  Calendar,
-  Star,
-  GraduationCap,
-  Download,
-  ChevronDown,
-} from "lucide-react";
+import { Download, GraduationCap, CalendarRange } from "lucide-react";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import ExportModal from "./ExportModal";
+import type {
+  DashboardExportAttendanceRow,
+  DashboardExportIncidentRow,
+  DashboardExportSummaryRow,
+} from "@/features/dashboard/utils/dashboardStatsCalculator";
 
-interface FilterOption {
-  icon: React.ComponentType<{ className?: string }>;
-  labelKey: string;
-  value: string;
+interface FilterBarProps {
+  academicYearName: string;
+  termName: string;
+  exportData: {
+    summary: DashboardExportSummaryRow;
+    attendance: DashboardExportAttendanceRow[];
+    incidents: DashboardExportIncidentRow[];
+  };
 }
 
-export default function FilterBar() {
+export default function FilterBar({
+  academicYearName,
+  termName,
+  exportData,
+}: FilterBarProps) {
   const t = useTranslations("filter_bar");
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
-  const filters: FilterOption[] = [
-    { icon: Calendar, labelKey: "filters.today", value: "today" },
-    { icon: Star, labelKey: "filters.grade", value: "grade" },
-    { icon: GraduationCap, labelKey: "filters.academic_year", value: "year" },
-  ];
-
   return (
     <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
-      <div className="flex items-center gap-3 flex-wrap">
-        {filters.map((filter) => {
-          const Icon = filter.icon;
-          return (
-            <button
-              key={filter.value}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-lg border border-gray-200 hover:border-primary-600 transition-colors"
-            >
-              <Icon className="w-4 h-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">
-                {t(filter.labelKey)}
-              </span>
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            </button>
-          );
-        })}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-lg border border-gray-200">
+          <GraduationCap className="w-4 h-4 text-gray-500" />
+          <span className="text-sm font-medium text-gray-500">
+            {t("filters.academic_year")}
+          </span>
+          <span className="text-sm font-semibold text-gray-800">
+            {academicYearName}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-lg border border-gray-200">
+          <CalendarRange className="w-4 h-4 text-gray-500" />
+          <span className="text-sm font-semibold text-gray-800">{termName}</span>
+        </div>
       </div>
 
       <button
@@ -55,10 +55,12 @@ export default function FilterBar() {
         <span className="text-sm font-medium text-gray-700">{t("export")}</span>
       </button>
 
-      {/* Export Modal */}
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
+        academicYearName={academicYearName}
+        termName={termName}
+        exportData={exportData}
       />
     </div>
   );

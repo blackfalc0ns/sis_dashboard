@@ -7,15 +7,21 @@ import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ChartCard } from "@/components/ui/chart-card";
 import { DropdownItem } from "@/components/ui/dropdown";
+import type { DashboardAttendanceTrendPeriod } from "@/features/dashboard/utils/dashboardStatsCalculator";
 
 type Period = "days_30" | "week" | "term" | "academic_year";
 
-export default function AttendanceTrendChart() {
+interface AttendanceTrendChartProps {
+  trendByPeriod: Record<Period, DashboardAttendanceTrendPeriod>;
+}
+
+export default function AttendanceTrendChart({
+  trendByPeriod,
+}: AttendanceTrendChartProps) {
   const t = useTranslations("attendance_trend");
   const locale = useLocale();
   const [period, setPeriod] = useState<Period>("days_30");
 
-  // Custom period options with translations
   const periodOptions: DropdownItem[] = useMemo(
     () => [
       { label: t("period.days_30"), value: "days_30" },
@@ -23,54 +29,14 @@ export default function AttendanceTrendChart() {
       { label: t("period.term"), value: "term" },
       { label: t("period.academic_year"), value: "academic_year" },
     ],
-    [t],
+    [t]
   );
 
-  const { days, attendanceData, average, belowDays } = useMemo(() => {
-    // استبدل الداتا دي ببياناتك الحقيقية
-    if (period === "week") {
-      const d = Array.from({ length: 7 }, (_, i) => i + 1);
-      const data = [92, 94, 91, 95, 93, 96, 94];
-      const avg = 94;
-      const below = 1;
-      return { days: d, attendanceData: data, average: avg, belowDays: below };
-    }
-
-    if (period === "term") {
-      const d = Array.from({ length: 12 }, (_, i) => i + 1); // مثال: 12 أسبوع
-      const data = [93, 92, 94, 95, 93, 94, 96, 95, 94, 93, 94, 95];
-      const avg = 94;
-      const below = 2;
-      return { days: d, attendanceData: data, average: avg, belowDays: below };
-    }
-
-    if (period === "academic_year") {
-      const d = Array.from({ length: 12 }, (_, i) => i + 1); // 12 شهر
-      const data = [93, 94, 92, 95, 94, 96, 95, 94, 93, 95, 94, 96];
-      const avg = 94;
-      const below = 2;
-      return { days: d, attendanceData: data, average: avg, belowDays: below };
-    }
-
-    // default 30 days
-    const d = Array.from({ length: 30 }, (_, i) => i + 1);
-    const data = [
-      92, 94, 91, 95, 93, 96, 94, 92, 95, 94, 93, 96, 95, 94, 92, 93, 95, 94,
-      96, 93, 94, 95, 92, 94, 93, 95, 94, 96, 93, 94.5,
-    ];
-    const avg = 94;
-    const below = 3;
-    return { days: d, attendanceData: data, average: avg, belowDays: below };
-  }, [period]);
-
+  const selectedTrend = trendByPeriod[period];
   const avgLine = useMemo(
-    () => Array(days.length).fill(average),
-    [days.length, average],
+    () => Array(selectedTrend.days.length).fill(selectedTrend.average),
+    [selectedTrend.average, selectedTrend.days.length]
   );
-
-  const handlePeriodChange = (value: string) => {
-    setPeriod(value as Period);
-  };
 
   return (
     <ChartCard
@@ -78,7 +44,7 @@ export default function AttendanceTrendChart() {
       subtitle={t("subtitle")}
       description={t("description")}
       periodOptions={periodOptions}
-      onPeriodChange={handlePeriodChange}
+      onPeriodChange={(value) => setPeriod(value as Period)}
       defaultPeriod={period}
       bgColor="#d1fae5"
       className="h-full flex flex-col justify-between"
@@ -86,16 +52,18 @@ export default function AttendanceTrendChart() {
       <div className="flex justify-end mb-2">
         <div className="text-right">
           <p className="text-xs text-gray-500">{t("average_label")}</p>
-          <p className="text-lg font-bold text-primary-600">{average}%</p>
+          <p className="text-lg font-bold text-primary-600">
+            {selectedTrend.average}%
+          </p>
         </div>
       </div>
 
-      <div className="">
+      <div>
         <LineChart
-          xAxis={[{ data: days, scaleType: "linear" }]}
+          xAxis={[{ data: selectedTrend.days, scaleType: "linear" }]}
           series={[
             {
-              data: attendanceData,
+              data: selectedTrend.attendanceData,
               label: t("series.attendance"),
               color: "#036b80",
               curve: "natural",
@@ -112,12 +80,11 @@ export default function AttendanceTrendChart() {
         />
       </div>
 
-      {/* Action Flow */}
       <div className="mt-4 pt-4 border-t border-gray-200 align-bottom">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-sm text-gray-600">
             <span className="font-semibold text-red-600">
-              {t("below_days", { days: belowDays })}
+              {t("below_days", { days: selectedTrend.belowDays })}
             </span>{" "}
             {t("below_threshold_suffix")}
           </p>

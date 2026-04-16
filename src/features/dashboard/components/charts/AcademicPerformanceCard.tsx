@@ -6,6 +6,7 @@ import { CheckCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ChartCard } from "@/components/ui/chart-card";
 import { DropdownItem } from "@/components/ui/dropdown";
+import type { DashboardAcademicPerformanceData } from "@/features/dashboard/utils/dashboardStatsCalculator";
 
 type StatType = "positive" | "negative";
 type Period = "today" | "this_week" | "this_term";
@@ -15,6 +16,10 @@ interface StatCardProps {
   value: string;
   change: string;
   isPositive: boolean;
+}
+
+interface AcademicPerformanceCardProps {
+  performance: DashboardAcademicPerformanceData;
 }
 
 const StatCard = ({ labelKey, value, change, isPositive }: StatCardProps) => {
@@ -39,33 +44,22 @@ const StatCard = ({ labelKey, value, change, isPositive }: StatCardProps) => {
   );
 };
 
-export default function AcademicPerformanceCard() {
+export default function AcademicPerformanceCard({
+  performance,
+}: AcademicPerformanceCardProps) {
   const t = useTranslations("charts");
-
   const [period, setPeriod] = useState<Period>("today");
 
-  // Custom period options with translations
   const periodOptions: DropdownItem[] = useMemo(
     () => [
       { label: t("period.today"), value: "today" },
       { label: t("period.this_week"), value: "this_week" },
       { label: t("period.this_term"), value: "this_term" },
     ],
-    [t],
+    [t]
   );
 
-  const chartData = useMemo(() => {
-    // مثال: غيّر الداتا حسب الفترة (بدّلها ببياناتك الحقيقية)
-    if (period === "today")
-      return [1, 4, 2, 5, 7, 2, 4, 6, 8, 9, 1, 7, 12, 5, 3, 8];
-    if (period === "this_week")
-      return [2, 3, 4, 3, 6, 5, 7, 6, 8, 7, 9, 8, 10, 9, 11, 10];
-    return [3, 2, 5, 4, 6, 8, 7, 9, 10, 8, 7, 11, 12, 10, 9, 13]; // term
-  }, [period]);
-
-  const handlePeriodChange = (value: string) => {
-    setPeriod(value as Period);
-  };
+  const chartData = useMemo(() => performance.trends[period], [performance, period]);
 
   return (
     <ChartCard
@@ -73,7 +67,7 @@ export default function AcademicPerformanceCard() {
       subtitle={t("academic_performance_subtitle")}
       description={t("academic_performance_description")}
       periodOptions={periodOptions}
-      onPeriodChange={handlePeriodChange}
+      onPeriodChange={(value) => setPeriod(value as Period)}
       defaultPeriod={period}
       bgColor="#dbeafe"
       customFilter={
@@ -83,23 +77,26 @@ export default function AcademicPerformanceCard() {
         </div>
       }
     >
-      {/* Stats Section */}
       <div className="flex gap-4 mb-6">
-        <StatCard labelKey="positive" value="93%" change="+10.45%" isPositive />
+        <StatCard
+          labelKey="positive"
+          value={`${performance.positiveRate}%`}
+          change={`+${Math.max(1, Math.round(performance.positiveRate / 9))}%`}
+          isPositive
+        />
         <StatCard
           labelKey="negative"
-          value="7%"
-          change="-4.75%"
+          value={`${performance.negativeRate}%`}
+          change={`-${Math.max(1, Math.round(performance.negativeRate / 3))}%`}
           isPositive={false}
         />
       </div>
 
-      {/* Chart */}
       <div className="w-full">
         <SparkLineChart
           data={chartData}
           height={180}
-          color={"#036b80"}
+          color="#036b80"
           curve="natural"
           showTooltip
           showHighlight

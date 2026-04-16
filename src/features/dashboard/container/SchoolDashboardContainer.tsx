@@ -3,65 +3,74 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { mockStudents } from "@/data/mockStudents";
+import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
+import { getReinforcementSummaryCard } from "@/features/reinforcement/services/reinforcementService";
 import {
-  calculateDashboardKPIs,
-  generateStudentsChartData,
-  generateAttendanceChartData,
-  generateClassesChartData,
-  generateViolationsChartData,
-  generateLowAttendanceChartData,
-  generateNedaaChartData,
+  buildDashboardSnapshot,
 } from "@/features/dashboard/utils/dashboardStatsCalculator";
 import SchoolDashboardView from "../views/SchoolDashboardView";
 
 export default function SchoolDashboardContainer() {
-  const t_kpi = useTranslations("kpi");
+  const tCommon = useTranslations("common");
+  const { 
+    academicYearId,
+    termId,
+    isInitializing,
+    selectedAcademicYear,
+    selectedTerm,
+  } = useAcademicYearTermContext();
+  const [reinforcementSummary, setReinforcementSummary] = useState<{
+    inProgress: number;
+    notCompleted: number;
+    completionRate: number;
+  } | null>(null);
 
-  // Period options for KPI cards
-  const periodOptions = useMemo(
-    () => [
-      { label: t_kpi("period.today"), value: "today" },
-      { label: t_kpi("period.7d"), value: "7d" },
-      { label: t_kpi("period.30d"), value: "30d" },
-      { label: t_kpi("period.this_week"), value: "this_week" },
-      { label: t_kpi("period.this_month"), value: "this_month" },
-      { label: t_kpi("period.this_term"), value: "this_term" },
-      { label: t_kpi("period.this_year"), value: "this_year" },
-    ],
-    [t_kpi]
+  const dashboardSnapshot = useMemo(
+    () =>
+      buildDashboardSnapshot({
+        students: mockStudents,
+        academicYear: selectedAcademicYear,
+        term: selectedTerm,
+      }),
+    [selectedAcademicYear, selectedTerm]
   );
 
-  // Calculate KPIs
-  const kpis = useMemo(() => calculateDashboardKPIs(mockStudents), []);
+  useEffect(() => {
+    let isCancelled = false;
 
-  // Generate chart data
-  const chartData = useMemo(
-    () => ({
-      students: generateStudentsChartData(),
-      attendance: generateAttendanceChartData(),
-      classes: generateClassesChartData(),
-      violations: generateViolationsChartData(),
-      lowAttendance: generateLowAttendanceChartData(),
-      nedaa: generateNedaaChartData(),
-    }),
-    []
-  );
+    const loadReinforcementSummary = async () => {
+      const summary = await getReinforcementSummaryCard();
+      if (!isCancelled) {
+        setReinforcementSummary(summary);
+      }
+    };
 
-  // Event handlers
-  const handlePeriodChange = (period: string) => {
-    console.log("Period changed:", period);
-  };
+    loadReinforcementSummary();
 
-  // Pass everything to presenter
+    return () => {
+      isCancelled = true;
+    };
+  }, [academicYearId, termId]);
+
+  if (isInitializing || !selectedAcademicYear || !selectedTerm) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center bg-gray-50 p-6">
+        <div className="rounded-2xl border border-gray-200 bg-white px-6 py-4 text-sm font-medium text-gray-600 shadow-sm">
+          {tCommon("loading")}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <SchoolDashboardView
-      kpis={kpis}
-      chartData={chartData}
-      periodOptions={periodOptions}
-      onPeriodChange={handlePeriodChange}
+      academicYearName={selectedAcademicYear.name}
+      termName={selectedTerm.name}
+      dashboardSnapshot={dashboardSnapshot}
+      reinforcementSummary={reinforcementSummary}
     />
   );
 }

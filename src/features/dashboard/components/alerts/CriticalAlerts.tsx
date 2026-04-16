@@ -3,45 +3,16 @@
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowLeft, ArrowRight } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import type { DashboardAlertItem, DashboardAlertPriority } from "@/features/dashboard/utils/dashboardStatsCalculator";
 
-type Priority = "high" | "medium" | "low";
-
-interface AlertItem {
-  id: string;
-  titleKey: string;
-  descriptionKey: string;
-  priority: Priority;
-  actionKey: string;
+interface CriticalAlertsProps {
+  alerts: DashboardAlertItem[];
 }
 
-const alerts: AlertItem[] = [
-  {
-    id: "1",
-    titleKey: "alerts.no_teachers.title",
-    descriptionKey: "alerts.no_teachers.description",
-    priority: "high",
-    actionKey: "alerts.no_teachers.action",
-  },
-  {
-    id: "2",
-    titleKey: "alerts.low_attendance.title",
-    descriptionKey: "alerts.low_attendance.description",
-    priority: "high",
-    actionKey: "alerts.low_attendance.action",
-  },
-  {
-    id: "3",
-    titleKey: "alerts.overdue_invoices.title",
-    descriptionKey: "alerts.overdue_invoices.description",
-    priority: "medium",
-    actionKey: "alerts.overdue_invoices.action",
-  },
-];
-
-export default function CriticalAlerts() {
+export default function CriticalAlerts({ alerts }: CriticalAlertsProps) {
   const t = useTranslations("critical_alerts");
   const locale = useLocale();
-  const priorityStyles: Record<Priority, string> = {
+  const priorityStyles: Record<DashboardAlertPriority, string> = {
     high: "bg-red-50 border-red-500",
     medium: "bg-amber-50 border-amber-500",
     low: "bg-gray-50 border-gray-300",

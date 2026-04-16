@@ -1,12 +1,10 @@
-﻿// Presenter component for School Dashboard
+// Presenter component for School Dashboard
 // Pure presentation - receives data via props, no business logic
 
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
   BookOpen,
@@ -30,168 +28,151 @@ import TodayMonitoring from "../components/monitoring/TodayMonitoring";
 import AttendanceTrendChart from "../components/charts/AttendanceTrendChart";
 import StudentsPerGradeChart from "../components/charts/StudentsPerGradeChart";
 import ReinforcementSummaryWidget from "@/features/reinforcement/views/ReinforcementSummaryWidget";
-import { getReinforcementSummaryCard } from "@/features/reinforcement/services/reinforcementService";
 
-import type {
-  DashboardKPIs,
-  ChartData,
-} from "@/features/dashboard/utils/dashboardStatsCalculator";
+import type { DashboardSnapshot } from "@/features/dashboard/utils/dashboardStatsCalculator";
 
 const AbsenceReasonsChart = dynamic(
   () => import("../components/charts/AbsenceReasonsChart"),
-  { ssr: false },
+  { ssr: false }
 );
 
-interface PeriodOption {
-  label: string;
-  value: string;
-}
-
 interface SchoolDashboardViewProps {
-  kpis: DashboardKPIs;
-  chartData: {
-    students: ChartData[];
-    attendance: ChartData[];
-    classes: ChartData[];
-    violations: ChartData[];
-    lowAttendance: ChartData[];
-    nedaa: ChartData[];
-  };
-  periodOptions: PeriodOption[];
-  onPeriodChange: (period: string) => void;
-}
-
-export default function SchoolDashboardView({
-  kpis,
-  chartData,
-  periodOptions,
-  onPeriodChange,
-}: SchoolDashboardViewProps) {
-  const locale = useLocale();
-  const tKpi = useTranslations("kpi");
-  const tNedaa = useTranslations("nedaa");
-  const [reinforcementSummary, setReinforcementSummary] = useState<{
+  academicYearName: string;
+  termName: string;
+  dashboardSnapshot: DashboardSnapshot;
+  reinforcementSummary: {
     inProgress: number;
     notCompleted: number;
     completionRate: number;
-  } | null>(null);
+  } | null;
+}
 
-  useEffect(() => {
-    getReinforcementSummaryCard().then(setReinforcementSummary);
-  }, []);
+export default function SchoolDashboardView({
+  academicYearName,
+  termName,
+  dashboardSnapshot,
+  reinforcementSummary,
+}: SchoolDashboardViewProps) {
+  const tKpi = useTranslations("kpi");
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
-      <FilterBar />
+      <FilterBar
+        academicYearName={academicYearName}
+        termName={termName}
+        exportData={dashboardSnapshot.exportData}
+      />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <KPICardV2
           title={tKpi("total_students")}
-          value={kpis.totalStudents}
+          value={dashboardSnapshot.kpis.totalStudents}
           icon={Users}
           iconColor="#036b80"
           iconBgColor="#e0f2f5"
-          chartData={chartData.students}
+          chartData={dashboardSnapshot.chartData.students}
           chartColor="#036b80"
           change={{
-            value: 148,
-            percentage: 34.3,
+            value: dashboardSnapshot.kpis.activeStudents,
+            percentage: Math.max(
+              1,
+              (dashboardSnapshot.kpis.activeStudents /
+                Math.max(dashboardSnapshot.kpis.totalStudents, 1)) *
+                100
+            ),
             isPositive: true,
           }}
         />
 
         <KPICardV2
           title={tKpi("today_attendance_rate")}
-          value={kpis.avgAttendance}
+          value={dashboardSnapshot.kpis.avgAttendance}
           valueSuffix="%"
           icon={Users}
           iconColor="#10b981"
           iconBgColor="#d1fae5"
-          chartData={chartData.attendance}
+          chartData={dashboardSnapshot.chartData.attendance}
           chartColor="#10b981"
           change={{
-            value: 2,
-            percentage: 2.2,
+            value: dashboardSnapshot.attendanceBreakdown.present,
+            percentage: dashboardSnapshot.kpis.avgAttendance,
             isPositive: true,
           }}
-          showPeriodFilter={true}
-          periodOptions={periodOptions}
+          showPeriodFilter
+          periodOptions={[
+            { label: tKpi("period.today"), value: "today" },
+            { label: tKpi("period.this_week"), value: "this_week" },
+            { label: tKpi("period.this_term"), value: "this_term" },
+            { label: tKpi("period.this_year"), value: "this_year" },
+          ]}
           defaultPeriod="today"
-          onPeriodChange={onPeriodChange}
         />
 
         <KPICardV2
           title={tKpi("delivered_classes")}
-          value={48}
+          value={dashboardSnapshot.deliveredClasses}
           icon={BookOpen}
           iconColor="#3b82f6"
           iconBgColor="#dbeafe"
-          chartData={chartData.classes}
+          chartData={dashboardSnapshot.chartData.classes}
           chartColor="#3b82f6"
           change={{
-            value: 3,
-            percentage: 6.7,
+            value: dashboardSnapshot.deliveredClasses,
+            percentage: Math.max(1, dashboardSnapshot.deliveredClasses / 6),
             isPositive: true,
           }}
-          showPeriodFilter={true}
-          periodOptions={periodOptions}
-          defaultPeriod="today"
-          onPeriodChange={onPeriodChange}
         />
 
         <KPICardV2
           title={tKpi("today_violations")}
-          value={kpis.atRiskStudents}
+          value={dashboardSnapshot.violations}
           icon={AlertTriangle}
           iconColor="#ef4444"
           iconBgColor="#fee2e2"
-          chartData={chartData.violations}
+          chartData={dashboardSnapshot.chartData.violations}
           chartColor="#ef4444"
           change={{
-            value: -4,
-            percentage: -80,
-            isPositive: true,
+            value: dashboardSnapshot.violations,
+            percentage: Math.max(1, dashboardSnapshot.violations * 6),
+            isPositive: dashboardSnapshot.violations <= 3,
           }}
         />
 
         <KPICardV2
           title={tKpi("students_below_threshold")}
-          value={14}
+          value={dashboardSnapshot.lowAttendanceStudents}
           icon={TrendingDown}
           iconColor="#f97316"
           iconBgColor="#ffedd5"
-          chartData={chartData.lowAttendance}
+          chartData={dashboardSnapshot.chartData.lowAttendance}
           chartColor="#f97316"
           change={{
-            value: -3,
-            percentage: -17.6,
-            isPositive: true,
+            value: dashboardSnapshot.lowAttendanceStudents,
+            percentage: Math.max(
+              1,
+              (dashboardSnapshot.lowAttendanceStudents /
+                Math.max(dashboardSnapshot.kpis.totalStudents, 1)) *
+                100
+            ),
+            isPositive: dashboardSnapshot.lowAttendanceStudents <= 10,
           }}
-          showPeriodFilter={true}
-          periodOptions={periodOptions}
-          defaultPeriod="today"
-          onPeriodChange={onPeriodChange}
         />
 
         <div className="flex h-full flex-col gap-2">
           <KPICardV2
             title={tKpi("nedaa_efficiency")}
-            value={4}
+            value={dashboardSnapshot.nedaaEfficiencyMinutes}
             valueSuffix=" min"
             icon={MapPin}
             iconColor="#8b5cf6"
             iconBgColor="#ede9fe"
-            chartData={chartData.nedaa}
+            chartData={dashboardSnapshot.chartData.nedaa}
             chartColor="#8b5cf6"
             change={{
-              value: -1,
-              percentage: -20,
+              value: Math.round(dashboardSnapshot.nedaaEfficiencyMinutes),
+              percentage: dashboardSnapshot.nedaaEfficiencyMinutes * 10,
               isPositive: true,
             }}
-            showPeriodFilter={true}
-            periodOptions={periodOptions}
-            defaultPeriod="today"
-            onPeriodChange={onPeriodChange}
           />
         </div>
       </div>
@@ -201,15 +182,20 @@ export default function SchoolDashboardView({
           <div className="flex flex-5 w-full flex-col gap-4">
             <div className="flex w-full flex-1 flex-wrap gap-4">
               <div className="w-full flex-1">
-                <AttendanceCard />
+                <AttendanceCard
+                  presentRate={dashboardSnapshot.attendanceBreakdown.present}
+                  absentRate={dashboardSnapshot.attendanceBreakdown.absent}
+                />
               </div>
               <div className="w-full flex-1">
-                <ActivitiesCard />
+                <ActivitiesCard activities={dashboardSnapshot.activities} />
               </div>
             </div>
 
             <div className="w-full flex-1">
-              <AcademicPerformanceCard />
+              <AcademicPerformanceCard
+                performance={dashboardSnapshot.academicPerformance}
+              />
             </div>
 
             {reinforcementSummary ? (
@@ -228,22 +214,25 @@ export default function SchoolDashboardView({
         </div>
         <div className="grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2">
           <div>
-            <StudentsPerGradeChart />
+            <StudentsPerGradeChart data={dashboardSnapshot.studentsPerGrade} />
           </div>
           <div>
-            <AbsenceReasonsChart />
+            <AbsenceReasonsChart reasons={dashboardSnapshot.absenceReasons} />
           </div>
           <div className="h-full">
-            <AttendanceTrendChart />
+            <AttendanceTrendChart trendByPeriod={dashboardSnapshot.attendanceTrend} />
           </div>
           <div>
-            <CriticalAlerts />
+            <CriticalAlerts alerts={dashboardSnapshot.alerts} />
           </div>
           <div>
             <PassFailRatioChart />
           </div>
           <div>
-            <TodayMonitoring />
+            <TodayMonitoring
+              classes={dashboardSnapshot.monitoring.classes}
+              exams={dashboardSnapshot.monitoring.exams}
+            />
           </div>
         </div>
       </div>

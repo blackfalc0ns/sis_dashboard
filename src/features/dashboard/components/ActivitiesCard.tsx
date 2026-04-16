@@ -2,36 +2,13 @@
 
 import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { DashboardActivity } from "@/features/dashboard/utils/dashboardStatsCalculator";
 
-interface Incident {
-  id: string;
-  studentName: string;
-  reason: string;
-  xp: number;
+interface ActivitiesCardProps {
+  activities: DashboardActivity[];
 }
 
-const incidents: Incident[] = [
-  {
-    id: "1",
-    studentName: "To Student Name",
-    reason: "Activity Reason",
-    xp: 50,
-  },
-  {
-    id: "2",
-    studentName: "To Student Name",
-    reason: "Activity Reason",
-    xp: -25,
-  },
-  {
-    id: "3",
-    studentName: "To Student Name",
-    reason: "Activity Reason",
-    xp: 100,
-  },
-];
-
-export default function ActivitiesCard() {
+export default function ActivitiesCard({ activities }: ActivitiesCardProps) {
   const t = useTranslations("activities");
   return (
     <div className="bg-white rounded-[20px] p-8 shadow-(--main-box-shadow) border border-border flex flex-col gap-1 h-full">
@@ -40,7 +17,7 @@ export default function ActivitiesCard() {
       </div>
 
       <div className="space-y-4">
-        {incidents.map((incident) => (
+        {activities.map((incident) => (
           <div
             key={incident.id}
             className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"

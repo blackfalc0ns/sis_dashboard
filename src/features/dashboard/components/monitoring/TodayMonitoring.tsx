@@ -2,53 +2,18 @@
 
 import { Clock, FileText } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { DashboardMonitoringItem } from "@/features/dashboard/utils/dashboardStatsCalculator";
 
-interface MonitoringItem {
-  time: string;
-  title: string;
-  subtitle: string;
-  status: "ongoing" | "upcoming" | "completed";
+interface TodayMonitoringProps {
+  classes: DashboardMonitoringItem[];
+  exams: DashboardMonitoringItem[];
 }
 
-const classes: MonitoringItem[] = [
-  {
-    time: "08:00",
-    title: "Mathematics - Grade 10A",
-    subtitle: "Room 201",
-    status: "completed",
-  },
-  {
-    time: "09:30",
-    title: "Physics - Grade 11B",
-    subtitle: "Lab 3",
-    status: "ongoing",
-  },
-  {
-    time: "11:00",
-    title: "English - Grade 9C",
-    subtitle: "Room 105",
-    status: "upcoming",
-  },
-];
-
-const exams: MonitoringItem[] = [
-  {
-    time: "10:00",
-    title: "Chemistry Midterm",
-    subtitle: "Grade 12",
-    status: "ongoing",
-  },
-  {
-    time: "14:00",
-    title: "Biology Quiz",
-    subtitle: "Grade 10",
-    status: "upcoming",
-  },
-];
-
-export default function TodayMonitoring() {
+export default function TodayMonitoring({
+  classes,
+  exams,
+}: TodayMonitoringProps) {
   const t = useTranslations("monitoring");
-  console.log(t("status.ongoing"));
   return (
     <div className="bg-white rounded-xl border border-border p-4 shadow-(--main-box-shadow) h-full">
       <h3 className="text-base font-bold text-gray-900 mb-4">{t("title")}</h3>

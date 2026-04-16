@@ -1,33 +1,53 @@
-// FILE: src/components/dashboard/ExportModal.tsx
-
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { X, FileText, FileSpreadsheet, FileJson, Printer } from "lucide-react";
 import {
   exportToCSV,
   exportToExcel,
   exportToJSON,
   exportToPDF,
-  generateDashboardSummary,
-  generateAttendanceData,
-  generateIncidentsData,
 } from "@/utils/exportUtils";
+import type {
+  DashboardExportAttendanceRow,
+  DashboardExportIncidentRow,
+  DashboardExportSummaryRow,
+} from "@/features/dashboard/utils/dashboardStatsCalculator";
 
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  academicYearName: string;
+  termName: string;
+  exportData: {
+    summary: DashboardExportSummaryRow;
+    attendance: DashboardExportAttendanceRow[];
+    incidents: DashboardExportIncidentRow[];
+  };
 }
 
 type ExportFormat = "csv" | "excel" | "json" | "pdf";
 type ExportData = "summary" | "attendance" | "incidents" | "all";
 
-export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
+export default function ExportModal({
+  isOpen,
+  onClose,
+  academicYearName,
+  termName,
+  exportData,
+}: ExportModalProps) {
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("excel");
   const [selectedData, setSelectedData] = useState<ExportData>("summary");
   const [isExporting, setIsExporting] = useState(false);
 
-  if (!isOpen) return null;
+  const timestamp = useMemo(
+    () => new Date().toISOString().split("T")[0],
+    []
+  );
+
+  if (!isOpen) {
+    return null;
+  }
 
   const formats = [
     {
@@ -83,8 +103,6 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
     setIsExporting(true);
 
     try {
-      const timestamp = new Date().toISOString().split("T")[0];
-
       if (selectedFormat === "pdf") {
         exportToPDF();
         onClose();
@@ -96,23 +114,19 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
 
       switch (selectedData) {
         case "summary":
-          data = [generateDashboardSummary()];
+          data = [exportData.summary];
           filename = `dashboard-summary-${timestamp}`;
           break;
         case "attendance":
-          data = generateAttendanceData();
+          data = exportData.attendance;
           filename = `attendance-report-${timestamp}`;
           break;
         case "incidents":
-          data = generateIncidentsData();
+          data = exportData.incidents;
           filename = `incidents-report-${timestamp}`;
           break;
         case "all":
-          data = {
-            summary: generateDashboardSummary(),
-            attendance: generateAttendanceData(),
-            incidents: generateIncidentsData(),
-          };
+          data = exportData;
           filename = `complete-report-${timestamp}`;
           break;
       }
@@ -123,7 +137,7 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
             exportToExcel(data as Record<string, unknown>[], filename);
           } else {
             alert(
-              "Excel export requires tabular data. Please select a specific data type.",
+              "Excel export requires tabular data. Please select a specific data type."
             );
             return;
           }
@@ -133,7 +147,7 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
             exportToCSV(data as Record<string, unknown>[], filename);
           } else {
             alert(
-              "CSV export requires tabular data. Please select a specific data type.",
+              "CSV export requires tabular data. Please select a specific data type."
             );
             return;
           }
@@ -157,13 +171,12 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-primary to-hover text-white p-6 rounded-t-xl">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold">Export Dashboard Data</h2>
               <p className="text-sm text-white/80 mt-1">
-                Choose format and data to export
+                {academicYearName} · {termName}
               </p>
             </div>
             <button
@@ -176,7 +189,6 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Export Format Selection */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3">
               Export Format
@@ -223,7 +235,6 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
             </div>
           </div>
 
-          {/* Data Selection */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3">
               Data to Export
@@ -271,23 +282,19 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
             </div>
           </div>
 
-          {/* Info Box */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h4 className="text-sm font-semibold text-blue-900 mb-2">
               Export Information
             </h4>
             <ul className="text-xs text-blue-800 space-y-1">
-              <li>
-                • Files will be downloaded to your default download folder
-              </li>
-              <li>• Filename includes current date for easy organization</li>
-              <li>• Excel/CSV formats work best with tabular data</li>
-              <li>• JSON format includes all nested data structures</li>
-              <li>• PDF export uses your browser&apos;s print function</li>
+              <li>Files will be downloaded to your default download folder.</li>
+              <li>Export labels include the current academic year and term.</li>
+              <li>Excel and CSV formats work best with tabular data.</li>
+              <li>JSON format includes nested dashboard datasets.</li>
+              <li>PDF export uses your browser&apos;s print function.</li>
             </ul>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-gray-200">
             <button
               onClick={onClose}

@@ -101,6 +101,8 @@
       "grade": "Grade",
       "academic_year": "Academic Year"
     },
+    "academic_year": "Academic Year",
+    "term": "Term",
     "export": "Export"
   },
   "comparison": {
