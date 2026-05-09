@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { DataTable, type Column } from "@/components/ui/data-table";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import type { GradebookStudentRow } from "../types";
 
 type GradebookTableRow = GradebookStudentRow & Record<string, unknown>;
@@ -18,7 +19,6 @@ export default function GradesGradebookSection({
   columns,
 }: GradesGradebookSectionProps) {
   const t = useTranslations("academics.grades");
-  const tCommon = useTranslations("common");
 
   return (
     <div className="rounded-xl border p-4" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}>
@@ -27,7 +27,9 @@ export default function GradesGradebookSection({
         <div className="text-sm" style={{ color: "var(--text-secondary)" }}>{t("gradebook.subtitle")}</div>
       </div>
       {isLoading ? (
-        <div className="py-10 text-center text-sm" style={{ color: "var(--text-secondary)" }}>{tCommon("loading")}</div>
+        <div className="flex justify-center py-10">
+          <PartialLoader />
+        </div>
       ) : rows.length === 0 ? (
         <div className="rounded-lg border p-6 text-center text-sm" style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)" }}>
           {t("emptyState.noStudents")}

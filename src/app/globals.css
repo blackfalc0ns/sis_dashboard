@@ -125,6 +125,34 @@ body {
   font-family: var(--font-cairo), system-ui, sans-serif;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: localeFadeOut 500ms ease-in-out;
+  }
+
+  ::view-transition-new(root) {
+    animation: localeFadeIn 400ms ease-out;
+  }
+}
+
+@keyframes localeFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes localeFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* placeholder */
 input::placeholder,
 textarea::placeholder {

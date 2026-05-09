@@ -3,6 +3,7 @@
 import { useTranslations, useLocale } from "next-intl";
 import { Info } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import type { PolicyFormData } from "../../types";
 import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
 
@@ -27,7 +28,6 @@ export default function Step3ModeComputation({
   onFieldChange,
 }: Step3ModeComputationProps) {
   const t = useTranslations("attendance.policies.wizard");
-  const tCommon = useTranslations("common");
   const locale = useLocale();
 
 
@@ -68,7 +68,9 @@ export default function Step3ModeComputation({
         </p>
 
         {isLoadingPeriods ? (
-          <div style={{ color: "var(--color-neutral-500)" }} className="text-sm py-4">{tCommon("loading")}...</div>
+          <div className="flex justify-center py-4">
+            <PartialLoader />
+          </div>
         ) : availablePeriods.length === 0 ? (
           <div
             className="rounded-lg border p-4 text-sm"

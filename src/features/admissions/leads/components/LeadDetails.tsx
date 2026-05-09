@@ -16,6 +16,7 @@ import {
   MessageCircle,
   ArrowRight,
 } from "lucide-react";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 import LeadStatusBadge from "@/features/admissions/leads/components/LeadStatusBadge";
 import ActivityLog from "@/features/admissions/leads/components/ActivityLog";
 import NotesPanel from "@/features/admissions/leads/components/NotesPanel";
@@ -66,11 +67,7 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
   }, [leadId, router, locale]);
 
   if (!lead) {
-    return (
-      <div className="p-6">
-        <p className="text-gray-500">{t("loading")}</p>
-      </div>
-    );
+    return <MainLoader />;
   }
 
   const handleAddActivity = (type: ActivityType, message: string) => {

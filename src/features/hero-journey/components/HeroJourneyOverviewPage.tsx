@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Activity, Award, Flame, ShieldAlert, Target, Trophy, Users } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { KPICardV2 } from "@/components/ui";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 import { heroJourneySectionBanners } from "../config/heroJourneySectionBanners";
 import { getHeroJourneyOverview } from "../services/heroJourneyService";
 import type { HeroJourneyOverviewMetrics } from "../types";
@@ -130,9 +131,7 @@ export default function HeroJourneyOverviewPage() {
           description={t("overviewDescription")}
           bannerImageSrc={heroJourneySectionBanners.overview}
         />
-        <div className="rounded-xl bg-white p-6 text-sm text-gray-500 shadow-sm">
-          {t("loading")}
-        </div>
+        <MainLoader />
       </div>
     );
   }

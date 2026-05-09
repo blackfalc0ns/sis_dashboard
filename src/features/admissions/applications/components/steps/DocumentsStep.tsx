@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { AlertCircle, FileCheck, FileX, Upload } from "lucide-react";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import type { AdmissionsRequiredDocumentConfig } from "@/features/settings/types";
 
 interface DocumentData {
@@ -43,7 +44,11 @@ export default function DocumentsStep({
     locale === "ar" ? requirement.nameAr : requirement.nameEn;
 
   if (isLoading) {
-    return <div className="py-12 text-center text-sm text-gray-500">{t("documents.loading")}</div>;
+    return (
+      <div className="flex justify-center py-12">
+        <PartialLoader />
+      </div>
+    );
   }
 
   return (

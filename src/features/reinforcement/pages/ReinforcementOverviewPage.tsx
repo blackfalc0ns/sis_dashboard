@@ -11,6 +11,7 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button/Button";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 import Select from "@/components/ui/input/Select";
 import ReinforcementOverviewCharts from "../components/charts/ReinforcementOverviewCharts";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
@@ -375,7 +376,7 @@ export default function ReinforcementOverviewPage({
   };
 
   if (!overview) {
-    return <div className="rounded-xl bg-white p-6 shadow-sm">{t("loading")}</div>;
+    return <MainLoader />;
   }
 
   return (

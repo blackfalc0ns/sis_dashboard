@@ -95,6 +95,55 @@
       "csv": "Export as CSV"
     }
   },
+  "auth": {
+    "login": {
+      "brand": {
+        "badge": "Moazez School Management System",
+        "title": "Run your school operations from one secure workspace.",
+        "description": "Access attendance, admissions, academics, and daily workflows through a focused sign-in experience built for school teams.",
+        "highlights": {
+          "operations": {
+            "title": "Unified operations",
+            "description": "Track academics, attendance, and school workflows from one dashboard."
+          },
+          "security": {
+            "title": "Secure access",
+            "description": "Start with a protected sign-in flow designed for administrators and staff."
+          },
+          "language": {
+            "title": "Bilingual experience",
+            "description": "Switch between Arabic and English instantly without leaving the page."
+          }
+        }
+      },
+      "title": "Welcome back",
+      "subtitle": "Sign in to continue to your school dashboard.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "name@school.edu",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign in",
+      "submitting": "Signing in...",
+      "submitError": "Unable to sign in with the provided credentials in demo mode.",
+      "demoSuccess": "Mock sign-in succeeded. API integration is still pending.",
+      "formHint": "This login screen currently uses a mocked submit handler for UI testing.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "languageSwitcher": {
+        "ariaLabel": "Switch language",
+        "english": "EN",
+        "arabic": "AR"
+      },
+      "errors": {
+        "emailRequired": "Email is required.",
+        "emailInvalid": "Enter a valid email address.",
+        "passwordRequired": "Password is required.",
+        "passwordMinLength": "Password must be at least 8 characters."
+      }
+    }
+  },
   "filter_bar": {
     "filters": {
       "today": "Today",

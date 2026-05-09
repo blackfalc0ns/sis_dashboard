@@ -7,6 +7,7 @@ import { LineChart } from "@mui/x-charts/LineChart";
 import type { Student } from "@/features/students-guardians/students/types";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { DataTable } from "@/components/ui/data-table";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import { fetchStudentGradesSnapshot } from "@/features/grades/overview/services/gradesOverviewService";
 import type { StudentGradesSnapshot } from "@/features/grades/overview/types";
 
@@ -74,7 +75,11 @@ export default function GradesTab({ student }: GradesTabProps) {
   }));
 
   if (isLoading) {
-    return <div className="py-8 text-center text-sm text-gray-500">{t("loading")}</div>;
+    return (
+      <div className="flex justify-center py-8">
+        <PartialLoader />
+      </div>
+    );
   }
 
   if (!snapshot || subjectRows.length === 0) {

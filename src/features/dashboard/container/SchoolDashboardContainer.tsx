@@ -4,7 +4,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 import { mockStudents } from "@/data/mockStudents";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { getReinforcementSummaryCard } from "@/features/reinforcement/services/reinforcementService";
@@ -14,7 +14,6 @@ import {
 import SchoolDashboardView from "../views/SchoolDashboardView";
 
 export default function SchoolDashboardContainer() {
-  const tCommon = useTranslations("common");
   const { 
     academicYearId,
     termId,
@@ -56,13 +55,7 @@ export default function SchoolDashboardContainer() {
   }, [academicYearId, termId]);
 
   if (isInitializing || !selectedAcademicYear || !selectedTerm) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center bg-gray-50 p-6">
-        <div className="rounded-2xl border border-gray-200 bg-white px-6 py-4 text-sm font-medium text-gray-600 shadow-sm">
-          {tCommon("loading")}
-        </div>
-      </div>
-    );
+    return <MainLoader />;
   }
 
   return (

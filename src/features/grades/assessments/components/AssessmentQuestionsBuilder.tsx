@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { FileQuestion, Plus } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import AssignmentSummaryBar from "@/features/academics/curriculum/components/AssignmentSummaryBar";
 import QuestionCard from "@/features/academics/curriculum/components/QuestionCard";
 import QuestionDrawer from "@/features/academics/curriculum/components/QuestionDrawer";
@@ -89,8 +90,13 @@ export default function AssessmentQuestionsBuilder({
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border p-6 text-sm" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)", color: "var(--text-secondary)" }}>
-        {t("loading")}
+      <div
+        className="rounded-xl border p-6"
+        style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}
+      >
+        <div className="flex justify-center py-6">
+          <PartialLoader />
+        </div>
       </div>
     );
   }
