@@ -15,19 +15,26 @@ import {
   TrendingUp,
   MessageCircle,
   ArrowRight,
+  Edit,
 } from "lucide-react";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import LeadStatusBadge from "@/features/admissions/leads/components/LeadStatusBadge";
+import CreateLeadModal from "@/features/admissions/leads/components/CreateLeadModal";
 import ActivityLog from "@/features/admissions/leads/components/ActivityLog";
 import NotesPanel from "@/features/admissions/leads/components/NotesPanel";
 import LeadChatPanel from "@/features/admissions/leads/components/LeadChatPanel";
 import TabNavigation from "@/features/admissions/shared/TabNavigation";
 import {
   fetchLeadById,
+  updateLead,
   convertLead,
 } from "@/features/admissions/leads/services/leadsApiService";
 import { Lead, ActivityType } from "@/features/admissions/types/leads";
-import type { ActivityLogItem, Note } from "@/features/admissions/leads/types/lead";
+import type {
+  ActivityLogItem,
+  Note,
+  UpdateLeadPayload,
+} from "@/features/admissions/leads/types/lead";
 import { useToast } from "@/components/ui/toast/Toast";
 
 interface LeadDetailsProps {
@@ -47,6 +54,7 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
   const [notes] = useState<Note[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [unreadCount] = useState(0);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const loadLead = useCallback(async () => {
     setIsLoading(true);
@@ -72,25 +80,41 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
 
   const displayName = lead.studentName || lead.primaryContactName || lead.name || "";
 
-  const handleAddActivity = (_type: ActivityType, _message: string) => {
+  const handleAddActivity = (type: ActivityType, message: string) => {
+    void type;
+    void message;
     showToast("Activity log is not yet available from the API.", "info");
   };
 
-  const handleAddNote = (_body: string) => {
+  const handleAddNote = (body: string) => {
+    void body;
     showToast("Notes are not yet available from the API.", "info");
   };
 
   const handleConvertToApplication = async () => {
-    if (confirm(`Convert lead "${displayName}" to application?`)) {
+    if (confirm(t("mark_converted_confirm", { name: displayName }))) {
       try {
         await convertLead(lead.id);
-        showToast("Lead status changed to Converted!", "success");
+        showToast(t("marked_converted"), "success");
         // Reload to reflect updated status
         await loadLead();
       } catch (err) {
         console.error("Failed to convert lead:", err);
-        showToast("Failed to convert lead", "error");
+        showToast(t("mark_converted_failed"), "error");
       }
+    }
+  };
+
+  const handleUpdateLead = async (data: UpdateLeadPayload) => {
+    try {
+      const updatedLead = await updateLead(lead.id, data);
+      setLead(updatedLead);
+      showToast(t_leads("lead_updated"), "success");
+      setIsEditModalOpen(false);
+    } catch (err) {
+      console.error("Failed to update lead:", err);
+      showToast(t_leads("update_failed"), "error");
+      throw err;
     }
   };
 
@@ -148,10 +172,17 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
           />
           <div className="flex items-center gap-3 flex-wrap">
             <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+            >
+              <Edit className="h-4 w-4" />
+              {t_leads("edit")}
+            </button>
+            <button
               onClick={handleConvertToApplication}
               className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
             >
-              {t("convert_to_application")}
+              {t("mark_converted")}
             </button>
           </div>
         </div>
@@ -279,6 +310,14 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
           )}
         </div>
       </div>
+
+      <CreateLeadModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSubmit={handleUpdateLead}
+        initialLead={lead}
+        mode="update"
+      />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
   Users,
   UserCheck,
   Download,
+  Edit,
 } from "lucide-react";
 import { DataTable, FilterPanel } from "@/components/ui";
 import { KPICardV2 } from "@/components/ui/kpi-card";
@@ -27,18 +28,18 @@ import { formatLeadsForExport } from "@/features/admissions/applications/utils/a
 import {
   fetchLeads,
   createLead,
+  updateLead,
   convertLead,
 } from "@/features/admissions/leads/services/leadsApiService";
-import type { CreateLeadPayload } from "@/features/admissions/leads/types/lead";
+import type {
+  CreateLeadPayload,
+  UpdateLeadPayload,
+} from "@/features/admissions/leads/types/lead";
 import { Lead, LeadStatus, LeadChannel } from "@/features/admissions";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import MainLoader from "@/components/ui/loaders/MainLoader";
-import {
-  filterAdmissionsRecordsByDateContext,
-  resolveAdmissionsContextScope,
-} from "@/features/admissions/shared/utils/admissionsContextScope";
 import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
 import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -46,22 +47,25 @@ import { useToast } from "@/components/ui/toast/Toast";
 export default function LeadsList() {
   const router = useRouter();
   const t = useTranslations("admissions.leads");
-  const t_grades = useTranslations("admissions.grades");
   const locale = useLocale();
-  const { yearId, termId, isReadOnly, isLoading: contextLoading, error } =
-    useAdmissionsYearTermContext();
+  const {
+    yearId,
+    termId,
+    isReadOnly,
+    isLoading: contextLoading,
+    error,
+  } = useAdmissionsYearTermContext();
   const { showToast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const [showFilters, setShowFilters] = useState(false);
-  const admissionsScope = useMemo(
-    () => resolveAdmissionsContextScope(yearId, termId),
-    [termId, yearId],
-  );
+  void yearId;
+  void termId;
 
   // Load leads from API
   const loadLeads = useCallback(async () => {
@@ -81,15 +85,7 @@ export default function LeadsList() {
     loadLeads();
   }, [loadLeads]);
 
-  const scopedLeads = useMemo(
-    () =>
-      filterAdmissionsRecordsByDateContext(
-        leads,
-        (lead) => lead.createdAt,
-        admissionsScope,
-      ),
-    [admissionsScope, leads],
-  );
+  const scopedLeads = leads;
   const normalizeQueryValues = useCallback(
     (
       values: Record<
@@ -98,9 +94,29 @@ export default function LeadsList() {
       >,
     ) => {
       const updates: Partial<Record<keyof typeof values, string | null>> = {};
-      const validStatuses = new Set(["all", "New", "Contacted", "Converted", "Closed"]);
-      const validChannels = new Set(["all", "In-app", "Referral", "Walk-in", "Other"]);
-      const validDateRanges = new Set(["all", "7", "14", "30", "60", "90", "custom"]);
+      const validStatuses = new Set([
+        "all",
+        "New",
+        "Contacted",
+        "Converted",
+        "Closed",
+      ]);
+      const validChannels = new Set([
+        "all",
+        "In-app",
+        "Referral",
+        "Walk-in",
+        "Other",
+      ]);
+      const validDateRanges = new Set([
+        "all",
+        "7",
+        "14",
+        "30",
+        "60",
+        "90",
+        "custom",
+      ]);
 
       if (!validStatuses.has(values.status)) {
         updates.status = null;
@@ -160,10 +176,15 @@ export default function LeadsList() {
     );
 
     return scopedLeads.filter((lead) => {
-      const displayName = lead.studentName || lead.primaryContactName || lead.name || "";
+      const displayName =
+        lead.studentName || lead.primaryContactName || lead.name || "";
       const matchesSearch =
         searchQuery === "" ||
         displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (lead.primaryContactName &&
+          lead.primaryContactName
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())) ||
         lead.phone.includes(searchQuery) ||
         (lead.email &&
           lead.email.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -233,12 +254,33 @@ export default function LeadsList() {
     } catch (err) {
       console.error("Failed to create lead:", err);
       showToast(t("create_failed") || "Failed to create lead", "error");
+      throw err;
+    }
+  };
+
+  const handleUpdateLead = async (data: UpdateLeadPayload) => {
+    if (!editingLead) {
+      return;
+    }
+
+    try {
+      await updateLead(editingLead.id, data);
+      showToast(t("lead_updated"), "success");
+      await loadLeads();
+      setEditingLead(null);
+    } catch (err) {
+      console.error("Failed to update lead:", err);
+      showToast(t("update_failed"), "error");
+      throw err;
     }
   };
 
   const handleImportLeads = (file: File) => {
     console.log("Importing file:", file.name);
-    showToast(`File "${file.name}" uploaded. Import functionality is a stub.`, "info");
+    showToast(
+      `File "${file.name}" uploaded. Import functionality is a stub.`,
+      "info",
+    );
     setIsImportModalOpen(false);
   };
 
@@ -256,19 +298,28 @@ export default function LeadsList() {
     router.push(`/${locale}/admissions/leads/${lead.id}`);
   };
 
-  const handleConvertToApplication = async (lead: Lead, e: React.MouseEvent) => {
+  const handleConvertToApplication = async (
+    lead: Lead,
+    e: React.MouseEvent,
+  ) => {
     e.stopPropagation();
-    const displayName = lead.studentName || lead.primaryContactName || lead.name || "";
-    if (confirm(`Convert lead "${displayName}" to application?`)) {
+    const displayName =
+      lead.studentName || lead.primaryContactName || lead.name || "";
+    if (confirm(t("mark_converted_confirm", { name: displayName }))) {
       try {
         await convertLead(lead.id);
-        showToast("Lead converted to application!", "success");
+        showToast(t("marked_converted"), "success");
         await loadLeads();
       } catch (err) {
         console.error("Failed to convert lead:", err);
-        showToast("Failed to convert lead", "error");
+        showToast(t("mark_converted_failed"), "error");
       }
     }
+  };
+
+  const handleEditLead = (lead: Lead, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingLead(lead);
   };
 
   const columns = [
@@ -282,7 +333,8 @@ export default function LeadsList() {
       label: t("name"),
       searchable: true,
       render: (value: unknown, row: Lead) => {
-        const displayName = row.studentName || row.primaryContactName || row.name || "";
+        const displayName =
+          row.studentName || row.primaryContactName || row.name || "";
         return (
           <div className="flex items-center gap-2">
             <span>{String(displayName || value)}</span>
@@ -334,12 +386,25 @@ export default function LeadsList() {
       label: t("actions"),
       sortable: false,
       render: (_: unknown, row: Lead) => (
-        <button
-          onClick={(e) => handleConvertToApplication(row, e)}
-          className="px-3 py-1 bg-primary hover:bg-hover text-white rounded text-xs font-medium transition-colors"
-        >
-          {t("convert")}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={(e) => handleEditLead(row, e)}
+            disabled={isReadOnly}
+            className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Edit className="h-3.5 w-3.5" />
+            {t("edit")}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => handleConvertToApplication(row, e)}
+            disabled={isReadOnly}
+            className="px-3 py-1 bg-primary hover:bg-hover text-white rounded text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {t("mark_converted")}
+          </button>
+        </div>
       ),
     },
   ];
@@ -360,35 +425,6 @@ export default function LeadsList() {
 
   return (
     <div className="space-y-6">
-      {/* Date Range Filter */}
-      <DateRangeFilter
-        value={dateRange}
-        onChange={(nextRange) => {
-          const shouldResetCustom = nextRange !== "custom";
-          setValues(
-            {
-              dateRange: nextRange,
-              startDate: shouldResetCustom ? null : customStartDate || null,
-              endDate: shouldResetCustom ? null : customEndDate || null,
-            },
-            "push",
-          );
-        }}
-        customStartDate={customStartDate}
-        customEndDate={customEndDate}
-        onCustomDateChange={(start, end) => {
-          setValues(
-            {
-              dateRange: "custom",
-              startDate: start || null,
-              endDate: end || null,
-            },
-            "replace",
-          );
-        }}
-        showAllTime={true}
-      />
-
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICardV2
@@ -407,13 +443,6 @@ export default function LeadsList() {
           icon={Users}
           iconColor="#3b82f6"
           iconBgColor="#dbeafe"
-          chartData={[
-            { label: "W1", value: 20 },
-            { label: "W2", value: 25 },
-            { label: "W3", value: 30 },
-            { label: "W4", value: kpis.totalLeads },
-          ]}
-          chartColor="#3b82f6"
         />
         <KPICardV2
           title={t("new_leads")}
@@ -422,13 +451,6 @@ export default function LeadsList() {
           icon={Users}
           iconColor="#3b82f6"
           iconBgColor="#dbeafe"
-          chartData={[
-            { label: "W1", value: 8 },
-            { label: "W2", value: 10 },
-            { label: "W3", value: 12 },
-            { label: "W4", value: kpis.newLeads },
-          ]}
-          chartColor="#3b82f6"
         />
         <KPICardV2
           title={t("contacted")}
@@ -437,13 +459,6 @@ export default function LeadsList() {
           icon={UserCheck}
           iconColor="#f59e0b"
           iconBgColor="#fef3c7"
-          chartData={[
-            { label: "W1", value: 10 },
-            { label: "W2", value: 12 },
-            { label: "W3", value: 15 },
-            { label: "W4", value: kpis.contacted },
-          ]}
-          chartColor="#f59e0b"
         />
         <KPICardV2
           title={t("converted")}
@@ -452,13 +467,6 @@ export default function LeadsList() {
           icon={UserCheck}
           iconColor="#10b981"
           iconBgColor="#d1fae5"
-          chartData={[
-            { label: "W1", value: 5 },
-            { label: "W2", value: 7 },
-            { label: "W3", value: 9 },
-            { label: "W4", value: kpis.converted },
-          ]}
-          chartColor="#10b981"
         />
       </div>
 
@@ -535,7 +543,11 @@ export default function LeadsList() {
               <select
                 value={statusFilter}
                 onChange={(e) =>
-                  setValue("status", e.target.value as LeadStatus | "all", "push")
+                  setValue(
+                    "status",
+                    e.target.value as LeadStatus | "all",
+                    "push",
+                  )
                 }
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -553,7 +565,11 @@ export default function LeadsList() {
               <select
                 value={channelFilter}
                 onChange={(e) =>
-                  setValue("channel", e.target.value as LeadChannel | "all", "push")
+                  setValue(
+                    "channel",
+                    e.target.value as LeadChannel | "all",
+                    "push",
+                  )
                 }
                 className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
@@ -609,6 +625,13 @@ export default function LeadsList() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateLead}
+      />
+      <CreateLeadModal
+        isOpen={Boolean(editingLead)}
+        onClose={() => setEditingLead(null)}
+        onSubmit={handleUpdateLead}
+        initialLead={editingLead}
+        mode="update"
       />
       <ImportLeadsModal
         isOpen={isImportModalOpen}

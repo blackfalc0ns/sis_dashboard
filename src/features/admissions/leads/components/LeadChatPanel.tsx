@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { Send, Phone, Mail, MessageCircle } from "lucide-react";
 import type { LeadMessage } from "@/features/admissions/leads/types/message";
 import {
-  getOrCreateDirectConversation,
+  getOrCreateLeadConversation,
   fetchConversationMessages,
   sendConversationMessage,
   markConversationAsRead,
@@ -47,8 +47,13 @@ export default function LeadChatPanel({
       setIsLoadingChat(true);
       setChatError(null);
       try {
-        // 1. Get or create a direct conversation with the lead contact
-        const convId = await getOrCreateDirectConversation(leadId);
+        // 1. Get or create a communication conversation tagged to this lead.
+        const convId = await getOrCreateLeadConversation({
+          leadId,
+          leadName,
+          leadPhone,
+          leadEmail,
+        });
         setConversationId(convId);
 
         // 2. Load messages
@@ -64,14 +69,14 @@ export default function LeadChatPanel({
         scrollToBottom();
       } catch (error) {
         console.error("Failed to initialize chat:", error);
-        setChatError("Failed to load conversation. The chat service may be unavailable.");
+        setChatError(t("load_failed"));
       } finally {
         setIsLoadingChat(false);
       }
     };
 
     initChat();
-  }, [leadId, onMessagesRead, scrollToBottom]);
+  }, [leadEmail, leadId, leadName, leadPhone, onMessagesRead, scrollToBottom, t]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || isSending || !conversationId) return;
@@ -89,7 +94,7 @@ export default function LeadChatPanel({
       scrollToBottom();
     } catch (error) {
       console.error("Failed to send message:", error);
-      alert("Failed to send message. Please try again.");
+      alert(t("send_failed"));
     } finally {
       setIsSending(false);
     }
@@ -155,7 +160,7 @@ export default function LeadChatPanel({
         {isLoadingChat ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3" />
-            <p className="text-gray-500 text-sm">Loading messages...</p>
+            <p className="text-gray-500 text-sm">{t("loading")}</p>
           </div>
         ) : chatError ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
@@ -211,7 +216,7 @@ export default function LeadChatPanel({
           <textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
             placeholder={t("type_message")}
             rows={2}
             disabled={isSending || !conversationId}

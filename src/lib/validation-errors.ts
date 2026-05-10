@@ -29,19 +29,29 @@ function inferFieldFromMessage(message: string): string | null {
     return null;
   }
 
+  const canonicalFieldByToken: Record<string, string> = {
+    fullname: "fullName",
+    primarycontactname: "primaryContactName",
+    roleid: "roleId",
+    studentname: "studentName",
+  };
+  const canonicalField = canonicalFieldByToken[firstToken];
+  if (canonicalField) {
+    return canonicalField;
+  }
+
   if (
     firstToken.includes(".") ||
     firstToken.includes("[") ||
     [
       "email",
+      "phone",
       "password",
-      "fullname",
-      "fullName",
       "name",
       "description",
-      "roleid",
-      "roleId",
+      "channel",
       "status",
+      "notes",
     ].includes(firstToken)
   ) {
     return normalizeFieldName(firstToken);

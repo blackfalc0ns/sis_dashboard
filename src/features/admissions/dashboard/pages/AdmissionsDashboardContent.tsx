@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Users, TrendingUp, Clock, Download } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -20,7 +20,8 @@ import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
 import { mockApplications } from "@/data/mockAdmissions";
 import { getAdmissionsAnalytics } from "@/features/admissions/dashboard/services/admissionsAnalytics";
 import { ApplicationStatus, Application } from "@/features/admissions/types/admissions";
-import { getLeads } from "@/features/admissions/leads/services/mockLeadsApi";
+import { fetchLeads } from "@/features/admissions/leads/services/leadsApiService";
+import type { Lead } from "@/features/admissions/leads/types/lead";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import { createAdmissionsDashboardExportHandler } from "@/features/admissions/shared/utils/admissionsDashboardExport";
@@ -40,6 +41,9 @@ export default function AdmissionsDashboardContent() {
   const [customStartDate, setCustomStartDate] = useState<string>("");
   const [customEndDate, setCustomEndDate] = useState<string>("");
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [isLeadsLoading, setIsLeadsLoading] = useState(true);
+  const [leadsError, setLeadsError] = useState<string | null>(null);
   const handleExport = createAdmissionsDashboardExportHandler(locale, {
     value: dateRange,
     customStart: customStartDate,
@@ -58,15 +62,38 @@ export default function AdmissionsDashboardContent() {
       ),
     [admissionsScope],
   );
-  const scopedLeads = useMemo(
-    () =>
-      filterAdmissionsRecordsByDateContext(
-        getLeads(),
-        (lead) => lead.createdAt,
-        admissionsScope,
-      ),
-    [admissionsScope],
-  );
+  const scopedLeads = leads;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadLeads = async () => {
+      setIsLeadsLoading(true);
+      setLeadsError(null);
+      try {
+        const nextLeads = await fetchLeads();
+        if (isMounted) {
+          setLeads(nextLeads);
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard leads:", error);
+        if (isMounted) {
+          setLeads([]);
+          setLeadsError("Failed to load leads analytics.");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLeadsLoading(false);
+        }
+      }
+    };
+
+    void loadLeads();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Calculate days back for analytics based on date range
   const daysBack = useMemo(() => {
@@ -304,6 +331,17 @@ export default function AdmissionsDashboardContent() {
 
       {/* KPI Cards */}
       {isReadOnly && <AdmissionsReadOnlyBanner />}
+      {(isLeadsLoading || leadsError) && (
+        <div
+          className={`rounded-lg border px-4 py-3 text-sm ${
+            leadsError
+              ? "border-red-200 bg-red-50 text-red-700"
+              : "border-blue-200 bg-blue-50 text-blue-700"
+          }`}
+        >
+          {leadsError || "Loading leads analytics..."}
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <KPICardV2
           title={t("kpi.applications")}
