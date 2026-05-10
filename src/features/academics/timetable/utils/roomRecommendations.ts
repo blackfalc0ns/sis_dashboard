@@ -90,12 +90,12 @@ export function getRecommendedRooms(context: RoomRecommendationContext): Room[] 
         score += 10;
       }
 
-      if (context.selectedClassroom && room.type === "CLASSROOM") {
-        score += 5;
-      }
-
-      if (isLabSubject && room.type === "LAB") {
-        score += 20;
+      if (
+        context.selectedClassroom &&
+        (room.nameEn.toLowerCase().includes("lab") ||
+          room.nameAr.includes("مختبر"))
+      ) {
+        if (isLabSubject) score += 50;
       }
 
       return score;

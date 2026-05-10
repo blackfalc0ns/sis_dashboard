@@ -24,8 +24,9 @@ export interface Room {
   schoolId: string;
   nameAr: string;
   nameEn: string;
-  type: "CLASSROOM" | "LAB" | "OTHER";
   capacity: number;
+  floor?: string;
+  building?: string;
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;

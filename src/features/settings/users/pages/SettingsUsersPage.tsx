@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Download,
@@ -32,16 +32,19 @@ import {
   type ExportColumn,
   type SettingsExportFormat,
 } from "@/features/settings/shared/utils/settingsExport";
+import { fetchSettingsRoles } from "@/features/settings/services/settingsRolesService";
 import {
-  createUser,
-  fetchRoles,
-  fetchUsers,
-  inviteUser,
-  resendUserInvite,
-  setUserStatus,
-  triggerUserPasswordReset,
-  updateUser,
-} from "@/features/settings/services/settingsService";
+  createSettingsUser,
+  fetchSettingsUsers,
+  type FetchSettingsUsersParams,
+  inviteSettingsUser,
+  resendSettingsUserInvite,
+  setSettingsUserStatus,
+  triggerSettingsUserPasswordReset,
+  updateSettingsUser,
+} from "@/features/settings/services/settingsUsersService";
+import { isApiError } from "@/lib/api-error";
+import { getValidationFieldErrors } from "@/lib/validation-errors";
 import type {
   RoleDefinition,
   SettingsUserRecord,
@@ -66,7 +69,15 @@ export default function SettingsUsersPage() {
     null,
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [modalFieldErrors, setModalFieldErrors] = useState<
+    Partial<Record<"fullName" | "email" | "roleId", string>>
+  >({});
+  const [modalError, setModalError] = useState<string | null>(null);
   const { values, setValue, replaceValues, reset } = useUrlQueryState<{
     search: string;
     role: string;
@@ -97,21 +108,42 @@ export default function SettingsUsersPage() {
   const search = values.search;
   const roleFilter = values.role;
   const statusFilter = values.status;
+  const hasHydratedListRef = useRef(false);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, roleFilter, statusFilter]);
 
   useEffect(() => {
     let cancelled = false;
     void Promise.resolve().then(async () => {
-      setIsLoading(true);
+      const isInitialLoad = !hasHydratedListRef.current;
+      if (isInitialLoad) {
+        setIsLoading(true);
+      } else {
+        setIsFetching(true);
+      }
       try {
-        const [nextUsers, nextRoles] = await Promise.all([
-          fetchUsers(),
-          fetchRoles(),
+        const usersParams: FetchSettingsUsersParams = {
+          search,
+          page,
+          limit,
+          roleId: roleFilter,
+          status: statusFilter as SettingsUserRecord["status"] | "all",
+        };
+        const [usersResult, nextRoles] = await Promise.all([
+          fetchSettingsUsers(usersParams),
+          fetchSettingsRoles(),
         ]);
         if (cancelled) {
           return;
         }
-        setUsers(nextUsers);
-        setRoles(nextRoles);
+        setUsers(usersResult.items);
+        setTotalUsers(usersResult.pagination.total);
+        setPage(usersResult.pagination.page);
+        setLimit(usersResult.pagination.limit);
+        setRoles(nextRoles.items);
+        hasHydratedListRef.current = true;
       } catch {
         if (!cancelled) {
           showError(t("messages.load_failed"));
@@ -119,6 +151,7 @@ export default function SettingsUsersPage() {
       } finally {
         if (!cancelled) {
           setIsLoading(false);
+          setIsFetching(false);
         }
       }
     });
@@ -126,7 +159,7 @@ export default function SettingsUsersPage() {
     return () => {
       cancelled = true;
     };
-  }, [showError, t]);
+  }, [limit, page, roleFilter, search, showError, statusFilter, t]);
 
   const rolesMap = useMemo(
     () => new Map(roles.map((role) => [role.id, role.name])),
@@ -139,21 +172,6 @@ export default function SettingsUsersPage() {
     }
   }, [replaceValues, roleFilter, roles]);
 
-  const filteredUsers = useMemo(
-    () =>
-      users.filter((user) => {
-        const matchesSearch =
-          !search.trim() ||
-          user.fullName.toLowerCase().includes(search.toLowerCase()) ||
-          user.email.toLowerCase().includes(search.toLowerCase());
-        const matchesRole = roleFilter === "all" || user.roleId === roleFilter;
-        const matchesStatus =
-          statusFilter === "all" || user.status === statusFilter;
-        return matchesSearch && matchesRole && matchesStatus;
-      }),
-    [roleFilter, search, statusFilter, users],
-  );
-
   const hasActiveFilters =
     search.trim() !== "" || roleFilter !== "all" || statusFilter !== "all";
 
@@ -161,7 +179,7 @@ export default function SettingsUsersPage() {
     const metadata = {
       viewName: t("title"),
       exportDate: formatSettingsExportDate(locale),
-      visibleCount: filteredUsers.length,
+      visibleCount: users.length,
     };
     const columns: ExportColumn[] = [
       { key: "id", label: "ID" },
@@ -170,13 +188,16 @@ export default function SettingsUsersPage() {
       { key: "role", label: t("table.role") },
       { key: "status", label: t("table.status") },
       { key: "lastActiveAt", label: t("table.last_active") },
-      { key: "invitedAt", label: locale === "ar" ? "تاريخ الدعوة" : "Invited at" },
+      {
+        key: "invitedAt",
+        label: locale === "ar" ? "تاريخ الدعوة" : "Invited at",
+      },
       {
         key: "lastInviteSentAt",
         label: locale === "ar" ? "آخر إعادة إرسال" : "Last invite sent",
       },
     ];
-    const rows = filteredUsers.map((user) => ({
+    const rows = users.map((user) => ({
       id: user.id,
       fullName: user.fullName,
       email: user.email,
@@ -185,7 +206,9 @@ export default function SettingsUsersPage() {
       lastActiveAt: user.lastActiveAt
         ? new Date(user.lastActiveAt).toLocaleString()
         : t("not_available"),
-      invitedAt: user.invitedAt ? new Date(user.invitedAt).toLocaleString() : "",
+      invitedAt: user.invitedAt
+        ? new Date(user.invitedAt).toLocaleString()
+        : "",
       lastInviteSentAt: user.lastInviteSentAt
         ? new Date(user.lastInviteSentAt).toLocaleString()
         : "",
@@ -208,7 +231,7 @@ export default function SettingsUsersPage() {
           role: roleFilter,
           status: statusFilter,
         },
-        users: filteredUsers.map((user) => ({
+        users: users.map((user) => ({
           ...user,
           roleName: rolesMap.get(user.roleId) || user.roleId,
         })),
@@ -223,8 +246,18 @@ export default function SettingsUsersPage() {
   }, [hasActiveFilters, showFilters]);
 
   const refresh = async () => {
-    const nextUsers = await fetchUsers();
-    setUsers(nextUsers);
+    const usersParams: FetchSettingsUsersParams = {
+      search,
+      page,
+      limit,
+      roleId: roleFilter,
+      status: statusFilter as SettingsUserRecord["status"] | "all",
+    };
+    const result = await fetchSettingsUsers(usersParams);
+    setUsers(result.items);
+    setTotalUsers(result.pagination.total);
+    setPage(result.pagination.page);
+    setLimit(result.pagination.limit);
   };
 
   const handleModalSubmit = async (payload: {
@@ -234,26 +267,43 @@ export default function SettingsUsersPage() {
   }) => {
     try {
       if (modalMode === "invite") {
-        await inviteUser(payload);
+        await inviteSettingsUser(payload);
         showSuccess(t("messages.invited"));
       } else if (modalMode === "create") {
-        await createUser(payload);
+        await createSettingsUser(payload);
         showSuccess(t("messages.created"));
       } else if (modalMode === "edit" && selectedUser) {
-        await updateUser(selectedUser.id, payload);
+        await updateSettingsUser(selectedUser.id, {
+          fullName: payload.fullName,
+          roleId: payload.roleId,
+        });
         showSuccess(t("messages.updated"));
       }
       await refresh();
       setModalMode(null);
       setSelectedUser(null);
-    } catch {
+      setModalFieldErrors({});
+      setModalError(null);
+    } catch (error) {
+      const fieldErrors = getValidationFieldErrors(error);
+      if (isApiError(error) && error.code === "validation.failed") {
+        setModalFieldErrors({
+          fullName: fieldErrors.fullName,
+          email: fieldErrors.email,
+          roleId: fieldErrors.roleId,
+        });
+        setModalError(tCommon("validation_failed"));
+        return;
+      }
+      setModalFieldErrors({});
+      setModalError(null);
       showError(tCommon("save_failed"));
     }
   };
 
   const handleResendInvite = async (userId: string) => {
     try {
-      await resendUserInvite(userId);
+      await resendSettingsUserInvite(userId);
       await refresh();
       showSuccess(t("messages.invite_resent"));
     } catch {
@@ -263,7 +313,7 @@ export default function SettingsUsersPage() {
 
   const handlePasswordReset = async (userId: string) => {
     try {
-      await triggerUserPasswordReset(userId);
+      await triggerSettingsUserPasswordReset(userId);
       showInfo(t("messages.password_reset_sent"));
     } catch {
       showError(tCommon("save_failed"));
@@ -272,7 +322,7 @@ export default function SettingsUsersPage() {
 
   const handleToggleStatus = async (user: SettingsUserRecord) => {
     try {
-      await setUserStatus(
+      await setSettingsUserStatus(
         user.id,
         user.status === "inactive" ? "active" : "inactive",
       );
@@ -327,7 +377,7 @@ export default function SettingsUsersPage() {
       render: (_value: unknown, row: Record<string, unknown>) => {
         const user = row as unknown as SettingsUserRecord;
         return (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2">
             {hasPermission("settings.users.manage") ? (
               <>
                 <Button
@@ -456,6 +506,7 @@ export default function SettingsUsersPage() {
             <Button
               variant="secondary"
               leftIcon={<RefreshCcw className="h-4 w-4" />}
+              loading={isFetching}
               onClick={() => void refresh()}
             >
               {t("refresh")}
@@ -473,7 +524,7 @@ export default function SettingsUsersPage() {
               clearAction={null}
               searchSlot={
                 <div className="flex flex-wrap items-end gap-3">
-                  <div className="min-w-60 flex-1">
+                  <div className="min-w-40 flex-1">
                     <Input
                       value={search}
                       onChange={(event) =>
@@ -525,10 +576,21 @@ export default function SettingsUsersPage() {
 
           <DataTable
             columns={columns}
-            data={filteredUsers as unknown as Record<string, unknown>[]}
+            data={users as unknown as Record<string, unknown>[]}
             showPagination
-            itemsPerPage={10}
+            itemsPerPage={limit}
             searchQuery={search}
+            serverPagination={{
+              enabled: true,
+              currentPage: page,
+              pageSize: limit,
+              totalItems: totalUsers,
+              onPageChange: (nextPage) => setPage(nextPage),
+              onPageSizeChange: (nextSize) => {
+                setLimit(nextSize);
+                setPage(1);
+              },
+            }}
             onRowClick={(row) => {
               if (!hasPermission("settings.users.manage")) {
                 return;
@@ -544,9 +606,19 @@ export default function SettingsUsersPage() {
           mode={modalMode || "create"}
           user={selectedUser}
           roles={roles}
+          errors={modalFieldErrors}
+          formError={modalError}
+          onFieldChange={(field) =>
+            setModalFieldErrors((current) => ({
+              ...current,
+              [field]: undefined,
+            }))
+          }
           onClose={() => {
             setModalMode(null);
             setSelectedUser(null);
+            setModalFieldErrors({});
+            setModalError(null);
           }}
           onSubmit={handleModalSubmit}
         />
@@ -554,7 +626,7 @@ export default function SettingsUsersPage() {
           isOpen={isExportModalOpen}
           onClose={() => setIsExportModalOpen(false)}
           onExport={handleExport}
-          datasetCount={filteredUsers.length}
+          datasetCount={users.length}
           emptyStateMessage={tExport("errors.noData")}
         />
       </main>

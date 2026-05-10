@@ -17,7 +17,12 @@ import type {
   ReinforcementTaskTargetInput,
 } from "../types/reinforcement";
 
-const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+const clone = <T,>(value: T): T => {
+  if (typeof value === "undefined") {
+    return value;
+  }
+  return JSON.parse(JSON.stringify(value)) as T;
+};
 const now = new Date("2026-03-26T09:00:00.000Z");
 const structure = getStructureTreeSnapshot("year-2", "term-2-2");
 const stagesById = new Map(structure.stages.map((item) => [item.id, item]));

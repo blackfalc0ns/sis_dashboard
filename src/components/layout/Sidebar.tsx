@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronDown,
   Loader2,
+  LogOut,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
@@ -15,6 +16,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import type { CSSProperties } from "react";
 import { usePermissions, type PermissionKey } from "@/hooks/usePermissions";
+import { useAuth } from "@/hooks/use-auth";
 
 interface SidebarProps {
   activeItem?: string;
@@ -33,10 +35,13 @@ export default function Sidebar({
   isRTL = false,
 }: SidebarProps) {
   const t = useTranslations("sidebar");
+  const tApp = useTranslations();
   const pathname = usePathname();
   const { hasPermission } = usePermissions();
+  const { logout } = useAuth();
   const isArabic = pathname.startsWith("/ar");
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
@@ -148,6 +153,20 @@ export default function Sidebar({
     setExpandedItems((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
+  };
+
+  const handleLogout = async () => {
+    if (isLoggingOut) {
+      return;
+    }
+
+    setIsLoggingOut(true);
+
+    try {
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const isItemActive = (item: (typeof menuItems)[0]) => {
@@ -641,6 +660,31 @@ export default function Sidebar({
               </GuardedLink>
             );
           })}
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            title={!isOpen ? tApp("logout") : undefined}
+            className={`w-full flex items-center gap-3 rounded-xl transition-all duration-200 text-left ${
+              isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
+            } ${
+              isLoggingOut
+                ? " cursor-not-allowed"
+                : " hover:bg-gray-50 text-error "
+            }`}
+          >
+            {isLoggingOut ? (
+              <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
+            ) : (
+              <LogOut className="w-5 h-5 shrink-0" />
+            )}
+            {isOpen && (
+              <span className="font-medium text-sm truncate ">
+                {tApp("logout")}
+              </span>
+            )}
+          </button>
         </div>
       </aside>
     </>

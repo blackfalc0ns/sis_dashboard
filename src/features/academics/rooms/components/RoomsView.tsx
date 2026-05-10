@@ -506,15 +506,7 @@ export default function RoomsView({
         </div>
       ),
     },
-    {
-      key: "type",
-      label: t("table.type"),
-      render: (_value: unknown, room: Room) => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          {t(`types.${room.type}`)}
-        </span>
-      ),
-    },
+
     {
       key: "capacity",
       label: t("table.capacity"),
@@ -564,7 +556,6 @@ export default function RoomsView({
       dataset: locale === "ar" ? "الغرف" : "Rooms",
       name: locale === "ar" ? room.nameAr : room.nameEn,
       secondaryName: locale === "ar" ? room.nameEn : room.nameAr,
-      type: t(`types.${room.type}`),
       capacity: room.capacity,
       status: room.isActive ? t("active") : t("inactive"),
       scopeType: "",
@@ -634,7 +625,7 @@ export default function RoomsView({
         key: "secondaryName",
         label: locale === "ar" ? "الاسم الثانوي" : "Secondary name",
       },
-      { key: "type", label: locale === "ar" ? "النوع" : "Type" },
+
       { key: "capacity", label: locale === "ar" ? "السعة" : "Capacity" },
       { key: "status", label: locale === "ar" ? "الحالة" : "Status" },
       {

@@ -7,6 +7,7 @@ interface UseAcademicContextBarActionsParams {
   onPromoteCarryOver?: () => void;
   showPromoteCarryOver?: boolean;
   disablePromoteCarryOver?: boolean;
+  disableYearTermEditing?: boolean;
 }
 
 export function useAcademicContextBarActions(

@@ -2,15 +2,16 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { Send, Phone, Mail, MessageCircle } from "lucide-react";
 import type { LeadMessage } from "@/features/admissions/leads/types/message";
 import {
-  getMessagesByLeadId,
-  sendMessage,
-  markMessagesAsRead,
-} from "@/data/mockLeadMessages";
+  getOrCreateDirectConversation,
+  fetchConversationMessages,
+  sendConversationMessage,
+  markConversationAsRead,
+} from "@/features/admissions/leads/services/communicationApiService";
 
 interface LeadChatPanelProps {
   leadId: string;
@@ -26,50 +27,63 @@ export default function LeadChatPanel({
   leadName,
   leadPhone,
   leadEmail,
-  currentUserName = "Sarah Johnson",
   onMessagesRead,
 }: LeadChatPanelProps) {
   const t = useTranslations("admissions.leads.chat");
   const [messages, setMessages] = useState<LeadMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isLoadingChat, setIsLoadingChat] = useState(true);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [chatError, setChatError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Load messages
-    const loadedMessages = getMessagesByLeadId(leadId);
-    setMessages(loadedMessages);
-
-    // Mark messages as read
-    markMessagesAsRead(leadId);
-
-    // Notify parent component
-    if (onMessagesRead) {
-      onMessagesRead();
-    }
-
-    // Scroll to bottom
-    scrollToBottom();
-  }, [leadId, onMessagesRead]);
-
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, []);
+
+  useEffect(() => {
+    const initChat = async () => {
+      setIsLoadingChat(true);
+      setChatError(null);
+      try {
+        // 1. Get or create a direct conversation with the lead contact
+        const convId = await getOrCreateDirectConversation(leadId);
+        setConversationId(convId);
+
+        // 2. Load messages
+        const loadedMessages = await fetchConversationMessages(convId, leadId);
+        setMessages(loadedMessages);
+
+        // 3. Mark as read
+        await markConversationAsRead(convId);
+        if (onMessagesRead) {
+          onMessagesRead();
+        }
+
+        scrollToBottom();
+      } catch (error) {
+        console.error("Failed to initialize chat:", error);
+        setChatError("Failed to load conversation. The chat service may be unavailable.");
+      } finally {
+        setIsLoadingChat(false);
+      }
+    };
+
+    initChat();
+  }, [leadId, onMessagesRead, scrollToBottom]);
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || isSending) return;
+    if (!newMessage.trim() || isSending || !conversationId) return;
 
     setIsSending(true);
 
     try {
-      const sentMessage = sendMessage(
-        leadId,
+      const sentMessage = await sendConversationMessage(
+        conversationId,
         newMessage.trim(),
-        "U001",
-        currentUserName,
-        "staff",
+        leadId
       );
-
       setMessages((prev) => [...prev, sentMessage]);
       setNewMessage("");
       scrollToBottom();
@@ -138,7 +152,17 @@ export default function LeadChatPanel({
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 ? (
+        {isLoadingChat ? (
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3" />
+            <p className="text-gray-500 text-sm">Loading messages...</p>
+          </div>
+        ) : chatError ? (
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <MessageCircle className="w-12 h-12 text-red-300 mb-3" />
+            <p className="text-red-500 text-sm">{chatError}</p>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <MessageCircle className="w-12 h-12 text-gray-300 mb-3" />
             <p className="text-gray-500 text-sm">{t("no_messages")}</p>
@@ -190,12 +214,12 @@ export default function LeadChatPanel({
             onKeyPress={handleKeyPress}
             placeholder={t("type_message")}
             rows={2}
-            disabled={isSending}
+            disabled={isSending || !conversationId}
             className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
           />
           <button
             onClick={handleSendMessage}
-            disabled={!newMessage.trim() || isSending}
+            disabled={!newMessage.trim() || isSending || !conversationId}
             className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <Send className="w-4 h-4" />

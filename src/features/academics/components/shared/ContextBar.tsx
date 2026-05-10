@@ -12,6 +12,7 @@ import {
   Term,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import { YearDialog, TermDialog } from "../dialogs/YearTermDialogs";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface ContextBarProps {
   academicYearId: string;
@@ -23,6 +24,7 @@ interface ContextBarProps {
   isReadOnly: boolean;
   showPromoteCarryOver?: boolean;
   disablePromoteCarryOver?: boolean;
+  disableYearTermEditing?: boolean;
 }
 
 export default function ContextBar({
@@ -35,6 +37,7 @@ export default function ContextBar({
   isReadOnly,
   showPromoteCarryOver = true,
   disablePromoteCarryOver = false,
+  disableYearTermEditing = false,
 }: ContextBarProps) {
   const t = useTranslations("academics.structure.context_bar");
   const locale = useLocale();
@@ -50,6 +53,9 @@ export default function ContextBar({
   const [showTermDialog, setShowTermDialog] = useState(false);
   const [editingYear, setEditingYear] = useState<AcademicYear | null>(null);
   const [editingTerm, setEditingTerm] = useState<Term | null>(null);
+
+  const { hasPermission } = usePermissions();
+  const canEditClosedTerms = hasPermission("academics.structure.manage");
 
   useEffect(() => {
     loadYears();
@@ -210,7 +216,7 @@ export default function ContextBar({
                       onClick={handleEditYear}
                       className="p-2 text-gray-500 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors mb-0.5"
                       title={t("edit_year")}
-                      disabled={isReadOnly}
+                      disabled={(isReadOnly && !canEditClosedTerms) || disableYearTermEditing}
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
@@ -236,7 +242,7 @@ export default function ContextBar({
                       onClick={handleEditTerm}
                       className="p-2 text-gray-500 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors mb-0.5"
                       title={t("edit_term")}
-                      disabled={isReadOnly}
+                      disabled={(isReadOnly && !canEditClosedTerms) || disableYearTermEditing}
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
@@ -359,7 +365,7 @@ export default function ContextBar({
           academicYear={selectedYear}
           existingTerms={terms}
           editTerm={editingTerm}
-          isReadOnly={isReadOnly && !!editingTerm}
+          isReadOnly={(isReadOnly && !canEditClosedTerms) && !!editingTerm}
         />
       )}
     </>

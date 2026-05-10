@@ -6,13 +6,19 @@ import Modal from "@/components/ui/modal/Modal";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
-import type { RoleDefinition, SettingsUserRecord } from "@/features/settings/types";
+import type {
+  RoleDefinition,
+  SettingsUserRecord,
+} from "@/features/settings/types";
 
 interface UserEditorModalProps {
   isOpen: boolean;
   mode: "create" | "invite" | "edit";
   user?: SettingsUserRecord | null;
   roles: RoleDefinition[];
+  errors?: Partial<Record<"fullName" | "email" | "roleId", string>>;
+  formError?: string | null;
+  onFieldChange?: (field: "fullName" | "email" | "roleId") => void;
   onClose: () => void;
   onSubmit: (payload: {
     fullName: string;
@@ -26,6 +32,9 @@ export default function UserEditorModal({
   mode,
   user,
   roles,
+  errors,
+  formError,
+  onFieldChange,
   onClose,
   onSubmit,
 }: UserEditorModalProps) {
@@ -35,7 +44,7 @@ export default function UserEditorModal({
   const [email, setEmail] = useState("");
   const [roleId, setRoleId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-
+  console.log(errors);
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -84,7 +93,11 @@ export default function UserEditorModal({
           <Button variant="secondary" onClick={onClose}>
             {tCommon("cancel")}
           </Button>
-          <Button variant="primary" onClick={handleSubmit} disabled={!isValid || isSaving}>
+          <Button
+            variant="primary"
+            onClick={handleSubmit}
+            disabled={!isValid || isSaving}
+          >
             {isSaving
               ? tCommon("saving")
               : mode === "invite"
@@ -95,25 +108,42 @@ export default function UserEditorModal({
       }
     >
       <div className="space-y-4">
+        {formError ? (
+          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {formError}
+          </p>
+        ) : null}
         <Input
           label={t("table.name")}
           value={fullName}
-          onChange={(event) => setFullName(event.target.value)}
+          onChange={(event) => {
+            setFullName(event.target.value);
+            onFieldChange?.("fullName");
+          }}
+          error={errors?.fullName}
         />
         <Input
           label={t("table.email")}
           value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          onChange={(event) => {
+            setEmail(event.target.value);
+            onFieldChange?.("email");
+          }}
           disabled={mode === "edit"}
+          error={errors?.email}
         />
         <Select
           label={t("filters.role")}
           value={roleId}
-          onChange={setRoleId}
+          onChange={(value) => {
+            setRoleId(value);
+            onFieldChange?.("roleId");
+          }}
           options={roles.map((role) => ({
             value: role.id,
             label: role.name,
           }))}
+          error={errors?.roleId}
         />
       </div>
     </Modal>

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import type {
+  Stage,
   AcademicYear,
   Term,
   Grade,
@@ -26,6 +27,7 @@ interface SubjectsAllocationViewProps {
   termId: string;
   academicYears: AcademicYear[];
   terms: Term[];
+  stages: Stage[];
   grades: Grade[];
   subjects: Subject[];
   allocations: SubjectAllocation[];
@@ -52,6 +54,7 @@ export default function SubjectsAllocationView({
   termId,
   academicYears,
   terms,
+  stages,
   grades,
   subjects,
   allocations,
@@ -156,9 +159,9 @@ export default function SubjectsAllocationView({
           </div>
 
           {/* Desktop: Two-Panel Layout */}
-          <div className="hidden lg:flex flex-1 overflow-hidden">
+          <div className="hidden lg:flex flex-1 overflow-hidden ">
             {/* Left Panel: Subjects */}
-            <div className="w-96 border-r border-border bg-white flex flex-col">
+            <div className="w-96 border-r border-l h-screen border-border bg-white flex flex-col">
               <SubjectsList
                 subjects={subjects}
                 allocations={allocations}
@@ -225,6 +228,7 @@ export default function SubjectsAllocationView({
         termId={termId}
         subject={editingSubject}
         existingSubjects={subjects}
+        stages={stages}
       />
 
       {/* Carry Over Dialog */}

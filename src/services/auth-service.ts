@@ -29,10 +29,9 @@ export const authService = {
    */
   async logout(): Promise<void> {
     try {
-      // Attempt to invalidate session on the server
-      await apiPost("/auth/logout");
+      // Swagger documents logout as 204 No Content.
+      await apiPost<void>("/auth/logout");
     } catch (error) {
-      // Even if server request fails, we should clear local tokens
       console.warn("Server logout failed, clearing local tokens anyway", error);
     } finally {
       tokenStorage.clearTokens();
@@ -52,12 +51,12 @@ export const authService = {
   async refreshToken(refreshToken: string): Promise<LoginResponse> {
     const payload: RefreshRequest = { refreshToken };
     const response = await apiPost<LoginResponse>("/auth/refresh", payload);
-    
+
     if (response.accessToken && response.refreshToken) {
       tokenStorage.setAccessToken(response.accessToken);
       tokenStorage.setRefreshToken(response.refreshToken);
     }
-    
+
     return response;
   },
 };

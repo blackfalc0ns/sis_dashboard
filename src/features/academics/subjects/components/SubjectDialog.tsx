@@ -13,6 +13,7 @@ import {
   createSubject,
   updateSubject,
 } from "@/features/academics/subjects/services/subjectsService";
+import type { Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 
 interface SubjectDialogProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ interface SubjectDialogProps {
   termId: string;
   subject?: Subject | null;
   existingSubjects: Subject[];
+  stages: Stage[];
 }
 
 export default function SubjectDialog({
@@ -30,6 +32,7 @@ export default function SubjectDialog({
   termId,
   subject,
   existingSubjects,
+  stages,
 }: SubjectDialogProps) {
   const t = useTranslations("academics.subjects.subject_dialog");
   const tValidation = useTranslations("validation");
@@ -38,6 +41,7 @@ export default function SubjectDialog({
   const [nameEn, setNameEn] = useState("");
   const [code, setCode] = useState("");
   const [stage, setStage] = useState("");
+  const [color, setColor] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [bilingualErrors, setBilingualErrors] = useState<{ ar?: string; en?: string }>({});
@@ -50,6 +54,7 @@ export default function SubjectDialog({
     nameEn: "",
     code: "",
     stage: "",
+    color: "#2563EB",
     isActive: true,
   });
 
@@ -60,6 +65,7 @@ export default function SubjectDialog({
         nameEn: subject?.nameEn || "",
         code: subject?.code || "",
         stage: subject?.stage || "",
+        color: subject?.color || "#2563EB",
         isActive: subject?.isActive ?? true,
       };
 
@@ -67,6 +73,7 @@ export default function SubjectDialog({
       setNameEn(initialValues.nameEn);
       setCode(initialValues.code);
       setStage(initialValues.stage);
+      setColor(initialValues.color);
       setIsActive(initialValues.isActive);
       setOriginalValues(initialValues);
       setIsDirty(false);
@@ -82,6 +89,7 @@ export default function SubjectDialog({
       nameEn: nameEn.trim(),
       code: code.trim(),
       stage: stage.trim(),
+      color,
       isActive,
     };
 
@@ -90,6 +98,7 @@ export default function SubjectDialog({
       currentValues.nameEn !== originalValues.nameEn.trim() ||
       currentValues.code !== originalValues.code.trim() ||
       currentValues.stage !== originalValues.stage.trim() ||
+      currentValues.color !== originalValues.color ||
       currentValues.isActive !== originalValues.isActive;
 
     setIsDirty(dirty);
@@ -150,12 +159,21 @@ export default function SubjectDialog({
 
     setIsSubmitting(true);
     try {
+      // Generate code if not present (creating) or use existing
+      let finalCode = code.trim();
+      if (!finalCode && nameEn.trim()) {
+        // Simple generation: SLUG-NAME-RANDOM
+        const slug = nameEn.trim().toUpperCase().replace(/\s+/g, "-").replace(/[^A-Z0-9-]/g, "");
+        finalCode = `${slug}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      }
+
       const payload = {
         nameAr: nameAr.trim(),
         nameEn: nameEn.trim(),
         name: nameEn.trim() || nameAr.trim(), // Fallback display name
-        code: code.trim() || undefined,
+        code: finalCode || undefined,
         stage: stage.trim() || undefined,
+        color: color || undefined,
         isActive,
       };
 
@@ -176,9 +194,10 @@ export default function SubjectDialog({
 
   const stageOptions = [
     { value: "", label: t("fields.stage_none") },
-    { value: "Primary", label: t("fields.stage_primary") },
-    { value: "Middle", label: t("fields.stage_middle") },
-    { value: "High", label: t("fields.stage_high") },
+    ...stages.map((s) => ({
+      value: s.nameEn || s.nameAr || s.name,
+      label: s.nameEn || s.nameAr || s.name,
+    })),
   ];
 
   return (
@@ -220,13 +239,7 @@ export default function SubjectDialog({
           }}
         />
 
-        <Input
-          label={t("fields.code")}
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          error={errors.code}
-          placeholder={t("fields.code_placeholder")}
-        />
+
 
         <Select
           label={t("fields.stage")}
@@ -235,6 +248,19 @@ export default function SubjectDialog({
           options={stageOptions}
           selectSize="md"
         />
+
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700">Color</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              className="h-10 w-14 rounded cursor-pointer border border-border"
+            />
+            <span className="text-sm text-gray-500 font-mono">{color.toUpperCase()}</span>
+          </div>
+        </div>
 
         <div className="flex items-center gap-2">
           <input

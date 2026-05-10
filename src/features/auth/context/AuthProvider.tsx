@@ -7,12 +7,22 @@ import { AuthContext } from "./AuthContext";
 import { authService } from "@/services/auth-service";
 import { tokenStorage } from "@/lib/token-storage";
 import type { LoginRequest, MeResponse } from "@/types/user";
+import { isApiError } from "@/lib/api-error";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<MeResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+
+  const getLocalizedPath = useCallback(
+    (destination: "login" | "dashboard") => {
+      const match = pathname.match(/^\/([a-z]{2})/);
+      const locale = match ? match[1] : "en";
+      return `/${locale}/${destination}`;
+    },
+    [pathname],
+  );
 
   const loadUser = useCallback(async () => {
     try {
@@ -25,7 +35,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Failed to restore session:", error);
       setUser(null);
-      tokenStorage.clearTokens();
+      if (!tokenStorage.hasTokens()) {
+        return;
+      }
+
+      if (!isApiError(error) || error.status === 401) {
+        tokenStorage.clearTokens();
+      }
     } finally {
       setIsLoading(false);
     }
@@ -53,15 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await authService.logout();
       setUser(null);
-      
-      // Determine locale for redirect, default to 'en' if not found
-      const match = pathname.match(/^\/([a-z]{2})/);
-      const locale = match ? match[1] : "en";
-      router.push(`/${locale}/login`);
+      router.push(getLocalizedPath("login"));
     } finally {
       setIsLoading(false);
     }
-  }, [router, pathname]);
+  }, [getLocalizedPath, router]);
 
   // Client-side route protection
   useEffect(() => {
@@ -70,18 +82,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isRootRoute = pathname === "/" || pathname === "/ar" || pathname === "/en";
 
       if (!user && !isAuthRoute && !isRootRoute) {
-        // Redirect to login if not authenticated and not on an auth/root route
-        const match = pathname.match(/^\/([a-z]{2})/);
-        const locale = match ? match[1] : "en";
-        router.push(`/${locale}/login`);
+        router.push(getLocalizedPath("login"));
       } else if (user && isAuthRoute) {
-        // Redirect to dashboard if authenticated and trying to access login
-         const match = pathname.match(/^\/([a-z]{2})/);
-         const locale = match ? match[1] : "en";
-         router.push(`/${locale}/dashboard`);
+        router.push(getLocalizedPath("dashboard"));
       }
     }
-  }, [user, isLoading, pathname, router]);
+  }, [user, isLoading, pathname, router, getLocalizedPath]);
 
 
   const value = useMemo(

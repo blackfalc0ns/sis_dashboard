@@ -1,15 +1,11 @@
 /**
  * Permission management hook
- * Legacy attendance permissions are preserved while settings permissions now resolve
- * from the persisted settings session and role model.
+ * Legacy attendance permissions are preserved while settings permissions resolve
+ * from the authenticated API session.
  */
 
-import { useEffect, useMemo, useState } from "react";
-import {
-  SETTINGS_SESSION_EVENT,
-  getCurrentSettingsPermissions,
-  getCurrentSettingsSessionUser,
-} from "@/features/settings/services/settingsService";
+import { useMemo } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 export type PermissionKey =
   | "attendance.rollcall.submit"
@@ -39,13 +35,17 @@ export type PermissionKey =
   | "nedaa.requests.view"
   | "nedaa.requests.manage"
   | "nedaa.settings.view"
-  | "nedaa.settings.manage";
+  | "nedaa.settings.manage"
+  | "academics.structure.view"
+  | "academics.structure.manage";
 
 const legacyAdminPermissions: PermissionKey[] = [
   "attendance.rollcall.submit",
   "attendance.rollcall.unsubmit",
   "attendance.excuses.approve",
   "attendance.lateEarly.editMinutes",
+  "academics.structure.view",
+  "academics.structure.manage",
 ];
 
 const alwaysGrantedNedaaPermissions: PermissionKey[] = [
@@ -57,34 +57,22 @@ const alwaysGrantedNedaaPermissions: PermissionKey[] = [
 ];
 
 export function usePermissions() {
-  const [sessionUser, setSessionUser] = useState(() =>
-    getCurrentSettingsSessionUser(),
+  const { user } = useAuth();
+
+  const membershipPermissions = useMemo(
+    () => (user?.activeMembership?.permissions ?? []) as PermissionKey[],
+    [user],
   );
-  const [resolvedSettingsPermissions, setResolvedSettingsPermissions] =
-    useState<PermissionKey[]>(() => getCurrentSettingsPermissions() as PermissionKey[]);
-
-  useEffect(() => {
-    const sync = () => {
-      setSessionUser(getCurrentSettingsSessionUser());
-      setResolvedSettingsPermissions(
-        getCurrentSettingsPermissions() as PermissionKey[],
-      );
-    };
-
-    window.addEventListener(SETTINGS_SESSION_EVENT, sync);
-    return () => {
-      window.removeEventListener(SETTINGS_SESSION_EVENT, sync);
-    };
-  }, []);
 
   const grantedPermissions = useMemo(
-    () =>
-      new Set<PermissionKey>([
+    () => {
+      return new Set<PermissionKey>([
         ...legacyAdminPermissions,
         ...alwaysGrantedNedaaPermissions,
-        ...resolvedSettingsPermissions,
-      ]),
-    [resolvedSettingsPermissions],
+        ...membershipPermissions,
+      ]);
+    },
+    [membershipPermissions],
   );
 
   const hasPermission = (key: PermissionKey): boolean => grantedPermissions.has(key);
@@ -94,8 +82,16 @@ export function usePermissions() {
     keys.every((key) => grantedPermissions.has(key));
 
   return {
-    role: sessionUser.roleId,
-    currentUser: sessionUser,
+    role: user?.activeMembership?.roleKey ?? user?.userType ?? null,
+    currentUser:
+      user === null
+        ? null
+        : {
+            id: user.id,
+            name: `${user.firstName} ${user.lastName}`.trim(),
+            email: user.email,
+            roleId: user.activeMembership?.roleKey ?? user.userType,
+          },
     grantedPermissions: Array.from(grantedPermissions),
     hasPermission,
     hasAnyPermission,

@@ -5,8 +5,10 @@ import { useTranslations } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import DatePicker from "@/components/ui/input/DatePicker";
+import Select from "@/components/ui/input/Select";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
 import { validateArEnDifferent } from "@/utils/validation/bilingualValidation";
+import { isApiError } from "@/lib/api-error";
 import {
   AcademicYear,
   Term,
@@ -39,6 +41,7 @@ export function YearDialog({
   const [nameEn, setNameEn] = useState("");
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [isActive, setIsActive] = useState("active");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [bilingualErrors, setBilingualErrors] = useState<{ ar?: string; en?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,11 +53,13 @@ export function YearDialog({
         setNameEn(editYear.nameEn || "");
         setStartDate(new Date(editYear.startDate));
         setEndDate(new Date(editYear.endDate));
+        setIsActive(editYear.isActive === false ? "inactive" : "active");
       } else {
         setNameAr("");
         setNameEn("");
         setStartDate(null);
         setEndDate(null);
+        setIsActive("active");
       }
       setErrors({});
       setBilingualErrors({});
@@ -71,17 +76,6 @@ export function YearDialog({
     }
     if (!nameEn.trim()) {
       newBilingualErrors.en = tValidation("required_en");
-    }
-
-    // AR != EN validation
-    if (nameAr.trim() && nameEn.trim()) {
-      const arEnErrors = validateArEnDifferent(nameAr, nameEn);
-      if (arEnErrors.arError) {
-        newBilingualErrors.ar = tValidation("arEnMustDiffer");
-      }
-      if (arEnErrors.enError) {
-        newBilingualErrors.en = tValidation("arEnMustDiffer");
-      }
     }
 
     if (!startDate) {
@@ -132,6 +126,7 @@ export function YearDialog({
         nameEn: nameEn.trim(),
         startDate: dayjs(startDate).format("YYYY-MM-DD"),
         endDate: dayjs(endDate).format("YYYY-MM-DD"),
+        isActive: isActive === "active",
       };
 
       if (editYear) {
@@ -144,7 +139,15 @@ export function YearDialog({
       onClose();
     } catch (error) {
       console.error("Failed to save academic year:", error);
-      setErrors({ submit: tValidation("save_failed") });
+      if (isApiError(error) && error.code === "academics.year.overlapping") {
+        const message = error.message?.trim() || tValidation("year_overlap", { yearName: "" });
+        setErrors({
+          startDate: message,
+          endDate: message,
+        });
+      } else {
+        setErrors({ submit: tValidation("save_failed") });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -204,6 +207,16 @@ export function YearDialog({
           format="YYYY-MM-DD"
         />
 
+        <Select
+          label={t("active_status")}
+          value={isActive}
+          onChange={setIsActive}
+          options={[
+            { value: "active", label: t("active") },
+            { value: "inactive", label: t("inactive") },
+          ]}
+        />
+
         {errors.submit && (
           <div className="text-sm text-red-600">{errors.submit}</div>
         )}
@@ -238,6 +251,7 @@ export function TermDialog({
   const [nameEn, setNameEn] = useState("");
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [status, setStatus] = useState<"open" | "closed">("open");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [bilingualErrors, setBilingualErrors] = useState<{ ar?: string; en?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -252,6 +266,7 @@ export function TermDialog({
         setNameEn(editTerm.nameEn || "");
         setStartDate(new Date(editTerm.startDate));
         setEndDate(new Date(editTerm.endDate));
+        setStatus(editTerm.status || "open");
       } else {
         setNameAr("");
         setNameEn("");
@@ -283,6 +298,7 @@ export function TermDialog({
         } else {
           setEndDate(null);
         }
+        setStatus("open");
       }
       setErrors({});
       setBilingualErrors({});
@@ -384,7 +400,7 @@ export function TermDialog({
         startDate: dayjs(startDate).format("YYYY-MM-DD"),
         endDate: dayjs(endDate).format("YYYY-MM-DD"),
         yearId: academicYear.id,
-        status: "open",
+        status,
       };
 
       if (editTerm) {
@@ -394,6 +410,7 @@ export function TermDialog({
           nameEn: payload.nameEn,
           startDate: payload.startDate,
           endDate: payload.endDate,
+          status: payload.status,
         });
       } else {
         await createTerm(payload);
@@ -515,6 +532,16 @@ export function TermDialog({
           }
         />
 
+        <Select
+          label={t("status")}
+          value={status}
+          onChange={(value) => setStatus(value as "open" | "closed")}
+          options={[
+            { value: "open", label: t("status_open") },
+            { value: "closed", label: t("status_closed") },
+          ]}
+        />
+
         {errors.submit && (
           <div className="text-sm text-red-600">{errors.submit}</div>
         )}
@@ -522,4 +549,3 @@ export function TermDialog({
     </Modal>
   );
 }
-

@@ -26,6 +26,7 @@ import { useStructureCarryOverFlow } from "../hooks/useStructureCarryOverFlow";
 import { useGuardedAcademicContextChange } from "@/features/academics/hooks/useGuardedAcademicContextChange";
 import { useDebouncedCallback } from "use-debounce";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
+import { useToast } from "@/components/ui/toast/Toast";
 import {
   type AcademicsExportFormat,
   exportAcademicsData,
@@ -44,6 +45,7 @@ export default function AcademicStructurePage() {
   const t = useTranslations("academics.structure");
   const tExport = useTranslations("academics.export");
   const locale = useLocale();
+  const isRTL = locale === "ar";
   const router = useRouter();
   const searchParams = useSearchParams();
   const { academicYearId, termId, termStatus, academicYears } =
@@ -58,6 +60,8 @@ export default function AcademicStructurePage() {
   );
 
   const isReadOnly = termStatus === "closed";
+  const supportsEditAndReorder = true;
+  const supportsCarryOver = false;
   const {
     stages,
     grades,
@@ -65,12 +69,12 @@ export default function AcademicStructurePage() {
     classrooms,
     isLoading,
     error,
-    snackbar,
     hasNoStructure,
-    setSnackbar,
     loadData,
     saveItem,
     deleteItem,
+    reorderStage,
+    dragReorderStage,
     reorderGrade,
     dragReorderGrade,
     reorderSection,
@@ -106,6 +110,7 @@ export default function AcademicStructurePage() {
     academicYearId,
     termId,
     isReadOnly,
+    stages,
     grades,
     sections,
     classrooms,
@@ -265,11 +270,12 @@ export default function AcademicStructurePage() {
 
   const contextBarActions = useMemo(
     () => ({
-      onPromoteCarryOver: openCarryOverDialog,
+      onPromoteCarryOver: supportsCarryOver ? openCarryOverDialog : undefined,
       showPromoteCarryOver: true,
-      disablePromoteCarryOver: isReadOnly,
+      disablePromoteCarryOver: isReadOnly || !supportsCarryOver,
+      disableYearTermEditing: false,
     }),
-    [isReadOnly, openCarryOverDialog],
+    [isReadOnly, openCarryOverDialog, supportsCarryOver],
   );
 
   useAcademicContextBarActions(contextBarActions);
@@ -312,22 +318,34 @@ export default function AcademicStructurePage() {
     [syncExpandedUrl],
   );
 
+  const { showError } = useToast();
+
   const handleSave = async (
     type: "stage" | "grade" | "section" | "classroom",
     id: string | null,
     data: Partial<Stage | Grade | Section | Classroom>,
   ) => {
-    await saveItem(type, id, data);
-    setHasUnsavedChanges(false);
+    try {
+      await saveItem(type, id, data);
+      setHasUnsavedChanges(false);
+    } catch (err: any) {
+      showError(err.message || t("details.save_failed"));
+      throw err;
+    }
   };
 
   const handleDelete = async (
     type: "stage" | "grade" | "section" | "classroom",
     id: string,
   ) => {
-    const deleted = await deleteItem(type, id);
-    if (deleted) {
-      syncSelectedNodeUrl(null);
+    try {
+      const deleted = await deleteItem(type, id);
+      if (deleted) {
+        syncSelectedNodeUrl(null);
+      }
+    } catch (err: any) {
+      showError(err.message || t("details.delete_failed"));
+      throw err;
     }
   };
 
@@ -453,8 +471,8 @@ export default function AcademicStructurePage() {
               )}
               <Button
                 variant="secondary"
-                onClick={openCarryOverDialog}
-                disabled={isReadOnly}
+                onClick={supportsCarryOver ? openCarryOverDialog : undefined}
+                disabled={isReadOnly || !supportsCarryOver}
               >
                 {t("empty_state.carry_over")}
               </Button>
@@ -469,6 +487,7 @@ export default function AcademicStructurePage() {
             <button
               onClick={() => setShowTreeDrawer(true)}
               className="p-3 bg-primary text-white rounded-full shadow-lg hover:bg-hover"
+              aria-label={t("tree.open_tree")}
             >
               <Menu className="w-6 h-6" />
             </button>
@@ -496,12 +515,30 @@ export default function AcademicStructurePage() {
               onAddClassroom={openAddClassroom}
               onEdit={(type, id) => handleSelectNode({ type, id })}
               onDelete={handleDelete}
-              onReorderGrade={reorderGrade}
-              onReorderSection={reorderSection}
-              onReorderClassroom={reorderClassroom}
-              onDragReorder={dragReorderGrade}
-              onDragReorderSection={dragReorderSection}
-              onDragReorderClassroom={dragReorderClassroom}
+              onReorderStage={
+                supportsEditAndReorder ? reorderStage : () => undefined
+              }
+              onReorderGrade={
+                supportsEditAndReorder ? reorderGrade : () => undefined
+              }
+              onReorderSection={
+                supportsEditAndReorder ? reorderSection : () => undefined
+              }
+              onReorderClassroom={
+                supportsEditAndReorder ? reorderClassroom : () => undefined
+              }
+              onDragReorder={
+                supportsEditAndReorder ? dragReorderStage : async () => {}
+              }
+              onDragReorderGrade={
+                supportsEditAndReorder ? dragReorderGrade : async () => {}
+              }
+              onDragReorderSection={
+                supportsEditAndReorder ? dragReorderSection : async () => {}
+              }
+              onDragReorderClassroom={
+                supportsEditAndReorder ? dragReorderClassroom : async () => {}
+              }
               isReadOnly={isReadOnly}
             />
           </div>
@@ -512,7 +549,10 @@ export default function AcademicStructurePage() {
                 className="absolute inset-0 bg-black/50"
                 onClick={() => setShowTreeDrawer(false)}
               />
-              <div className="absolute left-0 top-0 bottom-0 w-80 bg-white shadow-xl overflow-hidden flex flex-col">
+              <div
+                className="absolute left-0 top-0 bottom-0 w-full bg-white shadow-xl overflow-hidden flex flex-col"
+                dir={isRTL ? "rtl" : "ltr"}
+              >
                 <div className="p-4 border-b border-border bg-gray-50 flex items-center justify-between">
                   <h3 className="font-semibold text-gray-900">
                     {t("tree.search_placeholder")}
@@ -520,7 +560,7 @@ export default function AcademicStructurePage() {
                   <button
                     onClick={() => setShowTreeDrawer(false)}
                     className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
-                    aria-label="Close"
+                    aria-label={t("tree.close_tree")}
                   >
                     <svg
                       className="w-5 h-5"
@@ -561,17 +601,40 @@ export default function AcademicStructurePage() {
                     onAddGrade={openAddGrade}
                     onAddSection={openAddSection}
                     onAddClassroom={openAddClassroom}
-                    onEdit={(type, id) => {
-                      handleSelectNode({ type, id });
-                      setTimeout(() => setShowTreeDrawer(false), 300);
-                    }}
+                    onEdit={(type, id) => handleSelectNode({ type, id })}
                     onDelete={handleDelete}
-                    onReorderGrade={reorderGrade}
-                    onReorderSection={reorderSection}
-                    onReorderClassroom={reorderClassroom}
-                    onDragReorder={dragReorderGrade}
-                    onDragReorderSection={dragReorderSection}
-                    onDragReorderClassroom={dragReorderClassroom}
+                    onReorderStage={
+                      supportsEditAndReorder ? reorderStage : () => undefined
+                    }
+                    onReorderGrade={
+                      supportsEditAndReorder ? reorderGrade : () => undefined
+                    }
+                    onReorderSection={
+                      supportsEditAndReorder ? reorderSection : () => undefined
+                    }
+                    onReorderClassroom={
+                      supportsEditAndReorder
+                        ? reorderClassroom
+                        : () => undefined
+                    }
+                    onDragReorder={
+                      supportsEditAndReorder ? dragReorderStage : async () => {}
+                    }
+                    onDragReorderGrade={
+                      supportsEditAndReorder
+                        ? dragReorderGrade
+                        : async () => {}
+                    }
+                    onDragReorderSection={
+                      supportsEditAndReorder
+                        ? dragReorderSection
+                        : async () => {}
+                    }
+                    onDragReorderClassroom={
+                      supportsEditAndReorder
+                        ? dragReorderClassroom
+                        : async () => {}
+                    }
                     isReadOnly={isReadOnly}
                   />
                 </div>
@@ -588,7 +651,7 @@ export default function AcademicStructurePage() {
               classrooms={classrooms}
               onSave={handleSave}
               onDelete={handleDelete}
-              isReadOnly={isReadOnly}
+              isReadOnly={isReadOnly || !supportsEditAndReorder}
               onDirtyChange={setHasUnsavedChanges}
               academicYearId={academicYearId}
               termId={termId}
@@ -786,27 +849,6 @@ export default function AcademicStructurePage() {
       {error && (
         <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg">
           {error}
-        </div>
-      )}
-
-      {snackbar.open && (
-        <div
-          className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg ${
-            snackbar.severity === "success"
-              ? "bg-green-100 border border-green-400 text-green-700"
-              : "bg-red-100 border border-red-400 text-red-700"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <span>{snackbar.message}</span>
-            <button
-              onClick={() => setSnackbar({ ...snackbar, open: false })}
-              className="ml-2 text-gray-500 hover:text-gray-700"
-              aria-label="Close"
-            >
-              x
-            </button>
-          </div>
         </div>
       )}
 

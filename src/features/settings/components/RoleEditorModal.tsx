@@ -11,6 +11,9 @@ interface RoleEditorModalProps {
   mode: "create" | "clone" | "edit";
   sourceRoleName?: string;
   initialValues?: { name: string; description: string } | null;
+  errors?: Partial<Record<"name" | "description", string>>;
+  formError?: string | null;
+  onFieldChange?: (field: "name" | "description") => void;
   onClose: () => void;
   onSubmit: (payload: { name: string; description: string }) => Promise<void>;
 }
@@ -20,6 +23,9 @@ export default function RoleEditorModal({
   mode,
   sourceRoleName,
   initialValues,
+  errors,
+  formError,
+  onFieldChange,
   onClose,
   onSubmit,
 }: RoleEditorModalProps) {
@@ -85,11 +91,20 @@ export default function RoleEditorModal({
       }
     >
       <div className="space-y-4">
+        {formError ? (
+          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {formError}
+          </p>
+        ) : null}
         <Input
           label={t("role_name")}
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value);
+            onFieldChange?.("name");
+          }}
           placeholder={t("role_name_placeholder")}
+          error={errors?.name}
         />
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -97,10 +112,20 @@ export default function RoleEditorModal({
           </label>
           <textarea
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              onFieldChange?.("description");
+            }}
             placeholder={t("role_description_placeholder")}
-            className="min-h-28 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className={`min-h-28 w-full rounded-lg border px-3 py-2 text-sm text-gray-900 outline-none transition focus:ring-2 ${
+              errors?.description
+                ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                : "border-gray-200 focus:border-primary focus:ring-primary/20"
+            }`}
           />
+          {errors?.description ? (
+            <p className="mt-1 text-xs text-red-600">{errors.description}</p>
+          ) : null}
         </div>
       </div>
     </Modal>

@@ -47,7 +47,7 @@ export default function FilterPanel({
         )}
 
         {(searchSlot || filtersSlot) && (
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex gap-2 sm:flex-row sm:items-center">
             <div className="flex-1">{searchSlot}</div>
             {filtersSlot ? (
               <button
@@ -73,7 +73,9 @@ export default function FilterPanel({
           <div className="space-y-3">
             {filtersSlot}
             {hasActiveFilters && clearAction ? (
-              <div className="flex justify-start sm:justify-end">{clearAction}</div>
+              <div className="flex justify-start sm:justify-end">
+                {clearAction}
+              </div>
             ) : null}
           </div>
         ) : null}

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -25,11 +25,11 @@ import DateRangeFilter, {
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
 import { formatLeadsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
 import {
-  getLeads,
+  fetchLeads,
   createLead,
-  convertLeadToApplication,
-} from "@/features/admissions/leads/services/mockLeadsApi";
-import { mockLeadConversations } from "@/data/mockLeadMessages";
+  convertLead,
+} from "@/features/admissions/leads/services/leadsApiService";
+import type { CreateLeadPayload } from "@/features/admissions/leads/types/lead";
 import { Lead, LeadStatus, LeadChannel } from "@/features/admissions";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
@@ -41,15 +41,18 @@ import {
 } from "@/features/admissions/shared/utils/admissionsContextScope";
 import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
 import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
+import { useToast } from "@/components/ui/toast/Toast";
 
 export default function LeadsList() {
   const router = useRouter();
   const t = useTranslations("admissions.leads");
   const t_grades = useTranslations("admissions.grades");
   const locale = useLocale();
-  const { yearId, termId, isReadOnly, isLoading, error } =
+  const { yearId, termId, isReadOnly, isLoading: contextLoading, error } =
     useAdmissionsYearTermContext();
-  const [leads, setLeads] = useState<Lead[]>(getLeads());
+  const { showToast } = useToast();
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -59,6 +62,25 @@ export default function LeadsList() {
     () => resolveAdmissionsContextScope(yearId, termId),
     [termId, yearId],
   );
+
+  // Load leads from API
+  const loadLeads = useCallback(async () => {
+    setIsDataLoading(true);
+    try {
+      const data = await fetchLeads();
+      setLeads(data);
+    } catch (err) {
+      console.error("Failed to fetch leads:", err);
+      showToast("Failed to load leads", "error");
+    } finally {
+      setIsDataLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    loadLeads();
+  }, [loadLeads]);
+
   const scopedLeads = useMemo(
     () =>
       filterAdmissionsRecordsByDateContext(
@@ -138,9 +160,10 @@ export default function LeadsList() {
     );
 
     return scopedLeads.filter((lead) => {
+      const displayName = lead.studentName || lead.primaryContactName || lead.name || "";
       const matchesSearch =
         searchQuery === "" ||
-        lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         lead.phone.includes(searchQuery) ||
         (lead.email &&
           lead.email.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -201,16 +224,21 @@ export default function LeadsList() {
     reset(undefined, "replace");
   };
 
-  const handleCreateLead = (data: Omit<Lead, "id" | "createdAt">) => {
-    const newLead = createLead(data);
-    setLeads(getLeads());
-    setIsCreateModalOpen(false);
-    alert(`Lead ${newLead.id} created successfully!`);
+  const handleCreateLead = async (data: CreateLeadPayload) => {
+    try {
+      await createLead(data);
+      showToast(t("lead_created"), "success");
+      await loadLeads();
+      setIsCreateModalOpen(false);
+    } catch (err) {
+      console.error("Failed to create lead:", err);
+      showToast(t("create_failed") || "Failed to create lead", "error");
+    }
   };
 
   const handleImportLeads = (file: File) => {
     console.log("Importing file:", file.name);
-    alert(`File "${file.name}" uploaded. Import functionality is a stub.`);
+    showToast(`File "${file.name}" uploaded. Import functionality is a stub.`, "info");
     setIsImportModalOpen(false);
   };
 
@@ -228,13 +256,18 @@ export default function LeadsList() {
     router.push(`/${locale}/admissions/leads/${lead.id}`);
   };
 
-  const handleConvertToApplication = (lead: Lead, e: React.MouseEvent) => {
+  const handleConvertToApplication = async (lead: Lead, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm(`Convert lead "${lead.name}" to application?`)) {
-      const draft = convertLeadToApplication(lead.id);
-      setLeads(getLeads());
-      alert(`Lead converted! Application draft created: ${draft.id}`);
-      router.push(`/${locale}/admissions/applications`);
+    const displayName = lead.studentName || lead.primaryContactName || lead.name || "";
+    if (confirm(`Convert lead "${displayName}" to application?`)) {
+      try {
+        await convertLead(lead.id);
+        showToast("Lead converted to application!", "success");
+        await loadLeads();
+      } catch (err) {
+        console.error("Failed to convert lead:", err);
+        showToast("Failed to convert lead", "error");
+      }
     }
   };
 
@@ -245,23 +278,14 @@ export default function LeadsList() {
       searchable: true,
     },
     {
-      key: "name",
+      key: "studentName",
       label: t("name"),
       searchable: true,
       render: (value: unknown, row: Lead) => {
-        const conversation = mockLeadConversations.find(
-          (conv) => conv.leadId === row.id,
-        );
-        const unreadCount = conversation?.unreadCount || 0;
-
+        const displayName = row.studentName || row.primaryContactName || row.name || "";
         return (
           <div className="flex items-center gap-2">
-            <span>{String(value)}</span>
-            {unreadCount > 0 && (
-              <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-red-500 text-white rounded-full">
-                {unreadCount}
-              </span>
-            )}
+            <span>{String(displayName || value)}</span>
           </div>
         );
       },
@@ -300,18 +324,6 @@ export default function LeadsList() {
       ),
     },
     {
-      key: "gradeInterest",
-      label: t("grade_interest"),
-      render: (value: unknown) => {
-        if (!value) return "—";
-        const grade = String(value);
-        // Convert grade to translation key (e.g., "Grade 6" -> "grade_6")
-        const gradeKey = grade.toLowerCase().replace(/\s+/g, "_");
-        const translated = t_grades(gradeKey);
-        return translated !== gradeKey ? translated : grade;
-      },
-    },
-    {
       key: "createdAt",
       label: t("created"),
       render: (value: unknown) =>
@@ -331,6 +343,8 @@ export default function LeadsList() {
       ),
     },
   ];
+
+  const isLoading = contextLoading || isDataLoading;
 
   if (isLoading) {
     return <MainLoader />;

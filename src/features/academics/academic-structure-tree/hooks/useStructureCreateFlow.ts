@@ -11,6 +11,7 @@ import {
   isGradeNameUnique,
   isSectionNameUnique,
   isClassroomNameUnique,
+  type Stage,
   type Grade,
   type Section,
   type Classroom,
@@ -23,6 +24,7 @@ interface UseStructureCreateFlowParams {
   academicYearId: string;
   termId: string;
   isReadOnly: boolean;
+  stages: Stage[];
   grades: Grade[];
   sections: Section[];
   classrooms: Classroom[];
@@ -33,6 +35,7 @@ export function useStructureCreateFlow({
   academicYearId,
   termId,
   isReadOnly,
+  stages,
   grades,
   sections,
   classrooms,
@@ -161,10 +164,15 @@ export function useStructureCreateFlow({
 
     try {
       if (addModalType === "stage") {
+        const maxStageOrder = stages.reduce(
+          (max, item) => Math.max(max, item.order),
+          0
+        );
         await createStage(academicYearId, termId, {
           nameAr: newItemNameAr,
           nameEn: newItemNameEn,
           name: newItemNameEn || newItemNameAr,
+          order: maxStageOrder + 1,
         });
       } else if (addModalType === "grade" && addModalParentId) {
         const maxOrder = grades
@@ -218,6 +226,7 @@ export function useStructureCreateFlow({
     newItemOrder,
     reload,
     resetForm,
+    stages,
     sections,
     t,
     tValidation,

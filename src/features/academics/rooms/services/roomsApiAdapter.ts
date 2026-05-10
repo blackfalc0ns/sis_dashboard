@@ -22,6 +22,10 @@ const unwrap = async <T>(request: Promise<ApiEnvelope<T> | T>): Promise<T> => {
       throw new Error(envelope.error);
     }
     if (typeof envelope.data === "undefined") {
+      // If no data but we have items, it might be a list
+      if ("items" in response && Array.isArray((response as any).items)) {
+        return (response as any).items as T;
+      }
       throw new Error(envelope.message || "Missing API response data");
     }
     return envelope.data;
@@ -30,82 +34,59 @@ const unwrap = async <T>(request: Promise<ApiEnvelope<T> | T>): Promise<T> => {
   return response as T;
 };
 
-const buildQuery = (params: Record<string, string>) => {
-  const search = new URLSearchParams(params);
-  return `?${search.toString()}`;
-};
+
+
 
 export const createRoomsApiAdapter = (
   basePath: string = "/academics/rooms"
 ): RoomsAdapter => ({
-  async fetchRooms(schoolId) {
-    return unwrap<Room[]>(
-      apiWithToken(`${basePath}${buildQuery({ schoolId })}`, {
+  async fetchRooms(_schoolId) {
+    // GET /academics/rooms — no schoolId query param required by the API
+    const res = await unwrap<any>(
+      apiWithToken(basePath, {
         method: "GET",
       })
     );
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.data)) return res.data;
+    if (res && Array.isArray(res.items)) return res.items;
+    if (res && Array.isArray(res.rooms)) return res.rooms;
+    return [];
   },
 
-  async fetchRoomDefaultAssignments(schoolId) {
-    return unwrap<RoomDefaultAssignment[]>(
-      apiWithToken(`${basePath}/defaults${buildQuery({ schoolId })}`, {
-        method: "GET",
-      })
-    );
+  // NOTE: /academics/rooms/defaults does not exist in the API yet.
+  // These are stubbed as no-ops to prevent 404 errors.
+  async fetchRoomDefaultAssignments(_schoolId) {
+    return [];
   },
 
-  async createRoomDefaultAssignment(schoolId, payload) {
-    return unwrap<RoomDefaultAssignment>(
-      apiWithToken(`${basePath}/defaults`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          schoolId,
-          ...payload,
-        }),
-      })
-    );
+  async createRoomDefaultAssignment(_schoolId, _payload) {
+    throw new Error("Room default assignments endpoint is not yet available.");
   },
 
-  async updateRoomDefaultAssignment(assignmentId, payload) {
-    return unwrap<RoomDefaultAssignment>(
-      apiWithToken(`${basePath}/defaults/${assignmentId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      })
-    );
+  async updateRoomDefaultAssignment(_assignmentId, _payload) {
+    throw new Error("Room default assignments endpoint is not yet available.");
   },
 
-  async deleteRoomDefaultAssignment(assignmentId) {
-    await unwrap<void>(
-      apiWithToken(`${basePath}/defaults/${assignmentId}`, {
-        method: "DELETE",
-      })
-    );
+  async deleteRoomDefaultAssignment(_assignmentId) {
+    // no-op
   },
 
-  async createRoom(schoolId, room) {
-    return unwrap<Room>(
+  async createRoom(_schoolId, room) {
+    const res = await unwrap<any>(
       apiWithToken(basePath, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          schoolId,
-          ...room,
-        }),
+        body: JSON.stringify(room),
       })
     );
+    return res?.data ?? res?.item ?? res?.room ?? res;
   },
 
   async updateRoom(roomId, updates) {
-    return unwrap<Room>(
+    const res = await unwrap<any>(
       apiWithToken(`${basePath}/${roomId}`, {
         method: "PATCH",
         headers: {
@@ -114,6 +95,7 @@ export const createRoomsApiAdapter = (
         body: JSON.stringify(updates),
       })
     );
+    return res?.data ?? res?.item ?? res?.room ?? res;
   },
 
   async deleteRoom(roomId) {

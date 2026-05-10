@@ -248,8 +248,8 @@ export const convertLeadToApplication = (leadId: string): ApplicationDraft => {
   const draft: ApplicationDraft = {
     id: `APP-DRAFT-${Date.now()}`,
     leadId: lead.id,
-    studentName: lead.name,
-    gradeRequested: lead.gradeInterest,
+    studentName: lead.studentName || lead.name || "",
+    gradeRequested: lead.gradeInterest as string | undefined,
     status: "Draft",
     createdAt: new Date().toISOString(),
   };

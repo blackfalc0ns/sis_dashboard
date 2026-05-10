@@ -27,6 +27,7 @@ interface AcademicYearTermLayoutContextBarActions {
   onPromoteCarryOver?: () => void;
   showPromoteCarryOver?: boolean;
   disablePromoteCarryOver?: boolean;
+  disableYearTermEditing?: boolean;
 }
 
 interface AcademicYearTermLayoutContextValue

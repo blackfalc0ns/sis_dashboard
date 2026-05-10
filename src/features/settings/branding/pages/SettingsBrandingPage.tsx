@@ -18,9 +18,10 @@ import SettingsSectionCard from "@/features/settings/components/SettingsSectionC
 import SettingsGlobalExportModal from "@/features/settings/shared/components/export/SettingsGlobalExportModal";
 import { timezones } from "@/features/settings/constants/defaults";
 import {
-  fetchSchoolProfileSettings,
-  updateSchoolProfileSettings,
-} from "@/features/settings/services/settingsService";
+  fetchBrandingProfile,
+  getEmptyBrandingProfile,
+  updateBrandingProfile,
+} from "@/features/settings/services/brandingService";
 import {
   exportSettingsData,
   formatSettingsExportDate,
@@ -32,20 +33,7 @@ import type {
   SchoolProfileSettings,
 } from "@/features/settings/types";
 
-const emptyProfile: SchoolProfileSettings = {
-  schoolName: "",
-  shortName: "",
-  timezone: "Africa/Cairo",
-  addressLine: "",
-  formattedAddress: "",
-  city: "",
-  country: "",
-  footerSignature: "",
-  logoUrl: "",
-  latitude: null,
-  longitude: null,
-  mapPlaceLabel: "",
-};
+const emptyProfile = getEmptyBrandingProfile();
 
 function profileToLocation(profile: SchoolProfileSettings): ResolvedSchoolLocation | null {
   if (profile.latitude === null || profile.longitude === null || !profile.formattedAddress.trim()) {
@@ -86,7 +74,7 @@ export default function SettingsBrandingPage() {
     void Promise.resolve().then(async () => {
       setIsLoading(true);
       try {
-        const nextProfile = await fetchSchoolProfileSettings();
+        const nextProfile = await fetchBrandingProfile({ force: true });
         if (!isCancelled) {
           setProfile(nextProfile);
           setInitialProfile(nextProfile);
@@ -183,7 +171,7 @@ export default function SettingsBrandingPage() {
 
     setIsSaving(true);
     try {
-      const savedProfile = await updateSchoolProfileSettings(profile);
+      const savedProfile = await updateBrandingProfile(profile);
       setProfile(savedProfile);
       setInitialProfile(savedProfile);
       setLocationWasEdited(false);

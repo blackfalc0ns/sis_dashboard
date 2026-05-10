@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { isApiError } from "@/lib/api-error";
 import {
   fetchAcademicYears,
   fetchTermsByYear,
@@ -95,9 +96,18 @@ export function useAcademicYearTermContext(
         return [];
       }
 
-      const fetchedTerms = await fetchTermsByYear(yearId);
-      setTerms(fetchedTerms);
-      return fetchedTerms;
+      try {
+        const fetchedTerms = await fetchTermsByYear(yearId);
+        setTerms(fetchedTerms);
+        return fetchedTerms;
+      } catch (error) {
+        console.error("Failed to refresh terms:", error);
+        if (isApiError(error) && error.status === 401) {
+          setTerms([]);
+          return [];
+        }
+        throw error;
+      }
     },
     [academicYearId]
   );
@@ -155,6 +165,15 @@ export function useAcademicYearTermContext(
           }
           router.replace(`?${params.toString()}`, { scroll: false });
         }
+      } catch (error) {
+        if (!isCancelled) {
+          console.error("Failed to initialize academic year/term context:", error);
+          setAcademicYears([]);
+          setAcademicYearId("");
+          setTermId("");
+          setTerms([]);
+          setTermStatus("open");
+        }
       } finally {
         if (!isCancelled) {
           setIsInitializing(false);
@@ -179,7 +198,17 @@ export function useAcademicYearTermContext(
       setTermStatus("open");
       setTerms([]);
 
-      const fetchedTerms = await fetchTermsByYear(yearId);
+      let fetchedTerms: Term[];
+      try {
+        fetchedTerms = await fetchTermsByYear(yearId);
+      } catch (error) {
+        console.error("Failed to change academic year:", error);
+        if (isApiError(error) && error.status === 401) {
+          setTerms([]);
+          return null;
+        }
+        throw error;
+      }
       if (yearChangeRequestIdRef.current !== requestId) {
         return null;
       }

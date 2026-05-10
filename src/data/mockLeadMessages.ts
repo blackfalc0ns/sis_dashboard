@@ -189,7 +189,7 @@ export const mockLeadConversations: LeadConversation[] = mockLeads.map(
 
     return {
       leadId: lead.id,
-      leadName: lead.name,
+      leadName: lead.name || lead.studentName || "",
       leadPhone: lead.phone,
       leadEmail: lead.email || "",
       lastMessage,

@@ -9,6 +9,7 @@ import { useDirtyKey } from "@/hooks/useDirtyKey";
 import {
   fetchStructureTree,
   type Grade,
+  type Stage,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   fetchSubjects,
@@ -37,6 +38,7 @@ export default function SubjectsAllocationContainer() {
   } = useAcademicYearTermLayoutContext();
 
   // Data
+  const [stages, setStages] = useState<Stage[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [allocations, setAllocations] = useState<SubjectAllocation[]>([]);
@@ -68,6 +70,7 @@ export default function SubjectsAllocationContainer() {
           fetchSubjectAllocations(termId),
         ]);
 
+        setStages(structureData.stages || []);
         setGrades(structureData.grades);
         setSubjects(subjectsData);
         setAllocations(allocationsData);
@@ -182,6 +185,7 @@ export default function SubjectsAllocationContainer() {
       termId={termId}
       academicYears={academicYears}
       terms={terms}
+      stages={stages}
       grades={grades}
       subjects={subjects}
       allocations={allocations}

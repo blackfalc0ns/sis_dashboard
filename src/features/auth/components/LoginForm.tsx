@@ -16,6 +16,7 @@ import {
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { isApiError } from "@/lib/api-error";
+import { getValidationFieldErrors } from "@/lib/validation-errors";
 
 const INITIAL_VALUES: LoginFormValues = {
   email: "",
@@ -102,21 +103,29 @@ export function LoginForm({ currentYear }: LoginFormProps) {
 
     try {
       await login({ email: values.email, password: values.password });
-      
+
       const match = pathname.match(/^\/([a-z]{2})/);
       const currentLocale = match ? match[1] : "en";
-      
+
       router.push(`/${currentLocale}/dashboard`);
       setSubmitSuccess(t("demoSuccess"));
     } catch (error) {
       if (isApiError(error)) {
-          if (error.status === 401) {
-              setSubmitError("Invalid email or password");
-          } else {
-              setSubmitError(error.message || t("submitError"));
-          }
+        if (error.status === 401) {
+          setSubmitError("Invalid email or password");
+        } else if (error.code === "validation.failed") {
+          const fieldErrors = getValidationFieldErrors(error);
+          setErrors((current) => ({
+            ...current,
+            email: fieldErrors.email || current.email,
+            password: fieldErrors.password || current.password,
+          }));
+          setSubmitError(t("submitError"));
+        } else {
+          setSubmitError(error.message || t("submitError"));
+        }
       } else {
-         setSubmitError(t("submitError"));
+        setSubmitError(t("submitError"));
       }
     } finally {
       setIsSubmitting(false);
@@ -157,16 +166,6 @@ export function LoginForm({ currentYear }: LoginFormProps) {
             aria-live="assertive"
           >
             {submitError}
-          </div>
-        ) : null}
-
-        {submitSuccess ? (
-          <div
-            className="rounded-[1.1rem] border border-[color-mix(in_oklab,var(--primary-color)_25%,var(--border-color))] bg-[color-mix(in_oklab,var(--primary-color)_8%,white)] px-4 py-3 text-sm text-[var(--primary-color)]"
-            role="status"
-            aria-live="polite"
-          >
-            {submitSuccess}
           </div>
         ) : null}
 

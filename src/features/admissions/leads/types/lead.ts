@@ -6,14 +6,36 @@ import type { LeadChannel, LeadStatus, ActivityType } from "@/features/admission
 export interface Lead {
   [key: string]: unknown;
   id: string;
-  name: string;
+  studentName: string;
+  primaryContactName?: string;
   phone: string;
   email?: string;
   channel: LeadChannel;
   status: LeadStatus;
+  notes?: string;
   createdAt: string; // ISO date string
+  // Legacy compatibility — derived getter-like helpers can map these
+  name?: string;
   gradeInterest?: string;
   source?: string;
+}
+
+export interface CreateLeadPayload {
+  studentName: string;
+  primaryContactName: string;
+  phone: string;
+  email?: string;
+  channel: LeadChannel;
+  notes?: string;
+}
+
+export interface UpdateLeadPayload {
+  studentName?: string;
+  primaryContactName?: string;
+  phone?: string;
+  email?: string;
+  channel?: LeadChannel;
+  status?: LeadStatus;
   notes?: string;
 }
 

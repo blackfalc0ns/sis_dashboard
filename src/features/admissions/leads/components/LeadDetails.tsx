@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -23,15 +23,12 @@ import NotesPanel from "@/features/admissions/leads/components/NotesPanel";
 import LeadChatPanel from "@/features/admissions/leads/components/LeadChatPanel";
 import TabNavigation from "@/features/admissions/shared/TabNavigation";
 import {
-  getLeadById,
-  getActivitiesByLeadId,
-  getNotesByLeadId,
-  addActivity,
-  addNote,
-  convertLeadToApplication,
-} from "@/features/admissions/leads/services/mockLeadsApi";
-import { getConversationByLeadId } from "@/data/mockLeadMessages";
+  fetchLeadById,
+  convertLead,
+} from "@/features/admissions/leads/services/leadsApiService";
 import { Lead, ActivityType } from "@/features/admissions/types/leads";
+import type { ActivityLogItem, Note } from "@/features/admissions/leads/types/lead";
+import { useToast } from "@/components/ui/toast/Toast";
 
 interface LeadDetailsProps {
   leadId: string;
@@ -41,59 +38,59 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
   const router = useRouter();
   const t = useTranslations("admissions.lead_details");
   const t_leads = useTranslations("admissions.leads");
-  const t_grades = useTranslations("admissions.grades");
   const locale = useLocale();
+  const { showToast } = useToast();
   const [lead, setLead] = useState<Lead | null>(null);
-  const [activities, setActivities] = useState(getActivitiesByLeadId(leadId));
-  const [notes, setNotes] = useState(getNotesByLeadId(leadId));
+  const [isLoading, setIsLoading] = useState(true);
+  // Activity log and notes are UI-ready stubs (no backend endpoint)
+  const [activities] = useState<ActivityLogItem[]>([]);
+  const [notes] = useState<Note[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount] = useState(0);
+
+  const loadLead = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const foundLead = await fetchLeadById(leadId);
+      setLead(foundLead);
+    } catch (err) {
+      console.error("Failed to load lead:", err);
+      showToast("Lead not found", "error");
+      router.push(`/${locale}/admissions/leads`);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [leadId, router, locale, showToast]);
 
   useEffect(() => {
-    const loadLead = () => {
-      const foundLead = getLeadById(leadId);
-      if (foundLead) {
-        setLead(foundLead);
-
-        // Load unread message count
-        const conversation = getConversationByLeadId(leadId);
-        setUnreadCount(conversation?.unreadCount || 0);
-      } else {
-        alert("Lead not found");
-        router.push(`/${locale}/admissions/leads`);
-      }
-    };
     loadLead();
-  }, [leadId, router, locale]);
+  }, [loadLead]);
 
-  if (!lead) {
+  if (isLoading || !lead) {
     return <MainLoader />;
   }
 
-  const handleAddActivity = (type: ActivityType, message: string) => {
-    addActivity({
-      leadId: lead.id,
-      type,
-      message,
-      createdBy: String(lead.owner || "System"),
-    });
-    setActivities(getActivitiesByLeadId(leadId));
+  const displayName = lead.studentName || lead.primaryContactName || lead.name || "";
+
+  const handleAddActivity = (_type: ActivityType, _message: string) => {
+    showToast("Activity log is not yet available from the API.", "info");
   };
 
-  const handleAddNote = (body: string) => {
-    addNote({
-      leadId: lead.id,
-      body,
-      createdBy: String(lead.owner || "System"),
-    });
-    setNotes(getNotesByLeadId(leadId));
+  const handleAddNote = (_body: string) => {
+    showToast("Notes are not yet available from the API.", "info");
   };
 
-  const handleConvertToApplication = () => {
-    if (confirm(`Convert lead "${lead.name}" to application?`)) {
-      const draft = convertLeadToApplication(lead.id);
-      alert(`Lead converted! Application draft created: ${draft.id}`);
-      router.push(`/${locale}/admissions/applications`);
+  const handleConvertToApplication = async () => {
+    if (confirm(`Convert lead "${displayName}" to application?`)) {
+      try {
+        await convertLead(lead.id);
+        showToast("Lead status changed to Converted!", "success");
+        // Reload to reflect updated status
+        await loadLead();
+      } catch (err) {
+        console.error("Failed to convert lead:", err);
+        showToast("Failed to convert lead", "error");
+      }
     }
   };
 
@@ -133,7 +130,7 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
           )}
         </button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">{lead.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{displayName}</h1>
           <p className="text-sm text-gray-500">
             {t("lead_id")}: {lead.id}
           </p>
@@ -174,7 +171,7 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
                       {t("guardian_name")}
                     </p>
                     <p className="text-sm font-semibold text-gray-900">
-                      {lead.name}
+                      {lead.primaryContactName || displayName}
                     </p>
                   </div>
                   <div>
@@ -233,38 +230,13 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
                       })()}
                     </p>
                   </div>
-                  {lead.gradeInterest && (
+                  {lead.studentName && (
                     <div>
                       <p className="text-xs text-gray-500">
-                        {t("grade_interest")}
+                        Student Name
                       </p>
                       <p className="text-sm font-medium text-gray-900">
-                        {(() => {
-                          const grade = String(lead.gradeInterest);
-                          const gradeKey = grade
-                            .toLowerCase()
-                            .replace(/\s+/g, "_");
-                          const translated = t_grades(gradeKey);
-                          return translated !== gradeKey ? translated : grade;
-                        })()}
-                      </p>
-                    </div>
-                  )}
-                  {lead.source && (
-                    <div>
-                      <p className="text-xs text-gray-500">{t("source")}</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {(() => {
-                          const sourceMap: Record<string, string> = {
-                            in_app: "in_app",
-                            referral: "referral",
-                            walk_in: "walk_in",
-                            other: "other",
-                          };
-                          const source = String(lead.source).toLowerCase();
-                          const translationKey = sourceMap[source] || "other";
-                          return t_leads(translationKey);
-                        })()}
+                        {lead.studentName}
                       </p>
                     </div>
                   )}
@@ -288,10 +260,10 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
           {activeTab === "chat" && (
             <LeadChatPanel
               leadId={lead.id}
-              leadName={lead.name}
+              leadName={displayName}
               leadPhone={lead.phone}
               leadEmail={lead.email || ""}
-              onMessagesRead={() => setUnreadCount(0)}
+              onMessagesRead={() => {}}
             />
           )}
 

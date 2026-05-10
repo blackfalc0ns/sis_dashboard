@@ -24,7 +24,7 @@ export default function LeadChatPage({
   return (
     <LeadChatPanel
       leadId={lead.id}
-      leadName={lead.name}
+      leadName={lead.name || lead.studentName || ""}
       leadPhone={lead.phone}
       leadEmail={lead.email || ""}
       onMessagesRead={() => {}}

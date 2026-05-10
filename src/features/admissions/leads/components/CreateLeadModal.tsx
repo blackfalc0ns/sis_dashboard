@@ -5,20 +5,13 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
-import { LeadChannel, LeadStatus } from "@/features/admissions/types/enums";
+import { LeadChannel } from "@/features/admissions/types/enums";
+import type { CreateLeadPayload } from "@/features/admissions/leads/types/lead";
 
 interface CreateLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: {
-    name: string;
-    phone: string;
-    email?: string;
-    channel: LeadChannel;
-    status: LeadStatus;
-    owner: string;
-    source?: string;
-  }) => void;
+  onSubmit: (data: CreateLeadPayload) => void;
 }
 
 export default function CreateLeadModal({
@@ -28,30 +21,32 @@ export default function CreateLeadModal({
 }: CreateLeadModalProps) {
   const t = useTranslations("admissions.leads");
   const [formData, setFormData] = useState({
-    name: "",
+    studentName: "",
+    primaryContactName: "",
     phone: "",
     email: "",
     channel: "In-app" as LeadChannel,
-    status: "New" as LeadStatus,
-    source: "",
+    notes: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
-      ...formData,
-      owner: "System", // Default owner
+      studentName: formData.studentName,
+      primaryContactName: formData.primaryContactName,
+      phone: formData.phone,
       email: formData.email || undefined,
-      source: formData.source || undefined,
+      channel: formData.channel,
+      notes: formData.notes || undefined,
     });
     // Reset form
     setFormData({
-      name: "",
+      studentName: "",
+      primaryContactName: "",
       phone: "",
       email: "",
       channel: "In-app",
-      status: "New",
-      source: "",
+      notes: "",
     });
   };
 
@@ -79,6 +74,23 @@ export default function CreateLeadModal({
           className="flex-1 overflow-y-auto px-6 py-6"
         >
           <div className="space-y-4">
+            {/* Student Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("student_name") || "Student Name"} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.studentName}
+                onChange={(e) =>
+                  setFormData({ ...formData, studentName: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder={t("student_name_placeholder") || "Enter student name"}
+              />
+            </div>
+
             {/* Guardian/Parent Contact */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -87,9 +99,9 @@ export default function CreateLeadModal({
               <input
                 type="text"
                 required
-                value={formData.name}
+                value={formData.primaryContactName}
                 onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
+                  setFormData({ ...formData, primaryContactName: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder={t("guardian_name_placeholder")}
@@ -129,63 +141,41 @@ export default function CreateLeadModal({
               </div>
             </div>
 
-            {/* Channel & Status */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("channel")} <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.channel}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      channel: e.target.value as LeadChannel,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value="In-app">{t("in_app")}</option>
-                  <option value="Referral">{t("referral")}</option>
-                  <option value="Walk-in">{t("walk_in")}</option>
-                  <option value="Other">{t("other")}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("status")} <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      status: e.target.value as LeadStatus,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value="New">{t("new")}</option>
-                  <option value="Contacted">{t("contacted")}</option>
-                  <option value="Converted">{t("converted")}</option>
-                  <option value="Closed">{t("closed")}</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Source */}
+            {/* Channel */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("source")}
+                {t("channel")} <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={formData.source}
+              <select
+                value={formData.channel}
                 onChange={(e) =>
-                  setFormData({ ...formData, source: e.target.value })
+                  setFormData({
+                    ...formData,
+                    channel: e.target.value as LeadChannel,
+                  })
                 }
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder={t("source_placeholder")}
+              >
+                <option value="In-app">{t("in_app")}</option>
+                <option value="Referral">{t("referral")}</option>
+                <option value="Walk-in">{t("walk_in")}</option>
+                <option value="Other">{t("other")}</option>
+              </select>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("notes") || "Notes"}
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                placeholder={t("notes_placeholder") || "Optional notes about this lead"}
               />
             </div>
           </div>

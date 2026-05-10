@@ -2,7 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { CopyPlus, Download, Pencil, Plus, Trash, Trash2 } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  CopyPlus,
+  Download,
+  Trash2,
+  Minus,
+  Pencil,
+  Plus,
+} from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import Button from "@/components/ui/button/Button";
 import MainLoader from "@/components/ui/loaders/MainLoader";
@@ -11,7 +21,6 @@ import RoleEditorModal from "@/features/settings/components/RoleEditorModal";
 import SettingsAccessGuard from "@/features/settings/components/SettingsAccessGuard";
 import SettingsPageHeader from "@/features/settings/components/SettingsPageHeader";
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
-import SettingsStatusBadge from "@/features/settings/components/SettingsStatusBadge";
 import SettingsGlobalExportModal from "@/features/settings/shared/components/export/SettingsGlobalExportModal";
 import {
   exportSettingsData,
@@ -20,19 +29,23 @@ import {
   type SettingsExportFormat,
 } from "@/features/settings/shared/utils/settingsExport";
 import {
-  cloneRole,
-  createRole,
-  deleteRole,
-  fetchPermissionCatalog,
-  fetchRoles,
-  updateRole,
-  updateRolePermissions,
-} from "@/features/settings/services/settingsService";
+  cloneSettingsRole,
+  createSettingsRole,
+  deleteSettingsRole,
+  type FetchSettingsRolesParams,
+  fetchSettingsPermissions,
+  fetchSettingsRoles,
+  replaceSettingsRolePermissions,
+  updateSettingsRole,
+} from "@/features/settings/services/settingsRolesService";
 import type {
+  PermissionAction,
   PermissionDefinition,
   RoleDefinition,
 } from "@/features/settings/types";
 import { usePermissions } from "@/hooks/usePermissions";
+import { isApiError } from "@/lib/api-error";
+import { getValidationFieldErrors } from "@/lib/validation-errors";
 
 export default function SettingsRolesPage() {
   const locale = useLocale();
@@ -50,6 +63,17 @@ export default function SettingsRolesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingPermissions, setIsSavingPermissions] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalRoles, setTotalRoles] = useState(0);
+  const [modalFieldErrors, setModalFieldErrors] = useState<
+    Partial<Record<"name" | "description", string>>
+  >({});
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [isDeletingRole, setIsDeletingRole] = useState(false);
+  const [expandedModules, setExpandedModules] = useState<
+    Record<string, boolean>
+  >({});
 
   useEffect(() => {
     let isCancelled = false;
@@ -57,18 +81,27 @@ export default function SettingsRolesPage() {
     void Promise.resolve().then(async () => {
       setIsLoading(true);
       try {
-        const [nextRoles, nextPermissions] = await Promise.all([
-          fetchRoles(),
-          fetchPermissionCatalog(),
+        const rolesParams: FetchSettingsRolesParams = {
+          page,
+          limit,
+        };
+        const [rolesResult, nextPermissions] = await Promise.all([
+          fetchSettingsRoles(rolesParams),
+          fetchSettingsPermissions(),
         ]);
 
         if (isCancelled) {
           return;
         }
 
-        setRoles(nextRoles);
+        setRoles(rolesResult.items);
+        setPage(rolesResult.pagination.page);
+        setLimit(rolesResult.pagination.limit);
+        setTotalRoles(rolesResult.pagination.total);
         setPermissions(nextPermissions);
-        setSelectedRoleId((current) => current || nextRoles[0]?.id || "");
+        setSelectedRoleId(
+          (current) => current || rolesResult.items[0]?.id || "",
+        );
       } catch {
         if (!isCancelled) {
           showError(t("messages.load_failed"));
@@ -83,7 +116,7 @@ export default function SettingsRolesPage() {
     return () => {
       isCancelled = true;
     };
-  }, [showError, t]);
+  }, [limit, page, showError, t]);
 
   const selectedRole =
     roles.find((role) => role.id === selectedRoleId) || roles[0] || null;
@@ -99,6 +132,72 @@ export default function SettingsRolesPage() {
 
     return Array.from(groups.entries());
   }, [permissions]);
+
+  const actionColumns = useMemo(() => {
+    const knownOrder: PermissionAction[] = [
+      "view",
+      "manage",
+      "configure",
+      "export",
+    ];
+    const present = new Set(permissions.map((permission) => permission.action));
+    const ordered = knownOrder.filter((action) => present.has(action));
+    const remaining = Array.from(present).filter(
+      (action) => !knownOrder.includes(action),
+    );
+    return [...ordered, ...remaining];
+  }, [permissions]);
+
+  const permissionMatrix = useMemo(() => {
+    return groupedPermissions.map(([module, modulePermissions]) => {
+      const rowMap = new Map<
+        string,
+        {
+          id: string;
+          label: string;
+          cells: Partial<Record<string, PermissionDefinition>>;
+        }
+      >();
+
+      modulePermissions.forEach((permission) => {
+        const keyParts = permission.key.split(".");
+        const resourceKey = keyParts.slice(1, -1).join(".") || permission.key;
+        const resourceLabel =
+          resourceKey
+            .split(".")
+            .map((part) => part.replace(/_/g, " "))
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(" ") || permission.label;
+
+        const existing = rowMap.get(resourceKey) || {
+          id: resourceKey,
+          label: resourceLabel,
+          cells: {},
+        };
+        existing.cells[permission.action] = permission;
+        rowMap.set(resourceKey, existing);
+      });
+
+      return {
+        module,
+        rows: Array.from(rowMap.values()).sort((a, b) =>
+          a.label.localeCompare(b.label),
+        ),
+      };
+    });
+  }, [groupedPermissions]);
+
+  useEffect(() => {
+    setExpandedModules((current) => {
+      const next = { ...current };
+      permissionMatrix.forEach(({ module }) => {
+        if (typeof next[module] === "undefined") {
+          next[module] = false;
+        }
+      });
+      return next;
+    });
+  }, [permissionMatrix]);
 
   const handleExport = (format: SettingsExportFormat) => {
     const metadata = {
@@ -158,10 +257,10 @@ export default function SettingsRolesPage() {
     try {
       const nextRole =
         modalMode === "clone" && selectedRole
-          ? await cloneRole(selectedRole.id, payload.name)
+          ? await cloneSettingsRole(selectedRole.id, payload.name)
           : modalMode === "edit" && selectedRole
-            ? await updateRole(selectedRole.id, payload)
-            : await createRole(payload);
+            ? await updateSettingsRole(selectedRole.id, payload)
+            : await createSettingsRole(payload);
       setRoles((current) =>
         modalMode === "edit"
           ? current.map((role) => (role.id === nextRole.id ? nextRole : role))
@@ -169,6 +268,8 @@ export default function SettingsRolesPage() {
       );
       setSelectedRoleId(nextRole.id);
       setModalMode(null);
+      setModalFieldErrors({});
+      setModalError(null);
       showSuccess(
         modalMode === "clone"
           ? t("messages.role_cloned")
@@ -176,7 +277,16 @@ export default function SettingsRolesPage() {
             ? t("messages.role_updated")
             : t("messages.role_created"),
       );
-    } catch {
+    } catch (error) {
+      const fieldErrors = getValidationFieldErrors(error);
+      if (isApiError(error) && error.code === "validation.failed") {
+        setModalFieldErrors({
+          name: fieldErrors.name,
+          description: fieldErrors.description,
+        });
+        setModalError(tCommon("validation_failed"));
+        return;
+      }
       showError(tCommon("save_failed"));
     }
   };
@@ -207,7 +317,7 @@ export default function SettingsRolesPage() {
 
     setIsSavingPermissions(true);
     try {
-      const updatedRole = await updateRolePermissions(
+      const updatedRole = await replaceSettingsRolePermissions(
         selectedRole.id,
         selectedRole.permissions,
       );
@@ -224,26 +334,164 @@ export default function SettingsRolesPage() {
     }
   };
 
-  const handleDeleteRole = async (
-    role: RoleDefinition | null = selectedRole,
-  ) => {
-    if (!role) {
+  const refreshRoles = async (nextPage?: number) => {
+    const rolesParams: FetchSettingsRolesParams = {
+      page: nextPage ?? page,
+      limit,
+    };
+    const result = await fetchSettingsRoles(rolesParams);
+    setRoles(result.items);
+    setPage(result.pagination.page);
+    setLimit(result.pagination.limit);
+    setTotalRoles(result.pagination.total);
+    setSelectedRoleId((current) => {
+      if (result.items.some((role) => role.id === current)) {
+        return current;
+      }
+      return result.items[0]?.id || "";
+    });
+  };
+
+  const handleDeleteSelectedRole = async () => {
+    if (!selectedRole || selectedRole.isSystem) {
       return;
     }
+    setIsDeletingRole(true);
     try {
-      await deleteRole(role.id);
-      const nextRoles = roles.filter((item) => item.id !== role.id);
-      setRoles(nextRoles);
-      setSelectedRoleId(nextRoles[0]?.id || "");
-      showSuccess(t("messages.role_deleted"));
-    } catch (error) {
-      showError(
-        error instanceof Error && error.message === "role_in_use"
-          ? t("messages.role_in_use")
-          : tCommon("delete_failed"),
+      await deleteSettingsRole(selectedRole.id);
+
+      const remainingAfterDelete = Math.max(totalRoles - 1, 0);
+      const maxPageAfterDelete = Math.max(
+        1,
+        Math.ceil(remainingAfterDelete / Math.max(limit, 1)),
       );
+      await refreshRoles(Math.min(page, maxPageAfterDelete));
+      showSuccess(t("messages.role_deleted"));
+    } catch {
+      showError(tCommon("delete_failed"));
+    } finally {
+      setIsDeletingRole(false);
     }
   };
+
+  const handleDeleteRole = async (role: RoleDefinition) => {
+    if (role.isSystem) {
+      return;
+    }
+    setIsDeletingRole(true);
+    try {
+      await deleteSettingsRole(role.id);
+
+      const remainingAfterDelete = Math.max(totalRoles - 1, 0);
+      const maxPageAfterDelete = Math.max(
+        1,
+        Math.ceil(remainingAfterDelete / Math.max(limit, 1)),
+      );
+      await refreshRoles(Math.min(page, maxPageAfterDelete));
+      showSuccess(t("messages.role_deleted"));
+    } catch {
+      showError(tCommon("delete_failed"));
+    } finally {
+      setIsDeletingRole(false);
+    }
+  };
+
+  const isPermissionChecked = (permissionKey: string) => {
+    return selectedRole?.permissions.includes(permissionKey) ?? false;
+  };
+
+  const toggleModuleAction = (
+    moduleRows: {
+      cells: Partial<Record<string, PermissionDefinition>>;
+    }[],
+    action: string,
+  ) => {
+    if (!selectedRole) {
+      return;
+    }
+
+    const keys = moduleRows
+      .map((row) => row.cells[action]?.key)
+      .filter((value): value is string => Boolean(value));
+    if (keys.length === 0) {
+      return;
+    }
+
+    const allChecked = keys.every((key) =>
+      selectedRole.permissions.includes(key),
+    );
+
+    setRoles((current) =>
+      current.map((role) => {
+        if (role.id !== selectedRole.id) {
+          return role;
+        }
+
+        const currentSet = new Set(role.permissions);
+        if (allChecked) {
+          keys.forEach((key) => currentSet.delete(key));
+        } else {
+          keys.forEach((key) => currentSet.add(key));
+        }
+
+        return {
+          ...role,
+          permissions: Array.from(currentSet),
+        };
+      }),
+    );
+  };
+
+  const getModuleActionState = (
+    moduleRows: {
+      cells: Partial<Record<string, PermissionDefinition>>;
+    }[],
+    action: string,
+  ) => {
+    if (!selectedRole) {
+      return "none";
+    }
+    const keys = moduleRows
+      .map((row) => row.cells[action]?.key)
+      .filter((value): value is string => Boolean(value));
+    if (keys.length === 0) {
+      return "none";
+    }
+
+    const checkedCount = keys.filter((key) =>
+      selectedRole.permissions.includes(key),
+    ).length;
+    if (checkedCount === 0) {
+      return "none";
+    }
+    if (checkedCount === keys.length) {
+      return "all";
+    }
+    return "partial";
+  };
+
+  const renderMatrixToggle = (
+    state: "none" | "partial" | "all",
+    onClick: () => void,
+    disabled: boolean,
+  ) => (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`inline-flex h-5 w-5 items-center justify-center rounded border transition ${
+        state === "none"
+          ? "border-gray-300 bg-white"
+          : "border-blue-600 bg-blue-600 text-white"
+      } ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+    >
+      {state === "all" ? (
+        <Check className="h-3.5 w-3.5" />
+      ) : state === "partial" ? (
+        <Minus className="h-3.5 w-3.5" />
+      ) : null}
+    </button>
+  );
 
   const columns = [
     {
@@ -277,9 +525,15 @@ export default function SettingsRolesPage() {
       key: "isSystem",
       label: t("table.type"),
       render: (value: unknown) => (
-        <SettingsStatusBadge
-          status={(value ? "active" : "draft") as "active" | "draft"}
-        />
+        <span className="text-sm text-gray-700">
+          {value
+            ? locale === "ar"
+              ? "نظام"
+              : "System"
+            : locale === "ar"
+              ? "مخصص"
+              : "Custom"}
+        </span>
       ),
     },
     {
@@ -311,13 +565,14 @@ export default function SettingsRolesPage() {
                 className="h-9 w-9 rounded-lg border border-gray-200 p-0"
                 title={t("delete")}
                 aria-label={t("delete")}
+                loading={isDeletingRole}
+                disabled={isDeletingRole}
                 onClick={(event) => {
                   event.stopPropagation();
-                  setSelectedRoleId(role.id);
                   void handleDeleteRole(role);
                 }}
               >
-                <Trash className="h-4 w-4 text-error" />
+                <Trash2 className="h-4 w-4 text-error" />
               </Button>
             ) : null}
           </div>
@@ -372,8 +627,9 @@ export default function SettingsRolesPage() {
                 <Button
                   variant="secondary"
                   leftIcon={<Trash2 className="h-4 w-4" />}
-                  disabled={!selectedRole || selectedRole.isSystem}
-                  onClick={() => void handleDeleteRole()}
+                  loading={isDeletingRole}
+                  disabled={!selectedRole || selectedRole.isSystem || isDeletingRole}
+                  onClick={() => void handleDeleteSelectedRole()}
                 >
                   {t("delete_role")}
                 </Button>
@@ -408,50 +664,108 @@ export default function SettingsRolesPage() {
             }
           >
             {selectedRole ? (
-              <div className="space-y-5 grid sm:grid-cols-1 md:grid-cols-3 xl:grid-cols-4  gap-4">
-                {groupedPermissions.map(([module, modulePermissions]) => (
-                  <div
-                    key={module}
-                    className="rounded-xl border border-gray-100"
-                  >
-                    <div className="border-b border-gray-100 px-4 py-3">
-                      <h3 className="text-sm font-semibold text-gray-900">
-                        {module}
-                      </h3>
-                    </div>
-                    <div className="divide-y divide-gray-100">
-                      {modulePermissions.map((permission) => {
-                        const isChecked = selectedRole.permissions.includes(
-                          permission.key,
-                        );
-                        return (
-                          <label
-                            key={permission.key}
-                            className="flex cursor-pointer items-start gap-3 px-4 py-3"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              disabled={!hasPermission("settings.roles.manage")}
-                              onChange={() =>
-                                handleTogglePermission(permission.key)
-                              }
-                              className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                            />
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">
-                                {permission.label}
-                              </p>
-                              <p className="mt-1 text-xs text-gray-500">
-                                {permission.description}
-                              </p>
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+              <div className="overflow-x-auto rounded-xl border border-gray-200">
+                <table className="min-w-[760px] w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                        {t("permission_matrix_title")}
+                      </th>
+                      {actionColumns.map((action) => (
+                        <th
+                          key={action}
+                          className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-600"
+                        >
+                          {action}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {permissionMatrix.map(({ module, rows }) => {
+                      const isExpanded = expandedModules[module] ?? true;
+                      return (
+                        <>
+                          <tr key={`${module}-module`} className="bg-gray-50">
+                            <td className="px-4 py-3">
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-2 text-sm font-semibold text-gray-900"
+                                onClick={() =>
+                                  setExpandedModules((current) => ({
+                                    ...current,
+                                    [module]: !isExpanded,
+                                  }))
+                                }
+                              >
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                                )}
+                                <span>{module}</span>
+                              </button>
+                            </td>
+                            {actionColumns.map((action) => {
+                              const state = getModuleActionState(rows, action);
+                              return (
+                                <td
+                                  key={`${module}-${action}`}
+                                  className="px-4 py-3 text-center"
+                                >
+                                  {renderMatrixToggle(
+                                    state,
+                                    () => toggleModuleAction(rows, action),
+                                    !hasPermission("settings.roles.manage"),
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                          {isExpanded
+                            ? rows.map((row) => (
+                                <tr
+                                  key={`${module}-${row.id}`}
+                                  className="bg-hover-50"
+                                >
+                                  <td className="px-8 py-3 text-sm text-gray-800">
+                                    {row.label}
+                                  </td>
+                                  {actionColumns.map((action) => {
+                                    const permission = row.cells[action];
+                                    const checked = permission
+                                      ? isPermissionChecked(permission.key)
+                                      : false;
+                                    return (
+                                      <td
+                                        key={`${module}-${row.id}-${action}`}
+                                        className="px-4 py-3 text-center"
+                                      >
+                                        {permission ? (
+                                          renderMatrixToggle(
+                                            checked ? "all" : "none",
+                                            () =>
+                                              handleTogglePermission(
+                                                permission.key,
+                                              ),
+                                            !hasPermission(
+                                              "settings.roles.manage",
+                                            ),
+                                          )
+                                        ) : (
+                                          <span className="inline-block h-5 w-5 rounded border border-gray-200 bg-gray-50" />
+                                        )}
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              ))
+                            : null}
+                        </>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
@@ -467,7 +781,18 @@ export default function SettingsRolesPage() {
               columns={columns}
               data={roles as unknown as Record<string, unknown>[]}
               showPagination
-              itemsPerPage={10}
+              itemsPerPage={limit}
+              serverPagination={{
+                enabled: true,
+                currentPage: page,
+                pageSize: limit,
+                totalItems: totalRoles,
+                onPageChange: (nextPage) => setPage(nextPage),
+                onPageSizeChange: (nextSize) => {
+                  setLimit(nextSize);
+                  setPage(1);
+                },
+              }}
               onRowClick={(row) =>
                 setSelectedRoleId((row as unknown as RoleDefinition).id)
               }
@@ -479,6 +804,14 @@ export default function SettingsRolesPage() {
           isOpen={modalMode !== null}
           mode={modalMode || "create"}
           sourceRoleName={selectedRole?.name}
+          errors={modalFieldErrors}
+          formError={modalError}
+          onFieldChange={(field) =>
+            setModalFieldErrors((current) => ({
+              ...current,
+              [field]: undefined,
+            }))
+          }
           initialValues={
             modalMode === "edit" && selectedRole
               ? {
@@ -487,7 +820,11 @@ export default function SettingsRolesPage() {
                 }
               : null
           }
-          onClose={() => setModalMode(null)}
+          onClose={() => {
+            setModalMode(null);
+            setModalFieldErrors({});
+            setModalError(null);
+          }}
           onSubmit={handleCreateOrClone}
         />
         <SettingsGlobalExportModal

@@ -141,7 +141,7 @@ export async function apiGet<T>(
 
 export async function apiPost<T>(
   url: string,
-  data?: any,
+  data?: unknown,
   config?: AxiosRequestConfig,
 ): Promise<T> {
   const response = await apiClient.post<T>(url, data, config);
@@ -150,7 +150,7 @@ export async function apiPost<T>(
 
 export async function apiPut<T>(
   url: string,
-  data?: any,
+  data?: unknown,
   config?: AxiosRequestConfig,
 ): Promise<T> {
   const response = await apiClient.put<T>(url, data, config);
@@ -159,7 +159,7 @@ export async function apiPut<T>(
 
 export async function apiPatch<T>(
   url: string,
-  data?: any,
+  data?: unknown,
   config?: AxiosRequestConfig,
 ): Promise<T> {
   const response = await apiClient.patch<T>(url, data, config);
@@ -199,11 +199,24 @@ export async function apiWithToken<T>(
   console.warn(
     "Using deprecated apiWithToken() fetch wrapper. Please migrate to apiClient or apiGet/apiPost.",
   );
-  if (options?.method === "POST") {
-    return apiPost<T>(
-      endpoint,
-      options.body ? JSON.parse(options.body as string) : undefined,
-    );
+  const method = (options?.method || "GET").toUpperCase();
+  const body =
+    typeof options?.body === "string"
+      ? JSON.parse(options.body)
+      : undefined;
+
+  if (method === "POST") {
+    return apiPost<T>(endpoint, body);
   }
+  if (method === "PUT") {
+    return apiPut<T>(endpoint, body);
+  }
+  if (method === "PATCH") {
+    return apiPatch<T>(endpoint, body);
+  }
+  if (method === "DELETE") {
+    return apiDelete<T>(endpoint);
+  }
+
   return apiGet<T>(endpoint);
 }

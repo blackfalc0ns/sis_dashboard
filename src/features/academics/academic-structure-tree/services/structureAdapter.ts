@@ -1,6 +1,5 @@
 import type {
   AcademicYear,
-  CarryOverOptions,
   Classroom,
   Grade,
   Section,
@@ -25,17 +24,28 @@ export interface StructureAdapter {
     yearId: string,
     termId: string,
     id: string,
-    payload: Partial<Stage>
+    payload: Partial<Omit<Stage, "id">>
   ): Promise<Stage>;
   deleteStage(yearId: string, termId: string, id: string): Promise<void>;
+  reorderStages(
+    yearId: string,
+    termId: string,
+    orderedStageIds: string[]
+  ): Promise<void>;
   createGrade(yearId: string, termId: string, payload: Omit<Grade, "id">): Promise<Grade>;
   updateGrade(
     yearId: string,
     termId: string,
     id: string,
-    payload: Partial<Grade>
+    payload: Partial<Omit<Grade, "id">>
   ): Promise<Grade>;
   deleteGrade(yearId: string, termId: string, id: string): Promise<void>;
+  reorderGrades(
+    yearId: string,
+    termId: string,
+    stageId: string,
+    orderedGradeIds: string[]
+  ): Promise<void>;
   createSection(
     yearId: string,
     termId: string,
@@ -45,9 +55,15 @@ export interface StructureAdapter {
     yearId: string,
     termId: string,
     id: string,
-    payload: Partial<Section>
+    payload: Partial<Omit<Section, "id">>
   ): Promise<Section>;
   deleteSection(yearId: string, termId: string, id: string): Promise<void>;
+  reorderSections(
+    yearId: string,
+    termId: string,
+    gradeId: string,
+    orderedSectionIds: string[]
+  ): Promise<void>;
   createClassroom(
     yearId: string,
     termId: string,
@@ -57,26 +73,13 @@ export interface StructureAdapter {
     yearId: string,
     termId: string,
     id: string,
-    payload: Partial<Classroom>
+    payload: Partial<Omit<Classroom, "id">>
   ): Promise<Classroom>;
   deleteClassroom(yearId: string, termId: string, id: string): Promise<void>;
-  reorderGrades(
-    yearId: string,
-    termId: string,
-    stageId: string,
-    orderedGradeIds: string[]
-  ): Promise<void>;
-  reorderSections(
-    yearId: string,
-    termId: string,
-    gradeId: string,
-    orderedSectionIds: string[]
-  ): Promise<void>;
   reorderClassrooms(
     yearId: string,
     termId: string,
     sectionId: string,
     orderedClassroomIds: string[]
   ): Promise<void>;
-  carryOverStructure(options: CarryOverOptions): Promise<void>;
 }

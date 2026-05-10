@@ -48,15 +48,21 @@ export const createSubjectsApiAdapter = (
   basePath: string = "/academics/subjects"
 ): SubjectsAdapter => ({
   async fetchSubjects(termId) {
-    return unwrap<Subject[]>(
+    const res = await unwrap<any>(
       apiWithToken(`${basePath}${buildQuery({ termId })}`, {
         method: "GET",
       })
     );
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.data)) return res.data;
+    if (res && Array.isArray(res.items)) return res.items;
+    if (res && Array.isArray(res.subjects)) return res.subjects;
+    console.warn("fetchSubjects returned unexpected format:", res);
+    return [];
   },
 
   async createSubject(termId, payload) {
-    return unwrap<Subject>(
+    const res = await unwrap<any>(
       apiWithToken(basePath, {
         method: "POST",
         headers: {
@@ -68,10 +74,11 @@ export const createSubjectsApiAdapter = (
         }),
       })
     );
+    return res?.data ?? res?.item ?? res?.subject ?? res;
   },
 
   async updateSubject(termId, subjectId, payload) {
-    return unwrap<Subject>(
+    const res = await unwrap<any>(
       apiWithToken(`${basePath}/${subjectId}`, {
         method: "PATCH",
         headers: {
@@ -83,6 +90,7 @@ export const createSubjectsApiAdapter = (
         }),
       })
     );
+    return res?.data ?? res?.item ?? res?.subject ?? res;
   },
 
   async deleteSubject(termId, subjectId) {

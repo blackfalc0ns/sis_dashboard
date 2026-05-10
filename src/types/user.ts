@@ -49,7 +49,7 @@ export interface LoginResponse {
 
 export interface LoginRequest {
   email: string;
-  password?: string; // Optional if we don't always need it
+  password: string;
 }
 
 export interface RefreshRequest {

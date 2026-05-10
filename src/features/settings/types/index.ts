@@ -21,11 +21,27 @@ export type BackupJobStatus = "completed" | "running" | "failed";
 
 export interface SettingsOverviewMetrics {
   profileCompleteness: number;
-  activeIntegrations: number;
   activeUsers: number;
   pendingInvites: number;
   recentAuditEvents: number;
-  templateHealth: number;
+}
+
+export interface SettingsOverviewAuditEventApiDto {
+  id: string;
+  actor: string;
+  action: string;
+  module: string;
+  entity?: string | null;
+  severity: AuditSeverity;
+  timestamp: string;
+  ipAddress: string | null;
+}
+
+export interface SettingsOverviewApiDto {
+  profileCompleteness: number;
+  activeUsersCount: number;
+  pendingInvitesCount: number;
+  recentAuditEvents: SettingsOverviewAuditEventApiDto[];
 }
 
 export interface SchoolProfileSettings {
@@ -37,10 +53,25 @@ export interface SchoolProfileSettings {
   city: string;
   country: string;
   footerSignature: string;
-  logoUrl?: string;
+  logoUrl: string;
   latitude: number | null;
   longitude: number | null;
-  mapPlaceLabel?: string;
+  mapPlaceLabel: string;
+}
+
+export interface BrandingApiDto {
+  schoolName: string | null;
+  shortName: string | null;
+  timezone: string | null;
+  addressLine: string | null;
+  formattedAddress: string | null;
+  city: string | null;
+  country: string | null;
+  footerSignature: string | null;
+  logoUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  mapPlaceLabel: string | null;
 }
 
 export interface LocationSuggestion {
@@ -71,12 +102,43 @@ export interface PermissionDefinition {
   description: string;
 }
 
+export interface SettingsPermissionApiDto {
+  key: string;
+  module: string;
+  action: PermissionAction;
+  label: string;
+  description: string;
+}
+
 export interface RoleDefinition {
   id: string;
   name: string;
   description: string;
   isSystem: boolean;
   memberCount: number;
+  permissions: string[];
+}
+
+export interface SettingsRoleApiDto {
+  id: string;
+  name: string;
+  description: string;
+  isSystem?: boolean | null;
+  memberCount?: number | null;
+  permissions?: string[] | null;
+}
+
+export interface SettingsRolesListApiDto {
+  items: SettingsRoleApiDto[];
+  pagination?: SettingsPaginationApiDto;
+}
+
+export interface SettingsRolePayloadDto {
+  name: string;
+  description: string;
+}
+
+export interface SettingsRolePermissionsPayloadDto {
   permissions: string[];
 }
 
@@ -163,6 +225,16 @@ export interface SecuritySettings {
   passwordRotationDays: number;
 }
 
+export interface SecuritySettingsApiDto {
+  enforceTwoFactor: boolean;
+  ipAllowlistEnabled: boolean;
+  ipAllowlist: string;
+  sessionTimeoutMinutes: number;
+  suspiciousLoginAlerts: boolean;
+  passwordMinLength: number;
+  passwordRotationDays: number;
+}
+
 export interface AuditLogEntry {
   id: string;
   actor: string;
@@ -171,7 +243,7 @@ export interface AuditLogEntry {
   entity?: string;
   timestamp: string;
   severity: AuditSeverity;
-  ipAddress: string;
+  ipAddress: string | null;
 }
 
 export interface SettingsUserRecord {
@@ -183,6 +255,44 @@ export interface SettingsUserRecord {
   lastActiveAt?: string;
   invitedAt?: string;
   lastInviteSentAt?: string;
+}
+
+export interface SettingsUserApiDto {
+  id: string;
+  fullName: string;
+  email: string;
+  roleId: string;
+  roleName?: string | null;
+  status: UserAdminStatus;
+  lastActiveAt?: string | null;
+  invitedAt?: string | null;
+  lastInviteSentAt?: string | null;
+}
+
+export interface SettingsPaginationApiDto {
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export interface SettingsUsersListApiDto {
+  items: SettingsUserApiDto[];
+  pagination?: SettingsPaginationApiDto;
+}
+
+export interface SettingsUserPayloadDto {
+  fullName: string;
+  email: string;
+  roleId: string;
+}
+
+export interface SettingsUserUpdatePayloadDto {
+  fullName: string;
+  roleId: string;
+}
+
+export interface SettingsUserStatusPayloadDto {
+  status: UserAdminStatus;
 }
 
 export interface SettingsSessionUser {
@@ -212,7 +322,6 @@ export interface AdmissionsRequiredDocumentConfig {
 }
 
 export interface SettingsStoreSnapshot {
-  schoolProfile: SchoolProfileSettings;
   roles: RoleDefinition[];
   policies: PolicySettings;
   admissionsDocuments: AdmissionsRequiredDocumentConfig[];

@@ -77,6 +77,14 @@ interface DataTableProps<T> {
     syncPagination?: boolean;
     syncSorting?: boolean;
   };
+  serverPagination?: {
+    enabled: boolean;
+    currentPage: number;
+    pageSize: number;
+    totalItems: number;
+    onPageChange: (page: number) => void;
+    onPageSizeChange: (pageSize: number) => void;
+  };
 }
 
 type SortDirection = "asc" | "desc" | null;
@@ -91,6 +99,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
   virtualize = false, // New: Virtualization disabled by default
   rowHeight = 56, // New: Default row height in pixels
   urlState,
+  serverPagination,
 }: DataTableProps<T>) {
   const t = useTranslations("common");
   const router = useRouter();
@@ -117,6 +126,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
   const urlSortDirection = urlSyncEnabled
     ? (searchParams.get(sortDirParamName) as SortDirection)
     : null;
+  const isServerPagination = Boolean(serverPagination?.enabled);
 
   const [sortKey, setSortKey] = useState<string | null>(
     urlSyncEnabled && urlState?.syncSorting && urlSortKey && allowedSortKeys.has(urlSortKey)
@@ -345,15 +355,24 @@ export default function DataTable<T extends { [key: string]: unknown }>({
   };
 
   // Pagination calculations
-  const totalPages = Math.ceil(sortedData.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedData = showPagination
+  const effectiveCurrentPage = isServerPagination
+    ? (serverPagination?.currentPage || 1)
+    : currentPage;
+  const effectivePageSize = isServerPagination
+    ? (serverPagination?.pageSize || itemsPerPage)
+    : pageSize;
+  const totalItemsCount = isServerPagination
+    ? (serverPagination?.totalItems || 0)
+    : sortedData.length;
+  const totalPages = Math.max(1, Math.ceil(totalItemsCount / effectivePageSize));
+  const startIndex = (effectiveCurrentPage - 1) * effectivePageSize;
+  const endIndex = startIndex + effectivePageSize;
+  const paginatedData = showPagination && !isServerPagination
     ? sortedData.slice(startIndex, endIndex)
     : sortedData;
 
   useEffect(() => {
-    if (!showPagination) {
+    if (!showPagination || isServerPagination) {
       return;
     }
 
@@ -378,6 +397,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
     }
   }, [
     currentPage,
+    isServerPagination,
     pageParamName,
     showPagination,
     totalPages,
@@ -435,13 +455,22 @@ export default function DataTable<T extends { [key: string]: unknown }>({
   }, [virtualize, showPagination]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    const nextPage = Math.min(Math.max(page, 1), totalPages);
+    if (isServerPagination && serverPagination) {
+      serverPagination.onPageChange(nextPage);
+      return;
+    }
+    setCurrentPage(nextPage);
     if (urlSyncEnabled && urlState?.syncPagination) {
-      updateTableUrl({ [pageParamName]: String(page) }, "push");
+      updateTableUrl({ [pageParamName]: String(nextPage) }, "push");
     }
   };
 
   const handlePageSizeChange = (newSize: number) => {
+    if (isServerPagination && serverPagination) {
+      serverPagination.onPageSizeChange(newSize);
+      return;
+    }
     setPageSize(newSize);
     setCurrentPage(1); // Reset to first page
     if (urlSyncEnabled && urlState?.syncPagination) {
@@ -464,13 +493,13 @@ export default function DataTable<T extends { [key: string]: unknown }>({
         pages.push(i);
       }
     } else {
-      if (currentPage <= 3) {
+      if (effectiveCurrentPage <= 3) {
         for (let i = 1; i <= 4; i++) {
           pages.push(i);
         }
         pages.push("...");
         pages.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
+      } else if (effectiveCurrentPage >= totalPages - 2) {
         pages.push(1);
         pages.push("...");
         for (let i = totalPages - 3; i <= totalPages; i++) {
@@ -479,9 +508,9 @@ export default function DataTable<T extends { [key: string]: unknown }>({
       } else {
         pages.push(1);
         pages.push("...");
-        pages.push(currentPage - 1);
-        pages.push(currentPage);
-        pages.push(currentPage + 1);
+        pages.push(effectiveCurrentPage - 1);
+        pages.push(effectiveCurrentPage);
+        pages.push(effectiveCurrentPage + 1);
         pages.push("...");
         pages.push(totalPages);
       }
@@ -583,7 +612,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
       </div>
 
       {/* Pagination */}
-      {showPagination && sortedData.length > 0 && (
+      {showPagination && totalItemsCount > 0 && (
         <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           {/* Left side - Items per page and info */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -592,7 +621,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
                 {t("show")}:
               </label>
               <select
-                value={pageSize}
+                value={effectivePageSize}
                 onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                 className="px-2 sm:px-3 py-1.5 border rounded-lg text-xs sm:text-sm focus:ring-2 focus:border-transparent min-h-[40px]"
                 style={
@@ -611,8 +640,8 @@ export default function DataTable<T extends { [key: string]: unknown }>({
             </div>
             <div className="text-xs sm:text-sm text-gray-600">
               {t("showing")} {startIndex + 1} {t("to")}{" "}
-              {Math.min(endIndex, sortedData.length)} {t("of")}{" "}
-              {sortedData.length} {t("entries")}
+              {Math.min(endIndex, totalItemsCount)} {t("of")}{" "}
+              {totalItemsCount} {t("entries")}
             </div>
           </div>
 
@@ -621,7 +650,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
             {/* First page */}
             <button
               onClick={() => handlePageChange(1)}
-              disabled={currentPage === 1}
+              disabled={effectiveCurrentPage === 1}
               className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 text-black disabled:text-black/50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
               style={{ borderColor: "var(--border-color)" }}
               title={t("first_page")}
@@ -631,8 +660,8 @@ export default function DataTable<T extends { [key: string]: unknown }>({
 
             {/* Previous page */}
             <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
+              onClick={() => handlePageChange(effectiveCurrentPage - 1)}
+              disabled={effectiveCurrentPage === 1}
               className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 text-black disabled:text-black/50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
               style={{ borderColor: "var(--border-color)" }}
               title={t("previous_page")}
@@ -650,14 +679,14 @@ export default function DataTable<T extends { [key: string]: unknown }>({
                   }
                   disabled={page === "..."}
                   className={`min-w-[36px] sm:min-w-[40px] px-2 sm:px-3 disabled:text-black/50 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 ${
-                    page === currentPage
+                    page === effectiveCurrentPage
                       ? "text-white"
                       : page === "..."
                         ? "cursor-default"
                         : "border hover:bg-gray-50 text-black/50"
                   }`}
                   style={
-                    page === currentPage
+                    page === effectiveCurrentPage
                       ? { backgroundColor: "var(--primary-color)" }
                       : { borderColor: "var(--border-color)" }
                   }
@@ -669,8 +698,8 @@ export default function DataTable<T extends { [key: string]: unknown }>({
 
             {/* Next page */}
             <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
+              onClick={() => handlePageChange(effectiveCurrentPage + 1)}
+              disabled={effectiveCurrentPage === totalPages}
               className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 text-black disabled:text-black/50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
               style={{ borderColor: "var(--border-color)" }}
               title={t("next_page")}
@@ -681,7 +710,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
             {/* Last page */}
             <button
               onClick={() => handlePageChange(totalPages)}
-              disabled={currentPage === totalPages}
+              disabled={effectiveCurrentPage === totalPages}
               className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 text-black disabled:text-black/50 disabled:cursor-not-allowed transition-colors shrink-0 min-h-[36px] min-w-[36px]"
               style={{ borderColor: "var(--border-color)" }}
               title={t("last_page")}

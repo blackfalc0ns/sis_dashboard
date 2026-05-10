@@ -15,137 +15,49 @@ const EGYPT_BOUNDS = {
   maxLng: 36.9,
 };
 
-const locationCatalog: LocationSuggestion[] = [
-  {
-    id: "loc-new-cairo-90",
-    label: "North 90 Street, New Cairo",
-    formattedAddress:
-      "North 90 Street, Fifth Settlement, New Cairo, Cairo Governorate, Egypt",
-    city: "Cairo",
-    country: "Egypt",
-    latitude: 30.0284,
-    longitude: 31.4913,
-  },
-  {
-    id: "loc-zayed",
-    label: "Sheikh Zayed City",
-    formattedAddress: "Sheikh Zayed City, Giza Governorate, Egypt",
-    city: "Giza",
-    country: "Egypt",
-    latitude: 30.0519,
-    longitude: 30.9764,
-  },
-  {
-    id: "loc-maadi",
-    label: "Maadi",
-    formattedAddress: "Maadi, Cairo Governorate, Egypt",
-    city: "Cairo",
-    country: "Egypt",
-    latitude: 29.9602,
-    longitude: 31.2569,
-  },
-  {
-    id: "loc-smouha",
-    label: "Smouha",
-    formattedAddress: "Smouha, Alexandria Governorate, Egypt",
-    city: "Alexandria",
-    country: "Egypt",
-    latitude: 31.2156,
-    longitude: 29.9553,
-  },
-  {
-    id: "loc-mansoura",
-    label: "Mansoura",
-    formattedAddress: "Mansoura, Dakahlia Governorate, Egypt",
-    city: "Mansoura",
-    country: "Egypt",
-    latitude: 31.0409,
-    longitude: 31.3785,
-  },
-  {
-    id: "loc-october",
-    label: "6th of October City",
-    formattedAddress: "6th of October City, Giza Governorate, Egypt",
-    city: "Giza",
-    country: "Egypt",
-    latitude: 29.9285,
-    longitude: 30.9188,
-  },
-];
-
 function normalizeText(value: string) {
   return value.trim().toLowerCase();
-}
-
-function scoreSuggestion(query: string, suggestion: LocationSuggestion) {
-  const normalizedQuery = normalizeText(query);
-  const haystack = [suggestion.label, suggestion.formattedAddress, suggestion.city, suggestion.country]
-    .join(" ")
-    .toLowerCase();
-  if (!normalizedQuery) return 0;
-  if (haystack.startsWith(normalizedQuery)) return 3;
-  if (haystack.includes(normalizedQuery)) return 2;
-  return 0;
 }
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function toAddressLine(formattedAddress: string) {
-  return formattedAddress.split(",").slice(0, 2).join(",").trim();
-}
-
-function nearestCatalogEntry(latitude: number, longitude: number) {
-  return locationCatalog.reduce((closest, current) => {
-    const closestDistance =
-      Math.abs(closest.latitude - latitude) + Math.abs(closest.longitude - longitude);
-    const currentDistance =
-      Math.abs(current.latitude - latitude) + Math.abs(current.longitude - longitude);
-    return currentDistance < closestDistance ? current : closest;
-  });
-}
-
-const mockAdapter: SchoolLocationProviderAdapter = {
+const localHelperAdapter: SchoolLocationProviderAdapter = {
   async searchLocations(query: string) {
-    const normalizedQuery = normalizeText(query);
-    if (!normalizedQuery) {
-      return locationCatalog.slice(0, 5);
+    if (!normalizeText(query)) {
+      return [];
     }
 
-    return locationCatalog
-      .map((suggestion) => ({ suggestion, score: scoreSuggestion(normalizedQuery, suggestion) }))
-      .filter((entry) => entry.score > 0)
-      .sort((left, right) => right.score - left.score)
-      .map((entry) => entry.suggestion)
-      .slice(0, 6);
+    return [];
   },
 
   async reverseGeocode(latitude: number, longitude: number) {
     const boundedLatitude = clamp(latitude, EGYPT_BOUNDS.minLat, EGYPT_BOUNDS.maxLat);
     const boundedLongitude = clamp(longitude, EGYPT_BOUNDS.minLng, EGYPT_BOUNDS.maxLng);
-    const nearest = nearestCatalogEntry(boundedLatitude, boundedLongitude);
+    const coordinatesLabel = `${boundedLatitude.toFixed(6)}, ${boundedLongitude.toFixed(6)}`;
 
     return {
-      label: nearest.label,
-      formattedAddress: nearest.formattedAddress,
-      addressLine: toAddressLine(nearest.formattedAddress),
-      city: nearest.city,
-      country: nearest.country,
+      label: coordinatesLabel,
+      formattedAddress: coordinatesLabel,
+      addressLine: coordinatesLabel,
+      city: "",
+      country: "",
       latitude: Number(boundedLatitude.toFixed(6)),
       longitude: Number(boundedLongitude.toFixed(6)),
     };
   },
 };
 
-let activeSchoolLocationAdapter: SchoolLocationProviderAdapter = mockAdapter;
+let activeSchoolLocationAdapter: SchoolLocationProviderAdapter =
+  localHelperAdapter;
 
 export function setSchoolLocationProviderAdapter(adapter: SchoolLocationProviderAdapter) {
   activeSchoolLocationAdapter = adapter;
 }
 
 export function resetSchoolLocationProviderAdapter() {
-  activeSchoolLocationAdapter = mockAdapter;
+  activeSchoolLocationAdapter = localHelperAdapter;
 }
 
 export async function searchSchoolLocations(query: string) {

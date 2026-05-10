@@ -169,4 +169,18 @@ export const permissionCatalog: PermissionDefinition[] = [
     label: "Manage Nedaa settings",
     description: "Update Nedaa operational rules, default gate selection, and gate setup.",
   },
+  {
+    key: "academics.structure.view",
+    module: "academics",
+    action: "view",
+    label: "View Academic Structure",
+    description: "View academic years, terms, stages, and structure.",
+  },
+  {
+    key: "academics.structure.manage",
+    module: "academics",
+    action: "manage",
+    label: "Manage Academic Structure",
+    description: "Create and edit academic years, terms, and the structure tree.",
+  },
 ];

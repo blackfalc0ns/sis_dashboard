@@ -234,18 +234,7 @@ function resolvePreferredRoomId(params: {
     return explicitDefaultRoom.id;
   }
 
-  const subject = params.subjects.find((item) => item.id === params.subjectId);
-  const subjectLabel = `${subject?.nameEn || ""} ${subject?.nameAr || ""}`.toLowerCase();
-  const prefersLab =
-    subjectLabel.includes("science") ||
-    subjectLabel.includes("computer") ||
-    subjectLabel.includes("stem") ||
-    subjectLabel.includes("علوم") ||
-    subjectLabel.includes("حاسوب");
-
-  const preferredType = prefersLab ? "LAB" : "CLASSROOM";
   return (
-    params.rooms.find((room) => room.isActive && room.type === preferredType)?.id ||
     params.rooms.find((room) => room.isActive)?.id ||
     null
   );

@@ -35,6 +35,9 @@ function AcademicsContextLayoutContent({
         disablePromoteCarryOver={
           contextBarActions?.disablePromoteCarryOver ?? false
         }
+        disableYearTermEditing={
+          contextBarActions?.disableYearTermEditing ?? false
+        }
       />
       <div className="flex-1 min-h-0">{children}</div>
     </div>

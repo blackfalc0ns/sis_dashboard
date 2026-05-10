@@ -23,8 +23,9 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
 
   const [nameAr, setNameAr] = useState("");
   const [nameEn, setNameEn] = useState("");
-  const [type, setType] = useState<"CLASSROOM" | "LAB" | "OTHER">("CLASSROOM");
   const [capacity, setCapacity] = useState("30");
+  const [floor, setFloor] = useState("");
+  const [building, setBuilding] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -34,14 +35,16 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
     if (room) {
       setNameAr(room.nameAr);
       setNameEn(room.nameEn);
-      setType(room.type);
       setCapacity(room.capacity.toString());
+      setFloor(room.floor || "");
+      setBuilding(room.building || "");
       setIsActive(room.isActive);
     } else {
       setNameAr("");
       setNameEn("");
-      setType("CLASSROOM");
       setCapacity("30");
+      setFloor("");
+      setBuilding("");
       setIsActive(true);
     }
     setErrors({});
@@ -74,17 +77,14 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
     onSave({
       nameAr: nameAr.trim(),
       nameEn: nameEn.trim(),
-      type,
       capacity: parseInt(capacity),
+      floor: floor.trim() || undefined,
+      building: building.trim() || undefined,
       isActive,
     });
   };
 
-  const typeOptions = [
-    { value: "CLASSROOM", label: t("types.CLASSROOM") },
-    { value: "LAB", label: t("types.LAB") },
-    { value: "OTHER", label: t("types.OTHER") },
-  ];
+
 
   return (
     <Dialog
@@ -135,15 +135,7 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
             )}
           </div>
 
-          {/* Type */}
-          <div>
-            <Select
-              label={t("type")}
-              value={type}
-              onChange={(value) => setType(value as "CLASSROOM" | "LAB" | "OTHER")}
-              options={typeOptions}
-            />
-          </div>
+
 
           {/* Capacity */}
           <div>
@@ -154,6 +146,22 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
               onChange={(e) => setCapacity(e.target.value)}
               error={errors.capacity}
               min="1"
+            />
+          </div>
+
+          {/* Building & Floor */}
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Building"
+              value={building}
+              onChange={(e) => setBuilding(e.target.value)}
+              placeholder="e.g., Block A"
+            />
+            <Input
+              label="Floor"
+              value={floor}
+              onChange={(e) => setFloor(e.target.value)}
+              placeholder="e.g., 1st Floor"
             />
           </div>
 
