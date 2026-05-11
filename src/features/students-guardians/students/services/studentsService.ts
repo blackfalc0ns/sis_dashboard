@@ -998,6 +998,13 @@ export async function linkGuardianToStudent(
   return guardiansApiService.linkGuardianToStudent(studentId, payload);
 }
 
+export async function unlinkGuardianFromStudent(
+  studentId: string,
+  guardianId: string,
+): Promise<void> {
+  return guardiansApiService.unlinkGuardianFromStudent(studentId, guardianId);
+}
+
 export function getStudentDocuments(studentId: string): StudentDocument[] {
   return getStudentsAdapter().getStudentDocuments(studentId);
 }

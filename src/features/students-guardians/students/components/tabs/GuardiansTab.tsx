@@ -184,6 +184,20 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
     }
   };
 
+  const handleUnlinkGuardian = async (guardianId: string) => {
+    try {
+      setError(null);
+      await studentsService.unlinkGuardianFromStudent(student.id, guardianId);
+      await refreshStudentGuardians();
+    } catch (unlinkError) {
+      setError(
+        unlinkError instanceof Error
+          ? unlinkError.message
+          : "Unable to unlink guardian.",
+      );
+    }
+  };
+
   const getRelationBadge = (relation: string) => {
     const colors: Record<string, string> = {
       father: "bg-blue-100 text-blue-700",
@@ -306,9 +320,9 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
                 </button>
                 {!guardian.is_primary && (
                   <button
-                    className="p-2 text-gray-400 rounded-lg cursor-not-allowed"
-                    title="Removing guardian links is not available yet"
-                    disabled
+                    onClick={() => void handleUnlinkGuardian(guardian.guardianId)}
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Unlink guardian from student"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
