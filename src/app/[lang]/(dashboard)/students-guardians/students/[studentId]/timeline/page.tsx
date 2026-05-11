@@ -1,5 +1,4 @@
-import * as studentsService from "@/features/students-guardians/students/services/studentsService";
-import TimelineTab from "@/features/students-guardians/students/components/tabs/TimelineTab";
+import StudentTabLoader from "@/features/students-guardians/students/components/StudentTabLoader";
 
 export default async function StudentTimelinePage({
   params,
@@ -7,7 +6,5 @@ export default async function StudentTimelinePage({
   params: Promise<{ studentId: string }>;
 }) {
   const { studentId } = await params;
-  const student = studentsService.getStudentById(studentId);
-  if (!student) return null;
-  return <TimelineTab student={student} />;
+  return <StudentTabLoader studentId={studentId} tab="timeline" />;
 }

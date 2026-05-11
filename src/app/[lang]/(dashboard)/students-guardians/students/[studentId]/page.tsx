@@ -1,5 +1,4 @@
-import * as studentsService from "@/features/students-guardians/students/services/studentsService";
-import OverviewTab from "@/features/students-guardians/students/components/tabs/OverviewTab";
+import StudentTabLoader from "@/features/students-guardians/students/components/StudentTabLoader";
 
 export default async function StudentOverviewPage({
   params,
@@ -7,11 +6,5 @@ export default async function StudentOverviewPage({
   params: Promise<{ studentId: string }>;
 }) {
   const { studentId } = await params;
-  const student = studentsService.getStudentById(studentId);
-
-  if (!student) {
-    return null;
-  }
-
-  return <OverviewTab student={student} />;
+  return <StudentTabLoader studentId={studentId} tab="overview" />;
 }

@@ -107,7 +107,7 @@ const normalizeProfileValues = (formData: PersonalInfoFormData) => {
     formData.grandfather_name_ar,
     formData.family_name_ar,
   );
-
+  console.log(formData.first_name_ar.trim());
   return {
   name: fullNameEn,
   first_name_en: formData.first_name_en.trim(),
@@ -272,92 +272,64 @@ export default function PersonalInfoTab({
       .sort((a, b) => a.order - b.order);
   }, [selectedSection, structure.classrooms]);
 
-  const profileValidationError = useMemo(() => {
-    if (!formData.first_name_en.trim()) return t("first_name_en");
-    if (!formData.father_name_en.trim()) return t("father_name_en");
-    if (!formData.grandfather_name_en.trim()) return t("grandfather_name_en");
-    if (!formData.family_name_en.trim()) return t("family_name_en");
-    if (!formData.first_name_ar.trim()) return t("first_name_ar");
-    if (!formData.father_name_ar.trim()) return t("father_name_ar");
-    if (!formData.grandfather_name_ar.trim()) return t("grandfather_name_ar");
-    if (!formData.family_name_ar.trim()) return t("family_name_ar");
-    if (!formData.date_of_birth) return t("date_of_birth");
-    if (!formData.nationality.trim()) return t("nationality");
-    return null;
-  }, [
-    formData.date_of_birth,
-    formData.family_name_ar,
-    formData.family_name_en,
-    formData.father_name_ar,
-    formData.father_name_en,
-    formData.first_name_ar,
-    formData.first_name_en,
-    formData.grandfather_name_ar,
-    formData.grandfather_name_en,
-    formData.nationality,
-    t,
-  ]);
 
-  const placementValidationError = useMemo(() => {
-    if (!formData.enrollment_year) return t("enrollment_year");
-    if (!selectedGrade) return t("grade");
-    if (!selectedSection) return t("section");
+  // const placementValidationError = useMemo(() => {
+  //   if (!formData.enrollment_year) return t("enrollment_year");
+  //   if (!selectedGrade) return t("grade");
+  //   if (!selectedSection) return t("section");
 
-    const selectedClassroom =
-      availableClassrooms.find(
-        (classroom) =>
-          classroom.name === formData.classroom ||
-          classroom.nameEn === formData.classroom ||
-          classroom.nameAr === formData.classroom,
-      ) || null;
+  //   const selectedClassroom =
+  //     availableClassrooms.find(
+  //       (classroom) =>
+  //         classroom.name === formData.classroom ||
+  //         classroom.nameEn === formData.classroom ||
+  //         classroom.nameAr === formData.classroom,
+  //     ) || null;
 
-    const validation = validateEnrollmentPlacement({
-      studentId: student.id,
-      academicYear: formData.enrollment_year,
-      grade: getDisplayName(selectedGrade),
-      section: getSectionValue(selectedSection),
-      classroom: selectedClassroom ? getDisplayName(selectedClassroom) : undefined,
-      gradeId: selectedGrade.id,
-      sectionId: selectedSection.id,
-      classroomId: selectedClassroom?.id,
-      status: enrollment?.status || "active",
-      enrollmentDate: enrollment?.enrollmentDate,
-    }, {
-      excludeStudentId: student.id,
-    });
+  //   const validation = validateEnrollmentPlacement({
+  //     studentId: student.id,
+  //     academicYear: formData.enrollment_year,
+  //     grade: getDisplayName(selectedGrade),
+  //     section: getSectionValue(selectedSection),
+  //     classroom: selectedClassroom ? getDisplayName(selectedClassroom) : undefined,
+  //     gradeId: selectedGrade.id,
+  //     sectionId: selectedSection.id,
+  //     classroomId: selectedClassroom?.id,
+  //     status: enrollment?.status || "active",
+  //     enrollmentDate: enrollment?.enrollmentDate,
+  //   }, {
+  //     excludeStudentId: student.id,
+  //   });
 
-    return validation.valid ? null : validation.errors[0];
-  }, [
-    availableClassrooms,
-    enrollment?.enrollmentDate,
-    enrollment?.status,
-    formData.classroom,
-    formData.enrollment_year,
-    selectedGrade,
-    selectedSection,
-    student.id,
-    t,
-  ]);
+  //   return validation.valid ? null : validation.errors[0];
+  // }, [
+  //   availableClassrooms,
+  //   enrollment?.enrollmentDate,
+  //   enrollment?.status,
+  //   formData.classroom,
+  //   formData.enrollment_year,
+  //   selectedGrade,
+  //   selectedSection,
+  //   student.id,
+  //   t,
+  // ]);
 
   const handleSave = async () => {
     setSaveError(null);
     setSaveSuccess(null);
 
-    if (profileValidationError) {
-      setSaveError(`${t("cannot_be_changed")}: ${profileValidationError}`);
-      return;
-    }
 
-    if (placementValidationError) {
-      setSaveError(placementValidationError);
-      return;
-    }
+
+    // if (placementValidationError) {
+    //   setSaveError(placementValidationError);
+    //   return;
+    // }
 
     setIsSaving(true);
 
     try {
       const normalizedProfile = normalizeProfileValues(formData);
-
+      console.log("normalizedProfile", normalizedProfile);
       await updateStudent(student.id, {
         name: normalizedProfile.name,
         first_name_en: normalizedProfile.first_name_en,

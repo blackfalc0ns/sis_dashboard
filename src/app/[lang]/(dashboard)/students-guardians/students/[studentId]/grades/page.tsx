@@ -1,5 +1,4 @@
-import * as studentsService from "@/features/students-guardians/students/services/studentsService";
-import GradesTab from "@/features/students-guardians/students/components/tabs/GradesTab";
+import StudentTabLoader from "@/features/students-guardians/students/components/StudentTabLoader";
 
 export default async function StudentGradesPage({
   params,
@@ -7,7 +6,5 @@ export default async function StudentGradesPage({
   params: Promise<{ studentId: string }>;
 }) {
   const { studentId } = await params;
-  const student = studentsService.getStudentById(studentId);
-  if (!student) return null;
-  return <GradesTab student={student} />;
+  return <StudentTabLoader studentId={studentId} tab="grades" />;
 }
