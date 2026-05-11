@@ -45,12 +45,18 @@ function ComingSoonTab({ label }: { label: string }) {
   );
 }
 
-function renderTab(tab: StudentTabKey, student: Student) {
+function renderTab(
+  tab: StudentTabKey,
+  student: Student,
+  onStudentUpdated: () => void,
+) {
   switch (tab) {
     case "overview":
       return <OverviewTab student={student} />;
     case "personal":
-      return <PersonalInfoTab student={student} />;
+      return (
+        <PersonalInfoTab student={student} onStudentUpdated={onStudentUpdated} />
+      );
     case "guardians":
       return <GuardiansTab student={student} />;
     case "enrollment":
@@ -81,6 +87,23 @@ export default function StudentTabLoader({
   const [student, setStudent] = useState<Student | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
+
+  const loadStudent = async () => {
+    setIsLoading(true);
+    setIsNotFound(false);
+    try {
+      const data = await studentsService.fetchStudentById(studentId);
+      if (!data) {
+        setIsNotFound(true);
+      } else {
+        setStudent(data);
+      }
+    } catch {
+      setIsNotFound(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -121,5 +144,5 @@ export default function StudentTabLoader({
 
   if (!student) return null;
 
-  return renderTab(tab, student);
+  return renderTab(tab, student, loadStudent);
 }

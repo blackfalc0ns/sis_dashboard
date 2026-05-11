@@ -3,24 +3,24 @@
 "use client";
 
 import { useState } from "react";
-import { XCircle } from "lucide-react";
+import { XCircle, AlertCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 interface AddGuardianModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (guardianData: GuardianFormData) => void;
+  onSubmit: (guardianData: GuardianFormData) => Promise<void>;
 }
 
 export interface GuardianFormData {
   full_name: string;
   relation: string;
-  phone_primary: string;
-  phone_secondary: string;
+  phone_primary: string | null;
+  phone_secondary: string | null;
   email: string;
-  national_id: string;
-  job_title: string;
-  workplace: string;
+  national_id: string | null;
+  job_title: string | null;
+  workplace: string | null;
   is_primary: boolean;
   can_pickup: boolean;
   can_receive_notifications: boolean;
@@ -37,33 +37,64 @@ export default function AddGuardianModal({
   const [formData, setFormData] = useState<GuardianFormData>({
     full_name: "",
     relation: "father",
-    phone_primary: "",
-    phone_secondary: "",
+    phone_primary: null,
+    phone_secondary: null,
     email: "",
-    national_id: "",
-    job_title: "",
-    workplace: "",
+    national_id: null,
+    job_title: null,
+    workplace: null,
     is_primary: false,
     can_pickup: true,
     can_receive_notifications: true,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [submitError, setSubmitError] = useState<string[] | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  /** Parse API error shape → list of human-readable messages */
+  const parseApiError = (err: unknown): string[] => {
+    if (err && typeof err === "object") {
+      const e = err as Record<string, unknown>;
+      // Axios wraps response in .response.data
+      const data =
+        (e.response as Record<string, unknown>)?.data ?? e;
+      if (data && typeof data === "object") {
+        const d = data as Record<string, unknown>;
+        const fields = (d.details as Record<string, unknown>)?.fields;
+        if (Array.isArray(fields) && fields.length > 0)
+          return fields as string[];
+        if (typeof d.message === "string") return [d.message];
+      }
+      if (err instanceof Error) return [err.message];
+    }
+    return ["An unexpected error occurred. Please try again."];
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
-    handleReset();
+    setSubmitError(null);
+    setIsSubmitting(true);
+    try {
+      await onSubmit(formData);
+      handleReset();
+    } catch (err) {
+      setSubmitError(parseApiError(err));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleReset = () => {
+    setSubmitError(null);
     setFormData({
       full_name: "",
       relation: "father",
-      phone_primary: "",
-      phone_secondary: "",
+      phone_primary: null,
+      phone_secondary: null,
       email: "",
-      national_id: "",
-      job_title: "",
-      workplace: "",
+      national_id: null,
+      job_title: null,
+      workplace: null,
       is_primary: false,
       can_pickup: true,
       can_receive_notifications: true,
@@ -140,15 +171,13 @@ export default function AddGuardianModal({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t("national_id_label")}{" "}
-                    <span className="text-red-500">{t("required")}</span>
+                    {t("national_id_label")}
                   </label>
                   <input
                     type="text"
-                    required
-                    value={formData.national_id}
+                    value={formData.national_id ?? ""}
                     onChange={(e) =>
-                      setFormData({ ...formData, national_id: e.target.value })
+                      setFormData({ ...formData, national_id: e.target.value || null })
                     }
                     placeholder={t("national_id_placeholder")}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -165,17 +194,15 @@ export default function AddGuardianModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t("primary_phone")}{" "}
-                    <span className="text-red-500">{t("required")}</span>
+                    {t("primary_phone")}
                   </label>
                   <input
                     type="tel"
-                    required
-                    value={formData.phone_primary}
+                    value={formData.phone_primary ?? ""}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        phone_primary: e.target.value,
+                        phone_primary: e.target.value || null,
                       })
                     }
                     placeholder={t("primary_phone_placeholder")}
@@ -189,11 +216,11 @@ export default function AddGuardianModal({
                   </label>
                   <input
                     type="tel"
-                    value={formData.phone_secondary}
+                    value={formData.phone_secondary ?? ""}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        phone_secondary: e.target.value,
+                        phone_secondary: e.target.value || null,
                       })
                     }
                     placeholder={t("secondary_phone_placeholder")}
@@ -232,9 +259,9 @@ export default function AddGuardianModal({
                   </label>
                   <input
                     type="text"
-                    value={formData.job_title}
+                    value={formData.job_title ?? ""}
                     onChange={(e) =>
-                      setFormData({ ...formData, job_title: e.target.value })
+                      setFormData({ ...formData, job_title: e.target.value || null })
                     }
                     placeholder={t("job_title_placeholder")}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -247,9 +274,9 @@ export default function AddGuardianModal({
                   </label>
                   <input
                     type="text"
-                    value={formData.workplace}
+                    value={formData.workplace ?? ""}
                     onChange={(e) =>
-                      setFormData({ ...formData, workplace: e.target.value })
+                      setFormData({ ...formData, workplace: e.target.value || null })
                     }
                     placeholder={t("workplace_placeholder")}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -331,6 +358,22 @@ export default function AddGuardianModal({
             </div>
           </div>
 
+          {/* Validation / API error banner */}
+          {submitError && (
+            <div className="mx-6 mb-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+                <ul className="flex-1 space-y-1">
+                  {submitError.map((msg, i) => (
+                    <li key={i} className="text-sm text-red-700">
+                      {msg}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
           {/* Modal Footer */}
           <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-end gap-3">
             <button
@@ -342,9 +385,13 @@ export default function AddGuardianModal({
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+              disabled={isSubmitting}
+              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
             >
-              {t("add")}
+              {isSubmitting && (
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              )}
+              {isSubmitting ? "Saving…" : t("add")}
             </button>
           </div>
         </form>
