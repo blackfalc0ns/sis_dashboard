@@ -116,5 +116,19 @@ export async function fetchGuardianStudents(
   const response = await apiGet<unknown>(
     `${GUARDIANS_BASE_PATH}/${guardianId}/students`,
   );
+
+  if (Array.isArray(response)) {
+    return response.map(normalizeStudent);
+  }
+
+  if (
+    response &&
+    typeof response === "object" &&
+    "students" in response &&
+    Array.isArray((response as { students?: unknown }).students)
+  ) {
+    return (response as { students: unknown[] }).students.map(normalizeStudent);
+  }
+
   return unwrapArrayResponse(response, "Guardian students").map(normalizeStudent);
 }

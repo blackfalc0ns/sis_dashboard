@@ -16,7 +16,9 @@ import {
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import TabNavigation from "@/features/admissions/shared/TabNavigation";
 import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTestModal";
-import ScheduleInterviewModal from "@/features/admissions/interviews/components/ScheduleInterviewModal";
+import ScheduleInterviewModal, {
+  type ScheduleInterviewFormData,
+} from "@/features/admissions/interviews/components/ScheduleInterviewModal";
 import DecisionModal from "@/features/admissions/decisions/components/DecisionModal";
 import EnrollmentForm from "@/features/admissions/enrollment/components/EnrollmentForm";
 import DetailsTab from "@/features/admissions/applications/components/tabs/DetailsTab";
@@ -215,16 +217,15 @@ export default function ApplicationDetailsPage({
     }
   };
 
-  const handleScheduleInterviewSubmit = async (data: {
-    date: string;
-    time: string;
-    notes: string;
-  }) => {
+  const handleScheduleInterviewSubmit = async (
+    data: ScheduleInterviewFormData,
+  ) => {
     try {
       await createInterview({
         applicationId: application.id,
         date: data.date,
         time: data.time,
+        interviewerUserId: data.interviewerUserId,
         notes: data.notes,
       });
       setIsScheduleInterviewOpen(false);

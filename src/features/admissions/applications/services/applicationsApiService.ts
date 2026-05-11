@@ -53,11 +53,11 @@ function toCreateApplicationBody(payload: CreateApplicationPayload): ApiRecord {
   }
 
   return {
-    leadId: undefined,
+    leadId: payload.leadId,
     studentName: payload.student.full_name_en || payload.student.full_name_ar,
     requestedAcademicYearId: payload.requestedAcademicYearId,
     requestedGradeId: payload.student.grade_requested,
-    source: "referral",
+    source: payload.source || "referral",
   };
 }
 

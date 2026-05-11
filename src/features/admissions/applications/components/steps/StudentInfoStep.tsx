@@ -4,10 +4,10 @@ import { useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Input, Select, DatePicker, TextArea } from "@/components/ui/input";
 import type {
-  Stage,
-  Grade,
-  Section,
-} from "@/features/academics/academic-structure-tree/services/structureService";
+  AcademicStructureStage as Stage,
+  AcademicStructureGrade as Grade,
+  AcademicStructureSection as Section,
+} from "@/features/academics/services/academicStructureApiService";
 
 // Nationality keys matching translation keys
 const NATIONALITY_KEYS = [
@@ -106,11 +106,11 @@ export default function StudentInfoStep({
   const locale = useLocale();
 
   // Helper to get proper language name
-  const getLocalizedName = (item: any): string => {
+  const getLocalizedName = (item: { name?: string; nameAr?: string; nameEn?: string }): string => {
     if (locale === "ar") {
-      return item.nameAr || item.name;
+      return item.nameAr || item.name || item.nameEn || "";
     }
-    return item.nameEn || item.name;
+    return item.nameEn || item.name || item.nameAr || "";
   };
 
   // Build nationalities options from translations
@@ -128,7 +128,7 @@ export default function StudentInfoStep({
     if (!selectedStage) return [];
     return grades
       .filter((g) => g.stageId === selectedStage.id)
-      .sort((a, b) => a.order - b.order);
+      .sort((a, b) => (a.nameEn || a.name).localeCompare(b.nameEn || b.name));
   }, [formData.stage, stages, grades]);
 
   // Filter sections based on selected grade
@@ -136,7 +136,7 @@ export default function StudentInfoStep({
     if (!formData.grade_requested) return [];
     return sections
       .filter((s) => s.gradeId === formData.grade_requested)
-      .sort((a, b) => a.order - b.order);
+      .sort((a, b) => (a.nameEn || a.name).localeCompare(b.nameEn || b.name));
   }, [formData.grade_requested, sections]);
 
   // Clear grade and section when stage changes

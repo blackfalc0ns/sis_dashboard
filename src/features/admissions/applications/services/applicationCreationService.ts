@@ -16,6 +16,9 @@ export interface UploadedApplicationDocumentInput {
 }
 
 export interface ApplicationCreationPayload {
+  leadId?: string;
+  source?: string;
+  requestedAcademicYearId?: string;
   student: {
     first_name_ar: string;
     father_name_ar: string;

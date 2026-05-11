@@ -240,6 +240,7 @@ export default function ApplicationProfileLayout({
             applicationId: application.id,
             date: data.date,
             time: data.time,
+            interviewerUserId: data.interviewerUserId,
             notes: data.notes,
           });
           await refreshApplication();

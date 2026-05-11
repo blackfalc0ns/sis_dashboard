@@ -20,6 +20,7 @@ import { KPICardV2 } from "@/components/ui/kpi-card";
 import LeadStatusBadge from "@/features/admissions/leads/components/LeadStatusBadge";
 import CreateLeadModal from "@/features/admissions/leads/components/CreateLeadModal";
 import ImportLeadsModal from "@/features/admissions/leads/components/ImportLeadsModal";
+import ApplicationCreateStepper from "@/features/admissions/applications/components/ApplicationCreateStepper";
 import DateRangeFilter, {
   DateRangeValue,
 } from "@/features/admissions/shared/DateRangeFilter";
@@ -29,12 +30,13 @@ import {
   fetchLeads,
   createLead,
   updateLead,
-  convertLead,
 } from "@/features/admissions/leads/services/leadsApiService";
 import type {
   CreateLeadPayload,
   UpdateLeadPayload,
 } from "@/features/admissions/leads/types/lead";
+import type { ApplicationCreationPayload } from "@/features/admissions/applications/services/applicationCreationService";
+import { createApplication } from "@/features/admissions/applications/services/applicationsApiService";
 import { Lead, LeadStatus, LeadChannel } from "@/features/admissions";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
@@ -60,6 +62,7 @@ export default function LeadsList() {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [applicationLead, setApplicationLead] = useState<Lead | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
@@ -298,22 +301,34 @@ export default function LeadsList() {
     router.push(`/${locale}/admissions/leads/${lead.id}`);
   };
 
-  const handleConvertToApplication = async (
+  const handleConvertToApplication = (
     lead: Lead,
     e: React.MouseEvent,
   ) => {
     e.stopPropagation();
-    const displayName =
-      lead.studentName || lead.primaryContactName || lead.name || "";
-    if (confirm(t("mark_converted_confirm", { name: displayName }))) {
-      try {
-        await convertLead(lead.id);
-        showToast(t("marked_converted"), "success");
-        await loadLeads();
-      } catch (err) {
-        console.error("Failed to convert lead:", err);
-        showToast(t("mark_converted_failed"), "error");
-      }
+    setApplicationLead(lead);
+  };
+
+  const handleCreateApplicationFromLead = async (
+    data: ApplicationCreationPayload,
+  ) => {
+    if (!applicationLead) return;
+
+    try {
+      const createdApplication = await createApplication({
+        ...data,
+        leadId: applicationLead.id,
+        requestedAcademicYearId: yearId || undefined,
+        source: applicationLead.channel || "referral",
+      });
+      await updateLead(applicationLead.id, { status: "Converted" });
+      showToast(t("marked_converted"), "success");
+      setApplicationLead(null);
+      await loadLeads();
+      router.push(`/${locale}/admissions/applications/${createdApplication.id}`);
+    } catch (err) {
+      console.error("Failed to create application from lead:", err);
+      showToast(t("mark_converted_failed"), "error");
     }
   };
 
@@ -637,6 +652,12 @@ export default function LeadsList() {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onSubmit={handleImportLeads}
+      />
+      <ApplicationCreateStepper
+        lead={applicationLead || undefined}
+        isOpen={Boolean(applicationLead)}
+        onClose={() => setApplicationLead(null)}
+        onSubmit={handleCreateApplicationFromLead}
       />
       <AdmissionsGlobalExportModal
         isOpen={isExportModalOpen}

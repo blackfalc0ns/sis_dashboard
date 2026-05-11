@@ -51,6 +51,7 @@ import * as guardiansApiService from "@/features/students-guardians/guardians/se
 import * as studentDocumentsApiService from "@/features/students-guardians/documents/services/studentDocumentsApiService";
 import * as medicalProfileApiService from "@/features/students-guardians/medical/services/medicalProfileApiService";
 import * as studentNotesApiService from "@/features/students-guardians/notes/services/studentNotesApiService";
+import { fetchCurrentEnrollment } from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
 
 const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -1009,7 +1010,21 @@ export async function fetchStudentsWithEnrollment(): Promise<
   StudentWithEnrollmentContext[]
 > {
   const students = await studentsApiService.fetchStudents();
-  return students as StudentWithEnrollmentContext[];
+  return Promise.all(
+    students.map(async (student) => {
+      try {
+        const enrollment = await fetchCurrentEnrollment({
+          studentId: student.id,
+        });
+        return {
+          ...student,
+          ...(enrollment ? { enrollment } : {}),
+        } as StudentWithEnrollmentContext;
+      } catch {
+        return student as StudentWithEnrollmentContext;
+      }
+    }),
+  );
 }
 
 export function getStudentsWithEnrollmentForContext(
@@ -1026,10 +1041,24 @@ export async function fetchStudentsWithEnrollmentForContext(
   academicYearId?: string | null,
   termId?: string | null,
 ): Promise<StudentWithEnrollmentContext[]> {
-  void academicYearId;
   void termId;
   const students = await studentsApiService.fetchStudents();
-  return students as StudentWithEnrollmentContext[];
+  return Promise.all(
+    students.map(async (student) => {
+      try {
+        const enrollment = await fetchCurrentEnrollment({
+          studentId: student.id,
+          ...(academicYearId ? { academicYearId } : {}),
+        });
+        return {
+          ...student,
+          ...(enrollment ? { enrollment } : {}),
+        } as StudentWithEnrollmentContext;
+      } catch {
+        return student as StudentWithEnrollmentContext;
+      }
+    }),
+  );
 }
 
 export async function fetchStudentDocuments(

@@ -2,29 +2,38 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
+import { fetchSettingsRoles } from "@/features/settings/services/settingsRolesService";
+import { fetchSettingsUsers } from "@/features/settings/services/settingsUsersService";
+import type { SettingsUserRecord } from "@/features/settings/types";
+
+export interface ScheduleInterviewFormData {
+  studentName: string;
+  guardianName: string;
+  guardianPhone: string;
+  date: string;
+  time: string;
+  interviewerUserId: string;
+  interviewer: string;
+  interviewerPhone: string;
+  location: string;
+  duration: string;
+  notes: string;
+}
 
 interface ScheduleInterviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: {
-    studentName: string;
-    guardianName: string;
-    guardianPhone: string;
-    date: string;
-    time: string;
-    interviewer: string;
-    interviewerPhone: string;
-    location: string;
-    duration: string;
-    notes: string;
-  }) => void;
+  onSubmit: (data: ScheduleInterviewFormData) => void;
   studentName: string;
   guardianName?: string;
   guardianPhone?: string;
 }
+
+const formatUserOptionLabel = (user: SettingsUserRecord) =>
+  user.email ? `${user.fullName} (${user.email})` : user.fullName;
 
 export default function ScheduleInterviewModal({
   isOpen,
@@ -35,12 +44,17 @@ export default function ScheduleInterviewModal({
   guardianPhone = "",
 }: ScheduleInterviewModalProps) {
   const t = useTranslations("admissions.schedule_interview");
-  const [formData, setFormData] = useState({
-    studentName: studentName,
-    guardianName: guardianName,
-    guardianPhone: guardianPhone,
+  const [teacherUsers, setTeacherUsers] = useState<SettingsUserRecord[]>([]);
+  const [isLoadingTeachers, setIsLoadingTeachers] = useState(false);
+  const [teachersError, setTeachersError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<ScheduleInterviewFormData>({
+    studentName,
+    guardianName,
+    guardianPhone,
     date: "",
     time: "",
+    interviewerUserId: "",
     interviewer: "",
     interviewerPhone: "",
     location: "",
@@ -48,12 +62,101 @@ export default function ScheduleInterviewModal({
     notes: "",
   });
 
+  const activeTeacherUsers = useMemo(
+    () =>
+      teacherUsers.filter(
+        (user) => (user.status || "").toLowerCase() === "active",
+      ),
+    [teacherUsers],
+  );
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setFormData({
+      studentName,
+      guardianName,
+      guardianPhone,
+      date: "",
+      time: "",
+      interviewerUserId: "",
+      interviewer: "",
+      interviewerPhone: "",
+      location: "",
+      duration: "30",
+      notes: "",
+    });
+    setValidationError(null);
+  }, [guardianName, guardianPhone, isOpen, studentName]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let cancelled = false;
+
+    void Promise.resolve().then(async () => {
+      setIsLoadingTeachers(true);
+      setTeachersError(null);
+
+      try {
+        const rolesResult = await fetchSettingsRoles();
+        const teacherRole = rolesResult.items.find(
+          (role) => (role.name || "").toLowerCase() === "teacher",
+        );
+        if (!teacherRole) {
+          throw new Error("Failed to load teachers.");
+        }
+
+        const usersResult = await fetchSettingsUsers({
+          roleId: teacherRole.id,
+          status: "active",
+        });
+        if (!cancelled) {
+          setTeacherUsers(usersResult.items);
+        }
+      } catch {
+        if (!cancelled) {
+          setTeacherUsers([]);
+          setTeachersError("Failed to load teachers.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingTeachers(false);
+        }
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.interviewerUserId) {
+      setValidationError("Please select an interviewer.");
+      return;
+    }
     onSubmit(formData);
     onClose();
+  };
+
+  const handleInterviewerChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    const teacherUser = activeTeacherUsers.find(
+      (item) => item.id === event.target.value,
+    );
+
+    setFormData({
+      ...formData,
+      interviewerUserId: teacherUser?.id || "",
+      interviewer: teacherUser?.fullName || "",
+      interviewerPhone: teacherUser?.email || "",
+    });
+    setValidationError(null);
   };
 
   return (
@@ -169,16 +272,32 @@ export default function ScheduleInterviewModal({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t("interviewer")} *
                 </label>
-                <input
-                  type="text"
-                  value={formData.interviewer}
-                  onChange={(e) =>
-                    setFormData({ ...formData, interviewer: e.target.value })
-                  }
+                <select
+                  value={formData.interviewerUserId}
+                  onChange={handleInterviewerChange}
                   className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  placeholder={t("interviewer_placeholder")}
                   required
-                />
+                  disabled={isLoadingTeachers || activeTeacherUsers.length === 0}
+                >
+                  <option value="">
+                    {isLoadingTeachers
+                      ? "Loading teachers..."
+                      : activeTeacherUsers.length === 0
+                        ? "No active teachers available"
+                        : "Select interviewer"}
+                  </option>
+                  {activeTeacherUsers.map((teacherUser) => (
+                    <option key={teacherUser.id} value={teacherUser.id}>
+                      {formatUserOptionLabel(teacherUser)}
+                    </option>
+                  ))}
+                </select>
+                {teachersError ? (
+                  <p className="mt-1 text-xs text-red-600">{teachersError}</p>
+                ) : null}
+                {validationError ? (
+                  <p className="mt-1 text-xs text-red-600">{validationError}</p>
+                ) : null}
               </div>
 
               <div>
@@ -188,14 +307,9 @@ export default function ScheduleInterviewModal({
                 <input
                   type="tel"
                   value={formData.interviewerPhone}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      interviewerPhone: e.target.value,
-                    })
-                  }
                   className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  placeholder={t("interviewer_phone_placeholder")}
+                  placeholder="Teacher email"
+                  readOnly
                 />
               </div>
 

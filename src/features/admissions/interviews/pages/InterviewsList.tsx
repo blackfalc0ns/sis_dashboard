@@ -17,7 +17,9 @@ import {
 import { DataTable, FilterPanel } from "@/components/ui";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import { KPICardV2 } from "@/components/ui/kpi-card";
-import ScheduleInterviewModal from "@/features/admissions/interviews/components/ScheduleInterviewModal";
+import ScheduleInterviewModal, {
+  type ScheduleInterviewFormData,
+} from "@/features/admissions/interviews/components/ScheduleInterviewModal";
 import InterviewRatingModal from "@/features/admissions/interviews/components/InterviewRatingModal";
 import DateRangeFilter, {
   DateRangeValue,
@@ -298,7 +300,7 @@ export default function InterviewsList() {
     });
   };
 
-  const handleInterviewSubmit = (data: Record<string, unknown>) => {
+  const handleInterviewSubmit = (data: ScheduleInterviewFormData) => {
     console.log("Interview scheduled:", data);
     alert("Interview scheduled successfully!");
     setIsScheduleInterviewOpen(false);

@@ -24,7 +24,6 @@ import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import { StudentGuardian } from "@/features/students-guardians/students/types";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
-import ChangePasswordModal from "@/features/students-guardians/students/components/modals/ChangePasswordModal";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
@@ -113,10 +112,23 @@ export default function GuardiansList() {
 
   // Filters
   const [showFilters, setShowFilters] = useState(false);
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [passwordChangeGuardian, setPasswordChangeGuardian] =
+  const [editingGuardian, setEditingGuardian] =
     useState<StudentGuardian | null>(null);
+  const [editGuardianForm, setEditGuardianForm] = useState({
+    full_name: "",
+    relation: "",
+    phone_primary: "",
+    email: "",
+    job_title: "",
+    workplace: "",
+    can_pickup: false,
+    can_receive_notifications: false,
+  });
+  const [isSavingGuardian, setIsSavingGuardian] = useState(false);
+  const [editGuardianError, setEditGuardianError] = useState<string | null>(
+    null,
+  );
   const { values, setValue, replaceValues, reset } = useUrlQueryState<{
     search: string;
     relation: string;
@@ -215,28 +227,59 @@ export default function GuardiansList() {
     });
   };
 
-  const handleChangePasswordClick = (
+  const handleChangePasswordClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPageError("Change password is not available yet.");
+  };
+
+  const handleEditGuardianClick = (
     e: React.MouseEvent,
     guardian: StudentGuardian,
   ) => {
     e.stopPropagation();
-    setPasswordChangeGuardian(guardian);
-    setShowChangePasswordModal(true);
+    setEditingGuardian(guardian);
+    setEditGuardianError(null);
+    setEditGuardianForm({
+      full_name: guardian.full_name || "",
+      relation: guardian.relation || "",
+      phone_primary: guardian.phone_primary || "",
+      email: guardian.email || "",
+      job_title: guardian.job_title || "",
+      workplace: guardian.workplace || "",
+      can_pickup: Boolean(guardian.can_pickup),
+      can_receive_notifications: Boolean(guardian.can_receive_notifications),
+    });
   };
 
-  const handlePasswordChange = (data: {
-    newPassword: string;
-    confirmPassword: string;
-  }) => {
-    // TODO: Implement API call to change password
-    console.log(
-      "Changing password for guardian:",
-      passwordChangeGuardian?.guardianId,
-    );
-    console.log("New password:", data.newPassword);
+  const handleEditGuardianSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingGuardian) {
+      return;
+    }
 
-    // Show success message
-    alert(t("change_password.success"));
+    setIsSavingGuardian(true);
+    setEditGuardianError(null);
+
+    try {
+      const updatedGuardian = await studentsService.updateGuardian(
+        editingGuardian.guardianId,
+        editGuardianForm,
+      );
+      setGuardians((currentGuardians) =>
+        currentGuardians.map((guardian) =>
+          guardian.guardianId === editingGuardian.guardianId
+            ? { ...guardian, ...updatedGuardian }
+            : guardian,
+        ),
+      );
+      setEditingGuardian(null);
+    } catch (error) {
+      setEditGuardianError(
+        error instanceof Error ? error.message : t("loading_error"),
+      );
+    } finally {
+      setIsSavingGuardian(false);
+    }
   };
 
   const handleRowClick = (guardian: StudentGuardian) => {
@@ -318,8 +361,7 @@ export default function GuardiansList() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              // TODO: View guardian details
-              console.log("View guardian:", row);
+              handleRowClick(row as unknown as StudentGuardian);
             }}
             className="p-1.5 text-primary hover:bg-primary hover:text-white rounded transition-colors"
             title={t("actions.view_details")}
@@ -327,22 +369,19 @@ export default function GuardiansList() {
             <Eye className="w-4 h-4" />
           </button>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              // TODO: Edit guardian
-              console.log("Edit guardian:", row);
-            }}
+            onClick={(e) =>
+              handleEditGuardianClick(e, row as unknown as StudentGuardian)
+            }
             className="p-1.5 text-gray-600 hover:bg-gray-100 rounded transition-colors"
             title={t("actions.edit")}
           >
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={(e) =>
-              handleChangePasswordClick(e, row as unknown as StudentGuardian)
-            }
-            className="p-1.5 text-orange-600 hover:bg-orange-50 rounded transition-colors"
-            title={t("actions.change_password")}
+            onClick={handleChangePasswordClick}
+            className="p-1.5 text-gray-400 rounded cursor-not-allowed"
+            title="Not available yet"
+            disabled
           >
             <Lock className="w-4 h-4" />
           </button>
@@ -548,18 +587,164 @@ export default function GuardiansList() {
         />
       )}
 
-      {/* Change Password Modal */}
-      {passwordChangeGuardian && (
-        <ChangePasswordModal
-          isOpen={showChangePasswordModal}
-          onClose={() => {
-            setShowChangePasswordModal(false);
-            setPasswordChangeGuardian(null);
-          }}
-          onSubmit={handlePasswordChange}
-          userName={passwordChangeGuardian.full_name}
-          userType="guardian"
-        />
+      {editingGuardian && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <form
+            onSubmit={handleEditGuardianSubmit}
+            className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl"
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">
+                {t("actions.edit")}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setEditingGuardian(null)}
+                className="rounded p-1 text-gray-500 hover:bg-gray-100"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {editGuardianError && (
+              <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {editGuardianError}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label className="text-sm font-medium text-gray-700">
+                {t("columns.name")}
+                <input
+                  value={editGuardianForm.full_name}
+                  onChange={(event) =>
+                    setEditGuardianForm((current) => ({
+                      ...current,
+                      full_name: event.target.value,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                  required
+                />
+              </label>
+              <label className="text-sm font-medium text-gray-700">
+                {t("columns.relation")}
+                <input
+                  value={editGuardianForm.relation}
+                  onChange={(event) =>
+                    setEditGuardianForm((current) => ({
+                      ...current,
+                      relation: event.target.value,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                  required
+                />
+              </label>
+              <label className="text-sm font-medium text-gray-700">
+                {t("columns.phone")}
+                <input
+                  value={editGuardianForm.phone_primary}
+                  onChange={(event) =>
+                    setEditGuardianForm((current) => ({
+                      ...current,
+                      phone_primary: event.target.value,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                  required
+                />
+              </label>
+              <label className="text-sm font-medium text-gray-700">
+                {t("columns.email")}
+                <input
+                  type="email"
+                  value={editGuardianForm.email}
+                  onChange={(event) =>
+                    setEditGuardianForm((current) => ({
+                      ...current,
+                      email: event.target.value,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                />
+              </label>
+              <label className="text-sm font-medium text-gray-700">
+                Job title
+                <input
+                  value={editGuardianForm.job_title}
+                  onChange={(event) =>
+                    setEditGuardianForm((current) => ({
+                      ...current,
+                      job_title: event.target.value,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                />
+              </label>
+              <label className="text-sm font-medium text-gray-700">
+                Workplace
+                <input
+                  value={editGuardianForm.workplace}
+                  onChange={(event) =>
+                    setEditGuardianForm((current) => ({
+                      ...current,
+                      workplace: event.target.value,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                />
+              </label>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={editGuardianForm.can_pickup}
+                  onChange={(event) =>
+                    setEditGuardianForm((current) => ({
+                      ...current,
+                      can_pickup: event.target.checked,
+                    }))
+                  }
+                />
+                {t("columns.can_pickup")}
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={editGuardianForm.can_receive_notifications}
+                  onChange={(event) =>
+                    setEditGuardianForm((current) => ({
+                      ...current,
+                      can_receive_notifications: event.target.checked,
+                    }))
+                  }
+                />
+                {t("columns.notifications")}
+              </label>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setEditingGuardian(null)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSavingGuardian}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-hover disabled:opacity-60"
+              >
+                {isSavingGuardian ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       <StudentsGuardiansGlobalExportModal

@@ -20,6 +20,7 @@ import {
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import LeadStatusBadge from "@/features/admissions/leads/components/LeadStatusBadge";
 import CreateLeadModal from "@/features/admissions/leads/components/CreateLeadModal";
+import ApplicationCreateStepper from "@/features/admissions/applications/components/ApplicationCreateStepper";
 import ActivityLog from "@/features/admissions/leads/components/ActivityLog";
 import NotesPanel from "@/features/admissions/leads/components/NotesPanel";
 import LeadChatPanel from "@/features/admissions/leads/components/LeadChatPanel";
@@ -27,7 +28,6 @@ import TabNavigation from "@/features/admissions/shared/TabNavigation";
 import {
   fetchLeadById,
   updateLead,
-  convertLead,
 } from "@/features/admissions/leads/services/leadsApiService";
 import { Lead, ActivityType } from "@/features/admissions/types/leads";
 import type {
@@ -35,6 +35,8 @@ import type {
   Note,
   UpdateLeadPayload,
 } from "@/features/admissions/leads/types/lead";
+import type { ApplicationCreationPayload } from "@/features/admissions/applications/services/applicationCreationService";
+import { createApplication } from "@/features/admissions/applications/services/applicationsApiService";
 import { useToast } from "@/components/ui/toast/Toast";
 
 interface LeadDetailsProps {
@@ -55,6 +57,7 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [unreadCount] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateApplicationOpen, setIsCreateApplicationOpen] = useState(false);
 
   const loadLead = useCallback(async () => {
     setIsLoading(true);
@@ -91,17 +94,26 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
     showToast("Notes are not yet available from the API.", "info");
   };
 
-  const handleConvertToApplication = async () => {
-    if (confirm(t("mark_converted_confirm", { name: displayName }))) {
-      try {
-        await convertLead(lead.id);
-        showToast(t("marked_converted"), "success");
-        // Reload to reflect updated status
-        await loadLead();
-      } catch (err) {
-        console.error("Failed to convert lead:", err);
-        showToast(t("mark_converted_failed"), "error");
-      }
+  const handleConvertToApplication = () => {
+    setIsCreateApplicationOpen(true);
+  };
+
+  const handleCreateApplicationFromLead = async (
+    data: ApplicationCreationPayload,
+  ) => {
+    try {
+      const createdApplication = await createApplication({
+        ...data,
+        leadId: lead.id,
+        source: lead.channel || "referral",
+      });
+      await updateLead(lead.id, { status: "Converted" });
+      showToast(t("marked_converted"), "success");
+      setIsCreateApplicationOpen(false);
+      router.push(`/${locale}/admissions/applications/${createdApplication.id}`);
+    } catch (err) {
+      console.error("Failed to create application from lead:", err);
+      showToast(t("mark_converted_failed"), "error");
     }
   };
 
@@ -317,6 +329,12 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
         onSubmit={handleUpdateLead}
         initialLead={lead}
         mode="update"
+      />
+      <ApplicationCreateStepper
+        lead={lead}
+        isOpen={isCreateApplicationOpen}
+        onClose={() => setIsCreateApplicationOpen(false)}
+        onSubmit={handleCreateApplicationFromLead}
       />
     </div>
   );

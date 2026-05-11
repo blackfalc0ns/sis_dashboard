@@ -9,7 +9,7 @@ import { fetchInterviews } from "@/features/admissions/interviews/services/inter
 
 interface InterviewsTabProps {
   application: Application;
-  onScheduleInterview: () => void;
+  onScheduleInterview?: () => void;
 }
 
 export default function InterviewsTab({
@@ -51,13 +51,15 @@ export default function InterviewsTab({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-gray-900">{t("interviews.title")}</h3>
-        <button
-          onClick={onScheduleInterview}
-          disabled={isReadOnly}
-          className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
-        >
-          {t("interviews.schedule_interview")}
-        </button>
+        {onScheduleInterview ? (
+          <button
+            onClick={onScheduleInterview}
+            disabled={isReadOnly}
+            className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            {t("interviews.schedule_interview")}
+          </button>
+        ) : null}
       </div>
       {interviews.length === 0 ? (
         <p className="text-sm text-gray-500 text-center py-8">

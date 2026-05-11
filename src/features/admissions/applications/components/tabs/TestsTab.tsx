@@ -9,7 +9,7 @@ import { fetchPlacementTests } from "@/features/admissions/tests/services/testsA
 
 interface TestsTabProps {
   application: Application;
-  onScheduleTest: () => void;
+  onScheduleTest?: () => void;
 }
 
 export default function TestsTab({
@@ -48,13 +48,15 @@ export default function TestsTab({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-gray-900">{t("tests.title")}</h3>
-        <button
-          onClick={onScheduleTest}
-          disabled={isReadOnly}
-          className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
-        >
-          {t("tests.schedule_test")}
-        </button>
+        {onScheduleTest ? (
+          <button
+            onClick={onScheduleTest}
+            disabled={isReadOnly}
+            className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            {t("tests.schedule_test")}
+          </button>
+        ) : null}
       </div>
       {tests.length === 0 ? (
         <p className="text-sm text-gray-500 text-center py-8">

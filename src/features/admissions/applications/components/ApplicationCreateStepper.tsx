@@ -10,11 +10,11 @@ import DocumentsStep from "./steps/DocumentsStep";
 import { Lead } from "@/features/admissions/leads/types/lead";
 import { fetchAdmissionsDocumentRequirements } from "@/features/settings/services/settingsService";
 import {
-  fetchStructureTree,
-  type Stage,
-  type Grade,
-  type Section,
-} from "@/features/academics/academic-structure-tree/services/structureService";
+  fetchAcademicStructureTree,
+  type AcademicStructureStage as Stage,
+  type AcademicStructureGrade as Grade,
+  type AcademicStructureSection as Section,
+} from "@/features/academics/services/academicStructureApiService";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import type { AdmissionsRequiredDocumentConfig } from "@/features/settings/types";
 import type { ApplicationCreationPayload } from "@/features/admissions/applications/services/applicationCreationService";
@@ -110,7 +110,7 @@ export default function ApplicationCreateStepper({
     father_name_ar: "",
     grandfather_name_ar: "",
     family_name_ar: "",
-    first_name_en: "",
+    first_name_en: lead?.studentName || "",
     father_name_en: "",
     grandfather_name_en: "",
     family_name_en: "",
@@ -118,7 +118,7 @@ export default function ApplicationCreateStepper({
     date_of_birth: "",
     nationality: "",
     stage: "",
-    grade_requested: lead?.gradeInterest || "",
+    grade_requested: "",
     section: "",
     address_line: "",
     city: "",
@@ -193,12 +193,27 @@ export default function ApplicationCreateStepper({
 
     let cancelled = false;
     setIsLoadingStructure(true);
-    void fetchStructureTree(yearId, termId)
+    void fetchAcademicStructureTree({ yearId, termId })
       .then((data) => {
         if (cancelled) return;
         setStages(data.stages);
         setGrades(data.grades);
         setSections(data.sections);
+        if (lead?.gradeInterest) {
+          const matchingGrade = data.grades.find((grade) => {
+            const labels = [grade.id, grade.name, grade.nameEn, grade.nameAr]
+              .filter(Boolean)
+              .map((label) => String(label).toLowerCase());
+            return labels.includes(lead.gradeInterest!.toLowerCase());
+          });
+          if (matchingGrade) {
+            setFormData((current) => ({
+              ...current,
+              stage: matchingGrade.stageId,
+              grade_requested: matchingGrade.id,
+            }));
+          }
+        }
       })
       .catch((error) => {
         if (!cancelled) {
@@ -214,7 +229,7 @@ export default function ApplicationCreateStepper({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, yearId, termId]);
+  }, [isOpen, lead?.gradeInterest, yearId, termId]);
 
   if (!isOpen) return null;
 
@@ -262,6 +277,13 @@ export default function ApplicationCreateStepper({
       newErrors.nationality = t("errors.nationality_required");
     if (!formData.grade_requested)
       newErrors.grade_requested = t("errors.grade_required");
+    if (
+      formData.grade_requested &&
+      !grades.some((grade) => grade.id === formData.grade_requested)
+    ) {
+      newErrors.grade_requested =
+        "Please select a valid grade from the academic structure.";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -411,6 +433,9 @@ export default function ApplicationCreateStepper({
     }
 
     onSubmit({
+      leadId: lead?.id,
+      source: lead?.channel || "referral",
+      requestedAcademicYearId: yearId || undefined,
       student: {
         first_name_ar: formData.first_name_ar,
         father_name_ar: formData.father_name_ar,

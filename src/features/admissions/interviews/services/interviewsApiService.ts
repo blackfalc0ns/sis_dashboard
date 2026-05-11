@@ -32,14 +32,20 @@ export interface CompleteInterviewPayload {
 export type UpdateInterviewPayload =
   Partial<CreateInterviewPayload & CompleteInterviewPayload>;
 
-const toCreateBody = (payload: CreateInterviewPayload) => ({
-  applicationId: payload.applicationId,
-  scheduledAt:
-    payload.scheduledAt || toIsoFromDateAndTime(payload.date || "", payload.time || ""),
-  // TODO: replace fallback once the auth user id is exposed consistently to admissions screens.
-  interviewerUserId: payload.interviewerUserId || "current-user",
-  notes: payload.notes,
-});
+const toCreateBody = (payload: CreateInterviewPayload) => {
+  if (!payload.interviewerUserId) {
+    throw new Error("interviewerUserId is required to schedule an interview.");
+  }
+
+  return {
+    applicationId: payload.applicationId,
+    scheduledAt:
+      payload.scheduledAt ||
+      toIsoFromDateAndTime(payload.date || "", payload.time || ""),
+    interviewerUserId: payload.interviewerUserId,
+    notes: payload.notes,
+  };
+};
 
 export async function fetchInterviews(
   params: FetchInterviewsParams = {},

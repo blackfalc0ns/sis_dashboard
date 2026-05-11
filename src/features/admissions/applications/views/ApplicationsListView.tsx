@@ -23,7 +23,9 @@ import StatusTagsBar from "@/features/admissions/shared/StatusTagsBar";
 import { KPICardV2 } from "@/components/ui/kpi-card";
 import ApplicationCreateStepper from "@/features/admissions/applications/components/ApplicationCreateStepper";
 import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTestModal";
-import ScheduleInterviewModal from "@/features/admissions/interviews/components/ScheduleInterviewModal";
+import ScheduleInterviewModal, {
+  type ScheduleInterviewFormData,
+} from "@/features/admissions/interviews/components/ScheduleInterviewModal";
 import DecisionModal from "@/features/admissions/decisions/components/DecisionModal";
 import EnrollmentForm from "@/features/admissions/enrollment/components/EnrollmentForm";
 import DateRangeFilter, { DateRangeValue } from "@/features/admissions/shared/DateRangeFilter";
@@ -66,7 +68,7 @@ interface ApplicationsListViewProps {
   onDateRangeChange: (value: DateRangeValue) => void;
   onCustomDateChange: (start: string, end: string) => void;
   onTestSubmit: (data: Record<string, unknown>) => void;
-  onInterviewSubmit: (data: Record<string, unknown>) => void;
+  onInterviewSubmit: (data: ScheduleInterviewFormData) => void;
   onDecisionSubmit: (decision: DecisionType, reason: string, date: string) => void;
   onEnrollmentSubmit: (application: Application, data: EnrollmentSubmission) => void;
   onCreateApplicationSubmit: (data: ApplicationCreationPayload) => void;

@@ -20,7 +20,9 @@ import {
 import { mockApplications, mockInterviews } from "@/data/mockAdmissions";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import InterviewRatingModal from "@/features/admissions/interviews/components/InterviewRatingModal";
-import ScheduleInterviewModal from "@/features/admissions/interviews/components/ScheduleInterviewModal";
+import ScheduleInterviewModal, {
+  type ScheduleInterviewFormData,
+} from "@/features/admissions/interviews/components/ScheduleInterviewModal";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 
@@ -123,13 +125,7 @@ export default function InterviewDetailsPage({
     setIsRescheduleModalOpen(true);
   };
 
-  const handleRescheduleSubmit = (data: {
-    date: string;
-    time: string;
-    interviewer: string;
-    location: string;
-    notes?: string;
-  }) => {
+  const handleRescheduleSubmit = (data: ScheduleInterviewFormData) => {
     console.log("Rescheduling interview:", { interviewId, ...data });
     // In a real app, this would update the backend
     // For now, we'll just close the modal and refresh

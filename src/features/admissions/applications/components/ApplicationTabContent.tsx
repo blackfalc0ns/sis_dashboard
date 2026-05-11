@@ -61,15 +61,10 @@ export default function ApplicationTabContent({
   if (tab === "guardians") return <GuardiansTab application={application} />;
   if (tab === "documents") return <DocumentsTab application={application} />;
   if (tab === "tests") {
-    return <TestsTab application={application} onScheduleTest={() => {}} />;
+    return <TestsTab application={application} />;
   }
   if (tab === "interviews") {
-    return (
-      <InterviewsTab
-        application={application}
-        onScheduleInterview={() => {}}
-      />
-    );
+    return <InterviewsTab application={application} />;
   }
   return <TimelineTab application={application} />;
 }

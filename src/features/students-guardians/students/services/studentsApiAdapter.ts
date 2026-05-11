@@ -1,9 +1,10 @@
 import { apiWithToken } from "@/lib/api";
+import { fetchCurrentEnrollment } from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
+import * as studentsApiService from "@/features/students-guardians/students/services/studentsApiService";
 import type { StudentsAdapter } from "@/features/students-guardians/students/services/studentsAdapter";
 import type { StudentWithEnrollmentContext } from "@/features/students-guardians/students/services/studentsService";
 import type {
   Student,
-  StudentDocument,
   StudentGuardian,
   StudentStatus,
   UpdateStudentPayload,
@@ -36,10 +37,26 @@ const unwrap = async <T>(request: Promise<ApiEnvelope<T> | T>): Promise<T> => {
   return response as T;
 };
 
-const buildQuery = (params: Record<string, string>) => {
-  const search = new URLSearchParams(params);
-  return `?${search.toString()}`;
-};
+const attachCurrentEnrollment = async (
+  students: Student[],
+  academicYearId?: string | null,
+): Promise<StudentWithEnrollmentContext[]> =>
+  Promise.all(
+    students.map(async (student) => {
+      try {
+        const enrollment = await fetchCurrentEnrollment({
+          studentId: student.id,
+          ...(academicYearId ? { academicYearId } : {}),
+        });
+        return {
+          ...student,
+          ...(enrollment ? { enrollment } : {}),
+        } as StudentWithEnrollmentContext;
+      } catch {
+        return student as StudentWithEnrollmentContext;
+      }
+    }),
+  );
 
 export const createStudentsApiAdapter = (
   basePath: string = "/students-guardians/students",
@@ -141,24 +158,15 @@ export const createStudentsApiAdapter = (
         method: "GET",
       }),
     ),
-  fetchStudentsWithEnrollment: () =>
-    unwrap<StudentWithEnrollmentContext[]>(
-      apiWithToken(`${basePath}/with-enrollment`, {
-        method: "GET",
-      }),
-    ),
-  fetchStudentsWithEnrollmentForContext: (academicYearId, termId) =>
-    unwrap<StudentWithEnrollmentContext[]>(
-      apiWithToken(
-        `${basePath}/with-enrollment${buildQuery({
-          ...(academicYearId ? { academicYearId } : {}),
-          ...(termId ? { termId } : {}),
-        })}`,
-        {
-          method: "GET",
-        },
-      ),
-    ),
+  fetchStudentsWithEnrollment: async () => {
+    const students = await studentsApiService.fetchStudents();
+    return attachCurrentEnrollment(students);
+  },
+  fetchStudentsWithEnrollmentForContext: async (academicYearId, termId) => {
+    void termId;
+    const students = await studentsApiService.fetchStudents();
+    return attachCurrentEnrollment(students, academicYearId);
+  },
 });
 
 export const studentsApiAdapter = createStudentsApiAdapter();

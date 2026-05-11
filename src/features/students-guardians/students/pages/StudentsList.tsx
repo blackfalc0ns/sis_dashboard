@@ -42,8 +42,6 @@ import {
 import AddNoteModal, {
   NoteFormData,
 } from "@/features/students-guardians/students/components/modals/AddNoteModal";
-import BulkUploadModal from "@/features/students-guardians/students/components/modals/BulkUploadModal";
-import ChangePasswordModal from "@/features/students-guardians/students/components/modals/ChangePasswordModal";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
@@ -126,11 +124,7 @@ export default function StudentsList() {
   const [showFilters, setShowFilters] = useState(false);
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [passwordChangeStudent, setPasswordChangeStudent] =
-    useState<Student | null>(null);
   const {
     values: queryValues,
     setValue,
@@ -382,22 +376,9 @@ export default function StudentsList() {
     setShowAddNoteModal(true);
   };
 
-  const handleChangePasswordClick = (e: React.MouseEvent, student: Student) => {
+  const handleChangePasswordClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setPasswordChangeStudent(student);
-    setShowChangePasswordModal(true);
-  };
-
-  const handlePasswordChange = (data: {
-    newPassword: string;
-    confirmPassword: string;
-  }) => {
-    // TODO: Implement API call to change password
-    console.log("Changing password for student:", passwordChangeStudent?.id);
-    console.log("New password:", data.newPassword);
-
-    // Show success message
-    alert(t("change_password.success"));
+    setPageError("Change password is not available yet.");
   };
 
   const handleExport = (format: StudentsGuardiansExportFormat) => {
@@ -418,21 +399,8 @@ export default function StudentsList() {
     });
   };
 
-  const handleBulkUpload = async (file: File) => {
-    // TODO: Implement bulk upload logic
-    // This would typically:
-    // 1. Parse the CSV/Excel file
-    // 2. Validate the data
-    // 3. Send to API
-    // 4. Show success/error messages
-
-    console.log("Uploading file:", file.name);
-
-    // Simulate upload delay
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // For now, just show success
-    alert(t("bulk_upload_success"));
+  const handleBulkUploadClick = () => {
+    setPageError("Bulk upload is not available yet.");
   };
 
   const getRiskBadges = (
@@ -613,11 +581,10 @@ export default function StudentsList() {
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={(e) =>
-              handleChangePasswordClick(e, row as unknown as Student)
-            }
-            className="p-1.5 text-orange-600 hover:bg-orange-50 rounded transition-colors"
-            title={t("actions.change_password")}
+            onClick={handleChangePasswordClick}
+            className="p-1.5 text-gray-400 rounded cursor-not-allowed"
+            title="Not available yet"
+            disabled
           >
             <Lock className="w-4 h-4" />
           </button>
@@ -774,8 +741,10 @@ export default function StudentsList() {
             {t("export")}
           </button>
           <button
-            onClick={() => setShowBulkUploadModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+            onClick={handleBulkUploadClick}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-400 rounded-lg font-medium text-sm cursor-not-allowed"
+            disabled
+            title="Not available yet"
           >
             <Upload className="w-4 h-4" />
             {t("bulk_upload_button")}
@@ -989,44 +958,6 @@ export default function StudentsList() {
                   studentWithNames.full_name_ar ||
                   getStudentDisplayName(selectedStudent);
           })()}
-        />
-      )}
-
-      {/* Bulk Upload Modal */}
-      <BulkUploadModal
-        isOpen={showBulkUploadModal}
-        onClose={() => setShowBulkUploadModal(false)}
-        onUpload={handleBulkUpload}
-      />
-
-      {/* Change Password Modal */}
-      {passwordChangeStudent && (
-        <ChangePasswordModal
-          isOpen={showChangePasswordModal}
-          onClose={() => {
-            setShowChangePasswordModal(false);
-            setPasswordChangeStudent(null);
-          }}
-          onSubmit={handlePasswordChange}
-          userName={(() => {
-            const studentWithNames = passwordChangeStudent as Student & {
-              full_name_en?: string;
-              studentName?: string;
-              full_name_ar?: string;
-              studentNameArabic?: string;
-            };
-            return locale === "ar"
-              ? studentWithNames.full_name_ar ||
-                  studentWithNames.studentNameArabic ||
-                  studentWithNames.full_name_en ||
-                  studentWithNames.studentName ||
-                  getStudentDisplayName(passwordChangeStudent)
-              : studentWithNames.full_name_en ||
-                  studentWithNames.studentName ||
-                  studentWithNames.full_name_ar ||
-                  getStudentDisplayName(passwordChangeStudent);
-          })()}
-          userType="student"
         />
       )}
 
