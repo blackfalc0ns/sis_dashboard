@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -13,17 +13,27 @@ import {
   User,
   FileCheck,
 } from "lucide-react";
-import { mockApplications } from "@/data/mockAdmissions";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTestModal";
 import ScheduleInterviewModal from "@/features/admissions/interviews/components/ScheduleInterviewModal";
 import DecisionModal from "@/features/admissions/decisions/components/DecisionModal";
 import EnrollmentForm from "@/features/admissions/enrollment/components/EnrollmentForm";
-import { submitApplicationEnrollment } from "@/features/admissions/enrollment/services/enrollmentService";
 import { useSectionTabs } from "@/hooks/useSectionTabs";
 import { buildLocalePath } from "@/lib/routing/localePath";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import type { Application, DecisionType } from "@/features/admissions/types/admissions";
+import { fetchApplicationById } from "@/features/admissions/applications/services/applicationsApiService";
+import { createPlacementTest } from "@/features/admissions/tests/services/testsApiService";
+import { createInterview } from "@/features/admissions/interviews/services/interviewsApiService";
+import {
+  createDecision,
+  getDecisionFriendlyErrorMessage,
+} from "@/features/admissions/decisions/services/decisionsApiService";
+import {
+  createEnrollmentHandoffPreview,
+  getEnrollmentFriendlyErrorMessage,
+} from "@/features/admissions/enrollment/services/admissionsEnrollmentApiService";
 
 const tabs = [
   { key: "details", labelKey: "tabs.details", icon: FileText },
@@ -58,9 +68,43 @@ export default function ApplicationProfileLayout({
     defaultTab: "details",
   });
 
-  const application = useMemo(() => {
-    return mockApplications.find((app) => app.id === applicationId);
+  const [application, setApplication] = useState<Application | null>(null);
+  const [isLoadingApplication, setIsLoadingApplication] = useState(true);
+
+  useEffect(() => {
+    if (!applicationId) return;
+    let cancelled = false;
+    void fetchApplicationById(applicationId)
+      .then((nextApplication) => {
+        if (!cancelled) setApplication(nextApplication);
+      })
+      .catch((error) => {
+        console.error("Failed to load application:", error);
+        if (!cancelled) setApplication(null);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingApplication(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [applicationId]);
+
+  const refreshApplication = async () => {
+    if (!applicationId) return;
+    setApplication(await fetchApplicationById(applicationId));
+  };
+
+  if (isLoadingApplication) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <p className="text-gray-500">Loading application...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!application) {
     return (
@@ -175,8 +219,14 @@ export default function ApplicationProfileLayout({
       <ScheduleTestModal
         isOpen={isScheduleTestOpen}
         onClose={() => setIsScheduleTestOpen(false)}
-        onSubmit={(data) => {
-          console.log("Schedule test:", data);
+        onSubmit={async (data) => {
+          await createPlacementTest({
+            applicationId: application.id,
+            type: data.type || "Placement",
+            date: data.date,
+            time: data.time,
+          });
+          await refreshApplication();
           setIsScheduleTestOpen(false);
         }}
         studentName={application.studentName}
@@ -185,8 +235,14 @@ export default function ApplicationProfileLayout({
       <ScheduleInterviewModal
         isOpen={isScheduleInterviewOpen}
         onClose={() => setIsScheduleInterviewOpen(false)}
-        onSubmit={(data) => {
-          console.log("Schedule interview:", data);
+        onSubmit={async (data) => {
+          await createInterview({
+            applicationId: application.id,
+            date: data.date,
+            time: data.time,
+            notes: data.notes,
+          });
+          await refreshApplication();
           setIsScheduleInterviewOpen(false);
         }}
         studentName={application.studentName}
@@ -195,9 +251,21 @@ export default function ApplicationProfileLayout({
       <DecisionModal
         isOpen={isDecisionOpen}
         onClose={() => setIsDecisionOpen(false)}
-        onSubmit={(data) => {
-          console.log("Make decision:", data);
-          setIsDecisionOpen(false);
+        onSubmit={async (decision: DecisionType, reason: string) => {
+          try {
+            await createDecision({
+              applicationId: application.id,
+              decision,
+              reason,
+            });
+            await refreshApplication();
+            setIsDecisionOpen(false);
+          } catch (error) {
+            alert(
+              getDecisionFriendlyErrorMessage(error) ||
+                "Failed to create decision. Please try again.",
+            );
+          }
         }}
         application={application}
       />
@@ -205,9 +273,16 @@ export default function ApplicationProfileLayout({
       <EnrollmentForm
         isOpen={isEnrollmentOpen}
         onClose={() => setIsEnrollmentOpen(false)}
-        onSubmit={async (data) => {
-          await submitApplicationEnrollment(application, data);
-          setIsEnrollmentOpen(false);
+        onSubmit={async () => {
+          try {
+            await createEnrollmentHandoffPreview(application.id);
+            setIsEnrollmentOpen(false);
+          } catch (error) {
+            alert(
+              getEnrollmentFriendlyErrorMessage(error) ||
+                "Failed to create enrollment handoff. Please try again.",
+            );
+          }
         }}
         application={application}
       />

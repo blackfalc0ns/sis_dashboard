@@ -1,5 +1,4 @@
-import { mockApplications } from "@/data/mockAdmissions";
-import TimelineTab from "@/features/admissions/applications/components/tabs/TimelineTab";
+import ApplicationTabContent from "@/features/admissions/applications/components/ApplicationTabContent";
 
 export default async function ApplicationTimelinePage({
   params,
@@ -7,9 +6,5 @@ export default async function ApplicationTimelinePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const application = mockApplications.find((app) => app.id === id);
-
-  if (!application) return null;
-
-  return <TimelineTab application={application} />;
+  return <ApplicationTabContent applicationId={id} tab="timeline" />;
 }

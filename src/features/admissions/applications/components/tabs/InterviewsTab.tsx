@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Application } from "@/features/admissions/types/admissions";
+import { Application, Interview } from "@/features/admissions/types/admissions";
 import { StatusBadge } from "@/features/admissions/shared";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import { fetchInterviews } from "@/features/admissions/interviews/services/interviewsApiService";
 
 interface InterviewsTabProps {
   application: Application;
@@ -16,6 +18,34 @@ export default function InterviewsTab({
 }: InterviewsTabProps) {
   const t = useTranslations("admissions.application360");
   const { isReadOnly } = useAdmissionsYearTermContext();
+  const [interviews, setInterviews] = useState<Interview[]>(
+    application.interviews,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchInterviews({
+      applicationId: application.id,
+      search: application.studentName,
+    })
+      .then((nextInterviews) => {
+        if (!cancelled) {
+          setInterviews(
+            nextInterviews.filter(
+              (interview) =>
+                !interview.applicationId || interview.applicationId === application.id,
+            ),
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load interviews:", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [application.id, application.interviews, application.studentName]);
 
   return (
     <div className="space-y-4">
@@ -29,13 +59,13 @@ export default function InterviewsTab({
           {t("interviews.schedule_interview")}
         </button>
       </div>
-      {application.interviews.length === 0 ? (
+      {interviews.length === 0 ? (
         <p className="text-sm text-gray-500 text-center py-8">
           {t("interviews.no_interviews")}
         </p>
       ) : (
         <div className="space-y-2">
-          {application.interviews.map((interview) => (
+          {interviews.map((interview) => (
             <div
               key={interview.id}
               className="p-4 border border-gray-200 rounded-lg"

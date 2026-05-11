@@ -1,0 +1,303 @@
+import type {
+  Application,
+  ApplicationSource,
+  ApplicationStatus,
+  Decision,
+  DecisionType,
+  Document,
+  DocumentStatus,
+  Interview,
+  InterviewStatus,
+  Test,
+  TestStatus,
+} from "@/features/admissions/types/admissions";
+
+type ApiRecord = Record<string, unknown>;
+
+const isRecord = (value: unknown): value is ApiRecord =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const read = (record: ApiRecord, keys: string[]): unknown => {
+  for (const key of keys) {
+    if (typeof record[key] !== "undefined" && record[key] !== null) {
+      return record[key];
+    }
+  }
+  return undefined;
+};
+
+const readString = (
+  record: ApiRecord,
+  keys: string[],
+  fallback = "",
+): string => {
+  const value = read(record, keys);
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return fallback;
+};
+
+const readArray = (record: ApiRecord, keys: string[]): unknown[] => {
+  const value = read(record, keys);
+  return Array.isArray(value) ? value : [];
+};
+
+function unwrapEnvelope(response: unknown): unknown {
+  if (!isRecord(response)) return response;
+  if (typeof response.data !== "undefined") return response.data;
+  if (typeof response.result !== "undefined") return response.result;
+  if (typeof response.payload !== "undefined") return response.payload;
+  return response;
+}
+
+export function unwrapArrayResponse(response: unknown, label: string): unknown[] {
+  if (Array.isArray(response)) return response;
+
+  if (isRecord(response)) {
+    if (Array.isArray(response.data)) return response.data;
+    if (isRecord(response.data) && Array.isArray(response.data.items)) {
+      return response.data.items;
+    }
+    if (Array.isArray(response.items)) return response.items;
+    if (Array.isArray(response.result)) return response.result;
+    if (isRecord(response.result) && Array.isArray(response.result.items)) {
+      return response.result.items;
+    }
+    if (Array.isArray(response.payload)) return response.payload;
+    if (isRecord(response.payload) && Array.isArray(response.payload.items)) {
+      return response.payload.items;
+    }
+  }
+
+  throw new Error(`Invalid ${label} list response shape from API.`);
+}
+
+export function unwrapItemResponse(response: unknown, label: string): unknown {
+  const unwrapped = unwrapEnvelope(response);
+
+  if (Array.isArray(unwrapped)) {
+    const [first] = unwrapped;
+    if (first) return first;
+  }
+
+  if (isRecord(unwrapped) && Array.isArray(unwrapped.items)) {
+    const [first] = unwrapped.items;
+    if (first) return first;
+  }
+
+  if (isRecord(unwrapped)) return unwrapped;
+
+  throw new Error(`Invalid ${label} item response shape from API.`);
+}
+
+export function buildQueryString(
+  params: object = {},
+): string {
+  const query = new URLSearchParams();
+  Object.entries(params as Record<string, unknown>).forEach(([key, value]) => {
+    if (
+      typeof value !== "undefined" &&
+      value !== null &&
+      value !== "" &&
+      value !== "all"
+    ) {
+      query.set(key, String(value));
+    }
+  });
+  const serialized = query.toString();
+  return serialized ? `?${serialized}` : "";
+}
+
+export function toIsoFromDateAndTime(date: string, time: string): string {
+  if (!date) return new Date().toISOString();
+  const normalizedTime = time || "00:00";
+  return new Date(`${date}T${normalizedTime}:00`).toISOString();
+}
+
+export function splitIsoDateTime(value: unknown): { date: string; time: string } {
+  if (typeof value !== "string" || !value) {
+    return { date: "", time: "" };
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    const [date = "", time = ""] = value.split("T");
+    return { date, time: time.slice(0, 5) };
+  }
+
+  return {
+    date: parsed.toISOString().slice(0, 10),
+    time: parsed.toISOString().slice(11, 16),
+  };
+}
+
+const normalizeStatus = (
+  value: unknown,
+  fallback: ApplicationStatus = "documents_pending",
+): ApplicationStatus => {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "submitted") return "submitted";
+  if (normalized === "documents_pending" || normalized === "documents-pending") {
+    return "documents_pending";
+  }
+  if (normalized === "under_review" || normalized === "under-review") {
+    return "under_review";
+  }
+  if (normalized === "accepted") return "accepted";
+  if (normalized === "waitlisted") return "waitlisted";
+  if (normalized === "rejected") return "rejected";
+  return fallback;
+};
+
+const normalizeSource = (value: unknown): ApplicationSource => {
+  const normalized = String(value || "").trim().toLowerCase().replace(/-/g, "_");
+  if (normalized === "in_app") return "in_app";
+  if (normalized === "referral") return "referral";
+  if (normalized === "walk_in") return "walk_in";
+  return "other";
+};
+
+export function normalizeDocument(input: unknown): Document {
+  if (!isRecord(input)) throw new Error("Invalid admissions document response.");
+
+  const id = readString(input, ["id", "documentId", "document_id"]);
+  if (!id) throw new Error("Admissions document response is missing an id.");
+
+  const type = readString(input, ["documentType", "document_type", "type"], "document");
+  const status = readString(input, ["status"], "missing").toLowerCase() === "complete"
+    ? "complete"
+    : "missing";
+
+  return {
+    id,
+    type,
+    name: readString(input, ["fileName", "file_name", "name"], type),
+    status: status as DocumentStatus,
+    uploadedDate: readString(input, ["uploadedAt", "uploaded_at", "createdAt", "created_at"]) || undefined,
+    url: readString(input, ["url", "fileUrl", "file_url"]) || undefined,
+    labelEn: readString(input, ["labelEn", "label_en", "documentType", "document_type"]) || undefined,
+    labelAr: readString(input, ["labelAr", "label_ar"]) || undefined,
+  };
+}
+
+export function normalizeTest(input: unknown): Test {
+  if (!isRecord(input)) throw new Error("Invalid placement test response.");
+
+  const id = readString(input, ["id", "placementTestId", "placement_test_id"]);
+  if (!id) throw new Error("Placement test response is missing an id.");
+
+  const scheduled = splitIsoDateTime(read(input, ["scheduledAt", "scheduled_at"]));
+  const status = readString(input, ["status"], "scheduled").toLowerCase() as TestStatus;
+
+  return {
+    id,
+    applicationId: readString(input, ["applicationId", "application_id"]),
+    type: readString(input, ["type"], "Placement"),
+    subject: readString(input, ["subject", "type"], "Placement"),
+    date: scheduled.date,
+    time: scheduled.time,
+    duration: readString(input, ["duration"], "60"),
+    location: readString(input, ["location"], "Admissions office"),
+    proctor: readString(input, ["proctor", "proctorName", "proctor_name"]) || undefined,
+    status,
+    score: typeof input.score === "number" ? input.score : undefined,
+    maxScore: typeof input.maxScore === "number" ? input.maxScore : 100,
+    notes: readString(input, ["result", "notes"]) || undefined,
+  };
+}
+
+export function normalizeInterview(input: unknown): Interview {
+  if (!isRecord(input)) throw new Error("Invalid interview response.");
+
+  const id = readString(input, ["id", "interviewId", "interview_id"]);
+  if (!id) throw new Error("Interview response is missing an id.");
+
+  const scheduled = splitIsoDateTime(read(input, ["scheduledAt", "scheduled_at"]));
+  const status = readString(input, ["status"], "scheduled").toLowerCase() as InterviewStatus;
+
+  return {
+    id,
+    applicationId: readString(input, ["applicationId", "application_id"]),
+    date: scheduled.date,
+    time: scheduled.time,
+    duration: readString(input, ["duration"], "30"),
+    interviewer: readString(input, ["interviewerName", "interviewer_name", "interviewerUserId", "interviewer_user_id"], "Admissions team"),
+    location: readString(input, ["location"], "Admissions office"),
+    status,
+    notes: readString(input, ["notes"]) || undefined,
+    rating: typeof input.rating === "number" ? input.rating : undefined,
+  };
+}
+
+export function normalizeDecision(input: unknown): Decision {
+  if (!isRecord(input)) throw new Error("Invalid admissions decision response.");
+
+  const id = readString(input, ["id", "decisionId", "decision_id"]);
+  if (!id) throw new Error("Admissions decision response is missing an id.");
+
+  return {
+    id,
+    applicationId: readString(input, ["applicationId", "application_id"]),
+    decision: readString(input, ["decision"], "accept") as DecisionType,
+    reason: readString(input, ["reason"]),
+    decisionDate: readString(input, ["decisionDate", "decision_date", "createdAt", "created_at"], new Date().toISOString()),
+    decidedBy: readString(input, ["decidedBy", "decided_by", "createdBy", "created_by"], "Admissions"),
+  };
+}
+
+export function normalizeApplication(input: unknown): Application {
+  if (!isRecord(input)) throw new Error("Invalid application response.");
+
+  const id = readString(input, ["id", "applicationId", "application_id"]);
+  if (!id) throw new Error("Application response is missing an id.");
+
+  const studentName = readString(input, ["studentName", "student_name", "name"]);
+  const fullNameEn = readString(input, ["full_name_en", "fullNameEn", "studentName", "student_name"], studentName);
+  const fullNameAr = readString(input, ["full_name_ar", "fullNameAr"], fullNameEn);
+  const submittedDate = readString(input, ["submittedDate", "submitted_date", "submittedAt", "submitted_at", "createdAt", "created_at"], new Date().toISOString());
+  const gradeRequested = readString(input, ["gradeRequested", "grade_requested", "requestedGradeName", "requested_grade_name", "requestedGradeId", "requested_grade_id"]);
+  const guardians = readArray(input, ["guardians"]);
+  const primaryGuardian = guardians.find(isRecord) as ApiRecord | undefined;
+  const decisionValue = read(input, ["decision"]);
+
+  return {
+    ...input,
+    id,
+    leadId: readString(input, ["leadId", "lead_id"]) || undefined,
+    source: normalizeSource(read(input, ["source", "channel"])),
+    status: normalizeStatus(read(input, ["status"])),
+    submittedDate,
+    full_name_ar: fullNameAr,
+    full_name_en: fullNameEn,
+    studentName: studentName || fullNameEn || fullNameAr,
+    studentNameArabic: fullNameAr,
+    gender: readString(input, ["gender"], "N/A"),
+    date_of_birth: readString(input, ["date_of_birth", "dateOfBirth"]),
+    dateOfBirth: readString(input, ["date_of_birth", "dateOfBirth"]),
+    nationality: readString(input, ["nationality"], "N/A"),
+    grade_requested: gradeRequested,
+    gradeRequested: gradeRequested,
+    guardians: guardians.filter(isRecord).map((guardian, index) => ({
+      id: readString(guardian, ["id"], `${id}-guardian-${index + 1}`),
+      full_name: readString(guardian, ["full_name", "fullName", "name"]),
+      relation: readString(guardian, ["relation"], "guardian"),
+      phone_primary: readString(guardian, ["phone_primary", "phone", "mobile"]),
+      phone_secondary: readString(guardian, ["phone_secondary"]),
+      email: readString(guardian, ["email"]),
+      national_id: readString(guardian, ["national_id", "nationalId"]),
+      job_title: readString(guardian, ["job_title", "jobTitle"]),
+      workplace: readString(guardian, ["workplace"]),
+      is_primary: Boolean(guardian.is_primary ?? guardian.isPrimary ?? index === 0),
+      can_pickup: Boolean(guardian.can_pickup ?? guardian.canPickup ?? true),
+      can_receive_notifications: Boolean(guardian.can_receive_notifications ?? guardian.canReceiveNotifications ?? true),
+    })),
+    guardianName: primaryGuardian ? readString(primaryGuardian, ["full_name", "fullName", "name"]) : readString(input, ["guardianName", "guardian_name"]),
+    guardianPhone: primaryGuardian ? readString(primaryGuardian, ["phone_primary", "phone", "mobile"]) : readString(input, ["guardianPhone", "guardian_phone"]),
+    guardianEmail: primaryGuardian ? readString(primaryGuardian, ["email"]) : readString(input, ["guardianEmail", "guardian_email"]),
+    documents: readArray(input, ["documents"]).map(normalizeDocument),
+    tests: readArray(input, ["tests", "placementTests", "placement_tests"]).map(normalizeTest),
+    interviews: readArray(input, ["interviews"]).map(normalizeInterview),
+    decision: isRecord(decisionValue) ? normalizeDecision(decisionValue) : undefined,
+    notes: readString(input, ["notes"]) || undefined,
+  };
+}

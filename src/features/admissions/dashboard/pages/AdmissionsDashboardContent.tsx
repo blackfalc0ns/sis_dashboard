@@ -17,10 +17,10 @@ import AdmissionsGlobalExportModal from "@/features/admissions/shared/components
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
-import { mockApplications } from "@/data/mockAdmissions";
 import { getAdmissionsAnalytics } from "@/features/admissions/dashboard/services/admissionsAnalytics";
 import { ApplicationStatus, Application } from "@/features/admissions/types/admissions";
 import { fetchLeads } from "@/features/admissions/leads/services/leadsApiService";
+import { fetchApplications } from "@/features/admissions/applications/services/applicationsApiService";
 import type { Lead } from "@/features/admissions/leads/types/lead";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
@@ -42,8 +42,9 @@ export default function AdmissionsDashboardContent() {
   const [customEndDate, setCustomEndDate] = useState<string>("");
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [isLeadsLoading, setIsLeadsLoading] = useState(true);
-  const [leadsError, setLeadsError] = useState<string | null>(null);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [isAdmissionsLoading, setIsAdmissionsLoading] = useState(true);
+  const [admissionsError, setAdmissionsError] = useState<string | null>(null);
   const handleExport = createAdmissionsDashboardExportHandler(locale, {
     value: dateRange,
     customStart: customStartDate,
@@ -56,39 +57,44 @@ export default function AdmissionsDashboardContent() {
   const scopedApplications = useMemo(
     () =>
       filterAdmissionsRecordsByDateContext(
-        mockApplications,
+        applications,
         (application) => application.submittedDate,
         admissionsScope,
       ),
-    [admissionsScope],
+    [admissionsScope, applications],
   );
   const scopedLeads = leads;
 
   useEffect(() => {
     let isMounted = true;
 
-    const loadLeads = async () => {
-      setIsLeadsLoading(true);
-      setLeadsError(null);
+    const loadAdmissionsDashboardData = async () => {
+      setIsAdmissionsLoading(true);
+      setAdmissionsError(null);
       try {
-        const nextLeads = await fetchLeads();
+        const [nextLeads, nextApplications] = await Promise.all([
+          fetchLeads(),
+          fetchApplications(),
+        ]);
         if (isMounted) {
           setLeads(nextLeads);
+          setApplications(nextApplications);
         }
       } catch (error) {
-        console.error("Failed to load dashboard leads:", error);
+        console.error("Failed to load dashboard admissions data:", error);
         if (isMounted) {
           setLeads([]);
-          setLeadsError("Failed to load leads analytics.");
+          setApplications([]);
+          setAdmissionsError("Failed to load admissions analytics.");
         }
       } finally {
         if (isMounted) {
-          setIsLeadsLoading(false);
+          setIsAdmissionsLoading(false);
         }
       }
     };
 
-    void loadLeads();
+    void loadAdmissionsDashboardData();
 
     return () => {
       isMounted = false;
@@ -331,15 +337,15 @@ export default function AdmissionsDashboardContent() {
 
       {/* KPI Cards */}
       {isReadOnly && <AdmissionsReadOnlyBanner />}
-      {(isLeadsLoading || leadsError) && (
+      {(isAdmissionsLoading || admissionsError) && (
         <div
           className={`rounded-lg border px-4 py-3 text-sm ${
-            leadsError
+            admissionsError
               ? "border-red-200 bg-red-50 text-red-700"
               : "border-blue-200 bg-blue-50 text-blue-700"
           }`}
         >
-          {leadsError || "Loading leads analytics..."}
+          {admissionsError || "Loading admissions analytics..."}
         </div>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -432,10 +438,7 @@ export default function AdmissionsDashboardContent() {
 
         <DataTable
           columns={columns}
-          data={mockApplications
-            .filter((application) =>
-              scopedApplications.some((item) => item.id === application.id),
-            )
+          data={scopedApplications
             .sort(
               (a, b) =>
                 new Date(b.submittedDate).getTime() -

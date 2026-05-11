@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
@@ -13,14 +13,12 @@ import {
   FileCheck,
   ArrowRight,
 } from "lucide-react";
-import { mockApplications } from "@/data/mockAdmissions";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import TabNavigation from "@/features/admissions/shared/TabNavigation";
 import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTestModal";
 import ScheduleInterviewModal from "@/features/admissions/interviews/components/ScheduleInterviewModal";
 import DecisionModal from "@/features/admissions/decisions/components/DecisionModal";
 import EnrollmentForm from "@/features/admissions/enrollment/components/EnrollmentForm";
-import { submitApplicationEnrollment } from "@/features/admissions/enrollment/services/enrollmentService";
 import DetailsTab from "@/features/admissions/applications/components/tabs/DetailsTab";
 import GuardiansTab from "@/features/admissions/applications/components/tabs/GuardiansTab";
 import DocumentsTab from "@/features/admissions/applications/components/tabs/DocumentsTab";
@@ -28,6 +26,21 @@ import TestsTab from "@/features/admissions/applications/components/tabs/TestsTa
 import InterviewsTab from "@/features/admissions/applications/components/tabs/InterviewsTab";
 import TimelineTab from "@/features/admissions/applications/components/tabs/TimelineTab";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
+import type { Application, DecisionType } from "@/features/admissions/types/admissions";
+import {
+  fetchApplicationById,
+  submitApplication,
+} from "@/features/admissions/applications/services/applicationsApiService";
+import { createPlacementTest } from "@/features/admissions/tests/services/testsApiService";
+import { createInterview } from "@/features/admissions/interviews/services/interviewsApiService";
+import {
+  createDecision,
+  getDecisionFriendlyErrorMessage,
+} from "@/features/admissions/decisions/services/decisionsApiService";
+import {
+  createEnrollmentHandoffPreview,
+  getEnrollmentFriendlyErrorMessage,
+} from "@/features/admissions/enrollment/services/admissionsEnrollmentApiService";
 
 interface ApplicationDetailsPageProps {
   applicationId: string;
@@ -69,17 +82,43 @@ export default function ApplicationDetailsPage({
   const [isScheduleInterviewOpen, setIsScheduleInterviewOpen] = useState(false);
   const [isDecisionOpen, setIsDecisionOpen] = useState(false);
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
+  const [application, setApplication] = useState<Application | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const application = useMemo(
-    () => mockApplications.find((app) => app.id === applicationId),
-    [applicationId],
-  );
+  const loadApplication = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      setApplication(await fetchApplicationById(applicationId));
+    } catch (loadError) {
+      console.error("Failed to load application:", loadError);
+      setApplication(null);
+      setError("Application not found");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [applicationId]);
+
+  useEffect(() => {
+    void loadApplication();
+  }, [loadApplication]);
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <p className="text-gray-500">Loading application...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!application) {
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <p className="text-gray-500">Application not found</p>
+          <p className="text-gray-500">{error || "Application not found"}</p>
           <button
             onClick={() => router.push(`/${locale}/admissions/applications`)}
             className="mt-4 px-4 py-2 bg-primary text-white rounded-lg"
@@ -142,6 +181,93 @@ export default function ApplicationDetailsPage({
 
   const handleEnroll = () => {
     setIsEnrollmentOpen(true);
+  };
+
+  const handleSubmitApplication = async () => {
+    try {
+      const updated = await submitApplication(application.id);
+      setApplication(updated);
+      alert("Application submitted successfully.");
+    } catch (submitError) {
+      console.error("Failed to submit application:", submitError);
+      alert("Failed to submit application. Please try again.");
+    }
+  };
+
+  const handleScheduleTestSubmit = async (data: {
+    date: string;
+    time: string;
+    type: string;
+    notes: string;
+  }) => {
+    try {
+      await createPlacementTest({
+        applicationId: application.id,
+        type: data.type || "Placement",
+        date: data.date,
+        time: data.time,
+      });
+      setIsScheduleTestOpen(false);
+      await loadApplication();
+    } catch (scheduleError) {
+      console.error("Failed to schedule test:", scheduleError);
+      alert("Failed to schedule test. Please try again.");
+    }
+  };
+
+  const handleScheduleInterviewSubmit = async (data: {
+    date: string;
+    time: string;
+    notes: string;
+  }) => {
+    try {
+      await createInterview({
+        applicationId: application.id,
+        date: data.date,
+        time: data.time,
+        notes: data.notes,
+      });
+      setIsScheduleInterviewOpen(false);
+      await loadApplication();
+    } catch (scheduleError) {
+      console.error("Failed to schedule interview:", scheduleError);
+      alert("Failed to schedule interview. Please try again.");
+    }
+  };
+
+  const handleDecisionSubmit = async (
+    decision: DecisionType,
+    reason: string,
+  ) => {
+    try {
+      await createDecision({
+        applicationId: application.id,
+        decision,
+        reason,
+      });
+      setIsDecisionOpen(false);
+      await loadApplication();
+    } catch (decisionError) {
+      console.error("Failed to create decision:", decisionError);
+      alert(
+        getDecisionFriendlyErrorMessage(decisionError) ||
+          "Failed to create decision. Please try again.",
+      );
+    }
+  };
+
+  const handleEnrollmentSubmit = async () => {
+    try {
+      await createEnrollmentHandoffPreview(application.id);
+      setIsEnrollmentOpen(false);
+      alert("Enrollment handoff preview created successfully.");
+    } catch (enrollmentError) {
+      console.error("Failed to create enrollment handoff:", enrollmentError);
+      alert(
+        getEnrollmentFriendlyErrorMessage(enrollmentError) ||
+          "Failed to create enrollment handoff. Please try again.",
+      );
+    }
   };
 
   return (
@@ -210,6 +336,12 @@ export default function ApplicationDetailsPage({
         <div className="bg-white rounded-xl shadow-sm p-6 sticky bottom-4">
           <div className="flex items-center gap-3 flex-wrap">
             <button
+              onClick={handleSubmitApplication}
+              className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+            >
+              Submit Application
+            </button>
+            <button
               onClick={handleScheduleTest}
               className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
             >
@@ -243,40 +375,28 @@ export default function ApplicationDetailsPage({
       <ScheduleTestModal
         isOpen={isScheduleTestOpen}
         onClose={() => setIsScheduleTestOpen(false)}
-        onSubmit={(data) => {
-          console.log("Schedule test:", data);
-          setIsScheduleTestOpen(false);
-        }}
+        onSubmit={handleScheduleTestSubmit}
         studentName={application.studentName}
       />
 
       <ScheduleInterviewModal
         isOpen={isScheduleInterviewOpen}
         onClose={() => setIsScheduleInterviewOpen(false)}
-        onSubmit={(data) => {
-          console.log("Schedule interview:", data);
-          setIsScheduleInterviewOpen(false);
-        }}
+        onSubmit={handleScheduleInterviewSubmit}
         studentName={application.studentName}
       />
 
       <DecisionModal
         isOpen={isDecisionOpen}
         onClose={() => setIsDecisionOpen(false)}
-        onSubmit={(data) => {
-          console.log("Make decision:", data);
-          setIsDecisionOpen(false);
-        }}
+        onSubmit={handleDecisionSubmit}
         application={application}
       />
 
       <EnrollmentForm
         isOpen={isEnrollmentOpen}
         onClose={() => setIsEnrollmentOpen(false)}
-        onSubmit={async (data) => {
-          await submitApplicationEnrollment(application, data);
-          setIsEnrollmentOpen(false);
-        }}
+        onSubmit={handleEnrollmentSubmit}
         application={application}
       />
     </div>

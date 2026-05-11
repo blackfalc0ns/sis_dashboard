@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Plus,
   Search,
@@ -20,36 +20,25 @@ import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import StatusTagsBar from "@/features/admissions/shared/StatusTagsBar";
 import { KPICardV2 } from "@/components/ui/kpi-card";
 import ApplicationCreateStepper from "@/features/admissions/applications/components/ApplicationCreateStepper";
-import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTestModal";
-import ScheduleInterviewModal from "@/features/admissions/interviews/components/ScheduleInterviewModal";
-import DecisionModal from "@/features/admissions/decisions/components/DecisionModal";
-import EnrollmentForm from "@/features/admissions/enrollment/components/EnrollmentForm";
-import {
-  submitApplicationEnrollment,
-  type EnrollmentSubmission,
-} from "@/features/admissions/enrollment/services/enrollmentService";
-import DateRangeFilter, { DateRangeValue } from "@/features/admissions/shared/DateRangeFilter";
+import DateRangeFilter, {
+  DateRangeValue,
+} from "@/features/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
 import { formatApplicationsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
 import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
 import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
-import { mockApplications } from "@/data/mockAdmissions";
+import type { ApplicationCreationPayload } from "@/features/admissions/applications/services/applicationCreationService";
 import {
   createApplication,
-  type ApplicationCreationPayload,
-} from "@/features/admissions/applications/services/applicationCreationService";
+  fetchApplications,
+} from "@/features/admissions/applications/services/applicationsApiService";
 import {
   Application,
   ApplicationStatus,
-  DecisionType,
 } from "@/features/admissions/types/admissions";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
-import {
-  filterAdmissionsRecordsByDateContext,
-  resolveAdmissionsContextScope,
-} from "@/features/admissions/shared/utils/admissionsContextScope";
 
 export default function ApplicationsList() {
   const t = useTranslations("admissions.applications");
@@ -58,32 +47,37 @@ export default function ApplicationsList() {
   const t_grades = useTranslations("admissions.grades");
   const locale = useLocale();
   const router = useRouter();
-  const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
+  const { yearId, isReadOnly } = useAdmissionsYearTermContext();
 
-  const [selectedApp] = useState<Application | null>(null);
-  const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false);
-  const [isScheduleInterviewOpen, setIsScheduleInterviewOpen] = useState(false);
-  const [isDecisionOpen, setIsDecisionOpen] = useState(false);
-  const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
   const [isCreateAppOpen, setIsCreateAppOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [applicationsVersion, setApplicationsVersion] = useState(0);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [isLoadingApplications, setIsLoadingApplications] = useState(true);
+  const [applicationsError, setApplicationsError] = useState<string | null>(
+    null,
+  );
 
   const [showFilters, setShowFilters] = useState(false);
-  const admissionsScope = useMemo(
-    () => resolveAdmissionsContextScope(yearId, termId),
-    [termId, yearId],
-  );
+  const loadApplications = useCallback(async () => {
+    setIsLoadingApplications(true);
+    setApplicationsError(null);
+    try {
+      const nextApplications = await fetchApplications();
+      setApplications(nextApplications);
+    } catch (error) {
+      console.error("Failed to load applications:", error);
+      setApplications([]);
+      setApplicationsError("Failed to load applications.");
+    } finally {
+      setIsLoadingApplications(false);
+    }
+  }, []);
 
-  const scopedApplications = useMemo(
-    () =>
-      filterAdmissionsRecordsByDateContext(
-        mockApplications,
-        (application) => application.submittedDate,
-        admissionsScope,
-      ),
-    [admissionsScope, applicationsVersion],
-  );
+  useEffect(() => {
+    void loadApplications();
+  }, [loadApplications]);
+
+  const scopedApplications = applications;
 
   const uniqueGrades = useMemo(() => {
     const grades = new Set(scopedApplications.map((app) => app.gradeRequested));
@@ -92,23 +86,23 @@ export default function ApplicationsList() {
 
   const uniqueGenders = useMemo(() => {
     const genders = new Set(
-      mockApplications
+      applications
         .filter((app) => scopedApplications.some((item) => item.id === app.id))
         .map((app) => app.gender)
         .filter((gender): gender is string => !!gender),
     );
     return Array.from(genders).sort();
-  }, [scopedApplications]);
+  }, [applications, scopedApplications]);
 
   const uniqueNationalities = useMemo(() => {
     const nationalities = new Set(
-      mockApplications
+      applications
         .filter((app) => scopedApplications.some((item) => item.id === app.id))
         .map((app) => app.nationality)
         .filter((nationality): nationality is string => !!nationality),
     );
     return Array.from(nationalities).sort();
-  }, [scopedApplications]);
+  }, [applications, scopedApplications]);
 
   const normalizeQueryValues = useCallback(
     (
@@ -437,45 +431,25 @@ export default function ApplicationsList() {
     router.push(`/${locale}/admissions/applications/${app.id}`);
   };
 
-  const handleTestSubmit = (data: Record<string, unknown>) => {
-    console.log("Test scheduled:", data);
-    alert("Test scheduled successfully!");
-    setIsScheduleTestOpen(false);
-  };
-
-  const handleInterviewSubmit = (data: Record<string, unknown>) => {
-    console.log("Interview scheduled:", data);
-    alert("Interview scheduled successfully!");
-    setIsScheduleInterviewOpen(false);
-  };
-
-  const handleDecisionSubmit = (
-    decision: DecisionType,
-    reason: string,
-    date: string,
+  const handleCreateApplicationSubmit = async (
+    data: ApplicationCreationPayload,
   ) => {
-    console.log("Decision made:", { decision, reason, date });
-    alert(`Decision recorded: ${decision.toUpperCase()}`);
-    setIsDecisionOpen(false);
-  };
-
-  const handleEnrollmentSubmit = (data: EnrollmentSubmission) => {
-    if (!selectedApp) return;
-    submitApplicationEnrollment(selectedApp, data).then(() => {
-      alert("Student enrolled successfully!");
-      setIsEnrollmentOpen(false);
-    });
-  };
-
-  const handleCreateApplicationSubmit = (data: ApplicationCreationPayload) => {
-    const createdApplication = createApplication(data);
-    alert(
-      createdApplication.status === "documents_pending"
-        ? "Application submitted with pending required documents."
-        : "Application created successfully!",
-    );
-    setApplicationsVersion((current) => current + 1);
-    setIsCreateAppOpen(false);
+    try {
+      const createdApplication = await createApplication({
+        ...data,
+        requestedAcademicYearId: yearId,
+      } as ApplicationCreationPayload & { requestedAcademicYearId?: string });
+      alert(
+        createdApplication.status === "documents_pending"
+          ? "Application submitted with pending required documents."
+          : "Application created successfully!",
+      );
+      await loadApplications();
+      setIsCreateAppOpen(false);
+    } catch (error) {
+      console.error("Failed to create application:", error);
+      alert("Failed to create application. Please try again.");
+    }
   };
 
   const handleExport = async (format: "csv" | "json" | "excel") => {
@@ -782,8 +756,18 @@ export default function ApplicationsList() {
         totalLabel={t("applications")}
       />
 
+      {applicationsError ? (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700">
+          {applicationsError}
+        </div>
+      ) : null}
+
       {/* Table */}
-      {filteredApplications.length === 0 ? (
+      {isLoadingApplications ? (
+        <div className="bg-white rounded-xl p-12 shadow-sm text-center">
+          <p className="text-gray-500">Loading applications...</p>
+        </div>
+      ) : filteredApplications.length === 0 ? (
         <div className="bg-white rounded-xl p-12 shadow-sm text-center">
           <p className="text-gray-500">
             {hasActiveFilters ? t("no_match") : t("no_applications")}
@@ -811,47 +795,6 @@ export default function ApplicationsList() {
         />
       )}
 
-      {/* Modals */}
-      {selectedApp && (
-        <>
-          <ScheduleTestModal
-            isOpen={isScheduleTestOpen}
-            onClose={() => {
-              setIsScheduleTestOpen(false);
-            }}
-            onSubmit={handleTestSubmit}
-            studentName={selectedApp.studentName}
-          />
-
-          <ScheduleInterviewModal
-            isOpen={isScheduleInterviewOpen}
-            onClose={() => {
-              setIsScheduleInterviewOpen(false);
-            }}
-            onSubmit={handleInterviewSubmit}
-            studentName={selectedApp.studentName}
-          />
-
-          <DecisionModal
-            application={selectedApp}
-            isOpen={isDecisionOpen}
-            onClose={() => {
-              setIsDecisionOpen(false);
-            }}
-            onSubmit={handleDecisionSubmit}
-          />
-
-          <EnrollmentForm
-            application={selectedApp}
-            isOpen={isEnrollmentOpen}
-            onClose={() => {
-              setIsEnrollmentOpen(false);
-            }}
-            onSubmit={handleEnrollmentSubmit}
-          />
-        </>
-      )}
-
       {/* New Application Modal */}
       <ApplicationCreateStepper
         isOpen={isCreateAppOpen}
@@ -865,7 +808,9 @@ export default function ApplicationsList() {
         mode="list"
         confirmLabel={t("export")}
         datasetCount={filteredApplications.length}
-        emptyStateMessage={hasActiveFilters ? t("no_match") : t("no_applications")}
+        emptyStateMessage={
+          hasActiveFilters ? t("no_match") : t("no_applications")
+        }
       />
     </div>
   );

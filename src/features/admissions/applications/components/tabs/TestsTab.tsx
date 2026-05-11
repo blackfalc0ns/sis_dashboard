@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Application } from "@/features/admissions/types/admissions";
+import { Application, Test } from "@/features/admissions/types/admissions";
 import StatusBadge from "../../../shared/StatusBadge";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import { fetchPlacementTests } from "@/features/admissions/tests/services/testsApiService";
 
 interface TestsTabProps {
   application: Application;
@@ -16,6 +18,31 @@ export default function TestsTab({
 }: TestsTabProps) {
   const t = useTranslations("admissions.application360");
   const { isReadOnly } = useAdmissionsYearTermContext();
+  const [tests, setTests] = useState<Test[]>(application.tests);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchPlacementTests({
+      applicationId: application.id,
+      search: application.studentName,
+    })
+      .then((nextTests) => {
+        if (!cancelled) {
+          setTests(
+            nextTests.filter(
+              (test) => !test.applicationId || test.applicationId === application.id,
+            ),
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load placement tests:", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [application.id, application.studentName, application.tests]);
 
   return (
     <div className="space-y-4">
@@ -29,13 +56,13 @@ export default function TestsTab({
           {t("tests.schedule_test")}
         </button>
       </div>
-      {application.tests.length === 0 ? (
+      {tests.length === 0 ? (
         <p className="text-sm text-gray-500 text-center py-8">
           {t("tests.no_tests")}
         </p>
       ) : (
         <div className="space-y-2">
-          {application.tests.map((test) => (
+          {tests.map((test) => (
             <div
               key={test.id}
               className="p-4 border border-gray-200 rounded-lg"

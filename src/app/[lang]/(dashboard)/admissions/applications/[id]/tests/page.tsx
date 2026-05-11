@@ -1,25 +1,10 @@
-"use client";
+import ApplicationTabContent from "@/features/admissions/applications/components/ApplicationTabContent";
 
-import { useEffect, useState } from "react";
-import { mockApplications } from "@/data/mockAdmissions";
-import TestsTab from "@/features/admissions/applications/components/tabs/TestsTab";
-import type { Application } from "@/features/admissions/types/admissions";
-
-export default function ApplicationTestsPage({
+export default async function ApplicationTestsPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const [application, setApplication] = useState<Application | null>(null);
-
-  useEffect(() => {
-    params.then(({ id }) => {
-      const app = mockApplications.find((app) => app.id === id);
-      setApplication(app || null);
-    });
-  }, [params]);
-
-  if (!application) return null;
-
-  return <TestsTab application={application} onScheduleTest={() => {}} />;
+  const { id } = await params;
+  return <ApplicationTabContent applicationId={id} tab="tests" />;
 }
