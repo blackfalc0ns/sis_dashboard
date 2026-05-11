@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from "@/lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import type {
   Student,
   StudentGuardian,
@@ -71,6 +71,15 @@ export async function linkGuardianToStudent(
   );
   return normalizeStudentGuardianLink(
     unwrapItemResponse(response, "Student guardian link"),
+  );
+}
+
+export async function unlinkGuardianFromStudent(
+  studentId: string,
+  guardianId: string,
+): Promise<void> {
+  await apiDelete<unknown>(
+    `${STUDENTS_BASE_PATH}/${studentId}/guardians/${guardianId}`,
   );
 }
 
