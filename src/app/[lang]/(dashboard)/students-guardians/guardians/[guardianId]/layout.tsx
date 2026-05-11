@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -48,13 +48,54 @@ export default function GuardianProfileLayout({
     tabs,
   });
 
-  const guardian = useMemo(() => {
-    return studentsService
-      .getAllGuardians()
-      .find((g) => g.guardianId === guardianId);
+  const [guardian, setGuardian] = useState<any>(null);
+  const [isLoadingGuardian, setIsLoadingGuardian] = useState(true);
+  const [guardianLoadError, setGuardianLoadError] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadGuardian = async () => {
+      try {
+        setIsLoadingGuardian(true);
+        setGuardianLoadError(false);
+        const data = await studentsService.fetchGuardianById(guardianId);
+        if (mounted) {
+          if (!data) {
+            setGuardianLoadError(true);
+          } else {
+            setGuardian(data);
+          }
+        }
+      } catch {
+        if (mounted) {
+          setGuardianLoadError(true);
+        }
+      } finally {
+        if (mounted) {
+          setIsLoadingGuardian(false);
+        }
+      }
+    };
+
+    if (guardianId) {
+      loadGuardian();
+    }
+
+    return () => {
+      mounted = false;
+    };
   }, [guardianId]);
 
-  if (!guardian) {
+  if (isLoadingGuardian) {
+    return (
+      <div className="p-6 flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#036b80]"></div>
+      </div>
+    );
+  }
+
+  if (guardianLoadError || !guardian) {
     return (
       <div className="p-6">
         <div className="text-center py-12">
@@ -92,7 +133,7 @@ export default function GuardianProfileLayout({
             <div className="w-16 h-16 rounded-full bg-linear-to-br from-[#036b80] to-[#024d5c] flex items-center justify-center text-white font-bold text-xl shrink-0">
               {guardian.full_name
                 .split(" ")
-                .map((n) => n[0])
+                .map((n: string) => n[0])
                 .join("")
                 .toUpperCase()
                 .slice(0, 2)}

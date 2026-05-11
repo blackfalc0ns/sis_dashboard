@@ -19,11 +19,11 @@ import { DataTable, FilterPanel } from "@/components/ui";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTestModal";
 import TestScoreModal from "@/features/admissions/tests/components/TestScoreModal";
-import DateRangeFilter, { DateRangeValue } from "@/features/admissions/shared/DateRangeFilter";
+import DateRangeFilter, {
+  DateRangeValue,
+} from "@/features/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
-import {
-  formatVisibleTestsForExport,
-} from "@/features/admissions/applications/utils/admissionsExportUtils";
+import { formatVisibleTestsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
 import { mockApplications, mockTests } from "@/data/mockAdmissions";
 import { Test, TestStatus } from "@/features/admissions/types/admissions";
 import { KPICardV2 } from "@/components/ui";
@@ -107,8 +107,21 @@ export default function TestsList() {
       >,
     ) => {
       const updates: Partial<Record<keyof typeof values, string | null>> = {};
-      const validStatuses = new Set(["all", "scheduled", "completed", "failed"]);
-      const validDateRanges = new Set(["all", "7", "14", "30", "60", "90", "custom"]);
+      const validStatuses = new Set([
+        "all",
+        "scheduled",
+        "completed",
+        "failed",
+      ]);
+      const validDateRanges = new Set([
+        "all",
+        "7",
+        "14",
+        "30",
+        "60",
+        "90",
+        "custom",
+      ]);
 
       if (!validStatuses.has(values.status)) {
         updates.status = null;
@@ -259,13 +272,13 @@ export default function TestsList() {
       label: t("actions_col"),
       render: (_value: unknown, row: Test & { studentName: string }) =>
         row.status === "cancelled" ? null : (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (isReadOnly) return;
-                setSelectedTest(row);
-                setIsScoreModalOpen(true);
-              }}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isReadOnly) return;
+              setSelectedTest(row);
+              setIsScoreModalOpen(true);
+            }}
             className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary hover:text-white border border-primary rounded-lg transition-colors"
             title="Enter/Edit Score"
           >
@@ -486,7 +499,11 @@ export default function TestsList() {
               <select
                 value={statusFilter}
                 onChange={(e) =>
-                  setValue("status", e.target.value as TestStatus | "all", "push")
+                  setValue(
+                    "status",
+                    e.target.value as TestStatus | "all",
+                    "push",
+                  )
                 }
                 className="w-full px-3 py-2 bg-white border text-black border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
