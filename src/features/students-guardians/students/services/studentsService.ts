@@ -877,8 +877,10 @@ export function getAllStudents(): Student[] {
   return getStudentsAdapter().getAllStudents();
 }
 
-export async function fetchAllStudents(): Promise<Student[]> {
-  return studentsApiService.fetchStudents();
+export async function fetchAllStudents(
+  params?: studentsApiService.FetchStudentsParams,
+): Promise<Student[]> {
+  return studentsApiService.fetchStudents(params);
 }
 
 export function getStudentById(id: string): Student | undefined {
