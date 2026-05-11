@@ -61,6 +61,14 @@ export interface ApplicationCreationPayload {
   documents: UploadedApplicationDocumentInput[];
 }
 
+export function mapLeadChannelToApplicationSource(channel?: string): string {
+  const normalized = (channel || "").trim().toLowerCase();
+  if (normalized === "referral") return "referral";
+  if (normalized === "walk-in" || normalized === "walk_in") return "walk_in";
+  if (normalized === "in-app" || normalized === "in_app") return "in_app";
+  return "other";
+}
+
 function resolveDocumentFileType(
   fileName?: string,
 ): "pdf" | "image" | "doc" | undefined {

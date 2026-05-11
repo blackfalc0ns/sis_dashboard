@@ -6,6 +6,12 @@ import type { TestStatus } from "@/features/admissions/types/enums";
 export interface Test {
   id: string;
   applicationId: string;
+  studentName?: string;
+  subjectId?: string | null;
+  subjectName?: string | null;
+  scheduledAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
   type: string;
   subject: string;
   date: string;

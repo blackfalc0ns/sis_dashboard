@@ -17,7 +17,10 @@ import {
 } from "@/features/academics/services/academicStructureApiService";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import type { AdmissionsRequiredDocumentConfig } from "@/features/settings/types";
-import type { ApplicationCreationPayload } from "@/features/admissions/applications/services/applicationCreationService";
+import {
+  mapLeadChannelToApplicationSource,
+  type ApplicationCreationPayload,
+} from "@/features/admissions/applications/services/applicationCreationService";
 
 interface ApplicationCreateStepperProps {
   lead?: Lead;
@@ -434,7 +437,7 @@ export default function ApplicationCreateStepper({
 
     onSubmit({
       leadId: lead?.id,
-      source: lead?.channel || "referral",
+      source: mapLeadChannelToApplicationSource(lead?.channel),
       requestedAcademicYearId: yearId || undefined,
       student: {
         first_name_ar: formData.first_name_ar,

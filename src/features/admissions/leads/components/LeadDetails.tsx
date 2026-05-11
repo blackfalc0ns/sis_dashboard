@@ -35,7 +35,10 @@ import type {
   Note,
   UpdateLeadPayload,
 } from "@/features/admissions/leads/types/lead";
-import type { ApplicationCreationPayload } from "@/features/admissions/applications/services/applicationCreationService";
+import {
+  mapLeadChannelToApplicationSource,
+  type ApplicationCreationPayload,
+} from "@/features/admissions/applications/services/applicationCreationService";
 import { createApplication } from "@/features/admissions/applications/services/applicationsApiService";
 import { useToast } from "@/components/ui/toast/Toast";
 
@@ -105,7 +108,7 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
       const createdApplication = await createApplication({
         ...data,
         leadId: lead.id,
-        source: lead.channel || "referral",
+        source: mapLeadChannelToApplicationSource(lead.channel),
       });
       await updateLead(lead.id, { status: "Converted" });
       showToast(t("marked_converted"), "success");

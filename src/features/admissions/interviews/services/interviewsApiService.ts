@@ -17,10 +17,12 @@ export interface FetchInterviewsParams {
 
 export interface CreateInterviewPayload {
   applicationId: string;
+  studentName?: string;
   scheduledAt?: string;
   date?: string;
   time?: string;
   interviewerUserId?: string;
+  interviewerName?: string;
   notes?: string;
 }
 
@@ -39,10 +41,12 @@ const toCreateBody = (payload: CreateInterviewPayload) => {
 
   return {
     applicationId: payload.applicationId,
+    studentName: payload.studentName,
     scheduledAt:
       payload.scheduledAt ||
       toIsoFromDateAndTime(payload.date || "", payload.time || ""),
     interviewerUserId: payload.interviewerUserId,
+    interviewerName: payload.interviewerName,
     notes: payload.notes,
   };
 };

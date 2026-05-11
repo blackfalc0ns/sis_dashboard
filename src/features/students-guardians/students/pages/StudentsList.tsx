@@ -750,10 +750,9 @@ export default function StudentsList() {
             {t("bulk_upload_button")}
           </button>
           <button
-            onClick={() => {
-              // Handle add student
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg font-medium text-sm transition-colors"
+            disabled
+            title="Coming soon"
+            className="flex items-center gap-2 px-4 py-2.5 bg-gray-200 text-gray-500 rounded-lg font-medium text-sm cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             {t("add_student")}

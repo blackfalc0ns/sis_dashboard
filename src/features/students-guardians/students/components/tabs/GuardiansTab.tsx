@@ -10,6 +10,7 @@ import {
   Star,
   Edit2,
   Trash2,
+  Search,
   Users,
   Briefcase,
   Building2,
@@ -32,7 +33,15 @@ interface GuardiansTabProps {
 export default function GuardiansTab({ student }: GuardiansTabProps) {
   const t = useTranslations("students_guardians.profile.guardians");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
   const [guardians, setGuardians] = useState<StudentGuardian[]>([]);
+  const [guardianSearch, setGuardianSearch] = useState("");
+  const [guardianSearchResults, setGuardianSearchResults] = useState<
+    StudentGuardian[]
+  >([]);
+  const [isSearchingGuardians, setIsSearchingGuardians] = useState(false);
+  const [selectedGuardianId, setSelectedGuardianId] = useState("");
+  const [linkAsPrimary, setLinkAsPrimary] = useState(false);
   const [primaryGuardian, setPrimaryGuardian] =
     useState<StudentGuardian | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
@@ -93,10 +102,84 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
       setPrimaryGuardian(primaryGuardianData);
       setShowAddModal(false);
     } catch (submitError) {
+      throw submitError;
+    }
+  };
+
+  useEffect(() => {
+    if (!showLinkModal) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    void Promise.resolve().then(async () => {
+      setIsSearchingGuardians(true);
+      setError(null);
+
+      try {
+        const results = await studentsService.fetchAllGuardians({
+          search: guardianSearch,
+        });
+        const linkedIds = new Set(guardians.map((guardian) => guardian.guardianId));
+        if (!isCancelled) {
+          setGuardianSearchResults(
+            results.filter((guardian) => !linkedIds.has(guardian.guardianId)),
+          );
+        }
+      } catch (searchError) {
+        if (!isCancelled) {
+          setGuardianSearchResults([]);
+          setError(
+            searchError instanceof Error
+              ? searchError.message
+              : "Unable to search guardians.",
+          );
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsSearchingGuardians(false);
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [guardianSearch, guardians, showLinkModal]);
+
+  const refreshStudentGuardians = async () => {
+    const [guardiansData, primaryGuardianData] = await Promise.all([
+      studentsService.fetchStudentGuardians(student.id),
+      studentsService.fetchPrimaryGuardian(student.id),
+    ]);
+    setGuardians(guardiansData);
+    setPrimaryGuardian(primaryGuardianData);
+  };
+
+  const handleLinkExistingGuardian = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedGuardianId) {
+      setError("Please select a guardian to link.");
+      return;
+    }
+
+    try {
+      setError(null);
+      await studentsService.linkGuardianToStudent(student.id, {
+        guardianId: selectedGuardianId,
+        is_primary: linkAsPrimary,
+      });
+      await refreshStudentGuardians();
+      setShowLinkModal(false);
+      setSelectedGuardianId("");
+      setGuardianSearch("");
+      setLinkAsPrimary(false);
+    } catch (linkError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Unable to add guardian.",
+        linkError instanceof Error
+          ? linkError.message
+          : "Unable to link guardian.",
       );
     }
   };
@@ -153,13 +236,22 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
               : t("registered_count_plural", { count: guardians.length })}
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          {t("add_guardian")}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setShowLinkModal(true)}
+            className="flex items-center gap-2 px-4 py-2 border border-primary text-primary hover:bg-primary hover:text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            <Search className="w-4 h-4" />
+            Link existing
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            {t("add_guardian")}
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -206,23 +298,17 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
               </div>
               <div className="flex items-center gap-1">
                 <button
-                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="Edit Guardian"
-                  onClick={() => {
-                    // Handle edit
-                    console.log("Edit guardian:", guardian.guardianId);
-                  }}
+                  className="p-2 text-gray-400 rounded-lg cursor-not-allowed"
+                  title="Editing guardian links is not available yet"
+                  disabled
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 {!guardian.is_primary && (
                   <button
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Remove Guardian"
-                    onClick={() => {
-                      // Handle remove
-                      console.log("Remove guardian:", guardian.guardianId);
-                    }}
+                    className="p-2 text-gray-400 rounded-lg cursor-not-allowed"
+                    title="Removing guardian links is not available yet"
+                    disabled
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -388,6 +474,96 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddGuardian}
       />
+
+      {showLinkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <form
+            onSubmit={handleLinkExistingGuardian}
+            className="w-full max-w-xl rounded-xl bg-white p-6 shadow-xl"
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900">
+                Link existing guardian
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowLinkModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <label className="block text-sm font-medium text-gray-700">
+              Search guardians
+              <input
+                value={guardianSearch}
+                onChange={(event) => setGuardianSearch(event.target.value)}
+                className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm"
+                placeholder="Search by name, phone, or email"
+              />
+            </label>
+
+            <div className="mt-4 max-h-64 space-y-2 overflow-y-auto">
+              {isSearchingGuardians ? (
+                <p className="text-sm text-gray-500">Searching...</p>
+              ) : guardianSearchResults.length === 0 ? (
+                <p className="text-sm text-gray-500">No guardians found.</p>
+              ) : (
+                guardianSearchResults.map((guardian) => (
+                  <label
+                    key={guardian.guardianId}
+                    className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-3 hover:border-primary"
+                  >
+                    <input
+                      type="radio"
+                      name="guardianId"
+                      value={guardian.guardianId}
+                      checked={selectedGuardianId === guardian.guardianId}
+                      onChange={() => setSelectedGuardianId(guardian.guardianId)}
+                      className="mt-1"
+                    />
+                    <span>
+                      <span className="block text-sm font-medium text-gray-900">
+                        {guardian.full_name}
+                      </span>
+                      <span className="block text-xs text-gray-500">
+                        {guardian.relation} - {guardian.phone_primary}
+                      </span>
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+
+            <label className="mt-4 flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={linkAsPrimary}
+                onChange={(event) => setLinkAsPrimary(event.target.checked)}
+              />
+              Mark as primary guardian
+            </label>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowLinkModal(false)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!selectedGuardianId}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-hover disabled:opacity-60"
+              >
+                Link guardian
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

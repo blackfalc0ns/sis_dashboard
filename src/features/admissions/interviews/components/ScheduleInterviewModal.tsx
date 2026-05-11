@@ -16,6 +16,7 @@ export interface ScheduleInterviewFormData {
   date: string;
   time: string;
   interviewerUserId: string;
+  interviewerName: string;
   interviewer: string;
   interviewerPhone: string;
   location: string;
@@ -55,6 +56,7 @@ export default function ScheduleInterviewModal({
     date: "",
     time: "",
     interviewerUserId: "",
+    interviewerName: "",
     interviewer: "",
     interviewerPhone: "",
     location: "",
@@ -80,6 +82,7 @@ export default function ScheduleInterviewModal({
       date: "",
       time: "",
       interviewerUserId: "",
+      interviewerName: "",
       interviewer: "",
       interviewerPhone: "",
       location: "",
@@ -153,6 +156,7 @@ export default function ScheduleInterviewModal({
     setFormData({
       ...formData,
       interviewerUserId: teacherUser?.id || "",
+      interviewerName: teacherUser?.fullName || "",
       interviewer: teacherUser?.fullName || "",
       interviewerPhone: teacherUser?.email || "",
     });

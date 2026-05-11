@@ -958,8 +958,10 @@ export function getAllGuardians(): StudentGuardian[] {
   return getStudentsAdapter().getAllGuardians();
 }
 
-export async function fetchAllGuardians(): Promise<StudentGuardian[]> {
-  return guardiansApiService.fetchGuardians();
+export async function fetchAllGuardians(
+  params?: guardiansApiService.FetchGuardiansParams,
+): Promise<StudentGuardian[]> {
+  return guardiansApiService.fetchGuardians(params);
 }
 
 export function getGuardianById(

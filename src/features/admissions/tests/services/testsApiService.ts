@@ -17,6 +17,7 @@ export interface FetchPlacementTestsParams {
 
 export interface CreatePlacementTestPayload {
   applicationId: string;
+  studentName: string;
   type?: string;
   scheduledAt?: string;
   date?: string;
@@ -35,7 +36,9 @@ export type UpdatePlacementTestPayload =
 
 const toCreateBody = (payload: CreatePlacementTestPayload) => ({
   applicationId: payload.applicationId,
-  type: payload.type || "Placement",
+  studentName: payload.studentName,
+  subjectId: null,
+  subjectName: null,
   scheduledAt:
     payload.scheduledAt || toIsoFromDateAndTime(payload.date || "", payload.time || ""),
 });

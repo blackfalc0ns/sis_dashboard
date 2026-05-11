@@ -127,6 +127,13 @@ export function buildQueryString(params?: object): string {
   return query ? `?${query}` : "";
 }
 
+const normalizeStudentStatus = (value: string): Student["status"] => {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "suspended") return "Suspended";
+  if (normalized === "withdrawn") return "Withdrawn";
+  return "Active";
+};
+
 export function normalizeStudent(raw: unknown): Student {
   const item = readRecord(raw, "Student");
   const id = pickString(item, ["id", "studentId", "student_id"]);
@@ -157,7 +164,7 @@ export function normalizeStudent(raw: unknown): Student {
     gender: pickString(item, ["gender"]),
     nationality: pickString(item, ["nationality"]),
     gradeRequested: pickString(item, ["gradeRequested", "grade", "gradeName"]),
-    status: pickString(item, ["status"], "Active") as Student["status"],
+    status: normalizeStudentStatus(pickString(item, ["status"], "Active")),
     submittedDate: pickString(item, ["submittedDate", "created_at"], ""),
     created_at: pickString(item, ["created_at", "submittedDate"], ""),
     contact: {

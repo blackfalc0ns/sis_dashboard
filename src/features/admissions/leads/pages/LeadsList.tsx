@@ -35,7 +35,10 @@ import type {
   CreateLeadPayload,
   UpdateLeadPayload,
 } from "@/features/admissions/leads/types/lead";
-import type { ApplicationCreationPayload } from "@/features/admissions/applications/services/applicationCreationService";
+import {
+  mapLeadChannelToApplicationSource,
+  type ApplicationCreationPayload,
+} from "@/features/admissions/applications/services/applicationCreationService";
 import { createApplication } from "@/features/admissions/applications/services/applicationsApiService";
 import { Lead, LeadStatus, LeadChannel } from "@/features/admissions";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
@@ -319,7 +322,7 @@ export default function LeadsList() {
         ...data,
         leadId: applicationLead.id,
         requestedAcademicYearId: yearId || undefined,
-        source: applicationLead.channel || "referral",
+        source: mapLeadChannelToApplicationSource(applicationLead.channel),
       });
       await updateLead(applicationLead.id, { status: "Converted" });
       showToast(t("marked_converted"), "success");

@@ -186,14 +186,22 @@ export function normalizeTest(input: unknown): Test {
   const id = readString(input, ["id", "placementTestId", "placement_test_id"]);
   if (!id) throw new Error("Placement test response is missing an id.");
 
-  const scheduled = splitIsoDateTime(read(input, ["scheduledAt", "scheduled_at"]));
+  const scheduledAt = readString(input, ["scheduledAt", "scheduled_at"]);
+  const scheduled = splitIsoDateTime(scheduledAt);
   const status = readString(input, ["status"], "scheduled").toLowerCase() as TestStatus;
+  const subjectName = readString(input, ["subjectName", "subject_name", "subject", "type"], "Placement");
 
   return {
     id,
     applicationId: readString(input, ["applicationId", "application_id"]),
-    type: readString(input, ["type"], "Placement"),
-    subject: readString(input, ["subject", "type"], "Placement"),
+    studentName: readString(input, ["studentName", "student_name"]) || undefined,
+    subjectId: readString(input, ["subjectId", "subject_id"]) || null,
+    subjectName,
+    scheduledAt: scheduledAt || undefined,
+    createdAt: readString(input, ["createdAt", "created_at"]) || undefined,
+    updatedAt: readString(input, ["updatedAt", "updated_at"]) || undefined,
+    type: readString(input, ["type"], subjectName),
+    subject: subjectName,
     date: scheduled.date,
     time: scheduled.time,
     duration: readString(input, ["duration"], "60"),
@@ -212,16 +220,26 @@ export function normalizeInterview(input: unknown): Interview {
   const id = readString(input, ["id", "interviewId", "interview_id"]);
   if (!id) throw new Error("Interview response is missing an id.");
 
-  const scheduled = splitIsoDateTime(read(input, ["scheduledAt", "scheduled_at"]));
+  const scheduledAt = readString(input, ["scheduledAt", "scheduled_at"]);
+  const scheduled = splitIsoDateTime(scheduledAt);
   const status = readString(input, ["status"], "scheduled").toLowerCase() as InterviewStatus;
+  const interviewerName = readString(input, ["interviewerName", "interviewer_name", "interviewer"]);
 
   return {
     id,
     applicationId: readString(input, ["applicationId", "application_id"]),
+    studentName: readString(input, ["studentName", "student_name"]) || undefined,
+    scheduledAt: scheduledAt || undefined,
+    interviewerUserId: readString(input, ["interviewerUserId", "interviewer_user_id"]) || undefined,
+    interviewerName: interviewerName || undefined,
+    createdAt: readString(input, ["createdAt", "created_at"]) || undefined,
+    updatedAt: readString(input, ["updatedAt", "updated_at"]) || undefined,
     date: scheduled.date,
     time: scheduled.time,
     duration: readString(input, ["duration"], "30"),
-    interviewer: readString(input, ["interviewerName", "interviewer_name", "interviewerUserId", "interviewer_user_id"], "Admissions team"),
+    interviewer:
+      interviewerName ||
+      readString(input, ["interviewerUserId", "interviewer_user_id"], "Admissions team"),
     location: readString(input, ["location"], "Admissions office"),
     status,
     notes: readString(input, ["notes"]) || undefined,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -18,6 +18,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import type { Student } from "@/features/students-guardians/students/types";
 import {
   getStudentDisplayName,
   getStudentDisplayId,
@@ -74,15 +75,59 @@ export default function StudentProfileLayout({
     tabs,
   });
 
-  const student = useMemo(() => {
-    return studentsService.getStudentById(studentId);
-  }, [studentId]);
+  const [student, setStudent] = useState<Student | null>(null);
+  const [isLoadingStudent, setIsLoadingStudent] = useState(true);
+  const [studentLoadError, setStudentLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void Promise.resolve().then(async () => {
+      setIsLoadingStudent(true);
+      setStudentLoadError(null);
+
+      try {
+        const fetchedStudent = await studentsService.fetchStudentById(studentId);
+        if (!cancelled) {
+          setStudent(fetchedStudent || null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setStudent(null);
+          setStudentLoadError(
+            error instanceof Error ? error.message : t("student_not_found"),
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingStudent(false);
+        }
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [studentId, t]);
+
+  if (isLoadingStudent) {
+    return (
+      <div className="p-6">
+        <div className="bg-white rounded-xl p-10 text-center shadow-sm">
+          <p className="text-sm text-gray-500">Loading student...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!student) {
     return (
       <div className="p-6">
         <div className="text-center py-12">
           <p className="text-gray-500">{t("student_not_found")}</p>
+          {studentLoadError ? (
+            <p className="mt-2 text-sm text-gray-400">{studentLoadError}</p>
+          ) : null}
           <button
             onClick={() => router.push(buildLocalePath(lang, "students-guardians", "students"))}
             className="mt-4 text-[#036b80] hover:underline"

@@ -6,6 +6,12 @@ import type { InterviewStatus } from "@/features/admissions/types/enums";
 export interface Interview {
   id: string;
   applicationId: string;
+  studentName?: string;
+  scheduledAt?: string;
+  interviewerUserId?: string;
+  interviewerName?: string;
+  createdAt?: string;
+  updatedAt?: string;
   date: string;
   time: string;
   duration?: string;

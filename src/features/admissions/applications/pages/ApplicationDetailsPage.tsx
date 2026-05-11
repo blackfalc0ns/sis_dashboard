@@ -205,7 +205,7 @@ export default function ApplicationDetailsPage({
     try {
       await createPlacementTest({
         applicationId: application.id,
-        type: data.type || "Placement",
+        studentName: application.studentName,
         date: data.date,
         time: data.time,
       });
@@ -223,9 +223,11 @@ export default function ApplicationDetailsPage({
     try {
       await createInterview({
         applicationId: application.id,
+        studentName: application.studentName,
         date: data.date,
         time: data.time,
         interviewerUserId: data.interviewerUserId,
+        interviewerName: data.interviewerName,
         notes: data.notes,
       });
       setIsScheduleInterviewOpen(false);

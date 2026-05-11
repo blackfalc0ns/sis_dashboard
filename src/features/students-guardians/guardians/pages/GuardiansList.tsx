@@ -13,6 +13,7 @@ import {
   X,
   Eye,
   Edit,
+  Plus,
   Download,
   Star,
   CheckCircle,
@@ -24,6 +25,9 @@ import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import { StudentGuardian } from "@/features/students-guardians/students/types";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import AddGuardianModal, {
+  type GuardianFormData,
+} from "@/features/students-guardians/students/components/modals/AddGuardianModal";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
@@ -113,6 +117,8 @@ export default function GuardiansList() {
   // Filters
   const [showFilters, setShowFilters] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showCreateGuardianModal, setShowCreateGuardianModal] =
+    useState(false);
   const [editingGuardian, setEditingGuardian] =
     useState<StudentGuardian | null>(null);
   const [editGuardianForm, setEditGuardianForm] = useState({
@@ -145,6 +151,45 @@ export default function GuardiansList() {
 
   const searchQuery = values.search;
   const relationFilter = values.relation;
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (isContextLoading) {
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    void Promise.resolve().then(async () => {
+      setPageError(null);
+
+      try {
+        const guardiansData = await studentsService.fetchAllGuardians({
+          search: searchQuery,
+        });
+
+        if (!isCancelled) {
+          setGuardians(guardiansData);
+          setScopedGuardianIds(
+            new Set(guardiansData.map((guardian) => guardian.guardianId)),
+          );
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setGuardians([]);
+          setScopedGuardianIds(new Set());
+          setPageError(
+            error instanceof Error ? error.message : t("loading_error"),
+          );
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isContextLoading, searchQuery, t]);
 
   // Filter guardians
   const filteredGuardians = useMemo(() => {
@@ -225,6 +270,22 @@ export default function GuardiansList() {
       filenameBase: "guardians",
       emptyMessage: t("no_guardians_message"),
     });
+  };
+
+  const handleCreateGuardian = async (guardianData: GuardianFormData) => {
+    try {
+      setPageError(null);
+      const createdGuardian = await studentsService.createGuardian(guardianData);
+      setGuardians((currentGuardians) => [createdGuardian, ...currentGuardians]);
+      setScopedGuardianIds((currentIds) => {
+        const nextIds = new Set(currentIds);
+        nextIds.add(createdGuardian.guardianId);
+        return nextIds;
+      });
+      setShowCreateGuardianModal(false);
+    } catch (error) {
+      throw error;
+    }
   };
 
   const handleChangePasswordClick = (e: React.MouseEvent) => {
@@ -495,6 +556,13 @@ export default function GuardiansList() {
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
+                onClick={() => setShowCreateGuardianModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Create Guardian
+              </button>
+              <button
                 onClick={() => setShowExportModal(true)}
                 className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
               >
@@ -746,6 +814,12 @@ export default function GuardiansList() {
           </form>
         </div>
       )}
+
+      <AddGuardianModal
+        isOpen={showCreateGuardianModal}
+        onClose={() => setShowCreateGuardianModal(false)}
+        onSubmit={handleCreateGuardian}
+      />
 
       <StudentsGuardiansGlobalExportModal
         isOpen={showExportModal}
