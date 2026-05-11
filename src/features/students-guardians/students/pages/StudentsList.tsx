@@ -82,16 +82,6 @@ export default function StudentsList() {
       };
     }
 
-    if (!yearId || !termId) {
-      setStudentsWithEnrollment([]);
-      setPageError(null);
-      setIsPageLoading(false);
-
-      return () => {
-        isCancelled = true;
-      };
-    }
-
     void Promise.resolve().then(async () => {
       if (isCancelled) {
         return;
@@ -102,10 +92,12 @@ export default function StudentsList() {
 
       try {
         const data =
-          await studentsService.fetchStudentsWithEnrollmentForContext(
-            yearId,
-            termId,
-          );
+          yearId && termId
+            ? await studentsService.fetchStudentsWithEnrollmentForContext(
+                yearId,
+                termId,
+              )
+            : await studentsService.fetchStudentsWithEnrollment();
         if (isCancelled) {
           return;
         }
@@ -361,16 +353,27 @@ export default function StudentsList() {
     reset(undefined, "replace");
   };
 
-  const handleAddNote = (noteData: NoteFormData) => {
-    // TODO: Implement API call to add note
-    console.log("Adding note for student:", selectedStudent?.id, noteData);
+  const handleAddNote = async (noteData: NoteFormData) => {
+    if (!selectedStudent) return;
 
-    // Close modal
-    setShowAddNoteModal(false);
-    setSelectedStudent(null);
+    if (noteData.xpAdjustment === 0) {
+      setPageError("XP adjustment cannot be zero.");
+      return;
+    }
 
-    // Show success message (you can add a toast notification here)
-    alert("Note added successfully!");
+    try {
+      await studentsService.createStudentNote(selectedStudent.id, {
+        category: noteData.category,
+        note: noteData.note,
+        xpAdjustment: noteData.xpAdjustment as number,
+        visibility: noteData.visibility,
+        created_by: noteData.created_by,
+      });
+      setShowAddNoteModal(false);
+      setSelectedStudent(null);
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : t("loading_error"));
+    }
   };
 
   const handleAddNoteClick = (e: React.MouseEvent, student: Student) => {
@@ -640,7 +643,7 @@ export default function StudentsList() {
     return <MainLoader />;
   }
 
-  if (contextError || pageError || !yearId || !termId) {
+  if (contextError || pageError) {
     return (
       <div className="p-4 sm:p-6">
         <div className="bg-white rounded-xl p-10 text-center shadow-sm">

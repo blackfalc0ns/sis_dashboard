@@ -65,17 +65,6 @@ export default function GuardiansList() {
       };
     }
 
-    if (!yearId || !termId) {
-      setGuardians([]);
-      setScopedGuardianIds(new Set());
-      setPageError(null);
-      setIsPageLoading(false);
-
-      return () => {
-        isCancelled = true;
-      };
-    }
-
     void Promise.resolve().then(async () => {
       if (isCancelled) {
         return;
@@ -85,33 +74,16 @@ export default function GuardiansList() {
       setPageError(null);
 
       try {
-        const [guardiansData, studentsInContext] = await Promise.all([
-          studentsService.fetchAllGuardians(),
-          studentsService.fetchStudentsWithEnrollmentForContext(yearId, termId),
-        ]);
-        const guardianStudentGroups = await Promise.all(
-          guardiansData.map(async (guardian) => ({
-            guardianId: guardian.guardianId,
-            students: await studentsService.fetchGuardianStudents(
-              guardian.guardianId,
-            ),
-          })),
-        );
+        const guardiansData = await studentsService.fetchAllGuardians();
 
         if (isCancelled) {
           return;
         }
 
         setGuardians(guardiansData);
-        const scopedIds = new Set(studentsInContext.map((student) => student.id));
-        const guardianIdsInScope = new Set(
-          guardianStudentGroups
-            .filter((group) =>
-              group.students.some((student) => scopedIds.has(student.id)),
-            )
-            .map((group) => group.guardianId),
+        setScopedGuardianIds(
+          new Set(guardiansData.map((guardian) => guardian.guardianId)),
         );
-        setScopedGuardianIds(guardianIdsInScope);
       } catch (error) {
         if (isCancelled) {
           return;
@@ -132,7 +104,7 @@ export default function GuardiansList() {
     return () => {
       isCancelled = true;
     };
-  }, [isContextLoading, termId, t, yearId]);
+  }, [isContextLoading, t, termId, yearId]);
 
   const guardiansInContext = useMemo(
     () => guardians.filter((guardian) => scopedGuardianIds.has(guardian.guardianId)),
@@ -383,7 +355,7 @@ export default function GuardiansList() {
     return <MainLoader />;
   }
 
-  if (contextError || pageError || !yearId || !termId) {
+  if (contextError || pageError) {
     return (
       <div className="p-4 sm:p-6">
         <div className="bg-white rounded-xl p-10 text-center shadow-sm">

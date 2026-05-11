@@ -1,14 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Eye, EyeOff, Edit2, Trash2 } from "lucide-react";
-import { Student } from "@/features/students-guardians/students/types";
+import type { Student, StudentNote } from "@/features/students-guardians/students/types";
 import { DataTable, FilterPanel } from "@/components/ui";
-import {
-  addStudentNote,
-  getStudentNotes,
-  getStudentXpSummary,
-} from "@/features/students-guardians/students/services/studentsService";
+import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { getStudentDisplayName } from "@/features/students-guardians/students/utils/studentUtils";
 import AddNoteModal, {
   NoteFormData,
@@ -27,28 +23,74 @@ export default function NotesTab({ student }: NotesTabProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [notesRevision, setNotesRevision] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [notes, setNotes] = useState<StudentNote[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const notes = useMemo(
-    () => getStudentNotes(student.id),
-    [notesRevision, student.id],
-  );
-  const xpSummary = useMemo(
-    () => getStudentXpSummary(student.id),
-    [notesRevision, student.id],
-  );
+  useEffect(() => {
+    let isCancelled = false;
 
-  const handleAddNote = (noteData: NoteFormData) => {
-    addStudentNote(student.id, {
+    void Promise.resolve().then(async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const data = await studentsService.fetchStudentNotes(student.id);
+        if (!isCancelled) setNotes(data);
+      } catch (loadError) {
+        if (!isCancelled) {
+          setNotes([]);
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Unable to load notes.",
+          );
+        }
+      } finally {
+        if (!isCancelled) setIsLoading(false);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [notesRevision, student.id]);
+
+  const xpSummary = useMemo(() => {
+    const xpEvents = notes.filter((note) => note.xpAdjustment !== 0);
+    return {
+      totalXp: xpEvents.reduce((sum, note) => sum + note.xpAdjustment, 0),
+      positiveNotesCount: xpEvents.filter((note) => note.xpAdjustment > 0).length,
+      negativeNotesCount: xpEvents.filter((note) => note.xpAdjustment < 0).length,
+    };
+  }, [notes]);
+
+  const handleAddNote = async (noteData: NoteFormData) => {
+    if (noteData.xpAdjustment === 0) {
+      setError("XP adjustment cannot be zero.");
+      return;
+    }
+
+    try {
+      await studentsService.createStudentNote(student.id, {
       category: noteData.category,
       note: noteData.note,
       xpAdjustment: noteData.xpAdjustment as number,
       visibility: noteData.visibility,
       created_by: noteData.created_by,
-    });
+      });
 
-    setShowAddModal(false);
-    setNotesRevision((current) => current + 1);
-    setFeedback(t("note_added_successfully"));
+      setShowAddModal(false);
+      setNotesRevision((current) => current + 1);
+      setFeedback(t("note_added_successfully"));
+      setError(null);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Unable to add note.",
+      );
+    }
   };
 
   const getCategoryBadge = (category: string) => {
@@ -174,6 +216,16 @@ export default function NotesTab({ student }: NotesTabProps) {
       {feedback ? (
         <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
           {feedback}
+        </div>
+      ) : null}
+      {isLoading ? (
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
+          Loading notes...
+        </div>
+      ) : null}
+      {error ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
         </div>
       ) : null}
 

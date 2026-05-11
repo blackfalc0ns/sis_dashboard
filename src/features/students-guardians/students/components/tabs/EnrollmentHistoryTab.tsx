@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   GraduationCap,
   Calendar,
@@ -10,10 +10,13 @@ import {
 } from "lucide-react";
 import { Student, StudentEnrollment } from "@/features/students-guardians/students/types";
 import {
-  getCurrentActiveEnrollment,
   getEnrollmentHistory,
   getPlacementHistory,
 } from "@/features/students-guardians/students/services/enrollmentService";
+import {
+  fetchCurrentEnrollment,
+  fetchEnrollmentHistory,
+} from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
 import { useTranslations } from "next-intl";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 
@@ -25,9 +28,47 @@ export default function EnrollmentHistoryTab({
   student,
 }: EnrollmentHistoryTabProps) {
   const t = useTranslations("students_guardians.profile.enrollment_history");
-  const enrollment = useMemo(() => getCurrentActiveEnrollment(student.id), [student.id]);
-  const enrollmentHistory = useMemo(() => getEnrollmentHistory(student.id), [student.id]);
+  const [enrollment, setEnrollment] = useState<StudentEnrollment | null>(null);
+  const [enrollmentHistory, setEnrollmentHistory] = useState<StudentEnrollment[]>(
+    [],
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const placementHistory = useMemo(() => getPlacementHistory(student.id), [student.id]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    void Promise.resolve().then(async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const [current, history] = await Promise.all([
+          fetchCurrentEnrollment({ studentId: student.id }),
+          fetchEnrollmentHistory(student.id),
+        ]);
+        if (isCancelled) return;
+        setEnrollment(current);
+        setEnrollmentHistory(history);
+      } catch (loadError) {
+        if (isCancelled) return;
+        setEnrollment(null);
+        setEnrollmentHistory(getEnrollmentHistory(student.id));
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Unable to load enrollment.",
+        );
+      } finally {
+        if (!isCancelled) setIsLoading(false);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [student.id]);
 
   const getStatusIcon = (status: StudentEnrollment["status"]) => {
     switch (status) {
@@ -87,6 +128,15 @@ export default function EnrollmentHistoryTab({
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-xl p-12 shadow-sm text-center">
+        <GraduationCap className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-500">Loading enrollment...</p>
+      </div>
+    );
+  }
+
   if (enrollmentHistory.length === 0) {
     return (
       <div className="bg-white rounded-xl p-12 shadow-sm text-center">
@@ -98,6 +148,11 @@ export default function EnrollmentHistoryTab({
 
   return (
     <div className="space-y-6">
+      {error ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
       <div className="bg-white rounded-xl p-6 shadow-sm">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           {t("summary")}

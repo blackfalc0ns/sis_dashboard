@@ -2,10 +2,13 @@
 
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FileText, Edit2, Save, X } from "lucide-react";
-import { Student } from "@/features/students-guardians/students/types";
-import { getStudentMedicalProfile } from "@/features/students-guardians/students/services/studentsService";
+import type {
+  Student,
+  StudentMedicalProfile,
+} from "@/features/students-guardians/students/types";
+import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { useTranslations } from "next-intl";
 
 interface MedicalTabProps {
@@ -14,27 +17,60 @@ interface MedicalTabProps {
 
 export default function MedicalTab({ student }: MedicalTabProps) {
   const t = useTranslations("students_guardians.profile.medical");
-  const medicalProfile = getStudentMedicalProfile(student.student_id || "");
   const [isEditing, setIsEditing] = useState(false);
-  const [medicalData, setMedicalData] = useState(
-    medicalProfile || {
-      studentId: student.student_id || "",
-      notes: "",
-    },
-  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [medicalData, setMedicalData] = useState<StudentMedicalProfile>({
+    studentId: student.id,
+    notes: "",
+  });
 
-  const handleSave = () => {
-    // TODO: Implement save functionality via API
-    setIsEditing(false);
+  const loadMedicalProfile = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const profile = await studentsService.fetchStudentMedicalProfile(student.id);
+      setMedicalData(profile || { studentId: student.id, notes: "" });
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Unable to load medical profile.",
+      );
+      setMedicalData({ studentId: student.id, notes: "" });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [student.id]);
+
+  useEffect(() => {
+    void loadMedicalProfile();
+  }, [loadMedicalProfile]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setError(null);
+    try {
+      const saved = await studentsService.upsertStudentMedicalProfile(
+        student.id,
+        medicalData,
+      );
+      setMedicalData(saved);
+      setIsEditing(false);
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Unable to save medical profile.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
-    setMedicalData(
-      medicalProfile || {
-        studentId: student.student_id || "",
-        notes: "",
-      },
-    );
+    void loadMedicalProfile();
     setIsEditing(false);
   };
 
@@ -65,6 +101,7 @@ export default function MedicalTab({ student }: MedicalTabProps) {
             </button>
             <button
               onClick={handleSave}
+              disabled={isSaving}
               className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
             >
               <Save className="w-4 h-4" />
@@ -73,6 +110,16 @@ export default function MedicalTab({ student }: MedicalTabProps) {
           </div>
         )}
       </div>
+      {isLoading ? (
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
+          Loading medical profile...
+        </div>
+      ) : null}
+      {error ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
 
       {/* Medical Notes */}
       <div className="bg-white rounded-xl p-6 shadow-sm">

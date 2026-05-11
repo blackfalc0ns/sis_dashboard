@@ -46,6 +46,11 @@ import {
   createStudentsApiAdapter,
   studentsApiAdapter,
 } from "./studentsApiAdapter";
+import * as studentsApiService from "./studentsApiService";
+import * as guardiansApiService from "@/features/students-guardians/guardians/services/guardiansApiService";
+import * as studentDocumentsApiService from "@/features/students-guardians/documents/services/studentDocumentsApiService";
+import * as medicalProfileApiService from "@/features/students-guardians/medical/services/medicalProfileApiService";
+import * as studentNotesApiService from "@/features/students-guardians/notes/services/studentNotesApiService";
 
 const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -872,12 +877,7 @@ export function getAllStudents(): Student[] {
 }
 
 export async function fetchAllStudents(): Promise<Student[]> {
-  const adapter = getStudentsAdapter();
-  if (adapter.fetchAllStudents) {
-    return adapter.fetchAllStudents();
-  }
-
-  return Promise.resolve(adapter.getAllStudents());
+  return studentsApiService.fetchStudents();
 }
 
 export function getStudentById(id: string): Student | undefined {
@@ -887,52 +887,40 @@ export function getStudentById(id: string): Student | undefined {
 export async function fetchStudentById(
   id: string,
 ): Promise<Student | undefined> {
-  const adapter = getStudentsAdapter();
-  if (adapter.fetchStudentById) {
-    return adapter.fetchStudentById(id);
-  }
+  return studentsApiService.fetchStudentById(id);
+}
 
-  return Promise.resolve(adapter.getStudentById(id));
+export async function createStudent(
+  payload: studentsApiService.CreateStudentPayload,
+): Promise<Student> {
+  return studentsApiService.createStudent(payload);
 }
 
 export async function fetchStudentGuardians(
   studentId: string,
 ): Promise<StudentGuardian[]> {
-  const adapter = getStudentsAdapter();
-  if (adapter.fetchStudentGuardians) {
-    return adapter.fetchStudentGuardians(studentId);
-  }
-
-  return Promise.resolve(adapter.getStudentGuardians(studentId));
+  return guardiansApiService.fetchStudentGuardians(studentId);
 }
 
 export async function fetchPrimaryGuardian(
   studentId: string,
 ): Promise<StudentGuardian | undefined> {
-  const adapter = getStudentsAdapter();
-  if (adapter.fetchPrimaryGuardian) {
-    return adapter.fetchPrimaryGuardian(studentId);
-  }
-
-  return Promise.resolve(adapter.getPrimaryGuardian(studentId));
+  const guardians =
+    await guardiansApiService.fetchPrimaryStudentGuardians(studentId);
+  return guardians[0];
 }
 
 export async function fetchGuardianStudents(
   guardianId: string,
 ): Promise<Student[]> {
-  const adapter = getStudentsAdapter();
-  if (adapter.fetchGuardianStudents) {
-    return adapter.fetchGuardianStudents(guardianId);
-  }
-
-  return Promise.resolve(adapter.getGuardianStudents(guardianId));
+  return guardiansApiService.fetchGuardianStudents(guardianId);
 }
 
 export async function updateStudent(
   studentId: string,
   payload: UpdateStudentPayload,
 ): Promise<Student> {
-  return getStudentsAdapter().updateStudent(studentId, payload);
+  return studentsApiService.updateStudent(studentId, payload);
 }
 
 export function getStudentsByStatus(status: StudentStatus): Student[] {
@@ -970,12 +958,7 @@ export function getAllGuardians(): StudentGuardian[] {
 }
 
 export async function fetchAllGuardians(): Promise<StudentGuardian[]> {
-  const adapter = getStudentsAdapter();
-  if (adapter.fetchAllGuardians) {
-    return adapter.fetchAllGuardians();
-  }
-
-  return Promise.resolve(adapter.getAllGuardians());
+  return guardiansApiService.fetchGuardians();
 }
 
 export function getGuardianById(
@@ -987,12 +970,27 @@ export function getGuardianById(
 export async function fetchGuardianById(
   guardianId: string,
 ): Promise<StudentGuardian | undefined> {
-  const adapter = getStudentsAdapter();
-  if (adapter.fetchGuardianById) {
-    return adapter.fetchGuardianById(guardianId);
-  }
+  return guardiansApiService.fetchGuardianById(guardianId);
+}
 
-  return Promise.resolve(adapter.getGuardianById(guardianId));
+export async function createGuardian(
+  payload: guardiansApiService.GuardianPayload,
+): Promise<StudentGuardian> {
+  return guardiansApiService.createGuardian(payload);
+}
+
+export async function updateGuardian(
+  guardianId: string,
+  payload: guardiansApiService.GuardianPayload,
+): Promise<StudentGuardian> {
+  return guardiansApiService.updateGuardian(guardianId, payload);
+}
+
+export async function linkGuardianToStudent(
+  studentId: string,
+  payload: guardiansApiService.LinkGuardianPayload,
+) {
+  return guardiansApiService.linkGuardianToStudent(studentId, payload);
 }
 
 export function getStudentDocuments(studentId: string): StudentDocument[] {
@@ -1010,12 +1008,8 @@ export function getStudentsWithEnrollment(): StudentWithEnrollmentContext[] {
 export async function fetchStudentsWithEnrollment(): Promise<
   StudentWithEnrollmentContext[]
 > {
-  const adapter = getStudentsAdapter();
-  if (adapter.fetchStudentsWithEnrollment) {
-    return adapter.fetchStudentsWithEnrollment();
-  }
-
-  return Promise.resolve(adapter.getStudentsWithEnrollment());
+  const students = await studentsApiService.fetchStudents();
+  return students as StudentWithEnrollmentContext[];
 }
 
 export function getStudentsWithEnrollmentForContext(
@@ -1032,17 +1026,69 @@ export async function fetchStudentsWithEnrollmentForContext(
   academicYearId?: string | null,
   termId?: string | null,
 ): Promise<StudentWithEnrollmentContext[]> {
-  const adapter = getStudentsAdapter();
-  if (adapter.fetchStudentsWithEnrollmentForContext) {
-    return adapter.fetchStudentsWithEnrollmentForContext(
-      academicYearId,
-      termId,
-    );
-  }
+  void academicYearId;
+  void termId;
+  const students = await studentsApiService.fetchStudents();
+  return students as StudentWithEnrollmentContext[];
+}
 
-  return Promise.resolve(
-    adapter.getStudentsWithEnrollmentForContext(academicYearId, termId),
-  );
+export async function fetchStudentDocuments(
+  studentId: string,
+): Promise<StudentDocument[]> {
+  return studentDocumentsApiService.fetchStudentDocuments(studentId);
+}
+
+export async function fetchMissingStudentDocuments(
+  studentId: string,
+): Promise<StudentDocument[]> {
+  return studentDocumentsApiService.fetchMissingStudentDocuments(studentId);
+}
+
+export async function createStudentDocument(
+  studentId: string,
+  payloadWithFile: FormData,
+): Promise<StudentDocument> {
+  return studentDocumentsApiService.createStudentDocument(studentId, payloadWithFile);
+}
+
+export async function fetchStudentMedicalProfile(
+  studentId: string,
+): Promise<StudentMedicalProfile | null> {
+  return medicalProfileApiService.fetchMedicalProfile(studentId);
+}
+
+export async function upsertStudentMedicalProfile(
+  studentId: string,
+  payload: Partial<StudentMedicalProfile>,
+): Promise<StudentMedicalProfile> {
+  return medicalProfileApiService.upsertMedicalProfile(studentId, payload);
+}
+
+export async function fetchStudentNotes(
+  studentId: string,
+): Promise<StudentNote[]> {
+  return studentNotesApiService.fetchStudentNotes(studentId);
+}
+
+export async function createStudentNote(
+  studentId: string,
+  payload: CreateStudentNotePayload,
+): Promise<StudentNote> {
+  return studentNotesApiService.createStudentNote(studentId, payload);
+}
+
+export async function updateStudentNote(
+  studentId: string,
+  studentNoteId: string,
+  payload: Partial<CreateStudentNotePayload>,
+): Promise<StudentNote> {
+  return studentNotesApiService.updateStudentNote(studentId, studentNoteId, payload);
+}
+
+export async function fetchStudentTimeline(
+  studentId: string,
+): Promise<StudentTimelineEvent[]> {
+  return studentsApiService.fetchStudentTimeline(studentId);
 }
 
 /**

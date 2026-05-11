@@ -36,12 +36,14 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
   const [primaryGuardian, setPrimaryGuardian] =
     useState<StudentGuardian | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
 
     void Promise.resolve().then(async () => {
       setIsLoading(true);
+      setError(null);
 
       try {
         const [guardiansData, primaryGuardianData] = await Promise.all([
@@ -55,6 +57,14 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
 
         setGuardians(guardiansData);
         setPrimaryGuardian(primaryGuardianData);
+      } catch (loadError) {
+        if (!isCancelled) {
+          setGuardians([]);
+          setPrimaryGuardian(undefined);
+          setError(
+            loadError instanceof Error ? loadError.message : "Unable to load guardians.",
+          );
+        }
       } finally {
         if (!isCancelled) {
           setIsLoading(false);
@@ -67,15 +77,28 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
     };
   }, [student.id]);
 
-  const handleAddGuardian = (guardianData: GuardianFormData) => {
-    // TODO: Implement API call to add guardian
-    console.log("Adding guardian:", guardianData);
-
-    // Close modal
-    setShowAddModal(false);
-
-    // Show success message (you can add a toast notification here)
-    alert("Guardian added successfully!");
+  const handleAddGuardian = async (guardianData: GuardianFormData) => {
+    setError(null);
+    try {
+      const guardian = await studentsService.createGuardian(guardianData);
+      await studentsService.linkGuardianToStudent(student.id, {
+        guardianId: guardian.guardianId,
+        is_primary: guardianData.is_primary,
+      });
+      const [guardiansData, primaryGuardianData] = await Promise.all([
+        studentsService.fetchStudentGuardians(student.id),
+        studentsService.fetchPrimaryGuardian(student.id),
+      ]);
+      setGuardians(guardiansData);
+      setPrimaryGuardian(primaryGuardianData);
+      setShowAddModal(false);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Unable to add guardian.",
+      );
+    }
   };
 
   const getRelationBadge = (relation: string) => {
@@ -114,6 +137,11 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
   return (
     <div className="space-y-6">
       {isLoading ? <PartialLoader /> : null}
+      {error ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
 
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   FileText,
   Upload,
@@ -12,9 +12,12 @@ import {
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
-import { Student } from "@/features/students-guardians/students/types";
+import {
+  Student,
+  StudentDocument,
+} from "@/features/students-guardians/students/types";
 import { DataTable } from "@/components/ui/data-table";
-import { getStudentDocuments } from "@/features/students-guardians/students/services/studentsService";
+import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import UploadDocumentModal, {
   DocumentUploadData,
 } from "@/features/students-guardians/students/components/modals/UploadDocumentModal";
@@ -27,8 +30,10 @@ interface DocumentsTabProps {
 
 export default function DocumentsTab({ student }: DocumentsTabProps) {
   const t = useTranslations("students_guardians.profile.documents");
-  const documents = getStudentDocuments(student.id);
+  const [documents, setDocuments] = useState<StudentDocument[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<{
     type: string;
     name: string;
@@ -36,16 +41,55 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
     fileType?: string;
   } | null>(null);
 
-  const handleUploadDocument = (documentData: DocumentUploadData) => {
-    // TODO: Implement API call to upload document
-    console.log("Uploading document:", documentData);
-    console.log("File:", documentData.file.name, documentData.file.size);
+  const loadDocuments = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [uploadedDocuments, missingDocuments] = await Promise.all([
+        studentsService.fetchStudentDocuments(student.id),
+        studentsService.fetchMissingStudentDocuments(student.id),
+      ]);
+      const uploadedIds = new Set(uploadedDocuments.map((item) => item.id));
+      setDocuments([
+        ...uploadedDocuments,
+        ...missingDocuments.filter((item) => !uploadedIds.has(item.id)),
+      ]);
+    } catch (loadError) {
+      setDocuments([]);
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Unable to load documents.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [student.id]);
 
-    // Close modal
-    setShowUploadModal(false);
+  useEffect(() => {
+    void loadDocuments();
+  }, [loadDocuments]);
 
-    // Show success message (you can add a toast notification here)
-    alert(`Document "${documentData.type}" uploaded successfully!`);
+  const handleUploadDocument = async (documentData: DocumentUploadData) => {
+    const formData = new FormData();
+    formData.append("type", documentData.type);
+    formData.append("status", "complete");
+    if (documentData.notes) {
+      formData.append("notes", documentData.notes);
+    }
+    formData.append("file", documentData.file);
+
+    try {
+      await studentsService.createStudentDocument(student.id, formData);
+      setShowUploadModal(false);
+      await loadDocuments();
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Unable to upload document.",
+      );
+    }
   };
 
   const handleUploadClick = () => {
@@ -188,6 +232,16 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
 
   return (
     <div className="space-y-6">
+      {isLoading ? (
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
+          Loading documents...
+        </div>
+      ) : null}
+      {error ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
       {/* Alerts */}
       {missingCount > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">

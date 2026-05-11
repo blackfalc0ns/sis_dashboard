@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Calendar,
   Clock,
@@ -11,8 +11,11 @@ import {
   MessageSquare,
   GraduationCap,
 } from "lucide-react";
-import { Student } from "@/features/students-guardians/students/types";
-import { getStudentTimeline } from "@/features/students-guardians/students/services/studentsService";
+import type {
+  Student,
+  StudentTimelineEvent,
+} from "@/features/students-guardians/students/types";
+import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { useTranslations } from "next-intl";
 import { FilterPanel } from "@/components/ui";
 
@@ -22,9 +25,40 @@ interface TimelineTabProps {
 
 export default function TimelineTab({ student }: TimelineTabProps) {
   const t = useTranslations("students_guardians.profile.timeline");
-  const events = getStudentTimeline(student.student_id || "");
+  const [events, setEvents] = useState<StudentTimelineEvent[]>([]);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    void Promise.resolve().then(async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const data = await studentsService.fetchStudentTimeline(student.id);
+        if (!isCancelled) setEvents(data);
+      } catch (loadError) {
+        if (!isCancelled) {
+          setEvents([]);
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Unable to load timeline.",
+          );
+        }
+      } finally {
+        if (!isCancelled) setIsLoading(false);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [student.id]);
 
   const filteredEvents = events.filter((event) => {
     if (typeFilter === "all") return true;
@@ -80,6 +114,16 @@ export default function TimelineTab({ student }: TimelineTabProps) {
           <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
         </div>
       </div>
+      {isLoading ? (
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
+          Loading timeline...
+        </div>
+      ) : null}
+      {error ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
 
       <FilterPanel
         showFilters={showFilters}
