@@ -6,11 +6,11 @@ import Input from "@/components/ui/input/Input";
 import DatePicker from "@/components/ui/input/DatePicker";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
-import type { AttendanceBehaviorFilters, BehaviorStatus, BehaviorType } from "../types";
+import type { BehaviorFilters, BehaviorStatus, BehaviorType } from "../../types";
 
 interface BehaviorFiltersBarProps {
-  filters: AttendanceBehaviorFilters;
-  onChange: (filters: Partial<AttendanceBehaviorFilters>) => void;
+  filters: BehaviorFilters;
+  onChange: (filters: Partial<BehaviorFilters>) => void;
   onClear: () => void;
 }
 
@@ -19,7 +19,7 @@ export default function BehaviorFiltersBar({
   onChange,
   onClear,
 }: BehaviorFiltersBarProps) {
-  const t = useTranslations("attendance.behavior.filters");
+  const t = useTranslations("behavior.filters");
   const tCommon = useTranslations("common");
 
   const typeOptions: { value: "" | BehaviorType; label: string }[] = [

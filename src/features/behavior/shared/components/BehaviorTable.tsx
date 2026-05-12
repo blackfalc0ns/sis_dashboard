@@ -4,8 +4,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { Tooltip } from "@mui/material";
 import { Eye, Send, CheckCircle, XCircle, Pencil } from "lucide-react";
 import DataTable from "@/components/ui/data-table/DataTable";
-import AttendanceStatePanel from "@/features/attendance/shared/components/AttendanceStatePanel";
-import type { BehaviorRecord, BehaviorStatus, BehaviorType } from "../types";
+import type { BehaviorRecord, BehaviorStatus, BehaviorType } from "../../types";
 
 // ─── Status badge ──────────────────────────────────────────────────────────
 const STATUS_STYLES: Record<BehaviorStatus, { bg: string; fg: string; border: string }> = {
@@ -44,6 +43,15 @@ function TypeBadge({ type, label }: { type: BehaviorType; label: string }) {
   );
 }
 
+// ─── Empty state panel (inline, no attendance dependency) ──────────────────
+function StatePanel({ title, compact }: { title: string; compact?: boolean }) {
+  return (
+    <div className={`flex items-center justify-center ${compact ? "py-12" : "py-24"}`}>
+      <p className="text-sm" style={{ color: "var(--text-muted)" }}>{title}</p>
+    </div>
+  );
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────
 export type BehaviorTableAction = "view" | "edit" | "submit" | "approve" | "reject";
 
@@ -64,13 +72,13 @@ export default function BehaviorTable({
   onAction,
   isReadOnly,
 }: BehaviorTableProps) {
-  const t = useTranslations("attendance.behavior");
+  const t = useTranslations("behavior");
   const locale = useLocale();
   const isRTL = locale === "ar";
 
-  if (loading) return <AttendanceStatePanel title={t("states.loading.title")} compact />;
-  if (error) return <AttendanceStatePanel title={error} compact />;
-  if (!records.length) return <AttendanceStatePanel title={t("states.empty.title")} compact />;
+  if (loading) return <StatePanel title={t("states.loading.title")} compact />;
+  if (error) return <StatePanel title={error} compact />;
+  if (!records.length) return <StatePanel title={t("states.empty.title")} compact />;
 
   const fmt = (iso?: string) =>
     iso ? new Date(iso).toLocaleDateString(locale === "ar" ? "ar-SA" : "en-SA") : "—";

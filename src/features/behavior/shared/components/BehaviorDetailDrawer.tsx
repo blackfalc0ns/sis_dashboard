@@ -4,7 +4,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { Drawer } from "@mui/material";
 import { X, Send, CheckCircle, XCircle } from "lucide-react";
 import Button from "@/components/ui/button/Button";
-import type { BehaviorRecord, BehaviorStatus, BehaviorType } from "../types";
+import type { BehaviorRecord, BehaviorStatus, BehaviorType } from "../../types";
 import type { BehaviorTableAction } from "./BehaviorTable";
 
 // ─── Status / Type badge helpers ───────────────────────────────────────────
@@ -66,7 +66,7 @@ export default function BehaviorDetailDrawer({
   onAction,
   isReadOnly,
 }: BehaviorDetailDrawerProps) {
-  const t = useTranslations("attendance.behavior");
+  const t = useTranslations("behavior");
   const locale = useLocale();
   const isRTL = locale === "ar";
 

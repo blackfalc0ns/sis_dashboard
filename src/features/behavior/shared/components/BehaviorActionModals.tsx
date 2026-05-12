@@ -8,7 +8,7 @@ import Input from "@/components/ui/input/Input";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
 import DatePicker from "@/components/ui/input/DatePicker";
 import { useToast } from "@/components/ui/toast/Toast";
-import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
+import { useBehaviorYearTermContext } from "../../shared/hooks/useBehaviorYearTermContext";
 import { fetchAllStudents } from "@/features/students-guardians/students/services/studentsService";
 import {
   listBehaviorCategories,
@@ -19,13 +19,13 @@ import {
   submitBehaviorRecord,
   approveBehaviorRecord,
   rejectBehaviorRecord,
-} from "../services/attendanceBehaviorService";
+} from "../../services/behaviorApiService";
 import type {
   BehaviorCategory,
   BehaviorRecord,
   BehaviorSeverity,
   BehaviorType,
-} from "../types";
+} from "../../types";
 
 // ─── Modal modes ────────────────────────────────────────────────────────────
 export type BehaviorModalMode =
@@ -74,7 +74,7 @@ function CategoryModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const t = useTranslations("attendance.behavior");
+  const t = useTranslations("behavior");
   const { showSuccess, showError } = useToast();
   const isEdit = !!category;
 
@@ -174,11 +174,11 @@ function RecordModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const t = useTranslations("attendance.behavior");
+  const t = useTranslations("behavior");
   const { showSuccess, showError } = useToast();
   const isEdit = !!record;
 
-  const termContext = useAttendanceYearTermLayoutContext();
+  const termContext = useBehaviorYearTermContext();
   const currentTerm = termContext.terms.find((t) => t.id === (record?.termId || termId));
   const minDate = currentTerm?.startDate ? new Date(currentTerm.startDate) : undefined;
   const maxDate = currentTerm?.endDate ? new Date(currentTerm.endDate) : undefined;
@@ -326,7 +326,7 @@ function SubmitModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const t = useTranslations("attendance.behavior");
+  const t = useTranslations("behavior");
   const { showSuccess, showError } = useToast();
   const [saving, setSaving] = useState(false);
 
@@ -377,7 +377,7 @@ function ApproveModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const t = useTranslations("attendance.behavior");
+  const t = useTranslations("behavior");
   const { showSuccess, showError } = useToast();
   const [reviewNoteEn, setReviewNoteEn] = useState("");
   const [pointsOverride, setPointsOverride] = useState<string>(String(record.points));
@@ -443,7 +443,7 @@ function RejectModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const t = useTranslations("attendance.behavior");
+  const t = useTranslations("behavior");
   const { showSuccess, showError } = useToast();
   const [reviewNoteEn, setReviewNoteEn] = useState("");
   const [saving, setSaving] = useState(false);

@@ -1,15 +1,26 @@
-import type { AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
-import type { AttendanceScopeType } from "@/features/attendance/policies/types";
-
 // ─── Primitive enums (lowercase, matching API values) ──────────────────────
 export type BehaviorType = "positive" | "negative";
 export type BehaviorStatus = "draft" | "submitted" | "approved" | "rejected";
 export type BehaviorSeverity = "low" | "medium" | "high";
 
-// ─── Legacy scope filters (kept for AttendanceScopeHeader) ─────────────────
-export interface AttendanceBehaviorFilters {
-  scopeType: AttendanceScopeType;
-  scopeIds: AttendanceScopeIds;
+// ─── Scope filter types (self-contained, no attendance dependency) ──────────
+export type BehaviorScopeType =
+  | "SCHOOL"
+  | "STAGE"
+  | "GRADE"
+  | "SECTION"
+  | "CLASSROOM";
+
+export type BehaviorScopeIds = {
+  stageId?: string;
+  gradeId?: string;
+  sectionId?: string;
+  classroomId?: string;
+};
+
+export interface BehaviorFilters {
+  scopeType: BehaviorScopeType;
+  scopeIds: BehaviorScopeIds;
   dateFrom?: string;
   dateTo?: string;
   search?: string;
@@ -221,15 +232,99 @@ export interface BehaviorOverviewFilters {
   academicYearId?: string;
   termId?: string;
   classroomId?: string;
-  includeRecentActivity?: boolean;
-  includeTopCategories?: boolean;
+  studentId?: string;
 }
 
 /** GET /behavior/overview → response */
 export interface BehaviorOverviewResponse {
-  summary: Record<string, unknown>;
-  recentActivity: unknown[];
-  topCategories: unknown[];
+  scope: {
+    academicYearId: string;
+    termId: string;
+    studentId: string | null;
+    classroomId: string | null;
+    occurredFrom: string | null;
+    occurredTo: string | null;
+  };
+  records: {
+    total: number;
+    draft: number;
+    submitted: number;
+    approved: number;
+    rejected: number;
+    cancelled: number;
+    positive: number;
+    negative: number;
+  };
+  severity: {
+    low: number;
+    medium: number;
+    high: number;
+    critical: number;
+  };
+  review: {
+    pendingReview: number;
+    reviewed: number;
+    approvalRate: number;
+    rejectionRate: number;
+  };
+  points: {
+    totalPoints: number;
+    positivePoints: number;
+    negativePoints: number;
+    awardEntries: number;
+    penaltyEntries: number;
+    studentsWithPoints: number;
+    averagePointsPerStudent: number;
+  };
+  categories: {
+    totalCategories: number;
+    activeCategories: number;
+    inactiveCategories: number;
+    topCategories: BehaviorOverviewTopCategory[];
+  };
+  recentActivity: BehaviorOverviewRecentItem[];
+  topStudents: BehaviorOverviewTopStudent[];
+}
+
+export interface BehaviorOverviewTopCategory {
+  categoryId: string;
+  code: string;
+  nameEn: string;
+  nameAr: string;
+  type: BehaviorType;
+  totalRecords: number;
+  approvedRecords: number;
+  totalPoints: number;
+}
+
+export interface BehaviorOverviewRecentItem {
+  id: string;
+  status: string;
+  type: BehaviorType;
+  severity: string;
+  studentId: string;
+  categoryId: string;
+  points: number;
+  occurredAt: string;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  cancelledAt: string | null;
+}
+
+export interface BehaviorOverviewTopStudent {
+  studentId: string;
+  student: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    displayName: string;
+    nameAr: string | null;
+    code: string | null;
+    admissionNo: string | null;
+  };
+  totalPoints: number;
+  positivePoints: number;
+  negativePoints: number;
 }
 
 export interface BehaviorStudentSummaryFilters {
