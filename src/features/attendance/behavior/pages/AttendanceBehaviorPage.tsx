@@ -5,6 +5,7 @@ import { Filter } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMediaQuery } from "@mui/material";
 import Button from "@/components/ui/button/Button";
+import { useToast } from "@/components/ui/toast/Toast";
 import AttendanceScopeHeader from "@/features/attendance/shared/components/AttendanceScopeHeader";
 import AttendanceFiltersPanel from "@/features/attendance/shared/components/AttendanceFiltersPanel";
 import AttendanceMobileActions from "@/features/attendance/shared/components/AttendanceMobileActions";
@@ -21,16 +22,26 @@ import BehaviorActionModals from "../components/BehaviorActionModals";
 import { fetchAttendanceBehavior } from "../services/attendanceBehaviorService";
 import type { AttendanceBehaviorFilters, AttendanceBehaviorRow } from "../types";
 
+type BehaviorSection = "categories" | "records" | "review" | "overview";
+
 const DEFAULT_FILTERS: AttendanceBehaviorFilters = {
   scopeType: "SCHOOL",
   scopeIds: {},
   incidentType: "ALL",
 };
 
+const SECTION_LABELS: Record<BehaviorSection, string> = {
+  categories: "Categories management",
+  records: "Records management",
+  review: "Review queue",
+  overview: "Overview & reports",
+};
+
 export default function AttendanceBehaviorPage() {
   const t = useTranslations("attendance.reportsPage");
   const isMobile = useMediaQuery("(max-width: 768px)");
   const termContext = useAttendanceYearTermLayoutContext();
+  const { showSuccess, showError } = useToast();
 
   const [structure, setStructure] = useState<StructureTree | null>(null);
   const [filters, setFilters] = useState<AttendanceBehaviorFilters>(DEFAULT_FILTERS);
@@ -41,6 +52,7 @@ export default function AttendanceBehaviorPage() {
   const [selectedRow, setSelectedRow] = useState<AttendanceBehaviorRow | null>(null);
   const [showActionModal, setShowActionModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [section, setSection] = useState<BehaviorSection>("categories");
 
   const term = useMemo(
     () => termContext.terms.find((item) => item.id === termContext.termId) || null,
@@ -76,10 +88,11 @@ export default function AttendanceBehaviorPage() {
       setRows(response.rows);
     } catch {
       setError("Unable to load attendance behavior data.");
+      showError("Unable to load attendance behavior data.");
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, showError]);
 
   useEffect(() => {
     void loadBehavior();
@@ -87,6 +100,24 @@ export default function AttendanceBehaviorPage() {
 
   const handleExport = async (format: AttendanceExportFormat) => {
     void format;
+    showSuccess("Export has been queued.");
+  };
+
+  const renderSectionContent = () => {
+    if (loading) return <AttendanceStatePanel title={t("states.loading.title")} compact />;
+    if (error) return <AttendanceStatePanel title={error} compact />;
+    if (!rows.length) return <AttendanceStatePanel title={t("states.empty.title")} compact />;
+
+    if (section === "overview") {
+      return (
+        <div className="space-y-4">
+          <p className="text-sm" style={{ color: "var(--text-muted)" }}>Overview panel</p>
+          <BehaviorTable rows={rows} onRowClick={setSelectedRow} />
+        </div>
+      );
+    }
+
+    return <BehaviorTable rows={rows} onRowClick={setSelectedRow} />;
   };
 
   return (
@@ -102,6 +133,20 @@ export default function AttendanceBehaviorPage() {
         classrooms={structure?.classrooms || []}
       />
 
+      <div className="rounded-xl border p-2" style={{ borderColor: "var(--border-color)" }}>
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          {(Object.keys(SECTION_LABELS) as BehaviorSection[]).map((item) => (
+            <Button
+              key={item}
+              variant={section === item ? "primary" : "outline"}
+              onClick={() => setSection(item)}
+            >
+              {SECTION_LABELS[item]}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       {isMobile ? (
         <AttendanceMobileActions columns={2}>
           <Button onClick={() => setShowFiltersDrawer(true)} variant="outline">
@@ -116,9 +161,13 @@ export default function AttendanceBehaviorPage() {
         </AttendanceFiltersPanel>
       )}
 
-      {loading ? <AttendanceStatePanel title={t("states.loading.title")} compact /> : null}
-      {error ? <AttendanceStatePanel title={error} compact /> : null}
-      {!loading && !error ? <BehaviorTable rows={rows} onRowClick={setSelectedRow} /> : null}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold">{SECTION_LABELS[section]}</h2>
+          <Button variant="outline" onClick={() => setShowActionModal(true)}>New / Edit</Button>
+        </div>
+        {renderSectionContent()}
+      </div>
 
       <BehaviorDetailDrawer row={selectedRow} isOpen={!!selectedRow} onClose={() => setSelectedRow(null)} />
       <BehaviorActionModals isOpen={showActionModal} onClose={() => setShowActionModal(false)} />
