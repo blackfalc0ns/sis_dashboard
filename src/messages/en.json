@@ -5610,6 +5610,142 @@
         }
       }
     },
+    "behavior": {
+      "title": "Behavior & Discipline",
+      "subtitle": "Manage student behavior records",
+      "sections": {
+        "categories": "Categories",
+        "records": "Records",
+        "review": "Review Queue",
+        "overview": "Overview"
+      },
+      "filters": {
+        "title": "Filters",
+        "search": "Search",
+        "searchPlaceholder": "Search by student or category...",
+        "type": "Type",
+        "allTypes": "All Types",
+        "positive": "Positive",
+        "negative": "Negative",
+        "status": "Status",
+        "allStatuses": "All Statuses",
+        "draft": "Draft",
+        "submitted": "Submitted",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "dateFrom": "Date From",
+        "dateTo": "Date To",
+        "reset": "Reset"
+      },
+      "table": {
+        "occurredAt": "Date",
+        "student": "Student",
+        "title": "Title",
+        "type": "Type",
+        "status": "Status",
+        "points": "Points",
+        "category": "Category",
+        "actions": "Actions"
+      },
+      "status": {
+        "draft": "Draft",
+        "submitted": "Submitted",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "type": {
+        "positive": "Positive",
+        "negative": "Negative"
+      },
+      "actions": {
+        "newCategory": "New Category",
+        "newRecord": "New Record",
+        "submit": "Submit",
+        "approve": "Approve",
+        "reject": "Reject",
+        "edit": "Edit",
+        "view": "View"
+      },
+      "states": {
+        "loading": { "title": "Loading behavior data..." },
+        "empty": { "title": "No records found" },
+        "error": { "title": "Failed to load data" }
+      },
+      "drawer": {
+        "title": "Behavior Record Detail",
+        "submittedAt": "Submitted At",
+        "approvedAt": "Approved At"
+      },
+      "modal": {
+        "createCategory": "New Category",
+        "editCategory": "Edit Category",
+        "createRecord": "New Record",
+        "editRecord": "Edit Record",
+        "submitRecord": "Submit Record",
+        "approveRecord": "Approve Record",
+        "rejectRecord": "Reject Record",
+        "reviewerNote": "Reviewer Note",
+        "approvedPoints": "Approved Points",
+        "cancel": "Cancel",
+        "save": "Save",
+        "confirmSubmit": "Are you sure you want to submit this record for review?"
+      },
+      "messages": {
+        "categoryCreated": "Category created successfully",
+        "categoryUpdated": "Category updated successfully",
+        "recordCreated": "Record created successfully",
+        "recordUpdated": "Record updated successfully",
+        "recordSubmitted": "Record submitted for review",
+        "recordApproved": "Record approved",
+        "recordRejected": "Record rejected",
+        "loadError": "Unable to load behavior data",
+        "exportQueued": "Export has been queued"
+      },
+      "category": {
+        "code": "Code",
+        "nameEn": "Name (English)",
+        "nameAr": "Name (Arabic)",
+        "descriptionEn": "Description (English)",
+        "descriptionAr": "Description (Arabic)",
+        "type": "Type",
+        "severity": "Default Severity",
+        "points": "Default Points",
+        "sortOrder": "Sort Order",
+        "isActive": "Active",
+        "actions": "Actions",
+        "active": "Active",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "record": {
+        "title": "Title",
+        "titleEn": "Title (English)",
+        "titleAr": "Title (Arabic)",
+        "noteEn": "Note (English)",
+        "noteAr": "Note (Arabic)",
+        "note": "Note",
+        "occurredAt": "Occurred At",
+        "severity": "Severity",
+        "points": "Points",
+        "studentId": "Student ID",
+        "categoryId": "Category ID"
+      },
+      "overview": {
+        "totalRecords": "Total Records",
+        "submittedRecords": "Submitted",
+        "approvedRecords": "Approved",
+        "rejectedRecords": "Rejected",
+        "totalPositivePoints": "Total Positive Points",
+        "totalNegativePoints": "Total Negative Points",
+        "netPoints": "Net Points",
+        "recentActivity": "Recent Activity",
+        "topCategories": "Top Categories"
+      },
+      "export": {
+        "title": "Export behavior data"
+      }
+    },
     "export": {
       "title": "Export attendance data",
       "subtitle": "Download the current attendance view in your preferred format.",

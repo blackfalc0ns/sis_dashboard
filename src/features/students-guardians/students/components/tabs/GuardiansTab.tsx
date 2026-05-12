@@ -89,7 +89,15 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
   const handleAddGuardian = async (guardianData: GuardianFormData) => {
     setError(null);
     try {
-      const guardian = await studentsService.createGuardian(guardianData);
+      const payload = {
+        ...guardianData,
+        phone_primary: guardianData.phone_primary ?? undefined,
+        phone_secondary: guardianData.phone_secondary ?? undefined,
+        national_id: guardianData.national_id ?? undefined,
+        job_title: guardianData.job_title ?? undefined,
+        workplace: guardianData.workplace ?? undefined,
+      };
+      const guardian = await studentsService.createGuardian(payload);
       await studentsService.linkGuardianToStudent(student.id, {
         guardianId: guardian.guardianId,
         is_primary: guardianData.is_primary,

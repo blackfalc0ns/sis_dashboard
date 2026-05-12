@@ -275,7 +275,15 @@ export default function GuardiansList() {
   const handleCreateGuardian = async (guardianData: GuardianFormData) => {
     try {
       setPageError(null);
-      const createdGuardian = await studentsService.createGuardian(guardianData);
+      const payload = {
+        ...guardianData,
+        phone_primary: guardianData.phone_primary ?? undefined,
+        phone_secondary: guardianData.phone_secondary ?? undefined,
+        national_id: guardianData.national_id ?? undefined,
+        job_title: guardianData.job_title ?? undefined,
+        workplace: guardianData.workplace ?? undefined,
+      };
+      const createdGuardian = await studentsService.createGuardian(payload);
       setGuardians((currentGuardians) => [createdGuardian, ...currentGuardians]);
       setScopedGuardianIds((currentIds) => {
         const nextIds = new Set(currentIds);

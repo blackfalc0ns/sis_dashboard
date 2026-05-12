@@ -1,49 +1,33 @@
 import type { AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
 import type { AttendanceScopeType } from "@/features/attendance/policies/types";
 
-export type BehaviorType = "POSITIVE" | "NEGATIVE";
-export type BehaviorStatus =
-  | "DRAFT"
-  | "SUBMITTED"
-  | "APPROVED"
-  | "REJECTED"
-  | "CANCELLED";
-export type BehaviorSeverity = "LOW" | "MEDIUM" | "HIGH";
-export type BehaviorPointsSign = "+" | "-";
+// ─── Primitive enums (lowercase, matching API values) ──────────────────────
+export type BehaviorType = "positive" | "negative";
+export type BehaviorStatus = "draft" | "submitted" | "approved" | "rejected";
+export type BehaviorSeverity = "low" | "medium" | "high";
 
+// ─── Legacy scope filters (kept for AttendanceScopeHeader) ─────────────────
 export interface AttendanceBehaviorFilters {
   scopeType: AttendanceScopeType;
   scopeIds: AttendanceScopeIds;
   dateFrom?: string;
   dateTo?: string;
   search?: string;
-  incidentType?: "ALL" | BehaviorType;
+  type?: BehaviorType;
+  status?: BehaviorStatus;
 }
 
-export interface AttendanceBehaviorRow {
-  id: string;
-  studentName: string;
-  studentNumber: string;
-  behaviorType: BehaviorType;
-  points: number;
-  incidentDate: string;
-  note?: string;
-}
-
-export interface AttendanceBehaviorResponse {
-  rows: AttendanceBehaviorRow[];
-  total: number;
-}
-
+// ─── Category ──────────────────────────────────────────────────────────────
 export interface BehaviorCategory {
   id: string;
   code: string;
-  name: string;
-  description?: string;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
   type: BehaviorType;
   defaultSeverity: BehaviorSeverity;
   defaultPoints: number;
-  pointsSign: BehaviorPointsSign;
   isActive: boolean;
   sortOrder: number;
   createdAt?: string;
@@ -52,24 +36,39 @@ export interface BehaviorCategory {
 
 export interface BehaviorCategoryCreatePayload {
   code: string;
-  name: string;
-  description?: string;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
   type: BehaviorType;
   defaultSeverity: BehaviorSeverity;
   defaultPoints: number;
-  pointsSign: BehaviorPointsSign;
   isActive?: boolean;
   sortOrder?: number;
 }
 
 export interface BehaviorCategoryUpdatePayload {
   code?: string;
-  name?: string;
-  description?: string;
+  nameEn?: string;
+  nameAr?: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
   defaultSeverity?: BehaviorSeverity;
   defaultPoints?: number;
-  pointsSign?: BehaviorPointsSign;
   isActive?: boolean;
+  sortOrder?: number;
+}
+
+/** POST /behavior/categories → response */
+export interface BehaviorCategoryCreateResponse {
+  id: string;
+  type: BehaviorType;
+  defaultPoints: number;
+}
+
+/** PATCH /behavior/categories/:id → response */
+export interface BehaviorCategoryUpdateResponse {
+  id: string;
   sortOrder?: number;
 }
 
@@ -77,28 +76,33 @@ export interface BehaviorCategoryListFilters {
   type?: BehaviorType;
   isActive?: boolean;
   search?: string;
-  page?: number;
-  pageSize?: number;
 }
 
+/** GET /behavior/categories → items shape */
 export interface BehaviorCategoryListResponse {
-  data: BehaviorCategory[];
-  total: number;
+  items: BehaviorCategory[];
+  total?: number;
 }
 
+// ─── Record ────────────────────────────────────────────────────────────────
 export interface BehaviorRecord {
   id: string;
+  academicYearId?: string;
+  termId?: string;
   studentId: string;
+  enrollmentId?: string;
   categoryId: string;
   categoryName?: string;
-  type: BehaviorType;
+  titleEn?: string;
+  titleAr?: string;
+  noteEn?: string;
+  noteAr?: string;
+  type?: BehaviorType;
   status: BehaviorStatus;
   severity?: BehaviorSeverity;
   points: number;
-  pointsSign: BehaviorPointsSign;
   occurredAt: string;
-  note?: string;
-  reviewerNote?: string;
+  reviewNoteEn?: string;
   submittedAt?: string;
   approvedAt?: string;
   createdById?: string;
@@ -107,101 +111,154 @@ export interface BehaviorRecord {
 }
 
 export interface BehaviorRecordCreatePayload {
+  academicYearId: string;
+  termId: string;
   studentId: string;
+  enrollmentId?: string;
   categoryId: string;
+  titleEn?: string;
+  titleAr?: string;
+  noteEn?: string;
+  noteAr?: string;
   occurredAt: string;
-  note?: string;
-  points?: number;
-  severity?: BehaviorSeverity;
 }
 
 export interface BehaviorRecordUpdatePayload {
-  categoryId?: string;
-  occurredAt?: string;
-  note?: string;
+  titleEn?: string;
+  titleAr?: string;
+  noteEn?: string;
+  noteAr?: string;
   points?: number;
   severity?: BehaviorSeverity;
 }
 
+/** POST /behavior/records → response */
+export interface BehaviorRecordCreateResponse {
+  id: string;
+  status: BehaviorStatus;
+  type: BehaviorType;
+  points: number;
+}
+
+/** POST /behavior/records/:id/submit → response */
+export interface BehaviorSubmitResponse {
+  id: string;
+  status: BehaviorStatus;
+  submittedAt: string;
+}
+
 export interface BehaviorRecordApprovePayload {
-  reviewerNote?: string;
-  approvedPoints?: number;
+  reviewNoteEn?: string;
+  pointsOverride?: number;
+}
+
+/** POST /behavior/records/:id/approve → response */
+export interface BehaviorApproveResponse {
+  record: {
+    id: string;
+    status: BehaviorStatus;
+    points: number;
+  };
+}
+
+export interface BehaviorRecordRejectPayload {
+  reviewNoteEn?: string;
+}
+
+/** POST /behavior/records/:id/reject → response */
+export interface BehaviorRejectResponse {
+  record: {
+    id: string;
+    status: BehaviorStatus;
+  };
 }
 
 export interface BehaviorRecordListFilters {
+  academicYearId?: string;
+  termId?: string;
   studentId?: string;
-  classroomId?: string;
   status?: BehaviorStatus;
   type?: BehaviorType;
   dateFrom?: string;
   dateTo?: string;
-  page?: number;
-  pageSize?: number;
 }
 
+/** GET /behavior/records → items shape */
 export interface BehaviorRecordListResponse {
-  data: BehaviorRecord[];
-  total: number;
+  items: BehaviorRecord[];
+  total?: number;
 }
 
+// ─── Review Queue ──────────────────────────────────────────────────────────
 export interface BehaviorReviewQueueItem {
   id: string;
-  recordId: string;
-  studentId: string;
-  studentName: string;
-  categoryId: string;
-  categoryName: string;
-  type: BehaviorType;
+  recordId?: string;
+  studentId?: string;
+  studentName?: string;
+  categoryId?: string;
+  categoryName?: string;
+  type?: BehaviorType;
   status: BehaviorStatus;
-  points: number;
-  pointsSign: BehaviorPointsSign;
-  occurredAt: string;
-  submittedAt: string;
+  points?: number;
+  occurredAt?: string;
+  submittedAt?: string;
 }
 
 export interface BehaviorReviewQueueFilters {
-  status?: Extract<BehaviorStatus, "SUBMITTED" | "APPROVED" | "REJECTED">;
-  type?: BehaviorType;
-  dateFrom?: string;
-  dateTo?: string;
-  page?: number;
-  pageSize?: number;
-}
-
-export interface BehaviorReviewQueueResponse {
-  data: BehaviorReviewQueueItem[];
-  total: number;
-}
-
-export interface BehaviorOverviewFilters {
-  dateFrom?: string;
-  dateTo?: string;
-  classroomId?: string;
-  gradeId?: string;
-}
-
-export interface BehaviorOverviewResponse {
-  totalRecords: number;
-  submittedRecords: number;
-  approvedRecords: number;
-  rejectedRecords: number;
-  totalPositivePoints: number;
-  totalNegativePoints: number;
-  netPoints: number;
-}
-
-export interface BehaviorSummaryFilters {
-  dateFrom?: string;
-  dateTo?: string;
+  academicYearId?: string;
   termId?: string;
+  studentId?: string;
 }
 
-export interface BehaviorSummaryResponse {
-  entityId: string;
-  totalRecords: number;
-  positiveCount: number;
-  negativeCount: number;
-  totalPositivePoints: number;
-  totalNegativePoints: number;
-  netPoints: number;
+/** GET /behavior/review-queue → items shape */
+export interface BehaviorReviewQueueResponse {
+  items: BehaviorReviewQueueItem[];
+  total?: number;
+}
+
+// ─── Dashboard / Overview ──────────────────────────────────────────────────
+export interface BehaviorOverviewFilters {
+  academicYearId?: string;
+  termId?: string;
+  classroomId?: string;
+  includeRecentActivity?: boolean;
+  includeTopCategories?: boolean;
+}
+
+/** GET /behavior/overview → response */
+export interface BehaviorOverviewResponse {
+  summary: Record<string, unknown>;
+  recentActivity: unknown[];
+  topCategories: unknown[];
+}
+
+export interface BehaviorStudentSummaryFilters {
+  academicYearId?: string;
+  termId?: string;
+  includeTimeline?: boolean;
+  includeCategoryBreakdown?: boolean;
+  includeLedger?: boolean;
+}
+
+/** GET /behavior/students/:studentId/summary → response */
+export interface BehaviorStudentSummaryResponse {
+  student: Record<string, unknown>;
+  timeline: unknown[];
+  categoryBreakdown: unknown[];
+  ledger: unknown[];
+}
+
+export interface BehaviorClassroomSummaryFilters {
+  academicYearId?: string;
+  termId?: string;
+  includeStudents?: boolean;
+  includeCategoryBreakdown?: boolean;
+  includeRecentActivity?: boolean;
+}
+
+/** GET /behavior/classrooms/:classroomId/summary → response */
+export interface BehaviorClassroomSummaryResponse {
+  students: unknown[];
+  categoryBreakdown: unknown[];
+  recentActivity: unknown[];
 }

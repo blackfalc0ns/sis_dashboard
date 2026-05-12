@@ -5647,7 +5647,142 @@
         "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
       }
     },
-    "behavior": "السلوك",
+    "behavior": {
+      "title": "السلوك والانضباط",
+      "subtitle": "إدارة سجلات السلوك الطلابي",
+      "sections": {
+        "categories": "الفئات",
+        "records": "السجلات",
+        "review": "قائمة المراجعة",
+        "overview": "نظرة عامة"
+      },
+      "filters": {
+        "title": "الفلاتر",
+        "search": "بحث",
+        "searchPlaceholder": "ابحث عن طالب أو فئة...",
+        "type": "النوع",
+        "allTypes": "جميع الأنواع",
+        "positive": "إيجابي",
+        "negative": "سلبي",
+        "status": "الحالة",
+        "allStatuses": "جميع الحالات",
+        "draft": "مسودة",
+        "submitted": "مقدّم",
+        "approved": "معتمد",
+        "rejected": "مرفوض",
+        "dateFrom": "من تاريخ",
+        "dateTo": "إلى تاريخ",
+        "reset": "إعادة تعيين"
+      },
+      "table": {
+        "occurredAt": "التاريخ",
+        "student": "الطالب",
+        "title": "العنوان",
+        "type": "النوع",
+        "status": "الحالة",
+        "points": "النقاط",
+        "category": "الفئة",
+        "actions": "الإجراءات"
+      },
+      "status": {
+        "draft": "مسودة",
+        "submitted": "مقدّم",
+        "approved": "معتمد",
+        "rejected": "مرفوض"
+      },
+      "type": {
+        "positive": "إيجابي",
+        "negative": "سلبي"
+      },
+      "actions": {
+        "newCategory": "فئة جديدة",
+        "newRecord": "سجل جديد",
+        "submit": "تقديم",
+        "approve": "اعتماد",
+        "reject": "رفض",
+        "edit": "تعديل",
+        "view": "عرض"
+      },
+      "states": {
+        "loading": { "title": "جارٍ تحميل بيانات السلوك..." },
+        "empty": { "title": "لا توجد سجلات" },
+        "error": { "title": "فشل تحميل البيانات" }
+      },
+      "drawer": {
+        "title": "تفاصيل سجل السلوك",
+        "submittedAt": "تاريخ التقديم",
+        "approvedAt": "تاريخ الاعتماد"
+      },
+      "modal": {
+        "createCategory": "فئة جديدة",
+        "editCategory": "تعديل الفئة",
+        "createRecord": "سجل جديد",
+        "editRecord": "تعديل السجل",
+        "submitRecord": "تقديم السجل",
+        "approveRecord": "اعتماد السجل",
+        "rejectRecord": "رفض السجل",
+        "reviewerNote": "ملاحظة المراجع",
+        "approvedPoints": "النقاط المعتمدة",
+        "cancel": "إلغاء",
+        "save": "حفظ",
+        "confirmSubmit": "هل أنت متأكد من تقديم هذا السجل للمراجعة؟"
+      },
+      "messages": {
+        "categoryCreated": "تم إنشاء الفئة بنجاح",
+        "categoryUpdated": "تم تحديث الفئة بنجاح",
+        "recordCreated": "تم إنشاء السجل بنجاح",
+        "recordUpdated": "تم تحديث السجل بنجاح",
+        "recordSubmitted": "تم تقديم السجل للمراجعة",
+        "recordApproved": "تم اعتماد السجل",
+        "recordRejected": "تم رفض السجل",
+        "loadError": "تعذّر تحميل بيانات السلوك",
+        "exportQueued": "جارٍ تجهيز التصدير"
+      },
+      "category": {
+        "code": "الرمز",
+        "nameEn": "الاسم (إنجليزي)",
+        "nameAr": "الاسم (عربي)",
+        "descriptionEn": "الوصف (إنجليزي)",
+        "descriptionAr": "الوصف (عربي)",
+        "type": "النوع",
+        "severity": "الخطورة الافتراضية",
+        "points": "النقاط الافتراضية",
+        "sortOrder": "الترتيب",
+        "isActive": "نشط",
+        "actions": "الإجراءات",
+        "active": "نشط",
+        "low": "منخفض",
+        "medium": "متوسط",
+        "high": "مرتفع"
+      },
+      "record": {
+        "title": "العنوان",
+        "titleEn": "العنوان (إنجليزي)",
+        "titleAr": "العنوان (عربي)",
+        "noteEn": "الملاحظة (إنجليزية)",
+        "noteAr": "الملاحظة (عربية)",
+        "note": "الملاحظة",
+        "occurredAt": "تاريخ الحادثة",
+        "severity": "الخطورة",
+        "points": "النقاط",
+        "studentId": "رقم الطالب",
+        "categoryId": "رقم الفئة"
+      },
+      "overview": {
+        "totalRecords": "إجمالي السجلات",
+        "submittedRecords": "المقدّمة",
+        "approvedRecords": "المعتمدة",
+        "rejectedRecords": "المرفوضة",
+        "totalPositivePoints": "مجموع النقاط الإيجابية",
+        "totalNegativePoints": "مجموع النقاط السلبية",
+        "netPoints": "صافي النقاط",
+        "recentActivity": "النشاط الأخير",
+        "topCategories": "أبرز الفئات"
+      },
+      "export": {
+        "title": "تصدير بيانات السلوك"
+      }
+    },
     "behaviorDesc": "مخالفات السلوك واتجاهات الانضباط"
   },
   "settings": {

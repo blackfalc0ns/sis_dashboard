@@ -501,7 +501,6 @@ export default function AttendanceExcusesPage() {
       <div className="flex-1 p-4 flex flex-col gap-4 min-h-0" style={{ backgroundColor: "var(--background)" }}>
         <AttendanceScopeHeader
           isReadOnly={isReadOnly}
-          readOnlyMessage={t("readonlyBanner")}
           scopeType={filters.scopeType}
           scopeIds={filters.scopeIds}
           stages={stages}

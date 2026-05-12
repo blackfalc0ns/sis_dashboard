@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -609,7 +609,6 @@ export default function AttendanceReportsPage() {
         {structure ? (
           <AttendanceScopeHeader
             isReadOnly={termContext.isReadOnly}
-            readOnlyMessage={t("readonlyBanner")}
             scopeType={filters.scopeType}
             scopeIds={filters.scopeIds}
             stages={structure.stages}

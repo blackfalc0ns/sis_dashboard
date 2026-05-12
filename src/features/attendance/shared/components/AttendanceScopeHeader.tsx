@@ -9,11 +9,13 @@ import type {
   Stage,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { AttendanceScopeType } from "@/features/attendance/policies/types";
-import { isScopeSelectionComplete, type AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
+import {
+  isScopeSelectionComplete,
+  type AttendanceScopeIds,
+} from "@/features/attendance/shared/attendanceScope";
 
 interface AttendanceScopeHeaderProps {
   isReadOnly: boolean;
-  readOnlyMessage: string;
   scopeType: AttendanceScopeType;
   scopeIds?: AttendanceScopeIds;
   stages: Stage[];
@@ -25,7 +27,6 @@ interface AttendanceScopeHeaderProps {
 
 export default function AttendanceScopeHeader({
   isReadOnly,
-  readOnlyMessage,
   scopeType,
   scopeIds,
   stages,
@@ -42,7 +43,9 @@ export default function AttendanceScopeHeader({
 
   return (
     <div className={containerClassName}>
-      {isReadOnly ? <AttendanceReadOnlyBanner message={readOnlyMessage} /> : null}
+      {isReadOnly ? (
+        <AttendanceReadOnlyBanner message={"This is a read-only view"} />
+      ) : null}
       {canShowScope ? (
         <div
           className="rounded-lg border px-4 py-3"

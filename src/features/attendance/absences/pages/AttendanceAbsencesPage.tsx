@@ -456,7 +456,6 @@ export default function AttendanceAbsencesPage() {
       <div className="flex-1 flex flex-col gap-4 p-4 min-h-0">
         <AttendanceScopeHeader
           isReadOnly={isReadOnly}
-          readOnlyMessage={t("readonly_banner")}
           scopeType={filters.scopeType}
           scopeIds={filters.scopeIds}
           stages={structureTree?.stages || []}
