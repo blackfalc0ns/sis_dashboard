@@ -409,6 +409,14 @@ export const menuItems: MenuItem[] = [
         icon: Clock,
       },
       {
+        key: "attendance-behavior",
+        label_en: "Behavior",
+        label_ar: "السلوك",
+        href_en: "/en/attendance/behavior",
+        href_ar: "/ar/attendance/behavior",
+        icon: ShieldCheck,
+      },
+      {
         key: "attendance-excuses",
         label_en: "Excuses",
         label_ar: "الأعذار",
