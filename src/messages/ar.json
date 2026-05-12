@@ -5646,6 +5646,106 @@
         "noData": "لا توجد بيانات في العرض الحالي للتصدير.",
         "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
       }
+    },
+    "behavior": {
+      "title": "متابعة السلوك",
+      "subtitle": "تتبع مخالفات ومبادرات سلوك الطلاب",
+      "description": "إدارة سجلات السلوك وعمليات الاعتماد وإجراءات المتابعة",
+      "filters": {
+        "title": "التصفية",
+        "searchPlaceholder": "ابحث باسم الطالب أو الرقم...",
+        "dateFrom": "من تاريخ",
+        "dateTo": "إلى تاريخ",
+        "type": "النوع",
+        "allTypes": "جميع الأنواع",
+        "severity": "الشدة",
+        "allSeverities": "جميع درجات الشدة",
+        "status": "الحالة",
+        "allStatuses": "جميع الحالات",
+        "category": "الفئة",
+        "allCategories": "جميع الفئات",
+        "reviewQueueOnly": "قائمة المراجعة فقط",
+        "apply": "تطبيق",
+        "reset": "إعادة تعيين"
+      },
+      "table": {
+        "date": "التاريخ",
+        "student": "الطالب",
+        "classroom": "الفصل",
+        "type": "النوع",
+        "category": "الفئة",
+        "severity": "الشدة",
+        "status": "الحالة",
+        "reportedBy": "تم الإبلاغ بواسطة",
+        "actions": "الإجراءات",
+        "empty": "لا توجد سجلات سلوك"
+      },
+      "actions": {
+        "addRecord": "إضافة سجل",
+        "editRecord": "تعديل السجل",
+        "viewRecord": "عرض السجل",
+        "submit": "تقديم",
+        "approve": "اعتماد",
+        "reject": "رفض",
+        "returnToDraft": "إرجاع إلى مسودة",
+        "export": "تصدير"
+      },
+      "status": {
+        "draft": "مسودة",
+        "submitted": "مقدم",
+        "approved": "معتمد",
+        "rejected": "مرفوض"
+      },
+      "categories": {
+        "positive": "إيجابي",
+        "negative": "سلبي"
+      },
+      "records": {
+        "title": "سجل السلوك",
+        "incidentDetails": "تفاصيل الواقعة",
+        "notes": "ملاحظات",
+        "attachments": "المرفقات",
+        "createdAt": "تاريخ الإنشاء",
+        "updatedAt": "آخر تحديث",
+        "noNotes": "لا توجد ملاحظات مضافة"
+      },
+      "reviewQueue": {
+        "title": "قائمة المراجعة",
+        "subtitle": "السجلات بانتظار الاعتماد",
+        "empty": "لا توجد سجلات بانتظار المراجعة"
+      },
+      "dashboard": {
+        "title": "لوحة السلوك",
+        "totalRecords": "إجمالي السجلات",
+        "positiveRecords": "السجلات الإيجابية",
+        "negativeRecords": "السجلات السلبية",
+        "pendingReview": "بانتظار المراجعة"
+      },
+      "validation": {
+        "studentRequired": "الطالب مطلوب",
+        "typeRequired": "النوع مطلوب",
+        "categoryRequired": "الفئة مطلوبة",
+        "statusRequired": "الحالة مطلوبة",
+        "severityRequired": "الشدة مطلوبة",
+        "notesRequired": "الملاحظات مطلوبة"
+      },
+      "enums": {
+        "type": {
+          "positive": "إيجابي",
+          "negative": "سلبي"
+        },
+        "severity": {
+          "low": "منخفض",
+          "medium": "متوسط",
+          "high": "مرتفع"
+        },
+        "recordStatus": {
+          "draft": "مسودة",
+          "submitted": "مقدم",
+          "approved": "معتمد",
+          "rejected": "مرفوض"
+        }
+      }
     }
   },
   "settings": {
