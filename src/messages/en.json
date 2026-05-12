@@ -5644,7 +5644,9 @@
         "noData": "There is no data in the current view to export.",
         "exportFailedGeneric": "Export failed. Please try again."
       }
-    }
+    },
+    "behavior": "Behavior",
+    "behaviorDesc": "Behavior incidents and discipline trends"
   },
   "settings": {
     "access": {
