@@ -47,10 +47,18 @@ import { isApiError } from "@/lib/api-error";
 import { getValidationFieldErrors } from "@/lib/validation-errors";
 import type {
   RoleDefinition,
+  SettingsUserPayloadDto,
   SettingsUserRecord,
 } from "@/features/settings/types";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import { usePermissions } from "@/hooks/usePermissions";
+
+type UserEditorField =
+  | "fullName"
+  | "username"
+  | "contactEmail"
+  | "email"
+  | "roleId";
 
 export default function SettingsUsersPage() {
   const locale = useLocale();
@@ -75,7 +83,7 @@ export default function SettingsUsersPage() {
   const [limit, setLimit] = useState(10);
   const [totalUsers, setTotalUsers] = useState(0);
   const [modalFieldErrors, setModalFieldErrors] = useState<
-    Partial<Record<"fullName" | "email" | "roleId", string>>
+    Partial<Record<UserEditorField, string>>
   >({});
   const [modalError, setModalError] = useState<string | null>(null);
   const { values, setValue, replaceValues, reset } = useUrlQueryState<{
@@ -184,10 +192,13 @@ export default function SettingsUsersPage() {
     const columns: ExportColumn[] = [
       { key: "id", label: "ID" },
       { key: "fullName", label: t("table.name") },
-      { key: "email", label: t("table.email") },
+      { key: "username", label: t("table.username") },
+      { key: "email", label: t("table.login_email") },
+      { key: "contactEmail", label: t("table.contact_email") },
       { key: "role", label: t("table.role") },
       { key: "status", label: t("table.status") },
       { key: "lastActiveAt", label: t("table.last_active") },
+      { key: "credentialStatus", label: t("table.credential_status") },
       {
         key: "invitedAt",
         label: locale === "ar" ? "تاريخ الدعوة" : "Invited at",
@@ -200,12 +211,15 @@ export default function SettingsUsersPage() {
     const rows = users.map((user) => ({
       id: user.id,
       fullName: user.fullName,
+      username: user.username || "",
       email: user.email,
+      contactEmail: user.contactEmail || "",
       role: rolesMap.get(user.roleId) || user.roleId,
       status: t(`statuses.${user.status}`),
       lastActiveAt: user.lastActiveAt
         ? new Date(user.lastActiveAt).toLocaleString()
         : t("not_available"),
+      credentialStatus: getCredentialStatusLabel(user),
       invitedAt: user.invitedAt
         ? new Date(user.invitedAt).toLocaleString()
         : "",
@@ -233,7 +247,9 @@ export default function SettingsUsersPage() {
         },
         users: users.map((user) => ({
           ...user,
+          loginEmail: user.email,
           roleName: rolesMap.get(user.roleId) || user.roleId,
+          credentialStatus: getCredentialStatusLabel(user),
         })),
       },
     });
@@ -260,21 +276,38 @@ export default function SettingsUsersPage() {
     setLimit(result.pagination.limit);
   };
 
-  const handleModalSubmit = async (payload: {
-    fullName: string;
-    email: string;
-    roleId: string;
-  }) => {
+  const getCredentialStatusLabel = (user: SettingsUserRecord) => {
+    if (user.mustChangePassword) {
+      return t("credential_status.must_change_password");
+    }
+    if (user.hasPassword || user.passwordProvisionedAt) {
+      return t("credential_status.provisioned");
+    }
+    return t("credential_status.not_provisioned");
+  };
+
+  const handleModalSubmit = async (payload: SettingsUserPayloadDto) => {
     try {
       if (modalMode === "invite") {
-        await inviteSettingsUser(payload);
+        await inviteSettingsUser({
+          fullName: payload.fullName,
+          username: payload.username,
+          contactEmail: payload.contactEmail,
+          roleId: payload.roleId,
+        });
         showSuccess(t("messages.invited"));
       } else if (modalMode === "create") {
-        await createSettingsUser(payload);
+        await createSettingsUser({
+          fullName: payload.fullName,
+          username: payload.username,
+          contactEmail: payload.contactEmail,
+          roleId: payload.roleId,
+        });
         showSuccess(t("messages.created"));
       } else if (modalMode === "edit" && selectedUser) {
         await updateSettingsUser(selectedUser.id, {
           fullName: payload.fullName,
+          contactEmail: payload.contactEmail,
           roleId: payload.roleId,
         });
         showSuccess(t("messages.updated"));
@@ -286,13 +319,29 @@ export default function SettingsUsersPage() {
       setModalError(null);
     } catch (error) {
       const fieldErrors = getValidationFieldErrors(error);
-      if (isApiError(error) && error.code === "validation.failed") {
+      if (
+        isApiError(error) &&
+        ["validation.failed", "iam.user.email_taken", "iam.user.username_taken"].includes(
+          error.code,
+        )
+      ) {
         setModalFieldErrors({
           fullName: fieldErrors.fullName,
+          username:
+            fieldErrors.username ||
+            (error.code === "iam.user.username_taken" ? error.message : undefined),
+          contactEmail:
+            fieldErrors.contactEmail ||
+            fieldErrors.email ||
+            (error.code === "iam.user.email_taken" ? error.message : undefined),
           email: fieldErrors.email,
           roleId: fieldErrors.roleId,
         });
-        setModalError(tCommon("validation_failed"));
+        setModalError(
+          error.code === "validation.failed"
+            ? tCommon("validation_failed")
+            : error.message,
+        );
         return;
       }
       setModalFieldErrors({});
@@ -347,10 +396,38 @@ export default function SettingsUsersPage() {
         return (
           <div>
             <p className="font-semibold text-gray-900">{String(value)}</p>
-            <p className="mt-1 text-xs text-gray-500">{user.email}</p>
+            <p className="mt-1 text-xs text-gray-500">
+              {user.username || t("not_available")}
+            </p>
           </div>
         );
       },
+    },
+    {
+      key: "username",
+      label: t("table.username"),
+      searchable: true,
+      render: (value: unknown) => String(value || t("not_available")),
+    },
+    {
+      key: "email",
+      label: t("table.login_email"),
+      searchable: true,
+      render: (value: unknown) => (
+        <span className="break-all text-gray-700">
+          {String(value || t("not_available"))}
+        </span>
+      ),
+    },
+    {
+      key: "contactEmail",
+      label: t("table.contact_email"),
+      searchable: true,
+      render: (value: unknown) => (
+        <span className="break-all text-gray-700">
+          {String(value || t("not_available"))}
+        </span>
+      ),
     },
     {
       key: "roleId",
@@ -369,6 +446,13 @@ export default function SettingsUsersPage() {
       label: t("table.last_active"),
       render: (value: unknown) =>
         value ? new Date(String(value)).toLocaleString() : t("not_available"),
+    },
+    {
+      key: "hasPassword",
+      label: t("table.credential_status"),
+      sortable: false,
+      render: (_value: unknown, row: Record<string, unknown>) =>
+        getCredentialStatusLabel(row as unknown as SettingsUserRecord),
     },
     {
       key: "id",

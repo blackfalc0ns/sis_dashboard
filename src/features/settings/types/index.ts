@@ -249,9 +249,17 @@ export interface AuditLogEntry {
 export interface SettingsUserRecord {
   id: string;
   fullName: string;
+  username?: string;
   email: string;
+  contactEmail?: string;
   roleId: string;
+  roleName?: string;
   status: UserAdminStatus;
+  hasPassword?: boolean;
+  mustChangePassword?: boolean;
+  passwordProvisionedAt?: string;
+  passwordChangedAt?: string;
+  credentialVersion?: number;
   lastActiveAt?: string;
   invitedAt?: string;
   lastInviteSentAt?: string;
@@ -260,10 +268,18 @@ export interface SettingsUserRecord {
 export interface SettingsUserApiDto {
   id: string;
   fullName: string;
+  username?: string | null;
   email: string;
+  loginEmail?: string | null;
+  contactEmail?: string | null;
   roleId: string;
   roleName?: string | null;
   status: UserAdminStatus;
+  hasPassword?: boolean | null;
+  mustChangePassword?: boolean | null;
+  passwordProvisionedAt?: string | null;
+  passwordChangedAt?: string | null;
+  credentialVersion?: number | null;
   lastActiveAt?: string | null;
   invitedAt?: string | null;
   lastInviteSentAt?: string | null;
@@ -282,12 +298,15 @@ export interface SettingsUsersListApiDto {
 
 export interface SettingsUserPayloadDto {
   fullName: string;
-  email: string;
+  email?: string;
+  username?: string;
+  contactEmail?: string;
   roleId: string;
 }
 
 export interface SettingsUserUpdatePayloadDto {
   fullName: string;
+  contactEmail?: string;
   roleId: string;
 }
 

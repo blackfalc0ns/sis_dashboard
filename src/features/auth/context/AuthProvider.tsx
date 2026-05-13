@@ -6,7 +6,12 @@ import { useRouter, usePathname } from "next/navigation";
 import { AuthContext } from "./AuthContext";
 import { authService } from "@/services/auth-service";
 import { tokenStorage } from "@/lib/token-storage";
-import type { LoginRequest, MeResponse } from "@/types/user";
+import type {
+  ChangePasswordRequest,
+  ChangePasswordResponse,
+  LoginRequest,
+  MeResponse,
+} from "@/types/user";
 import { isApiError } from "@/lib/api-error";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -16,7 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const getLocalizedPath = useCallback(
-    (destination: "login" | "dashboard") => {
+    (destination: "login" | "dashboard" | "change-password") => {
       const match = pathname.match(/^\/([a-z]{2})/);
       const locale = match ? match[1] : "en";
       return `/${locale}/${destination}`;
@@ -24,24 +29,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [pathname],
   );
 
-  const loadUser = useCallback(async () => {
+  const loadUser = useCallback(async (fallbackMustChangePassword?: boolean) => {
     try {
       if (tokenStorage.hasTokens()) {
         const currentUser = await authService.getCurrentUser();
-        setUser(currentUser);
+        const normalizedUser: MeResponse = {
+          ...currentUser,
+          mustChangePassword:
+            currentUser.mustChangePassword ?? fallbackMustChangePassword,
+        };
+        setUser(normalizedUser);
+        return normalizedUser;
       } else {
         setUser(null);
+        return null;
       }
     } catch (error) {
       console.error("Failed to restore session:", error);
       setUser(null);
       if (!tokenStorage.hasTokens()) {
-        return;
+        return null;
       }
 
       if (!isApiError(error) || error.status === 401) {
         tokenStorage.clearTokens();
       }
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -55,8 +68,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (credentials: LoginRequest) => {
       setIsLoading(true);
       try {
-        await authService.login(credentials);
-        await loadUser();
+        const loginResponse = await authService.login(credentials);
+        return await loadUser(loginResponse.user.mustChangePassword);
       } finally {
         setIsLoading(false);
       }
@@ -75,19 +88,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [getLocalizedPath, router]);
 
+  const refreshCurrentUser = useCallback(async () => {
+    setIsLoading(true);
+    return loadUser();
+  }, [loadUser]);
+
+  const changePassword = useCallback(
+    async (
+      payload: ChangePasswordRequest,
+    ): Promise<ChangePasswordResponse> => {
+      return authService.changePassword(payload);
+    },
+    [],
+  );
+
+  const mustChangePassword = Boolean(user?.mustChangePassword);
+
   // Client-side route protection
   useEffect(() => {
     if (!isLoading) {
-      const isAuthRoute = pathname.includes("/login");
+      const loginPath = getLocalizedPath("login");
+      const dashboardPath = getLocalizedPath("dashboard");
+      const changePasswordPath = getLocalizedPath("change-password");
+      const isLoginRoute = pathname === loginPath;
+      const isChangePasswordRoute = pathname === changePasswordPath;
       const isRootRoute = pathname === "/" || pathname === "/ar" || pathname === "/en";
 
-      if (!user && !isAuthRoute && !isRootRoute) {
-        router.push(getLocalizedPath("login"));
-      } else if (user && isAuthRoute) {
-        router.push(getLocalizedPath("dashboard"));
+      if (!user && !isLoginRoute && !isRootRoute) {
+        router.push(loginPath);
+        return;
+      }
+
+      if (!user) {
+        return;
+      }
+
+      if (mustChangePassword && !isChangePasswordRoute) {
+        router.push(changePasswordPath);
+        return;
+      }
+
+      if (!mustChangePassword && (isLoginRoute || isChangePasswordRoute)) {
+        router.push(dashboardPath);
       }
     }
-  }, [user, isLoading, pathname, router, getLocalizedPath]);
+  }, [
+    user,
+    isLoading,
+    pathname,
+    router,
+    getLocalizedPath,
+    mustChangePassword,
+  ]);
 
 
   const value = useMemo(
@@ -95,10 +147,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       isAuthenticated: !!user,
       isLoading,
+      mustChangePassword,
       login,
       logout,
+      refreshCurrentUser,
+      changePassword,
     }),
-    [user, isLoading, login, logout],
+    [
+      user,
+      isLoading,
+      mustChangePassword,
+      login,
+      logout,
+      refreshCurrentUser,
+      changePassword,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

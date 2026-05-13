@@ -56,6 +56,28 @@ const alwaysGrantedNedaaPermissions: PermissionKey[] = [
   "nedaa.settings.manage",
 ];
 
+export const settingsNavigationPermissionByKey: Partial<
+  Record<string, PermissionKey>
+> = {
+  "settings-overview": "settings.overview.view",
+  "settings-branding": "settings.branding.view",
+  "settings-users": "settings.users.view",
+  "settings-login-identity": "settings.users.view",
+  "settings-credentials": "settings.users.view",
+  "settings-roles": "settings.roles.view",
+  "settings-policies": "settings.policies.view",
+  "settings-admissions-documents": "settings.admissionsDocuments.view",
+  "settings-templates": "settings.templates.view",
+  "settings-integrations": "settings.integrations.view",
+  "settings-email-connection": "settings.security.view",
+  "settings-email-templates": "settings.security.view",
+  "settings-email-credential-deliveries": "settings.security.view",
+  "settings-email-deliveries": "settings.security.view",
+  "settings-email-campaigns": "settings.security.view",
+  "settings-security": "settings.security.view",
+  "settings-backup": "settings.backup.view",
+};
+
 export function usePermissions() {
   const { user } = useAuth();
 

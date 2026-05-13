@@ -1,8 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { ComponentType } from "react";
+import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { Building2, Download, ShieldAlert, Users } from "lucide-react";
+import {
+  AtSign,
+  Building2,
+  ClipboardList,
+  Download,
+  FileText,
+  KeyRound,
+  Mail,
+  Send,
+  ShieldAlert,
+  Users,
+  MessageSquare,
+} from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import MainLoader from "@/components/ui/loaders/MainLoader";
@@ -22,6 +36,7 @@ import type {
   SettingsOverviewMetrics,
 } from "@/features/settings/types";
 import { fetchSettingsOverview } from "@/features/settings/services/settingsOverviewService";
+import { usePermissions, type PermissionKey } from "@/hooks/usePermissions";
 
 const emptyMetrics: SettingsOverviewMetrics = {
   profileCompleteness: 0,
@@ -34,6 +49,7 @@ export default function SettingsOverviewPage() {
   const locale = useLocale();
   const t = useTranslations("settings.overview");
   const tExport = useTranslations("settings.export");
+  const { hasPermission } = usePermissions();
   const [metrics, setMetrics] = useState<SettingsOverviewMetrics>(emptyMetrics);
   const [auditEntries, setAuditEntries] = useState<AuditLogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,6 +111,66 @@ export default function SettingsOverviewPage() {
       description: tExport("datasets.audit.description"),
     },
   ];
+
+  const sprint11Links: Array<{
+    key: string;
+    href: string;
+    icon: ComponentType<{ className?: string }>;
+    permission: PermissionKey;
+  }> = [
+    {
+      key: "users",
+      href: `/${locale}/settings/users`,
+      icon: Users,
+      permission: "settings.users.view",
+    },
+    {
+      key: "login_identity",
+      href: `/${locale}/settings/login-identity`,
+      icon: AtSign,
+      permission: "settings.users.view",
+    },
+    {
+      key: "credentials",
+      href: `/${locale}/settings/credentials`,
+      icon: KeyRound,
+      permission: "settings.users.view",
+    },
+    {
+      key: "email_connection",
+      href: `/${locale}/settings/email/connection`,
+      icon: Mail,
+      permission: "settings.security.view",
+    },
+    {
+      key: "email_templates",
+      href: `/${locale}/settings/email/templates`,
+      icon: FileText,
+      permission: "settings.security.view",
+    },
+    {
+      key: "credential_delivery",
+      href: `/${locale}/settings/email/credential-deliveries`,
+      icon: Send,
+      permission: "settings.security.view",
+    },
+    {
+      key: "email_deliveries",
+      href: `/${locale}/settings/email/deliveries`,
+      icon: ClipboardList,
+      permission: "settings.security.view",
+    },
+    {
+      key: "email_campaigns",
+      href: `/${locale}/settings/email/campaigns`,
+      icon: MessageSquare,
+      permission: "settings.security.view",
+    },
+  ];
+
+  const visibleSprint11Links = sprint11Links.filter((item) =>
+    hasPermission(item.permission),
+  );
 
   const handleExport = (format: SettingsExportFormat) => {
     const metadata = {
@@ -256,6 +332,40 @@ export default function SettingsOverviewPage() {
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6">
+          {visibleSprint11Links.length > 0 ? (
+            <SettingsSectionCard
+              title={t("sprint11.title")}
+              description={t("sprint11.description")}
+            >
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {visibleSprint11Links.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.key}
+                      href={item.href}
+                      className="rounded-xl border border-gray-200 bg-gray-50 p-4 transition-colors hover:border-primary hover:bg-white"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="rounded-lg bg-white p-2 text-primary shadow-sm">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">
+                            {t(`sprint11.links.${item.key}.title`)}
+                          </p>
+                          <p className="mt-1 text-sm text-gray-500">
+                            {t(`sprint11.links.${item.key}.description`)}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </SettingsSectionCard>
+          ) : null}
+
           <SettingsSectionCard
             title={t("recent_audit.title")}
             description={t("recent_audit.description")}

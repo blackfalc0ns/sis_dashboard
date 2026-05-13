@@ -25,6 +25,7 @@
     "last_page": "Last page",
     "preview": "Preview",
     "open": "Open",
+    "close": "Close",
     "delete": "Delete",
     "cancel": "Cancel",
     "confirm": "Confirm",
@@ -142,6 +143,31 @@
         "emailInvalid": "Enter a valid email address.",
         "passwordRequired": "Password is required.",
         "passwordMinLength": "Password must be at least 8 characters."
+      }
+    },
+    "changePassword": {
+      "title": "Change your password",
+      "subtitle": "Your account requires a new password before you can continue to the dashboard.",
+      "currentPasswordLabel": "Current password",
+      "currentPasswordPlaceholder": "Enter current password",
+      "newPasswordLabel": "New password",
+      "newPasswordPlaceholder": "Enter new password",
+      "confirmPasswordLabel": "Confirm new password",
+      "confirmPasswordPlaceholder": "Re-enter new password",
+      "submit": "Update password",
+      "submitting": "Updating password...",
+      "errors": {
+        "currentRequired": "Current password is required.",
+        "newRequired": "New password is required.",
+        "newMinLength": "New password must be at least {min} characters.",
+        "newDifferent": "New password must be different from your current password.",
+        "confirmRequired": "Confirm your new password.",
+        "confirmMismatch": "Passwords do not match."
+      },
+      "messages": {
+        "success": "Password updated successfully.",
+        "failed": "Failed to update password.",
+        "validationFailed": "Please review the password fields."
       }
     }
   },
@@ -1457,6 +1483,44 @@
       "change_password": "Change Password",
       "success": "Password changed successfully"
     },
+    "account_linking": {
+      "student_title": "Link student account",
+      "guardian_title": "Link guardian account",
+      "for_record": "For {name}",
+      "preview_placeholder": "Enter a username to preview the generated login email.",
+      "guardian_contact_email_help": "Optional when this guardian already has an email on record.",
+      "fields": {
+        "mode": "Mode",
+        "username": "Username",
+        "login_email": "Generated login email",
+        "contact_email": "Contact email",
+        "temporary_password_mode": "Temporary password"
+      },
+      "modes": {
+        "create": "Create account",
+        "link_existing": "Link existing account"
+      },
+      "temporary_password": {
+        "generate": "Generate temporary password",
+        "none": "Do not generate",
+        "title": "One-time temporary password",
+        "warning": "Copy this now. It will be cleared when the modal closes and will not be shown again."
+      },
+      "actions": {
+        "submit": "Link account",
+        "close": "Close",
+        "copy": "Copy password"
+      },
+      "validation": {
+        "username_required": "Username is required.",
+        "contact_email_required": "Contact email is required when creating a student account."
+      },
+      "messages": {
+        "linked": "Account linked successfully.",
+        "link_failed": "Failed to link account.",
+        "copied": "Temporary password copied."
+      }
+    },
     "overview": {
       "title": "Students & Guardians Overview",
       "subtitle": "Comprehensive view of students, guardians, and academic performance",
@@ -1601,7 +1665,11 @@
         "view_profile": "View Profile",
         "edit": "Edit",
         "change_password": "Change Password",
+        "link_account": "Link account",
         "add_note": "Add Note"
+      },
+      "account_linking": {
+        "manage_required": "Linking accounts requires settings.users.manage."
       },
       "bulk_upload_button": "Bulk Upload",
       "bulk_upload_success": "Students uploaded successfully!",
@@ -1684,7 +1752,19 @@
       "actions": {
         "view_details": "View Details",
         "edit": "Edit",
-        "change_password": "Change Password"
+        "change_password": "Change Password",
+        "link_account": "Link account",
+        "create_guardian": "Create Guardian",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving..."
+      },
+      "fields": {
+        "job_title": "Job title",
+        "workplace": "Workplace"
+      },
+      "account_linking": {
+        "manage_required": "Linking accounts requires settings.users.manage."
       },
       "no_guardians": "No Guardians Found",
       "no_guardians_message": "No guardian records available",
@@ -1698,6 +1778,10 @@
       "yes": "Yes",
       "no": "No",
       "not_provided": "Not provided",
+      "account_linking": {
+        "action": "Link account",
+        "manage_required": "Linking accounts requires settings.users.manage."
+      },
       "no_section": "No section",
       "no_linked_students": "No students linked to this guardian",
       "tabs": {
@@ -2112,6 +2196,10 @@
       "section": "Section",
       "classroom": "Classroom",
       "na": "N/A",
+      "account_linking": {
+        "action": "Link account",
+        "manage_required": "Linking accounts requires settings.users.manage."
+      },
       "status": {
         "active": "Active",
         "withdrawn": "Withdrawn",
@@ -5746,6 +5834,44 @@
         "title": "Recent audit activity",
         "description": "Latest configuration and security events across the school platform."
       },
+      "sprint11": {
+        "title": "Account and email setup",
+        "description": "Open the Sprint 11 settings needed for login identity, credentials, and external email delivery.",
+        "links": {
+          "users": {
+            "title": "Users",
+            "description": "Manage staff users, usernames, contact emails, and roles."
+          },
+          "login_identity": {
+            "title": "Login Identity",
+            "description": "Configure username rules and generated login email domain."
+          },
+          "credentials": {
+            "title": "Credentials",
+            "description": "Review account credential status and password actions."
+          },
+          "email_connection": {
+            "title": "Email Connection",
+            "description": "Configure and test the school sender connection."
+          },
+          "email_templates": {
+            "title": "Email Templates",
+            "description": "Edit credential, password reset, and general message templates."
+          },
+          "credential_delivery": {
+            "title": "Credential Delivery",
+            "description": "Preview recipients and queue credential email batches."
+          },
+          "email_deliveries": {
+            "title": "Email Deliveries",
+            "description": "Monitor queued, sent, failed, and cancelled email batches."
+          },
+          "email_campaigns": {
+            "title": "Email Campaigns",
+            "description": "Compose and queue external general email campaigns."
+          }
+        }
+      },
       "integrations_snapshot": {
         "title": "Integrations snapshot",
         "description": "Current provider connection status across core channels."
@@ -5846,11 +5972,30 @@
       },
       "table": {
         "name": "Name",
-        "email": "Email",
+        "username": "Username",
+        "email": "Login email",
+        "login_email": "Login email",
+        "contact_email": "Contact email",
         "role": "Role",
         "status": "Status",
         "last_active": "Last active",
+        "credential_status": "Credential status",
         "actions": "Actions"
+      },
+      "credential_status": {
+        "provisioned": "Provisioned",
+        "must_change_password": "Must change password",
+        "not_provisioned": "Not provisioned"
+      },
+      "identity": {
+        "generated_login_email": "Generated login email",
+        "login_identity_note": "This generated email is the login identity. The personal inbox belongs in contactEmail.",
+        "check_availability": "Check availability",
+        "username_available": "Username is available.",
+        "username_unavailable": "Username is not available.",
+        "username_required": "Enter a username first.",
+        "preview_failed": "Failed to preview the generated login email.",
+        "availability_failed": "Failed to check username availability."
       },
       "messages": {
         "load_failed": "Failed to load users.",
@@ -5861,6 +6006,634 @@
         "password_reset_sent": "Password reset placeholder action completed.",
         "activated": "User activated successfully.",
         "deactivated": "User deactivated successfully."
+      }
+    },
+    "loginIdentity": {
+      "title": "Login Identity",
+      "subtitle": "Configure generated login email rules for school users.",
+      "form_title": "School login identity",
+      "form_description": "Define how usernames produce generated login emails for authentication.",
+      "refresh": "Refresh",
+      "save": "Save changes",
+      "saving": "Saving...",
+      "identity_rule": "The generated login email is the login identity. Personal inboxes must be stored as contactEmail, not email.",
+      "current_domain": "Current login domain: {domain}",
+      "empty_domain_hint": "No login domain is configured yet.",
+      "fields": {
+        "login_domain": "Login domain",
+        "username_min": "Username minimum length",
+        "username_max": "Username maximum length",
+        "allowed_characters": "Allowed characters",
+        "reserved_usernames": "Reserved usernames",
+        "status": "Status"
+      },
+      "placeholders": {
+        "login_domain": "school.edu",
+        "allowed_characters": "letters, numbers, dots, underscores, and hyphens",
+        "reserved_usernames": "admin, support, root"
+      },
+      "helpers": {
+        "allowed_characters": "Use backend-supported text or pattern guidance for usernames.",
+        "reserved_usernames": "Comma-separated usernames that cannot be assigned."
+      },
+      "status": {
+        "active": "Active",
+        "draft": "Draft",
+        "inactive": "Inactive"
+      },
+      "validation": {
+        "domain_required": "Login domain is required.",
+        "min_invalid": "Minimum length must be a positive whole number.",
+        "max_invalid": "Maximum length must be a positive whole number.",
+        "max_less_than_min": "Maximum length must be greater than or equal to the minimum length."
+      },
+      "messages": {
+        "load_failed": "Failed to load login identity settings.",
+        "saved": "Login identity settings saved successfully."
+      },
+      "empty": {
+        "title": "Login identity settings unavailable",
+        "description": "The settings could not be loaded. Refresh to try again.",
+        "retry": "Try again"
+      },
+      "preview": {
+        "section_title": "Username preview",
+        "section_description": "Preview generated login emails and check username availability.",
+        "title": "Preview login identity",
+        "description": "Enter a username to see the generated login email. This is not a personal contact inbox.",
+        "username_label": "Username",
+        "username_placeholder": "e.g. sara.ali",
+        "preview_button": "Preview email",
+        "availability_button": "Check availability",
+        "generated_email_label": "Generated login email",
+        "login_identity_note": "Users sign in with this generated login email. Their personal inbox belongs in contactEmail.",
+        "available": "Username is available.",
+        "unavailable": "Username is not available.",
+        "errors": {
+          "username_required": "Enter a username first.",
+          "preview_failed": "Failed to preview username.",
+          "availability_failed": "Failed to check username availability."
+        }
+      }
+    },
+    "credentials": {
+      "title": "Credentials",
+      "subtitle": "Generate, reset, and monitor user login credentials.",
+      "refresh": "Refresh",
+      "yes": "Yes",
+      "no": "No",
+      "not_available": "Not available",
+      "statuses": {
+        "active": "Active",
+        "invited": "Invited",
+        "inactive": "Inactive"
+      },
+      "filters": {
+        "button": "Filters",
+        "search": "Search users",
+        "clear": "Clear filters",
+        "role": "Role",
+        "status": "Status",
+        "has_password": "Has password",
+        "must_change": "Must change password"
+      },
+      "table": {
+        "title": "Credential status",
+        "description": "Review account credential provisioning and manage password actions.",
+        "name": "Full name",
+        "username_login": "Username / login email",
+        "contact_email": "Contact email",
+        "role": "Role",
+        "status": "Status",
+        "has_password": "Has password",
+        "must_change_password": "Must change password",
+        "provisioned_at": "Provisioned at",
+        "changed_at": "Changed at",
+        "version": "Version",
+        "actions": "Actions"
+      },
+      "actions": {
+        "generate": "Generate temporary password",
+        "set_password": "Set custom password",
+        "regenerate": "Regenerate temporary password"
+      },
+      "empty": {
+        "title": "No credential records found",
+        "description": "Try changing filters or refreshing the credential status table."
+      },
+      "generate": {
+        "title": "Generate temporary password",
+        "regenerate_title": "Regenerate temporary password",
+        "description": "The temporary password will be shown once after generation.",
+        "must_change_password": "Require this user to change password on next sign-in.",
+        "generating": "Generating..."
+      },
+      "set": {
+        "title": "Set custom password",
+        "description": "Set a password directly for this user. Password values are not stored in frontend state after submission.",
+        "password": "Password",
+        "confirm_password": "Confirm password",
+        "must_change_password": "Require this user to change password on next sign-in.",
+        "show": "Show password",
+        "hide": "Hide password",
+        "errors": {
+          "required": "Enter and confirm the password.",
+          "mismatch": "Passwords do not match.",
+          "min_length": "Password must be at least 8 characters."
+        }
+      },
+      "bulk": {
+        "open": "Bulk generate",
+        "title": "Bulk generate credentials",
+        "description": "Preview eligible users before generating temporary passwords.",
+        "missing_only": "Only users without passwords",
+        "must_change_only": "Only users already marked must-change",
+        "force_change": "Require password change on next sign-in",
+        "preview": "Preview",
+        "previewing": "Previewing...",
+        "generate": "Generate",
+        "generating": "Generating...",
+        "eligible": "Eligible",
+        "skipped": "Skipped"
+      },
+      "reveal": {
+        "title": "Temporary passwords",
+        "warning": "These passwords are shown once only. Copy them now; they will be cleared when you close this modal.",
+        "no_password": "No temporary password was returned.",
+        "copy": "Copy",
+        "copied": "Copied",
+        "user": "User",
+        "password": "Temporary password",
+        "show": "Show",
+        "hide": "Hide"
+      },
+      "messages": {
+        "load_failed": "Failed to load credential status.",
+        "generated": "Temporary password generated.",
+        "password_set": "Password set successfully.",
+        "bulk_generated": "Bulk credentials generated.",
+        "preview_failed": "Failed to preview recipients."
+      }
+    },
+    "email": {
+      "connection": {
+        "title": "School Email Connection",
+        "subtitle": "Configure the school sender account used for credential and campaign email.",
+        "refresh": "Refresh",
+        "not_available": "Not available",
+        "provider": {
+          "SMTP": "SMTP",
+          "API": "API provider"
+        },
+        "states": {
+          "DRAFT": "Draft",
+          "VERIFIED": "Verified",
+          "ACTIVE": "Active",
+          "DISABLED": "Disabled",
+          "FAILED": "Failed"
+        },
+        "status": {
+          "title": "Connection status",
+          "description": "Saved secrets are never displayed. Only configuration flags are shown.",
+          "status": "Status",
+          "last_test": "Last test",
+          "configured": "Configured",
+          "not_configured": "Not configured",
+          "failure_reason": "Failure reason"
+        },
+        "form": {
+          "title": "Sender configuration",
+          "description": "Update the school email provider and sender identity.",
+          "secret_help": "Leave blank to keep the existing saved secret."
+        },
+        "fields": {
+          "provider_type": "Provider type",
+          "from_name": "From name",
+          "from_email": "From email",
+          "reply_to_email": "Reply-to email",
+          "host": "Host",
+          "port": "Port",
+          "secure": "Use secure SMTP connection",
+          "username": "Username",
+          "password": "Password",
+          "api_key": "API key",
+          "test_recipient_email": "Test recipient email"
+        },
+        "actions": {
+          "save": "Save connection",
+          "test": "Send test",
+          "activate": "Activate",
+          "disable": "Disable"
+        },
+        "validation": {
+          "provider_required": "Provider type is required.",
+          "from_name_required": "From name is required.",
+          "from_email_required": "From email is required.",
+          "host_required": "Host is required for SMTP connections.",
+          "port_invalid": "Port must be a positive whole number.",
+          "test_recipient_required": "Enter a test recipient email."
+        },
+        "messages": {
+          "load_failed": "Failed to load email connection.",
+          "saved": "Email connection saved.",
+          "test_sent": "Test email request sent.",
+          "test_failed": "Failed to test email connection.",
+          "activated": "Email connection activated.",
+          "disabled": "Email connection disabled."
+        }
+      },
+      "templates": {
+        "title": "School Email Templates",
+        "subtitle": "Edit credential, password reset, and general message email templates.",
+        "refresh": "Refresh",
+        "active": "Active",
+        "inactive": "Inactive",
+        "keys": {
+          "ACCOUNT_CREDENTIALS": "Account credentials",
+          "PASSWORD_RESET": "Password reset",
+          "GENERAL_MESSAGE": "General message"
+        },
+        "list": {
+          "title": "Template keys",
+          "description": "Choose a backend-supported template to edit or preview."
+        },
+        "editor": {
+          "description": "Template content and sender support details.",
+          "allowed_variables": "Allowed variables",
+          "no_variables": "No variables reported by backend.",
+          "credential_safety": "Credential variables are only safe in backend-approved credential templates. General previews must not be used to expose credentials."
+        },
+        "fields": {
+          "subject": "Subject",
+          "preheader": "Preheader",
+          "title": "Title",
+          "subtitle": "Subtitle",
+          "body_html": "Body HTML",
+          "body_text": "Body text",
+          "footer_html": "Footer HTML",
+          "support_email": "Support email",
+          "support_phone": "Support phone",
+          "website": "Website",
+          "facebook": "Facebook",
+          "instagram": "Instagram",
+          "x": "X",
+          "is_active": "Template is active"
+        },
+        "actions": {
+          "preview": "Preview",
+          "save": "Save template",
+          "reset": "Reset default"
+        },
+        "preview": {
+          "title": "Preview data",
+          "description": "Edit JSON data used by the preview endpoint. Preview does not send email.",
+          "data_json": "Preview data JSON",
+          "no_send": "This renders only through the preview endpoint and does not send email.",
+          "modal_title": "Template preview",
+          "html": "HTML preview",
+          "text": "Text preview",
+          "unknown_variables": "Unknown variables",
+          "missing_variables": "Missing variables",
+          "none": "None"
+        },
+        "empty": {
+          "title": "No template selected",
+          "description": "Refresh templates or select a template key."
+        },
+        "validation": {
+          "subject_required": "Subject is required.",
+          "body_html_required": "Body HTML is required.",
+          "preview_json_invalid": "Preview data must be valid JSON.",
+          "preview_object_required": "Preview data must be a JSON object."
+        },
+        "messages": {
+          "load_failed": "Failed to load email templates.",
+          "saved": "Email template saved.",
+          "reset": "Email template reset to default.",
+          "preview_failed": "Failed to preview template."
+        }
+      },
+      "credentialDeliveries": {
+        "title": "Credential Delivery",
+        "subtitle": "Preview recipients and queue account credential emails safely.",
+        "reset": "Reset wizard",
+        "yes": "Yes",
+        "no": "No",
+        "wizard": {
+          "title": "Delivery wizard",
+          "description": "Choose the audience, credential mode, preview recipients, then create a queued batch."
+        },
+        "steps": {
+          "audience": "Audience",
+          "mode": "Mode",
+          "preview": "Preview",
+          "confirm": "Confirm"
+        },
+        "templateKeys": {
+          "ACCOUNT_CREDENTIALS": "Account credentials",
+          "PASSWORD_RESET": "Password reset",
+          "GENERAL_MESSAGE": "General message"
+        },
+        "credentialModes": {
+          "LOGIN_INFO_ONLY": "Login info only",
+          "GENERATE_TEMPORARY_PASSWORD": "Generate temporary password",
+          "REGENERATE_TEMPORARY_PASSWORD": "Regenerate temporary password"
+        },
+        "audience": {
+          "title": "Select audience",
+          "description": "Choose the users who should be considered for this credential delivery.",
+          "mode": "Audience",
+          "selected_user_ids": "Selected user IDs",
+          "selected_user_ids_help": "Paste user IDs separated by commas or new lines.",
+          "role_id": "Role ID",
+          "role_placeholder": "Select a role",
+          "roles_empty": "No roles were loaded. Refresh the wizard and try again.",
+          "user_type": "User type",
+          "require_contact_email": "Require contactEmail",
+          "require_contact_email_help": "Skip recipients without a personal contact inbox. The generated login email is not the personal inbox.",
+          "options": {
+            "selected_users": "Selected users",
+            "role": "Role",
+            "user_type": "User type",
+            "missing_password": "Missing password",
+            "must_change_password": "Must change password",
+            "all_school": "All school"
+          }
+        },
+        "mode": {
+          "title": "Delivery mode",
+          "description": "Select the email template and how credentials should be handled.",
+          "template_key": "Template key",
+          "credential_mode": "Credential mode"
+        },
+        "warnings": {
+          "generate": "Temporary passwords are generated during delivery and are not shown in this wizard.",
+          "regenerate": "Existing passwords may be replaced for eligible users.",
+          "smtp_failure": "If SMTP fails after credentials change, admin recovery is to regenerate and resend credentials.",
+          "no_raw_passwords": "No raw temporary password is displayed here unless the backend explicitly returns one. Credential delivery relies on email delivery."
+        },
+        "preview": {
+          "title": "Preview recipients",
+          "description": "Ask the backend to evaluate eligibility before creating a delivery batch.",
+          "template": "Template",
+          "mode": "Credential mode",
+          "contact_email": "Requires contactEmail",
+          "eligible": "Eligible",
+          "skipped": "Skipped",
+          "sample_eligible": "Sample eligible recipients",
+          "sample_skipped": "Sample skipped recipients",
+          "no_eligible": "No eligible recipients in the sample.",
+          "no_skipped": "No skipped recipients in the sample.",
+          "empty_title": "No preview yet",
+          "empty_description": "Run recipient preview before confirming delivery."
+        },
+        "confirm": {
+          "title": "Confirm delivery",
+          "description": "Create a queued backend batch for the eligible recipients.",
+          "preview_required": "Preview recipients before creating a delivery batch.",
+          "manage_required": "Creating a delivery batch requires settings.security.manage.",
+          "created": "Delivery batch queued.",
+          "batch_id": "Batch ID",
+          "status": "Status",
+          "queued": "Queued"
+        },
+        "actions": {
+          "back": "Back",
+          "next": "Next",
+          "preview": "Preview recipients",
+          "previewing": "Previewing...",
+          "create": "Create delivery batch",
+          "creating": "Creating..."
+        },
+        "validation": {
+          "selected_users_required": "Enter at least one user ID.",
+          "role_required": "Enter a role ID.",
+          "user_type_required": "Enter a user type."
+        },
+        "messages": {
+          "preview_ready": "Recipient preview is ready.",
+          "preview_failed": "Failed to preview credential delivery recipients.",
+          "created": "Credential delivery batch queued.",
+          "roles_failed": "Failed to load roles for audience selection."
+        }
+      },
+      "deliveries": {
+        "title": "Email Deliveries",
+        "subtitle": "Monitor credential delivery and campaign email batches.",
+        "refresh": "Refresh",
+        "not_available": "Not available",
+        "kinds": {
+          "CREDENTIAL_DELIVERY": "Credential delivery",
+          "GENERAL_CAMPAIGN": "General campaign"
+        },
+        "statuses": {
+          "QUEUED": "Queued",
+          "PROCESSING": "Processing",
+          "SUCCEEDED": "Succeeded",
+          "PARTIAL_FAILED": "Partially failed",
+          "FAILED": "Failed",
+          "CANCELLED": "Cancelled"
+        },
+        "recipientStatuses": {
+          "QUEUED": "Queued",
+          "SENT": "Sent",
+          "FAILED": "Failed",
+          "SKIPPED": "Skipped",
+          "CANCELLED": "Cancelled"
+        },
+        "filters": {
+          "button": "Filters",
+          "title": "Delivery filters",
+          "description": "Filter batches by delivery kind and processing status.",
+          "kind": "Kind",
+          "status": "Status",
+          "all": "All",
+          "clear": "Clear filters"
+        },
+        "table": {
+          "title": "Delivery batches",
+          "description": "Review queued, sent, failed, skipped, and cancelled email delivery counts.",
+          "kind": "Kind",
+          "status": "Status",
+          "subject": "Subject / title",
+          "total": "Total",
+          "queued": "Queued",
+          "sent": "Sent",
+          "failed": "Failed",
+          "skipped": "Skipped",
+          "cancelled": "Cancelled",
+          "created_at": "Created at",
+          "actions": "Actions"
+        },
+        "actions": {
+          "view": "View details",
+          "cancel": "Cancel batch",
+          "back": "Back to deliveries"
+        },
+        "empty": {
+          "title": "No delivery batches found",
+          "description": "Try changing filters or refresh after creating a delivery batch."
+        },
+        "detail": {
+          "title": "Delivery batch",
+          "summary": "Batch summary",
+          "summary_description": "Backend delivery metadata and recipient counts.",
+          "updated_at": "Updated at",
+          "security_note": "Delivery metadata is for monitoring only. Raw temporary passwords are not exposed or reconstructed here.",
+          "not_found": "Delivery batch was not found."
+        },
+        "recipients": {
+          "title": "Recipients",
+          "description": "Inspect recipient delivery state and backend failure reasons.",
+          "recipient": "Recipient",
+          "email": "Recipient email",
+          "status": "Status",
+          "failure_reason": "Failure reason",
+          "sent_at": "Sent at",
+          "skipped_at": "Skipped at",
+          "empty_title": "No recipients found",
+          "empty_description": "This batch does not have recipient rows yet."
+        },
+        "messages": {
+          "load_failed": "Failed to load email deliveries.",
+          "detail_load_failed": "Failed to load delivery batch.",
+          "cancelled": "Delivery batch cancelled."
+        }
+      },
+      "campaigns": {
+        "title": "Email Campaigns",
+        "subtitle": "Compose and queue external general email campaigns for school audiences.",
+        "refresh": "Refresh",
+        "not_available": "Not available",
+        "templateKeys": {
+          "GENERAL_MESSAGE": "General message"
+        },
+        "statuses": {
+          "QUEUED": "Queued",
+          "PROCESSING": "Processing",
+          "SUCCEEDED": "Succeeded",
+          "PARTIAL_FAILED": "Partially failed",
+          "FAILED": "Failed",
+          "CANCELLED": "Cancelled"
+        },
+        "audience": {
+          "title": "Select audience",
+          "description": "Choose users for this external email campaign. Optional custom emails can be added without creating in-app announcements.",
+          "mode": "Audience",
+          "selected_user_ids": "Selected user IDs",
+          "selected_user_ids_help": "Paste user IDs separated by commas or new lines.",
+          "role_id": "Role",
+          "role_placeholder": "Select a role",
+          "roles_empty": "No roles were loaded. Refresh and try again.",
+          "user_type": "User type",
+          "custom_emails": "Custom emails",
+          "custom_emails_help": "Optional external recipients separated by commas or new lines.",
+          "options": {
+            "selected_users": "Selected users",
+            "role": "Role",
+            "user_type": "User type",
+            "all_school": "All school"
+          }
+        },
+        "composer": {
+          "title": "Campaign composer",
+          "description": "Create a general campaign using the GENERAL_MESSAGE template and custom campaign content.",
+          "external_only": "Email campaigns are external delivery only and are not connected to in-app announcements or Notification Center.",
+          "credential_safety": "Credential-only variables such as {{credential.temporaryPassword}} are blocked here. Use credential delivery for account credentials."
+        },
+        "fields": {
+          "template_key": "Template key",
+          "subject": "Subject",
+          "title": "Title",
+          "body_html": "Body HTML",
+          "body_text": "Body text",
+          "body_text_help": "Optional plain-text fallback if supported by the backend."
+        },
+        "actions": {
+          "preview_recipients": "Preview recipients",
+          "preview_campaign": "Preview campaign",
+          "create": "Create campaign",
+          "view": "View details",
+          "back": "Back to campaigns",
+          "close": "Close"
+        },
+        "recipients": {
+          "title": "Recipient preview",
+          "description": "Preview eligible and skipped recipients before creating a campaign batch.",
+          "eligible": "Eligible",
+          "skipped": "Skipped",
+          "sample_eligible": "Sample eligible recipients",
+          "sample_skipped": "Sample skipped recipients",
+          "no_eligible": "No eligible recipients in the sample.",
+          "no_skipped": "No skipped recipients in the sample.",
+          "empty_title": "No recipient preview yet",
+          "empty_description": "Run recipient preview before creating the campaign."
+        },
+        "preview": {
+          "modal_title": "Campaign preview",
+          "html": "HTML preview",
+          "text": "Text preview",
+          "unknown_variables": "Unknown variables",
+          "missing_variables": "Missing variables",
+          "none": "None"
+        },
+        "created": {
+          "title": "Campaign queued",
+          "description": "The backend created an external email delivery batch.",
+          "batch_id": "Batch ID",
+          "status": "Status",
+          "total_recipients": "Total recipients"
+        },
+        "filters": {
+          "status": "Status",
+          "all": "All"
+        },
+        "list": {
+          "title": "Campaign batches",
+          "description": "Review queued, sent, failed, skipped, and cancelled general campaign counts."
+        },
+        "table": {
+          "status": "Status",
+          "subject": "Subject / title",
+          "total": "Total",
+          "sent": "Sent",
+          "failed": "Failed",
+          "skipped": "Skipped",
+          "created_at": "Created at",
+          "actions": "Actions"
+        },
+        "empty": {
+          "title": "No campaigns found",
+          "description": "Create a campaign or refresh after the backend queues one."
+        },
+        "detail": {
+          "title": "Email campaign",
+          "summary": "Campaign summary",
+          "summary_description": "Backend campaign delivery metadata and recipient counts.",
+          "updated_at": "Updated at",
+          "batch_id": "Batch ID",
+          "security_note": "Campaigns are external email delivery only. Raw temporary passwords are never exposed or reconstructed here.",
+          "not_found": "Campaign batch was not found."
+        },
+        "validation": {
+          "subject_required": "Subject is required.",
+          "body_html_required": "Body HTML is required.",
+          "selected_users_required": "Enter at least one user ID.",
+          "role_required": "Select a role.",
+          "user_type_required": "Enter a user type.",
+          "credential_variables_blocked": "Credential variables are only allowed for credential delivery templates:",
+          "preview_required": "Preview recipients before creating a campaign batch.",
+          "manage_required": "Creating a campaign requires settings.security.manage."
+        },
+        "messages": {
+          "load_failed": "Failed to load email campaigns.",
+          "detail_load_failed": "Failed to load campaign batch.",
+          "preview_recipients_ready": "Recipient preview is ready.",
+          "preview_recipients_failed": "Failed to preview campaign recipients.",
+          "preview_ready": "Campaign preview is ready.",
+          "preview_failed": "Failed to preview campaign.",
+          "created": "Campaign batch queued."
+        }
       }
     },
     "roles": {
@@ -7260,7 +8033,18 @@
       "noData": "No data available",
       "totalCategories": "Total Categories",
       "activeCategories": "Active",
-      "inactiveCategories": "Inactive"
+      "inactiveCategories": "Inactive",
+      "filters": {
+        "title": "Filters",
+        "student": "Student",
+        "classroom": "Classroom",
+        "dateFrom": "From Date",
+        "dateTo": "To Date",
+        "allStudents": "All Students",
+        "allClassrooms": "All Classrooms",
+        "apply": "Apply",
+        "clear": "Clear Filters"
+      }
     },
     "export": {
       "title": "Export behavior data"

@@ -16,9 +16,12 @@ export type UserStatus = "ACTIVE" | "INVITED" | "SUSPENDED" | "DISABLED";
 export interface AuthenticatedUser {
   id: string;
   email: string;
+  username?: string | null;
+  contactEmail?: string | null;
   firstName: string;
   lastName: string;
   userType: UserType;
+  mustChangePassword?: boolean;
 }
 
 export interface ActiveMembership {
@@ -33,10 +36,13 @@ export interface ActiveMembership {
 export interface MeResponse {
   id: string;
   email: string;
+  username?: string | null;
+  contactEmail?: string | null;
   firstName: string;
   lastName: string;
   userType: UserType;
   status: UserStatus;
+  mustChangePassword?: boolean;
   activeMembership: ActiveMembership | null;
 }
 
@@ -54,4 +60,14 @@ export interface LoginRequest {
 
 export interface RefreshRequest {
   refreshToken: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  success: boolean;
+  mustChangePassword?: boolean;
 }

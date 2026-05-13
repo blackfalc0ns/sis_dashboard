@@ -2,18 +2,36 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import GuardedLink from '../GuardedLink';
 
-// Mock the useGuardedRouter hook
-const mockGuardedPush = vi.fn();
+const mockPush = vi.fn();
+const mockReplace = vi.fn();
+const mockPrefetch = vi.fn();
+const mockGuardedNavigate = vi.fn((action: () => void) => action());
+const mockProgressStart = vi.fn();
 
-vi.mock('@/hooks/useGuardedRouter', () => ({
-  useGuardedRouter: () => ({
-    guardedPush: mockGuardedPush,
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mockPush,
+    replace: mockReplace,
+    prefetch: mockPrefetch,
   }),
+  usePathname: () => '/current',
+}));
+
+vi.mock('@/providers/NavigationGuardProvider', () => ({
+  useNavigationGuard: () => ({ guardedNavigate: mockGuardedNavigate }),
+}));
+
+vi.mock('@/providers/ProgressBarProvider', () => ({
+  useProgressBar: () => ({ start: mockProgressStart, done: vi.fn() }),
 }));
 
 describe('GuardedLink Component', () => {
   beforeEach(() => {
-    mockGuardedPush.mockClear();
+    mockPush.mockClear();
+    mockReplace.mockClear();
+    mockPrefetch.mockClear();
+    mockGuardedNavigate.mockClear();
+    mockProgressStart.mockClear();
   });
 
   it('renders link with children', () => {
@@ -22,36 +40,36 @@ describe('GuardedLink Component', () => {
   });
 
   it('preserves Cmd+Click for new tab', () => {
-    render(<GuardedLink href="/test">Test Link</GuardedLink>);
+    render(<GuardedLink href="#test">Test Link</GuardedLink>);
     const link = screen.getByText('Test Link');
     
     // Simulate Cmd+Click (metaKey)
     fireEvent.click(link, { metaKey: true });
     
-    // Should not call guardedPush
-    expect(mockGuardedPush).not.toHaveBeenCalled();
+    // Should not call guarded navigation
+    expect(mockGuardedNavigate).not.toHaveBeenCalled();
   });
 
   it('preserves Ctrl+Click for new tab', () => {
-    render(<GuardedLink href="/test">Test Link</GuardedLink>);
+    render(<GuardedLink href="#test">Test Link</GuardedLink>);
     const link = screen.getByText('Test Link');
     
     // Simulate Ctrl+Click
     fireEvent.click(link, { ctrlKey: true });
     
-    // Should not call guardedPush
-    expect(mockGuardedPush).not.toHaveBeenCalled();
+    // Should not call guarded navigation
+    expect(mockGuardedNavigate).not.toHaveBeenCalled();
   });
 
   it('preserves middle click', () => {
-    render(<GuardedLink href="/test">Test Link</GuardedLink>);
+    render(<GuardedLink href="#test">Test Link</GuardedLink>);
     const link = screen.getByText('Test Link');
     
     // Simulate middle click (button 1)
     fireEvent.click(link, { button: 1 });
     
-    // Should not call guardedPush
-    expect(mockGuardedPush).not.toHaveBeenCalled();
+    // Should not call guarded navigation
+    expect(mockGuardedNavigate).not.toHaveBeenCalled();
   });
 
   it('calls guardedPush on plain left click', () => {
@@ -61,8 +79,9 @@ describe('GuardedLink Component', () => {
     // Simulate plain left click
     fireEvent.click(link);
     
-    // Should call guardedPush
-    expect(mockGuardedPush).toHaveBeenCalledWith('/test');
+    // Should guard and then push
+    expect(mockGuardedNavigate).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith('/test');
   });
 
   it('applies custom className', () => {

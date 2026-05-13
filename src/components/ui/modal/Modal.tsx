@@ -224,7 +224,7 @@ export default function Modal({
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes modalFadeIn {
           from {
             opacity: 0;

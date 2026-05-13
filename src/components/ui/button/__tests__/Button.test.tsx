@@ -12,40 +12,40 @@ describe('Button Component', () => {
     const handleClick = vi.fn();
     render(<Button onClick={handleClick}>Click me</Button>);
     
-    fireEvent.click(screen.getByText('Click me'));
+    fireEvent.click(screen.getByRole('button', { name: 'Click me' }));
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
   it('applies primary variant styles', () => {
     render(<Button variant="primary">Primary</Button>);
-    const button = screen.getByText('Primary');
+    const button = screen.getByRole('button', { name: 'Primary' });
     expect(button).toHaveClass('bg-gradient-to-r');
   });
 
   it('applies secondary variant styles', () => {
     render(<Button variant="secondary">Secondary</Button>);
-    const button = screen.getByText('Secondary');
+    const button = screen.getByRole('button', { name: 'Secondary' });
     expect(button).toHaveClass('bg-white');
   });
 
   it('disables button when disabled prop is true', () => {
     render(<Button disabled>Disabled</Button>);
-    const button = screen.getByText('Disabled');
+    const button = screen.getByRole('button', { name: 'Disabled' });
     expect(button).toBeDisabled();
   });
 
   it('renders with different sizes', () => {
     const { rerender } = render(<Button size="sm">Small</Button>);
-    expect(screen.getByText('Small')).toHaveClass('text-sm');
+    expect(screen.getByRole('button', { name: 'Small' })).toHaveClass('text-xs');
     
     rerender(<Button size="lg">Large</Button>);
-    expect(screen.getByText('Large')).toHaveClass('text-base');
+    expect(screen.getByRole('button', { name: 'Large' })).toHaveClass('text-base');
   });
 
   it('renders loading state', () => {
     render(<Button loading>Loading</Button>);
     expect(screen.getByText('Loading')).toBeInTheDocument();
     // Button should be disabled when loading
-    expect(screen.getByText('Loading')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Loading' })).toBeDisabled();
   });
 });

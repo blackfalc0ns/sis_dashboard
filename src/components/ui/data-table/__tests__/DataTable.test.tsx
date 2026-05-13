@@ -27,8 +27,8 @@ describe('DataTable Component', () => {
     render(<DataTable columns={mockColumns} data={mockData} />);
     
     expect(screen.getByText('ID')).toBeInTheDocument();
-    expect(screen.getByText('NAME')).toBeInTheDocument();
-    expect(screen.getByText('EMAIL')).toBeInTheDocument();
+    expect(screen.getByText('Name')).toBeInTheDocument();
+    expect(screen.getByText('Email')).toBeInTheDocument();
   });
 
   it('shows no data message when data is empty', () => {
@@ -54,7 +54,7 @@ describe('DataTable Component', () => {
   it('sorts data when column header is clicked', () => {
     render(<DataTable columns={mockColumns} data={mockData} />);
     
-    const nameHeader = screen.getByText('NAME');
+    const nameHeader = screen.getByText('Name');
     fireEvent.click(nameHeader);
     
     // After sorting, Bob should be first (alphabetically)

@@ -15,7 +15,10 @@ import GuardedLink from "@/components/navigation/GuardedLink";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import type { CSSProperties } from "react";
-import { usePermissions, type PermissionKey } from "@/hooks/usePermissions";
+import {
+  settingsNavigationPermissionByKey,
+  usePermissions,
+} from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/use-auth";
 
 interface SidebarProps {
@@ -53,22 +56,8 @@ export default function Sidebar({
             return item;
           }
 
-          const permissionByChild: Record<string, PermissionKey> = {
-            "settings-overview": "settings.overview.view",
-            "settings-branding": "settings.branding.view",
-            "settings-users": "settings.users.view",
-            "settings-roles": "settings.roles.view",
-            "settings-policies": "settings.policies.view",
-            "settings-admissions-documents":
-              "settings.admissionsDocuments.view",
-            "settings-templates": "settings.templates.view",
-            "settings-integrations": "settings.integrations.view",
-            "settings-security": "settings.security.view",
-            "settings-backup": "settings.backup.view",
-          };
-
           const nextChildren = item.children.filter((child) => {
-            const permission = permissionByChild[child.key];
+            const permission = settingsNavigationPermissionByKey[child.key];
             return permission ? hasPermission(permission) : true;
           });
 

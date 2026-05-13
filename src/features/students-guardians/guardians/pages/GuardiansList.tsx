@@ -31,6 +31,8 @@ import AddGuardianModal, {
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
+import GuardianAccountLinkModal from "@/features/students-guardians/guardians/components/GuardianAccountLinkModal";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   downloadStudentsGuardiansExport,
   getStudentsGuardiansExportLocaleForFormat,
@@ -42,6 +44,8 @@ export default function GuardiansList() {
   const t = useTranslations("students_guardians.guardians_list");
   const locale = useLocale();
   const router = useRouter();
+  const { hasPermission } = usePermissions();
+  const canManageAccounts = hasPermission("settings.users.manage");
   const params = useParams();
   const lang = (params.lang as string) || "en";
   const {
@@ -117,6 +121,8 @@ export default function GuardiansList() {
   // Filters
   const [showFilters, setShowFilters] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [accountLinkGuardian, setAccountLinkGuardian] =
+    useState<StudentGuardian | null>(null);
   const [showCreateGuardianModal, setShowCreateGuardianModal] =
     useState(false);
   const [editingGuardian, setEditingGuardian] =
@@ -296,9 +302,16 @@ export default function GuardiansList() {
     }
   };
 
-  const handleChangePasswordClick = (e: React.MouseEvent) => {
+  const handleAccountLinkClick = (
+    e: React.MouseEvent,
+    guardian: StudentGuardian,
+  ) => {
     e.stopPropagation();
-    setPageError("Change password is not available yet.");
+    if (!canManageAccounts) {
+      setPageError(t("account_linking.manage_required"));
+      return;
+    }
+    setAccountLinkGuardian(guardian);
   };
 
   const handleEditGuardianClick = (
@@ -447,10 +460,16 @@ export default function GuardiansList() {
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={handleChangePasswordClick}
-            className="p-1.5 text-gray-400 rounded cursor-not-allowed"
-            title="Not available yet"
-            disabled
+            onClick={(e) =>
+              handleAccountLinkClick(e, row as unknown as StudentGuardian)
+            }
+            className={`p-1.5 rounded transition-colors ${
+              canManageAccounts
+                ? "text-gray-600 hover:bg-gray-100"
+                : "text-gray-400 cursor-not-allowed"
+            }`}
+            title={t("actions.link_account")}
+            disabled={!canManageAccounts}
           >
             <Lock className="w-4 h-4" />
           </button>
@@ -568,7 +587,7 @@ export default function GuardiansList() {
                 className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
               >
                 <Plus className="w-4 h-4" />
-                Create Guardian
+                {t("actions.create_guardian")}
               </button>
               <button
                 onClick={() => setShowExportModal(true)}
@@ -747,7 +766,7 @@ export default function GuardiansList() {
                 />
               </label>
               <label className="text-sm font-medium text-gray-700">
-                Job title
+                {t("fields.job_title")}
                 <input
                   value={editGuardianForm.job_title}
                   onChange={(event) =>
@@ -760,7 +779,7 @@ export default function GuardiansList() {
                 />
               </label>
               <label className="text-sm font-medium text-gray-700">
-                Workplace
+                {t("fields.workplace")}
                 <input
                   value={editGuardianForm.workplace}
                   onChange={(event) =>
@@ -809,14 +828,14 @@ export default function GuardiansList() {
                 onClick={() => setEditingGuardian(null)}
                 className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                Cancel
+                {t("actions.cancel")}
               </button>
               <button
                 type="submit"
                 disabled={isSavingGuardian}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-hover disabled:opacity-60"
               >
-                {isSavingGuardian ? "Saving..." : "Save"}
+                {isSavingGuardian ? t("actions.saving") : t("actions.save")}
               </button>
             </div>
           </form>
@@ -837,6 +856,11 @@ export default function GuardiansList() {
         subtitle={t("subtitle")}
         datasetCount={filteredGuardians.length}
         emptyStateMessage={t("no_guardians_message")}
+      />
+      <GuardianAccountLinkModal
+        isOpen={Boolean(accountLinkGuardian)}
+        guardian={accountLinkGuardian}
+        onClose={() => setAccountLinkGuardian(null)}
       />
     </div>
   );

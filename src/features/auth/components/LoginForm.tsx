@@ -102,12 +102,19 @@ export function LoginForm({ currentYear }: LoginFormProps) {
     setIsSubmitting(true);
 
     try {
-      await login({ email: values.email, password: values.password });
+      const currentUser = await login({
+        email: values.email,
+        password: values.password,
+      });
 
       const match = pathname.match(/^\/([a-z]{2})/);
       const currentLocale = match ? match[1] : "en";
 
-      router.push(`/${currentLocale}/dashboard`);
+      router.push(
+        currentUser?.mustChangePassword
+          ? `/${currentLocale}/change-password`
+          : `/${currentLocale}/dashboard`,
+      );
       setSubmitSuccess(t("demoSuccess"));
     } catch (error) {
       if (isApiError(error)) {

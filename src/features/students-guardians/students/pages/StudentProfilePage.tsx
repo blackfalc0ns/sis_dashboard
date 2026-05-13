@@ -20,9 +20,13 @@ import {
   ArrowRight,
   ArrowLeftRight,
   LogOut,
+  Lock,
 } from "lucide-react";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { Student } from "@/features/students-guardians/students/types";
+import Button from "@/components/ui/button/Button";
+import StudentAccountLinkModal from "@/features/students-guardians/students/components/StudentAccountLinkModal";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   StudentAttendanceTab,
   StudentBehaviorTab,
@@ -95,11 +99,14 @@ export default function StudentProfilePage({
   const t = useTranslations("students_guardians.profile");
   const locale = useLocale();
   const router = useRouter();
+  const { hasPermission } = usePermissions();
+  const canManageAccounts = hasPermission("settings.users.manage");
   const params = useParams();
   const lang = (params.lang as string) || "en";
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [studentRevision, setStudentRevision] = useState(0);
   const [student, setStudent] = useState<Student | null>(null);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [enrichedStudent, setEnrichedStudent] =
     useState<studentsService.StudentWithEnrollmentContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -313,6 +320,20 @@ export default function StudentProfilePage({
                 </span>
               </div>
             </div>
+            <Button
+              type="button"
+              variant="secondary"
+              leftIcon={<Lock className="h-4 w-4" />}
+              disabled={!canManageAccounts}
+              title={
+                canManageAccounts
+                  ? t("account_linking.action")
+                  : t("account_linking.manage_required")
+              }
+              onClick={() => setIsAccountModalOpen(true)}
+            >
+              {t("account_linking.action")}
+            </Button>
           </div>
         </div>
 
@@ -347,6 +368,12 @@ export default function StudentProfilePage({
           </div>
         )}
       </div>
+      <StudentAccountLinkModal
+        isOpen={isAccountModalOpen}
+        student={student}
+        onClose={() => setIsAccountModalOpen(false)}
+        onLinked={() => setStudentRevision((current) => current + 1)}
+      />
     </div>
   );
 }

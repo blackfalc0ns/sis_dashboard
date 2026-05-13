@@ -2,6 +2,8 @@
 import { apiPost, apiGet } from "@/lib/api";
 import { tokenStorage } from "@/lib/token-storage";
 import type {
+  ChangePasswordRequest,
+  ChangePasswordResponse,
   LoginRequest,
   LoginResponse,
   MeResponse,
@@ -58,5 +60,11 @@ export const authService = {
     }
 
     return response;
+  },
+
+  async changePassword(
+    payload: ChangePasswordRequest,
+  ): Promise<ChangePasswordResponse> {
+    return apiPost<ChangePasswordResponse>("/auth/change-password", payload);
   },
 };

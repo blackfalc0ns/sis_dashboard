@@ -45,6 +45,8 @@ import AddNoteModal, {
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
+import StudentAccountLinkModal from "@/features/students-guardians/students/components/StudentAccountLinkModal";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   downloadStudentsGuardiansExport,
   getStudentsGuardiansExportLocaleForFormat,
@@ -56,6 +58,8 @@ export default function StudentsList() {
   const t = useTranslations("students_guardians.students");
   const locale = useLocale();
   const router = useRouter();
+  const { hasPermission } = usePermissions();
+  const canManageAccounts = hasPermission("settings.users.manage");
   const params = useParams();
   const lang = (params.lang as string) || "en";
   const {
@@ -124,6 +128,9 @@ export default function StudentsList() {
   const [showFilters, setShowFilters] = useState(false);
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [accountLinkStudent, setAccountLinkStudent] = useState<Student | null>(
+    null,
+  );
   const [showExportModal, setShowExportModal] = useState(false);
   const {
     values: queryValues,
@@ -376,9 +383,13 @@ export default function StudentsList() {
     setShowAddNoteModal(true);
   };
 
-  const handleChangePasswordClick = (e: React.MouseEvent) => {
+  const handleAccountLinkClick = (e: React.MouseEvent, student: Student) => {
     e.stopPropagation();
-    setPageError("Change password is not available yet.");
+    if (!canManageAccounts) {
+      setPageError(t("account_linking.manage_required"));
+      return;
+    }
+    setAccountLinkStudent(student);
   };
 
   const handleExport = (format: StudentsGuardiansExportFormat) => {
@@ -581,10 +592,14 @@ export default function StudentsList() {
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={handleChangePasswordClick}
-            className="p-1.5 text-gray-400 rounded cursor-not-allowed"
-            title="Not available yet"
-            disabled
+            onClick={(e) => handleAccountLinkClick(e, row as unknown as Student)}
+            className={`p-1.5 rounded transition-colors ${
+              canManageAccounts
+                ? "text-gray-600 hover:bg-gray-100"
+                : "text-gray-400 cursor-not-allowed"
+            }`}
+            title={t("actions.link_account")}
+            disabled={!canManageAccounts}
           >
             <Lock className="w-4 h-4" />
           </button>
@@ -968,6 +983,11 @@ export default function StudentsList() {
         subtitle={t("subtitle")}
         datasetCount={filteredStudents.length}
         emptyStateMessage={t("no_students")}
+      />
+      <StudentAccountLinkModal
+        isOpen={Boolean(accountLinkStudent)}
+        student={accountLinkStudent}
+        onClose={() => setAccountLinkStudent(null)}
       />
     </div>
   );

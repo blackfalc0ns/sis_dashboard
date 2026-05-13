@@ -25,6 +25,7 @@
     "last_page": "الصفحة الأخيرة",
     "preview": "معاينة",
     "open": "فتح",
+    "close": "إغلاق",
     "delete": "حذف",
     "cancel": "إلغاء",
     "confirm": "تأكيد",
@@ -142,6 +143,31 @@
         "emailInvalid": "أدخل بريدًا إلكترونيًا صالحًا.",
         "passwordRequired": "كلمة المرور مطلوبة.",
         "passwordMinLength": "يجب ألا تقل كلمة المرور عن 8 أحرف."
+      }
+    },
+    "changePassword": {
+      "title": "تغيير كلمة المرور",
+      "subtitle": "يتطلب حسابك كلمة مرور جديدة قبل المتابعة إلى لوحة التحكم.",
+      "currentPasswordLabel": "كلمة المرور الحالية",
+      "currentPasswordPlaceholder": "أدخل كلمة المرور الحالية",
+      "newPasswordLabel": "كلمة المرور الجديدة",
+      "newPasswordPlaceholder": "أدخل كلمة المرور الجديدة",
+      "confirmPasswordLabel": "تأكيد كلمة المرور الجديدة",
+      "confirmPasswordPlaceholder": "أعد إدخال كلمة المرور الجديدة",
+      "submit": "تحديث كلمة المرور",
+      "submitting": "جارٍ تحديث كلمة المرور...",
+      "errors": {
+        "currentRequired": "كلمة المرور الحالية مطلوبة.",
+        "newRequired": "كلمة المرور الجديدة مطلوبة.",
+        "newMinLength": "يجب ألا تقل كلمة المرور الجديدة عن {min} أحرف.",
+        "newDifferent": "يجب أن تختلف كلمة المرور الجديدة عن الحالية.",
+        "confirmRequired": "أكد كلمة المرور الجديدة.",
+        "confirmMismatch": "كلمتا المرور غير متطابقتين."
+      },
+      "messages": {
+        "success": "تم تحديث كلمة المرور بنجاح.",
+        "failed": "فشل تحديث كلمة المرور.",
+        "validationFailed": "يرجى مراجعة حقول كلمة المرور."
       }
     }
   },
@@ -1437,6 +1463,44 @@
       "change_password": "تغيير كلمة المرور",
       "success": "تم تغيير كلمة المرور بنجاح"
     },
+    "account_linking": {
+      "student_title": "ربط حساب الطالب",
+      "guardian_title": "ربط حساب ولي الأمر",
+      "for_record": "لـ {name}",
+      "preview_placeholder": "أدخل اسم المستخدم لمعاينة بريد تسجيل الدخول المولّد.",
+      "guardian_contact_email_help": "اختياري إذا كان لدى ولي الأمر بريد مسجل بالفعل.",
+      "fields": {
+        "mode": "الوضع",
+        "username": "اسم المستخدم",
+        "login_email": "بريد تسجيل الدخول المولّد",
+        "contact_email": "بريد التواصل",
+        "temporary_password_mode": "كلمة المرور المؤقتة"
+      },
+      "modes": {
+        "create": "إنشاء حساب",
+        "link_existing": "ربط حساب موجود"
+      },
+      "temporary_password": {
+        "generate": "توليد كلمة مرور مؤقتة",
+        "none": "عدم التوليد",
+        "title": "كلمة مرور مؤقتة تظهر مرة واحدة",
+        "warning": "انسخها الآن. سيتم مسحها عند إغلاق النافذة ولن تظهر مرة أخرى."
+      },
+      "actions": {
+        "submit": "ربط الحساب",
+        "close": "إغلاق",
+        "copy": "نسخ كلمة المرور"
+      },
+      "validation": {
+        "username_required": "اسم المستخدم مطلوب.",
+        "contact_email_required": "بريد التواصل مطلوب عند إنشاء حساب طالب."
+      },
+      "messages": {
+        "linked": "تم ربط الحساب بنجاح.",
+        "link_failed": "فشل ربط الحساب.",
+        "copied": "تم نسخ كلمة المرور المؤقتة."
+      }
+    },
     "overview": {
       "title": "نظرة عامة على الطلاب وأولياء الأمور",
       "subtitle": "عرض شامل للطلاب وأولياء الأمور والأداء الأكاديمي",
@@ -1583,7 +1647,11 @@
         "view_profile": "عرض الملف الشخصي",
         "edit": "تعديل",
         "change_password": "تغيير كلمة المرور",
+        "link_account": "ربط الحساب",
         "add_note": "إضافة ملاحظة"
+      },
+      "account_linking": {
+        "manage_required": "ربط الحسابات يتطلب settings.users.manage."
       },
       "bulk_upload_button": "رفع جماعي",
       "bulk_upload_success": "تم رفع الطلاب بنجاح!",
@@ -1666,7 +1734,19 @@
       "actions": {
         "view_details": "عرض التفاصيل",
         "edit": "تعديل",
-        "change_password": "تغيير كلمة المرور"
+        "change_password": "تغيير كلمة المرور",
+        "link_account": "ربط الحساب",
+        "create_guardian": "إنشاء ولي أمر",
+        "cancel": "إلغاء",
+        "save": "حفظ",
+        "saving": "جاري الحفظ..."
+      },
+      "fields": {
+        "job_title": "المسمى الوظيفي",
+        "workplace": "مكان العمل"
+      },
+      "account_linking": {
+        "manage_required": "ربط الحسابات يتطلب settings.users.manage."
       },
       "no_guardians": "لم يتم العثور على أولياء أمور",
       "no_guardians_message": "لا توجد سجلات لأولياء الأمور",
@@ -1680,6 +1760,10 @@
       "yes": "نعم",
       "no": "لا",
       "not_provided": "غير مقدم",
+      "account_linking": {
+        "action": "ربط الحساب",
+        "manage_required": "ربط الحسابات يتطلب settings.users.manage."
+      },
       "no_section": "لا توجد شعبة",
       "no_linked_students": "لا يوجد طلاب مرتبطون بولي الأمر هذا",
       "tabs": {
@@ -2114,6 +2198,10 @@
       "section": "الشعبة",
       "classroom": "الفصل",
       "na": "غير متاح",
+      "account_linking": {
+        "action": "ربط الحساب",
+        "manage_required": "ربط الحسابات يتطلب settings.users.manage."
+      },
       "status": {
         "active": "نشط",
         "withdrawn": "منسحب",
@@ -5748,6 +5836,44 @@
         "title": "نشاط المراجعة الأخير",
         "description": "أحدث أحداث الإعدادات والأمان عبر منصة المدرسة."
       },
+      "sprint11": {
+        "title": "إعداد الحسابات والبريد",
+        "description": "افتح إعدادات Sprint 11 المطلوبة لهوية تسجيل الدخول وبيانات الدخول وتسليم البريد الخارجي.",
+        "links": {
+          "users": {
+            "title": "المستخدمون",
+            "description": "إدارة المستخدمين وأسماء المستخدمين وبريد التواصل والأدوار."
+          },
+          "login_identity": {
+            "title": "هوية تسجيل الدخول",
+            "description": "إعداد قواعد اسم المستخدم ونطاق بريد تسجيل الدخول المولّد."
+          },
+          "credentials": {
+            "title": "بيانات الدخول",
+            "description": "مراجعة حالة بيانات الحساب وإجراءات كلمات المرور."
+          },
+          "email_connection": {
+            "title": "اتصال البريد",
+            "description": "إعداد واختبار اتصال مرسل البريد المدرسي."
+          },
+          "email_templates": {
+            "title": "قوالب البريد",
+            "description": "تعديل قوالب بيانات الدخول وإعادة التعيين والرسائل العامة."
+          },
+          "credential_delivery": {
+            "title": "إرسال بيانات الدخول",
+            "description": "معاينة المستلمين وإنشاء دفعات بريد بيانات الدخول."
+          },
+          "email_deliveries": {
+            "title": "تسليم البريد",
+            "description": "مراقبة دفعات البريد في الانتظار والمرسلة والفاشلة والملغاة."
+          },
+          "email_campaigns": {
+            "title": "حملات البريد",
+            "description": "إنشاء وإدراج حملات بريد عامة خارجية."
+          }
+        }
+      },
       "integrations_snapshot": {
         "title": "ملخص التكاملات",
         "description": "الحالة الحالية لاتصال المزوّدات عبر القنوات الأساسية."
@@ -5848,11 +5974,30 @@
       },
       "table": {
         "name": "الاسم",
-        "email": "البريد الإلكتروني",
+        "username": "اسم المستخدم",
+        "email": "بريد تسجيل الدخول",
+        "login_email": "بريد تسجيل الدخول",
+        "contact_email": "بريد التواصل",
         "role": "الدور",
         "status": "الحالة",
         "last_active": "آخر نشاط",
+        "credential_status": "حالة بيانات الدخول",
         "actions": "الإجراءات"
+      },
+      "credential_status": {
+        "provisioned": "مفعّلة",
+        "must_change_password": "يجب تغيير كلمة المرور",
+        "not_provisioned": "غير مفعّلة"
+      },
+      "identity": {
+        "generated_login_email": "بريد تسجيل الدخول المولّد",
+        "login_identity_note": "هذا البريد المولّد هو هوية تسجيل الدخول. البريد الشخصي مكانه contactEmail.",
+        "check_availability": "تحقق من التوفر",
+        "username_available": "اسم المستخدم متاح.",
+        "username_unavailable": "اسم المستخدم غير متاح.",
+        "username_required": "أدخل اسم مستخدم أولاً.",
+        "preview_failed": "فشلت معاينة بريد تسجيل الدخول المولّد.",
+        "availability_failed": "فشل التحقق من توفر اسم المستخدم."
       },
       "messages": {
         "load_failed": "فشل تحميل المستخدمين.",
@@ -5863,6 +6008,634 @@
         "password_reset_sent": "تم تنفيذ إجراء إعادة تعيين كلمة المرور.",
         "activated": "تم تفعيل المستخدم.",
         "deactivated": "تم إيقاف المستخدم."
+      }
+    },
+    "loginIdentity": {
+      "title": "هوية تسجيل الدخول",
+      "subtitle": "إعداد قواعد بريد تسجيل الدخول المولّد لمستخدمي المدرسة.",
+      "form_title": "هوية الدخول للمدرسة",
+      "form_description": "حدد كيف تتحول أسماء المستخدمين إلى بريد دخول مولّد للمصادقة.",
+      "refresh": "تحديث",
+      "save": "حفظ التغييرات",
+      "saving": "جارٍ الحفظ...",
+      "identity_rule": "البريد الإلكتروني المولّد هو هوية تسجيل الدخول. البريد الشخصي يجب حفظه في contactEmail وليس email.",
+      "current_domain": "نطاق الدخول الحالي: {domain}",
+      "empty_domain_hint": "لم يتم إعداد نطاق دخول بعد.",
+      "fields": {
+        "login_domain": "نطاق الدخول",
+        "username_min": "الحد الأدنى لاسم المستخدم",
+        "username_max": "الحد الأقصى لاسم المستخدم",
+        "allowed_characters": "الأحرف المسموحة",
+        "reserved_usernames": "أسماء المستخدمين المحجوزة",
+        "status": "الحالة"
+      },
+      "placeholders": {
+        "login_domain": "school.edu",
+        "allowed_characters": "حروف وأرقام ونقاط وشرطات سفلية وشرطات",
+        "reserved_usernames": "admin, support, root"
+      },
+      "helpers": {
+        "allowed_characters": "استخدم النص أو النمط المدعوم من الخلفية لقواعد أسماء المستخدمين.",
+        "reserved_usernames": "أسماء مستخدمين مفصولة بفواصل لا يمكن إسنادها."
+      },
+      "status": {
+        "active": "نشط",
+        "draft": "مسودة",
+        "inactive": "غير نشط"
+      },
+      "validation": {
+        "domain_required": "نطاق الدخول مطلوب.",
+        "min_invalid": "الحد الأدنى يجب أن يكون رقماً صحيحاً موجباً.",
+        "max_invalid": "الحد الأقصى يجب أن يكون رقماً صحيحاً موجباً.",
+        "max_less_than_min": "الحد الأقصى يجب أن يكون أكبر من أو يساوي الحد الأدنى."
+      },
+      "messages": {
+        "load_failed": "فشل تحميل إعدادات هوية تسجيل الدخول.",
+        "saved": "تم حفظ إعدادات هوية تسجيل الدخول بنجاح."
+      },
+      "empty": {
+        "title": "إعدادات هوية الدخول غير متاحة",
+        "description": "تعذر تحميل الإعدادات. حدّث الصفحة للمحاولة مرة أخرى.",
+        "retry": "إعادة المحاولة"
+      },
+      "preview": {
+        "section_title": "معاينة اسم المستخدم",
+        "section_description": "عاين بريد الدخول المولّد وتحقق من توفر اسم المستخدم.",
+        "title": "معاينة هوية الدخول",
+        "description": "أدخل اسم مستخدم لعرض بريد الدخول المولّد. هذا ليس البريد الشخصي للتواصل.",
+        "username_label": "اسم المستخدم",
+        "username_placeholder": "مثال: sara.ali",
+        "preview_button": "معاينة البريد",
+        "availability_button": "تحقق من التوفر",
+        "generated_email_label": "بريد الدخول المولّد",
+        "login_identity_note": "يسجل المستخدمون الدخول بهذا البريد المولّد. البريد الشخصي مكانه contactEmail.",
+        "available": "اسم المستخدم متاح.",
+        "unavailable": "اسم المستخدم غير متاح.",
+        "errors": {
+          "username_required": "أدخل اسم مستخدم أولاً.",
+          "preview_failed": "فشلت معاينة اسم المستخدم.",
+          "availability_failed": "فشل التحقق من توفر اسم المستخدم."
+        }
+      }
+    },
+    "credentials": {
+      "title": "بيانات الدخول",
+      "subtitle": "توليد وإعادة ضبط ومتابعة بيانات دخول المستخدمين.",
+      "refresh": "تحديث",
+      "yes": "نعم",
+      "no": "لا",
+      "not_available": "غير متاح",
+      "statuses": {
+        "active": "نشط",
+        "invited": "مدعو",
+        "inactive": "غير نشط"
+      },
+      "filters": {
+        "button": "تصفية",
+        "search": "البحث عن مستخدم",
+        "clear": "مسح التصفية",
+        "role": "الدور",
+        "status": "الحالة",
+        "has_password": "لديه كلمة مرور",
+        "must_change": "يجب تغيير كلمة المرور"
+      },
+      "table": {
+        "title": "حالة بيانات الدخول",
+        "description": "راجع تفعيل بيانات الدخول وأدر إجراءات كلمات المرور.",
+        "name": "الاسم الكامل",
+        "username_login": "اسم المستخدم / بريد الدخول",
+        "contact_email": "بريد التواصل",
+        "role": "الدور",
+        "status": "الحالة",
+        "has_password": "لديه كلمة مرور",
+        "must_change_password": "يجب تغيير كلمة المرور",
+        "provisioned_at": "تاريخ التفعيل",
+        "changed_at": "تاريخ التغيير",
+        "version": "الإصدار",
+        "actions": "الإجراءات"
+      },
+      "actions": {
+        "generate": "توليد كلمة مرور مؤقتة",
+        "set_password": "تعيين كلمة مرور مخصصة",
+        "regenerate": "إعادة توليد كلمة مرور مؤقتة"
+      },
+      "empty": {
+        "title": "لا توجد سجلات بيانات دخول",
+        "description": "غيّر التصفية أو حدّث جدول حالة بيانات الدخول."
+      },
+      "generate": {
+        "title": "توليد كلمة مرور مؤقتة",
+        "regenerate_title": "إعادة توليد كلمة مرور مؤقتة",
+        "description": "ستظهر كلمة المرور المؤقتة مرة واحدة بعد التوليد.",
+        "must_change_password": "إلزام المستخدم بتغيير كلمة المرور عند تسجيل الدخول التالي.",
+        "generating": "جارٍ التوليد..."
+      },
+      "set": {
+        "title": "تعيين كلمة مرور مخصصة",
+        "description": "عيّن كلمة مرور مباشرة لهذا المستخدم. لا يتم حفظ قيم كلمات المرور في حالة الواجهة بعد الإرسال.",
+        "password": "كلمة المرور",
+        "confirm_password": "تأكيد كلمة المرور",
+        "must_change_password": "إلزام المستخدم بتغيير كلمة المرور عند تسجيل الدخول التالي.",
+        "show": "إظهار كلمة المرور",
+        "hide": "إخفاء كلمة المرور",
+        "errors": {
+          "required": "أدخل كلمة المرور وأكدها.",
+          "mismatch": "كلمتا المرور غير متطابقتين.",
+          "min_length": "يجب ألا تقل كلمة المرور عن 8 أحرف."
+        }
+      },
+      "bulk": {
+        "open": "توليد جماعي",
+        "title": "توليد بيانات الدخول جماعياً",
+        "description": "عاين المستخدمين المؤهلين قبل توليد كلمات المرور المؤقتة.",
+        "missing_only": "المستخدمون بدون كلمات مرور فقط",
+        "must_change_only": "المستخدمون المحددون لتغيير كلمة المرور فقط",
+        "force_change": "إلزام تغيير كلمة المرور عند الدخول التالي",
+        "preview": "معاينة",
+        "previewing": "جارٍ المعاينة...",
+        "generate": "توليد",
+        "generating": "جارٍ التوليد...",
+        "eligible": "مؤهل",
+        "skipped": "متخطى"
+      },
+      "reveal": {
+        "title": "كلمات المرور المؤقتة",
+        "warning": "تظهر هذه الكلمات مرة واحدة فقط. انسخها الآن؛ سيتم مسحها عند إغلاق هذه النافذة.",
+        "no_password": "لم يتم إرجاع كلمة مرور مؤقتة.",
+        "copy": "نسخ",
+        "copied": "تم النسخ",
+        "user": "المستخدم",
+        "password": "كلمة المرور المؤقتة",
+        "show": "إظهار",
+        "hide": "إخفاء"
+      },
+      "messages": {
+        "load_failed": "فشل تحميل حالة بيانات الدخول.",
+        "generated": "تم توليد كلمة المرور المؤقتة.",
+        "password_set": "تم تعيين كلمة المرور.",
+        "bulk_generated": "تم توليد بيانات الدخول جماعياً.",
+        "preview_failed": "فشلت معاينة المستلمين."
+      }
+    },
+    "email": {
+      "connection": {
+        "title": "اتصال البريد المدرسي",
+        "subtitle": "إعداد حساب الإرسال المدرسي المستخدم لرسائل بيانات الدخول والحملات.",
+        "refresh": "تحديث",
+        "not_available": "غير متاح",
+        "provider": {
+          "SMTP": "SMTP",
+          "API": "مزود API"
+        },
+        "states": {
+          "DRAFT": "مسودة",
+          "VERIFIED": "تم التحقق",
+          "ACTIVE": "نشط",
+          "DISABLED": "معطل",
+          "FAILED": "فشل"
+        },
+        "status": {
+          "title": "حالة الاتصال",
+          "description": "لا يتم عرض الأسرار المحفوظة أبداً. تظهر مؤشرات الإعداد فقط.",
+          "status": "الحالة",
+          "last_test": "آخر اختبار",
+          "configured": "معدّ",
+          "not_configured": "غير معدّ",
+          "failure_reason": "سبب الفشل"
+        },
+        "form": {
+          "title": "إعداد المرسل",
+          "description": "حدّث مزود البريد وهوية المرسل للمدرسة.",
+          "secret_help": "اتركه فارغاً للاحتفاظ بالسر المحفوظ حالياً."
+        },
+        "fields": {
+          "provider_type": "نوع المزود",
+          "from_name": "اسم المرسل",
+          "from_email": "بريد المرسل",
+          "reply_to_email": "بريد الرد",
+          "host": "المضيف",
+          "port": "المنفذ",
+          "secure": "استخدام اتصال SMTP آمن",
+          "username": "اسم المستخدم",
+          "password": "كلمة المرور",
+          "api_key": "مفتاح API",
+          "test_recipient_email": "بريد مستلم الاختبار"
+        },
+        "actions": {
+          "save": "حفظ الاتصال",
+          "test": "إرسال اختبار",
+          "activate": "تفعيل",
+          "disable": "تعطيل"
+        },
+        "validation": {
+          "provider_required": "نوع المزود مطلوب.",
+          "from_name_required": "اسم المرسل مطلوب.",
+          "from_email_required": "بريد المرسل مطلوب.",
+          "host_required": "المضيف مطلوب لاتصالات SMTP.",
+          "port_invalid": "يجب أن يكون المنفذ رقماً صحيحاً موجباً.",
+          "test_recipient_required": "أدخل بريد مستلم الاختبار."
+        },
+        "messages": {
+          "load_failed": "فشل تحميل اتصال البريد.",
+          "saved": "تم حفظ اتصال البريد.",
+          "test_sent": "تم إرسال طلب بريد الاختبار.",
+          "test_failed": "فشل اختبار اتصال البريد.",
+          "activated": "تم تفعيل اتصال البريد.",
+          "disabled": "تم تعطيل اتصال البريد."
+        }
+      },
+      "templates": {
+        "title": "قوالب البريد المدرسي",
+        "subtitle": "تعديل قوالب بيانات الدخول وإعادة تعيين كلمة المرور والرسائل العامة.",
+        "refresh": "تحديث",
+        "active": "نشط",
+        "inactive": "غير نشط",
+        "keys": {
+          "ACCOUNT_CREDENTIALS": "بيانات الحساب",
+          "PASSWORD_RESET": "إعادة تعيين كلمة المرور",
+          "GENERAL_MESSAGE": "رسالة عامة"
+        },
+        "list": {
+          "title": "مفاتيح القوالب",
+          "description": "اختر قالباً مدعوماً من الخلفية لتعديله أو معاينته."
+        },
+        "editor": {
+          "description": "محتوى القالب وتفاصيل الدعم للمرسل.",
+          "allowed_variables": "المتغيرات المسموحة",
+          "no_variables": "لم ترجع الخلفية أي متغيرات.",
+          "credential_safety": "متغيرات بيانات الدخول آمنة فقط في قوالب بيانات الدخول المعتمدة من الخلفية. لا تستخدم معاينات الرسائل العامة لكشف بيانات الدخول."
+        },
+        "fields": {
+          "subject": "الموضوع",
+          "preheader": "النص التمهيدي",
+          "title": "العنوان",
+          "subtitle": "العنوان الفرعي",
+          "body_html": "محتوى HTML",
+          "body_text": "النص العادي",
+          "footer_html": "تذييل HTML",
+          "support_email": "بريد الدعم",
+          "support_phone": "هاتف الدعم",
+          "website": "الموقع الإلكتروني",
+          "facebook": "فيسبوك",
+          "instagram": "إنستغرام",
+          "x": "X",
+          "is_active": "القالب نشط"
+        },
+        "actions": {
+          "preview": "معاينة",
+          "save": "حفظ القالب",
+          "reset": "استعادة الافتراضي"
+        },
+        "preview": {
+          "title": "بيانات المعاينة",
+          "description": "عدّل بيانات JSON المستخدمة في نقطة المعاينة. المعاينة لا ترسل بريداً.",
+          "data_json": "بيانات المعاينة JSON",
+          "no_send": "يتم العرض عبر نقطة المعاينة فقط ولا يتم إرسال بريد.",
+          "modal_title": "معاينة القالب",
+          "html": "معاينة HTML",
+          "text": "معاينة النص",
+          "unknown_variables": "متغيرات غير معروفة",
+          "missing_variables": "متغيرات ناقصة",
+          "none": "لا يوجد"
+        },
+        "empty": {
+          "title": "لا يوجد قالب محدد",
+          "description": "حدّث القوالب أو اختر مفتاح قالب."
+        },
+        "validation": {
+          "subject_required": "الموضوع مطلوب.",
+          "body_html_required": "محتوى HTML مطلوب.",
+          "preview_json_invalid": "يجب أن تكون بيانات المعاينة JSON صالحة.",
+          "preview_object_required": "يجب أن تكون بيانات المعاينة كائن JSON."
+        },
+        "messages": {
+          "load_failed": "فشل تحميل قوالب البريد.",
+          "saved": "تم حفظ قالب البريد.",
+          "reset": "تمت استعادة القالب الافتراضي.",
+          "preview_failed": "فشلت معاينة القالب."
+        }
+      },
+      "credentialDeliveries": {
+        "title": "إرسال بيانات الدخول",
+        "subtitle": "معاينة المستلمين وإنشاء دفعات بريد بيانات الدخول بأمان.",
+        "reset": "إعادة ضبط المعالج",
+        "yes": "نعم",
+        "no": "لا",
+        "wizard": {
+          "title": "معالج الإرسال",
+          "description": "اختر الجمهور ووضع بيانات الدخول وعاين المستلمين ثم أنشئ دفعة في قائمة الانتظار."
+        },
+        "steps": {
+          "audience": "الجمهور",
+          "mode": "الوضع",
+          "preview": "المعاينة",
+          "confirm": "التأكيد"
+        },
+        "templateKeys": {
+          "ACCOUNT_CREDENTIALS": "بيانات الحساب",
+          "PASSWORD_RESET": "إعادة تعيين كلمة المرور",
+          "GENERAL_MESSAGE": "رسالة عامة"
+        },
+        "credentialModes": {
+          "LOGIN_INFO_ONLY": "معلومات تسجيل الدخول فقط",
+          "GENERATE_TEMPORARY_PASSWORD": "توليد كلمة مرور مؤقتة",
+          "REGENERATE_TEMPORARY_PASSWORD": "إعادة توليد كلمة مرور مؤقتة"
+        },
+        "audience": {
+          "title": "اختيار الجمهور",
+          "description": "اختر المستخدمين الذين ستقيّمهم الخلفية لهذا الإرسال.",
+          "mode": "الجمهور",
+          "selected_user_ids": "معرّفات المستخدمين المحددين",
+          "selected_user_ids_help": "الصق معرّفات المستخدمين مفصولة بفواصل أو أسطر جديدة.",
+          "role_id": "معرّف الدور",
+          "role_placeholder": "اختر دوراً",
+          "roles_empty": "لم يتم تحميل الأدوار. حدّث المعالج وحاول مرة أخرى.",
+          "user_type": "نوع المستخدم",
+          "require_contact_email": "اشتراط contactEmail",
+          "require_contact_email_help": "تخطى المستلمين بلا بريد تواصل شخصي. بريد تسجيل الدخول المولّد ليس البريد الشخصي.",
+          "options": {
+            "selected_users": "مستخدمون محددون",
+            "role": "دور",
+            "user_type": "نوع المستخدم",
+            "missing_password": "بلا كلمة مرور",
+            "must_change_password": "يجب تغيير كلمة المرور",
+            "all_school": "كل المدرسة"
+          }
+        },
+        "mode": {
+          "title": "وضع الإرسال",
+          "description": "اختر قالب البريد وطريقة التعامل مع بيانات الدخول.",
+          "template_key": "مفتاح القالب",
+          "credential_mode": "وضع بيانات الدخول"
+        },
+        "warnings": {
+          "generate": "سيتم توليد كلمات المرور المؤقتة أثناء الإرسال ولن تظهر في هذا المعالج.",
+          "regenerate": "قد يتم استبدال كلمات المرور الحالية للمستخدمين المؤهلين.",
+          "smtp_failure": "إذا فشل SMTP بعد تغيير بيانات الدخول، يكون الاسترداد الإداري بإعادة التوليد والإرسال.",
+          "no_raw_passwords": "لا تظهر كلمات المرور المؤقتة الخام هنا إلا إذا أعادتها الخلفية صراحة. يعتمد إرسال بيانات الدخول على البريد."
+        },
+        "preview": {
+          "title": "معاينة المستلمين",
+          "description": "اطلب من الخلفية تقييم الأهلية قبل إنشاء دفعة الإرسال.",
+          "template": "القالب",
+          "mode": "وضع بيانات الدخول",
+          "contact_email": "يشترط contactEmail",
+          "eligible": "مؤهل",
+          "skipped": "متخطى",
+          "sample_eligible": "عينة المستلمين المؤهلين",
+          "sample_skipped": "عينة المستلمين المتخطين",
+          "no_eligible": "لا يوجد مستلمون مؤهلون في العينة.",
+          "no_skipped": "لا يوجد مستلمون متخطون في العينة.",
+          "empty_title": "لا توجد معاينة بعد",
+          "empty_description": "شغّل معاينة المستلمين قبل تأكيد الإرسال."
+        },
+        "confirm": {
+          "title": "تأكيد الإرسال",
+          "description": "أنشئ دفعة خلفية في قائمة الانتظار للمستلمين المؤهلين.",
+          "preview_required": "عاين المستلمين قبل إنشاء دفعة الإرسال.",
+          "manage_required": "إنشاء دفعة إرسال يتطلب settings.security.manage.",
+          "created": "تمت إضافة دفعة الإرسال إلى قائمة الانتظار.",
+          "batch_id": "معرّف الدفعة",
+          "status": "الحالة",
+          "queued": "في الانتظار"
+        },
+        "actions": {
+          "back": "رجوع",
+          "next": "التالي",
+          "preview": "معاينة المستلمين",
+          "previewing": "جاري المعاينة...",
+          "create": "إنشاء دفعة الإرسال",
+          "creating": "جاري الإنشاء..."
+        },
+        "validation": {
+          "selected_users_required": "أدخل معرّف مستخدم واحداً على الأقل.",
+          "role_required": "أدخل معرّف الدور.",
+          "user_type_required": "أدخل نوع المستخدم."
+        },
+        "messages": {
+          "preview_ready": "معاينة المستلمين جاهزة.",
+          "preview_failed": "فشلت معاينة مستلمي بيانات الدخول.",
+          "created": "تمت إضافة دفعة بيانات الدخول إلى قائمة الانتظار.",
+          "roles_failed": "فشل تحميل الأدوار لاختيار الجمهور."
+        }
+      },
+      "deliveries": {
+        "title": "تسليم البريد",
+        "subtitle": "مراقبة دفعات بريد بيانات الدخول والحملات.",
+        "refresh": "تحديث",
+        "not_available": "غير متاح",
+        "kinds": {
+          "CREDENTIAL_DELIVERY": "إرسال بيانات الدخول",
+          "GENERAL_CAMPAIGN": "حملة عامة"
+        },
+        "statuses": {
+          "QUEUED": "في الانتظار",
+          "PROCESSING": "قيد المعالجة",
+          "SUCCEEDED": "نجح",
+          "PARTIAL_FAILED": "فشل جزئي",
+          "FAILED": "فشل",
+          "CANCELLED": "ملغى"
+        },
+        "recipientStatuses": {
+          "QUEUED": "في الانتظار",
+          "SENT": "تم الإرسال",
+          "FAILED": "فشل",
+          "SKIPPED": "متخطى",
+          "CANCELLED": "ملغى"
+        },
+        "filters": {
+          "button": "الفلاتر",
+          "title": "فلاتر التسليم",
+          "description": "تصفية الدفعات حسب نوع الإرسال وحالة المعالجة.",
+          "kind": "النوع",
+          "status": "الحالة",
+          "all": "الكل",
+          "clear": "مسح الفلاتر"
+        },
+        "table": {
+          "title": "دفعات التسليم",
+          "description": "راجع أعداد البريد في الانتظار والمرسل والفاشل والمتخطى والملغى.",
+          "kind": "النوع",
+          "status": "الحالة",
+          "subject": "الموضوع / العنوان",
+          "total": "الإجمالي",
+          "queued": "في الانتظار",
+          "sent": "مرسل",
+          "failed": "فشل",
+          "skipped": "متخطى",
+          "cancelled": "ملغى",
+          "created_at": "تاريخ الإنشاء",
+          "actions": "الإجراءات"
+        },
+        "actions": {
+          "view": "عرض التفاصيل",
+          "cancel": "إلغاء الدفعة",
+          "back": "العودة إلى التسليم"
+        },
+        "empty": {
+          "title": "لا توجد دفعات تسليم",
+          "description": "غيّر الفلاتر أو حدّث بعد إنشاء دفعة إرسال."
+        },
+        "detail": {
+          "title": "دفعة التسليم",
+          "summary": "ملخص الدفعة",
+          "summary_description": "بيانات التسليم الخلفية وأعداد المستلمين.",
+          "updated_at": "آخر تحديث",
+          "security_note": "بيانات التسليم مخصصة للمراقبة فقط. لا يتم عرض أو إعادة بناء كلمات المرور المؤقتة الخام هنا.",
+          "not_found": "لم يتم العثور على دفعة التسليم."
+        },
+        "recipients": {
+          "title": "المستلمون",
+          "description": "راجع حالة تسليم المستلمين وأسباب الفشل من الخلفية.",
+          "recipient": "المستلم",
+          "email": "بريد المستلم",
+          "status": "الحالة",
+          "failure_reason": "سبب الفشل",
+          "sent_at": "وقت الإرسال",
+          "skipped_at": "وقت التخطي",
+          "empty_title": "لا يوجد مستلمون",
+          "empty_description": "لا تحتوي هذه الدفعة على صفوف مستلمين بعد."
+        },
+        "messages": {
+          "load_failed": "فشل تحميل تسليم البريد.",
+          "detail_load_failed": "فشل تحميل دفعة التسليم.",
+          "cancelled": "تم إلغاء دفعة التسليم."
+        }
+      },
+      "campaigns": {
+        "title": "حملات البريد",
+        "subtitle": "إنشاء وإدراج حملات بريد عامة خارجية لجماهير المدرسة.",
+        "refresh": "تحديث",
+        "not_available": "غير متاح",
+        "templateKeys": {
+          "GENERAL_MESSAGE": "رسالة عامة"
+        },
+        "statuses": {
+          "QUEUED": "في الانتظار",
+          "PROCESSING": "قيد المعالجة",
+          "SUCCEEDED": "نجح",
+          "PARTIAL_FAILED": "فشل جزئي",
+          "FAILED": "فشل",
+          "CANCELLED": "ملغى"
+        },
+        "audience": {
+          "title": "اختيار الجمهور",
+          "description": "اختر مستخدمي حملة البريد الخارجية. يمكن إضافة عناوين مخصصة دون إنشاء إعلانات داخل التطبيق.",
+          "mode": "الجمهور",
+          "selected_user_ids": "معرّفات المستخدمين المحددين",
+          "selected_user_ids_help": "الصق معرّفات المستخدمين مفصولة بفواصل أو أسطر جديدة.",
+          "role_id": "الدور",
+          "role_placeholder": "اختر دوراً",
+          "roles_empty": "لم يتم تحميل الأدوار. حدّث وحاول مرة أخرى.",
+          "user_type": "نوع المستخدم",
+          "custom_emails": "عناوين بريد مخصصة",
+          "custom_emails_help": "مستلمون خارجيون اختياريون مفصولون بفواصل أو أسطر جديدة.",
+          "options": {
+            "selected_users": "مستخدمون محددون",
+            "role": "دور",
+            "user_type": "نوع المستخدم",
+            "all_school": "كل المدرسة"
+          }
+        },
+        "composer": {
+          "title": "محرر الحملة",
+          "description": "أنشئ حملة عامة باستخدام قالب GENERAL_MESSAGE ومحتوى حملة مخصص.",
+          "external_only": "حملات البريد إرسال خارجي فقط ولا ترتبط بإعلانات التطبيق أو مركز الإشعارات.",
+          "credential_safety": "متغيرات بيانات الدخول مثل {{credential.temporaryPassword}} محظورة هنا. استخدم إرسال بيانات الدخول لبيانات الحساب."
+        },
+        "fields": {
+          "template_key": "مفتاح القالب",
+          "subject": "الموضوع",
+          "title": "العنوان",
+          "body_html": "محتوى HTML",
+          "body_text": "النص العادي",
+          "body_text_help": "بديل نصي اختياري إذا كانت الخلفية تدعمه."
+        },
+        "actions": {
+          "preview_recipients": "معاينة المستلمين",
+          "preview_campaign": "معاينة الحملة",
+          "create": "إنشاء الحملة",
+          "view": "عرض التفاصيل",
+          "back": "العودة إلى الحملات",
+          "close": "إغلاق"
+        },
+        "recipients": {
+          "title": "معاينة المستلمين",
+          "description": "عاين المستلمين المؤهلين والمتخطين قبل إنشاء دفعة الحملة.",
+          "eligible": "مؤهل",
+          "skipped": "متخطى",
+          "sample_eligible": "عينة المستلمين المؤهلين",
+          "sample_skipped": "عينة المستلمين المتخطين",
+          "no_eligible": "لا يوجد مستلمون مؤهلون في العينة.",
+          "no_skipped": "لا يوجد مستلمون متخطون في العينة.",
+          "empty_title": "لا توجد معاينة مستلمين بعد",
+          "empty_description": "شغّل معاينة المستلمين قبل إنشاء الحملة."
+        },
+        "preview": {
+          "modal_title": "معاينة الحملة",
+          "html": "معاينة HTML",
+          "text": "معاينة النص",
+          "unknown_variables": "متغيرات غير معروفة",
+          "missing_variables": "متغيرات ناقصة",
+          "none": "لا يوجد"
+        },
+        "created": {
+          "title": "تمت إضافة الحملة إلى قائمة الانتظار",
+          "description": "أنشأت الخلفية دفعة تسليم بريد خارجية.",
+          "batch_id": "معرّف الدفعة",
+          "status": "الحالة",
+          "total_recipients": "إجمالي المستلمين"
+        },
+        "filters": {
+          "status": "الحالة",
+          "all": "الكل"
+        },
+        "list": {
+          "title": "دفعات الحملات",
+          "description": "راجع أعداد الحملات العامة في الانتظار والمرسلة والفاشلة والمتخطاة والملغاة."
+        },
+        "table": {
+          "status": "الحالة",
+          "subject": "الموضوع / العنوان",
+          "total": "الإجمالي",
+          "sent": "مرسل",
+          "failed": "فشل",
+          "skipped": "متخطى",
+          "created_at": "تاريخ الإنشاء",
+          "actions": "الإجراءات"
+        },
+        "empty": {
+          "title": "لا توجد حملات",
+          "description": "أنشئ حملة أو حدّث بعد أن تضيف الخلفية دفعة إلى قائمة الانتظار."
+        },
+        "detail": {
+          "title": "حملة بريد",
+          "summary": "ملخص الحملة",
+          "summary_description": "بيانات تسليم الحملة من الخلفية وأعداد المستلمين.",
+          "updated_at": "آخر تحديث",
+          "batch_id": "معرّف الدفعة",
+          "security_note": "الحملات هي إرسال بريد خارجي فقط. لا يتم عرض أو إعادة بناء كلمات المرور المؤقتة الخام هنا.",
+          "not_found": "لم يتم العثور على دفعة الحملة."
+        },
+        "validation": {
+          "subject_required": "الموضوع مطلوب.",
+          "body_html_required": "محتوى HTML مطلوب.",
+          "selected_users_required": "أدخل معرّف مستخدم واحداً على الأقل.",
+          "role_required": "اختر دوراً.",
+          "user_type_required": "أدخل نوع المستخدم.",
+          "credential_variables_blocked": "متغيرات بيانات الدخول مسموحة فقط في قوالب إرسال بيانات الدخول:",
+          "preview_required": "عاين المستلمين قبل إنشاء دفعة الحملة.",
+          "manage_required": "إنشاء حملة يتطلب settings.security.manage."
+        },
+        "messages": {
+          "load_failed": "فشل تحميل حملات البريد.",
+          "detail_load_failed": "فشل تحميل دفعة الحملة.",
+          "preview_recipients_ready": "معاينة المستلمين جاهزة.",
+          "preview_recipients_failed": "فشلت معاينة مستلمي الحملة.",
+          "preview_ready": "معاينة الحملة جاهزة.",
+          "preview_failed": "فشلت معاينة الحملة.",
+          "created": "تمت إضافة دفعة الحملة إلى قائمة الانتظار."
+        }
       }
     },
     "roles": {
@@ -7262,7 +8035,18 @@
       "noData": "لا توجد بيانات",
       "totalCategories": "إجمالي الفئات",
       "activeCategories": "نشطة",
-      "inactiveCategories": "غير نشطة"
+      "inactiveCategories": "غير نشطة",
+      "filters": {
+        "title": "التصفية",
+        "student": "الطالب",
+        "classroom": "الفصل",
+        "dateFrom": "من تاريخ",
+        "dateTo": "إلى تاريخ",
+        "allStudents": "جميع الطلاب",
+        "allClassrooms": "جميع الفصول",
+        "apply": "تطبيق",
+        "clear": "مسح التصفية"
+      }
     },
     "export": {
       "title": "تصدير بيانات السلوك"

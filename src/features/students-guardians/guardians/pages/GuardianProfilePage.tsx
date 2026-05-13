@@ -13,12 +13,16 @@ import {
   Phone,
   Mail,
   Star,
+  Lock,
 } from "lucide-react";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import type { StudentGuardian } from "@/features/students-guardians/students/types";
 import OverviewTab from "@/features/students-guardians/guardians/components/tabs/OverviewTab";
 import StudentsTab from "@/features/students-guardians/guardians/components/tabs/StudentsTab";
+import Button from "@/components/ui/button/Button";
+import GuardianAccountLinkModal from "@/features/students-guardians/guardians/components/GuardianAccountLinkModal";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface GuardianProfilePageProps {
   guardianId: string;
@@ -47,10 +51,13 @@ export default function GuardianProfilePage({
   const t = useTranslations("students_guardians.guardian_profile");
   const locale = useLocale();
   const router = useRouter();
+  const { hasPermission } = usePermissions();
+  const canManageAccounts = hasPermission("settings.users.manage");
   const params = useParams();
   const lang = (params.lang as string) || "en";
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [guardian, setGuardian] = useState<StudentGuardian | null>(null);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -170,6 +177,20 @@ export default function GuardianProfilePage({
                 </span>
               </div>
             </div>
+            <Button
+              type="button"
+              variant="secondary"
+              leftIcon={<Lock className="h-4 w-4" />}
+              disabled={!canManageAccounts}
+              title={
+                canManageAccounts
+                  ? t("account_linking.action")
+                  : t("account_linking.manage_required")
+              }
+              onClick={() => setIsAccountModalOpen(true)}
+            >
+              {t("account_linking.action")}
+            </Button>
           </div>
         </div>
 
@@ -202,6 +223,11 @@ export default function GuardianProfilePage({
         {activeTab === "overview" && <OverviewTab guardian={guardian} />}
         {activeTab === "students" && <StudentsTab guardian={guardian} />}
       </div>
+      <GuardianAccountLinkModal
+        isOpen={isAccountModalOpen}
+        guardian={guardian}
+        onClose={() => setIsAccountModalOpen(false)}
+      />
     </div>
   );
 }
