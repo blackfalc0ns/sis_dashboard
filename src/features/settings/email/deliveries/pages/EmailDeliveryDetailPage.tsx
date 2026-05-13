@@ -63,6 +63,7 @@ export default function EmailDeliveryDetailPage({
 
   const statusLabels = useMemo(
     () => ({
+      DRAFT: t("statuses.DRAFT"),
       QUEUED: t("statuses.QUEUED"),
       PROCESSING: t("statuses.PROCESSING"),
       SUCCEEDED: t("statuses.SUCCEEDED"),
@@ -75,7 +76,9 @@ export default function EmailDeliveryDetailPage({
 
   const recipientStatusLabels = useMemo(
     () => ({
+      PENDING: t("recipientStatuses.PENDING"),
       QUEUED: t("recipientStatuses.QUEUED"),
+      SENDING: t("recipientStatuses.SENDING"),
       SENT: t("recipientStatuses.SENT"),
       FAILED: t("recipientStatuses.FAILED"),
       SKIPPED: t("recipientStatuses.SKIPPED"),

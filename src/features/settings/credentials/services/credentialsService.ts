@@ -2,11 +2,14 @@ import { apiGet, apiPost } from "@/lib/api";
 import type {
   BulkCredentialPreviewRequest,
   BulkCredentialPreviewResponse,
+  BulkCredentialPreviewResponseDto,
   BulkGenerateCredentialsRequest,
   BulkGenerateCredentialsResponse,
+  BulkGenerateCredentialsResponseDto,
   CredentialStatusListResponse,
   FetchCredentialStatusParams,
   GenerateCredentialRequest,
+  GeneratedCredentialResponseDto,
   OneTimeCredentialResponse,
   SetCredentialPasswordRequest,
 } from "@/features/settings/credentials/types";
@@ -16,16 +19,66 @@ function toCredentialStatusQuery(params: FetchCredentialStatusParams): string {
   if (params.search?.trim()) query.set("search", params.search.trim());
   if (params.page && params.page > 0) query.set("page", String(params.page));
   if (params.limit && params.limit > 0) query.set("limit", String(params.limit));
-  if (params.roleId && params.roleId !== "all") query.set("roleId", params.roleId);
-  if (params.status && params.status !== "all") query.set("status", params.status);
-  if (typeof params.hasPassword === "boolean") {
-    query.set("hasPassword", String(params.hasPassword));
-  }
-  if (typeof params.mustChangePassword === "boolean") {
-    query.set("mustChangePassword", String(params.mustChangePassword));
+  if (params.roleKey) query.set("roleKey", params.roleKey);
+  if (params.userType) query.set("userType", params.userType);
+  if (params.credentialStatus && params.credentialStatus !== "all") {
+    query.set("credentialStatus", params.credentialStatus);
   }
   const serialized = query.toString();
   return serialized ? `?${serialized}` : "";
+}
+
+export function mapGeneratedCredentialResponse(
+  response: GeneratedCredentialResponseDto,
+): OneTimeCredentialResponse {
+  return {
+    userId: response.user.userId,
+    fullName: response.user.fullName ?? undefined,
+    username: response.user.username ?? undefined,
+    loginEmail: response.user.loginEmail ?? undefined,
+    temporaryPassword: response.temporaryPassword ?? undefined,
+    mustChangePassword: response.mustChangePassword,
+    passwordProvisionedAt: response.generatedAt ?? undefined,
+    credentialVersion: response.credentialVersion ?? undefined,
+  };
+}
+
+export function mapBulkCredentialPreviewResponse(
+  response: BulkCredentialPreviewResponseDto,
+): BulkCredentialPreviewResponse {
+  return {
+    eligibleCount: response.eligible,
+    skippedCount: response.skipped,
+    totalMatched: response.totalMatched,
+    skippedReasons: response.skippedReasons ?? undefined,
+    recipients: [
+      ...(response.sample?.eligible ?? []).map((recipient) => ({
+        ...recipient,
+        eligible: true,
+      })),
+      ...(response.sample?.skipped ?? []).map((recipient) => ({
+        ...recipient,
+        eligible: false,
+      })),
+    ],
+  };
+}
+
+export function mapBulkGenerateCredentialsResponse(
+  response: BulkGenerateCredentialsResponseDto,
+): BulkGenerateCredentialsResponse {
+  return {
+    generatedCount: response.generated,
+    skippedCount: response.skipped,
+    credentials: response.items.map((item) => ({
+      userId: item.user.userId,
+      fullName: item.user.fullName ?? undefined,
+      username: item.user.username ?? undefined,
+      loginEmail: item.user.loginEmail ?? undefined,
+      temporaryPassword: item.temporaryPassword ?? undefined,
+      mustChangePassword: true,
+    })),
+  };
 }
 
 export async function fetchCredentialStatuses(
@@ -39,47 +92,52 @@ export async function fetchCredentialStatuses(
 export async function previewBulkCredentials(
   payload: BulkCredentialPreviewRequest,
 ): Promise<BulkCredentialPreviewResponse> {
-  return apiPost<BulkCredentialPreviewResponse>(
+  const response = await apiPost<BulkCredentialPreviewResponseDto>(
     "/settings/users/credentials/bulk-preview",
     payload,
   );
+  return mapBulkCredentialPreviewResponse(response);
 }
 
 export async function generateBulkCredentials(
   payload: BulkGenerateCredentialsRequest,
 ): Promise<BulkGenerateCredentialsResponse> {
-  return apiPost<BulkGenerateCredentialsResponse>(
+  const response = await apiPost<BulkGenerateCredentialsResponseDto>(
     "/settings/users/credentials/bulk-generate",
     payload,
   );
+  return mapBulkGenerateCredentialsResponse(response);
 }
 
 export async function generateUserCredential(
   userId: string,
   payload: GenerateCredentialRequest = {},
 ): Promise<OneTimeCredentialResponse> {
-  return apiPost<OneTimeCredentialResponse>(
+  const response = await apiPost<GeneratedCredentialResponseDto>(
     `/settings/users/${userId}/credentials/generate`,
     payload,
   );
+  return mapGeneratedCredentialResponse(response);
 }
 
 export async function setUserCredentialPassword(
   userId: string,
   payload: SetCredentialPasswordRequest,
 ): Promise<OneTimeCredentialResponse> {
-  return apiPost<OneTimeCredentialResponse>(
+  const response = await apiPost<GeneratedCredentialResponseDto>(
     `/settings/users/${userId}/credentials/set`,
     payload,
   );
+  return mapGeneratedCredentialResponse(response);
 }
 
 export async function regenerateUserCredential(
   userId: string,
   payload: GenerateCredentialRequest = {},
 ): Promise<OneTimeCredentialResponse> {
-  return apiPost<OneTimeCredentialResponse>(
+  const response = await apiPost<GeneratedCredentialResponseDto>(
     `/settings/users/${userId}/credentials/regenerate`,
     payload,
   );
+  return mapGeneratedCredentialResponse(response);
 }

@@ -49,7 +49,10 @@ interface EmailConnectionFormProps {
     apiKey: string;
     testRecipientEmail: string;
     smtp: string;
-    api: string;
+    sendgrid: string;
+    mailgun: string;
+    ses: string;
+    custom: string;
     configured: string;
     notConfigured: string;
     secretHelp: string;
@@ -155,7 +158,10 @@ export default function EmailConnectionForm({
         }
         options={[
           { value: "SMTP", label: labels.smtp },
-          { value: "API", label: labels.api },
+          { value: "SENDGRID", label: labels.sendgrid },
+          { value: "MAILGUN", label: labels.mailgun },
+          { value: "SES", label: labels.ses },
+          { value: "CUSTOM", label: labels.custom },
         ]}
         error={errors?.providerType}
       />
@@ -185,7 +191,7 @@ export default function EmailConnectionForm({
       <Input
         label={labels.host}
         value={values.host}
-        disabled={!canManage || values.providerType === "API"}
+        disabled={!canManage || values.providerType !== "SMTP"}
         onChange={(event) => onChange("host", event.target.value)}
         error={errors?.host}
       />
@@ -193,7 +199,7 @@ export default function EmailConnectionForm({
         label={labels.port}
         type="number"
         value={values.port}
-        disabled={!canManage || values.providerType === "API"}
+        disabled={!canManage || values.providerType !== "SMTP"}
         onChange={(event) => onChange("port", event.target.value)}
         error={errors?.port}
       />
@@ -209,7 +215,7 @@ export default function EmailConnectionForm({
           type="checkbox"
           className="mt-1 h-4 w-4 rounded border-gray-300"
           checked={values.secure}
-          disabled={!canManage || values.providerType === "API"}
+          disabled={!canManage || values.providerType !== "SMTP"}
           onChange={(event) => onChange("secure", event.target.checked)}
         />
         <span>{labels.secure}</span>

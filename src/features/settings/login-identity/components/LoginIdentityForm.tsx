@@ -15,9 +15,9 @@ export interface LoginIdentityFormValues {
   loginDomain: string;
   usernameMinLength: string;
   usernameMaxLength: string;
-  usernamePattern: string;
+  allowedCharacters: string;
   reservedUsernames: string;
-  status: "active" | "inactive" | "draft";
+  status: "active" | "disabled";
 }
 
 export type LoginIdentityFormErrors = Partial<
@@ -38,12 +38,12 @@ export function toLoginIdentityFormValues(
   settings: LoginIdentitySettings,
 ): LoginIdentityFormValues {
   return {
-    loginDomain: settings.loginDomain,
+    loginDomain: settings.loginDomain || "",
     usernameMinLength: String(settings.usernameMinLength),
     usernameMaxLength: String(settings.usernameMaxLength),
-    usernamePattern: settings.usernamePattern || "",
+    allowedCharacters: settings.allowedCharacters || "",
     reservedUsernames: settings.reservedUsernames.join(", "),
-    status: settings.status || (settings.isConfigured ? "active" : "draft"),
+    status: settings.status || (settings.configured ? "active" : "disabled"),
   };
 }
 
@@ -54,7 +54,7 @@ export function toUpdateLoginIdentityRequest(
     loginDomain: values.loginDomain.trim(),
     usernameMinLength: Number(values.usernameMinLength),
     usernameMaxLength: Number(values.usernameMaxLength),
-    usernamePattern: values.usernamePattern.trim() || undefined,
+    allowedCharacters: values.allowedCharacters.trim() || undefined,
     reservedUsernames: values.reservedUsernames
       .split(",")
       .map((item) => item.trim())
@@ -105,8 +105,7 @@ export default function LoginIdentityForm({
   const statusOptions = useMemo(
     () => [
       { value: "active", label: t("status.active") },
-      { value: "draft", label: t("status.draft") },
-      { value: "inactive", label: t("status.inactive") },
+      { value: "disabled", label: t("status.disabled") },
     ],
     [t],
   );
@@ -165,11 +164,11 @@ export default function LoginIdentityForm({
 
       <Input
         label={t("fields.allowed_characters")}
-        value={values.usernamePattern}
-        onChange={(event) => onChange("usernamePattern", event.target.value)}
+        value={values.allowedCharacters}
+        onChange={(event) => onChange("allowedCharacters", event.target.value)}
         placeholder={t("placeholders.allowed_characters")}
         disabled={!canManage}
-        error={errors.usernamePattern}
+        error={errors.allowedCharacters}
         helperText={t("helpers.allowed_characters")}
       />
 

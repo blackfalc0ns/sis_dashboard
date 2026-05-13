@@ -45,8 +45,9 @@ export interface UpdateEmailTemplateRequest {
   isActive: boolean;
 }
 
-export interface PreviewEmailTemplateRequest {
-  data: Record<string, unknown>;
+export interface PreviewEmailTemplateRequest
+  extends Partial<UpdateEmailTemplateRequest> {
+  previewData?: Record<string, unknown>;
 }
 
 export interface PreviewEmailTemplateResponse {

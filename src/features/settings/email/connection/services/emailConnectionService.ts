@@ -1,9 +1,9 @@
 import { apiGet, apiPost, apiPut } from "@/lib/api";
 import type {
   EmailConnection,
-  EmailConnectionActionResponse,
   EmailConnectionResponse,
   TestEmailConnectionRequest,
+  TestEmailConnectionResponse,
   UpdateEmailConnectionRequest,
 } from "@/features/settings/email/connection/types";
 
@@ -34,23 +34,25 @@ export async function updateEmailConnection(
 
 export async function testEmailConnection(
   payload: TestEmailConnectionRequest,
-): Promise<EmailConnectionActionResponse> {
-  return apiPost<EmailConnectionActionResponse>(
+): Promise<TestEmailConnectionResponse> {
+  return apiPost<TestEmailConnectionResponse>(
     "/settings/email/connection/test",
     payload,
   );
 }
 
-export async function activateEmailConnection(): Promise<EmailConnectionActionResponse> {
-  return apiPost<EmailConnectionActionResponse>(
+export async function activateEmailConnection(): Promise<EmailConnection> {
+  const response = await apiPost<EmailConnectionResponse>(
     "/settings/email/connection/activate",
     {},
   );
+  return mapEmailConnection(response);
 }
 
-export async function disableEmailConnection(): Promise<EmailConnectionActionResponse> {
-  return apiPost<EmailConnectionActionResponse>(
+export async function disableEmailConnection(): Promise<EmailConnection> {
+  const response = await apiPost<EmailConnectionResponse>(
     "/settings/email/connection/disable",
     {},
   );
+  return mapEmailConnection(response);
 }

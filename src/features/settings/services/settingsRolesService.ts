@@ -13,6 +13,7 @@ import type {
 function mapRole(payload: SettingsRoleApiDto): RoleDefinition {
   return {
     id: payload.id,
+    key: payload.key ?? undefined,
     name: payload.name,
     description: payload.description,
     isSystem: payload.isSystem ?? false,

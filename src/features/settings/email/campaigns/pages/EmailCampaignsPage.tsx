@@ -14,6 +14,7 @@ import SettingsPageHeader from "@/features/settings/components/SettingsPageHeade
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
 import CampaignComposer, {
   buildCreateCampaignPayload,
+  buildCampaignRecipientScope,
   buildPreviewCampaignPayload,
   type CampaignComposerValues,
 } from "@/features/settings/email/campaigns/components/CampaignComposer";
@@ -69,6 +70,7 @@ export default function EmailCampaignsPage() {
 
   const statusLabels = useMemo(
     () => ({
+      DRAFT: t("statuses.DRAFT"),
       QUEUED: t("statuses.QUEUED"),
       PROCESSING: t("statuses.PROCESSING"),
       SUCCEEDED: t("statuses.SUCCEEDED"),
@@ -130,7 +132,8 @@ export default function EmailCampaignsPage() {
     setCreatedBatch(null);
     try {
       const result = await previewEmailCampaignRecipients({
-        audience: values.audience,
+        recipientScope: buildCampaignRecipientScope(values),
+        customEmails: values.audience.customEmails,
       });
       setRecipientPreview(result);
       showSuccess(t("messages.preview_recipients_ready"));

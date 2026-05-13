@@ -54,7 +54,7 @@ function audienceForMode(
       );
     case "role":
       return withCustomEmails(
-        { roleId: values.audience.roleId },
+        { roleKey: values.audience.roleKey },
         values.customEmailsText,
       );
     case "user-type":
@@ -133,24 +133,28 @@ export default function CampaignAudienceStep({
         {values.audienceMode === "role" ? (
           <Select
             label={t("audience.role_id")}
-            value={values.audience.roleId || ""}
+            value={values.audience.roleKey || ""}
             onChange={(value) =>
               onChange({
                 audience: withCustomEmails(
-                  { roleId: value },
+                  { roleKey: value },
                   values.customEmailsText,
                 ),
               })
             }
             placeholder={t("audience.role_placeholder")}
             searchable
-            options={roles.map((role) => ({
-              value: role.id,
-              label: role.name,
-              searchText: role.description,
-            }))}
+            options={roles
+              .filter((role) => role.key)
+              .map((role) => ({
+                value: role.key as string,
+                label: role.name,
+                searchText: role.description,
+              }))}
             helperText={
-              roles.length === 0 ? t("audience.roles_empty") : undefined
+              roles.filter((role) => role.key).length === 0
+                ? t("audience.roles_empty")
+                : undefined
             }
           />
         ) : null}

@@ -83,7 +83,7 @@ export default function StudentAccountLinkModal({
       void previewLoginIdentityUsername(username.trim())
         .then((preview) => {
           if (!isCancelled) {
-            setPreviewEmail(preview.loginEmail || preview.email || "");
+            setPreviewEmail(preview.loginEmail || "");
           }
         })
         .catch(() => {

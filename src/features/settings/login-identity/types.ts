@@ -1,22 +1,22 @@
 export interface LoginIdentitySettings {
-  loginDomain: string;
+  loginDomain: string | null;
   usernameMinLength: number;
   usernameMaxLength: number;
-  usernamePattern?: string | null;
+  allowedCharacters?: string | null;
   reservedUsernames: string[];
-  status?: "active" | "inactive" | "draft" | null;
-  isConfigured: boolean;
+  status: "active" | "disabled";
+  configured: boolean;
   updatedAt?: string | null;
 }
 
 export interface LoginIdentitySettingsResponse {
-  loginDomain: string;
+  loginDomain: string | null;
   usernameMinLength?: number | null;
   usernameMaxLength?: number | null;
-  usernamePattern?: string | null;
+  allowedCharacters?: string | null;
   reservedUsernames?: string[] | null;
-  status?: "active" | "inactive" | "draft" | null;
-  isConfigured?: boolean | null;
+  status?: "active" | "disabled" | null;
+  configured?: boolean | null;
   updatedAt?: string | null;
 }
 
@@ -24,22 +24,20 @@ export interface UpdateLoginIdentityRequest {
   loginDomain: string;
   usernameMinLength?: number;
   usernameMaxLength?: number;
-  usernamePattern?: string;
+  allowedCharacters?: string;
   reservedUsernames?: string[];
-  status?: "active" | "inactive" | "draft";
+  status?: "active" | "disabled";
 }
 
 export interface UsernamePreviewResponse {
   username: string;
-  email: string;
-  loginEmail?: string | null;
-  isAvailable?: boolean | null;
+  loginEmail: string;
   reason?: string | null;
 }
 
 export interface UsernameAvailabilityResponse {
   username: string;
-  available?: boolean | null;
-  isAvailable?: boolean | null;
+  loginEmail: string | null;
+  available: boolean;
   reason?: string | null;
 }

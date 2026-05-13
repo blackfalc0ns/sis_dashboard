@@ -35,7 +35,7 @@ export default function UsernamePreviewCard({
   onCheckAvailability,
 }: UsernamePreviewCardProps) {
   const t = useTranslations("settings.loginIdentity.preview");
-  const generatedLoginEmail = preview?.loginEmail || preview?.email;
+  const generatedLoginEmail = preview?.loginEmail;
 
   return (
     <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">

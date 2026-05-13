@@ -112,6 +112,7 @@ export interface SettingsPermissionApiDto {
 
 export interface RoleDefinition {
   id: string;
+  key?: string;
   name: string;
   description: string;
   isSystem: boolean;
@@ -121,6 +122,7 @@ export interface RoleDefinition {
 
 export interface SettingsRoleApiDto {
   id: string;
+  key?: string | null;
   name: string;
   description: string;
   isSystem?: boolean | null;
@@ -306,7 +308,6 @@ export interface SettingsUserPayloadDto {
 
 export interface SettingsUserUpdatePayloadDto {
   fullName: string;
-  contactEmail?: string;
   roleId: string;
 }
 

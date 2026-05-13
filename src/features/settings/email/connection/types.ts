@@ -1,4 +1,9 @@
-export type EmailConnectionProviderType = "SMTP" | "API";
+export type EmailConnectionProviderType =
+  | "SMTP"
+  | "SENDGRID"
+  | "MAILGUN"
+  | "SES"
+  | "CUSTOM";
 export type EmailConnectionStatus =
   | "DRAFT"
   | "VERIFIED"
@@ -41,10 +46,12 @@ export interface UpdateEmailConnectionRequest {
 }
 
 export interface TestEmailConnectionRequest {
-  recipientEmail: string;
+  toEmail?: string;
 }
 
-export interface EmailConnectionActionResponse {
-  connection: EmailConnectionResponse;
+export interface TestEmailConnectionResponse {
   message?: string;
+  success?: boolean;
+  lastTestedAt?: string | null;
+  lastTestStatus?: EmailConnectionStatus | null;
 }

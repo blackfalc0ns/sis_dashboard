@@ -99,7 +99,7 @@ export default function CredentialDeliveryWizard({
     ) {
       return t("validation.selected_users_required");
     }
-    if (values.audienceMode === "role" && !values.audience.roleId) {
+    if (values.audienceMode === "role" && !values.audience.roleKey) {
       return t("validation.role_required");
     }
     if (values.audienceMode === "user-type" && !values.audience.userType) {

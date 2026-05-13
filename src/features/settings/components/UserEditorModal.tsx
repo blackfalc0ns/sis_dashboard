@@ -65,9 +65,8 @@ export default function UserEditorModal({
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [identityError, setIdentityError] = useState<string | null>(null);
   const usesUsernameFlow = mode !== "edit";
-  const generatedLoginEmail = preview?.loginEmail || preview?.email || user?.email || "";
-  const isUsernameAvailable =
-    availability?.available ?? availability?.isAvailable ?? null;
+  const generatedLoginEmail = preview?.loginEmail || user?.email || "";
+  const isUsernameAvailable = availability?.available ?? null;
 
   useEffect(() => {
     if (!isOpen) {
@@ -166,7 +165,7 @@ export default function UserEditorModal({
         availability?.username === username.trim()
           ? availability
           : await handleCheckAvailability();
-      if (!(nextAvailability?.available ?? nextAvailability?.isAvailable)) {
+      if (!nextAvailability?.available) {
         setIdentityError(nextAvailability?.reason || t("identity.username_unavailable"));
         return;
       }
@@ -313,7 +312,11 @@ export default function UserEditorModal({
             setContactEmail(event.target.value);
             onFieldChange?.("contactEmail");
           }}
+          disabled={mode === "edit"}
           error={errors?.contactEmail || errors?.email}
+          helperText={
+            mode === "edit" ? t("identity.contact_email_read_only") : undefined
+          }
         />
         <Select
           label={t("filters.role")}

@@ -36,9 +36,9 @@ const fallbackValues: LoginIdentityFormValues = {
   loginDomain: "",
   usernameMinLength: "3",
   usernameMaxLength: "64",
-  usernamePattern: "letters, numbers, dots, underscores, and hyphens",
+  allowedCharacters: "letters, numbers, dots, underscores, and hyphens",
   reservedUsernames: "admin, support, root",
-  status: "draft",
+  status: "disabled",
 };
 
 export default function LoginIdentityPage() {
@@ -135,7 +135,7 @@ export default function LoginIdentityPage() {
         loginDomain: fieldErrors.loginDomain,
         usernameMinLength: fieldErrors.usernameMinLength,
         usernameMaxLength: fieldErrors.usernameMaxLength,
-        usernamePattern: fieldErrors.usernamePattern,
+        allowedCharacters: fieldErrors.allowedCharacters,
         reservedUsernames: fieldErrors.reservedUsernames,
         status: fieldErrors.status,
       });

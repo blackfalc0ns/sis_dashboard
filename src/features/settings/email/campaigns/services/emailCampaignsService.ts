@@ -5,6 +5,7 @@ import type {
   EmailCampaignBatch,
   EmailCampaignPreviewRecipientsRequest,
   EmailCampaignPreviewRecipientsResponse,
+  EmailCampaignPreviewRecipientsResponseDto,
   EmailCampaignPreviewRequest,
   EmailCampaignPreviewResponse,
   EmailCampaignsListResponse,
@@ -22,13 +23,35 @@ function toCampaignsQuery(params: FetchEmailCampaignsParams): string {
   return serialized ? `?${serialized}` : "";
 }
 
+export function mapEmailCampaignRecipientsPreview(
+  response: EmailCampaignPreviewRecipientsResponseDto,
+): EmailCampaignPreviewRecipientsResponse {
+  return {
+    totalMatched: response.totalMatched,
+    eligibleCount: response.eligible,
+    skippedCount: response.skipped,
+    skippedReasons: response.skippedReasons ?? undefined,
+    recipients: [
+      ...(response.sample?.eligible ?? []).map((recipient) => ({
+        ...recipient,
+        eligible: true,
+      })),
+      ...(response.sample?.skipped ?? []).map((recipient) => ({
+        ...recipient,
+        eligible: false,
+      })),
+    ],
+  };
+}
+
 export async function previewEmailCampaignRecipients(
   payload: EmailCampaignPreviewRecipientsRequest,
 ): Promise<EmailCampaignPreviewRecipientsResponse> {
-  return apiPost<EmailCampaignPreviewRecipientsResponse>(
+  const response = await apiPost<EmailCampaignPreviewRecipientsResponseDto>(
     "/settings/email/campaigns/preview-recipients",
     payload,
   );
+  return mapEmailCampaignRecipientsPreview(response);
 }
 
 export async function previewEmailCampaign(

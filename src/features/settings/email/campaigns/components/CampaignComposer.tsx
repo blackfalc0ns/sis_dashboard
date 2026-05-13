@@ -21,6 +21,7 @@ import type {
   EmailCampaignPreviewRecipientsResponse,
   EmailCampaignPreviewResponse,
   EmailCampaignPreviewRequest,
+  EmailRecipientScopeRequest,
 } from "@/features/settings/email/campaigns/types";
 import type { RoleDefinition } from "@/features/settings/types";
 
@@ -89,13 +90,34 @@ function previewPayload(values: CampaignComposerValues): EmailCampaignPreviewReq
     title: values.title.trim() || null,
     bodyHtml: values.bodyHtml,
     bodyText: values.bodyText.trim() || null,
-    data: {},
+    previewData: {},
   };
 }
 
+export function buildCampaignRecipientScope(
+  values: CampaignComposerValues,
+): EmailRecipientScopeRequest {
+  const audience = buildCampaignAudience(values);
+  if (values.audienceMode === "selected-users") {
+    return { scope: "selected", userIds: audience.userIds };
+  }
+  if (values.audienceMode === "role") {
+    return { scope: "role", roleKeys: audience.roleKey ? [audience.roleKey] : undefined };
+  }
+  if (values.audienceMode === "user-type") {
+    return {
+      scope: "user_type",
+      userTypes: audience.userType ? [audience.userType] : undefined,
+    };
+  }
+  return { scope: "all_school_users" };
+}
+
 function createPayload(values: CampaignComposerValues): CreateEmailCampaignRequest {
+  const audience = buildCampaignAudience(values);
   return {
-    audience: buildCampaignAudience(values),
+    recipientScope: buildCampaignRecipientScope(values),
+    customEmails: audience.customEmails,
     templateKey: values.templateKey,
     subject: values.subject.trim(),
     title: values.title.trim() || null,
@@ -164,7 +186,7 @@ export default function CampaignComposer({
     ) {
       return t("validation.selected_users_required");
     }
-    if (values.audienceMode === "role" && !nextAudience.roleId) {
+    if (values.audienceMode === "role" && !nextAudience.roleKey) {
       return t("validation.role_required");
     }
     if (values.audienceMode === "user-type" && !nextAudience.userType) {

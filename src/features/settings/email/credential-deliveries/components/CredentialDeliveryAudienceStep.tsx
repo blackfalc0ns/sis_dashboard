@@ -33,7 +33,7 @@ function audienceForMode(
     case "selected-users":
       return { userIds: parseUserIds(values.selectedUserIdsText) };
     case "role":
-      return { roleId: values.audience.roleId };
+      return { roleKey: values.audience.roleKey };
     case "user-type":
       return { userType: values.audience.userType };
     case "must-change-password":
@@ -105,17 +105,21 @@ export default function CredentialDeliveryAudienceStep({
         {values.audienceMode === "role" ? (
           <Select
             label={t("audience.role_id")}
-            value={values.audience.roleId || ""}
-            onChange={(value) => onChange({ audience: { roleId: value } })}
+            value={values.audience.roleKey || ""}
+            onChange={(value) => onChange({ audience: { roleKey: value } })}
             placeholder={t("audience.role_placeholder")}
             searchable
-            options={roles.map((role) => ({
-              value: role.id,
-              label: role.name,
-              searchText: role.description,
-            }))}
+            options={roles
+              .filter((role) => role.key)
+              .map((role) => ({
+                value: role.key as string,
+                label: role.name,
+                searchText: role.description,
+              }))}
             helperText={
-              roles.length === 0 ? t("audience.roles_empty") : undefined
+              roles.filter((role) => role.key).length === 0
+                ? t("audience.roles_empty")
+                : undefined
             }
           />
         ) : null}

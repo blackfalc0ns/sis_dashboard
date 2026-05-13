@@ -52,6 +52,7 @@ export default function EmailDeliveriesPage() {
 
   const statusLabels = useMemo(
     () => ({
+      DRAFT: t("statuses.DRAFT"),
       QUEUED: t("statuses.QUEUED"),
       PROCESSING: t("statuses.PROCESSING"),
       SUCCEEDED: t("statuses.SUCCEEDED"),

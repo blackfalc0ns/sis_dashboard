@@ -100,19 +100,24 @@ export default function CredentialsPage() {
   );
 
   const buildFetchParams = useCallback(
-    (): FetchCredentialStatusParams => ({
-      search,
-      page,
-      limit,
-      roleId: roleFilter,
-      status: statusFilter,
-      hasPassword:
-        hasPasswordFilter === "all" ? undefined : hasPasswordFilter === "yes",
-      mustChangePassword:
-        mustChangePasswordFilter === "all"
-          ? undefined
-          : mustChangePasswordFilter === "yes",
-    }),
+    (): FetchCredentialStatusParams => {
+      const credentialStatus =
+        mustChangePasswordFilter === "yes"
+          ? "must_change"
+          : hasPasswordFilter === "yes"
+            ? "set"
+            : hasPasswordFilter === "no"
+              ? "missing"
+              : undefined;
+
+      return {
+        search,
+        page,
+        limit,
+        roleKey: roleFilter === "all" ? undefined : roleFilter,
+        credentialStatus,
+      };
+    },
     [
       hasPasswordFilter,
       limit,
@@ -120,7 +125,6 @@ export default function CredentialsPage() {
       page,
       roleFilter,
       search,
-      statusFilter,
     ],
   );
 
@@ -177,8 +181,8 @@ export default function CredentialsPage() {
     return {
       ...credential,
       fullName: record?.fullName,
-      username: record?.username,
-      loginEmail: record?.loginEmail || record?.email,
+      username: record?.username ?? credential.username,
+      loginEmail: record?.loginEmail || record?.email || credential.loginEmail,
     };
   };
 
@@ -220,7 +224,7 @@ export default function CredentialsPage() {
     try {
       await setUserCredentialPassword(selectedUser.userId, {
         password,
-        mustChangePassword,
+        forceResetOnLogin: mustChangePassword,
       });
       setIsSetPasswordOpen(false);
       setSelectedUser(null);
@@ -247,9 +251,7 @@ export default function CredentialsPage() {
     }
   };
 
-  const handleBulkGenerate = async (
-    payload: BulkCredentialPreviewRequest & { mustChangePassword: boolean },
-  ) => {
+  const handleBulkGenerate = async (payload: BulkCredentialPreviewRequest) => {
     setIsBulkGenerating(true);
     setBulkError(null);
     try {
@@ -357,8 +359,8 @@ export default function CredentialsPage() {
                     onChange={setRoleFilter}
                     options={[
                       { value: "all", label: tCommon("all") },
-                      ...roles.map((role) => ({
-                        value: role.id,
+                      ...roles.filter((role) => role.key).map((role) => ({
+                        value: role.key as string,
                         label: role.name,
                       })),
                     ]}

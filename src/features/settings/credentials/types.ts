@@ -29,10 +29,9 @@ export interface FetchCredentialStatusParams {
   search?: string;
   page?: number;
   limit?: number;
-  roleId?: string;
-  status?: UserAdminStatus | "all";
-  hasPassword?: boolean;
-  mustChangePassword?: boolean;
+  roleKey?: string;
+  userType?: string;
+  credentialStatus?: CredentialStatusFilter | "all";
 }
 
 export interface GenerateCredentialRequest {
@@ -41,11 +40,14 @@ export interface GenerateCredentialRequest {
 
 export interface SetCredentialPasswordRequest {
   password: string;
-  mustChangePassword?: boolean;
+  forceResetOnLogin?: boolean;
 }
 
 export interface OneTimeCredentialResponse {
   userId: string;
+  fullName?: string;
+  username?: string;
+  loginEmail?: string;
   temporaryPassword?: string;
   mustChangePassword: boolean;
   passwordProvisionedAt?: string | null;
@@ -53,16 +55,42 @@ export interface OneTimeCredentialResponse {
   credentialVersion?: number | null;
 }
 
-export interface BulkCredentialTarget {
+export interface GeneratedCredentialUserDto {
   userId: string;
+  fullName?: string | null;
+  username?: string | null;
+  loginEmail?: string | null;
+  contactEmail?: string | null;
 }
 
+export interface GeneratedCredentialResponseDto {
+  user: GeneratedCredentialUserDto;
+  temporaryPassword?: string | null;
+  mustChangePassword: boolean;
+  generatedAt?: string | null;
+  credentialVersion?: number | null;
+}
+
+export type CredentialBulkScope =
+  | "selected"
+  | "role"
+  | "user_type"
+  | "missing_password"
+  | "all_school_users";
+
+export type CredentialStatusFilter =
+  | "missing"
+  | "set"
+  | "temporary_or_must_change"
+  | "must_change";
+
 export interface BulkCredentialPreviewRequest {
+  scope: CredentialBulkScope;
   userIds?: string[];
-  roleId?: string;
-  status?: UserAdminStatus;
-  missingPasswordOnly?: boolean;
-  mustChangePasswordOnly?: boolean;
+  roleKeys?: string[];
+  userTypes?: string[];
+  includeUsersWithPassword?: boolean;
+  includeDisabledUsers?: boolean;
 }
 
 export interface BulkCredentialPreviewRecipient {
@@ -78,12 +106,34 @@ export interface BulkCredentialPreviewRecipient {
 export interface BulkCredentialPreviewResponse {
   eligibleCount: number;
   skippedCount: number;
+  totalMatched?: number;
+  skippedReasons?: Record<string, number>;
   recipients: BulkCredentialPreviewRecipient[];
 }
 
-export interface BulkGenerateCredentialsRequest
-  extends BulkCredentialPreviewRequest {
-  mustChangePassword?: boolean;
+export type BulkGenerateCredentialsRequest = BulkCredentialPreviewRequest;
+
+export interface BulkCredentialPreviewResponseDto {
+  totalMatched: number;
+  eligible: number;
+  skipped: number;
+  skippedReasons?: Record<string, number> | null;
+  sample?: {
+    eligible?: BulkCredentialPreviewRecipient[];
+    skipped?: BulkCredentialPreviewRecipient[];
+  } | null;
+}
+
+export interface BulkGenerateCredentialsResponseDto {
+  generatedAt?: string | null;
+  totalMatched: number;
+  generated: number;
+  skipped: number;
+  skippedReasons?: Record<string, number> | null;
+  items: Array<{
+    user: GeneratedCredentialUserDto;
+    temporaryPassword?: string | null;
+  }>;
 }
 
 export interface BulkGenerateCredentialsResponse {

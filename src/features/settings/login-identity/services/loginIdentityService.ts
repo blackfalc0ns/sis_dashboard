@@ -14,10 +14,10 @@ function mapLoginIdentitySettings(
     loginDomain: payload.loginDomain,
     usernameMinLength: payload.usernameMinLength ?? 3,
     usernameMaxLength: payload.usernameMaxLength ?? 64,
-    usernamePattern: payload.usernamePattern ?? undefined,
+    allowedCharacters: payload.allowedCharacters ?? undefined,
     reservedUsernames: payload.reservedUsernames ?? [],
-    status: payload.status ?? undefined,
-    isConfigured: payload.isConfigured ?? Boolean(payload.loginDomain),
+    status: payload.status ?? "disabled",
+    configured: payload.configured ?? Boolean(payload.loginDomain),
     updatedAt: payload.updatedAt ?? undefined,
   };
 }

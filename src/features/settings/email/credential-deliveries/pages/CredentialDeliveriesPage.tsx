@@ -19,7 +19,9 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { useTranslations } from "next-intl";
 import type {
   CreateCredentialDeliveryResponse,
+  CredentialDeliveryPreviewRequest,
   CredentialDeliveryPreviewResponse,
+  EmailRecipientScope,
 } from "@/features/settings/email/credential-deliveries/types";
 import type { RoleDefinition } from "@/features/settings/types";
 
@@ -55,16 +57,36 @@ export default function CredentialDeliveriesPage() {
     void hydrateRoles();
   }, [hydrateRoles]);
 
+  const buildRecipientPayload = (
+    values: CredentialDeliveryWizardValues,
+  ): CredentialDeliveryPreviewRequest => {
+    const scopeByMode: Record<
+      CredentialDeliveryWizardValues["audienceMode"],
+      EmailRecipientScope
+    > = {
+      "selected-users": "selected",
+      role: "role",
+      "user-type": "user_type",
+      "missing-password": "missing_password",
+      "must-change-password": "must_change_password",
+      "all-school": "all_school_users",
+    };
+    return {
+      scope: scopeByMode[values.audienceMode],
+      userIds: values.audience.userIds,
+      roleKeys: values.audience.roleKey ? [values.audience.roleKey] : undefined,
+      userTypes: values.audience.userType ? [values.audience.userType] : undefined,
+      requireContactEmail: values.requireContactEmail,
+    };
+  };
+
   const handlePreview = async (values: CredentialDeliveryWizardValues) => {
     setIsPreviewing(true);
     setPageError(null);
     setCreatedBatch(null);
     try {
       const result = await previewCredentialDeliveryRecipients({
-        audience: values.audience,
-        templateKey: values.templateKey,
-        credentialMode: values.credentialMode,
-        requireContactEmail: values.requireContactEmail,
+        ...buildRecipientPayload(values),
       });
       setPreview(result);
       showSuccess(t("messages.preview_ready"));
@@ -89,10 +111,9 @@ export default function CredentialDeliveriesPage() {
     setPageError(null);
     try {
       const result = await createCredentialDelivery({
-        audience: values.audience,
+        ...buildRecipientPayload(values),
         templateKey: values.templateKey,
         credentialMode: values.credentialMode,
-        requireContactEmail: values.requireContactEmail,
       });
       setCreatedBatch(result);
       showSuccess(t("messages.created"));

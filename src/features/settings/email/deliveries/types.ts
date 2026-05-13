@@ -2,6 +2,7 @@ import type { SettingsPaginationApiDto } from "@/features/settings/types";
 
 export type EmailDeliveryKind = "CREDENTIAL_DELIVERY" | "GENERAL_CAMPAIGN";
 export type EmailDeliveryStatus =
+  | "DRAFT"
   | "QUEUED"
   | "PROCESSING"
   | "SUCCEEDED"
@@ -10,7 +11,9 @@ export type EmailDeliveryStatus =
   | "CANCELLED";
 
 export type EmailRecipientStatus =
+  | "PENDING"
   | "QUEUED"
+  | "SENDING"
   | "SENT"
   | "FAILED"
   | "SKIPPED"
@@ -38,10 +41,32 @@ export interface EmailDeliveryBatch {
   createdAt: string;
   updatedAt?: string | null;
   cancellable?: boolean | null;
+  failureReason?: string | null;
+}
+
+export interface EmailDeliveryBatchDto {
+  batchId: string;
+  kind: EmailDeliveryKind;
+  status: EmailDeliveryStatus;
+  subjectSnapshot?: string | null;
+  totalRecipients: number;
+  queuedCount: number;
+  sentCount: number;
+  failedCount: number;
+  skippedCount: number;
+  cancelledAt?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+  failureReason?: string | null;
 }
 
 export interface EmailDeliveriesListResponse {
   items: EmailDeliveryBatch[];
+  pagination?: SettingsPaginationApiDto;
+}
+
+export interface EmailDeliveriesListResponseDto {
+  items: EmailDeliveryBatchDto[];
   pagination?: SettingsPaginationApiDto;
 }
 
@@ -56,8 +81,25 @@ export interface EmailDeliveryRecipient {
   skippedAt?: string | null;
 }
 
+export interface EmailDeliveryRecipientDto {
+  id: string;
+  userId?: string | null;
+  toEmail?: string | null;
+  displayName?: string | null;
+  status: EmailRecipientStatus;
+  failureReason?: string | null;
+  skippedReason?: string | null;
+  sentAt?: string | null;
+  updatedAt?: string | null;
+}
+
 export interface EmailDeliveryRecipientsResponse {
   items: EmailDeliveryRecipient[];
+  pagination?: SettingsPaginationApiDto;
+}
+
+export interface EmailDeliveryRecipientsResponseDto {
+  items: EmailDeliveryRecipientDto[];
   pagination?: SettingsPaginationApiDto;
 }
 

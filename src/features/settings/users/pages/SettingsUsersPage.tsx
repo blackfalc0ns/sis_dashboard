@@ -307,7 +307,6 @@ export default function SettingsUsersPage() {
       } else if (modalMode === "edit" && selectedUser) {
         await updateSettingsUser(selectedUser.id, {
           fullName: payload.fullName,
-          contactEmail: payload.contactEmail,
           roleId: payload.roleId,
         });
         showSuccess(t("messages.updated"));

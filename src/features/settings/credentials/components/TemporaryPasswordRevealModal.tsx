@@ -8,8 +8,8 @@ import type { OneTimeCredentialResponse } from "@/features/settings/credentials/
 
 export interface RevealedCredential extends OneTimeCredentialResponse {
   fullName?: string;
-  username?: string | null;
-  loginEmail?: string | null;
+  username?: string;
+  loginEmail?: string;
 }
 
 interface TemporaryPasswordRevealModalProps {

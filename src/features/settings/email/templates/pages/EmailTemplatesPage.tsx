@@ -43,22 +43,50 @@ const templateKeys: EmailTemplateKey[] = [
 
 const fallbackPreviewData: Record<EmailTemplateKey, Record<string, unknown>> = {
   ACCOUNT_CREDENTIALS: {
-    fullName: "Sara Ali",
-    username: "sara.ali",
-    loginEmail: "sara.ali@school.example",
-    temporaryPassword: "preview-only",
-    schoolName: "Al Amal School",
+    user: {
+      fullName: "Sara Ali",
+      username: "sara.ali",
+      loginEmail: "sara.ali@school.example",
+      contactEmail: "sara.parent@example.com",
+    },
+    credential: {
+      temporaryPassword: "preview-only",
+    },
+    school: {
+      name: "Al Amal School",
+    },
+    support: {
+      email: "support@school.example",
+    },
   },
   PASSWORD_RESET: {
-    fullName: "Sara Ali",
-    resetUrl: "https://school.example/reset",
-    schoolName: "Al Amal School",
+    user: {
+      fullName: "Sara Ali",
+      username: "sara.ali",
+      loginEmail: "sara.ali@school.example",
+      contactEmail: "sara.parent@example.com",
+    },
+    reset: {
+      url: "https://school.example/reset",
+    },
+    school: {
+      name: "Al Amal School",
+    },
   },
   GENERAL_MESSAGE: {
-    fullName: "Sara Ali",
-    schoolName: "Al Amal School",
-    messageTitle: "School update",
-    messageBody: "This is preview data only.",
+    user: {
+      fullName: "Sara Ali",
+      username: "sara.ali",
+      loginEmail: "sara.ali@school.example",
+      contactEmail: "sara.parent@example.com",
+    },
+    school: {
+      name: "Al Amal School",
+    },
+    message: {
+      title: "School update",
+      body: "This is preview data only.",
+    },
   },
 };
 
@@ -260,7 +288,10 @@ export default function EmailTemplatesPage() {
     }
     setIsPreviewing(true);
     try {
-      const result = await previewEmailTemplate(selectedKey, { data });
+      const result = await previewEmailTemplate(selectedKey, {
+        ...(values ? toUpdateTemplateRequest(values) : {}),
+        previewData: data,
+      });
       setPreview(result);
       setIsPreviewOpen(true);
     } catch (error) {

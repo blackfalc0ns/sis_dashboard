@@ -7,14 +7,32 @@ import type {
 
 export interface EmailCampaignAudience {
   userIds?: string[];
-  roleId?: string;
+  roleKey?: string;
   userType?: string;
   allSchool?: boolean;
   customEmails?: string[];
 }
 
+export type CampaignRecipientScope =
+  | "selected"
+  | "role"
+  | "user_type"
+  | "all_school_users";
+
+export interface EmailRecipientScopeRequest {
+  scope: CampaignRecipientScope;
+  userIds?: string[];
+  roleKeys?: string[];
+  userTypes?: string[];
+}
+
 export interface EmailCampaignPreviewRecipientsRequest {
-  audience: EmailCampaignAudience;
+  recipientScope: EmailRecipientScopeRequest;
+  customEmails?: string[];
+  includeDisabledUsers?: boolean;
+  requireContactEmail?: boolean;
+  allowLoginEmailFallback?: boolean;
+  limit?: number;
 }
 
 export interface EmailCampaignPreviewRecipient {
@@ -29,8 +47,21 @@ export interface EmailCampaignPreviewRecipient {
 export interface EmailCampaignPreviewRecipientsResponse {
   eligibleCount: number;
   skippedCount: number;
+  totalMatched?: number;
+  skippedReasons?: Record<string, number>;
   recipients: EmailCampaignPreviewRecipient[];
   pagination?: SettingsPaginationApiDto;
+}
+
+export interface EmailCampaignPreviewRecipientsResponseDto {
+  totalMatched: number;
+  eligible: number;
+  skipped: number;
+  skippedReasons?: Record<string, number> | null;
+  sample?: {
+    eligible?: EmailCampaignPreviewRecipient[];
+    skipped?: EmailCampaignPreviewRecipient[];
+  } | null;
 }
 
 export interface EmailCampaignPreviewRequest {
@@ -39,7 +70,7 @@ export interface EmailCampaignPreviewRequest {
   title?: string | null;
   bodyHtml: string;
   bodyText?: string | null;
-  data?: Record<string, unknown>;
+  previewData?: Record<string, unknown>;
 }
 
 export interface EmailCampaignPreviewResponse {
@@ -51,12 +82,19 @@ export interface EmailCampaignPreviewResponse {
 }
 
 export interface CreateEmailCampaignRequest {
-  audience: EmailCampaignAudience;
+  recipientScope: EmailRecipientScopeRequest;
+  customEmails?: string[];
   templateKey?: Extract<EmailTemplateKey, "GENERAL_MESSAGE">;
   subject: string;
   title?: string | null;
   bodyHtml: string;
   bodyText?: string | null;
+  footerHtml?: string | null;
+  previewData?: Record<string, unknown>;
+  includeDisabledUsers?: boolean;
+  requireContactEmail?: boolean;
+  allowLoginEmailFallback?: boolean;
+  maxRecipients?: number;
 }
 
 export interface CreateEmailCampaignResponse {

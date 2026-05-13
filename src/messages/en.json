@@ -5995,7 +5995,8 @@
         "username_unavailable": "Username is not available.",
         "username_required": "Enter a username first.",
         "preview_failed": "Failed to preview the generated login email.",
-        "availability_failed": "Failed to check username availability."
+        "availability_failed": "Failed to check username availability.",
+        "contact_email_read_only": "Contact email cannot be edited from this dialog."
       },
       "messages": {
         "load_failed": "Failed to load users.",
@@ -6038,8 +6039,7 @@
       },
       "status": {
         "active": "Active",
-        "draft": "Draft",
-        "inactive": "Inactive"
+        "disabled": "Disabled"
       },
       "validation": {
         "domain_required": "Login domain is required.",
@@ -6183,7 +6183,10 @@
         "not_available": "Not available",
         "provider": {
           "SMTP": "SMTP",
-          "API": "API provider"
+          "SENDGRID": "SendGrid",
+          "MAILGUN": "Mailgun",
+          "SES": "Amazon SES",
+          "CUSTOM": "Custom provider"
         },
         "states": {
           "DRAFT": "Draft",
@@ -6427,6 +6430,7 @@
           "GENERAL_CAMPAIGN": "General campaign"
         },
         "statuses": {
+          "DRAFT": "Draft",
           "QUEUED": "Queued",
           "PROCESSING": "Processing",
           "SUCCEEDED": "Succeeded",
@@ -6435,7 +6439,9 @@
           "CANCELLED": "Cancelled"
         },
         "recipientStatuses": {
+          "PENDING": "Pending",
           "QUEUED": "Queued",
+          "SENDING": "Sending",
           "SENT": "Sent",
           "FAILED": "Failed",
           "SKIPPED": "Skipped",
@@ -6509,6 +6515,7 @@
           "GENERAL_MESSAGE": "General message"
         },
         "statuses": {
+          "DRAFT": "Draft",
           "QUEUED": "Queued",
           "PROCESSING": "Processing",
           "SUCCEEDED": "Succeeded",

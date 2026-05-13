@@ -156,9 +156,17 @@ export default function EmailConnectionPage() {
     setIsTesting(true);
     try {
       const result = await testEmailConnection({
-        recipientEmail: values.testRecipientEmail.trim(),
+        toEmail: values.testRecipientEmail.trim(),
       });
-      setConnection(result.connection);
+      setConnection((current) =>
+        current
+          ? {
+              ...current,
+              lastTestAt: result.lastTestedAt ?? current.lastTestAt,
+              lastTestStatus: result.lastTestStatus ?? current.lastTestStatus,
+            }
+          : current,
+      );
       showSuccess(result.message || t("messages.test_sent"));
     } catch (error) {
       showError(isApiError(error) ? error.message : t("messages.test_failed"));
@@ -171,8 +179,8 @@ export default function EmailConnectionPage() {
     setIsActivating(true);
     try {
       const result = await activateEmailConnection();
-      setConnection(result.connection);
-      showSuccess(result.message || t("messages.activated"));
+      setConnection(result);
+      showSuccess(t("messages.activated"));
     } catch (error) {
       showError(isApiError(error) ? error.message : tCommon("save_failed"));
     } finally {
@@ -184,8 +192,8 @@ export default function EmailConnectionPage() {
     setIsDisabling(true);
     try {
       const result = await disableEmailConnection();
-      setConnection(result.connection);
-      showSuccess(result.message || t("messages.disabled"));
+      setConnection(result);
+      showSuccess(t("messages.disabled"));
     } catch (error) {
       showError(isApiError(error) ? error.message : tCommon("save_failed"));
     } finally {
@@ -312,7 +320,10 @@ export default function EmailConnectionPage() {
                 apiKey: t("fields.api_key"),
                 testRecipientEmail: t("fields.test_recipient_email"),
                 smtp: t("provider.SMTP"),
-                api: t("provider.API"),
+                sendgrid: t("provider.SENDGRID"),
+                mailgun: t("provider.MAILGUN"),
+                ses: t("provider.SES"),
+                custom: t("provider.CUSTOM"),
                 configured: t("status.configured"),
                 notConfigured: t("status.not_configured"),
                 secretHelp: t("form.secret_help"),

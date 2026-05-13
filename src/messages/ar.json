@@ -5997,7 +5997,8 @@
         "username_unavailable": "اسم المستخدم غير متاح.",
         "username_required": "أدخل اسم مستخدم أولاً.",
         "preview_failed": "فشلت معاينة بريد تسجيل الدخول المولّد.",
-        "availability_failed": "فشل التحقق من توفر اسم المستخدم."
+        "availability_failed": "فشل التحقق من توفر اسم المستخدم.",
+        "contact_email_read_only": "لا يمكن تعديل بريد التواصل من هذه النافذة."
       },
       "messages": {
         "load_failed": "فشل تحميل المستخدمين.",
@@ -6040,8 +6041,7 @@
       },
       "status": {
         "active": "نشط",
-        "draft": "مسودة",
-        "inactive": "غير نشط"
+        "disabled": "معطل"
       },
       "validation": {
         "domain_required": "نطاق الدخول مطلوب.",
@@ -6185,7 +6185,10 @@
         "not_available": "غير متاح",
         "provider": {
           "SMTP": "SMTP",
-          "API": "مزود API"
+          "SENDGRID": "SendGrid",
+          "MAILGUN": "Mailgun",
+          "SES": "Amazon SES",
+          "CUSTOM": "مزود مخصص"
         },
         "states": {
           "DRAFT": "مسودة",
@@ -6429,6 +6432,7 @@
           "GENERAL_CAMPAIGN": "حملة عامة"
         },
         "statuses": {
+          "DRAFT": "مسودة",
           "QUEUED": "في الانتظار",
           "PROCESSING": "قيد المعالجة",
           "SUCCEEDED": "نجح",
@@ -6437,7 +6441,9 @@
           "CANCELLED": "ملغى"
         },
         "recipientStatuses": {
+          "PENDING": "قيد الانتظار",
           "QUEUED": "في الانتظار",
+          "SENDING": "جارٍ الإرسال",
           "SENT": "تم الإرسال",
           "FAILED": "فشل",
           "SKIPPED": "متخطى",
@@ -6511,6 +6517,7 @@
           "GENERAL_MESSAGE": "رسالة عامة"
         },
         "statuses": {
+          "DRAFT": "مسودة",
           "QUEUED": "في الانتظار",
           "PROCESSING": "قيد المعالجة",
           "SUCCEEDED": "نجح",

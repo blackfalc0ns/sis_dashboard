@@ -7,8 +7,9 @@ import Select from "@/components/ui/input/Select";
 import type {
   BulkCredentialPreviewRequest,
   BulkCredentialPreviewResponse,
+  CredentialBulkScope,
 } from "@/features/settings/credentials/types";
-import type { RoleDefinition, UserAdminStatus } from "@/features/settings/types";
+import type { RoleDefinition } from "@/features/settings/types";
 
 interface BulkGenerateCredentialsModalProps {
   isOpen: boolean;
@@ -19,9 +20,7 @@ interface BulkGenerateCredentialsModalProps {
   error?: string | null;
   onClose: () => void;
   onPreview: (payload: BulkCredentialPreviewRequest) => Promise<void>;
-  onGenerate: (
-    payload: BulkCredentialPreviewRequest & { mustChangePassword: boolean },
-  ) => Promise<void>;
+  onGenerate: (payload: BulkCredentialPreviewRequest) => Promise<void>;
   labels: {
     title: string;
     description: string;
@@ -56,18 +55,26 @@ export default function BulkGenerateCredentialsModal({
   onGenerate,
   labels,
 }: BulkGenerateCredentialsModalProps) {
-  const [roleId, setRoleId] = useState("all");
-  const [status, setStatus] = useState<UserAdminStatus | "all">("all");
-  const [missingPasswordOnly, setMissingPasswordOnly] = useState(true);
-  const [mustChangePasswordOnly, setMustChangePasswordOnly] = useState(false);
-  const [mustChangePassword, setMustChangePassword] = useState(true);
+  const [scope, setScope] = useState<CredentialBulkScope>("missing_password");
+  const [roleKey, setRoleKey] = useState("");
+  const [includeUsersWithPassword, setIncludeUsersWithPassword] = useState(false);
+  const [includeDisabledUsers, setIncludeDisabledUsers] = useState(false);
 
-  const buildPayload = (): BulkCredentialPreviewRequest => ({
-    roleId: roleId === "all" ? undefined : roleId,
-    status: status === "all" ? undefined : status,
-    missingPasswordOnly,
-    mustChangePasswordOnly,
-  });
+  const buildPayload = (): BulkCredentialPreviewRequest => {
+    if (scope === "role" && roleKey) {
+      return {
+        scope,
+        roleKeys: [roleKey],
+        includeUsersWithPassword,
+        includeDisabledUsers,
+      };
+    }
+    return {
+      scope,
+      includeUsersWithPassword,
+      includeDisabledUsers,
+    };
+  };
 
   return (
     <Modal
@@ -91,9 +98,7 @@ export default function BulkGenerateCredentialsModal({
             variant="primary"
             loading={isGenerating}
             disabled={!preview || preview.eligibleCount < 1 || isGenerating}
-            onClick={() =>
-              void onGenerate({ ...buildPayload(), mustChangePassword })
-            }
+            onClick={() => void onGenerate(buildPayload())}
           >
             {isGenerating ? labels.generating : labels.generate}
           </Button>
@@ -109,42 +114,39 @@ export default function BulkGenerateCredentialsModal({
         ) : null}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Select
-            label={labels.role}
-            value={roleId}
-            onChange={setRoleId}
+            label={labels.status}
+            value={scope}
+            onChange={(value) => setScope(value as CredentialBulkScope)}
             options={[
-              { value: "all", label: labels.all },
-              ...roles.map((role) => ({ value: role.id, label: role.name })),
+              { value: "missing_password", label: labels.missingOnly },
+              { value: "all_school_users", label: labels.all },
+              { value: "role", label: labels.role },
             ]}
           />
           <Select
-            label={labels.status}
-            value={status}
-            onChange={(value) => setStatus(value as UserAdminStatus | "all")}
+            label={labels.role}
+            value={roleKey}
+            onChange={setRoleKey}
+            disabled={scope !== "role"}
             options={[
-              { value: "all", label: labels.all },
-              { value: "active", label: labels.active },
-              { value: "invited", label: labels.invited },
-              { value: "inactive", label: labels.inactive },
+              { value: "", label: labels.all },
+              ...roles
+                .filter((role) => role.key)
+                .map((role) => ({ value: role.key as string, label: role.name })),
             ]}
           />
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {[
             {
-              checked: missingPasswordOnly,
-              label: labels.missingOnly,
-              onChange: setMissingPasswordOnly,
+              checked: includeUsersWithPassword,
+              label: labels.active,
+              onChange: setIncludeUsersWithPassword,
             },
             {
-              checked: mustChangePasswordOnly,
-              label: labels.mustChangeOnly,
-              onChange: setMustChangePasswordOnly,
-            },
-            {
-              checked: mustChangePassword,
-              label: labels.forceChange,
-              onChange: setMustChangePassword,
+              checked: includeDisabledUsers,
+              label: labels.inactive,
+              onChange: setIncludeDisabledUsers,
             },
           ].map((option) => (
             <label
