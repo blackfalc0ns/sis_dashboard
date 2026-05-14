@@ -60,7 +60,6 @@ export default function StudentReinforcementProgressPage({
   const params = useMemo(
     () => ({
       academicYearId: context.academicYearId,
-      yearId: context.academicYearId,
       termId: context.termId,
     }),
     [context.academicYearId, context.termId],

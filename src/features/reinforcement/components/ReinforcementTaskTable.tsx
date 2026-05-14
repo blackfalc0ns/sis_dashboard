@@ -20,7 +20,7 @@ const taskTitle = (task: ReinforcementTask, locale: string) =>
     : task.titleEn || task.titleAr || task.id;
 
 const statusLabels: Record<string, { en: string; ar: string }> = {
-  cancel: { en: "Cancelled", ar: "ملغي" },
+  cancelled: { en: "Cancelled", ar: "ملغي" },
   completed: { en: "Completed", ar: "مكتمل" },
   in_progress: { en: "In progress", ar: "قيد التنفيذ" },
   not_completed: { en: "Not completed", ar: "غير مكتمل" },
@@ -88,7 +88,7 @@ export default function ReinforcementTaskTable({
           </thead>
           <tbody className="divide-y divide-gray-100">
             {tasks.map((task) => {
-              const isCancelled = task.status === "cancel";
+              const isCancelled = task.status === "cancelled";
               return (
                 <tr key={task.id} className="hover:bg-gray-50">
                   <td className="max-w-sm px-4 py-4">

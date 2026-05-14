@@ -45,6 +45,7 @@ export interface ReinforcementAcademicContextValue {
   classroomId?: string;
   subjectId?: string;
   studentId?: string;
+  scopeKey?: string;
   enrollmentId?: string;
 }
 

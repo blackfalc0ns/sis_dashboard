@@ -35,7 +35,7 @@ const VALID_SOURCES: Array<ReinforcementSource | "all"> = [
 
 const VALID_STATUSES: Array<ReinforcementStatus | "all"> = [
   "all",
-  "cancel",
+  "cancelled",
   "in_progress",
   "completed",
   "not_completed",

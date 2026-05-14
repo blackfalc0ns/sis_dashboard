@@ -11,6 +11,7 @@ vi.mock("@/lib/api", () => apiMocks);
 import {
   createReinforcementTemplate,
   listReinforcementTemplates,
+  serializeCreateReinforcementTemplatePayload,
 } from "@/features/reinforcement/services/reinforcementTemplatesService";
 import { getReinforcementFilterOptions } from "@/features/reinforcement/services/reinforcementFilterOptionsService";
 import {
@@ -60,7 +61,7 @@ describe("Sprint 5A reinforcement service endpoint contracts", () => {
       nameEn: "Leader",
       nameAr: "قائد",
       source: "teacher",
-      rewardType: "badge",
+      reward: { type: "badge" },
       stages: [
         {
           sortOrder: 1,
@@ -81,9 +82,73 @@ describe("Sprint 5A reinforcement service endpoint contracts", () => {
       "/reinforcement/templates",
       expect.objectContaining({
         nameEn: "Leader",
-        rewardType: "badge",
+        reward: { type: "badge" },
+        stages: [
+          {
+            sortOrder: 1,
+            titleEn: "Do it",
+            titleAr: "نفذ",
+            proofType: "none",
+          },
+        ],
       }),
     );
+  });
+
+  it("serializes template create payload with proof settings only inside stages", () => {
+    const payload = {
+      nameEn: "Reading challenge",
+      nameAr: "تحدي القراءة",
+      descriptionEn: "",
+      descriptionAr: undefined,
+      source: "teacher",
+      reward: {
+        type: "xp",
+        value: 20,
+        labelEn: "20 XP",
+        labelAr: "",
+      },
+      proofType: "image",
+      requiresApproval: true,
+      stages: [
+        {
+          sortOrder: 1,
+          titleEn: "Complete reading task",
+          titleAr: "إكمال مهمة القراءة",
+          descriptionEn: undefined,
+          descriptionAr: "",
+          proofType: "none",
+          requiresApproval: true,
+        },
+      ],
+    } satisfies Parameters<typeof serializeCreateReinforcementTemplatePayload>[0] &
+      Record<string, unknown>;
+
+    const serialized = serializeCreateReinforcementTemplatePayload(payload);
+
+    expect(serialized).toEqual({
+      nameEn: "Reading challenge",
+      nameAr: "تحدي القراءة",
+      source: "teacher",
+      reward: {
+        type: "xp",
+        value: 20,
+        labelEn: "20 XP",
+      },
+      stages: [
+        {
+          sortOrder: 1,
+          titleEn: "Complete reading task",
+          titleAr: "إكمال مهمة القراءة",
+          proofType: "none",
+          requiresApproval: true,
+        },
+      ],
+    });
+    expect(serialized).not.toHaveProperty("proofType");
+    expect(serialized).not.toHaveProperty("requiresApproval");
+    expect(JSON.stringify(serialized)).not.toContain("undefined");
+    expect(JSON.stringify(serialized)).not.toContain("descriptionAr");
   });
 
   it("supports wrapped and plain array task list responses", async () => {
@@ -181,38 +246,62 @@ describe("Sprint 5A reinforcement service endpoint contracts", () => {
   });
 
   it("uses documented XP endpoints and payloads", async () => {
-    await listXpPolicies({ termId: "term-1", isActive: true });
-    await getEffectiveXpPolicy({ studentId: "student-1", termId: "term-1" });
-    await createXpPolicy({
+    await listXpPolicies({
+      academicYearId: "year-1",
+      yearId: "legacy-year-1",
+      termId: "term-1",
+      isActive: true,
+    });
+    await getEffectiveXpPolicy({
+      yearId: "legacy-year-1",
+      studentId: "student-1",
+      termId: "term-1",
+    });
+    const createPolicyPayload = {
+      academicYearId: "year-1",
+      yearId: "legacy-year-1",
       termId: "term-1",
       scopeType: "school",
       dailyCap: 20,
       weeklyCap: 100,
-    });
+    } satisfies Parameters<typeof createXpPolicy>[0] & Record<string, unknown>;
+    await createXpPolicy(createPolicyPayload);
     await patchXpPolicy("policy-1", { dailyCap: 30 });
-    await grantManualXp({
+    const manualGrantPayload = {
+      academicYearId: "year-1",
+      yearId: "legacy-year-1",
       termId: "term-1",
       studentId: "student-1",
       enrollmentId: "enrollment-1",
       amount: 5,
       reason: "helpful",
       dedupeKey: "grant-1",
-    });
-    await listXpLedger({ studentId: "student-1" });
-    await getXpSummary({ studentId: "student-1" });
+    } satisfies Parameters<typeof grantManualXp>[0] & Record<string, unknown>;
+    await grantManualXp(manualGrantPayload);
+    await listXpLedger({ yearId: "legacy-year-1", studentId: "student-1" });
+    await getXpSummary({ academicYearId: "year-1", studentId: "student-1" });
 
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       1,
-      "/reinforcement/xp/policies?termId=term-1&isActive=true",
+      "/reinforcement/xp/policies?academicYearId=year-1&termId=term-1&isActive=true",
     );
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       2,
-      "/reinforcement/xp/policies/effective?studentId=student-1&termId=term-1",
+      "/reinforcement/xp/policies/effective?academicYearId=legacy-year-1&studentId=student-1&termId=term-1",
     );
     expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
       1,
       "/reinforcement/xp/policies",
-      expect.objectContaining({ dailyCap: 20, weeklyCap: 100 }),
+      expect.not.objectContaining({ yearId: "legacy-year-1" }),
+    );
+    expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
+      1,
+      "/reinforcement/xp/policies",
+      expect.objectContaining({
+        academicYearId: "year-1",
+        dailyCap: 20,
+        weeklyCap: 100,
+      }),
     );
     expect(apiMocks.apiPatch).toHaveBeenCalledWith(
       "/reinforcement/xp/policies/policy-1",
@@ -221,7 +310,13 @@ describe("Sprint 5A reinforcement service endpoint contracts", () => {
     expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
       2,
       "/reinforcement/xp/grants/manual",
+      expect.not.objectContaining({ yearId: "legacy-year-1" }),
+    );
+    expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
+      2,
+      "/reinforcement/xp/grants/manual",
       expect.objectContaining({
+        academicYearId: "year-1",
         studentId: "student-1",
         enrollmentId: "enrollment-1",
         dedupeKey: "grant-1",
@@ -229,11 +324,11 @@ describe("Sprint 5A reinforcement service endpoint contracts", () => {
     );
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       3,
-      "/reinforcement/xp/ledger?studentId=student-1",
+      "/reinforcement/xp/ledger?academicYearId=legacy-year-1&studentId=student-1",
     );
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       4,
-      "/reinforcement/xp/summary?studentId=student-1",
+      "/reinforcement/xp/summary?academicYearId=year-1&studentId=student-1",
     );
   });
 });

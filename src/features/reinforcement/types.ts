@@ -16,7 +16,7 @@ export type ReinforcementTaskStatus =
   | "not_completed"
   | "in_progress"
   | "completed"
-  | "cancel";
+  | "cancelled";
 
 export interface ReinforcementListResponse<T> {
   items: T[];
@@ -33,6 +33,13 @@ export interface ReinforcementLocalizedFields {
   nameAr?: string;
   descriptionEn?: string;
   descriptionAr?: string;
+}
+
+export interface ReinforcementReward {
+  type: ReinforcementRewardType;
+  value?: number | string;
+  labelEn?: string;
+  labelAr?: string;
 }
 
 export interface ReinforcementStagePayload {
@@ -61,10 +68,7 @@ export interface ReinforcementTemplate {
   descriptionEn?: string;
   descriptionAr?: string;
   source: ReinforcementSource;
-  rewardType: ReinforcementRewardType;
-  rewardValue?: number | string;
-  rewardLabelEn?: string;
-  rewardLabelAr?: string;
+  reward: ReinforcementReward;
   stages: ReinforcementStage[];
   createdAt?: string;
   updatedAt?: string;
@@ -86,10 +90,7 @@ export interface CreateReinforcementTemplatePayload {
   descriptionEn?: string;
   descriptionAr?: string;
   source: ReinforcementSource;
-  rewardType: ReinforcementRewardType;
-  rewardValue?: number | string;
-  rewardLabelEn?: string;
-  rewardLabelAr?: string;
+  reward: ReinforcementReward;
   stages: ReinforcementStagePayload[];
 }
 
@@ -150,7 +151,6 @@ export interface ReinforcementTask {
 
 export interface ListReinforcementTasksParams {
   academicYearId?: string;
-  yearId?: string;
   termId?: string;
   subjectId?: string;
   studentId?: string;
@@ -165,7 +165,6 @@ export interface ListReinforcementTasksParams {
 
 export interface CreateReinforcementTaskPayload {
   academicYearId?: string;
-  yearId?: string;
   termId?: string;
   subjectId?: string;
   titleEn: string;
@@ -178,8 +177,6 @@ export interface CreateReinforcementTaskPayload {
   rewardLabelEn?: string;
   rewardLabelAr?: string;
   dueDate: string;
-  assignedById?: string;
-  assignedByName?: string;
   targets: ReinforcementTargetPayload[];
   stages: ReinforcementStagePayload[];
 }
@@ -200,7 +197,6 @@ export type ListReinforcementTasksResponse =
 
 export interface ReinforcementFilterOptionsParams {
   academicYearId?: string;
-  yearId?: string;
   termId?: string;
   subjectId?: string;
   search?: string;
@@ -254,20 +250,16 @@ export interface XpPolicy {
 
 export interface ListXpPoliciesParams {
   academicYearId?: string;
-  yearId?: string;
   termId?: string;
   scopeType?: XpPolicyScopeType;
-  scopeId?: string;
-  studentId?: string;
+  scopeKey?: string;
   isActive?: boolean;
   page?: number;
-  limit?: number;
   [key: string]: string | number | boolean | undefined;
 }
 
 export interface GetEffectiveXpPolicyParams {
   academicYearId?: string;
-  yearId?: string;
   termId?: string;
   studentId?: string;
   enrollmentId?: string;
@@ -278,7 +270,6 @@ export interface GetEffectiveXpPolicyParams {
 
 export interface CreateXpPolicyPayload {
   academicYearId?: string;
-  yearId?: string;
   termId?: string;
   scopeType: XpPolicyScopeType;
   scopeId?: string;
@@ -308,7 +299,6 @@ export type ListXpPoliciesResponse = ReinforcementListResponse<XpPolicy>;
 
 export interface ManualXpGrantPayload {
   academicYearId?: string;
-  yearId?: string;
   termId?: string;
   studentId: string;
   enrollmentId: string;
@@ -345,10 +335,8 @@ export interface XpLedgerEntry {
 
 export interface ListXpLedgerParams {
   academicYearId?: string;
-  yearId?: string;
   termId?: string;
   studentId?: string;
-  enrollmentId?: string;
   page?: number;
   limit?: number;
   [key: string]: string | number | boolean | undefined;
@@ -358,11 +346,8 @@ export type ListXpLedgerResponse = ReinforcementListResponse<XpLedgerEntry>;
 
 export interface GetXpSummaryParams {
   academicYearId?: string;
-  yearId?: string;
   termId?: string;
   studentId?: string;
-  enrollmentId?: string;
-  classroomId?: string;
   [key: string]: string | number | boolean | undefined;
 }
 
@@ -377,26 +362,112 @@ export interface XpSummary {
 
 export interface ReinforcementOverviewParams {
   academicYearId?: string;
-  yearId?: string;
   termId?: string;
   classroomId?: string;
-  studentId?: string;
   [key: string]: string | number | boolean | undefined;
 }
 
+export interface OverviewScope {
+  academicYearId?: string | null;
+  yearId?: string | null;
+  termId?: string | null;
+  stageId?: string | null;
+  gradeId?: string | null;
+  sectionId?: string | null;
+  classroomId?: string | null;
+  studentId?: string | null;
+  source?: string | null;
+}
+
+export interface OverviewTasksBySource {
+  source: string;
+  count: number;
+}
+
+export interface OverviewTasksByStatus {
+  status: string;
+  count: number;
+}
+
+export interface OverviewTasks {
+  total: number;
+  active: number;
+  cancelled: number;
+  bySource: OverviewTasksBySource[];
+  byStatus: OverviewTasksByStatus[];
+}
+
+export interface OverviewAssignments {
+  total: number;
+  notCompleted: number;
+  inProgress: number;
+  underReview: number;
+  completed: number;
+  cancelled: number;
+  completionRate: number;
+}
+
+export interface OverviewReviewQueue {
+  submitted: number;
+  approved: number;
+  rejected: number;
+  pendingReview: number;
+}
+
+export interface OverviewXpBySourceType {
+  sourceType: string;
+  count: number;
+  totalXp: number;
+}
+
+export interface OverviewXp {
+  totalXp: number;
+  studentsWithXp: number;
+  averageXp: number;
+  bySourceType: OverviewXpBySourceType[];
+}
+
+export interface OverviewStudentInfo {
+  id: string;
+  firstName: string;
+  lastName: string;
+  name: string;
+  nameAr?: string | null;
+  code?: string | null;
+  admissionNo?: string | null;
+}
+
+export interface OverviewTopStudent {
+  studentId: string;
+  student: OverviewStudentInfo;
+  totalXp: number;
+  completedAssignments: number;
+  completionRate: number;
+}
+
+export interface OverviewRecentActivity {
+  id: string;
+  type: string;
+  timestamp: string;
+  student: OverviewStudentInfo;
+  sourceType: string;
+  sourceId: string;
+  amount: number;
+  reason: string;
+}
+
 export interface ReinforcementOverviewResponse {
-  metrics?: Record<string, unknown>;
-  kpis?: Record<string, unknown>;
-  recentActivity?: unknown[];
-  tasksByStatus?: unknown[];
-  tasksBySource?: unknown[];
-  rewardsByType?: unknown[];
-  [key: string]: unknown;
+  scope: OverviewScope;
+  tasks: OverviewTasks;
+  assignments: OverviewAssignments;
+  reviewQueue: OverviewReviewQueue;
+  xp: OverviewXp;
+  topStudents: OverviewTopStudent[];
+  recentActivity: OverviewRecentActivity[];
 }
 
 export interface StudentReinforcementProgressParams {
   academicYearId?: string;
-  yearId?: string;
   termId?: string;
   [key: string]: string | number | boolean | undefined;
 }
@@ -411,7 +482,6 @@ export interface StudentReinforcementProgress {
 
 export interface ClassroomReinforcementSummaryParams {
   academicYearId?: string;
-  yearId?: string;
   termId?: string;
   [key: string]: string | number | boolean | undefined;
 }

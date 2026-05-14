@@ -515,7 +515,7 @@ export const menuItems: MenuItem[] = [
   {
     key: "reinforcement",
     label_en: "Reinforcement",
-    label_ar: "التحفيز",
+    label_ar: "التعزيز",
     href_en: "/en/reinforcement",
     href_ar: "/ar/reinforcement",
     icon: Award,

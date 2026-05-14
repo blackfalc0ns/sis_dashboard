@@ -7048,7 +7048,20 @@
       "relatedTasks": "المهام المرتبطة",
       "students": "الطلاب",
       "studentProgressDescription": "راجع تقدم الطالب في مهام التحفيز وملخص النقاط.",
-      "classroomSummaryDescription": "راجع نشاط التحفيز في الفصل ومؤشرات الطلاب وملخص النقاط."
+      "classroomSummaryDescription": "راجع نشاط التحفيز في الفصل ومؤشرات الطلاب وملخص النقاط.",
+      "assignmentsSummary": "ملخص المهام",
+      "reviewQueue": "طابور المراجعة",
+      "pendingReview": "قيد المراجعة",
+      "submitted": "تم الإرسال",
+      "approved": "تمت الموافقة",
+      "rejected": "مرفوض",
+      "xpDistribution": "توزيع نقاط الخبرة",
+      "xpEarnedBySource": "نقاط الخبرة المكتسبة حسب نوع المصدر",
+      "studentsWithXp": "طلاب حصلوا على نقاط خبرة",
+      "averageXp": "متوسط نقاط الخبرة",
+      "noXpData": "لا توجد بيانات عن نقاط الخبرة.",
+      "activeAssignments": "المهام النشطة",
+      "completionRate": "نسبة الإنجاز"
     },
     "tasks": {
       "title": "المهام",
@@ -7256,15 +7269,25 @@
     "quickActionsSubtitle": "اختصارات مفيدة لإدارة مهام التعزيز والمكافآت.",
     "loading": "جارٍ تحميل بيانات التعزيز...",
     "status": {
-      "cancel": "ملغي",
+      "cancelled": "ملغي",
       "in_progress": "قيد التنفيذ",
       "completed": "مكتمل",
-      "not_completed": "غير مكتمل"
+      "not_completed": "غير مكتمل",
+      "under_review": "قيد المراجعة"
     },
     "source": {
       "teacher": "المعلم",
       "parent": "ولي الأمر",
       "system": "النظام"
+    },
+    "sourceType": {
+      "reinforcement_task": "مهمة تعزيز",
+      "hero_mission": "مهمة بطل",
+      "manual_bonus": "مكافأة يدوية",
+      "behavior": "سلوك",
+      "grade": "درجة",
+      "attendance": "حضور",
+      "system": "نظام"
     },
     "rewardType": {
       "moral": "معنوية",

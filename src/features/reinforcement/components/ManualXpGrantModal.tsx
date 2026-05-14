@@ -79,7 +79,6 @@ export default function ManualXpGrantModal({
     try {
       await onSubmit({
         academicYearId: selection.academicYearId,
-        yearId: selection.academicYearId,
         termId: selection.termId,
         studentId: selection.studentId,
         enrollmentId: selection.enrollmentId,

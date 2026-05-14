@@ -73,23 +73,13 @@ export default function ReinforcementTasksPage() {
   const params = useMemo(
     () => ({
       academicYearId: context.academicYearId,
-      yearId: context.academicYearId,
       termId: context.termId,
-      subjectId: context.subjectId,
-      studentId: context.studentId,
-      classroomId: context.classroomId,
-      status: status || undefined,
       // includeCancelled,
       // limit: 50,
     }),
     [
       context.academicYearId,
-      context.classroomId,
-      context.studentId,
-      context.subjectId,
       context.termId,
-      // includeCancelled,
-      status,
     ],
   );
 
@@ -134,7 +124,7 @@ export default function ReinforcementTasksPage() {
   };
 
   const handleCancel = async (payload: CancelReinforcementTaskPayload) => {
-    if (!cancelTask || cancelTask.status === "cancel") return;
+    if (!cancelTask || cancelTask.status === "cancelled") return;
     try {
       await cancelReinforcementTask(cancelTask.id, payload);
       showSuccess(t("tasks.messages.cancelled"));
@@ -216,7 +206,7 @@ export default function ReinforcementTasksPage() {
               { value: "not_completed", label: t("status.not_completed") },
               { value: "in_progress", label: t("status.in_progress") },
               { value: "completed", label: t("status.completed") },
-              { value: "cancel", label: t("status.cancel") },
+              { value: "cancelled", label: t("status.cancelled") },
             ]}
           />
           <label className="flex min-h-[70px] items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">

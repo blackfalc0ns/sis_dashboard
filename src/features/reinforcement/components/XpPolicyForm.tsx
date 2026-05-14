@@ -67,7 +67,6 @@ export default function XpPolicyForm({ onSubmit, onCancel }: XpPolicyFormProps) 
     try {
       await onSubmit({
         academicYearId: context.academicYearId,
-        yearId: context.academicYearId,
         termId: context.termId,
         scopeType: selectedTarget.scopeType as XpPolicyScopeType,
         scopeId: selectedTarget.scopeId,

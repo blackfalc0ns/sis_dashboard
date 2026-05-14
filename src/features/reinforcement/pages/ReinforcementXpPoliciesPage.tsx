@@ -72,18 +72,16 @@ export default function ReinforcementXpPoliciesPage() {
   const params = useMemo(
     () => ({
       academicYearId: context.academicYearId,
-      yearId: context.academicYearId,
       termId: context.termId,
       scopeType: scopeType || undefined,
-      studentId: context.studentId,
+      scopeKey: context.studentId,
       isActive:
         activeFilter === "all" ? undefined : activeFilter === "active",
-      limit: 50,
     }),
     [
       activeFilter,
       context.academicYearId,
-      context.studentId,
+      context.scopeKey,
       context.termId,
       scopeType,
     ],
@@ -149,7 +147,6 @@ export default function ReinforcementXpPoliciesPage() {
       setEffectivePolicy(
         await getEffectiveXpPolicy({
           academicYearId: context.academicYearId,
-          yearId: context.academicYearId,
           termId: context.termId,
           studentId: context.studentId,
           enrollmentId: context.enrollmentId,

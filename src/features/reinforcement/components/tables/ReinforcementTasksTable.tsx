@@ -129,7 +129,7 @@ export default function ReinforcementTasksTable({
           </button>
           <button
             onClick={() => onCancel(row)}
-            disabled={row.status === "cancel"}
+            disabled={row.status === "cancelled"}
             className="rounded p-1.5 text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"
             title={t("cancelTask")}
           >

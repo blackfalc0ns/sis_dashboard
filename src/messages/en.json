@@ -7046,7 +7046,20 @@
       "relatedTasks": "Related tasks",
       "students": "Students",
       "studentProgressDescription": "Review a student's reinforcement task progress and XP summary.",
-      "classroomSummaryDescription": "Review classroom reinforcement activity, student signals, and XP summary."
+      "classroomSummaryDescription": "Review classroom reinforcement activity, student signals, and XP summary.",
+      "assignmentsSummary": "Assignments Summary",
+      "reviewQueue": "Review Queue",
+      "pendingReview": "Pending Review",
+      "submitted": "Submitted",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "xpDistribution": "XP Distribution",
+      "xpEarnedBySource": "XP earned by source type",
+      "studentsWithXp": "Students with XP",
+      "averageXp": "Average XP",
+      "noXpData": "No XP data available.",
+      "activeAssignments": "Active Assignments",
+      "completionRate": "Completion Rate"
     },
     "tasks": {
       "title": "Tasks",
@@ -7254,14 +7267,24 @@
     "quickActionsSubtitle": "Jump into the most common reinforcement workflows.",
     "loading": "Loading reinforcement data...",
     "status": {
-      "cancel": "Cancel",
+      "cancelled": "Cancelled",
       "in_progress": "In progress",
       "completed": "Completed",
-      "not_completed": "Not completed"
+      "not_completed": "Not completed",
+      "under_review": "Under review"
     },
     "source": {
       "teacher": "Teacher",
       "parent": "Parent",
+      "system": "System"
+    },
+    "sourceType": {
+      "reinforcement_task": "Reinforcement Task",
+      "hero_mission": "Hero Mission",
+      "manual_bonus": "Manual Bonus",
+      "behavior": "Behavior",
+      "grade": "Grade",
+      "attendance": "Attendance",
       "system": "System"
     },
     "rewardType": {

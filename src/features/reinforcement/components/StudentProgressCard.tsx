@@ -35,7 +35,7 @@ const localizedTaskTitle = (
 const statusLabel = (status: unknown, locale: string): string => {
   const value = typeof status === "string" ? status : "";
   const labels: Record<string, { en: string; ar: string }> = {
-    cancel: { en: "Cancelled", ar: "ملغي" },
+    cancelled: { en: "Cancelled", ar: "ملغي" },
     completed: { en: "Completed", ar: "مكتمل" },
     in_progress: { en: "In progress", ar: "قيد التنفيذ" },
     not_completed: { en: "Not completed", ar: "غير مكتمل" },

@@ -60,20 +60,26 @@ export default function ReinforcementXpLedgerPage() {
   const params = useMemo(
     () => ({
       academicYearId: context.academicYearId,
-      yearId: context.academicYearId,
       termId: context.termId,
       studentId: context.studentId,
-      enrollmentId: context.enrollmentId,
       classroomId: context.classroomId,
       limit: 50,
     }),
     [
       context.academicYearId,
       context.classroomId,
-      context.enrollmentId,
       context.studentId,
       context.termId,
     ],
+  );
+
+  const summaryParams = useMemo(
+    () => ({
+      academicYearId: context.academicYearId,
+      termId: context.termId,
+      studentId: context.studentId,
+    }),
+    [context.academicYearId, context.studentId, context.termId],
   );
 
   const refreshLedger = useCallback(async () => {
@@ -83,7 +89,7 @@ export default function ReinforcementXpLedgerPage() {
     try {
       const [ledgerResponse, nextSummary] = await Promise.all([
         listXpLedger(params),
-        getXpSummary(params),
+        getXpSummary(summaryParams),
       ]);
       setEntries(ledgerResponse.items);
       setSummary(nextSummary);
@@ -95,7 +101,7 @@ export default function ReinforcementXpLedgerPage() {
     } finally {
       setLoading(false);
     }
-  }, [canView, params, showError, t]);
+  }, [canView, params, summaryParams, showError, t]);
 
   useEffect(() => {
     void Promise.resolve().then(refreshLedger);

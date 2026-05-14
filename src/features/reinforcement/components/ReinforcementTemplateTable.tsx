@@ -93,15 +93,15 @@ export default function ReinforcementTemplateTable({
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-2 text-sm text-gray-700">
                     <Award className="h-4 w-4 text-primary" />
-                    <span>{t(`rewardType.${template.rewardType}`)}</span>
+                    <span>{t(`rewardType.${template.reward?.type || 'xp'}`)}</span>
                     <span className="text-gray-400">/</span>
-                    <span>{formatRewardValue(template.rewardValue)}</span>
+                    <span>{formatRewardValue(template.reward?.value)}</span>
                   </div>
-                  {(template.rewardLabelEn || template.rewardLabelAr) && (
+                  {(template.reward?.labelEn || template.reward?.labelAr) && (
                     <div className="mt-1 text-xs text-gray-500">
                       {locale === "ar"
-                        ? template.rewardLabelAr || template.rewardLabelEn
-                        : template.rewardLabelEn || template.rewardLabelAr}
+                        ? template.reward.labelAr || template.reward.labelEn
+                        : template.reward.labelEn || template.reward.labelAr}
                     </div>
                   )}
                 </td>
@@ -151,7 +151,7 @@ export default function ReinforcementTemplateTable({
                 {t(`source.${template.source}`)}
               </span>
               <span className="rounded-full bg-gray-100 px-2.5 py-1">
-                {t(`rewardType.${template.rewardType}`)}
+                {t(`rewardType.${template.reward?.type || 'xp'}`)}
               </span>
             </div>
           </article>

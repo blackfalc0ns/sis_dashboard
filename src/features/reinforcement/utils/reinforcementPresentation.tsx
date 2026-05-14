@@ -9,7 +9,7 @@ import type {
 } from "../types/reinforcement";
 
 export const statusStyles: Record<ReinforcementStatus, string> = {
-  cancel: "bg-rose-100 text-rose-700",
+  cancelled: "bg-rose-100 text-rose-700",
   in_progress: "bg-blue-100 text-blue-700",
   completed: "bg-emerald-100 text-emerald-700",
   not_completed: "bg-amber-100 text-amber-700",

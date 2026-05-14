@@ -16,7 +16,22 @@ export function buildReinforcementQueryString(
   if (!params) return "";
 
   const searchParams = new URLSearchParams();
+  const academicYearId = params.academicYearId ?? params.yearId;
+
+  if (
+    academicYearId !== undefined &&
+    academicYearId !== null &&
+    academicYearId !== "" &&
+    academicYearId !== "all"
+  ) {
+    searchParams.set("academicYearId", String(academicYearId));
+  }
+
   Object.entries(params).forEach(([key, value]) => {
+    if (key === "academicYearId" || key === "yearId") {
+      return;
+    }
+
     if (
       value === undefined ||
       value === null ||

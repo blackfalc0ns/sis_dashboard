@@ -4,5 +4,5 @@ export * from "./services/reinforcementService";
 export { default as ReinforcementOverviewPage } from "./pages/ReinforcementOverviewPage";
 export { default as ReinforcementTasksPage } from "./pages/ReinforcementTasksPage";
 export { default as ReinforcementTaskDetailsPage } from "./pages/ReinforcementTaskDetailsPage";
-export { default as ReinforcementOverviewContainer } from "./container/ReinforcementOverviewContainer";
 export { default as ReinforcementSummaryWidget } from "./views/ReinforcementSummaryWidget";
+

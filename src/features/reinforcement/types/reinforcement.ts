@@ -1,7 +1,7 @@
 export type ReinforcementSource = "teacher" | "parent" | "system";
 
 export type ReinforcementStatus =
-  | "cancel"
+  | "cancelled"
   | "in_progress"
   | "completed"
   | "not_completed";

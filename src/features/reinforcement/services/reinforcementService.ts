@@ -1,11 +1,10 @@
-﻿
+
 import { getStructureTreeSnapshot } from "@/features/academics/academic-structure-tree/services/structureService";
 import type {
   CreateReinforcementStagePayload,
   CreateReinforcementTaskPayload,
   ReinforcementAssignmentScope,
   ReinforcementFilterOptions,
-  ReinforcementOverview,
   ReinforcementRewardType,
   ReinforcementScopeOption,
   ReinforcementSource,
@@ -189,46 +188,23 @@ let tasksStore: ReinforcementTask[] = [
   seedTask({ id: "RT-1003", titleAr: "مساعدة زميل أكاديميا", titleEn: "Academic Peer Support", descriptionAr: "دعم زميل في الرياضيات.", descriptionEn: "Support a peer in math.", targets: studentTarget(1), source: "teacher", status: "completed", rewardType: "moral", rewardValue: "Recognition Certificate", dueDate: dateOnlyFromNow(-4), assignedById: "EMP-102", assignedByName: "Mr. Kareem", createdAt: isoFromNow(-14), updatedAt: isoFromNow(-3), stages: [createStage("RT-1003-ST-1", "Plan support", "تخطيط الدعم", "document", { isCompleted: true, isApproved: true, submittedAt: isoFromNow(-13) }), createStage("RT-1003-ST-2", "Deliver support", "تنفيذ الدعم", "image", { isCompleted: true, isApproved: true, submittedAt: isoFromNow(-8), proofUrl: "/proofs/support.jpg" })] }),
   seedTask({ id: "RT-1004", titleAr: "تحدي قيادة شعب الصف السابع", titleEn: "Grade 7 Section Leadership Challenge", descriptionAr: "مهمة لشعب الصف السابع.", descriptionEn: "A task for Grade 7 sections.", targets: clonedTargets("section:section-7", "section:section-8"), source: "parent", status: "in_progress", rewardType: "badge", rewardValue: "Leader Badge", dueDate: dateOnlyFromNow(5), assignedById: "PAR-501", assignedByName: "Parent Portal", createdAt: isoFromNow(-6), updatedAt: isoFromNow(-2), stages: [createStage("RT-1004-ST-1", "Prep checklist", "قائمة التحضير", "document", { isCompleted: true, isApproved: true, submittedAt: isoFromNow(-5) }), createStage("RT-1004-ST-2", "Lead line-up", "قيادة الاصطفاف", "video", { isCompleted: true, isApproved: false, submittedAt: isoFromNow(-2), proofUrl: "/proofs/lineup.mp4" })] }),
   seedTask({ id: "RT-1005", titleAr: "تحدي الانضباط للمرحلة المتوسطة", titleEn: "Middle School Discipline Challenge", descriptionAr: "مهمة للصفين السادس والسابع.", descriptionEn: "A task for Grades 6 and 7.", targets: clonedTargets("grade:grade-4", "grade:grade-5"), source: "system", status: "not_completed", rewardType: "financial", rewardValue: "25 SAR voucher", dueDate: dateOnlyFromNow(-2), assignedById: "SYS-001", assignedByName: "Behavior Engine", createdAt: isoFromNow(-11), updatedAt: isoFromNow(-2), stages: [createStage("RT-1005-ST-1", "Attendance proof", "إثبات الحضور", "image", { isCompleted: true, isApproved: false, submittedAt: isoFromNow(-3), proofUrl: "/proofs/attendance.jpg" })] }),
-  seedTask({ id: "RT-1006", titleAr: "دعم معامل العلوم", titleEn: "Support the Science Labs", descriptionAr: "مهمة لعدة فصول.", descriptionEn: "A task for multiple classrooms.", targets: clonedTargets("classroom:classroom-11", "classroom:classroom-13"), source: "teacher", status: "cancel", rewardType: "moral", rewardValue: "Principal appreciation", dueDate: dateOnlyFromNow(-8), assignedById: "EMP-333", assignedByName: "Mr. Sameh", createdAt: isoFromNow(-20), updatedAt: isoFromNow(-6), stages: [createStage("RT-1006-ST-1", "Collect materials", "جمع المواد", "image", { isCompleted: true, isApproved: true, submittedAt: isoFromNow(-18) }), createStage("RT-1006-ST-2", "Setup support", "المساعدة في التجهيز", "video", { isCompleted: true, isApproved: true, submittedAt: isoFromNow(-12) })] }),
+  seedTask({ id: "RT-1006", titleAr: "دعم معامل العلوم", titleEn: "Support the Science Labs", descriptionAr: "مهمة لعدة فصول.", descriptionEn: "A task for multiple classrooms.", targets: clonedTargets("classroom:classroom-11", "classroom:classroom-13"), source: "teacher", status: "cancelled", rewardType: "moral", rewardValue: "Principal appreciation", dueDate: dateOnlyFromNow(-8), assignedById: "EMP-333", assignedByName: "Mr. Sameh", createdAt: isoFromNow(-20), updatedAt: isoFromNow(-6), stages: [createStage("RT-1006-ST-1", "Collect materials", "جمع المواد", "image", { isCompleted: true, isApproved: true, submittedAt: isoFromNow(-18) }), createStage("RT-1006-ST-2", "Setup support", "المساعدة في التجهيز", "video", { isCompleted: true, isApproved: true, submittedAt: isoFromNow(-12) })] }),
 ];
 
-const statusOrder: ReinforcementStatus[] = ["cancel", "in_progress", "completed", "not_completed"];
-const rewardTypes: ReinforcementRewardType[] = ["moral", "financial", "xp", "badge"];
-const sources: ReinforcementSource[] = ["teacher", "parent", "system"];
+
 const getCompletedStages = (task: ReinforcementTask) => task.stages.filter((stage) => stage.isCompleted).length;
 const getCompletionRate = (task: ReinforcementTask) => task.stages.length === 0 ? 0 : (getCompletedStages(task) / task.stages.length) * 100;
-const isWithinDays = (dateIso: string, days: number) => now.getTime() - new Date(dateIso).getTime() <= days * 24 * 60 * 60 * 1000;
-export async function getReinforcementOverview(): Promise<ReinforcementOverview> {
-  const completedThisWeekTasks = tasksStore.filter((task) => task.status === "completed" && isWithinDays(task.updatedAt, 7));
-  const rewardedStudents = new Set(tasksStore.filter((task) => task.status === "completed" && task.primaryTargetType === "student").map((task) => task.studentId).filter(Boolean)).size;
-  const totalRewardsIssued = tasksStore.filter((task) => task.status === "completed").length;
-  const averageCompletionRate = tasksStore.reduce((sum, task) => sum + getCompletionRate(task), 0) / Math.max(tasksStore.length, 1);
-  const topClassesMap = new Map<string, number>();
-  const topStudentsMap = new Map<string, number>();
-  tasksStore.filter((task) => task.primaryTargetType === "student").forEach((task) => {
-    const weight = task.status === "completed" ? 2 : task.status === "in_progress" ? 1.5 : 1;
-    if (task.className) topClassesMap.set(task.className, (topClassesMap.get(task.className) || 0) + weight);
-    if (task.studentName) topStudentsMap.set(task.studentName, (topStudentsMap.get(task.studentName) || 0) + weight);
-  });
 
-  return clone({
-    kpis: { inProgress: tasksStore.filter((task) => task.status === "in_progress").length, notCompleted: tasksStore.filter((task) => task.status === "not_completed").length, completedThisWeek: completedThisWeekTasks.length, rewardedStudents, averageCompletionRate: Number(averageCompletionRate.toFixed(1)), totalRewardsIssued },
-    tasksByStatus: statusOrder.map((status) => ({ id: status, label: status, value: tasksStore.filter((task) => task.status === status).length })),
-    tasksBySource: sources.map((source) => ({ id: source, label: source, value: tasksStore.filter((task) => task.source === source).length })),
-    rewardsByType: rewardTypes.map((type) => ({ id: type, label: type, value: tasksStore.filter((task) => task.rewardType === type && task.status === "completed").length })),
-    topClasses: [...topClassesMap.entries()].map(([name, value], index) => ({ id: `class-${index}`, name, value: Number(value.toFixed(1)) })).sort((a, b) => b.value - a.value).slice(0, 5),
-    topStudents: [...topStudentsMap.entries()].map(([name, value], index) => ({ id: `student-${index}`, name, value: Number(value.toFixed(1)) })).sort((a, b) => b.value - a.value).slice(0, 5),
-    recentActivity: [
-      { id: "ACT-1", titleAr: "تم تحديث مهمة قيد التنفيذ", titleEn: "In-progress task updated", descriptionAr: "ليلى سالم أرسلت دليلا جديدا لمهمة ركن القراءة.", descriptionEn: "Layla Salem submitted fresh evidence for the reading corner task.", timestamp: isoFromNow(-1), type: "submission" },
-      { id: "ACT-2", titleAr: "تم صرف مكافأة", titleEn: "Reward issued", descriptionAr: "سارة محمد حصلت على شهادة تقدير بعد إكمال مهمة الدعم الأكاديمي.", descriptionEn: "Sara Mohammed received a recognition certificate after completing Academic Peer Support.", timestamp: isoFromNow(-3), type: "reward" },
-      { id: "ACT-3", titleAr: "تم إنشاء مهمة نطاق جديد", titleEn: "New scoped task created", descriptionAr: "تم إنشاء مهمة جماعية موجهة لشعب الصف السابع.", descriptionEn: "A shared task was created for Grade 7 sections.", timestamp: isoFromNow(-5), type: "task" },
-    ],
-    quickActions: [
-      { id: "tasks", titleAr: "إدارة المهام", titleEn: "Manage tasks", href: "/reinforcement/tasks", descriptionAr: "راجع المهام الحالية وأنشئ مهاما جديدة على مستوى المدرسة أو الصف أو الطالب.", descriptionEn: "Review current reinforcement tasks and create new work for schools, classes, or students." },
-      { id: "create", titleAr: "إنشاء مهمة", titleEn: "Create task", href: "/reinforcement/tasks", descriptionAr: "ابدأ مهمة جديدة وحدد الجمهور والمراحل والمكافأة من شاشة واحدة.", descriptionEn: "Start a new task and define its audience, stages, and reward in one flow." },
-      { id: "details", titleAr: "متابعة التنفيذ", titleEn: "Track progress", href: "/reinforcement/tasks?status=in_progress", descriptionAr: "تابع مراحل التنفيذ وحالة الإنجاز للمهام الحالية.", descriptionEn: "Track stage progress and completion status across active tasks." },
-    ],
-  });
+
+export async function getReinforcementSummaryCard() {
+  const inProgress = tasksStore.filter((task) => task.status === "in_progress").length;
+  const notCompleted = tasksStore.filter((task) => task.status === "not_completed").length;
+  const completionRate = tasksStore.reduce((sum, task) => sum + getCompletionRate(task), 0) / Math.max(tasksStore.length, 1);
+  return clone({ inProgress, notCompleted, completionRate: Number(completionRate.toFixed(1)) });
+}
+
+export async function getReinforcementFilterOptions(): Promise<ReinforcementFilterOptions> {
+  return clone({ students: studentSeeds.map((student) => ({ studentId: student.studentId, studentName: student.studentName })), classes: [...new Set(studentSeeds.map((student) => student.className))], scopeTargets });
 }
 
 export async function getReinforcementTasks(filters: ReinforcementTaskFilters = {}): Promise<ReinforcementTask[]> {
@@ -274,16 +250,7 @@ export async function createReinforcementTask(payload: CreateReinforcementTaskPa
 export async function cancelTask(taskId: string): Promise<ReinforcementTask | null> {
   const task = tasksStore.find((item) => item.id === taskId);
   if (!task) return null;
-  const nextTask: ReinforcementTask = { ...task, status: "cancel", updatedAt: now.toISOString() };
+  const nextTask: ReinforcementTask = { ...task, status: "cancelled", updatedAt: now.toISOString() };
   tasksStore = tasksStore.map((item) => (item.id === taskId ? nextTask : item));
   return clone(nextTask);
-}
-
-export async function getReinforcementSummaryCard() {
-  const overview = await getReinforcementOverview();
-  return clone({ inProgress: overview.kpis.inProgress, notCompleted: overview.kpis.notCompleted, completionRate: overview.kpis.averageCompletionRate });
-}
-
-export async function getReinforcementFilterOptions(): Promise<ReinforcementFilterOptions> {
-  return clone({ students: studentSeeds.map((student) => ({ studentId: student.studentId, studentName: student.studentName })), classes: [...new Set(studentSeeds.map((student) => student.className))], scopeTargets });
 }

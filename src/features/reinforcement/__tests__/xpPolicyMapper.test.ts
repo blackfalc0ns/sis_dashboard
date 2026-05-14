@@ -4,12 +4,15 @@ import type {
   ManualXpGrantPayload,
   PatchXpPolicyPayload,
 } from "@/features/reinforcement/types";
+import {
+  serializeCreateXpPolicyPayload,
+  serializeManualXpGrantPayload,
+} from "@/features/reinforcement/services/reinforcementXpService";
 
 describe("reinforcement XP payload contracts", () => {
   it("keeps XP policy create and patch payloads aligned with Sprint 5A", () => {
     const createPayload: CreateXpPolicyPayload = {
       academicYearId: "year-1",
-      yearId: "year-1",
       termId: "term-1",
       scopeType: "classroom",
       scopeId: "classroom-1",
@@ -32,6 +35,9 @@ describe("reinforcement XP payload contracts", () => {
       dailyCap: 20,
       allowedReasons: ["helpful", "leadership"],
     });
+    expect(serializeCreateXpPolicyPayload(createPayload)).not.toHaveProperty(
+      "yearId",
+    );
     expect(patchPayload).toEqual({
       dailyCap: 25,
       weeklyCap: 125,
@@ -55,5 +61,6 @@ describe("reinforcement XP payload contracts", () => {
     expect(payload.studentId).toBe("student-1");
     expect(payload.enrollmentId).toBe("enrollment-1");
     expect(payload.amount).toBe(10);
+    expect(serializeManualXpGrantPayload(payload)).not.toHaveProperty("yearId");
   });
 });

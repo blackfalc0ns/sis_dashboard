@@ -7,7 +7,6 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
-import { useAuth } from "@/hooks/use-auth";
 import ReinforcementAcademicContextFilter, {
   type ReinforcementAcademicContextSelection,
   type ReinforcementAcademicContextValue,
@@ -63,27 +62,30 @@ const optionalString = (value: string): string | undefined => {
 
 export function buildReinforcementTaskPayload(
   draft: TaskDraft,
-  assignedById?: string,
-  assignedByName?: string,
 ): CreateReinforcementTaskPayload {
   const fallbackTitle = draft.titleEn.trim() || draft.titleAr.trim();
+  const descriptionEn = optionalString(draft.descriptionEn);
+  const descriptionAr = optionalString(draft.descriptionAr);
+  const rewardValue = optionalString(draft.rewardValue);
+  const rewardLabelEn = optionalString(draft.rewardLabelEn);
+  const rewardLabelAr = optionalString(draft.rewardLabelAr);
+
   return {
-    academicYearId: draft.context.academicYearId,
-    yearId: draft.context.academicYearId,
-    termId: draft.context.termId,
-    subjectId: draft.context.subjectId,
+    ...(draft.context.academicYearId
+      ? { academicYearId: draft.context.academicYearId }
+      : {}),
+    ...(draft.context.termId ? { termId: draft.context.termId } : {}),
+    ...(draft.context.subjectId ? { subjectId: draft.context.subjectId } : {}),
     titleEn: draft.titleEn.trim() || fallbackTitle,
     titleAr: draft.titleAr.trim() || fallbackTitle,
-    descriptionEn: optionalString(draft.descriptionEn),
-    descriptionAr: optionalString(draft.descriptionAr),
+    ...(descriptionEn ? { descriptionEn } : {}),
+    ...(descriptionAr ? { descriptionAr } : {}),
     source: draft.source,
     rewardType: draft.rewardType,
-    rewardValue: optionalString(draft.rewardValue),
-    rewardLabelEn: optionalString(draft.rewardLabelEn),
-    rewardLabelAr: optionalString(draft.rewardLabelAr),
+    ...(rewardValue ? { rewardValue } : {}),
+    ...(rewardLabelEn ? { rewardLabelEn } : {}),
+    ...(rewardLabelAr ? { rewardLabelAr } : {}),
     dueDate: draft.dueDate,
-    assignedById,
-    assignedByName,
     targets: draft.targets.map((target) => ({
       scopeType: target.scopeType,
       scopeId: target.scopeId,
@@ -98,8 +100,6 @@ export default function ReinforcementTaskForm({
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations("reinforcement");
-  const { user } = useAuth();
-  const assignedByName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
   const [draft, setDraft] = useState<TaskDraft>({
     context: {},
     titleEn: "",
@@ -151,13 +151,7 @@ export default function ReinforcementTaskForm({
     if (!validate()) return;
     setSaving(true);
     try {
-      await onSubmit(
-        buildReinforcementTaskPayload(
-          draft,
-          user?.id,
-          assignedByName || user?.email,
-        ),
-      );
+      await onSubmit(buildReinforcementTaskPayload(draft));
     } finally {
       setSaving(false);
     }

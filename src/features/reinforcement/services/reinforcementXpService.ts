@@ -25,6 +25,70 @@ const MANUAL_GRANTS_ENDPOINT = "/reinforcement/xp/grants/manual";
 const XP_LEDGER_ENDPOINT = "/reinforcement/xp/ledger";
 const XP_SUMMARY_ENDPOINT = "/reinforcement/xp/summary";
 
+const optionalText = (value: string | undefined): string | undefined => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+};
+
+const optionalNumber = (value: number | undefined): number | undefined =>
+  typeof value === "number" && Number.isFinite(value) ? value : undefined;
+
+const optionalStringList = (values: string[] | undefined): string[] | undefined => {
+  const cleaned = values
+    ?.map((value) => value.trim())
+    .filter((value) => value.length > 0);
+
+  return cleaned?.length ? cleaned : undefined;
+};
+
+export function serializeCreateXpPolicyPayload(
+  payload: CreateXpPolicyPayload,
+): CreateXpPolicyPayload {
+  return {
+    ...(optionalText(payload.academicYearId)
+      ? { academicYearId: optionalText(payload.academicYearId) }
+      : {}),
+    ...(optionalText(payload.termId) ? { termId: optionalText(payload.termId) } : {}),
+    scopeType: payload.scopeType,
+    ...(optionalText(payload.scopeId) ? { scopeId: optionalText(payload.scopeId) } : {}),
+    ...(optionalNumber(payload.dailyCap) !== undefined
+      ? { dailyCap: optionalNumber(payload.dailyCap) }
+      : {}),
+    ...(optionalNumber(payload.weeklyCap) !== undefined
+      ? { weeklyCap: optionalNumber(payload.weeklyCap) }
+      : {}),
+    ...(optionalNumber(payload.cooldownMinutes) !== undefined
+      ? { cooldownMinutes: optionalNumber(payload.cooldownMinutes) }
+      : {}),
+    ...(optionalStringList(payload.allowedReasons)
+      ? { allowedReasons: optionalStringList(payload.allowedReasons) }
+      : {}),
+    ...(optionalText(payload.startsAt) ? { startsAt: optionalText(payload.startsAt) } : {}),
+    ...(optionalText(payload.endsAt) ? { endsAt: optionalText(payload.endsAt) } : {}),
+    ...(typeof payload.isActive === "boolean" ? { isActive: payload.isActive } : {}),
+  };
+}
+
+export function serializeManualXpGrantPayload(
+  payload: ManualXpGrantPayload,
+): ManualXpGrantPayload {
+  return {
+    ...(optionalText(payload.academicYearId)
+      ? { academicYearId: optionalText(payload.academicYearId) }
+      : {}),
+    ...(optionalText(payload.termId) ? { termId: optionalText(payload.termId) } : {}),
+    studentId: payload.studentId,
+    enrollmentId: payload.enrollmentId,
+    amount: payload.amount,
+    reason: payload.reason,
+    ...(optionalText(payload.reasonAr) ? { reasonAr: optionalText(payload.reasonAr) } : {}),
+    ...(optionalText(payload.sourceId) ? { sourceId: optionalText(payload.sourceId) } : {}),
+    ...(optionalText(payload.dedupeKey)
+      ? { dedupeKey: optionalText(payload.dedupeKey) }
+      : {}),
+  };
+}
+
 export async function listXpPolicies(
   params?: ListXpPoliciesParams,
 ): Promise<ListXpPoliciesResponse> {
@@ -46,7 +110,10 @@ export async function getEffectiveXpPolicy(
 export async function createXpPolicy(
   payload: CreateXpPolicyPayload,
 ): Promise<XpPolicy> {
-  const response = await apiPost<unknown>(XP_POLICIES_ENDPOINT, payload);
+  const response = await apiPost<unknown>(
+    XP_POLICIES_ENDPOINT,
+    serializeCreateXpPolicyPayload(payload),
+  );
   return unwrapReinforcementItemResponse<XpPolicy>(response);
 }
 
@@ -64,7 +131,10 @@ export async function patchXpPolicy(
 export async function grantManualXp(
   payload: ManualXpGrantPayload,
 ): Promise<ManualXpGrantResponse> {
-  const response = await apiPost<unknown>(MANUAL_GRANTS_ENDPOINT, payload);
+  const response = await apiPost<unknown>(
+    MANUAL_GRANTS_ENDPOINT,
+    serializeManualXpGrantPayload(payload),
+  );
   return unwrapReinforcementItemResponse<ManualXpGrantResponse>(response);
 }
 

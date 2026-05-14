@@ -1,8 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, RefreshCw, ShieldAlert } from "lucide-react";
+import {
+  AlertCircle,
+  Award,
+  BarChart3,
+  CheckCircle2,
+  Clock,
+  Coins,
+  ListChecks,
+  RefreshCw,
+  ShieldAlert,
+  Sparkles,
+  Users,
+  XCircle,
+} from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import { BarChart } from "@mui/x-charts/BarChart";
+import { PieChart } from "@mui/x-charts/PieChart";
 import Button from "@/components/ui/button/Button";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAuth } from "@/hooks/use-auth";
@@ -11,44 +26,38 @@ import ReinforcementAcademicContextFilter, {
   type ReinforcementAcademicContextSelection,
   type ReinforcementAcademicContextValue,
 } from "../components/ReinforcementAcademicContextFilter";
-import ReinforcementMetricCards from "../components/ReinforcementMetricCards";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
 import { getReinforcementOverview } from "../services/reinforcementOverviewService";
-import type { ReinforcementOverviewResponse } from "../types";
+import type {
+  OverviewRecentActivity,
+  OverviewTopStudent,
+  ReinforcementOverviewResponse,
+} from "../types";
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+/* ---------- small reusable pieces ---------- */
 
-const displayLabel = (key: string): string =>
-  key
-    .replace(/[_-]+/g, " ")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+const PIE_COLORS = [
+  "#036b80",
+  "#0ea5e9",
+  "#14b8a6",
+  "#f59e0b",
+  "#22c55e",
+  "#ef4444",
+  "#94a3b8",
+];
 
-const displayValue = (value: unknown): string => {
-  if (typeof value === "number") return new Intl.NumberFormat().format(value);
-  if (typeof value === "string") return value;
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (Array.isArray(value)) return String(value.length);
-  return "-";
+const STATUS_COLORS: Record<string, string> = {
+  not_completed: "#f59e0b",
+  in_progress: "#0ea5e9",
+  under_review: "#8b5cf6",
+  completed: "#22c55e",
+  cancelled: "#ef4444",
 };
 
-const localizedTitle = (item: unknown, locale: string): string => {
-  if (!isRecord(item)) return "";
-  const keys =
-    locale === "ar"
-      ? ["titleAr", "nameAr", "labelAr", "descriptionAr", "title", "name", "id"]
-      : ["titleEn", "nameEn", "labelEn", "descriptionEn", "title", "name", "id"];
-  for (const key of keys) {
-    const value = item[key];
-    if (typeof value === "string" && value.trim() !== "") return value;
-  }
-  return "";
-};
+
 
 function AccessNotice() {
   const t = useTranslations("reinforcement.common");
-
   return (
     <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
       <div className="flex items-start gap-3">
@@ -74,7 +83,6 @@ function ErrorState({
   onRetry: () => void;
 }) {
   const t = useTranslations("reinforcement.actions");
-
   return (
     <div className="rounded-lg border border-red-100 bg-red-50 p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -90,127 +98,185 @@ function ErrorState({
   );
 }
 
-function GenericListSection({
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-gray-200 bg-white px-6 py-10 text-center">
+      <BarChart3 className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+      <p className="text-sm text-gray-500">{message}</p>
+    </div>
+  );
+}
+
+/* ---------- KPI stat card ---------- */
+
+interface StatCardProps {
+  label: string;
+  value: number | string;
+  icon: React.ReactNode;
+  color: string;
+  bg: string;
+}
+
+function StatCard({ label, value, icon, color, bg }: StatCardProps) {
+  return (
+    <article className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-gray-500">{label}</p>
+          <p className="mt-2 text-2xl font-bold text-gray-900">
+            {typeof value === "number"
+              ? new Intl.NumberFormat().format(value)
+              : value}
+          </p>
+        </div>
+        <div
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+          style={{ backgroundColor: bg, color }}
+        >
+          {icon}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/* ---------- section wrapper ---------- */
+
+function SectionCard({
   title,
-  items,
-  emptyMessage,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+      <div className="mb-4">
+        <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+        {subtitle ? (
+          <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/* ---------- mini stat inside a section ---------- */
+
+function MiniStat({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color: string;
+}) {
+  return (
+    <div className="rounded-lg bg-gray-50 px-3 py-3">
+      <div className="text-xs font-medium uppercase text-gray-500">{label}</div>
+      <div className="mt-1 text-lg font-bold" style={{ color }}>
+        {new Intl.NumberFormat().format(value)}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- top students row ---------- */
+
+function TopStudentRow({
+  student,
+  rank,
   locale,
 }: {
-  title: string;
-  items?: unknown[];
-  emptyMessage: string;
+  student: OverviewTopStudent;
+  rank: number;
   locale: string;
 }) {
-  const visibleItems = Array.isArray(items) ? items.slice(0, 8) : [];
+  const name =
+    locale === "ar" && student.student.nameAr
+      ? student.student.nameAr
+      : student.student.name;
 
   return (
-    <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
-      <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-      <div className="mt-4 space-y-3">
-        {visibleItems.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-200 px-4 py-5 text-sm text-gray-500">
-            {emptyMessage}
-          </div>
-        ) : (
-          visibleItems.map((item, index) => {
-            const record = isRecord(item) ? item : {};
-            const titleText = localizedTitle(item, locale) || `${title} ${index + 1}`;
-            const subtitle =
-              localizedTitle(record.description || record.summary, locale) ||
-              (typeof record.type === "string" ? displayLabel(record.type) : "");
-            const timestamp =
-              typeof record.createdAt === "string"
-                ? record.createdAt
-                : typeof record.timestamp === "string"
-                  ? record.timestamp
-                  : undefined;
-
-            return (
-              <article
-                key={typeof record.id === "string" ? record.id : index}
-                className="rounded-lg border border-gray-100 px-3 py-3"
-              >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-gray-900">
-                      {titleText}
-                    </div>
-                    {subtitle ? (
-                      <div className="mt-1 text-sm text-gray-500">{subtitle}</div>
-                    ) : null}
-                  </div>
-                  {timestamp ? (
-                    <time className="text-xs text-gray-500">
-                      {new Intl.DateTimeFormat(locale, {
-                        dateStyle: "medium",
-                      }).format(new Date(timestamp))}
-                    </time>
-                  ) : null}
-                </div>
-              </article>
-            );
-          })
-        )}
+    <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-2.5">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+        {rank}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-gray-900">{name}</p>
+        <p className="text-xs text-gray-500">
+          {student.completedAssignments} completed ·{" "}
+          {student.completionRate}%
+        </p>
       </div>
-    </section>
+      <div className="flex items-center gap-1 text-sm font-bold text-amber-600">
+        <Sparkles className="h-3.5 w-3.5" />
+        {new Intl.NumberFormat().format(student.totalXp)} XP
+      </div>
+    </div>
   );
 }
 
-function RecordSummarySection({
-  title,
-  data,
-  emptyMessage,
+/* ---------- recent activity row ---------- */
+
+function ActivityRow({
+  activity,
+  locale,
 }: {
-  title: string;
-  data?: Record<string, unknown>;
-  emptyMessage: string;
+  activity: OverviewRecentActivity;
+  locale: string;
 }) {
-  const entries = isRecord(data) ? Object.entries(data).slice(0, 10) : [];
+  const t = useTranslations("reinforcement");
+  const name =
+    locale === "ar" && activity.student.nameAr
+      ? activity.student.nameAr
+      : activity.student.name;
+
+  const typeLabel =
+    t(`sourceType.${activity.sourceType}`, { defaultValue: activity.sourceType });
 
   return (
-    <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
-      <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-      {entries.length === 0 ? (
-        <div className="mt-4 rounded-lg border border-dashed border-gray-200 px-4 py-5 text-sm text-gray-500">
-          {emptyMessage}
-        </div>
-      ) : (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {entries.map(([key, value]) => (
-            <div key={key} className="rounded-lg bg-gray-50 px-3 py-3">
-              <div className="text-xs font-medium uppercase text-gray-500">
-                {displayLabel(key)}
-              </div>
-              <div className="mt-1 text-sm font-semibold text-gray-900">
-                {displayValue(value)}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
+    <div className="flex items-start gap-3 rounded-lg border border-gray-50 px-3 py-3 transition-colors hover:bg-gray-50">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-50 text-cyan-700">
+        <Coins className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-gray-900">{name}</p>
+        <p className="mt-0.5 text-xs text-gray-500">
+          {typeLabel} · {activity.reason}
+        </p>
+      </div>
+      <div className="shrink-0 text-end">
+        <span className="text-sm font-bold text-emerald-600">
+          +{activity.amount} XP
+        </span>
+        <p className="mt-0.5 text-xs text-gray-400">
+          {new Intl.DateTimeFormat(locale, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          }).format(new Date(activity.timestamp))}
+        </p>
+      </div>
+    </div>
   );
 }
 
-interface ReinforcementOverviewPageProps {
-  initialOverview?: unknown;
-}
+/* ---------- main page ---------- */
 
-export default function ReinforcementOverviewPage({
-  initialOverview = null,
-}: ReinforcementOverviewPageProps) {
+export default function ReinforcementOverviewPage() {
   const locale = useLocale();
   const t = useTranslations("reinforcement");
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
   const [context, setContext] = useState<ReinforcementAcademicContextValue>({});
-  const initialOverviewRecord = isRecord(initialOverview)
-    ? (initialOverview as ReinforcementOverviewResponse)
-    : null;
   const [overview, setOverview] = useState<ReinforcementOverviewResponse | null>(
-    initialOverviewRecord,
+    null,
   );
-  const [loading, setLoading] = useState(!initialOverviewRecord);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const canView = hasPermission("reinforcement.overview.view");
@@ -218,12 +284,10 @@ export default function ReinforcementOverviewPage({
   const params = useMemo(
     () => ({
       academicYearId: context.academicYearId,
-      yearId: context.academicYearId,
       termId: context.termId,
       classroomId: context.classroomId,
-      studentId: context.studentId,
     }),
-    [context.academicYearId, context.classroomId, context.studentId, context.termId],
+    [context.academicYearId, context.classroomId, context.termId],
   );
 
   const refreshOverview = useCallback(async () => {
@@ -247,39 +311,47 @@ export default function ReinforcementOverviewPage({
     void Promise.resolve().then(refreshOverview);
   }, [refreshOverview]);
 
-  const metrics = useMemo(() => {
-    if (!overview) return undefined;
-    if (isRecord(overview.metrics)) return overview.metrics;
-    if (isRecord(overview.kpis)) return overview.kpis;
-    return undefined;
-  }, [overview]);
+  /* chart data */
+  const statusChartData = useMemo(() => {
+    if (!overview) return [];
+    return overview.tasks.byStatus.map((item, i) => ({
+      id: item.status,
+      value: item.count,
+      label: t(`status.${item.status}`, { defaultValue: item.status }),
+      color: STATUS_COLORS[item.status] || PIE_COLORS[i % PIE_COLORS.length],
+    }));
+  }, [overview, t]);
 
-  const additionalSummary = useMemo(() => {
-    if (!overview) return undefined;
-    const hiddenKeys = new Set([
-      "metrics",
-      "kpis",
-      "recentActivity",
-      "tasksByStatus",
-      "tasksBySource",
-      "rewardsByType",
-    ]);
-    return Object.fromEntries(
-      Object.entries(overview).filter(
-        ([key, value]) =>
-          !hiddenKeys.has(key) &&
-          !Array.isArray(value) &&
-          value !== null &&
-          typeof value !== "object",
-      ),
-    );
+  const sourceChartData = useMemo(() => {
+    if (!overview) return [];
+    return overview.tasks.bySource.map((item, i) => ({
+      id: item.source,
+      value: item.count,
+      label: t(`source.${item.source}`, { defaultValue: item.source }),
+      color: PIE_COLORS[i % PIE_COLORS.length],
+    }));
+  }, [overview, t]);
+
+  const xpSourceChartData = useMemo(() => {
+    if (!overview) return [];
+    return overview.xp.bySourceType
+      .filter((item) => item.totalXp > 0 || item.count > 0)
+      .map((item) => ({
+        label: t(`sourceType.${item.sourceType}`, { defaultValue: item.sourceType }),
+        totalXp: item.totalXp,
+        count: item.count,
+      }));
   }, [overview]);
 
   if (authLoading) return <MainLoader />;
   if (!canView) return <AccessNotice />;
 
   return (
-    <div className="min-h-screen space-y-6 bg-gray-50" dir={locale === "ar" ? "rtl" : "ltr"}>
+    <div
+      className="min-h-screen space-y-6 bg-gray-50"
+      dir={locale === "ar" ? "rtl" : "ltr"}
+    >
+      {/* header */}
       <ReinforcementPageHeader
         title={t("overview.title")}
         description={t("overview.description")}
@@ -295,7 +367,8 @@ export default function ReinforcementOverviewPage({
         }
       />
 
-      <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
+      {/* filters */}
+      <section className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
         <div className="mb-4">
           <h2 className="text-base font-semibold text-gray-900">
             {t("overview.filtersTitle")}
@@ -321,58 +394,315 @@ export default function ReinforcementOverviewPage({
         />
       </section>
 
-      {error ? <ErrorState message={error} onRetry={refreshOverview} /> : null}
+      {/* error */}
+      {error ? (
+        <ErrorState message={error} onRetry={refreshOverview} />
+      ) : null}
 
+      {/* loading state */}
       {loading && !overview ? (
         <MainLoader />
+      ) : !overview ? (
+        <EmptyState message={t("emptyStates.overview")} />
       ) : (
         <>
-          <ReinforcementMetricCards
-            metrics={metrics}
-            labels={{
-              inProgress: t("kpi.inProgress"),
-              notCompleted: t("kpi.notCompleted"),
-              completedThisWeek: t("kpi.completedThisWeek"),
-              rewardedStudents: t("kpi.rewardedStudents"),
-              averageCompletionRate: t("kpi.averageCompletionRate"),
-              totalRewardsIssued: t("kpi.totalRewardsIssued"),
-            }}
-            emptyMessage={t("emptyStates.overview")}
-          />
+          {/* KPI cards */}
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <StatCard
+              label={t("charts.tasksByStatus", { defaultValue: "Total Tasks" })}
+              value={overview.tasks.total}
+              icon={<ListChecks className="h-5 w-5" />}
+              color="#036b80"
+              bg="#e0f2f5"
+            />
+            <StatCard
+              label={t("overview.activeAssignments")}
+              value={overview.assignments.total}
+              icon={<Users className="h-5 w-5" />}
+              color="#7c3aed"
+              bg="#ede9fe"
+            />
+            <StatCard
+              label={t("overview.completionRate")}
+              value={`${overview.assignments.completionRate}%`}
+              icon={<CheckCircle2 className="h-5 w-5" />}
+              color="#16a34a"
+              bg="#dcfce7"
+            />
+            <StatCard
+              label={t("xp.summary.totalXp")}
+              value={overview.xp.totalXp}
+              icon={<Sparkles className="h-5 w-5" />}
+              color="#d97706"
+              bg="#fef3c7"
+            />
+          </section>
 
-          <div className="grid gap-4 xl:grid-cols-[1.2fr,0.8fr]">
-            <GenericListSection
-              title={t("recentActivity")}
-              items={overview?.recentActivity}
-              emptyMessage={t("emptyStates.overview")}
-              locale={locale}
-            />
-            <RecordSummarySection
-              title={t("overview.summary")}
-              data={additionalSummary}
-              emptyMessage={t("emptyStates.overview")}
-            />
+          {/* tasks breakdown charts */}
+          <div className="grid gap-4 xl:grid-cols-2">
+            <SectionCard
+              title={t("charts.tasksByStatus")}
+              subtitle={t("charts.tasksByStatusSubtitle")}
+            >
+              {statusChartData.length > 0 ? (
+                <>
+                  <PieChart
+                    height={260}
+                    series={[
+                      {
+                        data: statusChartData,
+                        innerRadius: 45,
+                        outerRadius: 90,
+                      },
+                    ]}
+                  />
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {statusChartData.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          <span className="text-sm text-gray-700">
+                            {item.label}
+                          </span>
+                        </div>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {item.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="py-8 text-center text-sm text-gray-400">
+                  {t("emptyStates.overview")}
+                </p>
+              )}
+            </SectionCard>
+
+            <SectionCard
+              title={t("charts.tasksBySource")}
+              subtitle={t("charts.tasksBySourceSubtitle")}
+            >
+              {sourceChartData.length > 0 ? (
+                <>
+                  <BarChart
+                    dataset={
+                      sourceChartData as unknown as Array<
+                        Record<string, string | number>
+                      >
+                    }
+                    xAxis={[{ scaleType: "band", dataKey: "label" }]}
+                    series={[{ dataKey: "value", color: "#036b80" }]}
+                    height={260}
+                    margin={{ top: 16, right: 20, left: 32, bottom: 36 }}
+                  />
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {sourceChartData.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          <span className="text-sm text-gray-700">
+                            {item.label}
+                          </span>
+                        </div>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {item.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="py-8 text-center text-sm text-gray-400">
+                  {t("emptyStates.overview")}
+                </p>
+              )}
+            </SectionCard>
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-3">
-            <GenericListSection
-              title={t("charts.tasksByStatus")}
-              items={overview?.tasksByStatus}
-              emptyMessage={t("emptyStates.overview")}
-              locale={locale}
-            />
-            <GenericListSection
-              title={t("charts.tasksBySource")}
-              items={overview?.tasksBySource}
-              emptyMessage={t("emptyStates.overview")}
-              locale={locale}
-            />
-            <GenericListSection
-              title={t("charts.rewardsByType")}
-              items={overview?.rewardsByType}
-              emptyMessage={t("emptyStates.overview")}
-              locale={locale}
-            />
+          {/* assignments + review queue */}
+          <div className="grid gap-4 xl:grid-cols-2">
+            <SectionCard title={t("overview.assignmentsSummary")}>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <MiniStat
+                  label={t("kpi.notCompleted")}
+                  value={overview.assignments.notCompleted}
+                  color="#d97706"
+                />
+                <MiniStat
+                  label={t("kpi.inProgress")}
+                  value={overview.assignments.inProgress}
+                  color="#0ea5e9"
+                />
+                <MiniStat
+                  label={t("status.under_review")}
+                  value={overview.assignments.underReview}
+                  color="#8b5cf6"
+                />
+                <MiniStat
+                  label={t("status.completed")}
+                  value={overview.assignments.completed}
+                  color="#22c55e"
+                />
+                <MiniStat
+                  label={t("status.cancelled")}
+                  value={overview.assignments.cancelled}
+                  color="#ef4444"
+                />
+                <MiniStat
+                  label={t("overview.completionRate")}
+                  value={overview.assignments.completionRate}
+                  color="#036b80"
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard title={t("overview.reviewQueue")}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-3">
+                  <Clock className="h-5 w-5 text-amber-500" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">
+                      {t("overview.pendingReview")}
+                    </p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {overview.reviewQueue.pendingReview}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-3">
+                  <BarChart3 className="h-5 w-5 text-blue-500" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">
+                      {t("overview.submitted")}
+                    </p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {overview.reviewQueue.submitted}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-3">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">
+                      {t("overview.approved")}
+                    </p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {overview.reviewQueue.approved}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-3">
+                  <XCircle className="h-5 w-5 text-red-500" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">
+                      {t("overview.rejected")}
+                    </p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {overview.reviewQueue.rejected}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
+          </div>
+
+          {/* XP distribution */}
+          <SectionCard title={t("overview.xpDistribution")} subtitle={t("overview.xpEarnedBySource")}>
+            <div className="mb-4 grid gap-3 sm:grid-cols-3">
+              <MiniStat
+                label={t("xp.summary.totalXp")}
+                value={overview.xp.totalXp}
+                color="#d97706"
+              />
+              <MiniStat
+                label={t("overview.studentsWithXp")}
+                value={overview.xp.studentsWithXp}
+                color="#7c3aed"
+              />
+              <MiniStat
+                label={t("overview.averageXp")}
+                value={overview.xp.averageXp}
+                color="#036b80"
+              />
+            </div>
+            {xpSourceChartData.length > 0 ? (
+              <BarChart
+                dataset={
+                  xpSourceChartData as unknown as Array<
+                    Record<string, string | number>
+                  >
+                }
+                xAxis={[{ scaleType: "band", dataKey: "label" }]}
+                series={[
+                  { dataKey: "totalXp", label: "Total XP", color: "#0ea5e9" },
+                  { dataKey: "count", label: "Count", color: "#14b8a6" },
+                ]}
+                height={300}
+                margin={{ top: 16, right: 20, left: 40, bottom: 60 }}
+              />
+            ) : (
+              <p className="py-8 text-center text-sm text-gray-400">
+                {t("overview.noXpData")}
+              </p>
+            )}
+          </SectionCard>
+
+          {/* top students + recent activity */}
+          <div className="grid gap-4 xl:grid-cols-[1fr,1.2fr]">
+            <SectionCard title={t("charts.topStudents")}>
+              {overview.topStudents.length > 0 ? (
+                <div className="space-y-2">
+                  {overview.topStudents.map((student, index) => (
+                    <TopStudentRow
+                      key={student.studentId}
+                      student={student}
+                      rank={index + 1}
+                      locale={locale}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 py-8 text-gray-400">
+                  <Award className="h-8 w-8" />
+                  <p className="text-sm">{t("emptyStates.overview")}</p>
+                </div>
+              )}
+            </SectionCard>
+
+            <SectionCard
+              title={t("recentActivity")}
+              subtitle={t("recentActivitySubtitle")}
+            >
+              {overview.recentActivity.length > 0 ? (
+                <div className="space-y-2">
+                  {overview.recentActivity.map((activity) => (
+                    <ActivityRow
+                      key={activity.id}
+                      activity={activity}
+                      locale={locale}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 py-8 text-gray-400">
+                  <Clock className="h-8 w-8" />
+                  <p className="text-sm">{t("emptyStates.overview")}</p>
+                </div>
+              )}
+            </SectionCard>
           </div>
         </>
       )}

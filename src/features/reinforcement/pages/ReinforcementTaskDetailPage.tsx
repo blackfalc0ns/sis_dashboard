@@ -27,7 +27,7 @@ interface ReinforcementTaskDetailPageProps {
 }
 
 const statusLabels: Record<string, { en: string; ar: string }> = {
-  cancel: { en: "Cancelled", ar: "ملغي" },
+  cancelled: { en: "Cancelled", ar: "ملغي" },
   completed: { en: "Completed", ar: "مكتمل" },
   in_progress: { en: "In progress", ar: "قيد التنفيذ" },
   not_completed: { en: "Not completed", ar: "غير مكتمل" },
@@ -118,7 +118,7 @@ export default function ReinforcementTaskDetailPage({
   };
 
   const handleCancel = async (payload: CancelReinforcementTaskPayload) => {
-    if (!task || task.status === "cancel") return;
+    if (!task || task.status === "cancelled") return;
     try {
       const nextTask = await cancelReinforcementTask(task.id, payload);
       setTask(nextTask);
@@ -140,7 +140,7 @@ export default function ReinforcementTaskDetailPage({
       ? task.titleAr || task.titleEn || task.id
       : task.titleEn || task.titleAr || task.id
     : t("tasks.detailTitle");
-  const isCancelled = task?.status === "cancel";
+  const isCancelled = task?.status === "cancelled";
 
   return (
     <div className="min-h-screen space-y-6 bg-gray-50" dir={locale === "ar" ? "rtl" : "ltr"}>

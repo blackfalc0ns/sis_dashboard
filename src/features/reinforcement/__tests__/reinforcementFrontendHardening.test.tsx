@@ -63,16 +63,17 @@ describe("Sprint 5A reinforcement frontend hardening", () => {
       nameEn: "Helper",
       nameAr: "Helper",
       source: "teacher",
-      rewardType: "xp",
-      rewardValue: "10",
-      rewardLabelAr: "نقاط",
+      reward: {
+        type: "xp",
+        value: "10",
+        labelAr: "نقاط",
+      },
     });
     expect(payload.stages).toEqual([
       {
         sortOrder: 1,
         titleEn: "مرحلة",
         titleAr: "مرحلة",
-        descriptionEn: undefined,
         descriptionAr: "وصف",
         proofType: "image",
         requiresApproval: true,
@@ -115,12 +116,17 @@ describe("Sprint 5A reinforcement frontend hardening", () => {
           },
         ],
       },
-      "teacher-1",
-      "Teacher One",
     );
 
-    expect(payload.yearId).toBe("year-1");
-    expect(payload.assignedById).toBe("teacher-1");
+    expect(payload).not.toHaveProperty("yearId");
+    expect(payload).not.toHaveProperty("assignedById");
+    expect(payload).not.toHaveProperty("assignedByName");
+    expect(payload).not.toHaveProperty("classroomId");
+    expect(payload).not.toHaveProperty("studentId");
+    expect(payload).not.toHaveProperty("stageId");
+    expect(payload).not.toHaveProperty("gradeId");
+    expect(payload).not.toHaveProperty("sectionId");
+    expect(payload).not.toHaveProperty("enrollmentId");
     expect(payload.targets).toEqual([
       { scopeType: "student", scopeId: "student-1" },
     ]);
@@ -186,7 +192,7 @@ describe("Sprint 5A reinforcement frontend hardening", () => {
       titleAr: "ملغاة",
       source: "teacher",
       rewardType: "xp",
-      status: "cancel",
+      status: "cancelled",
       targets: [],
       stages: [],
     };
@@ -211,7 +217,7 @@ describe("Sprint 5A reinforcement frontend hardening", () => {
       nameEn: "Helper",
       nameAr: "مساعد",
       source: "parent",
-      rewardType: "badge",
+      reward: { type: "badge" },
       stages: [],
     };
 

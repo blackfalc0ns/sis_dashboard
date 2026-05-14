@@ -32,10 +32,85 @@ function onRefreshed(token: string) {
   refreshSubscribers = [];
 }
 
+function getTokenExpiry(token: string): number | null {
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = typeof window !== 'undefined'
+      ? decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        )
+      : Buffer.from(base64, 'base64').toString('utf8');
+    const decoded = JSON.parse(jsonPayload);
+    return decoded.exp ? decoded.exp * 1000 : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function executeTokenRefresh(): Promise<string> {
+  if (isRefreshing) {
+    return new Promise<string>((resolve) => {
+      subscribeTokenRefresh((newToken: string) => {
+        resolve(newToken);
+      });
+    });
+  }
+
+  isRefreshing = true;
+  const refreshToken = tokenStorage.getRefreshToken();
+  
+  if (!refreshToken) {
+    isRefreshing = false;
+    tokenStorage.clearTokens();
+    throw new Error("No refresh token available");
+  }
+
+  try {
+    const response = await axios.post(`${BASE_URL}/auth/refresh`, {
+      refreshToken,
+    });
+
+    const { accessToken, refreshToken: newRefreshToken } = response.data;
+    tokenStorage.setAccessToken(accessToken);
+    tokenStorage.setRefreshToken(newRefreshToken);
+
+    isRefreshing = false;
+    onRefreshed(accessToken);
+    return accessToken;
+  } catch (refreshError) {
+    isRefreshing = false;
+    refreshSubscribers = [];
+    tokenStorage.clearTokens();
+    throw refreshError;
+  }
+}
+
 // Request interceptor: Attach access token
 apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = tokenStorage.getAccessToken();
+  async (config: InternalAxiosRequestConfig) => {
+    let token = tokenStorage.getAccessToken();
+
+    // Check if token expires within 15 seconds, refresh proactively
+    if (token && !config.url?.includes("/auth/refresh")) {
+      const expMs = getTokenExpiry(token);
+      if (expMs) {
+        const expiresInMs = expMs - Date.now();
+        if (expiresInMs < 15000) {
+          try {
+            token = await executeTokenRefresh();
+          } catch (e) {
+            // Let the request proceed, it will likely fail with 401 and handle redirect
+            token = null;
+          }
+        }
+      }
+    }
+
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -73,47 +148,13 @@ apiClient.interceptors.response.use(
         return Promise.reject(ApiError.fromAxiosError(error));
       }
 
-      if (isRefreshing) {
-        // Queue the request until refresh completes
-        try {
-          const token = await new Promise<string>((resolve) => {
-            subscribeTokenRefresh((newToken: string) => {
-              resolve(newToken);
-            });
-          });
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-          }
-          return apiClient(originalRequest);
-        } catch (err) {
-          return Promise.reject(err);
-        }
-      }
-
-      isRefreshing = true;
-
       try {
-        // We use axios directly here to avoid interceptors for the refresh call
-        const response = await axios.post(`${BASE_URL}/auth/refresh`, {
-          refreshToken,
-        });
-
-        const { accessToken, refreshToken: newRefreshToken } = response.data;
-        tokenStorage.setAccessToken(accessToken);
-        tokenStorage.setRefreshToken(newRefreshToken);
-
-        isRefreshing = false;
-        onRefreshed(accessToken);
-
+        const token = await executeTokenRefresh();
         if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          originalRequest.headers.Authorization = `Bearer ${token}`;
         }
         return apiClient(originalRequest);
       } catch (refreshError) {
-        isRefreshing = false;
-        refreshSubscribers = [];
-        tokenStorage.clearTokens();
-
         if (isAxiosError(refreshError)) {
           return Promise.reject(ApiError.fromAxiosError(refreshError));
         }

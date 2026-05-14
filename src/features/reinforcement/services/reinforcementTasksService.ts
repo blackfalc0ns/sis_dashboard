@@ -5,6 +5,8 @@ import type {
   DuplicateReinforcementTaskPayload,
   ListReinforcementTasksParams,
   ListReinforcementTasksResponse,
+  ReinforcementTargetPayload,
+  ReinforcementTargetScope,
   ReinforcementTask,
 } from "../types";
 import {
@@ -14,6 +16,113 @@ import {
 } from "./reinforcementApiUtils";
 
 const TASKS_ENDPOINT = "/reinforcement/tasks";
+const SUPPORTED_TARGET_SCOPES: ReinforcementTargetScope[] = [
+  "school",
+  "stage",
+  "grade",
+  "section",
+  "classroom",
+  "student",
+];
+
+const optionalText = (value?: string): string | undefined => {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+};
+
+const textFromUnknown = (value: unknown): string | undefined =>
+  typeof value === "string" ? optionalText(value) : undefined;
+
+const optionalRewardValue = (
+  value?: CreateReinforcementTaskPayload["rewardValue"],
+): CreateReinforcementTaskPayload["rewardValue"] | undefined => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+  return optionalText(value);
+};
+
+const normalizeTargetScope = (
+  scope: unknown,
+): ReinforcementTargetScope | undefined => {
+  const normalized = textFromUnknown(scope)?.toLowerCase();
+  return SUPPORTED_TARGET_SCOPES.find((item) => item === normalized);
+};
+
+const scopeIdForTarget = (
+  target: Partial<Record<string, unknown>>,
+  scopeType: ReinforcementTargetScope,
+): string | undefined => {
+  const scopedKey = `${scopeType}Id`;
+  return (
+    textFromUnknown(target.scopeId) ||
+    textFromUnknown(target[scopedKey]) ||
+    textFromUnknown(target.id) ||
+    textFromUnknown(target.value)
+  );
+};
+
+export function normalizeReinforcementTaskTargets(
+  targets: ReadonlyArray<unknown>,
+): ReinforcementTargetPayload[] {
+  return targets.reduce<ReinforcementTargetPayload[]>((normalized, target) => {
+    if (!target || typeof target !== "object") return normalized;
+
+    const record = target as Partial<Record<string, unknown>>;
+    const scopeType = normalizeTargetScope(record.scopeType || record.scope);
+    if (!scopeType) return normalized;
+
+    const scopeId = scopeIdForTarget(record, scopeType);
+    if (!scopeId) return normalized;
+
+    normalized.push({ scopeType, scopeId });
+    return normalized;
+  }, []);
+}
+
+export function serializeCreateReinforcementTaskPayload(
+  payload: CreateReinforcementTaskPayload,
+): CreateReinforcementTaskPayload {
+  const academicYearId = optionalText(payload.academicYearId);
+  const termId = optionalText(payload.termId);
+  const subjectId = optionalText(payload.subjectId);
+  const descriptionEn = optionalText(payload.descriptionEn);
+  const descriptionAr = optionalText(payload.descriptionAr);
+  const rewardValue = optionalRewardValue(payload.rewardValue);
+  const rewardLabelEn = optionalText(payload.rewardLabelEn);
+  const rewardLabelAr = optionalText(payload.rewardLabelAr);
+
+  return {
+    ...(academicYearId ? { academicYearId } : {}),
+    ...(termId ? { termId } : {}),
+    ...(subjectId ? { subjectId } : {}),
+    titleEn: payload.titleEn,
+    titleAr: payload.titleAr,
+    ...(descriptionEn ? { descriptionEn } : {}),
+    ...(descriptionAr ? { descriptionAr } : {}),
+    source: payload.source,
+    rewardType: payload.rewardType,
+    ...(rewardValue !== undefined ? { rewardValue } : {}),
+    ...(rewardLabelEn ? { rewardLabelEn } : {}),
+    ...(rewardLabelAr ? { rewardLabelAr } : {}),
+    dueDate: payload.dueDate,
+    targets: normalizeReinforcementTaskTargets(payload.targets),
+    stages: payload.stages.map((stage) => {
+      const stageDescriptionEn = optionalText(stage.descriptionEn);
+      const stageDescriptionAr = optionalText(stage.descriptionAr);
+
+      return {
+        sortOrder: stage.sortOrder,
+        titleEn: stage.titleEn,
+        titleAr: stage.titleAr,
+        ...(stageDescriptionEn ? { descriptionEn: stageDescriptionEn } : {}),
+        ...(stageDescriptionAr ? { descriptionAr: stageDescriptionAr } : {}),
+        proofType: stage.proofType,
+        ...(typeof stage.requiresApproval === "boolean"
+          ? { requiresApproval: stage.requiresApproval }
+          : {}),
+      };
+    }),
+  };
+}
 
 export async function listReinforcementTasks(
   params?: ListReinforcementTasksParams,
@@ -26,7 +135,10 @@ export async function listReinforcementTasks(
 export async function createReinforcementTask(
   payload: CreateReinforcementTaskPayload,
 ): Promise<ReinforcementTask> {
-  const response = await apiPost<unknown>(TASKS_ENDPOINT, payload);
+  const response = await apiPost<unknown>(
+    TASKS_ENDPOINT,
+    serializeCreateReinforcementTaskPayload(payload),
+  );
   return unwrapReinforcementItemResponse<ReinforcementTask>(response);
 }
 

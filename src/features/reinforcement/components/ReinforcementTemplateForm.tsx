@@ -75,25 +75,35 @@ export function buildReinforcementTemplatePayload(
   draft: TemplateDraft,
 ): CreateReinforcementTemplatePayload {
   const fallbackName = draft.nameEn.trim() || draft.nameAr.trim();
+  const descriptionEn = optionalString(draft.descriptionEn);
+  const descriptionAr = optionalString(draft.descriptionAr);
+  const rewardValue = optionalString(draft.rewardValue);
+  const rewardLabelEn = optionalString(draft.rewardLabelEn);
+  const rewardLabelAr = optionalString(draft.rewardLabelAr);
 
   return {
     nameEn: draft.nameEn.trim() || fallbackName,
     nameAr: draft.nameAr.trim() || fallbackName,
-    descriptionEn: optionalString(draft.descriptionEn),
-    descriptionAr: optionalString(draft.descriptionAr),
+    ...(descriptionEn ? { descriptionEn } : {}),
+    ...(descriptionAr ? { descriptionAr } : {}),
     source: draft.source,
-    rewardType: draft.rewardType,
-    rewardValue: optionalString(draft.rewardValue),
-    rewardLabelEn: optionalString(draft.rewardLabelEn),
-    rewardLabelAr: optionalString(draft.rewardLabelAr),
+    reward: {
+      type: draft.rewardType,
+      ...(rewardValue ? { value: rewardValue } : {}),
+      ...(rewardLabelEn ? { labelEn: rewardLabelEn } : {}),
+      ...(rewardLabelAr ? { labelAr: rewardLabelAr } : {}),
+    },
     stages: draft.stages.map<ReinforcementStagePayload>((stage, index) => {
       const fallbackTitle = stage.titleEn.trim() || stage.titleAr.trim();
+      const stageDescriptionEn = optionalString(stage.descriptionEn);
+      const stageDescriptionAr = optionalString(stage.descriptionAr);
+
       return {
         sortOrder: index + 1,
         titleEn: stage.titleEn.trim() || fallbackTitle,
         titleAr: stage.titleAr.trim() || fallbackTitle,
-        descriptionEn: optionalString(stage.descriptionEn),
-        descriptionAr: optionalString(stage.descriptionAr),
+        ...(stageDescriptionEn ? { descriptionEn: stageDescriptionEn } : {}),
+        ...(stageDescriptionAr ? { descriptionAr: stageDescriptionAr } : {}),
         proofType: stage.proofType,
         requiresApproval: stage.requiresApproval,
       };
