@@ -44,8 +44,8 @@ const initialDraft: CreateReinforcementTaskPayload = {
   rewardType: "moral",
   rewardValue: "",
   dueDate: undefined,
-  assignedById: "EMP-NEW",
-  assignedByName: "Reinforcement Team",
+  assignedById: undefined,
+  assignedByName: undefined,
 };
 
 export default function ReinforcementTaskModal({

@@ -16,7 +16,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import type { CSSProperties } from "react";
 import {
-  settingsNavigationPermissionByKey,
+  navigationPermissionByKey,
   usePermissions,
 } from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/use-auth";
@@ -52,12 +52,12 @@ export default function Sidebar({
     () =>
       menuItems
         .map((item) => {
-          if (item.key !== "settings" || !item.children) {
+          if (!item.children) {
             return item;
           }
 
           const nextChildren = item.children.filter((child) => {
-            const permission = settingsNavigationPermissionByKey[child.key];
+            const permission = navigationPermissionByKey[child.key];
             return permission ? hasPermission(permission) : true;
           });
 

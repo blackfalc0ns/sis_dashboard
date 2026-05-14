@@ -1,357 +1,264 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download } from "lucide-react";
+import { AlertCircle, Plus, RefreshCw, ShieldAlert } from "lucide-react";
+import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button/Button";
+import Select from "@/components/ui/input/Select";
+import { useToast } from "@/components/ui/toast/Toast";
+import MainLoader from "@/components/ui/loaders/MainLoader";
+import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/usePermissions";
+import ReinforcementAcademicContextFilter, {
+  type ReinforcementAcademicContextSelection,
+  type ReinforcementAcademicContextValue,
+} from "../components/ReinforcementAcademicContextFilter";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
-import ReinforcementTasksFilters from "../components/filters/ReinforcementTasksFilters";
-import ReinforcementTasksTable from "../components/tables/ReinforcementTasksTable";
-import ReinforcementTaskModal from "../components/modals/ReinforcementTaskModal";
+import ReinforcementTaskCancelModal from "../components/ReinforcementTaskCancelModal";
+import ReinforcementTaskDuplicateModal from "../components/ReinforcementTaskDuplicateModal";
+import ReinforcementTaskTable from "../components/ReinforcementTaskTable";
+import { getReinforcementFilterOptions } from "../services/reinforcementFilterOptionsService";
+import {
+  cancelReinforcementTask,
+  duplicateReinforcementTask,
+  listReinforcementTasks,
+} from "../services/reinforcementTasksService";
 import type {
-  ReinforcementAssignmentScope,
-  ReinforcementScopeOption,
+  CancelReinforcementTaskPayload,
+  DuplicateReinforcementTaskPayload,
   ReinforcementTask,
-  ReinforcementTaskFilters,
-} from "../types/reinforcement";
-import {
-  cancelTask,
-  createReinforcementTask,
-  duplicateTask,
-  getReinforcementFilterOptions,
-  getReinforcementTasks,
-} from "../services/reinforcementService";
-import {
-  buildReinforcementTasksQueryState,
-  parseReinforcementTasksQueryState,
-} from "../utils/reinforcementQueryState";
-import ReinforcementGlobalExportModal from "../shared/components/export/ReinforcementGlobalExportModal";
-import { useReinforcementAcademicContext } from "../hooks/useReinforcementAcademicContext";
-import {
-  exportReinforcementData,
-  formatReinforcementExportDate,
-  generateReinforcementExportFilename,
-  type ExportColumn,
-  type ExportMetadata,
-  type ReinforcementExportFormat,
-} from "../shared/utils/reinforcementExport";
+  ReinforcementTaskStatus,
+} from "../types";
+
+function AccessNotice() {
+  const t = useTranslations("reinforcement.common");
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
+      <div className="flex items-start gap-3">
+        <div className="rounded-full bg-amber-100 p-2 text-amber-700">
+          <ShieldAlert className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="text-base font-semibold text-amber-900">
+            {t("accessDenied")}
+          </h1>
+          <p className="mt-1 text-sm text-amber-800">{t("unauthorized")}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ReinforcementTasksPage() {
   const locale = useLocale();
-  const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const t = useTranslations("reinforcement");
-  const tExport = useTranslations("reinforcement.export");
-  const { selectedAcademicYear, selectedTerm } =
-    useReinforcementAcademicContext();
+  const { showSuccess, showError } = useToast();
+  const { isLoading: authLoading } = useAuth();
+  const { hasPermission } = usePermissions();
+  const [context, setContext] = useState<ReinforcementAcademicContextValue>({});
+  const [status, setStatus] = useState<ReinforcementTaskStatus | "">("");
+  const [includeCancelled, setIncludeCancelled] = useState(false);
   const [tasks, setTasks] = useState<ReinforcementTask[]>([]);
-  const filters = useMemo(
-    () =>
-      parseReinforcementTasksQueryState(
-        new URLSearchParams(searchParams.toString()),
-      ),
-    [searchParams],
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [duplicateTask, setDuplicateTask] = useState<ReinforcementTask | null>(
+    null,
   );
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [scopeTargets, setScopeTargets] = useState<
-    Record<ReinforcementAssignmentScope, ReinforcementScopeOption[]>
-  >({
-    school: [],
-    stage: [],
-    grade: [],
-    section: [],
-    classroom: [],
-    student: [],
-  });
+  const [cancelTask, setCancelTask] = useState<ReinforcementTask | null>(null);
 
-  const refreshTasks = useCallback(
-    () => getReinforcementTasks(filters).then(setTasks),
-    [filters],
-  );
+  const canView = hasPermission("reinforcement.tasks.view");
+  const canManage = hasPermission("reinforcement.tasks.manage");
 
-  useEffect(() => {
-    getReinforcementFilterOptions().then((options) => {
-      setScopeTargets(options.scopeTargets);
-    });
-  }, []);
-
-  useEffect(() => {
-    refreshTasks();
-  }, [refreshTasks]);
-
-  const replaceFilters = useCallback(
-    (next: ReinforcementTaskFilters) => {
-      const normalized =
-        next.assignmentScope && next.assignmentScope !== "all"
-          ? next
-          : { ...next, targetId: undefined };
-      const nextQuery = buildReinforcementTasksQueryState(
-        normalized,
-        new URLSearchParams(searchParams.toString()),
-      );
-      const currentQuery = searchParams.toString();
-      if (nextQuery === currentQuery) return;
-      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, router, searchParams],
-  );
-
-  const formatDate = useCallback(
-    (value?: string) => {
-      if (!value) return "";
-      return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
-        new Date(value),
-      );
-    },
-    [locale],
-  );
-
-  const formatDateTime = useCallback(
-    (value?: string) => {
-      if (!value) return "";
-      return new Intl.DateTimeFormat(locale, {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(new Date(value));
-    },
-    [locale],
-  );
-
-  const taskExportRows = useMemo(
-    () =>
-      tasks.map((task) => ({
-        id: task.id,
-        title: locale === "ar" ? task.titleAr : task.titleEn,
-        alternateTitle: locale === "ar" ? task.titleEn : task.titleAr,
-        assignmentScope: t(`assignmentScope.${task.primaryTargetType}`),
-        audience: locale === "ar" ? task.targetSummaryAr : task.targetSummaryEn,
-        audienceCount: task.audienceCount,
-        source: t(`source.${task.source}`),
-        status: t(`status.${task.status}`),
-        rewardType: t(`rewardType.${task.rewardType}`),
-        rewardValue: task.rewardValue,
-        dueDate: formatDate(task.dueDate),
-        assignedBy: task.assignedByName || "",
-        stageCount: task.stages.length,
-        completedStageCount: task.stages.filter((stage) => stage.isCompleted).length,
-        createdAt: formatDateTime(task.createdAt),
-        updatedAt: formatDateTime(task.updatedAt),
-      })),
-    [formatDate, formatDateTime, locale, t, tasks],
-  );
-
-  const taskExportColumns = useMemo<ExportColumn[]>(
-    () => [
-      { key: "id", label: locale === "ar" ? "رقم المهمة" : "Task ID" },
-      { key: "title", label: locale === "ar" ? "المهمة" : "Task" },
-      {
-        key: "alternateTitle",
-        label: locale === "ar" ? "العنوان باللغة الأخرى" : "Alternate title",
-      },
-      {
-        key: "assignmentScope",
-        label: locale === "ar" ? "مستوى التعيين" : "Assignment scope",
-      },
-      { key: "audience", label: t("table.audience") },
-      {
-        key: "audienceCount",
-        label: locale === "ar" ? "عدد الجمهور" : "Audience count",
-      },
-      { key: "source", label: t("table.source") },
-      { key: "status", label: t("table.status") },
-      { key: "rewardType", label: locale === "ar" ? "نوع المكافأة" : "Reward type" },
-      { key: "rewardValue", label: locale === "ar" ? "قيمة المكافأة" : "Reward value" },
-      { key: "dueDate", label: t("table.dueDate") },
-      { key: "assignedBy", label: locale === "ar" ? "تم الإسناد بواسطة" : "Assigned by" },
-      { key: "stageCount", label: locale === "ar" ? "عدد المراحل" : "Stage count" },
-      {
-        key: "completedStageCount",
-        label: locale === "ar" ? "المراحل المكتملة" : "Completed stages",
-      },
-      { key: "createdAt", label: locale === "ar" ? "تاريخ الإنشاء" : "Created at" },
-      { key: "updatedAt", label: locale === "ar" ? "آخر تحديث" : "Updated at" },
-    ],
-    [locale, t],
-  );
-
-  const taskJsonExportData = useMemo(
+  const params = useMemo(
     () => ({
-      title: "Reinforcement Tasks",
-      metadata: {
-        yearName: selectedAcademicYear?.name || null,
-        termName: selectedTerm?.name || null,
-        exportDate: formatReinforcementExportDate("en"),
-      },
-      filters: {
-        search: filters.search || null,
-        assignmentScope:
-          filters.assignmentScope && filters.assignmentScope !== "all"
-            ? filters.assignmentScope
-            : null,
-        targetId: filters.targetId || null,
-        source: filters.source && filters.source !== "all" ? filters.source : null,
-        status: filters.status && filters.status !== "all" ? filters.status : null,
-        rewardType:
-          filters.rewardType && filters.rewardType !== "all"
-            ? filters.rewardType
-            : null,
-        dueDate: filters.dueDate || null,
-      },
-      tasks: tasks.map((task) => ({
-        id: task.id,
-        titleEn: task.titleEn,
-        titleAr: task.titleAr,
-        descriptionEn: task.descriptionEn || null,
-        descriptionAr: task.descriptionAr || null,
-        primaryTargetType: task.primaryTargetType,
-        primaryTargetId: task.primaryTargetId,
-        targetSummaryEn: task.targetSummaryEn,
-        targetSummaryAr: task.targetSummaryAr,
-        audienceCount: task.audienceCount,
-        source: task.source,
-        status: task.status,
-        rewardType: task.rewardType,
-        rewardValue: task.rewardValue,
-        dueDate: task.dueDate || null,
-        assignedById: task.assignedById || null,
-        assignedByName: task.assignedByName || null,
-        createdAt: task.createdAt,
-        updatedAt: task.updatedAt,
-        targets: task.targets.map((target) => ({
-          scopeType: target.scopeType,
-          scopeId: target.scopeId,
-          nameEn: target.nameEn,
-          nameAr: target.nameAr,
-          audienceCount: target.audienceCount ?? null,
-          stageId: target.stageId || null,
-          stageNameEn: target.stageNameEn || null,
-          stageNameAr: target.stageNameAr || null,
-          gradeId: target.gradeId || null,
-          gradeNameEn: target.gradeNameEn || null,
-          gradeNameAr: target.gradeNameAr || null,
-          sectionId: target.sectionId || null,
-          sectionNameEn: target.sectionNameEn || null,
-          sectionNameAr: target.sectionNameAr || null,
-          classroomId: target.classroomId || null,
-          classroomNameEn: target.classroomNameEn || null,
-          classroomNameAr: target.classroomNameAr || null,
-        })),
-        stages: task.stages.map((stage) => ({
-          id: stage.id,
-          titleEn: stage.titleEn,
-          titleAr: stage.titleAr,
-          descriptionEn: stage.descriptionEn || null,
-          descriptionAr: stage.descriptionAr || null,
-          proofType: stage.proofType,
-          isCompleted: stage.isCompleted,
-          isApproved: stage.isApproved,
-          submittedAt: stage.submittedAt || null,
-          proofUrl: stage.proofUrl || null,
-        })),
-      })),
+      academicYearId: context.academicYearId,
+      yearId: context.academicYearId,
+      termId: context.termId,
+      subjectId: context.subjectId,
+      studentId: context.studentId,
+      classroomId: context.classroomId,
+      status: status || undefined,
+      // includeCancelled,
+      // limit: 50,
     }),
     [
-      filters.assignmentScope,
-      filters.dueDate,
-      filters.rewardType,
-      filters.search,
-      filters.source,
-      filters.status,
-      filters.targetId,
-      selectedAcademicYear?.name,
-      selectedTerm?.name,
-      tasks,
+      context.academicYearId,
+      context.classroomId,
+      context.studentId,
+      context.subjectId,
+      context.termId,
+      // includeCancelled,
+      status,
     ],
   );
 
-  const handleExport = async (format: ReinforcementExportFormat) => {
-    const metadata: ExportMetadata = {
-      yearName: selectedAcademicYear?.name || undefined,
-      termName: selectedTerm?.name || undefined,
-      viewName: t("tasks"),
-      exportDate: formatReinforcementExportDate(locale),
-    };
+  const refreshTasks = useCallback(async () => {
+    if (!canView) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await getReinforcementFilterOptions(params);
+      const response = await listReinforcementTasks(params);
+      setTasks(response.items);
+    } catch (nextError) {
+      const message =
+        nextError instanceof Error ? nextError.message : t("common.error");
+      setError(message);
+      setTasks([]);
+      showError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [canView, params, showError, t]);
 
-    exportReinforcementData({
-      title: t("tasks"),
-      metadata,
-      filename: generateReinforcementExportFilename(
-        "reinforcement-tasks",
-        selectedTerm?.id,
-      ),
-      format,
-      columns: taskExportColumns,
-      rows: taskExportRows,
-      jsonData: taskJsonExportData,
-      locale,
-      emptyMessage: tExport("errors.noData"),
-    });
+  useEffect(() => {
+    void Promise.resolve().then(refreshTasks);
+  }, [refreshTasks]);
+
+  const handleDuplicate = async (
+    payload: DuplicateReinforcementTaskPayload,
+  ) => {
+    if (!duplicateTask) return;
+    try {
+      await duplicateReinforcementTask(duplicateTask.id, payload);
+      showSuccess(t("tasks.messages.duplicated"));
+      setDuplicateTask(null);
+      await refreshTasks();
+    } catch (nextError) {
+      const message =
+        nextError instanceof Error ? nextError.message : t("common.error");
+      showError(message);
+      throw nextError;
+    }
   };
 
+  const handleCancel = async (payload: CancelReinforcementTaskPayload) => {
+    if (!cancelTask || cancelTask.status === "cancel") return;
+    try {
+      await cancelReinforcementTask(cancelTask.id, payload);
+      showSuccess(t("tasks.messages.cancelled"));
+      setCancelTask(null);
+      await refreshTasks();
+    } catch (nextError) {
+      const message =
+        nextError instanceof Error ? nextError.message : t("common.error");
+      showError(message);
+      throw nextError;
+    }
+  };
+
+  if (authLoading) return <MainLoader />;
+  if (!canView) return <AccessNotice />;
+
   return (
-    <div className="space-y-6 bg-gray-50 min-h-screen">
+    <div
+      className="min-h-screen space-y-6 bg-gray-50"
+      dir={locale === "ar" ? "rtl" : "ltr"}
+    >
       <ReinforcementPageHeader
-        title={t("tasks")}
-        description={t("tasksDescription")}
+        title={t("tasks.title")}
+        description={t("tasks.description")}
         actions={
-          <>
-            <Button onClick={() => setIsTaskModalOpen(true)}>
-              {t("actions.newTask")}
-            </Button>
+          <div className="flex flex-wrap gap-3">
             <Button
               variant="secondary"
-              leftIcon={<Download className="h-4 w-4" />}
-              onClick={() => setIsExportModalOpen(true)}
+              leftIcon={<RefreshCw className="h-4 w-4" />}
+              loading={loading}
+              onClick={refreshTasks}
             >
-              {tExport("button")}
+              {t("actions.refresh")}
             </Button>
-          </>
+            {canManage ? (
+              <Link href={`/${locale}/reinforcement/tasks/new`}>
+                <Button leftIcon={<Plus className="h-4 w-4" />}>
+                  {t("actions.newTask")}
+                </Button>
+              </Link>
+            ) : null}
+          </div>
         }
       />
 
-      <ReinforcementTasksFilters
-        filters={filters}
-        onChange={replaceFilters}
-        scopeTargets={scopeTargets}
-      />
+      <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">
+          {t("tasks.filters")}
+        </h2>
+        <div className="mt-4">
+          <ReinforcementAcademicContextFilter
+            value={context}
+            showSubject
+            showStudent
+            onChange={(selection: ReinforcementAcademicContextSelection) =>
+              setContext({
+                academicYearId: selection.academicYearId,
+                termId: selection.termId,
+                stageId: selection.stageId,
+                gradeId: selection.gradeId,
+                sectionId: selection.sectionId,
+                classroomId: selection.classroomId,
+                subjectId: selection.subjectId,
+                studentId: selection.studentId,
+                enrollmentId: selection.enrollmentId,
+              })
+            }
+          />
+        </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Select
+            label={t("tasks.table.status")}
+            value={status}
+            onChange={(value) =>
+              setStatus(value as ReinforcementTaskStatus | "")
+            }
+            options={[
+              { value: "", label: t("filters.allStatuses") },
+              { value: "not_completed", label: t("status.not_completed") },
+              { value: "in_progress", label: t("status.in_progress") },
+              { value: "completed", label: t("status.completed") },
+              { value: "cancel", label: t("status.cancel") },
+            ]}
+          />
+          <label className="flex min-h-[70px] items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={includeCancelled}
+              onChange={(event) => setIncludeCancelled(event.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <span>{t("tasks.includeCancelled")}</span>
+          </label>
+        </div>
+      </section>
 
-      <ReinforcementTasksTable
+      {error ? (
+        <div className="rounded-lg border border-red-100 bg-red-50 p-5">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 text-red-600" />
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        </div>
+      ) : null}
+
+      <ReinforcementTaskTable
         tasks={tasks}
-        searchQuery={filters.search}
-        onRowClick={(task) => router.push(`/${locale}/reinforcement/tasks/${task.id}`)}
-        onDuplicate={async (task) => {
-          await duplicateTask(task.id);
-          refreshTasks();
-        }}
-        onCancel={async (task) => {
-          await cancelTask(task.id);
-          refreshTasks();
-        }}
+        loading={loading}
+        canManage={canManage}
+        onDuplicate={setDuplicateTask}
+        onCancel={setCancelTask}
       />
 
-      <ReinforcementTaskModal
-        isOpen={isTaskModalOpen}
-        onClose={() => setIsTaskModalOpen(false)}
-        scopeTargets={scopeTargets}
-        onSave={async (payload) => {
-          await createReinforcementTask(payload);
-          await refreshTasks();
-        }}
+      <ReinforcementTaskDuplicateModal
+        task={duplicateTask}
+        isOpen={Boolean(duplicateTask)}
+        onClose={() => setDuplicateTask(null)}
+        onSubmit={handleDuplicate}
       />
-
-      <ReinforcementGlobalExportModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        onExport={handleExport}
-        title={tExport("title")}
-        subtitle={t("tasksDescription")}
-        datasetCount={tasks.length}
-        emptyStateMessage={tExport("errors.noData")}
+      <ReinforcementTaskCancelModal
+        task={cancelTask}
+        isOpen={Boolean(cancelTask)}
+        onClose={() => setCancelTask(null)}
+        onSubmit={handleCancel}
       />
     </div>
   );

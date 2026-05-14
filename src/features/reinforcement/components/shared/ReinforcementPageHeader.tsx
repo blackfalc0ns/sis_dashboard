@@ -47,7 +47,7 @@ export default function ReinforcementPageHeader({
                   : "bg-white text-gray-600 shadow-sm hover:text-primary"
               }`}
             >
-              {t(tab.key)}
+              {t(`nav.${tab.key}`)}
             </Link>
           );
         })}

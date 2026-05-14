@@ -1,4 +1,4 @@
-import ReinforcementTaskDetailsPage from "@/features/reinforcement/pages/ReinforcementTaskDetailsPage";
+import ReinforcementTaskDetailPage from "@/features/reinforcement/pages/ReinforcementTaskDetailPage";
 
 interface PageProps {
   params: Promise<{
@@ -11,7 +11,7 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <main className="flex-1 p-4 sm:p-6 min-w-0 overflow-x-hidden">
-      <ReinforcementTaskDetailsPage taskId={taskId} />
+      <ReinforcementTaskDetailPage taskId={taskId} />
     </main>
   );
 }

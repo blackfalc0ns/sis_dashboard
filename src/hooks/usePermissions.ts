@@ -37,7 +37,14 @@ export type PermissionKey =
   | "nedaa.settings.view"
   | "nedaa.settings.manage"
   | "academics.structure.view"
-  | "academics.structure.manage";
+  | "academics.structure.manage"
+  | "reinforcement.overview.view"
+  | "reinforcement.templates.view"
+  | "reinforcement.templates.manage"
+  | "reinforcement.tasks.view"
+  | "reinforcement.tasks.manage"
+  | "reinforcement.xp.view"
+  | "reinforcement.xp.manage";
 
 const legacyAdminPermissions: PermissionKey[] = [
   "attendance.rollcall.submit",
@@ -76,6 +83,21 @@ export const settingsNavigationPermissionByKey: Partial<
   "settings-email-campaigns": "settings.security.view",
   "settings-security": "settings.security.view",
   "settings-backup": "settings.backup.view",
+};
+
+export const reinforcementNavigationPermissionByKey: Partial<
+  Record<string, PermissionKey>
+> = {
+  "reinforcement-overview": "reinforcement.overview.view",
+  "reinforcement-templates": "reinforcement.templates.view",
+  "reinforcement-tasks": "reinforcement.tasks.view",
+  "reinforcement-xp-policies": "reinforcement.xp.view",
+  "reinforcement-xp-ledger": "reinforcement.xp.view",
+};
+
+export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> = {
+  ...settingsNavigationPermissionByKey,
+  ...reinforcementNavigationPermissionByKey,
 };
 
 export function usePermissions() {
