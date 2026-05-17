@@ -333,8 +333,10 @@ export default function ConversationThread({
     invites: false,
     joinRequests: false,
   });
+  const shouldLoadParticipants =
+    loadedTabs.participants || loadedTabs.invites || loadedTabs.joinRequests;
   const participantsState = useConversationParticipants(conversationId, {
-    enabled: loadedTabs.participants,
+    enabled: shouldLoadParticipants,
   });
   const invitesState = useConversationInvites(conversationId, {
     enabled: loadedTabs.invites,
@@ -374,19 +376,27 @@ export default function ConversationThread({
       }),
     [conversationState.conversation, participantsState.participants, user?.id],
   );
-  const hasParticipantPermissionData = participantsState.participants.length > 0;
+  const isPermissionDataLoading =
+    (activeTab === "participants" ||
+      activeTab === "invites" ||
+      activeTab === "joinRequests") &&
+    participantsState.isLoading;
 
   const handleTabChange = useCallback((tab: ConversationDetailTab) => {
     setActiveTab(tab);
-    setLoadedTabs((current) =>
-      current[tab] ? current : { ...current, [tab]: true },
-    );
+    setLoadedTabs((current) => ({
+      ...current,
+      [tab]: true,
+      ...(tab === "invites" || tab === "joinRequests"
+        ? { participants: true }
+        : {}),
+    }));
   }, []);
 
   const refreshAll = useCallback(() => {
     void refreshConversation();
     void refreshMessages();
-    if (loadedTabs.participants) void refreshParticipants();
+    if (shouldLoadParticipants) void refreshParticipants();
     if (loadedTabs.invites) void refreshInvites();
     if (loadedTabs.joinRequests) void refreshJoinRequests();
     void refreshReactions();
@@ -394,7 +404,6 @@ export default function ConversationThread({
   }, [
     loadedTabs.invites,
     loadedTabs.joinRequests,
-    loadedTabs.participants,
     refreshAttachments,
     refreshConversation,
     refreshInvites,
@@ -402,6 +411,7 @@ export default function ConversationThread({
     refreshMessages,
     refreshParticipants,
     refreshReactions,
+    shouldLoadParticipants,
   ]);
 
   const runMutation = useCallback(
@@ -724,7 +734,7 @@ export default function ConversationThread({
           <ConversationInvitesPanel
             invites={invitesState.invites}
             total={invitesState.total}
-            isLoading={invitesState.isLoading}
+            isLoading={invitesState.isLoading || isPermissionDataLoading}
             isRefreshing={invitesState.isRefreshing}
             isMutating={invitesState.isMutating}
             error={invitesState.error}
@@ -777,7 +787,7 @@ export default function ConversationThread({
           <JoinRequestsPanel
             joinRequests={joinRequestsState.joinRequests}
             total={joinRequestsState.total}
-            isLoading={joinRequestsState.isLoading}
+            isLoading={joinRequestsState.isLoading || isPermissionDataLoading}
             isRefreshing={joinRequestsState.isRefreshing}
             isMutating={joinRequestsState.isMutating}
             error={joinRequestsState.error}
@@ -801,7 +811,7 @@ export default function ConversationThread({
               )
             }
             canCreateJoinRequest={
-              hasParticipantPermissionData && permissions.canCreateJoinRequest
+              !isPermissionDataLoading && permissions.canCreateJoinRequest
             }
             canReviewJoinRequests={permissions.canReviewJoinRequests}
             labels={{
