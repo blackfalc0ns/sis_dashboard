@@ -5,6 +5,7 @@ import { RefreshCw, UserRoundPlus } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
 import CommunicationLoadingState from "@/features/communication/components/layout/CommunicationLoadingState";
+import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
 import type {
   CreateConversationJoinRequestValues,
   ReviewConversationJoinRequestValues,
@@ -38,6 +39,9 @@ export interface JoinRequestsPanelLabels {
   approveDescription: string;
   rejectDescription: string;
   reason: string;
+  pending: string;
+  approved: string;
+  rejected: string;
 }
 
 export interface JoinRequestsPanelProps {
@@ -47,6 +51,8 @@ export interface JoinRequestsPanelProps {
   isRefreshing?: boolean;
   isMutating?: boolean;
   error?: string | null;
+  canCreateJoinRequest?: boolean;
+  canReviewJoinRequests?: boolean;
   labels: JoinRequestsPanelLabels;
   onRefresh: () => Promise<void> | void;
   onCreateJoinRequest: (
@@ -66,6 +72,22 @@ function requesterUserId(joinRequest: ConversationJoinRequest) {
   return joinRequest.userId || joinRequest.user?.userId || joinRequest.user?.id || "";
 }
 
+function localizedStatus(
+  status: ConversationJoinRequest["status"],
+  labels: JoinRequestsPanelLabels,
+) {
+  const map = {
+    pending: labels.pending,
+    approved: labels.approved,
+    rejected: labels.rejected,
+  };
+  return status ? map[status] ?? status : "-";
+}
+
+function isPendingJoinRequest(joinRequest: ConversationJoinRequest) {
+  return !joinRequest.status || joinRequest.status === "pending";
+}
+
 function formatDate(value?: string | null) {
   if (!value) return "";
   const date = new Date(value);
@@ -74,6 +96,8 @@ function formatDate(value?: string | null) {
 }
 
 export default function JoinRequestsPanel({
+  canCreateJoinRequest,
+  canReviewJoinRequests,
   error,
   isLoading,
   isMutating,
@@ -130,15 +154,17 @@ export default function JoinRequestsPanel({
           >
             {labels.refresh}
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            disabled={isMutating}
-            onClick={() => setCreateOpen(true)}
-            leftIcon={<UserRoundPlus className="h-3.5 w-3.5" aria-hidden="true" />}
-          >
-            {labels.createJoinRequest}
-          </Button>
+          {canCreateJoinRequest ? (
+            <Button
+              type="button"
+              size="sm"
+              disabled={isMutating}
+              onClick={() => setCreateOpen(true)}
+              leftIcon={<UserRoundPlus className="h-3.5 w-3.5" aria-hidden="true" />}
+            >
+              {labels.createJoinRequest}
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -153,6 +179,8 @@ export default function JoinRequestsPanel({
           {joinRequests.map((joinRequest) => {
             const userId = requesterUserId(joinRequest);
             const createdAt = formatDate(joinRequest.createdAt);
+            const canReviewRequest =
+              Boolean(canReviewJoinRequests) && isPendingJoinRequest(joinRequest);
 
             return (
               <div
@@ -166,9 +194,18 @@ export default function JoinRequestsPanel({
                   <span>
                     {labels.requestId}: {joinRequest.id}
                   </span>
-                  <span>
-                    {labels.status}: {joinRequest.status ?? "-"}
-                  </span>
+                  <div>
+                    <CommunicationStatusChip
+                      label={localizedStatus(joinRequest.status, labels)}
+                      tone={
+                        joinRequest.status === "approved"
+                          ? "success"
+                          : joinRequest.status === "rejected"
+                            ? "error"
+                            : "warning"
+                      }
+                    />
+                  </div>
                   {joinRequest.note ? (
                     <span>
                       {labels.note}: {joinRequest.note}
@@ -181,32 +218,34 @@ export default function JoinRequestsPanel({
                   ) : null}
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    disabled={isMutating}
-                    onClick={() => {
-                      setReviewMode("approve");
-                      setReviewingJoinRequest(joinRequest);
-                    }}
-                  >
-                    {labels.approve}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="danger"
-                    size="sm"
-                    disabled={isMutating}
-                    onClick={() => {
-                      setReviewMode("reject");
-                      setReviewingJoinRequest(joinRequest);
-                    }}
-                  >
-                    {labels.reject}
-                  </Button>
-                </div>
+                {canReviewRequest ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      disabled={isMutating}
+                      onClick={() => {
+                        setReviewMode("approve");
+                        setReviewingJoinRequest(joinRequest);
+                      }}
+                    >
+                      {labels.approve}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      disabled={isMutating}
+                      onClick={() => {
+                        setReviewMode("reject");
+                        setReviewingJoinRequest(joinRequest);
+                      }}
+                    >
+                      {labels.reject}
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             );
           })}

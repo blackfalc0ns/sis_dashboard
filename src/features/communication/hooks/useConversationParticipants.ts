@@ -10,6 +10,7 @@ import {
   removeParticipant,
   updateParticipant,
 } from "@/features/communication/api/communication.service";
+import { communicationErrorMessage } from "@/features/communication/utils/communication-errors";
 import { createCommunicationMetadata } from "@/features/communication/utils/communication-metadata";
 import type {
   CommunicationList,
@@ -33,6 +34,10 @@ export interface ParticipantFormValues {
 
 export interface ParticipantRoleChangeValues {
   targetRole?: ParticipantRole;
+}
+
+export interface UseConversationParticipantsOptions {
+  enabled?: boolean;
 }
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
@@ -96,7 +101,7 @@ function unwrapList<T>(response: unknown): CommunicationList<T> {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unable to load participants.";
+  return communicationErrorMessage(error, "Unable to load participants.");
 }
 
 function isoDateTime(value?: string): string | null | undefined {
@@ -157,7 +162,11 @@ function sortParticipants(participants: ConversationParticipant[]) {
   });
 }
 
-export function useConversationParticipants(conversationId: string) {
+export function useConversationParticipants(
+  conversationId: string,
+  options: UseConversationParticipantsOptions = {},
+) {
+  const enabled = options.enabled ?? true;
   const mountedRef = useRef(false);
   const [participants, setParticipants] = useState<ConversationParticipant[]>([]);
   const [total, setTotal] = useState(0);
@@ -167,6 +176,7 @@ export function useConversationParticipants(conversationId: string) {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (!enabled) return;
     setIsRefreshing(true);
     setError(null);
     try {
@@ -187,7 +197,7 @@ export function useConversationParticipants(conversationId: string) {
         setIsRefreshing(false);
       }
     }
-  }, [conversationId]);
+  }, [conversationId, enabled]);
 
   const mutate = useCallback(
     async (operation: () => Promise<unknown>) => {
@@ -273,12 +283,16 @@ export function useConversationParticipants(conversationId: string) {
 
   useEffect(() => {
     mountedRef.current = true;
-    setIsLoading(true);
-    void refresh();
+    if (enabled) {
+      setIsLoading(true);
+      void refresh();
+    } else {
+      setIsLoading(false);
+    }
     return () => {
       mountedRef.current = false;
     };
-  }, [refresh]);
+  }, [enabled, refresh]);
 
   return {
     participants,

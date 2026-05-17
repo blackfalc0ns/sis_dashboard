@@ -5,6 +5,7 @@ import { RefreshCw, UserMinus, UserPlus } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
 import CommunicationLoadingState from "@/features/communication/components/layout/CommunicationLoadingState";
+import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
 import type { CommunicationPresence } from "@/features/communication/hooks/usePresence";
 import type {
   ParticipantFormValues,
@@ -62,6 +63,8 @@ export interface ParticipantsPanelLabels {
   removed: string;
   muted: string;
   blocked: string;
+  online: string;
+  offline: string;
 }
 
 export interface ParticipantsPanelProps {
@@ -72,6 +75,9 @@ export interface ParticipantsPanelProps {
   isRefreshing?: boolean;
   isMutating?: boolean;
   error?: string | null;
+  canManageParticipants?: boolean;
+  canLeaveConversation?: boolean;
+  currentUserId?: string | null;
   labels: ParticipantsPanelLabels;
   onRefresh: () => Promise<void> | void;
   onAddParticipant: (values: ParticipantFormValues) => Promise<unknown>;
@@ -112,11 +118,44 @@ function formatDate(value?: string | null) {
   return date.toLocaleString();
 }
 
+function localizedRole(
+  role: ConversationParticipant["role"],
+  labels: ParticipantsPanelLabels,
+) {
+  const map = {
+    owner: labels.owner,
+    admin: labels.admin,
+    moderator: labels.moderator,
+    member: labels.member,
+    read_only: labels.readOnly,
+    system: labels.system,
+  };
+  return role ? map[role] ?? role : "-";
+}
+
+function localizedStatus(
+  status: ConversationParticipant["status"],
+  labels: ParticipantsPanelLabels,
+) {
+  const map = {
+    active: labels.active,
+    invited: labels.invited,
+    left: labels.left,
+    removed: labels.removed,
+    muted: labels.muted,
+    blocked: labels.blocked,
+  };
+  return status ? map[status] ?? status : "-";
+}
+
 export default function ParticipantsPanel({
   error,
   isLoading,
   isMutating,
   isRefreshing,
+  canLeaveConversation,
+  canManageParticipants,
+  currentUserId,
   labels,
   onAddParticipant,
   onDemoteParticipant,
@@ -191,20 +230,23 @@ export default function ParticipantsPanel({
             variant="secondary"
             size="sm"
             loading={isRefreshing}
+            disabled={isMutating}
             onClick={() => void onRefresh()}
             leftIcon={<RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />}
           >
             {labels.refresh}
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            disabled={isMutating}
-            onClick={() => setAddOpen(true)}
-            leftIcon={<UserPlus className="h-3.5 w-3.5" aria-hidden="true" />}
-          >
-            {labels.addParticipant}
-          </Button>
+          {canManageParticipants ? (
+            <Button
+              type="button"
+              size="sm"
+              disabled={isMutating}
+              onClick={() => setAddOpen(true)}
+              leftIcon={<UserPlus className="h-3.5 w-3.5" aria-hidden="true" />}
+            >
+              {labels.addParticipant}
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -220,6 +262,10 @@ export default function ParticipantsPanel({
             const userId = participantUserId(participant);
             const joinedAt = formatDate(participant.joinedAt);
             const mutedUntil = formatDate(participant.mutedUntil);
+            const presence = presenceByUserId[userId];
+            const isSelf = Boolean(currentUserId && userId === currentUserId);
+            const showAdminActions = Boolean(canManageParticipants && !isSelf);
+            const isOnline = presence?.isOnline || presence?.status === "online";
 
             return (
               <div
@@ -229,7 +275,7 @@ export default function ParticipantsPanel({
                 <div className="flex items-start gap-3">
                   <PresenceAvatar
                     name={participantName(participant)}
-                    presence={presenceByUserId[userId]}
+                    presence={presence}
                   />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-slate-900">
@@ -238,13 +284,28 @@ export default function ParticipantsPanel({
                     <p className="truncate text-xs text-slate-500">
                       {labels.userId}: {userId || participant.id}
                     </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                      <span className="rounded-full bg-white px-2 py-0.5">
+                        {labels.role}: {localizedRole(participant.role, labels)}
+                      </span>
+                      <CommunicationStatusChip
+                        label={localizedStatus(participant.status, labels)}
+                        tone={
+                          participant.status === "active"
+                            ? "success"
+                            : participant.status === "blocked" ||
+                                participant.status === "removed"
+                              ? "error"
+                              : "warning"
+                        }
+                      />
+                      {presence ? (
+                        <span className="rounded-full bg-white px-2 py-0.5">
+                          {isOnline ? labels.online : labels.offline}
+                        </span>
+                      ) : null}
+                    </div>
                     <div className="mt-2 grid gap-1 text-xs text-slate-600">
-                      <span>
-                        {labels.role}: {participant.role ?? "-"}
-                      </span>
-                      <span>
-                        {labels.status}: {participant.status ?? "-"}
-                      </span>
                       {joinedAt ? (
                         <span>
                           {labels.joinedAt}: {joinedAt}
@@ -259,53 +320,55 @@ export default function ParticipantsPanel({
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    disabled={isMutating}
-                    onClick={() => {
-                      setRoleDialogMode("edit");
-                      setSelectedParticipant(participant);
-                    }}
-                  >
-                    {labels.edit}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    disabled={isMutating}
-                    onClick={() => {
-                      setRoleDialogMode("promote");
-                      setSelectedParticipant(participant);
-                    }}
-                  >
-                    {labels.promote}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    disabled={isMutating}
-                    onClick={() => {
-                      setRoleDialogMode("demote");
-                      setSelectedParticipant(participant);
-                    }}
-                  >
-                    {labels.demote}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="danger"
-                    size="sm"
-                    disabled={isMutating}
-                    onClick={() => setRemovingParticipant(participant)}
-                  >
-                    {labels.remove}
-                  </Button>
-                </div>
+                {showAdminActions ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      disabled={isMutating}
+                      onClick={() => {
+                        setRoleDialogMode("edit");
+                        setSelectedParticipant(participant);
+                      }}
+                    >
+                      {labels.edit}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      disabled={isMutating}
+                      onClick={() => {
+                        setRoleDialogMode("promote");
+                        setSelectedParticipant(participant);
+                      }}
+                    >
+                      {labels.promote}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      disabled={isMutating}
+                      onClick={() => {
+                        setRoleDialogMode("demote");
+                        setSelectedParticipant(participant);
+                      }}
+                    >
+                      {labels.demote}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      disabled={isMutating}
+                      onClick={() => setRemovingParticipant(participant)}
+                    >
+                      {labels.remove}
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             );
           })}
@@ -316,16 +379,18 @@ export default function ParticipantsPanel({
         </p>
       )}
 
-      <Button
-        type="button"
-        variant="outline"
-        fullWidth
-        disabled={isMutating}
-        onClick={() => setLeaveOpen(true)}
-        leftIcon={<UserMinus className="h-4 w-4" aria-hidden="true" />}
-      >
-        {labels.leave}
-      </Button>
+      {canLeaveConversation ? (
+        <Button
+          type="button"
+          variant="outline"
+          fullWidth
+          disabled={isMutating}
+          onClick={() => setLeaveOpen(true)}
+          leftIcon={<UserMinus className="h-4 w-4" aria-hidden="true" />}
+        >
+          {labels.leave}
+        </Button>
+      ) : null}
 
       <AddParticipantDialog
         open={addOpen}

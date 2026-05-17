@@ -6,6 +6,7 @@ import { ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { Alert } from "@mui/material";
 import Button from "@/components/ui/button/Button";
+import { useToast } from "@/components/ui/toast/Toast";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
 import CommunicationLoadingState from "@/features/communication/components/layout/CommunicationLoadingState";
 import CommunicationPageHeader from "@/features/communication/components/layout/CommunicationPageHeader";
@@ -22,6 +23,8 @@ import { useMessageAttachments } from "@/features/communication/hooks/useMessage
 import { useMessageReactions } from "@/features/communication/hooks/useMessageReactions";
 import { usePresence } from "@/features/communication/hooks/usePresence";
 import { useTypingIndicator } from "@/features/communication/hooks/useTypingIndicator";
+import { communicationErrorMessage } from "@/features/communication/utils/communication-errors";
+import { getConversationPermissionFlags } from "@/features/communication/utils/conversation-permissions";
 import ConversationInvitesPanel from "./ConversationInvitesPanel";
 import JoinRequestsPanel from "./JoinRequestsPanel";
 import MessageBubble from "./MessageBubble";
@@ -146,6 +149,23 @@ const labels = {
     unread: "Unread",
     typing: "is typing",
     noMessages: "No messages yet. Start the conversation.",
+    mutationFailed: "Action failed. Please try again.",
+    participantAdded: "Participant added.",
+    participantUpdated: "Participant updated.",
+    participantRemoved: "Participant removed.",
+    conversationLeft: "Conversation left.",
+    inviteCreated: "Invite created.",
+    inviteAccepted: "Invite accepted.",
+    inviteRejected: "Invite rejected.",
+    joinRequestCreated: "Join request created.",
+    joinRequestApproved: "Join request approved.",
+    joinRequestRejected: "Join request rejected.",
+    online: "Online",
+    offline: "Offline",
+    accepted: "Accepted",
+    rejected: "Rejected",
+    expired: "Expired",
+    approved: "Approved",
   },
   ar: {
     back: "العودة إلى المحادثات",
@@ -257,6 +277,23 @@ const labels = {
     unread: "غير مقروء",
     typing: "يكتب الآن",
     noMessages: "لا توجد رسائل بعد. ابدأ المحادثة.",
+    mutationFailed: "تعذر تنفيذ الإجراء. حاول مرة أخرى.",
+    participantAdded: "تم إضافة المشارك.",
+    participantUpdated: "تم تحديث المشارك.",
+    participantRemoved: "تم إزالة المشارك.",
+    conversationLeft: "تمت مغادرة المحادثة.",
+    inviteCreated: "تم إنشاء الدعوة.",
+    inviteAccepted: "تم قبول الدعوة.",
+    inviteRejected: "تم رفض الدعوة.",
+    joinRequestCreated: "تم إنشاء طلب الانضمام.",
+    joinRequestApproved: "تم قبول طلب الانضمام.",
+    joinRequestRejected: "تم رفض طلب الانضمام.",
+    online: "متصل",
+    offline: "غير متصل",
+    accepted: "مقبولة",
+    rejected: "مرفوضة",
+    expired: "منتهية",
+    approved: "مقبول",
   },
 };
 
@@ -284,12 +321,27 @@ export default function ConversationThread({
   const locale = useLocale() as LocaleKey;
   const t = labels[locale] ?? labels.en;
   const { user } = useAuth();
+  const { showError, showSuccess } = useToast();
   const conversationState = useConversation(conversationId);
   const messagesState = useConversationMessages(conversationId);
-  const participantsState = useConversationParticipants(conversationId);
-  const invitesState = useConversationInvites(conversationId);
-  const joinRequestsState = useConversationJoinRequests(conversationId);
   const [activeTab, setActiveTab] = useState<ConversationDetailTab>("messages");
+  const [loadedTabs, setLoadedTabs] = useState<
+    Record<ConversationDetailTab, boolean>
+  >({
+    messages: true,
+    participants: false,
+    invites: false,
+    joinRequests: false,
+  });
+  const participantsState = useConversationParticipants(conversationId, {
+    enabled: loadedTabs.participants,
+  });
+  const invitesState = useConversationInvites(conversationId, {
+    enabled: loadedTabs.invites,
+  });
+  const joinRequestsState = useConversationJoinRequests(conversationId, {
+    enabled: loadedTabs.joinRequests,
+  });
   const presenceState = usePresence();
   const typingState = useTypingIndicator(conversationId);
   const { policy } = useCommunicationPolicy();
@@ -313,15 +365,36 @@ export default function ConversationThread({
   const refreshReactions = reactionsState.refreshAll;
   const refreshAttachments = attachmentsState.refreshAll;
 
+  const permissions = useMemo(
+    () =>
+      getConversationPermissionFlags({
+        currentUserId: user?.id,
+        participants: participantsState.participants,
+        conversation: conversationState.conversation,
+      }),
+    [conversationState.conversation, participantsState.participants, user?.id],
+  );
+  const hasParticipantPermissionData = participantsState.participants.length > 0;
+
+  const handleTabChange = useCallback((tab: ConversationDetailTab) => {
+    setActiveTab(tab);
+    setLoadedTabs((current) =>
+      current[tab] ? current : { ...current, [tab]: true },
+    );
+  }, []);
+
   const refreshAll = useCallback(() => {
     void refreshConversation();
     void refreshMessages();
-    void refreshParticipants();
-    void refreshInvites();
-    void refreshJoinRequests();
+    if (loadedTabs.participants) void refreshParticipants();
+    if (loadedTabs.invites) void refreshInvites();
+    if (loadedTabs.joinRequests) void refreshJoinRequests();
     void refreshReactions();
     void refreshAttachments();
   }, [
+    loadedTabs.invites,
+    loadedTabs.joinRequests,
+    loadedTabs.participants,
     refreshAttachments,
     refreshConversation,
     refreshInvites,
@@ -330,6 +403,20 @@ export default function ConversationThread({
     refreshParticipants,
     refreshReactions,
   ]);
+
+  const runMutation = useCallback(
+    async <T,>(operation: () => Promise<T>, successMessage: string) => {
+      try {
+        const result = await operation();
+        showSuccess(successMessage);
+        return result;
+      } catch (error) {
+        showError(communicationErrorMessage(error, t.mutationFailed));
+        throw error;
+      }
+    },
+    [showError, showSuccess, t.mutationFailed],
+  );
 
   useConversationRealtime({
     conversationId,
@@ -353,11 +440,8 @@ export default function ConversationThread({
   }, [messagesState, user?.id]);
 
   const isLoading =
-    conversationState.isLoading ||
-    messagesState.isLoading ||
-    participantsState.isLoading;
-  const firstError =
-    conversationState.error || messagesState.error || participantsState.error;
+    conversationState.isLoading || messagesState.isLoading;
+  const firstError = conversationState.error || messagesState.error;
   const title = conversationTitle(locale, conversationState.conversation, t.untitled);
   const backHref = `/${locale}/communication/conversations`;
   const isCommunicationEnabled = policy?.isEnabled !== false;
@@ -428,7 +512,7 @@ export default function ConversationThread({
           <button
             key={tab.value}
             type="button"
-            onClick={() => setActiveTab(tab.value)}
+            onClick={() => handleTabChange(tab.value)}
             className={`border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
               activeTab === tab.value
                 ? "border-sky-600 text-sky-700"
@@ -551,12 +635,42 @@ export default function ConversationThread({
             isMutating={participantsState.isMutating}
             error={participantsState.error}
             onRefresh={participantsState.refresh}
-            onAddParticipant={participantsState.add}
-            onUpdateParticipant={participantsState.update}
-            onRemoveParticipant={participantsState.remove}
-            onLeaveConversation={participantsState.leave}
-            onPromoteParticipant={participantsState.promote}
-            onDemoteParticipant={participantsState.demote}
+            onAddParticipant={(values) =>
+              runMutation(
+                () => participantsState.add(values),
+                t.participantAdded,
+              )
+            }
+            onUpdateParticipant={(participantId, values) =>
+              runMutation(
+                () => participantsState.update(participantId, values),
+                t.participantUpdated,
+              )
+            }
+            onRemoveParticipant={(participantId) =>
+              runMutation(
+                () => participantsState.remove(participantId),
+                t.participantRemoved,
+              )
+            }
+            onLeaveConversation={() =>
+              runMutation(() => participantsState.leave(), t.conversationLeft)
+            }
+            onPromoteParticipant={(participantId, values) =>
+              runMutation(
+                () => participantsState.promote(participantId, values),
+                t.participantUpdated,
+              )
+            }
+            onDemoteParticipant={(participantId, values) =>
+              runMutation(
+                () => participantsState.demote(participantId, values),
+                t.participantUpdated,
+              )
+            }
+            canManageParticipants={permissions.canManageParticipants}
+            canLeaveConversation={permissions.canLeaveConversation}
+            currentUserId={user?.id}
             labels={{
               title: t.participants,
               count: t.participantsCount,
@@ -600,6 +714,8 @@ export default function ConversationThread({
               removed: t.removed,
               muted: t.muted,
               blocked: t.blocked,
+              online: t.online,
+              offline: t.offline,
             }}
           />
         ) : null}
@@ -613,9 +729,20 @@ export default function ConversationThread({
             isMutating={invitesState.isMutating}
             error={invitesState.error}
             onRefresh={invitesState.refresh}
-            onCreateInvite={invitesState.create}
-            onAcceptInvite={invitesState.accept}
-            onRejectInvite={invitesState.reject}
+            onCreateInvite={(values) =>
+              runMutation(() => invitesState.create(values), t.inviteCreated)
+            }
+            onAcceptInvite={(inviteId) =>
+              runMutation(() => invitesState.accept(inviteId), t.inviteAccepted)
+            }
+            onRejectInvite={(inviteId, values) =>
+              runMutation(
+                () => invitesState.reject(inviteId, values),
+                t.inviteRejected,
+              )
+            }
+            canCreateInvite={permissions.canManageInvites}
+            currentUserId={user?.id}
             labels={{
               title: t.invites,
               count: t.invitesCount,
@@ -638,6 +765,10 @@ export default function ConversationThread({
               rejectDescription: t.rejectInviteDescription,
               reason: t.reason,
               userRequired: t.userRequired,
+              pending: t.pending,
+              accepted: t.accepted,
+              rejected: t.rejected,
+              expired: t.expired,
             }}
           />
         ) : null}
@@ -651,9 +782,28 @@ export default function ConversationThread({
             isMutating={joinRequestsState.isMutating}
             error={joinRequestsState.error}
             onRefresh={joinRequestsState.refresh}
-            onCreateJoinRequest={joinRequestsState.create}
-            onApproveJoinRequest={joinRequestsState.approve}
-            onRejectJoinRequest={joinRequestsState.reject}
+            onCreateJoinRequest={(values) =>
+              runMutation(
+                () => joinRequestsState.create(values),
+                t.joinRequestCreated,
+              )
+            }
+            onApproveJoinRequest={(requestId, values) =>
+              runMutation(
+                () => joinRequestsState.approve(requestId, values),
+                t.joinRequestApproved,
+              )
+            }
+            onRejectJoinRequest={(requestId, values) =>
+              runMutation(
+                () => joinRequestsState.reject(requestId, values),
+                t.joinRequestRejected,
+              )
+            }
+            canCreateJoinRequest={
+              hasParticipantPermissionData && permissions.canCreateJoinRequest
+            }
+            canReviewJoinRequests={permissions.canReviewJoinRequests}
             labels={{
               title: t.joinRequests,
               count: t.joinRequestsCount,
@@ -677,6 +827,9 @@ export default function ConversationThread({
               approveDescription: t.approveJoinRequestDescription,
               rejectDescription: t.rejectJoinRequestDescription,
               reason: t.reason,
+              pending: t.pending,
+              approved: t.approved,
+              rejected: t.rejected,
             }}
           />
         ) : null}

@@ -16,6 +16,7 @@ import type {
   CreateConversationInvitePayload,
   RejectConversationInvitePayload,
 } from "@/features/communication/types/conversation.types";
+import { communicationErrorMessage } from "@/features/communication/utils/communication-errors";
 import { createCommunicationMetadata } from "@/features/communication/utils/communication-metadata";
 
 export interface CreateConversationInviteValues {
@@ -25,6 +26,10 @@ export interface CreateConversationInviteValues {
 
 export interface RejectConversationInviteValues {
   reason?: string;
+}
+
+export interface UseConversationInvitesOptions {
+  enabled?: boolean;
 }
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
@@ -88,7 +93,7 @@ function unwrapList<T>(response: unknown): CommunicationList<T> {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unable to load invites.";
+  return communicationErrorMessage(error, "Unable to load invites.");
 }
 
 function isoDateTime(value?: string): string | null | undefined {
@@ -127,7 +132,11 @@ function sortInvites(invites: ConversationInvite[]) {
   });
 }
 
-export function useConversationInvites(conversationId: string) {
+export function useConversationInvites(
+  conversationId: string,
+  options: UseConversationInvitesOptions = {},
+) {
+  const enabled = options.enabled ?? true;
   const mountedRef = useRef(false);
   const [invites, setInvites] = useState<ConversationInvite[]>([]);
   const [total, setTotal] = useState(0);
@@ -137,6 +146,7 @@ export function useConversationInvites(conversationId: string) {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (!enabled) return;
     setIsRefreshing(true);
     setError(null);
     try {
@@ -157,7 +167,7 @@ export function useConversationInvites(conversationId: string) {
         setIsRefreshing(false);
       }
     }
-  }, [conversationId]);
+  }, [conversationId, enabled]);
 
   const mutate = useCallback(
     async (operation: () => Promise<unknown>) => {
@@ -211,12 +221,16 @@ export function useConversationInvites(conversationId: string) {
 
   useEffect(() => {
     mountedRef.current = true;
-    setIsLoading(true);
-    void refresh();
+    if (enabled) {
+      setIsLoading(true);
+      void refresh();
+    } else {
+      setIsLoading(false);
+    }
     return () => {
       mountedRef.current = false;
     };
-  }, [refresh]);
+  }, [enabled, refresh]);
 
   return {
     invites,

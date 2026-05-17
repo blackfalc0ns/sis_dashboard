@@ -5,6 +5,7 @@ import { MailPlus, RefreshCw } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
 import CommunicationLoadingState from "@/features/communication/components/layout/CommunicationLoadingState";
+import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
 import type {
   CreateConversationInviteValues,
   RejectConversationInviteValues,
@@ -35,6 +36,10 @@ export interface ConversationInvitesPanelLabels {
   rejectDescription: string;
   reason: string;
   userRequired: string;
+  pending: string;
+  accepted: string;
+  rejected: string;
+  expired: string;
 }
 
 export interface ConversationInvitesPanelProps {
@@ -44,6 +49,8 @@ export interface ConversationInvitesPanelProps {
   isRefreshing?: boolean;
   isMutating?: boolean;
   error?: string | null;
+  canCreateInvite?: boolean;
+  currentUserId?: string | null;
   labels: ConversationInvitesPanelLabels;
   onRefresh: () => Promise<void> | void;
   onCreateInvite: (values: CreateConversationInviteValues) => Promise<unknown>;
@@ -58,6 +65,31 @@ function inviteUserId(invite: ConversationInvite) {
   return invite.invitedUserId || invite.invitedUser?.userId || invite.invitedUser?.id || "";
 }
 
+function localizedStatus(
+  status: ConversationInvite["status"],
+  labels: ConversationInvitesPanelLabels,
+) {
+  const map = {
+    pending: labels.pending,
+    accepted: labels.accepted,
+    rejected: labels.rejected,
+    expired: labels.expired,
+  };
+  return status ? map[status] ?? status : "-";
+}
+
+function isPendingInvite(invite: ConversationInvite) {
+  return !invite.status || invite.status === "pending";
+}
+
+function canCurrentUserReviewInvite(
+  invite: ConversationInvite,
+  currentUserId?: string | null,
+) {
+  if (!currentUserId) return true;
+  return inviteUserId(invite) === currentUserId;
+}
+
 function formatDate(value?: string | null) {
   if (!value) return "";
   const date = new Date(value);
@@ -66,6 +98,8 @@ function formatDate(value?: string | null) {
 }
 
 export default function ConversationInvitesPanel({
+  canCreateInvite,
+  currentUserId,
   error,
   invites,
   isLoading,
@@ -111,15 +145,17 @@ export default function ConversationInvitesPanel({
           >
             {labels.refresh}
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            disabled={isMutating}
-            onClick={() => setCreateOpen(true)}
-            leftIcon={<MailPlus className="h-3.5 w-3.5" aria-hidden="true" />}
-          >
-            {labels.createInvite}
-          </Button>
+          {canCreateInvite ? (
+            <Button
+              type="button"
+              size="sm"
+              disabled={isMutating}
+              onClick={() => setCreateOpen(true)}
+              leftIcon={<MailPlus className="h-3.5 w-3.5" aria-hidden="true" />}
+            >
+              {labels.createInvite}
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -135,6 +171,9 @@ export default function ConversationInvitesPanel({
             const invitedUserId = inviteUserId(invite);
             const expiresAt = formatDate(invite.expiresAt);
             const createdAt = formatDate(invite.createdAt);
+            const canReviewInvite =
+              isPendingInvite(invite) &&
+              canCurrentUserReviewInvite(invite, currentUserId);
 
             return (
               <div
@@ -148,9 +187,19 @@ export default function ConversationInvitesPanel({
                   <span>
                     {labels.inviteId}: {invite.id}
                   </span>
-                  <span>
-                    {labels.status}: {invite.status ?? "-"}
-                  </span>
+                  <div>
+                    <CommunicationStatusChip
+                      label={localizedStatus(invite.status, labels)}
+                      tone={
+                        invite.status === "accepted"
+                          ? "success"
+                          : invite.status === "rejected" ||
+                              invite.status === "expired"
+                            ? "error"
+                            : "warning"
+                      }
+                    />
+                  </div>
                   {expiresAt ? (
                     <span>
                       {labels.expiresAt}: {expiresAt}
@@ -163,26 +212,28 @@ export default function ConversationInvitesPanel({
                   ) : null}
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    disabled={isMutating}
-                    onClick={() => void onAcceptInvite(invite.id)}
-                  >
-                    {labels.accept}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="danger"
-                    size="sm"
-                    disabled={isMutating}
-                    onClick={() => setRejectingInvite(invite)}
-                  >
-                    {labels.reject}
-                  </Button>
-                </div>
+                {canReviewInvite ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      disabled={isMutating}
+                      onClick={() => void onAcceptInvite(invite.id)}
+                    >
+                      {labels.accept}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      disabled={isMutating}
+                      onClick={() => setRejectingInvite(invite)}
+                    >
+                      {labels.reject}
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             );
           })}

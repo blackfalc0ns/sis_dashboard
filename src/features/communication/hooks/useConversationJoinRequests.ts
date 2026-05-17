@@ -16,6 +16,7 @@ import type {
   CreateJoinRequestPayload,
   ReviewJoinRequestPayload,
 } from "@/features/communication/types/conversation.types";
+import { communicationErrorMessage } from "@/features/communication/utils/communication-errors";
 import { createCommunicationMetadata } from "@/features/communication/utils/communication-metadata";
 
 export interface CreateConversationJoinRequestValues {
@@ -24,6 +25,10 @@ export interface CreateConversationJoinRequestValues {
 
 export interface ReviewConversationJoinRequestValues {
   reason?: string;
+}
+
+export interface UseConversationJoinRequestsOptions {
+  enabled?: boolean;
 }
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
@@ -87,9 +92,7 @@ function unwrapList<T>(response: unknown): CommunicationList<T> {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error
-    ? error.message
-    : "Unable to load join requests.";
+  return communicationErrorMessage(error, "Unable to load join requests.");
 }
 
 function createPayloadFromValues(
@@ -120,7 +123,11 @@ function sortJoinRequests(joinRequests: ConversationJoinRequest[]) {
   });
 }
 
-export function useConversationJoinRequests(conversationId: string) {
+export function useConversationJoinRequests(
+  conversationId: string,
+  options: UseConversationJoinRequestsOptions = {},
+) {
+  const enabled = options.enabled ?? true;
   const mountedRef = useRef(false);
   const [joinRequests, setJoinRequests] = useState<ConversationJoinRequest[]>([]);
   const [total, setTotal] = useState(0);
@@ -130,6 +137,7 @@ export function useConversationJoinRequests(conversationId: string) {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (!enabled) return;
     setIsRefreshing(true);
     setError(null);
     try {
@@ -150,7 +158,7 @@ export function useConversationJoinRequests(conversationId: string) {
         setIsRefreshing(false);
       }
     }
-  }, [conversationId]);
+  }, [conversationId, enabled]);
 
   const mutate = useCallback(
     async (operation: () => Promise<unknown>) => {
@@ -210,12 +218,16 @@ export function useConversationJoinRequests(conversationId: string) {
 
   useEffect(() => {
     mountedRef.current = true;
-    setIsLoading(true);
-    void refresh();
+    if (enabled) {
+      setIsLoading(true);
+      void refresh();
+    } else {
+      setIsLoading(false);
+    }
     return () => {
       mountedRef.current = false;
     };
-  }, [refresh]);
+  }, [enabled, refresh]);
 
   return {
     joinRequests,
