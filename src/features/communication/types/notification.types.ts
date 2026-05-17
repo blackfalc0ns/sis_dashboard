@@ -51,7 +51,10 @@ export interface CommunicationNotification extends CommunicationRecord {
   sourceId?: CommunicationId;
   entityType?: string;
   entityId?: CommunicationId;
+  recipientUserId?: CommunicationId;
   readAt?: CommunicationDateTime | null;
+  archivedAt?: CommunicationDateTime | null;
+  metadata?: CommunicationRecord | null;
   createdAt?: CommunicationDateTime;
   updatedAt?: CommunicationDateTime;
 }
@@ -82,6 +85,9 @@ export interface NotificationDelivery extends CommunicationRecord {
   sentAt?: CommunicationDateTime | null;
   deliveredAt?: CommunicationDateTime | null;
   readAt?: CommunicationDateTime | null;
+  failedAt?: CommunicationDateTime | null;
+  errorMessage?: string | null;
+  metadata?: CommunicationRecord | null;
   createdAt?: CommunicationDateTime;
   updatedAt?: CommunicationDateTime;
 }

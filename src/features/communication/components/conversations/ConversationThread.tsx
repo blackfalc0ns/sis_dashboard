@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale } from "next-intl";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
@@ -13,6 +13,8 @@ import CommunicationStatusChip from "@/features/communication/components/layout/
 import { useAuth } from "@/hooks/use-auth";
 import { useCommunicationPolicy } from "@/features/communication/hooks/useCommunicationPolicy";
 import { useConversation } from "@/features/communication/hooks/useConversation";
+import { useConversationInvites } from "@/features/communication/hooks/useConversationInvites";
+import { useConversationJoinRequests } from "@/features/communication/hooks/useConversationJoinRequests";
 import { useConversationMessages } from "@/features/communication/hooks/useConversationMessages";
 import { useConversationParticipants } from "@/features/communication/hooks/useConversationParticipants";
 import { useConversationRealtime } from "@/features/communication/hooks/useConversationRealtime";
@@ -20,6 +22,8 @@ import { useMessageAttachments } from "@/features/communication/hooks/useMessage
 import { useMessageReactions } from "@/features/communication/hooks/useMessageReactions";
 import { usePresence } from "@/features/communication/hooks/usePresence";
 import { useTypingIndicator } from "@/features/communication/hooks/useTypingIndicator";
+import ConversationInvitesPanel from "./ConversationInvitesPanel";
+import JoinRequestsPanel from "./JoinRequestsPanel";
 import MessageBubble from "./MessageBubble";
 import MessageComposer from "./MessageComposer";
 import MessageReadReceipts from "./MessageReadReceipts";
@@ -37,11 +41,81 @@ const labels = {
     refresh: "Refresh",
     errorTitle: "Unable to load thread",
     untitled: "Untitled conversation",
+    messages: "Messages",
     participants: "Participants",
+    invites: "Invites",
+    joinRequests: "Join Requests",
+    participantsCount: "{count} participants",
+    invitesCount: "{count} invites",
+    joinRequestsCount: "{count} join requests",
     addParticipant: "Add Participant",
+    createInvite: "Create invite",
+    createJoinRequest: "Create join request",
     userId: "User ID",
+    inviteId: "Invite ID",
+    requestId: "Request ID",
+    invitedUserId: "Invited user ID",
+    requesterUserId: "Requester user ID",
     role: "Role",
+    status: "Status",
+    note: "Note",
+    joinedAt: "Joined",
+    mutedUntil: "Muted until",
+    expiresAt: "Expires at",
+    createdAt: "Created at",
     noParticipants: "No participants loaded.",
+    noInvites: "No invites yet.",
+    noJoinRequests: "No join requests yet.",
+    participantsLoading: "Loading participants...",
+    invitesLoading: "Loading invites...",
+    joinRequestsLoading: "Loading join requests...",
+    participantsErrorTitle: "Unable to load participants",
+    invitesErrorTitle: "Unable to load invites",
+    joinRequestsErrorTitle: "Unable to load join requests",
+    editParticipant: "Edit",
+    promoteParticipant: "Promote",
+    demoteParticipant: "Demote",
+    removeParticipant: "Remove",
+    leaveConversation: "Leave conversation",
+    addParticipantTitle: "Add participant",
+    editParticipantTitle: "Edit participant",
+    promoteParticipantTitle: "Promote participant",
+    demoteParticipantTitle: "Demote participant",
+    removeParticipantTitle: "Remove participant",
+    removeParticipantDescription:
+      "This participant will be removed from the conversation.",
+    leaveConversationTitle: "Leave conversation",
+    leaveConversationDescription:
+      "You will leave this conversation and may need to be added again to rejoin.",
+    createInviteTitle: "Create invite",
+    rejectInviteTitle: "Reject invite",
+    rejectInviteDescription: "This invite will be rejected.",
+    createJoinRequestTitle: "Create join request",
+    approveJoinRequestTitle: "Approve join request",
+    rejectJoinRequestTitle: "Reject join request",
+    approveJoinRequestDescription: "This join request will be approved.",
+    rejectJoinRequestDescription: "This join request will be rejected.",
+    acceptInvite: "Accept",
+    rejectInvite: "Reject",
+    approveJoinRequest: "Approve",
+    rejectJoinRequest: "Reject",
+    create: "Create",
+    reason: "Reason",
+    targetRole: "Target role",
+    add: "Add",
+    userRequired: "Enter a user ID.",
+    owner: "Owner",
+    admin: "Admin",
+    moderator: "Moderator",
+    member: "Member",
+    readOnly: "Read only",
+    system: "System",
+    active: "Active",
+    invited: "Invited",
+    left: "Left",
+    removed: "Removed",
+    muted: "Muted",
+    blocked: "Blocked",
     communicationDisabled: "Communication is currently disabled by policy.",
     composerPlaceholder: "Write a message...",
     send: "Send",
@@ -79,11 +153,80 @@ const labels = {
     refresh: "تحديث",
     errorTitle: "تعذر تحميل المحادثة",
     untitled: "محادثة بدون عنوان",
+    messages: "الرسائل",
     participants: "المشاركون",
+    invites: "الدعوات",
+    joinRequests: "طلبات الانضمام",
+    participantsCount: "{count} مشارك",
+    invitesCount: "{count} دعوة",
+    joinRequestsCount: "{count} طلب انضمام",
     addParticipant: "إضافة مشارك",
+    createInvite: "إنشاء دعوة",
+    createJoinRequest: "إنشاء طلب انضمام",
     userId: "معرف المستخدم",
+    inviteId: "معرف الدعوة",
+    requestId: "معرف الطلب",
+    invitedUserId: "معرف المستخدم المدعو",
+    requesterUserId: "معرف المستخدم مقدم الطلب",
     role: "الدور",
+    status: "الحالة",
+    note: "ملاحظة",
+    joinedAt: "انضم في",
+    mutedUntil: "مكتوم حتى",
+    expiresAt: "تنتهي في",
+    createdAt: "تم الإنشاء في",
     noParticipants: "لم يتم تحميل مشاركين.",
+    noInvites: "لا توجد دعوات بعد.",
+    noJoinRequests: "لا توجد طلبات انضمام بعد.",
+    participantsLoading: "جار تحميل المشاركين...",
+    invitesLoading: "جار تحميل الدعوات...",
+    joinRequestsLoading: "جار تحميل طلبات الانضمام...",
+    participantsErrorTitle: "تعذر تحميل المشاركين",
+    invitesErrorTitle: "تعذر تحميل الدعوات",
+    joinRequestsErrorTitle: "تعذر تحميل طلبات الانضمام",
+    editParticipant: "تعديل",
+    promoteParticipant: "ترقية",
+    demoteParticipant: "خفض الدور",
+    removeParticipant: "إزالة",
+    leaveConversation: "مغادرة المحادثة",
+    addParticipantTitle: "إضافة مشارك",
+    editParticipantTitle: "تعديل المشارك",
+    promoteParticipantTitle: "ترقية المشارك",
+    demoteParticipantTitle: "خفض دور المشارك",
+    removeParticipantTitle: "إزالة المشارك",
+    removeParticipantDescription: "سيتم إزالة هذا المشارك من المحادثة.",
+    leaveConversationTitle: "مغادرة المحادثة",
+    leaveConversationDescription:
+      "ستغادر هذه المحادثة وقد تحتاج إلى إضافتك مرة أخرى للانضمام.",
+    createInviteTitle: "إنشاء دعوة",
+    rejectInviteTitle: "رفض الدعوة",
+    rejectInviteDescription: "سيتم رفض هذه الدعوة.",
+    createJoinRequestTitle: "إنشاء طلب انضمام",
+    approveJoinRequestTitle: "قبول طلب الانضمام",
+    rejectJoinRequestTitle: "رفض طلب الانضمام",
+    approveJoinRequestDescription: "سيتم قبول طلب الانضمام هذا.",
+    rejectJoinRequestDescription: "سيتم رفض طلب الانضمام هذا.",
+    acceptInvite: "قبول",
+    rejectInvite: "رفض",
+    approveJoinRequest: "قبول",
+    rejectJoinRequest: "رفض",
+    create: "إنشاء",
+    reason: "السبب",
+    targetRole: "الدور المستهدف",
+    add: "إضافة",
+    userRequired: "أدخل معرف المستخدم.",
+    owner: "مالك",
+    admin: "مسؤول",
+    moderator: "مشرف",
+    member: "عضو",
+    readOnly: "قراءة فقط",
+    system: "النظام",
+    active: "نشط",
+    invited: "مدعو",
+    left: "غادر",
+    removed: "مزال",
+    muted: "مكتوم",
+    blocked: "محظور",
     communicationDisabled: "التواصل معطل حاليا حسب السياسة.",
     composerPlaceholder: "اكتب رسالة...",
     send: "إرسال",
@@ -118,6 +261,11 @@ const labels = {
 };
 
 type LocaleKey = keyof typeof labels;
+type ConversationDetailTab =
+  | "messages"
+  | "participants"
+  | "invites"
+  | "joinRequests";
 
 function conversationTitle(
   locale: LocaleKey,
@@ -139,6 +287,9 @@ export default function ConversationThread({
   const conversationState = useConversation(conversationId);
   const messagesState = useConversationMessages(conversationId);
   const participantsState = useConversationParticipants(conversationId);
+  const invitesState = useConversationInvites(conversationId);
+  const joinRequestsState = useConversationJoinRequests(conversationId);
+  const [activeTab, setActiveTab] = useState<ConversationDetailTab>("messages");
   const presenceState = usePresence();
   const typingState = useTypingIndicator(conversationId);
   const { policy } = useCommunicationPolicy();
@@ -157,6 +308,8 @@ export default function ConversationThread({
   const refreshConversation = conversationState.refresh;
   const refreshMessages = messagesState.refresh;
   const refreshParticipants = participantsState.refresh;
+  const refreshInvites = invitesState.refresh;
+  const refreshJoinRequests = joinRequestsState.refresh;
   const refreshReactions = reactionsState.refreshAll;
   const refreshAttachments = attachmentsState.refreshAll;
 
@@ -164,11 +317,15 @@ export default function ConversationThread({
     void refreshConversation();
     void refreshMessages();
     void refreshParticipants();
+    void refreshInvites();
+    void refreshJoinRequests();
     void refreshReactions();
     void refreshAttachments();
   }, [
     refreshAttachments,
     refreshConversation,
+    refreshInvites,
+    refreshJoinRequests,
     refreshMessages,
     refreshParticipants,
     refreshReactions,
@@ -214,6 +371,12 @@ export default function ConversationThread({
     typeof policy?.maxMessageLength === "number" && policy.maxMessageLength > 0
       ? policy.maxMessageLength
       : undefined;
+  const detailTabs: Array<{ value: ConversationDetailTab; label: string }> = [
+    { value: "messages", label: t.messages },
+    { value: "participants", label: t.participants },
+    { value: "invites", label: t.invites },
+    { value: "joinRequests", label: t.joinRequests },
+  ];
 
   if (isLoading) {
     return <CommunicationLoadingState label={t.loading} />;
@@ -260,117 +423,263 @@ export default function ConversationThread({
         <CommunicationErrorState title={t.errorTitle} message={firstError} />
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="flex min-h-[640px] flex-col rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-            {messagesState.messages.length > 0 ? (
-              messagesState.messages.map((message) => {
-                const senderUserId = message.sender?.userId ?? message.sender?.id;
-                const isOwn =
-                  message.senderId === user?.id ||
-                  senderUserId === user?.id ||
-                  message.sender?.id === user?.id;
+      <div className="flex flex-wrap gap-2 border-b border-slate-200">
+        {detailTabs.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => setActiveTab(tab.value)}
+            className={`border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+              activeTab === tab.value
+                ? "border-sky-600 text-sky-700"
+                : "border-transparent text-slate-500 hover:text-slate-900"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-                return (
-                  <MessageBubble
-                    key={message.clientMessageId ?? message.id}
-                    message={message}
-                    isOwn={Boolean(isOwn)}
-                    labels={{
-                      edit: t.edit,
-                      delete: t.delete,
-                      save: t.save,
-                      cancel: t.cancel,
-                      deleted: t.deleted,
-                      pending: t.pending,
-                      failed: t.failed,
-                      edited: t.edited,
-                      like: t.like,
-                      love: t.love,
-                      laugh: t.laugh,
-                      wow: t.wow,
-                      sad: t.sad,
-                      angry: t.angry,
-                      thumbsUp: t.thumbsUp,
-                      thumbsDown: t.thumbsDown,
-                      removeReaction: t.removeReaction,
-                      attachFile: t.attachFile,
-                      fileTooLarge: t.fileTooLarge,
-                      uploadFailed: t.uploadFailed,
-                      download: t.download,
-                      removeAttachment: t.removeAttachment,
-                    }}
-                    currentUserId={user?.id}
-                    allowReactions={allowReactions}
-                    allowAttachments={allowAttachments}
-                    allowMessageEdit={allowMessageEdit}
-                    allowMessageDelete={allowMessageDelete}
-                    maxAttachmentSizeMb={policy?.maxAttachmentSizeMb}
-                    reactions={
-                      reactionsState.reactionsByMessageId[message.id] ?? []
-                    }
-                    attachments={
-                      attachmentsState.attachmentsByMessageId[message.id] ??
-                      message.attachments ??
-                      []
-                    }
-                    isUploadingAttachment={
-                      attachmentsState.uploadingMessageId === message.id
-                    }
-                    onEdit={messagesState.edit}
-                    onDelete={messagesState.remove}
-                    onAddReaction={reactionsState.addReaction}
-                    onRemoveReaction={reactionsState.removeMyReaction}
-                    onUploadAttachment={attachmentsState.attachFile}
-                    onDeleteAttachment={attachmentsState.removeAttachment}
-                  />
-                );
-              })
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                {t.noMessages}
-              </div>
-            )}
-          </div>
+      <div>
+        {activeTab === "messages" ? (
+          <section className="flex min-h-[640px] flex-col rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+              {messagesState.messages.length > 0 ? (
+                messagesState.messages.map((message) => {
+                  const senderUserId =
+                    message.sender?.userId ?? message.sender?.id;
+                  const isOwn =
+                    message.senderId === user?.id ||
+                    senderUserId === user?.id ||
+                    message.sender?.id === user?.id;
 
-          <div className="mt-4 space-y-3">
-            {!isCommunicationEnabled ? (
-              <Alert severity="warning">{t.communicationDisabled}</Alert>
-            ) : null}
-            <TypingIndicator users={typingState.typingUsers} label={t.typing} />
-            <MessageReadReceipts
-              readSummary={messagesState.readSummary}
-              labels={{ read: t.read, unread: t.unread }}
-            />
-            <MessageComposer
-              placeholder={t.composerPlaceholder}
-              sendLabel={t.send}
-              maxLength={maxMessageLength}
-              maxLengthLabel={t.maxMessageLength}
-              disabled={
-                !isCommunicationEnabled ||
-                conversationState.conversation?.status === "closed"
-              }
-              onTyping={typingState.emitTyping}
-              onStopTyping={typingState.stopOwnTyping}
-              onSend={messagesState.send}
-            />
-          </div>
-        </section>
+                  return (
+                    <MessageBubble
+                      key={message.clientMessageId ?? message.id}
+                      message={message}
+                      isOwn={Boolean(isOwn)}
+                      labels={{
+                        edit: t.edit,
+                        delete: t.delete,
+                        save: t.save,
+                        cancel: t.cancel,
+                        deleted: t.deleted,
+                        pending: t.pending,
+                        failed: t.failed,
+                        edited: t.edited,
+                        like: t.like,
+                        love: t.love,
+                        laugh: t.laugh,
+                        wow: t.wow,
+                        sad: t.sad,
+                        angry: t.angry,
+                        thumbsUp: t.thumbsUp,
+                        thumbsDown: t.thumbsDown,
+                        removeReaction: t.removeReaction,
+                        attachFile: t.attachFile,
+                        fileTooLarge: t.fileTooLarge,
+                        uploadFailed: t.uploadFailed,
+                        download: t.download,
+                        removeAttachment: t.removeAttachment,
+                      }}
+                      currentUserId={user?.id}
+                      allowReactions={allowReactions}
+                      allowAttachments={allowAttachments}
+                      allowMessageEdit={allowMessageEdit}
+                      allowMessageDelete={allowMessageDelete}
+                      maxAttachmentSizeMb={policy?.maxAttachmentSizeMb}
+                      reactions={
+                        reactionsState.reactionsByMessageId[message.id] ?? []
+                      }
+                      attachments={
+                        attachmentsState.attachmentsByMessageId[message.id] ??
+                        message.attachments ??
+                        []
+                      }
+                      isUploadingAttachment={
+                        attachmentsState.uploadingMessageId === message.id
+                      }
+                      onEdit={messagesState.edit}
+                      onDelete={messagesState.remove}
+                      onAddReaction={reactionsState.addReaction}
+                      onRemoveReaction={reactionsState.removeMyReaction}
+                      onUploadAttachment={attachmentsState.attachFile}
+                      onDeleteAttachment={attachmentsState.removeAttachment}
+                    />
+                  );
+                })
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                  {t.noMessages}
+                </div>
+              )}
+            </div>
 
-        <ParticipantsPanel
-          participants={participantsState.participants}
-          presenceByUserId={presenceState.presenceByUserId}
-          isMutating={participantsState.isMutating}
-          onAddParticipant={participantsState.add}
-          labels={{
-            title: t.participants,
-            addParticipant: t.addParticipant,
-            userId: t.userId,
-            role: t.role,
-            empty: t.noParticipants,
-          }}
-        />
+            <div className="mt-4 space-y-3">
+              {!isCommunicationEnabled ? (
+                <Alert severity="warning">{t.communicationDisabled}</Alert>
+              ) : null}
+              <TypingIndicator users={typingState.typingUsers} label={t.typing} />
+              <MessageReadReceipts
+                readSummary={messagesState.readSummary}
+                labels={{ read: t.read, unread: t.unread }}
+              />
+              <MessageComposer
+                placeholder={t.composerPlaceholder}
+                sendLabel={t.send}
+                maxLength={maxMessageLength}
+                maxLengthLabel={t.maxMessageLength}
+                disabled={
+                  !isCommunicationEnabled ||
+                  conversationState.conversation?.status === "closed"
+                }
+                onTyping={typingState.emitTyping}
+                onStopTyping={typingState.stopOwnTyping}
+                onSend={messagesState.send}
+              />
+            </div>
+          </section>
+        ) : null}
+
+        {activeTab === "participants" ? (
+          <ParticipantsPanel
+            participants={participantsState.participants}
+            total={participantsState.total}
+            presenceByUserId={presenceState.presenceByUserId}
+            isLoading={participantsState.isLoading}
+            isRefreshing={participantsState.isRefreshing}
+            isMutating={participantsState.isMutating}
+            error={participantsState.error}
+            onRefresh={participantsState.refresh}
+            onAddParticipant={participantsState.add}
+            onUpdateParticipant={participantsState.update}
+            onRemoveParticipant={participantsState.remove}
+            onLeaveConversation={participantsState.leave}
+            onPromoteParticipant={participantsState.promote}
+            onDemoteParticipant={participantsState.demote}
+            labels={{
+              title: t.participants,
+              count: t.participantsCount,
+              addParticipant: t.addParticipant,
+              refresh: t.refresh,
+              loading: t.participantsLoading,
+              errorTitle: t.participantsErrorTitle,
+              userId: t.userId,
+              role: t.role,
+              status: t.status,
+              joinedAt: t.joinedAt,
+              mutedUntil: t.mutedUntil,
+              empty: t.noParticipants,
+              edit: t.editParticipant,
+              promote: t.promoteParticipant,
+              demote: t.demoteParticipant,
+              remove: t.removeParticipant,
+              leave: t.leaveConversation,
+              cancel: t.cancel,
+              save: t.save,
+              add: t.add,
+              targetRole: t.targetRole,
+              addTitle: t.addParticipantTitle,
+              editTitle: t.editParticipantTitle,
+              promoteTitle: t.promoteParticipantTitle,
+              demoteTitle: t.demoteParticipantTitle,
+              removeTitle: t.removeParticipantTitle,
+              removeDescription: t.removeParticipantDescription,
+              leaveTitle: t.leaveConversationTitle,
+              leaveDescription: t.leaveConversationDescription,
+              userRequired: t.userRequired,
+              owner: t.owner,
+              admin: t.admin,
+              moderator: t.moderator,
+              member: t.member,
+              readOnly: t.readOnly,
+              system: t.system,
+              active: t.active,
+              invited: t.invited,
+              left: t.left,
+              removed: t.removed,
+              muted: t.muted,
+              blocked: t.blocked,
+            }}
+          />
+        ) : null}
+
+        {activeTab === "invites" ? (
+          <ConversationInvitesPanel
+            invites={invitesState.invites}
+            total={invitesState.total}
+            isLoading={invitesState.isLoading}
+            isRefreshing={invitesState.isRefreshing}
+            isMutating={invitesState.isMutating}
+            error={invitesState.error}
+            onRefresh={invitesState.refresh}
+            onCreateInvite={invitesState.create}
+            onAcceptInvite={invitesState.accept}
+            onRejectInvite={invitesState.reject}
+            labels={{
+              title: t.invites,
+              count: t.invitesCount,
+              createInvite: t.createInvite,
+              refresh: t.refresh,
+              loading: t.invitesLoading,
+              empty: t.noInvites,
+              errorTitle: t.invitesErrorTitle,
+              inviteId: t.inviteId,
+              invitedUserId: t.invitedUserId,
+              status: t.status,
+              expiresAt: t.expiresAt,
+              createdAt: t.createdAt,
+              accept: t.acceptInvite,
+              reject: t.rejectInvite,
+              cancel: t.cancel,
+              create: t.create,
+              createTitle: t.createInviteTitle,
+              rejectTitle: t.rejectInviteTitle,
+              rejectDescription: t.rejectInviteDescription,
+              reason: t.reason,
+              userRequired: t.userRequired,
+            }}
+          />
+        ) : null}
+
+        {activeTab === "joinRequests" ? (
+          <JoinRequestsPanel
+            joinRequests={joinRequestsState.joinRequests}
+            total={joinRequestsState.total}
+            isLoading={joinRequestsState.isLoading}
+            isRefreshing={joinRequestsState.isRefreshing}
+            isMutating={joinRequestsState.isMutating}
+            error={joinRequestsState.error}
+            onRefresh={joinRequestsState.refresh}
+            onCreateJoinRequest={joinRequestsState.create}
+            onApproveJoinRequest={joinRequestsState.approve}
+            onRejectJoinRequest={joinRequestsState.reject}
+            labels={{
+              title: t.joinRequests,
+              count: t.joinRequestsCount,
+              createJoinRequest: t.createJoinRequest,
+              refresh: t.refresh,
+              loading: t.joinRequestsLoading,
+              empty: t.noJoinRequests,
+              errorTitle: t.joinRequestsErrorTitle,
+              requestId: t.requestId,
+              requesterUserId: t.requesterUserId,
+              status: t.status,
+              note: t.note,
+              createdAt: t.createdAt,
+              approve: t.approveJoinRequest,
+              reject: t.rejectJoinRequest,
+              cancel: t.cancel,
+              create: t.create,
+              createTitle: t.createJoinRequestTitle,
+              approveTitle: t.approveJoinRequestTitle,
+              rejectTitle: t.rejectJoinRequestTitle,
+              approveDescription: t.approveJoinRequestDescription,
+              rejectDescription: t.rejectJoinRequestDescription,
+              reason: t.reason,
+            }}
+          />
+        ) : null}
       </div>
     </div>
   );

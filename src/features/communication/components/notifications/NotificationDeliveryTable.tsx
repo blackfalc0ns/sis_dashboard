@@ -1,5 +1,7 @@
 "use client";
 
+import { Eye } from "lucide-react";
+import Button from "@/components/ui/button/Button";
 import CommunicationEmptyState from "@/features/communication/components/layout/CommunicationEmptyState";
 import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
 import type { NotificationDelivery } from "@/features/communication/types/notification.types";
@@ -13,6 +15,7 @@ export interface NotificationDeliveryTableLabels {
   sentAt: string;
   deliveredAt: string;
   readAt: string;
+  viewDetails: string;
   emptyTitle: string;
   emptyDescription: string;
 }
@@ -20,6 +23,7 @@ export interface NotificationDeliveryTableLabels {
 export interface NotificationDeliveryTableProps {
   deliveries: NotificationDelivery[];
   labels: NotificationDeliveryTableLabels;
+  onViewDetails?: (deliveryId: string) => void;
 }
 
 function formatDate(value?: string | null) {
@@ -42,6 +46,7 @@ function statusTone(status?: string) {
 export default function NotificationDeliveryTable({
   deliveries,
   labels,
+  onViewDetails,
 }: NotificationDeliveryTableProps) {
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -79,6 +84,11 @@ export default function NotificationDeliveryTable({
                 <th className="px-3 py-3 text-start font-semibold">
                   {labels.readAt}
                 </th>
+                {onViewDetails ? (
+                  <th className="px-3 py-3 text-start font-semibold">
+                    {labels.viewDetails}
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -108,6 +118,21 @@ export default function NotificationDeliveryTable({
                   <td className="px-3 py-3 text-slate-600">
                     {formatDate(delivery.readAt)}
                   </td>
+                  {onViewDetails ? (
+                    <td className="px-3 py-3">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => onViewDetails(delivery.id)}
+                        leftIcon={
+                          <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                        }
+                      >
+                        {labels.viewDetails}
+                      </Button>
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

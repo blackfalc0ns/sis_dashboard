@@ -18,6 +18,7 @@ export interface NotificationListProps {
   isMutating?: boolean;
   onArchive?: (notificationId: string) => void;
   onMarkRead?: (notificationId: string) => void;
+  onViewDetails?: (notificationId: string) => void;
 }
 
 export default function NotificationList({
@@ -27,6 +28,7 @@ export default function NotificationList({
   isMutating,
   onArchive,
   onMarkRead,
+  onViewDetails,
 }: NotificationListProps) {
   if (notifications.length === 0) {
     return (
@@ -48,6 +50,7 @@ export default function NotificationList({
           isMutating={isMutating}
           onArchive={onArchive}
           onMarkRead={onMarkRead}
+          onViewDetails={onViewDetails}
         />
       ))}
     </div>

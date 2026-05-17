@@ -4,7 +4,9 @@ import { useLocale } from "next-intl";
 import { CheckCheck, RefreshCw } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
+import NotificationDeliveryDetailsDrawer from "@/features/communication/components/notifications/NotificationDeliveryDetailsDrawer";
 import NotificationDeliveryTable from "@/features/communication/components/notifications/NotificationDeliveryTable";
+import NotificationDetailsDrawer from "@/features/communication/components/notifications/NotificationDetailsDrawer";
 import NotificationFilters from "@/features/communication/components/notifications/NotificationFilters";
 import NotificationList from "@/features/communication/components/notifications/NotificationList";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
@@ -12,6 +14,8 @@ import CommunicationLoadingState from "@/features/communication/components/layou
 import CommunicationPageHeader from "@/features/communication/components/layout/CommunicationPageHeader";
 import CommunicationTabs from "@/features/communication/components/layout/CommunicationTabs";
 import { useNotificationDeliveries } from "@/features/communication/hooks/useNotificationDeliveries";
+import { useNotificationDeliveryDetails } from "@/features/communication/hooks/useNotificationDeliveryDetails";
+import { useNotificationDetails } from "@/features/communication/hooks/useNotificationDetails";
 import { useNotifications } from "@/features/communication/hooks/useNotifications";
 
 const labels = {
@@ -48,6 +52,23 @@ const labels = {
     untitled: "Untitled notification",
     noBody: "No notification body.",
     type: "Type",
+    viewDetails: "View details",
+    notificationDetails: "Notification details",
+    deliveryDetails: "Delivery details",
+    close: "Close",
+    advanced: "Advanced",
+    metadata: "Metadata",
+    source: "Source",
+    recipient: "Recipient",
+    provider: "Provider",
+    errorMessage: "Error message",
+    id: "ID",
+    createdAt: "Created at",
+    notificationTitle: "Title",
+    body: "Body",
+    deliveryStatus: "Delivery status",
+    failedAt: "Failed",
+    archivedAt: "Archived",
     archive: "Archive",
     markRead: "Mark read",
     countLabel: "notification",
@@ -59,7 +80,7 @@ const labels = {
     channel: "Channel",
     sentAt: "Sent",
     deliveredAt: "Delivered",
-    readAt: "Read",
+    readAt: "Read at",
     deliveriesEmptyTitle: "No delivery records",
     deliveriesEmptyDescription:
       "Delivery records will appear when notifications are dispatched.",
@@ -100,6 +121,23 @@ const labels = {
     untitled: "إشعار بدون عنوان",
     noBody: "لا يوجد محتوى للإشعار.",
     type: "النوع",
+    viewDetails: "عرض التفاصيل",
+    notificationDetails: "تفاصيل الإشعار",
+    deliveryDetails: "تفاصيل التسليم",
+    close: "إغلاق",
+    advanced: "متقدم",
+    metadata: "البيانات الإضافية",
+    source: "المصدر",
+    recipient: "المستلم",
+    provider: "المزود",
+    errorMessage: "رسالة الخطأ",
+    id: "المعرف",
+    createdAt: "تم الإنشاء في",
+    notificationTitle: "العنوان",
+    body: "المحتوى",
+    deliveryStatus: "حالة التسليم",
+    failedAt: "فشل في",
+    archivedAt: "تمت الأرشفة",
     archive: "أرشفة",
     markRead: "تعليم كمقروء",
     countLabel: "إشعار",
@@ -111,7 +149,7 @@ const labels = {
     channel: "القناة",
     sentAt: "تم الإرسال",
     deliveredAt: "تم التسليم",
-    readAt: "تمت القراءة",
+    readAt: "تمت القراءة في",
     deliveriesEmptyTitle: "لا توجد سجلات تسليم",
     deliveriesEmptyDescription: "ستظهر سجلات التسليم عند إرسال الإشعارات.",
     markedAllRead: "تم تعليم كل الإشعارات كمقروءة.",
@@ -129,6 +167,8 @@ export default function NotificationsPage() {
   const { showSuccess, showError } = useToast();
   const notificationsState = useNotifications();
   const deliveriesState = useNotificationDeliveries();
+  const notificationDetailsState = useNotificationDetails();
+  const deliveryDetailsState = useNotificationDeliveryDetails();
 
   const refreshAll = () => {
     void notificationsState.refresh();
@@ -163,6 +203,16 @@ export default function NotificationsPage() {
     } catch {
       showError(t.mutationFailed);
     }
+  };
+
+  const handleDrawerMarkRead = async (notificationId: string) => {
+    await handleMarkRead(notificationId);
+    await notificationDetailsState.refresh().catch(() => undefined);
+  };
+
+  const handleDrawerArchive = async (notificationId: string) => {
+    await handleArchive(notificationId);
+    await notificationDetailsState.refresh().catch(() => undefined);
   };
 
   if (notificationsState.isLoading && deliveriesState.isLoading) {
@@ -263,12 +313,14 @@ export default function NotificationsPage() {
           untitled: t.untitled,
           noBody: t.noBody,
           type: t.type,
+          viewDetails: t.viewDetails,
           archive: t.archive,
           markRead: t.markRead,
         }}
         isMutating={notificationsState.isMutating}
         onArchive={(notificationId) => void handleArchive(notificationId)}
         onMarkRead={(notificationId) => void handleMarkRead(notificationId)}
+        onViewDetails={notificationDetailsState.open}
       />
 
       {deliveriesState.error ? (
@@ -298,8 +350,70 @@ export default function NotificationsPage() {
           sentAt: t.sentAt,
           deliveredAt: t.deliveredAt,
           readAt: t.readAt,
+          viewDetails: t.viewDetails,
           emptyTitle: t.deliveriesEmptyTitle,
           emptyDescription: t.deliveriesEmptyDescription,
+        }}
+        onViewDetails={deliveryDetailsState.open}
+      />
+      <NotificationDetailsDrawer
+        open={Boolean(notificationDetailsState.selectedNotificationId)}
+        notification={notificationDetailsState.notification}
+        isLoading={notificationDetailsState.isLoading}
+        isMutating={notificationsState.isMutating}
+        error={notificationDetailsState.error}
+        onClose={notificationDetailsState.close}
+        onMarkRead={(notificationId) => void handleDrawerMarkRead(notificationId)}
+        onArchive={(notificationId) => void handleDrawerArchive(notificationId)}
+        labels={{
+          title: t.notificationDetails,
+          close: t.close,
+          markRead: t.markRead,
+          archive: t.archive,
+          loading: t.loading,
+          errorTitle: t.errorTitle,
+          id: t.id,
+          notificationTitle: t.notificationTitle,
+          body: t.body,
+          type: t.type,
+          status: t.status,
+          priority: t.priority,
+          sourceModule: t.sourceModule,
+          sourceType: t.sourceType,
+          sourceId: t.sourceId,
+          recipientUserId: t.recipientUserId,
+          createdAt: t.createdAt,
+          readAt: t.readAt,
+          archivedAt: t.archivedAt,
+          advanced: t.advanced,
+          metadata: t.metadata,
+        }}
+      />
+      <NotificationDeliveryDetailsDrawer
+        open={Boolean(deliveryDetailsState.selectedDeliveryId)}
+        delivery={deliveryDetailsState.delivery}
+        isLoading={deliveryDetailsState.isLoading}
+        error={deliveryDetailsState.error}
+        onClose={deliveryDetailsState.close}
+        labels={{
+          title: t.deliveryDetails,
+          close: t.close,
+          loading: t.loading,
+          errorTitle: t.deliveriesErrorTitle,
+          id: t.id,
+          notificationId: t.notificationId,
+          recipientUserId: t.recipientUserId,
+          channel: t.channel,
+          status: t.status,
+          deliveryStatus: t.deliveryStatus,
+          provider: t.provider,
+          sentAt: t.sentAt,
+          deliveredAt: t.deliveredAt,
+          readAt: t.readAt,
+          failedAt: t.failedAt,
+          errorMessage: t.errorMessage,
+          advanced: t.advanced,
+          metadata: t.metadata,
         }}
       />
     </div>

@@ -3,6 +3,8 @@ import type { CommunicationRecord } from "@/features/communication/types/communi
 export type CommunicationMetadataContext =
   | "conversation_create"
   | "conversation_update"
+  | "conversation_invite_create"
+  | "conversation_join_request_create"
   | "announcement_create"
   | "announcement_update"
   | "restriction_create"

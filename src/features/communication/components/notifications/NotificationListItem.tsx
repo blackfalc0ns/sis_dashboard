@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, BellRing, Check } from "lucide-react";
+import { Archive, BellRing, Check, Eye } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
 import type { CommunicationNotification } from "@/features/communication/types/notification.types";
@@ -13,6 +13,7 @@ export interface NotificationListItemLabels {
   type: string;
   markRead: string;
   archive: string;
+  viewDetails: string;
 }
 
 export interface NotificationListItemProps {
@@ -22,6 +23,7 @@ export interface NotificationListItemProps {
   isMutating?: boolean;
   onArchive?: (notificationId: string) => void;
   onMarkRead?: (notificationId: string) => void;
+  onViewDetails?: (notificationId: string) => void;
 }
 
 function titleForNotification(
@@ -61,6 +63,7 @@ export default function NotificationListItem({
   isMutating,
   onArchive,
   onMarkRead,
+  onViewDetails,
 }: NotificationListItemProps) {
   const isRead = notification.status === "read" || Boolean(notification.readAt);
 
@@ -102,6 +105,18 @@ export default function NotificationListItem({
             {formatDate(notification.createdAt)}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
+            {onViewDetails ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={isMutating}
+                onClick={() => onViewDetails(notification.id)}
+                leftIcon={<Eye className="h-3.5 w-3.5" aria-hidden="true" />}
+              >
+                {labels.viewDetails}
+              </Button>
+            ) : null}
             {!isRead && onMarkRead ? (
               <Button
                 type="button"

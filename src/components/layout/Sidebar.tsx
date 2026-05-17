@@ -497,12 +497,12 @@ export default function Sidebar({
                                   isArabic ? "text-right" : "text-left"
                                 } ${
                                   isChildActive || pendingHref === childHref
-                                    ? "bg-white/20 text-primary font-semibold"
+                                    ? "bg-white/20 text-white font-semibold"
                                     : "text-white/80 hover:bg-white/15"
                                 }`}
                               >
                                 <ChildIcon
-                                  className={`w-4 h-4 shrink-0 transition-colors ${isChildActive || pendingHref === childHref ? "text-primary" : "group-hover:text-white"}`}
+                                  className={`w-4 h-4 shrink-0 transition-colors ${isChildActive || pendingHref === childHref ? "text-white" : "group-hover:text-white"}`}
                                 />
                                 <span className="text-sm flex-1 truncate">
                                   {isArabic ? child.label_ar : child.label_en}
