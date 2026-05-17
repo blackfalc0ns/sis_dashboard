@@ -1,0 +1,255 @@
+"use client";
+
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { COMMUNICATION_SOCKET_EVENTS } from "./communication-events";
+import {
+  createCommunicationSocket,
+  getCommunicationAccessToken,
+  type CommunicationSocket,
+} from "./communication-socket";
+
+export interface CommunicationRealtimeContextValue {
+  socket: CommunicationSocket | null;
+  isConnected: boolean;
+  connectionError: string | null;
+  resyncVersion: number;
+  joinConversation: (conversationId: string) => void;
+  leaveConversation: (conversationId: string) => void;
+  startTyping: (conversationId: string, messageDraftId?: string) => void;
+  stopTyping: (conversationId: string, messageDraftId?: string) => void;
+}
+
+export const CommunicationRealtimeContext =
+  createContext<CommunicationRealtimeContextValue | null>(null);
+
+function disconnectSocket(socket: CommunicationSocket | null) {
+  if (!socket) return;
+  socket.removeAllListeners();
+  socket.io.removeAllListeners();
+  socket.disconnect();
+}
+
+function deferStateUpdate(update: () => void) {
+  if (typeof window === "undefined") return;
+  window.queueMicrotask(update);
+}
+
+export function CommunicationRealtimeProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const userId = user?.id;
+  const socketRef = useRef<CommunicationSocket | null>(null);
+  const joinedConversationIdsRef = useRef<Set<string>>(new Set());
+  const [socket, setSocket] = useState<CommunicationSocket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [resyncVersion, setResyncVersion] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || isLoading) {
+      return;
+    }
+
+    const token = getCommunicationAccessToken();
+
+    if (!isAuthenticated || !userId || !token) {
+      disconnectSocket(socketRef.current);
+      socketRef.current = null;
+      joinedConversationIdsRef.current.clear();
+      deferStateUpdate(() => {
+        setSocket(null);
+        setIsConnected(false);
+      });
+      return;
+    }
+
+    if (socketRef.current) {
+      const currentAuth = socketRef.current.auth as { token?: string };
+      if (currentAuth.token === token) {
+        if (!socketRef.current.connected) {
+          socketRef.current.connect();
+        }
+        return;
+      }
+
+      disconnectSocket(socketRef.current);
+      socketRef.current = null;
+      deferStateUpdate(() => {
+        setSocket(null);
+        setIsConnected(false);
+      });
+    }
+
+    const nextSocket = createCommunicationSocket(token);
+    if (!nextSocket) {
+      return;
+    }
+
+    nextSocket.on("connect", () => {
+      setIsConnected(true);
+      setConnectionError(null);
+      joinedConversationIdsRef.current.forEach((conversationId) => {
+        nextSocket.emit(COMMUNICATION_SOCKET_EVENTS.conversationJoin, {
+          conversationId,
+        });
+      });
+    });
+
+    nextSocket.on("disconnect", () => {
+      setIsConnected(false);
+    });
+
+    nextSocket.on("connect_error", (error) => {
+      setIsConnected(false);
+      setConnectionError(error.message);
+    });
+
+    nextSocket.io.on("reconnect", () => {
+      setIsConnected(true);
+      setConnectionError(null);
+      joinedConversationIdsRef.current.forEach((conversationId) => {
+        nextSocket.emit(COMMUNICATION_SOCKET_EVENTS.conversationJoin, {
+          conversationId,
+        });
+      });
+      setResyncVersion((version) => version + 1);
+    });
+
+    socketRef.current = nextSocket;
+    deferStateUpdate(() => setSocket(nextSocket));
+    nextSocket.connect();
+
+    return () => {
+      disconnectSocket(nextSocket);
+      if (socketRef.current === nextSocket) {
+        socketRef.current = null;
+        deferStateUpdate(() => {
+          setSocket(null);
+          setIsConnected(false);
+        });
+      }
+    };
+  }, [isAuthenticated, isLoading, userId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const disconnectWhenTokenMissing = () => {
+      if (getCommunicationAccessToken()) {
+        return;
+      }
+
+      disconnectSocket(socketRef.current);
+      socketRef.current = null;
+      joinedConversationIdsRef.current.clear();
+      setSocket(null);
+      setIsConnected(false);
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key && !event.key.includes("moazez_access_token")) {
+        return;
+      }
+
+      disconnectWhenTokenMissing();
+    };
+
+    const intervalId = window.setInterval(disconnectWhenTokenMissing, 5000);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
+  const emitRoomEvent = useCallback(
+    (
+      event:
+        | typeof COMMUNICATION_SOCKET_EVENTS.conversationJoin
+        | typeof COMMUNICATION_SOCKET_EVENTS.conversationLeave,
+      conversationId: string,
+    ) => {
+      if (!conversationId) return;
+      if (event === COMMUNICATION_SOCKET_EVENTS.conversationJoin) {
+        joinedConversationIdsRef.current.add(conversationId);
+      } else {
+        joinedConversationIdsRef.current.delete(conversationId);
+      }
+      const activeSocket = socketRef.current;
+      if (!activeSocket?.connected) return;
+      activeSocket.emit(event, { conversationId });
+    },
+    [],
+  );
+
+  const emitTypingEvent = useCallback(
+    (
+      event:
+        | typeof COMMUNICATION_SOCKET_EVENTS.typingStarted
+        | typeof COMMUNICATION_SOCKET_EVENTS.typingStopped,
+      conversationId: string,
+      messageDraftId?: string,
+    ) => {
+      const activeSocket = socketRef.current;
+      if (!activeSocket?.connected || !conversationId) return;
+      activeSocket.emit(event, {
+        conversationId,
+        ...(messageDraftId ? { messageDraftId } : {}),
+      });
+    },
+    [],
+  );
+
+  const value = useMemo<CommunicationRealtimeContextValue>(
+    () => ({
+      socket,
+      isConnected,
+      connectionError,
+      resyncVersion,
+      joinConversation: (conversationId) =>
+        emitRoomEvent(COMMUNICATION_SOCKET_EVENTS.conversationJoin, conversationId),
+      leaveConversation: (conversationId) =>
+        emitRoomEvent(COMMUNICATION_SOCKET_EVENTS.conversationLeave, conversationId),
+      startTyping: (conversationId, messageDraftId) =>
+        emitTypingEvent(
+          COMMUNICATION_SOCKET_EVENTS.typingStarted,
+          conversationId,
+          messageDraftId,
+        ),
+      stopTyping: (conversationId, messageDraftId) =>
+        emitTypingEvent(
+          COMMUNICATION_SOCKET_EVENTS.typingStopped,
+          conversationId,
+          messageDraftId,
+        ),
+    }),
+    [
+      socket,
+      isConnected,
+      connectionError,
+      resyncVersion,
+      emitRoomEvent,
+      emitTypingEvent,
+    ],
+  );
+
+  return (
+    <CommunicationRealtimeContext.Provider value={value}>
+      {children}
+    </CommunicationRealtimeContext.Provider>
+  );
+}

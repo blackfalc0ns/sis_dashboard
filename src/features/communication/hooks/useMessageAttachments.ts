@@ -1,0 +1,225 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  deleteAttachment,
+  getAttachments,
+  linkAttachment,
+} from "@/features/communication/api/communication.service";
+import { uploadFile } from "@/features/communication/api/files.service";
+import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
+import type {
+  CommunicationFile,
+  CommunicationRecord,
+} from "@/features/communication/types/communication.types";
+import type { MessageAttachment } from "@/features/communication/types/message.types";
+import { useCommunicationSocket } from "./useCommunicationSocket";
+
+const isRecord = (value: unknown): value is CommunicationRecord =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const stringValue = (value: unknown): string | undefined =>
+  typeof value === "string" && value.trim() ? value : undefined;
+
+function unwrapItem<T>(response: unknown): T | null {
+  if (!isRecord(response)) return (response ?? null) as T | null;
+  const item = [response.data, response.item, response.result, response.payload].find(
+    (candidate) => isRecord(candidate) && !Array.isArray(candidate),
+  );
+  return (item ?? response) as T;
+}
+
+function unwrapList<T>(response: unknown): T[] {
+  if (Array.isArray(response)) return response as T[];
+  if (!isRecord(response)) return [];
+  const sources = [
+    response,
+    response.data,
+    response.result,
+    response.payload,
+  ].filter(isRecord);
+  const itemSource = sources.find((source) => Array.isArray(source.items));
+  if (itemSource) return itemSource.items as T[];
+  const arraySource = [
+    response.data,
+    response.result,
+    response.payload,
+  ].find(Array.isArray);
+  return arraySource ? (arraySource as T[]) : [];
+}
+
+function unwrapAttachment(payload: unknown): MessageAttachment | null {
+  if (!isRecord(payload)) return null;
+  const source = [payload.attachment, payload.data, payload.payload].find(isRecord) ??
+    payload;
+  if (!isRecord(source)) return null;
+  const id = stringValue(source.id);
+  const messageId =
+    stringValue(source.messageId) ?? stringValue(payload.messageId);
+  if (!id || !messageId) return null;
+  return {
+    ...(source as MessageAttachment),
+    id,
+    messageId,
+    fileId: stringValue(source.fileId) ?? stringValue(payload.fileId),
+  };
+}
+
+function mergeAttachment(
+  current: MessageAttachment[],
+  incoming: MessageAttachment,
+) {
+  const next = current.filter((attachment) => {
+    if (attachment.id === incoming.id) return false;
+    if (incoming.fileId && attachment.fileId === incoming.fileId) return false;
+    return true;
+  });
+  return [...next, incoming];
+}
+
+function fileIdFromUpload(response: unknown): string | null {
+  const file = unwrapItem<CommunicationFile>(response);
+  return file?.fileId ?? file?.id ?? null;
+}
+
+export function useMessageAttachments(
+  messageIds: string[],
+  maxAttachmentSizeMb?: number,
+) {
+  const { socket } = useCommunicationSocket();
+  const mountedRef = useRef(false);
+  const messageIdsRef = useRef<Set<string>>(new Set(messageIds));
+  const [attachmentsByMessageId, setAttachmentsByMessageId] = useState<
+    Record<string, MessageAttachment[]>
+  >({});
+  const [uploadingMessageId, setUploadingMessageId] = useState<string | null>(null);
+
+  useEffect(() => {
+    messageIdsRef.current = new Set(messageIds);
+  }, [messageIds]);
+
+  const refreshMessage = useCallback(async (messageId: string) => {
+    const response = await getAttachments(messageId);
+    const attachments = unwrapList<MessageAttachment>(response).reduce<
+      MessageAttachment[]
+    >((next, attachment) => mergeAttachment(next, attachment), []);
+    if (!mountedRef.current) return;
+    setAttachmentsByMessageId((current) => ({
+      ...current,
+      [messageId]: attachments,
+    }));
+  }, []);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all(messageIds.map((messageId) => refreshMessage(messageId)));
+  }, [messageIds, refreshMessage]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    void refreshAll();
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [refreshAll]);
+
+  const attachFile = useCallback(
+    async (messageId: string, file: File) => {
+      if (maxAttachmentSizeMb && file.size > maxAttachmentSizeMb * 1024 * 1024) {
+        throw new Error(`File must be ${maxAttachmentSizeMb}MB or smaller.`);
+      }
+
+      setUploadingMessageId(messageId);
+      try {
+        const uploadResponse = await uploadFile(file);
+        const fileId = fileIdFromUpload(uploadResponse);
+        if (!fileId) throw new Error("Upload response did not include a file id.");
+        const linkResponse = await linkAttachment(messageId, { fileId });
+        const attachment = unwrapAttachment(linkResponse);
+        if (attachment) {
+          setAttachmentsByMessageId((current) => ({
+            ...current,
+            [messageId]: mergeAttachment(current[messageId] ?? [], attachment),
+          }));
+        } else {
+          await refreshMessage(messageId);
+        }
+      } finally {
+        setUploadingMessageId(null);
+      }
+    },
+    [maxAttachmentSizeMb, refreshMessage],
+  );
+
+  const removeAttachment = useCallback(
+    async (messageId: string, attachmentId: string) => {
+      await deleteAttachment(messageId, attachmentId);
+      setAttachmentsByMessageId((current) => ({
+        ...current,
+        [messageId]: (current[messageId] ?? []).filter(
+          (attachment) => attachment.id !== attachmentId,
+        ),
+      }));
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleLinked = (payload: unknown) => {
+      const attachment = unwrapAttachment(payload);
+      if (
+        !attachment?.messageId ||
+        !messageIdsRef.current.has(attachment.messageId)
+      ) {
+        return;
+      }
+      setAttachmentsByMessageId((current) => ({
+        ...current,
+        [attachment.messageId!]: mergeAttachment(
+          current[attachment.messageId!] ?? [],
+          attachment,
+        ),
+      }));
+    };
+
+    const handleDeleted = (payload: unknown) => {
+      if (!isRecord(payload)) return;
+      const messageId = stringValue(payload.messageId);
+      const attachmentId =
+        stringValue(payload.attachmentId) ??
+        (isRecord(payload.attachment) ? stringValue(payload.attachment.id) : undefined);
+      const fileId =
+        stringValue(payload.fileId) ??
+        (isRecord(payload.attachment)
+          ? stringValue(payload.attachment.fileId)
+          : undefined);
+      if (!messageId || !messageIdsRef.current.has(messageId)) return;
+      setAttachmentsByMessageId((current) => ({
+        ...current,
+        [messageId]: (current[messageId] ?? []).filter(
+          (attachment) =>
+            !(
+              (attachmentId && attachment.id === attachmentId) ||
+              (fileId && attachment.fileId === fileId)
+            ),
+        ),
+      }));
+    };
+
+    socket.on(COMMUNICATION_SOCKET_EVENTS.attachmentLinked, handleLinked);
+    socket.on(COMMUNICATION_SOCKET_EVENTS.attachmentDeleted, handleDeleted);
+    return () => {
+      socket.off(COMMUNICATION_SOCKET_EVENTS.attachmentLinked, handleLinked);
+      socket.off(COMMUNICATION_SOCKET_EVENTS.attachmentDeleted, handleDeleted);
+    };
+  }, [socket]);
+
+  return {
+    attachmentsByMessageId,
+    uploadingMessageId,
+    refreshAll,
+    attachFile,
+    removeAttachment,
+  };
+}

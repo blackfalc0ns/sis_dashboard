@@ -1,0 +1,540 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  archiveConversation,
+  closeConversation,
+  createConversation,
+  getConversations,
+  reopenConversation,
+  updateConversation,
+} from "@/features/communication/api/communication.service";
+import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
+import type {
+  CommunicationList,
+  CommunicationRecord,
+} from "@/features/communication/types/communication.types";
+import type {
+  Conversation,
+  ConversationStatus,
+  CreateConversationPayload,
+  UpdateConversationPayload,
+} from "@/features/communication/types/conversation.types";
+import { useCommunicationSocket } from "./useCommunicationSocket";
+
+export type ConversationStatusFilter = "all" | "active" | "closed" | "archived";
+
+export interface ConversationLastMessage {
+  id?: string;
+  body?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  senderName?: string;
+}
+
+export interface ConversationListItemModel extends Conversation {
+  lastMessage?: ConversationLastMessage | null;
+  isPinned?: boolean;
+  pinnedAt?: string | null;
+}
+
+export interface ConversationFiltersState {
+  search: string;
+  status: ConversationStatusFilter;
+}
+
+export interface ConversationFormValues {
+  title?: string;
+  titleAr?: string;
+  titleEn?: string;
+  type?: string;
+  scopeType?: string;
+  scopeId?: string;
+  participantIds?: string[];
+}
+
+const DEFAULT_FILTERS: ConversationFiltersState = {
+  search: "",
+  status: "active",
+};
+
+const isRecord = (value: unknown): value is CommunicationRecord =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+function numberFromUnknown(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function stringFromUnknown(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function unwrapItem<T>(response: unknown): T | null {
+  if (!isRecord(response)) return (response ?? null) as T | null;
+
+  const item = [response.data, response.item, response.result, response.payload].find(
+    (candidate) => isRecord(candidate) && !Array.isArray(candidate),
+  );
+
+  return (item ?? response) as T;
+}
+
+function unwrapList<T>(response: unknown): CommunicationList<T> {
+  if (Array.isArray(response)) {
+    return { items: response as T[], total: response.length };
+  }
+
+  if (!isRecord(response)) {
+    return { items: [], total: 0 };
+  }
+
+  const sources = [
+    response,
+    response.data,
+    response.result,
+    response.payload,
+  ].filter(isRecord);
+  const itemSource = sources.find((source) => Array.isArray(source.items));
+
+  if (itemSource) {
+    const items = itemSource.items as T[];
+    return {
+      ...itemSource,
+      items,
+      total:
+        numberFromUnknown(itemSource.total) ??
+        numberFromUnknown(itemSource.count) ??
+        items.length,
+      page: numberFromUnknown(itemSource.page),
+      limit: numberFromUnknown(itemSource.limit),
+      totalPages: numberFromUnknown(itemSource.totalPages),
+    };
+  }
+
+  const arraySource = [
+    response.data,
+    response.result,
+    response.payload,
+  ].find(Array.isArray);
+
+  if (arraySource) {
+    const items = arraySource as T[];
+    return { items, total: items.length };
+  }
+
+  return { items: [], total: 0 };
+}
+
+function toConversationListItem(conversation: Conversation): ConversationListItemModel {
+  const record = conversation as CommunicationRecord;
+  const lastMessageRecord = [
+    record.lastMessage,
+    record.latestMessage,
+    record.message,
+  ].find(isRecord);
+
+  const sender = isRecord(lastMessageRecord?.sender)
+    ? lastMessageRecord.sender
+    : undefined;
+
+  return {
+    ...conversation,
+    lastMessage: lastMessageRecord
+      ? {
+          id: stringFromUnknown(lastMessageRecord.id),
+          body:
+            stringFromUnknown(lastMessageRecord.body) ??
+            stringFromUnknown(lastMessageRecord.content) ??
+            stringFromUnknown(lastMessageRecord.text),
+          status: stringFromUnknown(lastMessageRecord.status),
+          createdAt: stringFromUnknown(lastMessageRecord.createdAt),
+          updatedAt: stringFromUnknown(lastMessageRecord.updatedAt),
+          senderName:
+            stringFromUnknown(lastMessageRecord.senderName) ??
+            stringFromUnknown(sender?.name) ??
+            stringFromUnknown(sender?.nameEn) ??
+            stringFromUnknown(sender?.nameAr),
+        }
+      : null,
+    isPinned: Boolean(record.isPinned ?? record.pinned),
+    pinnedAt: stringFromUnknown(record.pinnedAt) ?? null,
+  };
+}
+
+function sortConversations(
+  conversations: ConversationListItemModel[],
+): ConversationListItemModel[] {
+  return [...conversations].sort((left, right) => {
+    if (left.isPinned !== right.isPinned) return left.isPinned ? -1 : 1;
+
+    const leftDate =
+      left.pinnedAt ??
+      left.lastMessage?.createdAt ??
+      left.lastMessageAt ??
+      left.updatedAt ??
+      left.createdAt ??
+      "";
+    const rightDate =
+      right.pinnedAt ??
+      right.lastMessage?.createdAt ??
+      right.lastMessageAt ??
+      right.updatedAt ??
+      right.createdAt ??
+      "";
+
+    return new Date(rightDate).getTime() - new Date(leftDate).getTime();
+  });
+}
+
+function dedupeConversations(
+  conversations: ConversationListItemModel[],
+): ConversationListItemModel[] {
+  const seen = new Set<string>();
+  const output: ConversationListItemModel[] = [];
+
+  for (const conversation of conversations) {
+    const id = stringFromUnknown(conversation.id);
+    if (id && seen.has(id)) continue;
+    if (id) seen.add(id);
+    output.push(conversation);
+  }
+
+  return output;
+}
+
+function errorMessageFromUnknown(error: unknown): string {
+  return error instanceof Error ? error.message : "Unable to load conversations.";
+}
+
+function messageFromPayload(payload: unknown): CommunicationRecord | null {
+  if (!isRecord(payload)) return null;
+  const nested = [
+    payload.message,
+    payload.data,
+    payload.payload,
+    payload.lastMessage,
+    payload.latestMessage,
+  ].find(isRecord);
+  return (nested ?? payload) as CommunicationRecord;
+}
+
+function lastMessageFromPayload(
+  payload: unknown,
+): { conversationId?: string; message?: ConversationLastMessage } {
+  const message = messageFromPayload(payload);
+  if (!message) return {};
+
+  const sender = isRecord(message.sender) ? message.sender : undefined;
+
+  return {
+    conversationId:
+      stringFromUnknown(message.conversationId) ??
+      stringFromUnknown(message.conversation_id) ??
+      (isRecord(payload) ? stringFromUnknown(payload.conversationId) : undefined) ??
+      (isRecord(payload) ? stringFromUnknown(payload.conversation_id) : undefined),
+    message: {
+      id:
+        stringFromUnknown(message.id) ??
+        stringFromUnknown(message.messageId) ??
+        (isRecord(payload) ? stringFromUnknown(payload.messageId) : undefined),
+      body:
+        stringFromUnknown(message.body) ??
+        stringFromUnknown(message.content) ??
+        stringFromUnknown(message.text),
+      status: stringFromUnknown(message.status),
+      createdAt:
+        stringFromUnknown(message.createdAt) ??
+        stringFromUnknown(message.updatedAt) ??
+        new Date().toISOString(),
+      updatedAt: stringFromUnknown(message.updatedAt),
+      senderName:
+        stringFromUnknown(message.senderName) ??
+        stringFromUnknown(sender?.name) ??
+        stringFromUnknown(sender?.nameEn) ??
+        stringFromUnknown(sender?.nameAr),
+    },
+  };
+}
+
+function payloadFromValues(
+  values: ConversationFormValues,
+): CreateConversationPayload {
+  const participantIds = values.participantIds?.filter(Boolean);
+
+  return {
+    ...(values.title?.trim() ? { title: values.title.trim() } : {}),
+    ...(values.titleAr?.trim() ? { titleAr: values.titleAr.trim() } : {}),
+    ...(values.titleEn?.trim() ? { titleEn: values.titleEn.trim() } : {}),
+    ...(values.type ? { type: values.type } : {}),
+    ...(values.scopeType?.trim() ? { scopeType: values.scopeType.trim() } : {}),
+    ...(values.scopeId?.trim() ? { scopeId: values.scopeId.trim() } : {}),
+    ...(participantIds && participantIds.length > 0 ? { participantIds } : {}),
+  };
+}
+
+export function useConversations() {
+  const { socket, resyncVersion } = useCommunicationSocket();
+  const mountedRef = useRef(false);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [filters, setFilters] = useState<ConversationFiltersState>(DEFAULT_FILTERS);
+  const [conversations, setConversations] = useState<ConversationListItemModel[]>(
+    [],
+  );
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isMutating, setIsMutating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    setIsRefreshing(true);
+    setError(null);
+
+    try {
+      const response = await getConversations({
+        ...(filters.status !== "all"
+          ? { status: filters.status as ConversationStatus }
+          : {}),
+        ...(filters.search.trim() ? { search: filters.search.trim() } : {}),
+        limit: 50,
+      });
+      const list = unwrapList<Conversation>(response);
+      const normalized = sortConversations(
+        dedupeConversations(list.items.map(toConversationListItem)),
+      );
+
+      if (!mountedRef.current) return;
+      setConversations(normalized);
+      setTotal(list.total ?? normalized.length);
+    } catch (nextError) {
+      if (!mountedRef.current) return;
+      setError(errorMessageFromUnknown(nextError));
+      setConversations([]);
+      setTotal(0);
+    } finally {
+      if (mountedRef.current) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    }
+  }, [filters.search, filters.status]);
+
+  const debouncedRefresh = useCallback(() => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+    }
+
+    refreshTimerRef.current = setTimeout(() => {
+      refreshTimerRef.current = null;
+      void refresh();
+    }, 500);
+  }, [refresh]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    void refresh();
+
+    return () => {
+      mountedRef.current = false;
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+    };
+  }, [refresh]);
+
+  useEffect(() => {
+    if (resyncVersion > 0) {
+      void refresh();
+    }
+  }, [refresh, resyncVersion]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleCreated = (payload: unknown) => {
+      const { conversationId, message } = lastMessageFromPayload(payload);
+      if (!conversationId || !message) {
+        debouncedRefresh();
+        return;
+      }
+
+      setConversations((current) => {
+        let found = false;
+        const next = current.map((conversation) => {
+          if (conversation.id !== conversationId) return conversation;
+          found = true;
+          const isDuplicateMessage =
+            Boolean(message.id) && conversation.lastMessage?.id === message.id;
+          return {
+            ...conversation,
+            lastMessage: message,
+            lastMessageAt: message.createdAt ?? conversation.lastMessageAt,
+            unreadCount: isDuplicateMessage
+              ? conversation.unreadCount
+              : (conversation.unreadCount ?? 0) + 1,
+            updatedAt: message.createdAt ?? conversation.updatedAt,
+          };
+        });
+
+        if (!found) {
+          debouncedRefresh();
+          return current;
+        }
+
+        return sortConversations(next);
+      });
+    };
+
+    const handleUpdated = (payload: unknown) => {
+      const { conversationId, message } = lastMessageFromPayload(payload);
+      if (!conversationId || !message?.id) {
+        debouncedRefresh();
+        return;
+      }
+
+      setConversations((current) =>
+        current.map((conversation) => {
+          if (
+            conversation.id !== conversationId ||
+            conversation.lastMessage?.id !== message.id
+          ) {
+            return conversation;
+          }
+
+          return {
+            ...conversation,
+            lastMessage: {
+              ...conversation.lastMessage,
+              ...message,
+            },
+          };
+        }),
+      );
+    };
+
+    const handleDeleted = (payload: unknown) => {
+      const { conversationId, message } = lastMessageFromPayload(payload);
+      if (!conversationId || !message?.id) {
+        debouncedRefresh();
+        return;
+      }
+
+      setConversations((current) =>
+        current.map((conversation) => {
+          if (
+            conversation.id !== conversationId ||
+            conversation.lastMessage?.id !== message.id
+          ) {
+            return conversation;
+          }
+
+          return {
+            ...conversation,
+            lastMessage: {
+              ...conversation.lastMessage,
+              id: message.id,
+              body: "",
+              status: "deleted",
+              updatedAt: message.updatedAt ?? new Date().toISOString(),
+            },
+          };
+        }),
+      );
+    };
+
+    socket.on(COMMUNICATION_SOCKET_EVENTS.messageCreated, handleCreated);
+    socket.on(COMMUNICATION_SOCKET_EVENTS.messageUpdated, handleUpdated);
+    socket.on(COMMUNICATION_SOCKET_EVENTS.messageDeleted, handleDeleted);
+
+    return () => {
+      socket.off(COMMUNICATION_SOCKET_EVENTS.messageCreated, handleCreated);
+      socket.off(COMMUNICATION_SOCKET_EVENTS.messageUpdated, handleUpdated);
+      socket.off(COMMUNICATION_SOCKET_EVENTS.messageDeleted, handleDeleted);
+    };
+  }, [debouncedRefresh, socket]);
+
+  const mutate = useCallback(
+    async (operation: () => Promise<unknown>) => {
+      setIsMutating(true);
+      setError(null);
+
+      try {
+        const response = await operation();
+        await refresh();
+        return response;
+      } catch (nextError) {
+        const message = errorMessageFromUnknown(nextError);
+        setError(message);
+        throw nextError;
+      } finally {
+        if (mountedRef.current) {
+          setIsMutating(false);
+        }
+      }
+    },
+    [refresh],
+  );
+
+  const create = useCallback(
+    async (values: ConversationFormValues) => {
+      const response = await mutate(() => createConversation(payloadFromValues(values)));
+      return unwrapItem<Conversation>(response);
+    },
+    [mutate],
+  );
+
+  const update = useCallback(
+    async (conversationId: string, values: ConversationFormValues) => {
+      const response = await mutate(() =>
+        updateConversation(
+          conversationId,
+          payloadFromValues(values) as UpdateConversationPayload,
+        ),
+      );
+      return unwrapItem<Conversation>(response);
+    },
+    [mutate],
+  );
+
+  const close = useCallback(
+    (conversationId: string) =>
+      mutate(() => closeConversation(conversationId)),
+    [mutate],
+  );
+
+  const reopen = useCallback(
+    (conversationId: string) =>
+      mutate(() => reopenConversation(conversationId)),
+    [mutate],
+  );
+
+  const archive = useCallback(
+    (conversationId: string) =>
+      mutate(() => archiveConversation(conversationId)),
+    [mutate],
+  );
+
+  const hasFilters = useMemo(
+    () => filters.search.trim() !== "" || filters.status !== "active",
+    [filters.search, filters.status],
+  );
+
+  return {
+    conversations,
+    total,
+    filters,
+    setFilters,
+    isLoading,
+    isRefreshing,
+    isMutating,
+    error,
+    hasFilters,
+    refresh,
+    create,
+    update,
+    close,
+    reopen,
+    archive,
+  };
+}

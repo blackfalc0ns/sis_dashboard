@@ -236,15 +236,15 @@ export default function Sidebar({
 
       {/* Sidebar */}
       <aside
-        className={`fixed z-50 h-screen bg-white flex flex-col transition-all duration-300 ease-in-out
-      ${isRTL ? "right-0 border-l" : "left-0 border-r"} border-gray-200
+        className={`fixed z-50 h-screen bg-[#065769] flex flex-col transition-all duration-300 ease-in-out
+      ${isRTL ? "right-0 border-l" : "left-0 border-r"} border-white/10
       ${isOpen ? "translate-x-0" : isRTL ? "translate-x-full lg:translate-x-0" : "-translate-x-full lg:translate-x-0"}
       ${isOpen ? "w-[260px] max-w-[80vw]" : "lg:w-20 lg:px-3"}`}
       >
         {/* Toggle Button (fixed top) */}
         <button
           onClick={onToggle}
-          className={`hidden lg:block p-2 rounded-lg text-gray-700 hover:bg-primary hover:text-white transition-colors border-primary border-2 mt-2 shrink-0 ${
+          className={`hidden lg:block p-2 rounded-lg text-white hover:bg-white/20 transition-colors border-white/30 border mt-2 shrink-0 ${
             isRTL ? "ml-2 mr-auto" : "ml-auto mr-2"
           }`}
         >
@@ -259,7 +259,7 @@ export default function Sidebar({
         <div className="px-4 py-6 flex items-center justify-center shrink-0">
           <div className="text-primary font-bold text-3xl tracking-tight flex items-center justify-center">
             <Image
-              src="/images/logo/moazzez_logo.svg"
+              src="/images/logo/moazez_white_logo.svg"
               alt="Logo"
               width={isOpen ? 120 : 40}
               height={isOpen ? 30 : 40}
@@ -272,15 +272,15 @@ export default function Sidebar({
         {/* School Selector (fixed top) */}
         {isOpen && (
           <div className="mb-6 shrink-0 p-2">
-            <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl bg-white">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0">
-                <Building2 className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-3 p-3 border border-white/20 rounded-xl bg-white/20">
+              <div className="w-10 h-10 rounded-full bg-white flex border-2 border-primary flex items-center justify-center shrink-0">
+                <Building2 className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-400 font-medium">
+                <p className="text-sm text-white/60 font-medium">
                   {t("school")}
                 </p>
-                <p className="text-sm font-bold text-gray-900 truncate">
+                <p className="text-sm font-bold text-white truncate">
                   {schoolName}
                 </p>
               </div>
@@ -335,26 +335,26 @@ export default function Sidebar({
                             : item.label_en
                           : undefined
                       }
-                      className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 ${
+                      className={`group w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 ${
                         isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
                       } ${
                         isActive
                           ? item.buttonBackgroundImage
                             ? "text-white shadow-sm"
-                            : "bg-primary text-white shadow-sm"
-                          : "text-gray-700 hover:bg-teal-50 hover:text-primary"
+                            : "bg-white text-primary shadow-sm"
+                          : "text-white hover:bg-white hover:text-primary"
                       } ${isArabic ? "text-right" : "text-left"} ${itemVariantClasses}`}
                       style={itemVariantStyle}
                     >
                       <Icon
-                        className={`w-5 h-5 shrink-0 ${
+                        className={`w-5 h-5 shrink-0 transition-colors ${
                           isActive
-                            ? "text-white"
+                            ? "text-primary"
                             : hasImageBackground
                               ? "text-white"
                               : isHighlighted
                                 ? "text-primary"
-                                : "text-[#A4B4CB]"
+                                : "text-white group-hover:text-primary"
                         }`}
                       />
                       {isOpen && (
@@ -387,15 +387,15 @@ export default function Sidebar({
                             : item.label_en
                           : undefined
                       }
-                      className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 text-left ${
+                      className={`group w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 text-left ${
                         isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
                       } ${
                         isActive ||
                         pendingHref === (isArabic ? item.href_ar : item.href_en)
                           ? item.buttonBackgroundImage
                             ? "text-white shadow-sm"
-                            : "bg-primary text-white shadow-sm"
-                          : "text-gray-700 hover:bg-teal-50 hover:text-primary"
+                            : "bg-white text-primary shadow-sm"
+                          : "text-white hover:bg-white/15"
                       } ${getVariantClasses(item.buttonVariant, {
                         active: isActive,
                         pending:
@@ -413,16 +413,16 @@ export default function Sidebar({
                     >
                       {!isHeroJourneyItem && (
                         <Icon
-                          className={`w-5 h-5 shrink-0 ${
+                          className={`w-5 h-5 shrink-0 transition-colors ${
                             isActive ||
                             pendingHref ===
                               (isArabic ? item.href_ar : item.href_en)
-                              ? "text-white"
+                              ? "text-primary"
                               : item.buttonBackgroundImage
                                 ? "text-white"
                                 : item.buttonVariant === "highlight"
                                   ? "text-primary"
-                                  : "text-[#A4B4CB]"
+                                  : "text-white group-hover:text-primary"
                           }`}
                         />
                       )}
@@ -465,15 +465,17 @@ export default function Sidebar({
                             {hasGrandchildren ? (
                               <button
                                 onClick={(e) => toggleExpand(child.key, e)}
-                                className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${
+                                className={`group w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${
                                   isArabic ? "text-right" : "text-left"
                                 } ${
                                   isChildActive
-                                    ? "bg-teal-50 text-primary font-semibold"
-                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                    ? "bg-white/20 text-primary font-semibold"
+                                    : "text-white/80 hover:bg-white/15"
                                 }`}
                               >
-                                <ChildIcon className="w-4 h-4 shrink-0" />
+                                <ChildIcon
+                                  className={`w-4 h-4 shrink-0 transition-colors ${isChildActive ? "text-primary" : "group-hover:text-white"}`}
+                                />
                                 <span className="text-sm flex-1 truncate">
                                   {isArabic ? child.label_ar : child.label_en}
                                 </span>
@@ -491,15 +493,17 @@ export default function Sidebar({
                                   handleNavigationStart(childHref)
                                 }
                                 prefetch
-                                className={`w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${
+                                className={`group w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${
                                   isArabic ? "text-right" : "text-left"
                                 } ${
                                   isChildActive || pendingHref === childHref
-                                    ? "bg-teal-50 text-primary font-semibold"
-                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                    ? "bg-white/20 text-primary font-semibold"
+                                    : "text-white/80 hover:bg-white/15"
                                 }`}
                               >
-                                <ChildIcon className="w-4 h-4 shrink-0" />
+                                <ChildIcon
+                                  className={`w-4 h-4 shrink-0 transition-colors ${isChildActive || pendingHref === childHref ? "text-primary" : "group-hover:text-white"}`}
+                                />
                                 <span className="text-sm flex-1 truncate">
                                   {isArabic ? child.label_ar : child.label_en}
                                 </span>
@@ -553,16 +557,18 @@ export default function Sidebar({
                                         handleNavigationStart(grandchildHref)
                                       }
                                       prefetch
-                                      className={`w-full flex items-center gap-2 rounded-[6px] transition-all duration-200 px-3 py-2 ${
+                                      className={`group w-full flex items-center gap-2 rounded-[6px] transition-all duration-200 px-3 py-2 ${
                                         isArabic ? "text-right" : "text-left"
                                       } ${
                                         isGrandchildActive ||
                                         pendingHref === grandchildHref
-                                          ? "bg-teal-50 text-primary font-semibold"
-                                          : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                                          ? "bg-white/20 text-primary font-semibold"
+                                          : "text-white/70 hover:bg-white/15"
                                       }`}
                                     >
-                                      <GrandchildIcon className="w-3.5 h-3.5 shrink-0" />
+                                      <GrandchildIcon
+                                        className={`w-3.5 h-3.5 shrink-0 transition-colors ${isGrandchildActive || pendingHref === grandchildHref ? "text-primary" : "group-hover:text-white"}`}
+                                      />
                                       <span className="text-xs truncate">
                                         {isArabic
                                           ? grandchild.label_ar
@@ -588,7 +594,7 @@ export default function Sidebar({
         </div>
 
         {/* âœ… Bottom Section Ø«Ø§Ø¨Øª ØªØ­Øª */}
-        <div className="pb-6 space-y-1 shrink-0 border-t border-gray-100 pt-3">
+        <div className="pb-6 space-y-1 shrink-0 border-t border-white/15 pt-3">
           {bottomItems.map((item) => {
             const Icon = item.icon;
             const itemHref = isArabic ? item.href_ar : item.href_en;
@@ -616,24 +622,24 @@ export default function Sidebar({
                       : item.label_en
                     : undefined
                 }
-                className={`w-full flex items-center gap-3 rounded-xl transition-all duration-200 text-left ${
+                className={`group w-full flex items-center gap-3 rounded-xl transition-all duration-200 text-left ${
                   isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
                 } ${
                   isPendingItem
                     ? item.buttonBackgroundImage
                       ? "text-white shadow-sm"
-                      : "bg-gray-100 text-gray-900"
-                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                      : "bg-white/20 text-white"
+                    : "text-white hover:bg-white/15"
                 } ${itemVariantClasses}`}
                 style={itemVariantStyle}
               >
                 <Icon
-                  className={`w-5 h-5 shrink-0 ${
+                  className={`w-5 h-5 shrink-0 transition-colors ${
                     item.buttonBackgroundImage && !isPendingItem
                       ? "text-white"
                       : item.buttonVariant === "highlight" && !isPendingItem
                         ? "text-primary"
-                        : ""
+                        : "text-white group-hover:text-primary"
                   }`}
                 />
                 {isOpen && (
@@ -655,18 +661,18 @@ export default function Sidebar({
             onClick={handleLogout}
             disabled={isLoggingOut}
             title={!isOpen ? tApp("logout") : undefined}
-            className={`w-full flex items-center gap-3 rounded-xl transition-all duration-200 text-left ${
+            className={`group w-full flex items-center gap-3 rounded-xl transition-all duration-200 text-left ${
               isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
             } ${
               isLoggingOut
-                ? " cursor-not-allowed"
-                : " hover:bg-gray-50 text-error "
+                ? "cursor-not-allowed text-white/50"
+                : "text-white hover:bg-white/15"
             }`}
           >
             {isLoggingOut ? (
               <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
             ) : (
-              <LogOut className="w-5 h-5 shrink-0" />
+              <LogOut className="w-5 h-5 shrink-0 transition-colors group-hover:text-primary" />
             )}
             {isOpen && (
               <span className="font-medium text-sm truncate ">
