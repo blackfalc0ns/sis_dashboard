@@ -24,14 +24,11 @@ export interface RestrictionFormDialogLabels {
   directMessageDisabled: string;
   reason: string;
   expiresAt: string;
-  metadata: string;
-  metadataHelp: string;
   cancel: string;
   create: string;
   save: string;
   targetRequired: string;
   reasonRequired: string;
-  invalidMetadata: string;
 }
 
 export interface RestrictionFormDialogProps {
@@ -58,9 +55,6 @@ function initialValues(restriction?: Restriction | null): RestrictionFormValues 
     type: restriction?.type ?? "send_disabled",
     reason: restriction?.reason ?? "",
     expiresAt: datetimeLocalValue(restriction?.expiresAt),
-    metadataText: restriction?.metadata
-      ? JSON.stringify(restriction.metadata, null, 2)
-      : "",
   };
 }
 
@@ -117,18 +111,6 @@ export default function RestrictionFormDialog({
     if (!values.reason.trim()) {
       setError(labels.reasonRequired);
       return;
-    }
-    if (values.metadataText?.trim()) {
-      try {
-        const parsed = JSON.parse(values.metadataText) as unknown;
-        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-          setError(labels.invalidMetadata);
-          return;
-        }
-      } catch {
-        setError(labels.invalidMetadata);
-        return;
-      }
     }
     setError(null);
     await onSubmit(values);
@@ -191,18 +173,6 @@ export default function RestrictionFormDialog({
             setValues((current) => ({
               ...current,
               expiresAt: event.target.value,
-            }))
-          }
-        />
-        <TextArea
-          label={labels.metadata}
-          helperText={labels.metadataHelp}
-          value={values.metadataText ?? ""}
-          rows={4}
-          onChange={(event) =>
-            setValues((current) => ({
-              ...current,
-              metadataText: event.target.value,
             }))
           }
         />

@@ -10,6 +10,7 @@ import {
   updateConversation,
 } from "@/features/communication/api/communication.service";
 import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
+import { createCommunicationMetadata } from "@/features/communication/utils/communication-metadata";
 import type {
   CommunicationList,
   CommunicationRecord,
@@ -59,7 +60,6 @@ export interface ConversationFormValues {
   subjectId?: string;
   isReadOnly?: boolean;
   isPinned?: boolean;
-  metadataText?: string;
 }
 
 const DEFAULT_FILTERS: ConversationFiltersState = {
@@ -268,9 +268,12 @@ function lastMessageFromPayload(
 function payloadFromValues(
   values: ConversationFormValues,
 ): CreateConversationPayload {
-  const metadata = parseMetadata(values.metadataText);
   const title = values.title?.trim();
   const type = (values.type || "group") as ConversationType;
+  const metadata = createCommunicationMetadata("conversation_create", {
+    createdFrom: "communication_conversations_page",
+    creationFlow: type === "classroom" ? "classroom_context" : "manual",
+  });
 
   return {
     type,
@@ -301,7 +304,10 @@ function payloadFromValues(
 function updatePayloadFromValues(
   values: ConversationFormValues,
 ): UpdateConversationPayload {
-  const metadata = parseMetadata(values.metadataText);
+  const metadata = createCommunicationMetadata("conversation_update", {
+    updatedFrom: "communication_conversations_page",
+  });
+
   return {
     ...(values.title?.trim() ? { title: values.title.trim() } : {}),
     ...(values.description?.trim()
@@ -314,16 +320,6 @@ function updatePayloadFromValues(
     isPinned: Boolean(values.isPinned),
     ...(metadata ? { metadata } : {}),
   };
-}
-
-function parseMetadata(metadataText?: string): CommunicationRecord | undefined {
-  const trimmed = metadataText?.trim();
-  if (!trimmed) return undefined;
-  const parsed = JSON.parse(trimmed) as unknown;
-  if (!isRecord(parsed)) {
-    throw new Error("Metadata must be a JSON object.");
-  }
-  return parsed;
 }
 
 export function useConversations() {

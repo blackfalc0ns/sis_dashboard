@@ -7,6 +7,7 @@ import {
   getRestrictions,
   updateRestriction,
 } from "@/features/communication/api/communication.service";
+import { createCommunicationMetadata } from "@/features/communication/utils/communication-metadata";
 import type {
   CommunicationList,
   CommunicationRecord,
@@ -28,7 +29,6 @@ export interface RestrictionFormValues {
   type: RestrictionType;
   reason: string;
   expiresAt?: string;
-  metadataText?: string;
 }
 
 const DEFAULT_FILTERS: RestrictionFiltersState = {
@@ -97,20 +97,13 @@ function errorMessageFromUnknown(error: unknown): string {
   return error instanceof Error ? error.message : "Unable to load restrictions.";
 }
 
-function parseMetadata(metadataText?: string): CommunicationRecord | undefined {
-  const trimmed = metadataText?.trim();
-  if (!trimmed) return undefined;
-  const parsed = JSON.parse(trimmed) as unknown;
-  if (!isRecord(parsed)) {
-    throw new Error("Metadata must be a JSON object.");
-  }
-  return parsed;
-}
-
 function payloadFromValues(
   values: RestrictionFormValues,
 ): CreateRestrictionPayload {
-  const metadata = parseMetadata(values.metadataText);
+  const metadata = createCommunicationMetadata("restriction_create", {
+    appliedFrom: "restrictions_page",
+    workflow: "manual_moderation",
+  });
 
   return {
     targetUserId: values.targetUserId.trim(),
@@ -124,7 +117,9 @@ function payloadFromValues(
 function updatePayloadFromValues(
   values: RestrictionFormValues,
 ): UpdateRestrictionPayload {
-  const metadata = parseMetadata(values.metadataText);
+  const metadata = createCommunicationMetadata("restriction_update", {
+    updatedFrom: "restrictions_page",
+  });
 
   return {
     reason: values.reason.trim(),

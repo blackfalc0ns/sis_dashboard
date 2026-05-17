@@ -10,6 +10,7 @@ import {
   sendMessage,
   updateMessage,
 } from "@/features/communication/api/communication.service";
+import { createCommunicationMetadata } from "@/features/communication/utils/communication-metadata";
 import type { CommunicationRecord } from "@/features/communication/types/communication.types";
 import type {
   Message,
@@ -315,6 +316,9 @@ export function useConversationMessages(conversationId: string) {
           type: "text",
           body: trimmed,
           clientMessageId,
+          metadata: createCommunicationMetadata("message_send", {
+            composer: "conversation_thread",
+          }),
         };
         const response = await sendMessage(conversationId, payload);
         const serverMessage = messageFromPayload(response);

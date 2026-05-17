@@ -28,8 +28,6 @@ export interface CreateConversationDialogLabels {
   avatarFileId: string;
   isReadOnly: string;
   isPinned: string;
-  metadata: string;
-  metadataHelp: string;
   group: string;
   classroom: string;
   direct: string;
@@ -37,7 +35,6 @@ export interface CreateConversationDialogLabels {
   create: string;
   save: string;
   titleRequired: string;
-  invalidMetadata: string;
 }
 
 export interface CreateConversationDialogProps {
@@ -76,10 +73,6 @@ function initialValues(
       typeof conversation?.subjectId === "string" ? conversation.subjectId : "",
     isReadOnly: Boolean(conversation?.isReadOnly),
     isPinned: Boolean(conversation?.isPinned),
-    metadataText:
-      typeof conversation?.metadata === "object" && conversation.metadata
-        ? JSON.stringify(conversation.metadata, null, 2)
-        : "",
   };
 }
 
@@ -131,19 +124,6 @@ export default function CreateConversationDialog({
     if (!values.title?.trim()) {
       setError(labels.titleRequired);
       return;
-    }
-
-    if (values.metadataText?.trim()) {
-      try {
-        const parsed = JSON.parse(values.metadataText) as unknown;
-        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-          setError(labels.invalidMetadata);
-          return;
-        }
-      } catch {
-        setError(labels.invalidMetadata);
-        return;
-      }
     }
 
     setError(null);
@@ -293,18 +273,6 @@ export default function CreateConversationDialog({
             }
           />
         </div>
-        <TextArea
-          label={labels.metadata}
-          helperText={labels.metadataHelp}
-          rows={4}
-          value={values.metadataText ?? ""}
-          onChange={(event) =>
-            setValues((current) => ({
-              ...current,
-              metadataText: event.target.value,
-            }))
-          }
-        />
       </div>
     </Modal>
   );

@@ -9,6 +9,7 @@ import {
   updateAnnouncement,
 } from "@/features/communication/api/communication.service";
 import { audienceFromScope } from "@/features/communication/api/communication.mappers";
+import { createCommunicationMetadata } from "@/features/communication/utils/communication-metadata";
 import type {
   CommunicationList,
   CommunicationRecord,
@@ -43,7 +44,6 @@ export interface AnnouncementFormValues {
   audienceId?: string;
   scheduledAt?: string;
   expiresAt?: string;
-  metadataText?: string;
 }
 
 const DEFAULT_FILTERS: AnnouncementFiltersState = {
@@ -120,11 +120,23 @@ function errorMessageFromUnknown(error: unknown): string {
 
 function payloadFromValues(
   values: AnnouncementFormValues,
+  context: "announcement_create" | "announcement_update",
 ): CreateAnnouncementPayload {
   const audience = audienceFromScope(values.audienceType, values.audienceId?.trim());
-  const metadata = parseMetadata(values.metadataText);
   const title = values.title?.trim();
   const body = values.body?.trim();
+  const metadata = createCommunicationMetadata(
+    context,
+    context === "announcement_create"
+      ? {
+          createdFrom: "announcements_page",
+          campaign:
+            values.priority === "urgent" ? "urgent_announcement" : undefined,
+        }
+      : {
+          updatedFrom: "announcement_editor",
+        },
+  );
 
   return {
     title: title ?? "",
@@ -141,16 +153,6 @@ function payloadFromValues(
       : {}),
     ...(metadata ? { metadata } : {}),
   };
-}
-
-function parseMetadata(metadataText?: string): CommunicationRecord | undefined {
-  const trimmed = metadataText?.trim();
-  if (!trimmed) return undefined;
-  const parsed = JSON.parse(trimmed) as unknown;
-  if (!isRecord(parsed)) {
-    throw new Error("Metadata must be a JSON object.");
-  }
-  return parsed;
 }
 
 function sortAnnouncements(announcements: Announcement[]) {
@@ -245,7 +247,7 @@ export function useAnnouncements() {
   const create = useCallback(
     async (values: AnnouncementFormValues) => {
       const response = await mutate(() =>
-        createAnnouncement(payloadFromValues(values)),
+        createAnnouncement(payloadFromValues(values, "announcement_create")),
       );
       return unwrapItem<Announcement>(response);
     },
@@ -257,7 +259,10 @@ export function useAnnouncements() {
       const response = await mutate(() =>
         updateAnnouncement(
           announcementId,
-          payloadFromValues(values) as UpdateAnnouncementPayload,
+          payloadFromValues(
+            values,
+            "announcement_update",
+          ) as UpdateAnnouncementPayload,
         ),
       );
       return unwrapItem<Announcement>(response);

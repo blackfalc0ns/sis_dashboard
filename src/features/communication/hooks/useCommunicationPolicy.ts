@@ -6,6 +6,7 @@ import {
   getPolicy,
   updatePolicy,
 } from "@/features/communication/api/communication.service";
+import { createCommunicationMetadata } from "@/features/communication/utils/communication-metadata";
 import type {
   CommunicationAdminOverview,
   ModerationMode,
@@ -52,8 +53,17 @@ export interface CommunicationPolicyFormValues {
   isEnabled?: boolean;
   allowAdminToAnyone?: boolean;
   allowDirectStaffToStaff?: boolean;
+  allowTeacherToParent?: boolean;
+  allowTeacherToStudent?: boolean;
+  allowStudentToTeacher?: boolean;
+  allowStudentToStudent?: boolean;
   allowTeacherCreatedGroups?: boolean;
+  allowStudentCreatedGroups?: boolean;
+  requireApprovalForStudentGroups?: boolean;
+  allowParentToParent?: boolean;
   allowAttachments?: boolean;
+  allowVoiceMessages?: boolean;
+  allowVideoMessages?: boolean;
   allowReactions?: boolean;
   allowMessageEdit?: boolean;
   allowMessageDelete?: boolean;
@@ -76,8 +86,18 @@ export function policyToFormValues(
     isEnabled: policy?.isEnabled ?? policy?.allowConversations ?? true,
     allowAdminToAnyone: policy?.allowAdminToAnyone ?? false,
     allowDirectStaffToStaff: policy?.allowDirectStaffToStaff ?? true,
+    allowTeacherToParent: policy?.allowTeacherToParent ?? true,
+    allowTeacherToStudent: policy?.allowTeacherToStudent ?? true,
+    allowStudentToTeacher: policy?.allowStudentToTeacher ?? true,
+    allowStudentToStudent: policy?.allowStudentToStudent ?? false,
     allowTeacherCreatedGroups: policy?.allowTeacherCreatedGroups ?? true,
+    allowStudentCreatedGroups: policy?.allowStudentCreatedGroups ?? false,
+    requireApprovalForStudentGroups:
+      policy?.requireApprovalForStudentGroups ?? true,
+    allowParentToParent: policy?.allowParentToParent ?? false,
     allowAttachments: policy?.allowAttachments ?? true,
+    allowVoiceMessages: policy?.allowVoiceMessages ?? false,
+    allowVideoMessages: policy?.allowVideoMessages ?? false,
     allowReactions: policy?.allowReactions ?? true,
     allowMessageEdit:
       policy?.allowMessageEdit ?? policy?.allowMessageEditing ?? true,
@@ -114,7 +134,7 @@ function optionalNumber(value?: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function payloadFromValues(
+export function payloadFromValues(
   values: CommunicationPolicyFormValues,
 ): UpdateCommunicationPolicyPayload {
   const metadata = parseMetadata(values.metadataText);
@@ -124,13 +144,27 @@ function payloadFromValues(
   const maxMessageLength = optionalNumber(values.maxMessageLength);
   const maxAttachmentSizeMb = optionalNumber(values.maxAttachmentSizeMb);
   const retentionDays = optionalNumber(values.retentionDays);
+  const internalMetadata = createCommunicationMetadata("policy_update", {
+    updatedFrom: "communication_settings_page",
+  });
 
   return {
     isEnabled: Boolean(values.isEnabled),
     allowAdminToAnyone: Boolean(values.allowAdminToAnyone),
     allowDirectStaffToStaff: Boolean(values.allowDirectStaffToStaff),
+    allowTeacherToParent: Boolean(values.allowTeacherToParent),
+    allowTeacherToStudent: Boolean(values.allowTeacherToStudent),
+    allowStudentToTeacher: Boolean(values.allowStudentToTeacher),
+    allowStudentToStudent: Boolean(values.allowStudentToStudent),
     allowTeacherCreatedGroups: Boolean(values.allowTeacherCreatedGroups),
+    allowStudentCreatedGroups: Boolean(values.allowStudentCreatedGroups),
+    requireApprovalForStudentGroups: Boolean(
+      values.requireApprovalForStudentGroups,
+    ),
+    allowParentToParent: Boolean(values.allowParentToParent),
     allowAttachments: Boolean(values.allowAttachments),
+    allowVoiceMessages: Boolean(values.allowVoiceMessages),
+    allowVideoMessages: Boolean(values.allowVideoMessages),
     allowReactions: Boolean(values.allowReactions),
     allowMessageEdit,
     allowMessageDelete,
@@ -143,7 +177,10 @@ function payloadFromValues(
     ...(maxMessageLength !== undefined ? { maxMessageLength } : {}),
     ...(maxAttachmentSizeMb !== undefined ? { maxAttachmentSizeMb } : {}),
     ...(retentionDays !== undefined ? { retentionDays } : {}),
-    ...(metadata ? { metadata } : {}),
+    metadata: {
+      ...(internalMetadata ?? {}),
+      ...(metadata ?? {}),
+    },
   };
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
@@ -17,8 +18,17 @@ export interface CommunicationPolicyFormLabels {
   enabled: string;
   adminToAnyone: string;
   directStaffToStaff: string;
+  teacherToParent: string;
+  teacherToStudent: string;
+  studentToTeacher: string;
+  studentToStudent: string;
+  parentToParent: string;
   teacherCreatedGroups: string;
+  studentCreatedGroups: string;
+  requireApprovalForStudentGroups: string;
   attachments: string;
+  voiceMessages: string;
+  videoMessages: string;
   reactions: string;
   messageEdit: string;
   messageDelete: string;
@@ -40,6 +50,7 @@ export interface CommunicationPolicyFormLabels {
   studentDirectSameSchool: string;
   studentDirectAnySchoolUser: string;
   studentDirectApprovalRequired: string;
+  advanced: string;
   metadata: string;
   metadataHelp: string;
   invalidMetadata: string;
@@ -70,6 +81,14 @@ function ToggleRow({ checked, label, onChange }: ToggleRowProps) {
       />
     </label>
   );
+}
+
+interface ToggleGroupProps {
+  children: ReactNode;
+}
+
+function ToggleGroup({ children }: ToggleGroupProps) {
+  return <div className="grid gap-3 md:grid-cols-2">{children}</div>;
 }
 
 export default function CommunicationPolicyForm({
@@ -134,7 +153,7 @@ export default function CommunicationPolicyForm({
         </Button>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <ToggleGroup>
         <ToggleRow
           label={labels.enabled}
           checked={values.isEnabled}
@@ -151,14 +170,67 @@ export default function CommunicationPolicyForm({
           onChange={(checked) => setBoolean("allowDirectStaffToStaff", checked)}
         />
         <ToggleRow
+          label={labels.teacherToParent}
+          checked={values.allowTeacherToParent}
+          onChange={(checked) => setBoolean("allowTeacherToParent", checked)}
+        />
+        <ToggleRow
+          label={labels.teacherToStudent}
+          checked={values.allowTeacherToStudent}
+          onChange={(checked) => setBoolean("allowTeacherToStudent", checked)}
+        />
+        <ToggleRow
+          label={labels.studentToTeacher}
+          checked={values.allowStudentToTeacher}
+          onChange={(checked) => setBoolean("allowStudentToTeacher", checked)}
+        />
+        <ToggleRow
+          label={labels.studentToStudent}
+          checked={values.allowStudentToStudent}
+          onChange={(checked) => setBoolean("allowStudentToStudent", checked)}
+        />
+        <ToggleRow
+          label={labels.parentToParent}
+          checked={values.allowParentToParent}
+          onChange={(checked) => setBoolean("allowParentToParent", checked)}
+        />
+      </ToggleGroup>
+
+      <ToggleGroup>
+        <ToggleRow
           label={labels.teacherCreatedGroups}
           checked={values.allowTeacherCreatedGroups}
           onChange={(checked) => setBoolean("allowTeacherCreatedGroups", checked)}
         />
         <ToggleRow
+          label={labels.studentCreatedGroups}
+          checked={values.allowStudentCreatedGroups}
+          onChange={(checked) => setBoolean("allowStudentCreatedGroups", checked)}
+        />
+        <ToggleRow
+          label={labels.requireApprovalForStudentGroups}
+          checked={values.requireApprovalForStudentGroups}
+          onChange={(checked) =>
+            setBoolean("requireApprovalForStudentGroups", checked)
+          }
+        />
+      </ToggleGroup>
+
+      <ToggleGroup>
+        <ToggleRow
           label={labels.attachments}
           checked={values.allowAttachments}
           onChange={(checked) => setBoolean("allowAttachments", checked)}
+        />
+        <ToggleRow
+          label={labels.voiceMessages}
+          checked={values.allowVoiceMessages}
+          onChange={(checked) => setBoolean("allowVoiceMessages", checked)}
+        />
+        <ToggleRow
+          label={labels.videoMessages}
+          checked={values.allowVideoMessages}
+          onChange={(checked) => setBoolean("allowVideoMessages", checked)}
         />
         <ToggleRow
           label={labels.reactions}
@@ -190,7 +262,7 @@ export default function CommunicationPolicyForm({
           checked={values.allowOnlinePresence}
           onChange={(checked) => setBoolean("allowOnlinePresence", checked)}
         />
-      </div>
+      </ToggleGroup>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Input
@@ -262,19 +334,26 @@ export default function CommunicationPolicyForm({
         />
       </div>
 
-      <TextArea
-        label={labels.metadata}
-        helperText={labels.metadataHelp}
-        value={values.metadataText ?? ""}
-        error={error ?? undefined}
-        rows={5}
-        onChange={(event) =>
-          setValues((current) => ({
-            ...current,
-            metadataText: event.target.value,
-          }))
-        }
-      />
+      <details className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <summary className="cursor-pointer text-sm font-medium text-slate-700">
+          {labels.advanced}
+        </summary>
+        <div className="mt-4">
+          <TextArea
+            label={labels.metadata}
+            helperText={labels.metadataHelp}
+            value={values.metadataText ?? ""}
+            error={error ?? undefined}
+            rows={5}
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                metadataText: event.target.value,
+              }))
+            }
+          />
+        </div>
+      </details>
     </section>
   );
 }

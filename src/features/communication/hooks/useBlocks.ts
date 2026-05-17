@@ -6,6 +6,7 @@ import {
   deleteBlock,
   getBlocks,
 } from "@/features/communication/api/communication.service";
+import { createCommunicationMetadata } from "@/features/communication/utils/communication-metadata";
 import { isApiError } from "@/lib/api-error";
 import { useAuth } from "@/hooks/use-auth";
 import type {
@@ -91,6 +92,10 @@ function payloadFromValues(values: BlockFormValues): CreateBlockPayload {
   return {
     targetUserId: values.targetUserId.trim(),
     ...(values.reason?.trim() ? { reason: values.reason.trim() } : {}),
+    metadata: createCommunicationMetadata("block_create", {
+      createdFrom: "blocks_page",
+      workflow: "manual_moderation",
+    }),
   };
 }
 

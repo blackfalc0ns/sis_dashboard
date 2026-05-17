@@ -34,13 +34,10 @@ export interface AnnouncementEditorLabels {
   custom: string;
   scheduledAt: string;
   expiresAt: string;
-  metadata: string;
-  metadataHelp: string;
   saveDraft: string;
   saveChanges: string;
   titleRequired: string;
   bodyRequired: string;
-  invalidMetadata: string;
 }
 
 export interface AnnouncementEditorProps {
@@ -77,10 +74,6 @@ function initialValues(announcement?: Announcement | null): AnnouncementFormValu
     audienceId,
     scheduledAt: datetimeLocalValue(announcement?.scheduledAt),
     expiresAt: datetimeLocalValue(announcement?.expiresAt),
-    metadataText:
-      announcement?.metadata && typeof announcement.metadata === "object"
-        ? JSON.stringify(announcement.metadata, null, 2)
-        : "",
   };
 }
 
@@ -149,18 +142,6 @@ export default function AnnouncementEditor({
     if (!values.body?.trim()) {
       setError(labels.bodyRequired);
       return;
-    }
-    if (values.metadataText?.trim()) {
-      try {
-        const parsed = JSON.parse(values.metadataText) as unknown;
-        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-          setError(labels.invalidMetadata);
-          return;
-        }
-      } catch {
-        setError(labels.invalidMetadata);
-        return;
-      }
     }
 
     setError(null);
@@ -260,16 +241,6 @@ export default function AnnouncementEditor({
           }
         />
       </div>
-      <TextArea
-        label={labels.metadata}
-        helperText={labels.metadataHelp}
-        value={values.metadataText ?? ""}
-        rows={4}
-        disabled={readOnly}
-        onChange={(event) =>
-          setValues((current) => ({ ...current, metadataText: event.target.value }))
-        }
-      />
       {!readOnly ? (
         <div className="flex justify-end">
           <Button

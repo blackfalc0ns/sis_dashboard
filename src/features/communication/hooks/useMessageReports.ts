@@ -6,6 +6,7 @@ import {
   getMessageReports,
   updateMessageReport,
 } from "@/features/communication/api/communication.service";
+import { createCommunicationMetadata } from "@/features/communication/utils/communication-metadata";
 import { isApiError } from "@/lib/api-error";
 import type {
   CommunicationList,
@@ -208,7 +209,17 @@ export function useMessageReports() {
       setError(null);
 
       try {
-        const response = await createMessageReport(messageId, payload);
+        const metadata = createCommunicationMetadata("report_create", {
+          reportedFrom: "message_actions_menu",
+          clientPlatform: "web",
+        });
+        const response = await createMessageReport(messageId, {
+          ...payload,
+          metadata: {
+            ...(metadata ?? {}),
+            ...(payload.metadata ?? {}),
+          },
+        });
         await refresh();
         return { report: unwrapItem<MessageReport>(response), duplicate: false };
       } catch (nextError) {

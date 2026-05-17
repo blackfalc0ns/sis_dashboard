@@ -11,6 +11,7 @@ import {
   updateAnnouncement,
 } from "@/features/communication/api/communication.service";
 import { audienceFromScope } from "@/features/communication/api/communication.mappers";
+import { createCommunicationMetadata } from "@/features/communication/utils/communication-metadata";
 import type { CommunicationRecord } from "@/features/communication/types/communication.types";
 import type {
   Announcement,
@@ -40,9 +41,11 @@ function payloadFromValues(
   values: AnnouncementFormValues,
 ): UpdateAnnouncementPayload {
   const audience = audienceFromScope(values.audienceType, values.audienceId?.trim());
-  const metadata = parseMetadata(values.metadataText);
   const title = values.title?.trim();
   const body = values.body?.trim();
+  const metadata = createCommunicationMetadata("announcement_update", {
+    updatedFrom: "announcement_editor",
+  });
 
   return {
     ...(title ? { title } : {}),
@@ -58,16 +61,6 @@ function payloadFromValues(
       : {}),
     ...(metadata ? { metadata } : {}),
   };
-}
-
-function parseMetadata(metadataText?: string): CommunicationRecord | undefined {
-  const trimmed = metadataText?.trim();
-  if (!trimmed) return undefined;
-  const parsed = JSON.parse(trimmed) as unknown;
-  if (!isRecord(parsed)) {
-    throw new Error("Metadata must be a JSON object.");
-  }
-  return parsed;
 }
 
 export function useAnnouncement(announcementId: string) {
