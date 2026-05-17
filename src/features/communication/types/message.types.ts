@@ -3,13 +3,21 @@ import type {
   CommunicationDateTime,
   CommunicationFile,
   CommunicationId,
-  CommunicationQueryParams,
   CommunicationRecord,
 } from "./communication.types";
 
-export type MessageStatus = "sent" | "edited" | "deleted" | "hidden" | string;
-export type MessageKind = "text" | "attachment" | "system" | string;
-export type ReactionType = "like" | "love" | "thanks" | "seen" | string;
+export type MessageStatus = "sent" | "hidden" | "deleted";
+export type MessageType = "text" | "image" | "file" | "audio" | "video" | "system";
+export type MessageKind = MessageType;
+export type ReactionType =
+  | "like"
+  | "love"
+  | "laugh"
+  | "wow"
+  | "sad"
+  | "angry"
+  | "thumbs_up"
+  | "thumbs_down";
 
 export interface Message extends CommunicationRecord {
   id: CommunicationId;
@@ -17,6 +25,7 @@ export interface Message extends CommunicationRecord {
   senderId?: CommunicationId;
   sender?: CommunicationActor;
   body?: string;
+  type?: MessageType;
   kind?: MessageKind;
   status?: MessageStatus;
   attachments?: MessageAttachment[];
@@ -26,20 +35,25 @@ export interface Message extends CommunicationRecord {
   deletedAt?: CommunicationDateTime | null;
 }
 
-export interface SendMessagePayload extends CommunicationRecord {
+export interface SendMessagePayload {
+  type?: "text";
   body?: string;
-  kind?: MessageKind;
-  attachmentIds?: CommunicationId[];
-  parentMessageId?: CommunicationId;
+  content?: string;
+  clientMessageId?: string;
+  replyToMessageId?: CommunicationId;
+  metadata?: CommunicationRecord | null;
 }
 
-export interface UpdateMessagePayload extends CommunicationRecord {
+export interface UpdateMessagePayload {
   body?: string;
+  content?: string;
 }
 
-export type ListMessagesParams = CommunicationQueryParams & {
-  before?: CommunicationId;
-  after?: CommunicationId;
+export type ListMessagesParams = {
+  type?: MessageType;
+  status?: MessageStatus;
+  before?: string;
+  after?: string;
   page?: number;
   limit?: number;
 };
@@ -66,7 +80,8 @@ export interface MessageAttachment extends CommunicationRecord {
   createdAt?: CommunicationDateTime;
 }
 
-export interface LinkAttachmentPayload extends CommunicationRecord {
+export interface LinkAttachmentPayload {
   fileId: CommunicationId;
   caption?: string;
+  sortOrder?: number;
 }

@@ -13,6 +13,7 @@ import {
 import type { CommunicationRecord } from "@/features/communication/types/communication.types";
 import type {
   Message,
+  MessageStatus,
   SendMessagePayload,
 } from "@/features/communication/types/message.types";
 import { useAuth } from "@/hooks/use-auth";
@@ -35,6 +36,11 @@ const isRecord = (value: unknown): value is CommunicationRecord =>
 
 const stringValue = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim() ? value : undefined;
+
+function messageStatus(value: unknown): MessageStatus {
+  if (value === "hidden" || value === "deleted") return value;
+  return "sent";
+}
 
 function unwrapItem<T>(response: unknown): T | null {
   if (!isRecord(response)) return (response ?? null) as T | null;
@@ -92,7 +98,7 @@ function messageFromPayload(payload: unknown): ConversationMessage | null {
       stringValue(source.content) ??
       stringValue(source.text) ??
       "",
-    status: stringValue(source.status) ?? "sent",
+    status: messageStatus(source.status),
     createdAt: stringValue(source.createdAt) ?? new Date().toISOString(),
     updatedAt: stringValue(source.updatedAt),
     senderId: stringValue(source.senderId) ?? stringValue(source.userId),
@@ -296,7 +302,7 @@ export function useConversationMessages(conversationId: string) {
             }
           : undefined,
         body: trimmed,
-        kind: "text",
+        type: "text",
         status: "sent",
         deliveryStatus: "pending",
         createdAt: new Date().toISOString(),
@@ -306,8 +312,8 @@ export function useConversationMessages(conversationId: string) {
 
       try {
         const payload: SendMessagePayload = {
+          type: "text",
           body: trimmed,
-          kind: "text",
           clientMessageId,
         };
         const response = await sendMessage(conversationId, payload);
@@ -342,7 +348,7 @@ export function useConversationMessages(conversationId: string) {
     setMessages((current) =>
       current.map((message) =>
         message.id === messageId
-          ? { ...message, body: trimmed, status: "edited" }
+          ? { ...message, body: trimmed, updatedAt: new Date().toISOString() }
           : message,
       ),
     );

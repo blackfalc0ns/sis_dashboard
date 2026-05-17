@@ -2,13 +2,34 @@ import type {
   CommunicationActor,
   CommunicationDateTime,
   CommunicationId,
-  CommunicationQueryParams,
   CommunicationRecord,
 } from "./communication.types";
 
-export type ConversationStatus = "active" | "closed" | "archived" | string;
-export type ConversationType = "direct" | "group" | "classroom" | string;
-export type ParticipantRole = "owner" | "admin" | "member" | string;
+export type ConversationStatus = "active" | "archived" | "closed";
+export type ConversationType =
+  | "direct"
+  | "group"
+  | "classroom"
+  | "grade"
+  | "section"
+  | "stage"
+  | "school_wide"
+  | "support"
+  | "system";
+export type ParticipantRole =
+  | "owner"
+  | "admin"
+  | "moderator"
+  | "member"
+  | "read_only"
+  | "system";
+export type ParticipantStatus =
+  | "active"
+  | "invited"
+  | "left"
+  | "removed"
+  | "muted"
+  | "blocked";
 
 export interface Conversation extends CommunicationRecord {
   id: CommunicationId;
@@ -26,20 +47,33 @@ export interface Conversation extends CommunicationRecord {
   updatedAt?: CommunicationDateTime;
 }
 
-export interface CreateConversationPayload extends CommunicationRecord {
-  title?: string;
-  titleAr?: string;
-  titleEn?: string;
-  type?: ConversationType;
-  participantIds?: CommunicationId[];
-  scopeType?: string;
-  scopeId?: CommunicationId;
+export interface CreateConversationPayload {
+  type: ConversationType;
+  title?: string | null;
+  description?: string | null;
+  avatarFileId?: CommunicationId | null;
+  academicYearId?: CommunicationId;
+  termId?: CommunicationId;
+  stageId?: CommunicationId;
+  gradeId?: CommunicationId;
+  sectionId?: CommunicationId;
+  classroomId?: CommunicationId;
+  subjectId?: CommunicationId;
+  isReadOnly?: boolean;
+  isPinned?: boolean;
+  metadata?: CommunicationRecord | null;
 }
 
-export type UpdateConversationPayload = Partial<CreateConversationPayload> &
-  CommunicationRecord;
+export interface UpdateConversationPayload {
+  title?: string | null;
+  description?: string | null;
+  avatarFileId?: CommunicationId | null;
+  isReadOnly?: boolean;
+  isPinned?: boolean;
+  metadata?: CommunicationRecord | null;
+}
 
-export type ListConversationsParams = CommunicationQueryParams & {
+export type ListConversationsParams = {
   status?: ConversationStatus;
   type?: ConversationType;
   search?: string;
@@ -52,23 +86,82 @@ export interface ConversationParticipant extends CommunicationRecord {
   conversationId?: CommunicationId;
   userId?: CommunicationId;
   role?: ParticipantRole;
+  status?: ParticipantStatus;
   actor?: CommunicationActor;
+  mutedUntil?: CommunicationDateTime | null;
+  metadata?: CommunicationRecord | null;
   joinedAt?: CommunicationDateTime;
   leftAt?: CommunicationDateTime | null;
 }
 
-export interface AddParticipantPayload extends CommunicationRecord {
-  userId?: CommunicationId;
-  participantId?: CommunicationId;
+export interface AddParticipantPayload {
+  userId: CommunicationId;
   role?: ParticipantRole;
+  status?: ParticipantStatus;
+  mutedUntil?: CommunicationDateTime | null;
+  metadata?: CommunicationRecord | null;
 }
 
-export interface MarkConversationReadPayload extends CommunicationRecord {
+export interface UpdateParticipantPayload {
+  role?: ParticipantRole;
+  status?: ParticipantStatus;
+  mutedUntil?: CommunicationDateTime | null;
+  metadata?: CommunicationRecord | null;
+}
+
+export interface ParticipantRoleChangePayload {
+  targetRole?: ParticipantRole;
+}
+
+export interface ConversationInvite extends CommunicationRecord {
+  id: CommunicationId;
+  conversationId?: CommunicationId;
+  invitedUserId?: CommunicationId;
+  invitedUser?: CommunicationActor;
+  status?: "pending" | "accepted" | "rejected" | "expired";
+  expiresAt?: CommunicationDateTime | null;
+  metadata?: CommunicationRecord | null;
+  createdAt?: CommunicationDateTime;
+  updatedAt?: CommunicationDateTime;
+}
+
+export interface CreateConversationInvitePayload {
+  invitedUserId: CommunicationId;
+  expiresAt?: CommunicationDateTime | null;
+  metadata?: CommunicationRecord | null;
+}
+
+export interface RejectConversationInvitePayload {
+  reason?: string;
+}
+
+export interface ConversationJoinRequest extends CommunicationRecord {
+  id: CommunicationId;
+  conversationId?: CommunicationId;
+  userId?: CommunicationId;
+  user?: CommunicationActor;
+  status?: "pending" | "approved" | "rejected";
+  note?: string | null;
+  metadata?: CommunicationRecord | null;
+  createdAt?: CommunicationDateTime;
+  updatedAt?: CommunicationDateTime;
+}
+
+export interface CreateJoinRequestPayload {
+  note?: string;
+  metadata?: CommunicationRecord | null;
+}
+
+export interface ReviewJoinRequestPayload {
+  reason?: string;
+}
+
+export interface MarkConversationReadPayload {
   lastReadMessageId?: CommunicationId;
   readAt?: CommunicationDateTime;
 }
 
-export type ConversationReadSummaryParams = CommunicationQueryParams & {
+export type ConversationReadSummaryParams = {
   limit?: number;
   page?: number;
 };

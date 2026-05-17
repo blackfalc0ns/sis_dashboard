@@ -115,7 +115,18 @@ function payloadFromValues(
   return {
     targetUserId: values.targetUserId.trim(),
     type: values.type,
-    restrictionType: values.type,
+    reason: values.reason.trim(),
+    ...(values.expiresAt ? { expiresAt: new Date(values.expiresAt).toISOString() } : {}),
+    ...(metadata ? { metadata } : {}),
+  };
+}
+
+function updatePayloadFromValues(
+  values: RestrictionFormValues,
+): UpdateRestrictionPayload {
+  const metadata = parseMetadata(values.metadataText);
+
+  return {
     reason: values.reason.trim(),
     ...(values.expiresAt ? { expiresAt: new Date(values.expiresAt).toISOString() } : {}),
     ...(metadata ? { metadata } : {}),
@@ -209,10 +220,7 @@ export function useRestrictions() {
   const update = useCallback(
     async (restrictionId: string, values: RestrictionFormValues) => {
       const response = await mutate(() =>
-        updateRestriction(
-          restrictionId,
-          payloadFromValues(values) as UpdateRestrictionPayload,
-        ),
+        updateRestriction(restrictionId, updatePayloadFromValues(values)),
       );
       return unwrapItem<Restriction>(response);
     },

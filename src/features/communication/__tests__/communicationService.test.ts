@@ -14,6 +14,14 @@ const apiMocks = vi.hoisted(() => ({
 vi.mock("@/lib/api", () => apiMocks);
 
 import * as communicationService from "@/features/communication/api/communication.service";
+import {
+  compactBackendPayload,
+  toBackendAnnouncementCreatePayload,
+  toBackendConversationCreatePayload,
+  toBackendReportCreatePayload,
+  toBackendRestrictionCreatePayload,
+  toBackendSendMessagePayload,
+} from "@/features/communication/api/communication.mappers";
 import { uploadFile } from "@/features/communication/api/files.service";
 
 describe("communication API service endpoint contracts", () => {
@@ -43,7 +51,7 @@ describe("communication API service endpoint contracts", () => {
   });
 
   it("uses announcement endpoints and compact query params", async () => {
-    await communicationService.createAnnouncement({ title: "Draft" });
+    await communicationService.createAnnouncement({ title: "Draft", body: "Body" });
     await communicationService.getAnnouncements({
       status: "draft",
       search: "",
@@ -60,12 +68,12 @@ describe("communication API service endpoint contracts", () => {
     expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
       1,
       "/communication/announcements",
-      { title: "Draft" },
+      { title: "Draft", body: "Body" },
     );
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       1,
       "/communication/announcements",
-      { params: { status: "draft", audienceIds: ["class-1"], page: 1 } },
+      { params: { status: "draft", page: 1 } },
     );
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       2,
@@ -94,7 +102,7 @@ describe("communication API service endpoint contracts", () => {
   });
 
   it("uses conversation, participant, and message endpoints", async () => {
-    await communicationService.createConversation({ title: "Team" });
+    await communicationService.createConversation({ type: "group", title: "Team" });
     await communicationService.getConversations({ status: "active", page: 2 });
     await communicationService.getConversation("conv-1");
     await communicationService.updateConversation("conv-1", { title: "New" });
@@ -122,7 +130,7 @@ describe("communication API service endpoint contracts", () => {
     expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
       1,
       "/communication/conversations",
-      { title: "Team" },
+      { type: "group", title: "Team" },
     );
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       1,
@@ -162,7 +170,7 @@ describe("communication API service endpoint contracts", () => {
     expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
       6,
       "/communication/conversations/conv-1/messages",
-      { body: "Hello", clientMessageId: "client-1" },
+      { type: "text", body: "Hello", clientMessageId: "client-1" },
     );
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       4,
@@ -199,14 +207,14 @@ describe("communication API service endpoint contracts", () => {
   });
 
   it("uses notification endpoints", async () => {
-    await communicationService.getNotifications({ read: false, page: 1 });
+    await communicationService.getNotifications({ status: "unread", page: 1 });
     await communicationService.markAllNotificationsRead();
     await communicationService.getNotificationDeliveries({ status: "sent" });
 
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       1,
       "/communication/notifications",
-      { params: { read: false, page: 1 } },
+      { params: { status: "unread", page: 1 } },
     );
     expect(apiMocks.apiPost).toHaveBeenCalledWith(
       "/communication/notifications/read-all",
@@ -268,7 +276,7 @@ describe("communication API service endpoint contracts", () => {
     await communicationService.getModerationActions("msg-1");
     await communicationService.createRestriction({
       targetUserId: "user-1",
-      type: "message_send_disabled",
+      type: "send_disabled",
     });
     await communicationService.getRestrictions({ activeOnly: true });
     await communicationService.updateRestriction("restriction-1", {
@@ -310,7 +318,7 @@ describe("communication API service endpoint contracts", () => {
     expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
       3,
       "/communication/restrictions",
-      { targetUserId: "user-1", type: "message_send_disabled" },
+      { targetUserId: "user-1", type: "send_disabled" },
     );
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       4,
@@ -334,7 +342,6 @@ describe("communication API service endpoint contracts", () => {
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       5,
       "/communication/blocks",
-      { params: { targetUserId: "user-2" } },
     );
     expect(apiMocks.apiDelete).toHaveBeenNthCalledWith(
       2,
@@ -343,7 +350,7 @@ describe("communication API service endpoint contracts", () => {
   });
 
   it("does not call auth or academic year/term endpoints", async () => {
-    await communicationService.getConversations({ termId: "term-1" });
+    await communicationService.getConversations({ page: 1 });
     await communicationService.getPolicy();
     await communicationService.getBlocks();
 
@@ -397,5 +404,79 @@ describe("communication API service endpoint contracts", () => {
     expect(formData.get("file")).toBe(file);
     expect(formData.get("purpose")).toBe("communication");
     expect(formData.get("folderId")).toBe("folder-1");
+  });
+
+  it("maps request payloads to backend field names only", () => {
+    expect(
+      toBackendConversationCreatePayload({
+        type: "classroom",
+        title: "Class chat",
+        classroomId: "classroom-1",
+        isPinned: false,
+        metadata: { source: "test" },
+      }),
+    ).toEqual({
+      type: "classroom",
+      title: "Class chat",
+      classroomId: "classroom-1",
+      isPinned: false,
+      metadata: { source: "test" },
+    });
+
+    expect(
+      toBackendSendMessagePayload({
+        body: "Reply",
+        replyToMessageId: "msg-parent",
+      }),
+    ).toEqual({
+      type: "text",
+      body: "Reply",
+      replyToMessageId: "msg-parent",
+    });
+
+    expect(
+      toBackendAnnouncementCreatePayload({
+        title: "Hello",
+        body: "Body",
+        audienceType: "grade",
+        audiences: [{ audienceType: "grade", gradeId: "grade-1" }],
+      }),
+    ).toEqual({
+      title: "Hello",
+      body: "Body",
+      audienceType: "grade",
+      audiences: [{ audienceType: "grade", gradeId: "grade-1" }],
+    });
+
+    expect(
+      toBackendReportCreatePayload({
+        reason: "spam",
+        description: "Duplicated",
+      }),
+    ).toEqual({
+      reason: "spam",
+      description: "Duplicated",
+    });
+
+    expect(
+      toBackendRestrictionCreatePayload({
+        targetUserId: "user-1",
+        type: "send_disabled",
+        reason: "Not supported by backend",
+      }),
+    ).toEqual({
+      targetUserId: "user-1",
+      type: "send_disabled",
+      reason: "Not supported by backend",
+    });
+
+    expect(
+      compactBackendPayload({
+        keepFalse: false,
+        keepZero: 0,
+        removeUndefined: undefined,
+        removeNull: null,
+      }),
+    ).toEqual({ keepFalse: false, keepZero: 0 });
   });
 });

@@ -8,7 +8,7 @@ export interface ReportDetailsPanelLabels {
   title: string;
   status: string;
   reason: string;
-  details: string;
+  description: string;
   reporter: string;
   messageId: string;
   resolutionNote: string;
@@ -98,9 +98,9 @@ export default function ReportDetailsPanel({
           </dd>
         </div>
         <div className="sm:col-span-2">
-          <dt className="text-xs text-slate-500">{labels.details}</dt>
+          <dt className="text-xs text-slate-500">{labels.description}</dt>
           <dd className="whitespace-pre-wrap text-slate-800">
-            {report.details || labels.unknown}
+            {report.description || report.comment || report.details || labels.unknown}
           </dd>
         </div>
         {report.resolutionNote ? (

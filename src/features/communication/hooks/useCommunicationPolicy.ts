@@ -109,6 +109,9 @@ function payloadFromValues(
   const metadata = parseMetadata(values.metadataText);
   const allowMessageEdit = Boolean(values.allowMessageEdit);
   const allowMessageDelete = Boolean(values.allowMessageDelete);
+  const maxGroupMembers = optionalNumber(values.maxGroupMembers);
+  const maxMessageLength = optionalNumber(values.maxMessageLength);
+  const maxAttachmentSizeMb = optionalNumber(values.maxAttachmentSizeMb);
 
   return {
     isEnabled: Boolean(values.isEnabled),
@@ -119,20 +122,12 @@ function payloadFromValues(
     allowReactions: Boolean(values.allowReactions),
     allowMessageEdit,
     allowMessageDelete,
-    allowMessageEditing: allowMessageEdit,
-    allowMessageDeleting: allowMessageDelete,
     allowReadReceipts: Boolean(values.allowReadReceipts),
     allowDeliveryReceipts: Boolean(values.allowDeliveryReceipts),
     moderationMode: values.moderationMode || "manual",
-    ...(optionalNumber(values.maxGroupMembers)
-      ? { maxGroupMembers: optionalNumber(values.maxGroupMembers) }
-      : {}),
-    ...(optionalNumber(values.maxMessageLength)
-      ? { maxMessageLength: optionalNumber(values.maxMessageLength) }
-      : {}),
-    ...(optionalNumber(values.maxAttachmentSizeMb)
-      ? { maxAttachmentSizeMb: optionalNumber(values.maxAttachmentSizeMb) }
-      : {}),
+    ...(maxGroupMembers !== undefined ? { maxGroupMembers } : {}),
+    ...(maxMessageLength !== undefined ? { maxMessageLength } : {}),
+    ...(maxAttachmentSizeMb !== undefined ? { maxAttachmentSizeMb } : {}),
     ...(metadata ? { metadata } : {}),
   };
 }

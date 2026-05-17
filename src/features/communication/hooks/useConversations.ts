@@ -17,6 +17,7 @@ import type {
 import type {
   Conversation,
   ConversationStatus,
+  ConversationType,
   CreateConversationPayload,
   UpdateConversationPayload,
 } from "@/features/communication/types/conversation.types";
@@ -46,12 +47,19 @@ export interface ConversationFiltersState {
 
 export interface ConversationFormValues {
   title?: string;
-  titleAr?: string;
-  titleEn?: string;
   type?: string;
-  scopeType?: string;
-  scopeId?: string;
-  participantIds?: string[];
+  description?: string;
+  avatarFileId?: string;
+  academicYearId?: string;
+  termId?: string;
+  stageId?: string;
+  gradeId?: string;
+  sectionId?: string;
+  classroomId?: string;
+  subjectId?: string;
+  isReadOnly?: boolean;
+  isPinned?: boolean;
+  metadataText?: string;
 }
 
 const DEFAULT_FILTERS: ConversationFiltersState = {
@@ -260,17 +268,62 @@ function lastMessageFromPayload(
 function payloadFromValues(
   values: ConversationFormValues,
 ): CreateConversationPayload {
-  const participantIds = values.participantIds?.filter(Boolean);
+  const metadata = parseMetadata(values.metadataText);
+  const title = values.title?.trim();
+  const type = (values.type || "group") as ConversationType;
 
   return {
-    ...(values.title?.trim() ? { title: values.title.trim() } : {}),
-    ...(values.titleAr?.trim() ? { titleAr: values.titleAr.trim() } : {}),
-    ...(values.titleEn?.trim() ? { titleEn: values.titleEn.trim() } : {}),
-    ...(values.type ? { type: values.type } : {}),
-    ...(values.scopeType?.trim() ? { scopeType: values.scopeType.trim() } : {}),
-    ...(values.scopeId?.trim() ? { scopeId: values.scopeId.trim() } : {}),
-    ...(participantIds && participantIds.length > 0 ? { participantIds } : {}),
+    type,
+    ...(title ? { title } : {}),
+    ...(values.description?.trim()
+      ? { description: values.description.trim() }
+      : {}),
+    ...(values.avatarFileId?.trim()
+      ? { avatarFileId: values.avatarFileId.trim() }
+      : {}),
+    ...(values.academicYearId?.trim()
+      ? { academicYearId: values.academicYearId.trim() }
+      : {}),
+    ...(values.termId?.trim() ? { termId: values.termId.trim() } : {}),
+    ...(values.stageId?.trim() ? { stageId: values.stageId.trim() } : {}),
+    ...(values.gradeId?.trim() ? { gradeId: values.gradeId.trim() } : {}),
+    ...(values.sectionId?.trim() ? { sectionId: values.sectionId.trim() } : {}),
+    ...(values.classroomId?.trim()
+      ? { classroomId: values.classroomId.trim() }
+      : {}),
+    ...(values.subjectId?.trim() ? { subjectId: values.subjectId.trim() } : {}),
+    isReadOnly: Boolean(values.isReadOnly),
+    isPinned: Boolean(values.isPinned),
+    ...(metadata ? { metadata } : {}),
   };
+}
+
+function updatePayloadFromValues(
+  values: ConversationFormValues,
+): UpdateConversationPayload {
+  const metadata = parseMetadata(values.metadataText);
+  return {
+    ...(values.title?.trim() ? { title: values.title.trim() } : {}),
+    ...(values.description?.trim()
+      ? { description: values.description.trim() }
+      : {}),
+    ...(values.avatarFileId?.trim()
+      ? { avatarFileId: values.avatarFileId.trim() }
+      : {}),
+    isReadOnly: Boolean(values.isReadOnly),
+    isPinned: Boolean(values.isPinned),
+    ...(metadata ? { metadata } : {}),
+  };
+}
+
+function parseMetadata(metadataText?: string): CommunicationRecord | undefined {
+  const trimmed = metadataText?.trim();
+  if (!trimmed) return undefined;
+  const parsed = JSON.parse(trimmed) as unknown;
+  if (!isRecord(parsed)) {
+    throw new Error("Metadata must be a JSON object.");
+  }
+  return parsed;
 }
 
 export function useConversations() {
@@ -487,10 +540,7 @@ export function useConversations() {
   const update = useCallback(
     async (conversationId: string, values: ConversationFormValues) => {
       const response = await mutate(() =>
-        updateConversation(
-          conversationId,
-          payloadFromValues(values) as UpdateConversationPayload,
-        ),
+        updateConversation(conversationId, updatePayloadFromValues(values)),
       );
       return unwrapItem<Conversation>(response);
     },

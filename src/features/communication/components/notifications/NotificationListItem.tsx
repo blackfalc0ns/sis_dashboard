@@ -1,6 +1,7 @@
 "use client";
 
-import { BellRing } from "lucide-react";
+import { Archive, BellRing, Check } from "lucide-react";
+import Button from "@/components/ui/button/Button";
 import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
 import type { CommunicationNotification } from "@/features/communication/types/notification.types";
 
@@ -10,12 +11,17 @@ export interface NotificationListItemLabels {
   untitled: string;
   noBody: string;
   type: string;
+  markRead: string;
+  archive: string;
 }
 
 export interface NotificationListItemProps {
   notification: CommunicationNotification;
   locale: string;
   labels: NotificationListItemLabels;
+  isMutating?: boolean;
+  onArchive?: (notificationId: string) => void;
+  onMarkRead?: (notificationId: string) => void;
 }
 
 function titleForNotification(
@@ -52,6 +58,9 @@ export default function NotificationListItem({
   labels,
   locale,
   notification,
+  isMutating,
+  onArchive,
+  onMarkRead,
 }: NotificationListItemProps) {
   const isRead = notification.status === "read" || Boolean(notification.readAt);
 
@@ -92,6 +101,34 @@ export default function NotificationListItem({
           <p className="mt-2 text-xs text-slate-500">
             {formatDate(notification.createdAt)}
           </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {!isRead && onMarkRead ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={isMutating}
+                onClick={() => onMarkRead(notification.id)}
+                leftIcon={<Check className="h-3.5 w-3.5" aria-hidden="true" />}
+              >
+                {labels.markRead}
+              </Button>
+            ) : null}
+            {notification.status !== "archived" && onArchive ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={isMutating}
+                onClick={() => onArchive(notification.id)}
+                leftIcon={
+                  <Archive className="h-3.5 w-3.5" aria-hidden="true" />
+                }
+              >
+                {labels.archive}
+              </Button>
+            ) : null}
+          </div>
         </div>
       </div>
     </article>

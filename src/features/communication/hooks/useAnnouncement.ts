@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   archiveAnnouncement,
+  cancelAnnouncement,
   getAnnouncement,
   getAnnouncementReadSummary,
   markAnnouncementRead,
   publishAnnouncement,
   updateAnnouncement,
 } from "@/features/communication/api/communication.service";
+import { audienceFromScope } from "@/features/communication/api/communication.mappers";
 import type { CommunicationRecord } from "@/features/communication/types/communication.types";
 import type {
   Announcement,
@@ -37,30 +39,35 @@ function errorMessageFromUnknown(error: unknown): string {
 function payloadFromValues(
   values: AnnouncementFormValues,
 ): UpdateAnnouncementPayload {
-  const targets =
-    values.targetScopeType?.trim() || values.targetScopeId?.trim()
-      ? [
-          {
-            ...(values.targetScopeType?.trim()
-              ? { scopeType: values.targetScopeType.trim() }
-              : {}),
-            ...(values.targetScopeId?.trim()
-              ? { scopeId: values.targetScopeId.trim() }
-              : {}),
-          },
-        ]
-      : undefined;
+  const audience = audienceFromScope(values.audienceType, values.audienceId?.trim());
+  const metadata = parseMetadata(values.metadataText);
+  const title = values.title?.trim();
+  const body = values.body?.trim();
 
   return {
-    ...(values.title?.trim() ? { title: values.title.trim() } : {}),
-    ...(values.titleAr?.trim() ? { titleAr: values.titleAr.trim() } : {}),
-    ...(values.titleEn?.trim() ? { titleEn: values.titleEn.trim() } : {}),
-    ...(values.body?.trim() ? { body: values.body.trim() } : {}),
-    ...(values.bodyAr?.trim() ? { bodyAr: values.bodyAr.trim() } : {}),
-    ...(values.bodyEn?.trim() ? { bodyEn: values.bodyEn.trim() } : {}),
+    ...(title ? { title } : {}),
+    ...(body ? { body } : {}),
     ...(values.priority ? { priority: values.priority } : {}),
-    ...(targets ? { targets } : {}),
+    ...(values.audienceType ? { audienceType: values.audienceType } : {}),
+    ...(audience ? { audiences: [audience] } : {}),
+    ...(values.scheduledAt
+      ? { scheduledAt: new Date(values.scheduledAt).toISOString() }
+      : {}),
+    ...(values.expiresAt
+      ? { expiresAt: new Date(values.expiresAt).toISOString() }
+      : {}),
+    ...(metadata ? { metadata } : {}),
   };
+}
+
+function parseMetadata(metadataText?: string): CommunicationRecord | undefined {
+  const trimmed = metadataText?.trim();
+  if (!trimmed) return undefined;
+  const parsed = JSON.parse(trimmed) as unknown;
+  if (!isRecord(parsed)) {
+    throw new Error("Metadata must be a JSON object.");
+  }
+  return parsed;
 }
 
 export function useAnnouncement(announcementId: string) {
@@ -158,6 +165,11 @@ export function useAnnouncement(announcementId: string) {
     [announcementId, mutate],
   );
 
+  const cancel = useCallback(
+    () => mutate(() => cancelAnnouncement(announcementId)),
+    [announcementId, mutate],
+  );
+
   return {
     announcement,
     readSummary,
@@ -169,5 +181,6 @@ export function useAnnouncement(announcementId: string) {
     update,
     publish,
     archive,
+    cancel,
   };
 }

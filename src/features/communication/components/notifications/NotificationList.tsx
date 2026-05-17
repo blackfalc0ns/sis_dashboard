@@ -15,12 +15,18 @@ export interface NotificationListProps {
   notifications: CommunicationNotification[];
   locale: string;
   labels: NotificationListLabels;
+  isMutating?: boolean;
+  onArchive?: (notificationId: string) => void;
+  onMarkRead?: (notificationId: string) => void;
 }
 
 export default function NotificationList({
   labels,
   locale,
   notifications,
+  isMutating,
+  onArchive,
+  onMarkRead,
 }: NotificationListProps) {
   if (notifications.length === 0) {
     return (
@@ -39,6 +45,9 @@ export default function NotificationList({
           notification={notification}
           locale={locale}
           labels={labels}
+          isMutating={isMutating}
+          onArchive={onArchive}
+          onMarkRead={onMarkRead}
         />
       ))}
     </div>

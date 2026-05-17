@@ -8,7 +8,10 @@ import {
 } from "@/features/communication/api/communication.service";
 import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
 import type { CommunicationRecord } from "@/features/communication/types/communication.types";
-import type { Message } from "@/features/communication/types/message.types";
+import type {
+  Message,
+  MessageStatus,
+} from "@/features/communication/types/message.types";
 import type {
   ModerationAction,
   ModerationActionType,
@@ -20,6 +23,11 @@ const isRecord = (value: unknown): value is CommunicationRecord =>
 
 const stringValue = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim() ? value : undefined;
+
+function messageStatus(value: unknown): MessageStatus {
+  if (value === "hidden" || value === "deleted") return value;
+  return "sent";
+}
 
 function unwrapItem<T>(response: unknown): T | null {
   if (!isRecord(response)) return (response ?? null) as T | null;
@@ -69,7 +77,7 @@ function messageFromPayload(payload: unknown): Message | null {
       stringValue(source.content) ??
       stringValue(source.text) ??
       "",
-    status: stringValue(source.status) ?? "sent",
+    status: messageStatus(source.status),
     createdAt: stringValue(source.createdAt),
     updatedAt: stringValue(source.updatedAt),
     deletedAt: stringValue(source.deletedAt) ?? null,

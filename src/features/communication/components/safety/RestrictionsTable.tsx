@@ -65,7 +65,7 @@ function targetName(restriction: Restriction, fallback: string) {
 }
 
 function restrictionType(restriction: Restriction, fallback: string) {
-  return restriction.type || restriction.restrictionType || fallback;
+  return restriction.type || fallback;
 }
 
 export default function RestrictionsTable({

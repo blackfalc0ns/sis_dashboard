@@ -3,15 +3,28 @@ export const COMMUNICATION_SOCKET_EVENTS = {
   messageUpdated: "communication.chat.message.updated",
   messageDeleted: "communication.chat.message.deleted",
   messageRead: "communication.chat.message.read",
+
   reactionUpserted: "communication.chat.reaction.upserted",
   reactionDeleted: "communication.chat.reaction.deleted",
+
   attachmentLinked: "communication.chat.attachment.linked",
   attachmentDeleted: "communication.chat.attachment.deleted",
+
   typingStarted: "communication.typing.started",
   typingStopped: "communication.typing.stopped",
+
   presenceUserUpdated: "communication.presence.user.updated",
-  conversationJoin: "communication.conversation.join",
-  conversationLeave: "communication.conversation.leave",
+
+  announcementPublished: "communication.announcement.published",
+
+  notificationCreated: "communication.notification.created",
+  notificationRead: "communication.notification.read",
+
+  // commands to server
+  conversationJoin: "communication.chat.conversation.join",
+  conversationLeave: "communication.chat.conversation.leave",
+  typingStart: "communication.typing.start",
+  typingStop: "communication.typing.stop",
 } as const;
 
 export const COMMUNICATION_MESSAGE_EVENTS = {
@@ -38,6 +51,15 @@ export const COMMUNICATION_TYPING_EVENTS = {
 
 export const COMMUNICATION_PRESENCE_EVENTS = {
   userUpdated: COMMUNICATION_SOCKET_EVENTS.presenceUserUpdated,
+} as const;
+
+export const COMMUNICATION_ANNOUNCEMENT_EVENTS = {
+  published: COMMUNICATION_SOCKET_EVENTS.announcementPublished,
+} as const;
+
+export const COMMUNICATION_NOTIFICATION_EVENTS = {
+  created: COMMUNICATION_SOCKET_EVENTS.notificationCreated,
+  read: COMMUNICATION_SOCKET_EVENTS.notificationRead,
 } as const;
 
 export const COMMUNICATION_ROOM_EVENTS = {

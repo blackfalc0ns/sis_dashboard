@@ -2,11 +2,17 @@
 
 import { X } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import type {
   NotificationFiltersState,
   NotificationStatusFilter,
 } from "@/features/communication/hooks/useNotifications";
+import type {
+  NotificationPriority,
+  NotificationSourceModule,
+  NotificationType,
+} from "@/features/communication/types/notification.types";
 
 export interface NotificationFiltersProps {
   filters: NotificationFiltersState;
@@ -16,9 +22,60 @@ export interface NotificationFiltersProps {
     all: string;
     unread: string;
     read: string;
+    archived: string;
+    priority: string;
+    low: string;
+    normal: string;
+    high: string;
+    urgent: string;
+    type: string;
+    sourceModule: string;
+    sourceType: string;
+    sourceId: string;
+    recipientUserId: string;
+    createdFrom: string;
+    createdTo: string;
     clear: string;
   };
 }
+
+const notificationTypes: NotificationType[] = [
+  "announcement_published",
+  "message_received",
+  "message_mention",
+  "attendance_absence",
+  "attendance_late",
+  "grade_posted",
+  "behavior_record_created",
+  "reinforcement_reward_granted",
+  "system_alert",
+];
+
+const sourceModules: NotificationSourceModule[] = [
+  "communication",
+  "announcements",
+  "attendance",
+  "grades",
+  "behavior",
+  "reinforcement",
+  "admissions",
+  "students",
+  "system",
+];
+
+const priorities: NotificationPriority[] = ["low", "normal", "high", "urgent"];
+
+const emptyFilters: NotificationFiltersState = {
+  status: "all",
+  priority: "",
+  type: "",
+  sourceModule: "",
+  sourceType: "",
+  sourceId: "",
+  recipientUserId: "",
+  createdFrom: "",
+  createdTo: "",
+};
 
 export default function NotificationFilters({
   filters,
@@ -29,22 +86,108 @@ export default function NotificationFilters({
     { value: "all", label: labels.all },
     { value: "unread", label: labels.unread },
     { value: "read", label: labels.read },
+    { value: "archived", label: labels.archived },
   ];
+  const priorityLabels = {
+    low: labels.low,
+    normal: labels.normal,
+    high: labels.high,
+    urgent: labels.urgent,
+  } satisfies Record<NotificationPriority, string>;
 
   return (
-    <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,260px)_auto] sm:items-end">
+    <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 xl:grid-cols-4">
       <Select
         label={labels.status}
         value={filters.status}
         onChange={(value) =>
-          onChange({ status: value as NotificationStatusFilter })
+          onChange({ ...filters, status: value as NotificationStatusFilter })
         }
         options={statusOptions}
+      />
+      <Select
+        label={labels.priority}
+        value={filters.priority}
+        onChange={(value) =>
+          onChange({ ...filters, priority: value as "" | NotificationPriority })
+        }
+        options={[
+          { value: "", label: labels.all },
+          ...priorities.map((priority) => ({
+            value: priority,
+            label: priorityLabels[priority],
+          })),
+        ]}
+      />
+      <Select
+        label={labels.type}
+        value={filters.type}
+        searchable
+        onChange={(value) =>
+          onChange({ ...filters, type: value as "" | NotificationType })
+        }
+        options={[
+          { value: "", label: labels.all },
+          ...notificationTypes.map((type) => ({ value: type, label: type })),
+        ]}
+      />
+      <Select
+        label={labels.sourceModule}
+        value={filters.sourceModule}
+        searchable
+        onChange={(value) =>
+          onChange({
+            ...filters,
+            sourceModule: value as "" | NotificationSourceModule,
+          })
+        }
+        options={[
+          { value: "", label: labels.all },
+          ...sourceModules.map((module) => ({ value: module, label: module })),
+        ]}
+      />
+      <Input
+        label={labels.sourceType}
+        value={filters.sourceType}
+        onChange={(event) =>
+          onChange({ ...filters, sourceType: event.target.value })
+        }
+      />
+      <Input
+        label={labels.sourceId}
+        value={filters.sourceId}
+        onChange={(event) =>
+          onChange({ ...filters, sourceId: event.target.value })
+        }
+      />
+      <Input
+        label={labels.recipientUserId}
+        value={filters.recipientUserId}
+        onChange={(event) =>
+          onChange({ ...filters, recipientUserId: event.target.value })
+        }
+      />
+      <Input
+        label={labels.createdFrom}
+        type="datetime-local"
+        value={filters.createdFrom}
+        onChange={(event) =>
+          onChange({ ...filters, createdFrom: event.target.value })
+        }
+      />
+      <Input
+        label={labels.createdTo}
+        type="datetime-local"
+        value={filters.createdTo}
+        onChange={(event) =>
+          onChange({ ...filters, createdTo: event.target.value })
+        }
       />
       <Button
         type="button"
         variant="secondary"
-        onClick={() => onChange({ status: "all" })}
+        className="self-end"
+        onClick={() => onChange(emptyFilters)}
         leftIcon={<X className="h-4 w-4" aria-hidden="true" />}
       >
         {labels.clear}

@@ -1,18 +1,38 @@
 import type {
   CommunicationDateTime,
   CommunicationId,
-  CommunicationQueryParams,
   CommunicationRecord,
 } from "./communication.types";
 
-export type CommunicationNotificationStatus = "unread" | "read" | string;
+export type NotificationStatus = "unread" | "read" | "archived";
+export type CommunicationNotificationStatus = NotificationStatus;
+export type NotificationPriority = "low" | "normal" | "high" | "urgent";
+export type NotificationSourceModule =
+  | "communication"
+  | "announcements"
+  | "attendance"
+  | "grades"
+  | "behavior"
+  | "reinforcement"
+  | "admissions"
+  | "students"
+  | "system";
+export type NotificationType =
+  | "announcement_published"
+  | "message_received"
+  | "message_mention"
+  | "attendance_absence"
+  | "attendance_late"
+  | "grade_posted"
+  | "behavior_record_created"
+  | "reinforcement_reward_granted"
+  | "system_alert";
 export type NotificationDeliveryStatus =
   | "pending"
   | "sent"
   | "delivered"
   | "failed"
-  | "read"
-  | string;
+  | "read";
 
 export interface CommunicationNotification extends CommunicationRecord {
   id: CommunicationId;
@@ -24,7 +44,11 @@ export interface CommunicationNotification extends CommunicationRecord {
   bodyAr?: string;
   bodyEn?: string;
   status?: CommunicationNotificationStatus;
-  type?: string;
+  priority?: NotificationPriority;
+  type?: NotificationType;
+  sourceModule?: NotificationSourceModule;
+  sourceType?: string;
+  sourceId?: CommunicationId;
   entityType?: string;
   entityId?: CommunicationId;
   readAt?: CommunicationDateTime | null;
@@ -32,8 +56,16 @@ export interface CommunicationNotification extends CommunicationRecord {
   updatedAt?: CommunicationDateTime;
 }
 
-export type ListNotificationsParams = CommunicationQueryParams & {
-  status?: CommunicationNotificationStatus;
+export type ListNotificationsParams = {
+  status?: NotificationStatus;
+  priority?: NotificationPriority;
+  type?: NotificationType;
+  sourceModule?: NotificationSourceModule;
+  sourceType?: string;
+  sourceId?: CommunicationId;
+  recipientUserId?: CommunicationId;
+  createdFrom?: CommunicationDateTime;
+  createdTo?: CommunicationDateTime;
   limit?: number;
   page?: number;
 };
@@ -42,8 +74,11 @@ export interface NotificationDelivery extends CommunicationRecord {
   id: CommunicationId;
   notificationId?: CommunicationId;
   userId?: CommunicationId;
+  recipientUserId?: CommunicationId;
   channel?: string;
   status?: NotificationDeliveryStatus;
+  deliveryStatus?: NotificationDeliveryStatus;
+  provider?: string;
   sentAt?: CommunicationDateTime | null;
   deliveredAt?: CommunicationDateTime | null;
   readAt?: CommunicationDateTime | null;
@@ -51,8 +86,15 @@ export interface NotificationDelivery extends CommunicationRecord {
   updatedAt?: CommunicationDateTime;
 }
 
-export type ListNotificationDeliveriesParams = CommunicationQueryParams & {
+export type ListNotificationDeliveriesParams = {
+  notificationId?: CommunicationId;
+  recipientUserId?: CommunicationId;
+  channel?: string;
   status?: NotificationDeliveryStatus;
+  deliveryStatus?: NotificationDeliveryStatus;
+  provider?: string;
+  createdFrom?: CommunicationDateTime;
+  createdTo?: CommunicationDateTime;
   limit?: number;
   page?: number;
 };

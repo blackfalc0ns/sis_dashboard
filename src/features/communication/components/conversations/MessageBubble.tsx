@@ -27,8 +27,12 @@ export interface MessageBubbleLabels {
   edited: string;
   like: string;
   love: string;
-  thanks: string;
-  seen: string;
+  laugh: string;
+  wow: string;
+  sad: string;
+  angry: string;
+  thumbsUp: string;
+  thumbsDown: string;
   removeReaction: string;
   attachFile: string;
   fileTooLarge: string;
@@ -107,6 +111,9 @@ export default function MessageBubble({
   const [isEditing, setIsEditing] = useState(false);
   const [body, setBody] = useState(message.body ?? "");
   const isDeleted = message.status === "deleted" || Boolean(message.deletedAt);
+  const isEdited =
+    Boolean(message.updatedAt && message.createdAt) &&
+    message.updatedAt !== message.createdAt;
   const isPending = message.deliveryStatus === "pending";
   const canInteract = !isDeleted && !isPending;
   const hasOwnReaction = reactions.some(
@@ -175,8 +182,12 @@ export default function MessageBubble({
             labels={{
               like: labels.like,
               love: labels.love,
-              thanks: labels.thanks,
-              seen: labels.seen,
+              laugh: labels.laugh,
+              wow: labels.wow,
+              sad: labels.sad,
+              angry: labels.angry,
+              thumbsUp: labels.thumbsUp,
+              thumbsDown: labels.thumbsDown,
             }}
           />
         ) : null}
@@ -187,7 +198,7 @@ export default function MessageBubble({
           }`}
         >
           <span>{formatDate(message.createdAt)}</span>
-          {message.status === "edited" ? <span>{labels.edited}</span> : null}
+          {isEdited ? <span>{labels.edited}</span> : null}
           {message.deliveryStatus === "pending" ? (
             <CommunicationStatusChip label={labels.pending} tone="info" />
           ) : null}
@@ -214,8 +225,12 @@ export default function MessageBubble({
                 labels={{
                   like: labels.like,
                   love: labels.love,
-                  thanks: labels.thanks,
-                  seen: labels.seen,
+                  laugh: labels.laugh,
+                  wow: labels.wow,
+                  sad: labels.sad,
+                  angry: labels.angry,
+                  thumbsUp: labels.thumbsUp,
+                  thumbsDown: labels.thumbsDown,
                   removeReaction: labels.removeReaction,
                 }}
                 hasOwnReaction={hasOwnReaction}

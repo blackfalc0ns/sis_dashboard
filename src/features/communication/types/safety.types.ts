@@ -2,34 +2,52 @@ import type {
   CommunicationActor,
   CommunicationDateTime,
   CommunicationId,
-  CommunicationQueryParams,
   CommunicationRecord,
 } from "./communication.types";
 
 export type MessageReportStatus =
   | "open"
+  | "pending"
   | "in_review"
   | "resolved"
-  | "dismissed"
-  | string;
+  | "dismissed";
 
-export type ModerationActionType = "hide" | "unhide" | "delete" | string;
+export type ReportReason =
+  | "spam"
+  | "harassment"
+  | "bullying"
+  | "abusive_language"
+  | "inappropriate_content"
+  | "safety"
+  | "privacy"
+  | "other";
+
+export type ModerationActionType =
+  | "hide"
+  | "unhide"
+  | "delete"
+  | "restrict_sender"
+  | "message_hidden"
+  | "message_unhidden"
+  | "message_deleted"
+  | "user_restricted";
 export type RestrictionStatus =
   | "active"
   | "lifted"
   | "revoked"
-  | "expired"
-  | string;
+  | "expired";
 export type RestrictionType =
+  | "mute"
+  | "read_only"
+  | "send_disabled"
   | "group_create_disabled"
-  | "message_send_disabled"
-  | "attachment_upload_disabled"
-  | "reaction_disabled"
-  | string;
+  | "direct_message_disabled";
 
-export interface CreateMessageReportPayload extends CommunicationRecord {
-  reason?: string;
-  details?: string;
+export interface CreateMessageReportPayload {
+  reason: ReportReason;
+  description?: string | null;
+  comment?: string | null;
+  metadata?: CommunicationRecord | null;
 }
 
 export interface MessageReport extends CommunicationRecord {
@@ -37,27 +55,33 @@ export interface MessageReport extends CommunicationRecord {
   messageId?: CommunicationId;
   reporterId?: CommunicationId;
   reporter?: CommunicationActor;
-  reason?: string;
+  reason?: ReportReason;
+  description?: string | null;
   details?: string;
+  comment?: string | null;
   status?: MessageReportStatus;
+  note?: string | null;
   resolutionNote?: string;
+  metadata?: CommunicationRecord | null;
   createdAt?: CommunicationDateTime;
   updatedAt?: CommunicationDateTime;
 }
 
-export type ListMessageReportsParams = CommunicationQueryParams & {
+export type ListMessageReportsParams = {
   messageId?: CommunicationId;
   status?: MessageReportStatus;
   limit?: number;
   page?: number;
 };
 
-export interface UpdateMessageReportPayload extends CommunicationRecord {
-  status?: MessageReportStatus;
-  resolutionNote?: string;
+export interface UpdateMessageReportPayload {
+  status: MessageReportStatus;
+  note?: string | null;
+  resolutionNote?: string | null;
+  metadata?: CommunicationRecord | null;
 }
 
-export interface CreateModerationActionPayload extends CommunicationRecord {
+export interface CreateModerationActionPayload {
   action?: ModerationActionType;
   reason?: string;
 }
@@ -72,13 +96,13 @@ export interface ModerationAction extends CommunicationRecord {
   createdAt?: CommunicationDateTime;
 }
 
-export interface CreateRestrictionPayload extends CommunicationRecord {
-  targetUserId?: CommunicationId;
-  type?: RestrictionType;
-  restrictionType?: RestrictionType;
-  reason?: string;
+export interface CreateRestrictionPayload {
+  targetUserId: CommunicationId;
+  type: RestrictionType;
+  reason?: string | null;
+  startsAt?: CommunicationDateTime;
   expiresAt?: CommunicationDateTime;
-  metadata?: CommunicationRecord;
+  metadata?: CommunicationRecord | null;
 }
 
 export interface Restriction extends CommunicationRecord {
@@ -86,18 +110,18 @@ export interface Restriction extends CommunicationRecord {
   targetUserId?: CommunicationId;
   targetUser?: CommunicationActor;
   type?: RestrictionType;
-  restrictionType?: RestrictionType;
   createdById?: CommunicationId;
   createdBy?: CommunicationActor;
-  reason?: string;
+  reason?: string | null;
   status?: RestrictionStatus;
+  startsAt?: CommunicationDateTime;
   expiresAt?: CommunicationDateTime | null;
-  metadata?: CommunicationRecord;
+  metadata?: CommunicationRecord | null;
   createdAt?: CommunicationDateTime;
   updatedAt?: CommunicationDateTime;
 }
 
-export type ListRestrictionsParams = CommunicationQueryParams & {
+export type ListRestrictionsParams = {
   targetUserId?: CommunicationId;
   activeOnly?: boolean;
   status?: RestrictionStatus;
@@ -105,12 +129,17 @@ export type ListRestrictionsParams = CommunicationQueryParams & {
   page?: number;
 };
 
-export type UpdateRestrictionPayload = Partial<CreateRestrictionPayload> &
-  CommunicationRecord;
+export interface UpdateRestrictionPayload {
+  reason?: string | null;
+  startsAt?: CommunicationDateTime;
+  expiresAt?: CommunicationDateTime;
+  metadata?: CommunicationRecord | null;
+}
 
-export interface CreateBlockPayload extends CommunicationRecord {
-  targetUserId?: CommunicationId;
-  reason?: string;
+export interface CreateBlockPayload {
+  targetUserId: CommunicationId;
+  reason?: string | null;
+  metadata?: CommunicationRecord | null;
 }
 
 export interface UserBlock extends CommunicationRecord {
@@ -122,7 +151,7 @@ export interface UserBlock extends CommunicationRecord {
   createdAt?: CommunicationDateTime;
 }
 
-export type ListBlocksParams = CommunicationQueryParams & {
+export type ListBlocksParams = {
   targetUserId?: CommunicationId;
   limit?: number;
   page?: number;

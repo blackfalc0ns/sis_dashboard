@@ -4,9 +4,31 @@ import { io, type Socket } from "socket.io-client";
 import { tokenStorage } from "@/lib/token-storage";
 import { COMMUNICATION_SOCKET_EVENTS } from "./communication-events";
 
+const REALTIME_TRANSPORTS = ["websocket", "polling"] as const;
+
+// REALTIME_URL is the Socket.IO namespace URL.
+// REALTIME_SOCKET_PATH is the Engine.IO transport path. Seeing /socket.io in
+// the browser network tab is normal when the backend uses the default transport
+// path. If the backend mounts Engine.IO under /api/v1/realtime/socket.io, set
+// NEXT_PUBLIC_REALTIME_SOCKET_PATH=/api/v1/realtime/socket.io.
 export const COMMUNICATION_REALTIME_URL =
   process.env.NEXT_PUBLIC_REALTIME_URL ||
   "https://api.moazez.sa/api/v1/realtime";
+
+export const COMMUNICATION_REALTIME_SOCKET_PATH =
+  process.env.NEXT_PUBLIC_REALTIME_SOCKET_PATH || undefined;
+
+export const COMMUNICATION_REALTIME_DEBUG =
+  process.env.NEXT_PUBLIC_REALTIME_DEBUG === "true";
+
+export function getCommunicationRealtimeNamespace(): string {
+  try {
+    const url = new URL(COMMUNICATION_REALTIME_URL);
+    return url.pathname || "/";
+  } catch {
+    return "/api/v1/realtime";
+  }
+}
 
 export interface CommunicationRealtimePayload {
   conversationId?: string;
@@ -61,6 +83,15 @@ export interface CommunicationServerToClientEvents {
   [COMMUNICATION_SOCKET_EVENTS.presenceUserUpdated]: (
     payload: CommunicationRealtimePayload,
   ) => void;
+  [COMMUNICATION_SOCKET_EVENTS.announcementPublished]: (
+    payload: CommunicationRealtimePayload,
+  ) => void;
+  [COMMUNICATION_SOCKET_EVENTS.notificationCreated]: (
+    payload: CommunicationRealtimePayload,
+  ) => void;
+  [COMMUNICATION_SOCKET_EVENTS.notificationRead]: (
+    payload: CommunicationRealtimePayload,
+  ) => void;
 }
 
 export interface CommunicationClientToServerEvents {
@@ -70,10 +101,10 @@ export interface CommunicationClientToServerEvents {
   [COMMUNICATION_SOCKET_EVENTS.conversationLeave]: (
     payload: CommunicationRoomPayload,
   ) => void;
-  [COMMUNICATION_SOCKET_EVENTS.typingStarted]: (
+  [COMMUNICATION_SOCKET_EVENTS.typingStart]: (
     payload: CommunicationTypingPayload,
   ) => void;
-  [COMMUNICATION_SOCKET_EVENTS.typingStopped]: (
+  [COMMUNICATION_SOCKET_EVENTS.typingStop]: (
     payload: CommunicationTypingPayload,
   ) => void;
 }
@@ -94,12 +125,26 @@ export function createCommunicationSocket(
     return null;
   }
 
+  if (COMMUNICATION_REALTIME_DEBUG) {
+    console.info("[communication socket] creating socket", {
+      url: COMMUNICATION_REALTIME_URL,
+      namespace: getCommunicationRealtimeNamespace(),
+      path: COMMUNICATION_REALTIME_SOCKET_PATH ?? "(socket.io default)",
+      transports: [...REALTIME_TRANSPORTS],
+      hasToken: Boolean(token),
+    });
+  }
+
   return io(COMMUNICATION_REALTIME_URL, {
     autoConnect: false,
     auth: {
       token,
     },
-    transports: ["websocket", "polling"],
+    transports: [...REALTIME_TRANSPORTS],
     reconnection: true,
+    withCredentials: true,
+    ...(COMMUNICATION_REALTIME_SOCKET_PATH
+      ? { path: COMMUNICATION_REALTIME_SOCKET_PATH }
+      : {}),
   });
 }

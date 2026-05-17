@@ -8,16 +8,18 @@ import {
   publishAnnouncement,
   updateAnnouncement,
 } from "@/features/communication/api/communication.service";
+import { audienceFromScope } from "@/features/communication/api/communication.mappers";
 import type {
   CommunicationList,
   CommunicationRecord,
 } from "@/features/communication/types/communication.types";
 import type {
   Announcement,
+  AnnouncementAudienceType,
   AnnouncementPriority,
   AnnouncementStatus,
-  AnnouncementTarget,
   CreateAnnouncementPayload,
+  CreateAnnouncementStatus,
   UpdateAnnouncementPayload,
 } from "@/features/communication/types/announcement.types";
 
@@ -34,14 +36,14 @@ export interface AnnouncementFiltersState {
 
 export interface AnnouncementFormValues {
   title?: string;
-  titleEn?: string;
-  titleAr?: string;
   body?: string;
-  bodyEn?: string;
-  bodyAr?: string;
+  status?: CreateAnnouncementStatus;
   priority?: AnnouncementPriority;
-  targetScopeType?: string;
-  targetScopeId?: string;
+  audienceType?: AnnouncementAudienceType;
+  audienceId?: string;
+  scheduledAt?: string;
+  expiresAt?: string;
+  metadataText?: string;
 }
 
 const DEFAULT_FILTERS: AnnouncementFiltersState = {
@@ -119,29 +121,36 @@ function errorMessageFromUnknown(error: unknown): string {
 function payloadFromValues(
   values: AnnouncementFormValues,
 ): CreateAnnouncementPayload {
-  const targets: AnnouncementTarget[] = [];
-
-  if (values.targetScopeType?.trim() || values.targetScopeId?.trim()) {
-    targets.push({
-      ...(values.targetScopeType?.trim()
-        ? { scopeType: values.targetScopeType.trim() }
-        : {}),
-      ...(values.targetScopeId?.trim()
-        ? { scopeId: values.targetScopeId.trim() }
-        : {}),
-    });
-  }
+  const audience = audienceFromScope(values.audienceType, values.audienceId?.trim());
+  const metadata = parseMetadata(values.metadataText);
+  const title = values.title?.trim();
+  const body = values.body?.trim();
 
   return {
-    ...(values.title?.trim() ? { title: values.title.trim() } : {}),
-    ...(values.titleAr?.trim() ? { titleAr: values.titleAr.trim() } : {}),
-    ...(values.titleEn?.trim() ? { titleEn: values.titleEn.trim() } : {}),
-    ...(values.body?.trim() ? { body: values.body.trim() } : {}),
-    ...(values.bodyAr?.trim() ? { bodyAr: values.bodyAr.trim() } : {}),
-    ...(values.bodyEn?.trim() ? { bodyEn: values.bodyEn.trim() } : {}),
+    title: title ?? "",
+    body: body ?? "",
+    ...(values.status ? { status: values.status } : {}),
     ...(values.priority ? { priority: values.priority } : {}),
-    ...(targets.length > 0 ? { targets } : {}),
+    ...(values.audienceType ? { audienceType: values.audienceType } : {}),
+    ...(audience ? { audiences: [audience] } : {}),
+    ...(values.scheduledAt
+      ? { scheduledAt: new Date(values.scheduledAt).toISOString() }
+      : {}),
+    ...(values.expiresAt
+      ? { expiresAt: new Date(values.expiresAt).toISOString() }
+      : {}),
+    ...(metadata ? { metadata } : {}),
   };
+}
+
+function parseMetadata(metadataText?: string): CommunicationRecord | undefined {
+  const trimmed = metadataText?.trim();
+  if (!trimmed) return undefined;
+  const parsed = JSON.parse(trimmed) as unknown;
+  if (!isRecord(parsed)) {
+    throw new Error("Metadata must be a JSON object.");
+  }
+  return parsed;
 }
 
 function sortAnnouncements(announcements: Announcement[]) {

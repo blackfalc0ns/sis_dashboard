@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  archiveNotification,
   getNotifications,
   markAllNotificationsRead,
+  markNotificationRead,
 } from "@/features/communication/api/communication.service";
 import type {
   CommunicationList,
@@ -12,16 +14,36 @@ import type {
 import type {
   CommunicationNotification,
   CommunicationNotificationStatus,
+  ListNotificationsParams,
+  NotificationPriority,
+  NotificationSourceModule,
+  NotificationType,
 } from "@/features/communication/types/notification.types";
 
-export type NotificationStatusFilter = "all" | "unread" | "read";
+export type NotificationStatusFilter = "all" | "unread" | "read" | "archived";
 
 export interface NotificationFiltersState {
   status: NotificationStatusFilter;
+  priority: "" | NotificationPriority;
+  type: "" | NotificationType;
+  sourceModule: "" | NotificationSourceModule;
+  sourceType: string;
+  sourceId: string;
+  recipientUserId: string;
+  createdFrom: string;
+  createdTo: string;
 }
 
 const DEFAULT_FILTERS: NotificationFiltersState = {
   status: "all",
+  priority: "",
+  type: "",
+  sourceModule: "",
+  sourceType: "",
+  sourceId: "",
+  recipientUserId: "",
+  createdFrom: "",
+  createdTo: "",
 };
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
@@ -89,6 +111,35 @@ function sortNotifications(notifications: CommunicationNotification[]) {
   });
 }
 
+function isoFromInput(value: string) {
+  if (!value.trim()) return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
+function paramsFromFilters(filters: NotificationFiltersState): ListNotificationsParams {
+  return {
+    ...(filters.status !== "all"
+      ? { status: filters.status as CommunicationNotificationStatus }
+      : {}),
+    ...(filters.priority ? { priority: filters.priority } : {}),
+    ...(filters.type ? { type: filters.type } : {}),
+    ...(filters.sourceModule ? { sourceModule: filters.sourceModule } : {}),
+    ...(filters.sourceType.trim() ? { sourceType: filters.sourceType.trim() } : {}),
+    ...(filters.sourceId.trim() ? { sourceId: filters.sourceId.trim() } : {}),
+    ...(filters.recipientUserId.trim()
+      ? { recipientUserId: filters.recipientUserId.trim() }
+      : {}),
+    ...(isoFromInput(filters.createdFrom)
+      ? { createdFrom: isoFromInput(filters.createdFrom) }
+      : {}),
+    ...(isoFromInput(filters.createdTo)
+      ? { createdTo: isoFromInput(filters.createdTo) }
+      : {}),
+    limit: 50,
+  };
+}
+
 export function useNotifications() {
   const mountedRef = useRef(false);
   const [filters, setFilters] =
@@ -107,12 +158,7 @@ export function useNotifications() {
     setError(null);
 
     try {
-      const response = await getNotifications({
-        ...(filters.status !== "all"
-          ? { status: filters.status as CommunicationNotificationStatus }
-          : {}),
-        limit: 50,
-      });
+      const response = await getNotifications(paramsFromFilters(filters));
       const list = unwrapList<CommunicationNotification>(response);
       const normalized = sortNotifications(list.items);
 
@@ -130,7 +176,7 @@ export function useNotifications() {
         setIsRefreshing(false);
       }
     }
-  }, [filters.status]);
+  }, [filters]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -180,6 +226,44 @@ export function useNotifications() {
     }
   }, [refresh]);
 
+  const markRead = useCallback(
+    async (notificationId: string) => {
+      setIsMutating(true);
+      setError(null);
+
+      try {
+        const response = await markNotificationRead(notificationId);
+        await refresh();
+        return response;
+      } catch (nextError) {
+        setError(errorMessageFromUnknown(nextError));
+        throw nextError;
+      } finally {
+        if (mountedRef.current) setIsMutating(false);
+      }
+    },
+    [refresh],
+  );
+
+  const archive = useCallback(
+    async (notificationId: string) => {
+      setIsMutating(true);
+      setError(null);
+
+      try {
+        const response = await archiveNotification(notificationId);
+        await refresh();
+        return response;
+      } catch (nextError) {
+        setError(errorMessageFromUnknown(nextError));
+        throw nextError;
+      } finally {
+        if (mountedRef.current) setIsMutating(false);
+      }
+    },
+    [refresh],
+  );
+
   const unreadCount = useMemo(
     () =>
       notifications.filter(
@@ -201,5 +285,7 @@ export function useNotifications() {
     error,
     refresh,
     markAllRead,
+    markRead,
+    archive,
   };
 }

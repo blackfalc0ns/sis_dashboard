@@ -10,12 +10,16 @@ import AnnouncementEditor from "@/features/communication/components/announcement
 import AnnouncementReadSummary from "@/features/communication/components/announcements/AnnouncementReadSummary";
 import ArchiveAnnouncementDialog from "@/features/communication/components/announcements/ArchiveAnnouncementDialog";
 import PublishAnnouncementDialog from "@/features/communication/components/announcements/PublishAnnouncementDialog";
+import AttachmentUploader from "@/features/communication/components/conversations/AttachmentUploader";
+import MessageAttachments from "@/features/communication/components/conversations/MessageAttachments";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
 import CommunicationLoadingState from "@/features/communication/components/layout/CommunicationLoadingState";
 import CommunicationPageHeader from "@/features/communication/components/layout/CommunicationPageHeader";
 import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
 import CommunicationTabs from "@/features/communication/components/layout/CommunicationTabs";
 import { useAnnouncement } from "@/features/communication/hooks/useAnnouncement";
+import { useAnnouncementAttachments } from "@/features/communication/hooks/useAnnouncementAttachments";
+import { useCommunicationPolicy } from "@/features/communication/hooks/useCommunicationPolicy";
 
 interface AnnouncementDetailsPageProps {
   announcementId: string;
@@ -35,29 +39,44 @@ const labels = {
     archived: "Archived",
     publish: "Publish",
     archive: "Archive",
-    formTitle: "Default title",
-    titleEn: "English title",
-    titleAr: "Arabic title",
-    body: "Default body",
-    bodyEn: "English body",
-    bodyAr: "Arabic body",
+    cancelAnnouncement: "Cancel Schedule",
+    formTitle: "Title",
+    body: "Body",
+    status: "Status",
+    scheduledStatus: "Scheduled",
     priority: "Priority",
     normal: "Normal",
     low: "Low",
     high: "High",
     urgent: "Urgent",
-    targetScopeType: "Target scope type",
-    targetScopeId: "Target scope ID",
-    targetHelp: "Optional; use existing backend-recognized scope values.",
+    audienceType: "Audience type",
+    audienceId: "Audience ID",
+    school: "School",
+    stage: "Stage",
+    grade: "Grade",
+    section: "Section",
+    classroom: "Classroom",
+    custom: "Custom",
+    scheduledAt: "Scheduled at",
+    expiresAt: "Expires at",
+    metadata: "Metadata",
+    metadataHelp: "Optional JSON object for backend-supported metadata.",
     saveDraft: "Save Draft",
     saveChanges: "Save Changes",
-    titleRequired: "Enter at least one title.",
-    bodyRequired: "Enter at least one body.",
+    titleRequired: "Enter a title.",
+    bodyRequired: "Enter a body.",
+    invalidMetadata: "Metadata must be a valid JSON object.",
     readSummary: "Read Summary",
     totalRecipients: "Recipients",
     read: "Read",
     unread: "Unread",
     noReadData: "No read summary is available yet.",
+    attachments: "Attachments",
+    attachFile: "Attach",
+    fileTooLarge: "File must be {size}MB or smaller.",
+    uploadFailed: "Unable to upload attachment.",
+    download: "Open attachment",
+    removeAttachment: "Remove attachment",
     publishTitle: "Publish announcement",
     publishDescription:
       "Publishing makes this announcement visible to its selected audience.",
@@ -83,29 +102,44 @@ const labels = {
     archived: "مؤرشف",
     publish: "نشر",
     archive: "أرشفة",
-    formTitle: "العنوان الافتراضي",
-    titleEn: "العنوان بالإنجليزية",
-    titleAr: "العنوان بالعربية",
-    body: "المحتوى الافتراضي",
-    bodyEn: "المحتوى بالإنجليزية",
-    bodyAr: "المحتوى بالعربية",
+    cancelAnnouncement: "إلغاء الجدولة",
+    formTitle: "العنوان",
+    body: "المحتوى",
+    status: "الحالة",
+    scheduledStatus: "مجدول",
     priority: "الأولوية",
     normal: "عادية",
     low: "منخفضة",
     high: "مرتفعة",
     urgent: "عاجلة",
-    targetScopeType: "نوع نطاق الجمهور",
-    targetScopeId: "معرف نطاق الجمهور",
-    targetHelp: "اختياري؛ استخدم قيم النطاق المعتمدة في الخلفية.",
+    audienceType: "نوع الجمهور",
+    audienceId: "معرف الجمهور",
+    school: "المدرسة",
+    stage: "المرحلة",
+    grade: "الصف",
+    section: "الشعبة",
+    classroom: "الفصل",
+    custom: "مخصص",
+    scheduledAt: "موعد الجدولة",
+    expiresAt: "ينتهي في",
+    metadata: "البيانات الإضافية",
+    metadataHelp: "كائن JSON اختياري للبيانات التي تدعمها الخلفية.",
     saveDraft: "حفظ المسودة",
     saveChanges: "حفظ التغييرات",
-    titleRequired: "أدخل عنوانا واحدا على الأقل.",
-    bodyRequired: "أدخل محتوى واحدا على الأقل.",
+    titleRequired: "أدخل عنوانا.",
+    bodyRequired: "أدخل محتوى.",
+    invalidMetadata: "يجب أن تكون البيانات الإضافية كائن JSON صالحا.",
     readSummary: "ملخص القراءة",
     totalRecipients: "المستلمون",
     read: "مقروء",
     unread: "غير مقروء",
     noReadData: "لا يوجد ملخص قراءة بعد.",
+    attachments: "المرفقات",
+    attachFile: "إرفاق",
+    fileTooLarge: "يجب ألا يتجاوز الملف {size} ميجابايت.",
+    uploadFailed: "تعذر رفع المرفق.",
+    download: "فتح المرفق",
+    removeAttachment: "إزالة المرفق",
     publishTitle: "نشر الإعلان",
     publishDescription: "سيصبح الإعلان مرئيا للجمهور المحدد بعد النشر.",
     archiveTitle: "أرشفة الإعلان",
@@ -150,13 +184,20 @@ export default function AnnouncementDetailsPage({
     readSummary,
     refresh,
     update,
+    cancel: cancelScheduledAnnouncement,
   } = useAnnouncement(announcementId);
+  const { policy } = useCommunicationPolicy();
+  const attachmentState = useAnnouncementAttachments(
+    announcementId,
+    policy?.maxAttachmentSizeMb,
+  );
   const [publishOpen, setPublishOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const status = announcement?.status ?? "draft";
   const canEdit = status === "draft";
   const canPublish = status === "draft";
   const canArchive = status !== "archived";
+  const canCancel = status === "scheduled";
 
   const runMutation = async (
     action: () => Promise<unknown>,
@@ -225,6 +266,18 @@ export default function AnnouncementDetailsPage({
                 {t.archive}
               </Button>
             ) : null}
+            {canCancel ? (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={isMutating}
+                onClick={() =>
+                  void runMutation(cancelScheduledAnnouncement, t.updated)
+                }
+              >
+                {t.cancelAnnouncement}
+              </Button>
+            ) : null}
           </>
         }
       />
@@ -254,23 +307,32 @@ export default function AnnouncementDetailsPage({
           }
           labels={{
             title: t.formTitle,
-            titleEn: t.titleEn,
-            titleAr: t.titleAr,
             body: t.body,
-            bodyEn: t.bodyEn,
-            bodyAr: t.bodyAr,
+            status: t.status,
+            draft: t.draft,
+            scheduled: t.scheduledStatus,
             priority: t.priority,
             normal: t.normal,
             low: t.low,
             high: t.high,
             urgent: t.urgent,
-            targetScopeType: t.targetScopeType,
-            targetScopeId: t.targetScopeId,
-            targetHelp: t.targetHelp,
+            audienceType: t.audienceType,
+            audienceId: t.audienceId,
+            school: t.school,
+            stage: t.stage,
+            grade: t.grade,
+            section: t.section,
+            classroom: t.classroom,
+            custom: t.custom,
+            scheduledAt: t.scheduledAt,
+            expiresAt: t.expiresAt,
+            metadata: t.metadata,
+            metadataHelp: t.metadataHelp,
             saveDraft: t.saveDraft,
             saveChanges: t.saveChanges,
             titleRequired: t.titleRequired,
             bodyRequired: t.bodyRequired,
+            invalidMetadata: t.invalidMetadata,
           }}
         />
         <AnnouncementReadSummary
@@ -283,6 +345,37 @@ export default function AnnouncementDetailsPage({
             noData: t.noReadData,
           }}
         />
+        <section className="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold text-slate-900">
+              {t.attachments}
+            </h2>
+            {policy?.allowAttachments !== false ? (
+              <AttachmentUploader
+                labels={{
+                  attachFile: t.attachFile,
+                  fileTooLarge: t.fileTooLarge,
+                  uploadFailed: t.uploadFailed,
+                }}
+                isUploading={attachmentState.isUploading}
+                maxAttachmentSizeMb={policy?.maxAttachmentSizeMb}
+                onUpload={attachmentState.attachFile}
+              />
+            ) : null}
+          </div>
+          {attachmentState.error ? (
+            <p className="text-sm text-red-600">{attachmentState.error}</p>
+          ) : null}
+          <MessageAttachments
+            attachments={attachmentState.attachments}
+            canRemove={canEdit}
+            labels={{
+              download: t.download,
+              removeAttachment: t.removeAttachment,
+            }}
+            onRemove={attachmentState.removeAttachment}
+          />
+        </section>
       </div>
 
       <PublishAnnouncementDialog

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Eye, Heart, ThumbsUp, X } from "lucide-react";
+import { Angry, Frown, Heart, Laugh, SmilePlus, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import type { ComponentType } from "react";
 import Button from "@/components/ui/button/Button";
 import type { ReactionType } from "@/features/communication/types/message.types";
@@ -8,8 +8,12 @@ import type { ReactionType } from "@/features/communication/types/message.types"
 export interface ReactionPickerLabels {
   like: string;
   love: string;
-  thanks: string;
-  seen: string;
+  laugh: string;
+  wow: string;
+  sad: string;
+  angry: string;
+  thumbsUp: string;
+  thumbsDown: string;
   removeReaction: string;
 }
 
@@ -28,8 +32,12 @@ const reactionOptions: Array<{
 }> = [
   { type: "like", labelKey: "like", icon: ThumbsUp },
   { type: "love", labelKey: "love", icon: Heart },
-  { type: "thanks", labelKey: "thanks", icon: Check },
-  { type: "seen", labelKey: "seen", icon: Eye },
+  { type: "laugh", labelKey: "laugh", icon: Laugh },
+  { type: "wow", labelKey: "wow", icon: SmilePlus },
+  { type: "sad", labelKey: "sad", icon: Frown },
+  { type: "angry", labelKey: "angry", icon: Angry },
+  { type: "thumbs_up", labelKey: "thumbsUp", icon: ThumbsUp },
+  { type: "thumbs_down", labelKey: "thumbsDown", icon: ThumbsDown },
 ];
 
 export default function ReactionPicker({

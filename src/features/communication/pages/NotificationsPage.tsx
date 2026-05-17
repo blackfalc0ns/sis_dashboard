@@ -29,6 +29,18 @@ const labels = {
     all: "All",
     unread: "Unread",
     read: "Read",
+    archived: "Archived",
+    priority: "Priority",
+    low: "Low",
+    normal: "Normal",
+    high: "High",
+    urgent: "Urgent",
+    sourceModule: "Source module",
+    sourceType: "Source type",
+    sourceId: "Source ID",
+    recipientUserId: "Recipient user ID",
+    createdFrom: "Created from",
+    createdTo: "Created to",
     clear: "Clear",
     emptyTitle: "No notifications found",
     emptyDescription:
@@ -36,6 +48,8 @@ const labels = {
     untitled: "Untitled notification",
     noBody: "No notification body.",
     type: "Type",
+    archive: "Archive",
+    markRead: "Mark read",
     countLabel: "notification",
     countLabelPlural: "notifications",
     unreadLabel: "unread",
@@ -50,6 +64,8 @@ const labels = {
     deliveriesEmptyDescription:
       "Delivery records will appear when notifications are dispatched.",
     markedAllRead: "All notifications marked read.",
+    markedRead: "Notification marked read.",
+    archivedNotification: "Notification archived.",
     mutationFailed: "Action failed. Please try again.",
   },
   ar: {
@@ -65,6 +81,18 @@ const labels = {
     all: "الكل",
     unread: "غير مقروء",
     read: "مقروء",
+    archived: "مؤرشف",
+    priority: "الأولوية",
+    low: "منخفضة",
+    normal: "عادية",
+    high: "عالية",
+    urgent: "عاجلة",
+    sourceModule: "وحدة المصدر",
+    sourceType: "نوع المصدر",
+    sourceId: "معرف المصدر",
+    recipientUserId: "معرف المستخدم المستلم",
+    createdFrom: "أنشئت من",
+    createdTo: "أنشئت إلى",
     clear: "مسح",
     emptyTitle: "لا توجد إشعارات",
     emptyDescription:
@@ -72,6 +100,8 @@ const labels = {
     untitled: "إشعار بدون عنوان",
     noBody: "لا يوجد محتوى للإشعار.",
     type: "النوع",
+    archive: "أرشفة",
+    markRead: "تعليم كمقروء",
     countLabel: "إشعار",
     countLabelPlural: "إشعارات",
     unreadLabel: "غير مقروء",
@@ -85,6 +115,8 @@ const labels = {
     deliveriesEmptyTitle: "لا توجد سجلات تسليم",
     deliveriesEmptyDescription: "ستظهر سجلات التسليم عند إرسال الإشعارات.",
     markedAllRead: "تم تعليم كل الإشعارات كمقروءة.",
+    markedRead: "تم تعليم الإشعار كمقروء.",
+    archivedNotification: "تمت أرشفة الإشعار.",
     mutationFailed: "فشل الإجراء. حاول مرة أخرى.",
   },
 };
@@ -108,6 +140,26 @@ export default function NotificationsPage() {
       await notificationsState.markAllRead();
       void deliveriesState.refresh();
       showSuccess(t.markedAllRead);
+    } catch {
+      showError(t.mutationFailed);
+    }
+  };
+
+  const handleMarkRead = async (notificationId: string) => {
+    try {
+      await notificationsState.markRead(notificationId);
+      void deliveriesState.refresh();
+      showSuccess(t.markedRead);
+    } catch {
+      showError(t.mutationFailed);
+    }
+  };
+
+  const handleArchive = async (notificationId: string) => {
+    try {
+      await notificationsState.archive(notificationId);
+      void deliveriesState.refresh();
+      showSuccess(t.archivedNotification);
     } catch {
       showError(t.mutationFailed);
     }
@@ -157,6 +209,19 @@ export default function NotificationsPage() {
           all: t.all,
           unread: t.unread,
           read: t.read,
+          archived: t.archived,
+          priority: t.priority,
+          low: t.low,
+          normal: t.normal,
+          high: t.high,
+          urgent: t.urgent,
+          type: t.type,
+          sourceModule: t.sourceModule,
+          sourceType: t.sourceType,
+          sourceId: t.sourceId,
+          recipientUserId: t.recipientUserId,
+          createdFrom: t.createdFrom,
+          createdTo: t.createdTo,
           clear: t.clear,
         }}
       />
@@ -198,7 +263,12 @@ export default function NotificationsPage() {
           untitled: t.untitled,
           noBody: t.noBody,
           type: t.type,
+          archive: t.archive,
+          markRead: t.markRead,
         }}
+        isMutating={notificationsState.isMutating}
+        onArchive={(notificationId) => void handleArchive(notificationId)}
+        onMarkRead={(notificationId) => void handleMarkRead(notificationId)}
       />
 
       {deliveriesState.error ? (

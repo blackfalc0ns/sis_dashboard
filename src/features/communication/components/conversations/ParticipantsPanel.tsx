@@ -3,7 +3,11 @@
 import { useState } from "react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
-import type { ConversationParticipant } from "@/features/communication/types/conversation.types";
+import type {
+  AddParticipantPayload,
+  ConversationParticipant,
+  ParticipantRole,
+} from "@/features/communication/types/conversation.types";
 import type { CommunicationPresence } from "@/features/communication/hooks/usePresence";
 import PresenceAvatar from "./PresenceAvatar";
 
@@ -18,8 +22,17 @@ export interface ParticipantsPanelProps {
     role: string;
     empty: string;
   };
-  onAddParticipant: (payload: { userId: string; role?: string }) => Promise<void>;
+  onAddParticipant: (payload: AddParticipantPayload) => Promise<void>;
 }
+
+const participantRoles = new Set<ParticipantRole>([
+  "owner",
+  "admin",
+  "moderator",
+  "member",
+  "read_only",
+  "system",
+]);
 
 function participantUserId(participant: ConversationParticipant) {
   return participant.userId || participant.actor?.userId || participant.actor?.id || "";
@@ -48,7 +61,11 @@ export default function ParticipantsPanel({
   const add = async () => {
     const trimmed = userId.trim();
     if (!trimmed) return;
-    await onAddParticipant({ userId: trimmed, role: role.trim() || undefined });
+    const nextRole = role.trim() as ParticipantRole;
+    await onAddParticipant({
+      userId: trimmed,
+      ...(participantRoles.has(nextRole) ? { role: nextRole } : {}),
+    });
     setUserId("");
     setRole("");
   };

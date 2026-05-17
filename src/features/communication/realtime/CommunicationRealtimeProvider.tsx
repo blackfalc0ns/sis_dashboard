@@ -12,8 +12,12 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { COMMUNICATION_SOCKET_EVENTS } from "./communication-events";
 import {
+  COMMUNICATION_REALTIME_DEBUG,
+  COMMUNICATION_REALTIME_SOCKET_PATH,
+  COMMUNICATION_REALTIME_URL,
   createCommunicationSocket,
   getCommunicationAccessToken,
+  getCommunicationRealtimeNamespace,
   type CommunicationSocket,
 } from "./communication-socket";
 
@@ -41,6 +45,27 @@ function disconnectSocket(socket: CommunicationSocket | null) {
 function deferStateUpdate(update: () => void) {
   if (typeof window === "undefined") return;
   window.queueMicrotask(update);
+}
+
+function getTransportName(socket: CommunicationSocket | null): string | undefined {
+  return socket?.io.engine?.transport?.name;
+}
+
+function logConnectError(error: Error, socket: CommunicationSocket | null) {
+  if (!COMMUNICATION_REALTIME_DEBUG) return;
+
+  console.info("[communication socket] connect_error", {
+    message: error.message,
+    name: error.name,
+    socketId: socket?.id,
+    connected: Boolean(socket?.connected),
+    transport: getTransportName(socket),
+    url: COMMUNICATION_REALTIME_URL,
+    namespace: getCommunicationRealtimeNamespace(),
+    path:
+      COMMUNICATION_REALTIME_SOCKET_PATH ??
+      "(socket.io default)",
+  });
 }
 
 export function CommunicationRealtimeProvider({
@@ -114,6 +139,7 @@ export function CommunicationRealtimeProvider({
     nextSocket.on("connect_error", (error) => {
       setIsConnected(false);
       setConnectionError(error.message);
+      logConnectError(error, nextSocket);
     });
 
     nextSocket.io.on("reconnect", () => {
@@ -199,8 +225,8 @@ export function CommunicationRealtimeProvider({
   const emitTypingEvent = useCallback(
     (
       event:
-        | typeof COMMUNICATION_SOCKET_EVENTS.typingStarted
-        | typeof COMMUNICATION_SOCKET_EVENTS.typingStopped,
+        | typeof COMMUNICATION_SOCKET_EVENTS.typingStart
+        | typeof COMMUNICATION_SOCKET_EVENTS.typingStop,
       conversationId: string,
       messageDraftId?: string,
     ) => {
@@ -221,18 +247,24 @@ export function CommunicationRealtimeProvider({
       connectionError,
       resyncVersion,
       joinConversation: (conversationId) =>
-        emitRoomEvent(COMMUNICATION_SOCKET_EVENTS.conversationJoin, conversationId),
+        emitRoomEvent(
+          COMMUNICATION_SOCKET_EVENTS.conversationJoin,
+          conversationId,
+        ),
       leaveConversation: (conversationId) =>
-        emitRoomEvent(COMMUNICATION_SOCKET_EVENTS.conversationLeave, conversationId),
+        emitRoomEvent(
+          COMMUNICATION_SOCKET_EVENTS.conversationLeave,
+          conversationId,
+        ),
       startTyping: (conversationId, messageDraftId) =>
         emitTypingEvent(
-          COMMUNICATION_SOCKET_EVENTS.typingStarted,
+          COMMUNICATION_SOCKET_EVENTS.typingStart,
           conversationId,
           messageDraftId,
         ),
       stopTyping: (conversationId, messageDraftId) =>
         emitTypingEvent(
-          COMMUNICATION_SOCKET_EVENTS.typingStopped,
+          COMMUNICATION_SOCKET_EVENTS.typingStop,
           conversationId,
           messageDraftId,
         ),

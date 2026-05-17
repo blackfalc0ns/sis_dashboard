@@ -5,22 +5,31 @@ import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
+import TextArea from "@/components/ui/input/TextArea";
 import type {
   ConversationFormValues,
   ConversationListItemModel,
 } from "@/features/communication/hooks/useConversations";
+import type { ConversationType } from "@/features/communication/types/conversation.types";
 
 export interface CreateConversationDialogLabels {
   createTitle: string;
   editTitle: string;
   title: string;
-  titleEn: string;
-  titleAr: string;
   type: string;
-  scopeType: string;
-  scopeId: string;
-  participantIds: string;
-  participantIdsHelp: string;
+  description: string;
+  academicYearId: string;
+  termId: string;
+  stageId: string;
+  gradeId: string;
+  sectionId: string;
+  classroomId: string;
+  subjectId: string;
+  avatarFileId: string;
+  isReadOnly: string;
+  isPinned: string;
+  metadata: string;
+  metadataHelp: string;
   group: string;
   classroom: string;
   direct: string;
@@ -28,6 +37,7 @@ export interface CreateConversationDialogLabels {
   create: string;
   save: string;
   titleRequired: string;
+  invalidMetadata: string;
 }
 
 export interface CreateConversationDialogProps {
@@ -44,18 +54,53 @@ function initialValues(
 ): ConversationFormValues {
   return {
     title: conversation?.title ?? "",
-    titleEn: conversation?.titleEn ?? "",
-    titleAr: conversation?.titleAr ?? "",
     type: conversation?.type ?? "group",
-    scopeType:
-      typeof conversation?.scopeType === "string" ? conversation.scopeType : "",
-    scopeId: typeof conversation?.scopeId === "string" ? conversation.scopeId : "",
-    participantIds: Array.isArray(conversation?.participantIds)
-      ? conversation.participantIds.filter(
-          (item): item is string => typeof item === "string",
-        )
-      : [],
+    description:
+      typeof conversation?.description === "string" ? conversation.description : "",
+    avatarFileId:
+      typeof conversation?.avatarFileId === "string" ? conversation.avatarFileId : "",
+    academicYearId:
+      typeof conversation?.academicYearId === "string"
+        ? conversation.academicYearId
+        : "",
+    termId: typeof conversation?.termId === "string" ? conversation.termId : "",
+    stageId: typeof conversation?.stageId === "string" ? conversation.stageId : "",
+    gradeId: typeof conversation?.gradeId === "string" ? conversation.gradeId : "",
+    sectionId:
+      typeof conversation?.sectionId === "string" ? conversation.sectionId : "",
+    classroomId:
+      typeof conversation?.classroomId === "string"
+        ? conversation.classroomId
+        : "",
+    subjectId:
+      typeof conversation?.subjectId === "string" ? conversation.subjectId : "",
+    isReadOnly: Boolean(conversation?.isReadOnly),
+    isPinned: Boolean(conversation?.isPinned),
+    metadataText:
+      typeof conversation?.metadata === "object" && conversation.metadata
+        ? JSON.stringify(conversation.metadata, null, 2)
+        : "",
   };
+}
+
+interface ToggleRowProps {
+  label: string;
+  checked?: boolean;
+  onChange: (checked: boolean) => void;
+}
+
+function ToggleRow({ checked, label, onChange }: ToggleRowProps) {
+  return (
+    <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+      <span>{label}</span>
+      <input
+        type="checkbox"
+        className="h-4 w-4 rounded border-slate-300 text-sky-600"
+        checked={Boolean(checked)}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+    </label>
+  );
 }
 
 export default function CreateConversationDialog({
@@ -70,9 +115,6 @@ export default function CreateConversationDialog({
   const [values, setValues] = useState<ConversationFormValues>(() =>
     initialFormValues,
   );
-  const [participantText, setParticipantText] = useState(
-    initialFormValues.participantIds?.join(", ") ?? "",
-  );
   const [error, setError] = useState<string | null>(null);
   const isEditing = Boolean(conversation);
 
@@ -86,21 +128,26 @@ export default function CreateConversationDialog({
   );
 
   const handleSubmit = async () => {
-    if (
-      !values.title?.trim() &&
-      !values.titleEn?.trim() &&
-      !values.titleAr?.trim()
-    ) {
+    if (!values.title?.trim()) {
       setError(labels.titleRequired);
       return;
     }
 
-    const participantIds = participantText
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
+    if (values.metadataText?.trim()) {
+      try {
+        const parsed = JSON.parse(values.metadataText) as unknown;
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          setError(labels.invalidMetadata);
+          return;
+        }
+      } catch {
+        setError(labels.invalidMetadata);
+        return;
+      }
+    }
 
-    await onSubmit({ ...values, participantIds });
+    setError(null);
+    await onSubmit(values);
   };
 
   return (
@@ -133,63 +180,130 @@ export default function CreateConversationDialog({
           }
           error={error ?? undefined}
         />
-        <div className="grid gap-4 md:grid-cols-2">
-          <Input
-            label={labels.titleEn}
-            value={values.titleEn ?? ""}
-            onChange={(event) =>
-              setValues((current) => ({
-                ...current,
-                titleEn: event.target.value,
-              }))
-            }
-          />
-          <Input
-            label={labels.titleAr}
-            value={values.titleAr ?? ""}
-            onChange={(event) =>
-              setValues((current) => ({
-                ...current,
-                titleAr: event.target.value,
-              }))
-            }
-          />
-        </div>
         <Select
           label={labels.type}
           value={values.type ?? "group"}
           onChange={(value) =>
-            setValues((current) => ({ ...current, type: value }))
+            setValues((current) => ({ ...current, type: value as ConversationType }))
           }
           options={typeOptions}
         />
+        <TextArea
+          label={labels.description}
+          rows={3}
+          value={values.description ?? ""}
+          onChange={(event) =>
+            setValues((current) => ({
+              ...current,
+              description: event.target.value,
+            }))
+          }
+        />
         <div className="grid gap-4 md:grid-cols-2">
           <Input
-            label={labels.scopeType}
-            value={values.scopeType ?? ""}
+            label={labels.academicYearId}
+            value={values.academicYearId ?? ""}
             onChange={(event) =>
               setValues((current) => ({
                 ...current,
-                scopeType: event.target.value,
+                academicYearId: event.target.value,
               }))
             }
           />
           <Input
-            label={labels.scopeId}
-            value={values.scopeId ?? ""}
+            label={labels.termId}
+            value={values.termId ?? ""}
             onChange={(event) =>
               setValues((current) => ({
                 ...current,
-                scopeId: event.target.value,
+                termId: event.target.value,
               }))
             }
           />
         </div>
-        <Input
-          label={labels.participantIds}
-          helperText={labels.participantIdsHelp}
-          value={participantText}
-          onChange={(event) => setParticipantText(event.target.value)}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Input
+            label={labels.stageId}
+            value={values.stageId ?? ""}
+            onChange={(event) =>
+              setValues((current) => ({ ...current, stageId: event.target.value }))
+            }
+          />
+          <Input
+            label={labels.gradeId}
+            value={values.gradeId ?? ""}
+            onChange={(event) =>
+              setValues((current) => ({ ...current, gradeId: event.target.value }))
+            }
+          />
+          <Input
+            label={labels.sectionId}
+            value={values.sectionId ?? ""}
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                sectionId: event.target.value,
+              }))
+            }
+          />
+          <Input
+            label={labels.classroomId}
+            value={values.classroomId ?? ""}
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                classroomId: event.target.value,
+              }))
+            }
+          />
+          <Input
+            label={labels.subjectId}
+            value={values.subjectId ?? ""}
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                subjectId: event.target.value,
+              }))
+            }
+          />
+          <Input
+            label={labels.avatarFileId}
+            value={values.avatarFileId ?? ""}
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                avatarFileId: event.target.value,
+              }))
+            }
+          />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <ToggleRow
+            label={labels.isReadOnly}
+            checked={values.isReadOnly}
+            onChange={(checked) =>
+              setValues((current) => ({ ...current, isReadOnly: checked }))
+            }
+          />
+          <ToggleRow
+            label={labels.isPinned}
+            checked={values.isPinned}
+            onChange={(checked) =>
+              setValues((current) => ({ ...current, isPinned: checked }))
+            }
+          />
+        </div>
+        <TextArea
+          label={labels.metadata}
+          helperText={labels.metadataHelp}
+          rows={4}
+          value={values.metadataText ?? ""}
+          onChange={(event) =>
+            setValues((current) => ({
+              ...current,
+              metadataText: event.target.value,
+            }))
+          }
         />
       </div>
     </Modal>

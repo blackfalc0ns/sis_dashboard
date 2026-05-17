@@ -5,28 +5,42 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
-import type { Announcement } from "@/features/communication/types/announcement.types";
+import type {
+  Announcement,
+  AnnouncementAudienceType,
+  AnnouncementPriority,
+  CreateAnnouncementStatus,
+} from "@/features/communication/types/announcement.types";
 import type { AnnouncementFormValues } from "@/features/communication/hooks/useAnnouncements";
 
 export interface AnnouncementEditorLabels {
   title: string;
-  titleEn: string;
-  titleAr: string;
   body: string;
-  bodyEn: string;
-  bodyAr: string;
+  status: string;
+  draft: string;
+  scheduled: string;
   priority: string;
   normal: string;
   low: string;
   high: string;
   urgent: string;
-  targetScopeType: string;
-  targetScopeId: string;
-  targetHelp: string;
+  audienceType: string;
+  audienceId: string;
+  school: string;
+  stage: string;
+  grade: string;
+  section: string;
+  classroom: string;
+  custom: string;
+  scheduledAt: string;
+  expiresAt: string;
+  metadata: string;
+  metadataHelp: string;
   saveDraft: string;
   saveChanges: string;
   titleRequired: string;
   bodyRequired: string;
+  invalidMetadata: string;
 }
 
 export interface AnnouncementEditorProps {
@@ -39,18 +53,44 @@ export interface AnnouncementEditorProps {
 }
 
 function initialValues(announcement?: Announcement | null): AnnouncementFormValues {
-  const firstTarget = announcement?.targets?.[0];
+  const firstAudience = announcement?.audiences?.[0];
+  const audienceType =
+    firstAudience?.audienceType ?? announcement?.audienceType ?? "";
+  const audienceId =
+    firstAudience?.stageId ??
+    firstAudience?.gradeId ??
+    firstAudience?.sectionId ??
+    firstAudience?.classroomId ??
+    firstAudience?.studentId ??
+    firstAudience?.guardianId ??
+    firstAudience?.userId ??
+    firstAudience?.teacherUserId ??
+    "";
+
   return {
     title: announcement?.title ?? "",
-    titleEn: announcement?.titleEn ?? "",
-    titleAr: announcement?.titleAr ?? "",
     body: announcement?.body ?? "",
-    bodyEn: announcement?.bodyEn ?? "",
-    bodyAr: announcement?.bodyAr ?? "",
+    status:
+      announcement?.status === "scheduled" ? "scheduled" : "draft",
     priority: announcement?.priority ?? "normal",
-    targetScopeType: firstTarget?.scopeType ?? "",
-    targetScopeId: firstTarget?.scopeId ?? "",
+    ...(audienceType ? { audienceType } : {}),
+    audienceId,
+    scheduledAt: datetimeLocalValue(announcement?.scheduledAt),
+    expiresAt: datetimeLocalValue(announcement?.expiresAt),
+    metadataText:
+      announcement?.metadata && typeof announcement.metadata === "object"
+        ? JSON.stringify(announcement.metadata, null, 2)
+        : "",
   };
+}
+
+function datetimeLocalValue(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60_000);
+  return local.toISOString().slice(0, 16);
 }
 
 export default function AnnouncementEditor({
@@ -74,20 +114,53 @@ export default function AnnouncementEditor({
     ],
     [labels.high, labels.low, labels.normal, labels.urgent],
   );
+  const statusOptions = useMemo(
+    () => [
+      { value: "draft", label: labels.draft },
+      { value: "scheduled", label: labels.scheduled },
+    ],
+    [labels.draft, labels.scheduled],
+  );
+  const audienceOptions = useMemo(
+    () => [
+      { value: "school", label: labels.school },
+      { value: "stage", label: labels.stage },
+      { value: "grade", label: labels.grade },
+      { value: "section", label: labels.section },
+      { value: "classroom", label: labels.classroom },
+      { value: "custom", label: labels.custom },
+    ],
+    [
+      labels.classroom,
+      labels.custom,
+      labels.grade,
+      labels.school,
+      labels.section,
+      labels.stage,
+    ],
+  );
 
   const handleSubmit = async () => {
-    if (
-      !values.title?.trim() &&
-      !values.titleEn?.trim() &&
-      !values.titleAr?.trim()
-    ) {
+    if (!values.title?.trim()) {
       setError(labels.titleRequired);
       return;
     }
 
-    if (!values.body?.trim() && !values.bodyEn?.trim() && !values.bodyAr?.trim()) {
+    if (!values.body?.trim()) {
       setError(labels.bodyRequired);
       return;
+    }
+    if (values.metadataText?.trim()) {
+      try {
+        const parsed = JSON.parse(values.metadataText) as unknown;
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          setError(labels.invalidMetadata);
+          return;
+        }
+      } catch {
+        setError(labels.invalidMetadata);
+        return;
+      }
     }
 
     setError(null);
@@ -105,24 +178,6 @@ export default function AnnouncementEditor({
           setValues((current) => ({ ...current, title: event.target.value }))
         }
       />
-      <div className="grid gap-4 md:grid-cols-2">
-        <Input
-          label={labels.titleEn}
-          value={values.titleEn ?? ""}
-          disabled={readOnly}
-          onChange={(event) =>
-            setValues((current) => ({ ...current, titleEn: event.target.value }))
-          }
-        />
-        <Input
-          label={labels.titleAr}
-          value={values.titleAr ?? ""}
-          disabled={readOnly}
-          onChange={(event) =>
-            setValues((current) => ({ ...current, titleAr: event.target.value }))
-          }
-        />
-      </div>
       <TextArea
         label={labels.body}
         value={values.body ?? ""}
@@ -132,60 +187,89 @@ export default function AnnouncementEditor({
           setValues((current) => ({ ...current, body: event.target.value }))
         }
       />
-      <div className="grid gap-4 md:grid-cols-2">
-        <TextArea
-          label={labels.bodyEn}
-          value={values.bodyEn ?? ""}
-          rows={5}
-          disabled={readOnly}
-          onChange={(event) =>
-            setValues((current) => ({ ...current, bodyEn: event.target.value }))
-          }
-        />
-        <TextArea
-          label={labels.bodyAr}
-          value={values.bodyAr ?? ""}
-          rows={5}
-          disabled={readOnly}
-          onChange={(event) =>
-            setValues((current) => ({ ...current, bodyAr: event.target.value }))
-          }
-        />
-      </div>
+      <Select
+        label={labels.status}
+        value={values.status ?? "draft"}
+        disabled={readOnly}
+        options={statusOptions}
+        onChange={(value) =>
+          setValues((current) => ({
+            ...current,
+            status: value as CreateAnnouncementStatus,
+          }))
+        }
+      />
       <Select
         label={labels.priority}
         value={values.priority ?? "normal"}
         disabled={readOnly}
         options={priorityOptions}
         onChange={(value) =>
-          setValues((current) => ({ ...current, priority: value }))
+          setValues((current) => ({
+            ...current,
+            priority: value as AnnouncementPriority,
+          }))
         }
       />
       <div className="grid gap-4 md:grid-cols-2">
-        <Input
-          label={labels.targetScopeType}
-          helperText={labels.targetHelp}
-          value={values.targetScopeType ?? ""}
+        <Select
+          label={labels.audienceType}
+          value={values.audienceType ?? "school"}
           disabled={readOnly}
-          onChange={(event) =>
+          options={audienceOptions}
+          onChange={(value) =>
             setValues((current) => ({
               ...current,
-              targetScopeType: event.target.value,
+              audienceType: value as AnnouncementAudienceType,
             }))
           }
         />
         <Input
-          label={labels.targetScopeId}
-          value={values.targetScopeId ?? ""}
+          label={labels.audienceId}
+          value={values.audienceId ?? ""}
           disabled={readOnly}
           onChange={(event) =>
             setValues((current) => ({
               ...current,
-              targetScopeId: event.target.value,
+              audienceId: event.target.value,
+            }))
+          }
+        />
+        <Input
+          label={labels.scheduledAt}
+          type="datetime-local"
+          value={values.scheduledAt ?? ""}
+          disabled={readOnly || values.status !== "scheduled"}
+          onChange={(event) =>
+            setValues((current) => ({
+              ...current,
+              scheduledAt: event.target.value,
+            }))
+          }
+        />
+        <Input
+          label={labels.expiresAt}
+          type="datetime-local"
+          value={values.expiresAt ?? ""}
+          disabled={readOnly}
+          onChange={(event) =>
+            setValues((current) => ({
+              ...current,
+              expiresAt: event.target.value,
             }))
           }
         />
       </div>
+      <TextArea
+        label={labels.metadata}
+        helperText={labels.metadataHelp}
+        value={values.metadataText ?? ""}
+        rows={4}
+        disabled={readOnly}
+        onChange={(event) =>
+          setValues((current) => ({ ...current, metadataText: event.target.value }))
+        }
+      />
       {!readOnly ? (
         <div className="flex justify-end">
           <Button

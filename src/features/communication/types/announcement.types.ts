@@ -2,18 +2,35 @@ import type {
   CommunicationActor,
   CommunicationDateTime,
   CommunicationId,
-  CommunicationQueryParams,
   CommunicationRecord,
 } from "./communication.types";
 
-export type AnnouncementStatus = "draft" | "published" | "archived" | string;
-export type AnnouncementPriority = "low" | "normal" | "high" | "urgent" | string;
+export type AnnouncementStatus =
+  | "draft"
+  | "scheduled"
+  | "published"
+  | "archived"
+  | "cancelled";
+export type CreateAnnouncementStatus = "draft" | "scheduled";
+export type AnnouncementPriority = "low" | "normal" | "high" | "urgent";
+export type AnnouncementAudienceType =
+  | "school"
+  | "stage"
+  | "grade"
+  | "section"
+  | "classroom"
+  | "custom";
 
-export interface AnnouncementTarget extends CommunicationRecord {
-  scopeType?: string;
-  scopeId?: CommunicationId;
-  academicYearId?: CommunicationId;
-  termId?: CommunicationId;
+export interface AnnouncementAudienceRow {
+  audienceType?: AnnouncementAudienceType;
+  stageId?: CommunicationId;
+  gradeId?: CommunicationId;
+  sectionId?: CommunicationId;
+  classroomId?: CommunicationId;
+  studentId?: CommunicationId;
+  guardianId?: CommunicationId;
+  userId?: CommunicationId;
+  teacherUserId?: CommunicationId;
 }
 
 export interface Announcement extends CommunicationRecord {
@@ -26,30 +43,42 @@ export interface Announcement extends CommunicationRecord {
   bodyEn?: string;
   status?: AnnouncementStatus;
   priority?: AnnouncementPriority;
-  targets?: AnnouncementTarget[];
+  audienceType?: AnnouncementAudienceType;
+  audiences?: AnnouncementAudienceRow[];
   author?: CommunicationActor;
   authorId?: CommunicationId;
+  scheduledAt?: CommunicationDateTime | null;
+  expiresAt?: CommunicationDateTime | null;
   publishedAt?: CommunicationDateTime | null;
   archivedAt?: CommunicationDateTime | null;
   createdAt?: CommunicationDateTime;
   updatedAt?: CommunicationDateTime;
 }
 
-export interface CreateAnnouncementPayload extends CommunicationRecord {
-  title?: string;
-  titleAr?: string;
-  titleEn?: string;
-  body?: string;
-  bodyAr?: string;
-  bodyEn?: string;
+export interface CreateAnnouncementPayload {
+  title: string;
+  body: string;
+  status?: CreateAnnouncementStatus;
   priority?: AnnouncementPriority;
-  targets?: AnnouncementTarget[];
+  audienceType?: AnnouncementAudienceType;
+  scheduledAt?: CommunicationDateTime | null;
+  expiresAt?: CommunicationDateTime | null;
+  audiences?: AnnouncementAudienceRow[];
+  metadata?: CommunicationRecord | null;
 }
 
-export type UpdateAnnouncementPayload = Partial<CreateAnnouncementPayload> &
-  CommunicationRecord;
+export interface UpdateAnnouncementPayload {
+  title?: string;
+  body?: string;
+  priority?: AnnouncementPriority;
+  audienceType?: AnnouncementAudienceType;
+  scheduledAt?: CommunicationDateTime | null;
+  expiresAt?: CommunicationDateTime | null;
+  audiences?: AnnouncementAudienceRow[];
+  metadata?: CommunicationRecord | null;
+}
 
-export type ListAnnouncementsParams = CommunicationQueryParams & {
+export type ListAnnouncementsParams = {
   status?: AnnouncementStatus;
   search?: string;
   page?: number;
@@ -62,4 +91,10 @@ export interface AnnouncementReadSummary extends CommunicationRecord {
   unreadCount?: number;
   totalRecipients?: number;
   readers?: CommunicationActor[];
+}
+
+export interface LinkAnnouncementAttachmentPayload {
+  fileId: CommunicationId;
+  caption?: string;
+  sortOrder?: number;
 }

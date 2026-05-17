@@ -83,8 +83,23 @@ export interface CommunicationPolicy extends CommunicationRecord {
   updatedAt?: CommunicationDateTime;
 }
 
-export type UpdateCommunicationPolicyPayload = Partial<CommunicationPolicy> &
-  CommunicationRecord;
+export interface UpdateCommunicationPolicyPayload {
+  isEnabled?: boolean;
+  allowAdminToAnyone?: boolean;
+  allowDirectStaffToStaff?: boolean;
+  allowTeacherCreatedGroups?: boolean;
+  allowAttachments?: boolean;
+  allowReactions?: boolean;
+  allowMessageEdit?: boolean;
+  allowMessageDelete?: boolean;
+  allowReadReceipts?: boolean;
+  allowDeliveryReceipts?: boolean;
+  maxGroupMembers?: number;
+  maxMessageLength?: number;
+  maxAttachmentSizeMb?: number;
+  moderationMode?: string;
+  metadata?: CommunicationRecord | null;
+}
 
 export interface CommunicationAdminOverview extends CommunicationRecord {
   announcementsCount?: number;

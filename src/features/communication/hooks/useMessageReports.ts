@@ -127,15 +127,22 @@ export function useMessageReports() {
     try {
       const response = await getMessageReports({
         status: filters.status as MessageReportStatus,
-        ...(filters.reason.trim() ? { reason: filters.reason.trim() } : {}),
         limit: 50,
       });
       const list = unwrapList<MessageReport>(response);
-      const normalized = sortReports(list.items);
+      const reasonFilter = filters.reason.trim().toLowerCase();
+      const filtered = reasonFilter
+        ? list.items.filter((report) =>
+            String(report.reason ?? "")
+              .toLowerCase()
+              .includes(reasonFilter),
+          )
+        : list.items;
+      const normalized = sortReports(filtered);
 
       if (!mountedRef.current) return;
       setReports(normalized);
-      setTotal(list.total ?? normalized.length);
+      setTotal(reasonFilter ? normalized.length : list.total ?? normalized.length);
     } catch (nextError) {
       if (!mountedRef.current) return;
       setError(errorMessageFromUnknown(nextError));

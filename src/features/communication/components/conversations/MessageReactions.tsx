@@ -1,6 +1,14 @@
 "use client";
 
-import { Check, Eye, Heart, ThumbsUp } from "lucide-react";
+import {
+  Angry,
+  Frown,
+  Heart,
+  Laugh,
+  SmilePlus,
+  ThumbsDown,
+  ThumbsUp,
+} from "lucide-react";
 import type { ComponentType } from "react";
 import type {
   MessageReaction,
@@ -10,8 +18,12 @@ import type {
 export interface MessageReactionsLabels {
   like: string;
   love: string;
-  thanks: string;
-  seen: string;
+  laugh: string;
+  wow: string;
+  sad: string;
+  angry: string;
+  thumbsUp: string;
+  thumbsDown: string;
 }
 
 export interface MessageReactionsProps {
@@ -29,8 +41,12 @@ const reactionMeta: Record<
 > = {
   like: { labelKey: "like", icon: ThumbsUp },
   love: { labelKey: "love", icon: Heart },
-  thanks: { labelKey: "thanks", icon: Check },
-  seen: { labelKey: "seen", icon: Eye },
+  laugh: { labelKey: "laugh", icon: Laugh },
+  wow: { labelKey: "wow", icon: SmilePlus },
+  sad: { labelKey: "sad", icon: Frown },
+  angry: { labelKey: "angry", icon: Angry },
+  thumbs_up: { labelKey: "thumbsUp", icon: ThumbsUp },
+  thumbs_down: { labelKey: "thumbsDown", icon: ThumbsDown },
 };
 
 function groupReactions(reactions: MessageReaction[]) {

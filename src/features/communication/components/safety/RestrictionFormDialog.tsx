@@ -6,7 +6,10 @@ import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
 import Modal from "@/components/ui/modal/Modal";
-import type { Restriction } from "@/features/communication/types/safety.types";
+import type {
+  Restriction,
+  RestrictionType,
+} from "@/features/communication/types/safety.types";
 import type { RestrictionFormValues } from "@/features/communication/hooks/useRestrictions";
 
 export interface RestrictionFormDialogLabels {
@@ -16,8 +19,9 @@ export interface RestrictionFormDialogLabels {
   type: string;
   groupCreateDisabled: string;
   messageSendDisabled: string;
-  attachmentUploadDisabled: string;
-  reactionDisabled: string;
+  mute: string;
+  readOnly: string;
+  directMessageDisabled: string;
   reason: string;
   expiresAt: string;
   metadata: string;
@@ -51,10 +55,7 @@ function datetimeLocalValue(value?: string | null) {
 function initialValues(restriction?: Restriction | null): RestrictionFormValues {
   return {
     targetUserId: restriction?.targetUserId ?? "",
-    type:
-      restriction?.type ??
-      restriction?.restrictionType ??
-      "message_send_disabled",
+    type: restriction?.type ?? "send_disabled",
     reason: restriction?.reason ?? "",
     expiresAt: datetimeLocalValue(restriction?.expiresAt),
     metadataText: restriction?.metadata
@@ -83,23 +84,28 @@ export default function RestrictionFormDialog({
         label: labels.groupCreateDisabled,
       },
       {
-        value: "message_send_disabled",
+        value: "send_disabled",
         label: labels.messageSendDisabled,
       },
       {
-        value: "attachment_upload_disabled",
-        label: labels.attachmentUploadDisabled,
+        value: "mute",
+        label: labels.mute,
       },
       {
-        value: "reaction_disabled",
-        label: labels.reactionDisabled,
+        value: "read_only",
+        label: labels.readOnly,
+      },
+      {
+        value: "direct_message_disabled",
+        label: labels.directMessageDisabled,
       },
     ],
     [
-      labels.attachmentUploadDisabled,
+      labels.directMessageDisabled,
       labels.groupCreateDisabled,
       labels.messageSendDisabled,
-      labels.reactionDisabled,
+      labels.mute,
+      labels.readOnly,
     ],
   );
 
@@ -166,7 +172,7 @@ export default function RestrictionFormDialog({
           value={values.type}
           options={typeOptions}
           onChange={(value) =>
-            setValues((current) => ({ ...current, type: value }))
+            setValues((current) => ({ ...current, type: value as RestrictionType }))
           }
         />
         <TextArea
