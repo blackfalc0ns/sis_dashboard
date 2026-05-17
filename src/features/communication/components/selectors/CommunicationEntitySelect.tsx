@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Autocomplete, CircularProgress, TextField } from "@mui/material";
+import Select, { type SelectOption } from "@/components/ui/input/Select";
 import type { CommunicationSelectorOption } from "@/features/communication/api/communication-selectors.service";
+
+const LOADING_VALUE = "__loading";
+const EMPTY_VALUE = "__empty";
+const ERROR_VALUE = "__error";
 
 export interface CommunicationEntitySelectProps {
   label: string;
@@ -16,6 +20,18 @@ export interface CommunicationEntitySelectProps {
   onChange: (value: string) => void;
 }
 
+function toSelectOption(option: CommunicationSelectorOption): SelectOption {
+  const label = option.description
+    ? `${option.label} - ${option.description}`
+    : option.label;
+
+  return {
+    value: option.id,
+    label,
+    searchText: `${option.label} ${option.description ?? ""}`,
+  };
+}
+
 export default function CommunicationEntitySelect({
   clearable = true,
   disabled,
@@ -27,25 +43,31 @@ export default function CommunicationEntitySelect({
   search,
   value,
 }: CommunicationEntitySelectProps) {
-  const [inputValue, setInputValue] = useState("");
   const [options, setOptions] = useState<CommunicationSelectorOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const selectedOption = useMemo(
-    () => options.find((option) => option.id === value) ?? null,
-    [options, value],
-  );
+  const [hasSearched, setHasSearched] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (disabled) return;
+
     let cancelled = false;
     const timeout = window.setTimeout(() => {
       setIsLoading(true);
-      search(inputValue)
+      setLoadError(false);
+      search("")
         .then((items) => {
-          if (!cancelled) setOptions(items);
+          if (!cancelled) {
+            setOptions(items);
+            setHasSearched(true);
+          }
         })
         .catch(() => {
-          if (!cancelled) setOptions([]);
+          if (!cancelled) {
+            setOptions([]);
+            setLoadError(true);
+            setHasSearched(true);
+          }
         })
         .finally(() => {
           if (!cancelled) setIsLoading(false);
@@ -56,51 +78,71 @@ export default function CommunicationEntitySelect({
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [disabled, inputValue, search]);
+  }, [disabled, search]);
+
+  const selectOptions = useMemo(() => {
+    const nextOptions = options.map(toSelectOption);
+
+    if (value && !nextOptions.some((option) => option.value === value)) {
+      nextOptions.unshift({ value, label: value, searchText: value });
+    }
+
+    if (isLoading) {
+      nextOptions.push({
+        value: LOADING_VALUE,
+        label: "Loading...",
+        disabled: true,
+      });
+    } else if (loadError) {
+      nextOptions.push({
+        value: ERROR_VALUE,
+        label: "Unable to load options",
+        disabled: true,
+      });
+    } else if (hasSearched && nextOptions.length === 0) {
+      nextOptions.push({
+        value: EMPTY_VALUE,
+        label: "No options",
+        disabled: true,
+      });
+    }
+
+    if (clearable) {
+      nextOptions.unshift({
+        value: "",
+        label: placeholder || "Select...",
+        searchText: placeholder || "Select",
+      });
+    }
+
+    return nextOptions;
+  }, [clearable, hasSearched, isLoading, loadError, options, placeholder, value]);
+
+  const handleChange = (nextValue: string) => {
+    if (
+      nextValue === LOADING_VALUE ||
+      nextValue === EMPTY_VALUE ||
+      nextValue === ERROR_VALUE
+    ) {
+      return;
+    }
+
+    onChange(nextValue);
+  };
 
   return (
-    <Autocomplete
+    <Select
+      label={label}
+      value={value ?? ""}
+      placeholder={placeholder}
+      helperText={error ?? helperText}
+      error={error}
+      searchable
       disabled={disabled}
-      options={options}
-      value={selectedOption}
-      inputValue={inputValue}
-      loading={isLoading}
-      clearOnBlur={false}
-      disableClearable={!clearable}
-      getOptionLabel={(option) => option.label}
-      isOptionEqualToValue={(option, selected) => option.id === selected.id}
+      options={selectOptions}
+      onChange={handleChange}
       noOptionsText={isLoading ? "Loading..." : "No options"}
-      onInputChange={(_, nextInput) => setInputValue(nextInput)}
-      onChange={(_, option) => onChange(option?.id ?? "")}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label={label}
-          placeholder={placeholder}
-          error={Boolean(error)}
-          helperText={error ?? helperText}
-          size="small"
-          InputProps={{
-            ...params.InputProps,
-            endAdornment: (
-              <>
-                {isLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                {params.InputProps.endAdornment}
-              </>
-            ),
-          }}
-        />
-      )}
-      renderOption={(props, option) => (
-        <li {...props} key={option.id}>
-          <div>
-            <div className="text-sm font-medium">{option.label}</div>
-            {option.description ? (
-              <div className="text-xs text-slate-500">{option.description}</div>
-            ) : null}
-          </div>
-        </li>
-      )}
+      noResultsText={loadError ? "Unable to load options" : "No options"}
     />
   );
 }

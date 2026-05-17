@@ -5,7 +5,11 @@ import {
   fetchTerms,
 } from "@/features/academics/services/academicStructureApiService";
 import { fetchSettingsUsers } from "@/features/settings/services/settingsUsersService";
-import { getAnnouncements, getConversations } from "./communication.service";
+import {
+  getAnnouncements,
+  getConversations,
+  getMessages,
+} from "./communication.service";
 
 export interface CommunicationSelectorOption {
   id: string;
@@ -191,6 +195,40 @@ export async function searchConversations(
 ): Promise<CommunicationSelectorOption[]> {
   const response = await getConversations({ search: query, limit: 20 });
   return unwrapItems(response).map(optionFromRecord).filter(isOption);
+}
+
+export async function searchMessages(
+  conversationId: string,
+  query = "",
+): Promise<CommunicationSelectorOption[]> {
+  if (!conversationId) return [];
+
+  const response = await getMessages(conversationId, { limit: 30 });
+  const options = unwrapItems(response).reduce<CommunicationSelectorOption[]>(
+    (items, record) => {
+      const id = stringValue(record.id);
+      if (!id) return items;
+
+      const body =
+        stringValue(record.body) ??
+        stringValue(record.content) ??
+        stringValue(record.text);
+      const description =
+        stringValue(record.createdAt) ??
+        stringValue(record.senderId) ??
+        stringValue(record.type);
+
+      items.push({
+        id,
+        label: body ? body.slice(0, 80) : id,
+        ...(description ? { description } : {}),
+      });
+      return items;
+    },
+    [],
+  );
+
+  return filterOptions(options, query);
 }
 
 export async function searchFiles(query = ""): Promise<CommunicationSelectorOption[]> {

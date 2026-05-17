@@ -6,6 +6,7 @@ import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import AnnouncementSearchSelect from "@/features/communication/components/selectors/AnnouncementSearchSelect";
 import ConversationSearchSelect from "@/features/communication/components/selectors/ConversationSearchSelect";
+import MessageSearchSelect from "@/features/communication/components/selectors/MessageSearchSelect";
 import UserSearchSelect from "@/features/communication/components/selectors/UserSearchSelect";
 import type {
   NotificationFiltersState,
@@ -68,6 +69,7 @@ const sourceModules: NotificationSourceModule[] = [
 ];
 
 const priorities: NotificationPriority[] = ["low", "normal", "high", "urgent"];
+const sourceTypes = ["announcement", "conversation", "message"] as const;
 
 const emptyFilters: NotificationFiltersState = {
   status: "all",
@@ -159,12 +161,18 @@ export default function NotificationFilters({
           ...sourceModules.map((module) => ({ value: module, label: module })),
         ]}
       />
-      <Input
+      <Select
         label={labels.sourceType}
         value={filters.sourceType}
-        onChange={(event) =>
-          onChange({ ...filters, sourceType: event.target.value, sourceId: "" })
-        }
+        searchable
+        onChange={(value) => onChange({ ...filters, sourceType: value, sourceId: "" })}
+        options={[
+          { value: "", label: labels.all },
+          ...sourceTypes.map((sourceType) => ({
+            value: sourceType,
+            label: sourceType,
+          })),
+        ]}
       />
       {sourceKind(filters.sourceModule, filters.sourceType) === "announcement" ? (
         <AnnouncementSearchSelect
@@ -172,16 +180,17 @@ export default function NotificationFilters({
           value={filters.sourceId}
           onChange={(sourceId) => onChange({ ...filters, sourceId })}
         />
-      ) : sourceKind(filters.sourceModule, filters.sourceType) === "conversation" ||
-        sourceKind(filters.sourceModule, filters.sourceType) === "message" ? (
+      ) : sourceKind(filters.sourceModule, filters.sourceType) === "conversation" ? (
         <ConversationSearchSelect
           label={labels.sourceId}
           value={filters.sourceId}
-          helperText={
-            sourceKind(filters.sourceModule, filters.sourceType) === "message"
-              ? labels.sourceId
-              : undefined
-          }
+          onChange={(sourceId) => onChange({ ...filters, sourceId })}
+        />
+      ) : sourceKind(filters.sourceModule, filters.sourceType) === "message" ? (
+        <MessageSearchSelect
+          label={labels.sourceId}
+          value={filters.sourceId}
+          helperText={labels.selectSourceTypeFirst}
           onChange={(sourceId) => onChange({ ...filters, sourceId })}
         />
       ) : (

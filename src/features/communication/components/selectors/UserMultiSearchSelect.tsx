@@ -1,11 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Autocomplete, CircularProgress, TextField } from "@mui/material";
-import {
-  searchUsers,
-  type CommunicationSelectorOption,
-} from "@/features/communication/api/communication-selectors.service";
+import { useState } from "react";
+import { X } from "lucide-react";
+import Button from "@/components/ui/button/Button";
+import UserSearchSelect from "./UserSearchSelect";
 
 export interface UserMultiSearchSelectProps {
   label: string;
@@ -26,66 +24,53 @@ export default function UserMultiSearchSelect({
   placeholder,
   value,
 }: UserMultiSearchSelectProps) {
-  const [inputValue, setInputValue] = useState("");
-  const [options, setOptions] = useState<CommunicationSelectorOption[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const selectedOptions = options.filter((option) => value.includes(option.id));
-  const loadUsers = useCallback((query: string) => searchUsers(query), []);
+  const [pendingUserId, setPendingUserId] = useState("");
 
-  useEffect(() => {
-    if (disabled) return;
-    let cancelled = false;
-    const timeout = window.setTimeout(() => {
-      setIsLoading(true);
-      loadUsers(inputValue)
-        .then((items) => {
-          if (!cancelled) setOptions(items);
-        })
-        .catch(() => {
-          if (!cancelled) setOptions([]);
-        })
-        .finally(() => {
-          if (!cancelled) setIsLoading(false);
-        });
-    }, 250);
+  const addUser = (userId: string) => {
+    setPendingUserId(userId);
+    if (!userId || value.includes(userId)) return;
+    onChange([...value, userId]);
+    setPendingUserId("");
+  };
 
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeout);
-    };
-  }, [disabled, inputValue, loadUsers]);
+  const removeUser = (userId: string) => {
+    onChange(value.filter((item) => item !== userId));
+  };
 
   return (
-    <Autocomplete
-      multiple
-      disabled={disabled}
-      options={options}
-      value={selectedOptions}
-      inputValue={inputValue}
-      loading={isLoading}
-      getOptionLabel={(option) => option.label}
-      isOptionEqualToValue={(option, selected) => option.id === selected.id}
-      onInputChange={(_, nextInput) => setInputValue(nextInput)}
-      onChange={(_, nextOptions) => onChange(nextOptions.map((option) => option.id))}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label={label}
-          placeholder={placeholder}
-          error={Boolean(error)}
-          helperText={error ?? helperText}
-          size="small"
-          InputProps={{
-            ...params.InputProps,
-            endAdornment: (
-              <>
-                {isLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                {params.InputProps.endAdornment}
-              </>
-            ),
-          }}
-        />
-      )}
-    />
+    <div className="space-y-2">
+      <UserSearchSelect
+        label={label}
+        value={pendingUserId}
+        placeholder={placeholder}
+        helperText={helperText}
+        error={error}
+        disabled={disabled}
+        onChange={addUser}
+      />
+      {value.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {value.map((userId) => (
+            <span
+              key={userId}
+              className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
+            >
+              {userId}
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-5 px-1 py-0"
+                disabled={disabled}
+                onClick={() => removeUser(userId)}
+                leftIcon={<X className="h-3 w-3" aria-hidden="true" />}
+              >
+                <span className="sr-only">Remove</span>
+              </Button>
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }

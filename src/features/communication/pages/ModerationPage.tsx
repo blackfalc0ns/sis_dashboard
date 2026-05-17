@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useLocale } from "next-intl";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
 import CommunicationPageHeader from "@/features/communication/components/layout/CommunicationPageHeader";
@@ -18,7 +19,9 @@ const labels = {
       "Load a message, review its moderation history, and hide or restore visibility.",
     errorTitle: "Unable to complete moderation action",
     panelTitle: "Message Lookup",
-    messageId: "Message ID",
+    conversationSelect: "Conversation",
+    messageId: "Message",
+    selectConversationFirst: "Select a conversation first",
     load: "Load Message",
     currentStatus: "Current status",
     sender: "Sender",
@@ -56,7 +59,9 @@ const labels = {
     description: "حمّل رسالة وراجع سجل الإشراف وأخفها أو أعد إظهارها.",
     errorTitle: "تعذر تنفيذ إجراء الإشراف",
     panelTitle: "بحث الرسالة",
-    messageId: "معرف الرسالة",
+    conversationSelect: "المحادثة",
+    messageId: "الرسالة",
+    selectConversationFirst: "اختر محادثة أولا",
     load: "تحميل الرسالة",
     currentStatus: "الحالة الحالية",
     sender: "المرسل",
@@ -96,6 +101,7 @@ export default function ModerationPage() {
   const locale = useLocale() as LocaleKey;
   const t = labels[locale] ?? labels.en;
   const { showSuccess, showError } = useToast();
+  const [conversationId, setConversationId] = useState("");
   const {
     actions,
     error,
@@ -132,14 +138,18 @@ export default function ModerationPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-6">
           <ModerationActionsPanel
+            conversationId={conversationId}
             messageId={messageId}
             message={message}
             isLoading={isLoading}
+            onConversationIdChange={setConversationId}
             onMessageIdChange={setMessageId}
             onLoad={() => load()}
             labels={{
               title: t.panelTitle,
+              conversationSelect: t.conversationSelect,
               messageId: t.messageId,
+              selectConversationFirst: t.selectConversationFirst,
               load: t.load,
               currentStatus: t.currentStatus,
               sender: t.sender,

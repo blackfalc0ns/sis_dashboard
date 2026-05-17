@@ -1,14 +1,17 @@
 "use client";
 
-import { Search, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import Button from "@/components/ui/button/Button";
-import Input from "@/components/ui/input/Input";
+import ConversationSearchSelect from "@/features/communication/components/selectors/ConversationSearchSelect";
+import MessageSearchSelect from "@/features/communication/components/selectors/MessageSearchSelect";
 import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
 import type { Message } from "@/features/communication/types/message.types";
 
 export interface ModerationActionsPanelLabels {
   title: string;
+  conversationSelect: string;
   messageId: string;
+  selectConversationFirst: string;
   load: string;
   currentStatus: string;
   sender: string;
@@ -22,9 +25,11 @@ export interface ModerationActionsPanelLabels {
 }
 
 export interface ModerationActionsPanelProps {
+  conversationId: string;
   messageId: string;
   message?: Message | null;
   isLoading?: boolean;
+  onConversationIdChange: (conversationId: string) => void;
   labels: ModerationActionsPanelLabels;
   onMessageIdChange: (messageId: string) => void;
   onLoad: () => Promise<void> | void;
@@ -53,10 +58,12 @@ function statusTone(message?: Message | null) {
 }
 
 export default function ModerationActionsPanel({
+  conversationId,
   isLoading,
   labels,
   message,
   messageId,
+  onConversationIdChange,
   onLoad,
   onMessageIdChange,
 }: ModerationActionsPanelProps) {
@@ -66,12 +73,21 @@ export default function ModerationActionsPanel({
         <ShieldCheck className="h-5 w-5 text-sky-600" aria-hidden />
         <h2 className="text-base font-semibold text-slate-900">{labels.title}</h2>
       </div>
-      <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
-        <Input
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+        <ConversationSearchSelect
+          label={labels.conversationSelect}
+          value={conversationId}
+          onChange={(nextConversationId) => {
+            onConversationIdChange(nextConversationId);
+            onMessageIdChange("");
+          }}
+        />
+        <MessageSearchSelect
           label={labels.messageId}
+          conversationId={conversationId}
           value={messageId}
-          onChange={(event) => onMessageIdChange(event.target.value)}
-          leftIcon={<Search className="h-4 w-4" aria-hidden="true" />}
+          helperText={!conversationId ? labels.selectConversationFirst : undefined}
+          onChange={onMessageIdChange}
         />
         <Button
           type="button"
