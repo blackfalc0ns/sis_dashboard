@@ -4,6 +4,9 @@ import { X } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
+import AnnouncementSearchSelect from "@/features/communication/components/selectors/AnnouncementSearchSelect";
+import ConversationSearchSelect from "@/features/communication/components/selectors/ConversationSearchSelect";
+import UserSearchSelect from "@/features/communication/components/selectors/UserSearchSelect";
 import type {
   NotificationFiltersState,
   NotificationStatusFilter,
@@ -33,6 +36,7 @@ export interface NotificationFiltersProps {
     sourceType: string;
     sourceId: string;
     recipientUserId: string;
+    selectSourceTypeFirst: string;
     createdFrom: string;
     createdTo: string;
     clear: string;
@@ -76,6 +80,14 @@ const emptyFilters: NotificationFiltersState = {
   createdFrom: "",
   createdTo: "",
 };
+
+function sourceKind(sourceModule?: string, sourceType?: string) {
+  const value = `${sourceModule ?? ""} ${sourceType ?? ""}`.toLowerCase();
+  if (value.includes("announcement")) return "announcement";
+  if (value.includes("conversation") || value.includes("chat")) return "conversation";
+  if (value.includes("message")) return "message";
+  return "";
+}
 
 export default function NotificationFilters({
   filters,
@@ -139,6 +151,7 @@ export default function NotificationFilters({
           onChange({
             ...filters,
             sourceModule: value as "" | NotificationSourceModule,
+            sourceId: "",
           })
         }
         options={[
@@ -150,22 +163,40 @@ export default function NotificationFilters({
         label={labels.sourceType}
         value={filters.sourceType}
         onChange={(event) =>
-          onChange({ ...filters, sourceType: event.target.value })
+          onChange({ ...filters, sourceType: event.target.value, sourceId: "" })
         }
       />
-      <Input
-        label={labels.sourceId}
-        value={filters.sourceId}
-        onChange={(event) =>
-          onChange({ ...filters, sourceId: event.target.value })
-        }
-      />
-      <Input
+      {sourceKind(filters.sourceModule, filters.sourceType) === "announcement" ? (
+        <AnnouncementSearchSelect
+          label={labels.sourceId}
+          value={filters.sourceId}
+          onChange={(sourceId) => onChange({ ...filters, sourceId })}
+        />
+      ) : sourceKind(filters.sourceModule, filters.sourceType) === "conversation" ||
+        sourceKind(filters.sourceModule, filters.sourceType) === "message" ? (
+        <ConversationSearchSelect
+          label={labels.sourceId}
+          value={filters.sourceId}
+          helperText={
+            sourceKind(filters.sourceModule, filters.sourceType) === "message"
+              ? labels.sourceId
+              : undefined
+          }
+          onChange={(sourceId) => onChange({ ...filters, sourceId })}
+        />
+      ) : (
+        <ConversationSearchSelect
+          label={labels.sourceId}
+          value=""
+          disabled
+          helperText={labels.selectSourceTypeFirst}
+          onChange={() => undefined}
+        />
+      )}
+      <UserSearchSelect
         label={labels.recipientUserId}
         value={filters.recipientUserId}
-        onChange={(event) =>
-          onChange({ ...filters, recipientUserId: event.target.value })
-        }
+        onChange={(recipientUserId) => onChange({ ...filters, recipientUserId })}
       />
       <Input
         label={labels.createdFrom}

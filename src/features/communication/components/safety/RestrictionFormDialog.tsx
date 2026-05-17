@@ -6,6 +6,7 @@ import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
 import Modal from "@/components/ui/modal/Modal";
+import UserSearchSelect from "@/features/communication/components/selectors/UserSearchSelect";
 import type {
   Restriction,
   RestrictionType,
@@ -138,14 +139,15 @@ export default function RestrictionFormDialog({
       }
     >
       <div className="space-y-4 pb-4">
-        <Input
+        <UserSearchSelect
           label={labels.targetUserId}
           value={values.targetUserId}
+          placeholder={labels.targetUserId}
           error={error ?? undefined}
-          onChange={(event) =>
+          onChange={(targetUserId) =>
             setValues((current) => ({
               ...current,
-              targetUserId: event.target.value,
+              targetUserId,
             }))
           }
         />

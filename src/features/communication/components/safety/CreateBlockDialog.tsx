@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Button from "@/components/ui/button/Button";
-import Input from "@/components/ui/input/Input";
 import TextArea from "@/components/ui/input/TextArea";
 import Modal from "@/components/ui/modal/Modal";
+import UserSearchSelect from "@/features/communication/components/selectors/UserSearchSelect";
 import type { BlockFormValues } from "@/features/communication/hooks/useBlocks";
 
 export interface CreateBlockDialogLabels {
@@ -69,14 +69,15 @@ export default function CreateBlockDialog({
       }
     >
       <div className="space-y-4 pb-4">
-        <Input
+        <UserSearchSelect
           label={labels.targetUserId}
           value={values.targetUserId}
+          placeholder={labels.targetUserId}
           error={error ?? undefined}
-          onChange={(event) =>
+          onChange={(targetUserId) =>
             setValues((current) => ({
               ...current,
-              targetUserId: event.target.value,
+              targetUserId,
             }))
           }
         />

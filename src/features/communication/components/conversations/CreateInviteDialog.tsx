@@ -4,6 +4,7 @@ import { useState } from "react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Modal from "@/components/ui/modal/Modal";
+import UserSearchSelect from "@/features/communication/components/selectors/UserSearchSelect";
 import type { CreateConversationInviteValues } from "@/features/communication/hooks/useConversationInvites";
 
 export interface CreateInviteDialogLabels {
@@ -69,14 +70,15 @@ export default function CreateInviteDialog({
       }
     >
       <div className="space-y-4 pb-4">
-        <Input
+        <UserSearchSelect
           label={labels.invitedUserId}
           value={values.invitedUserId}
+          placeholder={labels.invitedUserId}
           error={error ?? undefined}
-          onChange={(event) =>
+          onChange={(invitedUserId) =>
             setValues((current) => ({
               ...current,
-              invitedUserId: event.target.value,
+              invitedUserId,
             }))
           }
         />

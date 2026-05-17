@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useLocale } from "next-intl";
 import { Plus, RefreshCw, X } from "lucide-react";
 import Button from "@/components/ui/button/Button";
-import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import { useToast } from "@/components/ui/toast/Toast";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
@@ -14,6 +13,7 @@ import CommunicationTabs from "@/features/communication/components/layout/Commun
 import RestrictionFormDialog from "@/features/communication/components/safety/RestrictionFormDialog";
 import RestrictionsTable from "@/features/communication/components/safety/RestrictionsTable";
 import RevokeRestrictionDialog from "@/features/communication/components/safety/RevokeRestrictionDialog";
+import UserSearchSelect from "@/features/communication/components/selectors/UserSearchSelect";
 import {
   useRestrictions,
   type RestrictionFormValues,
@@ -33,8 +33,8 @@ const labels = {
     activeOnly: "Scope",
     activeOnlyValue: "Active only",
     allValue: "All restrictions",
-    targetUserId: "Target user ID",
-    targetPlaceholder: "Filter by target user",
+    targetUserId: "Target user",
+    targetPlaceholder: "Search users...",
     clear: "Clear",
     emptyTitle: "No restrictions found",
     emptyDescription:
@@ -61,7 +61,7 @@ const labels = {
     cancel: "Cancel",
     create: "Create",
     save: "Save",
-    targetRequired: "Enter a target user ID.",
+    targetRequired: "Select a user.",
     reasonRequired: "Enter a reason.",
     revokeTitle: "Revoke restriction",
     revokeDescription:
@@ -84,8 +84,8 @@ const labels = {
     activeOnly: "النطاق",
     activeOnlyValue: "النشطة فقط",
     allValue: "كل القيود",
-    targetUserId: "معرف المستخدم المستهدف",
-    targetPlaceholder: "تصفية حسب المستخدم المستهدف",
+    targetUserId: "المستخدم المستهدف",
+    targetPlaceholder: "ابحث عن المستخدمين...",
     clear: "مسح",
     emptyTitle: "لا توجد قيود",
     emptyDescription: "أنشئ قيدا أو عدل عوامل التصفية لمراجعة حدود التواصل.",
@@ -111,7 +111,7 @@ const labels = {
     cancel: "إلغاء",
     create: "إنشاء",
     save: "حفظ",
-    targetRequired: "أدخل معرف المستخدم المستهدف.",
+    targetRequired: "اختر مستخدمًا.",
     reasonRequired: "أدخل السبب.",
     revokeTitle: "إلغاء القيد",
     revokeDescription:
@@ -229,13 +229,11 @@ export default function RestrictionsPage() {
             setFilters({ ...filters, activeOnly: value === "true" })
           }
         />
-        <Input
+        <UserSearchSelect
           label={t.targetUserId}
           placeholder={t.targetPlaceholder}
           value={filters.targetUserId}
-          onChange={(event) =>
-            setFilters({ ...filters, targetUserId: event.target.value })
-          }
+          onChange={(targetUserId) => setFilters({ ...filters, targetUserId })}
         />
         <Button
           type="button"

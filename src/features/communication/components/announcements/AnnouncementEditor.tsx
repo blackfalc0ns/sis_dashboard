@@ -5,6 +5,11 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
+import ClassroomSelect from "@/features/communication/components/selectors/ClassroomSelect";
+import GradeSelect from "@/features/communication/components/selectors/GradeSelect";
+import SectionSelect from "@/features/communication/components/selectors/SectionSelect";
+import StageSelect from "@/features/communication/components/selectors/StageSelect";
+import UserMultiSearchSelect from "@/features/communication/components/selectors/UserMultiSearchSelect";
 import type {
   Announcement,
   AnnouncementAudienceType,
@@ -26,6 +31,8 @@ export interface AnnouncementEditorLabels {
   urgent: string;
   audienceType: string;
   audienceId: string;
+  audienceRequired?: string;
+  searchUsers?: string;
   school: string;
   stage: string;
   grade: string;
@@ -72,6 +79,8 @@ function initialValues(announcement?: Announcement | null): AnnouncementFormValu
     priority: announcement?.priority ?? "normal",
     ...(audienceType ? { audienceType } : {}),
     audienceId,
+    audienceUserIds:
+      firstAudience?.userId && audienceType === "custom" ? [firstAudience.userId] : [],
     scheduledAt: datetimeLocalValue(announcement?.scheduledAt),
     expiresAt: datetimeLocalValue(announcement?.expiresAt),
   };
@@ -143,6 +152,19 @@ export default function AnnouncementEditor({
       setError(labels.bodyRequired);
       return;
     }
+    if (
+      values.audienceType &&
+      values.audienceType !== "school" &&
+      values.audienceType !== "custom" &&
+      !values.audienceId
+    ) {
+      setError(labels.audienceRequired ?? labels.audienceId);
+      return;
+    }
+    if (values.audienceType === "custom" && !values.audienceUserIds?.length) {
+      setError(labels.audienceRequired ?? labels.audienceId);
+      return;
+    }
 
     setError(null);
     await onSubmit(values);
@@ -154,7 +176,7 @@ export default function AnnouncementEditor({
         label={labels.title}
         value={values.title ?? ""}
         disabled={readOnly}
-        error={error ?? undefined}
+        error={error === labels.titleRequired ? error : undefined}
         onChange={(event) =>
           setValues((current) => ({ ...current, title: event.target.value }))
         }
@@ -202,20 +224,67 @@ export default function AnnouncementEditor({
             setValues((current) => ({
               ...current,
               audienceType: value as AnnouncementAudienceType,
+              audienceId: "",
+              audienceUserIds: [],
             }))
           }
         />
-        <Input
-          label={labels.audienceId}
-          value={values.audienceId ?? ""}
-          disabled={readOnly}
-          onChange={(event) =>
-            setValues((current) => ({
-              ...current,
-              audienceId: event.target.value,
-            }))
-          }
-        />
+        {values.audienceType === "stage" ? (
+          <StageSelect
+            label={labels.audienceId}
+            value={values.audienceId ?? ""}
+            disabled={readOnly}
+            error={error === labels.audienceRequired ? error : undefined}
+            onChange={(audienceId) =>
+              setValues((current) => ({ ...current, audienceId }))
+            }
+          />
+        ) : null}
+        {values.audienceType === "grade" ? (
+          <GradeSelect
+            label={labels.audienceId}
+            value={values.audienceId ?? ""}
+            disabled={readOnly}
+            error={error === labels.audienceRequired ? error : undefined}
+            onChange={(audienceId) =>
+              setValues((current) => ({ ...current, audienceId }))
+            }
+          />
+        ) : null}
+        {values.audienceType === "section" ? (
+          <SectionSelect
+            label={labels.audienceId}
+            value={values.audienceId ?? ""}
+            disabled={readOnly}
+            error={error === labels.audienceRequired ? error : undefined}
+            onChange={(audienceId) =>
+              setValues((current) => ({ ...current, audienceId }))
+            }
+          />
+        ) : null}
+        {values.audienceType === "classroom" ? (
+          <ClassroomSelect
+            label={labels.audienceId}
+            value={values.audienceId ?? ""}
+            disabled={readOnly}
+            error={error === labels.audienceRequired ? error : undefined}
+            onChange={(audienceId) =>
+              setValues((current) => ({ ...current, audienceId }))
+            }
+          />
+        ) : null}
+        {values.audienceType === "custom" ? (
+          <UserMultiSearchSelect
+            label={labels.audienceId}
+            placeholder={labels.searchUsers}
+            value={values.audienceUserIds ?? []}
+            disabled={readOnly}
+            error={error === labels.audienceRequired ? error : undefined}
+            onChange={(audienceUserIds) =>
+              setValues((current) => ({ ...current, audienceUserIds }))
+            }
+          />
+        ) : null}
         <Input
           label={labels.scheduledAt}
           type="datetime-local"

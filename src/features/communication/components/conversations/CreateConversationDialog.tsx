@@ -6,6 +6,14 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
+import AcademicYearSelect from "@/features/communication/components/selectors/AcademicYearSelect";
+import ClassroomSelect from "@/features/communication/components/selectors/ClassroomSelect";
+import FileSelect from "@/features/communication/components/selectors/FileSelect";
+import GradeSelect from "@/features/communication/components/selectors/GradeSelect";
+import SectionSelect from "@/features/communication/components/selectors/SectionSelect";
+import StageSelect from "@/features/communication/components/selectors/StageSelect";
+import SubjectSelect from "@/features/communication/components/selectors/SubjectSelect";
+import TermSelect from "@/features/communication/components/selectors/TermSelect";
 import type {
   ConversationFormValues,
   ConversationListItemModel,
@@ -35,6 +43,7 @@ export interface CreateConversationDialogLabels {
   create: string;
   save: string;
   titleRequired: string;
+  classroomRequired?: string;
 }
 
 export interface CreateConversationDialogProps {
@@ -110,6 +119,7 @@ export default function CreateConversationDialog({
   );
   const [error, setError] = useState<string | null>(null);
   const isEditing = Boolean(conversation);
+  const showAcademicSelectors = values.type === "group" || values.type === "classroom";
 
   const typeOptions = useMemo(
     () => [
@@ -123,6 +133,10 @@ export default function CreateConversationDialog({
   const handleSubmit = async () => {
     if (!values.title?.trim()) {
       setError(labels.titleRequired);
+      return;
+    }
+    if (values.type === "classroom" && !values.classroomId?.trim()) {
+      setError(labels.classroomRequired ?? labels.classroomId);
       return;
     }
 
@@ -158,13 +172,27 @@ export default function CreateConversationDialog({
           onChange={(event) =>
             setValues((current) => ({ ...current, title: event.target.value }))
           }
-          error={error ?? undefined}
+          error={error === labels.titleRequired ? error : undefined}
         />
         <Select
           label={labels.type}
           value={values.type ?? "group"}
           onChange={(value) =>
-            setValues((current) => ({ ...current, type: value as ConversationType }))
+            setValues((current) => ({
+              ...current,
+              type: value as ConversationType,
+              ...(value === "direct"
+                ? {
+                    academicYearId: "",
+                    termId: "",
+                    stageId: "",
+                    gradeId: "",
+                    sectionId: "",
+                    classroomId: "",
+                    subjectId: "",
+                  }
+                : {}),
+            }))
           }
           options={typeOptions}
         />
@@ -179,84 +207,117 @@ export default function CreateConversationDialog({
             }))
           }
         />
-        <div className="grid gap-4 md:grid-cols-2">
-          <Input
-            label={labels.academicYearId}
-            value={values.academicYearId ?? ""}
-            onChange={(event) =>
-              setValues((current) => ({
-                ...current,
-                academicYearId: event.target.value,
-              }))
-            }
-          />
-          <Input
-            label={labels.termId}
-            value={values.termId ?? ""}
-            onChange={(event) =>
-              setValues((current) => ({
-                ...current,
-                termId: event.target.value,
-              }))
-            }
-          />
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Input
-            label={labels.stageId}
-            value={values.stageId ?? ""}
-            onChange={(event) =>
-              setValues((current) => ({ ...current, stageId: event.target.value }))
-            }
-          />
-          <Input
-            label={labels.gradeId}
-            value={values.gradeId ?? ""}
-            onChange={(event) =>
-              setValues((current) => ({ ...current, gradeId: event.target.value }))
-            }
-          />
-          <Input
-            label={labels.sectionId}
-            value={values.sectionId ?? ""}
-            onChange={(event) =>
-              setValues((current) => ({
-                ...current,
-                sectionId: event.target.value,
-              }))
-            }
-          />
-          <Input
-            label={labels.classroomId}
-            value={values.classroomId ?? ""}
-            onChange={(event) =>
-              setValues((current) => ({
-                ...current,
-                classroomId: event.target.value,
-              }))
-            }
-          />
-          <Input
-            label={labels.subjectId}
-            value={values.subjectId ?? ""}
-            onChange={(event) =>
-              setValues((current) => ({
-                ...current,
-                subjectId: event.target.value,
-              }))
-            }
-          />
-          <Input
-            label={labels.avatarFileId}
-            value={values.avatarFileId ?? ""}
-            onChange={(event) =>
-              setValues((current) => ({
-                ...current,
-                avatarFileId: event.target.value,
-              }))
-            }
-          />
-        </div>
+        {showAcademicSelectors ? (
+          <>
+            <div className="grid gap-4 md:grid-cols-2">
+              <AcademicYearSelect
+                label={labels.academicYearId}
+                value={values.academicYearId ?? ""}
+                onChange={(academicYearId) =>
+                  setValues((current) => ({
+                    ...current,
+                    academicYearId,
+                    termId: "",
+                    stageId: "",
+                    gradeId: "",
+                    sectionId: "",
+                    classroomId: "",
+                  }))
+                }
+              />
+              <TermSelect
+                label={labels.termId}
+                value={values.termId ?? ""}
+                academicYearId={values.academicYearId}
+                onChange={(termId) =>
+                  setValues((current) => ({
+                    ...current,
+                    termId,
+                    stageId: "",
+                    gradeId: "",
+                    sectionId: "",
+                    classroomId: "",
+                  }))
+                }
+              />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <StageSelect
+                label={labels.stageId}
+                value={values.stageId ?? ""}
+                academicYearId={values.academicYearId}
+                termId={values.termId}
+                onChange={(stageId) =>
+                  setValues((current) => ({
+                    ...current,
+                    stageId,
+                    gradeId: "",
+                    sectionId: "",
+                    classroomId: "",
+                  }))
+                }
+              />
+              <GradeSelect
+                label={labels.gradeId}
+                value={values.gradeId ?? ""}
+                academicYearId={values.academicYearId}
+                termId={values.termId}
+                stageId={values.stageId}
+                onChange={(gradeId) =>
+                  setValues((current) => ({
+                    ...current,
+                    gradeId,
+                    sectionId: "",
+                    classroomId: "",
+                  }))
+                }
+              />
+              <SectionSelect
+                label={labels.sectionId}
+                value={values.sectionId ?? ""}
+                academicYearId={values.academicYearId}
+                termId={values.termId}
+                gradeId={values.gradeId}
+                onChange={(sectionId) =>
+                  setValues((current) => ({
+                    ...current,
+                    sectionId,
+                    classroomId: "",
+                  }))
+                }
+              />
+              <ClassroomSelect
+                label={labels.classroomId}
+                value={values.classroomId ?? ""}
+                academicYearId={values.academicYearId}
+                termId={values.termId}
+                sectionId={values.sectionId}
+                error={
+                  values.type === "classroom" && error === labels.classroomRequired
+                    ? error
+                    : undefined
+                }
+                onChange={(classroomId) =>
+                  setValues((current) => ({ ...current, classroomId }))
+                }
+              />
+              <SubjectSelect
+                label={labels.subjectId}
+                value={values.subjectId ?? ""}
+                onChange={(subjectId) =>
+                  setValues((current) => ({ ...current, subjectId }))
+                }
+              />
+              <FileSelect
+                label={labels.avatarFileId}
+                value={values.avatarFileId ?? ""}
+                onChange={(avatarFileId) =>
+                  setValues((current) => ({ ...current, avatarFileId }))
+                }
+              />
+            </div>
+          </>
+        ) : null}
         <div className="grid gap-3 md:grid-cols-2">
           <ToggleRow
             label={labels.isReadOnly}

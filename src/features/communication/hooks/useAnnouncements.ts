@@ -42,6 +42,7 @@ export interface AnnouncementFormValues {
   priority?: AnnouncementPriority;
   audienceType?: AnnouncementAudienceType;
   audienceId?: string;
+  audienceUserIds?: string[];
   scheduledAt?: string;
   expiresAt?: string;
 }
@@ -123,6 +124,12 @@ function payloadFromValues(
   context: "announcement_create" | "announcement_update",
 ): CreateAnnouncementPayload {
   const audience = audienceFromScope(values.audienceType, values.audienceId?.trim());
+  const customAudiences =
+    values.audienceType === "custom"
+      ? (values.audienceUserIds ?? [])
+          .filter((userId) => userId.trim())
+          .map((userId) => ({ audienceType: "custom" as const, userId }))
+      : [];
   const title = values.title?.trim();
   const body = values.body?.trim();
   const metadata = createCommunicationMetadata(
@@ -144,7 +151,11 @@ function payloadFromValues(
     ...(values.status ? { status: values.status } : {}),
     ...(values.priority ? { priority: values.priority } : {}),
     ...(values.audienceType ? { audienceType: values.audienceType } : {}),
-    ...(audience ? { audiences: [audience] } : {}),
+    ...(customAudiences.length > 0
+      ? { audiences: customAudiences }
+      : audience
+        ? { audiences: [audience] }
+        : {}),
     ...(values.scheduledAt
       ? { scheduledAt: new Date(values.scheduledAt).toISOString() }
       : {}),

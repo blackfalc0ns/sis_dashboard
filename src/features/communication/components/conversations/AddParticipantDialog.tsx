@@ -5,6 +5,7 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import Modal from "@/components/ui/modal/Modal";
+import UserSearchSelect from "@/features/communication/components/selectors/UserSearchSelect";
 import type {
   ParticipantFormValues,
 } from "@/features/communication/hooks/useConversationParticipants";
@@ -117,12 +118,13 @@ export default function AddParticipantDialog({
       }
     >
       <div className="space-y-4 pb-4">
-        <Input
+        <UserSearchSelect
           label={labels.userId}
           value={values.userId ?? ""}
+          placeholder={labels.userId}
           error={error ?? undefined}
-          onChange={(event) =>
-            setValues((current) => ({ ...current, userId: event.target.value }))
+          onChange={(userId) =>
+            setValues((current) => ({ ...current, userId }))
           }
         />
         <Select

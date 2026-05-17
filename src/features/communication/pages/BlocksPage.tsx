@@ -4,12 +4,12 @@ import { useState } from "react";
 import { useLocale } from "next-intl";
 import { Plus, RefreshCw, X } from "lucide-react";
 import Button from "@/components/ui/button/Button";
-import Input from "@/components/ui/input/Input";
 import { useToast } from "@/components/ui/toast/Toast";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
 import CommunicationLoadingState from "@/features/communication/components/layout/CommunicationLoadingState";
 import CommunicationPageHeader from "@/features/communication/components/layout/CommunicationPageHeader";
 import CommunicationTabs from "@/features/communication/components/layout/CommunicationTabs";
+import UserSearchSelect from "@/features/communication/components/selectors/UserSearchSelect";
 import BlocksTable from "@/features/communication/components/safety/BlocksTable";
 import CreateBlockDialog from "@/features/communication/components/safety/CreateBlockDialog";
 import DeleteBlockDialog from "@/features/communication/components/safety/DeleteBlockDialog";
@@ -29,8 +29,8 @@ const labels = {
     loading: "Loading blocks...",
     errorTitle: "Unable to load blocks",
     retry: "Retry",
-    targetUserId: "Target user ID",
-    targetPlaceholder: "Filter by target user",
+    targetUserId: "Target user",
+    targetPlaceholder: "Search users...",
     clear: "Clear",
     emptyTitle: "No blocks found",
     emptyDescription:
@@ -45,7 +45,7 @@ const labels = {
     createTitle: "Create Block",
     cancel: "Cancel",
     create: "Create",
-    targetRequired: "Enter a target user ID.",
+    targetRequired: "Select a user.",
     deleteTitle: "Unblock user",
     deleteDescription:
       "This will remove the selected block. Chat interactions still rely on backend policy checks.",
@@ -64,8 +64,8 @@ const labels = {
     loading: "جار تحميل الحظر...",
     errorTitle: "تعذر تحميل الحظر",
     retry: "إعادة المحاولة",
-    targetUserId: "معرف المستخدم المستهدف",
-    targetPlaceholder: "تصفية حسب المستخدم المستهدف",
+    targetUserId: "المستخدم المستهدف",
+    targetPlaceholder: "ابحث عن المستخدمين...",
     clear: "مسح",
     emptyTitle: "لا يوجد حظر",
     emptyDescription: "أنشئ حظرا أو عدل المرشح لمراجعة التفاعلات المحظورة.",
@@ -79,7 +79,7 @@ const labels = {
     createTitle: "إنشاء حظر",
     cancel: "إلغاء",
     create: "إنشاء",
-    targetRequired: "أدخل معرف المستخدم المستهدف.",
+    targetRequired: "اختر مستخدمًا.",
     deleteTitle: "إلغاء حظر المستخدم",
     deleteDescription:
       "سيؤدي ذلك إلى إزالة الحظر المحدد. تظل تفاعلات المحادثة معتمدة على فحوصات الخلفية.",
@@ -174,13 +174,11 @@ export default function BlocksPage() {
       <CommunicationTabs />
 
       <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[1fr_auto] lg:items-end">
-        <Input
+        <UserSearchSelect
           label={t.targetUserId}
           placeholder={t.targetPlaceholder}
           value={filters.targetUserId}
-          onChange={(event) =>
-            setFilters({ targetUserId: event.target.value })
-          }
+          onChange={(targetUserId) => setFilters({ targetUserId })}
         />
         <Button
           type="button"
