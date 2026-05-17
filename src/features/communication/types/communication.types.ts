@@ -63,8 +63,18 @@ export interface CommunicationPolicy extends CommunicationRecord {
   allowConversations?: boolean;
   allowAdminToAnyone?: boolean;
   allowDirectStaffToStaff?: boolean;
+  allowTeacherToParent?: boolean;
+  allowTeacherToStudent?: boolean;
+  allowStudentToTeacher?: boolean;
+  allowStudentToStudent?: boolean;
+  studentDirectMode?: StudentDirectMode;
   allowTeacherCreatedGroups?: boolean;
+  allowStudentCreatedGroups?: boolean;
+  requireApprovalForStudentGroups?: boolean;
+  allowParentToParent?: boolean;
   allowAttachments?: boolean;
+  allowVoiceMessages?: boolean;
+  allowVideoMessages?: boolean;
   allowReactions?: boolean;
   allowMessageEdit?: boolean;
   allowMessageDelete?: boolean;
@@ -72,32 +82,56 @@ export interface CommunicationPolicy extends CommunicationRecord {
   allowMessageDeleting?: boolean;
   allowReadReceipts?: boolean;
   allowDeliveryReceipts?: boolean;
+  allowOnlinePresence?: boolean;
   moderationEnabled?: boolean;
-  moderationMode?: string;
+  moderationMode?: ModerationMode;
   maxGroupMembers?: number;
   maxMessageLength?: number;
   maxAttachmentSizeMb?: number;
+  retentionDays?: number;
   allowedAttachmentMimeTypes?: string[];
   metadata?: CommunicationRecord;
   createdAt?: CommunicationDateTime;
   updatedAt?: CommunicationDateTime;
 }
 
+export type StudentDirectMode =
+  | "disabled"
+  | "same_classroom"
+  | "same_grade"
+  | "same_school"
+  | "any_school_user"
+  | "approval_required";
+
+export type ModerationMode = "standard" | "strict" | "relaxed";
+
 export interface UpdateCommunicationPolicyPayload {
   isEnabled?: boolean;
-  allowAdminToAnyone?: boolean;
   allowDirectStaffToStaff?: boolean;
+  allowAdminToAnyone?: boolean;
+  allowTeacherToParent?: boolean;
+  allowTeacherToStudent?: boolean;
+  allowStudentToTeacher?: boolean;
+  allowStudentToStudent?: boolean;
+  studentDirectMode?: StudentDirectMode;
   allowTeacherCreatedGroups?: boolean;
+  allowStudentCreatedGroups?: boolean;
+  requireApprovalForStudentGroups?: boolean;
+  allowParentToParent?: boolean;
   allowAttachments?: boolean;
+  allowVoiceMessages?: boolean;
+  allowVideoMessages?: boolean;
   allowReactions?: boolean;
   allowMessageEdit?: boolean;
   allowMessageDelete?: boolean;
   allowReadReceipts?: boolean;
   allowDeliveryReceipts?: boolean;
+  allowOnlinePresence?: boolean;
   maxGroupMembers?: number;
   maxMessageLength?: number;
   maxAttachmentSizeMb?: number;
-  moderationMode?: string;
+  retentionDays?: number;
+  moderationMode?: ModerationMode;
   metadata?: CommunicationRecord | null;
 }
 

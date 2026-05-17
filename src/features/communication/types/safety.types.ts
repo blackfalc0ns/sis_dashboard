@@ -70,6 +70,9 @@ export interface MessageReport extends CommunicationRecord {
 export type ListMessageReportsParams = {
   messageId?: CommunicationId;
   status?: MessageReportStatus;
+  reason?: ReportReason;
+  conversationId?: CommunicationId;
+  reporterId?: CommunicationId;
   limit?: number;
   page?: number;
 };
@@ -82,8 +85,10 @@ export interface UpdateMessageReportPayload {
 }
 
 export interface CreateModerationActionPayload {
-  action?: ModerationActionType;
-  reason?: string;
+  action: ModerationActionType;
+  reason?: string | null;
+  note?: string | null;
+  metadata?: CommunicationRecord | null;
 }
 
 export interface ModerationAction extends CommunicationRecord {
@@ -122,9 +127,11 @@ export interface Restriction extends CommunicationRecord {
 }
 
 export type ListRestrictionsParams = {
+  userId?: CommunicationId;
   targetUserId?: CommunicationId;
   activeOnly?: boolean;
   status?: RestrictionStatus;
+  type?: RestrictionType;
   limit?: number;
   page?: number;
 };

@@ -69,18 +69,30 @@ export interface BackendConversationUpdatePayload extends BackendPayload {
 
 export interface BackendPolicyUpdatePayload extends BackendPayload {
   isEnabled?: BackendPayloadValue;
-  allowAdminToAnyone?: BackendPayloadValue;
   allowDirectStaffToStaff?: BackendPayloadValue;
+  allowAdminToAnyone?: BackendPayloadValue;
+  allowTeacherToParent?: BackendPayloadValue;
+  allowTeacherToStudent?: BackendPayloadValue;
+  allowStudentToTeacher?: BackendPayloadValue;
+  allowStudentToStudent?: BackendPayloadValue;
+  studentDirectMode?: BackendPayloadValue;
   allowTeacherCreatedGroups?: BackendPayloadValue;
+  allowStudentCreatedGroups?: BackendPayloadValue;
+  requireApprovalForStudentGroups?: BackendPayloadValue;
+  allowParentToParent?: BackendPayloadValue;
   allowAttachments?: BackendPayloadValue;
+  allowVoiceMessages?: BackendPayloadValue;
+  allowVideoMessages?: BackendPayloadValue;
   allowReactions?: BackendPayloadValue;
   allowMessageEdit?: BackendPayloadValue;
   allowMessageDelete?: BackendPayloadValue;
   allowReadReceipts?: BackendPayloadValue;
   allowDeliveryReceipts?: BackendPayloadValue;
+  allowOnlinePresence?: BackendPayloadValue;
   maxGroupMembers?: BackendPayloadValue;
   maxMessageLength?: BackendPayloadValue;
   maxAttachmentSizeMb?: BackendPayloadValue;
+  retentionDays?: BackendPayloadValue;
   moderationMode?: BackendPayloadValue;
   metadata?: BackendPayloadValue;
 }
@@ -191,18 +203,30 @@ export function toBackendPolicyUpdatePayload(
   return compactBackendPayload(
     {
       isEnabled: input.isEnabled,
-      allowAdminToAnyone: input.allowAdminToAnyone,
       allowDirectStaffToStaff: input.allowDirectStaffToStaff,
+      allowAdminToAnyone: input.allowAdminToAnyone,
+      allowTeacherToParent: input.allowTeacherToParent,
+      allowTeacherToStudent: input.allowTeacherToStudent,
+      allowStudentToTeacher: input.allowStudentToTeacher,
+      allowStudentToStudent: input.allowStudentToStudent,
+      studentDirectMode: input.studentDirectMode,
       allowTeacherCreatedGroups: input.allowTeacherCreatedGroups,
+      allowStudentCreatedGroups: input.allowStudentCreatedGroups,
+      requireApprovalForStudentGroups: input.requireApprovalForStudentGroups,
+      allowParentToParent: input.allowParentToParent,
       allowAttachments: input.allowAttachments,
+      allowVoiceMessages: input.allowVoiceMessages,
+      allowVideoMessages: input.allowVideoMessages,
       allowReactions: input.allowReactions,
       allowMessageEdit: input.allowMessageEdit,
       allowMessageDelete: input.allowMessageDelete,
       allowReadReceipts: input.allowReadReceipts,
       allowDeliveryReceipts: input.allowDeliveryReceipts,
+      allowOnlinePresence: input.allowOnlinePresence,
       maxGroupMembers: input.maxGroupMembers,
       maxMessageLength: input.maxMessageLength,
       maxAttachmentSizeMb: input.maxAttachmentSizeMb,
+      retentionDays: input.retentionDays,
       moderationMode: input.moderationMode,
       metadata: input.metadata,
     },

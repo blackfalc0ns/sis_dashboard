@@ -102,7 +102,17 @@ type FlexibleDeleteResponse = CommunicationResponse<{
   ok?: boolean;
 }>;
 
-const ANNOUNCEMENT_QUERY_KEYS = ["status", "search", "page", "limit"] as const;
+const ANNOUNCEMENT_QUERY_KEYS = [
+  "status",
+  "priority",
+  "audienceType",
+  "search",
+  "publishedFrom",
+  "publishedTo",
+  "createdById",
+  "page",
+  "limit",
+] as const;
 const CONVERSATION_QUERY_KEYS = [
   "status",
   "type",
@@ -144,11 +154,21 @@ const NOTIFICATION_DELIVERY_QUERY_KEYS = [
   "page",
   "limit",
 ] as const;
-const MESSAGE_REPORT_QUERY_KEYS = ["messageId", "status", "page", "limit"] as const;
+const MESSAGE_REPORT_QUERY_KEYS = [
+  "messageId",
+  "status",
+  "reason",
+  "conversationId",
+  "reporterId",
+  "page",
+  "limit",
+] as const;
 const RESTRICTION_QUERY_KEYS = [
+  "userId",
   "targetUserId",
   "activeOnly",
   "status",
+  "type",
   "page",
   "limit",
 ] as const;
@@ -585,7 +605,6 @@ export function markConversationRead(
     `${COMMUNICATION_ENDPOINT}/conversations/${conversationId}/read`,
     payload
       ? compactBackendPayload({
-          lastReadMessageId: payload.lastReadMessageId,
           readAt: payload.readAt,
         })
       : undefined,
@@ -739,10 +758,15 @@ export function createModerationAction(
 ): Promise<CommunicationResponse<ModerationAction>> {
   return apiPost(
     `${COMMUNICATION_ENDPOINT}/messages/${messageId}/moderation-actions`,
-    compactBackendPayload({
-      action: payload.action,
-      reason: payload.reason,
-    }),
+    compactBackendPayload(
+      {
+        action: payload.action,
+        reason: payload.reason,
+        note: payload.note,
+        metadata: payload.metadata,
+      },
+      ["reason", "note", "metadata"],
+    ),
   );
 }
 

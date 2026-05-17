@@ -24,13 +24,22 @@ export interface CommunicationPolicyFormLabels {
   messageDelete: string;
   readReceipts: string;
   deliveryReceipts: string;
+  onlinePresence: string;
   maxGroupMembers: string;
   maxMessageLength: string;
   maxAttachmentSizeMb: string;
+  retentionDays: string;
   moderationMode: string;
-  manual: string;
-  automatic: string;
+  standard: string;
+  relaxed: string;
   strict: string;
+  studentDirectMode: string;
+  studentDirectDisabled: string;
+  studentDirectSameClassroom: string;
+  studentDirectSameGrade: string;
+  studentDirectSameSchool: string;
+  studentDirectAnySchoolUser: string;
+  studentDirectApprovalRequired: string;
   metadata: string;
   metadataHelp: string;
   invalidMetadata: string;
@@ -74,9 +83,17 @@ export default function CommunicationPolicyForm({
   );
   const [error, setError] = useState<string | null>(null);
   const moderationOptions = [
-    { value: "manual", label: labels.manual },
-    { value: "automatic", label: labels.automatic },
+    { value: "standard", label: labels.standard },
+    { value: "relaxed", label: labels.relaxed },
     { value: "strict", label: labels.strict },
+  ];
+  const studentDirectModeOptions = [
+    { value: "disabled", label: labels.studentDirectDisabled },
+    { value: "same_classroom", label: labels.studentDirectSameClassroom },
+    { value: "same_grade", label: labels.studentDirectSameGrade },
+    { value: "same_school", label: labels.studentDirectSameSchool },
+    { value: "any_school_user", label: labels.studentDirectAnySchoolUser },
+    { value: "approval_required", label: labels.studentDirectApprovalRequired },
   ];
 
   const setBoolean = (
@@ -168,6 +185,11 @@ export default function CommunicationPolicyForm({
           checked={values.allowDeliveryReceipts}
           onChange={(checked) => setBoolean("allowDeliveryReceipts", checked)}
         />
+        <ToggleRow
+          label={labels.onlinePresence}
+          checked={values.allowOnlinePresence}
+          onChange={(checked) => setBoolean("allowOnlinePresence", checked)}
+        />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -204,12 +226,38 @@ export default function CommunicationPolicyForm({
             }))
           }
         />
+        <Input
+          type="number"
+          label={labels.retentionDays}
+          value={values.retentionDays ?? ""}
+          onChange={(event) =>
+            setValues((current) => ({
+              ...current,
+              retentionDays: event.target.value,
+            }))
+          }
+        />
         <Select
           label={labels.moderationMode}
-          value={values.moderationMode ?? "manual"}
+          value={values.moderationMode ?? "standard"}
           options={moderationOptions}
           onChange={(value) =>
-            setValues((current) => ({ ...current, moderationMode: value }))
+            setValues((current) => ({
+              ...current,
+              moderationMode: value as CommunicationPolicyFormValues["moderationMode"],
+            }))
+          }
+        />
+        <Select
+          label={labels.studentDirectMode}
+          value={values.studentDirectMode ?? "disabled"}
+          options={studentDirectModeOptions}
+          onChange={(value) =>
+            setValues((current) => ({
+              ...current,
+              studentDirectMode:
+                value as CommunicationPolicyFormValues["studentDirectMode"],
+            }))
           }
         />
       </div>

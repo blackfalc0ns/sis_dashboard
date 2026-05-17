@@ -14,6 +14,7 @@ import * as communicationService from "./communication.service";
 import type { CreateAnnouncementPayload } from "@/features/communication/types/announcement.types";
 import type { CreateConversationPayload } from "@/features/communication/types/conversation.types";
 import type { SendMessagePayload } from "@/features/communication/types/message.types";
+import type { NotificationDeliveryStatus } from "@/features/communication/types/notification.types";
 
 describe("communication service backend compatibility", () => {
   beforeEach(() => {
@@ -205,24 +206,105 @@ describe("communication service backend compatibility", () => {
     await communicationService.getMessageReports({
       status: "open",
       reason: "spam",
+      conversationId: "conv-1",
+      reporterId: "user-1",
       limit: 50,
     } as never);
     await communicationService.getAnnouncements({
       status: "draft",
+      priority: "urgent",
+      audienceType: "grade",
+      publishedFrom: "2026-05-01T00:00:00.000Z",
+      publishedTo: "2026-05-31T23:59:59.000Z",
+      createdById: "user-2",
       targets: ["grade-1"],
       audienceIds: ["grade-1"],
       page: 1,
     } as never);
+    await communicationService.getRestrictions({
+      userId: "admin-1",
+      targetUserId: "user-3",
+      type: "send_disabled",
+      activeOnly: true,
+      limit: 20,
+    });
 
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       1,
       "/communication/message-reports",
-      { params: { status: "open", limit: 50 } },
+      {
+        params: {
+          status: "open",
+          reason: "spam",
+          conversationId: "conv-1",
+          reporterId: "user-1",
+          limit: 50,
+        },
+      },
     );
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       2,
       "/communication/announcements",
-      { params: { status: "draft", page: 1 } },
+      {
+        params: {
+          status: "draft",
+          priority: "urgent",
+          audienceType: "grade",
+          publishedFrom: "2026-05-01T00:00:00.000Z",
+          publishedTo: "2026-05-31T23:59:59.000Z",
+          createdById: "user-2",
+          page: 1,
+        },
+      },
     );
+    expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
+      3,
+      "/communication/restrictions",
+      {
+        params: {
+          userId: "admin-1",
+          targetUserId: "user-3",
+          type: "send_disabled",
+          activeOnly: true,
+          limit: 20,
+        },
+      },
+    );
+  });
+
+  it("marks conversations read with only readAt", async () => {
+    await communicationService.markConversationRead("conv-1", {
+      readAt: "2026-05-17T10:00:00.000Z",
+      lastReadMessageId: "msg-1",
+    } as never);
+
+    expect(apiMocks.apiPost).toHaveBeenCalledWith(
+      "/communication/conversations/conv-1/read",
+      { readAt: "2026-05-17T10:00:00.000Z" },
+    );
+  });
+
+  it("sends moderation action note and metadata", async () => {
+    await communicationService.createModerationAction("msg-1", {
+      action: "restrict_sender",
+      reason: null,
+      note: "Escalated",
+      metadata: { reportId: "report-1" },
+    });
+
+    expect(apiMocks.apiPost).toHaveBeenCalledWith(
+      "/communication/messages/msg-1/moderation-actions",
+      {
+        action: "restrict_sender",
+        reason: null,
+        note: "Escalated",
+        metadata: { reportId: "report-1" },
+      },
+    );
+  });
+
+  it("uses skipped as a notification delivery status", () => {
+    const status: NotificationDeliveryStatus = "skipped";
+    expect(status).toBe("skipped");
   });
 });

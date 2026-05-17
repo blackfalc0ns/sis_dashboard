@@ -32,7 +32,7 @@ export type NotificationDeliveryStatus =
   | "sent"
   | "delivered"
   | "failed"
-  | "read";
+  | "skipped";
 
 export interface CommunicationNotification extends CommunicationRecord {
   id: CommunicationId;

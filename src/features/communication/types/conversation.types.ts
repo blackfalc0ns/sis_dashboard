@@ -157,7 +157,6 @@ export interface ReviewJoinRequestPayload {
 }
 
 export interface MarkConversationReadPayload {
-  lastReadMessageId?: CommunicationId;
   readAt?: CommunicationDateTime;
 }
 

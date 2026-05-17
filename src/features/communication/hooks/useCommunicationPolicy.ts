@@ -8,8 +8,10 @@ import {
 } from "@/features/communication/api/communication.service";
 import type {
   CommunicationAdminOverview,
+  ModerationMode,
   CommunicationPolicy,
   CommunicationRecord,
+  StudentDirectMode,
   UpdateCommunicationPolicyPayload,
 } from "@/features/communication/types/communication.types";
 
@@ -57,10 +59,13 @@ export interface CommunicationPolicyFormValues {
   allowMessageDelete?: boolean;
   allowReadReceipts?: boolean;
   allowDeliveryReceipts?: boolean;
+  allowOnlinePresence?: boolean;
   maxGroupMembers?: string;
   maxMessageLength?: string;
   maxAttachmentSizeMb?: string;
-  moderationMode?: string;
+  retentionDays?: string;
+  moderationMode?: ModerationMode;
+  studentDirectMode?: StudentDirectMode;
   metadataText?: string;
 }
 
@@ -80,6 +85,7 @@ export function policyToFormValues(
       policy?.allowMessageDelete ?? policy?.allowMessageDeleting ?? true,
     allowReadReceipts: policy?.allowReadReceipts ?? true,
     allowDeliveryReceipts: policy?.allowDeliveryReceipts ?? true,
+    allowOnlinePresence: policy?.allowOnlinePresence ?? true,
     maxGroupMembers:
       typeof policy?.maxGroupMembers === "number"
         ? String(policy.maxGroupMembers)
@@ -92,7 +98,12 @@ export function policyToFormValues(
       typeof policy?.maxAttachmentSizeMb === "number"
         ? String(policy.maxAttachmentSizeMb)
         : "",
-    moderationMode: policy?.moderationMode ?? "manual",
+    retentionDays:
+      typeof policy?.retentionDays === "number"
+        ? String(policy.retentionDays)
+        : "",
+    moderationMode: policy?.moderationMode ?? "standard",
+    studentDirectMode: policy?.studentDirectMode ?? "disabled",
     metadataText: policy?.metadata ? JSON.stringify(policy.metadata, null, 2) : "",
   };
 }
@@ -112,6 +123,7 @@ function payloadFromValues(
   const maxGroupMembers = optionalNumber(values.maxGroupMembers);
   const maxMessageLength = optionalNumber(values.maxMessageLength);
   const maxAttachmentSizeMb = optionalNumber(values.maxAttachmentSizeMb);
+  const retentionDays = optionalNumber(values.retentionDays);
 
   return {
     isEnabled: Boolean(values.isEnabled),
@@ -124,10 +136,13 @@ function payloadFromValues(
     allowMessageDelete,
     allowReadReceipts: Boolean(values.allowReadReceipts),
     allowDeliveryReceipts: Boolean(values.allowDeliveryReceipts),
-    moderationMode: values.moderationMode || "manual",
+    allowOnlinePresence: Boolean(values.allowOnlinePresence),
+    moderationMode: values.moderationMode || "standard",
+    studentDirectMode: values.studentDirectMode,
     ...(maxGroupMembers !== undefined ? { maxGroupMembers } : {}),
     ...(maxMessageLength !== undefined ? { maxMessageLength } : {}),
     ...(maxAttachmentSizeMb !== undefined ? { maxAttachmentSizeMb } : {}),
+    ...(retentionDays !== undefined ? { retentionDays } : {}),
     ...(metadata ? { metadata } : {}),
   };
 }

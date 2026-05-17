@@ -121,7 +121,7 @@ describe("communication API service endpoint contracts", () => {
     await communicationService.deleteMessage("msg-1");
     await communicationService.markMessageRead("msg-1");
     await communicationService.markConversationRead("conv-1", {
-      lastReadMessageId: "msg-1",
+      readAt: "2026-05-17T10:00:00.000Z",
     });
     await communicationService.getConversationReadSummary("conv-1", {
       limit: 10,
@@ -197,7 +197,7 @@ describe("communication API service endpoint contracts", () => {
     expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
       8,
       "/communication/conversations/conv-1/read",
-      { lastReadMessageId: "msg-1" },
+      { readAt: "2026-05-17T10:00:00.000Z" },
     );
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       6,
@@ -272,6 +272,8 @@ describe("communication API service endpoint contracts", () => {
     await communicationService.createModerationAction("msg-1", {
       action: "hide",
       reason: "Unsafe",
+      note: "Audit note",
+      metadata: { source: "test" },
     });
     await communicationService.getModerationActions("msg-1");
     await communicationService.createRestriction({
@@ -309,7 +311,12 @@ describe("communication API service endpoint contracts", () => {
     expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
       2,
       "/communication/messages/msg-1/moderation-actions",
-      { action: "hide", reason: "Unsafe" },
+      {
+        action: "hide",
+        reason: "Unsafe",
+        note: "Audit note",
+        metadata: { source: "test" },
+      },
     );
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       3,

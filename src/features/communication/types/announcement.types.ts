@@ -80,7 +80,12 @@ export interface UpdateAnnouncementPayload {
 
 export type ListAnnouncementsParams = {
   status?: AnnouncementStatus;
+  priority?: AnnouncementPriority;
+  audienceType?: AnnouncementAudienceType;
   search?: string;
+  publishedFrom?: CommunicationDateTime;
+  publishedTo?: CommunicationDateTime;
+  createdById?: CommunicationId;
   page?: number;
   limit?: number;
 };
