@@ -11,7 +11,6 @@ import {
   Pin,
   RotateCcw,
 } from "lucide-react";
-import { IconButton, Menu, MenuItem } from "@mui/material";
 import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
 import type { ConversationListItemModel } from "@/features/communication/hooks/useConversations";
 
@@ -67,7 +66,7 @@ export default function ConversationListItem({
   onReopen,
 }: ConversationListItemProps) {
   const locale = useLocale();
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const title = localizedValue(locale, conversation) || labels.untitled;
   const href = `/${locale}/communication/conversations/${conversation.id}`;
   const lastMessage =
@@ -81,13 +80,12 @@ export default function ConversationListItem({
       conversation.createdAt,
     locale,
   );
-  const isMenuOpen = Boolean(anchorEl);
   const canClose = conversation.status !== "closed" && conversation.status !== "archived";
   const canReopen = conversation.status === "closed";
   const canArchive = conversation.status !== "archived";
 
   const handleAction = (action: () => void) => {
-    setAnchorEl(null);
+    setIsMenuOpen(false);
     action();
   };
 
@@ -142,45 +140,66 @@ export default function ConversationListItem({
               {conversation.unreadCount}
             </span>
           ) : null}
-          <IconButton
-            aria-label="Conversation actions"
-            size="small"
-            disabled={disabled}
-            onClick={(event) => setAnchorEl(event.currentTarget)}
-          >
-            <MoreVertical className="h-4 w-4" />
-          </IconButton>
+          <div className="relative">
+            <button
+              type="button"
+              aria-label="Conversation actions"
+              disabled={disabled}
+              onClick={() => setIsMenuOpen((current) => !current)}
+              onBlur={() => window.setTimeout(() => setIsMenuOpen(false), 100)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+            {isMenuOpen ? (
+              <div className="absolute end-0 z-30 mt-1 min-w-40 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                <button
+                  type="button"
+                  className="flex w-full items-center px-3 py-2 text-start text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => handleAction(() => onEdit(conversation))}
+                >
+                  <Edit className="me-2 h-4 w-4" />
+                  {labels.edit}
+                </button>
+                {canClose ? (
+                  <button
+                    type="button"
+                    className="flex w-full items-center px-3 py-2 text-start text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => handleAction(() => onClose(conversation.id))}
+                  >
+                    <Lock className="me-2 h-4 w-4" />
+                    {labels.close}
+                  </button>
+                ) : null}
+                {canReopen ? (
+                  <button
+                    type="button"
+                    className="flex w-full items-center px-3 py-2 text-start text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => handleAction(() => onReopen(conversation.id))}
+                  >
+                    <RotateCcw className="me-2 h-4 w-4" />
+                    {labels.reopen}
+                  </button>
+                ) : null}
+                {canArchive ? (
+                  <button
+                    type="button"
+                    className="flex w-full items-center px-3 py-2 text-start text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => handleAction(() => onArchive(conversation.id))}
+                  >
+                    <Archive className="me-2 h-4 w-4" />
+                    {labels.archive}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
-
-      <Menu
-        anchorEl={anchorEl}
-        open={isMenuOpen}
-        onClose={() => setAnchorEl(null)}
-      >
-        <MenuItem onClick={() => handleAction(() => onEdit(conversation))}>
-          <Edit className="me-2 h-4 w-4" />
-          {labels.edit}
-        </MenuItem>
-        {canClose ? (
-          <MenuItem onClick={() => handleAction(() => onClose(conversation.id))}>
-            <Lock className="me-2 h-4 w-4" />
-            {labels.close}
-          </MenuItem>
-        ) : null}
-        {canReopen ? (
-          <MenuItem onClick={() => handleAction(() => onReopen(conversation.id))}>
-            <RotateCcw className="me-2 h-4 w-4" />
-            {labels.reopen}
-          </MenuItem>
-        ) : null}
-        {canArchive ? (
-          <MenuItem onClick={() => handleAction(() => onArchive(conversation.id))}>
-            <Archive className="me-2 h-4 w-4" />
-            {labels.archive}
-          </MenuItem>
-        ) : null}
-      </Menu>
     </article>
   );
 }

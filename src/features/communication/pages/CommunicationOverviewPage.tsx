@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
 } from "lucide-react";
-import { Button, Card, CardContent, Divider } from "@mui/material";
+import Button from "@/components/ui/button/Button";
 import CommunicationEmptyState from "@/features/communication/components/layout/CommunicationEmptyState";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
 import CommunicationLoadingState from "@/features/communication/components/layout/CommunicationLoadingState";
@@ -158,8 +158,8 @@ function SummaryCard({
   tone: string;
 }) {
   return (
-    <Card className="h-full rounded-lg border border-slate-200 shadow-sm">
-      <CardContent className="flex items-start justify-between gap-4">
+    <div className="h-full rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-start justify-between gap-4 p-5">
         <div>
           <p className="text-sm font-medium text-slate-500">{title}</p>
           <p className="mt-2 text-3xl font-semibold text-slate-950">{value}</p>
@@ -167,8 +167,8 @@ function SummaryCard({
         <div className={`rounded-lg p-3 ${tone}`}>
           <Icon className="h-5 w-5" aria-hidden="true" />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -323,7 +323,7 @@ export default function CommunicationOverviewPage() {
         title={t.errorTitle}
         message={error}
         action={
-          <Button variant="outlined" onClick={() => void refresh()}>
+          <Button variant="outline" onClick={() => void refresh()}>
             {t.refresh}
           </Button>
         }
@@ -348,11 +348,11 @@ export default function CommunicationOverviewPage() {
         description={t.description}
         actions={
           <Button
-            variant="outlined"
-            size="small"
+            variant="outline"
+            size="sm"
             onClick={() => void refresh()}
             disabled={isRefreshing}
-            startIcon={<RefreshCw className="h-4 w-4" aria-hidden="true" />}
+            leftIcon={<RefreshCw className="h-4 w-4" aria-hidden="true" />}
           >
             {t.refresh}
           </Button>
@@ -393,8 +393,7 @@ export default function CommunicationOverviewPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="rounded-lg border border-slate-200 shadow-sm">
-            <CardContent>
+          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-base font-semibold text-slate-950">
                 {t.recentConversations}
               </h2>
@@ -413,11 +412,9 @@ export default function CommunicationOverviewPage() {
                   </p>
                 )}
               </div>
-            </CardContent>
-          </Card>
+          </div>
 
-          <Card className="rounded-lg border border-slate-200 shadow-sm">
-            <CardContent>
+          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-base font-semibold text-slate-950">
                 {t.recentNotifications}
               </h2>
@@ -436,12 +433,10 @@ export default function CommunicationOverviewPage() {
                   </p>
                 )}
               </div>
-            </CardContent>
-          </Card>
+          </div>
         </div>
 
-        <Card className="rounded-lg border border-slate-200 shadow-sm">
-          <CardContent>
+        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-slate-500">{t.policy}</p>
@@ -463,7 +458,7 @@ export default function CommunicationOverviewPage() {
               />
             </div>
 
-            <Divider className="my-4" />
+            <div className="my-4 border-t border-slate-200" />
 
             <div className="divide-y divide-slate-100">
               <PolicyLine
@@ -493,8 +488,7 @@ export default function CommunicationOverviewPage() {
                 {t.updated}: {formatDate(data.policy.updatedAt, locale)}
               </p>
             ) : null}
-          </CardContent>
-        </Card>
+        </div>
       </div>
     </div>
   );

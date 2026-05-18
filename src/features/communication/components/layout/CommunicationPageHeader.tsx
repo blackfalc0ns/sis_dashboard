@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Breadcrumbs, Typography } from "@mui/material";
 
 export interface CommunicationBreadcrumbItem {
   label: ReactNode;
@@ -22,27 +21,32 @@ export default function CommunicationPageHeader({
   return (
     <header className="space-y-4">
       {breadcrumbs && breadcrumbs.length > 0 ? (
-        <Breadcrumbs aria-label="Communication breadcrumbs">
+        <nav
+          aria-label="Communication breadcrumbs"
+          className="flex flex-wrap items-center gap-2 text-sm"
+        >
           {breadcrumbs.map((item, index) =>
             item.href ? (
-              <a
-                key={`${item.href}-${index}`}
-                href={item.href}
-                className="text-sm font-medium text-slate-500 transition-colors hover:text-sky-700"
-              >
-                {item.label}
-              </a>
+              <span key={`${item.href}-${index}`} className="flex items-center gap-2">
+                {index > 0 ? <span className="text-slate-300">/</span> : null}
+                <a
+                  href={item.href}
+                  className="font-medium text-slate-500 transition-colors hover:text-sky-700"
+                >
+                  {item.label}
+                </a>
+              </span>
             ) : (
-              <Typography
+              <span
                 key={`breadcrumb-current-${index}`}
-                component="span"
-                className="text-sm font-medium text-slate-900"
+                className="flex items-center gap-2 font-medium text-slate-900"
               >
+                {index > 0 ? <span className="text-slate-300">/</span> : null}
                 {item.label}
-              </Typography>
+              </span>
             ),
           )}
-        </Breadcrumbs>
+        </nav>
       ) : null}
 
       <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm lg:flex-row lg:items-start lg:justify-between">

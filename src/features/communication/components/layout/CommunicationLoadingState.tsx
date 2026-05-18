@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { CircularProgress } from "@mui/material";
 
 export interface CommunicationLoadingStateProps {
   label?: ReactNode;
@@ -18,7 +17,11 @@ export default function CommunicationLoadingState({
       aria-live="polite"
       aria-busy="true"
     >
-      <CircularProgress size={size} />
+      <span
+        className="inline-block animate-spin rounded-full border-2 border-slate-200 border-t-sky-600"
+        style={{ width: size, height: size }}
+        aria-hidden="true"
+      />
       {label ? (
         <p className="mt-4 text-sm font-medium text-slate-600">{label}</p>
       ) : null}

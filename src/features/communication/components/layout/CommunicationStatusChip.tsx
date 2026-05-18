@@ -1,5 +1,3 @@
-import { Chip } from "@mui/material";
-
 export type CommunicationStatusTone =
   | "default"
   | "info"
@@ -28,11 +26,16 @@ export default function CommunicationStatusChip({
   size = "small",
   className = "",
 }: CommunicationStatusChipProps) {
+  const sizeClass =
+    size === "medium"
+      ? "px-3 py-1 text-sm"
+      : "px-2 py-0.5 text-xs";
+
   return (
-    <Chip
-      label={label}
-      size={size}
-      className={`font-medium ${toneClasses[tone]} ${className}`}
-    />
+    <span
+      className={`inline-flex shrink-0 items-center rounded-full font-medium ${sizeClass} ${toneClasses[tone]} ${className}`}
+    >
+      {label}
+    </span>
   );
 }

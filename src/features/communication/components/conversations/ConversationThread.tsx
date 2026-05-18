@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale } from "next-intl";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { Alert } from "@mui/material";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
@@ -611,7 +610,13 @@ export default function ConversationThread({
 
             <div className="mt-4 space-y-3">
               {!isCommunicationEnabled ? (
-                <Alert severity="warning">{t.communicationDisabled}</Alert>
+                <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  <AlertTriangle
+                    className="mt-0.5 h-4 w-4 shrink-0 text-amber-600"
+                    aria-hidden="true"
+                  />
+                  <span>{t.communicationDisabled}</span>
+                </div>
               ) : null}
               <TypingIndicator users={typingState.typingUsers} label={t.typing} />
               <MessageReadReceipts
