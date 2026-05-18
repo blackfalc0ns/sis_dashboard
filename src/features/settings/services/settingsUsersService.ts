@@ -91,6 +91,11 @@ export async function fetchSettingsUsers(
   };
 }
 
+export async function fetchSettingsUser(userId: string): Promise<SettingsUserRecord> {
+  const response = await apiGet<SettingsUserApiDto>(`/settings/users/${userId}`);
+  return mapUser(response);
+}
+
 export async function inviteSettingsUser(
   payload: SettingsUserPayloadDto,
 ): Promise<SettingsUserRecord> {

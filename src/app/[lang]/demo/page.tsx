@@ -1,5 +1,5 @@
-import ConversationPage from "@/features/communication/conversation_demo/pages/ConversationPage";
+import ConversationPage from "@/features/communication/conversations_redesign/pages/ConversationPage";
 
-export default function DemoPage() {
+export default function Page() {
   return <ConversationPage />;
 }

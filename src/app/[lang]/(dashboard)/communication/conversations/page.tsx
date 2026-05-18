@@ -1,4 +1,4 @@
-import ConversationsPage from "@/features/communication/conversation_demo/pages/ConversationPage";
+import ConversationsPage from "@/features/communication/conversations_redesign/pages/ConversationPage";
 
 export default function Page() {
   return (
