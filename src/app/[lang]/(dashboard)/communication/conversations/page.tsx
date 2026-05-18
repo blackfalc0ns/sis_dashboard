@@ -1,8 +1,8 @@
-import ConversationsPage from "@/features/communication/pages/ConversationsPage";
+import ConversationsPage from "@/features/communication/conversation_demo/pages/ConversationPage";
 
 export default function Page() {
   return (
-    <main className="flex-1 p-4 sm:p-6 min-w-0 overflow-x-hidden">
+    <main className="min-w-0 overflow-x-hidden">
       <ConversationsPage />
     </main>
   );
