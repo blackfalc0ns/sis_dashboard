@@ -1,4 +1,4 @@
-import ConversationThreadPage from "@/features/communication/pages/ConversationThreadPage";
+import ConversationsPage from "@/features/communication/conversations_redesign/pages/ConversationPage";
 
 interface PageProps {
   params: Promise<{
@@ -10,8 +10,8 @@ export default async function Page({ params }: PageProps) {
   const { conversationId } = await params;
 
   return (
-    <main className="flex-1 p-4 sm:p-6 min-w-0 overflow-x-hidden">
-      <ConversationThreadPage conversationId={conversationId} />
+    <main className="min-w-0 overflow-x-hidden">
+      <ConversationsPage initialConversationId={conversationId} />
     </main>
   );
 }

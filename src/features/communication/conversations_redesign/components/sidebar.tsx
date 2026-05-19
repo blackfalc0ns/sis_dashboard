@@ -3,7 +3,10 @@
 import { Pin, Plus, RefreshCw, Search } from "lucide-react";
 import { useLocale } from "next-intl";
 import Input from "@/components/ui/input/Input";
-import { labelsForLocale } from "@/features/communication/conversations_redesign/labels";
+import {
+  labelsForLocale,
+  type ConversationRedesignLabels,
+} from "@/features/communication/conversations_redesign/labels";
 import type {
   ConversationFiltersState,
   ConversationListItemModel,
@@ -63,12 +66,15 @@ function stringValue(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
 }
 
-function conversationTitle(conversation: ConversationListItemModel) {
+function conversationTitle(
+  conversation: ConversationListItemModel,
+  labels: ConversationRedesignLabels,
+) {
   return (
     conversation.titleEn ||
     conversation.title ||
     conversation.titleAr ||
-    labelsForLocale("en").untitledConversation
+    labels.untitledConversation
   );
 }
 
@@ -91,7 +97,11 @@ function initials(value: string) {
     .toUpperCase();
 }
 
-function formatConversationTime(value?: string | null) {
+function formatConversationTime(
+  value: string | null | undefined,
+  locale: string,
+  labels: ConversationRedesignLabels,
+) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -102,19 +112,19 @@ function formatConversationTime(value?: string | null) {
   const diffDays = Math.round((today.getTime() - target.getTime()) / 86400000);
 
   if (diffDays === 0) {
-    return new Intl.DateTimeFormat("en", {
+    return new Intl.DateTimeFormat(locale, {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
     }).format(date);
   }
 
-  if (diffDays === 1) return "Yesterday";
+  if (diffDays === 1) return labels.yesterday;
   if (diffDays < 7) {
-    return new Intl.DateTimeFormat("en", { weekday: "short" }).format(date);
+    return new Intl.DateTimeFormat(locale, { weekday: "short" }).format(date);
   }
 
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
   }).format(date);
@@ -242,7 +252,7 @@ export default function ConversationSidebar({
         ) : null}
 
         {visibleConversations.map((conversation) => {
-          const title = conversationTitle(conversation);
+          const title = conversationTitle(conversation, labels);
           const avatar = conversationAvatar(conversation);
           const selected = selectedConversationId === conversation.id;
           const lastTime =
@@ -304,7 +314,7 @@ export default function ConversationSidebar({
 
               <div className="flex shrink-0 flex-col items-end gap-2">
                 <span className="text-xs text-slate-600">
-                  {formatConversationTime(lastTime)}
+                  {formatConversationTime(lastTime, locale, labels)}
                 </span>
                 {(conversation.unreadCount ?? 0) > 0 ? (
                   <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-white">

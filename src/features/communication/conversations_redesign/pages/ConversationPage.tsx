@@ -91,7 +91,6 @@ import ReviewJoinRequestDialog, {
 } from "@/features/communication/components/conversations/ReviewJoinRequestDialog";
 import { getConversationPermissionFlags } from "@/features/communication/utils/conversation-permissions";
 import { communicationErrorMessage } from "@/features/communication/utils/communication-errors";
-import { fetchSettingsUser } from "@/features/settings/services/settingsUsersService";
 import { useAuth } from "@/hooks/use-auth";
 
 type DetailTab = "messages" | "participants" | "invites" | "joinRequests";
@@ -113,115 +112,132 @@ const tabs: Array<{
   { value: "joinRequests", labelKey: "joinRequests" },
 ];
 
-const createConversationLabels = {
-  createTitle: "Create Conversation",
-  editTitle: "Edit Conversation",
-  title: "Title",
-  type: "Type",
-  description: "Description",
-  academicYearId: "Academic Year",
-  termId: "Term",
-  stageId: "Stage",
-  gradeId: "Grade",
-  sectionId: "Section",
-  classroomId: "Classroom",
-  subjectId: "Subject",
-  avatarFileId: "Avatar File",
-  isReadOnly: "Read only",
-  isPinned: "Pinned",
-  group: "Group",
-  classroom: "Classroom",
-  direct: "Direct",
-  cancel: "Cancel",
-  create: "Create",
-  save: "Save",
-  titleRequired: "Enter a conversation title.",
-  classroomRequired: "Select a classroom.",
-};
+function createConversationDialogLabels(labels: ConversationRedesignLabels) {
+  return {
+    createTitle: labels.createConversation,
+    editTitle: labels.editConversation,
+    title: labels.title,
+    type: labels.type,
+    description: labels.description,
+    academicYearId: labels.academicYearId,
+    termId: labels.termId,
+    stageId: labels.stageId,
+    gradeId: labels.gradeId,
+    sectionId: labels.sectionId,
+    classroomId: labels.classroomId,
+    subjectId: labels.subjectId,
+    avatarFileId: labels.avatarFileId,
+    isReadOnly: labels.readOnly,
+    isPinned: labels.pinned,
+    group: labels.group,
+    classroom: labels.classroom,
+    direct: labels.direct,
+    cancel: labels.cancel,
+    create: labels.create,
+    save: labels.save,
+    titleRequired: labels.titleRequired,
+    classroomRequired: labels.classroomRequired,
+  };
+}
 
-const participantDialogLabels = {
-  title: "Add Participant",
-  userId: "User",
-  role: "Role",
-  status: "Status",
-  mutedUntil: "Muted until",
-  cancel: "Cancel",
-  add: "Add",
-  userRequired: "Select a user.",
-  owner: "Owner",
-  admin: "Admin",
-  moderator: "Moderator",
-  member: "Member",
-  readOnly: "Read only",
-  system: "System",
-  active: "Active",
-  invited: "Invited",
-  left: "Left",
-  removed: "Removed",
-  muted: "Muted",
-  blocked: "Blocked",
-};
+function participantDialogLabels(labels: ConversationRedesignLabels) {
+  return {
+    title: labels.addParticipant,
+    userId: labels.user,
+    role: labels.role,
+    status: labels.status,
+    mutedUntil: labels.mutedUntil,
+    cancel: labels.cancel,
+    add: labels.add,
+    userRequired: labels.userRequired,
+    owner: labels.owner,
+    admin: labels.admin,
+    moderator: labels.moderator,
+    member: labels.member,
+    readOnly: labels.readOnlyRole,
+    system: labels.system,
+    active: labels.active,
+    invited: labels.invited,
+    left: labels.left,
+    removed: labels.removed,
+    muted: labels.muted,
+    blocked: labels.blocked,
+  };
+}
 
-const editParticipantLabels = {
-  ...participantDialogLabels,
-  editTitle: "Edit Participant",
-  promoteTitle: "Promote Participant",
-  demoteTitle: "Demote Participant",
-  targetRole: "Target role",
-  save: "Save",
-  promote: "Promote",
-  demote: "Demote",
-};
+function editParticipantDialogLabels(labels: ConversationRedesignLabels) {
+  return {
+    ...participantDialogLabels(labels),
+    editTitle: labels.editParticipantTitle,
+    promoteTitle: labels.promoteParticipantTitle,
+    demoteTitle: labels.demoteParticipantTitle,
+    targetRole: labels.targetRole,
+    save: labels.save,
+    promote: labels.promote,
+    demote: labels.demote,
+  };
+}
 
-const removeParticipantLabels = {
-  title: "Remove Participant",
-  description: "This participant will be removed from the conversation.",
-  cancel: "Cancel",
-  remove: "Remove",
-};
+function removeParticipantDialogLabels(labels: ConversationRedesignLabels) {
+  return {
+    title: labels.removeParticipantTitle,
+    description: labels.removeParticipantDescription,
+    cancel: labels.cancel,
+    remove: labels.removeParticipant,
+  };
+}
 
-const leaveConversationLabels = {
-  title: "Leave Conversation",
-  description:
-    "You will leave this conversation and may need to be added again to rejoin.",
-  cancel: "Cancel",
-  leave: "Leave",
-};
+function leaveConversationDialogLabels(labels: ConversationRedesignLabels) {
+  return {
+    title: labels.leaveConversationTitle,
+    description: labels.leaveConversationDescription,
+    cancel: labels.cancel,
+    leave: labels.leaveConversation,
+  };
+}
 
-const createInviteLabels = {
-  title: "Create Invite",
-  invitedUserId: "Invited user",
-  expiresAt: "Expires at",
-  cancel: "Cancel",
-  create: "Create",
-  userRequired: "Select a user.",
-};
+function createInviteDialogLabels(labels: ConversationRedesignLabels) {
+  return {
+    title: labels.createInvite,
+    invitedUserId: labels.invitedUser,
+    expiresAt: labels.expiresAt,
+    cancel: labels.cancel,
+    create: labels.create,
+    userRequired: labels.userRequired,
+  };
+}
 
-const rejectInviteLabels = {
-  title: "Reject Invite",
-  description: "This invite will be rejected.",
-  reason: "Reason",
-  cancel: "Cancel",
-  reject: "Reject",
-};
+function rejectInviteDialogLabels(labels: ConversationRedesignLabels) {
+  return {
+    title: labels.rejectInviteTitle,
+    description: labels.rejectInviteDescription,
+    reason: labels.reason,
+    cancel: labels.cancel,
+    reject: labels.rejectInvite,
+  };
+}
 
-const createJoinRequestLabels = {
-  title: "Create Join Request",
-  note: "Note",
-  cancel: "Cancel",
-  create: "Create",
-};
+function createJoinRequestDialogLabels(labels: ConversationRedesignLabels) {
+  return {
+    title: labels.createJoinRequest,
+    note: labels.note,
+    cancel: labels.cancel,
+    create: labels.create,
+  };
+}
 
-const reviewJoinRequestLabels = {
-  approveTitle: "Review Join Request",
-  rejectTitle: "Reject Join Request",
-  approveDescription: "This join request will be approved.",
-  rejectDescription: "This join request will be rejected.",
-  reason: "Reason",
-  cancel: "Cancel",
-  approve: "Approve",
-  reject: "Reject",
-};
+function reviewJoinRequestDialogLabels(labels: ConversationRedesignLabels) {
+  return {
+    approveTitle: labels.reviewJoinRequest,
+    rejectTitle: labels.rejectJoinRequest,
+    approveDescription: labels.approveJoinRequestDescription,
+    rejectDescription: labels.rejectJoinRequestDescription,
+    reason: labels.reason,
+    cancel: labels.cancel,
+    approve: labels.approveRequest,
+    reject: labels.rejectRequest,
+  };
+}
 
 function stringValue(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
@@ -237,12 +253,6 @@ function actorName(actor?: CommunicationActor | null) {
   return actor?.name || actor?.nameEn || actor?.nameAr;
 }
 
-function displayNameFromSettingsUser(
-  user: Awaited<ReturnType<typeof fetchSettingsUser>>,
-) {
-  return user.fullName || user.username || user.email || user.id;
-}
-
 function displayNameForUserId(
   userId: string | null | undefined,
   userDisplayNames: UserDisplayNameMap,
@@ -253,14 +263,15 @@ function displayNameForUserId(
 }
 
 function getTitle(
+  labels: ConversationRedesignLabels,
   conversation?: Conversation | ConversationListItemModel | null,
 ) {
-  if (!conversation) return "Conversation";
+  if (!conversation) return labels.untitledConversation;
   return (
     conversation.titleEn ||
     conversation.title ||
     conversation.titleAr ||
-    "Untitled conversation"
+    labels.untitledConversation
   );
 }
 
@@ -288,36 +299,37 @@ function initials(name?: string | null) {
     .toUpperCase();
 }
 
-function formatTime(value?: string | null) {
+function formatTime(value: string | null | undefined, locale: string) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   }).format(date);
 }
 
-function formatRelativeDate(value?: string | null) {
+function formatRelativeDate(value: string | null | undefined, locale: string) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffHours = Math.max(1, Math.round(diffMs / 3600000));
-  if (diffHours < 24) return `about ${diffHours} hours ago`;
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  if (diffHours < 24) return formatter.format(-diffHours, "hour");
   const diffDays = Math.round(diffHours / 24);
-  if (diffDays < 31) return `${diffDays} days ago`;
+  if (diffDays < 31) return formatter.format(-diffDays, "day");
   const diffMonths = Math.round(diffDays / 30);
-  return `${diffMonths} months ago`;
+  return formatter.format(-diffMonths, "month");
 }
 
-function formatDate(value?: string | null) {
+function formatDate(value: string | null | undefined, locale: string) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -347,70 +359,43 @@ function participantUserId(participant: ConversationParticipant) {
   );
 }
 
-function currentUserName(user: ReturnType<typeof useAuth>["user"]) {
+function currentUserName(
+  user: ReturnType<typeof useAuth>["user"],
+  labels: ConversationRedesignLabels,
+) {
   if (!user) return "";
   return (
     `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
     user.username ||
     user.email ||
-    "You"
+    labels.you
   );
 }
 
-function useUserDisplayNames(userIds: Array<string | null | undefined>) {
-  const [userDisplayNames, setUserDisplayNames] = useState<UserDisplayNameMap>(
-    {},
-  );
-  const failedUserIdsRef = useRef<Set<string>>(new Set());
+function conversationTypeLabel(
+  type: Conversation["type"] | undefined,
+  labels: ConversationRedesignLabels,
+) {
+  if (type === "group") return labels.group;
+  if (type === "classroom") return labels.classroom;
+  if (type === "direct") return labels.direct;
+  return type?.replace(/_/g, " ") || labels.direct;
+}
 
-  const normalizedIds = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          userIds
-            .map((id) => id?.trim())
-            .filter((id): id is string => Boolean(id)),
-        ),
-      ).sort(),
-    [userIds],
-  );
-
-  useEffect(() => {
-    const missingIds = normalizedIds.filter(
-      (id) => !userDisplayNames[id] && !failedUserIdsRef.current.has(id),
-    );
-    if (missingIds.length === 0) return;
-
-    let cancelled = false;
-    void Promise.allSettled(
-      missingIds.map(async (id) => ({
-        id,
-        name: displayNameFromSettingsUser(await fetchSettingsUser(id)),
-      })),
-    ).then((results) => {
-      if (cancelled) return;
-
-      const nextNames: UserDisplayNameMap = {};
-      results.forEach((result, index) => {
-        const id = missingIds[index];
-        if (result.status === "fulfilled") {
-          nextNames[id] = result.value.name;
-        } else {
-          failedUserIdsRef.current.add(id);
-        }
-      });
-
-      if (Object.keys(nextNames).length > 0) {
-        setUserDisplayNames((current) => ({ ...current, ...nextNames }));
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [normalizedIds, userDisplayNames]);
-
-  return userDisplayNames;
+function statusLabel(
+  status: string | null | undefined,
+  labels: ConversationRedesignLabels,
+) {
+  const normalized = status || "pending";
+  const statusLabels: Record<string, string> = {
+    active: labels.active,
+    accepted: labels.accepted,
+    approved: labels.approved,
+    expired: labels.expired,
+    pending: labels.pending,
+    rejected: labels.rejected,
+  };
+  return statusLabels[normalized] ?? normalized;
 }
 
 function isOwnMessage(
@@ -443,16 +428,25 @@ function filterConversations(
   return conversations;
 }
 
-export default function ConversationPage() {
+export interface ConversationPageProps {
+  initialConversationId?: string | null;
+}
+
+export default function ConversationPage({
+  initialConversationId = null,
+}: ConversationPageProps) {
   const locale = useLocale();
   const labels = labelsForLocale(locale);
   const conversationsState = useConversations();
+  const initialConversationIdRef = useRef(initialConversationId);
   const [filter, setFilter] = useState<ConversationRedesignFilter>("all");
   const [search, setSearch] = useState("");
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
-  >(null);
-  const [showMobileThread, setShowMobileThread] = useState(false);
+  >(initialConversationId);
+  const [showMobileThread, setShowMobileThread] = useState(
+    Boolean(initialConversationId),
+  );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
 
@@ -471,6 +465,18 @@ export default function ConversationPage() {
   );
 
   useEffect(() => {
+    if (!initialConversationId) return;
+    if (initialConversationIdRef.current === initialConversationId) return;
+    initialConversationIdRef.current = initialConversationId;
+    setSelectedConversationId(initialConversationId);
+    setShowMobileThread(true);
+  }, [initialConversationId]);
+
+  useEffect(() => {
+    if (initialConversationId && selectedConversationId === initialConversationId) {
+      return;
+    }
+
     if (
       selectedConversationId &&
       visibleConversations.some((item) => item.id === selectedConversationId)
@@ -478,7 +484,7 @@ export default function ConversationPage() {
       return;
     }
     setSelectedConversationId(visibleConversations[0]?.id ?? null);
-  }, [selectedConversationId, visibleConversations]);
+  }, [initialConversationId, selectedConversationId, visibleConversations]);
 
   useEffect(() => {
     if (!toast) return;
@@ -514,7 +520,10 @@ export default function ConversationPage() {
     } catch (error) {
       setToast({
         tone: "error",
-        message: communicationErrorMessage(error, labels.createConversation),
+        message: communicationErrorMessage(
+          error,
+          labels.unableToCreateConversation,
+        ),
       });
     }
   };
@@ -561,6 +570,7 @@ export default function ConversationPage() {
         <ToastMessage
           tone="error"
           message={conversationsState.error}
+          closeLabel={labels.dismiss}
           onClose={() =>
             conversationsState.setFilters((current) => ({ ...current }))
           }
@@ -571,21 +581,14 @@ export default function ConversationPage() {
         <ToastMessage
           tone={toast.tone}
           message={toast.message}
+          closeLabel={labels.dismiss}
           onClose={() => setToast(null)}
         />
       ) : null}
 
       {isCreateOpen ? (
         <CreateConversationDialog
-          labels={{
-            ...createConversationLabels,
-            createTitle: labels.createConversation,
-            editTitle: labels.editConversation,
-            cancel: labels.cancel,
-            create: labels.create,
-            save: labels.save,
-            isReadOnly: labels.readOnly,
-          }}
+          labels={createConversationDialogLabels(labels)}
           open={isCreateOpen}
           isSubmitting={conversationsState.isMutating}
           onClose={() => setIsCreateOpen(false)}
@@ -607,6 +610,7 @@ function ConversationDetail({
   onBack: () => void;
   onToast: (toast: ToastState) => void;
 }) {
+  const locale = useLocale();
   const { user } = useAuth();
   const conversationState = useConversation(conversationId);
   const messagesState = useConversationMessages(conversationId);
@@ -662,33 +666,7 @@ function ConversationDetail({
     messageIds,
     policy?.maxAttachmentSizeMb,
   );
-  const displayNameUserIds = useMemo(
-    () => [
-      ...participantsState.participants
-        .filter((participant) => !actorName(participant.actor))
-        .map(participantUserId),
-      ...invitesState.invites
-        .filter((invite) => !actorName(invite.invitedUser))
-        .map((invite) => invite.invitedUserId),
-      ...joinRequestsState.joinRequests
-        .filter((request) => !actorName(request.user))
-        .map((request) => request.userId),
-      ...messagesState.messages
-        .filter((message) => !actorName(message.sender))
-        .map(messageSenderUserId),
-      ...typingState.typingUsers
-        .filter((typingUser) => !typingUser.name)
-        .map((typingUser) => typingUser.userId),
-    ],
-    [
-      invitesState.invites,
-      joinRequestsState.joinRequests,
-      messagesState.messages,
-      participantsState.participants,
-      typingState.typingUsers,
-    ],
-  );
-  const userDisplayNames = useUserDisplayNames(displayNameUserIds);
+  const userDisplayNames = useMemo<UserDisplayNameMap>(() => ({}), []);
 
   const permissions = useMemo(
     () =>
@@ -807,10 +785,11 @@ function ConversationDetail({
             allowReactions={allowReactions}
             attachmentsByMessageId={attachmentsState.attachmentsByMessageId}
             currentUserId={user?.id}
-            currentUserName={currentUserName(user)}
+            currentUserName={currentUserName(user, labels)}
             error={messagesState.error}
             isLoading={messagesState.isLoading}
             labels={labels}
+            locale={locale}
             messages={messagesState.messages}
             onAddReaction={(messageId) =>
               runMutation(
@@ -871,6 +850,7 @@ function ConversationDetail({
             error={participantsState.error}
             isLoading={participantsState.isLoading}
             labels={labels}
+            locale={locale}
             onAddParticipant={() => setIsAddParticipantOpen(true)}
             onDemoteParticipant={(participant) =>
               setParticipantEditState({ mode: "demote", participant })
@@ -900,11 +880,12 @@ function ConversationDetail({
             isLoading={invitesState.isLoading}
             isMutating={invitesState.isMutating}
             labels={labels}
+            locale={locale}
             onAcceptInvite={(invite) =>
               runMutation(
                 () => invitesState.accept(invite.id),
-                "Invite accepted.",
                 labels.inviteAccepted,
+                labels.unableToAcceptInvite,
               )
             }
             onCreateInvite={() => setIsInviteOpen(true)}
@@ -922,6 +903,7 @@ function ConversationDetail({
             isLoading={joinRequestsState.isLoading}
             joinRequests={joinRequestsState.joinRequests}
             labels={labels}
+            locale={locale}
             onCreateRequest={() => setIsJoinRequestOpen(true)}
             onReject={(request) =>
               setReviewRequest({ mode: "reject", request })
@@ -972,11 +954,7 @@ function ConversationDetail({
 
       {isAddParticipantOpen ? (
         <AddParticipantDialog
-          labels={{
-            ...participantDialogLabels,
-            title: labels.addParticipant,
-            cancel: labels.cancel,
-          }}
+          labels={participantDialogLabels(labels)}
           open={isAddParticipantOpen}
           isSubmitting={participantsState.isMutating}
           onClose={() => setIsAddParticipantOpen(false)}
@@ -984,7 +962,7 @@ function ConversationDetail({
             runMutation(
               () => participantsState.add(values),
               labels.participantAdded,
-              labels.participantAdded,
+              labels.unableToAddParticipant,
             ).then(() => setIsAddParticipantOpen(false))
           }
         />
@@ -992,7 +970,7 @@ function ConversationDetail({
 
       {participantEditState ? (
         <EditParticipantRoleDialog
-          labels={editParticipantLabels}
+          labels={editParticipantDialogLabels(labels)}
           mode={participantEditState.mode}
           open={Boolean(participantEditState)}
           participant={participantEditState.participant}
@@ -1026,10 +1004,10 @@ function ConversationDetail({
                   : labels.participantDemoted;
             const fallbackError =
               mode === "edit"
-                ? labels.participantUpdated
+                ? labels.unableToUpdateParticipant
                 : mode === "promote"
-                  ? labels.participantPromoted
-                  : labels.participantDemoted;
+                  ? labels.unableToPromoteParticipant
+                  : labels.unableToDemoteParticipant;
 
             return runMutation(operation, successMessage, fallbackError).then(
               () => setParticipantEditState(null),
@@ -1040,7 +1018,7 @@ function ConversationDetail({
 
       {participantToRemove ? (
         <RemoveParticipantDialog
-          labels={removeParticipantLabels}
+          labels={removeParticipantDialogLabels(labels)}
           open={Boolean(participantToRemove)}
           participant={participantToRemove}
           isSubmitting={participantsState.isMutating}
@@ -1049,7 +1027,7 @@ function ConversationDetail({
             runMutation(
               () => participantsState.remove(participantToRemove.id),
               labels.participantRemoved,
-              labels.participantRemoved,
+              labels.unableToRemoveParticipant,
             ).then(() => setParticipantToRemove(null))
           }
         />
@@ -1057,7 +1035,7 @@ function ConversationDetail({
 
       {isLeaveConversationOpen ? (
         <LeaveConversationDialog
-          labels={leaveConversationLabels}
+          labels={leaveConversationDialogLabels(labels)}
           open={isLeaveConversationOpen}
           isSubmitting={participantsState.isMutating}
           onClose={() => setIsLeaveConversationOpen(false)}
@@ -1065,7 +1043,7 @@ function ConversationDetail({
             runMutation(
               () => participantsState.leave(),
               labels.conversationLeft,
-              labels.conversationLeft,
+              labels.unableToLeaveConversation,
             ).then(() => setIsLeaveConversationOpen(false))
           }
         />
@@ -1073,12 +1051,7 @@ function ConversationDetail({
 
       {isInviteOpen ? (
         <CreateInviteDialog
-          labels={{
-            ...createInviteLabels,
-            title: labels.createInvite,
-            cancel: labels.cancel,
-            create: labels.create,
-          }}
+          labels={createInviteDialogLabels(labels)}
           open={isInviteOpen}
           isSubmitting={invitesState.isMutating}
           onClose={() => setIsInviteOpen(false)}
@@ -1086,7 +1059,7 @@ function ConversationDetail({
             runMutation(
               () => invitesState.create(values),
               labels.inviteCreated,
-              labels.inviteCreated,
+              labels.unableToCreateInvite,
             ).then(() => setIsInviteOpen(false))
           }
         />
@@ -1095,7 +1068,7 @@ function ConversationDetail({
       {rejectInvite ? (
         <RejectInviteDialog
           invite={rejectInvite}
-          labels={rejectInviteLabels}
+          labels={rejectInviteDialogLabels(labels)}
           open={Boolean(rejectInvite)}
           isSubmitting={invitesState.isMutating}
           onClose={() => setRejectInvite(null)}
@@ -1103,7 +1076,7 @@ function ConversationDetail({
             runMutation(
               () => invitesState.reject(rejectInvite.id, values),
               labels.inviteRejected,
-              labels.inviteRejected,
+              labels.unableToRejectInvite,
             ).then(() => setRejectInvite(null))
           }
         />
@@ -1111,12 +1084,7 @@ function ConversationDetail({
 
       {isJoinRequestOpen ? (
         <CreateJoinRequestDialog
-          labels={{
-            ...createJoinRequestLabels,
-            title: labels.createJoinRequest,
-            cancel: labels.cancel,
-            create: labels.create,
-          }}
+          labels={createJoinRequestDialogLabels(labels)}
           open={isJoinRequestOpen}
           isSubmitting={joinRequestsState.isMutating}
           onClose={() => setIsJoinRequestOpen(false)}
@@ -1124,7 +1092,7 @@ function ConversationDetail({
             runMutation(
               () => joinRequestsState.create(values),
               labels.joinRequestCreated,
-              labels.joinRequestCreated,
+              labels.unableToCreateJoinRequest,
             ).then(() => setIsJoinRequestOpen(false))
           }
         />
@@ -1133,12 +1101,7 @@ function ConversationDetail({
       {reviewRequest ? (
         <ReviewJoinRequestDialog
           joinRequest={reviewRequest.request}
-          labels={{
-            ...reviewJoinRequestLabels,
-            approveTitle: labels.reviewJoinRequest,
-            rejectTitle: labels.rejectJoinRequest,
-            cancel: labels.cancel,
-          }}
+          labels={reviewJoinRequestDialogLabels(labels)}
           mode={reviewRequest.mode}
           open={Boolean(reviewRequest)}
           isSubmitting={joinRequestsState.isMutating}
@@ -1154,8 +1117,8 @@ function ConversationDetail({
                 ? labels.joinRequestRejected
                 : labels.joinRequestApproved,
               isReject
-                ? labels.joinRequestRejected
-                : labels.joinRequestApproved,
+                ? labels.unableToRejectJoinRequest
+                : labels.unableToApproveJoinRequest,
             ).then(() => setReviewRequest(null));
           }}
         />
@@ -1180,7 +1143,7 @@ function ConversationHeader({
   readOnly: boolean;
 }) {
   const title = conversation
-    ? getTitle(conversation)
+    ? getTitle(labels, conversation)
     : labels.untitledConversation;
   const avatar = getAvatarUrl(conversation);
   const participantsCount =
@@ -1188,9 +1151,7 @@ function ConversationHeader({
     numberValue(
       (conversation as CommunicationRecord | null)?.participants_count,
     );
-  const typeLabel = conversation?.type
-    ? conversation.type.replace(/_/g, " ")
-    : labels.direct;
+  const typeLabel = conversationTypeLabel(conversation?.type, labels);
 
   return (
     <header className="flex h-[74px] shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm">
@@ -1286,6 +1247,7 @@ function MessagesPanel({
   error,
   isLoading,
   labels,
+  locale,
   messages,
   onAddReaction,
   onAttachFile,
@@ -1307,6 +1269,7 @@ function MessagesPanel({
   error: string | null;
   isLoading: boolean;
   labels: ConversationRedesignLabels;
+  locale: string;
   messages: ConversationMessage[];
   onAddReaction: (messageId: string) => Promise<unknown>;
   onAttachFile: (messageId: string, file: File) => Promise<unknown>;
@@ -1366,6 +1329,7 @@ function MessagesPanel({
               isOwn={own}
               isUploadingAttachment={uploadingMessageId === message.id}
               labels={labels}
+              locale={locale}
               message={message}
               onAddReaction={() => onAddReaction(message.id)}
               onAttachFile={(file) => onAttachFile(message.id, file)}
@@ -1396,7 +1360,7 @@ function MessagesPanel({
                   displayNameForUserId(
                     user.userId,
                     userDisplayNames,
-                    "Someone",
+                    labels.someone,
                   ),
               )
               .join(", ")}{" "}
@@ -1417,6 +1381,7 @@ function MessageBubble({
   isOwn,
   isUploadingAttachment,
   labels,
+  locale,
   message,
   onAddReaction,
   onAttachFile,
@@ -1436,6 +1401,7 @@ function MessageBubble({
   isOwn: boolean;
   isUploadingAttachment: boolean;
   labels: ConversationRedesignLabels;
+  locale: string;
   message: ConversationMessage;
   onAddReaction: () => Promise<unknown>;
   onAttachFile: (file: File) => Promise<unknown>;
@@ -1452,12 +1418,12 @@ function MessageBubble({
   const [draftBody, setDraftBody] = useState(message.body ?? "");
   const [isActionPending, setIsActionPending] = useState(false);
   const senderName = isOwn
-    ? currentUserName || "You"
+    ? currentUserName || labels.you
     : actorName(message.sender) ||
       displayNameForUserId(
         messageSenderUserId(message),
         userDisplayNames,
-        "Participant",
+        labels.participant,
       );
   const avatar = getAvatarUrl(message.sender);
   const thumbsUpCount = reactions.filter(
@@ -1647,7 +1613,7 @@ function MessageBubble({
               <span>{labels.failed}</span>
             ) : null}
             {edited ? <span>{labels.edited}</span> : null}
-            <span>{formatTime(message.createdAt)}</span>
+            <span>{formatTime(message.createdAt, locale)}</span>
             {isOwn && message.deliveryStatus !== "failed" ? (
               <Check className="h-3 w-3" />
             ) : null}
@@ -1789,7 +1755,7 @@ function AttachmentCard({
     file?.originalName ||
     file?.filename ||
     attachment.url?.split("/").pop() ||
-    "Attachment";
+    labels.attachment;
   const size = formatFileSize(attachment.size || file?.size);
   const href = attachment.url || file?.url;
   const [isDeleting, setIsDeleting] = useState(false);
@@ -1973,6 +1939,7 @@ function ParticipantsPanel({
   error,
   isLoading,
   labels,
+  locale,
   onAddParticipant,
   onDemoteParticipant,
   onEditParticipant,
@@ -1990,6 +1957,7 @@ function ParticipantsPanel({
   error: string | null;
   isLoading: boolean;
   labels: ConversationRedesignLabels;
+  locale: string;
   onAddParticipant: () => void;
   onDemoteParticipant: (participant: ConversationParticipant) => void;
   onEditParticipant: (participant: ConversationParticipant) => void;
@@ -2011,7 +1979,7 @@ function ParticipantsPanel({
               onClick={onLeaveConversation}
               className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-white px-3 text-sm font-bold text-rose-700 transition hover:bg-rose-50"
             >
-              {labels.conversationLeft}
+              {labels.leaveConversation}
             </button>
           ) : null}
           {canManage ? (
@@ -2037,7 +2005,7 @@ function ParticipantsPanel({
             const userId = participantUserId(participant);
             const name =
               actorName(participant.actor) ||
-              displayNameForUserId(userId, userDisplayNames, "Participant");
+              displayNameForUserId(userId, userDisplayNames, labels.participant);
             const isCurrentUser = currentUserId && userId === currentUserId;
             const isOnline = Boolean(presenceByUserId[userId]?.isOnline);
             const canManageThisParticipant = canManage && !isCurrentUser;
@@ -2058,18 +2026,19 @@ function ParticipantsPanel({
                         {name}
                       </p>
                       {participant.role === "owner" ? (
-                        <StatusPill tone="blue">Owner</StatusPill>
+                        <StatusPill tone="blue">{labels.owner}</StatusPill>
                       ) : null}
                       {participant.status === "muted" ? (
-                        <StatusPill tone="orange">Muted</StatusPill>
+                        <StatusPill tone="orange">{labels.muted}</StatusPill>
                       ) : null}
                       {isCurrentUser ? (
-                        <StatusPill tone="green">{labels.sent}</StatusPill>
+                        <StatusPill tone="green">{labels.you}</StatusPill>
                       ) : null}
                     </div>
                     <p className="text-xs text-slate-600">
-                      Joined{" "}
-                      {formatRelativeDate(participant.joinedAt) || "recently"}
+                      {labels.joined}{" "}
+                      {formatRelativeDate(participant.joinedAt, locale) ||
+                        labels.recently}
                     </p>
                   </div>
                 </div>
@@ -2078,24 +2047,24 @@ function ParticipantsPanel({
                     <ParticipantActionButton
                       onClick={() => onEditParticipant(participant)}
                     >
-                      {labels.editMessage}
+                      {labels.editParticipant}
                     </ParticipantActionButton>
                     <ParticipantActionButton
                       onClick={() => onPromoteParticipant(participant)}
                     >
-                      Promote
+                      {labels.promote}
                     </ParticipantActionButton>
                     <ParticipantActionButton
                       onClick={() => onDemoteParticipant(participant)}
                     >
-                      Demote
+                      {labels.demote}
                     </ParticipantActionButton>
                     <button
                       type="button"
                       onClick={() => onRemoveParticipant(participant)}
                       className="h-8 rounded-md border border-rose-200 px-2.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50"
                     >
-                      {labels.deleteMessage}
+                      {labels.removeParticipant}
                     </button>
                   </div>
                 ) : null}
@@ -2117,6 +2086,7 @@ function InvitesPanel({
   isLoading,
   isMutating,
   labels,
+  locale,
   onAcceptInvite,
   onCreateInvite,
   onRejectInvite,
@@ -2131,6 +2101,7 @@ function InvitesPanel({
   isLoading: boolean;
   isMutating: boolean;
   labels: ConversationRedesignLabels;
+  locale: string;
   onAcceptInvite: (invite: ConversationInvite) => Promise<unknown>;
   onCreateInvite: () => void;
   onRejectInvite: (invite: ConversationInvite) => void;
@@ -2167,7 +2138,7 @@ function InvitesPanel({
               displayNameForUserId(
                 invitedUserId,
                 userDisplayNames,
-                "Invited user",
+                labels.invitedUser,
               );
             const isPending = !invite.status || invite.status === "pending";
             const isCurrentUserInvite = Boolean(
@@ -2191,7 +2162,9 @@ function InvitesPanel({
                       {name}
                     </p>
                     <p className="text-xs text-slate-600">
-                      Expires: {formatDate(invite.expiresAt) || "No expiration"}
+                      {labels.expires}:{" "}
+                      {formatDate(invite.expiresAt, locale) ||
+                        labels.noExpiration}
                     </p>
                   </div>
                 </div>
@@ -2205,7 +2178,7 @@ function InvitesPanel({
                           : "red"
                     }
                   >
-                    {invite.status || "pending"}
+                    {statusLabel(invite.status, labels)}
                   </StatusPill>
                   {canRespondToInvite ? (
                     <button
@@ -2214,7 +2187,7 @@ function InvitesPanel({
                       onClick={() => void onAcceptInvite(invite)}
                       className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {labels.inviteAccepted}
+                      {labels.acceptInvite}
                     </button>
                   ) : null}
                   {canRejectInvite ? (
@@ -2225,8 +2198,8 @@ function InvitesPanel({
                       className="rounded-md bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {canManage && !isCurrentUserInvite
-                        ? labels.deleteMessage
-                        : labels.inviteRejected}
+                        ? labels.revokeInvite
+                        : labels.rejectInvite}
                     </button>
                   ) : null}
                 </div>
@@ -2246,6 +2219,7 @@ function JoinRequestsPanel({
   isLoading,
   joinRequests,
   labels,
+  locale,
   onCreateRequest,
   onReject,
   onReview,
@@ -2258,6 +2232,7 @@ function JoinRequestsPanel({
   isLoading: boolean;
   joinRequests: ConversationJoinRequest[];
   labels: ConversationRedesignLabels;
+  locale: string;
   onCreateRequest: () => void;
   onReject: (request: ConversationJoinRequest) => void;
   onReview: (request: ConversationJoinRequest) => void;
@@ -2291,7 +2266,7 @@ function JoinRequestsPanel({
               displayNameForUserId(
                 request.userId,
                 userDisplayNames,
-                "Requester",
+                labels.requester,
               );
             return (
               <div
@@ -2310,7 +2285,8 @@ function JoinRequestsPanel({
                       </p>
                     ) : null}
                     <p className="mt-2 text-xs text-slate-500">
-                      {formatRelativeDate(request.createdAt) || labels.today}
+                      {formatRelativeDate(request.createdAt, locale) ||
+                        labels.today}
                     </p>
                   </div>
                 </div>
@@ -2321,7 +2297,7 @@ function JoinRequestsPanel({
                       onClick={() => void onReject(request)}
                       className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
                     >
-                      {labels.joinRequestRejected}
+                      {labels.rejectRequest}
                     </button>
                     <button
                       type="button"
@@ -2341,7 +2317,7 @@ function JoinRequestsPanel({
                           : "orange"
                     }
                   >
-                    {request.status || "pending"}
+                    {statusLabel(request.status, labels)}
                   </StatusPill>
                 )}
               </div>
@@ -2492,17 +2468,19 @@ function Avatar({
     >
       {!avatarUrl ? initials(name) : null}
       {online ? (
-        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
+        <span className="absolute bottom-0 end-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
       ) : null}
     </div>
   );
 }
 
 function ToastMessage({
+  closeLabel,
   message,
   onClose,
   tone,
 }: {
+  closeLabel: string;
   message: string;
   onClose: () => void;
   tone: "success" | "error" | "info";
@@ -2522,7 +2500,7 @@ function ToastMessage({
         type="button"
         onClick={onClose}
         className="rounded p-1 hover:bg-white/60"
-        aria-label="Dismiss"
+        aria-label={closeLabel}
       >
         <X className="h-4 w-4" />
       </button>

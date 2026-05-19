@@ -38,6 +38,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# local assistant/tooling config with private credentials
+.claude/settings.local.json
+
 # vercel
 .vercel
 
