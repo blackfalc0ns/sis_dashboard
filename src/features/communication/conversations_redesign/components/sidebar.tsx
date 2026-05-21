@@ -35,7 +35,10 @@ export interface ConversationSidebarProps {
   className?: string;
 }
 
-const filters: Array<{ value: ConversationRedesignFilter; labelKey: "all" | "unread" | "pinned" | "archived" | "closed" }> = [
+const filters: Array<{
+  value: ConversationRedesignFilter;
+  labelKey: "all" | "unread" | "pinned" | "archived" | "closed";
+}> = [
   { value: "all", labelKey: "all" },
   { value: "unread", labelKey: "unread" },
   { value: "pinned", labelKey: "pinned" },
@@ -134,12 +137,11 @@ function lastMessagePreview(
   conversation: ConversationListItemModel,
   labels: ReturnType<typeof labelsForLocale>,
 ) {
-  if (conversation.lastMessage?.status === "deleted") return labels.messageDeleted;
-  const body =
-    conversation.lastMessage?.body ||
-    stringValue((conversation as Record<string, unknown>).description) ||
-    labels.noMessagesYet;
-  return conversation.lastMessage?.senderName
+  if (!conversation.lastMessage) return labels.noMessagesYet;
+  if (conversation.lastMessage.status === "deleted") return labels.messageDeleted;
+  const body = conversation.lastMessage.body;
+  if (!body) return labels.noMessagesYet;
+  return conversation.lastMessage.senderName
     ? `${conversation.lastMessage.senderName}: ${body}`
     : body;
 }
@@ -273,7 +275,7 @@ export default function ConversationSidebar({
               key={conversation.id}
               type="button"
               onClick={() => onSelect(conversation.id)}
-              className={`group flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left transition ${
+              className={`group flex min-h-[79px] w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-start transition ${
                 selected
                   ? "border-s-4 border-s-primary bg-primary-50 ps-3"
                   : "bg-slate-50 hover:bg-white"

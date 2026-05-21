@@ -100,17 +100,25 @@ export function useMessageReactions(messageIds: string[]) {
     }));
   }, []);
 
+  const fetchedIdsRef = useRef<Set<string>>(new Set());
+
   const refreshAll = useCallback(async () => {
+    fetchedIdsRef.current = new Set(messageIds);
     await Promise.all(messageIds.map((messageId) => refreshMessage(messageId)));
   }, [messageIds, refreshMessage]);
 
   useEffect(() => {
     mountedRef.current = true;
-    void refreshAll();
+    // Only fetch reactions for message IDs we haven't fetched yet
+    const newIds = messageIds.filter((id) => !fetchedIdsRef.current.has(id));
+    if (newIds.length > 0) {
+      newIds.forEach((id) => fetchedIdsRef.current.add(id));
+      void Promise.all(newIds.map((id) => refreshMessage(id)));
+    }
     return () => {
       mountedRef.current = false;
     };
-  }, [refreshAll]);
+  }, [messageIds, refreshMessage]);
 
   const addReaction = useCallback(
     async (messageId: string, type: ReactionType) => {

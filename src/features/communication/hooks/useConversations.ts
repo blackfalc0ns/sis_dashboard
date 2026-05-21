@@ -6,6 +6,7 @@ import {
   closeConversation,
   createConversation,
   getConversations,
+  getMessages,
   reopenConversation,
   updateConversation,
 } from "@/features/communication/api/communication.service";
@@ -23,6 +24,7 @@ import type {
   UpdateConversationPayload,
 } from "@/features/communication/types/conversation.types";
 import { useCommunicationSocket } from "./useCommunicationSocket";
+import { useAuth } from "@/hooks/use-auth";
 
 export type ConversationStatusFilter = "all" | "active" | "closed" | "archived";
 
@@ -229,7 +231,7 @@ function messageFromPayload(payload: unknown): CommunicationRecord | null {
 
 function lastMessageFromPayload(
   payload: unknown,
-): { conversationId?: string; message?: ConversationLastMessage } {
+): { conversationId?: string; senderUserId?: string; message?: ConversationLastMessage } {
   const message = messageFromPayload(payload);
   if (!message) return {};
 
@@ -241,6 +243,12 @@ function lastMessageFromPayload(
       stringFromUnknown(message.conversation_id) ??
       (isRecord(payload) ? stringFromUnknown(payload.conversationId) : undefined) ??
       (isRecord(payload) ? stringFromUnknown(payload.conversation_id) : undefined),
+    senderUserId:
+      stringFromUnknown(message.senderUserId) ??
+      stringFromUnknown(message.senderId) ??
+      stringFromUnknown(message.userId) ??
+      stringFromUnknown(sender?.userId) ??
+      stringFromUnknown(sender?.id),
     message: {
       id:
         stringFromUnknown(message.id) ??
@@ -323,8 +331,11 @@ function updatePayloadFromValues(
 }
 
 export function useConversations() {
-  const { socket, resyncVersion } = useCommunicationSocket();
+  const { socket, resyncVersion, joinConversation } = useCommunicationSocket();
+  const { user } = useAuth();
   const mountedRef = useRef(false);
+  const userIdRef = useRef(user?.id);
+  userIdRef.current = user?.id;
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [filters, setFilters] = useState<ConversationFiltersState>(DEFAULT_FILTERS);
   const [conversations, setConversations] = useState<ConversationListItemModel[]>(
@@ -354,8 +365,30 @@ export function useConversations() {
       );
 
       if (!mountedRef.current) return;
-      setConversations(normalized);
+      // Merge with existing data to preserve lastMessage from previous enrichment/realtime
+      setConversations((current) => {
+        const existingMap = new Map(current.map((c) => [c.id, c]));
+        const merged = normalized.map((conversation) => {
+          const existing = existingMap.get(conversation.id);
+          if (!existing) return conversation;
+          return {
+            ...conversation,
+            lastMessage: existing.lastMessage ?? conversation.lastMessage,
+            unreadCount: existing.unreadCount ?? conversation.unreadCount,
+          };
+        });
+        return sortConversations(merged);
+      });
       setTotal(list.total ?? normalized.length);
+
+      // Enrich only conversations that don't have a lastMessage yet
+      const toEnrich = normalized.filter((c) => {
+        const existing = conversations.find((e) => e.id === c.id);
+        return !existing?.lastMessage;
+      });
+      if (toEnrich.length > 0) {
+        void enrichConversations(toEnrich);
+      }
     } catch (nextError) {
       if (!mountedRef.current) return;
       setError(errorMessageFromUnknown(nextError));
@@ -368,6 +401,73 @@ export function useConversations() {
       }
     }
   }, [filters.search, filters.status]);
+
+  const enrichConversations = useCallback(
+    async (conversations: ConversationListItemModel[]) => {
+      // Fetch last message for each conversation (limit=1, most recent)
+      const enrichments = await Promise.allSettled(
+        conversations.map(async (conversation) => {
+          const messagesResponse = await getMessages(conversation.id, { limit: 1 }).catch(() => null);
+
+          let lastMessage: ConversationLastMessage | null = null;
+
+          if (messagesResponse) {
+            const messagesList = unwrapList<CommunicationRecord>(messagesResponse);
+            const msg = messagesList.items[0];
+            if (msg) {
+              const sender = isRecord(msg.sender) ? msg.sender : undefined;
+              lastMessage = {
+                id: stringFromUnknown(msg.id),
+                body:
+                  stringFromUnknown(msg.body) ??
+                  stringFromUnknown(msg.content),
+                status: stringFromUnknown(msg.status),
+                createdAt:
+                  stringFromUnknown(msg.createdAt) ??
+                  stringFromUnknown(msg.sentAt),
+                updatedAt: stringFromUnknown(msg.updatedAt),
+                senderName:
+                  stringFromUnknown(msg.senderName) ??
+                  stringFromUnknown(sender?.name) ??
+                  stringFromUnknown(sender?.nameEn),
+              };
+            }
+          }
+
+          return { conversationId: conversation.id, lastMessage };
+        }),
+      );
+
+      if (!mountedRef.current) return;
+
+      setConversations((current) =>
+        current.map((conversation) => {
+          const enrichment = enrichments.find(
+            (e) =>
+              e.status === "fulfilled" &&
+              e.value.conversationId === conversation.id,
+          );
+          if (enrichment?.status !== "fulfilled") return conversation;
+          const { lastMessage } = enrichment.value;
+          if (!lastMessage) return conversation;
+          // Don't overwrite if we already have a newer lastMessage from realtime
+          if (
+            conversation.lastMessage?.createdAt &&
+            lastMessage.createdAt &&
+            new Date(conversation.lastMessage.createdAt) >= new Date(lastMessage.createdAt)
+          ) {
+            return conversation;
+          }
+          return {
+            ...conversation,
+            lastMessage,
+            lastMessageAt: lastMessage.createdAt ?? conversation.lastMessageAt,
+          };
+        }),
+      );
+    },
+    [],
+  );
 
   const debouncedRefresh = useCallback(() => {
     if (refreshTimerRef.current) {
@@ -398,15 +498,36 @@ export function useConversations() {
     }
   }, [refresh, resyncVersion]);
 
+  // Join all conversation rooms so we receive realtime events (new messages, etc.)
+  // Re-join on every conversations change because other hooks (useConversationRealtime)
+  // may leave rooms when their components unmount
   useEffect(() => {
-    if (!socket) return;
+    conversations.forEach((c) => {
+      joinConversation(c.id);
+    });
+  }, [conversations, joinConversation]);
+
+  useEffect(() => {
+    if (!socket) {
+      console.debug("[useConversations] socket is null, skipping listener setup");
+      return;
+    }
+
+    console.debug("[useConversations] registering socket listeners, socket connected:", socket.connected);
 
     const handleCreated = (payload: unknown) => {
-      const { conversationId, message } = lastMessageFromPayload(payload);
+      console.debug("[useConversations] messageCreated event received:", JSON.stringify(payload, null, 2));
+      const { conversationId, senderUserId, message } = lastMessageFromPayload(payload);
+      console.debug("[useConversations] extracted:", { conversationId, senderUserId, messageBody: message?.body });
       if (!conversationId || !message) {
+        console.debug("[useConversations] missing conversationId or message, triggering debouncedRefresh");
         debouncedRefresh();
         return;
       }
+
+      // Don't increment unread for messages sent by the current user
+      const isOwnMessage = Boolean(userIdRef.current && senderUserId === userIdRef.current);
+      console.debug("[useConversations] isOwnMessage:", isOwnMessage, "currentUserId:", userIdRef.current, "senderUserId:", senderUserId);
 
       setConversations((current) => {
         let found = false;
@@ -419,7 +540,7 @@ export function useConversations() {
             ...conversation,
             lastMessage: message,
             lastMessageAt: message.createdAt ?? conversation.lastMessageAt,
-            unreadCount: isDuplicateMessage
+            unreadCount: isDuplicateMessage || isOwnMessage
               ? conversation.unreadCount
               : (conversation.unreadCount ?? 0) + 1,
             updatedAt: message.createdAt ?? conversation.updatedAt,
@@ -427,10 +548,12 @@ export function useConversations() {
         });
 
         if (!found) {
+          console.debug("[useConversations] conversation NOT found in list, conversationId:", conversationId, "list has:", current.map(c => c.id));
           debouncedRefresh();
           return current;
         }
 
+        console.debug("[useConversations] conversation found and updated, unread incremented:", !isOwnMessage);
         return sortConversations(next);
       });
     };
@@ -496,7 +619,14 @@ export function useConversations() {
     socket.on(COMMUNICATION_SOCKET_EVENTS.messageUpdated, handleUpdated);
     socket.on(COMMUNICATION_SOCKET_EVENTS.messageDeleted, handleDeleted);
 
+    console.debug("[useConversations] socket listeners registered for events:", {
+      messageCreated: COMMUNICATION_SOCKET_EVENTS.messageCreated,
+      messageUpdated: COMMUNICATION_SOCKET_EVENTS.messageUpdated,
+      messageDeleted: COMMUNICATION_SOCKET_EVENTS.messageDeleted,
+    });
+
     return () => {
+      console.debug("[useConversations] cleaning up socket listeners");
       socket.off(COMMUNICATION_SOCKET_EVENTS.messageCreated, handleCreated);
       socket.off(COMMUNICATION_SOCKET_EVENTS.messageUpdated, handleUpdated);
       socket.off(COMMUNICATION_SOCKET_EVENTS.messageDeleted, handleDeleted);
@@ -566,6 +696,16 @@ export function useConversations() {
     [filters.search, filters.status],
   );
 
+  const markAsRead = useCallback((conversationId: string) => {
+    setConversations((current) =>
+      current.map((conversation) =>
+        conversation.id === conversationId
+          ? { ...conversation, unreadCount: 0 }
+          : conversation,
+      ),
+    );
+  }, []);
+
   return {
     conversations,
     total,
@@ -577,6 +717,7 @@ export function useConversations() {
     error,
     hasFilters,
     refresh,
+    markAsRead,
     create,
     update,
     close,

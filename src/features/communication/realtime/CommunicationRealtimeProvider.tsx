@@ -76,7 +76,7 @@ export function CommunicationRealtimeProvider({
   const { isAuthenticated, isLoading, user } = useAuth();
   const userId = user?.id;
   const socketRef = useRef<CommunicationSocket | null>(null);
-  const joinedConversationIdsRef = useRef<Set<string>>(new Set());
+  const joinedConversationIdsRef = useRef<Map<string, number>>(new Map());
   const [socket, setSocket] = useState<CommunicationSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -125,7 +125,7 @@ export function CommunicationRealtimeProvider({
     nextSocket.on("connect", () => {
       setIsConnected(true);
       setConnectionError(null);
-      joinedConversationIdsRef.current.forEach((conversationId) => {
+      joinedConversationIdsRef.current.forEach((_, conversationId) => {
         nextSocket.emit(COMMUNICATION_SOCKET_EVENTS.conversationJoin, {
           conversationId,
         });
@@ -145,7 +145,7 @@ export function CommunicationRealtimeProvider({
     nextSocket.io.on("reconnect", () => {
       setIsConnected(true);
       setConnectionError(null);
-      joinedConversationIdsRef.current.forEach((conversationId) => {
+      joinedConversationIdsRef.current.forEach((_, conversationId) => {
         nextSocket.emit(COMMUNICATION_SOCKET_EVENTS.conversationJoin, {
           conversationId,
         });
@@ -210,14 +210,32 @@ export function CommunicationRealtimeProvider({
       conversationId: string,
     ) => {
       if (!conversationId) return;
+      const refCounts = joinedConversationIdsRef.current;
+
       if (event === COMMUNICATION_SOCKET_EVENTS.conversationJoin) {
-        joinedConversationIdsRef.current.add(conversationId);
+        const count = refCounts.get(conversationId) ?? 0;
+        refCounts.set(conversationId, count + 1);
+        // Only emit join if this is the first subscriber
+        if (count === 0) {
+          const activeSocket = socketRef.current;
+          if (activeSocket?.connected) {
+            activeSocket.emit(event, { conversationId });
+          }
+        }
       } else {
-        joinedConversationIdsRef.current.delete(conversationId);
+        const count = refCounts.get(conversationId) ?? 0;
+        const nextCount = Math.max(0, count - 1);
+        if (nextCount === 0) {
+          refCounts.delete(conversationId);
+          // Only emit leave if no one else needs this room
+          const activeSocket = socketRef.current;
+          if (activeSocket?.connected) {
+            activeSocket.emit(event, { conversationId });
+          }
+        } else {
+          refCounts.set(conversationId, nextCount);
+        }
       }
-      const activeSocket = socketRef.current;
-      if (!activeSocket?.connected) return;
-      activeSocket.emit(event, { conversationId });
     },
     [],
   );

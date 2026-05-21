@@ -634,7 +634,7 @@ export default function ConversationThread({
                 }
                 onTyping={typingState.emitTyping}
                 onStopTyping={typingState.stopOwnTyping}
-                onSend={messagesState.send}
+                onSend={(body) => { void messagesState.send(body); }}
               />
             </div>
           </section>

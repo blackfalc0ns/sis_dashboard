@@ -104,23 +104,37 @@ export function useMessageAttachments(
       MessageAttachment[]
     >((next, attachment) => mergeAttachment(next, attachment), []);
     if (!mountedRef.current) return;
-    setAttachmentsByMessageId((current) => ({
-      ...current,
-      [messageId]: attachments,
-    }));
+    setAttachmentsByMessageId((current) => {
+      // Merge with existing attachments (don't overwrite optimistic updates)
+      const existing = current[messageId] ?? [];
+      if (attachments.length === 0 && existing.length > 0) return current;
+      const merged = attachments.reduce<MessageAttachment[]>(
+        (acc, att) => mergeAttachment(acc, att),
+        existing,
+      );
+      return { ...current, [messageId]: merged };
+    });
   }, []);
 
+  const fetchedIdsRef = useRef<Set<string>>(new Set());
+
   const refreshAll = useCallback(async () => {
+    fetchedIdsRef.current = new Set(messageIds);
     await Promise.all(messageIds.map((messageId) => refreshMessage(messageId)));
   }, [messageIds, refreshMessage]);
 
   useEffect(() => {
     mountedRef.current = true;
-    void refreshAll();
+    // Only fetch attachments for message IDs we haven't fetched yet
+    const newIds = messageIds.filter((id) => !fetchedIdsRef.current.has(id));
+    if (newIds.length > 0) {
+      newIds.forEach((id) => fetchedIdsRef.current.add(id));
+      void Promise.all(newIds.map((id) => refreshMessage(id)));
+    }
     return () => {
       mountedRef.current = false;
     };
-  }, [refreshAll]);
+  }, [messageIds, refreshMessage]);
 
   const attachFile = useCallback(
     async (messageId: string, file: File) => {
@@ -168,10 +182,7 @@ export function useMessageAttachments(
 
     const handleLinked = (payload: unknown) => {
       const attachment = unwrapAttachment(payload);
-      if (
-        !attachment?.messageId ||
-        !messageIdsRef.current.has(attachment.messageId)
-      ) {
+      if (!attachment?.messageId) {
         return;
       }
       setAttachmentsByMessageId((current) => ({
@@ -194,7 +205,7 @@ export function useMessageAttachments(
         (isRecord(payload.attachment)
           ? stringValue(payload.attachment.fileId)
           : undefined);
-      if (!messageId || !messageIdsRef.current.has(messageId)) return;
+      if (!messageId) return;
       setAttachmentsByMessageId((current) => ({
         ...current,
         [messageId]: (current[messageId] ?? []).filter(
