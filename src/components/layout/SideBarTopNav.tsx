@@ -54,7 +54,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
   // Full-screen mode for conversations — collapse sidebar (expandable) and hide topnav
   if (isFullScreenChat) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="h-[100dvh] bg-gray-50">
         <Sidebar
           onSelect={() => {}}
           schoolName={schoolName}
@@ -63,9 +63,9 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
           isRTL={isRTL}
         />
         <div
-          className={`flex-1 flex flex-col transition-all duration-300 ${isRTL ? (isSidebarOpen ? "lg:mr-[260px]" : "lg:mr-20") : isSidebarOpen ? "lg:ml-[260px]" : "lg:ml-20"}`}
+          className={`flex h-[100dvh] flex-col transition-all duration-300 ${isRTL ? (isSidebarOpen ? "lg:mr-[260px]" : "lg:mr-20") : isSidebarOpen ? "lg:ml-[260px]" : "lg:ml-20"}`}
         >
-          <div className="bg-background min-h-screen">{children}</div>
+          <div className="bg-background h-full min-h-0">{children}</div>
         </div>
       </div>
     );

@@ -155,7 +155,7 @@ export default function ConversationPage({
   };
 
   return (
-    <main className="relative h-[100dvh] overflow-hidden bg-slate-50 text-slate-950 md:min-h-[680px]">
+    <main className="relative h-[100dvh] overflow-hidden bg-slate-50 text-slate-950">
       <div className="flex h-full min-h-0">
         <ConversationSidebar
           className={`${showMobileThread ? "hidden" : "flex"} w-full md:flex md:w-[360px] md:shrink-0`}
