@@ -260,7 +260,7 @@ export function MessageBubble({
             );
           })() : null}
 
-          <p className="overflow-hidden whitespace-pre-wrap break-all text-sm leading-6">
+          <p dir="auto" className="overflow-hidden whitespace-pre-wrap break-all text-sm leading-6">
             {deleted ? labels.messageDeleted : message.body}
           </p>
 

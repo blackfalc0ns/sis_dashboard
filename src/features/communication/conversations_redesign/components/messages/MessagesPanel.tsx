@@ -140,7 +140,7 @@ export function MessagesPanel({
   }
 
   return (
-    <div ref={scrollRef} className={`h-full overflow-y-auto px-4 py-8 ${isScrollReady ? "opacity-100" : "opacity-0"}`}>
+    <div ref={scrollRef} dir="ltr" className={`h-full overflow-y-auto px-4 py-8 ${isScrollReady ? "opacity-100" : "opacity-0"}`}>
       <div className="mx-auto flex min-h-full max-w-[1500px] flex-col gap-0.5">
         {/* Loading older messages indicator */}
         {isLoadingOlder ? (
