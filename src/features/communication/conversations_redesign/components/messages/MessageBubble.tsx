@@ -1,4 +1,4 @@
-import { type ChangeEvent, useRef, useState } from "react";
+import { type ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import { ThumbsUp } from "lucide-react";
 import Input from "@/components/ui/input/Input";
 import Avatar from "@/features/communication/conversations_redesign/components/Avatar";
@@ -156,10 +156,45 @@ export function MessageBubble({
     }
   };
 
+  // Long-press for mobile
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleTouchStart = useCallback(() => {
+    longPressTimerRef.current = setTimeout(() => {
+      setShowMobileMenu(true);
+    }, 500);
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    };
+  }, []);
+
   return (
+    <>
     <article
       data-message-id={message.id}
       className={`group flex items-end gap-2 ${isOwn ? "justify-end" : "justify-start"} ${isFirstInGroup ? "mt-4" : "mt-0.5"}`}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchMove}
+      onContextMenu={(e) => { e.preventDefault(); setShowMobileMenu(true); }}
     >
       {!isOwn ? (
         isFirstInGroup ? (
@@ -345,5 +380,121 @@ export function MessageBubble({
         onChange={(event) => void handleAttach(event)}
       />
     </article>
+
+    {/* Mobile bottom sheet — shown on long press */}
+    {showMobileMenu ? (
+      <div
+        className="fixed inset-0 z-50 flex flex-col justify-end md:hidden"
+        onClick={() => setShowMobileMenu(false)}
+      >
+        {/* Backdrop */}
+        <div className="absolute inset-0 bg-black/30" />
+
+        {/* Reaction bar at top of sheet */}
+        {allowReactions && !deleted ? (
+          <div className="relative z-10 mx-auto mb-2 flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1.5 shadow-lg">
+            {[
+              { emoji: "👍", type: "thumbs_up" as ReactionType },
+              { emoji: "❤️", type: "love" as ReactionType },
+              { emoji: "😂", type: "laugh" as ReactionType },
+              { emoji: "😮", type: "wow" as ReactionType },
+              { emoji: "😢", type: "sad" as ReactionType },
+              { emoji: "🙏", type: "like" as ReactionType },
+            ].map((item) => (
+              <button
+                key={item.type}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMobileMenu(false);
+                  void handleReaction(item.type);
+                }}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-2xl transition active:scale-110 active:bg-slate-100"
+              >
+                {item.emoji}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {/* Actions sheet */}
+        <div
+          className="relative z-10 rounded-t-2xl border-t border-slate-200 bg-white pb-6 pt-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-300" />
+          <div className="space-y-0.5 px-2">
+            {/* Reply */}
+            <button
+              type="button"
+              onClick={() => { setShowMobileMenu(false); onReply(message); }}
+              className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-slate-700 active:bg-slate-100"
+            >
+              <span className="text-lg">↩️</span>
+              {labels.reply}
+            </button>
+            {/* Copy */}
+            {message.body ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  void navigator.clipboard.writeText(message.body ?? "");
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-slate-700 active:bg-slate-100"
+              >
+                <span className="text-lg">📋</span>
+                {labels.copy}
+              </button>
+            ) : null}
+            {/* Edit (own only) */}
+            {canMutateMessage ? (
+              <button
+                type="button"
+                onClick={() => { setShowMobileMenu(false); onStartEdit(); }}
+                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-slate-700 active:bg-slate-100"
+              >
+                <span className="text-lg">✏️</span>
+                {labels.editMessage}
+              </button>
+            ) : null}
+            {/* Info (own only) */}
+            {isOwn ? (
+              <button
+                type="button"
+                onClick={() => { setShowMobileMenu(false); onInfo(message.id); }}
+                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-slate-700 active:bg-slate-100"
+              >
+                <span className="text-lg">ℹ️</span>
+                {labels.messageInfo}
+              </button>
+            ) : null}
+            {/* Report (others only) */}
+            {!isOwn ? (
+              <button
+                type="button"
+                onClick={() => { setShowMobileMenu(false); onReport(message.id); }}
+                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-amber-600 active:bg-amber-50"
+              >
+                <span className="text-lg">🚩</span>
+                {labels.report}
+              </button>
+            ) : null}
+            {/* Delete (own only) */}
+            {canMutateMessage ? (
+              <button
+                type="button"
+                onClick={() => { setShowMobileMenu(false); void handleDelete(); }}
+                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-rose-600 active:bg-rose-50"
+              >
+                <span className="text-lg">🗑️</span>
+                {labels.deleteMessage}
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    ) : null}
+    </>
   );
 }
