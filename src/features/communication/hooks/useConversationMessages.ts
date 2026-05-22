@@ -229,10 +229,16 @@ export function useConversationMessages(conversationId: string) {
     setError(null);
     try {
       const response = await getMessages(requestConversationId, { limit: PAGE_SIZE });
-      const nextMessages = unwrapList<Message>(response).map((message) => ({
-        ...message,
-        deliveryStatus: "sent" as const,
-      }));
+      const nextMessages = unwrapList<Message>(response).map((message) => {
+        const record = message as Record<string, unknown>;
+        return {
+          ...message,
+          senderId:
+            message.senderId ??
+            (typeof record.senderUserId === "string" ? record.senderUserId : undefined),
+          deliveryStatus: "sent" as const,
+        };
+      });
       if (
         !mountedRef.current ||
         activeConversationIdRef.current !== requestConversationId
@@ -268,10 +274,16 @@ export function useConversationMessages(conversationId: string) {
         before: oldestMessage.createdAt,
         limit: PAGE_SIZE,
       });
-      const olderMessages = unwrapList<Message>(response).map((message) => ({
-        ...message,
-        deliveryStatus: "sent" as const,
-      }));
+      const olderMessages = unwrapList<Message>(response).map((message) => {
+        const record = message as Record<string, unknown>;
+        return {
+          ...message,
+          senderId:
+            message.senderId ??
+            (typeof record.senderUserId === "string" ? record.senderUserId : undefined),
+          deliveryStatus: "sent" as const,
+        };
+      });
       if (
         !mountedRef.current ||
         activeConversationIdRef.current !== requestConversationId
@@ -337,7 +349,7 @@ export function useConversationMessages(conversationId: string) {
   }, [conversationId, refresh]);
 
   const send = useCallback(
-    async (body: string): Promise<string | undefined> => {
+    async (body: string, options?: { replyToMessageId?: string }): Promise<string | undefined> => {
       const trimmed = body.trim();
       if (!trimmed) return undefined;
 
@@ -359,6 +371,7 @@ export function useConversationMessages(conversationId: string) {
         status: "sent",
         deliveryStatus: "pending",
         createdAt: new Date().toISOString(),
+        replyToMessageId: options?.replyToMessageId,
       };
 
       setMessages((current) => upsertMessage(current, pendingMessage));
@@ -368,6 +381,7 @@ export function useConversationMessages(conversationId: string) {
           type: "text",
           body: trimmed,
           clientMessageId,
+          ...(options?.replyToMessageId ? { replyToMessageId: options.replyToMessageId } : {}),
           metadata: createCommunicationMetadata("message_send", {
             composer: "conversation_thread",
           }),

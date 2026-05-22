@@ -294,3 +294,14 @@ textarea::placeholder {
 .calendar-event-draggable:active {
   cursor: grabbing;
 }
+
+/* WhatsApp-style message highlight when scrolling to a replied message */
+@keyframes message-highlight {
+  0% { background-color: rgba(3, 107, 128, 0.15); }
+  100% { background-color: transparent; }
+}
+
+.highlight-message {
+  animation: message-highlight 1.5s ease-out;
+  border-radius: 1rem;
+}

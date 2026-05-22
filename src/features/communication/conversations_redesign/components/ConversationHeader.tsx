@@ -71,7 +71,7 @@ export default function ConversationHeader({
           className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 md:hidden"
           aria-label={labels.backToConversations}
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
         </button>
         <Avatar avatarUrl={avatar} name={title} size="lg" />
         <div className="min-w-0">

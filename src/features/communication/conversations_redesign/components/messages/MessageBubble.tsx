@@ -1,0 +1,349 @@
+import { type ChangeEvent, useRef, useState } from "react";
+import { ThumbsUp } from "lucide-react";
+import Input from "@/components/ui/input/Input";
+import Avatar from "@/features/communication/conversations_redesign/components/Avatar";
+import {
+  actorName,
+  displayNameForUserId,
+  getAvatarUrl,
+} from "@/features/communication/conversations_redesign/utils/displayNames";
+import {
+  formatTime,
+  messageSenderUserId,
+} from "@/features/communication/conversations_redesign/utils/formatters";
+import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
+import type { UserDisplayNameMap } from "@/features/communication/conversations_redesign/types";
+import type { ConversationMessage } from "@/features/communication/hooks/useConversationMessages";
+import type {
+  MessageAttachment,
+  MessageReaction,
+  ReactionType,
+} from "@/features/communication/types/message.types";
+import { REACTION_OPTIONS } from "./reactionOptions";
+import { BubbleContextMenu } from "./BubbleContextMenu";
+import { FloatingReactionBar } from "./FloatingReactionBar";
+import { AttachmentCard } from "./AttachmentCard";
+import { MessageStatusIcon } from "./MessageStatusIcon";
+
+export function MessageBubble({
+  allowReactions,
+  attachments,
+  currentUserId,
+  currentUserName,
+  isFirstInGroup,
+  isOwn,
+  isUploadingAttachment,
+  labels,
+  locale,
+  message,
+  onAddReaction,
+  onAttachFile,
+  onDeleteAttachment,
+  onDeleteMessage,
+  onStartEdit,
+  onInfo,
+  onRemoveReaction,
+  onReply,
+  onReport,
+  allMessages,
+  reactions,
+  userDisplayNames,
+}: {
+  allowReactions: boolean;
+  attachments: MessageAttachment[];
+  currentUserId?: string | null;
+  currentUserName: string;
+  isFirstInGroup: boolean;
+  isOwn: boolean;
+  isUploadingAttachment: boolean;
+  labels: ConversationRedesignLabels;
+  locale: string;
+  message: ConversationMessage;
+  onAddReaction: (type: ReactionType) => Promise<unknown>;
+  onAttachFile: (file: File) => Promise<unknown>;
+  onDeleteAttachment: (attachmentId: string) => Promise<unknown>;
+  onDeleteMessage: () => Promise<unknown>;
+  onStartEdit: () => void;
+  onInfo: (messageId: string) => void;
+  onRemoveReaction: () => Promise<unknown>;
+  onReply: (message: ConversationMessage) => void;
+  onReport: (messageId: string) => void;
+  allMessages: ConversationMessage[];
+  reactions: MessageReaction[];
+  userDisplayNames: UserDisplayNameMap;
+}) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftBody, setDraftBody] = useState(message.body ?? "");
+  const [isActionPending, setIsActionPending] = useState(false);
+  const senderName = isOwn
+    ? currentUserName || labels.you
+    : actorName(message.sender) ||
+      displayNameForUserId(
+        messageSenderUserId(message),
+        userDisplayNames,
+        labels.participant,
+      );
+  const avatar = getAvatarUrl(message.sender);
+  const groupedReactions = reactions.reduce<Record<string, MessageReaction[]>>(
+    (groups, reaction) => {
+      const key = reaction.type || "like";
+      return { ...groups, [key]: [...(groups[key] ?? []), reaction] };
+    },
+    {},
+  );
+  const edited = Boolean(
+    message.updatedAt && message.updatedAt !== message.createdAt,
+  );
+  const deleted = message.status === "deleted";
+  const canMutateMessage =
+    isOwn &&
+    !deleted &&
+    message.deliveryStatus !== "pending" &&
+    message.deliveryStatus !== "failed";
+  const readByOthersCount = (message.readByUserIds ?? []).filter(
+    (id) => id !== currentUserId,
+  ).length;
+  // For own messages: only show blue checks when someone ELSE has read it
+  // For others' messages: not applicable (checks only show on own messages)
+  // readByOthersCount comes from realtime events (explicit other-user reads)
+  // message.readCount from API includes self-reads, so for own messages we subtract 1
+  const apiReadByOthers = typeof message.readCount === "number"
+    ? Math.max(0, message.readCount - 1)
+    : 0;
+  const isRead = isOwn
+    ? readByOthersCount > 0 || apiReadByOthers > 0
+    : false;
+
+  const handleAttach = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    await onAttachFile(file);
+  };
+
+  const handleDelete = async () => {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(labels.deleteMessageConfirm)
+    )
+      return;
+    setIsActionPending(true);
+    try {
+      await onDeleteMessage();
+    } finally {
+      setIsActionPending(false);
+    }
+  };
+
+  const handleReaction = async (type: ReactionType) => {
+    if (!allowReactions) return;
+    setIsActionPending(true);
+    try {
+      await onAddReaction(type);
+    } finally {
+      setIsActionPending(false);
+    }
+  };
+
+  const handleRemoveReaction = async () => {
+    if (!allowReactions) return;
+    setIsActionPending(true);
+    try {
+      await onRemoveReaction();
+    } finally {
+      setIsActionPending(false);
+    }
+  };
+
+  return (
+    <article
+      data-message-id={message.id}
+      className={`group flex items-end gap-2 ${isOwn ? "justify-end" : "justify-start"} ${isFirstInGroup ? "mt-4" : "mt-0.5"}`}
+    >
+      {!isOwn ? (
+        isFirstInGroup ? (
+          <Avatar avatarUrl={avatar} name={senderName} size="sm" />
+        ) : (
+          <div className="w-8 shrink-0" />
+        )
+      ) : null}
+
+      <div
+        className={`relative flex max-w-[78vw] flex-col md:max-w-[560px] ${isOwn ? "items-end" : "items-start"}`}
+      >
+        {!isOwn && isFirstInGroup ? (
+          <div className="mb-1 ms-1 text-xs font-medium text-slate-600">
+            {senderName}
+          </div>
+        ) : null}
+
+        {/* Bubble */}
+        <div
+          className={`relative min-w-0 rounded-2xl px-2.5 py-1.5 shadow-sm ${
+            isOwn
+              ? `${isFirstInGroup? "rounded-ee-md": "" } bg-primary text-white`
+              : `${isFirstInGroup? "rounded-es-md": "" } border border-slate-200 bg-white text-slate-950`
+          }`}
+        >
+          {/* Chevron dropdown — appears on hover at top-end corner */}
+          {!deleted ? (
+            <BubbleContextMenu
+              allowReactions={allowReactions}
+              canEdit={canMutateMessage}
+              canDelete={canMutateMessage}
+              isOwn={isOwn}
+              labels={labels}
+              messageBody={message.body}
+              onAddReaction={handleReaction}
+              onCopy={() => {
+                if (message.body) {
+                  void navigator.clipboard.writeText(message.body);
+                }
+              }}
+              onDelete={() => void handleDelete()}
+              onEdit={() => onStartEdit()}
+              onInfo={() => onInfo(message.id)}
+              onReply={() => onReply(message)}
+              onReport={() => onReport(message.id)}
+            />
+          ) : null}
+
+          {/* Reaction trigger button — smiley face beside the bubble */}
+          {allowReactions && !deleted ? (
+            <FloatingReactionBar
+              isOwn={isOwn}
+              isActionPending={isActionPending}
+              onReact={handleReaction}
+            />
+          ) : null}
+
+          {message.replyToMessageId ? (() => {
+            const originalMsg = allMessages.find((m) => m.id === message.replyToMessageId);
+            const originalSender = originalMsg
+              ? (originalMsg.sender?.name as string) ||
+                displayNameForUserId(
+                  messageSenderUserId(originalMsg),
+                  userDisplayNames,
+                  labels.someone,
+                )
+              : labels.someone;
+            const originalBody = originalMsg?.body || "...";
+            return (
+              <button
+                type="button"
+                onClick={() => {
+                  const target = document.querySelector(
+                    `[data-message-id="${message.replyToMessageId}"]`,
+                  );
+                  if (target) {
+                    target.scrollIntoView({ behavior: "smooth", block: "center" });
+                    target.classList.add("highlight-message");
+                    setTimeout(() => target.classList.remove("highlight-message"), 1500);
+                  }
+                }}
+                className={`mb-2 w-full rounded-lg overflow-hidden text-start transition hover:opacity-80 ${
+                  isOwn ? "bg-primary-700/30" : "bg-slate-100"
+                }`}
+              >
+                <div className={`border-s-4 px-3 py-2 ${
+                  isOwn ? "border-s-white/60" : "border-s-primary"
+                }`}>
+                  <p className={`text-xs font-bold ${isOwn ? "text-white/90" : "text-primary"}`}>
+                    {originalSender}
+                  </p>
+                  <p className={`mt-0.5 line-clamp-3 text-xs leading-relaxed ${isOwn ? "text-white/70" : "text-slate-600"}`}>
+                    {originalBody}
+                  </p>
+                </div>
+              </button>
+            );
+          })() : null}
+
+          <p className="overflow-hidden whitespace-pre-wrap break-all text-sm leading-6">
+            {deleted ? labels.messageDeleted : message.body}
+          </p>
+
+          {attachments.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              {attachments.map((attachment) => (
+                <AttachmentCard
+                  key={attachment.id}
+                  attachment={attachment}
+                  canDelete={canMutateMessage}
+                  isOwn={isOwn}
+                  labels={labels}
+                  onDelete={() => onDeleteAttachment(attachment.id)}
+                />
+              ))}
+            </div>
+          ) : null}
+          <div
+            className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${isOwn ? "text-white/80" : "text-slate-400"}`}
+          >
+            {edited ? <span>{labels.edited}</span> : null}
+            <span className="italic mt-auto">{formatTime(message.createdAt, locale)}</span>
+            {isOwn ? (
+              <MessageStatusIcon
+                deliveryStatus={message.deliveryStatus}
+                isRead={isRead}
+                isOwn={isOwn}
+              />
+            ) : null}
+          </div>
+        </div>
+
+        {/* Reaction badges at bottom-corner of bubble */}
+        {Object.keys(groupedReactions).length > 0 ? (
+          <div className={`mt-1 flex flex-wrap items-center gap-0.5`}>
+            {Object.entries(groupedReactions).map(([type, items]) => {
+              const meta = REACTION_OPTIONS.find((r) => r.type === type);
+              const Icon = meta?.icon ?? ThumbsUp;
+              const isOwnType = items.some(
+                (r) =>
+                  r.userId === currentUserId ||
+                  r.actor?.userId === currentUserId ||
+                  r.actor?.id === currentUserId,
+              );
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() =>
+                    void (isOwnType
+                      ? handleRemoveReaction()
+                      : handleReaction(type as ReactionType))
+                  }
+                  disabled={isActionPending || !allowReactions}
+                  className={`inline-flex h-5 items-center gap-0.5 rounded-full border px-1.5 text-[10px] shadow-sm transition disabled:opacity-60 ${
+                    isOwnType
+                      ? "border-primary-200 bg-primary-50 text-primary"
+                      : "border-slate-200 bg-white text-slate-600"
+                  }`}
+                  title={meta?.label ?? type}
+                >
+                  <Icon className="h-2.5 w-2.5" aria-hidden />
+                  <span>{items.length}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {isUploadingAttachment ? (
+          <span className="mt-1 text-xs text-slate-500">
+            {labels.uploadingAttachment}
+          </span>
+        ) : null}
+      </div>
+
+      <Input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        fullWidth={false}
+        onChange={(event) => void handleAttach(event)}
+      />
+    </article>
+  );
+}

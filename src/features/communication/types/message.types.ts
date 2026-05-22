@@ -30,6 +30,7 @@ export interface Message extends CommunicationRecord {
   status?: MessageStatus;
   attachments?: MessageAttachment[];
   reactionsCount?: number;
+  replyToMessageId?: CommunicationId;
   createdAt?: CommunicationDateTime;
   updatedAt?: CommunicationDateTime;
   deletedAt?: CommunicationDateTime | null;

@@ -66,13 +66,15 @@ export function StatusPill({
   tone,
 }: {
   children: ReactNode;
-  tone: "blue" | "green" | "orange" | "red";
+  tone: "blue" | "green" | "orange" | "red" | "yellow" | "gray";
 }) {
   const classes = {
     blue: "bg-primary-50 text-primary",
     green: "bg-emerald-50 text-emerald-700",
     orange: "bg-orange-50 text-orange-600",
     red: "bg-red-50 text-red-600",
+    yellow: "bg-amber-50 text-amber-700",
+    gray: "bg-slate-100 text-slate-500",
   };
 
   return (

@@ -57,6 +57,7 @@ import {
   actorName,
   addDisplayName,
   currentUserName,
+  displayNameForUserId,
   stringValue,
 } from "@/features/communication/conversations_redesign/utils/displayNames";
 import {
@@ -123,6 +124,15 @@ export default function ConversationDetail({
   } | null>(null);
   const [isEditConversationOpen, setIsEditConversationOpen] = useState(false);
   const [isMutatingConversation, setIsMutatingConversation] = useState(false);
+  const [replyTo, setReplyTo] = useState<{
+    id: string;
+    senderName: string;
+    body: string;
+  } | null>(null);
+  const [editingMessage, setEditingMessage] = useState<{
+    id: string;
+    body: string;
+  } | null>(null);
 
   const shouldLoadParticipants =
     loadedTabs.participants || loadedTabs.invites || loadedTabs.joinRequests;
@@ -318,6 +328,19 @@ export default function ConversationDetail({
   const allowReactions = policy?.allowReactions !== false;
   const allowAttachments = policy?.allowAttachments !== false;
 
+  // Determine current user's participant status
+  const currentUserParticipant = participantsState.participants.find(
+    (p) => {
+      const pUserId = p.userId ?? p.actor?.userId ?? p.actor?.id;
+      return pUserId === user?.id;
+    },
+  );
+  const currentUserStatus = currentUserParticipant?.status;
+  const isMuted = currentUserStatus === "muted";
+  const isBlocked = currentUserStatus === "blocked";
+  const isRemovedOrLeft = currentUserStatus === "left" || currentUserStatus === "removed";
+  const canSendMessages = !readOnly && !isMuted && !isBlocked && !isRemovedOrLeft && isCommunicationEnabled;
+
   const handleArchiveConversation = async () => {
     if (
       typeof window !== "undefined" &&
@@ -417,7 +440,6 @@ export default function ConversationDetail({
       <div className="min-h-0 flex-1 overflow-hidden">
         {activeTab === "messages" ? (
           <MessagesPanel
-            allowAttachments={allowAttachments}
             allowReactions={allowReactions}
             attachmentsByMessageId={attachmentsState.attachmentsByMessageId}
             currentUserId={user?.id}
@@ -465,6 +487,10 @@ export default function ConversationDetail({
                 labels.unableToUpdateMessage,
               )
             }
+            onStartEdit={(messageId, body) => {
+              setEditingMessage({ id: messageId, body });
+              setReplyTo(null);
+            }}
             onLoadOlder={() => void messagesState.loadOlderMessages()}
             onRemoveReaction={(messageId) =>
               runMutation(
@@ -473,7 +499,50 @@ export default function ConversationDetail({
                 labels.unableToRemoveReaction,
               )
             }
-            readSummary={messagesState.readSummary}
+            onReply={(message) => {
+              const record = message as Record<string, unknown>;
+              const senderName =
+                (message.sender?.name as string) ??
+                (typeof record.senderUserId === "string"
+                  ? displayNameForUserId(record.senderUserId as string, userDisplayNames, labels.someone)
+                  : labels.someone);
+              setReplyTo({
+                id: message.id,
+                senderName,
+                body: message.body ?? "",
+              });
+            }}
+            onInfo={async (messageId) => {
+              try {
+                const { getMessage } = await import(
+                  "@/features/communication/api/communication.service"
+                );
+                const response = await getMessage(messageId);
+                const msg = response as Record<string, unknown>;
+                const data = (msg?.data ?? msg?.item ?? msg) as Record<string, unknown>;
+                const readCount = typeof data?.readCount === "number" ? data.readCount : 0;
+                onToast({
+                  tone: "info",
+                  message: `${labels.readByList}: ${readCount}`,
+                });
+              } catch {
+                onToast({ tone: "info", message: `${labels.readByList}: —` });
+              }
+            }}
+            onReport={async (messageId) => {
+              try {
+                const { createMessageReport } = await import(
+                  "@/features/communication/api/communication.service"
+                );
+                await createMessageReport(messageId, { reason: "inappropriate_content" });
+                onToast({ tone: "success", message: labels.reportSent });
+              } catch (error) {
+                onToast({
+                  tone: "error",
+                  message: communicationErrorMessage(error, labels.unableToReport),
+                });
+              }
+            }}
             reactionsByMessageId={reactionsState.reactionsByMessageId}
             typingUsers={typingState.typingUsers}
             userDisplayNames={userDisplayNames}
@@ -557,28 +626,46 @@ export default function ConversationDetail({
       </div>
 
       {activeTab === "messages" ? (
-        readOnly || !isCommunicationEnabled ? (
+        !canSendMessages ? (
           <ReadOnlyComposer labels={labels} />
         ) : (
           <MessageComposer
             disabled={messagesState.isMutating}
+            editingMessage={editingMessage}
             labels={labels}
             maxLength={policy?.maxMessageLength}
-            onSend={(body) =>
+            onCancelEdit={() => setEditingMessage(null)}
+            onCancelReply={() => setReplyTo(null)}
+            onEditMessage={(messageId, body) =>
               runMutation(
-                () => messagesState.send(body),
-                labels.messageSent,
-                labels.unableToSendMessage,
+                () => messagesState.edit(messageId, body),
+                labels.messageUpdated,
+                labels.unableToUpdateMessage,
               )
             }
-            onSendWithAttachment={async (file, caption) => {
+            onSend={async (body) => {
+              const result = await runMutation(
+                () => messagesState.send(body, replyTo ? { replyToMessageId: replyTo.id } : undefined),
+                labels.messageSent,
+                labels.unableToSendMessage,
+              );
+              setReplyTo(null);
+              return result;
+            }}
+            onSendWithAttachment={async (files, caption) => {
               try {
                 const messageBody = caption || "📎";
-                const messageId = await messagesState.send(messageBody);
+                const messageId = await messagesState.send(
+                  messageBody,
+                  replyTo ? { replyToMessageId: replyTo.id } : undefined,
+                );
                 if (messageId) {
-                  await attachmentsState.attachFile(messageId, file);
+                  for (const file of files) {
+                    await attachmentsState.attachFile(messageId, file);
+                  }
                   onToast({ tone: "success", message: labels.attachmentUploaded });
                 }
+                setReplyTo(null);
               } catch (error) {
                 onToast({
                   tone: "error",
@@ -591,6 +678,7 @@ export default function ConversationDetail({
             }}
             onStopTyping={typingState.stopOwnTyping}
             onTyping={typingState.emitTyping}
+            replyTo={replyTo}
           />
         )
       ) : null}

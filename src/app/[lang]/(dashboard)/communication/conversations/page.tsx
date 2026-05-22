@@ -14,7 +14,7 @@ export default async function Page({ searchParams }: PageProps) {
     : conversationIdParam;
 
   return (
-    <main className="min-w-0 overflow-x-hidden">
+    <main className="min-w-0 overflow-x-hidden h-screen">
       <ConversationsPage initialConversationId={conversationId ?? null} />
     </main>
   );

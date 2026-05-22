@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import TopNav from "./TopNav";
 import { useTranslations, useLocale } from "next-intl";
@@ -14,8 +15,12 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const t = useTranslations();
   const locale = useLocale();
+  const pathname = usePathname();
   const { user } = useAuth();
   const { profile: brandingProfile } = useBrandingProfile();
+
+  // Hide sidebar/topnav on conversation pages (full-screen chat)
+  const isFullScreenChat = pathname.includes("/communication/conversations");
 
   // Detect if current locale is RTL
   const isRTL = locale === "ar";
@@ -45,6 +50,26 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
     // Cleanup
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Full-screen mode for conversations — collapse sidebar (expandable) and hide topnav
+  if (isFullScreenChat) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Sidebar
+          onSelect={() => {}}
+          schoolName={schoolName}
+          isOpen={isSidebarOpen}
+          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+          isRTL={isRTL}
+        />
+        <div
+          className={`flex-1 flex flex-col transition-all duration-300 ${isRTL ? (isSidebarOpen ? "lg:mr-[260px]" : "lg:mr-20") : isSidebarOpen ? "lg:ml-[260px]" : "lg:ml-20"}`}
+        >
+          <div className="bg-background min-h-screen">{children}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

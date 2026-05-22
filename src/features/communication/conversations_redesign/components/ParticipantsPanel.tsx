@@ -44,6 +44,17 @@ export default function ParticipantsPanel({
   total: number;
   userDisplayNames: UserDisplayNameMap;
 }) {
+  // Separate active members from former members
+  const activeParticipants = participants.filter(
+    (p) => p.status === "active" || p.status === "muted",
+  );
+  const formerParticipants = participants.filter(
+    (p) => p.status === "left" || p.status === "removed" || p.status === "blocked",
+  );
+  const invitedParticipants = participants.filter(
+    (p) => p.status === "invited",
+  );
+
   return (
     <PanelLayout
       action={
@@ -67,88 +78,205 @@ export default function ParticipantsPanel({
           ) : null}
         </div>
       }
-      title={`${labels.participants} (${total || participants.length})`}
+      title={`${labels.participants} (${activeParticipants.length})`}
     >
       {isLoading ? <PanelState label={labels.loading} /> : null}
       {error ? <PanelState label={error} /> : null}
       {!isLoading && !error ? (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          {participants.length === 0 ? (
-            <PanelState label={labels.participants} />
-          ) : null}
-          {participants.map((participant) => {
-            const userId = participantUserId(participant);
-            const name =
-              actorName(participant.actor) ||
-              displayNameForUserId(userId, userDisplayNames, labels.participant);
-            const isCurrentUser = currentUserId && userId === currentUserId;
-            const isOnline = Boolean(presenceByUserId[userId]?.isOnline);
-            const canManageThisParticipant = canManage && !isCurrentUser;
-            return (
-              <div
+        <>
+          {/* Active members */}
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            {activeParticipants.length === 0 ? (
+              <PanelState label={labels.participants} />
+            ) : null}
+            {activeParticipants.map((participant) => (
+              <ParticipantRow
                 key={participant.id}
-                className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 last:border-b-0"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <Avatar
-                    avatarUrl={getAvatarUrl(participant.actor)}
-                    name={name}
-                    online={isOnline}
+                participant={participant}
+                canManage={canManage}
+                currentUserId={currentUserId}
+                labels={labels}
+                locale={locale}
+                presenceByUserId={presenceByUserId}
+                userDisplayNames={userDisplayNames}
+                onDemoteParticipant={onDemoteParticipant}
+                onEditParticipant={onEditParticipant}
+                onPromoteParticipant={onPromoteParticipant}
+                onRemoveParticipant={onRemoveParticipant}
+              />
+            ))}
+          </div>
+
+          {/* Invited (pending) */}
+          {invitedParticipants.length > 0 ? (
+            <div className="mt-4">
+              <h3 className="mb-2 text-xs font-semibold uppercase text-slate-500">
+                {labels.invited} ({invitedParticipants.length})
+              </h3>
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                {invitedParticipants.map((participant) => (
+                  <ParticipantRow
+                    key={participant.id}
+                    participant={participant}
+                    canManage={canManage}
+                    currentUserId={currentUserId}
+                    labels={labels}
+                    locale={locale}
+                    presenceByUserId={presenceByUserId}
+                    userDisplayNames={userDisplayNames}
+                    onDemoteParticipant={onDemoteParticipant}
+                    onEditParticipant={onEditParticipant}
+                    onPromoteParticipant={onPromoteParticipant}
+                    onRemoveParticipant={onRemoveParticipant}
                   />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-bold text-slate-950">
-                        {name}
-                      </p>
-                      {participant.role === "owner" ? (
-                        <StatusPill tone="blue">{labels.owner}</StatusPill>
-                      ) : null}
-                      {participant.status === "muted" ? (
-                        <StatusPill tone="orange">{labels.muted}</StatusPill>
-                      ) : null}
-                      {isCurrentUser ? (
-                        <StatusPill tone="green">{labels.you}</StatusPill>
-                      ) : null}
-                    </div>
-                    <p className="text-xs text-slate-600">
-                      {labels.joined}{" "}
-                      {formatRelativeDate(participant.joinedAt, locale) ||
-                        labels.recently}
-                    </p>
-                  </div>
-                </div>
-                {canManageThisParticipant ? (
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <ParticipantActionButton
-                      onClick={() => onEditParticipant(participant)}
-                    >
-                      {labels.editParticipant}
-                    </ParticipantActionButton>
-                    <ParticipantActionButton
-                      onClick={() => onPromoteParticipant(participant)}
-                    >
-                      {labels.promote}
-                    </ParticipantActionButton>
-                    <ParticipantActionButton
-                      onClick={() => onDemoteParticipant(participant)}
-                    >
-                      {labels.demote}
-                    </ParticipantActionButton>
-                    <button
-                      type="button"
-                      onClick={() => onRemoveParticipant(participant)}
-                      className="h-8 rounded-md border border-rose-200 px-2.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50"
-                    >
-                      {labels.removeParticipant}
-                    </button>
-                  </div>
-                ) : null}
+                ))}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          ) : null}
+
+          {/* Former members */}
+          {formerParticipants.length > 0 ? (
+            <div className="mt-4">
+              <h3 className="mb-2 text-xs font-semibold uppercase text-slate-500">
+                {labels.left} ({formerParticipants.length})
+              </h3>
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white opacity-60 shadow-sm">
+                {formerParticipants.map((participant) => (
+                  <ParticipantRow
+                    key={participant.id}
+                    participant={participant}
+                    canManage={false}
+                    currentUserId={currentUserId}
+                    labels={labels}
+                    locale={locale}
+                    presenceByUserId={presenceByUserId}
+                    userDisplayNames={userDisplayNames}
+                    onDemoteParticipant={onDemoteParticipant}
+                    onEditParticipant={onEditParticipant}
+                    onPromoteParticipant={onPromoteParticipant}
+                    onRemoveParticipant={onRemoveParticipant}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </>
       ) : null}
     </PanelLayout>
+  );
+}
+
+function ParticipantRow({
+  participant,
+  canManage,
+  currentUserId,
+  labels,
+  locale,
+  presenceByUserId,
+  userDisplayNames,
+  onDemoteParticipant,
+  onEditParticipant,
+  onPromoteParticipant,
+  onRemoveParticipant,
+}: {
+  participant: ConversationParticipant;
+  canManage: boolean;
+  currentUserId?: string | null;
+  labels: ConversationRedesignLabels;
+  locale: string;
+  presenceByUserId: Record<string, { isOnline?: boolean }>;
+  userDisplayNames: UserDisplayNameMap;
+  onDemoteParticipant: (participant: ConversationParticipant) => void;
+  onEditParticipant: (participant: ConversationParticipant) => void;
+  onPromoteParticipant: (participant: ConversationParticipant) => void;
+  onRemoveParticipant: (participant: ConversationParticipant) => void;
+}) {
+  const userId = participantUserId(participant);
+  const name =
+    actorName(participant.actor) ||
+    displayNameForUserId(userId, userDisplayNames, labels.participant);
+  const isCurrentUser = currentUserId && userId === currentUserId;
+  const isOnline = Boolean(presenceByUserId[userId]?.isOnline);
+  const canManageThisParticipant = canManage && !isCurrentUser;
+
+  const statusTone = {
+    active: undefined,
+    muted: "orange" as const,
+    invited: "yellow" as const,
+    left: "gray" as const,
+    removed: "gray" as const,
+    blocked: "red" as const,
+  };
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 last:border-b-0">
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar
+          avatarUrl={getAvatarUrl(participant.actor)}
+          name={name}
+          online={isOnline}
+        />
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-bold text-slate-950">
+              {name}
+            </p>
+            {participant.role === "owner" ? (
+              <StatusPill tone="blue">{labels.owner}</StatusPill>
+            ) : null}
+            {participant.status === "muted" ? (
+              <StatusPill tone="orange">{labels.muted}</StatusPill>
+            ) : null}
+            {participant.status === "invited" ? (
+              <StatusPill tone="yellow">{labels.pending}</StatusPill>
+            ) : null}
+            {participant.status === "left" ? (
+              <StatusPill tone="gray">{labels.left}</StatusPill>
+            ) : null}
+            {participant.status === "removed" ? (
+              <StatusPill tone="gray">{labels.removed}</StatusPill>
+            ) : null}
+            {participant.status === "blocked" ? (
+              <StatusPill tone="red">{labels.blocked}</StatusPill>
+            ) : null}
+            {isCurrentUser ? (
+              <StatusPill tone="green">{labels.you}</StatusPill>
+            ) : null}
+          </div>
+          <p className="text-xs text-slate-600">
+            {labels.joined}{" "}
+            {formatRelativeDate(participant.joinedAt, locale) ||
+              labels.recently}
+          </p>
+        </div>
+      </div>
+      {canManageThisParticipant ? (
+        <div className="flex flex-wrap justify-end gap-2">
+          <ParticipantActionButton
+            onClick={() => onEditParticipant(participant)}
+          >
+            {labels.editParticipant}
+          </ParticipantActionButton>
+          <ParticipantActionButton
+            onClick={() => onPromoteParticipant(participant)}
+          >
+            {labels.promote}
+          </ParticipantActionButton>
+          <ParticipantActionButton
+            onClick={() => onDemoteParticipant(participant)}
+          >
+            {labels.demote}
+          </ParticipantActionButton>
+          <button
+            type="button"
+            onClick={() => onRemoveParticipant(participant)}
+            className="h-8 rounded-md border border-rose-200 px-2.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50"
+          >
+            {labels.removeParticipant}
+          </button>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
