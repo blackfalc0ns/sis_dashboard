@@ -8325,5 +8325,17 @@
     "export": {
       "title": "تصدير بيانات السلوك"
     }
-  }
+  },
+  "change_password": "تغيير كلمة المرور",
+  "current_password": "كلمة المرور الحالية",
+  "new_password": "كلمة المرور الجديدة",
+  "confirm_password": "تأكيد كلمة المرور",
+  "passwords_do_not_match": "كلمتا المرور غير متطابقتين",
+  "password_too_short": "يجب ألا تقل كلمة المرور عن 8 أحرف",
+  "password_changed_successfully": "تم تغيير كلمة المرور بنجاح!",
+  "mute_notifications": "كتم الإشعارات",
+  "unmute_notifications": "تفعيل الإشعارات",
+  "saving": "جارٍ الحفظ...",
+  "save": "حفظ",
+  "cancel": "إلغاء"
 }

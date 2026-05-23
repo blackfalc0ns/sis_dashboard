@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import TopNav from "./TopNav";
+import GlobalMessageNotifications from "@/features/communication/components/GlobalMessageNotifications";
 import { useTranslations, useLocale } from "next-intl";
 import { useAuth } from "@/hooks/use-auth";
 import { useBrandingProfile } from "@/features/settings/hooks/useBrandingProfile";
@@ -55,6 +56,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
   if (isFullScreenChat) {
     return (
       <div className="h-[100dvh] bg-gray-50">
+        <GlobalMessageNotifications />
         <Sidebar
           onSelect={() => {}}
           schoolName={schoolName}
@@ -73,6 +75,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <GlobalMessageNotifications />
       <Sidebar
         onSelect={() => {}}
         schoolName={schoolName}

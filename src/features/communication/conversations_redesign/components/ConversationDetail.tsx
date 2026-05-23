@@ -336,7 +336,9 @@ export default function ConversationDetail({
     },
   );
   const currentUserStatus = currentUserParticipant?.status;
-  const isMuted = currentUserStatus === "muted";
+  const mutedUntil = currentUserParticipant?.mutedUntil;
+  const isMuted = currentUserStatus === "muted" ||
+    (mutedUntil != null && new Date(mutedUntil) > new Date());
   const isBlocked = currentUserStatus === "blocked";
   const isRemovedOrLeft = currentUserStatus === "left" || currentUserStatus === "removed";
   const canSendMessages = !readOnly && !isMuted && !isBlocked && !isRemovedOrLeft && isCommunicationEnabled;
@@ -416,16 +418,41 @@ export default function ConversationDetail({
     }
   };
 
+  const handleMuteToggle = async () => {
+    if (!currentUserParticipant) return;
+    const newMutedUntil = isMuted ? null : "2099-12-31T23:59:59.000Z";
+    try {
+      const { updateParticipant } = await import(
+        "@/features/communication/api/communication.service"
+      );
+      await updateParticipant(conversationId, currentUserParticipant.id, {
+        mutedUntil: newMutedUntil,
+      });
+      onToast({
+        tone: "success",
+        message: isMuted ? labels.unmuteConversation : labels.muteConversation,
+      });
+      void participantsState.refresh();
+    } catch (error) {
+      onToast({
+        tone: "error",
+        message: communicationErrorMessage(error, labels.unableToUpdateConversation),
+      });
+    }
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-50">
       <ConversationHeader
         conversation={conversation}
+        isMuted={isMuted}
         isLoading={conversationState.isLoading}
         labels={labels}
         onArchive={handleArchiveConversation}
         onBack={onBack}
         onClose={handleCloseConversation}
         onEdit={() => setIsEditConversationOpen(true)}
+        onMuteToggle={handleMuteToggle}
         onRefresh={refreshAll}
         onReopen={handleReopenConversation}
         readOnly={readOnly}

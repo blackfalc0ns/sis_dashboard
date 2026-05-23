@@ -18,12 +18,20 @@ import type {
   ConversationListItemModel,
 } from "@/features/communication/hooks/useConversations";
 import CreateConversationDialog from "@/features/communication/components/conversations/CreateConversationDialog";
+import { useAuth } from "@/hooks/use-auth";
 import { communicationErrorMessage } from "@/features/communication/utils/communication-errors";
 
 function filterConversations(
   conversations: ConversationListItemModel[],
   filter: ConversationRedesignFilter,
+  currentUserId?: string | null,
 ) {
+  if (filter === "mine") {
+    return conversations.filter(
+      (conversation) => conversation.createdById === currentUserId,
+    );
+  }
+
   if (filter === "unread") {
     return conversations.filter(
       (conversation) => (conversation.unreadCount ?? 0) > 0,
@@ -46,6 +54,7 @@ export default function ConversationPage({
 }: ConversationPageProps) {
   const locale = useLocale();
   const labels = labelsForLocale(locale);
+  const { user } = useAuth();
   const conversationsState = useConversations();
   const initialConversationIdRef = useRef(initialConversationId);
   const userClosedRef = useRef(false);
@@ -82,8 +91,8 @@ export default function ConversationPage({
   }, []);
 
   const visibleConversations = useMemo(
-    () => filterConversations(conversationsState.conversations, filter),
-    [conversationsState.conversations, filter],
+    () => filterConversations(conversationsState.conversations, filter, user?.id),
+    [conversationsState.conversations, filter, user?.id],
   );
 
   useEffect(() => {
@@ -160,6 +169,7 @@ export default function ConversationPage({
         <ConversationSidebar
           className={`${showMobileThread ? "hidden" : "flex"} w-full md:flex md:w-[360px] md:shrink-0`}
           conversations={conversationsState.conversations}
+          currentUserId={user?.id}
           filter={filter}
           isLoading={conversationsState.isLoading}
           isRefreshing={conversationsState.isRefreshing}

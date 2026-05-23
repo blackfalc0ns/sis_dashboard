@@ -15,6 +15,7 @@ import type { ConversationStatus } from "@/features/communication/types/conversa
 
 export type ConversationRedesignFilter =
   | "all"
+  | "mine"
   | "unread"
   | "pinned"
   | "archived"
@@ -22,6 +23,7 @@ export type ConversationRedesignFilter =
 
 export interface ConversationSidebarProps {
   conversations: ConversationListItemModel[];
+  currentUserId?: string | null;
   selectedConversationId?: string | null;
   filter: ConversationRedesignFilter;
   search: string;
@@ -37,9 +39,10 @@ export interface ConversationSidebarProps {
 
 const filters: Array<{
   value: ConversationRedesignFilter;
-  labelKey: "all" | "unread" | "pinned" | "archived" | "closed";
+  labelKey: "all" | "mine" | "unread" | "pinned" | "archived" | "closed";
 }> = [
   { value: "all", labelKey: "all" },
+  { value: "mine", labelKey: "mine" },
   { value: "unread", labelKey: "unread" },
   { value: "pinned", labelKey: "pinned" },
   { value: "archived", labelKey: "archived" },
@@ -149,7 +152,9 @@ function lastMessagePreview(
 function rowMatchesFilter(
   conversation: ConversationListItemModel,
   filter: ConversationRedesignFilter,
+  currentUserId?: string | null,
 ) {
+  if (filter === "mine") return conversation.createdById === currentUserId;
   if (filter === "unread") return (conversation.unreadCount ?? 0) > 0;
   if (filter === "pinned") return Boolean(conversation.isPinned);
   return true;
@@ -158,6 +163,7 @@ function rowMatchesFilter(
 export default function ConversationSidebar({
   className = "",
   conversations,
+  currentUserId,
   filter,
   isLoading,
   isRefreshing,
@@ -172,7 +178,7 @@ export default function ConversationSidebar({
   const locale = useLocale();
   const labels = labelsForLocale(locale);
   const visibleConversations = conversations.filter((conversation) =>
-    rowMatchesFilter(conversation, filter),
+    rowMatchesFilter(conversation, filter, currentUserId),
   );
 
   return (

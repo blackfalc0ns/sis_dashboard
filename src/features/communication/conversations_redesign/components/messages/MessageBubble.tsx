@@ -205,7 +205,7 @@ export function MessageBubble({
       ) : null}
 
       <div
-        className={`relative flex max-w-[78vw] flex-col md:max-w-[560px] ${isOwn ? "items-end" : "items-start"}`}
+        className={`relative flex max-w-[78vw] flex-col overflow-hidden md:max-w-[560px] ${isOwn ? "items-end" : "items-start"}`}
       >
         {!isOwn && isFirstInGroup ? (
           <div className="mb-1 ms-1 text-xs font-medium text-slate-600">
@@ -215,7 +215,7 @@ export function MessageBubble({
 
         {/* Bubble */}
         <div
-          className={`relative min-w-0 rounded-2xl px-2.5 py-1.5 shadow-sm ${
+          className={`relative min-w-0 max-w-full rounded-2xl px-2.5 py-1.5 shadow-sm ${
             isOwn
               ? `${isFirstInGroup? "rounded-ee-md": "" } bg-primary text-white`
               : `${isFirstInGroup? "rounded-es-md": "" } border border-slate-200 bg-white text-slate-950`

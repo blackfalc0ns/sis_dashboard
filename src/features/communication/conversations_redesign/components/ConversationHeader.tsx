@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import {
   Archive,
   ArrowLeft,
+  Bell,
+  BellOff,
   Edit3,
   Lock,
   MoreVertical,
@@ -26,23 +28,27 @@ import {
 
 export default function ConversationHeader({
   conversation,
+  isMuted,
   isLoading,
   labels,
   onArchive,
   onBack,
   onClose,
   onEdit,
+  onMuteToggle,
   onRefresh,
   onReopen,
   readOnly,
 }: {
   conversation: Conversation | null;
+  isMuted: boolean;
   isLoading: boolean;
   labels: ConversationRedesignLabels;
   onArchive: () => void;
   onBack: () => void;
   onClose: () => void;
   onEdit: () => void;
+  onMuteToggle: () => void;
   onRefresh: () => void;
   onReopen: () => void;
   readOnly: boolean;
@@ -127,10 +133,12 @@ export default function ConversationHeader({
           canArchive={canArchive}
           canClose={canClose}
           canReopen={canReopen}
+          isMuted={isMuted}
           labels={labels}
           onArchive={onArchive}
           onClose={onClose}
           onEdit={onEdit}
+          onMuteToggle={onMuteToggle}
           onReopen={onReopen}
         />
         <button
@@ -150,19 +158,23 @@ function HeaderActionsMenu({
   canArchive,
   canClose,
   canReopen,
+  isMuted,
   labels,
   onArchive,
   onClose,
   onEdit,
+  onMuteToggle,
   onReopen,
 }: {
   canArchive: boolean;
   canClose: boolean;
   canReopen: boolean;
+  isMuted: boolean;
   labels: ConversationRedesignLabels;
   onArchive: () => void;
   onClose: () => void;
   onEdit: () => void;
+  onMuteToggle: () => void;
   onReopen: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -197,6 +209,14 @@ function HeaderActionsMenu({
             onClick={() => {
               setOpen(false);
               onEdit();
+            }}
+          />
+          <MenuButton
+            icon={isMuted ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+            label={isMuted ? labels.unmuteConversation : labels.muteConversation}
+            onClick={() => {
+              setOpen(false);
+              onMuteToggle();
             }}
           />
           {canReopen ? (
