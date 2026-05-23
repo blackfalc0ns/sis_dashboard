@@ -3,6 +3,7 @@
 import { Pin, Plus, RefreshCw, Search } from "lucide-react";
 import { useLocale } from "next-intl";
 import Input from "@/components/ui/input/Input";
+import Select from "@/components/ui/input/Select";
 import {
   labelsForLocale,
   type ConversationRedesignLabels,
@@ -26,11 +27,13 @@ export interface ConversationSidebarProps {
   currentUserId?: string | null;
   selectedConversationId?: string | null;
   filter: ConversationRedesignFilter;
+  typeFilter: string;
   search: string;
   isLoading: boolean;
   isRefreshing: boolean;
   onSelect: (conversationId: string) => void;
   onFilterChange: (filter: ConversationRedesignFilter) => void;
+  onTypeFilterChange: (type: string) => void;
   onSearchChange: (value: string) => void;
   onRefresh: () => void;
   onCreateConversation: () => void;
@@ -153,7 +156,11 @@ function rowMatchesFilter(
   conversation: ConversationListItemModel,
   filter: ConversationRedesignFilter,
   currentUserId?: string | null,
+  typeFilter?: string,
 ) {
+  // Type filter
+  if (typeFilter && conversation.type !== typeFilter) return false;
+  // Status/ownership filter
   if (filter === "mine") return conversation.createdById === currentUserId;
   if (filter === "unread") return (conversation.unreadCount ?? 0) > 0;
   if (filter === "pinned") return Boolean(conversation.isPinned);
@@ -165,10 +172,12 @@ export default function ConversationSidebar({
   conversations,
   currentUserId,
   filter,
+  typeFilter,
   isLoading,
   isRefreshing,
   onCreateConversation,
   onFilterChange,
+  onTypeFilterChange,
   onRefresh,
   onSearchChange,
   onSelect,
@@ -178,7 +187,7 @@ export default function ConversationSidebar({
   const locale = useLocale();
   const labels = labelsForLocale(locale);
   const visibleConversations = conversations.filter((conversation) =>
-    rowMatchesFilter(conversation, filter, currentUserId),
+    rowMatchesFilter(conversation, filter, currentUserId, typeFilter),
   );
 
   return (
@@ -243,6 +252,21 @@ export default function ConversationSidebar({
               {labels[item.labelKey]}
             </button>
           ))}
+        </div>
+
+        <div className="mt-3">
+          <Select
+            value={typeFilter}
+            onChange={(value) => onTypeFilterChange(value)}
+            placeholder={labels.allTypes}
+            selectSize="sm"
+            options={[
+              { value: "", label: labels.allTypes },
+              { value: "direct", label: labels.direct },
+              { value: "group", label: labels.group },
+              { value: "classroom", label: labels.classroom },
+            ]}
+          />
         </div>
       </div>
 

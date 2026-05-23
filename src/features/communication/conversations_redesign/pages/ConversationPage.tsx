@@ -25,24 +25,33 @@ function filterConversations(
   conversations: ConversationListItemModel[],
   filter: ConversationRedesignFilter,
   currentUserId?: string | null,
+  typeFilter?: string,
 ) {
+  let result = conversations;
+
+  // Type filter
+  if (typeFilter) {
+    result = result.filter((c) => c.type === typeFilter);
+  }
+
+  // Status/ownership filter
   if (filter === "mine") {
-    return conversations.filter(
+    return result.filter(
       (conversation) => conversation.createdById === currentUserId,
     );
   }
 
   if (filter === "unread") {
-    return conversations.filter(
+    return result.filter(
       (conversation) => (conversation.unreadCount ?? 0) > 0,
     );
   }
 
   if (filter === "pinned") {
-    return conversations.filter((conversation) => conversation.isPinned);
+    return result.filter((conversation) => conversation.isPinned);
   }
 
-  return conversations;
+  return result;
 }
 
 export interface ConversationPageProps {
@@ -59,6 +68,7 @@ export default function ConversationPage({
   const initialConversationIdRef = useRef(initialConversationId);
   const userClosedRef = useRef(false);
   const [filter, setFilter] = useState<ConversationRedesignFilter>("all");
+  const [typeFilter, setTypeFilter] = useState("");
   const [search, setSearch] = useState("");
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
@@ -91,8 +101,8 @@ export default function ConversationPage({
   }, []);
 
   const visibleConversations = useMemo(
-    () => filterConversations(conversationsState.conversations, filter, user?.id),
-    [conversationsState.conversations, filter, user?.id],
+    () => filterConversations(conversationsState.conversations, filter, user?.id, typeFilter),
+    [conversationsState.conversations, filter, user?.id, typeFilter],
   );
 
   useEffect(() => {
@@ -143,6 +153,10 @@ export default function ConversationPage({
     }));
   };
 
+  const handleTypeFilterChange = (type: string) => {
+    setTypeFilter(type);
+  };
+
   const handleCreateConversation = async (values: ConversationFormValues) => {
     try {
       const created = await conversationsState.create(values);
@@ -171,10 +185,12 @@ export default function ConversationPage({
           conversations={conversationsState.conversations}
           currentUserId={user?.id}
           filter={filter}
+          typeFilter={typeFilter}
           isLoading={conversationsState.isLoading}
           isRefreshing={conversationsState.isRefreshing}
           onCreateConversation={() => setIsCreateOpen(true)}
           onFilterChange={handleFilterChange}
+          onTypeFilterChange={handleTypeFilterChange}
           onRefresh={() => void conversationsState.refresh()}
           onSearchChange={handleSearchChange}
           onSelect={(conversationId) => {
