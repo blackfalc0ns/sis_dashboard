@@ -71,7 +71,7 @@ export function BubbleContextMenu({
   return (
     <div
       ref={containerRef}
-      className={`absolute top-1 z-30 opacity-0 transition-opacity group-hover:opacity-100 ${isOwn ? "start-1" : "end-1"}`}
+      className={`absolute top-1 z-40 opacity-0 transition-opacity group-hover:opacity-100 ${isOwn ? "start-1" : "end-1"}`}
     >
       <button
         ref={refs.setReference}
@@ -89,6 +89,7 @@ export function BubbleContextMenu({
         <div
           ref={refs.setFloating}
           style={floatingStyles}
+          dir="auto"
           className="z-50 min-w-[150px] rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
         >
           {/* Reply */}

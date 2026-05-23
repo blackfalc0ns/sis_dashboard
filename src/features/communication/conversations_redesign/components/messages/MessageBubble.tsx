@@ -205,7 +205,7 @@ export function MessageBubble({
       ) : null}
 
       <div
-        className={`relative flex max-w-[78vw] flex-col overflow-hidden md:max-w-[560px] ${isOwn ? "items-end" : "items-start"}`}
+        className={`relative flex max-w-[78vw] flex-col md:max-w-[560px] ${isOwn ? "items-end" : "items-start"}`}
       >
         {!isOwn && isFirstInGroup ? (
           <div className="mb-1 ms-1 text-xs font-medium text-slate-600">
