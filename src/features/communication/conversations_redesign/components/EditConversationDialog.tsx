@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Camera } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import TextArea from "@/components/ui/input/TextArea";
 import Modal from "@/components/ui/modal/Modal";
+import { uploadFile } from "@/features/communication/api/files.service";
 import type { Conversation } from "@/features/communication/types/conversation.types";
 import type { UpdateConversationPayload } from "@/features/communication/types/conversation.types";
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
@@ -30,6 +32,10 @@ export default function EditConversationDialog({
   const [description, setDescription] = useState("");
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (open && conversation) {
@@ -45,15 +51,45 @@ export default function EditConversationDialog({
       );
       setIsReadOnly(Boolean(record.isReadOnly));
       setIsPinned(Boolean(record.isPinned));
+      setAvatarPreview(null);
+      setAvatarFile(null);
     }
   }, [open, conversation]);
 
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setAvatarFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setAvatarPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async () => {
+    let avatarFileId: string | undefined;
+
+    // Upload avatar if selected
+    if (avatarFile) {
+      setIsUploading(true);
+      try {
+        const response = await uploadFile(avatarFile);
+        const record = response as Record<string, unknown>;
+        const data = (record.data ?? record.item ?? record) as Record<string, unknown>;
+        avatarFileId = (data.id ?? data.fileId) as string | undefined;
+      } catch {
+        // Failed to upload — continue without avatar
+      } finally {
+        setIsUploading(false);
+      }
+    }
+
     const payload: UpdateConversationPayload = {
       title: title.trim() || null,
       description: description.trim() || null,
       isReadOnly,
       isPinned,
+      ...(avatarFileId ? { avatarFileId } : {}),
     };
     await onSubmit(payload);
   };
@@ -71,7 +107,7 @@ export default function EditConversationDialog({
           </Button>
           <Button
             type="button"
-            loading={isSubmitting}
+            loading={isSubmitting || isUploading}
             onClick={() => void handleSubmit()}
           >
             {labels.save}
@@ -80,6 +116,34 @@ export default function EditConversationDialog({
       }
     >
       <div className="space-y-4 pb-4">
+        {/* Avatar upload */}
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 transition hover:bg-slate-200"
+          >
+            {avatarPreview ? (
+              <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <Camera className="h-6 w-6 text-slate-400" />
+            )}
+            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/20 opacity-0 transition hover:opacity-100">
+              <Camera className="h-5 w-5 text-white" />
+            </div>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarSelect}
+          />
+          <p className="text-xs text-slate-500">
+            {labels.avatarFileId}
+          </p>
+        </div>
+
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">
             {labels.title}

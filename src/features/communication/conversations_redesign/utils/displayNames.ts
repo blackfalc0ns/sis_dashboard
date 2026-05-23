@@ -51,6 +51,17 @@ export function getAvatarUrl(
   );
 }
 
+/**
+ * Returns the avatarFileId if present (for authenticated download).
+ */
+export function getAvatarFileId(
+  value?: Conversation | ConversationListItemModel | CommunicationActor | null,
+): string | undefined {
+  if (!value) return undefined;
+  const record = value as CommunicationRecord;
+  return stringValue(record.avatarFileId);
+}
+
 
 export function currentUserName(
   user: ReturnType<typeof useAuth>["user"],

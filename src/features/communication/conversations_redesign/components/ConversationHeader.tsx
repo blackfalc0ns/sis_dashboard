@@ -19,7 +19,7 @@ import Avatar from "@/features/communication/conversations_redesign/components/A
 import type { Conversation } from "@/features/communication/types/conversation.types";
 import type { CommunicationRecord } from "@/features/communication/types/communication.types";
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
-import { getAvatarUrl } from "@/features/communication/conversations_redesign/utils/displayNames";
+import { getAvatarUrl, getAvatarFileId } from "@/features/communication/conversations_redesign/utils/displayNames";
 import {
   conversationTypeLabel,
   getTitle,
@@ -57,6 +57,7 @@ export default function ConversationHeader({
     ? getTitle(labels, conversation)
     : labels.untitledConversation;
   const avatar = getAvatarUrl(conversation);
+  const avatarFileId = getAvatarFileId(conversation);
   const participantsCount =
     conversation?.participantsCount ??
     numberValue(
@@ -79,7 +80,7 @@ export default function ConversationHeader({
         >
           <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
         </button>
-        <Avatar avatarUrl={avatar} name={title} size="lg" />
+        <Avatar avatarUrl={avatar} fileId={avatarFileId} name={title} size="lg" />
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h2 className="truncate text-base font-bold text-slate-950">

@@ -4,6 +4,7 @@ import { Pin, Plus, RefreshCw, Search } from "lucide-react";
 import { useLocale } from "next-intl";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
+import Avatar from "@/features/communication/conversations_redesign/components/Avatar";
 import {
   labelsForLocale,
   type ConversationRedesignLabels,
@@ -311,24 +312,13 @@ export default function ConversationSidebar({
                   : "bg-slate-50 hover:bg-white"
               }`}
             >
-              <div
-                className="relative mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary-100 to-primary-300 text-sm font-bold text-primary-900"
-                style={
-                  avatar
-                    ? {
-                        backgroundImage: `url("${avatar}")`,
-                        backgroundPosition: "center",
-                        backgroundSize: "cover",
-                      }
-                    : undefined
-                }
-                aria-hidden="true"
-              >
-                {!avatar ? initials(title) : null}
-                {online ? (
-                  <span className="absolute bottom-0 end-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
-                ) : null}
-              </div>
+              <Avatar
+                avatarUrl={avatar}
+                fileId={stringValue((conversation as Record<string, unknown>).avatarFileId)}
+                name={title}
+                online={online}
+                size="md"
+              />
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">

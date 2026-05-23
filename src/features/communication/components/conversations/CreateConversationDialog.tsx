@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Camera } from "lucide-react";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
@@ -8,12 +9,12 @@ import Select from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
 import AcademicYearSelect from "@/features/communication/components/selectors/AcademicYearSelect";
 import ClassroomSelect from "@/features/communication/components/selectors/ClassroomSelect";
-import FileSelect from "@/features/communication/components/selectors/FileSelect";
 import GradeSelect from "@/features/communication/components/selectors/GradeSelect";
 import SectionSelect from "@/features/communication/components/selectors/SectionSelect";
 import StageSelect from "@/features/communication/components/selectors/StageSelect";
 import SubjectSelect from "@/features/communication/components/selectors/SubjectSelect";
 import TermSelect from "@/features/communication/components/selectors/TermSelect";
+import { uploadFile } from "@/features/communication/api/files.service";
 import type {
   ConversationFormValues,
   ConversationListItemModel,
@@ -118,6 +119,8 @@ export default function CreateConversationDialog({
     initialFormValues,
   );
   const [error, setError] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const isEditing = Boolean(conversation);
   const showAcademicSelectors = values.type === "group" || values.type === "classroom";
 
@@ -141,7 +144,21 @@ export default function CreateConversationDialog({
     }
 
     setError(null);
-    await onSubmit(values);
+
+    // Upload avatar if a file was selected
+    let avatarFileId = values.avatarFileId;
+    if (avatarFile) {
+      try {
+        const response = await uploadFile(avatarFile);
+        const record = response as Record<string, unknown>;
+        const data = (record.data ?? record.item ?? record) as Record<string, unknown>;
+        avatarFileId = ((data.id ?? data.fileId) as string) || avatarFileId;
+      } catch {
+        // Continue without avatar if upload fails
+      }
+    }
+
+    await onSubmit({ ...values, avatarFileId });
   };
 
   return (
@@ -308,12 +325,15 @@ export default function CreateConversationDialog({
                   setValues((current) => ({ ...current, subjectId }))
                 }
               />
-              <FileSelect
+              <AvatarUploadField
                 label={labels.avatarFileId}
-                value={values.avatarFileId ?? ""}
-                onChange={(avatarFileId) =>
-                  setValues((current) => ({ ...current, avatarFileId }))
-                }
+                preview={avatarPreview}
+                onFileSelect={(file) => {
+                  setAvatarFile(file);
+                  const reader = new FileReader();
+                  reader.onload = () => setAvatarPreview(reader.result as string);
+                  reader.readAsDataURL(file);
+                }}
               />
             </div>
           </>
@@ -336,5 +356,55 @@ export default function CreateConversationDialog({
         </div>
       </div>
     </Modal>
+  );
+}
+
+function AvatarUploadField({
+  label,
+  onFileSelect,
+  preview,
+}: {
+  label: string;
+  onFileSelect: (file: File) => void;
+  preview: string | null;
+}) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    onFileSelect(file);
+  };
+
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium text-slate-700">
+        {label}
+      </label>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 transition hover:bg-slate-200"
+        >
+          {preview ? (
+            <img src={preview} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <Camera className="h-5 w-5 text-slate-400" />
+          )}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+        <span className="text-xs text-slate-500">
+          {preview ? "✓ Selected" : "Click to upload"}
+        </span>
+      </div>
+    </div>
   );
 }

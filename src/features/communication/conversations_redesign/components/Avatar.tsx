@@ -1,14 +1,51 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { apiClient } from "@/lib/api";
+
 export default function Avatar({
   avatarUrl,
+  fileId,
   name,
   online,
   size = "md",
 }: {
   avatarUrl?: string;
+  fileId?: string;
   name?: string;
   online?: boolean;
   size?: "sm" | "md" | "lg";
 }) {
+  const [resolvedUrl, setResolvedUrl] = useState<string | undefined>(avatarUrl);
+
+  // Fetch avatar from fileId with auth
+  useEffect(() => {
+    if (avatarUrl) {
+      setResolvedUrl(avatarUrl);
+      return;
+    }
+    if (!fileId) {
+      setResolvedUrl(undefined);
+      return;
+    }
+
+    let revoked = false;
+    void apiClient
+      .get(`/files/${fileId}/download`, { responseType: "blob" })
+      .then((response) => {
+        if (revoked) return;
+        const blob = new Blob([response.data as BlobPart]);
+        setResolvedUrl(URL.createObjectURL(blob));
+      })
+      .catch(() => {
+        if (!revoked) setResolvedUrl(undefined);
+      });
+
+    return () => {
+      revoked = true;
+    };
+  }, [avatarUrl, fileId]);
+
   const sizes = {
     sm: "h-8 w-8 text-xs",
     md: "h-10 w-10 text-sm",
@@ -19,9 +56,9 @@ export default function Avatar({
     <div
       className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary-100 to-primary-300 font-bold text-primary-900 ${sizes[size]}`}
       style={
-        avatarUrl
+        resolvedUrl
           ? {
-              backgroundImage: `url("${avatarUrl}")`,
+              backgroundImage: `url("${resolvedUrl}")`,
               backgroundPosition: "center",
               backgroundSize: "cover",
             }
@@ -29,7 +66,7 @@ export default function Avatar({
       }
       aria-hidden="true"
     >
-      {!avatarUrl ? initials(name) : null}
+      {!resolvedUrl ? initials(name) : null}
       {online ? (
         <span className="absolute bottom-0 end-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
       ) : null}
