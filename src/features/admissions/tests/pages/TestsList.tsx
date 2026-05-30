@@ -1,8 +1,8 @@
-// FILE: src/components/admissions/TestsList.tsx
+// FILE: src/features/admissions/tests/pages/TestsList.tsx
 
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
@@ -19,12 +19,6 @@ import { DataTable, FilterPanel } from "@/components/ui";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTestModal";
 import TestScoreModal from "@/features/admissions/tests/components/TestScoreModal";
-import DateRangeFilter, {
-  DateRangeValue,
-} from "@/features/admissions/shared/DateRangeFilter";
-import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
-import { formatVisibleTestsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
-import { mockApplications, mockTests } from "@/data/mockAdmissions";
 import { Test, TestStatus } from "@/features/admissions/types/admissions";
 import { KPICardV2 } from "@/components/ui";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
@@ -32,79 +26,56 @@ import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
 import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
+import { formatVisibleTestsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
 import {
-  filterAdmissionsRecordsByDateContext,
-  resolveAdmissionsContextScope,
-} from "@/features/admissions/shared/utils/admissionsContextScope";
+  fetchPlacementTests,
+  createPlacementTest,
+  completePlacementTest,
+} from "@/features/admissions/tests/services/testsApiService";
+import { useToast } from "@/components/ui/toast/Toast";
 
 export default function TestsList() {
   const t = useTranslations("admissions.tests");
   const locale = useLocale();
   const router = useRouter();
-  const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
+  const { isReadOnly } = useAdmissionsYearTermContext();
+  const { showToast } = useToast();
+
+  const [tests, setTests] = useState<(Test & { studentName: string })[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedTest, setSelectedTest] = useState<
     (Test & { studentName: string }) | null
   >(null);
   const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false);
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-
   const [showFilters, setShowFilters] = useState(false);
-  const admissionsScope = useMemo(
-    () => resolveAdmissionsContextScope(yearId, termId),
-    [termId, yearId],
-  );
 
-  // Combine tests from applications and standalone tests
-  const allTests = useMemo(() => {
-    const testsFromApps = mockApplications.flatMap((app) =>
-      app.tests.map((test) => ({
-        ...test,
-        studentName:
-          locale === "ar"
-            ? app.full_name_ar || app.studentNameArabic || app.studentName
-            : app.full_name_en || app.studentName,
-        applicationId: app.id,
-        gradeRequested: app.gradeRequested,
-      })),
-    );
-    const standaloneTests = mockTests.map((test) => {
-      const app = mockApplications.find((a) => a.id === test.applicationId);
-      return {
-        ...test,
-        studentName: app
-          ? locale === "ar"
-            ? app.full_name_ar || app.studentNameArabic || app.studentName
-            : app.full_name_en || app.studentName
-          : "Unknown",
-        applicationId: test.applicationId,
-        gradeRequested: app?.gradeRequested,
-      };
-    });
-    return [...testsFromApps, ...standaloneTests];
-  }, [locale]);
-  const scopedTests = useMemo(
-    () =>
-      filterAdmissionsRecordsByDateContext(
-        allTests,
-        (test) => test.date,
-        admissionsScope,
-      ),
-    [admissionsScope, allTests],
-  );
+  const loadTests = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchPlacementTests();
+      setTests(
+        data.map((test) => ({
+          ...test,
+          studentName: test.studentName || "",
+        })),
+      );
+    } catch (err) {
+      console.error("Failed to fetch tests:", err);
+      showToast("Failed to load tests", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showToast]);
 
-  // Get unique values for filters
-  const uniqueTypes = useMemo(() => {
-    const types = new Set(scopedTests.map((test) => test.type));
-    return Array.from(types).sort();
-  }, [scopedTests]);
+  useEffect(() => {
+    void loadTests();
+  }, [loadTests]);
 
   const normalizeQueryValues = useCallback(
     (
-      values: Record<
-        "search" | "status" | "type" | "dateRange" | "startDate" | "endDate",
-        string
-      >,
+      values: Record<"search" | "status", string>,
     ) => {
       const updates: Partial<Record<keyof typeof values, string | null>> = {};
       const validStatuses = new Set([
@@ -113,50 +84,23 @@ export default function TestsList() {
         "completed",
         "failed",
       ]);
-      const validDateRanges = new Set([
-        "all",
-        "7",
-        "14",
-        "30",
-        "60",
-        "90",
-        "custom",
-      ]);
 
       if (!validStatuses.has(values.status)) {
         updates.status = null;
       }
-      if (values.type !== "all" && !uniqueTypes.includes(values.type)) {
-        updates.type = null;
-      }
-      if (!validDateRanges.has(values.dateRange)) {
-        updates.dateRange = null;
-      }
-      if (values.dateRange !== "custom") {
-        if (values.startDate) updates.startDate = null;
-        if (values.endDate) updates.endDate = null;
-      }
 
       return Object.keys(updates).length > 0 ? updates : null;
     },
-    [uniqueTypes],
+    [],
   );
 
-  const { values, setValue, setValues, reset } = useAdmissionsUrlQueryState<{
+  const { values, setValue, reset } = useAdmissionsUrlQueryState<{
     search: string;
     status: string;
-    type: string;
-    dateRange: string;
-    startDate: string;
-    endDate: string;
   }>({
     defaults: {
       search: "",
       status: "all",
-      type: "all",
-      dateRange: "all",
-      startDate: "",
-      endDate: "",
     },
     debouncedKeys: ["search"],
     modeByKey: {
@@ -167,95 +111,54 @@ export default function TestsList() {
 
   const searchQuery = values.search;
   const statusFilter = values.status as TestStatus | "all";
-  const typeFilter = values.type;
-  const dateRange = values.dateRange as DateRangeValue;
-  const customStartDate = values.startDate;
-  const customEndDate = values.endDate;
 
-  // Filter and search tests
+  // Filter tests
   const filteredTests = useMemo(() => {
-    const filterResult = getDateFilterBoundaries(
-      dateRange,
-      customStartDate,
-      customEndDate,
-    );
-
-    return scopedTests.filter((test) => {
+    return tests.filter((test) => {
       const matchesSearch =
         searchQuery === "" ||
         test.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        test.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        test.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
         test.applicationId.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesStatus =
         statusFilter === "all" || test.status === statusFilter;
-      const matchesType = typeFilter === "all" || test.type === typeFilter;
-      const matchesDateRange = isDateInRange(test.date, filterResult);
 
-      return matchesSearch && matchesStatus && matchesType && matchesDateRange;
+      return matchesSearch && matchesStatus;
     });
-  }, [
-    scopedTests,
-    searchQuery,
-    statusFilter,
-    typeFilter,
-    dateRange,
-    customStartDate,
-    customEndDate,
-  ]);
+  }, [tests, searchQuery, statusFilter]);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
-    const filterResult = getDateFilterBoundaries(
-      dateRange,
-      customStartDate,
-      customEndDate,
-    );
+    const total = tests.length;
+    const scheduled = tests.filter((t) => t.status === "scheduled").length;
+    const completed = tests.filter((t) => t.status === "completed").length;
+    const failed = tests.filter((t) => t.status === "failed").length;
 
-    const testsInRange = scopedTests.filter((test) =>
-      isDateInRange(test.date, filterResult),
-    );
-
-    const total = testsInRange.length;
-    const scheduled = testsInRange.filter(
-      (test) => test.status === "scheduled",
-    ).length;
-    const completed = testsInRange.filter(
-      (test) => test.status === "completed",
-    ).length;
-    const failed = testsInRange.filter(
-      (test) => test.status === "failed",
-    ).length;
-
-    const completedWithScores = testsInRange.filter(
-      (test) => test.status === "completed" && test.score !== undefined,
+    const completedWithScores = tests.filter(
+      (t) => t.status === "completed" && t.score !== undefined,
     );
     const avgScore =
       completedWithScores.length > 0
         ? Math.round(
-            completedWithScores.reduce(
-              (sum, test) => sum + (test.score || 0),
-              0,
-            ) / completedWithScores.length,
+            completedWithScores.reduce((sum, t) => sum + (t.score || 0), 0) /
+              completedWithScores.length,
           )
         : 0;
 
     return { total, scheduled, completed, failed, avgScore };
-  }, [customEndDate, customStartDate, dateRange, scopedTests]);
+  }, [tests]);
 
   const columns = [
     { key: "applicationId", label: t("application_id"), searchable: true },
     { key: "studentName", label: t("student_name"), searchable: true },
     { key: "type", label: t("test_type") },
-    { key: "subject", label: t("subject"), searchable: true },
     {
-      key: "date",
+      key: "scheduledAt",
       label: t("date"),
       render: (value: unknown) =>
-        new Date(value as string).toLocaleDateString(),
+        value ? new Date(value as string).toLocaleDateString() : "-",
     },
-    { key: "time", label: t("time") },
-    { key: "location", label: t("location") },
     {
       key: "status",
       label: t("status"),
@@ -264,8 +167,8 @@ export default function TestsList() {
     {
       key: "score",
       label: t("score"),
-      render: (value: unknown, row: Test & { studentName: string }) =>
-        value !== undefined ? `${value}/${row.maxScore || 100}` : "-",
+      render: (value: unknown) =>
+        value !== undefined && value !== null ? `${value}` : "-",
     },
     {
       key: "actions",
@@ -290,8 +193,7 @@ export default function TestsList() {
     },
   ];
 
-  const hasActiveFilters =
-    searchQuery !== "" || statusFilter !== "all" || typeFilter !== "all";
+  const hasActiveFilters = searchQuery !== "" || statusFilter !== "all";
 
   const clearFilters = () => {
     reset(undefined, "replace");
@@ -303,10 +205,51 @@ export default function TestsList() {
     router.push(`/${locale}/admissions/tests/${test.id}`);
   };
 
-  const handleTestSubmit = (data: Record<string, unknown>) => {
-    console.log("Test scheduled:", data);
-    alert("Test scheduled successfully!");
-    setIsScheduleTestOpen(false);
+  const handleTestSubmit = async (data: {
+    date: string;
+    time: string;
+    type: string;
+    notes: string;
+    [key: string]: unknown;
+  }) => {
+    try {
+      await createPlacementTest({
+        applicationId: "", // Will need to be provided by the modal in a real flow
+        studentName: String(data.studentName || ""),
+        type: data.type || "Placement Test",
+        date: data.date,
+        time: data.time,
+      });
+      showToast("Test scheduled successfully!", "success");
+      setIsScheduleTestOpen(false);
+      await loadTests();
+    } catch (err) {
+      console.error("Failed to schedule test:", err);
+      showToast("Failed to schedule test. Please try again.", "error");
+    }
+  };
+
+  const handleScoreSubmit = async (
+    testId: string,
+    score: number,
+    _maxScore: number,
+    status: "completed" | "failed",
+    notes?: string,
+  ) => {
+    try {
+      await completePlacementTest(testId, {
+        score,
+        status,
+        notes,
+      });
+      showToast("Test score saved successfully!", "success");
+      setIsScoreModalOpen(false);
+      setSelectedTest(null);
+      await loadTests();
+    } catch (err) {
+      console.error("Failed to save test score:", err);
+      showToast("Failed to save test score. Please try again.", "error");
+    }
   };
 
   const handleExport = async (format: "csv" | "json" | "excel") => {
@@ -319,57 +262,8 @@ export default function TestsList() {
     });
   };
 
-  const handleScoreSubmit = (
-    testId: string,
-    score: number,
-    maxScore: number,
-    status: "completed" | "failed",
-    notes?: string,
-  ) => {
-    console.log("Test score submitted:", {
-      testId,
-      score,
-      maxScore,
-      status,
-      notes,
-    });
-    // In production, update the test in the database
-    alert(`Test score saved: ${score}/${maxScore} - Status: ${status}`);
-    setIsScoreModalOpen(false);
-    setSelectedTest(null);
-  };
-
   return (
     <div className="space-y-6">
-      {/* Date Range Filter */}
-      <DateRangeFilter
-        value={dateRange}
-        onChange={(nextRange) => {
-          const shouldResetCustom = nextRange !== "custom";
-          setValues(
-            {
-              dateRange: nextRange,
-              startDate: shouldResetCustom ? null : customStartDate || null,
-              endDate: shouldResetCustom ? null : customEndDate || null,
-            },
-            "push",
-          );
-        }}
-        customStartDate={customStartDate}
-        customEndDate={customEndDate}
-        onCustomDateChange={(start, end) => {
-          setValues(
-            {
-              dateRange: "custom",
-              startDate: start || null,
-              endDate: end || null,
-            },
-            "replace",
-          );
-        }}
-        showAllTime={true}
-      />
-
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICardV2
@@ -513,23 +407,6 @@ export default function TestsList() {
                 <option value="failed">{t("failed")}</option>
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {t("test_type")}
-              </label>
-              <select
-                value={typeFilter}
-                onChange={(e) => setValue("type", e.target.value, "push")}
-                className="w-full px-3 py-2 bg-white border text-black border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">{t("all_types")}</option>
-                {uniqueTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
         }
         showFilters={showFilters}
@@ -542,7 +419,11 @@ export default function TestsList() {
       />
 
       {/* Table */}
-      {filteredTests.length === 0 ? (
+      {isLoading ? (
+        <div className="bg-white rounded-xl p-12 shadow-sm text-center">
+          <p className="text-gray-500">Loading tests...</p>
+        </div>
+      ) : filteredTests.length === 0 ? (
         <div className="bg-white rounded-xl p-12 shadow-sm text-center">
           <p className="text-gray-500">
             {hasActiveFilters ? t("no_match") : t("no_tests")}
@@ -557,15 +438,9 @@ export default function TestsList() {
           )}
         </div>
       ) : (
-        <DataTable<
-          Test & {
-            studentName: string;
-            applicationId: string;
-            [key: string]: unknown;
-          }
-        >
+        <DataTable
           columns={columns}
-          data={filteredTests}
+          data={filteredTests as (Test & { studentName: string; [key: string]: unknown })[]}
           onRowClick={handleRowClick}
           searchQuery={searchQuery}
           urlState={{

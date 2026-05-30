@@ -5,12 +5,14 @@ import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Modal from "@/components/ui/modal/Modal";
+import Select from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
 import ReinforcementAcademicContextFilter, {
   type ReinforcementAcademicContextSelection,
   type ReinforcementAcademicContextValue,
 } from "./ReinforcementAcademicContextFilter";
-import type { ManualXpGrantPayload } from "../types";
+import { listReinforcementTasks } from "../services/reinforcementTasksService";
+import type { ManualXpGrantPayload, ReinforcementTask } from "../types";
 
 interface ManualXpGrantModalProps {
   isOpen: boolean;
@@ -40,6 +42,8 @@ export default function ManualXpGrantModal({
   const [dedupeKey, setDedupeKey] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [tasks, setTasks] = useState<ReinforcementTask[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -54,6 +58,42 @@ export default function ManualXpGrantModal({
       setSaving(false);
     });
   }, [context, isOpen]);
+
+  // Fetch tasks for the source dropdown when academic context changes
+  useEffect(() => {
+    if (!selection.academicYearId || !selection.termId) {
+      setTasks([]);
+      return;
+    }
+    let cancelled = false;
+    setTasksLoading(true);
+    void listReinforcementTasks({
+      academicYearId: selection.academicYearId,
+      termId: selection.termId,
+      limit: 100,
+    })
+      .then((response) => {
+        if (!cancelled) setTasks(response.items);
+      })
+      .catch(() => {
+        if (!cancelled) setTasks([]);
+      })
+      .finally(() => {
+        if (!cancelled) setTasksLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [selection.academicYearId, selection.termId]);
+
+  const sourceOptions = useMemo(() => {
+    const options = [{ value: "", label: t("xp.noSource") }];
+    for (const task of tasks) {
+      const label = locale === "ar"
+        ? task.titleAr || task.titleEn || task.id
+        : task.titleEn || task.titleAr || task.id;
+      options.push({ value: task.id, label });
+    }
+    return options;
+  }, [tasks, locale, t]);
 
   const resolvedDedupeKey = useMemo(
     () => dedupeKey.trim() || makeManualXpDedupeKey(),
@@ -141,10 +181,15 @@ export default function ManualXpGrantModal({
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
           />
-          <Input
+          <Select
             label={t("xp.sourceId")}
             value={sourceId}
-            onChange={(event) => setSourceId(event.target.value)}
+            onChange={(value) => setSourceId(value)}
+            options={sourceOptions}
+            searchable
+            searchPlaceholder={t("common.search") || "Search..."}
+            noOptionsText={tasksLoading ? t("common.loading") : t("xp.noTasksAvailable")}
+            disabled={tasksLoading}
           />
           <TextArea
             label={t("xp.reason")}

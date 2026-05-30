@@ -37,7 +37,7 @@ export default function XpLedgerTable({
         <table className="min-w-full divide-y divide-gray-100">
           <thead className="bg-gray-50">
             <tr>
-              {["student", "amount", "reason", "sourceId", "createdAt"].map((key) => (
+              {["student", "amount", "reason", "source", "createdAt"].map((key) => (
                 <th
                   key={key}
                   className="px-4 py-3 text-start text-xs font-semibold uppercase text-gray-500"
@@ -48,32 +48,51 @@ export default function XpLedgerTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {entries.map((entry) => (
-              <tr key={entry.id}>
-                <td className="px-4 py-4 text-sm text-gray-900">
-                  {entry.studentId}
-                </td>
-                <td className="px-4 py-4 text-sm font-semibold text-primary">
-                  {entry.amount}
-                </td>
-                <td className="px-4 py-4 text-sm text-gray-700">
-                  {locale === "ar"
-                    ? entry.reasonAr || entry.reason
-                    : entry.reason || entry.reasonAr}
-                </td>
-                <td className="px-4 py-4 text-sm text-gray-500">
-                  {entry.sourceId || "-"}
-                </td>
-                <td className="px-4 py-4 text-sm text-gray-500">
-                  {entry.createdAt
-                    ? new Intl.DateTimeFormat(locale, {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      }).format(new Date(entry.createdAt))
-                    : "-"}
-                </td>
-              </tr>
-            ))}
+            {entries.map((entry) => {
+              // Resolve student name from nested object if available
+              const student = entry.student as Record<string, unknown> | undefined;
+              const studentName = student
+                ? locale === "ar"
+                  ? (student.nameAr as string) || (student.full_name_ar as string) || (student.name as string) || (student.nameEn as string) || entry.studentId
+                  : (student.nameEn as string) || (student.full_name_en as string) || (student.name as string) || (student.nameAr as string) || entry.studentId
+                : entry.studentId;
+
+              // Resolve source label — prefer sourceType translated label, fall back to source name
+              const source = entry.source as Record<string, unknown> | undefined;
+              const sourceType = (entry.sourceType as string) || (entry.type as string);
+              const sourceLabel = source
+                ? locale === "ar"
+                  ? (source.titleAr as string) || (source.titleEn as string) || (source.name as string) || sourceType || "-"
+                  : (source.titleEn as string) || (source.titleAr as string) || (source.name as string) || sourceType || "-"
+                : sourceType || entry.sourceId || "-";
+
+              return (
+                <tr key={entry.id}>
+                  <td className="px-4 py-4 text-sm text-gray-900">
+                    {studentName}
+                  </td>
+                  <td className="px-4 py-4 text-sm font-semibold text-primary">
+                    {entry.amount}
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-700">
+                    {locale === "ar"
+                      ? entry.reasonAr || entry.reason
+                      : entry.reason || entry.reasonAr}
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-500">
+                    {sourceLabel}
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-500">
+                    {entry.createdAt
+                      ? new Intl.DateTimeFormat(locale, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }).format(new Date(entry.createdAt))
+                      : "-"}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

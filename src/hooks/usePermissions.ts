@@ -44,7 +44,13 @@ export type PermissionKey =
   | "reinforcement.tasks.view"
   | "reinforcement.tasks.manage"
   | "reinforcement.xp.view"
-  | "reinforcement.xp.manage";
+  | "reinforcement.xp.manage"
+  | "reinforcement.reviews.view"
+  | "reinforcement.reviews.manage"
+  | "reinforcement.rewards.view"
+  | "reinforcement.rewards.manage"
+  | "reinforcement.rewards.redemptions.view"
+  | "reinforcement.rewards.redemptions.review";
 
 const legacyAdminPermissions: PermissionKey[] = [
   "attendance.rollcall.submit",
@@ -91,6 +97,8 @@ export const reinforcementNavigationPermissionByKey: Partial<
   "reinforcement-overview": "reinforcement.overview.view",
   "reinforcement-templates": "reinforcement.templates.view",
   "reinforcement-tasks": "reinforcement.tasks.view",
+  "reinforcement-reviews": "reinforcement.reviews.view",
+  "reinforcement-rewards": "reinforcement.rewards.view",
   "reinforcement-xp-policies": "reinforcement.xp.view",
   "reinforcement-xp-ledger": "reinforcement.xp.view",
 };

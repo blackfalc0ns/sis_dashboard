@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Calendar,
   Clock,
-  MapPin,
   User,
   FileText,
   Edit,
@@ -17,12 +16,19 @@ import {
   ArrowRight,
   BookOpen,
 } from "lucide-react";
-import { mockApplications, mockTests } from "@/data/mockAdmissions";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import TestScoreModal from "@/features/admissions/tests/components/TestScoreModal";
 import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTestModal";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import MainLoader from "@/components/ui/loaders/MainLoader";
+import {
+  fetchPlacementTestById,
+  completePlacementTest,
+  updatePlacementTest,
+} from "@/features/admissions/tests/services/testsApiService";
+import type { Test } from "@/features/admissions/types/admissions";
+import { useToast } from "@/components/ui/toast/Toast";
 
 interface TestDetailsPageProps {
   testId: string;
@@ -33,52 +39,36 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
   const locale = useLocale();
   const router = useRouter();
   const { isReadOnly } = useAdmissionsYearTermContext();
+  const { showToast } = useToast();
 
+  const [test, setTest] = useState<Test | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false);
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
 
-  // Find test from applications or standalone tests
-  const findTestData = () => {
-    // Check in applications first
-    for (const app of mockApplications) {
-      const test = app.tests.find((t) => t.id === testId);
-      if (test) {
-        return {
-          test,
-          application: app,
-          studentName:
-            locale === "ar"
-              ? app.full_name_ar || app.studentNameArabic || app.studentName
-              : app.full_name_en || app.studentName,
-        };
-      }
+  const loadTest = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchPlacementTestById(testId);
+      setTest(data);
+    } catch (err) {
+      console.error("Failed to load test:", err);
+      console.error("Test ID was:", testId);
+      setTest(null);
+    } finally {
+      setIsLoading(false);
     }
+  }, [testId]);
 
-    // Check standalone tests
-    const standaloneTest = mockTests.find((t) => t.id === testId);
-    if (standaloneTest) {
-      const app = mockApplications.find(
-        (a) => a.id === standaloneTest.applicationId,
-      );
-      return {
-        test: standaloneTest,
-        application: app,
-        studentName:
-          locale === "ar"
-            ? app?.full_name_ar ||
-              app?.studentNameArabic ||
-              app?.studentName ||
-              "Unknown"
-            : app?.full_name_en || app?.studentName || "Unknown",
-      };
-    }
+  useEffect(() => {
+    void loadTest();
+  }, [loadTest]);
 
-    return null;
-  };
+  if (isLoading) {
+    return <MainLoader />;
+  }
 
-  const testData = findTestData();
-
-  if (!testData) {
+  if (!test) {
     return (
       <div className="p-6">
         <div className="text-center py-12">
@@ -94,24 +84,29 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
     );
   }
 
-  const { test, application, studentName } = testData;
+  const studentName = test.studentName || "";
 
   const handleAddScore = () => {
     if (isReadOnly) return;
     setIsScoreModalOpen(true);
   };
 
-  const handleScoreSubmit = (
-    testId: string,
+  const handleScoreSubmit = async (
+    _testId: string,
     score: number,
-    maxScore: number,
+    _maxScore: number,
     status: "completed" | "failed",
     notes?: string,
   ) => {
-    console.log("Test score:", { testId, score, maxScore, status, notes });
-    // In a real app, this would update the backend
-    setIsScoreModalOpen(false);
-    router.refresh();
+    try {
+      await completePlacementTest(testId, { score, status, notes });
+      showToast("Test score saved successfully!", "success");
+      setIsScoreModalOpen(false);
+      await loadTest();
+    } catch (err) {
+      console.error("Failed to save score:", err);
+      showToast("Failed to save test score.", "error");
+    }
   };
 
   const handleReschedule = () => {
@@ -119,17 +114,23 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
     setIsRescheduleModalOpen(true);
   };
 
-  const handleRescheduleSubmit = (data: {
+  const handleRescheduleSubmit = async (data: {
     date: string;
     time: string;
-    proctor: string;
-    location: string;
-    notes?: string;
+    [key: string]: unknown;
   }) => {
-    console.log("Rescheduling test:", { testId, ...data });
-    // In a real app, this would update the backend
-    setIsRescheduleModalOpen(false);
-    router.refresh();
+    try {
+      await updatePlacementTest(testId, {
+        date: data.date,
+        time: data.time,
+      });
+      showToast("Test rescheduled successfully!", "success");
+      setIsRescheduleModalOpen(false);
+      await loadTest();
+    } catch (err) {
+      console.error("Failed to reschedule test:", err);
+      showToast("Failed to reschedule test.", "error");
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -199,19 +200,26 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
                 <div>
                   <p className="text-xs text-gray-500">{t("details.date")}</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {new Date(test.date).toLocaleDateString(locale, {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    {test.scheduledAt
+                      ? new Date(test.scheduledAt).toLocaleDateString(locale, {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })
+                      : "N/A"}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">{t("details.time")}</p>
                   <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
                     <Clock className="w-4 h-4 text-gray-400" />
-                    {test.time}
+                    {test.scheduledAt
+                      ? new Date(test.scheduledAt).toLocaleTimeString(locale, {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "N/A"}
                   </p>
                 </div>
               </div>
@@ -225,88 +233,50 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
               </h3>
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.subject")}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {test.subject}
-                  </p>
-                </div>
-                <div>
                   <p className="text-xs text-gray-500">{t("details.type")}</p>
                   <p className="text-sm font-medium text-gray-900">
                     {test.type}
                   </p>
                 </div>
+                {test.subjectName && (
+                  <div>
+                    <p className="text-xs text-gray-500">
+                      {t("details.subject")}
+                    </p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {test.subjectName}
+                    </p>
+                  </div>
+                )}
                 <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.duration")}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {test.duration
-                      ? `${test.duration} ${t("details.minutes")}`
-                      : "N/A"}
-                  </p>
+                  <p className="text-xs text-gray-500">Application</p>
+                  <button
+                    onClick={() =>
+                      router.push(
+                        `/${locale}/admissions/applications/${test.applicationId}`,
+                      )
+                    }
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    {test.applicationId}
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Location & Proctor */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                {t("details.location_proctor")}
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.location")}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {test.location}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.proctor")}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-400" />
-                    {test.proctor || "Not assigned"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.proctor_phone")}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {test.proctorPhone || "N/A"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Guardian Information */}
+            {/* Student Information */}
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <User className="w-4 h-4" />
-                {t("details.guardian_info")}
+                {t("details.student_information")}
               </h3>
               <div className="space-y-3">
                 <div>
                   <p className="text-xs text-gray-500">
-                    {t("details.guardian_name")}
+                    {t("details.student_name")}
                   </p>
                   <p className="text-sm font-medium text-gray-900">
-                    {test.guardianName || application?.guardianName || "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.guardian_phone")}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {test.guardianPhone || application?.guardianPhone || "N/A"}
+                    {studentName || "N/A"}
                   </p>
                 </div>
               </div>
@@ -314,66 +284,12 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
           </div>
         </div>
 
-        {/* Student Information */}
-        {application && (
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-6">
-              {t("details.student_information")}
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.student_name")}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {studentName}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.application_id")}
-                  </p>
-                  <button
-                    onClick={() =>
-                      router.push(
-                        `/${locale}/admissions/applications/${application.id}`,
-                      )
-                    }
-                    className="text-sm font-medium text-primary hover:underline"
-                  >
-                    {application.id}
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.grade_requested")}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {application.gradeRequested}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.application_status")}
-                  </p>
-                  <StatusBadge status={application.status} size="sm" />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Score & Notes */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-gray-900">
               {t("details.score_notes")}
             </h2>
-            {/* Allow score entry for scheduled, rescheduled, or completed tests, but not cancelled */}
             {test.status !== "cancelled" && (
               <button
                 onClick={handleAddScore}
@@ -388,7 +304,7 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
             )}
           </div>
 
-          {test.score !== undefined ? (
+          {test.score !== undefined && test.score !== null ? (
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-xs text-gray-500 mb-2">
@@ -397,9 +313,6 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
                 <div className="flex items-center gap-2">
                   <span className="text-3xl font-bold text-gray-900">
                     {test.score}
-                  </span>
-                  <span className="text-lg text-gray-500">
-                    / {test.maxScore || 100}
                   </span>
                   <span
                     className={`ml-4 text-sm font-medium ${
@@ -442,22 +355,15 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
         {/* Action Bar */}
         <div className="bg-white rounded-xl shadow-sm p-6 sticky bottom-4">
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Show reschedule and cancel buttons only for scheduled/rescheduled tests */}
             {(test.status === "scheduled" || test.status === "rescheduled") && (
-              <>
-                <button
-                  onClick={handleReschedule}
-                  disabled={isReadOnly}
-                  className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-                >
-                  {t("actions.reschedule")}
-                </button>
-                <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors">
-                  {t("actions.cancel")}
-                </button>
-              </>
+              <button
+                onClick={handleReschedule}
+                disabled={isReadOnly}
+                className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                {t("actions.reschedule")}
+              </button>
             )}
-            {/* Show add score button for scheduled, rescheduled, or completed tests without score */}
             {(test.status === "scheduled" ||
               test.status === "rescheduled" ||
               test.status === "completed" ||
@@ -471,19 +377,16 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
                   {t("actions.add_score")}
                 </button>
               )}
-            {/* Always show view application button */}
-            {application && (
-              <button
-                onClick={() =>
-                  router.push(
-                    `/${locale}/admissions/applications/${application.id}`,
-                  )
-                }
-                className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-              >
-                {t("actions.view_application")}
-              </button>
-            )}
+            <button
+              onClick={() =>
+                router.push(
+                  `/${locale}/admissions/applications/${test.applicationId}`,
+                )
+              }
+              className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+            >
+              {t("actions.view_application")}
+            </button>
           </div>
         </div>
       </div>
@@ -494,7 +397,6 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
           test={{
             ...test,
             studentName,
-            applicationId: application?.id || test.applicationId,
           }}
           isOpen={isScoreModalOpen}
           onClose={() => setIsScoreModalOpen(false)}
@@ -503,16 +405,12 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
       )}
 
       {/* Reschedule Modal */}
-      {test && application && (
-        <ScheduleTestModal
-          isOpen={isRescheduleModalOpen}
-          onClose={() => setIsRescheduleModalOpen(false)}
-          onSubmit={handleRescheduleSubmit}
-          studentName={studentName}
-          guardianName={application.guardianName}
-          guardianPhone={application.guardianPhone}
-        />
-      )}
+      <ScheduleTestModal
+        isOpen={isRescheduleModalOpen}
+        onClose={() => setIsRescheduleModalOpen(false)}
+        onSubmit={handleRescheduleSubmit}
+        studentName={studentName}
+      />
     </div>
   );
 }

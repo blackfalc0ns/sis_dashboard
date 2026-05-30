@@ -1,0 +1,9 @@
+import ReinforcementReviewQueuePage from "@/features/reinforcement/pages/ReinforcementReviewQueuePage";
+
+export default function Page() {
+  return (
+    <main className="flex-1 p-4 sm:p-6 min-w-0 overflow-x-hidden">
+      <ReinforcementReviewQueuePage />
+    </main>
+  );
+}

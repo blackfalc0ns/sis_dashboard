@@ -1,7 +1,7 @@
 // FILE: src/types/admissions/lead.ts
 // Lead model and related types
 
-import type { LeadChannel, LeadStatus, ActivityType } from "@/features/admissions/types/enums";
+import type { LeadChannel, LeadStatus } from "@/features/admissions/types/enums";
 
 export interface Lead {
   [key: string]: unknown;
@@ -37,23 +37,6 @@ export interface UpdateLeadPayload {
   channel?: LeadChannel;
   status?: LeadStatus;
   notes?: string;
-}
-
-export interface ActivityLogItem {
-  id: string;
-  leadId: string;
-  type: ActivityType;
-  message: string;
-  createdAt: string;
-  createdBy: string;
-}
-
-export interface Note {
-  id: string;
-  leadId: string;
-  body: string;
-  createdAt: string;
-  createdBy: string;
 }
 
 export interface ApplicationDraft {

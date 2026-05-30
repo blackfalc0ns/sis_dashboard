@@ -19,6 +19,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { PieChart } from "@mui/x-charts/PieChart";
 import Button from "@/components/ui/button/Button";
+import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -27,6 +28,7 @@ import ReinforcementAcademicContextFilter, {
   type ReinforcementAcademicContextValue,
 } from "../components/ReinforcementAcademicContextFilter";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
+import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
 import { getReinforcementOverview } from "../services/reinforcementOverviewService";
 import type {
   OverviewRecentActivity,
@@ -104,39 +106,6 @@ function EmptyState({ message }: { message: string }) {
       <BarChart3 className="mx-auto mb-3 h-10 w-10 text-gray-300" />
       <p className="text-sm text-gray-500">{message}</p>
     </div>
-  );
-}
-
-/* ---------- KPI stat card ---------- */
-
-interface StatCardProps {
-  label: string;
-  value: number | string;
-  icon: React.ReactNode;
-  color: string;
-  bg: string;
-}
-
-function StatCard({ label, value, icon, color, bg }: StatCardProps) {
-  return (
-    <article className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-gray-500">{label}</p>
-          <p className="mt-2 text-2xl font-bold text-gray-900">
-            {typeof value === "number"
-              ? new Intl.NumberFormat().format(value)
-              : value}
-          </p>
-        </div>
-        <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
-          style={{ backgroundColor: bg, color }}
-        >
-          {icon}
-        </div>
-      </div>
-    </article>
   );
 }
 
@@ -272,7 +241,29 @@ export default function ReinforcementOverviewPage() {
   const t = useTranslations("reinforcement");
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
-  const [context, setContext] = useState<ReinforcementAcademicContextValue>({});
+
+  // ─── URL-synced filters ──────────────────────────────────────────────────
+  const {
+    values,
+    setValue,
+  } = useReinforcementUrlFilters({
+    paramKeys: ["academicYearId", "termId", "stageId", "gradeId", "sectionId", "classroomId"],
+    defaults: {},
+  });
+
+  // ─── Academic context derived from URL params ────────────────────────────
+  const context: ReinforcementAcademicContextValue = useMemo(
+    () => ({
+      academicYearId: values.academicYearId || undefined,
+      termId: values.termId || undefined,
+      stageId: values.stageId || undefined,
+      gradeId: values.gradeId || undefined,
+      sectionId: values.sectionId || undefined,
+      classroomId: values.classroomId || undefined,
+    }),
+    [values.academicYearId, values.termId, values.stageId, values.gradeId, values.sectionId, values.classroomId],
+  );
+
   const [overview, setOverview] = useState<ReinforcementOverviewResponse | null>(
     null,
   );
@@ -381,16 +372,14 @@ export default function ReinforcementOverviewPage() {
           value={context}
           showSubject={false}
           showStudent={false}
-          onChange={(selection: ReinforcementAcademicContextSelection) =>
-            setContext({
-              academicYearId: selection.academicYearId,
-              termId: selection.termId,
-              stageId: selection.stageId,
-              gradeId: selection.gradeId,
-              sectionId: selection.sectionId,
-              classroomId: selection.classroomId,
-            })
-          }
+          onChange={(selection: ReinforcementAcademicContextSelection) => {
+            setValue("academicYearId", selection.academicYearId || "");
+            setValue("termId", selection.termId || "");
+            setValue("stageId", selection.stageId || "");
+            setValue("gradeId", selection.gradeId || "");
+            setValue("sectionId", selection.sectionId || "");
+            setValue("classroomId", selection.classroomId || "");
+          }}
         />
       </section>
 
@@ -408,33 +397,37 @@ export default function ReinforcementOverviewPage() {
         <>
           {/* KPI cards */}
           <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <StatCard
-              label={t("charts.tasksByStatus", { defaultValue: "Total Tasks" })}
+            <KPICardV2
+              title={t("charts.tasksByStatus", { defaultValue: "Total Tasks" })}
               value={overview.tasks.total}
-              icon={<ListChecks className="h-5 w-5" />}
-              color="#036b80"
-              bg="#e0f2f5"
+              icon={ListChecks}
+              iconColor="#036b80"
+              iconBgColor="#e0f2f5"
+              showChart={false}
             />
-            <StatCard
-              label={t("overview.activeAssignments")}
+            <KPICardV2
+              title={t("overview.activeAssignments")}
               value={overview.assignments.total}
-              icon={<Users className="h-5 w-5" />}
-              color="#7c3aed"
-              bg="#ede9fe"
+              icon={Users}
+              iconColor="#7c3aed"
+              iconBgColor="#ede9fe"
+              showChart={false}
             />
-            <StatCard
-              label={t("overview.completionRate")}
+            <KPICardV2
+              title={t("overview.completionRate")}
               value={`${overview.assignments.completionRate}%`}
-              icon={<CheckCircle2 className="h-5 w-5" />}
-              color="#16a34a"
-              bg="#dcfce7"
+              icon={CheckCircle2}
+              iconColor="#16a34a"
+              iconBgColor="#dcfce7"
+              showChart={false}
             />
-            <StatCard
-              label={t("xp.summary.totalXp")}
+            <KPICardV2
+              title={t("xp.summary.totalXp")}
               value={overview.xp.totalXp}
-              icon={<Sparkles className="h-5 w-5" />}
-              color="#d97706"
-              bg="#fef3c7"
+              icon={Sparkles}
+              iconColor="#d97706"
+              iconBgColor="#fef3c7"
+              showChart={false}
             />
           </section>
 

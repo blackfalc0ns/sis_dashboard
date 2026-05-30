@@ -542,7 +542,8 @@
       "rejected": "Rejected",
       "declined_applications": "Declined applications",
       "avg_processing_time": "Avg Processing Time",
-      "time_to_decision": "Time to decision"
+      "time_to_decision": "Time to decision",
+      "submit": "Submit"
     },
     "filters": {
       "filters_button": "Filters",
@@ -869,7 +870,10 @@
         "required": "Required",
         "optional": "Optional",
         "pending_warning": "Some required documents are still missing",
-        "pending_submit_note": "You can submit now, and the application will move to Documents Pending until the missing required files are provided."
+        "pending_submit_note": "You can submit now, and the application will move to Documents Pending until the missing required files are provided.",
+        "add_custom": "Add a custom document type",
+        "custom_placeholder": "Enter document type name...",
+        "add_btn": "Add"
       },
       "errors": {
         "first_name_ar_required": "Arabic first name is required",
@@ -950,7 +954,17 @@
         "phone": "Phone"
       },
       "documents": {
-        "title": "Required Documents"
+        "title": "Documents",
+        "add": "Add Document",
+        "uploading": "Uploading...",
+        "no_documents": "No documents uploaded yet",
+        "upload_first": "Upload a document",
+        "select_type": "Select Document Type",
+        "other_type": "Other (custom type)",
+        "enter_type": "Enter document type...",
+        "already_uploaded": "Already uploaded",
+        "cancel": "Cancel",
+        "choose_file": "Choose File"
       },
       "tests": {
         "title": "Placement Tests",
@@ -980,7 +994,9 @@
         "schedule_test": "Schedule Test",
         "schedule_interview": "Schedule Interview",
         "make_decision": "Make Decision",
-        "enroll_student": "Enroll Student"
+        "enroll_student": "Enroll Student",
+        "submit_application": "Submit Application",
+        "enrolled_status": "Student Enrolled Successfully"
       }
     },
     "schedule_test": {
@@ -1087,6 +1103,7 @@
       "contract_generated": "Initial contract generated successfully!",
       "cancel": "Cancel",
       "confirm_enrollment": "Confirm Enrollment",
+      "enrolling": "Enrolling...",
       "capacity_summary": "Capacity Summary",
       "available_seats": "Available seats",
       "over_capacity": "This classroom is over capacity.",
@@ -7031,6 +7048,8 @@
       "overview": "Overview",
       "templates": "Templates",
       "tasks": "Tasks",
+      "reviews": "Reviews",
+      "rewards": "Rewards",
       "xpPolicies": "XP Policies",
       "xpLedger": "XP Ledger"
     },
@@ -7097,7 +7116,10 @@
         "status": "Status",
         "source": "Source",
         "rewardType": "Reward type",
-        "dueDate": "Due date"
+        "dueDate": "Due date",
+        "assignedBy": "Assigned by",
+        "cancelledAt": "Cancelled at",
+        "createdAt": "Created at"
       },
       "form": {
         "create": "Create task",
@@ -7211,7 +7233,9 @@
       "amount": "Amount",
       "reason": "Reason",
       "reasonAr": "Reason (Arabic)",
-      "sourceId": "Source ID",
+      "sourceId": "Source (Task)",
+      "noSource": "No source (manual grant)",
+      "noTasksAvailable": "No tasks available. Select a year and term first.",
       "dedupeKey": "Dedupe key",
       "dedupeKeyHelp": "Leave blank to generate a unique key on submit.",
       "messages": {
@@ -7232,13 +7256,16 @@
         "amount": "Amount",
         "reason": "Reason",
         "sourceId": "Source",
+        "source": "Source",
         "createdAt": "Created at"
       },
       "summary": {
         "totalXp": "Total XP",
         "earnedXp": "Earned XP",
         "spentXp": "Spent XP",
-        "balance": "Balance"
+        "balance": "Balance",
+        "studentsCount": "Students",
+        "averageXp": "Average XP"
       }
     },
     "common": {
@@ -7254,7 +7281,14 @@
       "term": "Term",
       "student": "Student",
       "classroom": "Classroom",
-      "subject": "Subject"
+      "subject": "Subject",
+      "yes": "Yes",
+      "no": "No",
+      "search": "Search..."
+    },
+    "validation": {
+      "atLeastOneTitle": "At least one title (English or Arabic) is required.",
+      "xpAmountRequired": "Please enter a valid XP amount greater than zero."
     },
     "rewards": "Rewards",
     "overviewDescription": "Track task activity, completion patterns, reward issuance, and top-performing classes from one reinforcement workspace.",
@@ -7314,6 +7348,7 @@
       "cancel": "Cancel",
       "duplicate": "Duplicate",
       "grantXp": "Grant XP",
+      "skip": "Skip",
       "patchPolicy": "Update policy",
       "viewLedger": "View ledger"
     },
@@ -7625,6 +7660,173 @@
         "reward": "Rewards",
         "task": "Tasks",
         "submission": "Submissions"
+      }
+    },
+    "reviews": {
+      "title": "Reviews",
+      "description": "Review and approve student reinforcement task submissions.",
+      "table": {
+        "student": "Student",
+        "task": "Task",
+        "stage": "Stage",
+        "status": "Status",
+        "submittedAt": "Submitted at",
+        "actions": "Actions"
+      },
+      "status": {
+        "submitted": "Submitted",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "actions": {
+        "approve": "Approve",
+        "reject": "Reject",
+        "viewDetail": "View detail"
+      },
+      "messages": {
+        "approved": "Submission approved successfully.",
+        "rejected": "Submission rejected successfully.",
+        "error": "An error occurred while processing the review."
+      },
+      "emptyState": "No submissions pending review.",
+      "detail": {
+        "title": "Review detail",
+        "proof": "Proof",
+        "history": "Review history",
+        "grantXp": "Grant XP",
+        "grantXpDescription": "Optionally grant XP to the student for this approved submission.",
+        "xpGranted": "XP granted successfully.",
+        "taskInfo": "Task Information",
+        "stageInfo": "Stage Information",
+        "studentInfo": "Student Information",
+        "source": "Source",
+        "dueDate": "Due Date",
+        "proofType": "Proof Type",
+        "requiresApproval": "Requires Approval",
+        "studentCode": "Student Code",
+        "submittedAt": "Submitted At",
+        "proofText": "Proof Text",
+        "proofFile": "Proof File",
+        "viewFile": "View File",
+        "noProof": "No proof submitted.",
+        "noHistory": "No review history yet.",
+        "approveTitle": "Approve Submission",
+        "approveDescription": "Approve this student's submission. You can add an optional note.",
+        "rejectTitle": "Reject Submission",
+        "rejectDescription": "Reject this student's submission. You can add an optional note explaining why.",
+        "noteEn": "Note (English)",
+        "noteAr": "Note (Arabic)",
+        "notePlaceholder": "Add an optional note...",
+        "notePlaceholderAr": "أضف ملاحظة اختيارية..."
+      }
+    },
+    "rewardsModule": {
+      "title": "Rewards",
+      "description": "Manage the reward catalog and student redemption requests.",
+      "overview": {
+        "totalCatalogItems": "Total Catalog Items",
+        "activeItems": "Active Items",
+        "pendingRedemptions": "Pending Redemptions",
+        "fulfilledThisMonth": "Fulfilled This Month"
+      },
+      "catalog": {
+        "title": "Reward Catalog",
+        "addReward": "Add Reward",
+        "stock": {
+          "unlimited": "Unlimited"
+        },
+        "table": {
+          "title": "Title",
+          "type": "Type",
+          "xpCost": "XP Cost",
+          "stock": "Stock",
+          "status": "Status",
+          "actions": "Actions"
+        }
+      },
+      "redemptions": {
+        "title": "Redemptions",
+        "description": "View and manage student reward redemption requests.",
+        "filters": {
+          "requestedFrom": "From Date",
+          "requestedTo": "To Date"
+        },
+        "table": {
+          "student": "Student",
+          "reward": "Reward",
+          "status": "Status",
+          "source": "Source",
+          "requestedAt": "Requested at",
+          "actions": "Actions"
+        },
+        "modal": {
+          "approveTitle": "Approve Redemption",
+          "approveDescription": "Are you sure you want to approve this redemption request? The student will be notified.",
+          "rejectTitle": "Reject Redemption",
+          "rejectDescription": "Are you sure you want to reject this redemption request? The student will be notified.",
+          "fulfillTitle": "Fulfill Redemption",
+          "fulfillDescription": "Mark this redemption as fulfilled. The reward has been delivered to the student.",
+          "cancelTitle": "Cancel Redemption",
+          "cancelDescription": "Are you sure you want to cancel this redemption? This action cannot be undone.",
+          "reviewNoteEn": "Review Note (English)",
+          "reviewNoteAr": "Review Note (Arabic)",
+          "fulfillmentNoteEn": "Fulfillment Note (English)",
+          "fulfillmentNoteAr": "Fulfillment Note (Arabic)",
+          "cancellationReasonEn": "Cancellation Reason (English)",
+          "cancellationReasonAr": "Cancellation Reason (Arabic)",
+          "confirmApprove": "Approve",
+          "confirmReject": "Reject",
+          "confirmFulfill": "Fulfill",
+          "confirmCancel": "Cancel Redemption"
+        }
+      },
+      "status": {
+        "draft": "Draft",
+        "published": "Published",
+        "archived": "Archived",
+        "requested": "Requested",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "fulfilled": "Fulfilled",
+        "cancelled": "Cancelled"
+      },
+      "type": {
+        "physical": "Physical",
+        "digital": "Digital",
+        "privilege": "Privilege",
+        "certificate": "Certificate",
+        "other": "Other"
+      },
+      "actions": {
+        "publish": "Publish",
+        "archive": "Archive",
+        "approve": "Approve",
+        "reject": "Reject",
+        "fulfill": "Fulfill",
+        "cancel": "Cancel",
+        "edit": "Edit",
+        "create": "Create"
+      },
+      "messages": {
+        "created": "Reward created successfully.",
+        "updated": "Reward updated successfully.",
+        "published": "Reward published successfully.",
+        "archived": "Reward archived successfully.",
+        "approved": "Redemption approved successfully.",
+        "rejected": "Redemption rejected successfully.",
+        "fulfilled": "Redemption fulfilled successfully.",
+        "cancelled": "Redemption cancelled successfully."
+      },
+      "emptyStates": {
+        "catalog": "No rewards in the catalog yet.",
+        "redemptions": "No redemption requests found."
+      },
+      "source": {
+        "dashboard": "Dashboard",
+        "teacher": "Teacher",
+        "student_app": "Student App",
+        "parent_app": "Parent App",
+        "system": "System"
       }
     }
   },

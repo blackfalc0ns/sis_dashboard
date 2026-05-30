@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, Plus, RefreshCw, ShieldAlert } from "lucide-react";
+import { AlertCircle, Coins, Minus, Plus, RefreshCw, ShieldAlert, Sparkles, Wallet } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
+import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { useToast } from "@/components/ui/toast/Toast";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,12 +16,16 @@ import ReinforcementAcademicContextFilter, {
 } from "../components/ReinforcementAcademicContextFilter";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
 import XpLedgerTable from "../components/XpLedgerTable";
+import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
 import {
   getXpSummary,
   grantManualXp,
   listXpLedger,
 } from "../services/reinforcementXpService";
 import type { ManualXpGrantPayload, XpLedgerEntry, XpSummary } from "../types";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUUID = (v?: string): v is string => !!v && UUID_RE.test(v);
 
 function AccessNotice() {
   const t = useTranslations("reinforcement.common");
@@ -47,7 +52,31 @@ export default function ReinforcementXpLedgerPage() {
   const { showSuccess, showError } = useToast();
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
-  const [context, setContext] = useState<ReinforcementAcademicContextValue>({});
+
+  // ─── URL-synced filters ──────────────────────────────────────────────────
+  const {
+    values,
+    setValue,
+  } = useReinforcementUrlFilters({
+    paramKeys: ["academicYearId", "termId", "stageId", "gradeId", "sectionId", "classroomId", "studentId", "enrollmentId"],
+    defaults: {},
+  });
+
+  // ─── Academic context derived from URL params ────────────────────────────
+  const context: ReinforcementAcademicContextValue = useMemo(
+    () => ({
+      academicYearId: values.academicYearId || undefined,
+      termId: values.termId || undefined,
+      stageId: values.stageId || undefined,
+      gradeId: values.gradeId || undefined,
+      sectionId: values.sectionId || undefined,
+      classroomId: values.classroomId || undefined,
+      studentId: values.studentId || undefined,
+      enrollmentId: values.enrollmentId || undefined,
+    }),
+    [values.academicYearId, values.termId, values.stageId, values.gradeId, values.sectionId, values.classroomId, values.studentId, values.enrollmentId],
+  );
+
   const [entries, setEntries] = useState<XpLedgerEntry[]>([]);
   const [summary, setSummary] = useState<XpSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,10 +88,10 @@ export default function ReinforcementXpLedgerPage() {
 
   const params = useMemo(
     () => ({
-      academicYearId: context.academicYearId,
-      termId: context.termId,
-      studentId: context.studentId,
-      classroomId: context.classroomId,
+      academicYearId: isUUID(context.academicYearId) ? context.academicYearId : undefined,
+      termId: isUUID(context.termId) ? context.termId : undefined,
+      studentId: isUUID(context.studentId) ? context.studentId : undefined,
+      classroomId: isUUID(context.classroomId) ? context.classroomId : undefined,
       limit: 50,
     }),
     [
@@ -75,9 +104,9 @@ export default function ReinforcementXpLedgerPage() {
 
   const summaryParams = useMemo(
     () => ({
-      academicYearId: context.academicYearId,
-      termId: context.termId,
-      studentId: context.studentId,
+      academicYearId: isUUID(context.academicYearId) ? context.academicYearId : undefined,
+      termId: isUUID(context.termId) ? context.termId : undefined,
+      studentId: isUUID(context.studentId) ? context.studentId : undefined,
     }),
     [context.academicYearId, context.studentId, context.termId],
   );
@@ -87,12 +116,14 @@ export default function ReinforcementXpLedgerPage() {
     setLoading(true);
     setError(null);
     try {
+      // Only call summary API if we have valid academicYearId and termId
+      const hasValidParams = isUUID(summaryParams.academicYearId) && isUUID(summaryParams.termId);
       const [ledgerResponse, nextSummary] = await Promise.all([
         listXpLedger(params),
-        getXpSummary(summaryParams),
+        hasValidParams ? getXpSummary(summaryParams) : Promise.resolve(null),
       ]);
       setEntries(ledgerResponse.items);
-      setSummary(nextSummary);
+      setSummary(nextSummary as XpSummary | null);
     } catch (nextError) {
       const message =
         nextError instanceof Error ? nextError.message : t("common.error");
@@ -160,18 +191,16 @@ export default function ReinforcementXpLedgerPage() {
             value={context}
             showSubject={false}
             showStudent
-            onChange={(selection: ReinforcementAcademicContextSelection) =>
-              setContext({
-                academicYearId: selection.academicYearId,
-                termId: selection.termId,
-                stageId: selection.stageId,
-                gradeId: selection.gradeId,
-                sectionId: selection.sectionId,
-                classroomId: selection.classroomId,
-                studentId: selection.studentId,
-                enrollmentId: selection.enrollmentId,
-              })
-            }
+            onChange={(selection: ReinforcementAcademicContextSelection) => {
+              setValue("academicYearId", selection.academicYearId || "");
+              setValue("termId", selection.termId || "");
+              setValue("stageId", selection.stageId || "");
+              setValue("gradeId", selection.gradeId || "");
+              setValue("sectionId", selection.sectionId || "");
+              setValue("classroomId", selection.classroomId || "");
+              setValue("studentId", selection.studentId || "");
+              setValue("enrollmentId", selection.enrollmentId || "");
+            }}
           />
         </div>
       </section>
@@ -185,25 +214,39 @@ export default function ReinforcementXpLedgerPage() {
         </div>
       ) : null}
 
-      <section className="grid gap-4 md:grid-cols-4">
-        {[
-          ["totalXp", summary?.totalXp],
-          ["earnedXp", summary?.earnedXp],
-          ["spentXp", summary?.spentXp],
-          ["balance", summary?.balance],
-        ].map(([key, value]) => (
-          <article
-            key={key as string}
-            className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm"
-          >
-            <p className="text-sm font-medium text-gray-500">
-              {t(`xp.summary.${key}`)}
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-gray-900">
-              {typeof value === "number" ? value : 0}
-            </p>
-          </article>
-        ))}
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <KPICardV2
+          title={t("xp.summary.totalXp")}
+          value={Number(summary?.totalXp) || 0}
+          icon={Sparkles}
+          iconColor="#d97706"
+          iconBgColor="#fef3c7"
+          showChart={false}
+        />
+        <KPICardV2
+          title={t("xp.summary.studentsCount")}
+          value={Number(summary?.studentsCount ?? summary?.ledgerCount) || 0}
+          icon={Coins}
+          iconColor="#16a34a"
+          iconBgColor="#dcfce7"
+          showChart={false}
+        />
+        <KPICardV2
+          title={t("xp.summary.averageXp")}
+          value={Number(summary?.averageXp) || 0}
+          icon={Minus}
+          iconColor="#ef4444"
+          iconBgColor="#fef2f2"
+          showChart={false}
+        />
+        <KPICardV2
+          title={t("xp.summary.balance")}
+          value={Number(summary?.balance ?? summary?.totalXp) || 0}
+          icon={Wallet}
+          iconColor="#7c3aed"
+          iconBgColor="#ede9fe"
+          showChart={false}
+        />
       </section>
 
       <XpLedgerTable entries={entries} loading={loading} />

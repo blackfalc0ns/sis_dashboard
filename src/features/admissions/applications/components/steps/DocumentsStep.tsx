@@ -1,7 +1,8 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { AlertCircle, FileCheck, FileX, Upload } from "lucide-react";
+import { AlertCircle, FileCheck, FileX, Plus, Upload } from "lucide-react";
+import { useState } from "react";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import type { AdmissionsRequiredDocumentConfig } from "@/features/settings/types";
 
@@ -22,6 +23,7 @@ interface DocumentsStepProps {
   handleDragEnter: (e: React.DragEvent<HTMLLabelElement>) => void;
   handleDragLeave: (e: React.DragEvent<HTMLLabelElement>) => void;
   handleDrop: (e: React.DragEvent<HTMLLabelElement>, docKey: string) => void;
+  onAddCustomDocument?: (id: string, nameEn: string) => void;
 }
 
 export default function DocumentsStep({
@@ -36,9 +38,11 @@ export default function DocumentsStep({
   handleDragEnter,
   handleDragLeave,
   handleDrop,
+  onAddCustomDocument,
 }: DocumentsStepProps) {
   const t = useTranslations("admissions.create_application");
   const locale = useLocale();
+  const [customDocName, setCustomDocName] = useState("");
 
   const getLabel = (requirement: AdmissionsRequiredDocumentConfig) =>
     locale === "ar" ? requirement.nameAr : requirement.nameEn;
@@ -160,6 +164,39 @@ export default function DocumentsStep({
           );
         })}
       </div>
+
+      {/* Add Custom Document Type */}
+      {onAddCustomDocument && (
+        <div className="mt-4 rounded-lg border border-dashed border-gray-300 p-4">
+          <p className="text-sm font-medium text-gray-700 mb-2">
+            {t("documents.add_custom")}
+          </p>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={customDocName}
+              onChange={(e) => setCustomDocName(e.target.value)}
+              placeholder={t("documents.custom_placeholder")}
+              className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                if (customDocName.trim()) {
+                  const id = `custom-${Date.now()}`;
+                  onAddCustomDocument(id, customDocName.trim());
+                  setCustomDocName("");
+                }
+              }}
+              disabled={!customDocName.trim()}
+              className="flex items-center gap-1 px-3 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus className="h-4 w-4" />
+              {t("documents.add_btn")}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -20,10 +20,6 @@ import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import StatusTagsBar from "@/features/admissions/shared/StatusTagsBar";
 import { KPICardV2 } from "@/components/ui/kpi-card";
 import ApplicationCreateStepper from "@/features/admissions/applications/components/ApplicationCreateStepper";
-import DateRangeFilter, {
-  DateRangeValue,
-} from "@/features/admissions/shared/DateRangeFilter";
-import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
 import { formatApplicationsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
 import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
 import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
@@ -31,7 +27,12 @@ import type { ApplicationCreationPayload } from "@/features/admissions/applicati
 import {
   createApplication,
   fetchApplications,
+  submitApplication,
 } from "@/features/admissions/applications/services/applicationsApiService";
+import {
+  uploadAdmissionsFile,
+  createApplicationDocument,
+} from "@/features/admissions/applications/services/applicationDocumentsApiService";
 import {
   Application,
   ApplicationStatus,
@@ -44,7 +45,6 @@ export default function ApplicationsList() {
   const t = useTranslations("admissions.applications");
   const tFilters = useTranslations("admissions.filters");
   const tStatus = useTranslations("admissions.status");
-  const t_grades = useTranslations("admissions.grades");
   const locale = useLocale();
   const router = useRouter();
   const { yearId, isReadOnly } = useAdmissionsYearTermContext();
@@ -79,42 +79,10 @@ export default function ApplicationsList() {
 
   const scopedApplications = applications;
 
-  const uniqueGrades = useMemo(() => {
-    const grades = new Set(scopedApplications.map((app) => app.gradeRequested));
-    return Array.from(grades).sort();
-  }, [scopedApplications]);
-
-  const uniqueGenders = useMemo(() => {
-    const genders = new Set(
-      applications
-        .filter((app) => scopedApplications.some((item) => item.id === app.id))
-        .map((app) => app.gender)
-        .filter((gender): gender is string => !!gender),
-    );
-    return Array.from(genders).sort();
-  }, [applications, scopedApplications]);
-
-  const uniqueNationalities = useMemo(() => {
-    const nationalities = new Set(
-      applications
-        .filter((app) => scopedApplications.some((item) => item.id === app.id))
-        .map((app) => app.nationality)
-        .filter((nationality): nationality is string => !!nationality),
-    );
-    return Array.from(nationalities).sort();
-  }, [applications, scopedApplications]);
-
   const normalizeQueryValues = useCallback(
     (
       values: Record<
-        | "search"
-        | "status"
-        | "grade"
-        | "gender"
-        | "nationality"
-        | "dateRange"
-        | "startDate"
-        | "endDate",
+        "search" | "status",
         string
       >,
     ) => {
@@ -128,63 +96,23 @@ export default function ApplicationsList() {
         "waitlisted",
         "rejected",
       ]);
-      const validDateRanges = new Set([
-        "all",
-        "7",
-        "14",
-        "30",
-        "60",
-        "90",
-        "custom",
-      ]);
 
       if (!validStatuses.has(values.status)) {
         updates.status = null;
       }
-      if (values.grade !== "all" && !uniqueGrades.includes(values.grade)) {
-        updates.grade = null;
-      }
-      if (values.gender !== "all" && !uniqueGenders.includes(values.gender)) {
-        updates.gender = null;
-      }
-      if (
-        values.nationality !== "all" &&
-        !uniqueNationalities.includes(values.nationality)
-      ) {
-        updates.nationality = null;
-      }
-      if (!validDateRanges.has(values.dateRange)) {
-        updates.dateRange = null;
-      }
-      if (values.dateRange !== "custom") {
-        if (values.startDate) updates.startDate = null;
-        if (values.endDate) updates.endDate = null;
-      }
 
       return Object.keys(updates).length > 0 ? updates : null;
     },
-    [uniqueGenders, uniqueGrades, uniqueNationalities],
+    [],
   );
 
-  const { values, setValue, setValues, reset } = useAdmissionsUrlQueryState<{
+  const { values, setValue, reset } = useAdmissionsUrlQueryState<{
     search: string;
     status: string;
-    grade: string;
-    gender: string;
-    nationality: string;
-    dateRange: string;
-    startDate: string;
-    endDate: string;
   }>({
     defaults: {
       search: "",
       status: "all",
-      grade: "all",
-      gender: "all",
-      nationality: "all",
-      dateRange: "all",
-      startDate: "",
-      endDate: "",
     },
     debouncedKeys: ["search"],
     modeByKey: {
@@ -195,21 +123,9 @@ export default function ApplicationsList() {
 
   const searchQuery = values.search;
   const statusFilter = values.status as ApplicationStatus | "all";
-  const gradeFilter = values.grade;
-  const genderFilter = values.gender;
-  const nationalityFilter = values.nationality;
-  const dateRange = values.dateRange as DateRangeValue;
-  const customStartDate = values.startDate;
-  const customEndDate = values.endDate;
 
   // Filter and search applications
   const filteredApplications = useMemo(() => {
-    const filterResult = getDateFilterBoundaries(
-      dateRange,
-      customStartDate,
-      customEndDate,
-    );
-
     return scopedApplications.filter((app) => {
       const matchesSearch =
         searchQuery === "" ||
@@ -221,52 +137,13 @@ export default function ApplicationsList() {
       const matchesStatus =
         statusFilter === "all" || app.status === statusFilter;
 
-      const matchesGrade =
-        gradeFilter === "all" || app.gradeRequested === gradeFilter;
-
-      const matchesGender =
-        genderFilter === "all" || app.gender === genderFilter;
-
-      const matchesNationality =
-        nationalityFilter === "all" || app.nationality === nationalityFilter;
-
-      const matchesDateRange = isDateInRange(app.submittedDate, filterResult);
-
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesGrade &&
-        matchesGender &&
-        matchesNationality &&
-        matchesDateRange
-      );
+      return matchesSearch && matchesStatus;
     });
-  }, [
-    customEndDate,
-    customStartDate,
-    dateRange,
-    genderFilter,
-    gradeFilter,
-    nationalityFilter,
-    scopedApplications,
-    searchQuery,
-    statusFilter,
-  ]);
+  }, [scopedApplications, searchQuery, statusFilter]);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
     const now = new Date();
-    const filterResult = getDateFilterBoundaries(
-      dateRange,
-      customStartDate,
-      customEndDate,
-    );
-
-    // Filter applications by date range
-    const applicationsInRange = scopedApplications.filter((app) =>
-      isDateInRange(app.submittedDate, filterResult),
-    );
-
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     // Get start of current week (Sunday)
@@ -274,10 +151,10 @@ export default function ApplicationsList() {
     weekStart.setDate(now.getDate() - now.getDay());
     weekStart.setHours(0, 0, 0, 0);
 
-    // 1. New Applications (in selected period)
-    const newInPeriod = applicationsInRange.length;
+    // 1. Total Applications
+    const total = scopedApplications.length;
 
-    const newToday = applicationsInRange.filter((app) => {
+    const newToday = scopedApplications.filter((app) => {
       const submittedDate = new Date(app.submittedDate);
       const submittedDay = new Date(
         submittedDate.getFullYear(),
@@ -287,33 +164,33 @@ export default function ApplicationsList() {
       return submittedDay.getTime() === today.getTime();
     }).length;
 
-    const newThisWeek = applicationsInRange.filter((app) => {
+    const newThisWeek = scopedApplications.filter((app) => {
       const submittedDate = new Date(app.submittedDate);
       return submittedDate >= weekStart;
     }).length;
 
     // 2. Pending Review (submitted + documents_pending)
-    const pendingReview = applicationsInRange.filter(
+    const pendingReview = scopedApplications.filter(
       (app) => app.status === "submitted" || app.status === "documents_pending",
     ).length;
 
     // 3. Missing Documents
-    const missingDocuments = applicationsInRange.filter((app) =>
+    const missingDocuments = scopedApplications.filter((app) =>
       app.documents.some((doc) => doc.status === "missing"),
     ).length;
 
     // 4. Approved
-    const approved = applicationsInRange.filter(
+    const approved = scopedApplications.filter(
       (app) => app.status === "accepted",
     ).length;
 
     // 5. Rejected
-    const rejected = applicationsInRange.filter(
+    const rejected = scopedApplications.filter(
       (app) => app.status === "rejected",
     ).length;
 
     // 6. Average Processing Time
-    const decidedApps = applicationsInRange.filter(
+    const decidedApps = scopedApplications.filter(
       (app) => app.status === "accepted" || app.status === "rejected",
     );
 
@@ -342,7 +219,7 @@ export default function ApplicationsList() {
     }
 
     return {
-      newInPeriod,
+      total,
       newToday,
       newThisWeek,
       pendingReview,
@@ -351,7 +228,18 @@ export default function ApplicationsList() {
       rejected,
       avgProcessingDisplay,
     };
-  }, [customEndDate, customStartDate, dateRange, scopedApplications]);
+  }, [scopedApplications]);
+
+  const handleSubmitApp = async (appId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await submitApplication(appId);
+      await loadApplications();
+    } catch (err) {
+      console.error("Failed to submit application:", err);
+      alert("Failed to submit application.");
+    }
+  };
 
   const columns = [
     {
@@ -364,36 +252,7 @@ export default function ApplicationsList() {
       label: t("student_name"),
       searchable: true,
       render: (_: unknown, row: Application) => {
-        // Use Arabic name if locale is Arabic, otherwise English
         return locale === "ar" ? row.full_name_ar : row.full_name_en;
-      },
-    },
-    {
-      key: "dateOfBirth",
-      label: t("date_of_birth"),
-      render: (value: unknown) =>
-        value ? new Date(value as string).toLocaleDateString() : "N/A",
-    },
-    {
-      key: "gender",
-      label: t("gender"),
-      render: (value: unknown) => (value ? String(value) : "N/A"),
-    },
-    {
-      key: "nationality",
-      label: t("nationality"),
-      render: (value: unknown) => (value ? String(value) : "N/A"),
-    },
-    {
-      key: "gradeRequested",
-      label: t("grade"),
-      render: (value: unknown) => {
-        if (!value) return "ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â";
-        const grade = String(value);
-        // Convert grade to translation key (e.g., "Grade 6" -> "grade_6")
-        const gradeKey = grade.toLowerCase().replace(/\s+/g, "_");
-        const translated = t_grades(gradeKey);
-        return translated !== gradeKey ? translated : grade;
       },
     },
     {
@@ -404,24 +263,32 @@ export default function ApplicationsList() {
       ),
     },
     {
-      key: "guardianName",
-      label: t("guardian"),
-      searchable: true,
-    },
-    {
       key: "submittedDate",
       label: t("submitted"),
       render: (value: unknown) =>
         new Date(value as string).toLocaleDateString(),
     },
+    {
+      key: "actions",
+      label: "",
+      sortable: false,
+      render: (_: unknown, row: Application) =>
+        row.status === "documents_pending" ? (
+          <button
+            type="button"
+            onClick={(e) => handleSubmitApp(row.id, e)}
+            disabled={isReadOnly}
+            className="px-3 py-1 bg-primary hover:bg-hover text-white rounded text-xs font-medium transition-colors disabled:opacity-60"
+          >
+            {t("submit")}
+          </button>
+        ) : null,
+    },
   ];
 
   const hasActiveFilters =
     searchQuery !== "" ||
-    statusFilter !== "all" ||
-    gradeFilter !== "all" ||
-    genderFilter !== "all" ||
-    nationalityFilter !== "all";
+    statusFilter !== "all";
 
   const clearFilters = () => {
     reset(undefined, "replace");
@@ -439,11 +306,22 @@ export default function ApplicationsList() {
         ...data,
         requestedAcademicYearId: yearId,
       } as ApplicationCreationPayload & { requestedAcademicYearId?: string });
-      alert(
-        createdApplication.status === "documents_pending"
-          ? "Application submitted with pending required documents."
-          : "Application created successfully!",
-      );
+
+      // Upload documents and link them to the application
+      const uploadedDocs = data.documents.filter((doc) => doc.uploaded && doc.file);
+      for (const doc of uploadedDocs) {
+        try {
+          const fileId = await uploadAdmissionsFile(doc.file!);
+          await createApplicationDocument(createdApplication.id, {
+            fileId,
+            documentType: doc.labelEn,
+            status: "complete",
+          });
+        } catch (docError) {
+          console.error(`Failed to upload document ${doc.labelEn}:`, docError);
+        }
+      }
+
       await loadApplications();
       setIsCreateAppOpen(false);
     } catch (error) {
@@ -464,52 +342,15 @@ export default function ApplicationsList() {
 
   return (
     <div className="space-y-6">
-      {/* Date Range Filter */}
-      <DateRangeFilter
-        value={dateRange}
-        onChange={(nextRange) => {
-          const shouldResetCustom = nextRange !== "custom";
-          setValues(
-            {
-              dateRange: nextRange,
-              startDate: shouldResetCustom ? null : customStartDate || null,
-              endDate: shouldResetCustom ? null : customEndDate || null,
-            },
-            "push",
-          );
-        }}
-        customStartDate={customStartDate}
-        customEndDate={customEndDate}
-        onCustomDateChange={(start, end) => {
-          setValues(
-            {
-              dateRange: "custom",
-              startDate: start || null,
-              endDate: end || null,
-            },
-            "replace",
-          );
-        }}
-        showAllTime={true}
-      />
-
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <KPICardV2
-          title={
-            dateRange === "all"
-              ? t("total_applications")
-              : t("applications_period", { days: dateRange })
-          }
-          value={kpis.newInPeriod}
-          subtitle={
-            dateRange === "all"
-              ? t("today_week_stats", {
-                  today: kpis.newToday,
-                  week: kpis.newThisWeek,
-                })
-              : t("in_selected_period")
-          }
+          title={t("total_applications")}
+          value={kpis.total}
+          subtitle={t("today_week_stats", {
+            today: kpis.newToday,
+            week: kpis.newThisWeek,
+          })}
           icon={Users}
           iconColor="#3b82f6"
           iconBgColor="#dbeafe"
@@ -517,7 +358,7 @@ export default function ApplicationsList() {
             { label: "W1", value: 25 },
             { label: "W2", value: 30 },
             { label: "W3", value: 35 },
-            { label: "W4", value: kpis.newInPeriod },
+            { label: "W4", value: kpis.total },
           ]}
           chartColor="#3b82f6"
         />
@@ -655,7 +496,7 @@ export default function ApplicationsList() {
           </div>
         }
         filtersSlot={
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
                 {tFilters("status")}
@@ -680,63 +521,6 @@ export default function ApplicationsList() {
                 <option value="accepted">{tStatus("accepted")}</option>
                 <option value="waitlisted">{t("waitlisted")}</option>
                 <option value="rejected">{tStatus("rejected")}</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {tFilters("grade")}
-              </label>
-              <select
-                value={gradeFilter}
-                onChange={(e) => setValue("grade", e.target.value, "push")}
-                className="w-full px-3 text-black py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">{tFilters("all")}</option>
-                {uniqueGrades.map((grade) => {
-                  const gradeKey = grade.toLowerCase().replace(/\s+/g, "_");
-                  const translated = t_grades(gradeKey);
-                  return (
-                    <option key={grade} value={grade}>
-                      {translated !== gradeKey ? translated : grade}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {t("gender")}
-              </label>
-              <select
-                value={genderFilter}
-                onChange={(e) => setValue("gender", e.target.value, "push")}
-                className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">{t("all_genders")}</option>
-                {uniqueGenders.map((gender) => (
-                  <option key={gender} value={gender}>
-                    {gender}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {t("nationality")}
-              </label>
-              <select
-                value={nationalityFilter}
-                onChange={(e) =>
-                  setValue("nationality", e.target.value, "push")
-                }
-                className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">{t("all_nationalities")}</option>
-                {uniqueNationalities.map((nationality) => (
-                  <option key={nationality} value={nationality}>
-                    {nationality}
-                  </option>
-                ))}
               </select>
             </div>
           </div>

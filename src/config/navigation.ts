@@ -27,6 +27,8 @@ import {
   Building2,
   Award,
   ListChecks,
+  CheckSquare,
+  Gift,
 } from "lucide-react";
 import {
   mockLeads,
@@ -617,6 +619,22 @@ export const menuItems: MenuItem[] = [
         href_en: "/en/reinforcement/xp/ledger",
         href_ar: "/ar/reinforcement/xp/ledger",
         icon: ClipboardList,
+      },
+      {
+        key: "reinforcement-reviews",
+        label_en: "Reviews",
+        label_ar: "المراجعات",
+        href_en: "/en/reinforcement/reviews",
+        href_ar: "/ar/reinforcement/reviews",
+        icon: CheckSquare,
+      },
+      {
+        key: "reinforcement-rewards",
+        label_en: "Rewards",
+        label_ar: "المكافآت",
+        href_en: "/en/reinforcement/rewards",
+        href_ar: "/ar/reinforcement/rewards",
+        icon: Gift,
       },
     ],
   },

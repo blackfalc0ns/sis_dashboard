@@ -262,7 +262,6 @@ export interface GetEffectiveXpPolicyParams {
   academicYearId?: string;
   termId?: string;
   studentId?: string;
-  enrollmentId?: string;
   scopeType?: XpPolicyScopeType;
   scopeId?: string;
   [key: string]: string | number | boolean | undefined;
@@ -493,4 +492,248 @@ export interface ClassroomReinforcementSummary {
   students?: unknown[];
   xpSummary?: XpSummary;
   [key: string]: unknown;
+}
+
+// ─── Review Types ────────────────────────────────────────────────────────────
+
+export type ReinforcementReviewStatus = "submitted" | "approved" | "rejected";
+
+export interface SubmitReinforcementStagePayload {
+  proofText?: string;
+  proofFileId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ListReinforcementReviewQueueParams {
+  academicYearId?: string;
+  termId?: string;
+  status?: string;
+  source?: string;
+  taskId?: string;
+  studentId?: string;
+  classroomId?: string;
+  search?: string;
+  submittedFrom?: string;
+  submittedTo?: string;
+  limit?: number;
+  offset?: number;
+  [key: string]: string | number | boolean | undefined;
+}
+
+export interface ReviewReinforcementSubmissionPayload {
+  note?: string;
+  noteAr?: string;
+}
+
+export interface ReinforcementReviewItem {
+  id: string;
+  assignmentId: string;
+  taskId: string;
+  stageId: string;
+  studentId: string;
+  enrollmentId: string;
+  status: ReinforcementReviewStatus;
+  submittedAt?: string;
+  reviewedAt?: string;
+  task: Record<string, unknown>;
+  stage: Record<string, unknown>;
+  student: Record<string, unknown>;
+  assignment: Record<string, unknown>;
+  proof: Record<string, unknown>;
+  currentReview?: Record<string, unknown>;
+  reviewHistory?: Array<Record<string, unknown>>;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+export type ReinforcementReviewQueueResponse =
+  ReinforcementListResponse<ReinforcementReviewItem>;
+
+export interface GrantXpForReviewPayload {
+  amount?: number;
+  reason?: string;
+  reasonAr?: string;
+}
+
+// ─── Reward Types ────────────────────────────────────────────────────────────
+
+export type RewardCatalogStatus = "draft" | "published" | "archived";
+
+export type RewardItemType =
+  | "physical"
+  | "digital"
+  | "privilege"
+  | "certificate"
+  | "other";
+
+export type RedemptionStatus =
+  | "requested"
+  | "approved"
+  | "rejected"
+  | "fulfilled"
+  | "cancelled";
+
+export type RedemptionRequestSource =
+  | "dashboard"
+  | "teacher"
+  | "student_app"
+  | "parent_app"
+  | "system";
+
+export interface RewardCatalogItem {
+  id: string;
+  academicYearId?: string;
+  termId?: string;
+  titleEn?: string;
+  titleAr?: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  type?: RewardItemType;
+  status?: RewardCatalogStatus;
+  minTotalXp?: number;
+  stockQuantity?: number;
+  stockRemaining?: number;
+  isUnlimited?: boolean;
+  imageFileId?: string;
+  sortOrder?: number;
+  metadata?: Record<string, unknown>;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+export interface CreateRewardCatalogItemPayload {
+  academicYearId?: string;
+  termId?: string;
+  titleEn: string;
+  titleAr?: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  type: RewardItemType;
+  minTotalXp?: number;
+  stockQuantity?: number;
+  isUnlimited?: boolean;
+  imageFileId?: string;
+  sortOrder?: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface UpdateRewardCatalogItemPayload {
+  titleEn?: string;
+  titleAr?: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  type?: RewardItemType;
+  minTotalXp?: number;
+  stockQuantity?: number;
+  isUnlimited?: boolean;
+  imageFileId?: string;
+  sortOrder?: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ArchiveRewardCatalogItemPayload {
+  reason?: string;
+  reasonAr?: string;
+}
+
+export interface ListRewardCatalogParams {
+  status?: RewardCatalogStatus;
+  type?: RewardItemType;
+  search?: string;
+  onlyAvailable?: boolean;
+  limit?: number;
+  offset?: number;
+  [key: string]: string | number | boolean | undefined;
+}
+
+export interface RewardRedemption {
+  id: string;
+  catalogItemId: string;
+  studentId: string;
+  enrollmentId?: string;
+  academicYearId?: string;
+  termId?: string;
+  status: RedemptionStatus;
+  requestSource?: RedemptionRequestSource;
+  requestNoteEn?: string;
+  requestNoteAr?: string;
+  reviewNoteEn?: string;
+  reviewNoteAr?: string;
+  fulfillmentNoteEn?: string;
+  fulfillmentNoteAr?: string;
+  cancellationReasonEn?: string;
+  cancellationReasonAr?: string;
+  requestedAt?: string;
+  reviewedAt?: string;
+  fulfilledAt?: string;
+  cancelledAt?: string;
+  catalogItem?: RewardCatalogItem;
+  student?: Record<string, unknown>;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+export interface CreateRewardRedemptionPayload {
+  catalogItemId: string;
+  studentId: string;
+  enrollmentId?: string;
+  academicYearId?: string;
+  termId?: string;
+  requestSource?: RedemptionRequestSource;
+  requestNoteEn?: string;
+  requestNoteAr?: string;
+}
+
+export interface CancelRewardRedemptionPayload {
+  cancellationReasonEn?: string;
+  cancellationReasonAr?: string;
+}
+
+export interface ApproveRewardRedemptionPayload {
+  reviewNoteEn?: string;
+  reviewNoteAr?: string;
+}
+
+export interface RejectRewardRedemptionPayload {
+  reviewNoteEn?: string;
+  reviewNoteAr?: string;
+}
+
+export interface FulfillRewardRedemptionPayload {
+  fulfillmentNoteEn?: string;
+  fulfillmentNoteAr?: string;
+}
+
+export interface ListRewardRedemptionsParams {
+  status?: RedemptionStatus;
+  studentId?: string;
+  catalogItemId?: string;
+  search?: string;
+  requestedFrom?: string;
+  requestedTo?: string;
+  limit?: number;
+  offset?: number;
+  [key: string]: string | number | boolean | undefined;
+}
+
+export interface RewardsOverviewParams {
+  academicYearId?: string;
+  termId?: string;
+  [key: string]: string | number | boolean | undefined;
+}
+
+export interface StudentRewardsSummaryParams {
+  academicYearId?: string;
+  termId?: string;
+  [key: string]: string | number | boolean | undefined;
+}
+
+export interface RewardCatalogSummaryParams {
+  academicYearId?: string;
+  termId?: string;
+  status?: RewardCatalogStatus;
+  [key: string]: string | number | boolean | undefined;
 }

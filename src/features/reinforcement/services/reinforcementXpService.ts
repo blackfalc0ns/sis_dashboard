@@ -3,6 +3,7 @@ import type {
   CreateXpPolicyPayload,
   GetEffectiveXpPolicyParams,
   GetXpSummaryParams,
+  GrantXpForReviewPayload,
   ListXpLedgerParams,
   ListXpLedgerResponse,
   ListXpPoliciesParams,
@@ -22,6 +23,7 @@ import {
 
 const XP_POLICIES_ENDPOINT = "/reinforcement/xp/policies";
 const MANUAL_GRANTS_ENDPOINT = "/reinforcement/xp/grants/manual";
+const REINFORCEMENT_REVIEW_GRANT_ENDPOINT = "/reinforcement/xp/grants/reinforcement-review";
 const XP_LEDGER_ENDPOINT = "/reinforcement/xp/ledger";
 const XP_SUMMARY_ENDPOINT = "/reinforcement/xp/summary";
 
@@ -152,4 +154,15 @@ export async function getXpSummary(
   const query = buildReinforcementQueryString(params);
   const response = await apiGet<unknown>(`${XP_SUMMARY_ENDPOINT}${query}`);
   return unwrapReinforcementItemResponse<XpSummary>(response);
+}
+
+export async function grantXpForReinforcementReview(
+  submissionId: string,
+  payload: GrantXpForReviewPayload,
+): Promise<ManualXpGrantResponse> {
+  const response = await apiPost<unknown>(
+    `${REINFORCEMENT_REVIEW_GRANT_ENDPOINT}/${submissionId}`,
+    payload,
+  );
+  return unwrapReinforcementItemResponse<ManualXpGrantResponse>(response);
 }

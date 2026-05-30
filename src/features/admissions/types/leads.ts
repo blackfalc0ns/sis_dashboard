@@ -7,8 +7,5 @@ export type {
   Lead,
   LeadChannel,
   LeadStatus,
-  ActivityType,
-  ActivityLogItem,
-  Note,
   ApplicationDraft,
 } from "./admissions";

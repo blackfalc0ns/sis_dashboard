@@ -546,7 +546,8 @@
       "rejected": "مرفوضة",
       "declined_applications": "طلبات مرفوضة",
       "avg_processing_time": "متوسط وقت المعالجة",
-      "time_to_decision": "الوقت للقرار"
+      "time_to_decision": "الوقت للقرار",
+      "submit": "تقديم"
     },
     "filters": {
       "filters_button": "التصفية",
@@ -878,7 +879,10 @@
         "required": "مطلوب",
         "optional": "اختياري",
         "pending_warning": "هناك مستندات معلقة",
-        "pending_submit_note": "تأكد من رفع جميع المستندات المطلوبة قبل تقديم الطلب."
+        "pending_submit_note": "تأكد من رفع جميع المستندات المطلوبة قبل تقديم الطلب.",
+        "add_custom": "إضافة نوع مستند مخصص",
+        "custom_placeholder": "أدخل اسم نوع المستند...",
+        "add_btn": "إضافة"
       },
       "errors": {
         "full_name_ar_required": "الاسم بالعربية مطلوب",
@@ -953,7 +957,17 @@
         "phone": "الهاتف"
       },
       "documents": {
-        "title": "المستندات المطلوبة"
+        "title": "المستندات",
+        "add": "إضافة مستند",
+        "uploading": "جاري الرفع...",
+        "no_documents": "لم يتم رفع مستندات بعد",
+        "upload_first": "رفع مستند",
+        "select_type": "اختر نوع المستند",
+        "other_type": "أخرى (نوع مخصص)",
+        "enter_type": "أدخل نوع المستند...",
+        "already_uploaded": "تم رفعه مسبقاً",
+        "cancel": "إلغاء",
+        "choose_file": "اختر ملف"
       },
       "tests": {
         "title": "اختبارات القبول",
@@ -983,7 +997,9 @@
         "schedule_test": "جدولة اختبار",
         "schedule_interview": "جدولة مقابلة",
         "make_decision": "اتخاذ قرار",
-        "enroll_student": "تسجيل الطالب"
+        "enroll_student": "تسجيل الطالب",
+        "submit_application": "تقديم الطلب",
+        "enrolled_status": "تم تسجيل الطالب بنجاح"
       }
     },
     "schedule_test": {
@@ -1089,7 +1105,8 @@
       "acceptance_generated": "تم إنشاء خطاب القبول بنجاح!",
       "contract_generated": "تم إنشاء العقد الأولي بنجاح!",
       "cancel": "إلغاء",
-      "confirm_enrollment": "تأكيد التسجيل"
+      "confirm_enrollment": "تأكيد التسجيل",
+      "enrolling": "جاري التسجيل..."
     },
     "test_score_modal": {
       "title": "إدخال درجة الاختبار",
@@ -7033,6 +7050,8 @@
       "overview": "النظرة العامة",
       "templates": "القوالب",
       "tasks": "المهام",
+      "reviews": "المراجعات",
+      "rewards": "المكافآت",
       "xpPolicies": "سياسات النقاط",
       "xpLedger": "سجل النقاط"
     },
@@ -7099,7 +7118,10 @@
         "status": "الحالة",
         "source": "المصدر",
         "rewardType": "نوع المكافأة",
-        "dueDate": "تاريخ الاستحقاق"
+        "dueDate": "تاريخ الاستحقاق",
+        "assignedBy": "أسندت بواسطة",
+        "cancelledAt": "تاريخ الإلغاء",
+        "createdAt": "تاريخ الإنشاء"
       },
       "form": {
         "create": "إنشاء المهمة",
@@ -7213,7 +7235,9 @@
       "amount": "الكمية",
       "reason": "السبب",
       "reasonAr": "السبب (عربي)",
-      "sourceId": "معرّف المصدر",
+      "sourceId": "المصدر (المهمة)",
+      "noSource": "بدون مصدر (منح يدوي)",
+      "noTasksAvailable": "لا توجد مهام متاحة. اختر العام والفصل أولاً.",
       "dedupeKey": "مفتاح منع التكرار",
       "dedupeKeyHelp": "اتركه فارغاً لإنشاء مفتاح فريد عند الإرسال.",
       "messages": {
@@ -7234,13 +7258,16 @@
         "amount": "الكمية",
         "reason": "السبب",
         "sourceId": "المصدر",
+        "source": "المصدر",
         "createdAt": "تاريخ الإنشاء"
       },
       "summary": {
         "totalXp": "إجمالي النقاط",
         "earnedXp": "النقاط المكتسبة",
         "spentXp": "النقاط المصروفة",
-        "balance": "الرصيد"
+        "balance": "الرصيد",
+        "studentsCount": "الطلاب",
+        "averageXp": "متوسط النقاط"
       }
     },
     "common": {
@@ -7256,7 +7283,14 @@
       "term": "الفصل الدراسي",
       "student": "الطالب",
       "classroom": "الفصل",
-      "subject": "المادة"
+      "subject": "المادة",
+      "yes": "نعم",
+      "no": "لا",
+      "search": "بحث..."
+    },
+    "validation": {
+      "atLeastOneTitle": "يجب إدخال عنوان واحد على الأقل (إنجليزي أو عربي).",
+      "xpAmountRequired": "يرجى إدخال قيمة نقاط خبرة صالحة أكبر من صفر."
     },
     "rewards": "المكافآت",
     "overviewDescription": "تابع حالة مهام التعزيز والمؤشرات الرئيسية وأداء الطلاب من مكان واحد.",
@@ -7316,6 +7350,7 @@
       "cancel": "إلغاء",
       "duplicate": "نسخ",
       "grantXp": "منح نقاط",
+      "skip": "تخطي",
       "patchPolicy": "تحديث السياسة",
       "viewLedger": "عرض السجل"
     },
@@ -7627,6 +7662,173 @@
         "reward": "المكافآت",
         "task": "المهام",
         "submission": "الإرسال"
+      }
+    },
+    "reviews": {
+      "title": "المراجعات",
+      "description": "مراجعة واعتماد تقديمات الطلاب لمهام التعزيز.",
+      "table": {
+        "student": "الطالب",
+        "task": "المهمة",
+        "stage": "المرحلة",
+        "status": "الحالة",
+        "submittedAt": "تاريخ الإرسال",
+        "actions": "الإجراءات"
+      },
+      "status": {
+        "submitted": "تم الإرسال",
+        "approved": "تمت الموافقة",
+        "rejected": "مرفوض"
+      },
+      "actions": {
+        "approve": "موافقة",
+        "reject": "رفض",
+        "viewDetail": "عرض التفاصيل"
+      },
+      "messages": {
+        "approved": "تمت الموافقة على التقديم بنجاح.",
+        "rejected": "تم رفض التقديم بنجاح.",
+        "error": "حدث خطأ أثناء معالجة المراجعة."
+      },
+      "emptyState": "لا توجد تقديمات بانتظار المراجعة.",
+      "detail": {
+        "title": "تفاصيل المراجعة",
+        "proof": "الإثبات",
+        "history": "سجل المراجعات",
+        "grantXp": "منح نقاط الخبرة",
+        "grantXpDescription": "يمكنك منح نقاط خبرة للطالب اختيارياً بعد الموافقة على التقديم.",
+        "xpGranted": "تم منح نقاط الخبرة بنجاح.",
+        "taskInfo": "معلومات المهمة",
+        "stageInfo": "معلومات المرحلة",
+        "studentInfo": "معلومات الطالب",
+        "source": "المصدر",
+        "dueDate": "تاريخ الاستحقاق",
+        "proofType": "نوع الإثبات",
+        "requiresApproval": "تتطلب موافقة",
+        "studentCode": "رمز الطالب",
+        "submittedAt": "تاريخ التقديم",
+        "proofText": "نص الإثبات",
+        "proofFile": "ملف الإثبات",
+        "viewFile": "عرض الملف",
+        "noProof": "لم يتم تقديم إثبات.",
+        "noHistory": "لا يوجد سجل مراجعات بعد.",
+        "approveTitle": "الموافقة على التقديم",
+        "approveDescription": "الموافقة على تقديم الطالب. يمكنك إضافة ملاحظة اختيارية.",
+        "rejectTitle": "رفض التقديم",
+        "rejectDescription": "رفض تقديم الطالب. يمكنك إضافة ملاحظة اختيارية توضح السبب.",
+        "noteEn": "ملاحظة (إنجليزي)",
+        "noteAr": "ملاحظة (عربي)",
+        "notePlaceholder": "أضف ملاحظة اختيارية...",
+        "notePlaceholderAr": "أضف ملاحظة اختيارية..."
+      }
+    },
+    "rewardsModule": {
+      "title": "المكافآت",
+      "description": "إدارة كتالوج المكافآت وطلبات استبدال الطلاب.",
+      "overview": {
+        "totalCatalogItems": "إجمالي عناصر الكتالوج",
+        "activeItems": "العناصر النشطة",
+        "pendingRedemptions": "طلبات الاستبدال المعلقة",
+        "fulfilledThisMonth": "المنجزة هذا الشهر"
+      },
+      "catalog": {
+        "title": "كتالوج المكافآت",
+        "addReward": "إضافة مكافأة",
+        "stock": {
+          "unlimited": "غير محدود"
+        },
+        "table": {
+          "title": "العنوان",
+          "type": "النوع",
+          "xpCost": "تكلفة النقاط",
+          "stock": "المخزون",
+          "status": "الحالة",
+          "actions": "الإجراءات"
+        }
+      },
+      "redemptions": {
+        "title": "الاستبدالات",
+        "description": "عرض وإدارة طلبات استبدال المكافآت للطلاب.",
+        "filters": {
+          "requestedFrom": "من تاريخ",
+          "requestedTo": "إلى تاريخ"
+        },
+        "table": {
+          "student": "الطالب",
+          "reward": "المكافأة",
+          "status": "الحالة",
+          "source": "المصدر",
+          "requestedAt": "تاريخ الطلب",
+          "actions": "الإجراءات"
+        },
+        "modal": {
+          "approveTitle": "الموافقة على الاستبدال",
+          "approveDescription": "هل أنت متأكد من الموافقة على طلب الاستبدال هذا؟ سيتم إخطار الطالب.",
+          "rejectTitle": "رفض الاستبدال",
+          "rejectDescription": "هل أنت متأكد من رفض طلب الاستبدال هذا؟ سيتم إخطار الطالب.",
+          "fulfillTitle": "تنفيذ الاستبدال",
+          "fulfillDescription": "تأكيد تنفيذ الاستبدال. تم تسليم المكافأة للطالب.",
+          "cancelTitle": "إلغاء الاستبدال",
+          "cancelDescription": "هل أنت متأكد من إلغاء هذا الاستبدال؟ لا يمكن التراجع عن هذا الإجراء.",
+          "reviewNoteEn": "ملاحظة المراجعة (إنجليزي)",
+          "reviewNoteAr": "ملاحظة المراجعة (عربي)",
+          "fulfillmentNoteEn": "ملاحظة التنفيذ (إنجليزي)",
+          "fulfillmentNoteAr": "ملاحظة التنفيذ (عربي)",
+          "cancellationReasonEn": "سبب الإلغاء (إنجليزي)",
+          "cancellationReasonAr": "سبب الإلغاء (عربي)",
+          "confirmApprove": "موافقة",
+          "confirmReject": "رفض",
+          "confirmFulfill": "تنفيذ",
+          "confirmCancel": "إلغاء الاستبدال"
+        }
+      },
+      "status": {
+        "draft": "مسودة",
+        "published": "منشور",
+        "archived": "مؤرشف",
+        "requested": "مطلوب",
+        "approved": "تمت الموافقة",
+        "rejected": "مرفوض",
+        "fulfilled": "تم التنفيذ",
+        "cancelled": "ملغي"
+      },
+      "type": {
+        "physical": "مادي",
+        "digital": "رقمي",
+        "privilege": "امتياز",
+        "certificate": "شهادة",
+        "other": "أخرى"
+      },
+      "actions": {
+        "publish": "نشر",
+        "archive": "أرشفة",
+        "approve": "موافقة",
+        "reject": "رفض",
+        "fulfill": "تنفيذ",
+        "cancel": "إلغاء",
+        "edit": "تعديل",
+        "create": "إنشاء"
+      },
+      "messages": {
+        "created": "تم إنشاء المكافأة بنجاح.",
+        "updated": "تم تحديث المكافأة بنجاح.",
+        "published": "تم نشر المكافأة بنجاح.",
+        "archived": "تم أرشفة المكافأة بنجاح.",
+        "approved": "تمت الموافقة على طلب الاستبدال بنجاح.",
+        "rejected": "تم رفض طلب الاستبدال بنجاح.",
+        "fulfilled": "تم تنفيذ طلب الاستبدال بنجاح.",
+        "cancelled": "تم إلغاء طلب الاستبدال بنجاح."
+      },
+      "emptyStates": {
+        "catalog": "لا توجد مكافآت في الكتالوج حتى الآن.",
+        "redemptions": "لا توجد طلبات استبدال."
+      },
+      "source": {
+        "dashboard": "لوحة التحكم",
+        "teacher": "المعلم",
+        "student_app": "تطبيق الطالب",
+        "parent_app": "تطبيق ولي الأمر",
+        "system": "النظام"
       }
     }
   },

@@ -12,7 +12,6 @@ import {
   Mail,
   Calendar,
   Tag,
-  TrendingUp,
   MessageCircle,
   ArrowRight,
   Edit,
@@ -21,18 +20,14 @@ import MainLoader from "@/components/ui/loaders/MainLoader";
 import LeadStatusBadge from "@/features/admissions/leads/components/LeadStatusBadge";
 import CreateLeadModal from "@/features/admissions/leads/components/CreateLeadModal";
 import ApplicationCreateStepper from "@/features/admissions/applications/components/ApplicationCreateStepper";
-import ActivityLog from "@/features/admissions/leads/components/ActivityLog";
-import NotesPanel from "@/features/admissions/leads/components/NotesPanel";
 import LeadChatPanel from "@/features/admissions/leads/components/LeadChatPanel";
 import TabNavigation from "@/features/admissions/shared/TabNavigation";
 import {
   fetchLeadById,
   updateLead,
 } from "@/features/admissions/leads/services/leadsApiService";
-import { Lead, ActivityType } from "@/features/admissions/types/leads";
+import { Lead } from "@/features/admissions/types/leads";
 import type {
-  ActivityLogItem,
-  Note,
   UpdateLeadPayload,
 } from "@/features/admissions/leads/types/lead";
 import {
@@ -54,9 +49,6 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
   const { showToast } = useToast();
   const [lead, setLead] = useState<Lead | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  // Activity log and notes are UI-ready stubs (no backend endpoint)
-  const [activities] = useState<ActivityLogItem[]>([]);
-  const [notes] = useState<Note[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [unreadCount] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -85,17 +77,6 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
   }
 
   const displayName = lead.studentName || lead.primaryContactName || lead.name || "";
-
-  const handleAddActivity = (type: ActivityType, message: string) => {
-    void type;
-    void message;
-    showToast("Activity log is not yet available from the API.", "info");
-  };
-
-  const handleAddNote = (body: string) => {
-    void body;
-    showToast("Notes are not yet available from the API.", "info");
-  };
 
   const handleConvertToApplication = () => {
     setIsCreateApplicationOpen(true);
@@ -145,12 +126,6 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
       label: t("overview"),
       icon: <User className="w-4 h-4" />,
     },
-    {
-      id: "activity",
-      label: t("activity_log"),
-      icon: <TrendingUp className="w-4 h-4" />,
-    },
-    { id: "notes", label: t("notes"), icon: <Tag className="w-4 h-4" /> },
   ];
 
   return (
@@ -311,17 +286,6 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
               leadEmail={lead.email || ""}
               onMessagesRead={() => {}}
             />
-          )}
-
-          {activeTab === "activity" && (
-            <ActivityLog
-              activities={activities}
-              onAddActivity={handleAddActivity}
-            />
-          )}
-
-          {activeTab === "notes" && (
-            <NotesPanel notes={notes} onAddNote={handleAddNote} />
           )}
         </div>
       </div>

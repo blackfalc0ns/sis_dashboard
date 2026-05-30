@@ -122,13 +122,15 @@ export default function ConversationPage({
       return;
     }
 
+    // If the currently selected conversation was removed from the visible list
+    // (e.g., deleted or filtered out), deselect it. But do NOT auto-select another one.
     if (
       selectedConversationId &&
-      visibleConversations.some((item) => item.id === selectedConversationId)
+      !visibleConversations.some((item) => item.id === selectedConversationId)
     ) {
-      return;
+      setSelectedConversationId(null);
+      setShowMobileThread(false);
     }
-    setSelectedConversationId(visibleConversations[0]?.id ?? null);
   }, [initialConversationId, selectedConversationId, visibleConversations]);
 
   useEffect(() => {

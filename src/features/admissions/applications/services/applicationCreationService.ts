@@ -13,6 +13,7 @@ export interface UploadedApplicationDocumentInput {
   uploaded: boolean;
   fileName?: string;
   fileType?: "pdf" | "image" | "doc";
+  file?: File;
 }
 
 export interface ApplicationCreationPayload {

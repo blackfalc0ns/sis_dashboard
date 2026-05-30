@@ -12,7 +12,11 @@ const INTERVIEWS_ENDPOINT = "/admissions/interviews";
 
 export interface FetchInterviewsParams {
   search?: string;
-  applicationId?: string;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface CreateInterviewPayload {
@@ -35,19 +39,13 @@ export type UpdateInterviewPayload =
   Partial<CreateInterviewPayload & CompleteInterviewPayload>;
 
 const toCreateBody = (payload: CreateInterviewPayload) => {
-  if (!payload.interviewerUserId) {
-    throw new Error("interviewerUserId is required to schedule an interview.");
-  }
-
   return {
     applicationId: payload.applicationId,
-    studentName: payload.studentName,
     scheduledAt:
       payload.scheduledAt ||
       toIsoFromDateAndTime(payload.date || "", payload.time || ""),
-    interviewerUserId: payload.interviewerUserId,
-    interviewerName: payload.interviewerName,
-    notes: payload.notes,
+    interviewerUserId: payload.interviewerUserId || undefined,
+    notes: payload.notes || undefined,
   };
 };
 

@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Application, Test } from "@/features/admissions/types/admissions";
 import StatusBadge from "../../../shared/StatusBadge";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
-import { fetchPlacementTests } from "@/features/admissions/tests/services/testsApiService";
+import {
+  fetchPlacementTests,
+  completePlacementTest,
+} from "@/features/admissions/tests/services/testsApiService";
+import TestScoreModal from "@/features/admissions/tests/components/TestScoreModal";
+import { useToast } from "@/components/ui/toast/Toast";
 
 interface TestsTabProps {
   application: Application;
@@ -18,31 +23,42 @@ export default function TestsTab({
 }: TestsTabProps) {
   const t = useTranslations("admissions.application360");
   const { isReadOnly } = useAdmissionsYearTermContext();
+  const { showToast } = useToast();
   const [tests, setTests] = useState<Test[]>(application.tests);
+  const [selectedTest, setSelectedTest] = useState<Test | null>(null);
+
+  const loadTests = useCallback(async () => {
+    try {
+      const nextTests = await fetchPlacementTests({});
+      setTests(
+        nextTests.filter((test) => test.applicationId === application.id),
+      );
+    } catch (error) {
+      console.error("Failed to load placement tests:", error);
+    }
+  }, [application.id]);
 
   useEffect(() => {
-    let cancelled = false;
-    void fetchPlacementTests({
-      applicationId: application.id,
-      search: application.studentName,
-    })
-      .then((nextTests) => {
-        if (!cancelled) {
-          setTests(
-            nextTests.filter(
-              (test) => !test.applicationId || test.applicationId === application.id,
-            ),
-          );
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to load placement tests:", error);
-      });
+    void loadTests();
+  }, [loadTests]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [application.id, application.studentName, application.tests]);
+  const handleScoreSubmit = async (
+    testId: string,
+    score: number,
+    _maxScore: number,
+    _status: "completed" | "failed",
+    notes?: string,
+  ) => {
+    try {
+      await completePlacementTest(testId, { score, notes });
+      showToast("Test score saved!", "success");
+      setSelectedTest(null);
+      await loadTests();
+    } catch (err) {
+      console.error("Failed to save test score:", err);
+      showToast("Failed to save test score.", "error");
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -67,19 +83,31 @@ export default function TestsTab({
           {tests.map((test) => (
             <div
               key={test.id}
-              className="p-4 border border-gray-200 rounded-lg"
+              onClick={() => {
+                if (!isReadOnly && test.status !== "cancelled") {
+                  setSelectedTest(test);
+                }
+              }}
+              className={`p-4 border border-gray-200 rounded-lg transition-colors ${
+                !isReadOnly && test.status !== "cancelled"
+                  ? "cursor-pointer hover:border-primary hover:bg-gray-50"
+                  : ""
+              }`}
             >
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-900">
-                    {test.subject} - {test.type}
+                    {test.type}
+                    {test.subjectName ? ` - ${test.subjectName}` : ""}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {test.date} {t("tests.at")} {test.time} • {test.location}
+                    {test.scheduledAt
+                      ? new Date(test.scheduledAt).toLocaleString()
+                      : `${test.date} ${test.time}`}
                   </p>
-                  {test.score !== undefined && (
+                  {test.score !== undefined && test.score !== null && (
                     <p className="text-sm font-medium text-primary mt-2">
-                      {t("tests.score")}: {test.score}/{test.maxScore}
+                      {t("tests.score")}: {test.score}
                     </p>
                   )}
                 </div>
@@ -88,6 +116,18 @@ export default function TestsTab({
             </div>
           ))}
         </div>
+      )}
+
+      {selectedTest && (
+        <TestScoreModal
+          test={{
+            ...selectedTest,
+            studentName: application.studentName,
+          }}
+          isOpen={true}
+          onClose={() => setSelectedTest(null)}
+          onSubmit={handleScoreSubmit}
+        />
       )}
     </div>
   );

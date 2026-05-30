@@ -50,6 +50,7 @@
     "use-debounce": "^10.1.0"
   },
   "devDependencies": {
+    "@fast-check/vitest": "^0.1.6",
     "@playwright/test": "^1.49.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.6.3",

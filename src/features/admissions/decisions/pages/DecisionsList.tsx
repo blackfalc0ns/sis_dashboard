@@ -1,8 +1,8 @@
-// FILE: src/components/admissions/DecisionsList.tsx
+// FILE: src/features/admissions/decisions/pages/DecisionsList.tsx
 
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import {
   Search,
@@ -14,67 +14,51 @@ import {
 } from "lucide-react";
 import { DataTable, FilterPanel } from "@/components/ui";
 import { KPICardV2 } from "@/components/ui/kpi-card";
-import DecisionModal from "@/features/admissions/decisions/components/DecisionModal";
-import DateRangeFilter, { DateRangeValue } from "@/features/admissions/shared/DateRangeFilter";
-import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
-import {
-  formatVisibleDecisionsForExport,
-} from "@/features/admissions/applications/utils/admissionsExportUtils";
-import { mockApplications, mockDecisions } from "@/data/mockAdmissions";
-import { Decision, DecisionType, Application } from "@/features/admissions/types/admissions";
+import { Decision, DecisionType } from "@/features/admissions/types/admissions";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
 import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
-import {
-  filterAdmissionsRecordsByDateContext,
-  resolveAdmissionsContextScope,
-} from "@/features/admissions/shared/utils/admissionsContextScope";
+import { formatVisibleDecisionsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
+import { fetchDecisions } from "@/features/admissions/decisions/services/decisionsApiService";
+import { useToast } from "@/components/ui/toast/Toast";
 
 export default function DecisionsList() {
   const t = useTranslations("admissions.decisions");
   const locale = useLocale();
-  const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
-  const [selectedApplication, setSelectedApplication] =
-    useState<Application | null>(null);
-  const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const { isReadOnly } = useAdmissionsYearTermContext();
+  const { showToast } = useToast();
 
+  const [decisions, setDecisions] = useState<Decision[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const admissionsScope = useMemo(
-    () => resolveAdmissionsContextScope(yearId, termId),
-    [termId, yearId],
-  );
+
+  const loadDecisions = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchDecisions();
+      setDecisions(data);
+    } catch (err) {
+      console.error("Failed to fetch decisions:", err);
+      showToast("Failed to load decisions", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    void loadDecisions();
+  }, [loadDecisions]);
 
   const normalizeQueryValues = useCallback(
-    (
-      values: Record<
-        "search" | "decision" | "dateRange" | "startDate" | "endDate",
-        string
-      >,
-    ) => {
+    (values: Record<"search" | "decision", string>) => {
       const updates: Partial<Record<keyof typeof values, string | null>> = {};
       const validDecisions = new Set(["all", "accept", "waitlist", "reject"]);
-      const validDateRanges = new Set([
-        "all",
-        "7",
-        "14",
-        "30",
-        "60",
-        "90",
-        "custom",
-      ]);
 
       if (!validDecisions.has(values.decision)) {
         updates.decision = null;
-      }
-      if (!validDateRanges.has(values.dateRange)) {
-        updates.dateRange = null;
-      }
-      if (values.dateRange !== "custom") {
-        if (values.startDate) updates.startDate = null;
-        if (values.endDate) updates.endDate = null;
       }
 
       return Object.keys(updates).length > 0 ? updates : null;
@@ -82,19 +66,13 @@ export default function DecisionsList() {
     [],
   );
 
-  const { values, setValue, setValues, reset } = useAdmissionsUrlQueryState<{
+  const { values, setValue, reset } = useAdmissionsUrlQueryState<{
     search: string;
     decision: string;
-    dateRange: string;
-    startDate: string;
-    endDate: string;
   }>({
     defaults: {
       search: "",
       decision: "all",
-      dateRange: "all",
-      startDate: "",
-      endDate: "",
     },
     debouncedKeys: ["search"],
     modeByKey: {
@@ -105,116 +83,37 @@ export default function DecisionsList() {
 
   const searchQuery = values.search;
   const decisionFilter = values.decision as DecisionType | "all";
-  const dateRange = values.dateRange as DateRangeValue;
-  const customStartDate = values.startDate;
-  const customEndDate = values.endDate;
 
-  // Get applications with decisions by linking decisions array to applications
-  const applicationsWithDecisions = useMemo(() => {
-    return mockDecisions
-      .map((decision) => {
-        const application = mockApplications.find(
-          (app) => app.id === decision.applicationId,
-        );
-
-        if (!application) {
-          return null;
-        }
-
-        return {
-          ...decision,
-          studentName:
-            locale === "ar"
-              ? application.full_name_ar ||
-                application.studentNameArabic ||
-                application.studentName
-              : application.full_name_en || application.studentName,
-          grade: application.gradeRequested,
-          application: application,
-        };
-      })
-      .filter((item): item is NonNullable<typeof item> => item !== null);
-  }, [locale]);
-  const scopedDecisions = useMemo(
-    () =>
-      filterAdmissionsRecordsByDateContext(
-        applicationsWithDecisions,
-        (decision) => decision.decisionDate,
-        admissionsScope,
-      ),
-    [admissionsScope, applicationsWithDecisions],
-  );
-
-  // Filter and search decisions
+  // Filter decisions
   const filteredDecisions = useMemo(() => {
-    const filterResult = getDateFilterBoundaries(
-      dateRange,
-      customStartDate,
-      customEndDate,
-    );
-
-    return scopedDecisions.filter((decision) => {
+    return decisions.filter((decision) => {
       const matchesSearch =
         searchQuery === "" ||
-        decision.studentName
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        decision.applicationId
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        decision.decidedBy.toLowerCase().includes(searchQuery.toLowerCase());
+        decision.applicationId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        decision.decidedBy.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        decision.reason.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesDecision =
         decisionFilter === "all" || decision.decision === decisionFilter;
-      const matchesDateRange = isDateInRange(
-        decision.decisionDate,
-        filterResult,
-      );
 
-      return matchesSearch && matchesDecision && matchesDateRange;
+      return matchesSearch && matchesDecision;
     });
-  }, [
-    scopedDecisions,
-    searchQuery,
-    decisionFilter,
-    dateRange,
-    customStartDate,
-    customEndDate,
-  ]);
+  }, [decisions, searchQuery, decisionFilter]);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
-    const filterResult = getDateFilterBoundaries(
-      dateRange,
-      customStartDate,
-      customEndDate,
-    );
-
-    const decisionsInRange = scopedDecisions.filter((decision) =>
-      isDateInRange(decision.decisionDate, filterResult),
-    );
-
-    const total = decisionsInRange.length;
-    const accepted = decisionsInRange.filter(
-      (d) => d.decision === "accept",
-    ).length;
-    const waitlisted = decisionsInRange.filter(
-      (d) => d.decision === "waitlist",
-    ).length;
-    const rejected = decisionsInRange.filter(
-      (d) => d.decision === "reject",
-    ).length;
-
+    const total = decisions.length;
+    const accepted = decisions.filter((d) => d.decision === "accept").length;
+    const waitlisted = decisions.filter((d) => d.decision === "waitlist").length;
+    const rejected = decisions.filter((d) => d.decision === "reject").length;
     const acceptanceRate =
       total > 0 ? ((accepted / total) * 100).toFixed(1) : "0.0";
 
     return { total, accepted, waitlisted, rejected, acceptanceRate };
-  }, [customEndDate, customStartDate, dateRange, scopedDecisions]);
+  }, [decisions]);
 
   const columns = [
     { key: "applicationId", label: t("application_id"), searchable: true },
-    { key: "studentName", label: t("student_name"), searchable: true },
-    { key: "grade", label: t("grade") },
     {
       key: "decision",
       label: t("decision"),
@@ -240,7 +139,7 @@ export default function DecisionsList() {
       key: "decisionDate",
       label: t("decision_date"),
       render: (value: unknown) =>
-        new Date(value as string).toLocaleDateString(),
+        value ? new Date(value as string).toLocaleDateString() : "-",
     },
     { key: "decidedBy", label: t("decided_by"), searchable: true },
     { key: "reason", label: t("reason") },
@@ -252,32 +151,15 @@ export default function DecisionsList() {
     reset(undefined, "replace");
   };
 
-  const handleRowClick = (
-    decision: Decision & {
-      studentName: string;
-      application: Application;
-      [key: string]: unknown;
-    },
-  ) => {
-    if (isReadOnly) return;
-    setSelectedApplication(decision.application);
-    setIsDecisionModalOpen(true);
-  };
-
-  const handleDecisionSubmit = (
-    decision: DecisionType,
-    reason: string,
-    date: string,
-  ) => {
-    console.log("Decision made:", { decision, reason, date });
-    alert(`Decision recorded: ${decision.toUpperCase()}`);
-    setIsDecisionModalOpen(false);
-  };
-
   const handleExport = async (format: "csv" | "json" | "excel") => {
     const exportLocale = format === "json" ? "en" : locale;
+    const exportData = filteredDecisions.map((d) => ({
+      ...d,
+      studentName: "",
+      grade: "",
+    }));
     downloadAdmissionsExport({
-      data: formatVisibleDecisionsForExport(filteredDecisions, exportLocale),
+      data: formatVisibleDecisionsForExport(exportData, exportLocale),
       format,
       filenameBase: "decisions",
       emptyMessage: hasActiveFilters ? t("no_match") : t("no_decisions"),
@@ -286,35 +168,6 @@ export default function DecisionsList() {
 
   return (
     <div className="space-y-6">
-      {/* Date Range Filter */}
-      <DateRangeFilter
-        value={dateRange}
-        onChange={(nextRange) => {
-          const shouldResetCustom = nextRange !== "custom";
-          setValues(
-            {
-              dateRange: nextRange,
-              startDate: shouldResetCustom ? null : customStartDate || null,
-              endDate: shouldResetCustom ? null : customEndDate || null,
-            },
-            "push",
-          );
-        }}
-        customStartDate={customStartDate}
-        customEndDate={customEndDate}
-        onCustomDateChange={(start, end) => {
-          setValues(
-            {
-              dateRange: "custom",
-              startDate: start || null,
-              endDate: end || null,
-            },
-            "replace",
-          );
-        }}
-        showAllTime={true}
-      />
-
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICardV2
@@ -458,7 +311,11 @@ export default function DecisionsList() {
       />
 
       {/* Table */}
-      {filteredDecisions.length === 0 ? (
+      {isLoading ? (
+        <div className="bg-white rounded-xl p-12 shadow-sm text-center">
+          <p className="text-gray-500">Loading decisions...</p>
+        </div>
+      ) : filteredDecisions.length === 0 ? (
         <div className="bg-white rounded-xl p-12 shadow-sm text-center">
           <p className="text-gray-500">
             {hasActiveFilters ? t("no_match") : t("no_decisions")}
@@ -473,17 +330,9 @@ export default function DecisionsList() {
           )}
         </div>
       ) : (
-        <DataTable<
-          Decision & {
-            studentName: string;
-            grade: string;
-            application: Application;
-            [key: string]: unknown;
-          }
-        >
+        <DataTable
           columns={columns}
-          data={filteredDecisions}
-          onRowClick={handleRowClick}
+          data={filteredDecisions as (Decision & { [key: string]: unknown })[]}
           searchQuery={searchQuery}
           urlState={{
             keyPrefix: "decisionsTable",
@@ -493,18 +342,6 @@ export default function DecisionsList() {
         />
       )}
 
-      {/* Decision Modal */}
-      {selectedApplication && (
-        <DecisionModal
-          application={selectedApplication}
-          isOpen={isDecisionModalOpen}
-          onClose={() => {
-            setIsDecisionModalOpen(false);
-            setSelectedApplication(null);
-          }}
-          onSubmit={handleDecisionSubmit}
-        />
-      )}
       <AdmissionsGlobalExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}

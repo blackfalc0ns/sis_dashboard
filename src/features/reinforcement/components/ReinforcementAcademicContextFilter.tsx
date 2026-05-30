@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlertCircle, ChevronRight, X } from "lucide-react";
 import { useLocale } from "next-intl";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
 import {
@@ -76,6 +76,8 @@ interface LoadState<T> {
   error: string | null;
 }
 
+const STORAGE_KEY = "reinforcement-academic-context";
+
 const labels = {
   en: {
     academicYear: "Academic year",
@@ -92,6 +94,7 @@ const labels = {
     loading: "Loading context options...",
     empty: "No context options are available.",
     error: "Could not load context options.",
+    reset: "Reset",
   },
   ar: {
     academicYear: "العام الدراسي",
@@ -108,6 +111,7 @@ const labels = {
     loading: "جارٍ تحميل خيارات السياق...",
     empty: "لا توجد خيارات سياق متاحة.",
     error: "تعذر تحميل خيارات السياق.",
+    reset: "إعادة تعيين",
   },
 } satisfies Record<Locale, Record<string, string>>;
 
@@ -188,6 +192,81 @@ const studentOption = (
   };
 };
 
+/* ─── Skeleton placeholder ─── */
+function SelectSkeleton({ label }: { label: string }) {
+  return (
+    <div className="w-full">
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label}
+      </label>
+      <div className="animate-pulse bg-gray-200 rounded-lg h-10 w-full" />
+    </div>
+  );
+}
+
+/* ─── Breadcrumb ─── */
+function CascadeBreadcrumb({
+  items,
+  isRTL,
+}: {
+  items: { label: string; value: string }[];
+  isRTL: boolean;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <nav
+      aria-label="Selection breadcrumb"
+      className="flex flex-wrap items-center gap-1 text-xs text-gray-500 mb-2"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
+      {items.map((item, index) => (
+        <span key={item.label} className="flex items-center gap-1">
+          {index > 0 && (
+            <ChevronRight className="h-3 w-3 text-gray-400 shrink-0" />
+          )}
+          <span className="font-medium text-gray-700">{item.value}</span>
+        </span>
+      ))}
+    </nav>
+  );
+}
+
+/* ─── localStorage helpers ─── */
+function loadPersistedContext(): Pick<
+  ReinforcementAcademicContextValue,
+  "academicYearId" | "termId"
+> | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      return {
+        academicYearId: parsed.academicYearId || undefined,
+        termId: parsed.termId || undefined,
+      };
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function persistContext(academicYearId?: string, termId?: string) {
+  try {
+    if (academicYearId || termId) {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ academicYearId, termId }),
+      );
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
 export default function ReinforcementAcademicContextFilter({
   value = {},
   onChange,
@@ -199,6 +278,8 @@ export default function ReinforcementAcademicContextFilter({
   const locale = (useLocale() === "ar" ? "ar" : "en") as Locale;
   const copy = labels[locale];
   const isRTL = locale === "ar";
+  const restoredRef = useRef(false);
+
   const [years, setYears] = useState<LoadState<NamedRecord[]>>({
     data: [],
     loading: true,
@@ -227,13 +308,63 @@ export default function ReinforcementAcademicContextFilter({
     error: null,
   });
 
+  /* ─── Build the selection object ─── */
+  const buildSelection = useCallback(
+    (next: ReinforcementAcademicContextValue): ReinforcementAcademicContextSelection => {
+      const nextStudent = students.data.find(
+        (item) => studentIdFor(item) === next.studentId,
+      );
+      return {
+        ...next,
+        enrollmentId: next.enrollmentId || enrollmentIdFor(nextStudent),
+        academicYear: years.data.find((item) => getId(item) === next.academicYearId),
+        term: terms.data.find((item) => getId(item) === next.termId),
+        stage: tree.data.stages.find((item) => item.id === next.stageId),
+        grade: tree.data.grades.find((item) => item.id === next.gradeId),
+        section: tree.data.sections.find((item) => item.id === next.sectionId),
+        classroom: tree.data.classrooms.find((item) => item.id === next.classroomId),
+        subject: subjects.data.find((item) => item.id === next.subjectId),
+        student: nextStudent,
+      };
+    },
+    [students.data, subjects.data, terms.data, tree.data, years.data],
+  );
+
+  const emit = useCallback(
+    (patch: ReinforcementAcademicContextValue) => {
+      const next: ReinforcementAcademicContextValue = { ...value, ...patch };
+      onChange(buildSelection(next));
+    },
+    [buildSelection, onChange, value],
+  );
+
+  /* ─── Persist year+term to localStorage ─── */
+  useEffect(() => {
+    persistContext(value.academicYearId, value.termId);
+  }, [value.academicYearId, value.termId]);
+
+  /* ─── Restore from localStorage on mount ─── */
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    const hasValue = value.academicYearId || value.termId;
+    if (hasValue) return;
+    const persisted = loadPersistedContext();
+    if (persisted?.academicYearId) {
+      onChange(
+        buildSelection({
+          academicYearId: persisted.academicYearId,
+          termId: persisted.termId,
+        }),
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* ─── Fetch academic years ─── */
   useEffect(() => {
     let cancelled = false;
-    Promise.resolve().then(() => {
-      if (!cancelled) {
-        setYears((current) => ({ ...current, loading: true, error: null }));
-      }
-    });
+    setYears((current) => ({ ...current, loading: true, error: null }));
     void fetchAcademicYears()
       .then((items) => {
         if (!cancelled) {
@@ -249,26 +380,17 @@ export default function ReinforcementAcademicContextFilter({
           });
         }
       });
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [copy.error]);
 
+  /* ─── Fetch terms ─── */
   useEffect(() => {
     if (!value.academicYearId) {
-      Promise.resolve().then(() => {
-        setTerms({ data: [], loading: false, error: null });
-      });
+      setTerms({ data: [], loading: false, error: null });
       return;
     }
-
     let cancelled = false;
-    Promise.resolve().then(() => {
-      if (!cancelled) {
-        setTerms((current) => ({ ...current, loading: true, error: null }));
-      }
-    });
+    setTerms((current) => ({ ...current, loading: true, error: null }));
     void fetchTerms(value.academicYearId)
       .then((items) => {
         if (!cancelled) {
@@ -284,64 +406,49 @@ export default function ReinforcementAcademicContextFilter({
           });
         }
       });
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [copy.error, value.academicYearId]);
 
+  /* ─── Fetch tree, subjects, students ─── */
   useEffect(() => {
     if (!value.academicYearId || !value.termId) {
-      Promise.resolve().then(() => {
-        setTree({ data: emptyTree, loading: false, error: null });
-        setSubjects({ data: [], loading: false, error: null });
-        setStudents({ data: [], loading: false, error: null });
-      });
+      setTree({ data: emptyTree, loading: false, error: null });
+      setSubjects({ data: [], loading: false, error: null });
+      setStudents({ data: [], loading: false, error: null });
       return;
     }
-
     let cancelled = false;
-    Promise.resolve().then(() => {
-      if (!cancelled) {
-        setTree((current) => ({ ...current, loading: true, error: null }));
-        setSubjects((current) => ({ ...current, loading: true, error: null }));
-        setStudents((current) => ({ ...current, loading: true, error: null }));
-      }
-    });
+    setTree((current) => ({ ...current, loading: true, error: null }));
+    setSubjects((current) => ({ ...current, loading: true, error: null }));
+    setStudents((current) => ({ ...current, loading: true, error: null }));
 
     void fetchAcademicStructureTree({
       yearId: value.academicYearId,
       termId: value.termId,
     })
       .then((nextTree) => {
-        if (!cancelled) {
-          setTree({ data: nextTree, loading: false, error: null });
-        }
+        if (!cancelled) setTree({ data: nextTree, loading: false, error: null });
       })
       .catch((error) => {
-        if (!cancelled) {
+        if (!cancelled)
           setTree({
             data: emptyTree,
             loading: false,
             error: error instanceof Error ? error.message : copy.error,
           });
-        }
       });
 
     void fetchSubjects(value.termId)
       .then((items) => {
-        if (!cancelled) {
-          setSubjects({ data: items, loading: false, error: null });
-        }
+        if (!cancelled) setSubjects({ data: items, loading: false, error: null });
       })
       .catch((error) => {
-        if (!cancelled) {
+        if (!cancelled)
           setSubjects({
             data: [],
             loading: false,
             error: error instanceof Error ? error.message : copy.error,
           });
-        }
       });
 
     void fetchStudentsWithEnrollmentForContext(
@@ -349,71 +456,145 @@ export default function ReinforcementAcademicContextFilter({
       value.termId,
     )
       .then((items) => {
-        if (!cancelled) {
-          setStudents({ data: items, loading: false, error: null });
-        }
+        if (!cancelled) setStudents({ data: items, loading: false, error: null });
       })
       .catch((error) => {
-        if (!cancelled) {
+        if (!cancelled)
           setStudents({
             data: [],
             loading: false,
             error: error instanceof Error ? error.message : copy.error,
           });
-        }
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [copy.error, value.academicYearId, value.termId]);
 
-  const selected = useMemo<ReinforcementAcademicContextSelection>(() => {
-    const student = students.data.find(
-      (item) => studentIdFor(item) === value.studentId,
-    );
-    return {
-      ...value,
-      enrollmentId: value.enrollmentId || enrollmentIdFor(student),
-      academicYear: years.data.find((item) => getId(item) === value.academicYearId),
-      term: terms.data.find((item) => getId(item) === value.termId),
-      stage: tree.data.stages.find((item) => item.id === value.stageId),
-      grade: tree.data.grades.find((item) => item.id === value.gradeId),
-      section: tree.data.sections.find((item) => item.id === value.sectionId),
-      classroom: tree.data.classrooms.find((item) => item.id === value.classroomId),
-      subject: subjects.data.find((item) => item.id === value.subjectId),
-      student,
-    };
-  }, [students.data, subjects.data, terms.data, tree.data, value, years.data]);
+  /* ─── Auto-select when only one option (terms) ─── */
+  useEffect(() => {
+    if (
+      !terms.loading &&
+      terms.data.length === 1 &&
+      value.academicYearId &&
+      !value.termId
+    ) {
+      const termId = getId(terms.data[0]);
+      if (termId) {
+        emit({
+          termId,
+          stageId: undefined,
+          gradeId: undefined,
+          sectionId: undefined,
+          classroomId: undefined,
+          subjectId: undefined,
+          studentId: undefined,
+          enrollmentId: undefined,
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [terms.loading, terms.data.length]);
 
-  const emit = (patch: ReinforcementAcademicContextValue) => {
-    const next: ReinforcementAcademicContextValue = { ...value, ...patch };
-    const nextStudent = students.data.find(
-      (item) => studentIdFor(item) === next.studentId,
-    );
-    onChange({
-      ...next,
-      enrollmentId: next.enrollmentId || enrollmentIdFor(nextStudent),
-      academicYear: years.data.find((item) => getId(item) === next.academicYearId),
-      term: terms.data.find((item) => getId(item) === next.termId),
-      stage: tree.data.stages.find((item) => item.id === next.stageId),
-      grade: tree.data.grades.find((item) => item.id === next.gradeId),
-      section: tree.data.sections.find((item) => item.id === next.sectionId),
-      classroom: tree.data.classrooms.find((item) => item.id === next.classroomId),
-      subject: subjects.data.find((item) => item.id === next.subjectId),
-      student: nextStudent,
-    });
-  };
+  /* ─── Auto-select when only one option (stages) ─── */
+  useEffect(() => {
+    if (
+      !tree.loading &&
+      tree.data.stages.length === 1 &&
+      value.termId &&
+      !value.stageId
+    ) {
+      const stageId = tree.data.stages[0]?.id;
+      if (stageId) {
+        emit({
+          stageId,
+          gradeId: undefined,
+          sectionId: undefined,
+          classroomId: undefined,
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tree.loading, tree.data.stages.length]);
 
+  /* ─── Auto-select when only one option (grades) ─── */
   const filteredGrades = tree.data.grades.filter(
     (grade) => !value.stageId || grade.stageId === value.stageId,
   );
+  useEffect(() => {
+    if (
+      !tree.loading &&
+      filteredGrades.length === 1 &&
+      value.termId &&
+      !value.gradeId
+    ) {
+      const gradeId = filteredGrades[0]?.id;
+      if (gradeId) {
+        emit({
+          gradeId,
+          sectionId: undefined,
+          classroomId: undefined,
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tree.loading, filteredGrades.length, value.stageId]);
+
+  /* ─── Auto-select when only one option (sections) ─── */
   const filteredSections = tree.data.sections.filter(
     (section) => !value.gradeId || section.gradeId === value.gradeId,
   );
+  useEffect(() => {
+    if (
+      !tree.loading &&
+      filteredSections.length === 1 &&
+      value.termId &&
+      !value.sectionId
+    ) {
+      const sectionId = filteredSections[0]?.id;
+      if (sectionId) {
+        emit({ sectionId, classroomId: undefined });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tree.loading, filteredSections.length, value.gradeId]);
+
+  /* ─── Auto-select when only one option (classrooms) ─── */
   const filteredClassrooms = tree.data.classrooms.filter(
     (classroom) => !value.sectionId || classroom.sectionId === value.sectionId,
   );
+  useEffect(() => {
+    if (
+      !tree.loading &&
+      filteredClassrooms.length === 1 &&
+      value.termId &&
+      !value.classroomId
+    ) {
+      const classroomId = filteredClassrooms[0]?.id;
+      if (classroomId) {
+        emit({ classroomId });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tree.loading, filteredClassrooms.length, value.sectionId]);
+
+  /* ─── Derived state ─── */
+  const selected = useMemo<ReinforcementAcademicContextSelection>(
+    () => buildSelection(value),
+    [buildSelection, value],
+  );
+
+  const hasAnySelection = Boolean(
+    value.academicYearId ||
+      value.termId ||
+      value.stageId ||
+      value.gradeId ||
+      value.sectionId ||
+      value.classroomId ||
+      value.subjectId ||
+      value.studentId,
+  );
+
+  const showSecondarySelects = Boolean(value.academicYearId && value.termId);
 
   const loading =
     years.loading ||
@@ -425,18 +606,85 @@ export default function ReinforcementAcademicContextFilter({
     years.error || terms.error || tree.error || subjects.error || students.error;
   const isEmpty = !loading && !error && years.data.length === 0;
 
+  /* ─── Breadcrumb items ─── */
+  const breadcrumbItems = useMemo(() => {
+    const items: { label: string; value: string }[] = [];
+    if (selected.academicYear) {
+      items.push({
+        label: copy.academicYear,
+        value: getLocalizedName(selected.academicYear, locale),
+      });
+    }
+    if (selected.term) {
+      items.push({
+        label: copy.term,
+        value: getLocalizedName(selected.term, locale),
+      });
+    }
+    if (selected.stage) {
+      items.push({
+        label: copy.stage,
+        value: getLocalizedName(selected.stage, locale),
+      });
+    }
+    if (selected.grade) {
+      items.push({
+        label: copy.grade,
+        value: getLocalizedName(selected.grade, locale),
+      });
+    }
+    if (selected.section) {
+      items.push({
+        label: copy.section,
+        value: getLocalizedName(selected.section, locale),
+      });
+    }
+    if (selected.classroom) {
+      items.push({
+        label: copy.classroom,
+        value: getLocalizedName(selected.classroom, locale),
+      });
+    }
+    if (selected.subject) {
+      items.push({
+        label: copy.subject,
+        value: getLocalizedName(selected.subject, locale),
+      });
+    }
+    if (selected.student) {
+      items.push({
+        label: copy.student,
+        value: getLocalizedName(selected.student, locale),
+      });
+    }
+    return items;
+  }, [selected, copy, locale]);
+
+  /* ─── Reset handler ─── */
+  const handleReset = () => {
+    persistContext(undefined, undefined);
+    onChange(
+      buildSelection({
+        academicYearId: undefined,
+        termId: undefined,
+        stageId: undefined,
+        gradeId: undefined,
+        sectionId: undefined,
+        classroomId: undefined,
+        subjectId: undefined,
+        studentId: undefined,
+        enrollmentId: undefined,
+      }),
+    );
+  };
+
   return (
     <section
-      className={`space-y-4 ${className}`}
+      className={`space-y-3 ${className}`}
       dir={isRTL ? "rtl" : "ltr"}
       aria-busy={loading}
     >
-      {loading && (
-        <div className="flex items-center gap-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-700">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>{copy.loading}</span>
-        </div>
-      )}
+      {/* Status banners */}
       {error && (
         <div className="flex items-center gap-2 rounded-md border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">
           <AlertCircle className="h-4 w-4" />
@@ -449,156 +697,221 @@ export default function ReinforcementAcademicContextFilter({
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Select
-          label={copy.academicYear}
-          value={value.academicYearId || ""}
-          disabled={disabled || years.loading}
-          options={compactOptions(years.data.map((item) => toOption(item, locale)))}
-          placeholder={`${copy.select} ${copy.academicYear}`}
-          searchable
-          searchPlaceholder={copy.search}
-          noOptionsText={copy.noOptions}
-          onChange={(academicYearId) =>
-            emit({
-              academicYearId,
-              termId: undefined,
-              stageId: undefined,
-              gradeId: undefined,
-              sectionId: undefined,
-              classroomId: undefined,
-              subjectId: undefined,
-              studentId: undefined,
-              enrollmentId: undefined,
-            })
-          }
-        />
-        <Select
-          label={copy.term}
-          value={value.termId || ""}
-          disabled={disabled || !value.academicYearId || terms.loading}
-          options={compactOptions(terms.data.map((item) => toOption(item, locale)))}
-          placeholder={`${copy.select} ${copy.term}`}
-          searchable
-          searchPlaceholder={copy.search}
-          noOptionsText={copy.noOptions}
-          onChange={(termId) =>
-            emit({
-              termId,
-              stageId: undefined,
-              gradeId: undefined,
-              sectionId: undefined,
-              classroomId: undefined,
-              subjectId: undefined,
-              studentId: undefined,
-              enrollmentId: undefined,
-            })
-          }
-        />
-        <Select
-          label={copy.stage}
-          value={value.stageId || ""}
-          disabled={disabled || !value.termId || tree.loading}
-          options={compactOptions(tree.data.stages.map((item) => toOption(item, locale)))}
-          placeholder={`${copy.select} ${copy.stage}`}
-          searchable
-          searchPlaceholder={copy.search}
-          noOptionsText={copy.noOptions}
-          onChange={(stageId) =>
-            emit({
-              stageId,
-              gradeId: undefined,
-              sectionId: undefined,
-              classroomId: undefined,
-              studentId: undefined,
-              enrollmentId: undefined,
-            })
-          }
-        />
-        <Select
-          label={copy.grade}
-          value={value.gradeId || ""}
-          disabled={disabled || !value.termId || tree.loading}
-          options={compactOptions(filteredGrades.map((item) => toOption(item, locale)))}
-          placeholder={`${copy.select} ${copy.grade}`}
-          searchable
-          searchPlaceholder={copy.search}
-          noOptionsText={copy.noOptions}
-          onChange={(gradeId) =>
-            emit({
-              gradeId,
-              sectionId: undefined,
-              classroomId: undefined,
-              studentId: undefined,
-              enrollmentId: undefined,
-            })
-          }
-        />
-        <Select
-          label={copy.section}
-          value={value.sectionId || ""}
-          disabled={disabled || !value.termId || tree.loading}
-          options={compactOptions(filteredSections.map((item) => toOption(item, locale)))}
-          placeholder={`${copy.select} ${copy.section}`}
-          searchable
-          searchPlaceholder={copy.search}
-          noOptionsText={copy.noOptions}
-          onChange={(sectionId) =>
-            emit({
-              sectionId,
-              classroomId: undefined,
-              studentId: undefined,
-              enrollmentId: undefined,
-            })
-          }
-        />
-        <Select
-          label={copy.classroom}
-          value={value.classroomId || ""}
-          disabled={disabled || !value.termId || tree.loading}
-          options={compactOptions(
-            filteredClassrooms.map((item) => toOption(item, locale)),
+      {/* Breadcrumb + Reset */}
+      {(breadcrumbItems.length > 0 || hasAnySelection) && (
+        <div className="flex items-center justify-between gap-2">
+          <CascadeBreadcrumb items={breadcrumbItems} isRTL={isRTL} />
+          {hasAnySelection && (
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={disabled}
+              className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+              title={copy.reset}
+            >
+              <X className="h-3 w-3" />
+              <span>{copy.reset}</span>
+            </button>
           )}
-          placeholder={`${copy.select} ${copy.classroom}`}
-          searchable
-          searchPlaceholder={copy.search}
-          noOptionsText={copy.noOptions}
-          onChange={(classroomId) => emit({ classroomId })}
-        />
-        {showSubject && (
+        </div>
+      )}
+
+      {/* Primary selects: Year + Term (always shown) */}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {years.loading ? (
+          <SelectSkeleton label={copy.academicYear} />
+        ) : (
           <Select
-            label={copy.subject}
-            value={value.subjectId || ""}
-            disabled={disabled || !value.termId || subjects.loading}
-            options={compactOptions(subjects.data.map((item) => toOption(item, locale)))}
-            placeholder={`${copy.select} ${copy.subject}`}
+            label={copy.academicYear}
+            value={value.academicYearId || ""}
+            disabled={disabled || years.loading}
+            options={compactOptions(years.data.map((item) => toOption(item, locale)))}
+            placeholder={`${copy.select} ${copy.academicYear}`}
             searchable
             searchPlaceholder={copy.search}
             noOptionsText={copy.noOptions}
-            onChange={(subjectId) => emit({ subjectId })}
+            onChange={(academicYearId) =>
+              emit({
+                academicYearId,
+                termId: undefined,
+                stageId: undefined,
+                gradeId: undefined,
+                sectionId: undefined,
+                classroomId: undefined,
+                subjectId: undefined,
+                studentId: undefined,
+                enrollmentId: undefined,
+              })
+            }
           />
         )}
-        {showStudent && (
+
+        {value.academicYearId && terms.loading ? (
+          <SelectSkeleton label={copy.term} />
+        ) : (
           <Select
-            label={copy.student}
-            value={selected.studentId || ""}
-            disabled={disabled || !value.termId || students.loading}
-            options={compactOptions(
-              students.data.map((item) => studentOption(item, locale)),
-            )}
-            placeholder={`${copy.select} ${copy.student}`}
+            label={copy.term}
+            value={value.termId || ""}
+            disabled={disabled || !value.academicYearId || terms.loading}
+            options={compactOptions(terms.data.map((item) => toOption(item, locale)))}
+            placeholder={`${copy.select} ${copy.term}`}
             searchable
             searchPlaceholder={copy.search}
             noOptionsText={copy.noOptions}
-            onChange={(studentId) => {
-              const student = students.data.find(
-                (item) => studentIdFor(item) === studentId,
-              );
-              emit({ studentId, enrollmentId: enrollmentIdFor(student) });
-            }}
+            onChange={(termId) =>
+              emit({
+                termId,
+                stageId: undefined,
+                gradeId: undefined,
+                sectionId: undefined,
+                classroomId: undefined,
+                subjectId: undefined,
+                studentId: undefined,
+                enrollmentId: undefined,
+              })
+            }
           />
         )}
       </div>
+
+      {/* Secondary selects: Stage/Grade/Section/Classroom (after Term selected) */}
+      {showSecondarySelects && (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {tree.loading ? (
+            <>
+              <SelectSkeleton label={copy.stage} />
+              <SelectSkeleton label={copy.grade} />
+              <SelectSkeleton label={copy.section} />
+              <SelectSkeleton label={copy.classroom} />
+            </>
+          ) : (
+            <>
+              <Select
+                label={copy.stage}
+                value={value.stageId || ""}
+                disabled={disabled || tree.loading}
+                options={compactOptions(
+                  tree.data.stages.map((item) => toOption(item, locale)),
+                )}
+                placeholder={`${copy.select} ${copy.stage}`}
+                searchable
+                searchPlaceholder={copy.search}
+                noOptionsText={copy.noOptions}
+                onChange={(stageId) =>
+                  emit({
+                    stageId,
+                    gradeId: undefined,
+                    sectionId: undefined,
+                    classroomId: undefined,
+                    studentId: undefined,
+                    enrollmentId: undefined,
+                  })
+                }
+              />
+              <Select
+                label={copy.grade}
+                value={value.gradeId || ""}
+                disabled={disabled || tree.loading}
+                options={compactOptions(
+                  filteredGrades.map((item) => toOption(item, locale)),
+                )}
+                placeholder={`${copy.select} ${copy.grade}`}
+                searchable
+                searchPlaceholder={copy.search}
+                noOptionsText={copy.noOptions}
+                onChange={(gradeId) =>
+                  emit({
+                    gradeId,
+                    sectionId: undefined,
+                    classroomId: undefined,
+                    studentId: undefined,
+                    enrollmentId: undefined,
+                  })
+                }
+              />
+
+              <Select
+                label={copy.section}
+                value={value.sectionId || ""}
+                disabled={disabled || tree.loading}
+                options={compactOptions(
+                  filteredSections.map((item) => toOption(item, locale)),
+                )}
+                placeholder={`${copy.select} ${copy.section}`}
+                searchable
+                searchPlaceholder={copy.search}
+                noOptionsText={copy.noOptions}
+                onChange={(sectionId) =>
+                  emit({
+                    sectionId,
+                    classroomId: undefined,
+                    studentId: undefined,
+                    enrollmentId: undefined,
+                  })
+                }
+              />
+              <Select
+                label={copy.classroom}
+                value={value.classroomId || ""}
+                disabled={disabled || tree.loading}
+                options={compactOptions(
+                  filteredClassrooms.map((item) => toOption(item, locale)),
+                )}
+                placeholder={`${copy.select} ${copy.classroom}`}
+                searchable
+                searchPlaceholder={copy.search}
+                noOptionsText={copy.noOptions}
+                onChange={(classroomId) => emit({ classroomId })}
+              />
+            </>
+          )}
+
+          {/* Subject + Student (after Term selected, if props allow) */}
+          {showSubject && (
+            subjects.loading ? (
+              <SelectSkeleton label={copy.subject} />
+            ) : (
+              <Select
+                label={copy.subject}
+                value={value.subjectId || ""}
+                disabled={disabled || subjects.loading}
+                options={compactOptions(
+                  subjects.data.map((item) => toOption(item, locale)),
+                )}
+                placeholder={`${copy.select} ${copy.subject}`}
+                searchable
+                searchPlaceholder={copy.search}
+                noOptionsText={copy.noOptions}
+                onChange={(subjectId) => emit({ subjectId })}
+              />
+            )
+          )}
+          {showStudent && (
+            students.loading ? (
+              <SelectSkeleton label={copy.student} />
+            ) : (
+              <Select
+                label={copy.student}
+                value={selected.studentId || ""}
+                disabled={disabled || students.loading}
+                options={compactOptions(
+                  students.data.map((item) => studentOption(item, locale)),
+                )}
+                placeholder={`${copy.select} ${copy.student}`}
+                searchable
+                searchPlaceholder={copy.search}
+                noOptionsText={copy.noOptions}
+                onChange={(studentId) => {
+                  const student = students.data.find(
+                    (item) => studentIdFor(item) === studentId,
+                  );
+                  emit({ studentId, enrollmentId: enrollmentIdFor(student) });
+                }}
+              />
+            )
+          )}
+        </div>
+      )}
     </section>
   );
 }

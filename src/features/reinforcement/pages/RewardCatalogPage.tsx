@@ -1,0 +1,470 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertCircle, Archive, Edit, Plus, Rocket, ShieldAlert } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import Button from "@/components/ui/button/Button";
+import DataTable, { type Column } from "@/components/ui/data-table/DataTable";
+import MainLoader from "@/components/ui/loaders/MainLoader";
+import { useToast } from "@/components/ui/toast/Toast";
+import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/usePermissions";
+import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
+import ReinforcementFilterToolbar, {
+  type ActiveFilter,
+  type FilterConfig,
+} from "../components/shared/ReinforcementFilterToolbar";
+import RewardCatalogFormModal from "../components/RewardCatalogFormModal";
+import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
+import {
+  archiveRewardCatalogItem,
+  createRewardCatalogItem,
+  listRewardCatalog,
+  publishRewardCatalogItem,
+  updateRewardCatalogItem,
+} from "../services/rewardCatalogService";
+import type {
+  CreateRewardCatalogItemPayload,
+  RewardCatalogItem,
+  RewardCatalogStatus,
+  RewardItemType,
+  UpdateRewardCatalogItemPayload,
+} from "../types";
+
+function AccessNotice() {
+  const t = useTranslations("reinforcement.common");
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
+      <div className="flex items-start gap-3">
+        <div className="rounded-full bg-amber-100 p-2 text-amber-700">
+          <ShieldAlert className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="text-base font-semibold text-amber-900">
+            {t("accessDenied")}
+          </h1>
+          <p className="mt-1 text-sm text-amber-800">{t("unauthorized")}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const STATUS_BADGE_STYLES: Record<RewardCatalogStatus, string> = {
+  draft: "bg-gray-100 text-gray-700",
+  published: "bg-emerald-100 text-emerald-700",
+  archived: "bg-amber-100 text-amber-700",
+};
+
+const TYPE_BADGE_STYLES: Record<RewardItemType, string> = {
+  physical: "bg-blue-100 text-blue-700",
+  digital: "bg-purple-100 text-purple-700",
+  privilege: "bg-indigo-100 text-indigo-700",
+  certificate: "bg-teal-100 text-teal-700",
+  other: "bg-gray-100 text-gray-700",
+};
+
+export default function RewardCatalogPage() {
+  const locale = useLocale();
+  const t = useTranslations("reinforcement");
+  const { showSuccess, showError } = useToast();
+  const { isLoading: authLoading } = useAuth();
+  const { hasPermission } = usePermissions();
+
+  // ─── URL-synced filters ──────────────────────────────────────────────────
+  // Note: debounceKey is not used here because ReinforcementFilterToolbar
+  // handles search debounce internally before calling onChange
+  const {
+    values,
+    setValue,
+    clearAll,
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
+  } = useReinforcementUrlFilters({
+    paramKeys: ["status", "type", "search", "academicYearId", "termId"],
+    defaults: {},
+  });
+
+  const [items, setItems] = useState<RewardCatalogItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<RewardCatalogItem | undefined>(undefined);
+  const [formLoading, setFormLoading] = useState(false);
+
+  const canView = hasPermission("reinforcement.rewards.view");
+  const canManage = hasPermission("reinforcement.rewards.manage");
+
+  // ─── Filter toolbar config ───────────────────────────────────────────────
+  const catalogFilters: FilterConfig[] = useMemo(
+    () => [
+      {
+        key: "status",
+        label: t("rewardsModule.catalog.table.status"),
+        type: "select",
+        options: [
+          { value: "", label: t("filters.allStatuses") },
+          { value: "draft", label: t("rewardsModule.status.draft") },
+          { value: "published", label: t("rewardsModule.status.published") },
+          { value: "archived", label: t("rewardsModule.status.archived") },
+        ],
+      },
+      {
+        key: "type",
+        label: t("rewardsModule.catalog.table.type"),
+        type: "select",
+        options: [
+          { value: "", label: t("filters.allRewardTypes") },
+          { value: "physical", label: t("rewardsModule.type.physical") },
+          { value: "digital", label: t("rewardsModule.type.digital") },
+          { value: "privilege", label: t("rewardsModule.type.privilege") },
+          { value: "certificate", label: t("rewardsModule.type.certificate") },
+          { value: "other", label: t("rewardsModule.type.other") },
+        ],
+      },
+      {
+        key: "search",
+        label: t("filters.search"),
+        type: "search",
+        placeholder: t("filters.searchPlaceholder"),
+      },
+    ],
+    [t],
+  );
+
+  const activeFilters: ActiveFilter[] = useMemo(() => {
+    const filters: ActiveFilter[] = [];
+    if (values.status) {
+      filters.push({
+        key: "status",
+        label: t("rewardsModule.catalog.table.status"),
+        value: values.status,
+        displayValue: t(`rewardsModule.status.${values.status}`),
+      });
+    }
+    if (values.type) {
+      filters.push({
+        key: "type",
+        label: t("rewardsModule.catalog.table.type"),
+        value: values.type,
+        displayValue: t(`rewardsModule.type.${values.type}`),
+      });
+    }
+    if (values.search) {
+      filters.push({
+        key: "search",
+        label: t("filters.search"),
+        value: values.search,
+        displayValue: values.search,
+      });
+    }
+    return filters;
+  }, [values.status, values.type, values.search, t]);
+
+  const handleFilterChange = useCallback(
+    (key: string, value: string) => {
+      setValue(key, value);
+    },
+    [setValue],
+  );
+
+  const handleClearAllFilters = useCallback(() => {
+    clearAll();
+  }, [clearAll]);
+
+  const handleRemoveFilter = useCallback(
+    (key: string) => {
+      setValue(key, "");
+    },
+    [setValue],
+  );
+
+  const params = useMemo(
+    () => ({
+      status: (values.status || undefined) as RewardCatalogStatus | undefined,
+      type: (values.type || undefined) as RewardItemType | undefined,
+      search: values.search || undefined,
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+    }),
+    [values.status, values.type, values.search, page, pageSize],
+  );
+
+  const refreshCatalog = useCallback(async () => {
+    if (!canView) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await listRewardCatalog(params);
+      setItems(response.items);
+      setTotal(response.total ?? response.items.length);
+    } catch (nextError) {
+      const message =
+        nextError instanceof Error ? nextError.message : t("common.error");
+      setError(message);
+      setItems([]);
+      showError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [canView, params, showError, t]);
+
+  useEffect(() => {
+    void Promise.resolve().then(refreshCatalog);
+  }, [refreshCatalog]);
+
+  const handlePublish = useCallback(
+    async (item: RewardCatalogItem) => {
+      try {
+        await publishRewardCatalogItem(item.id);
+        showSuccess(t("rewardsModule.messages.published"));
+        await refreshCatalog();
+      } catch (nextError) {
+        const message =
+          nextError instanceof Error ? nextError.message : t("common.error");
+        showError(message);
+      }
+    },
+    [refreshCatalog, showSuccess, showError, t],
+  );
+
+  const handleArchive = useCallback(
+    async (item: RewardCatalogItem) => {
+      try {
+        await archiveRewardCatalogItem(item.id, {});
+        showSuccess(t("rewardsModule.messages.archived"));
+        await refreshCatalog();
+      } catch (nextError) {
+        const message =
+          nextError instanceof Error ? nextError.message : t("common.error");
+        showError(message);
+      }
+    },
+    [refreshCatalog, showSuccess, showError, t],
+  );
+
+  const handleOpenCreate = () => {
+    setEditingItem(undefined);
+    setFormModalOpen(true);
+  };
+
+  const handleOpenEdit = (item: RewardCatalogItem) => {
+    setEditingItem(item);
+    setFormModalOpen(true);
+  };
+
+  const handleFormClose = () => {
+    setFormModalOpen(false);
+    setEditingItem(undefined);
+  };
+
+  const handleFormSubmit = async (
+    payload: CreateRewardCatalogItemPayload | UpdateRewardCatalogItemPayload,
+  ) => {
+    setFormLoading(true);
+    try {
+      if (editingItem) {
+        await updateRewardCatalogItem(editingItem.id, payload as UpdateRewardCatalogItemPayload);
+        showSuccess(t("rewardsModule.messages.updated"));
+      } else {
+        await createRewardCatalogItem(payload as CreateRewardCatalogItemPayload);
+        showSuccess(t("rewardsModule.messages.created"));
+      }
+      setFormModalOpen(false);
+      setEditingItem(undefined);
+      void refreshCatalog();
+    } catch (nextError) {
+      const message =
+        nextError instanceof Error ? nextError.message : t("common.error");
+      showError(message);
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const columns: Column<RewardCatalogItem>[] = useMemo(
+    () => [
+      {
+        key: "title",
+        label: t("rewardsModule.catalog.table.title"),
+        searchable: true,
+        render: (_value: unknown, row: RewardCatalogItem) => {
+          const title =
+            locale === "ar"
+              ? row.titleAr || row.titleEn || "-"
+              : row.titleEn || row.titleAr || "-";
+          return <span className="font-medium text-gray-900">{title}</span>;
+        },
+      },
+      {
+        key: "type",
+        label: t("rewardsModule.catalog.table.type"),
+        render: (_value: unknown, row: RewardCatalogItem) => {
+          const itemType = row.type || "other";
+          const badgeClass = TYPE_BADGE_STYLES[itemType] || "bg-gray-100 text-gray-700";
+          return (
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClass}`}
+            >
+              {t(`rewardsModule.type.${itemType}`)}
+            </span>
+          );
+        },
+      },
+      {
+        key: "minTotalXp",
+        label: t("rewardsModule.catalog.table.xpCost"),
+        render: (_value: unknown, row: RewardCatalogItem) => (
+          <span className="text-gray-700">{row.minTotalXp ?? 0}</span>
+        ),
+      },
+      {
+        key: "stock",
+        label: t("rewardsModule.catalog.table.stock"),
+        render: (_value: unknown, row: RewardCatalogItem) => {
+          if (row.isUnlimited) {
+            return <span className="text-gray-700">{t("rewardsModule.catalog.stock.unlimited")}</span>;
+          }
+          return (
+            <span className="text-gray-700">
+              {row.stockRemaining ?? 0} / {row.stockQuantity ?? 0}
+            </span>
+          );
+        },
+      },
+      {
+        key: "status",
+        label: t("rewardsModule.catalog.table.status"),
+        render: (_value: unknown, row: RewardCatalogItem) => {
+          const itemStatus = row.status || "draft";
+          const badgeClass = STATUS_BADGE_STYLES[itemStatus] || "bg-gray-100 text-gray-700";
+          return (
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClass}`}
+            >
+              {t(`rewardsModule.status.${itemStatus}`)}
+            </span>
+          );
+        },
+      },
+      {
+        key: "actions",
+        label: t("rewardsModule.catalog.table.actions"),
+        render: (_value: unknown, row: RewardCatalogItem) => {
+          if (!canManage) return null;
+          return (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                leftIcon={<Edit className="h-3.5 w-3.5" />}
+                onClick={() => handleOpenEdit(row)}
+              >
+                {t("rewardsModule.actions.edit")}
+              </Button>
+              {row.status === "draft" ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  leftIcon={<Rocket className="h-3.5 w-3.5" />}
+                  onClick={() => handlePublish(row)}
+                >
+                  {t("rewardsModule.actions.publish")}
+                </Button>
+              ) : null}
+              {row.status === "published" ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  leftIcon={<Archive className="h-3.5 w-3.5" />}
+                  onClick={() => handleArchive(row)}
+                >
+                  {t("rewardsModule.actions.archive")}
+                </Button>
+              ) : null}
+            </div>
+          );
+        },
+      },
+    ],
+    [locale, t, canManage, handlePublish, handleArchive],
+  );
+
+  if (authLoading) return <MainLoader />;
+  if (!canView) return <AccessNotice />;
+
+  return (
+    <div
+      className="min-h-screen space-y-6 bg-gray-50"
+      dir={locale === "ar" ? "rtl" : "ltr"}
+    >
+      <ReinforcementPageHeader
+        title={t("rewardsModule.catalog.title")}
+        description={t("rewardsModule.description")}
+        actions={
+          canManage ? (
+            <Button
+              variant="primary"
+              leftIcon={<Plus className="h-4 w-4" />}
+              onClick={handleOpenCreate}
+            >
+              {t("rewardsModule.catalog.addReward")}
+            </Button>
+          ) : undefined
+        }
+      />
+
+      <ReinforcementFilterToolbar
+        filters={catalogFilters}
+        values={{ status: values.status, type: values.type, search: values.search }}
+        onChange={handleFilterChange}
+        onClearAll={handleClearAllFilters}
+        activeFilters={activeFilters}
+        onRemoveFilter={handleRemoveFilter}
+        searchKey="search"
+        debounceMs={350}
+      />
+
+      {error ? (
+        <div className="rounded-lg border border-red-100 bg-red-50 p-5">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 text-red-600" />
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        </div>
+      ) : null}
+
+      {loading && items.length === 0 ? (
+        <MainLoader />
+      ) : (
+        <section className="rounded-lg border border-gray-100 bg-white shadow-sm">
+          <DataTable<RewardCatalogItem>
+            columns={columns}
+            data={items}
+            searchQuery={values.search}
+            serverPagination={{
+              enabled: true,
+              currentPage: page,
+              pageSize,
+              totalItems: total,
+              onPageChange: setPage,
+              onPageSizeChange: setPageSize,
+            }}
+          />
+        </section>
+      )}
+
+      <RewardCatalogFormModal
+        isOpen={formModalOpen}
+        onClose={handleFormClose}
+        onSubmit={handleFormSubmit}
+        initialData={editingItem}
+        loading={formLoading}
+      />
+    </div>
+  );
+}

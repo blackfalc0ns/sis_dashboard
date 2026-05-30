@@ -7,7 +7,7 @@ import {
   createLead as apiCreateLead,
   convertLead,
 } from "@/features/admissions/leads/services/leadsApiService";
-import type { Lead, ActivityLogItem, Note, ApplicationDraft } from "@/features/admissions/leads/types/lead";
+import type { Lead, ApplicationDraft } from "@/features/admissions/leads/types/lead";
 import type { LeadChannel } from "@/features/admissions/types/enums";
 
 // Synchronous shim: getLeads returns an empty array
@@ -41,24 +41,6 @@ export const createLead = (leadData: Omit<Lead, "id" | "createdAt">): Lead => {
     createdAt: new Date().toISOString(),
   } as Lead;
 };
-
-// Activity log — UI Ready stubs (no backend endpoint)
-export const getActivitiesByLeadId = (_leadId: string): ActivityLogItem[] => [];
-export const addActivity = (
-  _activityData: Omit<ActivityLogItem, "id" | "createdAt">
-): ActivityLogItem => ({
-  ..._activityData,
-  id: `stub-${Date.now()}`,
-  createdAt: new Date().toISOString(),
-});
-
-// Notes — UI Ready stubs (no backend endpoint)
-export const getNotesByLeadId = (_leadId: string): Note[] => [];
-export const addNote = (_noteData: Omit<Note, "id" | "createdAt">): Note => ({
-  ..._noteData,
-  id: `stub-${Date.now()}`,
-  createdAt: new Date().toISOString(),
-});
 
 // Conversion — delegates to API
 export const convertLeadToApplication = (leadId: string): ApplicationDraft => {

@@ -44,9 +44,9 @@ const readArray = (record: ApiRecord, keys: string[]): unknown[] => {
 
 function unwrapEnvelope(response: unknown): unknown {
   if (!isRecord(response)) return response;
-  if (typeof response.data !== "undefined") return response.data;
-  if (typeof response.result !== "undefined") return response.result;
-  if (typeof response.payload !== "undefined") return response.payload;
+  if (typeof response.data !== "undefined" && response.data !== null && (isRecord(response.data) || Array.isArray(response.data))) return response.data;
+  if (typeof response.result !== "undefined" && response.result !== null && (isRecord(response.result) || Array.isArray(response.result))) return response.result;
+  if (typeof response.payload !== "undefined" && response.payload !== null && (isRecord(response.payload) || Array.isArray(response.payload))) return response.payload;
   return response;
 }
 

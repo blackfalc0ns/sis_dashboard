@@ -12,7 +12,12 @@ const TESTS_ENDPOINT = "/admissions/tests";
 
 export interface FetchPlacementTestsParams {
   search?: string;
-  applicationId?: string;
+  status?: string;
+  type?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface CreatePlacementTestPayload {
@@ -27,6 +32,7 @@ export interface CreatePlacementTestPayload {
 export interface CompletePlacementTestPayload {
   status?: string;
   score?: number;
+  maxScore?: number;
   result?: string;
   notes?: string;
 }
@@ -36,9 +42,7 @@ export type UpdatePlacementTestPayload =
 
 const toCreateBody = (payload: CreatePlacementTestPayload) => ({
   applicationId: payload.applicationId,
-  studentName: payload.studentName,
-  subjectId: null,
-  subjectName: null,
+  type: payload.type || "Placement Test",
   scheduledAt:
     payload.scheduledAt || toIsoFromDateAndTime(payload.date || "", payload.time || ""),
 });
@@ -54,7 +58,8 @@ export async function fetchPlacementTests(
 
 export async function fetchPlacementTestById(id: string): Promise<Test> {
   const response = await apiGet<unknown>(`${TESTS_ENDPOINT}/${id}`);
-  return normalizeTest(unwrapItemResponse(response, "placement test"));
+  const item = unwrapItemResponse(response, "placement test");
+  return normalizeTest(item);
 }
 
 export async function createPlacementTest(
@@ -87,7 +92,7 @@ export async function completePlacementTest(
   payload: CompletePlacementTestPayload,
 ): Promise<Test> {
   const response = await apiPatch<unknown>(`${TESTS_ENDPOINT}/${id}`, {
-    status: payload.status || "completed",
+    status: "completed",
     score: payload.score,
     result: payload.result || payload.notes,
   });

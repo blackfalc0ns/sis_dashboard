@@ -1,8 +1,8 @@
-// FILE: src/components/admissions/InterviewsList.tsx
+// FILE: src/features/admissions/interviews/pages/InterviewsList.tsx
 
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
@@ -17,18 +17,7 @@ import {
 import { DataTable, FilterPanel } from "@/components/ui";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import { KPICardV2 } from "@/components/ui/kpi-card";
-import ScheduleInterviewModal, {
-  type ScheduleInterviewFormData,
-} from "@/features/admissions/interviews/components/ScheduleInterviewModal";
 import InterviewRatingModal from "@/features/admissions/interviews/components/InterviewRatingModal";
-import DateRangeFilter, {
-  DateRangeValue,
-} from "@/features/admissions/shared/DateRangeFilter";
-import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
-import {
-  formatVisibleInterviewsForExport,
-} from "@/features/admissions/applications/utils/admissionsExportUtils";
-import { mockApplications, mockInterviews } from "@/data/mockAdmissions";
 import {
   Interview,
   InterviewStatus,
@@ -38,100 +27,58 @@ import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
 import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
+import { formatVisibleInterviewsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
 import {
-  filterAdmissionsRecordsByDateContext,
-  resolveAdmissionsContextScope,
-} from "@/features/admissions/shared/utils/admissionsContextScope";
+  fetchInterviews,
+  completeInterview,
+} from "@/features/admissions/interviews/services/interviewsApiService";
+import { useToast } from "@/components/ui/toast/Toast";
 
 export default function InterviewsList() {
   const t = useTranslations("admissions.interviews");
   const locale = useLocale();
   const router = useRouter();
-  const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
+  const { isReadOnly } = useAdmissionsYearTermContext();
+  const { showToast } = useToast();
+
+  const [interviews, setInterviews] = useState<(Interview & { studentName: string })[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedInterview, setSelectedInterview] = useState<
     (Interview & { studentName: string }) | null
   >(null);
-  const [isScheduleInterviewOpen, setIsScheduleInterviewOpen] = useState(false);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-
   const [showFilters, setShowFilters] = useState(false);
-  const admissionsScope = useMemo(
-    () => resolveAdmissionsContextScope(yearId, termId),
-    [termId, yearId],
-  );
 
-  // Combine interviews from applications and standalone interviews
-  const allInterviews = useMemo(() => {
-    const interviewsFromApps = mockApplications.flatMap((app) =>
-      app.interviews.map((interview) => ({
-        ...interview,
-        studentName:
-          locale === "ar"
-            ? app.full_name_ar || app.studentNameArabic || app.studentName
-            : app.full_name_en || app.studentName,
-        applicationId: app.id,
-        interviewId: interview.id,
-        gradeRequested: app.gradeRequested,
-      })),
-    );
-    const standaloneInterviews = mockInterviews.map((interview) => {
-      const app = mockApplications.find(
-        (a) => a.id === interview.applicationId,
+  const loadInterviews = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchInterviews();
+      setInterviews(
+        data.map((interview) => ({
+          ...interview,
+          studentName: interview.studentName || "",
+        })),
       );
-      return {
-        ...interview,
-        studentName:
-          locale === "ar"
-            ? app?.full_name_ar ||
-              app?.studentNameArabic ||
-              app?.studentName ||
-              "Unknown"
-            : app?.full_name_en || app?.studentName || "Unknown",
-        applicationId: interview.applicationId,
-        gradeRequested: app?.gradeRequested,
-      };
-    });
-    return [...interviewsFromApps, ...standaloneInterviews];
-  }, [locale]);
-  const scopedInterviews = useMemo(
-    () =>
-      filterAdmissionsRecordsByDateContext(
-        allInterviews,
-        (interview) => interview.date,
-        admissionsScope,
-      ),
-    [admissionsScope, allInterviews],
-  );
+    } catch (err) {
+      console.error("Failed to fetch interviews:", err);
+      showToast("Failed to load interviews", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    void loadInterviews();
+  }, [loadInterviews]);
 
   const normalizeQueryValues = useCallback(
-    (
-      values: Record<
-        "search" | "status" | "dateRange" | "startDate" | "endDate",
-        string
-      >,
-    ) => {
+    (values: Record<"search" | "status", string>) => {
       const updates: Partial<Record<keyof typeof values, string | null>> = {};
-      const validStatuses = new Set(["all", "scheduled", "completed"]);
-      const validDateRanges = new Set([
-        "all",
-        "7",
-        "14",
-        "30",
-        "60",
-        "90",
-        "custom",
-      ]);
+      const validStatuses = new Set(["all", "scheduled", "completed", "cancelled"]);
 
       if (!validStatuses.has(values.status)) {
         updates.status = null;
-      }
-      if (!validDateRanges.has(values.dateRange)) {
-        updates.dateRange = null;
-      }
-      if (values.dateRange !== "custom") {
-        if (values.startDate) updates.startDate = null;
-        if (values.endDate) updates.endDate = null;
       }
 
       return Object.keys(updates).length > 0 ? updates : null;
@@ -139,19 +86,13 @@ export default function InterviewsList() {
     [],
   );
 
-  const { values, setValue, setValues, reset } = useAdmissionsUrlQueryState<{
+  const { values, setValue, reset } = useAdmissionsUrlQueryState<{
     search: string;
     status: string;
-    dateRange: string;
-    startDate: string;
-    endDate: string;
   }>({
     defaults: {
       search: "",
       status: "all",
-      dateRange: "all",
-      startDate: "",
-      endDate: "",
     },
     debouncedKeys: ["search"],
     modeByKey: {
@@ -162,107 +103,48 @@ export default function InterviewsList() {
 
   const searchQuery = values.search;
   const statusFilter = values.status as InterviewStatus | "all";
-  const dateRange = values.dateRange as DateRangeValue;
-  const customStartDate = values.startDate;
-  const customEndDate = values.endDate;
 
-  // Filter and search interviews
+  // Filter interviews
   const filteredInterviews = useMemo(() => {
-    const filterResult = getDateFilterBoundaries(
-      dateRange,
-      customStartDate,
-      customEndDate,
-    );
-
-    return scopedInterviews.filter((interview) => {
+    return interviews.filter((interview) => {
       const matchesSearch =
         searchQuery === "" ||
-        interview.studentName
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        interview.interviewer
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        interview.applicationId
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase());
+        interview.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        interview.interviewer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        interview.applicationId.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesStatus =
         statusFilter === "all" || interview.status === statusFilter;
-      const matchesDateRange = isDateInRange(interview.date, filterResult);
 
-      return matchesSearch && matchesStatus && matchesDateRange;
+      return matchesSearch && matchesStatus;
     });
-  }, [
-    scopedInterviews,
-    searchQuery,
-    statusFilter,
-    dateRange,
-    customStartDate,
-    customEndDate,
-  ]);
+  }, [interviews, searchQuery, statusFilter]);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
-    const filterResult = getDateFilterBoundaries(
-      dateRange,
-      customStartDate,
-      customEndDate,
-    );
+    const total = interviews.length;
+    const scheduled = interviews.filter((i) => i.status === "scheduled").length;
+    const completed = interviews.filter((i) => i.status === "completed").length;
 
-    const interviewsInRange = scopedInterviews.filter((interview) =>
-      isDateInRange(interview.date, filterResult),
-    );
-
-    const total = interviewsInRange.length;
-    const scheduled = interviewsInRange.filter(
-      (interview) => interview.status === "scheduled",
-    ).length;
-    const completed = interviewsInRange.filter(
-      (interview) => interview.status === "completed",
-    ).length;
-
-    const completedWithRatings = interviewsInRange.filter(
-      (interview) =>
-        interview.status === "completed" && interview.rating !== undefined,
-    );
-    const avgRating =
-      completedWithRatings.length > 0
-        ? (
-            completedWithRatings.reduce(
-              (sum, interview) => sum + (interview.rating || 0),
-              0,
-            ) / completedWithRatings.length
-          ).toFixed(1)
-        : "0.0";
-
-    return { total, scheduled, completed, avgRating };
-  }, [customEndDate, customStartDate, dateRange, scopedInterviews]);
+    return { total, scheduled, completed };
+  }, [interviews]);
 
   const columns = [
-    { key: "interviewId", label: t("interview_id"), searchable: true },
     { key: "applicationId", label: t("application_id"), searchable: true },
     { key: "studentName", label: t("student_name"), searchable: true },
     {
-      key: "date",
+      key: "scheduledAt",
       label: t("date"),
       render: (value: unknown) =>
-        new Date(value as string).toLocaleDateString(),
+        value ? new Date(value as string).toLocaleDateString() : "-",
     },
-    { key: "time", label: t("time") },
     { key: "interviewer", label: t("interviewer"), searchable: true },
-    { key: "location", label: t("location") },
     {
       key: "status",
       label: t("status"),
       render: (value: unknown) => (
         <StatusBadge status={value as InterviewStatus} />
       ),
-    },
-    {
-      key: "rating",
-      label: t("rating"),
-      render: (value: unknown) => (value !== undefined ? `${value}/5` : "-"),
     },
     {
       key: "actions",
@@ -277,10 +159,10 @@ export default function InterviewsList() {
               setIsRatingModalOpen(true);
             }}
             className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary hover:text-white border border-primary rounded-lg transition-colors"
-            title="Enter/Edit Rating"
+            title="Complete Interview"
           >
             <Edit className="w-3 h-3" />
-            {row.rating !== undefined ? t("edit") : t("rate")}
+            {t("complete")}
           </button>
         ),
     },
@@ -295,15 +177,27 @@ export default function InterviewsList() {
   const handleRowClick = (
     interview: Interview & { studentName: string; [key: string]: unknown },
   ) => {
-    router.push(`/${locale}/admissions/interviews/${interview.id}`, {
-      scroll: true,
-    });
+    router.push(`/${locale}/admissions/interviews/${interview.id}`);
   };
 
-  const handleInterviewSubmit = (data: ScheduleInterviewFormData) => {
-    console.log("Interview scheduled:", data);
-    alert("Interview scheduled successfully!");
-    setIsScheduleInterviewOpen(false);
+  const handleRatingSubmit = async (
+    interviewId: string,
+    _rating: number,
+    notes?: string,
+  ) => {
+    try {
+      await completeInterview(interviewId, {
+        status: "completed",
+        notes,
+      });
+      showToast("Interview completed successfully!", "success");
+      setIsRatingModalOpen(false);
+      setSelectedInterview(null);
+      await loadInterviews();
+    } catch (err) {
+      console.error("Failed to complete interview:", err);
+      showToast("Failed to complete interview.", "error");
+    }
   };
 
   const handleExport = async (format: "csv" | "json" | "excel") => {
@@ -316,51 +210,10 @@ export default function InterviewsList() {
     });
   };
 
-  const handleRatingSubmit = (
-    interviewId: string,
-    rating: number,
-    notes?: string,
-  ) => {
-    console.log("Interview rating submitted:", { interviewId, rating, notes });
-    // In production, update the interview in the database
-    alert(`Interview rating saved: ${rating}/5 stars`);
-    setIsRatingModalOpen(false);
-    setSelectedInterview(null);
-  };
-
   return (
     <div className="space-y-6">
-      {/* Date Range Filter */}
-      <DateRangeFilter
-        value={dateRange}
-        onChange={(nextRange) => {
-          const shouldResetCustom = nextRange !== "custom";
-          setValues(
-            {
-              dateRange: nextRange,
-              startDate: shouldResetCustom ? null : customStartDate || null,
-              endDate: shouldResetCustom ? null : customEndDate || null,
-            },
-            "push",
-          );
-        }}
-        customStartDate={customStartDate}
-        customEndDate={customEndDate}
-        onCustomDateChange={(start, end) => {
-          setValues(
-            {
-              dateRange: "custom",
-              startDate: start || null,
-              endDate: end || null,
-            },
-            "replace",
-          );
-        }}
-        showAllTime={true}
-      />
-
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <KPICardV2
           title={t("total_interviews")}
           value={kpis.total}
@@ -406,21 +259,6 @@ export default function InterviewsList() {
           ]}
           chartColor="#10b981"
         />
-        <KPICardV2
-          title={t("average_rating")}
-          value={kpis.avgRating}
-          subtitle={t("out_of_5")}
-          icon={CheckCircle}
-          iconColor="#8b5cf6"
-          iconBgColor="#ede9fe"
-          chartData={[
-            { label: "W1", value: 4.2 },
-            { label: "W2", value: 4.3 },
-            { label: "W3", value: 4.4 },
-            { label: "W4", value: parseFloat(kpis.avgRating) },
-          ]}
-          chartColor="#8b5cf6"
-        />
       </div>
 
       {/* Header */}
@@ -446,7 +284,7 @@ export default function InterviewsList() {
       <FilterPanel
         searchSlot={
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="relative flex-1 min-w-50 max-w-md">
+            <div className="relative flex-1 min-w-[200px] max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
@@ -503,7 +341,11 @@ export default function InterviewsList() {
       />
 
       {/* Table */}
-      {filteredInterviews.length === 0 ? (
+      {isLoading ? (
+        <div className="bg-white rounded-xl p-12 shadow-sm text-center">
+          <p className="text-gray-500">Loading interviews...</p>
+        </div>
+      ) : filteredInterviews.length === 0 ? (
         <div className="bg-white rounded-xl p-12 shadow-sm text-center">
           <p className="text-gray-500">
             {hasActiveFilters ? t("no_match") : t("no_interviews")}
@@ -518,15 +360,9 @@ export default function InterviewsList() {
           )}
         </div>
       ) : (
-        <DataTable<
-          Interview & {
-            studentName: string;
-            applicationId: string;
-            [key: string]: unknown;
-          }
-        >
+        <DataTable
           columns={columns}
-          data={filteredInterviews}
+          data={filteredInterviews as (Interview & { studentName: string; [key: string]: unknown })[]}
           onRowClick={handleRowClick}
           searchQuery={searchQuery}
           urlState={{
@@ -536,14 +372,6 @@ export default function InterviewsList() {
           }}
         />
       )}
-
-      {/* Schedule Interview Modal */}
-      <ScheduleInterviewModal
-        isOpen={isScheduleInterviewOpen}
-        onClose={() => setIsScheduleInterviewOpen(false)}
-        onSubmit={handleInterviewSubmit}
-        studentName=""
-      />
 
       {/* Interview Rating Modal */}
       {selectedInterview && (

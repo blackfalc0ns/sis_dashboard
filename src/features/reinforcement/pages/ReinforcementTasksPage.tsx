@@ -18,6 +18,7 @@ import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeade
 import ReinforcementTaskCancelModal from "../components/ReinforcementTaskCancelModal";
 import ReinforcementTaskDuplicateModal from "../components/ReinforcementTaskDuplicateModal";
 import ReinforcementTaskTable from "../components/ReinforcementTaskTable";
+import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
 import { getReinforcementFilterOptions } from "../services/reinforcementFilterOptionsService";
 import {
   cancelReinforcementTask,
@@ -56,7 +57,32 @@ export default function ReinforcementTasksPage() {
   const { showSuccess, showError } = useToast();
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
-  const [context, setContext] = useState<ReinforcementAcademicContextValue>({});
+
+  // ─── URL-synced filters ──────────────────────────────────────────────────
+  const {
+    values,
+    setValue,
+  } = useReinforcementUrlFilters({
+    paramKeys: ["academicYearId", "termId", "stageId", "gradeId", "sectionId", "classroomId", "subjectId", "studentId", "enrollmentId"],
+    defaults: {},
+  });
+
+  // ─── Academic context derived from URL params ────────────────────────────
+  const context: ReinforcementAcademicContextValue = useMemo(
+    () => ({
+      academicYearId: values.academicYearId || undefined,
+      termId: values.termId || undefined,
+      stageId: values.stageId || undefined,
+      gradeId: values.gradeId || undefined,
+      sectionId: values.sectionId || undefined,
+      classroomId: values.classroomId || undefined,
+      subjectId: values.subjectId || undefined,
+      studentId: values.studentId || undefined,
+      enrollmentId: values.enrollmentId || undefined,
+    }),
+    [values.academicYearId, values.termId, values.stageId, values.gradeId, values.sectionId, values.classroomId, values.subjectId, values.studentId, values.enrollmentId],
+  );
+
   const [status, setStatus] = useState<ReinforcementTaskStatus | "">("");
   const [includeCancelled, setIncludeCancelled] = useState(false);
   const [tasks, setTasks] = useState<ReinforcementTask[]>([]);
@@ -179,19 +205,17 @@ export default function ReinforcementTasksPage() {
             value={context}
             showSubject
             showStudent
-            onChange={(selection: ReinforcementAcademicContextSelection) =>
-              setContext({
-                academicYearId: selection.academicYearId,
-                termId: selection.termId,
-                stageId: selection.stageId,
-                gradeId: selection.gradeId,
-                sectionId: selection.sectionId,
-                classroomId: selection.classroomId,
-                subjectId: selection.subjectId,
-                studentId: selection.studentId,
-                enrollmentId: selection.enrollmentId,
-              })
-            }
+            onChange={(selection: ReinforcementAcademicContextSelection) => {
+              setValue("academicYearId", selection.academicYearId || "");
+              setValue("termId", selection.termId || "");
+              setValue("stageId", selection.stageId || "");
+              setValue("gradeId", selection.gradeId || "");
+              setValue("sectionId", selection.sectionId || "");
+              setValue("classroomId", selection.classroomId || "");
+              setValue("subjectId", selection.subjectId || "");
+              setValue("studentId", selection.studentId || "");
+              setValue("enrollmentId", selection.enrollmentId || "");
+            }}
           />
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">

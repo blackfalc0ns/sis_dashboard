@@ -360,6 +360,21 @@ export function useConversations() {
         limit: 50,
       });
       const list = unwrapList<Conversation>(response);
+
+      // Debug: log what the API returns for unreadCount and lastMessage
+      if (list.items.length > 0) {
+        console.debug(
+          "[useConversations] API response sample (first item):",
+          JSON.stringify({
+            id: (list.items[0] as CommunicationRecord).id,
+            unreadCount: (list.items[0] as CommunicationRecord).unreadCount,
+            lastMessage: (list.items[0] as CommunicationRecord).lastMessage,
+            latestMessage: (list.items[0] as CommunicationRecord).latestMessage,
+            message: (list.items[0] as CommunicationRecord).message,
+          }, null, 2),
+        );
+      }
+
       const normalized = sortConversations(
         dedupeConversations(list.items.map(toConversationListItem)),
       );
@@ -374,17 +389,22 @@ export function useConversations() {
           return {
             ...conversation,
             lastMessage: existing.lastMessage ?? conversation.lastMessage,
-            unreadCount: existing.unreadCount ?? conversation.unreadCount,
+            // Prefer the API's unreadCount (source of truth) unless it's undefined/null,
+            // in which case fall back to the existing local value
+            unreadCount: conversation.unreadCount ?? existing.unreadCount,
           };
         });
         return sortConversations(merged);
       });
       setTotal(list.total ?? normalized.length);
 
-      // Enrich only conversations that don't have a lastMessage yet
+      // Enrich conversations that don't have a meaningful lastMessage
+      // Check the freshly-fetched normalized data (not stale state) to determine
+      // which conversations need enrichment. A lastMessage is "meaningful" only if
+      // it has at least a body or an id.
       const toEnrich = normalized.filter((c) => {
-        const existing = conversations.find((e) => e.id === c.id);
-        return !existing?.lastMessage;
+        const lm = c.lastMessage;
+        return !lm || (!lm.body && !lm.id);
       });
       if (toEnrich.length > 0) {
         void enrichConversations(toEnrich);

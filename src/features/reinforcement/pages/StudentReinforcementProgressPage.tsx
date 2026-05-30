@@ -13,6 +13,7 @@ import ReinforcementAcademicContextFilter, {
 } from "../components/ReinforcementAcademicContextFilter";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
 import StudentProgressCard from "../components/StudentProgressCard";
+import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
 import { getStudentReinforcementProgress } from "../services/reinforcementOverviewService";
 import type { StudentReinforcementProgress } from "../types";
 
@@ -47,9 +48,31 @@ export default function StudentReinforcementProgressPage({
   const t = useTranslations("reinforcement");
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
-  const [context, setContext] = useState<ReinforcementAcademicContextValue>({
-    studentId,
+
+  // ─── URL-synced filters ──────────────────────────────────────────────────
+  const {
+    values,
+    setValue,
+  } = useReinforcementUrlFilters({
+    paramKeys: ["academicYearId", "termId", "stageId", "gradeId", "sectionId", "classroomId", "studentId", "enrollmentId"],
+    defaults: { studentId },
   });
+
+  // ─── Academic context derived from URL params ────────────────────────────
+  const context: ReinforcementAcademicContextValue = useMemo(
+    () => ({
+      academicYearId: values.academicYearId || undefined,
+      termId: values.termId || undefined,
+      stageId: values.stageId || undefined,
+      gradeId: values.gradeId || undefined,
+      sectionId: values.sectionId || undefined,
+      classroomId: values.classroomId || undefined,
+      studentId: values.studentId || studentId || undefined,
+      enrollmentId: values.enrollmentId || undefined,
+    }),
+    [values.academicYearId, values.termId, values.stageId, values.gradeId, values.sectionId, values.classroomId, values.studentId, values.enrollmentId, studentId],
+  );
+
   const [progress, setProgress] = useState<StudentReinforcementProgress | null>(
     null,
   );
@@ -114,18 +137,16 @@ export default function StudentReinforcementProgressPage({
           value={context}
           showSubject={false}
           showStudent
-          onChange={(selection: ReinforcementAcademicContextSelection) =>
-            setContext({
-              academicYearId: selection.academicYearId,
-              termId: selection.termId,
-              stageId: selection.stageId,
-              gradeId: selection.gradeId,
-              sectionId: selection.sectionId,
-              classroomId: selection.classroomId,
-              studentId: selection.studentId || studentId,
-              enrollmentId: selection.enrollmentId,
-            })
-          }
+          onChange={(selection: ReinforcementAcademicContextSelection) => {
+            setValue("academicYearId", selection.academicYearId || "");
+            setValue("termId", selection.termId || "");
+            setValue("stageId", selection.stageId || "");
+            setValue("gradeId", selection.gradeId || "");
+            setValue("sectionId", selection.sectionId || "");
+            setValue("classroomId", selection.classroomId || "");
+            setValue("studentId", selection.studentId || studentId || "");
+            setValue("enrollmentId", selection.enrollmentId || "");
+          }}
         />
       </section>
 

@@ -33,10 +33,18 @@ import {
   fetchApplicationById,
   submitApplication,
 } from "@/features/admissions/applications/services/applicationsApiService";
-import { createPlacementTest } from "@/features/admissions/tests/services/testsApiService";
-import { createInterview } from "@/features/admissions/interviews/services/interviewsApiService";
+import { fetchApplicationDocuments } from "@/features/admissions/applications/services/applicationDocumentsApiService";
+import {
+  createPlacementTest,
+  fetchPlacementTests,
+} from "@/features/admissions/tests/services/testsApiService";
+import {
+  createInterview,
+  fetchInterviews,
+} from "@/features/admissions/interviews/services/interviewsApiService";
 import {
   createDecision,
+  fetchDecisions,
   getDecisionFriendlyErrorMessage,
 } from "@/features/admissions/decisions/services/decisionsApiService";
 import {
@@ -92,7 +100,31 @@ export default function ApplicationDetailsPage({
     setIsLoading(true);
     setError(null);
     try {
-      setApplication(await fetchApplicationById(applicationId));
+      const [app, documents, tests, interviews, decisions] = await Promise.all([
+        fetchApplicationById(applicationId),
+        fetchApplicationDocuments(applicationId).catch(() => []),
+        fetchPlacementTests({}).catch(() => []),
+        fetchInterviews({}).catch(() => []),
+        fetchDecisions({}).catch(() => []),
+      ]);
+
+      // Filter related data by applicationId client-side
+      // (backend list endpoints don't support applicationId as a query filter)
+      const appTests = tests.filter((t) => t.applicationId === applicationId);
+      const appInterviews = interviews.filter((i) => i.applicationId === applicationId);
+      const appDecisions = decisions.filter((d) => d.applicationId === applicationId);
+
+      // Merge separately-fetched relations into the application object
+      // Only override if the application response didn't already include them
+      const merged: Application = {
+        ...app,
+        documents: app.documents.length > 0 ? app.documents : documents,
+        tests: app.tests.length > 0 ? app.tests : appTests,
+        interviews: app.interviews.length > 0 ? app.interviews : appInterviews,
+        decision: app.decision ?? appDecisions[0] ?? undefined,
+      };
+
+      setApplication(merged);
     } catch (loadError) {
       console.error("Failed to load application:", loadError);
       setApplication(null);
@@ -338,12 +370,6 @@ export default function ApplicationDetailsPage({
         {/* Sticky Action Bar */}
         <div className="bg-white rounded-xl shadow-sm p-6 sticky bottom-4">
           <div className="flex items-center gap-3 flex-wrap">
-            <button
-              onClick={handleSubmitApplication}
-              className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-            >
-              Submit Application
-            </button>
             <button
               onClick={handleScheduleTest}
               className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"

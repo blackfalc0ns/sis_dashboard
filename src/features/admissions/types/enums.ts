@@ -6,13 +6,6 @@ export type LeadChannel = "In-app" | "Referral" | "Walk-in" | "Other";
 
 export type LeadStatus = "New" | "Contacted" | "Converted" | "Closed";
 
-export type ActivityType =
-  | "Call"
-  | "WhatsApp"
-  | "Email"
-  | "Note"
-  | "StatusChange";
-
 // Application Types
 export type ApplicationStatus =
   | "submitted"

@@ -485,6 +485,7 @@ export default function ApplicationCreateStepper({
           required: requirement.required,
           uploaded: Boolean(documentState?.uploaded),
           fileName: documentState?.file?.name,
+          file: documentState?.file || undefined,
         };
       }),
     });
@@ -598,6 +599,24 @@ export default function ApplicationCreateStepper({
           handleDragEnter={handleDragEnter}
           handleDragLeave={handleDragLeave}
           handleDrop={handleDrop}
+          onAddCustomDocument={(id, nameEn) => {
+            const newReq = {
+              id,
+              nameEn,
+              nameAr: nameEn,
+              required: false,
+              active: true,
+              sortOrder: documentRequirements.length + 1,
+            } as AdmissionsRequiredDocumentConfig;
+            setDocumentRequirements((prev) => [...prev, newReq]);
+            setFormData((current) => ({
+              ...current,
+              documents: {
+                ...current.documents,
+                [id]: { uploaded: false, file: null },
+              },
+            }));
+          }}
         />
       )}
 

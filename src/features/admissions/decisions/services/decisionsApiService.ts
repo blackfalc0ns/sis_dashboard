@@ -11,7 +11,6 @@ const DECISIONS_ENDPOINT = "/admissions/decisions";
 
 export interface FetchDecisionsParams {
   search?: string;
-  applicationId?: string;
 }
 
 export interface CreateDecisionPayload {

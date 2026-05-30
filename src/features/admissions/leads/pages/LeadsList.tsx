@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
   Plus,
-  Upload,
   Search,
   X,
   Users,
@@ -19,9 +18,8 @@ import { DataTable, FilterPanel } from "@/components/ui";
 import { KPICardV2 } from "@/components/ui/kpi-card";
 import LeadStatusBadge from "@/features/admissions/leads/components/LeadStatusBadge";
 import CreateLeadModal from "@/features/admissions/leads/components/CreateLeadModal";
-import ImportLeadsModal from "@/features/admissions/leads/components/ImportLeadsModal";
 import ApplicationCreateStepper from "@/features/admissions/applications/components/ApplicationCreateStepper";
-import DateRangeFilter, {
+import type {
   DateRangeValue,
 } from "@/features/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
@@ -39,7 +37,11 @@ import {
   mapLeadChannelToApplicationSource,
   type ApplicationCreationPayload,
 } from "@/features/admissions/applications/services/applicationCreationService";
-import { createApplication } from "@/features/admissions/applications/services/applicationsApiService";
+import { createApplication, submitApplication } from "@/features/admissions/applications/services/applicationsApiService";
+import {
+  uploadAdmissionsFile,
+  createApplicationDocument,
+} from "@/features/admissions/applications/services/applicationDocumentsApiService";
 import { Lead, LeadStatus, LeadChannel } from "@/features/admissions";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
@@ -66,7 +68,6 @@ export default function LeadsList() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [applicationLead, setApplicationLead] = useState<Lead | null>(null);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const [showFilters, setShowFilters] = useState(false);
@@ -281,15 +282,6 @@ export default function LeadsList() {
     }
   };
 
-  const handleImportLeads = (file: File) => {
-    console.log("Importing file:", file.name);
-    showToast(
-      `File "${file.name}" uploaded. Import functionality is a stub.`,
-      "info",
-    );
-    setIsImportModalOpen(false);
-  };
-
   const handleExport = async (format: "csv" | "json" | "excel") => {
     const exportLocale = format === "json" ? "en" : locale;
     downloadAdmissionsExport({
@@ -324,6 +316,22 @@ export default function LeadsList() {
         requestedAcademicYearId: yearId || undefined,
         source: mapLeadChannelToApplicationSource(applicationLead.channel),
       });
+
+      // Upload documents and link them to the application
+      const uploadedDocs = data.documents.filter((doc) => doc.uploaded && doc.file);
+      for (const doc of uploadedDocs) {
+        try {
+          const fileId = await uploadAdmissionsFile(doc.file!);
+          await createApplicationDocument(createdApplication.id, {
+            fileId,
+            documentType: doc.labelEn,
+            status: "complete",
+          });
+        } catch (docError) {
+          console.error(`Failed to upload document ${doc.labelEn}:`, docError);
+        }
+      }
+
       await updateLead(applicationLead.id, { status: "Converted" });
       showToast(t("marked_converted"), "success");
       setApplicationLead(null);
@@ -503,14 +511,6 @@ export default function LeadsList() {
             {t("export")}
           </button>
           <button
-            onClick={() => setIsImportModalOpen(true)}
-            disabled={isReadOnly}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
-          >
-            <Upload className="w-4 h-4" />
-            {t("import_leads")}
-          </button>
-          <button
             onClick={() => setIsCreateModalOpen(true)}
             disabled={isReadOnly}
             className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg font-medium text-sm transition-colors"
@@ -650,11 +650,6 @@ export default function LeadsList() {
         onSubmit={handleUpdateLead}
         initialLead={editingLead}
         mode="update"
-      />
-      <ImportLeadsModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onSubmit={handleImportLeads}
       />
       <ApplicationCreateStepper
         lead={applicationLead || undefined}

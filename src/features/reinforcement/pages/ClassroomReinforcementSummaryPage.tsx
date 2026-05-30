@@ -13,6 +13,7 @@ import ReinforcementAcademicContextFilter, {
   type ReinforcementAcademicContextValue,
 } from "../components/ReinforcementAcademicContextFilter";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
+import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
 import { getClassroomReinforcementSummary } from "../services/reinforcementOverviewService";
 import type { ClassroomReinforcementSummary } from "../types";
 
@@ -47,9 +48,29 @@ export default function ClassroomReinforcementSummaryPage({
   const t = useTranslations("reinforcement");
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
-  const [context, setContext] = useState<ReinforcementAcademicContextValue>({
-    classroomId,
+
+  // ─── URL-synced filters ──────────────────────────────────────────────────
+  const {
+    values,
+    setValue,
+  } = useReinforcementUrlFilters({
+    paramKeys: ["academicYearId", "termId", "stageId", "gradeId", "sectionId", "classroomId"],
+    defaults: { classroomId },
   });
+
+  // ─── Academic context derived from URL params ────────────────────────────
+  const context: ReinforcementAcademicContextValue = useMemo(
+    () => ({
+      academicYearId: values.academicYearId || undefined,
+      termId: values.termId || undefined,
+      stageId: values.stageId || undefined,
+      gradeId: values.gradeId || undefined,
+      sectionId: values.sectionId || undefined,
+      classroomId: values.classroomId || classroomId || undefined,
+    }),
+    [values.academicYearId, values.termId, values.stageId, values.gradeId, values.sectionId, values.classroomId, classroomId],
+  );
+
   const [summary, setSummary] = useState<ClassroomReinforcementSummary | null>(
     null,
   );
@@ -114,16 +135,14 @@ export default function ClassroomReinforcementSummaryPage({
           value={context}
           showSubject={false}
           showStudent={false}
-          onChange={(selection: ReinforcementAcademicContextSelection) =>
-            setContext({
-              academicYearId: selection.academicYearId,
-              termId: selection.termId,
-              stageId: selection.stageId,
-              gradeId: selection.gradeId,
-              sectionId: selection.sectionId,
-              classroomId: selection.classroomId || classroomId,
-            })
-          }
+          onChange={(selection: ReinforcementAcademicContextSelection) => {
+            setValue("academicYearId", selection.academicYearId || "");
+            setValue("termId", selection.termId || "");
+            setValue("stageId", selection.stageId || "");
+            setValue("gradeId", selection.gradeId || "");
+            setValue("sectionId", selection.sectionId || "");
+            setValue("classroomId", selection.classroomId || classroomId || "");
+          }}
         />
       </section>
 

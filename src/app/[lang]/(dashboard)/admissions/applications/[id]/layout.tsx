@@ -23,7 +23,7 @@ import { buildLocalePath } from "@/lib/routing/localePath";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import type { Application, DecisionType } from "@/features/admissions/types/admissions";
-import { fetchApplicationById } from "@/features/admissions/applications/services/applicationsApiService";
+import { fetchApplicationById, submitApplication } from "@/features/admissions/applications/services/applicationsApiService";
 import { createPlacementTest } from "@/features/admissions/tests/services/testsApiService";
 import { createInterview } from "@/features/admissions/interviews/services/interviewsApiService";
 import {
@@ -31,7 +31,7 @@ import {
   getDecisionFriendlyErrorMessage,
 } from "@/features/admissions/decisions/services/decisionsApiService";
 import {
-  createEnrollmentHandoffPreview,
+  executeFullEnrollment,
   getEnrollmentFriendlyErrorMessage,
 } from "@/features/admissions/enrollment/services/admissionsEnrollmentApiService";
 
@@ -60,6 +60,7 @@ export default function ApplicationProfileLayout({
   const [isScheduleInterviewOpen, setIsScheduleInterviewOpen] = useState(false);
   const [isDecisionOpen, setIsDecisionOpen] = useState(false);
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState(false);
 
   const { activeTab, entityId: applicationId, handleTabClick } = useSectionTabs({
     basePath: ["admissions", "applications"],
@@ -180,38 +181,64 @@ export default function ApplicationProfileLayout({
 
         {/* Sticky Action Bar */}
         <div className="bg-white rounded-xl shadow-sm p-6 sticky bottom-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              disabled={isReadOnly}
-              onClick={() => setIsScheduleTestOpen(true)}
-              className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-            >
-              {t("actions.schedule_test")}
-            </button>
-            <button
-              disabled={isReadOnly}
-              onClick={() => setIsScheduleInterviewOpen(true)}
-              className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-            >
-              {t("actions.schedule_interview")}
-            </button>
-            <button
-              disabled={isReadOnly}
-              onClick={() => setIsDecisionOpen(true)}
-              className="px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              {t("actions.make_decision")}
-            </button>
-            {application.status === "accepted" && (
+          {isEnrolled ? (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-sm font-medium">
+                <div className="w-2 h-2 rounded-full bg-emerald-600" />
+                {t("actions.enrolled_status")}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 flex-wrap">
+              {application.status === "documents_pending" && (
+                <button
+                  disabled={isReadOnly}
+                  onClick={async () => {
+                    try {
+                      await submitApplication(application.id);
+                      await refreshApplication();
+                    } catch (err) {
+                      console.error("Failed to submit application:", err);
+                      alert("Failed to submit application.");
+                    }
+                  }}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  {t("actions.submit_application")}
+                </button>
+              )}
               <button
                 disabled={isReadOnly}
-                onClick={() => setIsEnrollmentOpen(true)}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+                onClick={() => setIsScheduleTestOpen(true)}
+                className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
               >
-                {t("actions.enroll_student")}
+                {t("actions.schedule_test")}
               </button>
-            )}
-          </div>
+              <button
+                disabled={isReadOnly}
+                onClick={() => setIsScheduleInterviewOpen(true)}
+                className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                {t("actions.schedule_interview")}
+              </button>
+              <button
+                disabled={isReadOnly}
+                onClick={() => setIsDecisionOpen(true)}
+                className="px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                {t("actions.make_decision")}
+              </button>
+              {application.status === "accepted" && (
+                <button
+                  disabled={isReadOnly}
+                  onClick={() => setIsEnrollmentOpen(true)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  {t("actions.enroll_student")}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -276,14 +303,27 @@ export default function ApplicationProfileLayout({
       <EnrollmentForm
         isOpen={isEnrollmentOpen}
         onClose={() => setIsEnrollmentOpen(false)}
-        onSubmit={async () => {
+        onSubmit={async (data) => {
           try {
-            await createEnrollmentHandoffPreview(application.id);
+            // Directly create student + guardian + enrollment (skip handoff preview)
+            await executeFullEnrollment({
+              applicationId: application.id,
+              studentName: application.studentName,
+              classroomId: data.classroomId!,
+              enrollmentDate: data.startDate,
+              gradeId: data.gradeId,
+              sectionId: data.sectionId,
+            });
+
+            setIsEnrolled(true);
+            alert("Student enrolled successfully!");
             setIsEnrollmentOpen(false);
+            await refreshApplication();
           } catch (error) {
+            console.error("Failed to enroll:", error);
             alert(
               getEnrollmentFriendlyErrorMessage(error) ||
-                "Failed to create enrollment handoff. Please try again.",
+                "Failed to enroll student. Please try again.",
             );
           }
         }}

@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Application, Interview } from "@/features/admissions/types/admissions";
 import { StatusBadge } from "@/features/admissions/shared";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
-import { fetchInterviews } from "@/features/admissions/interviews/services/interviewsApiService";
+import {
+  fetchInterviews,
+  completeInterview,
+} from "@/features/admissions/interviews/services/interviewsApiService";
+import InterviewRatingModal from "@/features/admissions/interviews/components/InterviewRatingModal";
+import { useToast } from "@/components/ui/toast/Toast";
 
 interface InterviewsTabProps {
   application: Application;
@@ -18,34 +23,49 @@ export default function InterviewsTab({
 }: InterviewsTabProps) {
   const t = useTranslations("admissions.application360");
   const { isReadOnly } = useAdmissionsYearTermContext();
+  const { showToast } = useToast();
   const [interviews, setInterviews] = useState<Interview[]>(
     application.interviews,
   );
+  const [selectedInterview, setSelectedInterview] = useState<Interview | null>(
+    null,
+  );
+
+  const loadInterviews = useCallback(async () => {
+    try {
+      const nextInterviews = await fetchInterviews({});
+      setInterviews(
+        nextInterviews.filter(
+          (interview) => interview.applicationId === application.id,
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to load interviews:", error);
+    }
+  }, [application.id]);
 
   useEffect(() => {
-    let cancelled = false;
-    void fetchInterviews({
-      applicationId: application.id,
-      search: application.studentName,
-    })
-      .then((nextInterviews) => {
-        if (!cancelled) {
-          setInterviews(
-            nextInterviews.filter(
-              (interview) =>
-                !interview.applicationId || interview.applicationId === application.id,
-            ),
-          );
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to load interviews:", error);
-      });
+    void loadInterviews();
+  }, [loadInterviews]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [application.id, application.interviews, application.studentName]);
+  const handleCompleteInterview = async (
+    interviewId: string,
+    _rating: number,
+    notes?: string,
+  ) => {
+    try {
+      await completeInterview(interviewId, {
+        status: "completed",
+        notes,
+      });
+      showToast("Interview completed!", "success");
+      setSelectedInterview(null);
+      await loadInterviews();
+    } catch (err) {
+      console.error("Failed to complete interview:", err);
+      showToast("Failed to complete interview.", "error");
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -70,25 +90,31 @@ export default function InterviewsTab({
           {interviews.map((interview) => (
             <div
               key={interview.id}
-              className="p-4 border border-gray-200 rounded-lg"
+              onClick={() => {
+                if (!isReadOnly && interview.status !== "cancelled") {
+                  setSelectedInterview(interview);
+                }
+              }}
+              className={`p-4 border border-gray-200 rounded-lg transition-colors ${
+                !isReadOnly && interview.status !== "cancelled"
+                  ? "cursor-pointer hover:border-primary hover:bg-gray-50"
+                  : ""
+              }`}
             >
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-900">
-                    {t("interviews.interview_with")} {interview.interviewer}
+                    {t("interviews.interview_with")}{" "}
+                    {interview.interviewerName || interview.interviewer}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {interview.date} {t("interviews.at")} {interview.time} •{" "}
-                    {interview.location}
+                    {interview.scheduledAt
+                      ? new Date(interview.scheduledAt).toLocaleString()
+                      : `${interview.date} ${interview.time}`}
                   </p>
                   {interview.notes && (
                     <p className="text-sm text-gray-600 mt-2">
                       {interview.notes}
-                    </p>
-                  )}
-                  {interview.rating && (
-                    <p className="text-sm font-medium text-primary mt-2">
-                      {t("interviews.rating")}: {interview.rating}/5
                     </p>
                   )}
                 </div>
@@ -97,6 +123,18 @@ export default function InterviewsTab({
             </div>
           ))}
         </div>
+      )}
+
+      {selectedInterview && (
+        <InterviewRatingModal
+          isOpen={true}
+          onClose={() => setSelectedInterview(null)}
+          onSubmit={handleCompleteInterview}
+          interview={{
+            ...selectedInterview,
+            studentName: application.studentName,
+          }}
+        />
       )}
     </div>
   );

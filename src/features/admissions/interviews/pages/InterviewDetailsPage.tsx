@@ -1,30 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Calendar,
   Clock,
-  MapPin,
   User,
   FileText,
-  Star,
   Edit,
   CheckCircle,
   XCircle,
   AlertCircle,
   ArrowRight,
 } from "lucide-react";
-import { mockApplications, mockInterviews } from "@/data/mockAdmissions";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import InterviewRatingModal from "@/features/admissions/interviews/components/InterviewRatingModal";
-import ScheduleInterviewModal, {
-  type ScheduleInterviewFormData,
-} from "@/features/admissions/interviews/components/ScheduleInterviewModal";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import MainLoader from "@/components/ui/loaders/MainLoader";
+import {
+  fetchInterviewById,
+  completeInterview,
+  updateInterview,
+} from "@/features/admissions/interviews/services/interviewsApiService";
+import type { Interview } from "@/features/admissions/types/admissions";
+import { useToast } from "@/components/ui/toast/Toast";
 
 interface InterviewDetailsPageProps {
   interviewId: string;
@@ -37,55 +39,34 @@ export default function InterviewDetailsPage({
   const locale = useLocale();
   const router = useRouter();
   const { isReadOnly } = useAdmissionsYearTermContext();
+  const { showToast } = useToast();
 
+  const [interview, setInterview] = useState<Interview | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
-  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
 
-  // Find interview from applications or standalone interviews
-  // React Compiler will optimize this automatically
-  const findInterviewData = () => {
-    // Check in applications first
-    for (const app of mockApplications) {
-      const interview = app.interviews.find((i) => i.id === interviewId);
-      if (interview) {
-        return {
-          interview,
-          application: app,
-          studentName:
-            locale === "ar"
-              ? app.full_name_ar || app.studentNameArabic || app.studentName
-              : app.full_name_en || app.studentName,
-        };
-      }
+  const loadInterview = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchInterviewById(interviewId);
+      setInterview(data);
+    } catch (err) {
+      console.error("Failed to load interview:", err);
+      setInterview(null);
+    } finally {
+      setIsLoading(false);
     }
+  }, [interviewId]);
 
-    // Check standalone interviews
-    const standaloneInterview = mockInterviews.find(
-      (i) => i.id === interviewId,
-    );
-    if (standaloneInterview) {
-      const app = mockApplications.find(
-        (a) => a.id === standaloneInterview.applicationId,
-      );
-      return {
-        interview: standaloneInterview,
-        application: app,
-        studentName:
-          locale === "ar"
-            ? app?.full_name_ar ||
-              app?.studentNameArabic ||
-              app?.studentName ||
-              "Unknown"
-            : app?.full_name_en || app?.studentName || "Unknown",
-      };
-    }
+  useEffect(() => {
+    void loadInterview();
+  }, [loadInterview]);
 
-    return null;
-  };
+  if (isLoading) {
+    return <MainLoader />;
+  }
 
-  const interviewData = findInterviewData();
-
-  if (!interviewData) {
+  if (!interview) {
     return (
       <div className="p-6">
         <div className="text-center py-12">
@@ -101,36 +82,43 @@ export default function InterviewDetailsPage({
     );
   }
 
-  const { interview, application, studentName } = interviewData;
+  const studentName = interview.studentName || "";
 
-  const handleRateInterview = () => {
+  const handleComplete = () => {
     if (isReadOnly) return;
     setIsRatingModalOpen(true);
   };
 
-  const handleRatingSubmit = (
-    interviewId: string,
-    rating: number,
+  const handleRatingSubmit = async (
+    _interviewId: string,
+    _rating: number,
     notes?: string,
   ) => {
-    console.log("Interview rating:", { interviewId, rating, notes });
-    // In a real app, this would update the backend
-    // For now, we'll just refresh to show the change
-    setIsRatingModalOpen(false);
-    router.refresh();
+    try {
+      await completeInterview(interviewId, {
+        status: "completed",
+        notes,
+      });
+      showToast("Interview completed successfully!", "success");
+      setIsRatingModalOpen(false);
+      await loadInterview();
+    } catch (err) {
+      console.error("Failed to complete interview:", err);
+      showToast("Failed to complete interview.", "error");
+    }
   };
 
-  const handleReschedule = () => {
+  const handleReschedule = async () => {
     if (isReadOnly) return;
-    setIsRescheduleModalOpen(true);
-  };
-
-  const handleRescheduleSubmit = (data: ScheduleInterviewFormData) => {
-    console.log("Rescheduling interview:", { interviewId, ...data });
-    // In a real app, this would update the backend
-    // For now, we'll just close the modal and refresh
-    setIsRescheduleModalOpen(false);
-    router.refresh();
+    // For now, just update status to rescheduled
+    try {
+      await updateInterview(interviewId, { status: "rescheduled" });
+      showToast("Interview marked as rescheduled.", "success");
+      await loadInterview();
+    } catch (err) {
+      console.error("Failed to reschedule interview:", err);
+      showToast("Failed to reschedule interview.", "error");
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -169,7 +157,7 @@ export default function InterviewDetailsPage({
                   {t("details.title")} {interview.id}
                 </h1>
                 <p className="text-sm text-gray-500 mt-1">
-                  {studentName} • {application?.gradeRequested || "N/A"}
+                  {studentName}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -198,94 +186,71 @@ export default function InterviewDetailsPage({
                 <div>
                   <p className="text-xs text-gray-500">{t("details.date")}</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {new Date(interview.date).toLocaleDateString(locale, {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    {interview.scheduledAt
+                      ? new Date(interview.scheduledAt).toLocaleDateString(locale, {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })
+                      : "N/A"}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">{t("details.time")}</p>
                   <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
                     <Clock className="w-4 h-4 text-gray-400" />
-                    {interview.time}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.duration")}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {interview.duration
-                      ? `${interview.duration} ${t("details.minutes")}`
+                    {interview.scheduledAt
+                      ? new Date(interview.scheduledAt).toLocaleTimeString(locale, {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
                       : "N/A"}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Location & Interviewer */}
+            {/* Interviewer */}
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                {t("details.location_interviewer")}
+                <User className="w-4 h-4" />
+                {t("details.interviewer")}
               </h3>
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.location")}
-                  </p>
+                  <p className="text-xs text-gray-500">{t("details.interviewer")}</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {interview.location}
+                    {interview.interviewerName || interview.interviewer || "N/A"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.interviewer")}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-400" />
-                    {interview.interviewer}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.interviewer_phone")}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {interview.interviewerPhone || "N/A"}
-                  </p>
+                  <p className="text-xs text-gray-500">Application</p>
+                  <button
+                    onClick={() =>
+                      router.push(
+                        `/${locale}/admissions/applications/${interview.applicationId}`,
+                      )
+                    }
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    {interview.applicationId}
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Guardian Information */}
+            {/* Student */}
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <User className="w-4 h-4" />
-                {t("details.guardian_info")}
+                {t("details.student_information")}
               </h3>
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.guardian_name")}
-                  </p>
+                  <p className="text-xs text-gray-500">{t("details.student_name")}</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {interview.guardianName ||
-                      application?.guardianName ||
-                      "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.guardian_phone")}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {interview.guardianPhone ||
-                      application?.guardianPhone ||
-                      "N/A"}
+                    {studentName || "N/A"}
                   </p>
                 </div>
               </div>
@@ -293,127 +258,38 @@ export default function InterviewDetailsPage({
           </div>
         </div>
 
-        {/* Student Information */}
-        {application && (
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-6">
-              {t("details.student_information")}
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.student_name")}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {studentName}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.application_id")}
-                  </p>
-                  <button
-                    onClick={() =>
-                      router.push(
-                        `/${locale}/admissions/applications/${application.id}`,
-                      )
-                    }
-                    className="text-sm font-medium text-primary hover:underline"
-                  >
-                    {application.id}
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.grade_requested")}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {application.gradeRequested}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t("details.application_status")}
-                  </p>
-                  <StatusBadge status={application.status} size="sm" />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Rating & Notes */}
+        {/* Notes */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-gray-900">
-              {t("details.rating_notes")}
+              {t("details.notes")}
             </h2>
-            {/* Allow rating for scheduled, rescheduled, or completed interviews */}
-            {(interview.status === "scheduled" ||
-              interview.status === "rescheduled" ||
-              interview.status === "completed") && (
+            {interview.status !== "cancelled" && interview.status !== "completed" && (
               <button
-                onClick={handleRateInterview}
+                onClick={handleComplete}
                 disabled={isReadOnly}
                 className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
               >
                 <Edit className="w-4 h-4" />
-                {interview.rating
-                  ? t("details.update_rating")
-                  : t("details.add_rating")}
+                {t("complete")}
               </button>
             )}
           </div>
 
-          {interview.rating ? (
-            <div className="space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-xs text-gray-500 mb-2">
-                  {t("details.rating")}
-                </p>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      className={`w-6 h-6 ${
-                        star <= (interview.rating || 0)
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-gray-300"
-                      }`}
-                    />
-                  ))}
-                  <span className="text-lg font-bold text-gray-900 ml-2">
-                    {interview.rating}/5
-                  </span>
-                </div>
+          {interview.notes ? (
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-start gap-2 mb-2">
+                <FileText className="w-4 h-4 text-gray-400 mt-0.5" />
+                <p className="text-xs text-gray-500">{t("details.notes")}</p>
               </div>
-
-              {interview.notes && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-start gap-2 mb-2">
-                    <FileText className="w-4 h-4 text-gray-400 mt-0.5" />
-                    <p className="text-xs text-gray-500">
-                      {t("details.notes")}
-                    </p>
-                  </div>
-                  <p className="text-sm text-gray-900 whitespace-pre-wrap">
-                    {interview.notes}
-                  </p>
-                </div>
-              )}
+              <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                {interview.notes}
+              </p>
             </div>
           ) : (
             <div className="text-center py-8">
-              <Star className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-sm text-gray-500">
-                {interview.status === "cancelled"
-                  ? t("details.rating_not_available_cancelled")
-                  : t("details.no_rating_yet")}
-              </p>
+              <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">No notes yet</p>
             </div>
           )}
         </div>
@@ -421,9 +297,7 @@ export default function InterviewDetailsPage({
         {/* Action Bar */}
         <div className="bg-white rounded-xl shadow-sm p-6 sticky bottom-4">
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Show reschedule and cancel buttons only for scheduled/rescheduled interviews */}
-            {(interview.status === "scheduled" ||
-              interview.status === "rescheduled") && (
+            {(interview.status === "scheduled" || interview.status === "rescheduled") && (
               <>
                 <button
                   onClick={handleReschedule}
@@ -432,42 +306,30 @@ export default function InterviewDetailsPage({
                 >
                   {t("actions.reschedule")}
                 </button>
-                <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors">
-                  {t("actions.cancel")}
-                </button>
-              </>
-            )}
-            {/* Show rate button for scheduled, rescheduled, or completed interviews without rating */}
-            {(interview.status === "scheduled" ||
-              interview.status === "rescheduled" ||
-              interview.status === "completed") &&
-              !interview.rating && (
                 <button
-                  onClick={handleRateInterview}
+                  onClick={handleComplete}
                   disabled={isReadOnly}
                   className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
                 >
-                  {t("actions.rate_interview")}
+                  {t("complete")}
                 </button>
-              )}
-            {/* Always show view application button except for cancelled interviews where it's the only button */}
-            {application && (
-              <button
-                onClick={() =>
-                  router.push(
-                    `/${locale}/admissions/applications/${application.id}`,
-                  )
-                }
-                className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-              >
-                {t("actions.view_application")}
-              </button>
+              </>
             )}
+            <button
+              onClick={() =>
+                router.push(
+                  `/${locale}/admissions/applications/${interview.applicationId}`,
+                )
+              }
+              className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+            >
+              {t("actions.view_application")}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Rating Modal */}
+      {/* Rating/Complete Modal */}
       {interview && (
         <InterviewRatingModal
           isOpen={isRatingModalOpen}
@@ -476,20 +338,7 @@ export default function InterviewDetailsPage({
           interview={{
             ...interview,
             studentName,
-            applicationId: application?.id || interview.applicationId,
           }}
-        />
-      )}
-
-      {/* Reschedule Modal */}
-      {interview && application && (
-        <ScheduleInterviewModal
-          isOpen={isRescheduleModalOpen}
-          onClose={() => setIsRescheduleModalOpen(false)}
-          onSubmit={handleRescheduleSubmit}
-          studentName={studentName}
-          guardianName={application.guardianName}
-          guardianPhone={application.guardianPhone}
         />
       )}
     </div>

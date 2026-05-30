@@ -33,16 +33,36 @@ const statusLabels: Record<string, { en: string; ar: string }> = {
   not_completed: { en: "Not completed", ar: "غير مكتمل" },
 };
 
-const labelFor = (key: string): string =>
-  key
+const labelFor = (key: string, t: (k: string, opts?: Record<string, string>) => string): string => {
+  // Try translation first for known keys
+  const knownKeys: Record<string, string> = {
+    total: "tasks.assignmentSummary",
+    notCompleted: "kpi.notCompleted",
+    inProgress: "kpi.inProgress",
+    underReview: "status.under_review",
+    completed: "status.completed",
+    cancelled: "status.cancelled",
+    completionRate: "overview.completionRate",
+  };
+  if (knownKeys[key]) {
+    return t(knownKeys[key], { defaultMessage: key });
+  }
+  return key
     .replace(/[_-]+/g, " ")
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
 
-const valueFor = (value: unknown): string => {
-  if (typeof value === "number") return new Intl.NumberFormat().format(value);
+const valueFor = (value: unknown, locale?: string): string => {
+  if (typeof value === "number") {
+    // If it looks like a rate (0-1), show as percentage
+    if (value >= 0 && value <= 1 && value !== Math.floor(value)) {
+      return `${Math.round(value * 100)}%`;
+    }
+    return new Intl.NumberFormat(locale === "ar" ? "ar-SA" : "en-US").format(value);
+  }
   if (typeof value === "string") return value;
-  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "boolean") return value ? (locale === "ar" ? "نعم" : "Yes") : (locale === "ar" ? "لا" : "No");
   return "-";
 };
 
@@ -191,9 +211,13 @@ export default function ReinforcementTaskDetailPage({
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 ["status", statusLabels[String(task.status)]?.[locale === "ar" ? "ar" : "en"] || task.status],
-                ["source", t(`source.${task.source}`)],
-                ["rewardType", t(`rewardType.${task.rewardType}`)],
-                ["dueDate", task.dueDate],
+                ["source", task.source ? t(`source.${String(task.source).toLowerCase()}`, { defaultMessage: String(task.source) }) : "-"],
+                ["rewardType", (task.reward as Record<string, unknown>)?.type
+                  ? t(`rewardType.${String((task.reward as Record<string, unknown>).type).toLowerCase()}`, { defaultMessage: String((task.reward as Record<string, unknown>).type) })
+                  : "-"],
+                ["dueDate", task.dueDate
+                  ? new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", { dateStyle: "medium" }).format(new Date(task.dueDate))
+                  : "-"],
               ].map(([key, value]) => (
                 <div key={key} className="rounded-lg bg-gray-50 px-3 py-3">
                   <div className="text-xs font-medium uppercase text-gray-500">
@@ -207,6 +231,94 @@ export default function ReinforcementTaskDetailPage({
             </div>
           </section>
 
+          {/* Description */}
+          {(task.descriptionEn || task.descriptionAr) && (
+            <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
+              <h2 className="text-base font-semibold text-gray-900">
+                {t("tasks.form.details")}
+              </h2>
+              <p className="mt-3 text-sm text-gray-700 whitespace-pre-wrap">
+                {locale === "ar"
+                  ? task.descriptionAr || task.descriptionEn
+                  : task.descriptionEn || task.descriptionAr}
+              </p>
+            </section>
+          )}
+
+          {/* Reward details */}
+          {(task.reward as Record<string, unknown>) && (
+            <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
+              <h2 className="text-base font-semibold text-gray-900">
+                {t("tasks.form.reward")}
+              </h2>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-lg bg-gray-50 px-3 py-3">
+                  <div className="text-xs font-medium uppercase text-gray-500">
+                    {t("tasks.form.rewardType")}
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-gray-900">
+                    {(task.reward as Record<string, unknown>)?.type
+                      ? t(`rewardType.${String((task.reward as Record<string, unknown>).type).toLowerCase()}`, { defaultMessage: String((task.reward as Record<string, unknown>).type) })
+                      : "-"}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-gray-50 px-3 py-3">
+                  <div className="text-xs font-medium uppercase text-gray-500">
+                    {t("tasks.form.rewardValue")}
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-gray-900">
+                    {(task.reward as Record<string, unknown>)?.value != null
+                      ? String((task.reward as Record<string, unknown>).value)
+                      : "-"}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-gray-50 px-3 py-3">
+                  <div className="text-xs font-medium uppercase text-gray-500">
+                    {t("tasks.form.rewardLabelEn")}
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-gray-900">
+                    {locale === "ar"
+                      ? String((task.reward as Record<string, unknown>)?.labelAr || (task.reward as Record<string, unknown>)?.labelEn || "-")
+                      : String((task.reward as Record<string, unknown>)?.labelEn || (task.reward as Record<string, unknown>)?.labelAr || "-")}
+                  </div>
+                </div>
+                {task.assignedByName && (
+                  <div className="rounded-lg bg-gray-50 px-3 py-3">
+                    <div className="text-xs font-medium uppercase text-gray-500">
+                      {t("tasks.detailFields.assignedBy")}
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-gray-900">
+                      {String(task.assignedByName)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Cancellation info */}
+          {isCancelled && (task.cancelledAt || task.cancellationReason) ? (
+            <section className="rounded-lg border border-red-100 bg-red-50 p-4">
+              <h2 className="text-base font-semibold text-red-900">
+                {t("tasks.cancelTitle")}
+              </h2>
+              <div className="mt-3 space-y-2">
+                {task.cancelledAt ? (
+                  <p className="text-sm text-red-700">
+                    <span className="font-medium">{t("tasks.detailFields.cancelledAt")}:</span>{" "}
+                    {new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(String(task.cancelledAt)))}
+                  </p>
+                ) : null}
+                {task.cancellationReason ? (
+                  <p className="text-sm text-red-700">
+                    <span className="font-medium">{t("tasks.cancelReason")}:</span>{" "}
+                    {String(task.cancellationReason)}
+                  </p>
+                ) : null}
+              </div>
+            </section>
+          ) : null}
+
           {task.assignmentSummary ? (
             <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
               <h2 className="text-base font-semibold text-gray-900">
@@ -216,10 +328,10 @@ export default function ReinforcementTaskDetailPage({
                 {Object.entries(task.assignmentSummary).map(([key, value]) => (
                   <div key={key} className="rounded-lg bg-gray-50 px-3 py-3">
                     <div className="text-xs font-medium uppercase text-gray-500">
-                      {labelFor(key)}
+                      {labelFor(key, t)}
                     </div>
                     <div className="mt-1 text-sm font-semibold text-gray-900">
-                      {valueFor(value)}
+                      {valueFor(value, locale)}
                     </div>
                   </div>
                 ))}
@@ -235,14 +347,20 @@ export default function ReinforcementTaskDetailPage({
               {(task.targets || []).length === 0 ? (
                 <span className="text-sm text-gray-500">{t("common.empty")}</span>
               ) : (
-                (task.targets || []).map((target) => (
-                  <span
-                    key={`${target.scopeType}:${target.scopeId}`}
-                    className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary"
-                  >
-                    {target.nameEn || target.nameAr || target.scopeId}
-                  </span>
-                ))
+                (task.targets || []).map((target, idx) => {
+                  const t_target = target as Record<string, unknown>;
+                  const targetLabel = String(t_target.nameEn || t_target.nameAr || t_target.scopeKey || t_target.scopeId || t_target.studentId || t_target.classroomId || "-");
+                  const scopeLabel = t_target.scopeType ? t(`assignmentScope.${String(t_target.scopeType).toLowerCase()}`, { defaultMessage: String(t_target.scopeType) }) : "";
+                  return (
+                    <span
+                      key={String(t_target.id || `${t_target.scopeType}:${t_target.scopeKey || idx}`)}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary"
+                    >
+                      {scopeLabel ? <span className="text-xs text-primary/60">{scopeLabel}:</span> : null}
+                      {targetLabel}
+                    </span>
+                  );
+                })
               )}
             </div>
           </section>
@@ -257,15 +375,37 @@ export default function ReinforcementTaskDetailPage({
                   key={stage.id || index}
                   className="rounded-lg border border-gray-100 bg-gray-50 p-4"
                 >
-                  <div className="font-semibold text-gray-900">
-                    {locale === "ar"
-                      ? stage.titleAr || stage.titleEn
-                      : stage.titleEn || stage.titleAr}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                        {stage.sortOrder ?? index + 1}
+                      </span>
+                      <span className="font-semibold text-gray-900">
+                        {locale === "ar"
+                          ? stage.titleAr || stage.titleEn
+                          : stage.titleEn || stage.titleAr}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {stage.proofType && (
+                        <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                          {t(`proofType.${String(stage.proofType).toLowerCase()}`, { defaultMessage: String(stage.proofType) })}
+                        </span>
+                      )}
+                      {stage.requiresApproval && (
+                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                          {t("tasks.form.requiresApproval")}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="mt-1 text-sm text-gray-500">
-                    {t(`proofType.${stage.proofType}`)}
-                    {stage.requiresApproval ? ` / ${t("tasks.form.requiresApproval")}` : ""}
-                  </div>
+                  {(stage.descriptionEn || stage.descriptionAr) && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      {locale === "ar"
+                        ? stage.descriptionAr || stage.descriptionEn
+                        : stage.descriptionEn || stage.descriptionAr}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
