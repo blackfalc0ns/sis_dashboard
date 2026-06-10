@@ -56,6 +56,7 @@ export function BubbleContextMenu({
     ],
     whileElementsMounted: autoUpdate,
   });
+  const { setReference, setFloating } = refs;
 
   useEffect(() => {
     if (!open) return;
@@ -74,7 +75,7 @@ export function BubbleContextMenu({
       className={`absolute top-1 z-40 opacity-0 transition-opacity group-hover:opacity-100 ${isOwn ? "start-1" : "end-1"}`}
     >
       <button
-        ref={refs.setReference}
+        ref={setReference}
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className={`inline-flex h-6 w-6 items-center justify-center rounded-full transition ${
@@ -87,7 +88,7 @@ export function BubbleContextMenu({
       </button>
       {open ? (
         <div
-          ref={refs.setFloating}
+          ref={setFloating}
           style={floatingStyles}
           dir="auto"
           className="z-50 min-w-[150px] rounded-lg border border-slate-200 bg-white py-1 shadow-lg"

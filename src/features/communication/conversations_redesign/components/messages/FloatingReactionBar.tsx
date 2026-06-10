@@ -34,6 +34,7 @@ export function FloatingReactionBar({
     ],
     whileElementsMounted: autoUpdate,
   });
+  const { setReference, setFloating } = refs;
 
   useEffect(() => {
     if (!showBar && !showFullPicker) return;
@@ -60,7 +61,7 @@ export function FloatingReactionBar({
     <div ref={containerRef} className={`absolute bottom-1 z-30 opacity-0 transition-opacity group-hover:opacity-100 ${isOwn ? "start-[-36px]" : "end-[-36px]"}`}>
       {/* Smiley trigger button */}
       <button
-        ref={refs.setReference}
+        ref={setReference}
         type="button"
         onClick={() => setShowBar((prev) => !prev)}
         className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:text-slate-600"
@@ -71,7 +72,7 @@ export function FloatingReactionBar({
       {/* Reaction bar popover */}
       {showBar ? (
         <div
-          ref={refs.setFloating}
+          ref={setFloating}
           style={floatingStyles}
           className="z-50"
         >

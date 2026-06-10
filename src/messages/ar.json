@@ -7060,6 +7060,7 @@
       "description": "متابعة نشاط المهام وأنماط الإنجاز وحركة النقاط ومؤشرات التحفيز في الفصول.",
       "studentProgress": "تقدم الطالب",
       "classroomSummary": "ملخص الفصل",
+      "viewClassroomSummary": "عرض ملخص الفصل",
       "refresh": "تحديث النظرة العامة",
       "filtersTitle": "السياق الدراسي",
       "filtersDescription": "صفِّ النظرة العامة حسب العام الدراسي والفصل والفصل المدرسي عند توفر البيانات من الخادم.",
@@ -7266,9 +7267,34 @@
         "earnedXp": "النقاط المكتسبة",
         "spentXp": "النقاط المصروفة",
         "balance": "الرصيد",
+        "ledgerCount": "قيود السجل",
         "studentsCount": "الطلاب",
         "averageXp": "متوسط النقاط"
-      }
+      },
+      "unit": "نقطة"
+    },
+    "progressFields": {
+      "total": "الإجمالي",
+      "notCompleted": "غير مكتمل",
+      "inProgress": "قيد التنفيذ",
+      "underReview": "قيد المراجعة",
+      "completed": "مكتمل",
+      "cancelled": "ملغي",
+      "completionRate": "نسبة الإنجاز",
+      "submissions": {
+        "submitted": "تم الإرسال",
+        "approved": "تمت الموافقة",
+        "rejected": "مرفوض",
+        "pendingReview": "قيد المراجعة"
+      },
+      "code": "الرمز",
+      "admissionNo": "رقم القبول",
+      "enrollmentId": "معرف التسجيل",
+      "classroomId": "معرف الفصل",
+      "sectionId": "معرف الشعبة",
+      "gradeId": "معرف الصف",
+      "stageId": "معرف المرحلة",
+      "count": "العدد"
     },
     "common": {
       "loading": "جارٍ التحميل...",
@@ -7729,7 +7755,26 @@
         "totalCatalogItems": "إجمالي عناصر الكتالوج",
         "activeItems": "العناصر النشطة",
         "pendingRedemptions": "طلبات الاستبدال المعلقة",
-        "fulfilledThisMonth": "المنجزة هذا الشهر"
+        "fulfilledThisMonth": "المنجزة هذا الشهر",
+        "totalEarnedXp": "إجمالي النقاط المكتسبة",
+        "catalogHealth": "حالة الكتالوج",
+        "available": "متاح",
+        "limited": "محدود",
+        "lowStock": "مخزون منخفض",
+        "outOfStock": "نفد المخزون",
+        "fulfillment": "التنفيذ",
+        "fulfillmentRate": "نسبة التنفيذ",
+        "pendingReview": "قيد المراجعة",
+        "pendingFulfillment": "بانتظار التنفيذ",
+        "redemptionSummary": "ملخص الاستبدالات",
+        "open": "مفتوحة",
+        "xpSummary": "ملخص النقاط",
+        "studentsWithXp": "طلاب لديهم نقاط",
+        "averageEarnedXp": "متوسط النقاط المكتسبة",
+        "topRequestedRewards": "أكثر المكافآت طلباً",
+        "recentRedemptions": "أحدث الاستبدالات",
+        "lowStockRewards": "مكافآت منخفضة المخزون",
+        "requests": "طلبات"
       },
       "catalog": {
         "title": "كتالوج المكافآت",
@@ -7737,11 +7782,18 @@
         "stock": {
           "unlimited": "غير محدود"
         },
+        "availability": {
+          "available": "متاح",
+          "lowStock": "مخزون منخفض",
+          "outOfStock": "نفد المخزون"
+        },
         "table": {
           "title": "العنوان",
           "type": "النوع",
           "xpCost": "تكلفة النقاط",
           "stock": "المخزون",
+          "availability": "التوفر",
+          "redemptions": "الاستبدالات",
           "status": "الحالة",
           "actions": "الإجراءات"
         }
@@ -7821,7 +7873,10 @@
       },
       "emptyStates": {
         "catalog": "لا توجد مكافآت في الكتالوج حتى الآن.",
-        "redemptions": "لا توجد طلبات استبدال."
+        "redemptions": "لا توجد طلبات استبدال.",
+        "topRequestedRewards": "لا توجد مكافآت مطلوبة بعد.",
+        "recentRedemptions": "لا توجد استبدالات حديثة بعد.",
+        "lowStockRewards": "لا توجد مكافآت منخفضة المخزون."
       },
       "source": {
         "dashboard": "لوحة التحكم",

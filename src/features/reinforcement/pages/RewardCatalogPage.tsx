@@ -19,13 +19,14 @@ import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters"
 import {
   archiveRewardCatalogItem,
   createRewardCatalogItem,
-  listRewardCatalog,
   publishRewardCatalogItem,
   updateRewardCatalogItem,
 } from "../services/rewardCatalogService";
+import { getRewardCatalogSummary } from "../services/rewardDashboardService";
 import type {
   CreateRewardCatalogItemPayload,
   RewardCatalogItem,
+  RewardCatalogSummaryParams,
   RewardCatalogStatus,
   RewardItemType,
   UpdateRewardCatalogItemPayload,
@@ -64,6 +65,60 @@ const TYPE_BADGE_STYLES: Record<RewardItemType, string> = {
   other: "bg-gray-100 text-gray-700",
 };
 
+type CatalogSummaryCounts = {
+  total?: number;
+  draft?: number;
+  published?: number;
+  archived?: number;
+  available?: number;
+  outOfStock?: number;
+  lowStock?: number;
+  unlimited?: number;
+  limited?: number;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function numberValue(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function asCatalogItems(value: unknown): RewardCatalogItem[] {
+  return Array.isArray(value) ? (value.filter(isRecord) as RewardCatalogItem[]) : [];
+}
+
+function asCatalogSummary(value: unknown): CatalogSummaryCounts {
+  if (!isRecord(value)) return {};
+  return {
+    total: numberValue(value.total),
+    draft: numberValue(value.draft),
+    published: numberValue(value.published),
+    archived: numberValue(value.archived),
+    available: numberValue(value.available),
+    outOfStock: numberValue(value.outOfStock),
+    lowStock: numberValue(value.lowStock),
+    unlimited: numberValue(value.unlimited),
+    limited: numberValue(value.limited),
+  };
+}
+
+function matchesCatalogSearch(item: RewardCatalogItem, search?: string): boolean {
+  const query = search?.trim().toLowerCase();
+  if (!query) return true;
+
+  return [
+    item.id,
+    item.titleEn,
+    item.titleAr,
+    item.type,
+    item.status,
+  ]
+    .filter(Boolean)
+    .some((value) => String(value).toLowerCase().includes(query));
+}
+
 export default function RewardCatalogPage() {
   const locale = useLocale();
   const t = useTranslations("reinforcement");
@@ -78,17 +133,13 @@ export default function RewardCatalogPage() {
     values,
     setValue,
     clearAll,
-    page,
-    pageSize,
-    setPage,
-    setPageSize,
   } = useReinforcementUrlFilters({
     paramKeys: ["status", "type", "search", "academicYearId", "termId"],
     defaults: {},
   });
 
   const [items, setItems] = useState<RewardCatalogItem[]>([]);
-  const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState<CatalogSummaryCounts>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -183,15 +234,14 @@ export default function RewardCatalogPage() {
     [setValue],
   );
 
-  const params = useMemo(
+  const params = useMemo<RewardCatalogSummaryParams>(
     () => ({
       status: (values.status || undefined) as RewardCatalogStatus | undefined,
       type: (values.type || undefined) as RewardItemType | undefined,
-      search: values.search || undefined,
-      limit: pageSize,
-      offset: (page - 1) * pageSize,
+      academicYearId: values.academicYearId || undefined,
+      termId: values.termId || undefined,
     }),
-    [values.status, values.type, values.search, page, pageSize],
+    [values.status, values.type, values.academicYearId, values.termId],
   );
 
   const refreshCatalog = useCallback(async () => {
@@ -199,19 +249,23 @@ export default function RewardCatalogPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await listRewardCatalog(params);
-      setItems(response.items);
-      setTotal(response.total ?? response.items.length);
+      const response = await getRewardCatalogSummary(params);
+      const nextItems = asCatalogItems(response.items).filter((item) =>
+        matchesCatalogSearch(item, values.search),
+      );
+      setSummary(asCatalogSummary(response.summary));
+      setItems(nextItems);
     } catch (nextError) {
       const message =
         nextError instanceof Error ? nextError.message : t("common.error");
       setError(message);
       setItems([]);
+      setSummary({});
       showError(message);
     } finally {
       setLoading(false);
     }
-  }, [canView, params, showError, t]);
+  }, [canView, params, showError, t, values.search]);
 
   useEffect(() => {
     void Promise.resolve().then(refreshCatalog);
@@ -337,6 +391,51 @@ export default function RewardCatalogPage() {
         },
       },
       {
+        key: "availability",
+        label: t("rewardsModule.catalog.table.availability"),
+        render: (_value: unknown, row: RewardCatalogItem) => {
+          const availabilityKey = row.isLowStock
+            ? "lowStock"
+            : row.isAvailable === false
+              ? "outOfStock"
+              : "available";
+          const badgeClass =
+            availabilityKey === "available"
+              ? "bg-emerald-100 text-emerald-700"
+              : availabilityKey === "lowStock"
+                ? "bg-amber-100 text-amber-700"
+                : "bg-red-100 text-red-700";
+
+          return (
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClass}`}
+            >
+              {t(`rewardsModule.catalog.availability.${availabilityKey}`)}
+            </span>
+          );
+        },
+      },
+      {
+        key: "redemptions",
+        label: t("rewardsModule.catalog.table.redemptions"),
+        render: (_value: unknown, row: RewardCatalogItem) => {
+          const redemptions = isRecord(row.redemptions) ? row.redemptions : {};
+          const open = numberValue(redemptions.open);
+          const totalRedemptions = numberValue(redemptions.total);
+
+          return (
+            <div className="space-y-0.5 text-sm text-gray-700">
+              <div>
+                {open} {t("rewardsModule.overview.open")}
+              </div>
+              <div className="text-xs text-gray-500">
+                {totalRedemptions} {t("rewardsModule.overview.requests")}
+              </div>
+            </div>
+          );
+        },
+      },
+      {
         key: "status",
         label: t("rewardsModule.catalog.table.status"),
         render: (_value: unknown, row: RewardCatalogItem) => {
@@ -397,6 +496,33 @@ export default function RewardCatalogPage() {
   if (authLoading) return <MainLoader />;
   if (!canView) return <AccessNotice />;
 
+  const summaryCards = [
+    {
+      label: t("rewardsModule.overview.totalCatalogItems"),
+      value: summary.total ?? items.length,
+    },
+    {
+      label: t("rewardsModule.status.published"),
+      value: summary.published || 0,
+    },
+    {
+      label: t("rewardsModule.overview.available"),
+      value: summary.available || 0,
+    },
+    {
+      label: t("rewardsModule.overview.lowStock"),
+      value: summary.lowStock || 0,
+    },
+    {
+      label: t("rewardsModule.overview.outOfStock"),
+      value: summary.outOfStock || 0,
+    },
+    {
+      label: t("rewardsModule.overview.limited"),
+      value: summary.limited || 0,
+    },
+  ];
+
   return (
     <div
       className="min-h-screen space-y-6 bg-gray-50"
@@ -441,21 +567,31 @@ export default function RewardCatalogPage() {
       {loading && items.length === 0 ? (
         <MainLoader />
       ) : (
-        <section className="rounded-lg border border-gray-100 bg-white shadow-sm">
-          <DataTable<RewardCatalogItem>
-            columns={columns}
-            data={items}
-            searchQuery={values.search}
-            serverPagination={{
-              enabled: true,
-              currentPage: page,
-              pageSize,
-              totalItems: total,
-              onPageChange: setPage,
-              onPageSizeChange: setPageSize,
-            }}
-          />
-        </section>
+        <>
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            {summaryCards.map((card) => (
+              <div
+                key={card.label}
+                className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm"
+              >
+                <p className="text-xs font-medium uppercase text-gray-500">
+                  {card.label}
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-gray-900">
+                  {card.value}
+                </p>
+              </div>
+            ))}
+          </section>
+
+          <section className="rounded-lg border border-gray-100 bg-white shadow-sm">
+            <DataTable<RewardCatalogItem>
+              columns={columns}
+              data={items}
+              searchQuery={values.search}
+            />
+          </section>
+        </>
       )}
 
       <RewardCatalogFormModal

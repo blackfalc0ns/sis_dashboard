@@ -1,18 +1,22 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import type { XpLedgerEntry } from "../types";
 
 interface XpLedgerTableProps {
   entries: XpLedgerEntry[];
   loading?: boolean;
+  getStudentProgressHref?: (entry: XpLedgerEntry) => string | undefined;
 }
 
 export default function XpLedgerTable({
   entries,
   loading = false,
+  getStudentProgressHref,
 }: XpLedgerTableProps) {
   const locale = useLocale();
+  const router = useRouter();
   const t = useTranslations("reinforcement");
 
   if (loading && entries.length === 0) {
@@ -49,6 +53,7 @@ export default function XpLedgerTable({
           </thead>
           <tbody className="divide-y divide-gray-100">
             {entries.map((entry) => {
+              const progressHref = getStudentProgressHref?.(entry);
               // Resolve student name from nested object if available
               const student = entry.student as Record<string, unknown> | undefined;
               const studentName = student
@@ -67,7 +72,24 @@ export default function XpLedgerTable({
                 : sourceType || entry.sourceId || "-";
 
               return (
-                <tr key={entry.id}>
+                <tr
+                  key={entry.id}
+                  className={progressHref ? "cursor-pointer hover:bg-gray-50" : undefined}
+                  role={progressHref ? "link" : undefined}
+                  tabIndex={progressHref ? 0 : undefined}
+                  onClick={() => {
+                    if (progressHref) {
+                      router.push(progressHref);
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (!progressHref) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      router.push(progressHref);
+                    }
+                  }}
+                >
                   <td className="px-4 py-4 text-sm text-gray-900">
                     {studentName}
                   </td>

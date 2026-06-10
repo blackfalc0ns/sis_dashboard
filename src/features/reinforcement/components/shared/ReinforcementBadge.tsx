@@ -28,29 +28,40 @@ interface ReinforcementBadgeProps {
   type: "status" | "source" | "rewardType" | "proofType" | "scope" | "active";
 }
 
+const toLabel = (key: string): string =>
+  key
+    .replace(/[._-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
 export default function ReinforcementBadge({
   value,
   type,
 }: ReinforcementBadgeProps) {
   const t = useTranslations("reinforcement");
+  const fallbackLabel = toLabel(String(value || ""));
 
   const label = () => {
-    if (type === "status") return t(`status.${value}`);
-    if (type === "source") return t(`source.${value}`);
-    if (type === "rewardType") return t(`rewardType.${value}`);
-    if (type === "proofType") return t(`proofType.${value}`);
-    if (type === "scope") return t(`assignmentScope.${value}`);
-    return t(`activeState.${value}`);
+    const namespace =
+      type === "scope"
+        ? "assignmentScope"
+        : type === "active"
+          ? "activeState"
+          : type;
+    const key = `${namespace}.${value}`;
+    return t.has(key) ? t(key) : fallbackLabel || "-";
   };
 
   const className = () => {
-    if (type === "status") return statusStyles[value as ReinforcementStatus];
-    if (type === "source") return sourceStyles[value as ReinforcementSource];
+    if (type === "status")
+      return statusStyles[value as ReinforcementStatus] || "bg-gray-100 text-gray-700";
+    if (type === "source")
+      return sourceStyles[value as ReinforcementSource] || "bg-gray-100 text-gray-700";
     if (type === "rewardType")
-      return rewardTypeStyles[value as ReinforcementRewardType];
+      return rewardTypeStyles[value as ReinforcementRewardType] || "bg-gray-100 text-gray-700";
     if (type === "proofType")
-      return proofTypeStyles[value as ReinforcementProofType];
-    if (type === "scope") return scopeStyles[value as ReinforcementAssignmentScope];
+      return proofTypeStyles[value as ReinforcementProofType] || "bg-gray-100 text-gray-700";
+    if (type === "scope")
+      return scopeStyles[value as ReinforcementAssignmentScope] || "bg-gray-100 text-gray-700";
     return value === "active"
       ? "bg-emerald-100 text-emerald-700"
       : "bg-gray-100 text-gray-700";

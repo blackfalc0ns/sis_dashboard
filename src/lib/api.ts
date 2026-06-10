@@ -7,8 +7,11 @@ import axios, {
 import { tokenStorage } from "./token-storage";
 import { ApiError, isAxiosError } from "./api-error";
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://api.moazez.sa/api/v1";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+if (!BASE_URL) {
+  throw new Error("Missing NEXT_PUBLIC_API_URL. Set it in your environment.");
+}
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -18,19 +21,7 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Variables to handle token refresh process
-let isRefreshing = false;
-let refreshSubscribers: ((token: string) => void)[] = [];
-
-// Helper functions for the refresh queue
-function subscribeTokenRefresh(cb: (token: string) => void) {
-  refreshSubscribers.push(cb);
-}
-
-function onRefreshed(token: string) {
-  refreshSubscribers.forEach((cb) => cb(token));
-  refreshSubscribers = [];
-}
+let refreshPromise: Promise<string> | null = null;
 
 function getTokenExpiry(token: string): number | null {
   try {
@@ -47,47 +38,51 @@ function getTokenExpiry(token: string): number | null {
       : Buffer.from(base64, 'base64').toString('utf8');
     const decoded = JSON.parse(jsonPayload);
     return decoded.exp ? decoded.exp * 1000 : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
 
-async function executeTokenRefresh(): Promise<string> {
-  if (isRefreshing) {
-    return new Promise<string>((resolve) => {
-      subscribeTokenRefresh((newToken: string) => {
-        resolve(newToken);
-      });
-    });
-  }
-
-  isRefreshing = true;
+async function doRefresh(): Promise<string> {
   const refreshToken = tokenStorage.getRefreshToken();
-  
-  if (!refreshToken) {
-    isRefreshing = false;
-    tokenStorage.clearTokens();
-    throw new Error("No refresh token available");
+
+  const response = await axios.post(
+    `${BASE_URL}/auth/refresh`,
+    refreshToken ? { refreshToken } : undefined,
+    {
+      withCredentials: true,
+    },
+  );
+
+  const { accessToken, refreshToken: newRefreshToken } = response.data;
+
+  if (!accessToken) {
+    throw new Error("Refresh response did not include an access token");
   }
 
-  try {
-    const response = await axios.post(`${BASE_URL}/auth/refresh`, {
-      refreshToken,
+  tokenStorage.setAccessToken(accessToken);
+  if (newRefreshToken) {
+    tokenStorage.setRefreshToken(newRefreshToken);
+  }
+
+  return accessToken;
+}
+
+async function refreshAccessToken(): Promise<string> {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = doRefresh()
+    .catch((refreshError) => {
+      tokenStorage.clearTokens();
+      throw refreshError;
+    })
+    .finally(() => {
+      refreshPromise = null;
     });
 
-    const { accessToken, refreshToken: newRefreshToken } = response.data;
-    tokenStorage.setAccessToken(accessToken);
-    tokenStorage.setRefreshToken(newRefreshToken);
-
-    isRefreshing = false;
-    onRefreshed(accessToken);
-    return accessToken;
-  } catch (refreshError) {
-    isRefreshing = false;
-    refreshSubscribers = [];
-    tokenStorage.clearTokens();
-    throw refreshError;
-  }
+  return refreshPromise;
 }
 
 // Request interceptor: Attach access token
@@ -102,8 +97,8 @@ apiClient.interceptors.request.use(
         const expiresInMs = expMs - Date.now();
         if (expiresInMs < 15000) {
           try {
-            token = await executeTokenRefresh();
-          } catch (e) {
+            token = await refreshAccessToken();
+          } catch {
             // Let the request proceed, it will likely fail with 401 and handle redirect
             token = null;
           }
@@ -141,15 +136,8 @@ apiClient.interceptors.response.use(
 
       originalRequest._retry = true;
 
-      const refreshToken = tokenStorage.getRefreshToken();
-      if (!refreshToken) {
-        tokenStorage.clearTokens();
-        // Redirect will happen in Auth context
-        return Promise.reject(ApiError.fromAxiosError(error));
-      }
-
       try {
-        const token = await executeTokenRefresh();
+        const token = await refreshAccessToken();
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${token}`;
         }

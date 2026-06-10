@@ -152,6 +152,26 @@ export default function ReinforcementXpLedgerPage() {
     }
   };
 
+  const buildStudentProgressHref = useCallback(
+    (entry: XpLedgerEntry) => {
+      if (!entry.studentId) return undefined;
+
+      const query = new URLSearchParams();
+      const academicYearId = entry.academicYearId || context.academicYearId;
+      const termId = entry.termId || context.termId;
+
+      if (academicYearId) query.set("academicYearId", academicYearId);
+      if (termId) query.set("termId", termId);
+      if (context.classroomId) query.set("classroomId", context.classroomId);
+
+      const queryString = query.toString();
+      return `/${locale}/reinforcement/students/${entry.studentId}/progress${
+        queryString ? `?${queryString}` : ""
+      }`;
+    },
+    [context.academicYearId, context.classroomId, context.termId, locale],
+  );
+
   if (authLoading) return <MainLoader />;
   if (!canView) return <AccessNotice />;
 
@@ -249,7 +269,11 @@ export default function ReinforcementXpLedgerPage() {
         />
       </section>
 
-      <XpLedgerTable entries={entries} loading={loading} />
+      <XpLedgerTable
+        entries={entries}
+        loading={loading}
+        getStudentProgressHref={buildStudentProgressHref}
+      />
 
       <ManualXpGrantModal
         isOpen={grantOpen}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   AlertCircle,
   Award,
@@ -160,10 +161,12 @@ function TopStudentRow({
   student,
   rank,
   locale,
+  href,
 }: {
   student: OverviewTopStudent;
   rank: number;
   locale: string;
+  href: string;
 }) {
   const name =
     locale === "ar" && student.student.nameAr
@@ -171,7 +174,10 @@ function TopStudentRow({
       : student.student.name;
 
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-2.5">
+    <Link
+      href={href}
+      className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-2.5 transition-colors hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30"
+    >
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
         {rank}
       </span>
@@ -186,7 +192,7 @@ function TopStudentRow({
         <Sparkles className="h-3.5 w-3.5" />
         {new Intl.NumberFormat().format(student.totalXp)} XP
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -195,9 +201,11 @@ function TopStudentRow({
 function ActivityRow({
   activity,
   locale,
+  studentHref,
 }: {
   activity: OverviewRecentActivity;
   locale: string;
+  studentHref?: string;
 }) {
   const t = useTranslations("reinforcement");
   const name =
@@ -214,7 +222,16 @@ function ActivityRow({
         <Coins className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-gray-900">{name}</p>
+        {studentHref ? (
+          <Link
+            href={studentHref}
+            className="text-sm font-semibold text-gray-900 transition-colors hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+          >
+            {name}
+          </Link>
+        ) : (
+          <p className="text-sm font-semibold text-gray-900">{name}</p>
+        )}
         <p className="mt-0.5 text-xs text-gray-500">
           {typeLabel} · {activity.reason}
         </p>
@@ -281,6 +298,51 @@ export default function ReinforcementOverviewPage() {
     [context.academicYearId, context.classroomId, context.termId],
   );
 
+  const buildReinforcementQuery = useCallback(
+    (
+      extra?: Record<string, string | undefined | null>,
+      options?: { includeClassroom?: boolean },
+    ) => {
+      const queryParams = new URLSearchParams();
+
+      if (context.academicYearId) {
+        queryParams.set("academicYearId", context.academicYearId);
+      }
+
+      if (context.termId) {
+        queryParams.set("termId", context.termId);
+      }
+
+      if (options?.includeClassroom !== false && context.classroomId) {
+        queryParams.set("classroomId", context.classroomId);
+      }
+
+      Object.entries(extra ?? {}).forEach(([key, value]) => {
+        if (value) {
+          queryParams.set(key, value);
+        }
+      });
+
+      const query = queryParams.toString();
+      return query ? `?${query}` : "";
+    },
+    [context.academicYearId, context.classroomId, context.termId],
+  );
+
+  const classroomSummaryHref = context.classroomId
+    ? `/${locale}/reinforcement/classrooms/${
+        context.classroomId
+      }/summary${buildReinforcementQuery(undefined, {
+        includeClassroom: false,
+      })}`
+    : undefined;
+
+  const getStudentProgressHref = useCallback(
+    (studentId: string) =>
+      `/${locale}/reinforcement/students/${studentId}/progress${buildReinforcementQuery()}`,
+    [buildReinforcementQuery, locale],
+  );
+
   const refreshOverview = useCallback(async () => {
     if (!canView) return;
     setLoading(true);
@@ -332,7 +394,7 @@ export default function ReinforcementOverviewPage() {
         totalXp: item.totalXp,
         count: item.count,
       }));
-  }, [overview]);
+  }, [overview, t]);
 
   if (authLoading) return <MainLoader />;
   if (!canView) return <AccessNotice />;
@@ -347,14 +409,25 @@ export default function ReinforcementOverviewPage() {
         title={t("overview.title")}
         description={t("overview.description")}
         actions={
-          <Button
-            variant="secondary"
-            leftIcon={<RefreshCw className="h-4 w-4" />}
-            loading={loading}
-            onClick={refreshOverview}
-          >
-            {t("actions.refresh")}
-          </Button>
+          <>
+            {classroomSummaryHref ? (
+              <Link
+                href={classroomSummaryHref}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300"
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span>{t("overview.viewClassroomSummary")}</span>
+              </Link>
+            ) : null}
+            <Button
+              variant="secondary"
+              leftIcon={<RefreshCw className="h-4 w-4" />}
+              loading={loading}
+              onClick={refreshOverview}
+            >
+              {t("actions.refresh")}
+            </Button>
+          </>
         }
       />
 
@@ -664,6 +737,7 @@ export default function ReinforcementOverviewPage() {
                       student={student}
                       rank={index + 1}
                       locale={locale}
+                      href={getStudentProgressHref(student.studentId)}
                     />
                   ))}
                 </div>
@@ -686,6 +760,11 @@ export default function ReinforcementOverviewPage() {
                       key={activity.id}
                       activity={activity}
                       locale={locale}
+                      studentHref={
+                        activity.student.id
+                          ? getStudentProgressHref(activity.student.id)
+                          : undefined
+                      }
                     />
                   ))}
                 </div>

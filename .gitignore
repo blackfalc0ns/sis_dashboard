@@ -16,6 +16,8 @@
 /playwright-report
 /.nyc_output
 /playwright/.cache
+/playwright/.auth
+/ui-audit-report
 
 # next.js
 /.next/

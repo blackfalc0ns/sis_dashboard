@@ -595,11 +595,16 @@ export interface RewardCatalogItem {
   stockQuantity?: number;
   stockRemaining?: number;
   isUnlimited?: boolean;
+  isAvailable?: boolean;
+  isLowStock?: boolean;
+  redemptions?: Partial<Record<RedemptionStatus | "open" | "terminal" | "total", number>>;
   imageFileId?: string;
   sortOrder?: number;
   metadata?: Record<string, unknown>;
   createdAt?: string;
   updatedAt?: string;
+  publishedAt?: string | null;
+  archivedAt?: string | null;
   [key: string]: unknown;
 }
 
@@ -735,5 +740,7 @@ export interface RewardCatalogSummaryParams {
   academicYearId?: string;
   termId?: string;
   status?: RewardCatalogStatus;
+  type?: RewardItemType;
+  onlyAvailable?: boolean;
   [key: string]: string | number | boolean | undefined;
 }

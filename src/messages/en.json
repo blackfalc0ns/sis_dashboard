@@ -7058,6 +7058,7 @@
       "description": "Track task activity, completion patterns, XP movement, and classroom reinforcement signals.",
       "studentProgress": "Student progress",
       "classroomSummary": "Classroom summary",
+      "viewClassroomSummary": "View Classroom Summary",
       "refresh": "Refresh overview",
       "filtersTitle": "Academic context",
       "filtersDescription": "Filter the overview by academic year, term, and classroom when the backend provides matching data.",
@@ -7264,9 +7265,34 @@
         "earnedXp": "Earned XP",
         "spentXp": "Spent XP",
         "balance": "Balance",
+        "ledgerCount": "Ledger entries",
         "studentsCount": "Students",
         "averageXp": "Average XP"
-      }
+      },
+      "unit": "XP"
+    },
+    "progressFields": {
+      "total": "Total",
+      "notCompleted": "Not completed",
+      "inProgress": "In progress",
+      "underReview": "Under review",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "completionRate": "Completion rate",
+      "submissions": {
+        "submitted": "Submitted",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "pendingReview": "Pending review"
+      },
+      "code": "Code",
+      "admissionNo": "Admission no.",
+      "enrollmentId": "Enrollment ID",
+      "classroomId": "Classroom ID",
+      "sectionId": "Section ID",
+      "gradeId": "Grade ID",
+      "stageId": "Stage ID",
+      "count": "Count"
     },
     "common": {
       "loading": "Loading...",
@@ -7727,7 +7753,26 @@
         "totalCatalogItems": "Total Catalog Items",
         "activeItems": "Active Items",
         "pendingRedemptions": "Pending Redemptions",
-        "fulfilledThisMonth": "Fulfilled This Month"
+        "fulfilledThisMonth": "Fulfilled This Month",
+        "totalEarnedXp": "Total Earned XP",
+        "catalogHealth": "Catalog Health",
+        "available": "Available",
+        "limited": "Limited",
+        "lowStock": "Low Stock",
+        "outOfStock": "Out of Stock",
+        "fulfillment": "Fulfillment",
+        "fulfillmentRate": "Fulfillment Rate",
+        "pendingReview": "Pending Review",
+        "pendingFulfillment": "Pending Fulfillment",
+        "redemptionSummary": "Redemption Summary",
+        "open": "Open",
+        "xpSummary": "XP Summary",
+        "studentsWithXp": "Students with XP",
+        "averageEarnedXp": "Average Earned XP",
+        "topRequestedRewards": "Top Requested Rewards",
+        "recentRedemptions": "Recent Redemptions",
+        "lowStockRewards": "Low Stock Rewards",
+        "requests": "Requests"
       },
       "catalog": {
         "title": "Reward Catalog",
@@ -7735,11 +7780,18 @@
         "stock": {
           "unlimited": "Unlimited"
         },
+        "availability": {
+          "available": "Available",
+          "lowStock": "Low Stock",
+          "outOfStock": "Out of Stock"
+        },
         "table": {
           "title": "Title",
           "type": "Type",
           "xpCost": "XP Cost",
           "stock": "Stock",
+          "availability": "Availability",
+          "redemptions": "Redemptions",
           "status": "Status",
           "actions": "Actions"
         }
@@ -7819,7 +7871,10 @@
       },
       "emptyStates": {
         "catalog": "No rewards in the catalog yet.",
-        "redemptions": "No redemption requests found."
+        "redemptions": "No redemption requests found.",
+        "topRequestedRewards": "No requested rewards yet.",
+        "recentRedemptions": "No recent redemptions yet.",
+        "lowStockRewards": "No low-stock rewards."
       },
       "source": {
         "dashboard": "Dashboard",

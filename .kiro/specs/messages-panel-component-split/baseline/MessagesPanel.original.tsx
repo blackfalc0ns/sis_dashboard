@@ -671,6 +671,7 @@ function BubbleContextMenu({
     ],
     whileElementsMounted: autoUpdate,
   });
+  const { setReference, setFloating } = refs;
 
   useEffect(() => {
     if (!open) return;
@@ -689,7 +690,7 @@ function BubbleContextMenu({
       className={`absolute top-1 z-30 opacity-0 transition-opacity group-hover:opacity-100 ${isOwn ? "start-1" : "end-1"}`}
     >
       <button
-        ref={refs.setReference}
+        ref={setReference}
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className={`inline-flex h-6 w-6 items-center justify-center rounded-full transition ${
@@ -702,7 +703,7 @@ function BubbleContextMenu({
       </button>
       {open ? (
         <div
-          ref={refs.setFloating}
+          ref={setFloating}
           style={floatingStyles}
           className="z-50 min-w-[150px] rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
         >
@@ -843,6 +844,7 @@ function FloatingReactionBar({
     ],
     whileElementsMounted: autoUpdate,
   });
+  const { setReference, setFloating } = refs;
 
   useEffect(() => {
     if (!showBar && !showFullPicker) return;
@@ -869,7 +871,7 @@ function FloatingReactionBar({
     <div ref={containerRef} className={`absolute bottom-1 z-30 opacity-0 transition-opacity group-hover:opacity-100 ${isOwn ? "start-[-36px]" : "end-[-36px]"}`}>
       {/* Smiley trigger button */}
       <button
-        ref={refs.setReference}
+        ref={setReference}
         type="button"
         onClick={() => setShowBar((prev) => !prev)}
         className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:text-slate-600"
@@ -880,7 +882,7 @@ function FloatingReactionBar({
       {/* Reaction bar popover */}
       {showBar ? (
         <div
-          ref={refs.setFloating}
+          ref={setFloating}
           style={floatingStyles}
           className="z-50"
         >

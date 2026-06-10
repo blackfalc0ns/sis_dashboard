@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Profiler } from "react";
 import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import { createConversation } from "../utils/test-data-generators";
 import type { ConversationListItemModel } from "../../hooks/useConversations";
@@ -140,13 +141,7 @@ describe("ConversationPage", () => {
      * with mocked conversation data.
      */
     it("does not re-render more than twice during initial mount", () => {
-      const renderCount = { current: 0 };
-
-      // Use a wrapper to count renders
-      function RenderCounter({ children }: { children: React.ReactNode }) {
-        renderCount.current += 1;
-        return <>{children}</>;
-      }
+      const onRender = vi.fn();
 
       // Provide some conversations so the component has data to work with
       mockConversationsState.conversations = [
@@ -154,18 +149,13 @@ describe("ConversationPage", () => {
         createConversationListItem({ id: "conv-2", title: "Second" }),
       ];
 
-      // We track renders of the page itself by wrapping it
-      // Since we can't instrument the component directly, we use a Profiler-like approach
-      const { rerender } = render(
-        <RenderCounter>
+      render(
+        <Profiler id="ConversationPage" onRender={onRender}>
           <ConversationPage />
-        </RenderCounter>,
+        </Profiler>,
       );
 
-      // The wrapper renders once for the initial mount
-      // The ConversationPage itself should stabilize within 2 renders
-      // (initial render + one effect-driven update at most)
-      expect(renderCount.current).toBeLessThanOrEqual(2);
+      expect(onRender).toHaveBeenCalledTimes(1);
     });
   });
 

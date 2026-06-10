@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ClipboardList } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
-import type { ReinforcementTask } from "../types";
+import type { ReinforcementRewardType, ReinforcementTask } from "../types";
 
 interface ReinforcementTaskTableProps {
   tasks: ReinforcementTask[];
@@ -19,20 +19,58 @@ const taskTitle = (task: ReinforcementTask, locale: string) =>
     ? task.titleAr || task.titleEn || task.id
     : task.titleEn || task.titleAr || task.id;
 
-const statusLabels: Record<string, { en: string; ar: string }> = {
-  cancelled: { en: "Cancelled", ar: "ملغي" },
-  completed: { en: "Completed", ar: "مكتمل" },
-  in_progress: { en: "In progress", ar: "قيد التنفيذ" },
-  not_completed: { en: "Not completed", ar: "غير مكتمل" },
-};
+const VALID_REWARD_TYPES = new Set<ReinforcementRewardType>([
+  "xp",
+  "badge",
+  "moral",
+  "financial",
+]);
 
-const statusLabel = (status: unknown, locale: string) => {
+const VALID_SOURCES = new Set(["teacher", "parent", "system"]);
+
+type Translator = ReturnType<typeof useTranslations>;
+
+const toLabel = (key: string): string =>
+  key
+    .replace(/[._-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace(/^\w/, (letter) => letter.toUpperCase());
+
+const hasMessage = (t: Translator, key: string): boolean =>
+  typeof t.has === "function" ? t.has(key) : true;
+
+const statusLabel = (status: unknown, t: Translator) => {
   const value = typeof status === "string" ? status : "";
-  return statusLabels[value]?.[locale === "ar" ? "ar" : "en"] || value || "-";
+  const key = `status.${value}`;
+  if (!value) return "-";
+  if (typeof t.has !== "function") return toLabel(value);
+  return t.has(key) ? t(key) : toLabel(value);
 };
 
-const rewardLabel = (task: ReinforcementTask, t: (key: string) => string) =>
-  `${t(`rewardType.${task.rewardType}`)}${task.rewardValue ? ` / ${task.rewardValue}` : ""}`;
+const sourceLabel = (source: unknown, t: Translator) => {
+  const value = typeof source === "string" ? source : "";
+  const key = `source.${value}`;
+  return value && VALID_SOURCES.has(value) && hasMessage(t, key)
+    ? t(key)
+    : value
+      ? toLabel(value)
+      : "-";
+};
+
+const rewardLabel = (task: ReinforcementTask, t: Translator) => {
+  const rewardType =
+    typeof task.rewardType === "string" && VALID_REWARD_TYPES.has(task.rewardType)
+      ? task.rewardType
+      : undefined;
+  const typeLabel = rewardType
+    ? t(`rewardType.${rewardType}`)
+    : t("tasks.table.reward", { defaultValue: "-" });
+
+  return `${typeLabel}${task.rewardValue ? ` / ${task.rewardValue}` : ""}`;
+};
 
 export default function ReinforcementTaskTable({
   tasks,
@@ -102,10 +140,10 @@ export default function ReinforcementTaskTable({
                     </div>
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-700">
-                    {t(`source.${task.source}`)}
+                    {sourceLabel(task.source, t)}
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-700">
-                    {statusLabel(task.status, locale)}
+                    {statusLabel(task.status, t)}
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-700">
                     {rewardLabel(task, t)}
