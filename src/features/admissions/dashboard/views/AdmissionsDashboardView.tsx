@@ -109,8 +109,7 @@ export default function AdmissionsDashboardView({
         if (!value) return "—";
         const grade = String(value);
         const gradeKey = grade.toLowerCase().replace(/\s+/g, "_");
-        const translated = t("grades." + gradeKey);
-        return translated !== gradeKey ? translated : grade;
+        return t.has(`grades.${gradeKey}`) ? t(`grades.${gradeKey}`) : grade;
       },
     },
     {

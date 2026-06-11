@@ -3,8 +3,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { LineChart } from "@mui/x-charts/LineChart";
+import dynamic from "next/dynamic";
 import { TrendingDown } from "lucide-react";
+
+const LineChart = dynamic(
+  () => import("@mui/x-charts/LineChart").then((mod) => mod.LineChart),
+  { ssr: false },
+);
 
 export default function WithdrawalsTrendChart() {
   const t = useTranslations("students_guardians.transfers_withdrawals.charts");

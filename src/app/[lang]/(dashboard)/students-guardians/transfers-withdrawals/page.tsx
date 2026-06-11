@@ -2,13 +2,15 @@
 
 import { redirect } from "next/navigation";
 
-export default function TransfersWithdrawalsPage({
+export default async function TransfersWithdrawalsPage({
   params,
 }: {
-  params: { lang: string };
+  params: Promise<{ lang: string }>;
 }) {
+  const { lang } = await params;
+
   // Redirect to transfers tab by default
   redirect(
-    `/${params.lang}/students-guardians/transfers-withdrawals/transfers`,
+    `/${lang}/students-guardians/transfers-withdrawals/transfers`,
   );
 }

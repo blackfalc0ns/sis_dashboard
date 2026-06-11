@@ -68,8 +68,7 @@ export default function ApplicationsByGradeChart({
   // Get translated grade labels for display
   const translatedGrades = grades.map((grade) => {
     const key = getGradeKey(grade);
-    const translated = t_grades(key);
-    return translated !== key ? translated : grade;
+    return t_grades.has(key) ? t_grades(key) : grade;
   });
 
   // Get most requested grade with translation
@@ -80,8 +79,7 @@ export default function ApplicationsByGradeChart({
             item.count > max.count ? item : max,
           );
           const key = getGradeKey(mostRequested.grade);
-          const translated = t_grades(key);
-          return translated !== key ? translated : mostRequested.grade;
+          return t_grades.has(key) ? t_grades(key) : mostRequested.grade;
         })()
       : t("no_data");
 
@@ -186,9 +184,7 @@ export default function ApplicationsByGradeChart({
         {sortedData.map((item) => {
           const percentage = total > 0 ? (item.count / total) * 100 : 0;
           const key = getGradeKey(item.grade);
-          const translatedGrade = t_grades(key);
-          const displayGrade =
-            translatedGrade !== key ? translatedGrade : item.grade;
+          const displayGrade = t_grades.has(key) ? t_grades(key) : item.grade;
 
           return (
             <div

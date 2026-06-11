@@ -29,8 +29,7 @@ export default function StudentsPerGradeChart({
     () =>
       distribution.grades.map((grade) => {
         const key = getGradeKey(grade);
-        const translated = tGrades(key);
-        return translated !== key ? translated : grade;
+        return tGrades.has(key) ? tGrades(key) : grade;
       }),
     [distribution.grades, tGrades]
   );

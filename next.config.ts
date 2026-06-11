@@ -46,7 +46,9 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const nextConfig: NextConfig = {
-  reactCompiler: true,
+  reactCompiler: {
+    compilationMode: "annotation",
+  },
   async headers() {
     return [
       {

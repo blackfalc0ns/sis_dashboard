@@ -401,6 +401,7 @@ export default function EnrollmentList() {
                 placeholder={t("search_placeholder")}
                 value={searchQuery}
                 onChange={(e) => setValue("search", e.target.value, "replace")}
+                suppressHydrationWarning
                 className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
                   searchQuery
                     ? "border-primary ring-2 ring-primary/20"

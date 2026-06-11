@@ -13,13 +13,16 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import GuardedLink from "@/components/navigation/GuardedLink";
 import { usePathname } from "next/navigation";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
 import {
   navigationPermissionByKey,
   usePermissions,
 } from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/use-auth";
+
+const COLLAPSED_FLYOUT_MARGIN = 12;
+const COLLAPSED_FLYOUT_MAX_HEIGHT = 420;
 
 interface SidebarProps {
   activeItem?: string;
@@ -45,6 +48,11 @@ export default function Sidebar({
   const isArabic = pathname.startsWith("/ar");
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [hoveredCollapsedItemKey, setHoveredCollapsedItemKey] = useState<
+    string | null
+  >(null);
+  const [collapsedFlyoutTop, setCollapsedFlyoutTop] = useState(0);
+  const lastAutoExpandedPathRef = useRef<string | null>(null);
 
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
@@ -78,52 +86,74 @@ export default function Sidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
+  useEffect(() => {
+    if (isOpen) {
+      setHoveredCollapsedItemKey(null);
+    }
+  }, [isOpen]);
+
   // Auto-expand parent if current route is a child or grandchild
   useEffect(() => {
-    visibleMenuItems.forEach((item) => {
-      if (item.children) {
+    if (lastAutoExpandedPathRef.current === pathname) {
+      return;
+    }
+
+    const activeExpandedKeys = visibleMenuItems.reduce<string[]>(
+      (nextExpandedKeys, item) => {
+        if (!item.children) {
+          return nextExpandedKeys;
+        }
+
         const isChildActive = item.children.some((child) => {
           const childHref = isArabic ? child.href_ar : child.href_en;
           if (pathname === childHref) return true;
 
-          // Check grandchildren
-          if (child.children) {
-            return child.children.some((grandchild) => {
-              const grandchildHref = isArabic
-                ? grandchild.href_ar
-                : grandchild.href_en;
-              return pathname === grandchildHref;
-            });
-          }
-          return false;
+          return child.children?.some((grandchild) => {
+            const grandchildHref = isArabic
+              ? grandchild.href_ar
+              : grandchild.href_en;
+            return pathname === grandchildHref;
+          });
         });
 
-        if (isChildActive) {
-          setExpandedItems((prev) => {
-            const newExpanded = [...prev];
-            if (!newExpanded.includes(item.key)) {
-              newExpanded.push(item.key);
-            }
-
-            // Also expand the child if a grandchild is active
-            item.children!.forEach((child) => {
-              if (child.children) {
-                const isGrandchildActive = child.children.some((grandchild) => {
-                  const grandchildHref = isArabic
-                    ? grandchild.href_ar
-                    : grandchild.href_en;
-                  return pathname === grandchildHref;
-                });
-                if (isGrandchildActive && !newExpanded.includes(child.key)) {
-                  newExpanded.push(child.key);
-                }
-              }
-            });
-
-            return newExpanded;
-          });
+        if (isChildActive && !nextExpandedKeys.includes(item.key)) {
+          nextExpandedKeys.push(item.key);
         }
-      }
+
+        item.children.forEach((child) => {
+          const isGrandchildActive = child.children?.some((grandchild) => {
+            const grandchildHref = isArabic
+              ? grandchild.href_ar
+              : grandchild.href_en;
+            return pathname === grandchildHref;
+          });
+
+          if (isGrandchildActive && !nextExpandedKeys.includes(child.key)) {
+            nextExpandedKeys.push(child.key);
+          }
+        });
+
+        return nextExpandedKeys;
+      },
+      [],
+    );
+
+    if (activeExpandedKeys.length === 0) {
+      return;
+    }
+
+    lastAutoExpandedPathRef.current = pathname;
+
+    setExpandedItems((prev) => {
+      const nextExpandedKeys = [...prev];
+
+      activeExpandedKeys.forEach((key) => {
+        if (!nextExpandedKeys.includes(key)) {
+          nextExpandedKeys.push(key);
+        }
+      });
+
+      return nextExpandedKeys.length === prev.length ? prev : nextExpandedKeys;
     });
   }, [pathname, isArabic, visibleMenuItems]);
 
@@ -134,6 +164,7 @@ export default function Sidebar({
   const handleNavigationStart = (href: string) => {
     // Set pending state only when navigation actually starts
     setPendingHref(href);
+    setHoveredCollapsedItemKey(null);
   };
 
   const toggleExpand = (key: string, e: React.MouseEvent) => {
@@ -142,6 +173,32 @@ export default function Sidebar({
     setExpandedItems((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
+  };
+
+  const showCollapsedFlyout = (
+    key: string,
+    element: HTMLElement,
+    hasChildren: boolean,
+  ) => {
+    if (isOpen) {
+      return;
+    }
+
+    if (!hasChildren) {
+      setHoveredCollapsedItemKey(null);
+      return;
+    }
+
+    const { top } = element.getBoundingClientRect();
+    const maxTop =
+      window.innerHeight - COLLAPSED_FLYOUT_MAX_HEIGHT - COLLAPSED_FLYOUT_MARGIN;
+    setCollapsedFlyoutTop(
+      Math.max(
+        COLLAPSED_FLYOUT_MARGIN,
+        Math.min(top, Math.max(COLLAPSED_FLYOUT_MARGIN, maxTop)),
+      ),
+    );
+    setHoveredCollapsedItemKey(key);
   };
 
   const handleLogout = async () => {
@@ -188,9 +245,9 @@ export default function Sidebar({
   ) => {
     if (options?.backgroundImage) {
       if (options?.active || options?.pending) {
-        return "text-white border border-white/35 ring-1 ring-white/25 shadow-md";
+        return "text-white shadow-md";
       }
-      return "text-white border border-white/20 hover:text-white hover:brightness-110";
+      return "text-white hover:text-white hover:brightness-110";
     }
 
     if (options?.active || options?.pending) {
@@ -224,6 +281,10 @@ export default function Sidebar({
     };
   };
 
+  const hoveredCollapsedItem = !isOpen
+    ? visibleMenuItems.find((item) => item.key === hoveredCollapsedItemKey)
+    : null;
+
   return (
     <>
       {/* Mobile Overlay - only on small screens when open */}
@@ -236,6 +297,7 @@ export default function Sidebar({
 
       {/* Sidebar */}
       <aside
+        onMouseLeave={() => setHoveredCollapsedItemKey(null)}
         className={`fixed z-50 h-screen bg-[#065769] flex flex-col transition-all duration-300 ease-in-out
       ${isRTL ? "right-0 border-l" : "left-0 border-r"} border-white/10
       ${isOpen ? "translate-x-0" : isRTL ? "translate-x-full lg:translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -313,19 +375,23 @@ export default function Sidebar({
               const hasImageBackground = Boolean(item.buttonBackgroundImage);
 
               return (
-                <div key={item.key} className="px-2">
+                <div
+                  key={item.key}
+                  className={item.buttonBackgroundImage ? "px-0" : "px-2"}
+                  onMouseEnter={(event) =>
+                    showCollapsedFlyout(
+                      item.key,
+                      event.currentTarget,
+                      Boolean(hasChildren),
+                    )
+                  }
+                >
                   {/* Parent Item */}
                   {hasChildren ? (
                     <button
                       onClick={(e) => {
                         if (isOpen) {
                           toggleExpand(item.key, e);
-                        } else {
-                          // When collapsed, clicking opens sidebar and expands
-                          onToggle?.();
-                          setTimeout(() => {
-                            setExpandedItems((prev) => [...prev, item.key]);
-                          }, 100);
                         }
                       }}
                       title={
@@ -335,7 +401,7 @@ export default function Sidebar({
                             : item.label_en
                           : undefined
                       }
-                      className={`group w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 ${
+                      className={`group w-full flex items-center gap-3 ${item.buttonBackgroundImage ? "rounded-none" : "rounded-[6px]"} transition-all duration-200 ${
                         isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
                       } ${
                         isActive
@@ -387,7 +453,7 @@ export default function Sidebar({
                             : item.label_en
                           : undefined
                       }
-                      className={`group w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 text-left ${
+                      className={`group w-full flex items-center gap-3 ${item.buttonBackgroundImage ? "rounded-none" : "rounded-[6px]"} transition-all duration-200 text-left ${
                         isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
                       } ${
                         isActive ||
@@ -422,7 +488,7 @@ export default function Sidebar({
                                 ? "text-white"
                                 : item.buttonVariant === "highlight"
                                   ? "text-primary"
-                                  : "text-white group-hover:text-primary"
+                                  : "text-white group-hover:text-white"
                           }`}
                         />
                       )}
@@ -594,7 +660,10 @@ export default function Sidebar({
         </div>
 
         {/* âœ… Bottom Section Ø«Ø§Ø¨Øª ØªØ­Øª */}
-        <div className="pb-6 space-y-1 shrink-0 border-t border-white/15 pt-3">
+        <div
+          className="pb-6 space-y-1 shrink-0 border-t border-white/15 pt-3"
+          onMouseEnter={() => setHoveredCollapsedItemKey(null)}
+        >
           {bottomItems.map((item) => {
             const Icon = item.icon;
             const itemHref = isArabic ? item.href_ar : item.href_en;
@@ -639,7 +708,7 @@ export default function Sidebar({
                       ? "text-white"
                       : item.buttonVariant === "highlight" && !isPendingItem
                         ? "text-primary"
-                        : "text-white group-hover:text-primary"
+                        : "text-white group-hover:text-white"
                   }`}
                 />
                 {isOpen && (
@@ -666,13 +735,13 @@ export default function Sidebar({
             } ${
               isLoggingOut
                 ? "cursor-not-allowed text-white/50"
-                : "text-white hover:bg-white/15"
+                : "text-red-200 hover:bg-red-500/15 hover:text-red-100"
             }`}
           >
             {isLoggingOut ? (
               <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
             ) : (
-              <LogOut className="w-5 h-5 shrink-0 transition-colors group-hover:text-primary" />
+              <LogOut className="w-5 h-5 shrink-0 transition-colors" />
             )}
             {isOpen && (
               <span className="font-medium text-sm truncate ">
@@ -681,6 +750,126 @@ export default function Sidebar({
             )}
           </button>
         </div>
+
+        {!isOpen && hoveredCollapsedItem?.children ? (
+          <div
+            className={`absolute z-[70] max-h-[min(420px,calc(100vh-24px))] w-64 overflow-y-auto rounded-lg border border-white/10 bg-[#065769] p-2 text-white shadow-2xl ${
+              isRTL ? "right-full mr-2" : "left-full ml-2"
+            }`}
+            style={{ top: collapsedFlyoutTop }}
+          >
+            <p className="px-3 py-2 text-sm font-bold text-white">
+              {isArabic
+                ? hoveredCollapsedItem.label_ar
+                : hoveredCollapsedItem.label_en}
+            </p>
+            <div className="space-y-1">
+              {hoveredCollapsedItem.children.map((child) => {
+                const ChildIcon = child.icon;
+                const childHref = isArabic ? child.href_ar : child.href_en;
+                const isChildActive = pathname === childHref;
+                const hasGrandchildren =
+                  child.children && child.children.length > 0;
+                const isChildExpanded = expandedItems.includes(child.key);
+
+                return (
+                  <div key={child.key}>
+                    {hasGrandchildren ? (
+                      <button
+                        type="button"
+                        onClick={(event) => toggleExpand(child.key, event)}
+                        className={`group flex w-full items-center gap-3 rounded-[6px] px-3 py-2 text-sm transition-colors ${
+                          isArabic ? "text-right" : "text-left"
+                        } ${
+                          isChildActive
+                            ? "bg-white/20 text-white font-semibold"
+                            : "text-white/85 hover:bg-white/15"
+                        }`}
+                      >
+                        <ChildIcon className="h-4 w-4 shrink-0" />
+                        <span className="flex-1 truncate">
+                          {isArabic ? child.label_ar : child.label_en}
+                        </span>
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${
+                            isChildExpanded ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                    ) : (
+                      <GuardedLink
+                        href={childHref}
+                        onClick={() => handleItemClick(child.key)}
+                        onNavigationStart={() =>
+                          handleNavigationStart(childHref)
+                        }
+                        prefetch
+                        className={`group flex w-full items-center gap-3 rounded-[6px] px-3 py-2 text-sm transition-colors ${
+                          isArabic ? "text-right" : "text-left"
+                        } ${
+                          isChildActive || pendingHref === childHref
+                            ? "bg-white/20 text-white font-semibold"
+                            : "text-white/85 hover:bg-white/15"
+                        }`}
+                      >
+                        <ChildIcon className="h-4 w-4 shrink-0" />
+                        <span className="flex-1 truncate">
+                          {isArabic ? child.label_ar : child.label_en}
+                        </span>
+                        {pendingHref === childHref ? (
+                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                        ) : null}
+                      </GuardedLink>
+                    )}
+
+                    {hasGrandchildren && isChildExpanded ? (
+                      <div className={isArabic ? "mr-4 mt-1" : "ml-4 mt-1"}>
+                        {child.children!.map((grandchild) => {
+                          const GrandchildIcon = grandchild.icon;
+                          const grandchildHref = isArabic
+                            ? grandchild.href_ar
+                            : grandchild.href_en;
+                          const isGrandchildActive =
+                            pathname === grandchildHref;
+
+                          return (
+                            <GuardedLink
+                              key={grandchild.key}
+                              href={grandchildHref}
+                              onClick={() => handleItemClick(grandchild.key)}
+                              onNavigationStart={() =>
+                                handleNavigationStart(grandchildHref)
+                              }
+                              prefetch
+                              className={`group flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-xs transition-colors ${
+                                isArabic ? "text-right" : "text-left"
+                              } ${
+                                isGrandchildActive ||
+                                pendingHref === grandchildHref
+                                  ? "bg-white/20 text-white font-semibold"
+                                  : "text-white/75 hover:bg-white/15"
+                              }`}
+                            >
+                              <GrandchildIcon className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">
+                                {isArabic
+                                  ? grandchild.label_ar
+                                  : grandchild.label_en}
+                              </span>
+                              {pendingHref === grandchildHref ? (
+                                <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
+                              ) : null}
+                            </GuardedLink>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
       </aside>
     </>
   );

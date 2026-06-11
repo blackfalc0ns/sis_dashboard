@@ -234,8 +234,7 @@ export default function AdmissionsDashboardContent() {
         const grade = String(value);
         // Convert grade to translation key (e.g., "Grade 6" -> "grade_6")
         const gradeKey = grade.toLowerCase().replace(/\s+/g, "_");
-        const translated = t("grades." + gradeKey);
-        return translated !== gradeKey ? translated : grade;
+        return t.has(`grades.${gradeKey}`) ? t(`grades.${gradeKey}`) : grade;
       },
     },
     {

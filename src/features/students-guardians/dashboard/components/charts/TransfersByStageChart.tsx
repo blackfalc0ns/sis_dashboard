@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { BarChart } from "@mui/x-charts/BarChart";
+import dynamic from "next/dynamic";
 import { useResponsiveChart } from "@/hooks/useResponsiveChart";
 import { ChartCard } from "@/components/ui/chart-card";
 import {
@@ -10,6 +10,11 @@ import {
   type StageBreakdownPoint,
 } from "@/features/students-guardians/transfers-withdrawals/services/transfersWithdrawalsService";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
+
+const BarChart = dynamic(
+  () => import("@mui/x-charts/BarChart").then((mod) => mod.BarChart),
+  { ssr: false },
+);
 
 export default function TransfersByStageChart() {
   const t = useTranslations("students_guardians.transfers_withdrawals");

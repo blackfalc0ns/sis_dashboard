@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import DataTable from '../DataTable';
 
@@ -15,6 +15,10 @@ const mockData = [
 ];
 
 describe('DataTable Component', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it('renders table with data', () => {
     render(<DataTable columns={mockColumns} data={mockData} />);
     
@@ -136,5 +140,31 @@ describe('DataTable Component', () => {
     // Should show items 11-20
     expect(screen.getByText('User 11')).toBeInTheDocument();
     expect(screen.queryByText('User 1')).not.toBeInTheDocument();
+  });
+
+  it('loads saved density preference from localStorage', () => {
+    window.localStorage.setItem('sis:data-table-density', 'compact');
+
+    render(<DataTable columns={mockColumns} data={mockData} />);
+
+    expect(
+      screen.getByRole('button', { name: 'density_compact' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      screen.getByRole('button', { name: 'density_comfortable' }),
+    ).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('saves density preference to localStorage when changed', () => {
+    render(<DataTable columns={mockColumns} data={mockData} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'density_compact' }));
+
+    expect(window.localStorage.getItem('sis:data-table-density')).toBe(
+      'compact',
+    );
+    expect(
+      screen.getByRole('button', { name: 'density_compact' }),
+    ).toHaveAttribute('aria-pressed', 'true');
   });
 });

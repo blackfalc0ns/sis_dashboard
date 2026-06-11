@@ -3,6 +3,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import type { KeyboardEvent, MouseEvent } from "react";
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -13,6 +14,7 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Inbox,
 } from "lucide-react";
 
 // Highlight Text Component
@@ -55,6 +57,18 @@ function HighlightText({ text, highlight }: HighlightTextProps) {
   );
 }
 
+function skeletonCellWidth(columnIndex: number, columnCount: number) {
+  if (columnIndex === 0) {
+    return "70%";
+  }
+
+  if (columnIndex === columnCount - 1) {
+    return "44%";
+  }
+
+  return "58%";
+}
+
 export interface Column<T> {
   key: string;
   label: string;
@@ -69,6 +83,12 @@ interface DataTableProps<T> {
   onRowClick?: (row: T) => void;
   itemsPerPage?: number;
   showPagination?: boolean;
+  showDensityToggle?: boolean;
+  defaultDensity?: TableDensity;
+  isLoading?: boolean;
+  skeletonRows?: number;
+  emptyTitle?: string;
+  emptyDescription?: string;
   searchQuery?: string; // New: Search query for highlighting
   virtualize?: boolean; // New: Enable virtualization for large datasets
   rowHeight?: number; // New: Row height for virtualization (default: 56px)
@@ -88,6 +108,40 @@ interface DataTableProps<T> {
 }
 
 type SortDirection = "asc" | "desc" | null;
+type TableDensity = "comfortable" | "compact";
+const TABLE_DENSITY_STORAGE_KEY = "sis:data-table-density";
+
+function isTableDensity(value: string | null): value is TableDensity {
+  return value === "comfortable" || value === "compact";
+}
+
+function getStoredTableDensity() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(TABLE_DENSITY_STORAGE_KEY);
+  } catch (error) {
+    if (error instanceof DOMException) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+function setStoredTableDensity(density: TableDensity) {
+  try {
+    window.localStorage.setItem(TABLE_DENSITY_STORAGE_KEY, density);
+  } catch (error) {
+    if (error instanceof DOMException) {
+      return;
+    }
+
+    throw error;
+  }
+}
 
 export default function DataTable<T extends { [key: string]: unknown }>({
   columns,
@@ -95,6 +149,12 @@ export default function DataTable<T extends { [key: string]: unknown }>({
   onRowClick,
   itemsPerPage = 10,
   showPagination = true,
+  showDensityToggle = true,
+  defaultDensity = "comfortable",
+  isLoading = false,
+  skeletonRows = 6,
+  emptyTitle,
+  emptyDescription,
   searchQuery = "", // New: Default empty search
   virtualize = false, // New: Virtualization disabled by default
   rowHeight = 56, // New: Default row height in pixels
@@ -129,7 +189,10 @@ export default function DataTable<T extends { [key: string]: unknown }>({
   const isServerPagination = Boolean(serverPagination?.enabled);
 
   const [sortKey, setSortKey] = useState<string | null>(
-    urlSyncEnabled && urlState?.syncSorting && urlSortKey && allowedSortKeys.has(urlSortKey)
+    urlSyncEnabled &&
+      urlState?.syncSorting &&
+      urlSortKey &&
+      allowedSortKeys.has(urlSortKey)
       ? urlSortKey
       : null,
   );
@@ -156,54 +219,82 @@ export default function DataTable<T extends { [key: string]: unknown }>({
       ? urlPageSize
       : itemsPerPage,
   );
+  const [density, setDensity] = useState<TableDensity>(() => {
+    const storedDensity = getStoredTableDensity();
+    return isTableDensity(storedDensity) ? storedDensity : defaultDensity;
+  });
+
+  const handleDensityChange = (nextDensity: TableDensity) => {
+    setDensity(nextDensity);
+    setStoredTableDensity(nextDensity);
+  };
+
+  const densityClasses = {
+    comfortable: {
+      header: "py-2.5 sm:py-3",
+      cell: "py-3 sm:py-4 text-sm sm:text-[15px]",
+      skeleton: "h-5",
+      rowHeight,
+    },
+    compact: {
+      header: "py-2",
+      cell: "py-2 text-sm",
+      skeleton: "h-4",
+      rowHeight: Math.min(rowHeight, 44),
+    },
+  }[density];
 
   // Virtualization state
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
 
-  const updateTableUrl = useCallback((
-    updates: Record<string, string | null>,
-    mode: "push" | "replace" = "push",
-  ) => {
-    if (!urlSyncEnabled) {
-      return;
-    }
-
-    const nextParams = new URLSearchParams(searchParams.toString());
-
-    Object.entries(updates).forEach(([key, value]) => {
-      if (!value) {
-        nextParams.delete(key);
-      } else {
-        nextParams.set(key, value);
+  const updateTableUrl = useCallback(
+    (
+      updates: Record<string, string | null>,
+      mode: "push" | "replace" = "push",
+    ) => {
+      if (!urlSyncEnabled) {
+        return;
       }
-    });
 
-    const nextQuery = nextParams.toString();
-    const currentQuery = searchParams.toString();
-    if (nextQuery === currentQuery) {
-      return;
-    }
+      const nextParams = new URLSearchParams(searchParams.toString());
 
-    const href = nextQuery ? `${pathname}?${nextQuery}` : pathname;
-    if (mode === "replace") {
-      router.replace(href, { scroll: false });
-      return;
-    }
+      Object.entries(updates).forEach(([key, value]) => {
+        if (!value) {
+          nextParams.delete(key);
+        } else {
+          nextParams.set(key, value);
+        }
+      });
 
-    router.push(href, { scroll: false });
-  }, [pathname, router, searchParams, urlSyncEnabled]);
+      const nextQuery = nextParams.toString();
+      const currentQuery = searchParams.toString();
+      if (nextQuery === currentQuery) {
+        return;
+      }
+
+      const href = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+      if (mode === "replace") {
+        router.replace(href, { scroll: false });
+        return;
+      }
+
+      router.push(href, { scroll: false });
+    },
+    [pathname, router, searchParams, urlSyncEnabled],
+  );
 
   useEffect(() => {
     if (!urlSyncEnabled || !urlState?.syncPagination) {
       return;
     }
 
-    const nextPage =
-      Number.isFinite(urlPage) && urlPage > 0 ? urlPage : 1;
+    const nextPage = Number.isFinite(urlPage) && urlPage > 0 ? urlPage : 1;
     const nextPageSize =
-      Number.isFinite(urlPageSize) && urlPageSize > 0 ? urlPageSize : itemsPerPage;
+      Number.isFinite(urlPageSize) && urlPageSize > 0
+        ? urlPageSize
+        : itemsPerPage;
 
     queueMicrotask(() => {
       setCurrentPage((current) => (current === nextPage ? current : nextPage));
@@ -356,13 +447,13 @@ export default function DataTable<T extends { [key: string]: unknown }>({
 
   // Pagination calculations
   const effectiveCurrentPage = isServerPagination
-    ? (serverPagination?.currentPage || 1)
+    ? serverPagination?.currentPage || 1
     : currentPage;
   const effectivePageSize = isServerPagination
-    ? (serverPagination?.pageSize || itemsPerPage)
+    ? serverPagination?.pageSize || itemsPerPage
     : pageSize;
   const totalItemsCount = isServerPagination
-    ? (serverPagination?.totalItems || 0)
+    ? serverPagination?.totalItems || 0
     : sortedData.length;
   const totalPages = Math.max(1, Math.ceil(totalItemsCount / effectivePageSize));
   const startIndex = (effectiveCurrentPage - 1) * effectivePageSize;
@@ -376,8 +467,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
       return;
     }
 
-    const nextPage =
-      totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
+    const nextPage = totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
 
     if (nextPage === currentPage) {
       return;
@@ -407,25 +497,38 @@ export default function DataTable<T extends { [key: string]: unknown }>({
   ]);
 
   // Virtualization calculations
-  const dataToRender = virtualize && !showPagination ? sortedData : paginatedData;
-  
+  const dataToRender =
+    virtualize && !showPagination ? sortedData : paginatedData;
+
   const virtualizedData = useMemo(() => {
     if (!virtualize || showPagination) {
-      return { visibleRows: dataToRender, startIndex: 0, endIndex: dataToRender.length };
+      return {
+        visibleRows: dataToRender,
+        startIndex: 0,
+        endIndex: dataToRender.length,
+      };
     }
 
-    const visibleRowCount = Math.ceil(containerHeight / rowHeight) + 2; // +2 for buffer
-    const startRow = Math.floor(scrollTop / rowHeight);
+    const visibleRowCount =
+      Math.ceil(containerHeight / densityClasses.rowHeight) + 2; // +2 for buffer
+    const startRow = Math.floor(scrollTop / densityClasses.rowHeight);
     const endRow = Math.min(startRow + visibleRowCount, dataToRender.length);
 
     return {
       visibleRows: dataToRender.slice(startRow, endRow),
       startIndex: startRow,
       endIndex: endRow,
-      totalHeight: dataToRender.length * rowHeight,
-      offsetY: startRow * rowHeight,
+      totalHeight: dataToRender.length * densityClasses.rowHeight,
+      offsetY: startRow * densityClasses.rowHeight,
     };
-  }, [virtualize, showPagination, dataToRender, containerHeight, scrollTop, rowHeight]);
+  }, [
+    virtualize,
+    showPagination,
+    dataToRender,
+    containerHeight,
+    scrollTop,
+    densityClasses.rowHeight,
+  ]);
 
   // Handle scroll for virtualization
   useEffect(() => {
@@ -446,20 +549,22 @@ export default function DataTable<T extends { [key: string]: unknown }>({
     });
 
     resizeObserver.observe(container);
-    container.addEventListener('scroll', handleScroll, { passive: true });
+    container.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
       resizeObserver.disconnect();
-      container.removeEventListener('scroll', handleScroll);
+      container.removeEventListener("scroll", handleScroll);
     };
   }, [virtualize, showPagination]);
 
   const handlePageChange = (page: number) => {
     const nextPage = Math.min(Math.max(page, 1), totalPages);
+
     if (isServerPagination && serverPagination) {
       serverPagination.onPageChange(nextPage);
       return;
     }
+
     setCurrentPage(nextPage);
     if (urlSyncEnabled && urlState?.syncPagination) {
       updateTableUrl({ [pageParamName]: String(nextPage) }, "push");
@@ -471,6 +576,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
       serverPagination.onPageSizeChange(newSize);
       return;
     }
+
     setPageSize(newSize);
     setCurrentPage(1); // Reset to first page
     if (urlSyncEnabled && urlState?.syncPagination) {
@@ -519,22 +625,132 @@ export default function DataTable<T extends { [key: string]: unknown }>({
     return pages;
   };
 
+  const isInteractiveTarget = (target: EventTarget | null) => {
+    if (!(target instanceof Element)) {
+      return false;
+    }
+
+    return Boolean(
+      target.closest(
+        "a,button,input,select,textarea,[role='button'],[data-row-action]",
+      ),
+    );
+  };
+
+  const handleRowClick = (event: MouseEvent<HTMLTableRowElement>, row: T) => {
+    if (!onRowClick || isInteractiveTarget(event.target)) {
+      return;
+    }
+
+    onRowClick(row);
+  };
+
+  const handleRowKeyDown = (
+    event: KeyboardEvent<HTMLTableRowElement>,
+    row: T,
+  ) => {
+    if (
+      !onRowClick ||
+      isInteractiveTarget(event.target) ||
+      (event.key !== "Enter" && event.key !== " ")
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    onRowClick(row);
+  };
+
+  const renderEmptyState = () => (
+    <tr>
+      <td
+        colSpan={columns.length}
+        className="px-3 py-12 text-center sm:px-4 lg:px-6"
+      >
+        <div className="mx-auto flex max-w-sm flex-col items-center">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+            <Inbox className="h-5 w-5" />
+          </span>
+          <p className="mt-3 text-sm font-semibold text-gray-900">
+            {emptyTitle || t("no_data_available")}
+          </p>
+          <p className="mt-1 text-sm text-gray-500">
+            {emptyDescription || t("no_matching_records")}
+          </p>
+        </div>
+      </td>
+    </tr>
+  );
+
+  const renderSkeletonRows = () =>
+    Array.from({ length: skeletonRows }).map((_, rowIndex) => (
+      <tr key={`skeleton-${rowIndex}`} className="animate-pulse">
+        {columns.map((column, columnIndex) => (
+          <td
+            key={`${column.key}-${rowIndex}`}
+            className={`px-3 sm:px-4 lg:px-6 ${densityClasses.cell}`}
+          >
+            <div
+              className={`rounded bg-gray-100 ${densityClasses.skeleton}`}
+              style={{ width: skeletonCellWidth(columnIndex, columns.length) }}
+            />
+          </td>
+        ))}
+      </tr>
+    ));
+
   return (
     <div className="bg-white rounded-xl shadow-sm">
-      <div 
+      {showDensityToggle ? (
+        <div className="flex flex-col gap-3 border-b border-gray-100 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 lg:px-6">
+          <p className="text-sm font-semibold text-gray-700">
+            {t("table_density")}
+          </p>
+          <div className="inline-flex w-fit rounded-lg border border-gray-200 bg-gray-50 p-1">
+            {(["comfortable", "compact"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={density === option}
+                onClick={() => handleDensityChange(option)}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  density === option
+                    ? "bg-white text-primary shadow-sm"
+                    : "text-gray-500 hover:text-gray-800"
+                }`}
+              >
+                {t(`density_${option}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div
         className="overflow-x-auto"
-        style={virtualize && !showPagination ? { 
-          maxHeight: '600px', 
-          overflowY: 'auto' 
-        } : undefined}
+        style={
+          virtualize && !showPagination
+            ? {
+                maxHeight: "600px",
+                overflowY: "auto",
+              }
+            : undefined
+        }
       >
         <table className="w-full min-w-[640px]">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="sticky top-0 z-10 border-b border-gray-200 bg-gray-50">
             <tr>
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className={`px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 text-left text-sm font-bold text-gray-600 uppercase tracking-wider ${
+                  aria-sort={
+                    sortKey === column.key
+                      ? sortDirection === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : "none"
+                  }
+                  className={`px-3 text-start sm:px-4 lg:px-6 ${densityClasses.header} text-xs font-bold uppercase tracking-wide text-gray-600 ${
                     column.sortable !== false
                       ? "cursor-pointer select-none"
                       : ""
@@ -543,7 +759,13 @@ export default function DataTable<T extends { [key: string]: unknown }>({
                     column.sortable !== false && handleSort(column.key)
                   }
                 >
-                  <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div
+                    className={`inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 sm:gap-2 ${
+                      sortKey === column.key
+                        ? "bg-primary/10 text-primary"
+                        : "text-gray-600"
+                    }`}
+                  >
                     <span className="truncate">{column.label}</span>
                     {column.sortable !== false && getSortIcon(column.key)}
                   </div>
@@ -551,68 +773,72 @@ export default function DataTable<T extends { [key: string]: unknown }>({
               ))}
             </tr>
           </thead>
-          <tbody 
+          <tbody
             ref={tableBodyRef}
             className="divide-y divide-gray-200"
-            style={virtualize && !showPagination ? {
-              position: 'relative',
-              height: `${virtualizedData.totalHeight}px`,
-            } : undefined}
+            style={
+              virtualize && !showPagination
+                ? {
+                    position: "relative",
+                    height: `${virtualizedData.totalHeight}px`,
+                  }
+                : undefined
+            }
           >
             {virtualize && !showPagination && virtualizedData.totalHeight && (
               <tr style={{ height: `${virtualizedData.offsetY}px` }} />
             )}
-            {virtualizedData.visibleRows.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={columns.length}
-                  className="px-3 sm:px-4 lg:px-6 py-8 sm:py-12 text-center text-gray-500 text-md"
-                >
-                  {t("no_data_available")}
-                </td>
-              </tr>
-            ) : (
-              virtualizedData.visibleRows.map((row, index) => {
-                const actualIndex = virtualize && !showPagination 
-                  ? virtualizedData.startIndex + index 
-                  : index;
-                
-                return (
-                  <tr
-                    key={actualIndex}
-                    onClick={() => onRowClick?.(row)}
-                    className={`${onRowClick ? "cursor-pointer hover:bg-gray-100" : ""} transition-colors`}
-                    style={virtualize && !showPagination ? { 
-                      height: `${rowHeight}px` 
-                    } : undefined}
-                  >
-                    {columns.map((column) => (
-                      <td
-                        key={column.key}
-                        className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-sm sm:text-[15px] text-gray-900"
+            {isLoading
+              ? renderSkeletonRows()
+              : virtualizedData.visibleRows.length === 0
+                ? renderEmptyState()
+                : virtualizedData.visibleRows.map((row, index) => {
+                    const actualIndex =
+                      virtualize && !showPagination
+                        ? virtualizedData.startIndex + index
+                        : index;
+
+                    return (
+                      <tr
+                        key={actualIndex}
+                        onClick={(event) => handleRowClick(event, row)}
+                        onKeyDown={(event) => handleRowKeyDown(event, row)}
+                        tabIndex={onRowClick ? 0 : undefined}
+                        className={`${onRowClick ? "cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/30" : ""} transition-colors`}
+                        style={
+                          virtualize && !showPagination
+                            ? {
+                                height: `${densityClasses.rowHeight}px`,
+                              }
+                            : undefined
+                        }
                       >
-                        {column.render ? (
-                          column.render(row[column.key], row)
-                        ) : column.searchable && searchQuery ? (
-                          <HighlightText
-                            text={String(row[column.key] || "")}
-                            highlight={searchQuery}
-                          />
-                        ) : (
-                          String(row[column.key] || "")
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })
-            )}
+                        {columns.map((column) => (
+                          <td
+                            key={column.key}
+                            className={`px-3 text-start sm:px-4 lg:px-6 ${densityClasses.cell} text-gray-900`}
+                          >
+                            {column.render ? (
+                              column.render(row[column.key], row)
+                            ) : column.searchable && searchQuery ? (
+                              <HighlightText
+                                text={String(row[column.key] || "")}
+                                highlight={searchQuery}
+                              />
+                            ) : (
+                              String(row[column.key] || "")
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
           </tbody>
         </table>
       </div>
 
       {/* Pagination */}
-      {showPagination && totalItemsCount > 0 && (
+      {showPagination && !isLoading && totalItemsCount > 0 && (
         <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           {/* Left side - Items per page and info */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">

@@ -32,6 +32,10 @@ async function main() {
       throw new Error(
         `Missing UI audit auth state at ${config.auth.storageStatePath}. Set ${config.auth.credentials.emailEnv} and ${config.auth.credentials.passwordEnv} before running npm run skill:uiux, or run npm run auth:manual first.`,
       );
+    } else if (isStoredAccessTokenExpired(config.auth.storageStatePath)) {
+      throw new Error(
+        `UI audit auth state at ${config.auth.storageStatePath} has an expired access token. Set ${config.auth.credentials.emailEnv} and ${config.auth.credentials.passwordEnv} before running npm run skill:uiux, or run npm run auth:manual to refresh the saved login.`,
+      );
     } else {
       console.log(`\n> Reusing auth state at ${config.auth.storageStatePath}`);
     }
@@ -56,6 +60,38 @@ function readAuditConfig() {
   return JSON.parse(
     readFileSync(path.join(process.cwd(), "ui-audit.config.json"), "utf8"),
   );
+}
+
+function isStoredAccessTokenExpired(storageStatePath) {
+  const state = JSON.parse(readFileSync(storageStatePath, "utf8"));
+  const localStorageToken = state.origins
+    ?.flatMap((origin) => origin.localStorage || [])
+    .find((item) => item.name === "moazez_access_token")?.value;
+  const cookieToken = state.cookies?.find(
+    (cookie) => cookie.name === "moazez_access_token",
+  )?.value;
+  const accessToken = localStorageToken || cookieToken;
+
+  if (!accessToken) {
+    return false;
+  }
+
+  const expiresAt = getJwtExpiryMs(accessToken);
+  return Boolean(expiresAt && expiresAt <= Date.now());
+}
+
+function getJwtExpiryMs(token) {
+  try {
+    const [, payload] = token.split(".");
+    if (!payload) {
+      return null;
+    }
+
+    const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    return typeof decoded.exp === "number" ? decoded.exp * 1000 : null;
+  } catch {
+    return null;
+  }
 }
 
 function run(label, args, command = process.execPath) {

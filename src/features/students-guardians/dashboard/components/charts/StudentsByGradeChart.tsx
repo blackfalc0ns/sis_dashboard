@@ -15,7 +15,7 @@ import PartialLoader from "@/components/ui/loaders/PartialLoader";
 export default function StudentsByGradeChart() {
   const t = useTranslations("students_guardians.overview");
   const t_grades = useTranslations("students_guardians.overview.grades");
-  const { height, width } = useResponsiveChart();
+  const { height, width, isMobile } = useResponsiveChart();
   const context = useOptionalStudentsGuardiansYearTermContext();
   const yearId = context?.yearId ?? null;
   const termId = context?.termId ?? null;
@@ -77,16 +77,19 @@ export default function StudentsByGradeChart() {
     return Object.entries(gradeCount).map(([grade, count]) => {
       // Convert grade to translation key (e.g., "Grade 6" -> "grade_6")
       const gradeKey = grade.toLowerCase().replace(/\s+/g, "_");
-      const translatedGrade = t_grades(gradeKey);
-      const displayGrade = translatedGrade !== gradeKey ? translatedGrade : grade;
+      const displayGrade = t_grades.has(gradeKey) ? t_grades(gradeKey) : grade;
+      const label =
+        isMobile && displayGrade.length > 18
+          ? `${displayGrade.slice(0, 15)}...`
+          : displayGrade;
 
       return {
         id: grade,
-        label: displayGrade,
+        label,
         value: count,
       };
     });
-  }, [allStudents, t_grades]);
+  }, [allStudents, isMobile, t_grades]);
 
   // Period options for ChartCard
   const periodOptions: DropdownItem[] = [
@@ -126,6 +129,12 @@ export default function StudentsByGradeChart() {
                 bottom: 80,
                 left: 10,
                 right: 10,
+              }}
+              slotProps={{
+                legend: {
+                  direction: "horizontal",
+                  position: { vertical: "bottom", horizontal: "center" },
+                },
               }}
             />
           </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { PieChart } from "@mui/x-charts/PieChart";
+import dynamic from "next/dynamic";
 import { useResponsiveChart } from "@/hooks/useResponsiveChart";
 import { ChartCard } from "@/components/ui/chart-card";
 import { DropdownItem } from "@/components/ui/dropdown";
@@ -10,6 +10,11 @@ import { fetchWithdrawalReasonsBreakdown } from "@/features/students-guardians/t
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 type Stage = "all" | "primary" | "preparatory" | "secondary";
+
+const PieChart = dynamic(
+  () => import("@mui/x-charts/PieChart").then((mod) => mod.PieChart),
+  { ssr: false },
+);
 
 export default function WithdrawalReasonsChart() {
   const t = useTranslations("students_guardians.transfers_withdrawals");

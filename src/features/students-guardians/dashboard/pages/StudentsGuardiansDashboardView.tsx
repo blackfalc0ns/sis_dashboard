@@ -71,9 +71,9 @@ export default function StudentsGuardiansDashboardView({
 
     const gradeData = Object.entries(gradeCount).map(([grade, count]) => {
       const gradeKey = grade.toLowerCase().replace(/\s+/g, "_");
-      const translatedGrade = tGrades(gradeKey);
+      const translatedGrade = tGrades.has(gradeKey) ? tGrades(gradeKey) : grade;
       return {
-        grade: translatedGrade !== gradeKey ? translatedGrade : grade,
+        grade: translatedGrade,
         count,
       };
     });

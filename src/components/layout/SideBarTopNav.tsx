@@ -55,7 +55,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
   // Full-screen mode for conversations — collapse sidebar (expandable) and hide topnav
   if (isFullScreenChat) {
     return (
-      <div className="h-[100dvh] bg-gray-50">
+      <div className="h-[100dvh] overflow-x-hidden bg-gray-50">
         <GlobalMessageNotifications />
         <Sidebar
           onSelect={() => {}}
@@ -74,7 +74,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen overflow-x-hidden bg-gray-50">
       <GlobalMessageNotifications />
       <Sidebar
         onSelect={() => {}}

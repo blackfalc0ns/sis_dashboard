@@ -4,12 +4,17 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { LineChart } from "@mui/x-charts/LineChart";
+import dynamic from "next/dynamic";
 import { useResponsiveChart } from "@/hooks/useResponsiveChart";
 import { ChartCard } from "@/components/ui/chart-card";
 import { DropdownItem } from "@/components/ui/dropdown";
 
 type Period = "6months" | "year" | "all";
+
+const LineChart = dynamic(
+  () => import("@mui/x-charts/LineChart").then((mod) => mod.LineChart),
+  { ssr: false },
+);
 
 export default function TransfersTrendChart() {
   const t = useTranslations("students_guardians.transfers_withdrawals");

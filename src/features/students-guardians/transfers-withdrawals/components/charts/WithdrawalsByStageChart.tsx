@@ -3,8 +3,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { BarChart } from "@mui/x-charts/BarChart";
+import dynamic from "next/dynamic";
 import { BarChart3 } from "lucide-react";
+
+const BarChart = dynamic(
+  () => import("@mui/x-charts/BarChart").then((mod) => mod.BarChart),
+  { ssr: false },
+);
 
 export default function WithdrawalsByStageChart() {
   const t = useTranslations("students_guardians.transfers_withdrawals.charts");

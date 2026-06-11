@@ -89,6 +89,7 @@ async function auditPage(
   const page = await context.newPage();
   const pageIssues: UiIssue[] = [];
   const consoleErrors: string[] = [];
+  const failedResponses: string[] = [];
 
   page.on("console", (message: ConsoleMessage) => {
     if (message.type() === "error") {
@@ -97,6 +98,19 @@ async function auditPage(
   });
   page.on("pageerror", (error) => {
     consoleErrors.push(error.message);
+  });
+  page.on("response", (response) => {
+    if (response.status() >= 400) {
+      failedResponses.push(`${response.status()} ${response.url()}`);
+    }
+  });
+  page.on("requestfailed", (request) => {
+    const failure = request.failure();
+    if (failure?.errorText === "net::ERR_ABORTED") {
+      return;
+    }
+
+    failedResponses.push(`${failure?.errorText ?? "request failed"} ${request.url()}`);
   });
 
   await page.goto(new URL(pagePath, config.baseUrl).toString(), {
@@ -117,17 +131,28 @@ async function auditPage(
       message,
     });
   }
+  for (const message of failedResponses) {
+    pageIssues.push({
+      page: pagePath,
+      viewport: viewport.name,
+      type: "console-error",
+      severity: "medium",
+      message,
+    });
+  }
 
   const layoutMetrics = await page.evaluate(() => {
     const tolerance = 1;
     const viewportWidth = document.documentElement.clientWidth;
     const scrollWidth = document.documentElement.scrollWidth;
     const overflowingElements = Array.from(document.body.querySelectorAll("*"))
+      .filter((element) => shouldAuditOverflow(element))
       .map((element) => {
         const rect = element.getBoundingClientRect();
         return { element, rect };
       })
       .filter(({ rect }) => rect.width > 0 && (rect.left < -tolerance || rect.right > viewportWidth + tolerance))
+      .filter(({ element, rect }) => !isInsideHorizontalScrollContainer(element, rect, viewportWidth, tolerance))
       .slice(0, 50)
       .map(({ element, rect }) => ({
         selector: selectorFor(element),
@@ -163,6 +188,70 @@ async function auditPage(
       }
 
       return parts.join(" > ") || element.tagName.toLowerCase();
+    }
+
+    function shouldAuditOverflow(element: Element): boolean {
+      const tagName = element.tagName.toLowerCase();
+      if (["svg", "path", "circle", "line", "rect", "polyline", "polygon"].includes(tagName)) {
+        return false;
+      }
+
+      if (element.closest("[aria-hidden='true'], [hidden]")) {
+        return false;
+      }
+
+      const rect = element.getBoundingClientRect();
+      if (!element.textContent?.trim() && rect.width <= 24 && rect.height <= 24) {
+        return false;
+      }
+
+      const fixedOrAbsoluteAncestor = element.closest(".fixed, .absolute");
+      if (fixedOrAbsoluteAncestor && isOffCanvas(fixedOrAbsoluteAncestor)) {
+        return false;
+      }
+
+      return true;
+    }
+
+    function isOffCanvas(element: Element): boolean {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return (
+        (style.position === "fixed" || style.position === "absolute") &&
+        (rect.right <= tolerance || rect.left >= viewportWidth - tolerance)
+      );
+    }
+
+    function isInsideHorizontalScrollContainer(
+      element: Element,
+      rect: DOMRect,
+      viewportWidth: number,
+      tolerance: number,
+    ): boolean {
+      let current = element.parentElement;
+      while (current && current !== document.body) {
+        const style = window.getComputedStyle(current);
+        const canScrollHorizontally =
+          ["auto", "scroll"].includes(style.overflowX) &&
+          current.scrollWidth > current.clientWidth + tolerance;
+
+        if (canScrollHorizontally) {
+          const containerRect = current.getBoundingClientRect();
+          const containerClipsElement =
+            rect.left < containerRect.left - tolerance ||
+            rect.right > containerRect.right + tolerance ||
+            containerRect.left < -tolerance ||
+            containerRect.right > viewportWidth + tolerance;
+
+          if (containerClipsElement) {
+            return true;
+          }
+        }
+
+        current = current.parentElement;
+      }
+
+      return false;
     }
   });
 

@@ -158,8 +158,7 @@ export default function ApplicationsListView({
         if (!value) return "—";
         const grade = String(value);
         const gradeKey = grade.toLowerCase().replace(/\s+/g, "_");
-        const translated = t_grades(gradeKey);
-        return translated !== gradeKey ? translated : grade;
+        return t_grades.has(gradeKey) ? t_grades(gradeKey) : grade;
       },
     },
     {
@@ -410,10 +409,9 @@ export default function ApplicationsListView({
                 <option value="all">{tFilters("all")}</option>
                 {uniqueGrades.map((grade) => {
                   const gradeKey = grade.toLowerCase().replace(/\s+/g, "_");
-                  const translated = t_grades(gradeKey);
                   return (
                     <option key={grade} value={grade}>
-                      {translated !== gradeKey ? translated : grade}
+                      {t_grades.has(gradeKey) ? t_grades(gradeKey) : grade}
                     </option>
                   );
                 })}
