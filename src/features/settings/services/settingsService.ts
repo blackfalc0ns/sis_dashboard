@@ -10,7 +10,10 @@ import {
   defaultSecuritySettings,
   defaultUsers,
 } from "@/features/settings/constants/defaults";
+import { apiGet } from "@/lib/api";
+import { unwrapArrayResponse } from "@/features/admissions/shared/services/admissionsApiUtils";
 import type {
+  AdmissionRequiredDocument,
   AdmissionsRequiredDocumentConfig,
   AuditLogEntry,
   BackupHistoryEntry,
@@ -23,8 +26,86 @@ import type {
 const SETTINGS_STORE_KEY = "sis-dashboard.settings.v2";
 const delay = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
 
+type ApiRecord = Record<string, unknown>;
+
 function cloneStore<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function isRecord(value: unknown): value is ApiRecord {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readString(
+  record: ApiRecord,
+  key: string,
+  fallback = "",
+): string {
+  const value = record[key];
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return fallback;
+}
+
+function readNumber(
+  record: ApiRecord,
+  key: string,
+  fallback: number,
+): number {
+  const value = record[key];
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function readBoolean(record: ApiRecord, key: string): boolean {
+  const value = record[key];
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") return value.trim().toLowerCase() === "true";
+  return false;
+}
+
+function readStringArray(record: ApiRecord, key: string): string[] {
+  const value = record[key];
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string");
+  }
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function mapAdmissionRequiredDocument(
+  input: unknown,
+  index: number,
+): AdmissionRequiredDocument {
+  if (!isRecord(input)) {
+    throw new Error("Invalid admission required document response.");
+  }
+
+  const id = readString(input, "id");
+  const title = readString(input, "title");
+
+  if (!id || !title) {
+    throw new Error("Admission required document response is missing an id or title.");
+  }
+
+  return {
+    id,
+    title,
+    description: readString(input, "description"),
+    isMandatory: readBoolean(input, "isMandatory"),
+    acceptedFileTypes: readStringArray(input, "acceptedFileTypes"),
+    maxFiles: Math.max(1, readNumber(input, "maxFiles", 1)),
+    sortOrder: readNumber(input, "sortOrder", index + 1),
+  };
 }
 
 function createDefaultStore(): SettingsStoreSnapshot {
@@ -210,6 +291,19 @@ export async function updatePolicySettings(payload: PolicySettings): Promise<Pol
     ipAddress: "10.0.0.10",
   });
   return fetchPolicySettings();
+}
+
+export async function fetchAdmissionRequiredDocumentsForSchool(
+  schoolId: string,
+): Promise<AdmissionRequiredDocument[]> {
+  const encodedSchoolId = encodeURIComponent(schoolId);
+  const response = await apiGet<unknown>(
+    `/applicant-portal/schools/${encodedSchoolId}/admission-required-documents`,
+  );
+
+  return unwrapArrayResponse(response, "admission required documents")
+    .map(mapAdmissionRequiredDocument)
+    .sort((first, second) => first.sortOrder - second.sortOrder);
 }
 
 export async function fetchAdmissionsDocumentRequirements(): Promise<

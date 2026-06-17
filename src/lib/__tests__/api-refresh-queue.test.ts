@@ -164,25 +164,16 @@ describe("api refresh queue", () => {
     expect(axiosMocks.state.retriedRequests).toHaveLength(0);
   });
 
-  it("attempts refresh without a stored refresh token for cookie-based auth", async () => {
-    axiosMocks.refreshPost.mockResolvedValue({
-      data: {
-        accessToken: "cookie-access-token",
-      },
-    });
-
+  it("rejects locally without calling refresh when no refresh token is stored", async () => {
     const { apiGet } = await import("../api");
 
-    await expect(apiGet("/resource")).resolves.toEqual({ ok: true });
+    await expect(apiGet("/resource")).rejects.toThrow(
+      "Your session has expired. Please sign in again.",
+    );
 
-    expect(axiosMocks.refreshPost).toHaveBeenCalledWith(
-      "https://api.test/api/v1/auth/refresh",
-      undefined,
-      { withCredentials: true },
-    );
-    expect(localStorage.getItem("moazez_access_token")).toBe(
-      "cookie-access-token",
-    );
+    expect(axiosMocks.refreshPost).not.toHaveBeenCalled();
+    expect(localStorage.getItem("moazez_access_token")).toBeNull();
+    expect(localStorage.getItem("moazez_refresh_token")).toBeNull();
   });
 
   it("does not refresh again when the failed request is already the refresh endpoint", async () => {

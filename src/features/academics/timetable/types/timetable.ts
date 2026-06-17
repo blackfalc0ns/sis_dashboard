@@ -22,9 +22,10 @@ export interface TimetableEntry {
 export interface Room {
   id: string;
   schoolId: string;
+  name?: string;
   nameAr: string;
   nameEn: string;
-  capacity: number;
+  capacity: number | null;
   floor?: string;
   building?: string;
   isActive: boolean;

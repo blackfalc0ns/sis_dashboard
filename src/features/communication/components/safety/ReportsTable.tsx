@@ -124,7 +124,7 @@ export default function ReportsTable({
                 {formatDate(report.createdAt)}
               </td>
               <td className="px-4 py-3 text-end">
-                <Link href={`/${locale}/communication/safety/reports/${report.id}`}>
+                <Link href={`/${locale}/communication/moderation/${report.id}`}>
                   <Button
                     type="button"
                     size="sm"

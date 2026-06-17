@@ -1,13 +1,15 @@
-// FILE: src/components/admissions/ScheduleInterviewModal.tsx
+// FILE: src/features/admissions/interviews/components/ScheduleInterviewModal.tsx
 
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { X } from "lucide-react";
+import { Calendar } from "lucide-react";
+import Modal from "@/components/ui/modal/Modal";
+import { Input, Select, TextArea, type SelectOption } from "@/components/ui/input";
 import { fetchSettingsRoles } from "@/features/settings/services/settingsRolesService";
 import { fetchSettingsUsers } from "@/features/settings/services/settingsUsersService";
-import type { SettingsUserRecord } from "@/features/settings/types";
+import type { RoleDefinition, SettingsUserRecord } from "@/features/settings/types";
 
 export interface ScheduleInterviewFormData {
   studentName: string;
@@ -27,29 +29,29 @@ export interface ScheduleInterviewFormData {
 interface ScheduleInterviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: ScheduleInterviewFormData) => void;
+  onSubmit: (data: ScheduleInterviewFormData) => Promise<void> | void;
   studentName: string;
   guardianName?: string;
   guardianPhone?: string;
 }
 
+const FORM_ID = "schedule-interview-form";
+
 const formatUserOptionLabel = (user: SettingsUserRecord) =>
   user.email ? `${user.fullName} (${user.email})` : user.fullName;
 
-export default function ScheduleInterviewModal({
-  isOpen,
-  onClose,
-  onSubmit,
-  studentName,
-  guardianName = "",
-  guardianPhone = "",
-}: ScheduleInterviewModalProps) {
-  const t = useTranslations("admissions.schedule_interview");
-  const [teacherUsers, setTeacherUsers] = useState<SettingsUserRecord[]>([]);
-  const [isLoadingTeachers, setIsLoadingTeachers] = useState(false);
-  const [teachersError, setTeachersError] = useState<string | null>(null);
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<ScheduleInterviewFormData>({
+function isTeacherRole(role: RoleDefinition) {
+  const roleKey = (role.key || "").toLowerCase();
+  const roleName = (role.name || "").toLowerCase();
+  return roleKey === "teacher" || roleName === "teacher";
+}
+
+function createInitialFormData(
+  studentName: string,
+  guardianName: string,
+  guardianPhone: string,
+): ScheduleInterviewFormData {
+  return {
     studentName,
     guardianName,
     guardianPhone,
@@ -62,7 +64,26 @@ export default function ScheduleInterviewModal({
     location: "",
     duration: "30",
     notes: "",
-  });
+  };
+}
+
+export default function ScheduleInterviewModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  studentName,
+  guardianName = "",
+  guardianPhone = "",
+}: ScheduleInterviewModalProps) {
+  const t = useTranslations("admissions.schedule_interview");
+  const [teacherUsers, setTeacherUsers] = useState<SettingsUserRecord[]>([]);
+  const [isLoadingTeachers, setIsLoadingTeachers] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [teachersError, setTeachersError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<ScheduleInterviewFormData>(() =>
+    createInitialFormData(studentName, guardianName, guardianPhone),
+  );
 
   const activeTeacherUsers = useMemo(
     () =>
@@ -71,25 +92,30 @@ export default function ScheduleInterviewModal({
       ),
     [teacherUsers],
   );
+  const teacherOptions = useMemo<SelectOption[]>(
+    () =>
+      activeTeacherUsers.map((teacherUser) => ({
+        value: teacherUser.id,
+        label: formatUserOptionLabel(teacherUser),
+        searchText: `${teacherUser.fullName} ${teacherUser.email || ""}`,
+      })),
+    [activeTeacherUsers],
+  );
+  const durationOptions = useMemo<SelectOption[]>(
+    () =>
+      [15, 30, 45, 60, 90, 120, 150, 180].map((minutes) => ({
+        value: String(minutes),
+        label: t("minutes", { count: minutes }),
+      })),
+    [t],
+  );
 
   useEffect(() => {
     if (!isOpen) return;
 
-    setFormData({
-      studentName,
-      guardianName,
-      guardianPhone,
-      date: "",
-      time: "",
-      interviewerUserId: "",
-      interviewerName: "",
-      interviewer: "",
-      interviewerPhone: "",
-      location: "",
-      duration: "30",
-      notes: "",
-    });
+    setFormData(createInitialFormData(studentName, guardianName, guardianPhone));
     setValidationError(null);
+    setIsSubmitting(false);
   }, [guardianName, guardianPhone, isOpen, studentName]);
 
   useEffect(() => {
@@ -103,11 +129,9 @@ export default function ScheduleInterviewModal({
 
       try {
         const rolesResult = await fetchSettingsRoles();
-        const teacherRole = rolesResult.items.find(
-          (role) => (role.name || "").toLowerCase() === "teacher",
-        );
+        const teacherRole = rolesResult.items.find(isTeacherRole);
         if (!teacherRole) {
-          throw new Error("Failed to load teachers.");
+          throw new Error("teacher_role_not_found");
         }
 
         const usersResult = await fetchSettingsUsers({
@@ -117,10 +141,11 @@ export default function ScheduleInterviewModal({
         if (!cancelled) {
           setTeacherUsers(usersResult.items);
         }
-      } catch {
+      } catch (error) {
+        console.error("Failed to load interviewers:", error);
         if (!cancelled) {
           setTeacherUsers([]);
-          setTeachersError("Failed to load teachers.");
+          setTeachersError(t("teachers_load_failed"));
         }
       } finally {
         if (!cancelled) {
@@ -132,29 +157,39 @@ export default function ScheduleInterviewModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen]);
+  }, [isOpen, t]);
 
-  if (!isOpen) return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.interviewerUserId) {
-      setValidationError("Please select an interviewer.");
-      return;
-    }
-    onSubmit(formData);
-    onClose();
+  const updateFormData = (updates: Partial<ScheduleInterviewFormData>) => {
+    setFormData((current) => ({ ...current, ...updates }));
   };
 
-  const handleInterviewerChange = (
-    event: React.ChangeEvent<HTMLSelectElement>,
-  ) => {
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (isSubmitting) return;
+
+    if (!formData.interviewerUserId) {
+      setValidationError(t("select_interviewer"));
+      return;
+    }
+
+    setIsSubmitting(true);
+    setValidationError(null);
+    try {
+      await onSubmit(formData);
+    } catch (error) {
+      console.error("Failed to schedule interview:", error);
+      setValidationError(t("schedule_failed"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleInterviewerChange = (interviewerUserId: string) => {
     const teacherUser = activeTeacherUsers.find(
-      (item) => item.id === event.target.value,
+      (item) => item.id === interviewerUserId,
     );
 
-    setFormData({
-      ...formData,
+    updateFormData({
       interviewerUserId: teacherUser?.id || "",
       interviewerName: teacherUser?.fullName || "",
       interviewer: teacherUser?.fullName || "",
@@ -163,232 +198,151 @@ export default function ScheduleInterviewModal({
     setValidationError(null);
   };
 
+  const footer = (
+    <>
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={isSubmitting}
+        className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+      >
+        {t("cancel")}
+      </button>
+      <button
+        type="submit"
+        form={FORM_ID}
+        disabled={isSubmitting || isLoadingTeachers}
+        className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-hover disabled:opacity-50"
+      >
+        {isSubmitting ? t("submitting") : t("submit")}
+      </button>
+    </>
+  );
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full">
-        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
-            <p className="text-sm text-gray-500">
-              {t("student")}: {studentName}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("title")}
+      description={`${t("student")}: ${studentName}`}
+      size="lg"
+      footer={footer}
+      icon={<Calendar className="h-6 w-6" />}
+      variant="confirm"
+    >
+      <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4 py-2">
+        <div className="rounded-lg bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">
+            {t("student_guardian_info")}
+          </h3>
+          <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Input
+              label={t("student_name")}
+              type="text"
+              value={formData.studentName}
+              required
+              readOnly
+            />
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Student and Guardian Information */}
-          <div className="bg-gray-50 rounded-lg space-y-3">
-            <h3 className="text-sm font-semibold text-gray-900">
-              {t("student_guardian_info")}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("student_name")} *
-                </label>
-                <input
-                  type="text"
-                  value={formData.studentName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, studentName: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  required
-                  readOnly
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("guardian_name")}
-                </label>
-                <input
-                  type="text"
-                  value={formData.guardianName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, guardianName: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  placeholder={t("guardian_name_placeholder")}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("guardian_phone")}
-                </label>
-                <input
-                  type="tel"
-                  value={formData.guardianPhone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, guardianPhone: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  placeholder={t("guardian_phone_placeholder")}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Interview Details */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900">
-              {t("interview_details")}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("date")} *
-                </label>
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, date: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("time")} *
-                </label>
-                <input
-                  type="time"
-                  value={formData.time}
-                  onChange={(e) =>
-                    setFormData({ ...formData, time: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("interviewer")} *
-                </label>
-                <select
-                  value={formData.interviewerUserId}
-                  onChange={handleInterviewerChange}
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  required
-                  disabled={isLoadingTeachers || activeTeacherUsers.length === 0}
-                >
-                  <option value="">
-                    {isLoadingTeachers
-                      ? "Loading teachers..."
-                      : activeTeacherUsers.length === 0
-                        ? "No active teachers available"
-                        : "Select interviewer"}
-                  </option>
-                  {activeTeacherUsers.map((teacherUser) => (
-                    <option key={teacherUser.id} value={teacherUser.id}>
-                      {formatUserOptionLabel(teacherUser)}
-                    </option>
-                  ))}
-                </select>
-                {teachersError ? (
-                  <p className="mt-1 text-xs text-red-600">{teachersError}</p>
-                ) : null}
-                {validationError ? (
-                  <p className="mt-1 text-xs text-red-600">{validationError}</p>
-                ) : null}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("interviewer_phone")}
-                </label>
-                <input
-                  type="tel"
-                  value={formData.interviewerPhone}
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  placeholder="Teacher email"
-                  readOnly
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("location")} *
-                </label>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) =>
-                    setFormData({ ...formData, location: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  placeholder={t("location_placeholder")}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("duration")}
-                </label>
-                <select
-                  value={formData.duration}
-                  onChange={(e) =>
-                    setFormData({ ...formData, duration: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                >
-                  <option value="15">{t("minutes", { count: 15 })}</option>
-                  <option value="30">{t("minutes", { count: 30 })}</option>
-                  <option value="45">{t("minutes", { count: 45 })}</option>
-                  <option value="60">{t("minutes", { count: 60 })}</option>
-                  <option value="90">{t("minutes", { count: 90 })}</option>
-                  <option value="120">{t("minutes", { count: 120 })}</option>
-                  <option value="150">{t("minutes", { count: 150 })}</option>
-                  <option value="180">{t("minutes", { count: 180 })}</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("notes")}
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) =>
-                setFormData({ ...formData, notes: e.target.value })
+            <Input
+              label={t("guardian_name")}
+              type="text"
+              value={formData.guardianName}
+              onChange={(event) =>
+                updateFormData({ guardianName: event.target.value })
               }
-              rows={3}
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm resize-none"
-              placeholder={t("notes_placeholder")}
+              placeholder={t("guardian_name_placeholder")}
+            />
+
+            <Input
+              label={t("guardian_phone")}
+              type="tel"
+              value={formData.guardianPhone}
+              onChange={(event) =>
+                updateFormData({ guardianPhone: event.target.value })
+              }
+              placeholder={t("guardian_phone_placeholder")}
             />
           </div>
+        </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
-            >
-              {t("cancel")}
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2.5 bg-primary hover:bg-hover text-white rounded-lg font-medium text-sm transition-colors"
-            >
-              {t("submit")}
-            </button>
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold text-gray-900">
+            {t("interview_details")}
+          </h3>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Input
+              label={t("date")}
+              type="date"
+              value={formData.date}
+              onChange={(event) => updateFormData({ date: event.target.value })}
+              required
+            />
+
+            <Input
+              label={t("time")}
+              type="time"
+              value={formData.time}
+              onChange={(event) => updateFormData({ time: event.target.value })}
+              required
+            />
+
+            <Select
+              label={t("interviewer")}
+              value={formData.interviewerUserId}
+              onChange={handleInterviewerChange}
+              options={teacherOptions}
+              placeholder={
+                isLoadingTeachers
+                  ? t("loading_teachers")
+                  : activeTeacherUsers.length === 0
+                    ? t("no_active_teachers")
+                    : t("select_interviewer")
+              }
+              required
+              disabled={isLoadingTeachers || activeTeacherUsers.length === 0}
+              searchable
+              error={validationError || teachersError || undefined}
+              noOptionsText={t("no_active_teachers")}
+            />
+
+            <Input
+              label={t("interviewer_phone")}
+              type="email"
+              value={formData.interviewerPhone}
+              placeholder={t("interviewer_email_placeholder")}
+              readOnly
+            />
+
+            <Input
+              label={t("location")}
+              type="text"
+              value={formData.location}
+              onChange={(event) =>
+                updateFormData({ location: event.target.value })
+              }
+              placeholder={t("location_placeholder")}
+              required
+            />
+
+            <Select
+              label={t("duration")}
+              value={formData.duration}
+              onChange={(duration) => updateFormData({ duration })}
+              options={durationOptions}
+            />
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+
+        <TextArea
+          label={t("notes")}
+          value={formData.notes}
+          onChange={(event) => updateFormData({ notes: event.target.value })}
+          rows={3}
+          resize="none"
+          placeholder={t("notes_placeholder")}
+        />
+      </form>
+    </Modal>
   );
 }

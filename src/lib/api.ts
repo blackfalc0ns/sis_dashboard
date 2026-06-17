@@ -23,6 +23,18 @@ export const apiClient: AxiosInstance = axios.create({
 
 let refreshPromise: Promise<string> | null = null;
 
+export const SESSION_EXPIRED_EVENT = "moazez:session-expired";
+
+function expireSession() {
+  tokenStorage.clearTokens();
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+}
+
 function getTokenExpiry(token: string): number | null {
   try {
     const base64Url = token.split('.')[1];
@@ -46,9 +58,13 @@ function getTokenExpiry(token: string): number | null {
 async function doRefresh(): Promise<string> {
   const refreshToken = tokenStorage.getRefreshToken();
 
+  if (!refreshToken) {
+    throw ApiError.unauthorized("Your session has expired. Please sign in again.");
+  }
+
   const response = await axios.post(
     `${BASE_URL}/auth/refresh`,
-    refreshToken ? { refreshToken } : undefined,
+    { refreshToken },
     {
       withCredentials: true,
     },
@@ -75,7 +91,7 @@ async function refreshAccessToken(): Promise<string> {
 
   refreshPromise = doRefresh()
     .catch((refreshError) => {
-      tokenStorage.clearTokens();
+      expireSession();
       throw refreshError;
     })
     .finally(() => {
@@ -129,7 +145,7 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       // Avoid infinite loop if the refresh token call itself fails with 401
       if (originalRequest.url?.includes("/auth/refresh")) {
-        tokenStorage.clearTokens();
+        expireSession();
         // Redirect to login handled by AuthProvider or App logic, returning error
         return Promise.reject(ApiError.fromAxiosError(error));
       }

@@ -4,28 +4,24 @@ import { Download } from "lucide-react";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import ExportModal from "./ExportModal";
-import type {
-  DashboardExportAttendanceRow,
-  DashboardExportIncidentRow,
-  DashboardExportSummaryRow,
-} from "@/features/dashboard/utils/dashboardStatsCalculator";
+import type { DashboardExportRow } from "@/features/dashboard/mappers/dashboardViewMapper";
 
 interface FilterBarProps {
-  exportData: {
-    summary: DashboardExportSummaryRow;
-    attendance: DashboardExportAttendanceRow[];
-    incidents: DashboardExportIncidentRow[];
-  };
+  academicYearName: string;
+  termName: string;
+  exportRows: DashboardExportRow[];
 }
 
 export default function FilterBar({
-  exportData,
+  academicYearName,
+  termName,
+  exportRows,
 }: FilterBarProps) {
   const t = useTranslations("filter_bar");
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   return (
-    <div className="mb-6 flex items-center justify-end gap-4 flex-wrap">
+    <div className="flex items-center justify-end gap-4 flex-wrap">
       <button
         onClick={() => setIsExportModalOpen(true)}
         className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
@@ -37,9 +33,9 @@ export default function FilterBar({
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
-        academicYearName={exportData.summary.academicYear}
-        termName={exportData.summary.term}
-        exportData={exportData}
+        academicYearName={academicYearName}
+        termName={termName}
+        exportRows={exportRows}
       />
     </div>
   );

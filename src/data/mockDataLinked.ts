@@ -11,6 +11,7 @@ import type {
 } from "@/features/admissions/types/admissions";
 import type {
   Student,
+  DocumentStatus as StudentDocumentStatus,
   StudentGuardian,
   StudentGuardianLink,
   StudentDocument,
@@ -57,6 +58,10 @@ const enrichApplicationStudentNames = (application: Application): Application =>
     family_name_en: application.family_name_en || englishNameParts.familyName,
   };
 };
+
+const toStudentDocumentStatus = (
+  status: Application["documents"][number]["status"],
+): StudentDocumentStatus => (status === "complete" ? "complete" : "missing");
 
 // ============================================================================
 // STEP 1: LEADS (Initial Inquiries)
@@ -2668,7 +2673,7 @@ export const mockStudentDocuments: StudentDocument[] = mockApplications
       studentId,
       type: doc.type,
       name: doc.name,
-      status: doc.status,
+      status: toStudentDocumentStatus(doc.status),
       uploadedDate: doc.uploadedDate,
     }));
   });

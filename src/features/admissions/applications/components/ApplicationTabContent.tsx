@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import type { Application } from "@/features/admissions/types/admissions";
 import { fetchApplicationById } from "@/features/admissions/applications/services/applicationsApiService";
+import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
+import { usePermissions } from "@/hooks/usePermissions";
 import DetailsTab from "@/features/admissions/applications/components/tabs/DetailsTab";
 import GuardiansTab from "@/features/admissions/applications/components/tabs/GuardiansTab";
 import DocumentsTab from "@/features/admissions/applications/components/tabs/DocumentsTab";
@@ -27,10 +29,13 @@ export default function ApplicationTabContent({
   applicationId,
   tab,
 }: ApplicationTabContentProps) {
+  const { hasPermission } = usePermissions();
+  const canViewApplications = hasPermission("admissions.applications.view");
   const [application, setApplication] = useState<Application | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!canViewApplications) return;
     let cancelled = false;
     void fetchApplicationById(applicationId)
       .then((nextApplication) => {
@@ -47,7 +52,11 @@ export default function ApplicationTabContent({
     return () => {
       cancelled = true;
     };
-  }, [applicationId]);
+  }, [applicationId, canViewApplications]);
+
+  if (!canViewApplications) {
+    return <AdmissionsAccessDenied />;
+  }
 
   if (isLoading) {
     return <p className="text-sm text-gray-500">Loading application...</p>;

@@ -23,8 +23,10 @@ import {
   submitApplicationEnrollment,
   type EnrollmentSubmission,
 } from "@/features/admissions/enrollment/services/enrollmentService";
+import { useToast } from "@/components/ui/toast/Toast";
 
 export default function ApplicationsListContainer() {
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "all">("all");
   const [gradeFilter, setGradeFilter] = useState<string>("all");
@@ -40,7 +42,7 @@ export default function ApplicationsListContainer() {
   const [isDecisionOpen, setIsDecisionOpen] = useState(false);
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
   const [isCreateAppOpen, setIsCreateAppOpen] = useState(false);
-  const [applicationsVersion, setApplicationsVersion] = useState(0);
+  const [, setApplicationsVersion] = useState(0);
 
   const filterValues: ApplicationFilterValues = useMemo(
     () => ({
@@ -65,26 +67,17 @@ export default function ApplicationsListContainer() {
     ],
   );
 
-  const filteredApplications = useMemo(
-    () => filterApplications(mockApplications, filterValues),
-    [applicationsVersion, filterValues],
+  const filteredApplications = filterApplications(mockApplications, filterValues);
+
+  const kpis = calculateApplicationKPIs(
+    mockApplications,
+    dateRange,
+    customStartDate,
+    customEndDate,
   );
 
-  const kpis = useMemo(
-    () =>
-      calculateApplicationKPIs(
-        mockApplications,
-        dateRange,
-        customStartDate,
-        customEndDate,
-      ),
-    [applicationsVersion, dateRange, customStartDate, customEndDate],
-  );
-
-  const { uniqueGrades, uniqueGenders, uniqueNationalities } = useMemo(
-    () => extractFilterOptions(mockApplications),
-    [applicationsVersion],
-  );
+  const { uniqueGrades, uniqueGenders, uniqueNationalities } =
+    extractFilterOptions(mockApplications);
 
   const filtersActive = hasActiveFilters(filterValues);
 
@@ -92,18 +85,24 @@ export default function ApplicationsListContainer() {
     application: Application,
     data: EnrollmentSubmission,
   ) => {
-    submitApplicationEnrollment(application, data).then(() => {
-      alert("Student enrolled successfully!");
-      setIsEnrollmentOpen(false);
-    });
+    submitApplicationEnrollment(application, data)
+      .then(() => {
+        showToast("Student enrolled successfully!", "success");
+        setIsEnrollmentOpen(false);
+      })
+      .catch((enrollmentError) => {
+        console.error("Failed to enroll student:", enrollmentError);
+        showToast("Failed to enroll student. Please try again.", "error");
+      });
   };
 
   const handleCreateApplicationSubmit = (data: ApplicationCreationPayload) => {
     const createdApplication = createApplication(data);
-    alert(
+    showToast(
       createdApplication.status === "documents_pending"
         ? "Application submitted with pending required documents."
         : "Application created successfully!",
+      "success",
     );
     setApplicationsVersion((current) => current + 1);
     setIsCreateAppOpen(false);
@@ -144,17 +143,17 @@ export default function ApplicationsListContainer() {
       }}
       onTestSubmit={(data) => {
         console.log("Test scheduled:", data);
-        alert("Test scheduled successfully!");
+        showToast("Test scheduled successfully!", "success");
         setIsScheduleTestOpen(false);
       }}
       onInterviewSubmit={(data) => {
         console.log("Interview scheduled:", data);
-        alert("Interview scheduled successfully!");
+        showToast("Interview scheduled successfully!", "success");
         setIsScheduleInterviewOpen(false);
       }}
       onDecisionSubmit={(decision: DecisionType, reason: string, date: string) => {
         console.log("Decision made:", { decision, reason, date });
-        alert(`Decision recorded: ${decision.toUpperCase()}`);
+        showToast(`Decision recorded: ${decision.toUpperCase()}`, "success");
         setIsDecisionOpen(false);
       }}
       onEnrollmentSubmit={handleEnrollmentSubmit}

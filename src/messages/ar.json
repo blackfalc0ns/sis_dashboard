@@ -9,6 +9,388 @@
   "search_placeholder": "البحث في معزز",
   "today": "اليوم",
   "notifications": "الإشعارات",
+  "dashboard_new": {
+    "common": {
+      "back_to_dashboard": "العودة إلى لوحة التحكم"
+    },
+    "dashboard": {
+      "title": "مركز إدارة المدرسة",
+      "academic_year": "العام الدراسي: {value}",
+      "term": "الفصل: {value}",
+      "last_updated": "آخر تحديث: {value}",
+      "reports": "التقارير",
+      "settings": "الإعدادات",
+      "refresh": "تحديث",
+      "version_notes": "ملاحظات الإصدار",
+      "unavailable": "لوحة التحكم غير متاحة",
+      "load_failed": "تعذر تحميل بيانات لوحة التحكم.",
+      "default_error": "تعذر تحميل بيانات لوحة التحكم.",
+      "loading_summary": "جارٍ تحميل ملخص لوحة التحكم",
+      "loading_kpis": "جارٍ تحميل بطاقات المؤشرات",
+      "loading_modules": "جارٍ تحميل بطاقات لوحة التحكم",
+      "kpis_unavailable": "بطاقات المؤشرات غير متاحة",
+      "modules_unavailable": "بطاقات لوحة التحكم غير متاحة",
+      "tabs": {
+        "aria_label": "أقسام لوحة التحكم",
+        "overview": "نظرة عامة",
+        "academics": "الأكاديميات",
+        "admissions": "القبول",
+        "communication": "التواصل",
+        "operations": "التشغيل"
+      },
+      "alerts": {
+        "title": "إجراء مطلوب",
+        "issue_count": "تحتاج إلى انتباه: {count, plural, zero {لا توجد مشكلات} one {مشكلة واحدة} two {مشكلتان} few {# مشكلات} many {# مشكلة} other {# مشكلة}}",
+        "view_all": "عرض كل التنبيهات",
+        "empty_title": "لا توجد تنبيهات نشطة",
+        "empty_description": "ستظهر التنبيهات التشغيلية المحسوبة هنا عند الحاجة إلى إجراء."
+      },
+      "modules": {
+        "students": {
+          "title": "الطلاب",
+          "summary": {
+            "healthy": "إجمالي الطلاب وأولياء الأمور الحالي."
+          },
+          "action": {
+            "default": "عرض الطلاب"
+          },
+          "highlights": {
+            "withdrawn_exists": "توجد تسجيلات منسحبة",
+            "no_withdrawn": "لا توجد تسجيلات منسحبة"
+          }
+        },
+        "admissions": {
+          "title": "القبول",
+          "summary": {
+            "warning": "{openApplications, plural, zero {لا توجد طلبات تحتاج متابعة قبول.} one {طلب واحد يحتاج متابعة قبول.} two {طلبان يحتاجان متابعة قبول.} few {# طلبات تحتاج متابعة قبول.} many {# طلبا يحتاج متابعة قبول.} other {# طلب يحتاج متابعة قبول.}}",
+            "healthy": "لا يوجد عمل قبول بانتظار المتابعة حاليا."
+          },
+          "action": {
+            "default": "عرض القبول"
+          },
+          "highlights": {
+            "open_applications": "طلبات مفتوحة تحتاج مراجعة",
+            "recent_decisions": "تم تسجيل قرارات حديثة"
+          }
+        },
+        "communication": {
+          "title": "التواصل",
+          "summary": {
+            "warning": "{moderationReports, plural, zero {لا توجد بلاغات إشراف تحتاج مراجعة.} one {بلاغ إشراف واحد يحتاج مراجعة.} two {بلاغا إشراف يحتاجان مراجعة.} few {# بلاغات إشراف تحتاج مراجعة.} many {# بلاغ إشراف يحتاج مراجعة.} other {# بلاغ إشراف يحتاج مراجعة.}}",
+            "healthy": "قنوات التواصل تبدو واضحة."
+          },
+          "action": {
+            "default": "عرض التواصل",
+            "review_moderation": "مراجعة الإشراف"
+          },
+          "highlights": {
+            "moderation_reports": "مراجعة بلاغات الإشراف"
+          }
+        },
+        "attendance": {
+          "title": "الحضور",
+          "summary": {
+            "healthy": "جلسات الحضور متاحة لهذا اليوم.",
+            "empty": "لا توجد جلسات حضور اليوم."
+          },
+          "action": {
+            "default": "عرض الحضور"
+          },
+          "highlights": {
+            "active_today": "الحضور نشط اليوم",
+            "none_today": "لا توجد جلسات مجدولة أو مقدمة للفصل الحالي اليوم"
+          }
+        },
+        "behavior": {
+          "title": "السلوك",
+          "summary": {
+            "healthy": "سجلات السلوك الإيجابي والسلبي الأخيرة.",
+            "warning": "سجلات السلوك الإيجابي والسلبي الأخيرة."
+          },
+          "action": {
+            "default": "عرض السلوك"
+          },
+          "highlights": {
+            "positive": "{positiveRecords, plural, zero {لا توجد سجلات إيجابية} one {سجل إيجابي واحد} two {سجلان إيجابيان} few {# سجلات إيجابية} many {# سجلا إيجابيا} other {# سجل إيجابي}}",
+            "negative": "{negativeRecords, plural, zero {لا توجد سجلات سلبية} one {سجل سلبي واحد} two {سجلان سلبيان} few {# سجلات سلبية} many {# سجلا سلبيا} other {# سجل سلبي}}"
+          }
+        },
+        "academics": {
+          "title": "إعداد الأكاديميات",
+          "summary": {
+            "setup": "الهيكل الأكاديمي موجود، لكن الإعداد غير مكتمل.",
+            "healthy": "الإعداد الأكاديمي جاهز."
+          },
+          "action": {
+            "default": "فتح الأكاديميات"
+          },
+          "highlights": {
+            "setup_attention": "الإعداد يحتاج انتباها",
+            "setup_ready": "الإعداد جاهز"
+          }
+        },
+        "grades": {
+          "title": "الدرجات",
+          "summary": {
+            "healthy": "التقييمات نشطة في السياق الحالي.",
+            "empty": "لا توجد تقييمات نشطة بعد."
+          },
+          "action": {
+            "default": "عرض الدرجات"
+          },
+          "highlights": {
+            "tracking_active": "تتبع الدرجات نشط",
+            "create_assessments": "أنشئ أو انشر تقييمات لبدء تتبع تقدم الدرجات"
+          }
+        },
+        "homework": {
+          "title": "الواجبات",
+          "summary": {
+            "healthy": "تم نشر واجبات.",
+            "empty": "لا توجد واجبات منشورة بعد."
+          },
+          "action": {
+            "default": "عرض الواجبات"
+          },
+          "highlights": {
+            "assignments_active": "الواجبات نشطة",
+            "create_assignments": "أنشئ واجبات لبدء جمع التسليمات"
+          }
+        },
+        "reinforcement": {
+          "title": "التعزيز",
+          "summary": {
+            "healthy": "حالة مهام التعزيز التشغيلية."
+          },
+          "action": {
+            "default": "عرض التعزيز"
+          },
+          "highlights": {
+            "active_tasks": "{activeTasks, plural, zero {لا توجد مهام نشطة} one {مهمة نشطة واحدة} two {مهمتان نشطتان} few {# مهام نشطة} many {# مهمة نشطة} other {# مهمة نشطة}}"
+          }
+        },
+        "settings": {
+          "title": "الإعدادات",
+          "summary": {
+            "healthy": "الإعدادات متاحة."
+          },
+          "action": {
+            "default": "فتح الإعدادات"
+          },
+          "highlights": {}
+        }
+      },
+      "module_state": {
+        "healthy": "سليم",
+        "warning": "يحتاج إلى إجراء",
+        "empty": "لا يوجد نشاط",
+        "setup": "يحتاج إلى إعداد"
+      },
+      "setup": {
+        "ready": "جاهز",
+        "not_configured": "غير مهيأ"
+      },
+      "top_kpis": {
+        "activeStudents": {
+          "label": "الطلاب النشطون",
+          "subtitle": "{count, plural, zero {لا توجد تسجيلات نشطة} one {تسجيل نشط واحد} two {تسجيلان نشطان} few {# تسجيلات نشطة} many {# تسجيلا نشطا} other {# تسجيل نشط}}"
+        },
+        "newEnrollments": {
+          "label": "التسجيلات الجديدة",
+          "subtitle": "آخر 30 يوما"
+        },
+        "openApplications": {
+          "label": "طلبات القبول المفتوحة",
+          "subtitle": "{submitted, plural, zero {لا توجد طلبات مقدمة} one {طلب مقدم واحد} two {طلبان مقدمان} few {# طلبات مقدمة} many {# طلبا مقدما} other {# طلب مقدم}}، {accepted, plural, zero {لا توجد طلبات مقبولة} one {طلب مقبول واحد} two {طلبان مقبولان} few {# طلبات مقبولة} many {# طلبا مقبولا} other {# طلب مقبول}}"
+        },
+        "activeConversations": {
+          "label": "المحادثات",
+          "subtitle": "{count, plural, zero {لا توجد بلاغات إشراف} one {بلاغ إشراف واحد} two {بلاغا إشراف} few {# بلاغات إشراف} many {# بلاغ إشراف} other {# بلاغ إشراف}}"
+        }
+      },
+      "metrics": {
+        "total_leads": "إجمالي العملاء المحتملين",
+        "open_applications": "طلبات مفتوحة",
+        "submitted": "مقدمة",
+        "accepted": "مقبولة",
+        "pending_tests": "اختبارات معلقة",
+        "pending_interviews": "مقابلات معلقة",
+        "recent_decisions": "قرارات حديثة",
+        "active_conversations": "محادثات نشطة",
+        "active_announcements": "إعلانات نشطة",
+        "moderation_reports": "بلاغات الإشراف",
+        "recent_messages": "رسائل حديثة",
+        "active_students": "طلاب نشطون",
+        "active_enrollments": "تسجيلات نشطة",
+        "guardians": "أولياء الأمور",
+        "new_enrollments": "تسجيلات جديدة",
+        "withdrawn_enrollments": "تسجيلات منسحبة",
+        "academic_years": "الأعوام الدراسية",
+        "terms": "الفصول",
+        "stages": "المراحل",
+        "grades": "الصفوف",
+        "sections": "الشعب",
+        "classrooms": "الفصول الدراسية",
+        "subjects": "المواد",
+        "rooms": "الغرف",
+        "today_sessions": "جلسات اليوم",
+        "submitted_today": "مقدمة اليوم",
+        "pending_today": "معلقة اليوم",
+        "absent_today": "غياب اليوم",
+        "late_today": "تأخر اليوم",
+        "pending_excuses": "أعذار معلقة",
+        "active_assessments": "تقييمات نشطة",
+        "draft_assessments": "تقييمات مسودة",
+        "published_assessments": "تقييمات منشورة",
+        "approved_assessments": "تقييمات معتمدة",
+        "pending_submissions": "تسليمات معلقة",
+        "pending_answer_reviews": "مراجعات إجابات معلقة",
+        "draft_assignments": "واجبات مسودة",
+        "published_assignments": "واجبات منشورة",
+        "closed_assignments": "واجبات مغلقة",
+        "waiting_review": "بانتظار المراجعة",
+        "reviewed_submissions": "تسليمات تمت مراجعتها",
+        "grade_sync_pending": "مزامنة الدرجات معلقة",
+        "recent_records": "سجلات حديثة",
+        "positive_behavior": "سلوك إيجابي",
+        "negative_behavior": "سلوك سلبي",
+        "pending_review": "مراجعة معلقة",
+        "active_tasks": "مهام نشطة",
+        "pending_reviews": "مراجعات معلقة",
+        "completed_assignments": "تكليفات مكتملة",
+        "rewards_pending": "مكافآت معلقة"
+      },
+      "setup_items": {
+        "academic_structure": {
+          "label": "الهيكل الأكاديمي",
+          "detail": "{first, plural, zero {لا توجد مراحل} one {مرحلة واحدة} two {مرحلتان} few {# مراحل} many {# مرحلة} other {# مرحلة}}، {second, plural, zero {لا توجد صفوف} one {صف واحد} two {صفان} few {# صفوف} many {# صفا} other {# صف}}"
+        },
+        "teacher_allocations": {
+          "label": "توزيعات المعلمين",
+          "detail": "{first, plural, zero {لا توجد توزيعات} one {توزيع واحد} two {توزيعان} few {# توزيعات} many {# توزيعا} other {# توزيع}}"
+        },
+        "curricula": {
+          "label": "المناهج",
+          "detail": "{first, plural, zero {لا توجد مناهج نشطة} one {منهج نشط واحد} two {منهجان نشطان} few {# مناهج نشطة} many {# منهجا نشطا} other {# منهج نشط}}"
+        },
+        "lesson_plans": {
+          "label": "خطط الدروس",
+          "detail": "{first, plural, zero {لا توجد خطط دروس نشطة} one {خطة درس نشطة واحدة} two {خطتا درس نشطتان} few {# خطط دروس نشطة} many {# خطة درس نشطة} other {# خطة درس نشطة}}"
+        },
+        "timetable": {
+          "label": "الجدول",
+          "detail": "{first, plural, zero {لا توجد مدخلات} one {مدخل واحد} two {مدخلان} few {# مدخلات} many {# مدخلا} other {# مدخل}}، {second, plural, zero {لا توجد منشورة} one {واحد منشور} two {اثنان منشوران} few {# منشورة} many {# منشورا} other {# منشور}}"
+        }
+      }
+    },
+    "activity_card": {
+      "title": "الأنشطة الأخيرة",
+      "load_more": "تحميل المزيد",
+      "view_all": "عرض الكل",
+      "empty_title": "لا يوجد نشاط بعد",
+      "empty_description": "ستظهر هنا أحداث التدقيق الناجحة الأخيرة."
+    },
+    "alerts_page": {
+      "title": "تنبيهات لوحة التحكم",
+      "description": "تنبيهات تشغيلية محسوبة من وحدات لوحة التحكم.",
+      "showing": "يتم عرض {definitions, plural, zero {لا توجد تعريفات تنبيه} one {تعريف تنبيه واحد} two {تعريفا تنبيه} few {# تعريفات تنبيه} many {# تعريف تنبيه} other {# تعريف تنبيه}} مع {signals, plural, zero {لا توجد إشارات مشكلة} one {إشارة مشكلة واحدة} two {إشارتي مشكلة} few {# إشارات مشكلة} many {# إشارة مشكلة} other {# إشارة مشكلة}}.",
+      "count": "العدد: {count}",
+      "loading": "جارٍ تحميل تنبيهات لوحة التحكم",
+      "empty_title": "لا توجد تنبيهات تطابق هذه التصفيات",
+      "empty_description": "يتم استبعاد التنبيهات ذات العدد الصفري افتراضيا. فعّلها من التصفيات إذا أردت مراجعة تعريفات التنبيهات غير النشطة.",
+      "unavailable": "تنبيهات لوحة التحكم غير متاحة",
+      "load_failed": "تعذر تحميل تنبيهات لوحة التحكم.",
+      "default_error": "تعذر تحميل تنبيهات لوحة التحكم.",
+      "summary": {
+        "total": "الإجمالي",
+        "critical": "حرجة",
+        "warnings": "تحذيرات",
+        "info": "معلومات"
+      }
+    },
+    "activity_page": {
+      "title": "الأنشطة الأخيرة",
+      "description": "أحداث تدقيق ناجحة من المدرسة النشطة.",
+      "showing": "يتم عرض {count, plural, zero {لا توجد أحداث} one {حدث واحد} two {حدثان} few {# أحداث} many {# حدثا} other {# حدث}}",
+      "load_more": "تحميل المزيد",
+      "loading": "جارٍ تحميل الأنشطة الأخيرة",
+      "empty_title": "لا يوجد نشاط بعد",
+      "empty_description": "ستظهر أحداث التدقيق الناجحة هنا عند تسجيل نشاط.",
+      "unavailable": "الأنشطة الأخيرة غير متاحة",
+      "load_failed": "تعذر تحميل الأنشطة الأخيرة.",
+      "default_error": "تعذر تحميل الأنشطة الأخيرة."
+    },
+    "filters": {
+      "title": "التصفيات",
+      "toggle_alerts": "تبديل تصفيات تنبيهات لوحة التحكم",
+      "toggle_activities": "تبديل تصفيات الأنشطة الأخيرة",
+      "reset": "إعادة ضبط التصفيات",
+      "source": "المصدر",
+      "severity": "الخطورة",
+      "limit": "الحد",
+      "actor_type": "نوع المنفذ",
+      "from": "من",
+      "to": "إلى",
+      "page_size": "حجم الصفحة",
+      "all_sources": "كل المصادر",
+      "all_severities": "كل مستويات الخطورة",
+      "all_actor_types": "كل أنواع المنفذين",
+      "include_zero_count": "تضمين التنبيهات ذات العدد الصفري",
+      "event_type_placeholder": "تصفية حسب نوع الحدث",
+      "event_type_helper": "مثال: attendance.session.submit",
+      "alert_limit": "{count} تنبيه",
+      "page_size_limit": "{count} لكل صفحة"
+    },
+    "sources": {
+      "admissions": "القبول",
+      "students": "الطلاب",
+      "academics": "الأكاديميات",
+      "attendance": "الحضور",
+      "grades": "الدرجات",
+      "homework": "الواجبات",
+      "behavior": "السلوك",
+      "reinforcement": "التعزيز",
+      "communication": "التواصل",
+      "settings": "الإعدادات"
+    },
+    "severity": {
+      "critical": "حرج",
+      "warning": "تحذير",
+      "info": "معلومات"
+    },
+    "actor_types": {
+      "system": "النظام",
+      "admin": "المسؤول",
+      "teacher": "المعلم",
+      "student": "الطالب",
+      "parent": "ولي الأمر",
+      "unknown": "غير معروف"
+    },
+    "export": {
+      "title": "تصدير ملخص لوحة التحكم",
+      "format_label": "صيغة التصدير",
+      "cancel": "إلغاء",
+      "export_data": "تصدير البيانات",
+      "formats": {
+        "excel": {
+          "label": "Excel (CSV)",
+          "description": "الأفضل لتحليل الجداول"
+        },
+        "csv": {
+          "label": "CSV",
+          "description": "صيغة عامة"
+        },
+        "json": {
+          "label": "JSON",
+          "description": "للمطورين"
+        },
+        "pdf": {
+          "label": "PDF",
+          "description": "تقرير جاهز للطباعة"
+        }
+      }
+    }
+  },
   "profile": "الملف الشخصي",
   "admin": "مدير",
   "common": {
@@ -577,6 +959,9 @@
       "accepted": "مقبول",
       "waitlisted": "قائمة الانتظار",
       "rejected": "مرفوض",
+      "pending_review": "قيد المراجعة",
+      "complete": "مكتمل",
+      "missing": "ناقص",
       "scheduled": "مجدول",
       "completed": "مكتمل",
       "cancelled": "ملغي",
@@ -1003,7 +1388,9 @@
         "make_decision": "اتخاذ قرار",
         "enroll_student": "تسجيل الطالب",
         "submit_application": "تقديم الطلب",
-        "enrolled_status": "تم تسجيل الطالب بنجاح"
+        "enrolled_status": "تم تسجيل الطالب بنجاح",
+        "waitlisted_no_transition": "هذا الطلب في قائمة الانتظار ولا توجد إجراءات انتقال متاحة حالياً.",
+        "rejected_no_actions": "تم رفض هذا الطلب ولا توجد إجراءات إضافية."
       }
     },
     "schedule_test": {
@@ -1057,7 +1444,13 @@
       "interviewer": "المقابل",
       "interviewer_placeholder": "أدخل اسم المقابل",
       "interviewer_phone": "هاتف المقابل",
+      "interviewer_email_placeholder": "البريد الإلكتروني للمعلم",
       "interviewer_phone_placeholder": "+971 XX XXX XXXX",
+      "loading_teachers": "جارٍ تحميل المعلمين...",
+      "no_active_teachers": "لا يوجد معلمون نشطون متاحون",
+      "select_interviewer": "اختر المقابل",
+      "teachers_load_failed": "فشل تحميل المعلمين.",
+      "schedule_failed": "فشل جدولة المقابلة. يرجى المحاولة مرة أخرى.",
       "location": "الموقع",
       "location_placeholder": "المكتب الإداري",
       "duration": "المدة (بالدقائق)",
@@ -1065,7 +1458,8 @@
       "notes": "ملاحظات",
       "notes_placeholder": "ملاحظات تحضير المقابلة...",
       "cancel": "إلغاء",
-      "submit": "جدولة المقابلة"
+      "submit": "جدولة المقابلة",
+      "submitting": "جارٍ الجدولة..."
     },
     "decision_modal": {
       "title": "اتخاذ قرار القبول",
@@ -3731,16 +4125,35 @@
       },
       "rooms": {
         "title": "الغرف",
+        "subtitle": "إدارة الغرف والمختبرات والمباني والطوابق والسعة",
         "addRoom": "إضافة غرفة",
         "editRoom": "تعديل الغرفة",
         "deleteRoom": "حذف الغرفة",
+        "deleteTitle": "حذف الغرفة",
+        "deleteDescription": "هل أنت متأكد أنك تريد حذف هذه الغرفة؟",
         "deleteConfirm": "هل أنت متأكد من حذف هذه الغرفة؟",
         "deleteWarning": "قد تكون هذه الغرفة مستخدمة في الجداول.",
-        "name": "الاسم",
+        "name": "اسم الغرفة",
         "type": "النوع",
         "capacity": "السعة",
+        "building": "المبنى",
+        "floor": "الطابق",
         "active": "نشط",
         "inactive": "غير نشط",
+        "status": "الحالة",
+        "actions": "الإجراءات",
+        "search": "بحث",
+        "loadError": "فشل تحميل الغرف",
+        "accessDeniedTitle": "ليس لديك صلاحية الوصول إلى الغرف",
+        "accessDeniedDescription": "اطلب من مسؤول النظام تحديث صلاحيات الأكاديميات إذا كنت تحتاج إلى الوصول.",
+        "allStatuses": "كل الحالات",
+        "allBuildings": "كل المباني",
+        "allFloors": "كل الطوابق",
+        "emptyTitle": "لا توجد غرف بعد",
+        "emptyDescription": "أنشئ غرفاً لاستخدامها في تخطيط الجدول.",
+        "readOnlyTerm": "هذا الفصل الأكاديمي مغلق. بيانات الغرف للقراءة فقط.",
+        "cancel": "إلغاء",
+        "save": "حفظ",
         "types": {
           "CLASSROOM": "فصل دراسي",
           "LAB": "مختبر",
@@ -3749,7 +4162,7 @@
         "validation": {
           "nameArRequired": "الاسم بالعربي مطلوب",
           "nameEnRequired": "الاسم بالإنجليزي مطلوب",
-          "namesMustDiffer": "يجب أن يكون الاسم بالعربي مختلفاً عن الإنجليزي",
+          "namesMustDiffer": "ينبغي أن يختلف الاسمان العربي والإنجليزي",
           "capacityRequired": "السعة مطلوبة",
           "capacityMin": "يجب أن تكون السعة 1 على الأقل"
         },
@@ -6831,22 +7244,32 @@
     },
     "admissions_documents": {
       "title": "مستندات التقديم",
-      "subtitle": "قم باختيار المستندات المطلوبة",
+      "subtitle": "Review the active required documents applicants see in the applicant portal.",
       "cancel_changes": "إلغاء التغييرات",
       "section_title": "القسم",
-      "section_description": "وصف القسم",
+      "section_description": "Active school-level requirements loaded from the applicant portal backend.",
       "create_document": "إنشاء مستند جديد",
-      "empty": "لا توجد مستندات محددة حتى الآن. استخدم زر 'إنشاء مستند جديد' لإضافة مستندات التقديم المطلوبة.",
+      "empty": "No active admissions documents are configured for this school yet.",
       "name_en": "Document Name (EN)",
+      "title_label": "Title",
+      "description_label": "Description",
       "name_ar": "اسم المستند (AR)",
       "document_id": "معرف المستند",
       "required": "مطلوب",
+      "mandatory": "Mandatory",
+      "optional": "Optional",
+      "accepted_file_types": "Accepted file types",
+      "any_supported_file": "Any supported file",
+      "max_files": "Max files",
+      "sort_order": "Sort order",
       "active": "نشط",
       "move_up": "نقل لأعلى",
       "move_down": "نقل لأسفل",
       "delete": "حذف",
+      "read_only_notice": "Document management APIs are not available yet. This page is read-only and shows active requirements from the applicant portal.",
       "messages": {
         "load_failed": "فشل تحميل المستندات.",
+        "missing_school": "A school context is required before admissions documents can be loaded.",
         "saved": "تم حفظ المستندات بنجاح.",
         "validation_blank": "يرجى ملء جميع الحقول المطلوبة.",
         "validation_duplicate": "هناك مستندات مكررة في القائمة."
@@ -7320,8 +7743,17 @@
       "search": "بحث..."
     },
     "validation": {
-      "atLeastOneTitle": "يجب إدخال عنوان واحد على الأقل (إنجليزي أو عربي).",
-      "xpAmountRequired": "يرجى إدخال قيمة نقاط خبرة صالحة أكبر من صفر."
+      "required": "هذا الحقل مطلوب.",
+      "titleRequired": "أدخل عنواناً واحداً على الأقل للمهمة.",
+      "stageRequired": "أضف مرحلة واحدة على الأقل.",
+      "targetRequired": "اختر هدفاً واحداً على الأقل.",
+      "duplicateTarget": "هذا الهدف محدد بالفعل.",
+      "futureDueDateRequired": "اختر تاريخ استحقاق مستقبلياً.",
+      "cancelReasonRequired": "أدخل سبب الإلغاء.",
+      "studentRequired": "اختر طالباً.",
+      "enrollmentRequired": "اختر تسجيلاً.",
+      "xpAmountRequired": "أدخل كمية نقاط صحيحة.",
+      "policyRequired": "اختر أو أنشئ سياسة نقاط فعالة."
     },
     "rewards": "المكافآت",
     "overviewDescription": "تابع حالة مهام التعزيز والمؤشرات الرئيسية وأداء الطلاب من مكان واحد.",
@@ -7446,19 +7878,6 @@
       "xpLedger": "لا توجد قيود نقاط تطابق عوامل التصفية المحددة.",
       "studentProgress": "لا توجد بيانات تقدم تحفيزي لهذا الطالب.",
       "classroomSummary": "لا يوجد ملخص تحفيزي لهذا الفصل."
-    },
-    "validation": {
-      "required": "هذا الحقل مطلوب.",
-      "titleRequired": "أدخل عنواناً واحداً على الأقل للمهمة.",
-      "stageRequired": "أضف مرحلة واحدة على الأقل.",
-      "targetRequired": "اختر هدفاً واحداً على الأقل.",
-      "duplicateTarget": "هذا الهدف محدد بالفعل.",
-      "futureDueDateRequired": "اختر تاريخ استحقاق مستقبلياً.",
-      "cancelReasonRequired": "أدخل سبب الإلغاء.",
-      "studentRequired": "اختر طالباً.",
-      "enrollmentRequired": "اختر تسجيلاً.",
-      "xpAmountRequired": "أدخل كمية نقاط صحيحة.",
-      "policyRequired": "اختر أو أنشئ سياسة نقاط فعالة."
     },
     "kpi": {
       "inProgress": "قيد التنفيذ",

@@ -13,10 +13,14 @@ import {
   validateLoginField,
   validateLoginValues,
 } from "../utils/authValidation";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { isApiError } from "@/lib/api-error";
 import { getValidationFieldErrors } from "@/lib/validation-errors";
+import {
+  localeFromPathname,
+  safeAuthReturnPath,
+} from "@/features/auth/utils/authRedirect";
 
 const INITIAL_VALUES: LoginFormValues = {
   email: "",
@@ -38,10 +42,10 @@ export function LoginForm({ currentYear }: LoginFormProps) {
   const [errors, setErrors] = useState<LoginFormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const validationMessages: ValidationMessages = {
     emailRequired: t("errors.emailRequired"),
@@ -77,7 +81,6 @@ export function LoginForm({ currentYear }: LoginFormProps) {
     }
 
     setSubmitError(null);
-    setSubmitSuccess(null);
   }
 
   function handleFieldBlur(field: "email" | "password") {
@@ -93,7 +96,6 @@ export function LoginForm({ currentYear }: LoginFormProps) {
     const nextErrors = validateLoginValues(values, validationMessages);
     setErrors(nextErrors);
     setSubmitError(null);
-    setSubmitSuccess(null);
 
     if (Object.keys(nextErrors).length > 0) {
       return;
@@ -107,15 +109,18 @@ export function LoginForm({ currentYear }: LoginFormProps) {
         password: values.password,
       });
 
-      const match = pathname.match(/^\/([a-z]{2})/);
-      const currentLocale = match ? match[1] : "en";
+      const currentLocale = localeFromPathname(pathname);
+      const dashboardPath = `/${currentLocale}/dashboard`;
+      const returnPath = safeAuthReturnPath(
+        searchParams.get("next") ?? searchParams.get("redirect"),
+        currentLocale,
+      );
 
       router.push(
         currentUser?.mustChangePassword
           ? `/${currentLocale}/change-password`
-          : `/${currentLocale}/dashboard`,
+          : returnPath ?? dashboardPath,
       );
-      setSubmitSuccess(t("demoSuccess"));
     } catch (error) {
       if (isApiError(error)) {
         if (error.status === 401) {

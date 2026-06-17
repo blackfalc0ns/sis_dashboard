@@ -144,7 +144,7 @@ export default function MessageReportDetailsPage({
   return (
     <div className="space-y-6">
       <Link
-        href={`/${locale}/communication/safety/reports`}
+        href={`/${locale}/communication/moderation`}
         className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-sky-700"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />

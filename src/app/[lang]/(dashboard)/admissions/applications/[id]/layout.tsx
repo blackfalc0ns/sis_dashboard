@@ -22,7 +22,14 @@ import { useSectionTabs } from "@/hooks/useSectionTabs";
 import { buildLocalePath } from "@/lib/routing/localePath";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
-import type { Application, DecisionType } from "@/features/admissions/types/admissions";
+import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useToast } from "@/components/ui/toast/Toast";
+import type {
+  Application,
+  ApplicationStatus,
+  DecisionType,
+} from "@/features/admissions/types/admissions";
 import { fetchApplicationById, submitApplication } from "@/features/admissions/applications/services/applicationsApiService";
 import { createPlacementTest } from "@/features/admissions/tests/services/testsApiService";
 import { createInterview } from "@/features/admissions/interviews/services/interviewsApiService";
@@ -54,7 +61,15 @@ export default function ApplicationProfileLayout({
   const router = useRouter();
   const params = useParams();
   const lang = (params.lang as string) || "en";
+  const { showToast } = useToast();
   const { isReadOnly } = useAdmissionsYearTermContext();
+  const { hasPermission } = usePermissions();
+  const canViewApplications = hasPermission("admissions.applications.view");
+  const canViewDocuments = hasPermission("admissions.documents.view");
+  const canManageApplications = hasPermission("admissions.applications.manage");
+  const visibleTabs = canViewDocuments
+    ? tabs
+    : tabs.filter((tab) => tab.key !== "documents");
 
   const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false);
   const [isScheduleInterviewOpen, setIsScheduleInterviewOpen] = useState(false);
@@ -65,7 +80,7 @@ export default function ApplicationProfileLayout({
   const { activeTab, entityId: applicationId, handleTabClick } = useSectionTabs({
     basePath: ["admissions", "applications"],
     idParam: "id",
-    tabs,
+    tabs: visibleTabs,
     defaultTab: "details",
   });
 
@@ -73,6 +88,7 @@ export default function ApplicationProfileLayout({
   const [isLoadingApplication, setIsLoadingApplication] = useState(true);
 
   useEffect(() => {
+    if (!canViewApplications) return;
     if (!applicationId) return;
     let cancelled = false;
     void fetchApplicationById(applicationId)
@@ -90,12 +106,20 @@ export default function ApplicationProfileLayout({
     return () => {
       cancelled = true;
     };
-  }, [applicationId]);
+  }, [applicationId, canViewApplications]);
 
   const refreshApplication = async () => {
     if (!applicationId) return;
     setApplication(await fetchApplicationById(applicationId));
   };
+
+  if (!canViewApplications) {
+    return (
+      <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
+        <AdmissionsAccessDenied />
+      </div>
+    );
+  }
 
   if (isLoadingApplication) {
     return (
@@ -122,6 +146,32 @@ export default function ApplicationProfileLayout({
       </div>
     );
   }
+
+  const finalDecisionStatuses: ApplicationStatus[] = [
+    "accepted",
+    "waitlisted",
+    "rejected",
+  ];
+  const canScheduleAdmissionsSteps: ApplicationStatus[] = [
+    "submitted",
+    "under_review",
+    "documents_pending",
+  ];
+  const canMakeDecisionStatuses: ApplicationStatus[] = [
+    "submitted",
+    "under_review",
+  ];
+  const isFinalDecisionStatus = finalDecisionStatuses.includes(application.status);
+  const canScheduleAdmissionsStep = canScheduleAdmissionsSteps.includes(
+    application.status,
+  );
+  const canMakeDecision = canMakeDecisionStatuses.includes(application.status);
+  const finalDecisionMessage =
+    application.status === "waitlisted"
+      ? t("actions.waitlisted_no_transition")
+      : application.status === "rejected"
+        ? t("actions.rejected_no_actions")
+        : null;
 
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
@@ -152,7 +202,7 @@ export default function ApplicationProfileLayout({
           {/* Tabs */}
           <div className="border-b border-gray-200 overflow-x-auto">
             <div className="flex min-w-max px-6">
-              {tabs.map((tab) => {
+              {visibleTabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.key;
                 return (
@@ -192,14 +242,14 @@ export default function ApplicationProfileLayout({
             <div className="flex items-center gap-3 flex-wrap">
               {application.status === "documents_pending" && (
                 <button
-                  disabled={isReadOnly}
+                  disabled={isReadOnly || !canManageApplications}
                   onClick={async () => {
                     try {
                       await submitApplication(application.id);
                       await refreshApplication();
                     } catch (err) {
                       console.error("Failed to submit application:", err);
-                      alert("Failed to submit application.");
+                      showToast("Failed to submit application.", "error");
                     }
                   }}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
@@ -207,27 +257,33 @@ export default function ApplicationProfileLayout({
                   {t("actions.submit_application")}
                 </button>
               )}
-              <button
-                disabled={isReadOnly}
-                onClick={() => setIsScheduleTestOpen(true)}
-                className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-              >
-                {t("actions.schedule_test")}
-              </button>
-              <button
-                disabled={isReadOnly}
-                onClick={() => setIsScheduleInterviewOpen(true)}
-                className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-              >
-                {t("actions.schedule_interview")}
-              </button>
-              <button
-                disabled={isReadOnly}
-                onClick={() => setIsDecisionOpen(true)}
-                className="px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                {t("actions.make_decision")}
-              </button>
+              {canScheduleAdmissionsStep && (
+                <>
+                  <button
+                    disabled={isReadOnly}
+                    onClick={() => setIsScheduleTestOpen(true)}
+                    className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    {t("actions.schedule_test")}
+                  </button>
+                  <button
+                    disabled={isReadOnly}
+                    onClick={() => setIsScheduleInterviewOpen(true)}
+                    className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    {t("actions.schedule_interview")}
+                  </button>
+                </>
+              )}
+              {canMakeDecision && (
+                <button
+                  disabled={isReadOnly}
+                  onClick={() => setIsDecisionOpen(true)}
+                  className="px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  {t("actions.make_decision")}
+                </button>
+              )}
               {application.status === "accepted" && (
                 <button
                   disabled={isReadOnly}
@@ -236,6 +292,11 @@ export default function ApplicationProfileLayout({
                 >
                   {t("actions.enroll_student")}
                 </button>
+              )}
+              {isFinalDecisionStatus && finalDecisionMessage && (
+                <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700">
+                  {finalDecisionMessage}
+                </p>
               )}
             </div>
           )}
@@ -291,9 +352,10 @@ export default function ApplicationProfileLayout({
             await refreshApplication();
             setIsDecisionOpen(false);
           } catch (error) {
-            alert(
+            showToast(
               getDecisionFriendlyErrorMessage(error) ||
                 "Failed to create decision. Please try again.",
+              "error",
             );
           }
         }}
@@ -316,14 +378,15 @@ export default function ApplicationProfileLayout({
             });
 
             setIsEnrolled(true);
-            alert("Student enrolled successfully!");
+            showToast("Student enrolled successfully!", "success");
             setIsEnrollmentOpen(false);
             await refreshApplication();
           } catch (error) {
             console.error("Failed to enroll:", error);
-            alert(
+            showToast(
               getEnrollmentFriendlyErrorMessage(error) ||
                 "Failed to enroll student. Please try again.",
+              "error",
             );
           }
         }}

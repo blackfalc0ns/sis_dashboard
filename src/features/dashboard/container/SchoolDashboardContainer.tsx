@@ -1,67 +1,220 @@
-// Container component for School Dashboard
-// Handles data fetching, state management, and business logic
-
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import MainLoader from "@/components/ui/loaders/MainLoader";
-import { mockStudents } from "@/data/mockStudents";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
-import { getReinforcementSummaryCard } from "@/features/reinforcement/services/reinforcementService";
 import {
-  buildDashboardSnapshot,
-} from "@/features/dashboard/utils/dashboardStatsCalculator";
+  DASHBOARD_ACTIVITY_PREVIEW_LIMIT,
+  DASHBOARD_ALERT_PREVIEW_LIMIT,
+} from "@/features/dashboard/constants/dashboardPreviewLimits";
+import {
+  mapDashboardActivityFeedToViewModel,
+  mapDashboardAlertsToViewModel,
+  mapDashboardSummaryToViewModel,
+} from "@/features/dashboard/mappers/dashboardViewMapper";
+import type {
+  DashboardActivityFeedViewModel,
+  DashboardAlertsViewModel,
+  DashboardSummaryViewModel,
+} from "@/features/dashboard/mappers/dashboardViewMapper";
+import {
+  fetchDashboardActivityFeed,
+  fetchDashboardAlerts,
+  fetchDashboardSummary,
+} from "@/features/dashboard/services/dashboardApiService";
 import SchoolDashboardView from "../views/SchoolDashboardView";
+import type { DashboardSectionState } from "../views/SchoolDashboardView";
+
+type DashboardLoadState = {
+  summary: DashboardSectionState<DashboardSummaryViewModel>;
+  alerts: DashboardSectionState<DashboardAlertsViewModel>;
+  activityFeed: DashboardSectionState<DashboardActivityFeedViewModel>;
+  isRefreshing: boolean;
+};
+
+const initialDashboardLoadState: DashboardLoadState = {
+  summary: { status: "loading" },
+  alerts: { status: "loading" },
+  activityFeed: { status: "loading" },
+  isRefreshing: false,
+};
 
 export default function SchoolDashboardContainer() {
-  const { 
-    academicYearId,
-    termId,
-    isInitializing,
-    selectedAcademicYear,
-    selectedTerm,
-  } = useAcademicYearTermLayoutContext();
-  const [reinforcementSummary, setReinforcementSummary] = useState<{
-    inProgress: number;
-    notCompleted: number;
-    completionRate: number;
-  } | null>(null);
+  const { isInitializing } = useAcademicYearTermLayoutContext();
+  const t = useTranslations("dashboard_new");
+  const [dashboardLoadState, setDashboardLoadState] =
+    useState<DashboardLoadState>(initialDashboardLoadState);
+  const [refreshSequence, setRefreshSequence] = useState(0);
 
-  const dashboardSnapshot = useMemo(
-    () =>
-      buildDashboardSnapshot({
-        students: mockStudents,
-        academicYear: selectedAcademicYear,
-        term: selectedTerm,
-      }),
-    [selectedAcademicYear, selectedTerm]
-  );
+  const refreshDashboard = useCallback(() => {
+    setDashboardLoadState((currentState) => {
+      return {
+        summary: { status: "loading" },
+        alerts: { status: "loading" },
+        activityFeed: { status: "loading" },
+        isRefreshing: hasLoadedDashboardSection(currentState),
+      };
+    });
+    setRefreshSequence((currentSequence) => currentSequence + 1);
+  }, []);
 
   useEffect(() => {
-    let isCancelled = false;
+    if (isInitializing) {
+      return;
+    }
 
-    const loadReinforcementSummary = async () => {
-      const summary = await getReinforcementSummaryCard();
-      if (!isCancelled) {
-        setReinforcementSummary(summary);
+    let shouldIgnoreResponse = false;
+    let pendingDashboardRequests = 3;
+
+    const markDashboardRequestSettled = () => {
+      pendingDashboardRequests -= 1;
+
+      if (pendingDashboardRequests === 0) {
+        setDashboardLoadState((currentState) => ({
+          ...currentState,
+          isRefreshing: false,
+        }));
       }
     };
 
-    loadReinforcementSummary();
+    fetchDashboardSummary()
+      .then((summaryResponse) => {
+        if (shouldIgnoreResponse) {
+          return;
+        }
+
+        setDashboardLoadState((currentState) => ({
+          ...currentState,
+          summary: {
+            status: "success",
+            data: mapDashboardSummaryToViewModel(summaryResponse),
+          },
+        }));
+      })
+      .catch((summaryError: unknown) => {
+        if (shouldIgnoreResponse) {
+          return;
+        }
+
+        setDashboardLoadState((currentState) => ({
+          ...currentState,
+          summary: {
+            status: "error",
+            message: dashboardErrorMessage(summaryError, t),
+          },
+        }));
+      })
+      .finally(() => {
+        if (shouldIgnoreResponse) {
+          return;
+        }
+
+        markDashboardRequestSettled();
+      });
+
+    fetchDashboardAlerts({ limit: DASHBOARD_ALERT_PREVIEW_LIMIT })
+      .then((alertsResponse) => {
+        if (shouldIgnoreResponse) {
+          return;
+        }
+
+        setDashboardLoadState((currentState) => ({
+          ...currentState,
+          alerts: {
+            status: "success",
+            data: mapDashboardAlertsToViewModel(alertsResponse),
+          },
+        }));
+      })
+      .catch((alertsError: unknown) => {
+        if (shouldIgnoreResponse) {
+          return;
+        }
+
+        setDashboardLoadState((currentState) => ({
+          ...currentState,
+          alerts: {
+            status: "error",
+            message: dashboardErrorMessage(alertsError, t),
+          },
+        }));
+      })
+      .finally(() => {
+        if (shouldIgnoreResponse) {
+          return;
+        }
+
+        markDashboardRequestSettled();
+      });
+
+    fetchDashboardActivityFeed({ limit: DASHBOARD_ACTIVITY_PREVIEW_LIMIT })
+      .then((activityFeedResponse) => {
+        if (shouldIgnoreResponse) {
+          return;
+        }
+
+        setDashboardLoadState((currentState) => ({
+          ...currentState,
+          activityFeed: {
+            status: "success",
+            data: mapDashboardActivityFeedToViewModel(activityFeedResponse),
+          },
+        }));
+      })
+      .catch((activityFeedError: unknown) => {
+        if (shouldIgnoreResponse) {
+          return;
+        }
+
+        setDashboardLoadState((currentState) => ({
+          ...currentState,
+          activityFeed: {
+            status: "error",
+            message: dashboardErrorMessage(activityFeedError, t),
+          },
+        }));
+      })
+      .finally(() => {
+        if (shouldIgnoreResponse) {
+          return;
+        }
+
+        markDashboardRequestSettled();
+      });
 
     return () => {
-      isCancelled = true;
+      shouldIgnoreResponse = true;
     };
-  }, [academicYearId, termId]);
-
-  if (isInitializing || !selectedAcademicYear || !selectedTerm) {
-    return <MainLoader />;
-  }
+  }, [isInitializing, refreshSequence, t]);
 
   return (
     <SchoolDashboardView
-      dashboardSnapshot={dashboardSnapshot}
-      reinforcementSummary={reinforcementSummary}
+      activityFeedState={dashboardLoadState.activityFeed}
+      alertsState={dashboardLoadState.alerts}
+      isRefreshing={dashboardLoadState.isRefreshing}
+      onRefresh={refreshDashboard}
+      summaryState={
+        isInitializing ? { status: "loading" } : dashboardLoadState.summary
+      }
     />
   );
+}
+
+function hasLoadedDashboardSection(dashboardLoadState: DashboardLoadState) {
+  return (
+    dashboardLoadState.summary.status === "success" ||
+    dashboardLoadState.alerts.status === "success" ||
+    dashboardLoadState.activityFeed.status === "success"
+  );
+}
+
+function dashboardErrorMessage(
+  dashboardError: unknown,
+  t: ReturnType<typeof useTranslations>,
+) {
+  if (dashboardError instanceof Error && dashboardError.message) {
+    return dashboardError.message;
+  }
+
+  return t("dashboard.default_error");
 }

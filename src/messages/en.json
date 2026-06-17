@@ -9,6 +9,388 @@
   "search_placeholder": "Search In Moazzez",
   "today": "Today",
   "notifications": "Notifications",
+  "dashboard_new": {
+    "common": {
+      "back_to_dashboard": "Back to dashboard"
+    },
+    "dashboard": {
+      "title": "School command center",
+      "academic_year": "Academic Year: {value}",
+      "term": "Term: {value}",
+      "last_updated": "Last updated: {value}",
+      "reports": "Reports",
+      "settings": "Settings",
+      "refresh": "Refresh",
+      "version_notes": "Version notes",
+      "unavailable": "Dashboard unavailable",
+      "load_failed": "We could not load the dashboard data.",
+      "default_error": "Dashboard data could not be loaded.",
+      "loading_summary": "Loading dashboard summary",
+      "loading_kpis": "Loading KPI cards",
+      "loading_modules": "Loading dashboard cards",
+      "kpis_unavailable": "KPI cards unavailable",
+      "modules_unavailable": "Dashboard cards unavailable",
+      "tabs": {
+        "aria_label": "Dashboard sections",
+        "overview": "Overview",
+        "academics": "Academics",
+        "admissions": "Admissions",
+        "communication": "Communication",
+        "operations": "Operations"
+      },
+      "alerts": {
+        "title": "Action Required",
+        "issue_count": "Needs attention: {count, plural, one {# issue} other {# issues}}",
+        "view_all": "View all alerts",
+        "empty_title": "No active dashboard alerts",
+        "empty_description": "Computed operational alerts will appear here when action is needed."
+      },
+      "modules": {
+        "students": {
+          "title": "Students",
+          "summary": {
+            "healthy": "Current student and guardian population."
+          },
+          "action": {
+            "default": "View students"
+          },
+          "highlights": {
+            "withdrawn_exists": "Withdrawn enrollments exist",
+            "no_withdrawn": "No withdrawn enrollments"
+          }
+        },
+        "admissions": {
+          "title": "Admissions",
+          "summary": {
+            "warning": "{openApplications, plural, one {# application needs admissions follow-up.} other {# applications need admissions follow-up.}}",
+            "healthy": "No admissions work is currently waiting."
+          },
+          "action": {
+            "default": "View admissions"
+          },
+          "highlights": {
+            "open_applications": "Open applications need review",
+            "recent_decisions": "Recent decisions recorded"
+          }
+        },
+        "communication": {
+          "title": "Communication",
+          "summary": {
+            "warning": "{moderationReports, plural, one {# moderation report needs review.} other {# moderation reports need review.}}",
+            "healthy": "Communication channels look clear."
+          },
+          "action": {
+            "default": "View communication",
+            "review_moderation": "Review moderation"
+          },
+          "highlights": {
+            "moderation_reports": "Review moderation reports"
+          }
+        },
+        "attendance": {
+          "title": "Attendance",
+          "summary": {
+            "healthy": "Attendance sessions are available for today.",
+            "empty": "No attendance sessions today."
+          },
+          "action": {
+            "default": "View attendance"
+          },
+          "highlights": {
+            "active_today": "Attendance is active today",
+            "none_today": "No scheduled or submitted sessions for the current term today"
+          }
+        },
+        "behavior": {
+          "title": "Behavior",
+          "summary": {
+            "healthy": "Recent positive and negative behavior records.",
+            "warning": "Recent positive and negative behavior records."
+          },
+          "action": {
+            "default": "View behavior"
+          },
+          "highlights": {
+            "positive": "{positiveRecords, plural, one {# positive} other {# positive}}",
+            "negative": "{negativeRecords, plural, one {# negative} other {# negative}}"
+          }
+        },
+        "academics": {
+          "title": "Academics setup",
+          "summary": {
+            "setup": "Academic structure exists, but setup is not complete.",
+            "healthy": "Academic setup is ready."
+          },
+          "action": {
+            "default": "Open academics"
+          },
+          "highlights": {
+            "setup_attention": "Setup needs attention",
+            "setup_ready": "Setup ready"
+          }
+        },
+        "grades": {
+          "title": "Grades",
+          "summary": {
+            "healthy": "Assessments are active in the current context.",
+            "empty": "No active assessments yet."
+          },
+          "action": {
+            "default": "View grades"
+          },
+          "highlights": {
+            "tracking_active": "Grade tracking is active",
+            "create_assessments": "Create or publish assessments to start tracking grade progress"
+          }
+        },
+        "homework": {
+          "title": "Homework",
+          "summary": {
+            "healthy": "Homework assignments are published.",
+            "empty": "No published assignments yet."
+          },
+          "action": {
+            "default": "View homework"
+          },
+          "highlights": {
+            "assignments_active": "Assignments are active",
+            "create_assignments": "Create assignments to begin collecting submissions"
+          }
+        },
+        "reinforcement": {
+          "title": "Reinforcement",
+          "summary": {
+            "healthy": "Operational reinforcement task status."
+          },
+          "action": {
+            "default": "View reinforcement"
+          },
+          "highlights": {
+            "active_tasks": "{activeTasks, plural, one {# active task} other {# active tasks}}"
+          }
+        },
+        "settings": {
+          "title": "Settings",
+          "summary": {
+            "healthy": "Settings are available."
+          },
+          "action": {
+            "default": "Open settings"
+          },
+          "highlights": {}
+        }
+      },
+      "module_state": {
+        "healthy": "Healthy",
+        "warning": "Needs action",
+        "empty": "No activity",
+        "setup": "Needs setup"
+      },
+      "setup": {
+        "ready": "Ready",
+        "not_configured": "Not configured"
+      },
+      "top_kpis": {
+        "activeStudents": {
+          "label": "Active Students",
+          "subtitle": "{count, plural, one {# active enrollment} other {# active enrollments}}"
+        },
+        "newEnrollments": {
+          "label": "New Enrollments",
+          "subtitle": "Last 30 days"
+        },
+        "openApplications": {
+          "label": "Open Applications",
+          "subtitle": "{submitted, plural, one {# submitted} other {# submitted}}, {accepted, plural, one {# accepted} other {# accepted}}"
+        },
+        "activeConversations": {
+          "label": "Conversations",
+          "subtitle": "{count, plural, one {# moderation report} other {# moderation reports}}"
+        }
+      },
+      "metrics": {
+        "total_leads": "Total leads",
+        "open_applications": "Open applications",
+        "submitted": "Submitted",
+        "accepted": "Accepted",
+        "pending_tests": "Pending tests",
+        "pending_interviews": "Pending interviews",
+        "recent_decisions": "Recent decisions",
+        "active_conversations": "Active conversations",
+        "active_announcements": "Active announcements",
+        "moderation_reports": "Moderation reports",
+        "recent_messages": "Recent messages",
+        "active_students": "Active students",
+        "active_enrollments": "Active enrollments",
+        "guardians": "Guardians",
+        "new_enrollments": "New enrollments",
+        "withdrawn_enrollments": "Withdrawn enrollments",
+        "academic_years": "Academic years",
+        "terms": "Terms",
+        "stages": "Stages",
+        "grades": "Grades",
+        "sections": "Sections",
+        "classrooms": "Classrooms",
+        "subjects": "Subjects",
+        "rooms": "Rooms",
+        "today_sessions": "Today sessions",
+        "submitted_today": "Submitted today",
+        "pending_today": "Pending today",
+        "absent_today": "Absent today",
+        "late_today": "Late today",
+        "pending_excuses": "Pending excuses",
+        "active_assessments": "Active assessments",
+        "draft_assessments": "Draft assessments",
+        "published_assessments": "Published assessments",
+        "approved_assessments": "Approved assessments",
+        "pending_submissions": "Pending submissions",
+        "pending_answer_reviews": "Pending answer reviews",
+        "draft_assignments": "Draft assignments",
+        "published_assignments": "Published assignments",
+        "closed_assignments": "Closed assignments",
+        "waiting_review": "Waiting review",
+        "reviewed_submissions": "Reviewed submissions",
+        "grade_sync_pending": "Grade sync pending",
+        "recent_records": "Recent records",
+        "positive_behavior": "Positive behavior",
+        "negative_behavior": "Negative behavior",
+        "pending_review": "Pending review",
+        "active_tasks": "Active tasks",
+        "pending_reviews": "Pending reviews",
+        "completed_assignments": "Completed assignments",
+        "rewards_pending": "Rewards pending"
+      },
+      "setup_items": {
+        "academic_structure": {
+          "label": "Academic structure",
+          "detail": "{first, plural, one {# stage} other {# stages}}, {second, plural, one {# grade} other {# grades}}"
+        },
+        "teacher_allocations": {
+          "label": "Teacher allocations",
+          "detail": "{first, plural, one {# allocation} other {# allocations}}"
+        },
+        "curricula": {
+          "label": "Curricula",
+          "detail": "{first, plural, one {# active curriculum} other {# active curricula}}"
+        },
+        "lesson_plans": {
+          "label": "Lesson plans",
+          "detail": "{first, plural, one {# active lesson plan} other {# active lesson plans}}"
+        },
+        "timetable": {
+          "label": "Timetable",
+          "detail": "{first, plural, one {# entry} other {# entries}}, {second, plural, one {# published} other {# published}}"
+        }
+      }
+    },
+    "activity_card": {
+      "title": "Recent activities",
+      "load_more": "Load more",
+      "view_all": "View all",
+      "empty_title": "No activity yet",
+      "empty_description": "Recent successful audit events will appear here."
+    },
+    "alerts_page": {
+      "title": "Dashboard alerts",
+      "description": "Computed operational alerts from dashboard source modules.",
+      "showing": "Showing {definitions, plural, one {# alert definition} other {# alert definitions}} with {signals, plural, one {# issue signal} other {# issue signals}}.",
+      "count": "Count: {count}",
+      "loading": "Loading dashboard alerts",
+      "empty_title": "No alerts match these filters",
+      "empty_description": "Zero-count alerts are excluded by default. Enable them in filters if you need to inspect inactive alert definitions.",
+      "unavailable": "Dashboard alerts unavailable",
+      "load_failed": "We could not load dashboard alerts.",
+      "default_error": "Dashboard alerts could not be loaded.",
+      "summary": {
+        "total": "Total",
+        "critical": "Critical",
+        "warnings": "Warnings",
+        "info": "Info"
+      }
+    },
+    "activity_page": {
+      "title": "Recent activities",
+      "description": "Successful audit events from the active school.",
+      "showing": "Showing {count, plural, one {# event} other {# events}}",
+      "load_more": "Load more",
+      "loading": "Loading recent activities",
+      "empty_title": "No activity yet",
+      "empty_description": "Successful audit events will appear here when activity is recorded.",
+      "unavailable": "Recent activities unavailable",
+      "load_failed": "We could not load recent activities.",
+      "default_error": "Recent activities could not be loaded."
+    },
+    "filters": {
+      "title": "Filters",
+      "toggle_alerts": "Toggle dashboard alert filters",
+      "toggle_activities": "Toggle recent activity filters",
+      "reset": "Reset filters",
+      "source": "Source",
+      "severity": "Severity",
+      "limit": "Limit",
+      "actor_type": "Actor type",
+      "from": "From",
+      "to": "To",
+      "page_size": "Page size",
+      "all_sources": "All sources",
+      "all_severities": "All severities",
+      "all_actor_types": "All actor types",
+      "include_zero_count": "Include zero-count alerts",
+      "event_type_placeholder": "Filter by event type",
+      "event_type_helper": "Example: attendance.session.submit",
+      "alert_limit": "{count} alerts",
+      "page_size_limit": "{count} per page"
+    },
+    "sources": {
+      "admissions": "Admissions",
+      "students": "Students",
+      "academics": "Academics",
+      "attendance": "Attendance",
+      "grades": "Grades",
+      "homework": "Homework",
+      "behavior": "Behavior",
+      "reinforcement": "Reinforcement",
+      "communication": "Communication",
+      "settings": "Settings"
+    },
+    "severity": {
+      "critical": "Critical",
+      "warning": "Warning",
+      "info": "Info"
+    },
+    "actor_types": {
+      "system": "System",
+      "admin": "Admin",
+      "teacher": "Teacher",
+      "student": "Student",
+      "parent": "Parent",
+      "unknown": "Unknown"
+    },
+    "export": {
+      "title": "Export Dashboard Summary",
+      "format_label": "Export Format",
+      "cancel": "Cancel",
+      "export_data": "Export Data",
+      "formats": {
+        "excel": {
+          "label": "Excel (CSV)",
+          "description": "Best for spreadsheet analysis"
+        },
+        "csv": {
+          "label": "CSV",
+          "description": "Universal format"
+        },
+        "json": {
+          "label": "JSON",
+          "description": "For developers"
+        },
+        "pdf": {
+          "label": "PDF",
+          "description": "Print-ready report"
+        }
+      }
+    }
+  },
   "profile": "Profile",
   "admin": "Admin",
   "common": {
@@ -537,7 +919,7 @@
       "applications_period": "Applications ({days} days)",
       "today_week_stats": "Today: {today} | Week: {week}",
       "in_selected_period": "In selected period",
-      "pending_review": "Pending Review",
+      "pending_review": "Pending review",
       "awaiting_action": "Awaiting action",
       "missing_documents": "Missing Documents",
       "applications_incomplete": "Applications incomplete",
@@ -573,6 +955,9 @@
       "accepted": "Accepted",
       "waitlisted": "Waitlisted",
       "rejected": "Rejected",
+      "pending_review": "Pending review",
+      "complete": "Complete",
+      "missing": "Missing",
       "scheduled": "Scheduled",
       "completed": "Completed",
       "cancelled": "Cancelled",
@@ -1000,7 +1385,9 @@
         "make_decision": "Make Decision",
         "enroll_student": "Enroll Student",
         "submit_application": "Submit Application",
-        "enrolled_status": "Student Enrolled Successfully"
+        "enrolled_status": "Student Enrolled Successfully",
+        "waitlisted_no_transition": "This application is waitlisted. No transition action is available yet.",
+        "rejected_no_actions": "This application has been rejected. No further actions are available."
       }
     },
     "schedule_test": {
@@ -1054,7 +1441,13 @@
       "interviewer": "Interviewer",
       "interviewer_placeholder": "Enter interviewer name",
       "interviewer_phone": "Interviewer Phone",
+      "interviewer_email_placeholder": "Teacher email",
       "interviewer_phone_placeholder": "+971 XX XXX XXXX",
+      "loading_teachers": "Loading teachers...",
+      "no_active_teachers": "No active teachers available",
+      "select_interviewer": "Select interviewer",
+      "teachers_load_failed": "Failed to load teachers.",
+      "schedule_failed": "Failed to schedule interview. Please try again.",
       "location": "Location",
       "location_placeholder": "Admin Office",
       "duration": "Duration (minutes)",
@@ -1062,7 +1455,8 @@
       "notes": "Notes",
       "notes_placeholder": "Interview preparation notes...",
       "cancel": "Cancel",
-      "submit": "Schedule Interview"
+      "submit": "Schedule Interview",
+      "submitting": "Scheduling..."
     },
     "decision_modal": {
       "title": "Make Admission Decision",
@@ -3872,16 +4266,35 @@
       },
       "rooms": {
         "title": "Rooms",
-        "addRoom": "Add Room",
-        "editRoom": "Edit Room",
-        "deleteRoom": "Delete Room",
+        "subtitle": "Manage rooms, labs, buildings, floors, and capacity",
+        "addRoom": "Add room",
+        "editRoom": "Edit room",
+        "deleteRoom": "Delete room",
+        "deleteTitle": "Delete room",
+        "deleteDescription": "Are you sure you want to delete this room?",
         "deleteConfirm": "Are you sure you want to delete this room?",
         "deleteWarning": "This room may be used in timetables.",
-        "name": "Name",
+        "name": "Room name",
         "type": "Type",
         "capacity": "Capacity",
+        "building": "Building",
+        "floor": "Floor",
         "active": "Active",
         "inactive": "Inactive",
+        "status": "Status",
+        "actions": "Actions",
+        "search": "Search",
+        "loadError": "Failed to load rooms",
+        "accessDeniedTitle": "You do not have access to rooms",
+        "accessDeniedDescription": "Ask a system administrator to update your academics permissions if you need access.",
+        "allStatuses": "All statuses",
+        "allBuildings": "All buildings",
+        "allFloors": "All floors",
+        "emptyTitle": "No rooms yet",
+        "emptyDescription": "Create rooms to use in timetable planning.",
+        "readOnlyTerm": "This academic term is closed. Room data is read-only.",
+        "cancel": "Cancel",
+        "save": "Save",
         "types": {
           "CLASSROOM": "Classroom",
           "LAB": "Laboratory",
@@ -3890,7 +4303,7 @@
         "validation": {
           "nameArRequired": "Arabic name is required",
           "nameEnRequired": "English name is required",
-          "namesMustDiffer": "Arabic and English names must be different",
+          "namesMustDiffer": "Arabic and English names should be different",
           "capacityRequired": "Capacity is required",
           "capacityMin": "Capacity must be at least 1"
         },
@@ -6829,22 +7242,32 @@
     },
     "admissions_documents": {
       "title": "Admissions Documents",
-      "subtitle": "Choose which application documents the school asks families to provide during admissions.",
+      "subtitle": "Review the active required documents applicants see in the applicant portal.",
       "cancel_changes": "Cancel changes",
       "section_title": "Required document list",
-      "section_description": "Manage the school-wide admissions document requirements used by the application form.",
+      "section_description": "Active school-level requirements loaded from the applicant portal backend.",
       "create_document": "Add document",
-      "empty": "No admissions documents are configured yet.",
+      "empty": "No active admissions documents are configured for this school yet.",
       "name_en": "Name (EN)",
       "name_ar": "Name (AR)",
+      "title_label": "Title",
+      "description_label": "Description",
       "document_id": "Document ID",
       "required": "Required",
+      "mandatory": "Mandatory",
+      "optional": "Optional",
+      "accepted_file_types": "Accepted file types",
+      "any_supported_file": "Any supported file",
+      "max_files": "Max files",
+      "sort_order": "Sort order",
       "active": "Active",
       "move_up": "Move up",
       "move_down": "Move down",
       "delete": "Delete document",
+      "read_only_notice": "Document management APIs are not available yet. This page is read-only and shows active requirements from the applicant portal.",
       "messages": {
         "load_failed": "Failed to load admissions documents settings.",
+        "missing_school": "A school context is required before admissions documents can be loaded.",
         "saved": "Admissions document requirements saved successfully.",
         "validation_blank": "Each document needs both Arabic and English names before saving.",
         "validation_duplicate": "Active document names must be unique in both Arabic and English."
@@ -7318,8 +7741,17 @@
       "search": "Search..."
     },
     "validation": {
-      "atLeastOneTitle": "At least one title (English or Arabic) is required.",
-      "xpAmountRequired": "Please enter a valid XP amount greater than zero."
+      "required": "This field is required.",
+      "titleRequired": "Enter at least one task title.",
+      "stageRequired": "Add at least one stage.",
+      "targetRequired": "Select at least one target.",
+      "duplicateTarget": "This target is already selected.",
+      "futureDueDateRequired": "Choose a future due date.",
+      "cancelReasonRequired": "Enter a cancellation reason.",
+      "studentRequired": "Select a student.",
+      "enrollmentRequired": "Select an enrollment.",
+      "xpAmountRequired": "Enter a valid XP amount.",
+      "policyRequired": "Select or create an effective XP policy."
     },
     "rewards": "Rewards",
     "overviewDescription": "Track task activity, completion patterns, reward issuance, and top-performing classes from one reinforcement workspace.",
@@ -7444,19 +7876,6 @@
       "xpLedger": "No XP ledger entries matched the selected filters.",
       "studentProgress": "No reinforcement progress is available for this student.",
       "classroomSummary": "No reinforcement summary is available for this classroom."
-    },
-    "validation": {
-      "required": "This field is required.",
-      "titleRequired": "Enter at least one task title.",
-      "stageRequired": "Add at least one stage.",
-      "targetRequired": "Select at least one target.",
-      "duplicateTarget": "This target is already selected.",
-      "futureDueDateRequired": "Choose a future due date.",
-      "cancelReasonRequired": "Enter a cancellation reason.",
-      "studentRequired": "Select a student.",
-      "enrollmentRequired": "Select an enrollment.",
-      "xpAmountRequired": "Enter a valid XP amount.",
-      "policyRequired": "Select or create an effective XP policy."
     },
     "kpi": {
       "inProgress": "In Progress",
@@ -8586,7 +9005,6 @@
       "title": "Export behavior data"
     }
   },
-  "profile": "Profile",
   "change_password": "Change Password",
   "current_password": "Current Password",
   "new_password": "New Password",
@@ -8596,7 +9014,6 @@
   "password_changed_successfully": "Password changed successfully!",
   "mute_notifications": "Mute notifications",
   "unmute_notifications": "Unmute notifications",
-  "logout": "Logout",
   "saving": "Saving...",
   "save": "Save",
   "cancel": "Cancel"

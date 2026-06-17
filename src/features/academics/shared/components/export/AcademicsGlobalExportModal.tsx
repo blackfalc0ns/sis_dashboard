@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Download, Table } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
+import { useToast } from "@/components/ui/toast/Toast";
 import type { AcademicsExportFormat } from "@/features/academics/shared/utils/academicsExport";
 
 interface AcademicsGlobalExportModalProps {
@@ -28,6 +29,7 @@ export default function AcademicsGlobalExportModal({
   emptyStateMessage,
 }: AcademicsGlobalExportModalProps) {
   const t = useTranslations("academics.export");
+  const { showToast } = useToast();
   const [format, setFormat] = useState<AcademicsExportFormat>("csv");
   const [isExporting, setIsExporting] = useState(false);
 
@@ -42,7 +44,7 @@ export default function AcademicsGlobalExportModal({
 
   const handleExport = async () => {
     if (!hasData) {
-      alert(emptyStateMessage || t("errors.noData"));
+      showToast(emptyStateMessage || t("errors.noData"), "error");
       return;
     }
 
@@ -52,8 +54,9 @@ export default function AcademicsGlobalExportModal({
       onClose();
     } catch (error) {
       console.error("Academics export error:", error);
-      alert(
+      showToast(
         error instanceof Error ? error.message : t("errors.exportFailedGeneric"),
+        "error",
       );
     } finally {
       setIsExporting(false);

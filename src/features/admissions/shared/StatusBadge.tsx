@@ -4,75 +4,112 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import {
   ApplicationStatus,
+  DocumentStatus,
   TestStatus,
   InterviewStatus,
   LeadStatus,
 } from "@/features/admissions/types/admissions";
 
-type Status = ApplicationStatus | TestStatus | InterviewStatus | LeadStatus;
+type Status =
+  | ApplicationStatus
+  | DocumentStatus
+  | TestStatus
+  | InterviewStatus
+  | LeadStatus;
 
 interface StatusBadgeProps {
-  status: Status;
+  status: Status | string;
   size?: "sm" | "md";
 }
 
-const statusColors: Record<Status, string> = {
+interface BadgeConfig {
+  className: string;
+  translationKey: string;
+}
+
+const statusBadgeConfig: Record<Status, BadgeConfig> = {
   // Lead statuses
-  New: "bg-blue-100 text-blue-700",
-  Contacted: "bg-purple-100 text-purple-700",
-  Converted: "bg-green-100 text-green-700",
-  Closed: "bg-gray-100 text-gray-700",
+  New: { className: "bg-blue-100 text-blue-700", translationKey: "new" },
+  Contacted: {
+    className: "bg-purple-100 text-purple-700",
+    translationKey: "contacted",
+  },
+  Converted: {
+    className: "bg-green-100 text-green-700",
+    translationKey: "converted",
+  },
+  Closed: { className: "bg-gray-100 text-gray-700", translationKey: "closed" },
 
   // Application statuses
-  submitted: "bg-blue-100 text-blue-700",
-  documents_pending: "bg-amber-100 text-amber-700",
-  under_review: "bg-purple-100 text-purple-700",
-  accepted: "bg-emerald-100 text-emerald-700",
-  waitlisted: "bg-amber-100 text-amber-700",
-  rejected: "bg-red-100 text-red-700",
+  submitted: {
+    className: "bg-blue-100 text-blue-700",
+    translationKey: "submitted",
+  },
+  documents_pending: {
+    className: "bg-amber-100 text-amber-700",
+    translationKey: "documents_pending",
+  },
+  under_review: {
+    className: "bg-purple-100 text-purple-700",
+    translationKey: "under_review",
+  },
+  accepted: {
+    className: "bg-emerald-100 text-emerald-700",
+    translationKey: "accepted",
+  },
+  waitlisted: {
+    className: "bg-amber-100 text-amber-700",
+    translationKey: "waitlisted",
+  },
+  rejected: { className: "bg-red-100 text-red-700", translationKey: "rejected" },
+
+  // Document statuses
+  pending_review: {
+    className: "bg-amber-100 text-amber-800 border-amber-200",
+    translationKey: "pending_review",
+  },
+  complete: {
+    className: "bg-green-100 text-green-800 border-green-200",
+    translationKey: "complete",
+  },
+  missing: {
+    className: "bg-red-100 text-red-800 border-red-200",
+    translationKey: "missing",
+  },
 
   // Test/Interview statuses
-  scheduled: "bg-blue-100 text-blue-700",
-  completed: "bg-green-100 text-green-700",
-  cancelled: "bg-red-100 text-red-700",
-  rescheduled: "bg-orange-100 text-orange-700",
-  failed: "bg-red-100 text-red-700",
-};
-
-const statusTranslationKeys: Record<Status, string> = {
-  // Lead statuses
-  New: "new",
-  Contacted: "contacted",
-  Converted: "converted",
-  Closed: "closed",
-
-  // Application statuses
-  submitted: "submitted",
-  documents_pending: "documents_pending",
-  under_review: "under_review",
-  accepted: "accepted",
-  waitlisted: "waitlisted",
-  rejected: "rejected",
-
-  // Test/Interview statuses
-  scheduled: "scheduled",
-  completed: "completed",
-  cancelled: "cancelled",
-  rescheduled: "rescheduled",
-  failed: "failed",
+  scheduled: {
+    className: "bg-blue-100 text-blue-700",
+    translationKey: "scheduled",
+  },
+  completed: {
+    className: "bg-green-100 text-green-700",
+    translationKey: "completed",
+  },
+  cancelled: {
+    className: "bg-red-100 text-red-700",
+    translationKey: "cancelled",
+  },
+  rescheduled: {
+    className: "bg-orange-100 text-orange-700",
+    translationKey: "rescheduled",
+  },
+  failed: { className: "bg-red-100 text-red-700", translationKey: "failed" },
 };
 
 export default function StatusBadge({ status, size = "sm" }: StatusBadgeProps) {
   const t = useTranslations("admissions.status_badge");
-  const colorClass = statusColors[status];
-  const translationKey = statusTranslationKeys[status];
+  const badgeConfig = statusBadgeConfig[status as Status];
+  const colorClass =
+    badgeConfig?.className || "bg-gray-100 text-gray-700 border-gray-200";
   const sizeClass = size === "sm" ? "text-xs px-2 py-1" : "text-sm px-3 py-1.5";
+  const label = badgeConfig ? t(badgeConfig.translationKey) : status || "Unknown";
 
   return (
     <span
-      className={`inline-flex items-center rounded-full font-medium ${colorClass} ${sizeClass}`}
+      className={`inline-flex items-center rounded-full border font-medium ${colorClass} ${sizeClass}`}
     >
-      {t(translationKey)}
+      {label}
     </span>
   );
 }

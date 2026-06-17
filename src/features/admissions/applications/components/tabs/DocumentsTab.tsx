@@ -9,12 +9,18 @@ import { Application, Document } from "@/features/admissions/types/admissions";
 import StatusBadge from "../../../shared/StatusBadge";
 import DocumentViewerModal from "../modals/DocumentViewerModal";
 import {
+  acceptApplicationDocument,
   fetchApplicationDocuments,
+  rejectApplicationDocument,
+  requestApplicationDocumentReplacement,
   uploadAdmissionsFile,
   createApplicationDocument,
 } from "@/features/admissions/applications/services/applicationDocumentsApiService";
 import { apiDelete } from "@/lib/api";
+import { isApiError } from "@/lib/api-error";
 import { useToast } from "@/components/ui/toast/Toast";
+import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const DOCUMENT_TYPES = [
   "Birth Certificate",
@@ -31,10 +37,82 @@ interface DocumentsTabProps {
   application: Application;
 }
 
+type ReviewAction = "accept" | "reject" | "request_replacement";
+
+function documentStatusDescription(status: Document["status"]): string {
+  if (status === "pending_review") {
+    return "This document was submitted by the applicant and is waiting for school review.";
+  }
+  if (status === "complete") {
+    return "This document has been accepted by the school.";
+  }
+  return "This document is missing, rejected, or waiting for applicant replacement.";
+}
+
+function documentReviewErrorMessage(error: unknown): string {
+  if (!isApiError(error)) {
+    return "Failed to update document review.";
+  }
+
+  if (error.status === 403) {
+    return "You do not have permission to review this document.";
+  }
+  if (error.status === 404) {
+    return "This application or document could not be found.";
+  }
+  if (error.status === 409) {
+    return "This document has already been reviewed or is no longer pending review.";
+  }
+  if (error.status === 422) {
+    return "Please check the review note and try again.";
+  }
+
+  return error.message || "Failed to update document review.";
+}
+
+function documentLoadErrorMessage(error: unknown): string {
+  if (!isApiError(error)) {
+    return "Failed to load documents.";
+  }
+
+  if (error.status === 403) {
+    return "You do not have permission to view these documents.";
+  }
+  if (error.status === 404) {
+    return "This application could not be found.";
+  }
+
+  return error.message || "Failed to load documents.";
+}
+
+function documentMutationErrorMessage(error: unknown, fallback: string): string {
+  if (!isApiError(error)) {
+    return fallback;
+  }
+
+  if (error.status === 403) {
+    return "You do not have permission to manage documents.";
+  }
+  if (error.status === 404) {
+    return "This application or document could not be found.";
+  }
+  if (error.status === 409) {
+    return "This document changed status. Refresh and try again.";
+  }
+  if (error.status === 422) {
+    return "Please check the document details and try again.";
+  }
+
+  return error.message || fallback;
+}
+
 export default function DocumentsTab({ application }: DocumentsTabProps) {
   const t = useTranslations("admissions.application360");
   const locale = useLocale();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canViewDocuments = hasPermission("admissions.documents.view");
+  const canManageDocuments = hasPermission("admissions.documents.manage");
   const [documents, setDocuments] = useState<Document[]>(application.documents);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -48,11 +126,19 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [selectedType, setSelectedType] = useState("");
   const [customType, setCustomType] = useState("");
+  const [reviewingDocumentId, setReviewingDocumentId] = useState<string | null>(
+    null,
+  );
+  const [reviewAction, setReviewAction] = useState<ReviewAction | null>(null);
+  const [reviewNote, setReviewNote] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isEditable = application.status === "documents_pending";
+  const isEditable =
+    canManageDocuments && application.status === "documents_pending";
 
   const loadDocuments = useCallback(async () => {
+    if (!canViewDocuments) return;
     setIsLoading(true);
     setError(null);
     try {
@@ -60,17 +146,21 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
       setDocuments(nextDocuments);
     } catch (loadError) {
       console.error("Failed to load application documents:", loadError);
-      setError("Failed to load documents.");
+      setError(documentLoadErrorMessage(loadError));
     } finally {
       setIsLoading(false);
     }
-  }, [application.id]);
+  }, [application.id, canViewDocuments]);
 
   useEffect(() => {
     void loadDocuments();
   }, [loadDocuments]);
 
   const handleAddClick = () => {
+    if (!canManageDocuments) {
+      showToast("You do not have permission to manage documents.", "error");
+      return;
+    }
     setSelectedType("");
     setCustomType("");
     setIsTypeModalOpen(true);
@@ -91,6 +181,11 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canManageDocuments) {
+      showToast("You do not have permission to manage documents.", "error");
+      return;
+    }
+
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -128,7 +223,10 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
       await loadDocuments();
     } catch (uploadError) {
       console.error("Failed to upload document:", uploadError);
-      showToast("Failed to upload document.", "error");
+      showToast(
+        documentMutationErrorMessage(uploadError, "Failed to upload document."),
+        "error",
+      );
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
@@ -138,6 +236,11 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
   };
 
   const handleDeleteDocument = async (documentId: string) => {
+    if (!canManageDocuments) {
+      showToast("You do not have permission to manage documents.", "error");
+      return;
+    }
+
     try {
       await apiDelete(
         `/admissions/applications/${application.id}/documents/${documentId}`,
@@ -146,7 +249,101 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
       await loadDocuments();
     } catch (deleteError) {
       console.error("Failed to delete document:", deleteError);
-      showToast("Failed to remove document.", "error");
+      showToast(
+        documentMutationErrorMessage(deleteError, "Failed to remove document."),
+        "error",
+      );
+    }
+  };
+
+  const openReviewModal = (documentId: string, action: ReviewAction) => {
+    if (!canManageDocuments) {
+      showToast("You do not have permission to manage documents.", "error");
+      return;
+    }
+    setReviewingDocumentId(documentId);
+    setReviewAction(action);
+    setReviewNote("");
+  };
+
+  const resetReviewState = () => {
+    setReviewingDocumentId(null);
+    setReviewAction(null);
+    setReviewNote("");
+  };
+
+  const closeReviewModal = () => {
+    if (isSubmittingReview) return;
+    resetReviewState();
+  };
+
+  const reviewActionTitle = () => {
+    if (reviewAction === "accept") return "Accept document";
+    if (reviewAction === "reject") return "Reject document";
+    if (reviewAction === "request_replacement") return "Request replacement";
+    return "Review document";
+  };
+
+  const reviewActionDescription = () => {
+    if (reviewAction === "accept") {
+      return "Add an optional note for this approval.";
+    }
+    if (reviewAction === "reject") {
+      return "Enter the reason this document is being rejected.";
+    }
+    return "Enter what the applicant needs to replace or fix.";
+  };
+
+  const reviewActionRequiresNote =
+    reviewAction === "reject" || reviewAction === "request_replacement";
+
+  const runReviewAction = async (
+    documentId: string,
+    action: ReviewAction,
+    note: string,
+  ) => {
+    if (action === "accept") {
+      await acceptApplicationDocument(
+        application.id,
+        documentId,
+        note || undefined,
+      );
+      return;
+    }
+
+    if (action === "reject") {
+      await rejectApplicationDocument(application.id, documentId, note);
+      return;
+    }
+
+    await requestApplicationDocumentReplacement(application.id, documentId, note);
+  };
+
+  const submitReviewAction = async () => {
+    if (isSubmittingReview) return;
+    if (!reviewingDocumentId || !reviewAction) return;
+    if (!canManageDocuments) {
+      showToast("You do not have permission to manage documents.", "error");
+      return;
+    }
+
+    const trimmedNote = reviewNote.trim();
+    if (reviewActionRequiresNote && !trimmedNote) {
+      showToast("Please enter a note before submitting.", "error");
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    try {
+      await runReviewAction(reviewingDocumentId, reviewAction, trimmedNote);
+      showToast("Document review updated.", "success");
+      resetReviewState();
+      await loadDocuments();
+    } catch (reviewError) {
+      console.error("Failed to update document review:", reviewError);
+      showToast(documentReviewErrorMessage(reviewError), "error");
+    } finally {
+      setIsSubmittingReview(false);
     }
   };
 
@@ -156,6 +353,10 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
   };
 
   const usedTypes = new Set(documents.map((d) => d.type));
+
+  if (!canViewDocuments) {
+    return <AdmissionsAccessDenied />;
+  }
 
   return (
     <>
@@ -198,7 +399,7 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
           <div className="rounded-lg border-2 border-dashed border-gray-200 p-8 text-center">
             <FileText className="mx-auto h-10 w-10 text-gray-300 mb-3" />
             <p className="text-sm text-gray-500">
-              {t("documents.no_documents")}
+              No documents have been submitted for this application yet.
             </p>
             {isEditable && (
               <Button
@@ -234,14 +435,40 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
                         {new Date(doc.uploadedDate).toLocaleDateString()}
                       </p>
                     )}
+                    <p className="mt-1 max-w-xl text-xs text-gray-500">
+                      {documentStatusDescription(doc.status)}
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <StatusBadge
-                    status={
-                      doc.status === "complete" ? "completed" : "scheduled"
-                    }
-                  />
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <StatusBadge status={doc.status} />
+                  {canManageDocuments && doc.status === "pending_review" && (
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="success"
+                        onClick={() => openReviewModal(doc.id, "accept")}
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openReviewModal(doc.id, "reject")}
+                      >
+                        Reject
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          openReviewModal(doc.id, "request_replacement")
+                        }
+                      >
+                        Request replacement
+                      </Button>
+                    </div>
+                  )}
                   {doc.status === "complete" && (
                     <Button
                       size="sm"
@@ -252,7 +479,7 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
                       <Eye className="h-4 w-4" />
                     </Button>
                   )}
-                  {doc.url && (
+                  {canViewDocuments && doc.url && (
                     <Button
                       size="sm"
                       variant="ghost"
@@ -361,6 +588,60 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
               autoFocus
             />
           )}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(reviewingDocumentId && reviewAction)}
+        onClose={closeReviewModal}
+        title={reviewActionTitle()}
+        size="sm"
+        closeOnOverlayClick={!isSubmittingReview}
+        closeOnEscape={!isSubmittingReview}
+        footer={
+          <>
+            <Button
+              variant="outline"
+              onClick={closeReviewModal}
+              disabled={isSubmittingReview}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => void submitReviewAction()}
+              loading={isSubmittingReview}
+            >
+              Submit review
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">{reviewActionDescription()}</p>
+          {reviewActionRequiresNote && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              The applicant may need to upload a new document after this action.
+            </div>
+          )}
+          <label
+            className="block text-sm font-medium text-gray-700"
+            htmlFor="document-review-note"
+          >
+            Note {reviewActionRequiresNote ? "" : "(optional)"}
+          </label>
+          <textarea
+            id="document-review-note"
+            value={reviewNote}
+            onChange={(event) => setReviewNote(event.target.value)}
+            rows={4}
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-primary"
+            placeholder={
+              reviewActionRequiresNote
+                ? "Enter a note before submitting"
+                : "Add a note"
+            }
+            disabled={isSubmittingReview}
+          />
         </div>
       </Modal>
 

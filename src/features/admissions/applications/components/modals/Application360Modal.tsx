@@ -481,11 +481,7 @@ export default function Application360Modal({
                         )}
                       </div>
                     </div>
-                    <StatusBadge
-                      status={
-                        doc.status === "complete" ? "completed" : "scheduled"
-                      }
-                    />
+                    <StatusBadge status={doc.status} />
                   </div>
                 ))}
               </div>

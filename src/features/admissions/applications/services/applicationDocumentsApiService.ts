@@ -63,3 +63,36 @@ export async function fetchApplicationDocuments(
   );
   return unwrapArrayResponse(response, "application documents").map(normalizeDocument);
 }
+
+export async function acceptApplicationDocument(
+  applicationId: string,
+  documentId: string,
+  note?: string,
+): Promise<unknown> {
+  return apiPost<unknown>(
+    `/admissions/applications/${applicationId}/documents/${documentId}/accept`,
+    note ? { note } : {},
+  );
+}
+
+export async function rejectApplicationDocument(
+  applicationId: string,
+  documentId: string,
+  note: string,
+): Promise<unknown> {
+  return apiPost<unknown>(
+    `/admissions/applications/${applicationId}/documents/${documentId}/reject`,
+    { note },
+  );
+}
+
+export async function requestApplicationDocumentReplacement(
+  applicationId: string,
+  documentId: string,
+  note: string,
+): Promise<unknown> {
+  return apiPost<unknown>(
+    `/admissions/applications/${applicationId}/documents/${documentId}/request-replacement`,
+    { note },
+  );
+}

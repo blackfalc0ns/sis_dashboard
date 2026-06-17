@@ -85,6 +85,7 @@ export function getRecommendedRooms(context: RoomRecommendationContext): Room[] 
 
       if (
         context.selectedClassroom &&
+        room.capacity !== null &&
         room.capacity >= context.selectedClassroom.capacity
       ) {
         score += 10;

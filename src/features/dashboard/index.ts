@@ -27,6 +27,8 @@ export * from './components/monitoring/TodayMonitoring';
 // PAGES
 // ============================================================================
 export * from './pages/SchoolDashboard';
+export * from './pages/RecentActivitiesPage';
+export * from './pages/DashboardAlertsPage';
 export * from './views/SchoolDashboardView';
 
 // ============================================================================
@@ -38,3 +40,6 @@ export * from './container/SchoolDashboardContainer';
 // UTILS
 // ============================================================================
 export * from './utils/dashboardStatsCalculator';
+export * from './mappers/dashboardViewMapper';
+export * from './services/dashboardApiService';
+export * from './types/dashboardApi.types';

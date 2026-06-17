@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl";
 import { Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import { X } from "lucide-react";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
-import Select from "@/components/ui/input/Select";
 import Input from "@/components/ui/input/Input";
 import { Button } from "@/components/ui";
 import { Room } from "@/features/academics/timetable/types/timetable";
@@ -13,11 +12,20 @@ import { Room } from "@/features/academics/timetable/types/timetable";
 interface RoomDialogProps {
   open: boolean;
   room: Room | null;
-  onSave: (room: Omit<Room, "id" | "schoolId" | "createdAt" | "updatedAt">) => void;
+  isSaving?: boolean;
+  onSave: (
+    room: Omit<Room, "id" | "schoolId" | "createdAt" | "updatedAt">
+  ) => Promise<void> | void;
   onClose: () => void;
 }
 
-export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogProps) {
+export default function RoomDialog({
+  open,
+  room,
+  isSaving = false,
+  onSave,
+  onClose,
+}: RoomDialogProps) {
   const t = useTranslations("academics.timetable.rooms");
   const tValidation = useTranslations("academics.timetable.rooms.validation");
 
@@ -35,7 +43,7 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
     if (room) {
       setNameAr(room.nameAr);
       setNameEn(room.nameEn);
-      setCapacity(room.capacity.toString());
+      setCapacity(room.capacity?.toString() ?? "");
       setFloor(room.floor || "");
       setBuilding(room.building || "");
       setIsActive(room.isActive);
@@ -63,7 +71,11 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
     if (nameAr.trim() && nameEn.trim() && nameAr.trim() === nameEn.trim()) {
       newErrors.names = tValidation("namesMustDiffer");
     }
-    if (!capacity || parseInt(capacity) < 1) {
+    const parsedCapacity = Number(capacity);
+    if (
+      capacity.trim() &&
+      (!Number.isInteger(parsedCapacity) || parsedCapacity < 1)
+    ) {
       newErrors.capacity = tValidation("capacityMin");
     }
 
@@ -72,19 +84,19 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
   };
 
   const handleSave = () => {
+    if (isSaving) return;
     if (!validate()) return;
 
+    const trimmedCapacity = capacity.trim();
     onSave({
       nameAr: nameAr.trim(),
       nameEn: nameEn.trim(),
-      capacity: parseInt(capacity),
+      capacity: trimmedCapacity ? Number(trimmedCapacity) : null,
       floor: floor.trim() || undefined,
       building: building.trim() || undefined,
       isActive,
     });
   };
-
-
 
   return (
     <Dialog
@@ -98,7 +110,14 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
         },
       }}
     >
-      <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 2 }}>
+      <DialogTitle
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          pb: 2,
+        }}
+      >
         <div className="text-lg font-semibold text-gray-900">
           {room ? t("editRoom") : t("addRoom")}
         </div>
@@ -112,7 +131,6 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
 
       <DialogContent sx={{ pt: 2 }}>
         <div className="space-y-4">
-          {/* Bilingual Name */}
           <div>
             <BilingualTextField
               label={t("name")}
@@ -134,10 +152,6 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
               <p className="text-sm text-red-600 mt-1">{errors.names}</p>
             )}
           </div>
-
-
-
-          {/* Capacity */}
           <div>
             <Input
               label={t("capacity")}
@@ -149,23 +163,21 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
             />
           </div>
 
-          {/* Building & Floor */}
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Building"
+              label={t("building")}
               value={building}
               onChange={(e) => setBuilding(e.target.value)}
               placeholder="e.g., Block A"
             />
             <Input
-              label="Floor"
+              label={t("floor")}
               value={floor}
               onChange={(e) => setFloor(e.target.value)}
               placeholder="e.g., 1st Floor"
             />
           </div>
 
-          {/* Active Status */}
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -181,12 +193,20 @@ export default function RoomDialog({ open, room, onSave, onClose }: RoomDialogPr
         </div>
       </DialogContent>
 
-      <DialogActions sx={{ pb: 3, pt: 2, display: "flex", alignItems:"center", gap: 1 }}>
-        <Button onClick={onClose} variant="secondary">
-          {t("editSlot.cancel")}
+      <DialogActions
+        sx={{
+          pb: 3,
+          pt: 2,
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+        }}
+      >
+        <Button onClick={onClose} variant="secondary" disabled={isSaving}>
+          {t("cancel")}
         </Button>
-        <Button onClick={handleSave} variant="primary">
-          {t("editSlot.save")}
+        <Button onClick={handleSave} variant="primary" disabled={isSaving}>
+          {t("save")}
         </Button>
       </DialogActions>
     </Dialog>

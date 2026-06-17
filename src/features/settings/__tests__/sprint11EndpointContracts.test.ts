@@ -18,6 +18,7 @@ import {
   createSettingsUser,
   updateSettingsUser,
 } from "@/features/settings/services/settingsUsersService";
+import { fetchAdmissionRequiredDocumentsForSchool } from "@/features/settings/services/settingsService";
 import {
   generateBulkCredentials,
   mapBulkGenerateCredentialsResponse,
@@ -58,6 +59,59 @@ describe("Sprint 11 endpoint contracts", () => {
     apiMocks.apiPut.mockReset().mockResolvedValue({});
     apiMocks.apiPatch.mockReset().mockResolvedValue({});
     apiMocks.apiDelete.mockReset().mockResolvedValue({});
+  });
+
+  it("loads read-only applicant portal admissions documents for a school", async () => {
+    apiMocks.apiGet.mockResolvedValue({
+      data: {
+        items: [
+          {
+            id: "doc-late",
+            title: "Medical report",
+            description: "Recent medical report",
+            isMandatory: false,
+            acceptedFileTypes: ["application/pdf"],
+            maxFiles: 2,
+            sortOrder: 2,
+          },
+          {
+            id: "doc-first",
+            title: "Passport",
+            description: null,
+            isMandatory: true,
+            acceptedFileTypes: "image/png,image/jpeg",
+            maxFiles: "1",
+            sortOrder: 1,
+          },
+        ],
+      },
+    });
+
+    const documents = await fetchAdmissionRequiredDocumentsForSchool("school/one");
+
+    expect(apiMocks.apiGet).toHaveBeenCalledWith(
+      "/applicant-portal/schools/school%2Fone/admission-required-documents",
+    );
+    expect(documents).toEqual([
+      {
+        id: "doc-first",
+        title: "Passport",
+        description: "",
+        isMandatory: true,
+        acceptedFileTypes: ["image/png", "image/jpeg"],
+        maxFiles: 1,
+        sortOrder: 1,
+      },
+      {
+        id: "doc-late",
+        title: "Medical report",
+        description: "Recent medical report",
+        isMandatory: false,
+        acceptedFileTypes: ["application/pdf"],
+        maxFiles: 2,
+        sortOrder: 2,
+      },
+    ]);
   });
 
   it("uses the backend login identity field names", async () => {

@@ -341,6 +341,16 @@ export interface AdmissionsRequiredDocumentConfig {
   sortOrder: number;
 }
 
+export interface AdmissionRequiredDocument {
+  id: string;
+  title: string;
+  description: string;
+  isMandatory: boolean;
+  acceptedFileTypes: string[];
+  maxFiles: number;
+  sortOrder: number;
+}
+
 export interface SettingsStoreSnapshot {
   roles: RoleDefinition[];
   policies: PolicySettings;

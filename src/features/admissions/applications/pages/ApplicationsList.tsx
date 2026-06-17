@@ -40,6 +40,8 @@ import {
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useToast } from "@/components/ui/toast/Toast";
 
 export default function ApplicationsList() {
   const t = useTranslations("admissions.applications");
@@ -48,6 +50,9 @@ export default function ApplicationsList() {
   const locale = useLocale();
   const router = useRouter();
   const { yearId, isReadOnly } = useAdmissionsYearTermContext();
+  const { hasPermission } = usePermissions();
+  const { showToast } = useToast();
+  const canManageApplications = hasPermission("admissions.applications.manage");
 
   const [isCreateAppOpen, setIsCreateAppOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -237,7 +242,7 @@ export default function ApplicationsList() {
       await loadApplications();
     } catch (err) {
       console.error("Failed to submit application:", err);
-      alert("Failed to submit application.");
+      showToast("Failed to submit application.", "error");
     }
   };
 
@@ -277,7 +282,7 @@ export default function ApplicationsList() {
           <button
             type="button"
             onClick={(e) => handleSubmitApp(row.id, e)}
-            disabled={isReadOnly}
+            disabled={isReadOnly || !canManageApplications}
             className="px-3 py-1 bg-primary hover:bg-hover text-white rounded text-xs font-medium transition-colors disabled:opacity-60"
           >
             {t("submit")}
@@ -326,7 +331,7 @@ export default function ApplicationsList() {
       setIsCreateAppOpen(false);
     } catch (error) {
       console.error("Failed to create application:", error);
-      alert("Failed to create application. Please try again.");
+      showToast("Failed to create application. Please try again.", "error");
     }
   };
 
@@ -453,14 +458,16 @@ export default function ApplicationsList() {
             <Download className="w-4 h-4" />
             {t("export")}
           </button>
-          <button
-            onClick={() => setIsCreateAppOpen(true)}
-            disabled={isReadOnly}
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg font-medium text-sm transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            {t("new_application")}
-          </button>
+          {canManageApplications && (
+            <button
+              onClick={() => setIsCreateAppOpen(true)}
+              disabled={isReadOnly}
+              className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg font-medium text-sm transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              {t("new_application")}
+            </button>
+          )}
         </div>
       </div>
 

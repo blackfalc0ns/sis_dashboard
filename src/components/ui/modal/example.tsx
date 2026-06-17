@@ -4,8 +4,10 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle, Info } from "lucide-react";
+import { useToast } from "@/components/ui/toast/Toast";
 
 export default function ModalExamples() {
+  const { showToast } = useToast();
   const [basicModal, setBasicModal] = useState(false);
   const [confirmModal, setConfirmModal] = useState(false);
   const [formModal, setFormModal] = useState(false);
@@ -53,7 +55,7 @@ export default function ModalExamples() {
               <Button
                 className="bg-red-600 hover:bg-red-700 text-white"
                 onClick={() => {
-                  alert("Item deleted!");
+                  showToast("Item deleted!", "success");
                   setConfirmModal(false);
                 }}
               >
@@ -93,7 +95,7 @@ export default function ModalExamples() {
               </Button>
               <Button
                 onClick={() => {
-                  alert("Student added!");
+                  showToast("Student added!", "success");
                   setFormModal(false);
                 }}
               >

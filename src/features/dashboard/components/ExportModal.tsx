@@ -1,328 +1,195 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { X, FileText, FileSpreadsheet, FileJson, Printer } from "lucide-react";
+import { FileJson, FileSpreadsheet, FileText, Printer } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Modal } from "@/components/ui/modal";
 import {
   exportToCSV,
   exportToExcel,
   exportToJSON,
   exportToPDF,
 } from "@/utils/exportUtils";
-import type {
-  DashboardExportAttendanceRow,
-  DashboardExportIncidentRow,
-  DashboardExportSummaryRow,
-} from "@/features/dashboard/utils/dashboardStatsCalculator";
+import type { DashboardExportRow } from "@/features/dashboard/mappers/dashboardViewMapper";
 
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   academicYearName: string;
   termName: string;
-  exportData: {
-    summary: DashboardExportSummaryRow;
-    attendance: DashboardExportAttendanceRow[];
-    incidents: DashboardExportIncidentRow[];
-  };
+  exportRows: DashboardExportRow[];
 }
 
 type ExportFormat = "csv" | "excel" | "json" | "pdf";
-type ExportData = "summary" | "attendance" | "incidents" | "all";
+
+const EXPORT_PREVIEW_ROW_LIMIT = 12;
 
 export default function ExportModal({
   isOpen,
   onClose,
   academicYearName,
   termName,
-  exportData,
+  exportRows,
 }: ExportModalProps) {
+  const t = useTranslations("dashboard_new");
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("excel");
-  const [selectedData, setSelectedData] = useState<ExportData>("summary");
-  const [isExporting, setIsExporting] = useState(false);
-
-  const timestamp = useMemo(
-    () => new Date().toISOString().split("T")[0],
-    []
+  const timestamp = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const previewRows = exportRows.slice(0, EXPORT_PREVIEW_ROW_LIMIT);
+  const hiddenPreviewRowCount = Math.max(
+    exportRows.length - previewRows.length,
+    0,
+  );
+  const exportFormats = useMemo(
+    () => [
+      {
+        value: "excel" as const,
+        label: t("export.formats.excel.label"),
+        icon: FileSpreadsheet,
+        description: t("export.formats.excel.description"),
+      },
+      {
+        value: "csv" as const,
+        label: t("export.formats.csv.label"),
+        icon: FileText,
+        description: t("export.formats.csv.description"),
+      },
+      {
+        value: "json" as const,
+        label: t("export.formats.json.label"),
+        icon: FileJson,
+        description: t("export.formats.json.description"),
+      },
+      {
+        value: "pdf" as const,
+        label: t("export.formats.pdf.label"),
+        icon: Printer,
+        description: t("export.formats.pdf.description"),
+      },
+    ],
+    [t],
   );
 
-  if (!isOpen) {
-    return null;
-  }
-
-  const formats = [
-    {
-      value: "excel" as const,
-      label: "Excel (CSV)",
-      icon: FileSpreadsheet,
-      description: "Best for spreadsheet analysis",
-    },
-    {
-      value: "csv" as const,
-      label: "CSV",
-      icon: FileText,
-      description: "Universal format",
-    },
-    {
-      value: "json" as const,
-      label: "JSON",
-      icon: FileJson,
-      description: "For developers",
-    },
-    {
-      value: "pdf" as const,
-      label: "PDF",
-      icon: Printer,
-      description: "Print-ready report",
-    },
-  ];
-
-  const dataOptions = [
-    {
-      value: "summary" as const,
-      label: "Dashboard Summary",
-      description: "KPIs and key metrics",
-    },
-    {
-      value: "attendance" as const,
-      label: "Attendance Data",
-      description: "Detailed attendance by grade",
-    },
-    {
-      value: "incidents" as const,
-      label: "Incidents Report",
-      description: "All incidents and violations",
-    },
-    {
-      value: "all" as const,
-      label: "Complete Report",
-      description: "All data combined",
-    },
-  ];
-
   const handleExport = () => {
-    setIsExporting(true);
+    const filename = `dashboard-summary-${timestamp}`;
+    const exportTableRows = exportRows.map((exportRow) => ({
+      label: exportRow.label,
+      value: exportRow.value,
+    }));
 
-    try {
-      if (selectedFormat === "pdf") {
-        exportToPDF();
-        onClose();
-        return;
-      }
-
-      let data: unknown;
-      let filename: string;
-
-      switch (selectedData) {
-        case "summary":
-          data = [exportData.summary];
-          filename = `dashboard-summary-${timestamp}`;
-          break;
-        case "attendance":
-          data = exportData.attendance;
-          filename = `attendance-report-${timestamp}`;
-          break;
-        case "incidents":
-          data = exportData.incidents;
-          filename = `incidents-report-${timestamp}`;
-          break;
-        case "all":
-          data = exportData;
-          filename = `complete-report-${timestamp}`;
-          break;
-      }
-
-      switch (selectedFormat) {
-        case "excel":
-          if (Array.isArray(data)) {
-            exportToExcel(data as Record<string, unknown>[], filename);
-          } else {
-            alert(
-              "Excel export requires tabular data. Please select a specific data type."
-            );
-            return;
-          }
-          break;
-        case "csv":
-          if (Array.isArray(data)) {
-            exportToCSV(data as Record<string, unknown>[], filename);
-          } else {
-            alert(
-              "CSV export requires tabular data. Please select a specific data type."
-            );
-            return;
-          }
-          break;
-        case "json":
-          exportToJSON(data, filename);
-          break;
-      }
-
-      setTimeout(() => {
-        setIsExporting(false);
-        onClose();
-      }, 500);
-    } catch (error) {
-      console.error("Export failed:", error);
-      alert("Export failed. Please try again.");
-      setIsExporting(false);
+    if (selectedFormat === "pdf") {
+      exportToPDF();
+      onClose();
+      return;
     }
+
+    if (selectedFormat === "json") {
+      exportToJSON(exportTableRows, filename);
+      onClose();
+      return;
+    }
+
+    if (selectedFormat === "csv") {
+      exportToCSV(exportTableRows, filename);
+      onClose();
+      return;
+    }
+
+    exportToExcel(exportTableRows, filename);
+    onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-gradient-to-r from-primary to-hover text-white p-6 rounded-t-xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">Export Dashboard Data</h2>
-              <p className="text-sm text-white/80 mt-1">
-                {academicYearName} · {termName}
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-        </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("export.title")}
+      description={`${academicYearName} - ${termName}`}
+      size="xl"
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-gray-300 px-6 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            {t("export.cancel")}
+          </button>
+          <button
+            type="button"
+            onClick={handleExport}
+            className="flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 font-medium text-white transition-colors hover:bg-hover"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            {t("export.export_data")}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-6 py-2">
+        <div>
+          <label className="mb-3 block text-sm font-semibold text-gray-700">
+            {t("export.format_label")}
+          </label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {exportFormats.map((formatOption) => {
+              const Icon = formatOption.icon;
+              const isSelected = selectedFormat === formatOption.value;
 
-        <div className="p-6 space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Export Format
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {formats.map((format) => {
-                const Icon = format.icon;
-                return (
-                  <button
-                    key={format.value}
-                    onClick={() => setSelectedFormat(format.value)}
-                    className={`p-4 rounded-lg border-2 transition-all text-left ${
-                      selectedFormat === format.value
-                        ? "border-primary bg-primary/5"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Icon
-                        className={`w-6 h-6 flex-shrink-0 ${
-                          selectedFormat === format.value
-                            ? "text-primary"
-                            : "text-gray-400"
-                        }`}
-                      />
-                      <div>
-                        <div
-                          className={`font-semibold ${
-                            selectedFormat === format.value
-                              ? "text-primary"
-                              : "text-gray-700"
-                          }`}
-                        >
-                          {format.label}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {format.description}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Data to Export
-            </label>
-            <div className="space-y-2">
-              {dataOptions.map((option) => (
+              return (
                 <button
-                  key={option.value}
-                  onClick={() => setSelectedData(option.value)}
-                  className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
-                    selectedData === option.value
+                  key={formatOption.value}
+                  type="button"
+                  onClick={() => setSelectedFormat(formatOption.value)}
+                  className={`rounded-lg border-2 p-4 text-left transition-all ${
+                    isSelected
                       ? "border-primary bg-primary/5"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start gap-3">
+                    <Icon
+                      className={`h-6 w-6 shrink-0 ${
+                        isSelected ? "text-primary" : "text-gray-400"
+                      }`}
+                    />
                     <div>
                       <div
                         className={`font-semibold ${
-                          selectedData === option.value
-                            ? "text-primary"
-                            : "text-gray-700"
+                          isSelected ? "text-primary" : "text-gray-700"
                         }`}
                       >
-                        {option.label}
+                        {formatOption.label}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {option.description}
+                      <div className="mt-1 text-xs text-gray-500">
+                        {formatOption.description}
                       </div>
-                    </div>
-                    <div
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        selectedData === option.value
-                          ? "border-primary bg-primary"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      {selectedData === option.value && (
-                        <div className="w-2 h-2 bg-white rounded-full" />
-                      )}
                     </div>
                   </div>
                 </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="text-sm font-semibold text-blue-900 mb-2">
-              Export Information
-            </h4>
-            <ul className="text-xs text-blue-800 space-y-1">
-              <li>Files will be downloaded to your default download folder.</li>
-              <li>Export labels include the current academic year and term.</li>
-              <li>Excel and CSV formats work best with tabular data.</li>
-              <li>JSON format includes nested dashboard datasets.</li>
-              <li>PDF export uses your browser&apos;s print function.</li>
-            </ul>
-          </div>
-
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <button
-              onClick={onClose}
-              disabled={isExporting}
-              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleExport}
-              disabled={isExporting}
-              className="flex-1 px-6 py-3 bg-primary hover:bg-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {isExporting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <FileSpreadsheet className="w-4 h-4" />
-                  Export Data
-                </>
-              )}
-            </button>
+              );
+            })}
           </div>
         </div>
+
+        <div className="rounded-lg border border-gray-200">
+          {previewRows.map((exportRow) => (
+            <div
+              key={exportRow.label}
+              className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 last:border-b-0"
+            >
+              <span className="text-sm text-gray-500">{exportRow.label}</span>
+              <span className="text-right text-sm font-semibold text-gray-900">
+                {exportRow.value}
+              </span>
+            </div>
+          ))}
+          {hiddenPreviewRowCount > 0 ? (
+            <div className="bg-gray-50 px-4 py-3 text-sm font-medium text-gray-500">
+              {hiddenPreviewRowCount} more rows will be included in the exported file.
+            </div>
+          ) : null}
+        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

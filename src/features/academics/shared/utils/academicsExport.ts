@@ -161,8 +161,7 @@ export function downloadAcademicsExport({
   const records = Array.isArray(data) ? data : [data];
 
   if (records.length === 0) {
-    alert(emptyMessage);
-    return;
+    throw new Error(emptyMessage);
   }
 
   if (format === "json") {
@@ -203,8 +202,7 @@ export function exportAcademicsData({
 
     const records = Array.isArray(data) ? data : [data];
     if (records.length === 0) {
-      alert(emptyMessage);
-      return;
+      throw new Error(emptyMessage);
     }
 
     downloadBlob(
@@ -217,8 +215,7 @@ export function exportAcademicsData({
   }
 
   if (rows.length === 0 || columns.length === 0) {
-    alert(emptyMessage);
-    return;
+    throw new Error(emptyMessage);
   }
 
   const transformedRows = transformRowsForExport(columns, rows);

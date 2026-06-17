@@ -8,6 +8,10 @@ import { useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 
 export type PermissionKey =
+  | "admissions.applications.view"
+  | "admissions.applications.manage"
+  | "admissions.documents.view"
+  | "admissions.documents.manage"
   | "attendance.rollcall.submit"
   | "attendance.rollcall.unsubmit"
   | "attendance.excuses.approve"
@@ -106,6 +110,8 @@ export const reinforcementNavigationPermissionByKey: Partial<
 export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> = {
   ...settingsNavigationPermissionByKey,
   ...reinforcementNavigationPermissionByKey,
+  "admissions-applications": "admissions.applications.view",
+  "academics-rooms": "academics.structure.view",
 };
 
 export function usePermissions() {

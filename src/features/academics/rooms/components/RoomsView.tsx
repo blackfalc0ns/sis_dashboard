@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useTranslations, useLocale } from "next-intl";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDebouncedCallback } from "use-debounce";
-import { Plus, Edit2, Trash2, Download } from "lucide-react";
+import { AlertCircle, Download, Edit2, Plus, ShieldAlert, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui";
-import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import Select from "@/components/ui/input/Select";
+import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import { useToast } from "@/components/ui/toast/Toast";
 import RoomDialog from "./RoomDialog";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
@@ -21,25 +21,15 @@ import {
   type ExportMetadata,
 } from "@/features/academics/utils/exportAdapter";
 import {
-  fetchRooms,
   createRoom,
-  updateRoom,
   deleteRoom,
-  fetchRoomDefaultAssignments,
-  createRoomDefaultAssignment,
-  updateRoomDefaultAssignment,
-  deleteRoomDefaultAssignment,
-  type RoomDefaultAssignment,
+  fetchRooms,
+  updateRoom,
 } from "@/features/academics/rooms/services/roomsService";
 import { Room } from "@/features/academics/timetable/types/timetable";
 import MainLoader from "@/components/ui/loaders/MainLoader";
-import {
-  fetchStructureTree,
-  type Classroom,
-  type Grade,
-  type Stage,
-  type Section,
-} from "@/features/academics/academic-structure-tree/services/structureService";
+import { usePermissions } from "@/hooks/usePermissions";
+import { isApiError } from "@/lib/api-error";
 
 interface RoomsViewProps {
   schoolId: string;
@@ -50,12 +40,40 @@ interface RoomsViewProps {
 
 type RoomsQueryState = {
   searchQuery: string;
-  defaultScopeType: "SECTION" | "CLASSROOM";
-  defaultStageId: string;
-  defaultGradeId: string;
-  defaultSectionId: string;
-  defaultClassroomId: string;
 };
+
+type StatusFilter = "all" | "active" | "inactive";
+
+type RoomDraft = Omit<Room, "id" | "schoolId" | "createdAt" | "updatedAt">;
+
+function roomApiErrorMessage(error: unknown, fallback: string) {
+  if (isApiError(error)) {
+    return error.message;
+  }
+
+  if (
+    error &&
+    typeof error === "object" &&
+    "error" in error &&
+    error.error &&
+    typeof error.error === "object" &&
+    "message" in error.error &&
+    typeof error.error.message === "string"
+  ) {
+    return error.error.message;
+  }
+
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+
+  return fallback;
+}
 
 export default function RoomsView({
   schoolId,
@@ -70,93 +88,50 @@ export default function RoomsView({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canViewRooms = hasPermission("academics.structure.view");
+  const canManageRooms = hasPermission("academics.structure.manage");
+  const canMutateRooms = canManageRooms && !isReadOnly;
 
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [roomDefaults, setRoomDefaults] = useState<RoomDefaultAssignment[]>([]);
-  const [stages, setStages] = useState<Stage[]>([]);
-  const [grades, setGrades] = useState<Grade[]>([]);
-  const [sections, setSections] = useState<Section[]>([]);
-  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const queryState = useMemo<RoomsQueryState>(
     () => ({
       searchQuery: searchParams.get("roomSearch") || "",
-      defaultScopeType:
-        searchParams.get("defaultScope") === "CLASSROOM"
-          ? "CLASSROOM"
-          : "SECTION",
-      defaultStageId: searchParams.get("defaultStage") || "",
-      defaultGradeId: searchParams.get("defaultGrade") || "",
-      defaultSectionId: searchParams.get("defaultSection") || "",
-      defaultClassroomId: searchParams.get("defaultClassroom") || "",
     }),
-    [searchParams]
+    [searchParams],
   );
   const [searchInputValue, setSearchInputValue] = useState(queryState.searchQuery);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [buildingFilter, setBuildingFilter] = useState("");
+  const [floorFilter, setFloorFilter] = useState("");
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [roomDialogOpen, setRoomDialogOpen] = useState(false);
+  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [isRoomSaving, setIsRoomSaving] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
+
   useEffect(() => {
     setSearchInputValue(queryState.searchQuery);
   }, [queryState.searchQuery]);
-  const [defaultRoomId, setDefaultRoomId] = useState("");
-  const [editingDefault, setEditingDefault] = useState<RoomDefaultAssignment | null>(null);
-  const [showExportModal, setShowExportModal] = useState(false);
-
-  // Dialog states
-  const [roomDialogOpen, setRoomDialogOpen] = useState(false);
-  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
 
   const syncQueryParams = useCallback(
     (
       nextState: Partial<{
         searchQuery: string;
-        defaultScopeType: "SECTION" | "CLASSROOM";
-        defaultStageId: string;
-        defaultGradeId: string;
-        defaultSectionId: string;
-        defaultClassroomId: string;
       }>,
-      historyMode: "push" | "replace" = "push"
+      historyMode: "push" | "replace" = "push",
     ) => {
       const params = new URLSearchParams(searchParams.toString());
-      const mergedState = {
-        searchQuery: nextState.searchQuery ?? queryState.searchQuery,
-        defaultScopeType:
-          nextState.defaultScopeType ?? queryState.defaultScopeType,
-        defaultStageId: nextState.defaultStageId ?? queryState.defaultStageId,
-        defaultGradeId: nextState.defaultGradeId ?? queryState.defaultGradeId,
-        defaultSectionId:
-          nextState.defaultSectionId ?? queryState.defaultSectionId,
-        defaultClassroomId:
-          nextState.defaultClassroomId ?? queryState.defaultClassroomId,
-      };
+      const searchQuery = nextState.searchQuery ?? queryState.searchQuery;
 
-      if (mergedState.searchQuery) {
-        params.set("roomSearch", mergedState.searchQuery);
+      if (searchQuery) {
+        params.set("roomSearch", searchQuery);
       } else {
         params.delete("roomSearch");
       }
-
-      if (mergedState.defaultScopeType === "CLASSROOM") {
-        params.set("defaultScope", "CLASSROOM");
-      } else {
-        params.delete("defaultScope");
-      }
-
-      const entries: Array<[string, string]> = [
-        ["defaultStage", mergedState.defaultStageId],
-        ["defaultGrade", mergedState.defaultGradeId],
-        ["defaultSection", mergedState.defaultSectionId],
-        ["defaultClassroom", mergedState.defaultClassroomId],
-      ];
-
-      entries.forEach(([key, value]) => {
-        if (value) {
-          params.set(key, value);
-        } else {
-          params.delete(key);
-        }
-      });
 
       const nextQuery = params.toString();
       const currentQuery = searchParams.toString();
@@ -171,17 +146,9 @@ export default function RoomsView({
       }
       router.replace(nextUrl, { scroll: false });
     },
-    [
-      queryState.defaultClassroomId,
-      queryState.defaultGradeId,
-      queryState.defaultScopeType,
-      queryState.defaultSectionId,
-      queryState.defaultStageId,
-      queryState.searchQuery,
-      router,
-      searchParams,
-    ]
+    [queryState.searchQuery, router, searchParams],
   );
+
   const syncSearchQueryParam = useDebouncedCallback((value: string) => {
     syncQueryParams({ searchQuery: value }, "replace");
   }, 250);
@@ -191,145 +158,74 @@ export default function RoomsView({
   }, [syncSearchQueryParam]);
 
   const loadRooms = useCallback(async () => {
+    if (!canViewRooms) {
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
+    setLoadError(null);
     try {
-      const [roomsData, defaultsData] = await Promise.all([
-        fetchRooms(schoolId),
-        fetchRoomDefaultAssignments(schoolId),
-      ]);
-      setRooms(roomsData);
-      setRoomDefaults(defaultsData);
+      const loadedRooms = await fetchRooms(schoolId);
+      setRooms(loadedRooms);
     } catch (error) {
       console.error("Failed to load rooms:", error);
-      showToast("Failed to load rooms", "error");
+      const errorMessage = roomApiErrorMessage(error, t("loadError"));
+      setLoadError(errorMessage);
+      showToast(errorMessage, "error");
     } finally {
       setIsLoading(false);
     }
-  }, [schoolId, showToast]);
+  }, [canViewRooms, schoolId, showToast, t]);
 
   useEffect(() => {
-    loadRooms();
+    void loadRooms();
   }, [loadRooms]);
 
-  useEffect(() => {
-    const loadStructure = async () => {
-      if (!academicYearId || !termId) return;
-      try {
-        const structure = await fetchStructureTree(academicYearId, termId);
-        setStages(structure.stages || []);
-        setGrades(structure.grades || []);
-        setSections(structure.sections || []);
-        setClassrooms(structure.classrooms || []);
-      } catch (error) {
-        console.error("Failed to load structure for room defaults:", error);
-      }
-    };
+  const openAddRoomDialog = () => {
+    if (!canMutateRooms) return;
 
-    loadStructure();
-  }, [academicYearId, termId]);
-
-  useEffect(() => {
-    if (stages.length === 0 && grades.length === 0 && sections.length === 0) {
-      return;
-    }
-
-    const normalizedStageId = stages.some(
-      (stage) => stage.id === queryState.defaultStageId
-    )
-      ? queryState.defaultStageId
-      : "";
-
-    const normalizedGradeId = grades.some(
-      (grade) =>
-        grade.id === queryState.defaultGradeId &&
-        (!normalizedStageId || grade.stageId === normalizedStageId)
-    )
-      ? queryState.defaultGradeId
-      : "";
-
-    const normalizedSectionId = sections.some(
-      (section) =>
-        section.id === queryState.defaultSectionId &&
-        (!normalizedGradeId || section.gradeId === normalizedGradeId)
-    )
-      ? queryState.defaultSectionId
-      : "";
-
-    const normalizedClassroomId =
-      queryState.defaultScopeType === "CLASSROOM" &&
-      classrooms.some(
-        (classroom) =>
-          classroom.id === queryState.defaultClassroomId &&
-          (!normalizedSectionId || classroom.sectionId === normalizedSectionId)
-      )
-        ? queryState.defaultClassroomId
-        : "";
-
-    if (
-      normalizedStageId === queryState.defaultStageId &&
-      normalizedGradeId === queryState.defaultGradeId &&
-      normalizedSectionId === queryState.defaultSectionId &&
-      normalizedClassroomId === queryState.defaultClassroomId
-    ) {
-      return;
-    }
-
-    syncQueryParams(
-      {
-        defaultStageId: normalizedStageId,
-        defaultGradeId: normalizedGradeId,
-        defaultSectionId: normalizedSectionId,
-        defaultClassroomId: normalizedClassroomId,
-      },
-      "replace"
-    );
-  }, [
-    classrooms,
-    grades,
-    queryState.defaultClassroomId,
-    queryState.defaultGradeId,
-    queryState.defaultScopeType,
-    queryState.defaultSectionId,
-    queryState.defaultStageId,
-    sections,
-    stages,
-    syncQueryParams,
-  ]);
-
-  const handleAddRoom = () => {
     setEditingRoom(null);
     setRoomDialogOpen(true);
   };
 
-  const handleEditRoom = (room: Room) => {
+  const openEditRoomDialog = (room: Room) => {
+    if (!canMutateRooms) return;
+
     setEditingRoom(room);
     setRoomDialogOpen(true);
   };
 
-  const handleDeleteClick = (room: Room) => {
+  const openDeleteRoomDialog = (room: Room) => {
+    if (!canMutateRooms) return;
+
     setRoomToDelete(room);
     setDeleteDialogOpen(true);
   };
 
-  const handleRoomSave = async (roomData: Omit<Room, "id" | "schoolId" | "createdAt" | "updatedAt">) => {
+  const saveRoom = async (roomDraft: RoomDraft) => {
+    if (!canMutateRooms || isRoomSaving) return;
+
+    setIsRoomSaving(true);
     try {
       if (editingRoom) {
-        await updateRoom(editingRoom.id, roomData);
-        showToast(tCommon("save_success"), "success");
+        await updateRoom(editingRoom.id, roomDraft);
       } else {
-        await createRoom(schoolId, roomData);
-        showToast(tCommon("save_success"), "success");
+        await createRoom(schoolId, roomDraft);
       }
+      showToast(tCommon("save_success"), "success");
       await loadRooms();
       setRoomDialogOpen(false);
     } catch (error) {
       console.error("Failed to save room:", error);
-      showToast(tCommon("save_failed"), "error");
+      showToast(roomApiErrorMessage(error, tCommon("save_failed")), "error");
+    } finally {
+      setIsRoomSaving(false);
     }
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!roomToDelete) return;
+  const confirmDeleteRoom = async () => {
+    if (!roomToDelete || !canMutateRooms) return;
 
     try {
       await deleteRoom(roomToDelete.id);
@@ -339,185 +235,101 @@ export default function RoomsView({
       setRoomToDelete(null);
     } catch (error) {
       console.error("Failed to delete room:", error);
-      showToast(tCommon("delete_failed"), "error");
+      showToast(roomApiErrorMessage(error, tCommon("delete_failed")), "error");
     }
   };
 
-  const resetDefaultForm = () => {
-    setEditingDefault(null);
-    syncQueryParams(
-      {
-        defaultScopeType: "SECTION",
-        defaultStageId: "",
-        defaultGradeId: "",
-        defaultSectionId: "",
-        defaultClassroomId: "",
-      },
-      "replace"
-    );
-    setDefaultRoomId("");
-  };
-
-  const handleEditDefault = (assignment: RoomDefaultAssignment) => {
-    setEditingDefault(assignment);
-    if (assignment.scopeType === "SECTION") {
-      const section = sections.find((item) => item.id === assignment.scopeId);
-      const grade = section ? grades.find((item) => item.id === section.gradeId) : undefined;
-      syncQueryParams(
-        {
-          defaultScopeType: "SECTION",
-          defaultStageId: grade?.stageId || "",
-          defaultGradeId: section?.gradeId || "",
-          defaultSectionId: section?.id || "",
-          defaultClassroomId: "",
-        },
-        "replace"
-      );
-    } else {
-      const classroom = classrooms.find((item) => item.id === assignment.scopeId);
-      const section = classroom
-        ? sections.find((item) => item.id === classroom.sectionId)
-        : undefined;
-      const grade = section ? grades.find((item) => item.id === section.gradeId) : undefined;
-      syncQueryParams(
-        {
-          defaultScopeType: "CLASSROOM",
-          defaultStageId: grade?.stageId || "",
-          defaultGradeId: section?.gradeId || "",
-          defaultSectionId: section?.id || "",
-          defaultClassroomId: classroom?.id || "",
-        },
-        "replace"
-      );
-    }
-    setDefaultRoomId(assignment.roomId);
-  };
-
-  const handleSaveDefault = async () => {
-    const scopeId =
-      queryState.defaultScopeType === "CLASSROOM"
-        ? queryState.defaultClassroomId
-        : queryState.defaultSectionId;
-    if (!scopeId || !defaultRoomId) {
-      showToast(t("defaults.validation"), "error");
-      return;
-    }
-
-    try {
-      if (editingDefault) {
-        await updateRoomDefaultAssignment(editingDefault.id, {
-          scopeType: queryState.defaultScopeType,
-          scopeId,
-          roomId: defaultRoomId,
-        });
-      } else {
-        await createRoomDefaultAssignment(schoolId, {
-          scopeType: queryState.defaultScopeType,
-          scopeId,
-          roomId: defaultRoomId,
-        });
-      }
-
-      await loadRooms();
-      resetDefaultForm();
-      showToast(tCommon("save_success"), "success");
-    } catch (error) {
-      console.error("Failed to save room default:", error);
-      showToast(tCommon("save_failed"), "error");
-    }
-  };
-
-  const handleDeleteDefault = async (assignmentId: string) => {
-    try {
-      await deleteRoomDefaultAssignment(assignmentId);
-      await loadRooms();
-      if (editingDefault?.id === assignmentId) {
-        resetDefaultForm();
-      }
-      showToast(tCommon("delete_success"), "success");
-    } catch (error) {
-      console.error("Failed to delete room default:", error);
-      showToast(tCommon("delete_failed"), "error");
-    }
-  };
-
-  const filteredRooms = rooms.filter((room) => {
-    if (!searchInputValue) return true;
-    const query = searchInputValue.toLowerCase();
-    return (
-      room.nameAr.toLowerCase().includes(query) ||
-      room.nameEn.toLowerCase().includes(query)
-    );
-  });
-
-  const filteredSections = queryState.defaultGradeId
-    ? sections.filter((section) => section.gradeId === queryState.defaultGradeId)
-    : sections;
-  const filteredGrades = queryState.defaultStageId
-    ? grades.filter((grade) => grade.stageId === queryState.defaultStageId)
-    : grades;
-  const filteredClassrooms = queryState.defaultSectionId
-    ? classrooms.filter((classroom) => classroom.sectionId === queryState.defaultSectionId)
-    : [];
-
-  const getDisplayName = useCallback(
-    (item?: { nameAr?: string; nameEn?: string }) =>
-      item
-        ? locale === "ar"
-          ? item.nameAr || item.nameEn || ""
-          : item.nameEn || item.nameAr || ""
-        : "",
-    [locale],
+  const buildingOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          rooms
+            .map((room) => room.building?.trim())
+            .filter((building): building is string => Boolean(building)),
+        ),
+      )
+        .sort((left, right) => left.localeCompare(right))
+        .map((building) => ({ value: building, label: building })),
+    [rooms],
   );
 
-  const stageOptions = stages.map((stage) => ({
-    value: stage.id,
-    label: getDisplayName(stage),
-  }));
-  const filteredGradeOptions = filteredGrades.map((grade) => ({
-    value: grade.id,
-    label: getDisplayName(grade),
-  }));
-  const sectionOptions = filteredSections.map((section) => ({
-    value: section.id,
-    label: getDisplayName(section),
-  }));
-  const classroomOptions = filteredClassrooms.map((classroom) => ({
-    value: classroom.id,
-    label: getDisplayName(classroom),
-  }));
-  const roomOptions = rooms.map((room) => ({
-    value: room.id,
-    label: getDisplayName(room),
-  }));
+  const floorOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          rooms
+            .map((room) => room.floor?.trim())
+            .filter((floor): floor is string => Boolean(floor)),
+        ),
+      )
+        .sort((left, right) => left.localeCompare(right))
+        .map((floor) => ({ value: floor, label: floor })),
+    [rooms],
+  );
+
+  const filteredRooms = useMemo(() => {
+    const searchQuery = searchInputValue.trim().toLowerCase();
+
+    return rooms.filter((room) => {
+      const matchesSearch =
+        !searchQuery ||
+        [room.name, room.nameAr, room.nameEn, room.building, room.floor].some(
+          (roomField) => roomField?.toLowerCase().includes(searchQuery),
+        );
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && room.isActive) ||
+        (statusFilter === "inactive" && !room.isActive);
+      const matchesBuilding =
+        !buildingFilter || room.building?.trim() === buildingFilter;
+      const matchesFloor = !floorFilter || room.floor?.trim() === floorFilter;
+
+      return matchesSearch && matchesStatus && matchesBuilding && matchesFloor;
+    });
+  }, [buildingFilter, floorFilter, rooms, searchInputValue, statusFilter]);
 
   const columns = [
     {
       key: "name",
       label: t("table.name"),
       render: (_value: unknown, room: Room) => (
-        <div>
+        <div className="min-w-0">
           <div className="font-medium text-gray-900">
             {locale === "ar" ? room.nameAr : room.nameEn}
           </div>
-          <div className="text-sm text-gray-500">
-            {locale === "ar" ? room.nameEn : room.nameAr}
+          <div className="truncate text-sm text-gray-500">
+            {[room.nameAr, room.nameEn].filter(Boolean).join(" / ")}
           </div>
         </div>
       ),
     },
-
     {
       key: "capacity",
       label: t("table.capacity"),
-      render: (_value: unknown, room: Room) => <span className="text-gray-900">{room.capacity}</span>,
+      render: (_value: unknown, room: Room) => (
+        <span className="text-gray-900">{room.capacity ? room.capacity : "-"}</span>
+      ),
+    },
+    {
+      key: "building",
+      label: t("building"),
+      render: (_value: unknown, room: Room) => (
+        <span className="text-gray-900">{room.building || "-"}</span>
+      ),
+    },
+    {
+      key: "floor",
+      label: t("floor"),
+      render: (_value: unknown, room: Room) => (
+        <span className="text-gray-900">{room.floor || "-"}</span>
+      ),
     },
     {
       key: "status",
       label: t("table.status"),
       render: (_value: unknown, room: Room) => (
         <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
             room.isActive
               ? "bg-green-100 text-green-800"
               : "bg-gray-100 text-gray-800"
@@ -530,87 +342,46 @@ export default function RoomsView({
     {
       key: "actions",
       label: t("table.actions"),
-      render: (_value: unknown, room: Room) => (
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => handleEditRoom(room)}
-            disabled={isReadOnly}
-            className="text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => handleDeleteClick(room)}
-            disabled={isReadOnly}
-            className="text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      ),
+      sortable: false,
+      render: (_value: unknown, room: Room) =>
+        canManageRooms ? (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => openEditRoomDialog(room)}
+              disabled={isReadOnly}
+              className="text-blue-600 hover:text-blue-800 disabled:cursor-not-allowed disabled:text-gray-400"
+              aria-label={tCommon("edit")}
+            >
+              <Edit2 className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => openDeleteRoomDialog(room)}
+              disabled={isReadOnly}
+              className="text-red-600 hover:text-red-800 disabled:cursor-not-allowed disabled:text-gray-400"
+              aria-label={tCommon("delete")}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <span className="text-gray-400">-</span>
+        ),
     },
   ];
 
-  const roomExportRows = useMemo(() => {
-    const roomRows = filteredRooms.map((room) => ({
-      dataset: locale === "ar" ? "الغرف" : "Rooms",
-      name: locale === "ar" ? room.nameAr : room.nameEn,
-      secondaryName: locale === "ar" ? room.nameEn : room.nameAr,
-      capacity: room.capacity,
-      status: room.isActive ? t("active") : t("inactive"),
-      scopeType: "",
-      scopePath: "",
-      assignedRoom: "",
-    }));
-
-    const defaultRows = roomDefaults.map((assignment) => {
-      const room = rooms.find((item) => item.id === assignment.roomId);
-      const classroom =
-        assignment.scopeType === "CLASSROOM"
-          ? classrooms.find((item) => item.id === assignment.scopeId)
-          : undefined;
-      const section =
-        assignment.scopeType === "SECTION"
-          ? sections.find((item) => item.id === assignment.scopeId)
-          : classroom
-            ? sections.find((item) => item.id === classroom.sectionId)
-            : undefined;
-      const grade = section
-        ? grades.find((item) => item.id === section.gradeId)
-        : undefined;
-      const stage = grade
-        ? stages.find((item) => item.id === grade.stageId)
-        : undefined;
-
-      return {
-        dataset: locale === "ar" ? "التعيينات الافتراضية" : "Default Assignments",
-        name: "",
-        secondaryName: "",
-        type: "",
-        capacity: "",
-        status: "",
-        scopeType: assignment.scopeType,
-        scopePath: [stage, grade, section, classroom]
-          .filter(Boolean)
-          .map((item) => getDisplayName(item))
-          .join(" / "),
-        assignedRoom: room ? getDisplayName(room) : "",
-      };
-    });
-
-    return [...roomRows, ...defaultRows];
-  }, [
-    classrooms,
-    filteredRooms,
-    getDisplayName,
-    grades,
-    locale,
-    roomDefaults,
-    rooms,
-    sections,
-    stages,
-    t,
-  ]);
+  const roomExportRows = useMemo(
+    () =>
+      filteredRooms.map((room) => ({
+        dataset: t("title"),
+        name: locale === "ar" ? room.nameAr : room.nameEn,
+        secondaryName: locale === "ar" ? room.nameEn : room.nameAr,
+        capacity: room.capacity,
+        building: room.building || "",
+        floor: room.floor || "",
+        status: room.isActive ? t("active") : t("inactive"),
+      })),
+    [filteredRooms, locale, t],
+  );
 
   const handleExport = (format: AcademicsExportFormat) => {
     const metadata: ExportMetadata = {
@@ -619,27 +390,13 @@ export default function RoomsView({
       exportDate: formatExportDate(locale),
     };
     const columnsForExport: ExportColumn[] = [
-      { key: "dataset", label: locale === "ar" ? "مجموعة البيانات" : "Dataset" },
-      { key: "name", label: locale === "ar" ? "الاسم" : "Name" },
-      {
-        key: "secondaryName",
-        label: locale === "ar" ? "الاسم الثانوي" : "Secondary name",
-      },
-
-      { key: "capacity", label: locale === "ar" ? "السعة" : "Capacity" },
-      { key: "status", label: locale === "ar" ? "الحالة" : "Status" },
-      {
-        key: "scopeType",
-        label: locale === "ar" ? "نوع النطاق" : "Scope type",
-      },
-      {
-        key: "scopePath",
-        label: locale === "ar" ? "مسار النطاق" : "Scope path",
-      },
-      {
-        key: "assignedRoom",
-        label: locale === "ar" ? "الغرفة المعيّنة" : "Assigned room",
-      },
+      { key: "dataset", label: t("title") },
+      { key: "name", label: t("name") },
+      { key: "secondaryName", label: t("name") },
+      { key: "capacity", label: t("capacity") },
+      { key: "building", label: t("building") },
+      { key: "floor", label: t("floor") },
+      { key: "status", label: t("status") },
     ];
 
     exportAcademicsData({
@@ -654,282 +411,189 @@ export default function RoomsView({
         title: "Rooms",
         metadata,
         rooms: filteredRooms,
-        roomDefaults,
       },
     });
   };
 
+  if (!canViewRooms) {
+    return (
+      <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+          <div className="flex items-start gap-3">
+            <div className="rounded-full bg-amber-100 p-2 text-amber-700">
+              <ShieldAlert className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-amber-900">
+                {t("accessDeniedTitle")}
+              </h1>
+              <p className="mt-1 text-sm text-amber-800">
+                {t("accessDeniedDescription")}
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <div className="flex flex-col h-full bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">{t("title")}</h2>
+    <div className="flex h-full flex-col bg-gray-50">
+      <div className="border-b border-gray-200 bg-white px-6 py-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">{t("title")}</h2>
+            <p className="mt-1 text-sm text-gray-500">{t("subtitle")}</p>
+          </div>
           <div className="flex items-center gap-2">
             <Button
               onClick={() => setShowExportModal(true)}
               variant="secondary"
-              leftIcon={<Download className="w-4 h-4" />}
+              leftIcon={<Download className="h-4 w-4" />}
               disabled={roomExportRows.length === 0}
             >
               {tExport("button")}
             </Button>
-            <Button
-              onClick={handleAddRoom}
-              disabled={isReadOnly}
-              variant="primary"
-              leftIcon={<Plus className="w-4 h-4" />}
-            >
-              {t("addRoom")}
-            </Button>
+            {canManageRooms && (
+              <Button
+                onClick={openAddRoomDialog}
+                disabled={isReadOnly}
+                variant="primary"
+                leftIcon={<Plus className="h-4 w-4" />}
+              >
+                {t("addRoom")}
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-auto p-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-          {/* Search */}
-          <div className="p-4 border-b border-gray-200">
-            <input
-              type="text"
-              value={searchInputValue}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSearchInputValue(value);
-                syncSearchQueryParam(value);
-              }}
-              placeholder={t("searchPlaceholder")}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        {isReadOnly && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+            <AlertCircle className="h-4 w-4" />
+            <span>{t("readOnlyTerm")}</span>
+          </div>
+        )}
+
+        <div className="mb-6 rounded-lg border border-gray-200 bg-white shadow-sm">
+          <div className="grid gap-3 border-b border-gray-200 p-4 md:grid-cols-2 xl:grid-cols-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                {t("search")}
+              </label>
+              <input
+                type="text"
+                value={searchInputValue}
+                onChange={(event) => {
+                  const nextSearchValue = event.target.value;
+                  setSearchInputValue(nextSearchValue);
+                  syncSearchQueryParam(nextSearchValue);
+                }}
+                placeholder={t("searchPlaceholder")}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <Select
+              label={t("status")}
+              value={statusFilter}
+              onChange={(value) => setStatusFilter(value as StatusFilter)}
+              options={[
+                { value: "all", label: t("allStatuses") },
+                { value: "active", label: t("active") },
+                { value: "inactive", label: t("inactive") },
+              ]}
+            />
+            <Select
+              label={t("building")}
+              value={buildingFilter}
+              onChange={setBuildingFilter}
+              placeholder={t("allBuildings")}
+              options={[
+                { value: "", label: t("allBuildings") },
+                ...buildingOptions,
+              ]}
+            />
+            <Select
+              label={t("floor")}
+              value={floorFilter}
+              onChange={setFloorFilter}
+              placeholder={t("allFloors")}
+              options={[{ value: "", label: t("allFloors") }, ...floorOptions]}
             />
           </div>
 
-          {/* Table */}
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-             <MainLoader />
+              <MainLoader />
             </div>
-          ) : filteredRooms.length === 0 ? (
+          ) : loadError ? (
             <div className="flex items-center justify-center py-12">
-              <div className="text-gray-500">{t("emptyState")}</div>
+              <div className="text-center">
+                <p className="text-sm text-red-700">{loadError}</p>
+                <Button
+                  className="mt-3"
+                  variant="secondary"
+                  onClick={() => void loadRooms()}
+                >
+                  {tCommon("retry")}
+                </Button>
+              </div>
+            </div>
+          ) : rooms.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="max-w-sm text-center">
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {t("emptyTitle")}
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {t("emptyDescription")}
+                </p>
+                {canMutateRooms && (
+                  <Button
+                    className="mt-4"
+                    variant="primary"
+                    leftIcon={<Plus className="h-4 w-4" />}
+                    onClick={openAddRoomDialog}
+                  >
+                    {t("addRoom")}
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
             <DataTable
               data={filteredRooms as unknown as { [key: string]: unknown }[]}
-              columns={columns as unknown as Array<{ key: string; label: string; render?: (value: unknown, row: unknown) => React.ReactNode }>}
+              columns={
+                columns as unknown as Array<{
+                  key: string;
+                  label: string;
+                  sortable?: boolean;
+                  render?: (value: unknown, row: unknown) => React.ReactNode;
+                }>
+              }
+              emptyTitle={t("emptyTitle")}
+              emptyDescription={t("emptyDescription")}
               searchQuery={searchInputValue}
             />
           )}
         </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">{t("defaults.title")}</h3>
-              <p className="text-sm text-gray-500">{t("defaults.description")}</p>
-            </div>
-            {editingDefault && (
-              <Button variant="secondary" onClick={resetDefaultForm}>
-                {tCommon("cancel")}
-              </Button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
-            <Select
-              label={t("defaults.scopeType")}
-              value={queryState.defaultScopeType}
-              onChange={(value) => {
-                syncQueryParams(
-                  {
-                    defaultScopeType: value as "SECTION" | "CLASSROOM",
-                    defaultStageId: "",
-                    defaultGradeId: "",
-                    defaultSectionId: "",
-                    defaultClassroomId: "",
-                  },
-                  "push"
-                );
-              }}
-              options={[
-                { value: "SECTION", label: t("defaults.section") },
-                { value: "CLASSROOM", label: t("defaults.classroom") },
-              ]}
-              disabled={isReadOnly}
-            />
-            <Select
-              label={t("defaults.stage")}
-              value={queryState.defaultStageId}
-              onChange={(value) => {
-                syncQueryParams(
-                  {
-                    defaultStageId: value,
-                    defaultGradeId: "",
-                    defaultSectionId: "",
-                    defaultClassroomId: "",
-                  },
-                  "push"
-                );
-              }}
-              options={stageOptions}
-              disabled={isReadOnly}
-            />
-            <Select
-              label={t("defaults.grade")}
-              value={queryState.defaultGradeId}
-              onChange={(value) => {
-                syncQueryParams(
-                  {
-                    defaultGradeId: value,
-                    defaultSectionId: "",
-                    defaultClassroomId: "",
-                  },
-                  "push"
-                );
-              }}
-              options={filteredGradeOptions}
-              disabled={isReadOnly || !queryState.defaultStageId}
-            />
-            <Select
-              label={t("defaults.section")}
-              value={queryState.defaultSectionId}
-              onChange={(value) => {
-                syncQueryParams(
-                  {
-                    defaultSectionId: value,
-                    defaultClassroomId: "",
-                  },
-                  "push"
-                );
-              }}
-              options={sectionOptions}
-              disabled={isReadOnly || !queryState.defaultGradeId}
-            />
-            <Select
-              label={t("defaults.classroom")}
-              value={queryState.defaultClassroomId}
-              onChange={(value) =>
-                syncQueryParams({ defaultClassroomId: value }, "push")
-              }
-              options={classroomOptions}
-              disabled={
-                isReadOnly ||
-                queryState.defaultScopeType !== "CLASSROOM" ||
-                !queryState.defaultSectionId
-              }
-            />
-            <Select
-              label={t("defaults.room")}
-              value={defaultRoomId}
-              onChange={setDefaultRoomId}
-              options={roomOptions}
-              disabled={isReadOnly}
-            />
-          </div>
-
-          <div className="flex justify-end">
-            <Button onClick={handleSaveDefault} disabled={isReadOnly}>
-              {editingDefault ? t("defaults.update") : t("defaults.add")}
-            </Button>
-          </div>
-
-          <div className="space-y-3">
-            {roomDefaults.length === 0 ? (
-              <div className="text-sm text-gray-500">{t("defaults.emptyState")}</div>
-            ) : (
-              roomDefaults.map((assignment) => {
-                const room = rooms.find((item) => item.id === assignment.roomId);
-                const section =
-                  assignment.scopeType === "SECTION"
-                    ? sections.find((item) => item.id === assignment.scopeId)
-                    : sections.find(
-                        (item) =>
-                          item.id ===
-                          classrooms.find((classroom) => classroom.id === assignment.scopeId)?.sectionId
-                      );
-                const classroom =
-                  assignment.scopeType === "CLASSROOM"
-                    ? classrooms.find((item) => item.id === assignment.scopeId)
-                    : undefined;
-                const grade = section
-                  ? grades.find((item) => item.id === section.gradeId)
-                  : undefined;
-                const stage = grade
-                  ? stages.find((item) => item.id === grade.stageId)
-                  : undefined;
-
-                return (
-                  <div
-                    key={assignment.id}
-                    className="flex flex-col gap-3 rounded-lg border border-gray-200 p-4 lg:flex-row lg:items-center lg:justify-between"
-                  >
-                    <div className="flex flex-wrap gap-2 text-sm">
-                      <span className="rounded-full bg-gray-100 px-3 py-1 font-medium text-gray-700">
-                        {assignment.scopeType === "CLASSROOM"
-                          ? t("defaults.classroom")
-                          : t("defaults.section")}
-                      </span>
-                      {stage && (
-                        <span className="rounded-full bg-gray-100 px-3 py-1 text-gray-700">
-                          {t("defaults.stage")}: {getDisplayName(stage)}
-                        </span>
-                      )}
-                      {grade && (
-                        <span className="rounded-full bg-gray-100 px-3 py-1 text-gray-700">
-                          {t("defaults.grade")}: {getDisplayName(grade)}
-                        </span>
-                      )}
-                      {section && (
-                        <span className="rounded-full bg-gray-100 px-3 py-1 text-gray-700">
-                          {t("defaults.section")}: {getDisplayName(section)}
-                        </span>
-                      )}
-                      {classroom && (
-                        <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">
-                          {t("defaults.classroom")}: {getDisplayName(classroom)}
-                        </span>
-                      )}
-                      {room && (
-                        <span className="rounded-full bg-green-50 px-3 py-1 text-green-700">
-                          {t("defaults.room")}: {getDisplayName(room)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="secondary"
-                        onClick={() => handleEditDefault(assignment)}
-                        disabled={isReadOnly}
-                      >
-                        {tCommon("edit")}
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        onClick={() => handleDeleteDefault(assignment.id)}
-                        disabled={isReadOnly}
-                      >
-                        {tCommon("delete")}
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
       </div>
 
-      {/* Room Dialog */}
       {roomDialogOpen && (
         <RoomDialog
           open={roomDialogOpen}
           room={editingRoom}
-          onSave={handleRoomSave}
-          onClose={() => setRoomDialogOpen(false)}
+          isSaving={isRoomSaving}
+          onSave={saveRoom}
+          onClose={() => {
+            if (!isRoomSaving) {
+              setRoomDialogOpen(false);
+            }
+          }}
         />
       )}
 
-      {/* Delete Confirmation */}
       {deleteDialogOpen && roomToDelete && (
         <ConfirmDialog
           isOpen={deleteDialogOpen}
@@ -937,7 +601,7 @@ export default function RoomsView({
           description={t("deleteConfirm")}
           confirmLabel={tCommon("delete")}
           cancelLabel={tCommon("cancel")}
-          onConfirm={handleDeleteConfirm}
+          onConfirm={confirmDeleteRoom}
           onClose={() => {
             setDeleteDialogOpen(false);
             setRoomToDelete(null);

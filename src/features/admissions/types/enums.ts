@@ -30,6 +30,6 @@ export type InterviewStatus =
 
 export type DecisionType = "accept" | "waitlist" | "reject";
 
-export type DocumentStatus = "complete" | "missing";
+export type DocumentStatus = "pending_review" | "complete" | "missing";
 
 export type ApplicationSource = "in_app" | "referral" | "walk_in" | "other";

@@ -1,5 +1,11 @@
-import BehaviorOverviewPage from "@/features/behavior/overview/pages/BehaviorOverviewPage";
+import { redirect } from "next/navigation";
 
-export default function BehaviorPage() {
-  return <BehaviorOverviewPage />;
+export default async function BehaviorPage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
+
+  redirect(`/${lang}/behavior/overview`);
 }

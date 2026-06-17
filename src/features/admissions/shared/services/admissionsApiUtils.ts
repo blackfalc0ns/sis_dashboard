@@ -157,6 +157,33 @@ const normalizeSource = (value: unknown): ApplicationSource => {
   return "other";
 };
 
+function normalizeDocumentStatus(status?: string | null): DocumentStatus {
+  const value = String(status || "").trim().toLowerCase();
+
+  if (
+    value === "pending_review" ||
+    value === "pending-review" ||
+    value === "pending review"
+  ) {
+    return "pending_review";
+  }
+
+  if (value === "complete" || value === "accepted" || value === "approved") {
+    return "complete";
+  }
+
+  if (
+    value === "missing" ||
+    value === "rejected" ||
+    value === "replacement_requested" ||
+    value === "needs_replacement"
+  ) {
+    return "missing";
+  }
+
+  return "missing";
+}
+
 export function normalizeDocument(input: unknown): Document {
   if (!isRecord(input)) throw new Error("Invalid admissions document response.");
 
@@ -164,15 +191,12 @@ export function normalizeDocument(input: unknown): Document {
   if (!id) throw new Error("Admissions document response is missing an id.");
 
   const type = readString(input, ["documentType", "document_type", "type"], "document");
-  const status = readString(input, ["status"], "missing").toLowerCase() === "complete"
-    ? "complete"
-    : "missing";
 
   return {
     id,
     type,
     name: readString(input, ["fileName", "file_name", "name"], type),
-    status: status as DocumentStatus,
+    status: normalizeDocumentStatus(readString(input, ["status"], "missing")),
     uploadedDate: readString(input, ["uploadedAt", "uploaded_at", "createdAt", "created_at"]) || undefined,
     url: readString(input, ["url", "fileUrl", "file_url"]) || undefined,
     labelEn: readString(input, ["labelEn", "label_en", "documentType", "document_type"]) || undefined,

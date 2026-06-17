@@ -28,11 +28,13 @@ import TestsTab from "@/features/admissions/applications/components/tabs/TestsTa
 import InterviewsTab from "@/features/admissions/applications/components/tabs/InterviewsTab";
 import TimelineTab from "@/features/admissions/applications/components/tabs/TimelineTab";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
-import type { Application, DecisionType } from "@/features/admissions/types/admissions";
-import {
-  fetchApplicationById,
-  submitApplication,
-} from "@/features/admissions/applications/services/applicationsApiService";
+import { useToast } from "@/components/ui/toast/Toast";
+import type {
+  Application,
+  ApplicationStatus,
+  DecisionType,
+} from "@/features/admissions/types/admissions";
+import { fetchApplicationById } from "@/features/admissions/applications/services/applicationsApiService";
 import { fetchApplicationDocuments } from "@/features/admissions/applications/services/applicationDocumentsApiService";
 import {
   createPlacementTest,
@@ -62,6 +64,7 @@ export default function ApplicationDetailsPage({
   const t = useTranslations("admissions.application360");
   const locale = useLocale();
   const router = useRouter();
+  const { showToast } = useToast();
   const normalizeQueryValues = useCallback(
     (values: Record<"tab", string>) => {
       const validTabs = new Set([
@@ -197,6 +200,34 @@ export default function ApplicationDetailsPage({
     },
   ];
 
+  const finalDecisionStatuses: ApplicationStatus[] = [
+    "accepted",
+    "waitlisted",
+    "rejected",
+  ];
+  const canScheduleAdmissionsSteps: ApplicationStatus[] = [
+    "submitted",
+    "under_review",
+    "documents_pending",
+  ];
+  const canMakeDecisionStatuses: ApplicationStatus[] = [
+    "submitted",
+    "under_review",
+  ];
+  const isFinalDecisionStatus = finalDecisionStatuses.includes(
+    application.status,
+  );
+  const canScheduleAdmissionsStep = canScheduleAdmissionsSteps.includes(
+    application.status,
+  );
+  const canMakeDecision = canMakeDecisionStatuses.includes(application.status);
+  const finalDecisionMessage =
+    application.status === "waitlisted"
+      ? t("actions.waitlisted_no_transition")
+      : application.status === "rejected"
+        ? t("actions.rejected_no_actions")
+        : null;
+
   const handleTabChange = (tabId: string) => {
     setValue("tab", tabId, "push");
   };
@@ -217,17 +248,6 @@ export default function ApplicationDetailsPage({
     setIsEnrollmentOpen(true);
   };
 
-  const handleSubmitApplication = async () => {
-    try {
-      const updated = await submitApplication(application.id);
-      setApplication(updated);
-      alert("Application submitted successfully.");
-    } catch (submitError) {
-      console.error("Failed to submit application:", submitError);
-      alert("Failed to submit application. Please try again.");
-    }
-  };
-
   const handleScheduleTestSubmit = async (data: {
     date: string;
     time: string;
@@ -245,7 +265,7 @@ export default function ApplicationDetailsPage({
       await loadApplication();
     } catch (scheduleError) {
       console.error("Failed to schedule test:", scheduleError);
-      alert("Failed to schedule test. Please try again.");
+      showToast("Failed to schedule test. Please try again.", "error");
     }
   };
 
@@ -266,7 +286,7 @@ export default function ApplicationDetailsPage({
       await loadApplication();
     } catch (scheduleError) {
       console.error("Failed to schedule interview:", scheduleError);
-      alert("Failed to schedule interview. Please try again.");
+      showToast("Failed to schedule interview. Please try again.", "error");
     }
   };
 
@@ -284,9 +304,10 @@ export default function ApplicationDetailsPage({
       await loadApplication();
     } catch (decisionError) {
       console.error("Failed to create decision:", decisionError);
-      alert(
+      showToast(
         getDecisionFriendlyErrorMessage(decisionError) ||
           "Failed to create decision. Please try again.",
+        "error",
       );
     }
   };
@@ -295,12 +316,13 @@ export default function ApplicationDetailsPage({
     try {
       await createEnrollmentHandoffPreview(application.id);
       setIsEnrollmentOpen(false);
-      alert("Enrollment handoff preview created successfully.");
+      showToast("Enrollment handoff preview created successfully.", "success");
     } catch (enrollmentError) {
       console.error("Failed to create enrollment handoff:", enrollmentError);
-      alert(
+      showToast(
         getEnrollmentFriendlyErrorMessage(enrollmentError) ||
           "Failed to create enrollment handoff. Please try again.",
+        "error",
       );
     }
   };
@@ -370,24 +392,30 @@ export default function ApplicationDetailsPage({
         {/* Sticky Action Bar */}
         <div className="bg-white rounded-xl shadow-sm p-6 sticky bottom-4">
           <div className="flex items-center gap-3 flex-wrap">
-            <button
-              onClick={handleScheduleTest}
-              className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-            >
-              {t("actions.schedule_test")}
-            </button>
-            <button
-              onClick={handleScheduleInterview}
-              className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-            >
-              {t("actions.schedule_interview")}
-            </button>
-            <button
-              onClick={handleMakeDecision}
-              className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              {t("actions.make_decision")}
-            </button>
+            {canScheduleAdmissionsStep && (
+              <>
+                <button
+                  onClick={handleScheduleTest}
+                  className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                >
+                  {t("actions.schedule_test")}
+                </button>
+                <button
+                  onClick={handleScheduleInterview}
+                  className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                >
+                  {t("actions.schedule_interview")}
+                </button>
+              </>
+            )}
+            {canMakeDecision && (
+              <button
+                onClick={handleMakeDecision}
+                className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                {t("actions.make_decision")}
+              </button>
+            )}
             {application.status === "accepted" && (
               <button
                 onClick={handleEnroll}
@@ -395,6 +423,11 @@ export default function ApplicationDetailsPage({
               >
                 {t("actions.enroll_student")}
               </button>
+            )}
+            {isFinalDecisionStatus && finalDecisionMessage && (
+              <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700">
+                {finalDecisionMessage}
+              </p>
             )}
           </div>
         </div>

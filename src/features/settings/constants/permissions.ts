@@ -2,6 +2,34 @@ import type { PermissionDefinition } from "@/features/settings/types";
 
 export const permissionCatalog: PermissionDefinition[] = [
   {
+    key: "admissions.applications.view",
+    module: "admissions_applications",
+    action: "view",
+    label: "View admissions applications",
+    description: "Access admissions application lists and application details.",
+  },
+  {
+    key: "admissions.applications.manage",
+    module: "admissions_applications",
+    action: "manage",
+    label: "Manage admissions applications",
+    description: "Create, submit, review, and update admissions applications.",
+  },
+  {
+    key: "admissions.documents.view",
+    module: "admissions_documents",
+    action: "view",
+    label: "View admissions applicant documents",
+    description: "Access and download documents submitted by applicants.",
+  },
+  {
+    key: "admissions.documents.manage",
+    module: "admissions_documents",
+    action: "manage",
+    label: "Manage admissions applicant documents",
+    description: "Upload, remove, accept, reject, and request replacements for applicant documents.",
+  },
+  {
     key: "settings.overview.view",
     module: "overview",
     action: "view",

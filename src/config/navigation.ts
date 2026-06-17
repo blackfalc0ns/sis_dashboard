@@ -113,8 +113,8 @@ export const menuItems: MenuItem[] = [
         key: "communication-safety",
         label_en: "Safety & Moderation",
         label_ar: "الأمان والإشراف",
-        href_en: "/en/communication/safety/reports",
-        href_ar: "/ar/communication/safety/reports",
+        href_en: "/en/communication/moderation",
+        href_ar: "/ar/communication/moderation",
         icon: ShieldCheck,
       },
       {
@@ -328,6 +328,14 @@ export const menuItems: MenuItem[] = [
         icon: Network,
       },
       {
+        key: "academics-rooms",
+        label_en: "Rooms",
+        label_ar: "الغرف",
+        href_en: "/en/academics/rooms",
+        href_ar: "/ar/academics/rooms",
+        icon: Building2,
+      },
+      {
         key: "academics-subjects",
         label_en: "Subjects & Allocation",
         label_ar: "المواد وتوزيعها",
@@ -484,16 +492,16 @@ export const menuItems: MenuItem[] = [
     key: "behavior",
     label_en: "Behavior",
     label_ar: "السلوك",
-    href_en: "/en/behavior",
-    href_ar: "/ar/behavior",
+    href_en: "/en/behavior/overview",
+    href_ar: "/ar/behavior/overview",
     icon: ShieldCheck,
     children: [
       {
         key: "behavior-overview",
         label_en: "Overview",
         label_ar: "نظرة عامة",
-        href_en: "/en/behavior",
-        href_ar: "/ar/behavior",
+        href_en: "/en/behavior/overview",
+        href_ar: "/ar/behavior/overview",
         icon: LayoutDashboard,
       },
       {

@@ -1,0 +1,325 @@
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import DocumentsTab from "@/features/admissions/applications/components/tabs/DocumentsTab";
+import type { Application, Document } from "@/features/admissions/types/admissions";
+import { ApiError } from "@/lib/api-error";
+
+const serviceMocks = vi.hoisted(() => ({
+  acceptApplicationDocument: vi.fn(),
+  createApplicationDocument: vi.fn(),
+  fetchApplicationDocuments: vi.fn(),
+  rejectApplicationDocument: vi.fn(),
+  requestApplicationDocumentReplacement: vi.fn(),
+  uploadAdmissionsFile: vi.fn(),
+}));
+
+const toastMocks = vi.hoisted(() => ({
+  showToast: vi.fn(),
+}));
+
+const permissionMocks = vi.hoisted(() => ({
+  permissions: new Set<string>(),
+}));
+
+vi.mock(
+  "@/features/admissions/applications/services/applicationDocumentsApiService",
+  () => serviceMocks,
+);
+
+vi.mock("@/components/ui/toast/Toast", () => ({
+  useToast: () => ({
+    showToast: toastMocks.showToast,
+  }),
+}));
+
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    hasPermission: (permission: string) =>
+      permissionMocks.permissions.has(permission),
+  }),
+}));
+
+const applicationDocuments: Document[] = [
+  {
+    id: "doc-pending",
+    type: "passport",
+    name: "passport.pdf",
+    labelEn: "Pending document",
+    status: "pending_review",
+  },
+  {
+    id: "doc-complete",
+    type: "birth_certificate",
+    name: "birth.pdf",
+    labelEn: "Complete document",
+    status: "complete",
+  },
+  {
+    id: "doc-missing",
+    type: "medical_report",
+    name: "medical.pdf",
+    labelEn: "Missing document",
+    status: "missing",
+  },
+];
+
+const application = {
+  id: "app-1",
+  status: "documents_pending",
+  documents: applicationDocuments,
+  full_name_ar: "Student",
+  full_name_en: "Student",
+  studentName: "Student",
+  gender: "N/A",
+  date_of_birth: "2018-01-01",
+  nationality: "N/A",
+  grade_requested: "Grade 1",
+  gradeRequested: "Grade 1",
+  guardians: [],
+  guardianName: "Guardian",
+  guardianPhone: "123",
+  guardianEmail: "guardian@example.com",
+  submittedDate: "2026-01-01T00:00:00.000Z",
+  tests: [],
+  interviews: [],
+} as Application;
+
+function renderDocumentsTab() {
+  serviceMocks.fetchApplicationDocuments.mockResolvedValue(applicationDocuments);
+  return render(<DocumentsTab application={application} />);
+}
+
+function renderDocumentsTabWithDocuments(documents: Document[]) {
+  serviceMocks.fetchApplicationDocuments.mockResolvedValue(documents);
+  return render(
+    <DocumentsTab
+      application={{
+        ...application,
+        documents,
+      }}
+    />,
+  );
+}
+
+describe("DocumentsTab review actions", () => {
+  beforeEach(() => {
+    Object.values(serviceMocks).forEach((mock) => mock.mockReset());
+    toastMocks.showToast.mockReset();
+    permissionMocks.permissions = new Set([
+      "admissions.documents.view",
+      "admissions.documents.manage",
+    ]);
+  });
+
+  it("shows review actions only for pending review documents", async () => {
+    renderDocumentsTab();
+
+    expect(await screen.findByText("Pending document")).toBeInTheDocument();
+    expect(await screen.findByText("Complete document")).toBeInTheDocument();
+    expect(await screen.findByText("Missing document")).toBeInTheDocument();
+
+    expect(screen.getAllByRole("button", { name: "Accept" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Reject" })).toHaveLength(1);
+    expect(
+      screen.getAllByRole("button", { name: "Request replacement" }),
+    ).toHaveLength(1);
+    expect(
+      screen.getByRole("button", { name: "View document" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "This document was submitted by the applicant and is waiting for school review.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("This document has been accepted by the school."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "This document is missing, rejected, or waiting for applicant replacement.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("requires notes for reject and replacement actions", async () => {
+    const user = userEvent.setup();
+    renderDocumentsTab();
+
+    await user.click(await screen.findByRole("button", { name: "Reject" }));
+    expect(
+      screen.getByText(
+        "The applicant may need to upload a new document after this action.",
+      ),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Submit review" }));
+
+    expect(toastMocks.showToast).toHaveBeenCalledWith(
+      "Please enter a note before submitting.",
+      "error",
+    );
+    expect(serviceMocks.rejectApplicationDocument).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Request replacement" }));
+    expect(
+      screen.getByText(
+        "The applicant may need to upload a new document after this action.",
+      ),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Submit review" }));
+
+    expect(toastMocks.showToast).toHaveBeenCalledWith(
+      "Please enter a note before submitting.",
+      "error",
+    );
+    expect(
+      serviceMocks.requestApplicationDocumentReplacement,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("accepts a pending document without a note and refreshes documents", async () => {
+    const user = userEvent.setup();
+    serviceMocks.acceptApplicationDocument.mockResolvedValue({});
+    renderDocumentsTab();
+
+    await user.click(await screen.findByRole("button", { name: "Accept" }));
+    await user.click(screen.getByRole("button", { name: "Submit review" }));
+
+    await waitFor(() => {
+      expect(serviceMocks.acceptApplicationDocument).toHaveBeenCalledWith(
+        "app-1",
+        "doc-pending",
+        undefined,
+      );
+    });
+    expect(toastMocks.showToast).toHaveBeenCalledWith(
+      "Document review updated.",
+      "success",
+    );
+    expect(serviceMocks.fetchApplicationDocuments).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    [
+      "Reject",
+      "Needs updated scan",
+      serviceMocks.rejectApplicationDocument,
+    ],
+    [
+      "Request replacement",
+      "Please upload a clearer file",
+      serviceMocks.requestApplicationDocumentReplacement,
+    ],
+  ])("submits %s with a required note and refreshes documents", async (
+    actionLabel,
+    note,
+    actionMock,
+  ) => {
+    const user = userEvent.setup();
+    actionMock.mockResolvedValue({});
+    renderDocumentsTab();
+
+    await user.click(await screen.findByRole("button", { name: actionLabel }));
+    await user.type(screen.getByLabelText(/^Note/), note);
+    await user.click(screen.getByRole("button", { name: "Submit review" }));
+
+    await waitFor(() => {
+      expect(actionMock).toHaveBeenCalledWith("app-1", "doc-pending", note);
+    });
+    expect(toastMocks.showToast).toHaveBeenCalledWith(
+      "Document review updated.",
+      "success",
+    );
+    expect(serviceMocks.fetchApplicationDocuments).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the submit button disabled while a review action is saving", async () => {
+    const user = userEvent.setup();
+    let finishAcceptReview!: () => void;
+    serviceMocks.acceptApplicationDocument.mockReturnValue(
+      new Promise<void>((resolve) => {
+        finishAcceptReview = resolve;
+      }),
+    );
+    renderDocumentsTab();
+
+    await user.click(await screen.findByRole("button", { name: "Accept" }));
+    await user.click(screen.getByRole("button", { name: "Submit review" }));
+
+    expect(screen.getByRole("button", { name: "Submit review" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Submit review" }));
+    expect(serviceMocks.acceptApplicationDocument).toHaveBeenCalledTimes(1);
+
+    finishAcceptReview();
+    await waitFor(() => {
+      expect(toastMocks.showToast).toHaveBeenCalledWith(
+        "Document review updated.",
+        "success",
+      );
+    });
+  });
+
+  it("hides document management actions when the user can only view documents", async () => {
+    permissionMocks.permissions = new Set(["admissions.documents.view"]);
+    renderDocumentsTab();
+
+    expect(await screen.findByText("Pending document")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Accept" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Request replacement" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTitle("Remove document")).not.toBeInTheDocument();
+  });
+
+  it("hides documents when the user lacks document view permission", () => {
+    permissionMocks.permissions = new Set([]);
+    renderDocumentsTab();
+
+    expect(screen.getByText("You do not have access to this admissions area")).toBeInTheDocument();
+    expect(serviceMocks.fetchApplicationDocuments).not.toHaveBeenCalled();
+    expect(screen.queryByText("Pending document")).not.toBeInTheDocument();
+  });
+
+  it("shows a clear empty state when no documents have been submitted", async () => {
+    renderDocumentsTabWithDocuments([]);
+
+    expect(
+      await screen.findByText(
+        "No documents have been submitted for this application yet.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it.each([
+    [403, "You do not have permission to review this document."],
+    [404, "This application or document could not be found."],
+    [409, "This document has already been reviewed or is no longer pending review."],
+    [422, "Please check the review note and try again."],
+  ])("shows a friendly review error for HTTP %s", async (status, message) => {
+    const user = userEvent.setup();
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    serviceMocks.acceptApplicationDocument.mockRejectedValue(
+      new ApiError("Review failed", status, "REVIEW_FAILED"),
+    );
+    try {
+      renderDocumentsTab();
+
+      await user.click(await screen.findByRole("button", { name: "Accept" }));
+      await user.click(screen.getByRole("button", { name: "Submit review" }));
+
+      await waitFor(() => {
+        expect(toastMocks.showToast).toHaveBeenCalledWith(
+          message,
+          "error",
+        );
+      });
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
+  });
+});

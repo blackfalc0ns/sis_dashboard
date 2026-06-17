@@ -12,6 +12,7 @@ import {
   sendConversationMessage,
   markConversationAsRead,
 } from "@/features/admissions/leads/services/communicationApiService";
+import { useToast } from "@/components/ui/toast/Toast";
 
 interface LeadChatPanelProps {
   leadId: string;
@@ -30,6 +31,7 @@ export default function LeadChatPanel({
   onMessagesRead,
 }: LeadChatPanelProps) {
   const t = useTranslations("admissions.leads.chat");
+  const { showToast } = useToast();
   const [messages, setMessages] = useState<LeadMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -94,7 +96,7 @@ export default function LeadChatPanel({
       scrollToBottom();
     } catch (error) {
       console.error("Failed to send message:", error);
-      alert(t("send_failed"));
+      showToast(t("send_failed"), "error");
     } finally {
       setIsSending(false);
     }
