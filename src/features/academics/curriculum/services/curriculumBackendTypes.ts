@@ -120,6 +120,7 @@ export interface CurriculumListFilters {
   gradeId?: string;
   subjectId?: string;
   status?: BackendCurriculumStatus;
+  search?: string;
 }
 
 export interface CreateCurriculumRequest {
@@ -176,13 +177,10 @@ export interface UpdateLessonRequest {
 }
 
 export interface ReorderRequest {
-  itemIds: string[];
+  sortOrder: number;
 }
 
 export interface CreateLessonContentRequest {
-  curriculumId: string;
-  unitId: string;
-  lessonId: string;
   type: LessonContentType;
   title: string;
   bodyText?: string | null;

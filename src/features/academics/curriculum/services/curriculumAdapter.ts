@@ -1,121 +1,104 @@
 import type {
-  Assignment,
-  AssignmentAttachment,
-  AssignmentQuestion,
-  CarryOverCurriculumOptions,
+  CreateCurriculumRequest,
+  CreateLessonContentRequest,
+  CreateLessonRequest,
+  CreateUnitRequest,
   Curriculum,
+  CurriculumListFilters,
+  DeleteCurriculumNodeResponseDto,
   Lesson,
-  LessonAttachment,
-  LessonVideo,
+  LessonContentItem,
+  ReorderRequest,
   Unit,
-} from "@/features/academics/curriculum/services/curriculumService";
+  UpdateCurriculumRequest,
+  UpdateLessonContentRequest,
+  UpdateLessonRequest,
+  UpdateUnitRequest,
+} from "./curriculumBackendTypes";
 
 export interface CurriculumAdapter {
-  fetchCurriculum(
-    termId: string,
-    gradeId: string,
-    subjectId: string
-  ): Promise<Curriculum | null>;
-  createCurriculum(
-    termId: string,
-    gradeId: string,
-    subjectId: string,
-    name?: string
-  ): Promise<Curriculum>;
+  listCurricula(filters: CurriculumListFilters): Promise<Curriculum[]>;
+  getCurriculum(curriculumId: string): Promise<Curriculum>;
+  createCurriculum(payload: CreateCurriculumRequest): Promise<Curriculum>;
   updateCurriculum(
     curriculumId: string,
-    payload: Partial<Omit<Curriculum, "id" | "termId" | "gradeId" | "subjectId">>
+    payload: UpdateCurriculumRequest,
   ): Promise<Curriculum>;
-  fetchUnits(curriculumId: string): Promise<Unit[]>;
-  createUnit(
-    curriculumId: string,
-    payload: Omit<Unit, "id" | "curriculumId" | "order">
-  ): Promise<Unit>;
+  activateCurriculum(curriculumId: string): Promise<Curriculum>;
+  archiveCurriculum(curriculumId: string): Promise<Curriculum>;
+  deleteCurriculum(curriculumId: string): Promise<DeleteCurriculumNodeResponseDto>;
+  createUnit(curriculumId: string, payload: CreateUnitRequest): Promise<Unit>;
   updateUnit(
+    curriculumId: string,
     unitId: string,
-    payload: Partial<Omit<Unit, "id" | "curriculumId">>
+    payload: UpdateUnitRequest,
   ): Promise<Unit>;
-  deleteUnit(unitId: string): Promise<void>;
-  reorderUnits(curriculumId: string, orderedUnitIds: string[]): Promise<void>;
-  fetchLessons(unitId: string): Promise<Lesson[]>;
-  fetchAllLessons(curriculumId: string): Promise<Lesson[]>;
-  createLesson(
+  reorderUnit(
+    curriculumId: string,
     unitId: string,
-    payload: Omit<Lesson, "id" | "unitId" | "order" | "status" | "doneAt">
+    payload: ReorderRequest,
+  ): Promise<Unit>;
+  deleteUnit(
+    curriculumId: string,
+    unitId: string,
+  ): Promise<DeleteCurriculumNodeResponseDto>;
+  createLesson(
+    curriculumId: string,
+    unitId: string,
+    payload: CreateLessonRequest,
   ): Promise<Lesson>;
   updateLesson(
+    curriculumId: string,
+    unitId: string,
     lessonId: string,
-    payload: Partial<Omit<Lesson, "id" | "unitId">>
+    payload: UpdateLessonRequest,
   ): Promise<Lesson>;
-  deleteLesson(lessonId: string): Promise<void>;
-  reorderLessons(unitId: string, orderedLessonIds: string[]): Promise<void>;
-  updateLessonSchedule(lessonId: string, plannedWeek: number): Promise<Lesson>;
-  markLessonDone(lessonId: string): Promise<Lesson>;
-  undoLessonDone(lessonId: string): Promise<Lesson>;
-  carryOverCurriculum(params: CarryOverCurriculumOptions): Promise<void>;
-  fetchLessonAttachments(lessonId: string): Promise<LessonAttachment[]>;
-  uploadLessonAttachmentFile(
+  reorderLesson(
+    curriculumId: string,
+    unitId: string,
     lessonId: string,
-    file: File,
-    meta?: { title?: string; category?: string }
-  ): Promise<LessonAttachment>;
-  createLessonAttachmentLink(
+    payload: ReorderRequest,
+  ): Promise<Lesson>;
+  deleteLesson(
+    curriculumId: string,
+    unitId: string,
     lessonId: string,
-    payload: { title: string; url: string; category?: string }
-  ): Promise<LessonAttachment>;
-  deleteAttachment(attachmentId: string): Promise<void>;
-  fetchLessonVideo(lessonId: string): Promise<LessonVideo | null>;
-  upsertLessonVideoLink(
+  ): Promise<DeleteCurriculumNodeResponseDto>;
+  listLessonContent(
+    curriculumId: string,
+    unitId: string,
     lessonId: string,
-    payload: { titleAr: string; titleEn: string; url: string }
-  ): Promise<LessonVideo>;
-  uploadLessonVideoFile(
+  ): Promise<LessonContentItem[]>;
+  createLessonContent(
+    curriculumId: string,
+    unitId: string,
     lessonId: string,
-    file: File,
-    payload: { titleAr: string; titleEn: string }
-  ): Promise<LessonVideo>;
-  deleteLessonVideo(lessonId: string): Promise<void>;
-  fetchLessonAssignments(lessonId: string): Promise<Assignment[]>;
-  fetchAssignmentById(
+    payload: CreateLessonContentRequest,
+  ): Promise<LessonContentItem>;
+  getLessonContent(
+    curriculumId: string,
+    unitId: string,
     lessonId: string,
-    assignmentId: string
-  ): Promise<Assignment | null>;
-  createAssignment(
+    contentItemId: string,
+  ): Promise<LessonContentItem>;
+  updateLessonContent(
+    curriculumId: string,
+    unitId: string,
     lessonId: string,
-    payload: Omit<Assignment, "id" | "lessonId" | "createdAt">
-  ): Promise<Assignment>;
-  updateAssignment(
-    assignmentId: string,
-    payload: Partial<Omit<Assignment, "id" | "lessonId" | "createdAt">>
-  ): Promise<Assignment>;
-  deleteAssignment(assignmentId: string): Promise<void>;
-  fetchAssignmentAttachments(assignmentId: string): Promise<AssignmentAttachment[]>;
-  uploadAssignmentAttachmentFile(
-    assignmentId: string,
-    file: File,
-    meta?: { title?: string }
-  ): Promise<AssignmentAttachment>;
-  createAssignmentAttachmentLink(
-    assignmentId: string,
-    payload: { title: string; url: string }
-  ): Promise<AssignmentAttachment>;
-  deleteAssignmentAttachment(attachmentId: string): Promise<void>;
-  fetchAssignmentQuestions(assignmentId: string): Promise<AssignmentQuestion[]>;
-  createAssignmentQuestion(
-    assignmentId: string,
-    payload: Omit<AssignmentQuestion, "id" | "assignmentId" | "createdAt" | "order">
-  ): Promise<AssignmentQuestion>;
-  updateAssignmentQuestion(
-    questionId: string,
-    payload: Partial<Omit<AssignmentQuestion, "id" | "assignmentId" | "createdAt">>
-  ): Promise<AssignmentQuestion>;
-  deleteAssignmentQuestion(questionId: string): Promise<void>;
-  reorderAssignmentQuestions(
-    assignmentId: string,
-    orderedQuestionIds: string[]
-  ): Promise<void>;
-  bulkUpdateQuestionPoints(
-    assignmentId: string,
-    updates: Array<{ questionId: string; points: number }>
-  ): Promise<void>;
+    contentItemId: string,
+    payload: UpdateLessonContentRequest,
+  ): Promise<LessonContentItem>;
+  reorderLessonContent(
+    curriculumId: string,
+    unitId: string,
+    lessonId: string,
+    contentItemId: string,
+    payload: ReorderRequest,
+  ): Promise<LessonContentItem>;
+  deleteLessonContent(
+    curriculumId: string,
+    unitId: string,
+    lessonId: string,
+    contentItemId: string,
+  ): Promise<DeleteCurriculumNodeResponseDto>;
 }
