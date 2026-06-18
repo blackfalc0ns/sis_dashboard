@@ -39,16 +39,18 @@ A lesson uses `title`, nullable `description`, up to 20 string objectives, zero-
 The frontend's canonical lesson-content type and every create or update request use the Prisma enum casing:
 
 - `TEXT` requires `bodyText` and rejects URL and file values.
-- `FILE` requires an existing `fileId` and rejects URL values.
+- `FILE` requires an existing `fileId` and rejects URL values. The frontend will not enable FILE content creation unless a supported existing file picker or upload flow returns a backend `fileId`; if no such flow exists in this dashboard, FILE is shown disabled with explanatory help text.
 - `VIDEO_LINK` and `EXTERNAL_LINK` require an HTTP or HTTPS URL and reject file values.
 
 The current backend presenter serializes response types as `text`, `file`, `video_link`, and `external_link`. The response mapper must normalize those values to the uppercase canonical frontend type before data reaches components.
+
+Backend curriculum status filters use the Prisma enum casing `DRAFT`, `ACTIVE`, and `ARCHIVED`. The frontend may derive lowercase display values for UI comparisons, but requests to the backend must preserve the uppercase enum casing. Unknown backend status values must not silently become draft; they should be displayed as unknown or surfaced as an error state.
 
 Every content item also supports `title`, zero-based `sortOrder`, `isRequired`, nullable `estimatedMinutes` from 1 through 600, and optional metadata. Type changes clear fields that are invalid for the new type.
 
 ## UI behavior and lifecycle
 
-The page keeps the academic-year and term context and grade and subject selectors. Requests include all four scope filters. Backend `status` and `search` filters may be exposed only where the existing UI has a clear control for them; they are not required to locate the current scoped curriculum.
+The page keeps the academic-year and term context and grade and subject selectors. Requests include all four scope filters. Backend `status` and `search` filters may be exposed only where the existing UI has a clear control for them; if `status` is sent, it uses `DRAFT`, `ACTIVE`, or `ARCHIVED`. These filters are not required to locate the current scoped curriculum.
 
 Creating a curriculum requires a non-empty title and all four scope IDs. The existing bilingual-only editor fields will be replaced by the backend's single `title` and `description` values. Unit and lesson editors follow the same single-title contract.
 
