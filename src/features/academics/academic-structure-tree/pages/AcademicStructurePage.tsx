@@ -27,6 +27,7 @@ import { useGuardedAcademicContextChange } from "@/features/academics/hooks/useG
 import { useDebouncedCallback } from "use-debounce";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   type AcademicsExportFormat,
   exportAcademicsData,
@@ -50,6 +51,8 @@ export default function AcademicStructurePage() {
   const searchParams = useSearchParams();
   const { academicYearId, termId, termStatus, academicYears } =
     useAcademicYearTermLayoutContext();
+  const { hasPermission } = usePermissions();
+  const canManageStructure = hasPermission("academics.structure.manage");
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showTreeDrawer, setShowTreeDrawer] = useState(false);
@@ -59,7 +62,7 @@ export default function AcademicStructurePage() {
     [t],
   );
 
-  const isReadOnly = termStatus === "closed";
+  const isReadOnly = termStatus === "closed" || !canManageStructure;
   const supportsEditAndReorder = true;
   const supportsCarryOver = false;
   const {

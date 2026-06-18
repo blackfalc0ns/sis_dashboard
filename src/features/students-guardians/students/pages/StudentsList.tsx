@@ -592,7 +592,9 @@ export default function StudentsList() {
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={(e) => handleAccountLinkClick(e, row as unknown as Student)}
+            onClick={(e) =>
+              handleAccountLinkClick(e, row as unknown as Student)
+            }
             className={`p-1.5 rounded transition-colors ${
               canManageAccounts
                 ? "text-gray-600 hover:bg-gray-100"
@@ -934,6 +936,7 @@ export default function StudentsList() {
           data={
             filteredStudents as unknown as Array<{ [key: string]: unknown }>
           }
+          isLoading={isLoading}
           onRowClick={handleRowClick}
           searchQuery={searchQuery}
           virtualize={true}

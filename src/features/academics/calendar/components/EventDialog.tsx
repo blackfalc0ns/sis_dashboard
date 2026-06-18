@@ -4,21 +4,21 @@ import { useState, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
+import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
+import TextArea from "@/components/ui/input/TextArea";
 import DatePicker from "@/components/ui/input/DatePicker";
-import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
-import { validateArEnDifferent } from "@/utils/validation/bilingualValidation";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { Alert } from "@mui/material";
-import { Info } from "lucide-react";
-import dayjs from "dayjs";
 import {
   AcademicEvent,
   createTermEvent,
+  formatCalendarDate,
+  parseCalendarDate,
   updateEvent,
   deleteEvent,
-  isEventWithinTermRange,
 } from "@/features/academics/calendar/services/calendarService";
+import { getCalendarErrorMessage } from "@/features/academics/calendar/services/calendarErrors";
 import { Term, fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 
 interface EventDialogProps {
@@ -27,6 +27,8 @@ interface EventDialogProps {
   onSuccess: () => void;
   event: AcademicEvent | null;
   term: Term;
+  academicYearId: string;
+  termId: string;
   prefilledDate: Date | null;
   isReadOnly: boolean;
 }
@@ -37,6 +39,8 @@ export default function EventDialog({
   onSuccess,
   event,
   term,
+  academicYearId,
+  termId,
   prefilledDate,
   isReadOnly,
 }: EventDialogProps) {
@@ -45,17 +49,14 @@ export default function EventDialog({
   const locale = useLocale();
 
   // Form state
-  const [titleAr, setTitleAr] = useState("");
-  const [titleEn, setTitleEn] = useState("");
+  const [title, setTitle] = useState("");
   const [type, setType] = useState<AcademicEvent["type"]>("OTHER");
   const [allDay, setAllDay] = useState(true);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [scopeType, setScopeType] = useState<AcademicEvent["scopeType"]>("SCHOOL");
   const [scopeId, setScopeId] = useState("");
-  const [notesAr, setNotesAr] = useState("");
-  const [notesEn, setNotesEn] = useState("");
-  const [notify, setNotify] = useState(true); // Notify checkbox for EXAM/HOLIDAY
+  const [notes, setNotes] = useState("");
 
   // Scope options
   const [stages, setStages] = useState<Array<{ id: string; name: string }>>([]);
@@ -81,32 +82,26 @@ export default function EventDialog({
     if (isOpen) {
       if (event) {
         // Edit mode
-        setTitleAr(event.titleAr);
-        setTitleEn(event.titleEn);
+        setTitle(event.title);
         setType(event.type);
         setAllDay(event.allDay);
-        setStartDate(new Date(event.startDate));
-        setEndDate(new Date(event.endDate));
+        setStartDate(parseCalendarDate(event.startDate));
+        setEndDate(parseCalendarDate(event.endDate));
         setScopeType(event.scopeType);
         setScopeId(event.scopeId || "");
-        setNotesAr(event.notesAr || "");
-        setNotesEn(event.notesEn || "");
-        setNotify(event.notify !== undefined ? event.notify : true);
+        setNotes(event.notes || "");
       } else {
         // Create mode
         const dateObj = prefilledDate || new Date();
 
-        setTitleAr("");
-        setTitleEn("");
+        setTitle("");
         setType("OTHER");
         setAllDay(true);
         setStartDate(dateObj);
         setEndDate(dateObj);
         setScopeType("SCHOOL");
         setScopeId("");
-        setNotesAr("");
-        setNotesEn("");
-        setNotify(true); // Default to checked
+        setNotes("");
       }
       setErrors({});
     }
@@ -144,14 +139,9 @@ export default function EventDialog({
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Title validation
-    if (!titleAr.trim()) newErrors.titleAr = tValidation("required_ar");
-    if (!titleEn.trim()) newErrors.titleEn = tValidation("required_en");
-
-    if (titleAr.trim() && titleEn.trim()) {
-      const arEnErrors = validateArEnDifferent(titleAr, titleEn);
-      if (arEnErrors.arError) newErrors.titleAr = tValidation("arEnMustDiffer");
-      if (arEnErrors.enError) newErrors.titleEn = tValidation("arEnMustDiffer");
+    if (!title.trim()) newErrors.title = tValidation("required");
+    if (title.trim().length > 180) {
+      newErrors.title = t("validation.title_too_long");
     }
 
     // Date validation
@@ -163,18 +153,6 @@ export default function EventDialog({
         newErrors.endDate = t("validation.start_after_end");
       }
 
-      // Check if within term range
-      const startDateStr = dayjs(startDate).format("YYYY-MM-DD");
-      const endDateStr = dayjs(endDate).format("YYYY-MM-DD");
-      
-      if (!isEventWithinTermRange(startDateStr, endDateStr, term.startDate, term.endDate)) {
-        const termStartFormatted = dayjs(term.startDate).format(locale === "ar" ? "DD/MM/YYYY" : "MM/DD/YYYY");
-        const termEndFormatted = dayjs(term.endDate).format(locale === "ar" ? "DD/MM/YYYY" : "MM/DD/YYYY");
-        newErrors.general = t("validation.outside_term_range_with_dates", {
-          start: termStartFormatted,
-          end: termEndFormatted,
-        });
-      }
     }
 
     // Scope validation
@@ -182,11 +160,8 @@ export default function EventDialog({
       newErrors.scopeId = tValidation("required");
     }
 
-    // Notes validation (AR != EN only if both filled)
-    if (notesAr.trim() && notesEn.trim()) {
-      const arEnErrors = validateArEnDifferent(notesAr, notesEn);
-      if (arEnErrors.arError) newErrors.notesAr = tValidation("arEnMustDiffer");
-      if (arEnErrors.enError) newErrors.notesEn = tValidation("arEnMustDiffer");
+    if (notes.trim().length > 4000) {
+      newErrors.notes = t("validation.notes_too_long");
     }
 
     setErrors(newErrors);
@@ -194,49 +169,44 @@ export default function EventDialog({
   };
 
   const handleSave = async () => {
+    if (isReadOnly) return;
     if (!validate()) return;
 
     setIsSaving(true);
     try {
-      // Format dates without timezone conversion
-      const formatDateToISO = (date: Date | null): string => {
-        if (!date) return "";
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-      };
-
       const payload = {
-        titleAr: titleAr.trim(),
-        titleEn: titleEn.trim(),
+        title: title.trim(),
         type,
         allDay,
-        startDate: formatDateToISO(startDate),
-        endDate: formatDateToISO(endDate),
+        startDate: startDate ? formatCalendarDate(startDate) : "",
+        endDate: endDate ? formatCalendarDate(endDate) : "",
         scopeType,
         scopeId: scopeType === "SCHOOL" ? undefined : scopeId,
-        notesAr: notesAr.trim() || undefined,
-        notesEn: notesEn.trim() || undefined,
-        notify: (type === "EXAM" || type === "HOLIDAY") ? notify : undefined,
+        notes: notes.trim(),
       };
 
       if (event) {
         await updateEvent(event.id, payload);
       } else {
-        await createTermEvent(term.id, payload);
+        await createTermEvent(academicYearId, termId, payload);
       }
 
       onSuccess();
     } catch (error) {
       console.error("Failed to save event:", error);
-      setErrors({ general: "Failed to save event" });
+      setErrors({
+        general: getCalendarErrorMessage(error, (key) => t(`errors.${key}`)),
+      });
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async () => {
+    if (isReadOnly) {
+      return;
+    }
+
     if (!event) {
       return;
     }
@@ -254,8 +224,8 @@ export default function EventDialog({
       onSuccess();
     } catch (error) {
       console.error("Failed to delete event:", error);
-      setErrors({ 
-        general: error instanceof Error ? error.message : "Failed to delete event" 
+      setErrors({
+        general: getCalendarErrorMessage(error, (key) => t(`errors.${key}`)),
       });
       setShowDeleteConfirm(false);
     } finally {
@@ -291,10 +261,6 @@ export default function EventDialog({
   };
 
   const needsScopeTarget = scopeType !== "SCHOOL";
-
-  // Format term dates for display
-  const termStartFormatted = dayjs(term.startDate).format(locale === "ar" ? "DD/MM/YYYY" : "MM/DD/YYYY");
-  const termEndFormatted = dayjs(term.endDate).format(locale === "ar" ? "DD/MM/YYYY" : "MM/DD/YYYY");
 
   return (
     <>
@@ -338,25 +304,20 @@ export default function EventDialog({
           )}
 
           {/* Title */}
-          <BilingualTextField
-            label={t("title")}
-            value={{ ar: titleAr, en: titleEn }}
-            onChange={(value) => {
-              setTitleAr(value.ar);
-              setTitleEn(value.en);
+          <Input
+            label={t("event_title")}
+            value={title}
+            onChange={(event) => {
+              setTitle(event.target.value);
               const newErrors = { ...errors };
-              delete newErrors.titleAr;
-              delete newErrors.titleEn;
+              delete newErrors.title;
               setErrors(newErrors);
             }}
-            requiredAr
-            requiredEn
-            errors={{ ar: errors.titleAr, en: errors.titleEn }}
+            required
+            maxLength={180}
+            error={errors.title}
             disabled={isReadOnly}
-            placeholder={{
-              ar: "أدخل عنوان الحدث بالعربية",
-              en: "Enter event title in English",
-            }}
+            placeholder={t("event_title")}
           />
 
           {/* Type and All Day */}
@@ -384,31 +345,8 @@ export default function EventDialog({
                 </span>
               </label>
 
-              {/* Notify checkbox for EXAM and HOLIDAY */}
-              {(type === "EXAM" || type === "HOLIDAY") && !isReadOnly && (
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={notify}
-                    onChange={(e) => setNotify(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                  />
-                  <span className="text-sm font-medium text-gray-700">
-                    {t("notifyUsers")}
-                  </span>
-                </label>
-              )}
             </div>
           </div>
-
-          {/* Term Range Hint */}
-          <Alert 
-            severity="info" 
-            icon={<Info className="w-5 h-5" />}
-            className="text-sm"
-          >
-            {t("term_range_hint", { start: termStartFormatted, end: termEndFormatted })}
-          </Alert>
 
           {/* Dates */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -423,11 +361,8 @@ export default function EventDialog({
                 setErrors(newErrors);
               }}
               error={errors.startDate}
-              helperText={t("date_helper_text")}
               required
               disabled={isReadOnly}
-              minDate={new Date(term.startDate)}
-              maxDate={new Date(term.endDate)}
               format={locale === "ar" ? "DD/MM/YYYY" : "MM/DD/YYYY"}
             />
 
@@ -442,11 +377,8 @@ export default function EventDialog({
                 setErrors(newErrors);
               }}
               error={errors.endDate}
-              helperText={t("date_helper_text")}
               required
               disabled={isReadOnly}
-              minDate={startDate || new Date(term.startDate)}
-              maxDate={new Date(term.endDate)}
               format={locale === "ar" ? "DD/MM/YYYY" : "MM/DD/YYYY"}
             />
           </div>
@@ -487,51 +419,21 @@ export default function EventDialog({
           </div>
 
           {/* Notes */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">
-              {t("notes")} ({t("optional")})
-            </label>
-
-            <textarea
-              value={notesAr}
+          <TextArea
+              label={`${t("notes")} (${t("optional")})`}
+              value={notes}
               onChange={(e) => {
-                setNotesAr(e.target.value);
+                setNotes(e.target.value);
                 const newErrors = { ...errors };
-                delete newErrors.notesAr;
+                delete newErrors.notes;
                 setErrors(newErrors);
               }}
-              placeholder="ملاحظات (اختياري)"
+              maxLength={4000}
+              error={errors.notes}
+              placeholder={t("notes")}
               disabled={isReadOnly}
               rows={3}
-              dir="rtl"
-              className={`w-full px-4 py-2.5 text-sm bg-white border rounded-lg transition-colors placeholder:text-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none ${
-                errors.notesAr ? "border-red-500" : "border-gray-200"
-              } ${isReadOnly ? "bg-gray-100 cursor-not-allowed opacity-60" : ""}`}
             />
-            {errors.notesAr && (
-              <div className="text-xs text-red-600 text-right">{errors.notesAr}</div>
-            )}
-
-            <textarea
-              value={notesEn}
-              onChange={(e) => {
-                setNotesEn(e.target.value);
-                const newErrors = { ...errors };
-                delete newErrors.notesEn;
-                setErrors(newErrors);
-              }}
-              placeholder="Notes (optional)"
-              disabled={isReadOnly}
-              rows={3}
-              dir="ltr"
-              className={`w-full px-4 py-2.5 text-sm bg-white border rounded-lg transition-colors placeholder:text-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none ${
-                errors.notesEn ? "border-red-500" : "border-gray-200"
-              } ${isReadOnly ? "bg-gray-100 cursor-not-allowed opacity-60" : ""}`}
-            />
-            {errors.notesEn && (
-              <div className="text-xs text-red-600">{errors.notesEn}</div>
-            )}
-          </div>
         </div>
       </Modal>
 

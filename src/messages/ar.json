@@ -32,7 +32,7 @@
       "modules_unavailable": "بطاقات لوحة التحكم غير متاحة",
       "access_denied": {
         "title": "تم رفض الوصول",
-        "message": "ليست لديك صلاحية عرض توزيعات المواد."
+        "message": "ليست لديك صلاحية عرض لوحة التحكم."
       },
       "errors": {
         "retry": "إعادة المحاولة",
@@ -485,6 +485,10 @@
     "table_density": "كثافة الجدول",
     "density_comfortable": "مريح",
     "density_compact": "مضغوط",
+    "accessDenied": {
+      "title": "تم رفض الوصول",
+      "description": "ليست لديك صلاحية لعرض هذا القسم."
+    },
     "export": {
       "button": "تصدير",
       "excel": "تصدير كـ Excel",
@@ -576,6 +580,8 @@
       "grade": "الصف",
       "academic_year": "السنة الدراسية"
     },
+    "academic_year": "العام الدراسي",
+    "term": "الفصل الدراسي",
     "export": "تصدير"
   },
   "comparison": {
@@ -1284,6 +1290,14 @@
       "errors": {
         "full_name_ar_required": "الاسم بالعربية مطلوب",
         "full_name_en_required": "الاسم بالإنجليزية مطلوب",
+        "first_name_ar_required": "الاسم الأول بالعربية مطلوب",
+        "father_name_ar_required": "اسم الأب بالعربية مطلوب",
+        "grandfather_name_ar_required": "اسم الجد بالعربية مطلوب",
+        "family_name_ar_required": "اسم العائلة بالعربية مطلوب",
+        "first_name_en_required": "الاسم الأول بالإنجليزية مطلوب",
+        "father_name_en_required": "اسم الأب بالإنجليزية مطلوب",
+        "grandfather_name_en_required": "اسم الجد بالإنجليزية مطلوب",
+        "family_name_en_required": "اسم العائلة بالإنجليزية مطلوب",
         "gender_required": "الجنس مطلوب",
         "date_of_birth_required": "تاريخ الميلاد مطلوب",
         "age_range": "يجب أن يكون عمر الطالب بين 3 و 20 سنة",
@@ -1512,7 +1526,17 @@
       "contract_generated": "تم إنشاء العقد الأولي بنجاح!",
       "cancel": "إلغاء",
       "confirm_enrollment": "تأكيد التسجيل",
-      "enrolling": "جاري التسجيل..."
+      "enrolling": "جاري التسجيل...",
+      "capacity_summary": "ملخص السعة",
+      "available_seats": "المقاعد المتاحة",
+      "over_capacity": "تجاوز هذا الفصل سعته.",
+      "classroom_full": "هذا الفصل ممتلئ.",
+      "section_full": "هذه الشعبة ممتلئة.",
+      "low_seats": "عدد المقاعد المتبقية منخفض.",
+      "suggested_placements": "التوزيعات المقترحة",
+      "no_seats_available": "لا توجد مقاعد متاحة في التوزيع المحدد.",
+      "add_to_waitlist": "إضافة إلى قائمة الانتظار",
+      "assign_automatically": "تعيين تلقائي"
     },
     "test_score_modal": {
       "title": "إدخال درجة الاختبار",
@@ -1756,7 +1780,10 @@
       "reject": "مرفوض",
       "no_match": "لا توجد قرارات تطابق التصفية",
       "no_decisions": "لم يتم العثور على قرارات",
-      "found": "تم العثور عليها"
+      "found": "تم العثور عليها",
+      "messages": {
+        "decision_recorded": "تم تسجيل القرار بنجاح."
+      }
     },
     "enrollment": {
       "title": "جميع التسجيلات",
@@ -1793,8 +1820,18 @@
         "enrollment_updated": "تم تحديث التسجيل بنجاح.",
         "promotion_complete": "تمت ترقية {count} طالبًا بنجاح.",
         "rebalance_complete": "تم تحديث {count} من التوزيعات. غير المعيّن: {unassigned}.",
-        "action_failed": "تعذر إكمال العملية."
-      }
+        "action_failed": "تعذر إكمال العملية.",
+        "waitlist_created": "تمت إضافة المتقدم إلى قائمة الانتظار بنجاح.",
+        "waitlist_promoted": "تمت ترقية {count} من قائمة الانتظار. المتعذر: {blocked}.",
+        "section_full": "الشعبة المحددة ممتلئة.",
+        "classroom_full": "الفصل المحدد ممتلئ.",
+        "no_seats_available": "لا توجد مقاعد متاحة حاليًا."
+      },
+      "waitlist": "قائمة الانتظار",
+      "pending_placement": "بانتظار التوزيع",
+      "full_classrooms": "الفصول الممتلئة",
+      "promote_waitlist": "ترقية قائمة الانتظار",
+      "waitlist_summary": "سيتم فحص {count} من إدخالات قائمة الانتظار النشطة بحثًا عن مقاعد متاحة."
     },
     "export": {
       "title": "تصدير بيانات القبول",
@@ -2496,7 +2533,9 @@
             "notes": "ملاحظات إضافية",
             "notes_placeholder": "أدخل أي معلومات إضافية...",
             "attachments": "المرفقات",
-            "upload_files": "انقر للتحميل أو اسحب وأفلت الملفات"
+            "upload_files": "انقر للتحميل أو اسحب وأفلت الملفات",
+            "available_seats": "مقاعد متاحة",
+            "suggested_placements": "التوزيعات المقترحة"
           },
           "types": {
             "internal": "تحويل داخلي",
@@ -2511,7 +2550,9 @@
             "target_must_change": "اختر شعبة أو فصلًا مختلفًا عن المكان الحالي",
             "external_school_required": "يرجى إدخال اسم المدرسة الخارجية",
             "reason_required": "يرجى إدخال السبب",
-            "date_required": "يرجى اختيار تاريخ السريان"
+            "date_required": "يرجى اختيار تاريخ السريان",
+            "target_section_full": "الشعبة المستهدفة ممتلئة.",
+            "target_classroom_full": "الفصل المستهدف ممتلئ."
           },
           "no_students_found": "لم يتم العثور على طلاب",
           "no_sections_found": "لم يتم العثور على شعب",
@@ -3474,6 +3515,14 @@
       "readonly_banner": {
         "message": "هذا الترم مغلق. المواد والتوزيع للعرض فقط."
       },
+      "access_denied": {
+        "title": "تم رفض الوصول",
+        "message": "ليست لديك صلاحية عرض توزيعات المواد."
+      },
+      "errors": {
+        "retry": "إعادة المحاولة",
+        "trace_id": "معرّف التتبع: {traceId}"
+      },
       "tabs": {
         "subjects": "المواد",
         "matrix": "التوزيع"
@@ -3908,8 +3957,12 @@
       "teachingWeeksHint": "أسابيع الدراسة: {count} (مع استبعاد الإجازات)"
     },
     "calendar": {
+      "title": "التقويم الأكاديمي",
+      "event_title": "عنوان الحدث",
       "readonly_banner": "هذا الترم مغلق. التقويم للعرض فقط.",
+      "select_term_first": "اختر العام الدراسي والفصل الدراسي أولًا.",
       "today": "اليوم",
+      "refresh": "تحديث",
       "prev": "السابق",
       "next": "التالي",
       "add_event": "إضافة حدث",
@@ -3939,7 +3992,6 @@
         "grade": "الصف",
         "section": "الشعبة"
       },
-      "title": "العنوان",
       "type": "النوع",
       "all_day": "طوال اليوم",
       "start_date": "تاريخ البداية",
@@ -3954,11 +4006,9 @@
       },
       "validation": {
         "start_after_end": "يجب أن يكون تاريخ النهاية بعد تاريخ البداية",
-        "outside_term_range": "يجب أن يكون الحدث ضمن نطاق تواريخ الترم",
-        "outside_term_range_with_dates": "يجب أن يكون الحدث ضمن نطاق الترم ({start} – {end})"
+        "title_too_long": "يجب ألا يزيد العنوان عن 180 حرفًا.",
+        "notes_too_long": "يجب ألا تزيد الملاحظات عن 4000 حرف."
       },
-      "term_range_hint": "نطاق الترم: {start} – {end}",
-      "date_helper_text": "يجب أن يكون داخل نطاق الترم",
       "clear_filters": "مسح",
       "apply": "تطبيق",
       "notifyUsers": "إرسال إشعار للمستفيدين",
@@ -3981,8 +4031,18 @@
       "eventsCount": "{count} أحداث",
       "noEventsThisWeek": "لا توجد أحداث هذا الأسبوع",
       "noEventsThisMonth": "لا توجد أحداث هذا الشهر",
+      "noEventsThisRange": "لا توجد أحداث في نطاق التاريخ المحدد",
       "goToDate": "اذهب إلى تاريخ",
-      "outsideTermJump": "التاريخ المختار خارج نطاق الترم."
+      "outsideTermJump": "التاريخ المختار خارج نطاق الترم.",
+      "errors": {
+        "notFound": "تم حذف الحدث أو أنه خارج نطاق صلاحياتك.",
+        "invalidScope": "اختر مدرسة أو مرحلة أو صفًا أو شعبة صالحة.",
+        "invalidDateRange": "يجب أن يكون تاريخ البداية قبل تاريخ النهاية أو مساويًا له.",
+        "invalidListRange": "نطاق التقويم المحدد غير صالح أو كبير جدًا.",
+        "invalidPayload": "تحقق من عنوان الحدث والحقول المطلوبة.",
+        "forbidden": "ليس لديك صلاحية الوصول إلى نطاق التقويم هذا.",
+        "unexpected": "حدث خطأ غير متوقع في التقويم."
+      }
     },
     "timetable": {
       "title": "الجدول",
@@ -6321,6 +6381,7 @@
           "rejected_excuses": "أعذار مرفوضة ({count})",
           "missing_attendance": "حضور ناقص ({count})"
         },
+        "flagsMap": "المؤشرات",
         "flagsLabel": "المؤشرات"
       },
       "performance": {
@@ -7545,7 +7606,16 @@
         "label": "مجموعة البيانات",
         "summary": {
           "label": "المؤشرات الرئيسية",
+          "title": "الملخص",
           "description": "تصدير ملخص مؤشرات لوحة التعزيز."
+        },
+        "latest_requests": {
+          "title": "أحدث الطلبات",
+          "description": "أحدث طلبات الاستلام الظاهرة في النظرة العامة"
+        },
+        "gates": {
+          "title": "البوابات",
+          "description": "مؤشرات لوحة البوابات الظاهرة في النظرة العامة"
         },
         "activity": {
           "label": "أحدث النشاطات",

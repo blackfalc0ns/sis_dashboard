@@ -15,6 +15,7 @@ interface WeekCalendarProps {
   isReadOnly: boolean;
   term: Term;
   onEventMove: (eventId: string, newStartDate: string, newEndDate: string) => Promise<void>;
+  onInvalidDrop?: () => void;
   displayMode: "compact" | "comfortable" | "minimal";
 }
 
@@ -26,6 +27,7 @@ export default function WeekCalendar({
   isReadOnly,
   term,
   onEventMove,
+  onInvalidDrop,
   displayMode,
 }: WeekCalendarProps) {
   const t = useTranslations("academics.calendar");
@@ -47,6 +49,7 @@ export default function WeekCalendar({
     termEndDate: term.endDate,
     isReadOnly,
     onEventMove,
+    onInvalidDrop,
   });
 
   // Get week range (Sunday to Saturday)
@@ -180,7 +183,7 @@ export default function WeekCalendar({
                     // Compact/Comfortable: show event chips
                     <div className="space-y-1.5">
                       {visibleEvents.map((event) => {
-                        const title = locale === "ar" ? event.titleAr : event.titleEn;
+                        const title = event.title;
                         return (
                           <button
                             key={event.id}

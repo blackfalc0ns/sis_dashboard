@@ -49,6 +49,7 @@ import {
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { useAcademicContextBarActions } from "@/features/academics/hooks/useAcademicContextBarActions";
 import { useGuardedAcademicContextChange } from "@/features/academics/hooks/useGuardedAcademicContextChange";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export default function CurriculumPageContent() {
   const t = useTranslations("academics.curriculum");
@@ -60,6 +61,8 @@ export default function CurriculumPageContent() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
   const isRTL = locale === "ar";
+  const { hasPermission } = usePermissions();
+  const canManageCurriculum = hasPermission("academics.curriculum.manage");
 
   // Fixed panel widths
   const LEFT_PANEL_WIDTH = 280;
@@ -118,7 +121,7 @@ export default function CurriculumPageContent() {
   const optionsRequestIdRef = useRef(0);
   const curriculumRequestIdRef = useRef(0);
 
-  const isReadOnly = termStatus === "closed";
+  const isReadOnly = termStatus === "closed" || !canManageCurriculum;
   const confirmDiscardChanges = useCallback(
     () => confirm(t("unsaved_changes.message")),
     [t],

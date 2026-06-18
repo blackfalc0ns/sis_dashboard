@@ -18,6 +18,8 @@ import DesktopLayout from "@/features/academics/curriculum/components/DesktopLay
 import MobileLayout from "@/features/academics/curriculum/components/MobileLayout";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import { AccessDenied } from "@/components/ui";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface AssignmentBuilderPageProps {
   lessonId: string;
@@ -37,10 +39,15 @@ export default function AssignmentBuilderPage({
   const searchParams = useSearchParams();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("xl"));
+  const { hasPermission } = usePermissions();
+  const canViewAssignment = assignmentId
+    ? hasPermission("homework.assignments.view")
+    : hasPermission("homework.assignments.manage");
+  const canManageAssignment = hasPermission("homework.assignments.manage");
 
   // Get term context from URL params
   const termStatus = searchParams.get("termStatus") as "open" | "closed" | null;
-  const isReadOnly = termStatus === "closed";
+  const isReadOnly = termStatus === "closed" || !canManageAssignment;
 
   // State
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
@@ -192,7 +199,7 @@ export default function AssignmentBuilderPage({
   }, [guardedRouter, locale, searchParams]);
 
   const handleSaveAssignment = useCallback(async () => {
-    if (!assignmentDraft || !isAssignmentDirty) return;
+    if (isReadOnly || !assignmentDraft || !isAssignmentDirty) return;
 
     setIsAssignmentSaving(true);
     try {
@@ -205,10 +212,10 @@ export default function AssignmentBuilderPage({
     } finally {
       setIsAssignmentSaving(false);
     }
-  }, [assignmentDraft, isAssignmentDirty, saveAssignment, showSuccess, showError, tCommon]);
+  }, [assignmentDraft, isAssignmentDirty, isReadOnly, saveAssignment, showSuccess, showError, tCommon]);
 
   const handleSaveQuestion = useCallback(async () => {
-    if (!questionDraft || !isQuestionDirty) return;
+    if (isReadOnly || !questionDraft || !isQuestionDirty) return;
 
     // Validate before saving
     const errors = validateQuestion(questionDraft, tValidation);
@@ -233,9 +240,11 @@ export default function AssignmentBuilderPage({
     } finally {
       setIsQuestionSaving(false);
     }
-  }, [questionDraft, isQuestionDirty, updateQuestion, questions, setQuestions, showSuccess, showError, tCommon, tValidation]);
+  }, [questionDraft, isQuestionDirty, isReadOnly, updateQuestion, questions, setQuestions, showSuccess, showError, tCommon, tValidation]);
 
   const handlePublishToggle = useCallback(async () => {
+    if (isReadOnly) return;
+
     // Check if there are unsaved changes
     if (isDirty) {
       showError(t("mustSaveBeforePublish"));
@@ -243,27 +252,31 @@ export default function AssignmentBuilderPage({
     }
     
     await togglePublish();
-  }, [togglePublish, isDirty, showError, t]);
+  }, [togglePublish, isDirty, isReadOnly, showError, t]);
 
   const handleDelete = useCallback(async () => {
-    if (!assignment) return;
+    if (isReadOnly || !assignment) return;
     setConfirmDialog({ isOpen: true, type: "delete" });
-  }, [assignment]);
+  }, [assignment, isReadOnly]);
 
   const handleConfirmDelete = useCallback(async () => {
+    if (isReadOnly) return;
+
     const success = await removeAssignment();
     setConfirmDialog({ isOpen: false, type: null });
     if (success) {
       handleBack();
     }
-  }, [removeAssignment, handleBack]);
+  }, [isReadOnly, removeAssignment, handleBack]);
 
   const handleReset = useCallback(async () => {
-    if (!assignment) return;
+    if (isReadOnly || !assignment) return;
     setConfirmDialog({ isOpen: true, type: "reset" });
-  }, [assignment]);
+  }, [assignment, isReadOnly]);
 
   const handleConfirmReset = useCallback(async () => {
+    if (isReadOnly) return;
+
     await resetAssignment();
     setConfirmDialog({ isOpen: false, type: null });
     if (questions.length > 0) {
@@ -271,34 +284,39 @@ export default function AssignmentBuilderPage({
     } else {
       setSelectedQuestionId(null);
     }
-  }, [resetAssignment, questions]);
+  }, [isReadOnly, resetAssignment, questions]);
 
   const handleAddQuestion = useCallback(async () => {
+    if (isReadOnly) return;
+
     const newQuestionId = await addQuestion();
     if (newQuestionId) {
       setSelectedQuestionId(newQuestionId);
     }
-  }, [addQuestion]);
+  }, [addQuestion, isReadOnly]);
 
   const handleUpdateQuestion = useCallback(
     (questionId: string, updates: Partial<AssignmentQuestion>) => {
+      if (isReadOnly) return;
       if (!questionDraft || questionDraft.id !== questionId) return;
       
       // Update draft immediately (no API call)
       const updatedQuestion: AssignmentQuestion = { ...questionDraft, ...updates };
       setQuestionDraft(updatedQuestion);
     },
-    [questionDraft]
+    [isReadOnly, questionDraft]
   );
 
   const handleDeleteQuestion = useCallback(
     async (questionId: string) => {
+      if (isReadOnly) return;
       setConfirmDialog({ isOpen: true, type: "deleteQuestion", questionId });
     },
-    []
+    [isReadOnly]
   );
 
   const handleConfirmDeleteQuestion = useCallback(async () => {
+    if (isReadOnly) return;
     if (!confirmDialog.questionId) return;
     
     await removeQuestion(confirmDialog.questionId);
@@ -307,10 +325,12 @@ export default function AssignmentBuilderPage({
       setSelectedQuestionId(newQuestions.length > 0 ? newQuestions[0].id : null);
     }
     setConfirmDialog({ isOpen: false, type: null });
-  }, [confirmDialog.questionId, removeQuestion, questions, selectedQuestionId]);
+  }, [confirmDialog.questionId, isReadOnly, removeQuestion, questions, selectedQuestionId]);
 
   const handleMoveQuestion = useCallback(
     async (questionId: string, direction: "up" | "down") => {
+      if (isReadOnly) return;
+
       const index = questions.findIndex((q) => q.id === questionId);
       if (
         (direction === "up" && index === 0) ||
@@ -328,11 +348,12 @@ export default function AssignmentBuilderPage({
 
       await reorderQuestions(newQuestions.map((q) => q.id));
     },
-    [questions, reorderQuestions]
+    [isReadOnly, questions, reorderQuestions]
   );
 
   const handleUpdateAssignment = useCallback(
     (updates: Partial<Assignment>) => {
+      if (isReadOnly) return;
       if (!assignmentDraft) return;
       
       // Update draft immediately (no API call)
@@ -342,18 +363,21 @@ export default function AssignmentBuilderPage({
       // Also update the main assignment state for UI consistency
       setAssignment(updatedAssignment);
     },
-    [assignmentDraft, setAssignment]
+    [assignmentDraft, isReadOnly, setAssignment]
   );
 
   const handleAutoDistributePoints = useCallback(async () => {
+    if (isReadOnly) return;
     if (!assignment || questions.length === 0 || !assignment.maxScore) return;
     setConfirmDialog({ isOpen: true, type: "autoDistribute" });
-  }, [assignment, questions]);
+  }, [assignment, isReadOnly, questions]);
 
   const handleConfirmAutoDistribute = useCallback(async () => {
+    if (isReadOnly) return;
+
     await autoDistributePoints();
     setConfirmDialog({ isOpen: false, type: null });
-  }, [autoDistributePoints]);
+  }, [autoDistributePoints, isReadOnly]);
 
   // Handle question selection with unsaved changes guard
   const handleSelectQuestion = useCallback(
@@ -374,6 +398,8 @@ export default function AssignmentBuilderPage({
   );
 
   const handleSaveAndSwitch = useCallback(async () => {
+    if (isReadOnly) return;
+
     await handleSaveQuestion();
     
     // Only switch if save was successful (no longer dirty)
@@ -381,7 +407,7 @@ export default function AssignmentBuilderPage({
       setSelectedQuestionId(confirmDialog.targetQuestionId);
       setConfirmDialog({ isOpen: false, type: null });
     }
-  }, [handleSaveQuestion, confirmDialog.targetQuestionId, isQuestionDirty]);
+  }, [confirmDialog.targetQuestionId, handleSaveQuestion, isQuestionDirty, isReadOnly]);
 
   const handleDiscardAndSwitch = useCallback(() => {
     if (confirmDialog.targetQuestionId) {
@@ -399,6 +425,14 @@ export default function AssignmentBuilderPage({
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <MainLoader />
+      </div>
+    );
+  }
+
+  if (!canViewAssignment) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-6">
+        <AccessDenied className="max-w-md" />
       </div>
     );
   }
@@ -437,7 +471,7 @@ export default function AssignmentBuilderPage({
             </button>
             <button
               onClick={createDraft}
-              disabled={creatingDraft}
+              disabled={creatingDraft || isReadOnly}
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
             >
               {creatingDraft ? t("creatingDraft") : t("createDraftAction")}

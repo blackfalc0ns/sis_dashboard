@@ -10,32 +10,30 @@ import RoomsView from "../../rooms/components/RoomsView";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { DEFAULT_SCHOOL_ID } from "@/features/academics/constants/school";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export default function TimetablePageContent() {
   const t = useTranslations("academics.timetable");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { markDirty, clearDirty, isDirty } = useDirtyKey("timetable");
-  const {
-    academicYearId,
-    termId,
-    termStatus,
-    isInitializing,
-  } = useAcademicYearTermLayoutContext();
+  const { academicYearId, termId, termStatus, isInitializing } =
+    useAcademicYearTermLayoutContext();
+  const { hasPermission } = usePermissions();
+  const canManageStructure = hasPermission("academics.structure.manage");
 
   const queryState = useMemo(
     () => ({
-      activeTab:
-        searchParams.get("tab") === "rooms" ? "rooms" : "timetable",
+      activeTab: searchParams.get("tab") === "rooms" ? "rooms" : "timetable",
       stageId: searchParams.get("stage") || "",
       gradeId: searchParams.get("grade") || "",
       sectionId: searchParams.get("section") || "",
       classroomId: searchParams.get("classroom") || "",
     }),
-    [searchParams]
+    [searchParams],
   );
 
-  const isReadOnly = termStatus === "closed";
+  const isReadOnly = termStatus === "closed" || !canManageStructure;
   const schoolId = DEFAULT_SCHOOL_ID;
 
   const syncQueryParams = useCallback(
@@ -47,7 +45,7 @@ export default function TimetablePageContent() {
         sectionId: string;
         classroomId: string;
       }>,
-      historyMode: "push" | "replace" = "push"
+      historyMode: "push" | "replace" = "push",
     ) => {
       const params = new URLSearchParams(searchParams.toString());
       const mergedState = {
@@ -100,10 +98,13 @@ export default function TimetablePageContent() {
       queryState.stageId,
       router,
       searchParams,
-    ]
+    ],
   );
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: "timetable" | "rooms") => {
+  const handleTabChange = (
+    _event: React.SyntheticEvent,
+    newValue: "timetable" | "rooms",
+  ) => {
     if (isDirty) {
       const confirmed = window.confirm(t("unsavedChanges.message"));
       if (!confirmed) return;
@@ -112,58 +113,78 @@ export default function TimetablePageContent() {
     syncQueryParams({ activeTab: newValue }, "push");
   };
 
-  const handleDirtyChange = useCallback((dirty: boolean) => {
-    if (dirty) markDirty();
-    else clearDirty();
-  }, [markDirty, clearDirty]);
+  const handleDirtyChange = useCallback(
+    (dirty: boolean) => {
+      if (dirty) markDirty();
+      else clearDirty();
+    },
+    [markDirty, clearDirty],
+  );
 
-  const handleStageChange = useCallback((stageId: string) => {
-    syncQueryParams(
-      {
-        stageId,
-        gradeId: "",
-        sectionId: "",
-        classroomId: "",
-      },
-      "push"
-    );
-  }, [syncQueryParams]);
+  const handleStageChange = useCallback(
+    (stageId: string) => {
+      syncQueryParams(
+        {
+          stageId,
+          gradeId: "",
+          sectionId: "",
+          classroomId: "",
+        },
+        "push",
+      );
+    },
+    [syncQueryParams],
+  );
 
-  const handleGradeChange = useCallback((gradeId: string) => {
-    syncQueryParams(
-      {
-        stageId: queryState.stageId,
-        gradeId,
-        sectionId: "",
-        classroomId: "",
-      },
-      "push"
-    );
-  }, [queryState.stageId, syncQueryParams]);
+  const handleGradeChange = useCallback(
+    (gradeId: string) => {
+      syncQueryParams(
+        {
+          stageId: queryState.stageId,
+          gradeId,
+          sectionId: "",
+          classroomId: "",
+        },
+        "push",
+      );
+    },
+    [queryState.stageId, syncQueryParams],
+  );
 
-  const handleSectionChange = useCallback((sectionId: string) => {
-    syncQueryParams(
-      {
-        stageId: queryState.stageId,
-        gradeId: queryState.gradeId,
-        sectionId,
-        classroomId: "",
-      },
-      "push"
-    );
-  }, [queryState.gradeId, queryState.stageId, syncQueryParams]);
+  const handleSectionChange = useCallback(
+    (sectionId: string) => {
+      syncQueryParams(
+        {
+          stageId: queryState.stageId,
+          gradeId: queryState.gradeId,
+          sectionId,
+          classroomId: "",
+        },
+        "push",
+      );
+    },
+    [queryState.gradeId, queryState.stageId, syncQueryParams],
+  );
 
-  const handleClassroomChange = useCallback((classroomId: string) => {
-    syncQueryParams(
-      {
-        stageId: queryState.stageId,
-        gradeId: queryState.gradeId,
-        sectionId: queryState.sectionId,
-        classroomId,
-      },
-      "push"
-    );
-  }, [queryState.gradeId, queryState.sectionId, queryState.stageId, syncQueryParams]);
+  const handleClassroomChange = useCallback(
+    (classroomId: string) => {
+      syncQueryParams(
+        {
+          stageId: queryState.stageId,
+          gradeId: queryState.gradeId,
+          sectionId: queryState.sectionId,
+          classroomId,
+        },
+        "push",
+      );
+    },
+    [
+      queryState.gradeId,
+      queryState.sectionId,
+      queryState.stageId,
+      syncQueryParams,
+    ],
+  );
 
   const handleNormalizeSelection = useCallback(
     (selection: {
@@ -174,13 +195,13 @@ export default function TimetablePageContent() {
     }) => {
       syncQueryParams(selection, "replace");
     },
-    [syncQueryParams]
+    [syncQueryParams],
   );
 
   if (isInitializing) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
-       <MainLoader />
+        <MainLoader />
       </div>
     );
   }
@@ -188,15 +209,13 @@ export default function TimetablePageContent() {
   if (!academicYearId || !termId) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
-        <div className="text-gray-500">
-          {t("emptyState.noAcademicContext")}
-        </div>
+        <div className="text-gray-500">{t("emptyState.noAcademicContext")}</div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
+    <div className="flex h-full flex-1 flex-col bg-gray-50">
       {/* Read-only Banner */}
       {isReadOnly && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3">

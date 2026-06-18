@@ -20,6 +20,7 @@ import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/Aca
 import { useLessonPlansData } from "../hooks/useLessonPlansData";
 import { useLessonPlansFilters } from "../hooks/useLessonPlansFilters";
 import { useLessonPlanMutations } from "../hooks/useLessonPlanMutations";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   type AcademicsExportFormat,
   exportAcademicsData,
@@ -39,6 +40,8 @@ export default function LessonPlansPage() {
   const { showError, showSuccess } = useToast();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const { hasPermission } = usePermissions();
+  const canManageLessonPlans = hasPermission("academics.lesson_plans.manage");
   const {
     academicYearId,
     termId,
@@ -46,7 +49,7 @@ export default function LessonPlansPage() {
     terms,
     isInitializing,
   } = useAcademicYearTermLayoutContext();
-  const isReadOnly = termStatus === "closed";
+  const isReadOnly = termStatus === "closed" || !canManageLessonPlans;
   const handleLoadError = useCallback(() => {
     showError(tCommon("error"));
   }, [showError, tCommon]);

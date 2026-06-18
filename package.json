@@ -28,7 +28,7 @@
     "postinstall": "node scripts/setup-fonts.js",
     "e2e:install": "playwright install chromium",
     "e2e": "playwright test",
-    "guard:i18n": "node scripts/translation-guard.mjs --messages messages --src src"
+    "guard:i18n": "node scripts/translation-guard.mjs --messages src/messages --src src"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

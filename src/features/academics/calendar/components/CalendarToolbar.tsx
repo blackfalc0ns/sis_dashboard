@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { ChevronLeft, ChevronRight, Plus, Filter, X, LayoutGrid, List, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Filter, X, LayoutGrid, List, Calendar as CalendarIcon, RefreshCw } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import DatePicker from "@/components/ui/input/DatePicker";
-import { useToast } from "@/components/ui/toast/Toast";
 import { AcademicEvent } from "@/features/academics/calendar/services/calendarService";
+import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   Drawer,
   Popover,
@@ -34,13 +34,16 @@ interface CalendarToolbarProps {
   scopeFilter: "ALL" | AcademicEvent["scopeType"];
   onScopeFilterChange: (scope: "ALL" | AcademicEvent["scopeType"]) => void;
   onAddEvent: () => void;
+  onRefresh?: () => void;
   isReadOnly: boolean;
   view: "month" | "week" | "agenda";
   onViewChange: (view: "month" | "week" | "agenda") => void;
   displayMode: "compact" | "comfortable" | "minimal";
   onDisplayModeChange: (mode: "compact" | "comfortable" | "minimal") => void;
-  termStartDate?: Date;
-  termEndDate?: Date;
+  academicYearId?: string;
+  termId?: string;
+  scopeIdFilter?: string | null;
+  onScopeIdFilterChange?: (id: string | null) => void;
 }
 
 // Filters content component (reused in both Popover and Drawer)
@@ -49,6 +52,11 @@ function FiltersContent({
   onTypeToggle,
   scopeFilter,
   onScopeChange,
+  scopeIdFilter,
+  onScopeIdChange,
+  stages,
+  grades,
+  sections,
   onClear,
   onClose,
   t,
@@ -57,12 +65,22 @@ function FiltersContent({
   onTypeToggle: (type: AcademicEvent["type"]) => void;
   scopeFilter: "ALL" | AcademicEvent["scopeType"];
   onScopeChange: (scope: "ALL" | AcademicEvent["scopeType"]) => void;
+  scopeIdFilter?: string | null;
+  onScopeIdChange?: (id: string | null) => void;
+  stages: Array<{ id: string; name: string }>;
+  grades: Array<{ id: string; name: string }>;
+  sections: Array<{ id: string; name: string }>;
   onClear: () => void;
   onClose: () => void;
   t: (key: string) => string;
 }) {
   const eventTypes: AcademicEvent["type"][] = ["HOLIDAY", "EXAM", "ACTIVITY", "OTHER"];
   const scopeTypes: ("ALL" | AcademicEvent["scopeType"])[] = ["ALL", "SCHOOL", "STAGE", "GRADE", "SECTION"];
+
+  let targetOptions: Array<{ id: string; name: string }> = [];
+  if (scopeFilter === "STAGE") targetOptions = stages;
+  if (scopeFilter === "GRADE") targetOptions = grades;
+  if (scopeFilter === "SECTION") targetOptions = sections;
 
   return (
     <div className="space-y-4">
@@ -132,6 +150,36 @@ function FiltersContent({
               />
             ))}
           </RadioGroup>
+
+          {/* Scope Target Select */}
+          {["STAGE", "GRADE", "SECTION"].includes(scopeFilter) && onScopeIdChange && (
+            <div className="mt-4">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                {t("scope_target")}
+              </h3>
+              <FormControl size="small" fullWidth>
+                <Select
+                  value={scopeIdFilter || ""}
+                  onChange={(e) => onScopeIdChange(e.target.value)}
+                  displayEmpty
+                  sx={{
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "var(--color-border, #e5e7eb)",
+                    },
+                  }}
+                >
+                  <MenuItem value="">
+                    <em>{t("scopes.all")}</em>
+                  </MenuItem>
+                  {targetOptions.map((opt) => (
+                    <MenuItem key={opt.id} value={opt.id}>
+                      {opt.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </div>
+          )}
         </div>
       </div>
 
@@ -158,25 +206,50 @@ export default function CalendarToolbar({
   scopeFilter,
   onScopeFilterChange,
   onAddEvent,
+  onRefresh,
   isReadOnly,
   view,
   onViewChange,
   displayMode,
   onDisplayModeChange,
-  termStartDate,
-  termEndDate,
+  academicYearId,
+  termId,
+  scopeIdFilter,
+  onScopeIdFilterChange,
 }: CalendarToolbarProps) {
   const t = useTranslations("academics.calendar");
   const locale = useLocale();
   const isRTL = locale === "ar";
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const { showWarning } = useToast();
   
   const [filtersAnchorEl, setFiltersAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
   const [showDatePickerDialog, setShowDatePickerDialog] = useState(false);
-  
+
+  const [stages, setStages] = useState<Array<{ id: string; name: string }>>([]);
+  const [grades, setGrades] = useState<Array<{ id: string; name: string }>>([]);
+  const [sections, setSections] = useState<Array<{ id: string; name: string }>>([]);
+
+  // Load structure data for scope target filter
+  useEffect(() => {
+    if (academicYearId && termId) {
+      fetchStructureTree(academicYearId, termId)
+        .then((structure) => {
+          setStages(
+            structure.stages.map((s) => ({ id: s.id, name: s.name }))
+          );
+          setGrades(
+            structure.grades.map((g) => ({ id: g.id, name: g.name }))
+          );
+          setSections(
+            structure.sections.map((s) => ({ id: s.id, name: s.name }))
+          );
+        })
+        .catch(console.error);
+    }
+  }, [academicYearId, termId]);
+
   const showFiltersPopover = Boolean(filtersAnchorEl);
 
   const handlePrevMonth = () => {
@@ -206,16 +279,6 @@ export default function CalendarToolbar({
   const handleJumpToDate = (date: Date | null) => {
     if (!date) return;
 
-    // Check if date is within term range
-    if (termStartDate && date < termStartDate) {
-      showWarning(t("outsideTermJump"));
-      return;
-    }
-    if (termEndDate && date > termEndDate) {
-      showWarning(t("outsideTermJump"));
-      return;
-    }
-
     // Navigate to the month containing this date
     onDateChange(date);
     
@@ -236,6 +299,7 @@ export default function CalendarToolbar({
   const handleClearFilters = () => {
     onTypeFiltersChange(["HOLIDAY", "EXAM", "ACTIVITY", "OTHER"]);
     onScopeFilterChange("ALL");
+    if (onScopeIdFilterChange) onScopeIdFilterChange(null);
   };
 
   const handleOpenFilters = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -345,8 +409,6 @@ export default function CalendarToolbar({
                     <DatePicker
                       value={currentDate}
                       onChange={handleJumpToDate}
-                      minDate={termStartDate}
-                      maxDate={termEndDate}
                       inputSize="sm"
                       placeholder={t("goToDate")}
                       className="text-sm"
@@ -440,8 +502,20 @@ export default function CalendarToolbar({
           </div>
         </div>
 
-        {/* Second Row: Filters + Add Event */}
+        {/* Second Row: Filters + Actions */}
         <div className="flex items-center justify-end gap-2">
+          {/* Refresh Button */}
+          {onRefresh && (
+            <IconButton
+              size="small"
+              onClick={onRefresh}
+              sx={{ color: "var(--color-text-secondary, #6b7280)", mr: 1 }}
+              title={t("refresh")}
+            >
+              <RefreshCw className="w-4 h-4" />
+            </IconButton>
+          )}
+
           {/* Filters Button */}
           <Button
             onClick={handleOpenFilters}
@@ -516,6 +590,11 @@ export default function CalendarToolbar({
             onTypeToggle={handleTypeToggle}
             scopeFilter={scopeFilter}
             onScopeChange={onScopeFilterChange}
+            scopeIdFilter={scopeIdFilter}
+            onScopeIdChange={onScopeIdFilterChange}
+            stages={stages}
+            grades={grades}
+            sections={sections}
             onClear={handleClearFilters}
             onClose={handleCloseFilters}
             t={t}
@@ -557,6 +636,11 @@ export default function CalendarToolbar({
             onTypeToggle={handleTypeToggle}
             scopeFilter={scopeFilter}
             onScopeChange={onScopeFilterChange}
+            scopeIdFilter={scopeIdFilter}
+            onScopeIdChange={onScopeIdFilterChange}
+            stages={stages}
+            grades={grades}
+            sections={sections}
             onClear={handleClearFilters}
             onClose={handleCloseFilters}
             t={t}
@@ -596,8 +680,6 @@ export default function CalendarToolbar({
           <DatePicker
             value={currentDate}
             onChange={handleJumpToDate}
-            minDate={termStartDate}
-            maxDate={termEndDate}
             label={t("goToDate")}
             fullWidth
           />

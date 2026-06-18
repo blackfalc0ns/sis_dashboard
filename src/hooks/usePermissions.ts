@@ -40,10 +40,19 @@ export type PermissionKey =
   | "nedaa.requests.manage"
   | "nedaa.settings.view"
   | "nedaa.settings.manage"
+  | "academics.overview.view"
   | "academics.subjects.view"
   | "academics.subjects.manage"
   | "academics.structure.view"
   | "academics.structure.manage"
+  | "academics.calendar.view"
+  | "academics.calendar.manage"
+  | "academics.curriculum.view"
+  | "academics.curriculum.manage"
+  | "academics.lesson_plans.view"
+  | "academics.lesson_plans.manage"
+  | "homework.assignments.view"
+  | "homework.assignments.manage"
   | "reinforcement.overview.view"
   | "reinforcement.templates.view"
   | "reinforcement.templates.manage"
@@ -115,7 +124,15 @@ export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
   ...settingsNavigationPermissionByKey,
   ...reinforcementNavigationPermissionByKey,
   "admissions-applications": "admissions.applications.view",
+  "academics-overview": "academics.overview.view",
+  "academics-structure": "academics.structure.view",
   "academics-rooms": "academics.structure.view",
+  "academics-subjects": "academics.subjects.view",
+  "academics-teacher-allocation": "academics.structure.view",
+  "academics-timetable": "academics.structure.view",
+  "academics-calendar": "academics.calendar.view",
+  "academics-curriculum": "academics.curriculum.view",
+  "academics-lesson-plans": "academics.lesson_plans.view",
 };
 
 export function usePermissions() {

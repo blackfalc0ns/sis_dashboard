@@ -15,6 +15,7 @@ interface MonthCalendarProps {
   isReadOnly: boolean;
   term: Term;
   onEventMove: (eventId: string, newStartDate: string, newEndDate: string) => Promise<void>;
+  onInvalidDrop?: () => void;
   displayMode: "compact" | "comfortable" | "minimal";
 }
 
@@ -26,6 +27,7 @@ export default function MonthCalendar({
   isReadOnly,
   term,
   onEventMove,
+  onInvalidDrop,
   displayMode,
 }: MonthCalendarProps) {
   const t = useTranslations("academics.calendar");
@@ -47,6 +49,7 @@ export default function MonthCalendar({
     termEndDate: term.endDate,
     isReadOnly,
     onEventMove,
+    onInvalidDrop,
   });
 
   // Generate calendar grid
@@ -279,7 +282,7 @@ export default function MonthCalendar({
                     // Compact/Comfortable: show event chips
                     <div className="space-y-1">
                       {visibleEvents.map((event) => {
-                        const title = locale === "ar" ? event.titleAr : event.titleEn;
+                        const title = event.title;
                         return (
                           <button
                             key={event.id}

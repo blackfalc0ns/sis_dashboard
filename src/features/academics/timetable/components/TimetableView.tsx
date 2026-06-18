@@ -5,7 +5,6 @@ import { useTranslations, useLocale } from "next-intl";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import {
   AlertCircle,
-  ShieldAlert,
   Save,
   RotateCcw,
   Settings,
@@ -21,7 +20,7 @@ import ValidationPanel from "./ValidationPanel";
 import EditSlotDialog from "./EditSlotDialog";
 import GenerateDialog from "./GenerateDialog";
 import TimetableConfigDialog from "./TimetableConfigDialog";
-import { Button } from "@/components/ui";
+import { AccessDenied, Button } from "@/components/ui";
 import { useToast } from "@/components/ui/toast/Toast";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useBrandingProfile } from "@/features/settings/hooks/useBrandingProfile";
@@ -844,10 +843,13 @@ export default function TimetableView({
 
   if (!canViewTimetable) {
     return (
-      <TimetableAccessDenied
-        title={t("accessDenied.title")}
-        description={t("accessDenied.description")}
-      />
+      <div className="flex h-full items-start justify-center p-6">
+        <AccessDenied
+          className="max-w-md"
+          title={t("accessDenied.title")}
+          description={t("accessDenied.description")}
+        />
+      </div>
     );
   }
 
@@ -1415,7 +1417,7 @@ export default function TimetableView({
       )}
 
       {/* Grid */}
-      <div className="flex-1 overflow-auto p-3 lg:p-6 print:overflow-visible print:p-0">
+      <div className="flex-1 min-h-full overflow-auto p-3 lg:p-6 print:overflow-visible print:p-0">
         {!hasTimetableTarget ? (
           <div className="flex flex-col items-center justify-center h-full">
             <AlertCircle className="w-12 h-12 text-gray-400 mb-4" />
@@ -1691,30 +1693,6 @@ export default function TimetableView({
             : 0
         }
       />
-    </div>
-  );
-}
-
-function TimetableAccessDenied({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="flex h-full items-start justify-center p-6">
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
-        <div className="flex items-start gap-3">
-          <div className="rounded-full bg-amber-100 p-2 text-amber-700">
-            <ShieldAlert className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-amber-900">{title}</h1>
-            <p className="mt-1 text-sm text-amber-800">{description}</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

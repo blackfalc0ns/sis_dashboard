@@ -4,9 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDebouncedCallback } from "use-debounce";
-import { AlertCircle, Download, Edit2, Plus, ShieldAlert, Trash2 } from "lucide-react";
+import { AlertCircle, Download, Edit2, Plus, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui";
+import { AccessDenied, Button } from "@/components/ui";
 import Select from "@/components/ui/input/Select";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -418,21 +418,7 @@ export default function RoomsView({
   if (!canViewRooms) {
     return (
       <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
-          <div className="flex items-start gap-3">
-            <div className="rounded-full bg-amber-100 p-2 text-amber-700">
-              <ShieldAlert className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold text-amber-900">
-                {t("accessDeniedTitle")}
-              </h1>
-              <p className="mt-1 text-sm text-amber-800">
-                {t("accessDeniedDescription")}
-              </p>
-            </div>
-          </div>
-        </div>
+        <AccessDenied />
       </main>
     );
   }

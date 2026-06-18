@@ -3,7 +3,11 @@
 import { useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Calendar, MapPin } from "lucide-react";
-import { AcademicEvent } from "@/features/academics/calendar/services/calendarService";
+import {
+  AcademicEvent,
+  formatCalendarDate,
+  parseCalendarDate,
+} from "@/features/academics/calendar/services/calendarService";
 
 interface AgendaViewProps {
   currentDate: Date;
@@ -23,9 +27,10 @@ export default function AgendaView({
   const groupedEvents = useMemo(() => {
     const groups: Map<string, AcademicEvent[]> = new Map();
 
-    // Get all dates in the current month
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
+    const rangeStart = new Date(currentDate);
+    rangeStart.setHours(0, 0, 0, 0);
+    const rangeEnd = new Date(rangeStart);
+    rangeEnd.setDate(rangeEnd.getDate() + 90);
 
     // Sort events by start date
     const sortedEvents = [...events].sort((a, b) => 
@@ -33,13 +38,13 @@ export default function AgendaView({
     );
 
     sortedEvents.forEach((event) => {
-      const startDate = new Date(event.startDate);
-      const endDate = new Date(event.endDate);
+      const startDate = parseCalendarDate(event.startDate);
+      const endDate = parseCalendarDate(event.endDate);
 
       // For each day the event spans
       for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-        if (d.getMonth() === month && d.getFullYear() === year) {
-          const dateKey = d.toISOString().split("T")[0];
+        if (d >= rangeStart && d <= rangeEnd) {
+          const dateKey = formatCalendarDate(d);
           if (!groups.has(dateKey)) {
             groups.set(dateKey, []);
           }
@@ -56,7 +61,7 @@ export default function AgendaView({
     return Array.from(groups.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([dateStr, events]) => ({
-        date: new Date(dateStr + "T00:00:00"),
+        date: parseCalendarDate(dateStr),
         events,
       }));
   }, [events, currentDate]);
@@ -82,8 +87,8 @@ export default function AgendaView({
   };
 
   const formatDateRange = (event: AcademicEvent) => {
-    const start = new Date(event.startDate);
-    const end = new Date(event.endDate);
+    const start = parseCalendarDate(event.startDate);
+    const end = parseCalendarDate(event.endDate);
 
     if (event.startDate === event.endDate) {
       return start.toLocaleDateString(locale === "ar" ? "ar-SA" : "en-US", {
@@ -106,7 +111,7 @@ export default function AgendaView({
       <div className="mt-4 bg-white rounded-lg shadow-sm border border-gray-200 p-12">
         <div className="text-center text-gray-500">
           <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-          <p>{t("noEventsThisMonth")}</p>
+          <p>{t("noEventsThisRange")}</p>
         </div>
       </div>
     );
@@ -143,8 +148,8 @@ export default function AgendaView({
           {/* Events List */}
           <div className="divide-y divide-gray-200">
             {dayEvents.map((event) => {
-              const title = locale === "ar" ? event.titleAr : event.titleEn;
-              const notes = locale === "ar" ? event.notesAr : event.notesEn;
+              const title = event.title;
+              const notes = event.notes;
 
               return (
                 <button
@@ -179,6 +184,15 @@ export default function AgendaView({
                           <MapPin className="w-3 h-3" />
                           <span>{getScopeLabel(event)}</span>
                         </div>
+
+                        {/* All Day */}
+                        {event.allDay && (
+                          <div className="flex items-center gap-1">
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">
+                              {t("all_day")}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Notes Preview */}

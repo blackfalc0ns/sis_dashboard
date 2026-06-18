@@ -30,6 +30,14 @@
       "loading_modules": "Loading dashboard cards",
       "kpis_unavailable": "KPI cards unavailable",
       "modules_unavailable": "Dashboard cards unavailable",
+      "access_denied": {
+        "title": "Access denied",
+        "message": "You do not have permission to view the dashboard."
+      },
+      "errors": {
+        "retry": "Retry",
+        "trace_id": "Trace ID: {traceId}"
+      },
       "tabs": {
         "aria_label": "Dashboard sections",
         "overview": "Overview",
@@ -477,6 +485,10 @@
     "table_density": "Table density",
     "density_comfortable": "Comfortable",
     "density_compact": "Compact",
+    "accessDenied": {
+      "title": "Access denied",
+      "description": "You do not have permission to view this section."
+    },
     "export": {
       "button": "Export",
       "excel": "Export as Excel",
@@ -559,6 +571,11 @@
   },
   "filter_bar": {
     "filters": {
+      "title": "Filters",
+      "subtitle": "Narrow the list using the available filters.",
+      "showFilters": "Show filters",
+      "hideFilters": "Hide filters",
+      "clearFilters": "Clear filters",
       "today": "Today",
       "grade": "Grade",
       "academic_year": "Academic Year"
@@ -581,6 +598,7 @@
     "activity": "Activity",
     "get_help": "Get Help",
     "settings": "Settings",
+    "logout": "Logout",
     "school": "School",
     "sections": {
       "overview": "Overview",
@@ -1165,6 +1183,10 @@
       },
       "student": {
         "title": "Student Information",
+        "full_name_ar": "Full Name (Arabic)",
+        "full_name_ar_placeholder": "Ahmed Mohammed",
+        "full_name_en": "Full Name (English)",
+        "full_name_en_placeholder": "Ahmed Mohammed",
         "first_name_ar": "First Name (Arabic)",
         "first_name_ar_placeholder": "Ahmed",
         "father_name_ar": "Father Name (Arabic)",
@@ -1204,6 +1226,7 @@
         "student_phone": "Student Phone",
         "student_email": "Student Email",
         "academic": "Academic Information",
+        "grade": "Grade",
         "grade_requested": "Grade Requested",
         "grade_placeholder": "Select grade",
         "section": "Section",
@@ -1265,6 +1288,8 @@
         "add_btn": "Add"
       },
       "errors": {
+        "full_name_ar_required": "Arabic full name is required",
+        "full_name_en_required": "English full name is required",
         "first_name_ar_required": "Arabic first name is required",
         "father_name_ar_required": "Arabic father name is required",
         "grandfather_name_ar_required": "Arabic grandfather name is required",
@@ -1991,6 +2016,8 @@
         "withdrawn": "Withdrawn"
       },
       "grades": {
+        "kg1": "KG1",
+        "kg2": "KG2",
         "grade_1": "Grade 1",
         "grade_2": "Grade 2",
         "grade_3": "Grade 3",
@@ -2432,7 +2459,10 @@
         },
         "transfers_trend": "Transfers Over Time",
         "withdrawals_trend": "Withdrawals Over Time",
-        "withdrawals_by_stage": "Withdrawals by Stage",
+        "withdrawals_by_stage": {
+          "title": "Withdrawals by Stage",
+          "description": "Distribution of withdrawals across educational stages"
+        },
         "total_withdrawals": "Total Withdrawals",
         "total_transfers": "Total Transfers",
         "internal_transfers": "Internal Transfers",
@@ -2453,6 +2483,26 @@
           "y_axis": "Number of Withdrawals",
           "insight_title": "Key Insight",
           "insight_text": "Students with lower behavior scores (0-40) show significantly higher withdrawal rates, indicating a strong correlation between behavior issues and student retention."
+        },
+        "transfers_by_type": {
+          "title": "Transfers by Type",
+          "description": "Distribution of internal and external transfers by transfer type"
+        },
+        "transfers_by_stage": {
+          "title": "Transfers by Stage",
+          "description": "Distribution of transfers across educational stages"
+        },
+        "transfers_by_status": {
+          "title": "Transfers by Status",
+          "description": "Distribution of transfer requests by status"
+        },
+        "withdrawals_by_status": {
+          "title": "Withdrawals by Status",
+          "description": "Distribution of withdrawal requests by status"
+        },
+        "withdrawals_by_clearance": {
+          "title": "Withdrawals by Clearance Status",
+          "description": "Distribution of completed and incomplete withdrawal clearances"
         }
       },
       "modals": {
@@ -3907,8 +3957,11 @@
     },
     "calendar": {
       "title": "Academic Calendar",
+      "event_title": "Event Title",
       "readonly_banner": "This term is closed. Calendar is read-only.",
+      "select_term_first": "Select an academic year and term first.",
       "today": "Today",
+      "refresh": "Refresh",
       "prev": "Previous",
       "next": "Next",
       "add_event": "Add Event",
@@ -3952,11 +4005,9 @@
       },
       "validation": {
         "start_after_end": "End date must be after start date",
-        "outside_term_range": "Event must be within term date range",
-        "outside_term_range_with_dates": "Event must be within the term range ({start} Ã¢â‚¬â€œ {end})"
+        "title_too_long": "Title must be 180 characters or fewer.",
+        "notes_too_long": "Notes must be 4000 characters or fewer."
       },
-      "term_range_hint": "Term range: {start} Ã¢â‚¬â€œ {end}",
-      "date_helper_text": "Must be within term range",
       "clear_filters": "Clear",
       "apply": "Apply",
       "notifyUsers": "Notify affected users",
@@ -3979,8 +4030,18 @@
       "eventsCount": "{count} events",
       "noEventsThisWeek": "No events this week",
       "noEventsThisMonth": "No events this month",
+      "noEventsThisRange": "No events in this date range",
       "goToDate": "Go to date",
-      "outsideTermJump": "Selected date is outside the term range."
+      "outsideTermJump": "Selected date is outside the term range.",
+      "errors": {
+        "notFound": "The event was deleted or is outside your access scope.",
+        "invalidScope": "Select a valid school, stage, grade, or section.",
+        "invalidDateRange": "The start date must be before or equal to the end date.",
+        "invalidListRange": "The selected calendar range is invalid or too large.",
+        "invalidPayload": "Check the event title and required fields.",
+        "forbidden": "You do not have permission for this calendar scope.",
+        "unexpected": "An unexpected calendar error occurred."
+      }
     },
     "teacherAllocation": {
       "title": "Teacher Allocation",
@@ -5281,6 +5342,7 @@
     "pointsUpdated": "Points updated successfully"
   },
   "validation": {
+    "invalid_expected_time": "Expected time must be greater than 0",
     "required_fields": "Please fill in all required fields",
     "required_ar": "Arabic is required",
     "required_en": "English is required",
@@ -7542,8 +7604,17 @@
       "datasets": {
         "label": "Choose dataset",
         "summary": {
+          "label": "Summary",
           "title": "Summary",
           "description": "KPI snapshot from the overview"
+        },
+        "activity": {
+          "label": "Latest activity",
+          "description": "Visible activity from the current view"
+        },
+        "chart": {
+          "label": "Selected chart",
+          "description": "The chart currently selected in the controls"
         },
         "latest_requests": {
           "title": "Latest requests",

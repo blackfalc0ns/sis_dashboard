@@ -8,7 +8,7 @@
 
   Usage:
     node scripts/translation-guard.mjs
-    node scripts/translation-guard.mjs --messages messages --src src
+    node scripts/translation-guard.mjs --messages src/messages --src src
 */
 
 import fs from 'node:fs';
@@ -21,7 +21,7 @@ const getArg = (name, fallback) => {
 };
 
 const root = process.cwd();
-const messagesDir = path.resolve(root, getArg('messages', 'messages'));
+const messagesDir = path.resolve(root, getArg('messages', 'src/messages'));
 const srcDir = path.resolve(root, getArg('src', 'src'));
 const locales = ['ar', 'en'];
 

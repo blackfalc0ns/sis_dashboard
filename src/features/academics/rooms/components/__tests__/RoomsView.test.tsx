@@ -169,7 +169,8 @@ describe("RoomsView", () => {
     permissionMocks.permissions = new Set([]);
     renderRoomsView();
 
-    expect(screen.getByText("accessDeniedTitle")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "title" })).toBeInTheDocument();
+    expect(screen.getByText("description")).toBeInTheDocument();
     expect(roomsServiceMocks.fetchRooms).not.toHaveBeenCalled();
   });
 

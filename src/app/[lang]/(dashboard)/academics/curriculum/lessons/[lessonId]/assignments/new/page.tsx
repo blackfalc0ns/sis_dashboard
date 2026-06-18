@@ -1,3 +1,4 @@
+import AcademicsPermissionGuard from "@/features/academics/components/AcademicsPermissionGuard";
 import AssignmentBuilderPage from "@/features/academics/curriculum/pages/AssignmentBuilderPage";
 
 interface PageProps {
@@ -8,5 +9,9 @@ interface PageProps {
 
 export default async function Page({ params }: PageProps) {
   const { lessonId } = await params;
-  return <AssignmentBuilderPage lessonId={lessonId} />;
+  return (
+    <AcademicsPermissionGuard permission="homework.assignments.manage">
+      <AssignmentBuilderPage lessonId={lessonId} />
+    </AcademicsPermissionGuard>
+  );
 }

@@ -73,8 +73,8 @@ export default function DayEventsPopover({
       {/* Events List */}
       <div className="space-y-2 mb-4 max-h-[400px] overflow-y-auto">
         {events.map((event) => {
-          const title = locale === "ar" ? event.titleAr : event.titleEn;
-          const notes = locale === "ar" ? event.notesAr : event.notesEn;
+          const title = event.title;
+          const notes = event.notes;
 
           return (
             <button
@@ -100,6 +100,11 @@ export default function DayEventsPopover({
                     <span className="px-2 py-0.5 rounded bg-white bg-opacity-50">
                       {t(`scopes.${event.scopeType.toLowerCase()}`)}
                     </span>
+                    {event.allDay && (
+                      <span className="px-2 py-0.5 rounded bg-white bg-opacity-50">
+                        {t("all_day")}
+                      </span>
+                    )}
                   </div>
                   {notes && (
                     <p className="text-xs mt-2 opacity-75 line-clamp-2">{notes}</p>

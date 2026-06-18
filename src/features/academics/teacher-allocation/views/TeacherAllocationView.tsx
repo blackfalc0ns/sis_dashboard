@@ -25,7 +25,7 @@ import type {
 import AllocationMatrixView from "../components/AllocationMatrixView";
 import TeacherLoadView from "../components/TeacherLoadView";
 import ValidationPanel from "../components/ValidationPanel";
-import { Button } from "@/components/ui";
+import { AccessDenied, Button } from "@/components/ui";
 import TeacherAllocationTechnicalDetails from "../components/TeacherAllocationTechnicalDetails";
 
 interface TeacherAllocationViewProps {
@@ -99,15 +99,7 @@ export default function TeacherAllocationView({
   if (!canView) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center bg-gray-50 px-6">
-        <div className="max-w-md text-center">
-          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
-          <h2 className="mb-2 text-lg font-semibold text-gray-900">
-            {t("accessDenied.title")}
-          </h2>
-          <p className="text-sm text-gray-600">
-            {t("accessDenied.message")}
-          </p>
-        </div>
+        <AccessDenied className="max-w-md" />
       </div>
     );
   }

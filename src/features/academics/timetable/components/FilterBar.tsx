@@ -71,20 +71,14 @@ export default function FilterBar({
 
   const handleStageChange = (value: string) => {
     onStageChange(value);
-    onGradeChange(""); // Reset grade when stage changes
-    onSectionChange(""); // Reset section when stage changes
-    onClassroomChange(""); // Reset classroom when stage changes
   };
 
   const handleGradeChange = (value: string) => {
     onGradeChange(value);
-    onSectionChange(""); // Reset section when grade changes
-    onClassroomChange(""); // Reset classroom when grade changes
   };
 
   const handleSectionChange = (value: string) => {
     onSectionChange(value);
-    onClassroomChange(""); // Reset classroom when section changes
   };
 
   return (

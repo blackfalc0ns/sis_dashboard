@@ -14,6 +14,7 @@ interface UseEventDragDropProps {
   termEndDate: string;
   isReadOnly: boolean;
   onEventMove: (eventId: string, newStartDate: string, newEndDate: string) => Promise<void>;
+  onInvalidDrop?: () => void;
 }
 
 export function useEventDragDrop({
@@ -21,6 +22,7 @@ export function useEventDragDrop({
   termEndDate,
   isReadOnly,
   onEventMove,
+  onInvalidDrop,
 }: UseEventDragDropProps) {
   const [dragState, setDragState] = useState<DragState>({
     eventId: null,
@@ -155,7 +157,8 @@ export function useEventDragDrop({
 
           // Validate both dates are within term range
           if (!isWithinTermRange(newStartDate) || !isWithinTermRange(newEndDate)) {
-            throw new Error("DROP_OUTSIDE_TERM");
+            onInvalidDrop?.();
+            return;
           }
 
           // Don't move if dropped on same date
@@ -168,7 +171,7 @@ export function useEventDragDrop({
         },
       };
     },
-    [dragState, isReadOnly, onEventMove, isWithinTermRange]
+    [dragState, isReadOnly, onEventMove, onInvalidDrop, isWithinTermRange]
   );
 
   return {

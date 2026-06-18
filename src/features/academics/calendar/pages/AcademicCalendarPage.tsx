@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AlertCircle, Download } from "lucide-react";
 import { Snackbar, Alert } from "@mui/material";
+import { AccessDenied } from "@/components/ui";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import Button from "@/components/ui/button/Button";
@@ -23,11 +24,51 @@ import {
   type ExportMetadata,
 } from "@/features/academics/utils/exportAdapter";
 import {
-  fetchTermEvents,
+  fetchCalendarEvents,
+  formatCalendarDate,
   updateEvent,
   AcademicEvent,
 } from "@/features/academics/calendar/services/calendarService";
+import { getCalendarErrorMessage } from "@/features/academics/calendar/services/calendarErrors";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
+import { usePermissions } from "@/hooks/usePermissions";
+
+function getCalendarViewRange(view: "month" | "week" | "agenda", date: Date) {
+  const d = new Date(date);
+  if (view === "month") {
+    const year = d.getFullYear();
+    const month = d.getMonth();
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+    const startOffset = firstDayOfMonth.getDay();
+    const from = new Date(firstDayOfMonth);
+    from.setDate(from.getDate() - startOffset);
+    const endOffset = 6 - lastDayOfMonth.getDay();
+    const to = new Date(lastDayOfMonth);
+    to.setDate(to.getDate() + endOffset);
+    return {
+      from: formatCalendarDate(from),
+      to: formatCalendarDate(to),
+    };
+  } else if (view === "week") {
+    const from = new Date(d);
+    from.setDate(d.getDate() - d.getDay());
+    const to = new Date(from);
+    to.setDate(to.getDate() + 6);
+    return {
+      from: formatCalendarDate(from),
+      to: formatCalendarDate(to),
+    };
+  } else {
+    const from = new Date(d);
+    const to = new Date(d);
+    to.setDate(to.getDate() + 90);
+    return {
+      from: formatCalendarDate(from),
+      to: formatCalendarDate(to),
+    };
+  }
+}
 
 export default function AcademicCalendarPage() {
   const t = useTranslations("academics.calendar");
@@ -42,6 +83,10 @@ export default function AcademicCalendarPage() {
     isInitializing,
     selectedTerm,
   } = useAcademicYearTermLayoutContext();
+
+  const { hasPermission } = usePermissions();
+  const canView = hasPermission("academics.calendar.view");
+  const canManage = hasPermission("academics.calendar.manage");
 
   const queryState = useMemo(() => {
     const rawDate = searchParams.get("date");
@@ -66,6 +111,8 @@ export default function AcademicCalendarPage() {
         ? (rawScope as "ALL" | AcademicEvent["scopeType"])
         : "ALL";
 
+    const rawScopeId = searchParams.get("scopeId");
+
     const rawView = searchParams.get("view");
     const validView =
       rawView && ["month", "week", "agenda"].includes(rawView)
@@ -85,6 +132,7 @@ export default function AcademicCalendarPage() {
           ? validTypes
           : (["HOLIDAY", "EXAM", "ACTIVITY", "OTHER"] as AcademicEvent["type"][]),
       scopeFilter: validScope,
+      scopeIdFilter: rawScopeId || null,
       view: validView,
       displayMode: validMode,
     };
@@ -103,6 +151,7 @@ export default function AcademicCalendarPage() {
   // Filters
   const [typeFilters, setTypeFilters] = useState<AcademicEvent["type"][]>(queryState.typeFilters);
   const [scopeFilter, setScopeFilter] = useState<"ALL" | AcademicEvent["scopeType"]>(queryState.scopeFilter);
+  const [scopeIdFilter, setScopeIdFilter] = useState<string | null>(queryState.scopeIdFilter);
 
   // Dialog state
   const [showEventDialog, setShowEventDialog] = useState(false);
@@ -125,7 +174,7 @@ export default function AcademicCalendarPage() {
     severity: "success",
   });
 
-  const isReadOnly = termStatus === "closed";
+  const isReadOnly = termStatus === "closed" || !canManage;
   const term = selectedTerm;
 
   const handleExport = (format: AcademicsExportFormat) => {
@@ -154,16 +203,13 @@ export default function AcademicCalendarPage() {
       format,
       columns,
       rows: filteredEvents.map((event) => ({
-        title: locale === "ar" ? event.titleAr : event.titleEn,
+        title: event.title,
         type: t(`event_types.${event.type.toLowerCase()}`),
         scope: t(`scopes.${event.scopeType.toLowerCase()}`),
         allDay: event.allDay ? (locale === "ar" ? "نعم" : "Yes") : locale === "ar" ? "لا" : "No",
         startDate: event.startDate,
         endDate: event.endDate,
-        notes:
-          locale === "ar"
-            ? event.notesAr || event.notesEn || ""
-            : event.notesEn || event.notesAr || "",
+        notes: event.notes || "",
       })),
       locale: format === "json" ? "en" : undefined,
       jsonData: {
@@ -178,36 +224,17 @@ export default function AcademicCalendarPage() {
         },
         events: filteredEvents.map((event) => ({
           id: event.id,
-          titleEn: event.titleEn,
-          titleAr: event.titleAr,
+          title: event.title,
           type: event.type,
           scopeType: event.scopeType,
           allDay: event.allDay,
           startDate: event.startDate,
           endDate: event.endDate,
-          notesEn: event.notesEn || "",
-          notesAr: event.notesAr || "",
+          notes: event.notes || "",
         })),
       },
     });
   };
-
-  // Load events when term changes
-  useEffect(() => {
-    if (isInitializing) return;
-    if (!termId) {
-      setIsLoading(false);
-      return;
-    }
-    loadEvents();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInitializing, termId]);
-
-  // Apply filters when events or filters change
-  useEffect(() => {
-    applyFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [events, typeFilters, scopeFilter]);
 
   useEffect(() => {
     setCurrentDate(queryState.currentDate);
@@ -222,6 +249,10 @@ export default function AcademicCalendarPage() {
   }, [queryState.scopeFilter]);
 
   useEffect(() => {
+    setScopeIdFilter(queryState.scopeIdFilter);
+  }, [queryState.scopeIdFilter]);
+
+  useEffect(() => {
     setView(queryState.view);
   }, [queryState.view]);
 
@@ -229,40 +260,76 @@ export default function AcademicCalendarPage() {
     setDisplayMode(queryState.displayMode);
   }, [queryState.displayMode]);
 
-  const loadEvents = async () => {
-    if (!termId) return;
-    setIsLoading(true);
-    try {
-      const termEvents = await fetchTermEvents(termId);
-      setEvents(termEvents);
-      
-      // Apply filters immediately after setting events
-      let filtered = termEvents;
-      filtered = filtered.filter((event) => typeFilters.includes(event.type));
+  const filterEvents = useCallback(
+    (sourceEvents: AcademicEvent[]) => {
+      let filtered = sourceEvents.filter((event) =>
+        typeFilters.includes(event.type)
+      );
+
       if (scopeFilter !== "ALL") {
         filtered = filtered.filter((event) => event.scopeType === scopeFilter);
+        if (scopeIdFilter) {
+          filtered = filtered.filter((event) => event.scopeId === scopeIdFilter);
+        }
       }
-      setFilteredEvents(filtered);
+
+      return filtered;
+    },
+    [scopeFilter, scopeIdFilter, typeFilters]
+  );
+
+  const loadEvents = useCallback(async () => {
+    if (!canView || !academicYearId || !termId) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const { from, to } = getCalendarViewRange(view, currentDate);
+
+      const allEvents: AcademicEvent[] = [];
+      let cursor: string | undefined;
+
+      do {
+        const res = await fetchCalendarEvents({
+          academicYearId,
+          termId,
+          from,
+          to,
+          limit: 100,
+          cursor,
+        });
+
+        allEvents.push(...res.items);
+        cursor = res.nextCursor || undefined;
+      } while (cursor);
+
+      setEvents(allEvents);
     } catch (error) {
       console.error("Failed to load events:", error);
+      setSnackbar({
+        open: true,
+        message: getCalendarErrorMessage(error, (key) => t(`errors.${key}`)),
+        severity: "error",
+      });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [academicYearId, canView, currentDate, t, termId, view]);
 
-  const applyFilters = () => {
-    let filtered = events;
-
-    // Filter by type
-    filtered = filtered.filter((event) => typeFilters.includes(event.type));
-
-    // Filter by scope
-    if (scopeFilter !== "ALL") {
-      filtered = filtered.filter((event) => event.scopeType === scopeFilter);
+  // Load events when dependencies change
+  useEffect(() => {
+    if (isInitializing) {
+      return;
     }
 
-    setFilteredEvents(filtered);
-  };
+    void loadEvents();
+  }, [isInitializing, loadEvents]);
+
+  // Apply filters when events or filters change
+  useEffect(() => {
+    setFilteredEvents(filterEvents(events));
+  }, [events, filterEvents]);
 
   const updateURL = useCallback(
     (
@@ -274,6 +341,7 @@ export default function AcademicCalendarPage() {
         currentMode?: "compact" | "comfortable" | "minimal";
         currentTypeFilters?: AcademicEvent["type"][];
         currentScopeFilter?: "ALL" | AcademicEvent["scopeType"];
+        currentScopeIdFilter?: string | null;
       },
       historyMode: "push" | "replace" = "push"
     ) => {
@@ -292,6 +360,14 @@ export default function AcademicCalendarPage() {
       const nextMode = state.currentMode ?? displayMode;
       const nextTypes = state.currentTypeFilters ?? typeFilters;
       const nextScope = state.currentScopeFilter ?? scopeFilter;
+      const nextScopeId =
+        state.currentScopeIdFilter !== undefined
+          ? state.currentScopeIdFilter
+          : scopeIdFilter;
+      const normalizedScopeId =
+        nextScope === "STAGE" || nextScope === "GRADE" || nextScope === "SECTION"
+          ? nextScopeId
+          : null;
 
       params.set("view", nextView);
       params.set("mode", nextMode);
@@ -302,6 +378,9 @@ export default function AcademicCalendarPage() {
 
       if (nextScope !== "ALL") {
         params.set("scope", nextScope);
+      }
+      if (normalizedScopeId) {
+        params.set("scopeId", normalizedScopeId);
       }
 
       const nextQuery = params.toString();
@@ -317,7 +396,7 @@ export default function AcademicCalendarPage() {
       }
       router.replace(nextUrl, { scroll: false });
     },
-    [currentDate, displayMode, router, scopeFilter, searchParams, typeFilters, view]
+    [currentDate, displayMode, router, scopeFilter, scopeIdFilter, searchParams, typeFilters, view]
   );
 
   const handleViewChange = (newView: "month" | "week" | "agenda") => {
@@ -377,11 +456,13 @@ export default function AcademicCalendarPage() {
   const handleScopeFilterChange = useCallback(
     (scope: "ALL" | AcademicEvent["scopeType"]) => {
       setScopeFilter(scope);
+      setScopeIdFilter(null);
       updateURL(
         academicYearId,
         termId,
         {
           currentScopeFilter: scope,
+          currentScopeIdFilter: null,
         },
         "push"
       );
@@ -390,6 +471,7 @@ export default function AcademicCalendarPage() {
   );
 
   const handleAddEvent = (date?: Date) => {
+    if (isReadOnly) return;
     setEditingEvent(null);
     setPrefilledDate(date || null);
     setShowEventDialog(true);
@@ -419,6 +501,8 @@ export default function AcademicCalendarPage() {
     newStartDate: string,
     newEndDate: string
   ) => {
+    if (isReadOnly) return;
+
     const event = events.find((e) => e.id === eventId);
     if (!event) return;
 
@@ -427,14 +511,7 @@ export default function AcademicCalendarPage() {
       e.id === eventId ? { ...e, startDate: newStartDate, endDate: newEndDate } : e
     );
     setEvents(updatedEvents);
-    
-    // Apply filters to updated events
-    let filtered = updatedEvents;
-    filtered = filtered.filter((event) => typeFilters.includes(event.type));
-    if (scopeFilter !== "ALL") {
-      filtered = filtered.filter((event) => event.scopeType === scopeFilter);
-    }
-    setFilteredEvents(filtered);
+    setFilteredEvents(filterEvents(updatedEvents));
 
     try {
       await updateEvent(eventId, {
@@ -450,22 +527,45 @@ export default function AcademicCalendarPage() {
     } catch (error) {
       // Rollback on failure
       await loadEvents();
-
-      if (error instanceof Error && error.message === "DROP_OUTSIDE_TERM") {
-        setSnackbar({
-          open: true,
-          message: t("dropOutsideTerm"),
-          severity: "error",
-        });
-      } else {
-        setSnackbar({
-          open: true,
-          message: t("moveFailed"),
-          severity: "error",
-        });
-      }
+      setSnackbar({
+        open: true,
+        message: getCalendarErrorMessage(error, (key) => t(`errors.${key}`)),
+        severity: "error",
+      });
     }
   };
+
+  if (isInitializing) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <MainLoader />
+      </div>
+    );
+  }
+
+  if (!canView) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center bg-gray-50">
+        <AccessDenied className="max-w-md" />
+      </div>
+    );
+  }
+
+  if (!isInitializing && (!academicYearId || !termId)) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center text-center p-8 bg-white rounded-xl shadow-sm border border-gray-100">
+          <AlertCircle className="w-12 h-12 text-yellow-500 mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            No Term Selected
+          </h2>
+          <p className="text-gray-500">
+            {t("select_term_first")}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -506,14 +606,20 @@ export default function AcademicCalendarPage() {
             onTypeFiltersChange={handleTypeFiltersChange}
             scopeFilter={scopeFilter}
             onScopeFilterChange={handleScopeFilterChange}
+            scopeIdFilter={scopeIdFilter}
+            onScopeIdFilterChange={(id) => {
+              setScopeIdFilter(id);
+              updateURL(academicYearId!, termId!, { currentScopeIdFilter: id }, "push");
+            }}
             onAddEvent={() => handleAddEvent()}
+            onRefresh={loadEvents}
             isReadOnly={isReadOnly}
             view={view}
             onViewChange={handleViewChange}
             displayMode={displayMode}
             onDisplayModeChange={handleDisplayModeChange}
-            termStartDate={term?.startDate ? new Date(term.startDate) : undefined}
-            termEndDate={term?.endDate ? new Date(term.endDate) : undefined}
+            academicYearId={academicYearId || undefined}
+            termId={termId || undefined}
           />
 
           {/* Calendar Views */}
@@ -526,6 +632,13 @@ export default function AcademicCalendarPage() {
               isReadOnly={isReadOnly}
               term={term}
               onEventMove={handleEventMove}
+              onInvalidDrop={() => {
+                setSnackbar({
+                  open: true,
+                  message: t("dropOutsideTerm"),
+                  severity: "error",
+                });
+              }}
               displayMode={displayMode}
             />
           )}
@@ -539,6 +652,13 @@ export default function AcademicCalendarPage() {
               isReadOnly={isReadOnly}
               term={term}
               onEventMove={handleEventMove}
+              onInvalidDrop={() => {
+                setSnackbar({
+                  open: true,
+                  message: t("dropOutsideTerm"),
+                  severity: "error",
+                });
+              }}
               displayMode={displayMode}
             />
           )}
@@ -561,8 +681,10 @@ export default function AcademicCalendarPage() {
           onSuccess={handleEventSuccess}
           event={editingEvent}
           term={term}
+          academicYearId={academicYearId || ""}
+          termId={termId || ""}
           prefilledDate={prefilledDate}
-          isReadOnly={isReadOnly && !!editingEvent}
+          isReadOnly={isReadOnly}
         />
       )}
 
