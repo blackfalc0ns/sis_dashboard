@@ -4,7 +4,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, Grid3x3, BarChart3 } from "lucide-react";
 import { Tabs, Tab } from "@mui/material";
 import type {
@@ -25,14 +25,15 @@ import type {
 import AllocationMatrixView from "../components/AllocationMatrixView";
 import TeacherLoadView from "../components/TeacherLoadView";
 import ValidationPanel from "../components/ValidationPanel";
-import CarryOverDialog from "../components/CarryOverDialog";
 import { Button } from "@/components/ui";
+import TeacherAllocationTechnicalDetails from "../components/TeacherAllocationTechnicalDetails";
 
 interface TeacherAllocationViewProps {
   academicYearId: string;
   termId: string;
   academicYears: AcademicYear[];
   terms: Term[];
+  canView: boolean;
   grades: Grade[];
   sections: Section[];
   classrooms: Classroom[];
@@ -40,19 +41,19 @@ interface TeacherAllocationViewProps {
   subjectAllocations: SubjectAllocation[];
   teachers: Teacher[];
   teacherAllocations: TeacherAllocation[];
-  currentAllocations: TeacherAllocation[];
   isLoading: boolean;
+  apiError: string | null;
+  apiErrorTraceId?: string;
+  isSaving: boolean;
   activeTab: "matrix" | "load";
   validationPanelOpen: boolean;
-  carryOverDialogOpen: boolean;
   isReadOnly: boolean;
-  onCarryOverSuccess: () => void;
   onValidate: () => void;
   onAllocationsChange: (allocations: TeacherAllocation[]) => void;
   onRefresh: () => Promise<void>;
+  onRetry: () => Promise<void>;
   onTabChange: (tab: "matrix" | "load") => void;
   onCloseValidationPanel: () => void;
-  onCloseCarryOverDialog: () => void;
 }
 
 export default function TeacherAllocationView({
@@ -60,6 +61,7 @@ export default function TeacherAllocationView({
   termId,
   academicYears,
   terms,
+  canView,
   grades,
   sections,
   classrooms,
@@ -67,25 +69,48 @@ export default function TeacherAllocationView({
   subjectAllocations,
   teachers,
   teacherAllocations,
-  currentAllocations,
   isLoading,
+  apiError,
+  apiErrorTraceId,
+  isSaving,
   activeTab,
   validationPanelOpen,
-  carryOverDialogOpen,
   isReadOnly,
-  onCarryOverSuccess,
   onValidate,
   onAllocationsChange,
   onRefresh,
+  onRetry,
   onTabChange,
   onCloseValidationPanel,
-  onCloseCarryOverDialog,
 }: TeacherAllocationViewProps) {
   const t = useTranslations("academics.teacherAllocation");
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const yearName = academicYears.find((y) => y.id === academicYearId)?.name;
   const termName = terms.find((t) => t.id === termId)?.name;
+  const validationGradeId = searchParams.get("grade") || undefined;
+  const validationSubjectId = searchParams.get("subject") || undefined;
+  const hasClassrooms = classrooms.length > 0;
+  const hasSubjectWeeklyHours = subjectAllocations.some(
+    (subjectAllocation) => subjectAllocation.weeklyHours > 0,
+  );
+
+  if (!canView) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center bg-gray-50 px-6">
+        <div className="max-w-md text-center">
+          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
+          <h2 className="mb-2 text-lg font-semibold text-gray-900">
+            {t("accessDenied.title")}
+          </h2>
+          <p className="text-sm text-gray-600">
+            {t("accessDenied.message")}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
@@ -97,8 +122,31 @@ export default function TeacherAllocationView({
         </div>
       )}
 
-      {/* Empty State - No Grades */}
-      {!isLoading && grades.length === 0 && (
+      {apiError && (
+        <div className="border-b border-red-200 bg-red-50 px-6 py-3">
+          <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-2">
+              <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
+              <div className="text-sm text-red-800">
+                <div>{apiError}</div>
+                <TeacherAllocationTechnicalDetails traceId={apiErrorTraceId} />
+              </div>
+            </div>
+            <Button variant="secondary" onClick={() => void onRetry()} disabled={isSaving}>
+              {t("actions.retry")}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!isLoading && (!academicYearId || !termId) && (
+        <EmptyState
+          title={t("emptyState.noTerm.title")}
+          message={t("emptyState.noTerm.message")}
+        />
+      )}
+
+      {!isLoading && academicYearId && termId && (grades.length === 0 || !hasClassrooms) && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center max-w-md px-6">
             <div className="text-gray-400 mb-4">
@@ -117,10 +165,10 @@ export default function TeacherAllocationView({
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {t("emptyState.noGrades.title")}
+              {t("emptyState.noGradesOrClassrooms.title")}
             </h3>
             <p className="text-gray-600 mb-6">
-              {t("emptyState.noGrades.message")}
+              {t("emptyState.noGradesOrClassrooms.message")}
             </p>
             <div className="flex justify-center">
               <Button
@@ -136,8 +184,7 @@ export default function TeacherAllocationView({
         </div>
       )}
 
-      {/* Empty State - No Subjects */}
-      {!isLoading && grades.length > 0 && subjects.length === 0 && (
+      {!isLoading && academicYearId && termId && grades.length > 0 && hasClassrooms && subjects.length === 0 && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center max-w-md px-6">
             <div className="text-gray-400 mb-4">
@@ -165,10 +212,26 @@ export default function TeacherAllocationView({
         </div>
       )}
 
-      {/* Empty State - No Teachers */}
       {!isLoading &&
+        academicYearId &&
+        termId &&
         grades.length > 0 &&
+        hasClassrooms &&
         subjects.length > 0 &&
+        !hasSubjectWeeklyHours && (
+          <EmptyState
+            title={t("emptyState.noSubjectWeeklyHours.title")}
+            message={t("emptyState.noSubjectWeeklyHours.message")}
+          />
+        )}
+
+      {!isLoading &&
+        academicYearId &&
+        termId &&
+        grades.length > 0 &&
+        hasClassrooms &&
+        subjects.length > 0 &&
+        hasSubjectWeeklyHours &&
         teachers.length === 0 && (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center max-w-md px-6">
@@ -199,8 +262,12 @@ export default function TeacherAllocationView({
 
       {/* Main Content */}
       {!isLoading &&
+        academicYearId &&
+        termId &&
         grades.length > 0 &&
+        hasClassrooms &&
         subjects.length > 0 &&
+        hasSubjectWeeklyHours &&
         teachers.length > 0 && (
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Tabs */}
@@ -275,13 +342,7 @@ export default function TeacherAllocationView({
               {activeTab === "load" && (
                 <TeacherLoadView
                   termId={termId}
-                  grades={grades}
-                  sections={sections}
-                  classrooms={classrooms}
-                  subjects={subjects}
-                  subjectAllocations={subjectAllocations}
                   teachers={teachers}
-                  teacherAllocations={currentAllocations}
                 />
               )}
             </div>
@@ -293,23 +354,22 @@ export default function TeacherAllocationView({
         open={validationPanelOpen}
         onClose={onCloseValidationPanel}
         termId={termId}
-        grades={grades}
-        sections={sections}
-        classrooms={classrooms}
-        subjects={subjects}
-        subjectAllocations={subjectAllocations}
-        teachers={teachers}
-        teacherAllocations={currentAllocations}
+        gradeId={validationGradeId}
+        subjectId={validationSubjectId}
       />
 
-      {/* Carry Over Dialog */}
-      <CarryOverDialog
-        open={carryOverDialogOpen}
-        onClose={onCloseCarryOverDialog}
-        currentYearId={academicYearId}
-        currentTermId={termId}
-        onSuccess={onCarryOverSuccess}
-      />
+    </div>
+  );
+}
+
+function EmptyState({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <div className="max-w-md px-6 text-center">
+        <AlertCircle className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+        <h3 className="mb-2 text-lg font-semibold text-gray-900">{title}</h3>
+        <p className="text-gray-600">{message}</p>
+      </div>
     </div>
   );
 }

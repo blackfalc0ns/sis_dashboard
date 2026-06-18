@@ -1,7 +1,3 @@
-// Mock service for Subjects & Allocation (TERM-SCOPED)
-// Replace with real API calls when backend is ready
-
-import type { SubjectsAdapter } from "@/features/academics/subjects/services/subjectsAdapter";
 import { subjectsApiAdapter } from "@/features/academics/subjects/services/subjectsApiAdapter";
 
 export interface Subject {
@@ -17,9 +13,26 @@ export interface Subject {
 }
 
 export interface SubjectAllocation {
+  id?: string;
+  academicYearId?: string;
+  termId?: string;
   gradeId: string;
   subjectId: string;
   weeklyHours: number;
+  grade?: {
+    id: string;
+    nameAr: string;
+    nameEn: string;
+  };
+  subject?: {
+    id: string;
+    nameAr: string;
+    nameEn: string;
+    code: string | null;
+    color: string | null;
+  };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const allocationsByTerm: Record<string, SubjectAllocation[]> = {
@@ -37,22 +50,6 @@ const allocationsByTerm: Record<string, SubjectAllocation[]> = {
 };
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Allocations (term-scoped) - MOCK IMPLEMENTATION (UI Ready)
-const fetchSubjectAllocationsImpl = async (termId: string): Promise<SubjectAllocation[]> => {
-  await delay(200);
-  return allocationsByTerm[termId] || [];
-};
-
-const bulkUpsertSubjectAllocationsImpl = async (
-  termId: string,
-  items: SubjectAllocation[]
-): Promise<void> => {
-  await delay(300);
-  
-  // Remove existing allocations for this term
-  allocationsByTerm[termId] = items.filter((item) => item.weeklyHours > 0);
-};
 
 // Carry Over (copy subjects and/or allocations from another term) - MOCK IMPLEMENTATION
 export interface CarryOverSubjectsOptions {
@@ -79,12 +76,6 @@ const carryOverSubjectsAndAllocationsImpl = async (
   }
 };
 
-// Helper: Check if subject has allocations - MOCK IMPLEMENTATION
-const subjectHasAllocationsImpl = (termId: string, subjectId: string): boolean => {
-  const allocations = allocationsByTerm[termId] || [];
-  return allocations.some((a) => a.subjectId === subjectId && a.weeklyHours > 0);
-};
-
 // Direct API Delegation for Subjects
 export const fetchSubjects = (termId: string): Promise<Subject[]> =>
   subjectsApiAdapter.fetchSubjects(termId);
@@ -103,9 +94,15 @@ export const updateSubject = (
 export const deleteSubject = (termId: string, subjectId: string): Promise<void> =>
   subjectsApiAdapter.deleteSubject(termId, subjectId);
 
-// Direct Mock Delegation for Allocations
-export const fetchSubjectAllocations = fetchSubjectAllocationsImpl;
-export const bulkUpsertSubjectAllocations = bulkUpsertSubjectAllocationsImpl;
+// Direct API Delegation for Allocations
+export const fetchSubjectAllocations = (
+  termId: string,
+  filters?: { gradeId?: string; subjectId?: string },
+): Promise<SubjectAllocation[]> =>
+  subjectsApiAdapter.fetchSubjectAllocations(termId, filters);
+export const bulkUpsertSubjectAllocations = (
+  termId: string,
+  items: SubjectAllocation[],
+): Promise<void> =>
+  subjectsApiAdapter.bulkUpsertSubjectAllocations(termId, items);
 export const carryOverSubjectsAndAllocations = carryOverSubjectsAndAllocationsImpl;
-export const subjectHasAllocations = subjectHasAllocationsImpl;
-

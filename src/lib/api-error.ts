@@ -6,6 +6,7 @@ export class ApiError extends Error {
   code: string;
   errors?: Record<string, string[]>;
   details?: unknown;
+  traceId?: string;
 
   constructor(
     message: string,
@@ -13,6 +14,7 @@ export class ApiError extends Error {
     code: string = "UNKNOWN_ERROR",
     errors?: Record<string, string[]>,
     details?: unknown,
+    traceId?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -20,6 +22,7 @@ export class ApiError extends Error {
     this.code = code;
     this.errors = errors;
     this.details = details;
+    this.traceId = traceId;
   }
 
   static fromAxiosError(error: AxiosError<any>): ApiError {
@@ -35,6 +38,7 @@ export class ApiError extends Error {
       const code = payload?.code || data?.code || "API_ERROR";
       const errors = payload?.errors || data?.errors;
       const details = payload?.details || data?.details;
+      const traceId = payload?.traceId || data?.traceId;
 
       const detailMessages: string[] = [];
       if (details && typeof details === "object") {
@@ -60,7 +64,7 @@ export class ApiError extends Error {
         }
       }
 
-      return new ApiError(message, status, code, errors, details);
+      return new ApiError(message, status, code, errors, details, traceId);
     } else if (error.request) {
       // The request was made but no response was received
       return ApiError.network();

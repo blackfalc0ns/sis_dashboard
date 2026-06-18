@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Users, X, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, IconButton } from "@mui/material";
@@ -17,6 +17,8 @@ import {
   Teacher,
   applyTeacherToGrade,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
+import { teacherAllocationUiError } from "@/features/academics/teacher-allocation/services/teacherAllocationErrors";
+import TeacherAllocationTechnicalDetails from "./TeacherAllocationTechnicalDetails";
 
 interface BulkActionDialogProps {
   open: boolean;
@@ -27,7 +29,7 @@ interface BulkActionDialogProps {
   teacher: Teacher | null;
   sections: Section[];
   classrooms: Classroom[];
-  onSuccess: () => void;
+  onSuccess: () => void | Promise<void>;
 }
 
 export default function BulkActionDialog({
@@ -45,19 +47,35 @@ export default function BulkActionDialog({
   const locale = useLocale();
 
   const [isApplying, setIsApplying] = useState(false);
+  const [applyError, setApplyError] = useState<{
+    message: string;
+    traceId?: string;
+    details: string[];
+  } | null>(null);
+  const [applySummary, setApplySummary] = useState<{
+    requestedClassrooms: number;
+    createdCount: number;
+    existingCount: number;
+  } | null>(null);
 
-  // Get sections for the grade
-  const gradeSections = sections.filter((s) => s.gradeId === grade?.id);
-  const classroomsBySection = gradeSections.reduce<Record<string, string[]>>((accumulator, section) => {
-    const classroomIds = classrooms
-      .filter((classroom) => classroom.sectionId === section.id)
-      .map((classroom) => classroom.id);
-    if (classroomIds.length > 0) {
-      accumulator[section.id] = classroomIds;
+  useEffect(() => {
+    if (open) {
+      setApplyError(null);
+      setApplySummary(null);
     }
-    return accumulator;
-  }, {});
-  const affectedCount = gradeSections.length;
+  }, [open]);
+
+  const affectedClassrooms = grade
+    ? classrooms.filter((classroom) =>
+        sections.some(
+          (section) =>
+            section.id === classroom.sectionId &&
+            section.gradeId === grade.id,
+        ),
+      )
+    : [];
+  const affectedClassroomIds = affectedClassrooms.map((classroom) => classroom.id);
+  const affectedCount = affectedClassrooms.length;
 
   const getGradeName = () => {
     if (!grade) return "";
@@ -83,23 +101,34 @@ export default function BulkActionDialog({
   const handleApply = async () => {
     if (!grade || !subject || !teacher) return;
 
-    setIsApplying(true);
-    try {
-      const sectionIds = gradeSections.map((s) => s.id);
-      
-      await applyTeacherToGrade(
-        termId,
-        grade.id,
-        subject.id,
-        teacher.id,
-        sectionIds,
-        classroomsBySection
-      );
+    const confirmed = window.confirm(
+      t("confirmMessage", {
+        teacher: getTeacherName(),
+        subject: getSubjectName(),
+        count: affectedCount,
+      }),
+    );
+    if (!confirmed) return;
 
-      onSuccess();
-      onClose();
+    setIsApplying(true);
+    setApplyError(null);
+    setApplySummary(null);
+    try {
+      const response = await applyTeacherToGrade({
+        termId,
+        gradeId: grade.id,
+        subjectId: subject.id,
+        teacherUserId: teacher.id,
+        classroomIds: affectedClassroomIds,
+      });
+
+      setApplySummary(response.summary);
+      await onSuccess();
     } catch (error) {
       console.error("Failed to apply teacher:", error);
+      setApplyError(
+        teacherAllocationUiError(error, "Failed to apply teacher to grade."),
+      );
     } finally {
       setIsApplying(false);
     }
@@ -144,7 +173,6 @@ export default function BulkActionDialog({
 
       <DialogContent dividers>
         <div className="space-y-6">
-          {/* Confirmation Message */}
           <div>
             <p className="text-gray-700 mb-4">
               {t("message", {
@@ -155,11 +183,10 @@ export default function BulkActionDialog({
             </p>
           </div>
 
-          {/* Details Card */}
           <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 space-y-3">
             <div className="flex items-start gap-3">
               <div className="text-gray-500 text-sm font-medium min-w-[80px]">
-                Teacher:
+                {t("labels.teacher")}:
               </div>
               <div className="flex-1 text-gray-900 font-medium">
                 {getTeacherName()}
@@ -168,7 +195,7 @@ export default function BulkActionDialog({
 
             <div className="flex items-start gap-3">
               <div className="text-gray-500 text-sm font-medium min-w-[80px]">
-                Subject:
+                {t("labels.subject")}:
               </div>
               <div className="flex-1 text-gray-900">
                 {getSubjectName()}
@@ -182,7 +209,7 @@ export default function BulkActionDialog({
 
             <div className="flex items-start gap-3">
               <div className="text-gray-500 text-sm font-medium min-w-[80px]">
-                Grade:
+                {t("labels.grade")}:
               </div>
               <div className="flex-1 text-gray-900">
                 {getGradeName()}
@@ -191,7 +218,7 @@ export default function BulkActionDialog({
 
             <div className="flex items-start gap-3">
               <div className="text-gray-500 text-sm font-medium min-w-[80px]">
-                Sections:
+                {t("labels.classrooms")}:
               </div>
               <div className="flex-1 text-gray-900 font-semibold">
                 {affectedCount}
@@ -199,7 +226,6 @@ export default function BulkActionDialog({
             </div>
           </div>
 
-          {/* Impact Warning */}
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
             <div className="flex gap-2">
               <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
@@ -208,29 +234,49 @@ export default function BulkActionDialog({
                   {t("impact", { count: affectedCount })}
                 </p>
                 <p className="text-sm text-amber-700">
-                  This will replace any existing teacher assignments for this subject in all sections of this grade.
+                  {t("replaceWarning")}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Affected Sections List */}
-          {gradeSections.length > 0 && (
+          {affectedClassrooms.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold text-gray-900 mb-2">
-                Affected Sections:
+                {t("affectedClassrooms")}:
               </h4>
               <div className="flex flex-wrap gap-2">
-                {gradeSections.map((section) => (
+                {affectedClassrooms.map((classroom) => (
                   <span
-                    key={section.id}
+                    key={classroom.id}
                     className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200"
                   >
                     {locale === "ar"
-                      ? (section.nameAr || section.nameEn)
-                      : (section.nameEn || section.nameAr)}
+                      ? (classroom.nameAr || classroom.nameEn || classroom.name)
+                      : (classroom.nameEn || classroom.nameAr || classroom.name)}
                   </span>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {applyError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              <div>{applyError.message}</div>
+              <TeacherAllocationTechnicalDetails
+                traceId={applyError.traceId}
+                details={applyError.details}
+              />
+            </div>
+          )}
+
+          {applySummary && (
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+              <div className="font-semibold">{t("summary.title")}</div>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                <SummaryMetric label={t("summary.classrooms")} value={applySummary.requestedClassrooms} />
+                <SummaryMetric label={t("summary.created")} value={applySummary.createdCount} />
+                <SummaryMetric label={t("summary.existing")} value={applySummary.existingCount} />
               </div>
             </div>
           )}
@@ -250,11 +296,20 @@ export default function BulkActionDialog({
           onClick={handleApply}
           variant="primary"
           leftIcon={<Users className="w-4 h-4" />}
-          disabled={isApplying}
+          disabled={isApplying || affectedCount === 0 || Boolean(applySummary)}
         >
-          {isApplying ? "Applying..." : t("confirm")}
+          {isApplying ? t("applying") : t("confirm")}
         </Button>
       </div>
     </Dialog>
+  );
+}
+
+function SummaryMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md bg-white/80 px-3 py-2 text-center">
+      <div className="text-xs text-green-700">{label}</div>
+      <div className="mt-1 text-lg font-semibold text-green-900">{value}</div>
+    </div>
   );
 }

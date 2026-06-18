@@ -35,10 +35,16 @@ export interface Room {
 
 export interface TimetableConflict {
   type: "TEACHER" | "ROOM";
+  code?: string;
+  message?: string;
+  severity?: "blocking" | "warning" | string;
   dayKey: string;
   periodIndex: number;
+  periodId?: string;
   resourceId: string; // teacherId or roomId
   resourceName: string;
+  proposedIndexes?: number[];
+  entryIds?: string[];
   sections: Array<{
     sectionId: string;
     sectionName: string;

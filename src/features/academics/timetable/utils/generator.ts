@@ -6,7 +6,6 @@ import { Subject } from "@/features/academics/subjects/services/subjectsService"
 import {
   Teacher,
   TeacherAllocation,
-  resolveTeacherAllocationForTarget,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { SubjectAllocation } from "@/features/academics/subjects/services/subjectsService";
 import { Room } from "@/features/academics/timetable/types/timetable";
@@ -76,7 +75,9 @@ export async function generateTimetable(
 
   // Get active days and periods from config
   const activeDays = config.days.filter((d) => d.isActive && !excludeDays.includes(d.key));
-  const periods = config.periods;
+  const periods = config.periods.filter(
+    (period) => period.isInstructional !== false,
+  );
 
   if (activeDays.length === 0 || periods.length === 0) {
     return {
@@ -88,16 +89,23 @@ export async function generateTimetable(
     };
   }
 
-  // Step 1: Build requirements list
-  const requirements = buildRequirements(gradeId, subjects, subjectAllocations);
+  // Step 1: Build requirements list for missing periods in this classroom only
+  const requirements = buildRequirements({
+    gradeId,
+    sectionId,
+    classroomId,
+    subjects,
+    subjectAllocations,
+    existingEntries,
+  });
   
   if (requirements.length === 0) {
     return {
-      success: false,
+      success: true,
       entries: [],
       unresolved: [],
       conflicts: [],
-      message: "No subjects with weekly hours found for this grade",
+      message: "Selected classroom already meets weekly hours",
     };
   }
 
@@ -113,13 +121,25 @@ export async function generateTimetable(
   for (const req of sortedRequirements) {
     const { subjectId, hours } = req;
     
-    // Get teacher for this subject+section
-    const teacherAllocation = resolveTeacherAllocationForTarget(teacherAllocations, {
-      sectionId,
-      classroomId,
-      subjectId,
-    });
+    // Backend timetable entries require a teacher allocation for the exact classroom.
+    const teacherAllocation = teacherAllocations.find(
+      (allocation) =>
+        allocation.sectionId === sectionId &&
+        allocation.classroomId === classroomId &&
+        allocation.subjectId === subjectId &&
+        Boolean(allocation.teacherId),
+    );
     const teacherId = teacherAllocation?.teacherId || null;
+    if (!teacherId) {
+      const subject = subjects.find((item) => item.id === subjectId);
+      unresolved.push({
+        subjectId,
+        subjectName: subject?.nameEn || subjectId,
+        required: hours,
+        placed: 0,
+      });
+      continue;
+    }
 
     const roomId = resolvePreferredRoomId({
       subjectId,
@@ -244,11 +264,24 @@ function resolvePreferredRoomId(params: {
  * Build list of subject requirements from allocations
  */
 function buildRequirements(
-  gradeId: string,
-  subjects: Subject[],
-  subjectAllocations: SubjectAllocation[]
+  params: {
+    gradeId: string;
+    sectionId: string;
+    classroomId?: string;
+    subjects: Subject[];
+    subjectAllocations: SubjectAllocation[];
+    existingEntries: TimetableEntry[];
+  },
 ): Array<{ subjectId: string; hours: number }> {
   const requirements: Array<{ subjectId: string; hours: number }> = [];
+  const {
+    gradeId,
+    sectionId,
+    classroomId,
+    subjects,
+    subjectAllocations,
+    existingEntries,
+  } = params;
 
   for (const subject of subjects) {
     const allocation = subjectAllocations.find(
@@ -256,9 +289,21 @@ function buildRequirements(
     );
 
     if (allocation && allocation.weeklyHours > 0) {
+      const scheduledWeeklyHours = existingEntries.filter(
+        (entry) =>
+          entry.sectionId === sectionId &&
+          (entry.classroomId || "") === (classroomId || "") &&
+          entry.subjectId === subject.id &&
+          entry.slotType !== "BREAK",
+      ).length;
+      const remainingHours = allocation.weeklyHours - scheduledWeeklyHours;
+      if (remainingHours <= 0) {
+        continue;
+      }
+
       requirements.push({
         subjectId: subject.id,
-        hours: allocation.weeklyHours,
+        hours: remainingHours,
       });
     }
   }
@@ -304,7 +349,12 @@ function findBestSlot(params: {
   for (const day of activeDays) {
     for (const period of periods) {
       // Check if slot is available
-      if (isSlotAvailable(day.key, period.index, sectionId, classroomId, generatedEntries)) {
+      if (
+        isSlotAvailable(day.key, period.index, sectionId, classroomId, [
+          ...generatedEntries,
+          ...existingEntries,
+        ])
+      ) {
         // Check for conflicts
         const hasConflict = checkConflicts(
           day.key,

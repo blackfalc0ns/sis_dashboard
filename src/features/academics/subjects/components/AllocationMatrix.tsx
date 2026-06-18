@@ -33,6 +33,7 @@ interface AllocationMatrixProps {
   isReadOnly: boolean;
   onAllocationsChange: (allocations: SubjectAllocation[]) => void;
   onDirtyChange: (isDirty: boolean) => void;
+  onSaveError: (error: unknown) => void;
   onRefresh: () => Promise<void>;
 }
 
@@ -45,6 +46,7 @@ export default function AllocationMatrix({
   termName,
   isReadOnly,
   onDirtyChange,
+  onSaveError,
   onRefresh,
 }: AllocationMatrixProps) {
   const t = useTranslations("academics.subjects.matrix");
@@ -195,7 +197,7 @@ export default function AllocationMatrix({
   }, [showOnlyMissing, stageFilteredGrades, subjects, localAllocations]);
 
   const setAllocation = (gradeId: string, subjectId: string, weeklyHours: number) => {
-    const value = Math.max(0, Math.min(50, weeklyHours)); // Clamp between 0-50
+    const value = Math.max(0, Math.min(80, weeklyHours));
     
     setLocalAllocations((prev) => {
       const existing = prev.find(
@@ -229,6 +231,7 @@ export default function AllocationMatrix({
       onDirtyChange(false);
     } catch (error) {
       console.error("Failed to save allocations:", error);
+      onSaveError(error);
     } finally {
       setIsSaving(false);
     }
@@ -343,7 +346,7 @@ export default function AllocationMatrix({
         <input
           type="number"
           min="0"
-          max="50"
+          max="80"
           step="1"
           value={value || ""}
           onChange={(e) => {

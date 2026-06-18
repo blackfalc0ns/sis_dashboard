@@ -30,6 +30,14 @@
       "loading_modules": "جارٍ تحميل بطاقات لوحة التحكم",
       "kpis_unavailable": "بطاقات المؤشرات غير متاحة",
       "modules_unavailable": "بطاقات لوحة التحكم غير متاحة",
+      "access_denied": {
+        "title": "تم رفض الوصول",
+        "message": "ليست لديك صلاحية عرض توزيعات المواد."
+      },
+      "errors": {
+        "retry": "إعادة المحاولة",
+        "trace_id": "معرّف التتبع: {traceId}"
+      },
       "tabs": {
         "aria_label": "أقسام لوحة التحكم",
         "overview": "نظرة عامة",
@@ -3471,6 +3479,10 @@
         "matrix": "التوزيع"
       },
       "empty_state": {
+        "no_context": {
+          "title": "لا يوجد سياق أكاديمي محدد",
+          "message": "اختر سنة دراسية وترماً لإدارة توزيعات المواد."
+        },
         "no_grades": {
           "title": "لا توجد صفوف",
           "message": "لا توجد صفوف لهذا الترم. أنشئ الهيكل الأكاديمي أولاً.",
@@ -4005,6 +4017,11 @@
         "validation": {
           "missingTeacher": "معلم مفقود",
           "missingRoom": "غرفة مفقودة"
+        },
+        "periodTypes": {
+          "class": "حصة",
+          "assembly": "طابور",
+          "activity": "نشاط"
         }
       },
       "actions": {
@@ -4023,11 +4040,13 @@
         "resetSuccess": "تم إعادة تعيين الجدول بنجاح",
         "resetError": "فشل إعادة تعيين الجدول",
         "resetConfirmTitle": "إعادة تعيين الجدول",
-        "resetConfirmMessage": "هل أنت متأكد من إعادة تعيين الجدول؟ سيتم فقدان جميع التغييرات غير المحفوظة."
+        "resetConfirmMessage": "هل أنت متأكد من إعادة تعيين الجدول؟ سيتم فقدان جميع التغييرات غير المحفوظة.",
+        "export": "تصدير",
+        "print": "طباعة"
       },
       "generate": {
         "title": "توليد جدول تلقائي",
-        "description": "سيتم توليد الجدول تلقائياً بناءً على الحصص الأسبوعية وتوزيع المعلمين",
+        "description": "سيتم توليد الحصص الناقصة للفصل المختار بناءً على الحصص الأسبوعية وتوزيع المعلمين.",
         "options": {
           "distributeEvenly": "توزيع المواد بالتساوي على الأيام",
           "avoidConsecutive": "تجنب نفس المادة في حصص متتالية",
@@ -4044,8 +4063,8 @@
           "unresolvedTitle": "مواد لم يتم وضع جميع حصصها",
           "periods": "حصص",
           "hours": "حصص",
-          "applyWarning": "سيتم استبدال الجدول الحالي بالجدول المولد. تأكد من حفظ التغييرات أولاً إذا لزم الأمر.",
-          "applied": "تم تطبيق الجدول المولد مع {count} حصة",
+          "applyWarning": "ستتم إضافة الحصص المولدة إلى الفصل المختار. راجعها ثم احفظ عند الاستعداد.",
+          "applied": "تم تطبيق {count} حصة مولدة",
           "successMessage": "تم توليد الجدول بنجاح مع {count} حصة",
           "partialMessage": "تم توليد {generated} حصة، لكن {unresolved} مواد لديها حصص لم يتم وضعها"
         }
@@ -4075,11 +4094,15 @@
         "save": "حفظ",
         "autoFilledRoom": "فصل تم التعبئة تلقائياً من التوزيع لهذا الصف",
         "targetClassroom": "الفصل المستهدف: {classroom}",
+        "selectSubjectBeforeTeacher": "اختر المادة قبل اختيار المعلم.",
+        "noTeacherAllocationForClassroom": "لا يوجد توزيع معلم لهذه المادة في الفصل المحدد. اضبط توزيع المعلمين أولاً.",
         "roomSourceLabel": "مصدر الغرفة:",
         "roomSourceClassroomDefault": "الافتراضي على مستوى الفصل",
         "roomSourceSectionDefault": "الافتراضي على مستوى الشعبة",
         "roomSourceRecommended": "مقترحة من النظام",
-        "roomSourceManual": "اختيار يدوي"
+        "roomSourceManual": "اختيار يدوي",
+        "roomOptionalWarning": "الغرفة اختيارية، لكن سيتم حفظ هذه الحصة بدون غرفة.",
+        "roomConflictWarning": "هذه الغرفة مستخدمة بالفعل في حصة أخرى في نفس الوقت."
       },
       "validation": {
         "title": "التحقق",
@@ -4105,7 +4128,9 @@
         "entriesOnHolidays": "توجد حصص في أيام العطل",
         "roomSourceClassroomDefault": "الافتراضي على مستوى الفصل",
         "roomSourceSectionDefault": "الافتراضي على مستوى الشعبة",
-        "roomDefaultAvailable": "توجد غرفة افتراضية متاحة من {source}."
+        "roomDefaultAvailable": "توجد غرفة افتراضية متاحة من {source}.",
+        "loadError": "فشل تحميل التحقق",
+        "selectClassroomBeforeEdit": "اختر فصلًا قبل تعيين المواد أو المعلمين لحصص الجدول."
       },
       "publish": {
         "confirmTitle": "نشر الجدول",
@@ -4117,7 +4142,9 @@
         "success": "تم نشر الجدول بنجاح",
         "error": "فشل نشر الجدول",
         "confirm": "نشر",
-        "unsavedChanges": "يرجى حفظ التغييرات قبل النشر"
+        "unsavedChanges": "يرجى حفظ التغييرات قبل النشر",
+        "notReady": "الجدول غير جاهز للنشر.",
+        "readinessError": "فشل التحقق من جاهزية النشر"
       },
       "unpublish": {
         "success": "تم إلغاء نشر الجدول بنجاح",
@@ -4204,6 +4231,17 @@
         "noSelection": {
           "title": "اختر الصف والشعبة",
           "message": "يرجى اختيار صف وشعبة لعرض الجدول"
+        },
+        "noAcademicContext": "لم يتم اختيار عام أكاديمي أو ترم",
+        "noConfig": {
+          "title": "لا توجد إعدادات جدول بعد",
+          "message": "أنشئ إعدادات جدول حقيقية قبل إضافة الحصص أو الإدخالات أو النشر.",
+          "cta": "إنشاء إعدادات الجدول"
+        },
+        "noPeriods": {
+          "title": "لا توجد حصص جدول بعد",
+          "message": "أضف الحصص قبل بناء الجدول.",
+          "cta": "إعداد الحصص"
         }
       },
       "unsavedChanges": {
@@ -4272,7 +4310,11 @@
           "selectGrade": "يرجى اختيار صف",
           "selectSection": "يرجى اختيار شعبة",
           "saveFailed": "فشل حفظ الإعدادات",
-          "selectClassroom": "يرجى اختيار فصل"
+          "selectClassroom": "يرجى اختيار فصل",
+          "nameRequired": "الاسم مطلوب.",
+          "periodLabelRequired": "تسمية الحصة مطلوبة.",
+          "startTimeRequired": "وقت البداية مطلوب.",
+          "endTimeRequired": "وقت النهاية مطلوب."
         },
         "changeWarning": {
           "title": "تحذير تغيير الإعدادات",
@@ -4287,7 +4329,44 @@
         "back": "السابق",
         "reset": "إعادة تعيين للافتراضي",
         "resetConfirm": "إعادة تعيين هذه الإعدادات للافتراضي للترم؟",
-        "resetSuccess": "تم إعادة تعيين الإعدادات بنجاح"
+        "resetSuccess": "تم إعادة تعيين الإعدادات بنجاح",
+        "defaultName": "إعدادات الجدول",
+        "backendDescription": "إدارة إعدادات الجدول والحصص من الخادم",
+        "close": "إغلاق",
+        "saveConfig": "حفظ الإعدادات",
+        "configSection": "الإعدادات",
+        "name": "الاسم",
+        "scopeLabel": "النطاق",
+        "weekStartDay": "بداية الأسبوع",
+        "activeDays": "الأيام النشطة",
+        "periodsSection": "الحصص",
+        "saveBeforePeriods": "احفظ الإعدادات قبل إدارة الحصص.",
+        "periodIndex": "الترتيب",
+        "periodLabel": "التسمية",
+        "periodType": "النوع",
+        "instructional": "تعليمية",
+        "addPeriod": "إضافة حصة",
+        "updatePeriod": "تحديث الحصة",
+        "cancelEdit": "إلغاء التعديل",
+        "noPeriods": "لا توجد حصص بعد.",
+        "editPeriod": "تعديل",
+        "deletePeriod": "حذف",
+        "errors": {
+          "saveConfig": "تعذر حفظ إعدادات الجدول.",
+          "savePeriod": "تعذر حفظ حصة الجدول.",
+          "deletePeriod": "تعذر حذف حصة الجدول.",
+          "periodInUse": "لا يمكن حذف حصة مستخدمة بالفعل."
+        },
+        "scopeOptions": {
+          "term": "الترم",
+          "grade": "الصف",
+          "section": "الشعبة",
+          "classroom": "الفصل"
+        },
+        "periodTypes": {
+          "assembly": "طابور",
+          "activity": "نشاط"
+        }
       },
       "target": {
         "label": "الحصص المستهدفة",
@@ -4301,6 +4380,54 @@
         "status": "حالة",
         "draft": "مسودة",
         "published": "منشور"
+      },
+      "accessDenied": {
+        "title": "ليست لديك صلاحية الوصول إلى هذا الجدول",
+        "description": "اطلب من مسؤول النظام منحك صلاحية عرض الهيكل الأكاديمي إذا كنت تحتاج إلى الوصول."
+      },
+      "readOnly": {
+        "closedTerm": "هذا الترم مغلق. الجدول للعرض فقط.",
+        "publishedLocked": "الجدول المنشور مقفل. ألغِ النشر قبل التعديل."
+      },
+      "errors": {
+        "loadFailed": "فشل تحميل بيانات الجدول.",
+        "saveFailed": "فشل حفظ الجدول.",
+        "publishFailed": "فشل نشر الجدول.",
+        "unpublishFailed": "فشل إلغاء نشر الجدول.",
+        "noConfigSelected": "لم يتم اختيار إعدادات جدول.",
+        "noFilledSlotsToSave": "لا توجد خانات جدول ممتلئة للحفظ.",
+        "noFilledSlotsToPublish": "لا توجد خانات جدول ممتلئة للنشر.",
+        "resolveConflictsBeforeSaving": "حل تعارضات الجدول قبل الحفظ.",
+        "resolveConflictsBeforePublishing": "حل تعارضات الجدول قبل النشر.",
+        "config_not_found": "لا توجد إعدادات جدول لهذا النطاق.",
+        "period_not_found": "الحصة المحددة لم تعد موجودة.",
+        "entry_not_found": "إدخال الجدول المحدد لم يعد موجودًا.",
+        "classroom_not_found": "الفصل المحدد لم يعد موجودًا أو خارج هذا النطاق.",
+        "allocation_not_found": "توزيع المعلم لم يعد موجودًا أو خارج هذا النطاق.",
+        "publication_not_found": "لا توجد حالة نشر جدول لهذا النطاق.",
+        "invalid_day": "اختر يومًا نشطًا صالحًا.",
+        "period_not_in_config": "هذه الحصة لا تتبع إعدادات الجدول.",
+        "classroom_scope_mismatch": "الفصل لا يطابق نطاق الجدول المحدد.",
+        "allocation_mismatch": "توزيع المعلم لا يطابق خانة الجدول هذه.",
+        "room_not_found": "الغرفة المحددة لم تعد موجودة.",
+        "entry_not_mutable": "لا يمكن تعديل إدخال الجدول هذا.",
+        "invalid_time_range": "وقت البداية يجب أن يكون قبل وقت النهاية.",
+        "period_overlap": "لا يمكن أن تتداخل الحصص.",
+        "period_index_taken": "ترتيب الحصة مستخدم بالفعل.",
+        "period_in_use": "لا يمكن حذف حصة مستخدمة بالفعل.",
+        "closed_term": "هذا الترم مغلق. الجدول للعرض فقط.",
+        "published_locked": "الجدول المنشور مقفل. ألغِ النشر قبل التعديل.",
+        "publish_blocked": "لا يمكن نشر الجدول حتى يتم حل المشكلات المانعة.",
+        "no_periods": "أعدّ حصص الجدول قبل جدولة الإدخالات.",
+        "no_entries": "لم تتم إضافة أي إدخالات إلى الجدول بعد.",
+        "not_draft": "يمكن تعديل إعدادات الجدول في حالة المسودة فقط.",
+        "entry_conflict": "خانة الجدول هذه تتعارض مع إدخال آخر.",
+        "teacher_conflict": "المعلم مجدول بالفعل في هذه الخانة.",
+        "room_conflict": "الغرفة محجوزة بالفعل في هذه الخانة.",
+        "invalid_bulk_size": "تم إرسال عدد كبير جدًا من إدخالات الجدول دفعة واحدة.",
+        "duplicate_slot": "تحتوي بيانات الجدول على خانات مكررة.",
+        "missing_subject_allocation": "توزيع المادة مفقود لهذه الخانة.",
+        "invalid_teacher_allocation": "توزيع المعلم مفقود لهذه المادة/الفصل."
       }
     },
     "teacherAllocation": {
@@ -4326,12 +4453,34 @@
       "actions": {
         "validate": "التحقق",
         "copyFromTerm": "نسخ من ترم",
-        "applyToAllSections": "تطبيق على كل الشعب",
+        "applyToAllSections": "تطبيق على الفصول",
         "clearSelection": "مسح",
         "save": "حفظ التغييرات",
         "saving": "جاري الحفظ...",
         "reset": "إعادة تعيين",
-        "export": "تصدير"
+        "export": "تصدير",
+        "retry": "إعادة المحاولة"
+      },
+      "summaryCards": {
+        "totalClassrooms": "إجمالي الفصول",
+        "subjectsWithWeeklyHours": "المواد ذات الساعات الأسبوعية",
+        "allocatedCells": "الخانات المخصصة",
+        "missingCells": "الخانات الناقصة",
+        "teacherAllocationRows": "صفوف توزيع المعلمين",
+        "validationStatus": {
+          "label": "حالة التحقق",
+          "saveFailed": "فشل الحفظ",
+          "needsReview": "يحتاج إلى مراجعة",
+          "complete": "مكتمل"
+        }
+      },
+      "clearSubject": {
+        "grade": "مسح المادة من الصف",
+        "classrooms": "مسح المادة من الفصول",
+        "targetGrade": "الصف المحدد",
+        "targetClassrooms": "{count, plural, one {فصل واحد محدد} two {فصلان محددان} few {# فصول محددة} many {# فصلًا محددًا} other {# فصل محدد}}",
+        "confirm": "هل تريد مسح توزيعات {subject} من {target}؟ لا يمكن التراجع عن هذا الإجراء.",
+        "success": "تم مسح {count, plural, one {توزيع واحد} two {توزيعين} few {# توزيعات} many {# توزيعًا} other {# توزيع}}."
       },
       "matrix": {
         "title": "جدول توزيع المعلمين",
@@ -4357,7 +4506,11 @@
           "totalTeachers": "إجمالي المعلمين",
           "teachersWithZeroLoad": "غير مخصصين",
           "avgLoad": "متوسط التوزيعات",
-          "maxLoad": "أقصى توزيع"
+          "maxLoad": "أقصى توزيع",
+          "teachers": "المعلمون",
+          "allocations": "التوزيعات",
+          "weeklyHours": "الساعات الأسبوعية",
+          "warnings": "التحذيرات"
         },
         "filters": {
           "searchPlaceholder": "البحث باسم المعلم...",
@@ -4365,7 +4518,9 @@
           "normal": "توزيع عادي",
           "warning": "قريب من السعة",
           "overloaded": "نوزيع زائد",
-          "zero": "بدون توزيع"
+          "zero": "بدون توزيع",
+          "teacher": "المعلم",
+          "allTeachers": "كل المعلمين"
         },
         "table": {
           "teacher": "المعلم",
@@ -4388,6 +4543,24 @@
           "classroom": "الفصل"
         },
         "loading": "جاري التحميل...",
+        "loadingTeacherLoads": "جاري تحميل أحمال المعلمين...",
+        "metrics": {
+          "allocationCount": "عدد التوزيعات",
+          "totalWeeklyHours": "إجمالي الساعات الأسبوعية",
+          "classroomsCount": "عدد الفصول",
+          "subjectsCount": "عدد المواد",
+          "weeklyHours": "الساعات الأسبوعية",
+          "warnings": "التحذيرات"
+        },
+        "teacherSummary": {
+          "allocations": "{count, plural, one {توزيع واحد} two {توزيعان} few {# توزيعات} many {# توزيعًا} other {# توزيع}}",
+          "weeklyHours": "{count, plural, one {ساعة أسبوعية واحدة} two {ساعتان أسبوعيتان} few {# ساعات أسبوعية} many {# ساعة أسبوعية} other {# ساعة أسبوعية}}",
+          "classrooms": "{count, plural, one {فصل واحد} two {فصلان} few {# فصول} many {# فصلًا} other {# فصل}}",
+          "subjects": "{count, plural, one {مادة واحدة} two {مادتان} few {# مواد} many {# مادة} other {# مادة}}",
+          "warnings": "{count, plural, one {تحذير واحد} two {تحذيران} few {# تحذيرات} many {# تحذيرًا} other {# تحذير}}"
+        },
+        "empty": "لم يرجع النظام أي أحمال للمعلمين.",
+        "noAssignments": "لم يرجع النظام أي تعيينات.",
         "noTeachers": "لا يوجد معلمون"
       },
       "validation": {
@@ -4395,23 +4568,65 @@
         "summary": {
           "missingAssignments": "التخصيصات الناقصة",
           "sectionsWithMissing": "الشعب الناقصة",
-          "overloadedTeachers": "المعلمون ذوو التوزيع الزائد"
+          "overloadedTeachers": "المعلمون ذوو التوزيع الزائد",
+          "missingTeacherAssignments": "تعيينات المعلمين الناقصة",
+          "missingSubjectAllocationRows": "صفوف توزيع المواد الناقصة",
+          "overAllocatedSubjects": "مواد أعلى من المطلوب",
+          "underAllocatedSubjects": "مواد أقل من المطلوب",
+          "teacherAllocationRows": "صفوف توزيع المعلمين",
+          "subjectAllocationRows": "صفوف توزيع المواد"
+        },
+        "metrics": {
+          "weeklyHours": "الساعات الأسبوعية",
+          "classroomCount": "عدد الفصول",
+          "allocatedClassrooms": "الفصول المخصصة",
+          "missingClassrooms": "الفصول الناقصة"
+        },
+        "status": {
+          "complete": "مكتمل",
+          "incomplete": "غير مكتمل",
+          "missingSubjectAllocation": "توزيع المادة مفقود"
         },
         "issues": {
           "missing": "معلم ناقص لـ {subject} في {section}",
           "overloaded": "{teacher} يتجاوز التوزيع الأقصى ({current}/{max})",
           "unqualified": "{teacher} غير مؤهل لـ {subject}"
         },
+        "loading": "جاري تحميل التحقق...",
         "noIssues": "جميع التخصيصات صحيحة",
         "close": "إغلاق"
       },
       "bulkAction": {
-        "title": "تطبيق المعلم على كل الشعب",
-        "message": "تطبيق {teacher} على {subject} لكل الشعب في {grade} ",
-        "impact": "سيؤثر هذا على {count} شعبة",
+        "title": "تطبيق المعلم على الفصول",
+        "message": "تطبيق {teacher} على {subject} لكل الفصول في {grade}؟",
+        "impact": "سيتم تطبيق المعلم المحدد على هذه المادة في {count, plural, one {فصل واحد} two {فصلين} few {# فصول} many {# فصلًا} other {# فصل}}.",
+        "confirmMessage": "هل تريد تطبيق {teacher} على {subject} في {count, plural, one {فصل واحد} two {فصلين} few {# فصول} many {# فصلًا} other {# فصل}}؟",
+        "labels": {
+          "teacher": "المعلم",
+          "subject": "المادة",
+          "grade": "الصف",
+          "classrooms": "الفصول"
+        },
+        "replaceWarning": "سيستبدل هذا أي تعيينات معلمين موجودة لهذه المادة في الفصول المحددة.",
+        "affectedClassrooms": "الفصول المتأثرة",
+        "summary": {
+          "title": "ملخص التطبيق",
+          "classrooms": "الفصول",
+          "created": "تم الإنشاء",
+          "existing": "موجودة مسبقًا"
+        },
+        "applying": "جاري التطبيق...",
         "confirm": "تطبيق",
         "cancel": "إلغاء",
-        "success": "تم تطبيق المعلم على كل الشعب"
+        "success": "تم تطبيق المعلم على الفصول المحددة"
+      },
+      "technicalDetails": {
+        "summary": "التفاصيل التقنية",
+        "traceId": "معرف التتبع"
+      },
+      "accessDenied": {
+        "title": "تم رفض الوصول",
+        "message": "ليس لديك صلاحية عرض بيانات الهيكل الأكاديمي."
       },
       "carryOver": {
         "title": "نسخ التوزيعات من ترم",
@@ -4431,15 +4646,29 @@
           "message": "يرجى إنشاء الصفوف في الهيكل الأكاديمي أولاً",
           "cta": "الذهاب إلى الهيكل"
         },
+        "noTerm": {
+          "title": "لم يتم اختيار سنة أكاديمية أو ترم.",
+          "message": "اختر سنة أكاديمية وترمًا لإدارة توزيعات المعلمين."
+        },
+        "noGradesOrClassrooms": {
+          "title": "لا توجد صفوف أو فصول.",
+          "message": "أنشئ الصفوف والفصول قبل تعيين المعلمين."
+        },
         "noSubjects": {
           "title": "لا توجد مواد",
           "message": "يرجى إنشاء المواد في المواد وتوزيعها أولاً",
           "cta": "الذهاب إلى المواد"
         },
+        "noSubjectWeeklyHours": {
+          "title": "لا توجد صفوف ساعات أسبوعية للمواد.",
+          "message": "اضبط ساعات توزيع المواد الأسبوعية قبل تعيين المعلمين."
+        },
         "noTeachers": {
           "title": "لا يوجد معلمون",
           "message": "يرجى إضافة معلمين إلى النظام أولاً"
-        }
+        },
+        "noClassroomsInSection": "لا توجد فصول لهذه الشعبة.",
+        "noAllocations": "لا توجد توزيعات بعد."
       },
       "unsavedChanges": {
         "label": "تغييرات غير محفوظة",

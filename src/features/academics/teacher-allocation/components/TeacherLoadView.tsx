@@ -1,40 +1,32 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useTranslations, useLocale } from "next-intl";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useDebouncedCallback } from "use-debounce";
 import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  AlertTriangle,
+  BookOpen,
   ChevronDown,
   ChevronUp,
-  Users,
-  UserX,
-  TrendingUp,
-  Zap,
-  Search,
-  Filter,
+  Clock,
   Download,
+  Loader2,
+  School,
+  Users,
 } from "lucide-react";
-import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
-import DataTable from "@/components/ui/data-table/DataTable";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
-import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import Button from "@/components/ui/button/Button";
-import {
-  Classroom,
-  Grade,
-  Section,
-} from "@/features/academics/academic-structure-tree/services/structureService";
-import {
-  Subject,
-  SubjectAllocation,
-} from "@/features/academics/subjects/services/subjectsService";
-import {
-  Teacher,
-  TeacherAllocation,
-  TeacherLoad,
-  calculateTeacherLoads,
-} from "@/features/academics/teacher-allocation/services/teacherAllocationService";
+import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
+import type { Teacher } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
+import { fetchTeacherLoads } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
+import { teacherAllocationUiError } from "@/features/academics/teacher-allocation/services/teacherAllocationErrors";
+import type { TeacherLoadViewModel } from "@/features/academics/teacher-allocation/services/teacherAllocationMappers";
+import TeacherAllocationTechnicalDetails from "./TeacherAllocationTechnicalDetails";
 import {
   type AcademicsExportFormat,
   exportAcademicsData,
@@ -46,369 +38,209 @@ import {
 
 interface TeacherLoadViewProps {
   termId: string;
-  grades: Grade[];
-  sections: Section[];
-  classrooms: Classroom[];
-  subjects: Subject[];
-  subjectAllocations: SubjectAllocation[];
   teachers: Teacher[];
-  teacherAllocations: TeacherAllocation[];
 }
 
-interface TeacherLoadRow {
-  [key: string]: unknown;
-  teacherId: string;
-  teacherName: string;
-  weeklyLoad: number;
-  maxLoad: number | undefined;
-  sections: number;
-  subjectsCount: number;
-  status: "normal" | "warning" | "overloaded" | "zero";
-  assignments: TeacherLoad["assignments"];
+type TeacherLoadAssignment = TeacherLoadViewModel["assignments"][number];
+
+function localizedTeacherName(teacher: Teacher, locale: string) {
+  return locale === "ar"
+    ? teacher.nameAr || teacher.nameEn || teacher.id
+    : teacher.nameEn || teacher.nameAr || teacher.id;
+}
+
+function localizedPairName(
+  record: { nameAr: string; nameEn: string },
+  locale: string,
+) {
+  return locale === "ar"
+    ? record.nameAr || record.nameEn
+    : record.nameEn || record.nameAr;
+}
+
+function assignmentGradeName(
+  assignment: TeacherLoadAssignment,
+  locale: string,
+) {
+  return localizedPairName(
+    { nameAr: assignment.gradeNameAr, nameEn: assignment.gradeNameEn },
+    locale,
+  );
+}
+
+function assignmentClassroomName(
+  assignment: TeacherLoadAssignment,
+  locale: string,
+) {
+  return localizedPairName(
+    { nameAr: assignment.classroomNameAr, nameEn: assignment.classroomNameEn },
+    locale,
+  );
+}
+
+function assignmentSubjectName(
+  assignment: TeacherLoadAssignment,
+  locale: string,
+) {
+  return localizedPairName(
+    { nameAr: assignment.subjectNameAr, nameEn: assignment.subjectNameEn },
+    locale,
+  );
+}
+
+function teacherInitials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 }
 
 export default function TeacherLoadView({
   termId,
-  grades,
-  sections,
-  classrooms,
-  subjects,
-  subjectAllocations,
   teachers,
-  teacherAllocations,
 }: TeacherLoadViewProps) {
   const t = useTranslations("academics.teacherAllocation.load");
   const tExport = useTranslations("academics.export");
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const selectedTeacherUserId = searchParams.get("loadTeacher") || "";
 
-  const [teacherLoads, setTeacherLoads] = useState<TeacherLoad[]>([]);
-  const [expandedTeacherId, setExpandedTeacherId] = useState<string | null>(null);
+  const [teacherLoads, setTeacherLoads] = useState<TeacherLoadViewModel[]>([]);
+  const [expandedTeacherId, setExpandedTeacherId] = useState<string | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadErrorTraceId, setLoadErrorTraceId] = useState<
+    string | undefined
+  >();
+  const [loadErrorDetails, setLoadErrorDetails] = useState<string[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
-  const queryState = useMemo(
-    () => ({
-      searchQuery: searchParams.get("loadSearch") || "",
-      statusFilter: (
-        ["all", "normal", "warning", "overloaded", "zero"].includes(
-          searchParams.get("loadStatus") || ""
-        )
-          ? searchParams.get("loadStatus")
-          : "all"
-      ) as "all" | "normal" | "warning" | "overloaded" | "zero",
-    }),
-    [searchParams]
-  );
-  const [searchInputValue, setSearchInputValue] = useState(queryState.searchQuery);
 
-  useEffect(() => {
-    setSearchInputValue(queryState.searchQuery);
-  }, [queryState.searchQuery]);
-
-  const syncQueryParams = useCallback(
-    (
-      nextState: Partial<{
-        searchQuery: string;
-        statusFilter: "all" | "normal" | "warning" | "overloaded" | "zero";
-      }>,
-      historyMode: "push" | "replace" = "replace"
-    ) => {
+  const syncTeacherFilter = useCallback(
+    (teacherUserId: string) => {
       const params = new URLSearchParams(searchParams.toString());
-      const mergedState = {
-        searchQuery: nextState.searchQuery ?? queryState.searchQuery,
-        statusFilter: nextState.statusFilter ?? queryState.statusFilter,
-      };
-
-      if (mergedState.searchQuery) {
-        params.set("loadSearch", mergedState.searchQuery);
+      if (teacherUserId) {
+        params.set("loadTeacher", teacherUserId);
       } else {
-        params.delete("loadSearch");
+        params.delete("loadTeacher");
       }
-
-      if (mergedState.statusFilter !== "all") {
-        params.set("loadStatus", mergedState.statusFilter);
-      } else {
-        params.delete("loadStatus");
-      }
-
       const nextQuery = params.toString();
-      const currentQuery = searchParams.toString();
-      if (nextQuery === currentQuery) {
-        return;
-      }
-
-      const nextUrl = nextQuery ? `?${nextQuery}` : "?";
-      if (historyMode === "push") {
-        router.push(nextUrl, { scroll: false });
-        return;
-      }
-      router.replace(nextUrl, { scroll: false });
+      router.replace(nextQuery ? `?${nextQuery}` : "?", { scroll: false });
     },
-    [queryState.searchQuery, queryState.statusFilter, router, searchParams]
+    [router, searchParams],
   );
-  const syncSearchQueryParam = useDebouncedCallback((value: string) => {
-    syncQueryParams({ searchQuery: value }, "replace");
-  }, 250);
 
-  useEffect(() => () => {
-    syncSearchQueryParam.cancel();
-  }, [syncSearchQueryParam]);
-
-  // Calculate loads
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const structureData = { grades, sections, classrooms, subjects };
-        const loads = await calculateTeacherLoads(termId, structureData, subjectAllocations, teacherAllocations);
-        setTeacherLoads(loads);
-      } catch (error) {
-        console.error("Failed to calculate loads:", error);
-      } finally {
-        setIsLoading(false);
+    let isCurrentRequest = true;
+
+    queueMicrotask(() => {
+      if (!isCurrentRequest) {
+        return;
       }
+      setIsLoading(true);
+      setLoadError(null);
+      setLoadErrorTraceId(undefined);
+      setLoadErrorDetails([]);
+    });
+
+    fetchTeacherLoads({
+      termId,
+      teacherUserId: selectedTeacherUserId || undefined,
+    })
+      .then((loads) => {
+        if (isCurrentRequest) {
+          setTeacherLoads(loads);
+          setExpandedTeacherId(null);
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to load teacher loads:", error);
+        if (isCurrentRequest) {
+          const uiError = teacherAllocationUiError(
+            error,
+            "Failed to load teacher loads.",
+          );
+          setTeacherLoads([]);
+          setLoadError(uiError.message);
+          setLoadErrorTraceId(uiError.traceId);
+          setLoadErrorDetails(uiError.details);
+        }
+      })
+      .finally(() => {
+        if (isCurrentRequest) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isCurrentRequest = false;
     };
+  }, [selectedTeacherUserId, termId]);
 
-    loadData();
-  }, [termId, grades, sections, classrooms, subjects, subjectAllocations, teacherAllocations]);
-
-  // Calculate KPIs
   const kpis = useMemo(() => {
-    const totalTeachers = teacherLoads.length;
-    const teachersWithZeroLoad = teacherLoads.filter((tl) => tl.totalWeeklyPeriods === 0).length;
-    const avgLoad =
-      totalTeachers > 0
-        ? Math.round(
-            teacherLoads.reduce((sum, tl) => sum + tl.totalWeeklyPeriods, 0) / totalTeachers
-          )
-        : 0;
-    const maxLoad = teacherLoads.reduce(
-      (max, tl) => Math.max(max, tl.totalWeeklyPeriods),
-      0
+    const totalWeeklyHours = teacherLoads.reduce(
+      (total, load) => total + load.totalWeeklyPeriods,
+      0,
+    );
+    const totalWarnings = teacherLoads.reduce(
+      (total, load) => total + load.warningsCount,
+      0,
     );
 
     return {
-      totalTeachers,
-      teachersWithZeroLoad,
-      avgLoad,
-      maxLoad,
+      teachersCount: teacherLoads.length,
+      totalWeeklyHours,
+      allocationCount: teacherLoads.reduce(
+        (total, load) => total + load.assignmentCount,
+        0,
+      ),
+      totalWarnings,
     };
   }, [teacherLoads]);
 
-  const getTeacherName = useCallback((load: TeacherLoad) => {
-    return locale === "ar"
-      ? (load.teacherNameAr || load.teacherNameEn || load.teacherName)
-      : (load.teacherNameEn || load.teacherNameAr || load.teacherName);
-  }, [locale]);
-
-  const getMaxLoadForTeacher = useCallback((teacherId: string): number | undefined => {
-    const teacher = teachers.find((t) => t.id === teacherId);
-    return teacher?.maxWeeklyLoad;
-  }, [teachers]);
-
-  const getTeacherStatus = useCallback((load: TeacherLoad): "normal" | "warning" | "overloaded" | "zero" => {
-    if (load.totalWeeklyPeriods === 0) return "zero";
-    const maxLoad = getMaxLoadForTeacher(load.teacherId);
-    if (!maxLoad) return "normal";
-    if (load.totalWeeklyPeriods > maxLoad) return "overloaded";
-    if (load.totalWeeklyPeriods > maxLoad * 0.8) return "warning";
-    return "normal";
-  }, [getMaxLoadForTeacher]);
-
-  // Transform teacher loads to table rows
-  const tableData = useMemo<TeacherLoadRow[]>(() => {
-    return teacherLoads.map((load) => {
-      const uniqueSections = new Set(load.assignments.map((a) => a.sectionId)).size;
-      const uniqueSubjects = new Set(load.assignments.map((a) => a.subjectId)).size;
-      
-      return {
-        teacherId: load.teacherId,
-        teacherName: getTeacherName(load),
-        weeklyLoad: load.totalWeeklyPeriods,
-        maxLoad: getMaxLoadForTeacher(load.teacherId),
-        sections: uniqueSections,
-        subjectsCount: uniqueSubjects,
-        status: getTeacherStatus(load),
-        assignments: load.assignments,
-      };
-    });
-  }, [teacherLoads, getMaxLoadForTeacher, getTeacherName, getTeacherStatus]);
-
-  // Apply filters
-  const filteredData = useMemo(() => {
-    let filtered = tableData;
-
-    // Search filter
-    if (searchInputValue) {
-      filtered = filtered.filter((row) =>
-        row.teacherName.toLowerCase().includes(searchInputValue.toLowerCase())
-      );
-    }
-
-    // Status filter
-    if (queryState.statusFilter !== "all") {
-      filtered = filtered.filter((row) => row.status === queryState.statusFilter);
-    }
-
-    return filtered;
-  }, [queryState.statusFilter, searchInputValue, tableData]);
-
-  // Define table columns
-  const columns = useMemo(() => [
-    {
-      key: "teacherName",
-      label: t("table.teacher"),
-      sortable: true,
-      searchable: true,
-      render: (value: unknown) => (
-        <span className="font-medium text-gray-900">{String(value)}</span>
-      ),
-    },
-    {
-      key: "weeklyLoad",
-      label: t("table.weeklyLoad"),
-      sortable: true,
-      render: (value: unknown, row: { [key: string]: unknown }) => {
-        const typedRow = row as unknown as TeacherLoadRow;
-        const load = Number(value);
-        const status = typedRow.status;
-        
-        return (
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
-                status === "overloaded"
-                  ? "bg-red-100 text-red-800"
-                  : status === "warning"
-                  ? "bg-amber-100 text-amber-800"
-                  : status === "zero"
-                  ? "bg-gray-100 text-gray-600"
-                  : "bg-primary-100 text-primary-800"
-              }`}
-            >
-              {load}
-            </span>
-            {typedRow.maxLoad && (
-              <span className="text-xs text-gray-500">/ {typedRow.maxLoad}</span>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      key: "sections",
-      label: t("table.sections"),
-      sortable: true,
-      render: (value: unknown) => (
-        <span className="text-gray-600">{String(value)}</span>
-      ),
-    },
-    {
-      key: "subjectsCount",
-      label: t("table.subjects"),
-      sortable: true,
-      render: (value: unknown) => (
-        <span className="text-gray-600">{String(value)}</span>
-      ),
-    },
-    {
-      key: "actions",
-      label: t("table.viewBreakdown"),
-      sortable: false,
-      render: (_: unknown, row: { [key: string]: unknown }) => {
-        const typedRow = row as unknown as TeacherLoadRow;
-        if (typedRow.assignments.length === 0) return null;
-        
-        const isExpanded = expandedTeacherId === typedRow.teacherId;
-        
-        return (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setExpandedTeacherId(isExpanded ? null : typedRow.teacherId);
-            }}
-            className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary-700 font-medium"
-          >
-            {isExpanded ? (
-              <>
-                <ChevronUp className="w-4 h-4" />
-                <span>{t("actions.hide")}</span>
-              </>
-            ) : (
-              <>
-                <ChevronDown className="w-4 h-4" />
-                <span>{t("actions.show")}</span>
-              </>
-            )}
-          </button>
-        );
-      },
-    },
-  ], [t, expandedTeacherId]);
-
-  const teacherLoadExportRows = useMemo<Record<string, unknown>[]>(() => {
-    return filteredData.flatMap((row) => {
-      if (row.assignments.length === 0) {
+  const exportRows = useMemo<Record<string, unknown>[]>(() => {
+    return teacherLoads.flatMap((load) => {
+      if (load.assignments.length === 0) {
         return [
           {
-            teacherName: row.teacherName,
-            weeklyLoad: row.weeklyLoad,
-            maxLoad: row.maxLoad || "",
-            status:
-              row.status === "warning"
-                ? t("filters.warning")
-                : row.status === "overloaded"
-                  ? t("filters.overloaded")
-                  : row.status === "zero"
-                    ? t("filters.zero")
-                    : t("filters.normal"),
+            teacher: load.teacherName,
+            allocationCount: load.assignmentCount,
+            totalWeeklyHours: load.totalWeeklyPeriods,
+            classroomsCount: load.classroomsCount,
+            subjectsCount: load.subjectsCount,
+            warning: load.warnings.map((warning) => warning.message).join("; "),
             grade: "",
-            section: "",
             classroom: "",
             subject: "",
-            periods: 0,
+            weeklyHours: 0,
           },
         ];
       }
 
-      return row.assignments.map((assignment) => ({
-        teacherName: row.teacherName,
-        weeklyLoad: row.weeklyLoad,
-        maxLoad: row.maxLoad || "",
-        status:
-          row.status === "warning"
-            ? t("filters.warning")
-            : row.status === "overloaded"
-              ? t("filters.overloaded")
-              : row.status === "zero"
-                ? t("filters.zero")
-                : t("filters.normal"),
-        grade:
-          locale === "ar"
-            ? assignment.gradeNameAr || assignment.gradeNameEn || assignment.gradeName
-            : assignment.gradeNameEn || assignment.gradeNameAr || assignment.gradeName,
-        section:
-          locale === "ar"
-            ? assignment.sectionNameAr || assignment.sectionNameEn || assignment.sectionName
-            : assignment.sectionNameEn || assignment.sectionNameAr || assignment.sectionName,
-        classroom: assignment.classroomId
-          ? locale === "ar"
-            ? assignment.classroomNameAr ||
-              assignment.classroomNameEn ||
-              assignment.classroomName
-            : assignment.classroomNameEn ||
-              assignment.classroomNameAr ||
-              assignment.classroomName
-          : "",
-        subject:
-          locale === "ar"
-            ? assignment.subjectNameAr || assignment.subjectNameEn || assignment.subjectName
-            : assignment.subjectNameEn || assignment.subjectNameAr || assignment.subjectName,
-        periods: assignment.weeklyHours,
+      return load.assignments.map((assignment) => ({
+        teacher: load.teacherName,
+        allocationCount: load.assignmentCount,
+        totalWeeklyHours: load.totalWeeklyPeriods,
+        classroomsCount: load.classroomsCount,
+        subjectsCount: load.subjectsCount,
+        warning: load.warnings.map((warning) => warning.message).join("; "),
+        grade: assignmentGradeName(assignment, locale),
+        classroom: assignmentClassroomName(assignment, locale),
+        subject: assignmentSubjectName(assignment, locale),
+        weeklyHours: assignment.weeklyHours,
       }));
     });
-  }, [filteredData, locale, t]);
+  }, [locale, teacherLoads]);
+
+  const maxTeacherWeeklyHours = Math.max(
+    1,
+    ...teacherLoads.map((load) => load.totalWeeklyPeriods),
+  );
 
   const handleExport = (format: AcademicsExportFormat) => {
     const metadata: ExportMetadata = {
@@ -416,18 +248,16 @@ export default function TeacherLoadView({
       exportDate: formatExportDate(locale),
     };
     const exportColumns: ExportColumn[] = [
-      { key: "teacherName", label: locale === "ar" ? "المعلم" : "Teacher" },
-      {
-        key: "weeklyLoad",
-        label: locale === "ar" ? "التوزيع الأسبوعي" : "Weekly load",
-      },
-      { key: "maxLoad", label: locale === "ar" ? "الحد الأقصى" : "Max load" },
-      { key: "status", label: locale === "ar" ? "الحالة" : "Status" },
-      { key: "grade", label: locale === "ar" ? "الصف" : "Grade" },
-      { key: "section", label: locale === "ar" ? "الشعبة" : "Section" },
-      { key: "classroom", label: locale === "ar" ? "الفصل" : "Classroom" },
-      { key: "subject", label: locale === "ar" ? "المادة" : "Subject" },
-      { key: "periods", label: locale === "ar" ? "الحصص" : "Periods" },
+      { key: "teacher", label: t("table.teacher") },
+      { key: "allocationCount", label: t("metrics.allocationCount") },
+      { key: "totalWeeklyHours", label: t("metrics.totalWeeklyHours") },
+      { key: "classroomsCount", label: t("metrics.classroomsCount") },
+      { key: "subjectsCount", label: t("metrics.subjectsCount") },
+      { key: "grade", label: t("breakdown.grade") },
+      { key: "classroom", label: t("breakdown.classroom") },
+      { key: "subject", label: t("breakdown.subject") },
+      { key: "weeklyHours", label: t("metrics.weeklyHours") },
+      { key: "warning", label: t("metrics.warnings") },
     ];
 
     exportAcademicsData({
@@ -436,232 +266,240 @@ export default function TeacherLoadView({
       filename: generateExportFilename("teacher-loads", termId),
       format,
       columns: exportColumns,
-      rows: teacherLoadExportRows,
+      rows: exportRows,
       locale,
       jsonData: {
-        title: "Teacher Loads",
+        title: t("title"),
         metadata,
-        summary: filteredData,
+        rows: exportRows,
       },
     });
   };
 
   if (isLoading) {
     return (
-        <PartialLoader />
-    );
-  }
-
-  if (teacherLoads.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center max-w-md px-6">
-          <div className="text-gray-400 mb-4">
-            <svg className="w-24 h-24 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1}
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t("noTeachers")}</h3>
-        </div>
+      <div className="flex h-full items-center justify-center text-gray-600">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        <span>{t("loadingTeacherLoads")}</span>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 overflow-auto">
-      <div className="max-w-[1400px] mx-auto w-full p-4 md:p-6 space-y-6">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPICardV2
-            title={t("kpi.totalTeachers")}
-            value={kpis.totalTeachers.toString()}
-            icon={Users}
-            iconColor="#3b82f6"
-            iconBgColor="#eff6ff"
+    <div className="flex h-full flex-col overflow-auto bg-slate-50">
+      <div className="mx-auto w-full max-w-[1440px] space-y-4 p-4 md:p-6">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <LoadMetricCard
+            label={t("kpi.teachers")}
+            value={kpis.teachersCount}
+            icon={<Users className="h-4 w-4" />}
+            tone="blue"
           />
-          <KPICardV2
-            title={t("kpi.teachersWithZeroLoad")}
-            value={kpis.teachersWithZeroLoad.toString()}
-            icon={UserX}
-            iconColor="#f59e0b"
-            iconBgColor="#fffbeb"
+          <LoadMetricCard
+            label={t("kpi.allocations")}
+            value={kpis.allocationCount}
+            icon={<BookOpen className="h-4 w-4" />}
+            tone="emerald"
           />
-          <KPICardV2
-            title={t("kpi.avgLoad")}
-            value={`${kpis.avgLoad}`}
-            icon={TrendingUp}
-            iconColor="#10b981"
-            iconBgColor="#f0fdf4"
+          <LoadMetricCard
+            label={t("kpi.weeklyHours")}
+            value={kpis.totalWeeklyHours}
+            icon={<Clock className="h-4 w-4" />}
+            tone="violet"
           />
-          <KPICardV2
-            title={t("kpi.maxLoad")}
-            value={`${kpis.maxLoad}`}
-            icon={Zap}
-            iconColor="#8b5cf6"
-            iconBgColor="#faf5ff"
+          <LoadMetricCard
+            label={t("kpi.warnings")}
+            value={kpis.totalWarnings}
+            icon={<AlertTriangle className="h-4 w-4" />}
+            tone={kpis.totalWarnings > 0 ? "amber" : "slate"}
           />
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="mb-4 flex items-center justify-end">
-            <Button
-              variant="secondary"
-              onClick={() => setShowExportModal(true)}
-              leftIcon={<Download className="w-4 h-4" />}
-              disabled={teacherLoadExportRows.length === 0}
-            >
-              {tExport("button")}
-            </Button>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder={t("filters.searchPlaceholder")}
-                  value={searchInputValue}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setSearchInputValue(value);
-                    syncSearchQueryParam(value);
-                  }}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-              </div>
+        <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-slate-900">
+                {t("title")}
+              </h2>
+              <p className="mt-1 text-xs text-slate-500">
+                {t("teacherSummary.allocations", {
+                  count: kpis.allocationCount,
+                })}
+                {" · "}
+                {t("teacherSummary.weeklyHours", {
+                  count: kpis.totalWeeklyHours,
+                })}
+              </p>
             </div>
 
-            {/* Status Filter */}
-            <div className="sm:w-64">
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="sm:w-80">
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  {t("filters.teacher")}
+                </label>
                 <select
-                  value={queryState.statusFilter}
-                  onChange={(e) =>
-                    syncQueryParams(
-                      {
-                        statusFilter: e.target.value as
-                          | "all"
-                          | "normal"
-                          | "warning"
-                          | "overloaded"
-                          | "zero",
-                      },
-                      "push"
-                    )
-                  }
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white"
+                  value={selectedTeacherUserId}
+                  onChange={(event) => syncTeacherFilter(event.target.value)}
+                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-transparent focus:ring-2 focus:ring-primary"
                 >
-                  <option value="all">{t("filters.allStatus")}</option>
-                  <option value="normal">{t("filters.normal")}</option>
-                  <option value="warning">{t("filters.warning")}</option>
-                  <option value="overloaded">{t("filters.overloaded")}</option>
-                  <option value="zero">{t("filters.zero")}</option>
+                  <option value="">{t("filters.allTeachers")}</option>
+                  {teachers.map((teacher) => (
+                    <option key={teacher.id} value={teacher.id}>
+                      {localizedTeacherName(teacher, locale)}
+                    </option>
+                  ))}
                 </select>
               </div>
+
+              <Button
+                variant="secondary"
+                onClick={() => setShowExportModal(true)}
+                leftIcon={<Download className="h-4 w-4" />}
+                disabled={exportRows.length === 0}
+              >
+                {tExport("button")}
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Data Table */}
-        <DataTable
-          columns={columns}
-          data={filteredData}
-          searchQuery={searchInputValue}
-          itemsPerPage={10}
-          showPagination={true}
-        />
-
-        {/* Expanded Breakdown */}
-        {expandedTeacherId && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">
-              {t("breakdown.title")}
-            </h4>
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className={`px-3 py-2  ${locale === "ar" ? "text-right" : "text-left"} text-xs font-bold text-gray-700`}>
-                      {t("breakdown.grade")}
-                    </th>
-                    <th className={`px-3 py-2 ${locale === "ar" ? "text-right" : "text-left"} text-xs font-bold text-gray-700`}>
-                      {t("breakdown.section")}
-                    </th>
-                    <th className={`px-3 py-2 ${locale === "ar" ? "text-right" : "text-left"} text-xs font-bold text-gray-700`}>
-                      {t("breakdown.classroom")}
-                    </th>
-                    <th className={`px-3 py-2 ${locale === "ar" ? "text-right" : "text-left"} text-xs font-bold text-gray-700`}>
-                      {t("breakdown.subject")}
-                    </th>
-                    <th className={`px-3 py-2 ${locale === "ar" ? "text-right" : "text-left"} text-xs font-bold text-gray-700`}>
-                      {t("breakdown.periods")}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tableData
-                    .find((row) => row.teacherId === expandedTeacherId)
-                    ?.assignments.map((assignment, idx) => (
-                      <tr
-                        key={`${expandedTeacherId}-${assignment.sectionId}-${assignment.subjectId}-${idx}`}
-                        className={`border-b border-gray-100 ${
-                          idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                        }`}
-                      >
-                        <td className="px-3 py-2 text-sm text-gray-900">
-                          {locale === "ar"
-                            ? (assignment.gradeNameAr || assignment.gradeNameEn || assignment.gradeName)
-                            : (assignment.gradeNameEn || assignment.gradeNameAr || assignment.gradeName)}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-900">
-                          {locale === "ar"
-                            ? (assignment.sectionNameAr || assignment.sectionNameEn || assignment.sectionName)
-                            : (assignment.sectionNameEn || assignment.sectionNameAr || assignment.sectionName)}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-900">
-                          {assignment.classroomId
-                            ? locale === "ar"
-                              ? (assignment.classroomNameAr || assignment.classroomNameEn || assignment.classroomName)
-                              : (assignment.classroomNameEn || assignment.classroomNameAr || assignment.classroomName)
-                            : "—"}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-900">
-                          {locale === "ar"
-                            ? (assignment.subjectNameAr || assignment.subjectNameEn || assignment.subjectName)
-                            : (assignment.subjectNameEn || assignment.subjectNameAr || assignment.subjectName)}
-                        </td>
-                        <td className="px-3 py-2 text-center text-sm font-medium text-gray-900">
-                          {assignment.weeklyHours}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-gray-100 border-t-2 border-gray-300">
-                    <td
-                      colSpan={4}
-                      className={`px-3 py-2 text-sm font-semibold text-gray-900 ${locale === "ar" ? "text-right" : "text-left"}`}
-                    >
-                      {t("breakdown.total")}:
-                    </td>
-                    <td className="px-3 py-2 text-center text-sm font-bold text-gray-900">
-                      {tableData.find((row) => row.teacherId === expandedTeacherId)?.weeklyLoad}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+        {loadError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <div>{loadError}</div>
+            <TeacherAllocationTechnicalDetails
+              traceId={loadErrorTraceId}
+              details={loadErrorDetails}
+            />
           </div>
         )}
+
+        {!loadError && teacherLoads.length === 0 && (
+          <div className="rounded-lg border border-gray-200 bg-white p-12 text-center text-gray-500">
+            {t("empty")}
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {teacherLoads.map((load) => {
+            const isExpanded = expandedTeacherId === load.teacherId;
+            const loadPercent = Math.min(
+              100,
+              Math.round(
+                (load.totalWeeklyPeriods / maxTeacherWeeklyHours) * 100,
+              ),
+            );
+            return (
+              <div
+                key={load.teacherId}
+                className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExpandedTeacherId(isExpanded ? null : load.teacherId)
+                  }
+                  className="w-full p-4 text-start transition-colors hover:bg-slate-50"
+                >
+                  <div className="grid gap-4 lg:grid-cols-[minmax(220px,1.2fr)_2fr_auto] lg:items-center">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                        {teacherInitials(load.teacherName)}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="truncate text-base font-semibold text-slate-950">
+                          {load.teacherName}
+                        </h3>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                          <span>
+                            {t("teacherSummary.allocations", {
+                              count: load.assignmentCount,
+                            })}
+                          </span>
+                          <span>
+                            {t("teacherSummary.weeklyHours", {
+                              count: load.totalWeeklyPeriods,
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      <InlineMetric
+                        label={t("metrics.weeklyHours")}
+                        value={load.totalWeeklyPeriods}
+                        icon={<Clock className="h-3.5 w-3.5" />}
+                      />
+                      <InlineMetric
+                        label={t("metrics.allocationCount")}
+                        value={load.assignmentCount}
+                        icon={<BookOpen className="h-3.5 w-3.5" />}
+                      />
+                      <InlineMetric
+                        label={t("metrics.classroomsCount")}
+                        value={load.classroomsCount}
+                        icon={<School className="h-3.5 w-3.5" />}
+                      />
+                      <InlineMetric
+                        label={t("metrics.subjectsCount")}
+                        value={load.subjectsCount}
+                        icon={<Users className="h-3.5 w-3.5" />}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 lg:justify-end">
+                      {load.warningsCount > 0 ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          {t("teacherSummary.warnings", {
+                            count: load.warningsCount,
+                          })}
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                          {t("filters.normal")}
+                        </span>
+                      )}
+                      <span className="text-slate-400">
+                        {isExpanded ? (
+                          <ChevronUp className="h-5 w-5" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5" />
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className={`h-full rounded-full ${
+                        load.warningsCount > 0 ? "bg-amber-500" : "bg-primary"
+                      }`}
+                      style={{ width: `${loadPercent}%` }}
+                    />
+                  </div>
+                </button>
+
+                {isExpanded && (
+                  <div className="border-t border-slate-200 bg-slate-50/60 p-4">
+                    <AssignmentList
+                      assignments={load.assignments}
+                      locale={locale}
+                      labels={{
+                        noAssignments: t("noAssignments"),
+                        grade: t("breakdown.grade"),
+                        classroom: t("breakdown.classroom"),
+                        subject: t("breakdown.subject"),
+                        weeklyHours: t("metrics.weeklyHours"),
+                      }}
+                    />
+                    <WarningList warnings={load.warnings} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <AcademicsGlobalExportModal
@@ -670,8 +508,175 @@ export default function TeacherLoadView({
         onExport={handleExport}
         title={tExport("title")}
         subtitle={t("title")}
-        datasetCount={teacherLoadExportRows.length}
+        datasetCount={exportRows.length}
       />
+    </div>
+  );
+}
+
+function AssignmentList({
+  assignments,
+  locale,
+  labels,
+}: {
+  assignments: TeacherLoadAssignment[];
+  locale: string;
+  labels: {
+    noAssignments: string;
+    grade: string;
+    classroom: string;
+    subject: string;
+    weeklyHours: string;
+  };
+}) {
+  if (assignments.length === 0) {
+    return <p className="text-sm text-gray-500">{labels.noAssignments}</p>;
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <table className="min-w-full divide-y divide-slate-200">
+        <thead className="bg-slate-50">
+          <tr>
+            <TableHeader label={labels.grade} />
+            <TableHeader label={labels.classroom} />
+            <TableHeader label={labels.subject} />
+            <TableHeader label={labels.weeklyHours} align="center" />
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100 bg-white">
+          {assignments.map((assignment) => (
+            <tr key={assignment.allocationId}>
+              <TableCell>{assignmentGradeName(assignment, locale)}</TableCell>
+              <TableCell>
+                {assignmentClassroomName(assignment, locale)}
+              </TableCell>
+              <TableCell>{assignmentSubjectName(assignment, locale)}</TableCell>
+              <TableCell align="center">{assignment.weeklyHours}</TableCell>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function WarningList({
+  warnings,
+}: {
+  warnings: TeacherLoadViewModel["warnings"];
+}) {
+  if (warnings.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4 space-y-2">
+      {warnings.map((warning) => (
+        <div
+          key={`${warning.code}-${warning.message}`}
+          className="flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{warning.message}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TableHeader({
+  label,
+  align = "left",
+}: {
+  label: string;
+  align?: "left" | "center";
+}) {
+  return (
+    <th
+      className={`px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500 ${
+        align === "center" ? "text-center" : "text-left"
+      }`}
+    >
+      {label}
+    </th>
+  );
+}
+
+function TableCell({
+  children,
+  align = "left",
+}: {
+  children: ReactNode;
+  align?: "left" | "center";
+}) {
+  return (
+    <td
+      className={`px-3 py-2 text-sm text-gray-900 ${
+        align === "center" ? "text-center" : "text-left"
+      }`}
+    >
+      {children}
+    </td>
+  );
+}
+
+function LoadMetricCard({
+  label,
+  value,
+  icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  icon: ReactNode;
+  tone: "blue" | "emerald" | "violet" | "amber" | "slate";
+}) {
+  const toneClasses = {
+    blue: "bg-blue-50 text-blue-700",
+    emerald: "bg-emerald-50 text-emerald-700",
+    violet: "bg-violet-50 text-violet-700",
+    amber: "bg-amber-50 text-amber-700",
+    slate: "bg-slate-50 text-slate-600",
+  };
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-xs font-medium text-slate-500">
+            {label}
+          </div>
+          <div className="mt-1 text-2xl font-semibold text-slate-950">
+            {value}
+          </div>
+        </div>
+        <div
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${toneClasses[tone]}`}
+        >
+          {icon}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InlineMetric({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: number;
+  icon: ReactNode;
+}) {
+  return (
+    <div className="rounded-md border border-slate-200 bg-white px-3 py-2">
+      <div className="flex items-center gap-1.5 text-xs text-slate-500">
+        <span className="text-slate-400">{icon}</span>
+        <span className="truncate">{label}</span>
+      </div>
+      <div className="mt-1 text-sm font-semibold text-slate-950">{value}</div>
     </div>
   );
 }

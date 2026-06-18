@@ -13,7 +13,6 @@ import {
   Subject,
   SubjectAllocation,
   deleteSubject,
-  subjectHasAllocations,
 } from "@/features/academics/subjects/services/subjectsService";
 
 interface SubjectsListProps {
@@ -104,7 +103,12 @@ export default function SubjectsList({
     }
   };
 
-  const hasAllocations = deleteConfirm ? subjectHasAllocations(termId, deleteConfirm.id) : false;
+  const hasAllocations = deleteConfirm
+    ? allocations.some(
+        (allocation) =>
+          allocation.subjectId === deleteConfirm.id && allocation.weeklyHours > 0,
+      )
+    : false;
 
   return (
     <>

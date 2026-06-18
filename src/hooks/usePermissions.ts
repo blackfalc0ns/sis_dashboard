@@ -40,6 +40,8 @@ export type PermissionKey =
   | "nedaa.requests.manage"
   | "nedaa.settings.view"
   | "nedaa.settings.manage"
+  | "academics.subjects.view"
+  | "academics.subjects.manage"
   | "academics.structure.view"
   | "academics.structure.manage"
   | "reinforcement.overview.view"
@@ -61,6 +63,8 @@ const legacyAdminPermissions: PermissionKey[] = [
   "attendance.rollcall.unsubmit",
   "attendance.excuses.approve",
   "attendance.lateEarly.editMinutes",
+  "academics.subjects.view",
+  "academics.subjects.manage",
   "academics.structure.view",
   "academics.structure.manage",
 ];

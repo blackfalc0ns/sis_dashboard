@@ -20,6 +20,8 @@ import {
 import SubjectsAllocationView from "../views/SubjectsAllocationView";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { useAcademicContextBarActions } from "@/features/academics/hooks/useAcademicContextBarActions";
+import { usePermissions } from "@/hooks/usePermissions";
+import { subjectAllocationUiError } from "@/features/academics/subjects/services/subjectAllocationErrors";
 
 type SubjectsAllocationQueryState = {
   activeTab: "subjects" | "matrix";
@@ -36,6 +38,7 @@ export default function SubjectsAllocationContainer() {
     academicYears,
     terms,
   } = useAcademicYearTermLayoutContext();
+  const { hasPermission } = usePermissions();
 
   // Data
   const [stages, setStages] = useState<Stage[]>([]);
@@ -43,6 +46,8 @@ export default function SubjectsAllocationContainer() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [allocations, setAllocations] = useState<SubjectAllocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [apiErrorTraceId, setApiErrorTraceId] = useState<string | undefined>();
 
   // UI State
   const [showSubjectDialog, setShowSubjectDialog] = useState(false);
@@ -55,34 +60,53 @@ export default function SubjectsAllocationContainer() {
     [searchParams]
   );
 
-  const isReadOnly = termStatus === "closed";
+  const canView = hasPermission("academics.subjects.view");
+  const canManage = hasPermission("academics.subjects.manage");
+  const isReadOnly = termStatus === "closed" || !canManage;
+
+  const loadSubjectAllocationData = useCallback(async () => {
+    if (!canView) {
+      setIsLoading(false);
+      return;
+    }
+
+    if (!academicYearId || !termId) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setApiError(null);
+    setApiErrorTraceId(undefined);
+    try {
+      const [structureData, subjectsData, allocationsData] = await Promise.all([
+        fetchStructureTree(academicYearId, termId),
+        fetchSubjects(termId),
+        fetchSubjectAllocations(termId),
+      ]);
+
+      setStages(structureData.stages || []);
+      setGrades(structureData.grades);
+      setSubjects(subjectsData);
+      setAllocations(allocationsData);
+      clearDirty();
+    } catch (error) {
+      console.error("Failed to load subject allocation data:", error);
+      const uiError = subjectAllocationUiError(
+        error,
+        "Failed to load subject allocation data.",
+      );
+      setApiError(uiError.message);
+      setApiErrorTraceId(uiError.traceId);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [academicYearId, canView, clearDirty, termId]);
 
   // Load data when year/term changes
   useEffect(() => {
-    if (!academicYearId || !termId) return;
-
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const [structureData, subjectsData, allocationsData] = await Promise.all([
-          fetchStructureTree(academicYearId, termId),
-          fetchSubjects(termId),
-          fetchSubjectAllocations(termId),
-        ]);
-
-        setStages(structureData.stages || []);
-        setGrades(structureData.grades);
-        setSubjects(subjectsData);
-        setAllocations(allocationsData);
-      } catch (error) {
-        console.error("Failed to load data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [academicYearId, termId]);
+    void loadSubjectAllocationData();
+  }, [loadSubjectAllocationData]);
 
   const handlePromoteCarryOver = useCallback(() => {
     setShowCarryOverDialog(true);
@@ -119,14 +143,36 @@ export default function SubjectsAllocationContainer() {
 
   const refreshData = async () => {
     if (!termId) return;
-    const [subjectsData, allocationsData] = await Promise.all([
-      fetchSubjects(termId),
-      fetchSubjectAllocations(termId),
-    ]);
-    setSubjects(subjectsData);
-    setAllocations(allocationsData);
-    clearDirty();
+    setApiError(null);
+    setApiErrorTraceId(undefined);
+    try {
+      const [subjectsData, allocationsData] = await Promise.all([
+        fetchSubjects(termId),
+        fetchSubjectAllocations(termId),
+      ]);
+      setSubjects(subjectsData);
+      setAllocations(allocationsData);
+      clearDirty();
+    } catch (error) {
+      console.error("Failed to refresh subject allocation data:", error);
+      const uiError = subjectAllocationUiError(
+        error,
+        "Failed to refresh subject allocation data.",
+      );
+      setApiError(uiError.message);
+      setApiErrorTraceId(uiError.traceId);
+      throw error;
+    }
   };
+
+  const handleSaveError = useCallback((error: unknown) => {
+    const uiError = subjectAllocationUiError(
+      error,
+      "Failed to save subject allocations.",
+    );
+    setApiError(uiError.message);
+    setApiErrorTraceId(uiError.traceId);
+  }, []);
 
   const handleAddSubject = () => {
     setEditingSubject(null);
@@ -185,11 +231,14 @@ export default function SubjectsAllocationContainer() {
       termId={termId}
       academicYears={academicYears}
       terms={terms}
+      canView={canView}
       stages={stages}
       grades={grades}
       subjects={subjects}
       allocations={allocations}
       isLoading={isLoading}
+      apiError={apiError}
+      apiErrorTraceId={apiErrorTraceId}
       activeTab={queryState.activeTab}
       showSubjectDialog={showSubjectDialog}
       editingSubject={editingSubject}
@@ -202,7 +251,9 @@ export default function SubjectsAllocationContainer() {
       onCarryOverSuccess={handleCarryOverSuccess}
       onAllocationsChange={handleAllocationsChange}
       onDirtyChange={handleDirtyChange}
+      onSaveError={handleSaveError}
       onRefresh={refreshData}
+      onRetry={loadSubjectAllocationData}
       onCloseSubjectDialog={handleCloseSubjectDialog}
       onCloseCarryOverDialog={handleCloseCarryOverDialog}
     />

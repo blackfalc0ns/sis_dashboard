@@ -2,12 +2,25 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { AlertTriangle, Plus, Coffee, ChevronDown, ChevronUp } from "lucide-react";
-import { TimetableEntry, TimetableConflict } from "@/features/academics/timetable/types/timetable";
+import {
+  AlertTriangle,
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
+  Coffee,
+  Plus,
+  Sparkles,
+  Users,
+} from "lucide-react";
+import {
+  TimetableEntry,
+  TimetableConflict,
+} from "@/features/academics/timetable/types/timetable";
 import { Subject } from "@/features/academics/subjects/services/subjectsService";
 import { Teacher } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { Room } from "@/features/academics/timetable/types/timetable";
 import { ResolvedTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
+import { formatTimetableTimeRange } from "@/features/academics/timetable/services/timetableTimeFormat";
 
 interface TimetableGridProps {
   entries: TimetableEntry[];
@@ -41,12 +54,26 @@ export default function TimetableGrid({
   const activeDays = resolvedConfig.days.filter((d) => d.isActive);
   const periods = resolvedConfig.periods;
 
-  const getEntry = (dayKey: string, periodIndex: number): TimetableEntry | undefined => {
-    return entries.find((e) => e.dayKey === dayKey && e.periodIndex === periodIndex);
+  const getEntry = (
+    dayKey: string,
+    periodIndex: number,
+  ): TimetableEntry | undefined => {
+    return entries.find(
+      (e) => e.dayKey === dayKey && e.periodIndex === periodIndex,
+    );
   };
 
-  const hasConflict = (dayKey: string, periodIndex: number): boolean => {
-    return conflicts.some((c) => c.dayKey === dayKey && c.periodIndex === periodIndex);
+  const hasConflict = (
+    dayKey: string,
+    period: (typeof periods)[0],
+  ): boolean => {
+    return conflicts.some(
+      (conflict) =>
+        conflict.dayKey === dayKey &&
+        (conflict.periodId
+          ? conflict.periodId === period.id
+          : conflict.periodIndex === period.index),
+    );
   };
 
   const getSubjectName = (subjectId: string | null): string => {
@@ -70,11 +97,42 @@ export default function TimetableGrid({
     return locale === "ar" ? room.nameAr : room.nameEn;
   };
 
-  const renderSlotContent = (day: typeof activeDays[0], period: typeof periods[0]) => {
+  const periodTypeLabel = (period: (typeof periods)[0]): string => {
+    switch (period.type) {
+      case "BREAK":
+        return t("break");
+      case "ASSEMBLY":
+        return t("periodTypes.assembly");
+      case "ACTIVITY":
+        return t("periodTypes.activity");
+      default:
+        return t("periodTypes.class");
+    }
+  };
+
+  const periodTypeIcon = (period: (typeof periods)[0]) => {
+    switch (period.type) {
+      case "BREAK":
+        return Coffee;
+      case "ASSEMBLY":
+        return Users;
+      case "ACTIVITY":
+        return Sparkles;
+      default:
+        return BookOpen;
+    }
+  };
+
+  const renderSlotContent = (
+    day: (typeof activeDays)[0],
+    period: (typeof periods)[0],
+  ) => {
     const entry = getEntry(day.key, period.index);
-    const conflict = hasConflict(day.key, period.index);
+    const conflict = hasConflict(day.key, period);
     const isHoliday = isHolidayDay(day.key);
     const isBreak = entry?.slotType === "BREAK";
+    const isInstructionalPeriod = period.isInstructional !== false;
+    const PeriodTypeIcon = periodTypeIcon(period);
 
     if (isHoliday) {
       return (
@@ -84,16 +142,27 @@ export default function TimetableGrid({
       );
     }
 
+    if (!isInstructionalPeriod) {
+      return (
+        <div className="min-h-[80px] border-l-4 border-amber-400 bg-amber-50/50 px-3 py-6 flex flex-col items-center justify-center">
+          <PeriodTypeIcon className="mb-1 h-5 w-5 text-amber-600" />
+          <div className="text-sm font-medium text-amber-900">
+            {periodTypeLabel(period)}
+          </div>
+        </div>
+      );
+    }
+
     if (isBreak) {
       return (
         <div className="bg-amber-50/50 border-l-4 border-amber-400 py-6 px-3 min-h-[80px] flex flex-col items-center justify-center">
           <Coffee className="w-5 h-5 text-amber-600 mb-1" />
           <div className="text-sm font-medium text-amber-900">
-            {entry.breakLabelAr && locale === "ar" 
-              ? entry.breakLabelAr 
+            {entry.breakLabelAr && locale === "ar"
+              ? entry.breakLabelAr
               : entry.breakLabelEn && locale === "en"
-              ? entry.breakLabelEn
-              : t("break")}
+                ? entry.breakLabelEn
+                : t("break")}
           </div>
         </div>
       );
@@ -154,8 +223,8 @@ export default function TimetableGrid({
   return (
     <>
       {/* Desktop: Table View */}
-      <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden print:block print:rounded-none print:shadow-none print:overflow-visible">
+        <div className="overflow-x-auto print:overflow-visible">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-50">
@@ -166,7 +235,9 @@ export default function TimetableGrid({
                   <th
                     key={day.key}
                     className={`sticky top-0 z-10 border-b border-r border-gray-200 px-4 py-3 text-center text-sm font-semibold min-w-[180px] ${
-                      isHolidayDay(day.key) ? "bg-red-50 text-red-700" : "bg-primary-200 text-gray-900"
+                      isHolidayDay(day.key)
+                        ? "bg-red-50 text-red-700"
+                        : "bg-primary-200 text-gray-900"
                     }`}
                   >
                     <div className="flex flex-col items-center gap-1">
@@ -182,56 +253,89 @@ export default function TimetableGrid({
               </tr>
             </thead>
             <tbody>
-              {periods.map((period) => (
-                <tr key={period.index} className="hover:bg-gray-50/50">
-                  <td className="sticky left-0 z-10 border-b border-r border-gray-200 px-4 py-4 text-sm font-medium text-gray-900 bg-primary-50 ">
-                    <div className="flex flex-col">
-                      <span>{locale === "ar" ? period.nameAr : period.nameEn}</span>
-                      {period.startTime && period.endTime && (
-                        <span className="text-xs text-gray-500 mt-0.5">
-                          {period.startTime} - {period.endTime}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  {activeDays.map((day) => {
-                    const entry = getEntry(day.key, period.index);
-                    const conflict = hasConflict(day.key, period.index);
-                    const isHoliday = isHolidayDay(day.key);
-                    const isBreak = entry?.slotType === "BREAK";
-                    const isEmpty = !entry || (!entry.subjectId && !isBreak);
+              {periods.map((period) => {
+                const PeriodTypeIcon = periodTypeIcon(period);
 
-                    return (
-                      <td
-                        key={`${day.key}-${period.index}`}
-                        className={`border-b border-r border-gray-200 p-0 transition-colors relative group ${
-                          isHoliday ? "bg-red-50 cursor-not-allowed" : ""
-                        } ${conflict && !isHoliday && !isBreak ? "bg-red-50 border-red-200" : ""} ${
-                          !isReadOnly && !isHoliday ? "hover:bg-blue-50/50 cursor-pointer" : ""
-                        } ${isEmpty && !isHoliday ? "border-dashed" : ""}`}
-                        onClick={() => !isReadOnly && !isHoliday && onSlotClick(day.key, period.index)}
-                      >
-                        {renderSlotContent(day, period)}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+                return (
+                  <tr key={period.index} className="hover:bg-gray-50/50">
+                    <td className="sticky left-0 z-10 border-b border-r border-gray-200 px-4 py-4 text-sm font-medium text-gray-900 bg-primary-50 ">
+                      <div className="flex flex-col">
+                        <span className="flex items-center gap-1.5">
+                          <PeriodTypeIcon className="h-4 w-4 shrink-0 text-gray-500" />
+                          <span>
+                            {locale === "ar" ? period.nameAr : period.nameEn}
+                          </span>
+                        </span>
+                        {period.startTime && period.endTime && (
+                          <span
+                            className="mt-0.5 text-xs text-gray-500"
+                            dir="ltr"
+                          >
+                            {formatTimetableTimeRange(
+                              period.startTime,
+                              period.endTime,
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    {activeDays.map((day) => {
+                      const entry = getEntry(day.key, period.index);
+                      const conflict = hasConflict(day.key, period);
+                      const isHoliday = isHolidayDay(day.key);
+                      const isBreak = entry?.slotType === "BREAK";
+                      const isInstructionalPeriod =
+                        period.isInstructional !== false;
+                      const isEmpty = !entry || (!entry.subjectId && !isBreak);
+
+                      return (
+                        <td
+                          key={`${day.key}-${period.index}`}
+                          className={`border-b border-r border-gray-200 p-0 transition-colors relative group ${
+                            isHoliday || !isInstructionalPeriod
+                              ? "bg-red-50 cursor-not-allowed"
+                              : ""
+                          } ${conflict && !isHoliday && !isBreak ? "bg-red-50 border-red-200" : ""} ${
+                            !isReadOnly && !isHoliday && isInstructionalPeriod
+                              ? "hover:bg-blue-50/50 cursor-pointer"
+                              : ""
+                          } ${isEmpty && !isHoliday ? "border-dashed" : ""}`}
+                          onClick={() =>
+                            !isReadOnly &&
+                            !isHoliday &&
+                            isInstructionalPeriod &&
+                            onSlotClick(day.key, period.index)
+                          }
+                        >
+                          {renderSlotContent(day, period)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
       {/* Mobile: Card View by Day */}
-      <div className="lg:hidden space-y-3">
+      <div className="lg:hidden space-y-3 print:hidden">
         {activeDays.map((day) => {
           const isExpanded = expandedDay === day.key;
           const isHoliday = isHolidayDay(day.key);
-          const dayEntries = periods.map(period => getEntry(day.key, period.index));
-          const filledCount = dayEntries.filter(e => e?.subjectId || e?.slotType === "BREAK").length;
+          const dayEntries = periods.map((period) =>
+            getEntry(day.key, period.index),
+          );
+          const filledCount = dayEntries.filter(
+            (e) => e?.subjectId || e?.slotType === "BREAK",
+          ).length;
 
           return (
-            <div key={day.key} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div
+              key={day.key}
+              className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+            >
               {/* Day Header - Collapsible */}
               <button
                 onClick={() => setExpandedDay(isExpanded ? null : day.key)}
@@ -240,7 +344,9 @@ export default function TimetableGrid({
                 } hover:bg-gray-100 transition-colors`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`text-sm font-semibold ${isHoliday ? "text-red-700" : "text-gray-900"}`}>
+                  <div
+                    className={`text-sm font-semibold ${isHoliday ? "text-red-700" : "text-gray-900"}`}
+                  >
                     {locale === "ar" ? day.nameAr : day.nameEn}
                   </div>
                   {isHoliday && (
@@ -266,28 +372,51 @@ export default function TimetableGrid({
                 <div className="divide-y divide-gray-100">
                   {periods.map((period) => {
                     const entry = getEntry(day.key, period.index);
-                    const conflict = hasConflict(day.key, period.index);
+                    const conflict = hasConflict(day.key, period);
                     const isBreak = entry?.slotType === "BREAK";
+                    const isInstructionalPeriod =
+                      period.isInstructional !== false;
+                    const PeriodTypeIcon = periodTypeIcon(period);
 
                     return (
                       <div
                         key={period.index}
-                        onClick={() => !isReadOnly && !isHoliday && onSlotClick(day.key, period.index)}
+                        onClick={() =>
+                          !isReadOnly &&
+                          !isHoliday &&
+                          isInstructionalPeriod &&
+                          onSlotClick(day.key, period.index)
+                        }
                         className={`p-4 ${
-                          !isReadOnly && !isHoliday ? "active:bg-blue-50 cursor-pointer" : ""
+                          !isReadOnly && !isHoliday && isInstructionalPeriod
+                            ? "active:bg-blue-50 cursor-pointer"
+                            : ""
                         } ${conflict && !isHoliday && !isBreak ? "bg-red-50" : ""} ${
-                          isHoliday ? "bg-red-50/30" : ""
+                          isHoliday || !isInstructionalPeriod
+                            ? "bg-red-50/30"
+                            : ""
                         }`}
                       >
                         {/* Period Header */}
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
-                            <div className="text-sm font-medium text-gray-900">
-                              {locale === "ar" ? period.nameAr : period.nameEn}
+                            <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
+                              <PeriodTypeIcon className="h-4 w-4 shrink-0 text-gray-500" />
+                              <span>
+                                {locale === "ar"
+                                  ? period.nameAr
+                                  : period.nameEn}
+                              </span>
                             </div>
                             {period.startTime && period.endTime && (
-                              <div className="text-xs text-gray-500 mt-0.5">
-                                {period.startTime} - {period.endTime}
+                              <div
+                                className="mt-0.5 text-xs text-gray-500"
+                                dir="ltr"
+                              >
+                                {formatTimetableTimeRange(
+                                  period.startTime,
+                                  period.endTime,
+                                )}
                               </div>
                             )}
                           </div>
@@ -301,15 +430,22 @@ export default function TimetableGrid({
                           <div className="text-xs text-red-600 text-center py-2 font-medium">
                             {t("holiday")}
                           </div>
+                        ) : !isInstructionalPeriod ? (
+                          <div className="bg-amber-50 border-l-4 border-amber-400 py-3 px-3 rounded flex items-center gap-2">
+                            <PeriodTypeIcon className="w-5 h-5 text-amber-600 shrink-0" />
+                            <div className="text-sm font-medium text-amber-900">
+                              {periodTypeLabel(period)}
+                            </div>
+                          </div>
                         ) : isBreak ? (
                           <div className="bg-amber-50 border-l-4 border-amber-400 py-3 px-3 rounded flex items-center gap-2">
                             <Coffee className="w-5 h-5 text-amber-600 shrink-0" />
                             <div className="text-sm font-medium text-amber-900">
-                              {entry.breakLabelAr && locale === "ar" 
-                                ? entry.breakLabelAr 
+                              {entry.breakLabelAr && locale === "ar"
+                                ? entry.breakLabelAr
                                 : entry.breakLabelEn && locale === "en"
-                                ? entry.breakLabelEn
-                                : t("break")}
+                                  ? entry.breakLabelEn
+                                  : t("break")}
                             </div>
                           </div>
                         ) : entry?.subjectId ? (

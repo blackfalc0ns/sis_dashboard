@@ -24,9 +24,13 @@ import {
   type Teacher,
   type TeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
+import type { TeacherAllocationValidationResponse } from "@/features/academics/teacher-allocation/services/teacherAllocationApi.types";
+import type { TeacherLoadViewModel } from "@/features/academics/teacher-allocation/services/teacherAllocationMappers";
 import TeacherAllocationView from "../views/TeacherAllocationView";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { useAcademicContextBarActions } from "@/features/academics/hooks/useAcademicContextBarActions";
+import { usePermissions } from "@/hooks/usePermissions";
+import { teacherAllocationUiError } from "@/features/academics/teacher-allocation/services/teacherAllocationErrors";
 
 type TeacherAllocationQueryState = {
   activeTab: "matrix" | "load";
@@ -43,6 +47,7 @@ export default function TeacherAllocationContainer() {
     academicYears,
     terms,
   } = useAcademicYearTermLayoutContext();
+  const { hasPermission } = usePermissions();
 
   // Context data
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -53,10 +58,15 @@ export default function TeacherAllocationContainer() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [teacherAllocations, setTeacherAllocations] = useState<TeacherAllocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [apiErrorTraceId, setApiErrorTraceId] = useState<string | undefined>();
+  const [isSaving, setIsSaving] = useState(false);
+  const [validationSummary, setValidationSummary] =
+    useState<TeacherAllocationValidationResponse | null>(null);
+  const [teacherLoads, setTeacherLoads] = useState<TeacherLoadViewModel[] | null>(null);
 
   // UI State
   const [validationPanelOpen, setValidationPanelOpen] = useState(false);
-  const [carryOverDialogOpen, setCarryOverDialogOpen] = useState(false);
   const queryState = useMemo<TeacherAllocationQueryState>(
     () => ({
       activeTab: searchParams.get("tab") === "load" ? "load" : "matrix",
@@ -64,73 +74,75 @@ export default function TeacherAllocationContainer() {
     [searchParams]
   );
 
-  // Current working allocations (for validation with unsaved changes)
-  const [currentAllocations, setCurrentAllocations] = useState<TeacherAllocation[]>([]);
+  const canView = hasPermission("academics.structure.view");
+  const canManage = hasPermission("academics.structure.manage");
+  const isReadOnly = termStatus === "closed" || !canManage;
 
-  const isReadOnly = termStatus === "closed";
+  const loadTeacherAllocationData = useCallback(async () => {
+    if (!canView) {
+      setIsLoading(false);
+      return;
+    }
+
+    if (!academicYearId || !termId) {
+      return;
+    }
+
+    setIsLoading(true);
+    setApiError(null);
+    setApiErrorTraceId(undefined);
+    try {
+      const [
+        structureData,
+        subjectsData,
+        subjectAllocsData,
+        teachersData,
+        teacherAllocsData,
+      ] = await Promise.all([
+        fetchStructureTree(academicYearId, termId),
+        fetchSubjects(termId),
+        fetchSubjectAllocations(termId),
+        fetchTeachers(),
+        fetchTeacherAllocations(termId),
+      ]);
+
+      setGrades(structureData.grades);
+      setSections(structureData.sections);
+      setClassrooms(structureData.classrooms);
+      setSubjects(subjectsData);
+      setSubjectAllocations(subjectAllocsData);
+      setTeachers(teachersData);
+      setTeacherAllocations(teacherAllocsData);
+      setValidationSummary(null);
+      setTeacherLoads(null);
+      clearDirty();
+    } catch (error) {
+      console.error("Failed to load teacher allocation data:", error);
+      const uiError = teacherAllocationUiError(
+        error,
+        "Failed to load teacher allocation data.",
+      );
+      setApiError(uiError.message);
+      setApiErrorTraceId(uiError.traceId);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [academicYearId, canView, clearDirty, termId]);
 
   // Load data when year/term changes
   useEffect(() => {
-    if (!academicYearId || !termId) return;
-
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const [
-          structureData,
-          subjectsData,
-          subjectAllocsData,
-          teachersData,
-          teacherAllocsData,
-        ] = await Promise.all([
-          fetchStructureTree(academicYearId, termId),
-          fetchSubjects(termId),
-          fetchSubjectAllocations(termId),
-          fetchTeachers(),
-          fetchTeacherAllocations(termId),
-        ]);
-
-        setGrades(structureData.grades);
-        setSections(structureData.sections);
-        setClassrooms(structureData.classrooms);
-        setSubjects(subjectsData);
-        setSubjectAllocations(subjectAllocsData);
-        setTeachers(teachersData);
-        setTeacherAllocations(teacherAllocsData);
-      } catch (error) {
-        console.error("Failed to load data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [academicYearId, termId]);
-
-  // Initialize current allocations when teacher allocations change
-  useEffect(() => {
-    setCurrentAllocations(teacherAllocations);
-  }, [teacherAllocations]);
-
-  const handlePromoteCarryOver = useCallback(() => {
-    setCarryOverDialogOpen(true);
-  }, []);
+    void loadTeacherAllocationData();
+  }, [loadTeacherAllocationData]);
 
   const contextBarActions = useMemo(
     () => ({
-      onPromoteCarryOver: handlePromoteCarryOver,
-      showPromoteCarryOver: true,
-      disablePromoteCarryOver: isReadOnly,
+      showPromoteCarryOver: false,
+      disablePromoteCarryOver: true,
     }),
-    [handlePromoteCarryOver, isReadOnly]
+    []
   );
 
   useAcademicContextBarActions(contextBarActions);
-
-  const handleCarryOverSuccess = async () => {
-    await refreshData();
-    clearDirty();
-  };
 
   const handleValidate = () => {
     setValidationPanelOpen(true);
@@ -138,7 +150,6 @@ export default function TeacherAllocationContainer() {
 
   const handleAllocationsChange = useCallback(
     (allocations: TeacherAllocation[]) => {
-      setCurrentAllocations(allocations);
       const hasChanges =
         JSON.stringify(allocations) !== JSON.stringify(teacherAllocations);
       if (hasChanges) {
@@ -152,13 +163,31 @@ export default function TeacherAllocationContainer() {
 
   const refreshData = async () => {
     if (!termId) return;
-    const [subjectAllocsData, teacherAllocsData] = await Promise.all([
-      fetchSubjectAllocations(termId),
-      fetchTeacherAllocations(termId),
-    ]);
-    setSubjectAllocations(subjectAllocsData);
-    setTeacherAllocations(teacherAllocsData);
-    clearDirty();
+    setIsSaving(true);
+    setApiError(null);
+    setApiErrorTraceId(undefined);
+    try {
+      const [subjectAllocsData, teacherAllocsData] = await Promise.all([
+        fetchSubjectAllocations(termId),
+        fetchTeacherAllocations(termId),
+      ]);
+      setSubjectAllocations(subjectAllocsData);
+      setTeacherAllocations(teacherAllocsData);
+      setValidationSummary(null);
+      setTeacherLoads(null);
+      clearDirty();
+    } catch (error) {
+      console.error("Failed to refresh teacher allocation data:", error);
+      const uiError = teacherAllocationUiError(
+        error,
+        "Failed to refresh teacher allocation data.",
+      );
+      setApiError(uiError.message);
+      setApiErrorTraceId(uiError.traceId);
+      throw error;
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleTabChange = (tab: "matrix" | "load") => {
@@ -183,10 +212,6 @@ export default function TeacherAllocationContainer() {
     setValidationPanelOpen(false);
   };
 
-  const handleCloseCarryOverDialog = () => {
-    setCarryOverDialogOpen(false);
-  };
-
   // Pass everything to presenter
   return (
     <TeacherAllocationView
@@ -194,6 +219,7 @@ export default function TeacherAllocationContainer() {
       termId={termId}
       academicYears={academicYears}
       terms={terms}
+      canView={canView}
       grades={grades}
       sections={sections}
       classrooms={classrooms}
@@ -201,19 +227,19 @@ export default function TeacherAllocationContainer() {
       subjectAllocations={subjectAllocations}
       teachers={teachers}
       teacherAllocations={teacherAllocations}
-      currentAllocations={currentAllocations}
       isLoading={isLoading}
+      apiError={apiError}
+      apiErrorTraceId={apiErrorTraceId}
+      isSaving={isSaving}
       activeTab={queryState.activeTab}
       validationPanelOpen={validationPanelOpen}
-      carryOverDialogOpen={carryOverDialogOpen}
       isReadOnly={isReadOnly}
-      onCarryOverSuccess={handleCarryOverSuccess}
       onValidate={handleValidate}
       onAllocationsChange={handleAllocationsChange}
       onRefresh={refreshData}
+      onRetry={loadTeacherAllocationData}
       onTabChange={handleTabChange}
       onCloseValidationPanel={handleCloseValidationPanel}
-      onCloseCarryOverDialog={handleCloseCarryOverDialog}
     />
   );
 }

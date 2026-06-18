@@ -15,6 +15,8 @@ export interface TimetablePeriod {
   nameEn: string; // e.g., "Period 1"
   startTime?: string; // "HH:mm" format
   endTime?: string; // "HH:mm" format
+  type?: "CLASS" | "BREAK" | "ASSEMBLY" | "ACTIVITY";
+  isInstructional?: boolean;
 }
 
 export type TimetableConfigScope = "TERM" | "GRADE" | "SECTION" | "CLASSROOM";

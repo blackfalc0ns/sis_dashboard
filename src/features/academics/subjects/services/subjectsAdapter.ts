@@ -16,8 +16,10 @@ export interface SubjectsAdapter {
     payload: Partial<Omit<Subject, "id" | "termId">>
   ): Promise<Subject>;
   deleteSubject(termId: string, subjectId: string): Promise<void>;
-  fetchSubjectAllocations(termId: string): Promise<SubjectAllocation[]>;
+  fetchSubjectAllocations(
+    termId: string,
+    filters?: { gradeId?: string; subjectId?: string },
+  ): Promise<SubjectAllocation[]>;
   bulkUpsertSubjectAllocations(termId: string, items: SubjectAllocation[]): Promise<void>;
   carryOverSubjectsAndAllocations(params: CarryOverSubjectsOptions): Promise<void>;
-  subjectHasAllocations(termId: string, subjectId: string): boolean;
 }

@@ -27,11 +27,14 @@ interface SubjectsAllocationViewProps {
   termId: string;
   academicYears: AcademicYear[];
   terms: Term[];
+  canView: boolean;
   stages: Stage[];
   grades: Grade[];
   subjects: Subject[];
   allocations: SubjectAllocation[];
   isLoading: boolean;
+  apiError: string | null;
+  apiErrorTraceId?: string;
   activeTab: "subjects" | "matrix";
   showSubjectDialog: boolean;
   editingSubject: Subject | null;
@@ -44,7 +47,9 @@ interface SubjectsAllocationViewProps {
   onCarryOverSuccess: () => void;
   onAllocationsChange: (allocations: SubjectAllocation[]) => void;
   onDirtyChange: (isDirty: boolean) => void;
+  onSaveError: (error: unknown) => void;
   onRefresh: () => Promise<void>;
+  onRetry: () => Promise<void>;
   onCloseSubjectDialog: () => void;
   onCloseCarryOverDialog: () => void;
 }
@@ -54,11 +59,14 @@ export default function SubjectsAllocationView({
   termId,
   academicYears,
   terms,
+  canView,
   stages,
   grades,
   subjects,
   allocations,
   isLoading,
+  apiError,
+  apiErrorTraceId,
   activeTab,
   showSubjectDialog,
   editingSubject,
@@ -71,7 +79,9 @@ export default function SubjectsAllocationView({
   onCarryOverSuccess,
   onAllocationsChange,
   onDirtyChange,
+  onSaveError,
   onRefresh,
+  onRetry,
   onCloseSubjectDialog,
   onCloseCarryOverDialog,
 }: SubjectsAllocationViewProps) {
@@ -81,6 +91,22 @@ export default function SubjectsAllocationView({
 
   const yearName = academicYears.find((y) => y.id === academicYearId)?.name;
   const termName = terms.find((t) => t.id === termId)?.name;
+
+  if (!canView) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center bg-gray-50 px-6">
+        <div className="max-w-md text-center">
+          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
+          <h2 className="mb-2 text-lg font-semibold text-gray-900">
+            {t("access_denied.title")}
+          </h2>
+          <p className="text-sm text-gray-600">
+            {t("access_denied.message")}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -94,8 +120,43 @@ export default function SubjectsAllocationView({
         </div>
       )}
 
+      {apiError && (
+        <div className="border-b border-red-200 bg-red-50 px-6 py-3">
+          <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-2">
+              <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
+              <div className="text-sm text-red-800">
+                <div>{apiError}</div>
+                {apiErrorTraceId && (
+                  <div className="mt-1 text-xs text-red-700">
+                    {t("errors.trace_id", { traceId: apiErrorTraceId })}
+                  </div>
+                )}
+              </div>
+            </div>
+            <Button variant="secondary" onClick={() => void onRetry()}>
+              {t("errors.retry")}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!isLoading && (!academicYearId || !termId) && (
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-center max-w-md px-6">
+            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {t("empty_state.no_context.title")}
+            </h3>
+            <p className="text-gray-600">
+              {t("empty_state.no_context.message")}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Empty State - No Grades */}
-      {!isLoading && grades.length === 0 && (
+      {!isLoading && academicYearId && termId && grades.length === 0 && (
         <div className="flex-1 flex items-center justify-center bg-gray-50">
           <div className="text-center max-w-md px-6">
             <div className="text-gray-400 mb-4">
@@ -130,7 +191,7 @@ export default function SubjectsAllocationView({
       )}
 
       {/* Main Content */}
-      {!isLoading && grades.length > 0 && (
+      {!isLoading && academicYearId && termId && grades.length > 0 && (
         <>
           {/* Mobile Tabs */}
           <div className="lg:hidden border-b border-border bg-white">
@@ -185,6 +246,7 @@ export default function SubjectsAllocationView({
                 isReadOnly={isReadOnly}
                 onAllocationsChange={onAllocationsChange}
                 onDirtyChange={onDirtyChange}
+                onSaveError={onSaveError}
                 onRefresh={onRefresh}
               />
             </div>
@@ -213,6 +275,7 @@ export default function SubjectsAllocationView({
                 isReadOnly={isReadOnly}
                 onAllocationsChange={onAllocationsChange}
                 onDirtyChange={onDirtyChange}
+                onSaveError={onSaveError}
                 onRefresh={onRefresh}
               />
             )}

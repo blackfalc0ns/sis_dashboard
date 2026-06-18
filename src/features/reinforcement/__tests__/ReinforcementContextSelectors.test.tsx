@@ -43,6 +43,10 @@ vi.mock("@/hooks/use-auth", () => ({
   }),
 }));
 
+vi.mock("next-intl", () => ({
+  useLocale: () => "en",
+}));
+
 const structureTree = {
   stages: [{ id: "stage-1", nameEn: "Primary", nameAr: "ابتدائي" }],
   grades: [
@@ -126,7 +130,7 @@ describe("Reinforcement context selector components", () => {
       />,
     );
 
-    expect(await screen.findByText("Academic year")).toBeInTheDocument();
+    expect(screen.getByText("Academic year")).toBeInTheDocument();
     expect(screen.getByText("Term")).toBeInTheDocument();
     expect(screen.getByText("Stage")).toBeInTheDocument();
     expect(screen.getByText("Grade")).toBeInTheDocument();

@@ -1,221 +1,316 @@
-// Timetable Configuration Service
-
+import { apiGet, apiPut } from "@/lib/api";
+import { isApiError } from "@/lib/api-error";
+import type {
+  BackendTimetableConfigDto,
+  TimetableConfigEnvelopeDto,
+  TimetableScopeType,
+  UpsertConfigRequest,
+} from "@/features/academics/timetable/services/timetableApiTypes";
+import { listTimetablePeriods } from "@/features/academics/timetable/services/timetablePeriodsService";
 import {
-  TimetableConfig,
-  TimetableDay,
-  TimetablePeriod,
-  TimetableConfigScope,
-  getDefaultTimetableConfig,
+  type TimetableConfig,
+  type TimetableConfigScope,
+  type TimetableDay,
+  type TimetablePeriod,
 } from "@/features/academics/timetable/types/timetableConfig";
 
 export type { TimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 
-// Mock data store (replace with actual API calls)
-let configStore: TimetableConfig[] = [];
+const BASE = "/academics/timetable";
 
-/**
- * Fetch all timetable configs for a term
- * Returns configs at TERM, GRADE, SECTION, and CLASSROOM levels
- */
-export async function fetchTimetableConfigs(
-  termId: string
-): Promise<TimetableConfig[]> {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 100));
+type QueryParamValue = string | number | undefined;
 
-  // Filter configs for this term
-  const configs = configStore.filter((c) => c.termId === termId);
-
-  // If no term config exists, create default
-  if (!configs.some((c) => c.scopeType === "TERM")) {
-    const defaultConfig = createDefaultTermConfig(termId);
-    configStore.push(defaultConfig);
-    configs.push(defaultConfig);
-  }
-
-  return configs;
+export interface FetchTimetableConfigParams {
+  academicYearId?: string;
+  termId: string;
+  scopeType?: TimetableScopeType;
+  gradeId?: string;
+  sectionId?: string;
+  classroomId?: string;
 }
 
-/**
- * Fetch config for specific scope
- */
+export interface FetchTimetableConfigsParams {
+  academicYearId?: string;
+  termId: string;
+  gradeId?: string;
+  sectionId?: string;
+  classroomId?: string;
+}
+
+export type TimetableConfigUpsertInput = Omit<
+  TimetableConfig,
+  "id" | "updatedAt"
+> & {
+  id?: string;
+  academicYearId: string;
+  name?: string;
+};
+
+const dayNames = [
+  { key: "sun", nameAr: "\u0627\u0644\u0623\u062d\u062f", nameEn: "Sunday" },
+  {
+    key: "mon",
+    nameAr: "\u0627\u0644\u0625\u062b\u0646\u064a\u0646",
+    nameEn: "Monday",
+  },
+  {
+    key: "tue",
+    nameAr: "\u0627\u0644\u062b\u0644\u0627\u062b\u0627\u0621",
+    nameEn: "Tuesday",
+  },
+  {
+    key: "wed",
+    nameAr: "\u0627\u0644\u0623\u0631\u0628\u0639\u0627\u0621",
+    nameEn: "Wednesday",
+  },
+  {
+    key: "thu",
+    nameAr: "\u0627\u0644\u062e\u0645\u064a\u0633",
+    nameEn: "Thursday",
+  },
+  {
+    key: "fri",
+    nameAr: "\u0627\u0644\u062c\u0645\u0639\u0629",
+    nameEn: "Friday",
+  },
+  { key: "sat", nameAr: "\u0627\u0644\u0633\u0628\u062a", nameEn: "Saturday" },
+] as const;
+
+const requestConfig = (params: Record<string, QueryParamValue>) => ({
+  params: Object.fromEntries(
+    Object.entries(params).filter(
+      ([, paramValue]) => typeof paramValue !== "undefined",
+    ),
+  ),
+});
+
+const configNotFound = (error: unknown): boolean =>
+  isApiError(error) && error.status === 404;
+
+const activeDayNumbers = (days: TimetableDay[]): number[] =>
+  days.filter((day) => day.isActive).map((day) => day.index);
+
+const weekStartDay = (days: TimetableDay[]): number =>
+  activeDayNumbers(days)[0] ?? 0;
+
+const scopeId = (dto: BackendTimetableConfigDto): string | undefined =>
+  dto.classroomId ?? dto.sectionId ?? dto.gradeId ?? undefined;
+
+const mapScopeType = (
+  scopeType: BackendTimetableConfigDto["scopeType"],
+): TimetableConfigScope => scopeType.toUpperCase() as TimetableConfigScope;
+
+const mapConfigDays = (activeDays: number[]): TimetableDay[] =>
+  dayNames.map((dayName, index) => ({
+    key: dayName.key,
+    index,
+    nameAr: dayName.nameAr,
+    nameEn: dayName.nameEn,
+    isActive: activeDays.includes(index),
+  }));
+
+const mapBackendConfigToUi = (
+  dto: BackendTimetableConfigDto,
+  periods: TimetablePeriod[],
+): TimetableConfig => ({
+  id: dto.id || dto.timetableConfigId || "",
+  termId: dto.termId,
+  scopeType: mapScopeType(dto.scopeType),
+  scopeId: scopeId(dto),
+  days: mapConfigDays(dto.activeDays),
+  periods,
+  updatedAt: dto.updatedAt,
+});
+
+const unwrapConfig = (
+  response: BackendTimetableConfigDto | TimetableConfigEnvelopeDto,
+): BackendTimetableConfigDto => {
+  if ("data" in response && response.data) {
+    return response.data;
+  }
+  return response as BackendTimetableConfigDto;
+};
+
+const buildConfigRequest = (
+  payload: TimetableConfigUpsertInput,
+): UpsertConfigRequest => ({
+  academicYearId: payload.academicYearId,
+  termId: payload.termId,
+  scopeType: payload.scopeType,
+  gradeId: payload.scopeType === "GRADE" ? payload.scopeId : undefined,
+  sectionId: payload.scopeType === "SECTION" ? payload.scopeId : undefined,
+  classroomId: payload.scopeType === "CLASSROOM" ? payload.scopeId : undefined,
+  name: payload.name ?? `${payload.scopeType} timetable config`,
+  weekStartDay: weekStartDay(payload.days),
+  activeDays: activeDayNumbers(payload.days),
+  status: "DRAFT",
+});
+
+export async function fetchTimetableConfig(
+  params: FetchTimetableConfigParams,
+): Promise<TimetableConfig | null>;
 export async function fetchTimetableConfig(
   termId: string,
   scopeType: TimetableConfigScope,
-  scopeId?: string
+  scopeId?: string,
+): Promise<TimetableConfig | null>;
+export async function fetchTimetableConfig(
+  paramsOrTermId: FetchTimetableConfigParams | string,
+  scopeType?: TimetableConfigScope,
+  scopeId?: string,
 ): Promise<TimetableConfig | null> {
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  const params =
+    typeof paramsOrTermId === "string"
+      ? legacyConfigParams(paramsOrTermId, scopeType, scopeId)
+      : paramsOrTermId;
 
-  const config = configStore.find(
-    (c) =>
-      c.termId === termId &&
-      c.scopeType === scopeType &&
-      (scopeType === "TERM" || c.scopeId === scopeId)
-  );
-
-  return config || null;
-}
-
-/**
- * Create or update timetable config
- */
-export async function upsertTimetableConfig(
-  payload: Omit<TimetableConfig, "id" | "updatedAt">
-): Promise<TimetableConfig> {
-  await new Promise((resolve) => setTimeout(resolve, 200));
-
-  // Find existing config
-  const existingIndex = configStore.findIndex(
-    (c) =>
-      c.termId === payload.termId &&
-      c.scopeType === payload.scopeType &&
-      (payload.scopeType === "TERM" || c.scopeId === payload.scopeId)
-  );
-
-  const config: TimetableConfig = {
-    ...payload,
-    id:
-      existingIndex >= 0
-        ? configStore[existingIndex].id
-        : `config-${Date.now()}-${Math.random()}`,
-    updatedAt: new Date().toISOString(),
-  };
-
-  if (existingIndex >= 0) {
-    configStore[existingIndex] = config;
-  } else {
-    configStore.push(config);
+  try {
+    const configResponse = await apiGet<
+      BackendTimetableConfigDto | TimetableConfigEnvelopeDto
+    >(
+      `${BASE}/config`,
+      requestConfig({
+        academicYearId: params.academicYearId,
+        termId: params.termId,
+        scopeType: params.scopeType,
+        gradeId: params.gradeId,
+        sectionId: params.sectionId,
+        classroomId: params.classroomId,
+      }),
+    );
+    const config = unwrapConfig(configResponse);
+    const periods = await listTimetablePeriods(config.id);
+    return mapBackendConfigToUi(config, periods);
+  } catch (error) {
+    if (configNotFound(error)) {
+      return null;
+    }
+    throw error;
   }
-
-  return config;
 }
 
-/**
- * Delete timetable config (reset to parent scope)
- */
-export async function deleteTimetableConfig(configId: string): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 100));
-
-  configStore = configStore.filter((c) => c.id !== configId);
-}
-
-/**
- * Reset grade or section config to term default
- */
-export async function resetTimetableConfig(
+export async function fetchTimetableConfigs(
+  params: FetchTimetableConfigsParams,
+): Promise<TimetableConfig[]>;
+export async function fetchTimetableConfigs(
   termId: string,
-  scopeType: "GRADE" | "SECTION" | "CLASSROOM",
-  scopeId: string
-): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 100));
+): Promise<TimetableConfig[]>;
+export async function fetchTimetableConfigs(
+  paramsOrTermId: FetchTimetableConfigsParams | string,
+): Promise<TimetableConfig[]> {
+  const params =
+    typeof paramsOrTermId === "string"
+      ? { termId: paramsOrTermId }
+      : paramsOrTermId;
 
-  configStore = configStore.filter(
-    (c) =>
-      !(
-        c.termId === termId &&
-        c.scopeType === scopeType &&
-        c.scopeId === scopeId
-      )
-  );
+  const configRequests = [
+    fetchTimetableConfig({
+      academicYearId: params.academicYearId,
+      termId: params.termId,
+      scopeType: "TERM",
+    }),
+    params.gradeId
+      ? fetchTimetableConfig({
+          academicYearId: params.academicYearId,
+          termId: params.termId,
+          scopeType: "GRADE",
+          gradeId: params.gradeId,
+        })
+      : Promise.resolve(null),
+    params.sectionId
+      ? fetchTimetableConfig({
+          academicYearId: params.academicYearId,
+          termId: params.termId,
+          scopeType: "SECTION",
+          sectionId: params.sectionId,
+        })
+      : Promise.resolve(null),
+    params.classroomId
+      ? fetchTimetableConfig({
+          academicYearId: params.academicYearId,
+          termId: params.termId,
+          scopeType: "CLASSROOM",
+          classroomId: params.classroomId,
+        })
+      : Promise.resolve(null),
+  ];
+
+  const configs = await Promise.all(configRequests);
+  return configs.filter((config): config is TimetableConfig => config !== null);
 }
 
-/**
- * Create default term config
- */
-function createDefaultTermConfig(termId: string): TimetableConfig {
-  const defaultConfig = getDefaultTimetableConfig();
-
+function legacyConfigParams(
+  termId: string,
+  scopeType: TimetableConfigScope = "TERM",
+  scopeId?: string,
+): FetchTimetableConfigParams {
   return {
-    id: `config-term-${termId}`,
     termId,
-    scopeType: "TERM",
-    days: defaultConfig.days,
-    periods: defaultConfig.periods,
-    updatedAt: new Date().toISOString(),
+    scopeType,
+    gradeId: scopeType === "GRADE" ? scopeId : undefined,
+    sectionId: scopeType === "SECTION" ? scopeId : undefined,
+    classroomId: scopeType === "CLASSROOM" ? scopeId : undefined,
   };
 }
 
-/**
- * Get default days (all 7 days of week)
- */
-export function getDefaultDays(): TimetableDay[] {
-  return [
-    { key: "sun", index: 0, nameAr: "الأحد", nameEn: "Sunday", isActive: true },
-    {
-      key: "mon",
-      index: 1,
-      nameAr: "الإثنين",
-      nameEn: "Monday",
-      isActive: true,
-    },
-    {
-      key: "tue",
-      index: 2,
-      nameAr: "الثلاثاء",
-      nameEn: "Tuesday",
-      isActive: true,
-    },
-    {
-      key: "wed",
-      index: 3,
-      nameAr: "الأربعاء",
-      nameEn: "Wednesday",
-      isActive: true,
-    },
-    {
-      key: "thu",
-      index: 4,
-      nameAr: "الخميس",
-      nameEn: "Thursday",
-      isActive: true,
-    },
-    {
-      key: "fri",
-      index: 5,
-      nameAr: "الجمعة",
-      nameEn: "Friday",
-      isActive: false,
-    },
-    {
-      key: "sat",
-      index: 6,
-      nameAr: "السبت",
-      nameEn: "Saturday",
-      isActive: false,
-    },
-  ];
+export async function upsertTimetableConfig(
+  payload: TimetableConfigUpsertInput,
+): Promise<TimetableConfig> {
+  const config = await upsertBackendTimetableConfig(
+    buildConfigRequest(payload),
+  );
+  const periods = await listTimetablePeriods(config.id);
+  return mapBackendConfigToUi(config, periods);
 }
 
-/**
- * Generate default periods
- */
+export async function upsertBackendTimetableConfig(
+  payload: UpsertConfigRequest,
+): Promise<BackendTimetableConfigDto> {
+  const response = await apiPut<
+    BackendTimetableConfigDto | TimetableConfigEnvelopeDto
+  >(`${BASE}/config`, payload);
+  return unwrapConfig(response);
+}
+
+export async function deleteTimetableConfig(): Promise<void> {
+  throw new Error(
+    "Deleting timetable configs is not supported by the backend API.",
+  );
+}
+
+export async function resetTimetableConfig(): Promise<void> {
+  throw new Error(
+    "Reset timetable config by selecting a different existing scope config.",
+  );
+}
+
+export function getDefaultDays(): TimetableDay[] {
+  return mapConfigDays([0, 1, 2, 3, 4]);
+}
+
 export function generateDefaultPeriods(count: number): TimetablePeriod[] {
-  return Array.from({ length: count }, (_, i) => ({
-    id: `p${i + 1}`, // Stable ID
-    index: i + 1,
-    nameAr: `الحصة ${i + 1}`,
-    nameEn: `Period ${i + 1}`,
+  return Array.from({ length: count }, (_, periodIndex) => ({
+    id: `p${periodIndex + 1}`,
+    index: periodIndex + 1,
+    nameAr: `\u0627\u0644\u062d\u0635\u0629 ${periodIndex + 1}`,
+    nameEn: `Period ${periodIndex + 1}`,
   }));
 }
 
-/**
- * Validate period times
- */
 export function validatePeriodTimes(periods: TimetablePeriod[]): {
   valid: boolean;
   errors: string[];
 } {
-  const errors: string[] = [];
-
-  for (const period of periods) {
-    if (period.startTime && period.endTime) {
-      if (period.startTime >= period.endTime) {
-        errors.push(
-          `Period ${period.index}: Start time must be before end time`
-        );
-      }
-    }
-  }
+  const errors = periods
+    .filter(
+      (period) =>
+        period.startTime &&
+        period.endTime &&
+        period.startTime >= period.endTime,
+    )
+    .map(
+      (period) => `Period ${period.index}: Start time must be before end time`,
+    );
 
   return {
     valid: errors.length === 0,

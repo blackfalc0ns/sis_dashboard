@@ -1,4 +1,4 @@
-import { apiWithToken } from "@/lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import type {
   CarryOverSubjectsOptions,
   Subject,
@@ -6,158 +6,102 @@ import type {
 } from "@/features/academics/subjects/services/subjectsService";
 import type { SubjectsAdapter } from "@/features/academics/subjects/services/subjectsAdapter";
 
-interface ApiEnvelope<T> {
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
 interface SubjectAllocationPayload {
   gradeId: string;
   subjectId: string;
   weeklyHours: number;
 }
 
-const unwrap = async <T>(request: Promise<ApiEnvelope<T> | T>): Promise<T> => {
-  const response = await request;
-
-  if (
-    response &&
-    typeof response === "object" &&
-    ("data" in response || "error" in response || "message" in response)
-  ) {
-    const envelope = response as ApiEnvelope<T>;
-    if (envelope.error) {
-      throw new Error(envelope.error);
-    }
-    if (typeof envelope.data === "undefined") {
-      throw new Error(envelope.message || "Missing API response data");
-    }
-    return envelope.data;
-  }
-
-  return response as T;
-};
-
-const buildQuery = (params: Record<string, string>) => {
-  const search = new URLSearchParams(params);
-  return `?${search.toString()}`;
-};
-
 export const createSubjectsApiAdapter = (
-  basePath: string = "/academics/subjects"
+  basePath: string = "/academics/subjects",
+  allocationPath: string = "/academics/subject-allocations",
 ): SubjectsAdapter => ({
   async fetchSubjects(termId) {
-    const res = await unwrap<any>(
-      apiWithToken(`${basePath}${buildQuery({ termId })}`, {
-        method: "GET",
-      })
-    );
-    if (Array.isArray(res)) return res;
-    if (res && Array.isArray(res.data)) return res.data;
-    if (res && Array.isArray(res.items)) return res.items;
-    if (res && Array.isArray(res.subjects)) return res.subjects;
-    console.warn("fetchSubjects returned unexpected format:", res);
+    const response = await apiGet<unknown>(basePath, {
+      params: { termId },
+    });
+    if (Array.isArray(response)) return response as Subject[];
+    if (isObjectRecord(response) && Array.isArray(response.data)) {
+      return response.data as Subject[];
+    }
+    if (isObjectRecord(response) && Array.isArray(response.items)) {
+      return response.items as Subject[];
+    }
+    if (isObjectRecord(response) && Array.isArray(response.subjects)) {
+      return response.subjects as Subject[];
+    }
     return [];
   },
 
   async createSubject(termId, payload) {
-    const res = await unwrap<any>(
-      apiWithToken(basePath, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          termId,
-          ...payload,
-        }),
-      })
-    );
-    return res?.data ?? res?.item ?? res?.subject ?? res;
+    const response = await apiPost<unknown>(basePath, {
+      termId,
+      ...payload,
+    });
+    return subjectFromResponse(response);
   },
 
   async updateSubject(termId, subjectId, payload) {
-    const res = await unwrap<any>(
-      apiWithToken(`${basePath}/${subjectId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          termId,
-          ...payload,
-        }),
-      })
-    );
-    return res?.data ?? res?.item ?? res?.subject ?? res;
+    const response = await apiPatch<unknown>(`${basePath}/${subjectId}`, {
+      termId,
+      ...payload,
+    });
+    return subjectFromResponse(response);
   },
 
   async deleteSubject(termId, subjectId) {
-    await unwrap<void>(
-      apiWithToken(`${basePath}/${subjectId}${buildQuery({ termId })}`, {
-        method: "DELETE",
-      })
-    );
+    await apiDelete<void>(`${basePath}/${subjectId}`, {
+      params: { termId },
+    });
   },
 
-  async fetchSubjectAllocations(termId) {
-    return unwrap<SubjectAllocation[]>(
-      apiWithToken(`${basePath}/allocations${buildQuery({ termId })}`, {
-        method: "GET",
-      })
-    );
+  async fetchSubjectAllocations(termId, filters) {
+    const response = await apiGet<{ items: SubjectAllocation[] }>(allocationPath, {
+      params: {
+        termId,
+        ...(filters?.gradeId ? { gradeId: filters.gradeId } : {}),
+        ...(filters?.subjectId ? { subjectId: filters.subjectId } : {}),
+      },
+    });
+    return response.items;
   },
 
   async bulkUpsertSubjectAllocations(termId, items) {
-    await unwrap<void>(
-      apiWithToken(`${basePath}/allocations`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          termId,
-          items: items.map(
-            (item): SubjectAllocationPayload => ({
-              gradeId: item.gradeId,
-              subjectId: item.subjectId,
-              weeklyHours: item.weeklyHours,
-            })
-          ),
-        }),
-      })
-    );
+    await apiPut<{ items: SubjectAllocation[] }>(`${allocationPath}/bulk`, {
+      termId,
+      items: items.map(
+        (subjectAllocation): SubjectAllocationPayload => ({
+          gradeId: subjectAllocation.gradeId,
+          subjectId: subjectAllocation.subjectId,
+          weeklyHours: subjectAllocation.weeklyHours,
+        })
+      ),
+    });
   },
 
   async carryOverSubjectsAndAllocations(params) {
-    await unwrap<void>(
-      apiWithToken(`${basePath}/carry-over`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(params),
-      })
-    );
+    await apiPost<void>(`${basePath}/carry-over`, params);
   },
 
-  subjectHasAllocations() {
-    throw new Error(
-      "subjectHasAllocations is not supported by the API adapter. Fetch allocations and compute this in the caller."
-    );
-  },
 });
 
 export const subjectsApiAdapter = createSubjectsApiAdapter();
 
-export const supportsSubjectsAllocationPresenceCheck = (
-  adapter: SubjectsAdapter
-): boolean => adapter.subjectHasAllocations !== subjectsApiAdapter.subjectHasAllocations;
-
-export const computeSubjectHasAllocations = (
-  allocations: SubjectAllocation[],
-  subjectId: string
-): boolean => allocations.some((allocation) => allocation.subjectId === subjectId && allocation.weeklyHours > 0);
-
 export type { CarryOverSubjectsOptions, Subject, SubjectAllocation };
+
+function subjectFromResponse(response: unknown): Subject {
+  if (isObjectRecord(response) && isObjectRecord(response.data)) {
+    return response.data as unknown as Subject;
+  }
+  if (isObjectRecord(response) && isObjectRecord(response.item)) {
+    return response.item as unknown as Subject;
+  }
+  if (isObjectRecord(response) && isObjectRecord(response.subject)) {
+    return response.subject as unknown as Subject;
+  }
+  return response as Subject;
+}
+
+function isObjectRecord(input: unknown): input is Record<string, unknown> {
+  return Boolean(input && typeof input === "object");
+}

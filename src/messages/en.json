@@ -3464,11 +3464,23 @@
       "readonly_banner": {
         "message": "This term is closed. Subjects & allocation are read-only."
       },
+      "access_denied": {
+        "title": "Access denied",
+        "message": "You do not have permission to view subject allocations."
+      },
+      "errors": {
+        "retry": "Retry",
+        "trace_id": "Trace ID: {traceId}"
+      },
       "tabs": {
         "subjects": "Subjects",
         "matrix": "Matrix"
       },
       "empty_state": {
+        "no_context": {
+          "title": "No academic context selected",
+          "message": "Select an academic year and term to manage subject allocations."
+        },
         "no_grades": {
           "title": "No Grades Found",
           "message": "No grades found for this term. Create the academic structure first.",
@@ -3993,12 +4005,34 @@
       "actions": {
         "validate": "Validate",
         "copyFromTerm": "Copy from Term",
-        "applyToAllSections": "Apply to All Sections",
+        "applyToAllSections": "Apply to Classrooms",
         "clearSelection": "Clear",
         "save": "Save Changes",
         "saving": "Saving...",
         "reset": "Reset",
-        "export": "Export"
+        "export": "Export",
+        "retry": "Retry"
+      },
+      "summaryCards": {
+        "totalClassrooms": "Total classrooms",
+        "subjectsWithWeeklyHours": "Subjects with weekly hours",
+        "allocatedCells": "Allocated cells",
+        "missingCells": "Missing cells",
+        "teacherAllocationRows": "Teacher allocation rows",
+        "validationStatus": {
+          "label": "Validation status",
+          "saveFailed": "Save failed",
+          "needsReview": "Needs review",
+          "complete": "Complete"
+        }
+      },
+      "clearSubject": {
+        "grade": "Clear Subject from Grade",
+        "classrooms": "Clear Subject from Classrooms",
+        "targetGrade": "the selected grade",
+        "targetClassrooms": "{count, plural, one {# selected classroom} other {# selected classrooms}}",
+        "confirm": "Clear {subject} allocations from {target}? This cannot be undone.",
+        "success": "Cleared {count, plural, one {# allocation} other {# allocations}}."
       },
       "matrix": {
         "title": "Teacher Allocation Matrix",
@@ -4024,7 +4058,11 @@
           "totalTeachers": "Total Teachers",
           "teachersWithZeroLoad": "Unassigned",
           "avgLoad": "Average Load",
-          "maxLoad": "Max Load"
+          "maxLoad": "Max Load",
+          "teachers": "Teachers",
+          "allocations": "Allocations",
+          "weeklyHours": "Weekly hours",
+          "warnings": "Warnings"
         },
         "filters": {
           "searchPlaceholder": "Search by teacher name...",
@@ -4032,7 +4070,9 @@
           "normal": "Normal Load",
           "warning": "Near Capacity",
           "overloaded": "Overloaded",
-          "zero": "No Load"
+          "zero": "No Load",
+          "teacher": "Teacher",
+          "allTeachers": "All teachers"
         },
         "table": {
           "teacher": "Teacher",
@@ -4055,6 +4095,24 @@
           "classroom": "Classroom"
         },
         "loading": "Loading...",
+        "loadingTeacherLoads": "Loading teacher loads...",
+        "metrics": {
+          "allocationCount": "Allocation count",
+          "totalWeeklyHours": "Total weekly hours",
+          "classroomsCount": "Classrooms count",
+          "subjectsCount": "Subjects count",
+          "weeklyHours": "Weekly hours",
+          "warnings": "Warnings"
+        },
+        "teacherSummary": {
+          "allocations": "{count, plural, one {# allocation} other {# allocations}}",
+          "weeklyHours": "{count, plural, one {# weekly hour} other {# weekly hours}}",
+          "classrooms": "{count, plural, one {# classroom} other {# classrooms}}",
+          "subjects": "{count, plural, one {# subject} other {# subjects}}",
+          "warnings": "{count, plural, one {# warning} other {# warnings}}"
+        },
+        "empty": "No teacher loads returned.",
+        "noAssignments": "No assignments returned.",
         "noTeachers": "No teachers found"
       },
       "validation": {
@@ -4062,23 +4120,65 @@
         "summary": {
           "missingAssignments": "Missing Assignments",
           "sectionsWithMissing": "Sections with Missing",
-          "overloadedTeachers": "Overloaded Teachers"
+          "overloadedTeachers": "Overloaded Teachers",
+          "missingTeacherAssignments": "Missing teacher assignments",
+          "missingSubjectAllocationRows": "Missing subject allocation rows",
+          "overAllocatedSubjects": "Over allocated subjects",
+          "underAllocatedSubjects": "Under allocated subjects",
+          "teacherAllocationRows": "Teacher allocation rows",
+          "subjectAllocationRows": "Subject allocation rows"
+        },
+        "metrics": {
+          "weeklyHours": "Weekly hours",
+          "classroomCount": "Classroom count",
+          "allocatedClassrooms": "Allocated classrooms",
+          "missingClassrooms": "Missing classrooms"
+        },
+        "status": {
+          "complete": "Complete",
+          "incomplete": "Incomplete",
+          "missingSubjectAllocation": "Missing subject allocation"
         },
         "issues": {
           "missing": "Missing teacher for {subject} in {section}",
           "overloaded": "{teacher} exceeds max load ({current}/{max})",
           "unqualified": "{teacher} not qualified for {subject}"
         },
+        "loading": "Loading validation...",
         "noIssues": "All allocations are valid",
         "close": "Close"
       },
       "bulkAction": {
-        "title": "Apply Teacher to All Sections",
-        "message": "Apply {teacher} to {subject} for all sections in {grade}?",
-        "impact": "This will affect {count} sections",
+        "title": "Apply Teacher to Classrooms",
+        "message": "Apply {teacher} to {subject} for all classrooms in {grade}?",
+        "impact": "This will apply the selected teacher to this subject for {count} classrooms.",
+        "confirmMessage": "Apply {teacher} to {subject} for {count, plural, one {# classroom} other {# classrooms}}?",
+        "labels": {
+          "teacher": "Teacher",
+          "subject": "Subject",
+          "grade": "Grade",
+          "classrooms": "Classrooms"
+        },
+        "replaceWarning": "This will replace any existing teacher assignments for this subject in the selected classrooms.",
+        "affectedClassrooms": "Affected Classrooms",
+        "summary": {
+          "title": "Apply summary",
+          "classrooms": "Classrooms",
+          "created": "Created",
+          "existing": "Existing"
+        },
+        "applying": "Applying...",
         "confirm": "Apply",
         "cancel": "Cancel",
-        "success": "Teacher applied to all sections"
+        "success": "Teacher applied to selected classrooms"
+      },
+      "technicalDetails": {
+        "summary": "Technical details",
+        "traceId": "Trace ID"
+      },
+      "accessDenied": {
+        "title": "Access denied",
+        "message": "You do not have permission to view academic structure data."
       },
       "carryOver": {
         "title": "Copy Allocations from Term",
@@ -4098,15 +4198,29 @@
           "message": "Please create grades in Academic Structure first",
           "cta": "Go to Structure"
         },
+        "noTerm": {
+          "title": "No academic year/term selected.",
+          "message": "Select an academic year and term to manage teacher allocations."
+        },
+        "noGradesOrClassrooms": {
+          "title": "No grades/classrooms.",
+          "message": "Create grades and classrooms before assigning teachers."
+        },
         "noSubjects": {
           "title": "No Subjects Found",
           "message": "Please create subjects in Subjects & Allocation first",
           "cta": "Go to Subjects"
         },
+        "noSubjectWeeklyHours": {
+          "title": "No subject weekly-hours rows.",
+          "message": "Configure subject allocation weekly hours before assigning teachers."
+        },
         "noTeachers": {
           "title": "No Teachers Found",
           "message": "Please add teachers to the system first"
-        }
+        },
+        "noClassroomsInSection": "No classrooms found for this section.",
+        "noAllocations": "No allocations yet."
       },
       "unsavedChanges": {
         "label": "Unsaved changes",
@@ -4146,6 +4260,11 @@
         "validation": {
           "missingTeacher": "Missing teacher",
           "missingRoom": "Missing room"
+        },
+        "periodTypes": {
+          "class": "Class",
+          "assembly": "Assembly",
+          "activity": "Activity"
         }
       },
       "actions": {
@@ -4164,11 +4283,13 @@
         "resetSuccess": "Timetable reset successfully",
         "resetError": "Failed to reset timetable",
         "resetConfirmTitle": "Reset Timetable",
-        "resetConfirmMessage": "Are you sure you want to reset the timetable? All unsaved changes will be lost."
+        "resetConfirmMessage": "Are you sure you want to reset the timetable? All unsaved changes will be lost.",
+        "export": "Export",
+        "print": "Print"
       },
       "generate": {
         "title": "Auto Generate Timetable",
-        "description": "The timetable will be automatically generated based on weekly periods and teacher allocations",
+        "description": "Missing periods will be generated for the selected classroom based on weekly periods and teacher allocations.",
         "options": {
           "distributeEvenly": "Distribute subjects evenly across days",
           "avoidConsecutive": "Avoid same subject in consecutive periods",
@@ -4185,8 +4306,8 @@
           "unresolvedTitle": "Subjects with unplaced periods",
           "periods": "periods",
           "hours": "periods",
-          "applyWarning": "This will replace the current timetable with the generated one. Make sure to save changes first if needed.",
-          "applied": "Generated timetable applied with {count} entries",
+          "applyWarning": "This will add the generated periods to the selected classroom. Review and save when ready.",
+          "applied": "Applied {count} generated entries",
           "successMessage": "Successfully generated timetable with {count} entries",
           "partialMessage": "Generated {generated} entries, but {unresolved} subjects have unplaced hours"
         }
@@ -4216,11 +4337,15 @@
         "save": "Save",
         "autoFilledRoom": "Recommended room auto-filled for this classroom",
         "targetClassroom": "Target classroom: {classroom}",
+        "selectSubjectBeforeTeacher": "Select a subject before choosing a teacher.",
+        "noTeacherAllocationForClassroom": "No teacher allocation exists for this subject in the selected classroom. Configure teacher allocation first.",
         "roomSourceLabel": "Room source:",
         "roomSourceClassroomDefault": "classroom default",
         "roomSourceSectionDefault": "section default",
         "roomSourceRecommended": "recommended room",
-        "roomSourceManual": "manual selection"
+        "roomSourceManual": "manual selection",
+        "roomOptionalWarning": "Room is optional, but this slot will save without a room.",
+        "roomConflictWarning": "This room is already used in another slot at this time."
       },
       "validation": {
         "title": "Validation",
@@ -4246,7 +4371,9 @@
         "entriesOnHolidays": "There are entries on holiday days",
         "roomSourceClassroomDefault": "classroom default",
         "roomSourceSectionDefault": "section default",
-        "roomDefaultAvailable": "A default room is available from {source}."
+        "roomDefaultAvailable": "A default room is available from {source}.",
+        "loadError": "Failed to load validation",
+        "selectClassroomBeforeEdit": "Select a classroom before assigning subjects or teachers to timetable periods."
       },
       "publish": {
         "confirmTitle": "Publish Timetable",
@@ -4258,7 +4385,9 @@
         "success": "Timetable published successfully",
         "error": "Failed to publish timetable",
         "confirm": "Publish",
-        "unsavedChanges": "Please save your changes before publishing"
+        "unsavedChanges": "Please save your changes before publishing",
+        "notReady": "Timetable is not ready to publish.",
+        "readinessError": "Failed to check publication readiness"
       },
       "unpublish": {
         "success": "Timetable unpublished successfully",
@@ -4345,6 +4474,17 @@
         "noSelection": {
           "title": "Select Grade and Section",
           "message": "Please select a grade and section to view the timetable"
+        },
+        "noAcademicContext": "No academic year or term selected",
+        "noConfig": {
+          "title": "No timetable config yet",
+          "message": "Create a real timetable config before adding periods, entries, or publishing.",
+          "cta": "Create timetable config"
+        },
+        "noPeriods": {
+          "title": "No timetable periods yet",
+          "message": "Add periods before scheduling timetable entries.",
+          "cta": "Set up periods"
         }
       },
       "unsavedChanges": {
@@ -4413,7 +4553,11 @@
           "selectGrade": "Please select a grade",
           "selectSection": "Please select a section",
           "saveFailed": "Failed to save configuration",
-          "selectClassroom": "Please select a classroom"
+          "selectClassroom": "Please select a classroom",
+          "nameRequired": "Name is required.",
+          "periodLabelRequired": "Period label is required.",
+          "startTimeRequired": "Start time is required.",
+          "endTimeRequired": "End time is required."
         },
         "changeWarning": {
           "title": "Configuration Change Warning",
@@ -4428,7 +4572,44 @@
         "back": "Back",
         "reset": "Reset to Default",
         "resetConfirm": "Reset this configuration to term default?",
-        "resetSuccess": "Configuration reset successfully"
+        "resetSuccess": "Configuration reset successfully",
+        "defaultName": "Timetable config",
+        "backendDescription": "Manage backend config and periods",
+        "close": "Close",
+        "saveConfig": "Save config",
+        "configSection": "Config",
+        "name": "Name",
+        "scopeLabel": "Scope",
+        "weekStartDay": "Week start day",
+        "activeDays": "Active days",
+        "periodsSection": "Periods",
+        "saveBeforePeriods": "Save config before managing periods.",
+        "periodIndex": "Index",
+        "periodLabel": "Label",
+        "periodType": "Type",
+        "instructional": "Instructional",
+        "addPeriod": "Add period",
+        "updatePeriod": "Update period",
+        "cancelEdit": "Cancel edit",
+        "noPeriods": "No periods yet.",
+        "editPeriod": "Edit",
+        "deletePeriod": "Delete",
+        "errors": {
+          "saveConfig": "Unable to save timetable configuration.",
+          "savePeriod": "Unable to save timetable period.",
+          "deletePeriod": "Unable to delete timetable period.",
+          "periodInUse": "Cannot delete period that is already used."
+        },
+        "scopeOptions": {
+          "term": "Term",
+          "grade": "Grade",
+          "section": "Section",
+          "classroom": "Classroom"
+        },
+        "periodTypes": {
+          "assembly": "Assembly",
+          "activity": "Activity"
+        }
       },
       "target": {
         "label": "Target",
@@ -4442,6 +4623,54 @@
         "status": "Status",
         "draft": "Draft",
         "published": "Published"
+      },
+      "accessDenied": {
+        "title": "You do not have access to this timetable",
+        "description": "Ask a system administrator to grant academics structure view permission if you need access."
+      },
+      "readOnly": {
+        "closedTerm": "This term is closed. Timetable is view-only.",
+        "publishedLocked": "Published timetable is locked. Unpublish before editing."
+      },
+      "errors": {
+        "loadFailed": "Failed to load timetable data.",
+        "saveFailed": "Failed to save timetable.",
+        "publishFailed": "Failed to publish timetable.",
+        "unpublishFailed": "Failed to unpublish timetable.",
+        "noConfigSelected": "No timetable config selected.",
+        "noFilledSlotsToSave": "No filled timetable slots to save.",
+        "noFilledSlotsToPublish": "No filled timetable slots to publish.",
+        "resolveConflictsBeforeSaving": "Resolve timetable conflicts before saving.",
+        "resolveConflictsBeforePublishing": "Resolve timetable conflicts before publishing.",
+        "config_not_found": "No timetable config exists for this scope.",
+        "period_not_found": "The selected period no longer exists.",
+        "entry_not_found": "The selected timetable entry no longer exists.",
+        "classroom_not_found": "The selected classroom no longer exists or is outside this scope.",
+        "allocation_not_found": "The teacher allocation no longer exists or is outside this scope.",
+        "publication_not_found": "No timetable publication exists for this scope.",
+        "invalid_day": "Choose a valid active day.",
+        "period_not_in_config": "This period does not belong to the timetable config.",
+        "classroom_scope_mismatch": "The classroom does not match the selected timetable scope.",
+        "allocation_mismatch": "The teacher allocation does not match this timetable slot.",
+        "room_not_found": "The selected room no longer exists.",
+        "entry_not_mutable": "This timetable entry cannot be edited.",
+        "invalid_time_range": "Start time must be before end time.",
+        "period_overlap": "Periods cannot overlap.",
+        "period_index_taken": "Period index is already used.",
+        "period_in_use": "Cannot delete a period that is already used.",
+        "closed_term": "This term is closed. Timetable is view-only.",
+        "published_locked": "Published timetable is locked. Unpublish before editing.",
+        "publish_blocked": "Timetable cannot be published until blocking issues are resolved.",
+        "no_periods": "Set up timetable periods before scheduling entries.",
+        "no_entries": "No timetable entries have been added yet.",
+        "not_draft": "Only draft timetable configs can be edited.",
+        "entry_conflict": "This timetable slot conflicts with another entry.",
+        "teacher_conflict": "Teacher is already scheduled for this slot.",
+        "room_conflict": "Room is already booked for this slot.",
+        "invalid_bulk_size": "Too many timetable entries were sent at once.",
+        "duplicate_slot": "This timetable payload contains duplicate slots.",
+        "missing_subject_allocation": "Subject allocation is missing for this slot.",
+        "invalid_teacher_allocation": "Teacher allocation is missing for this subject/classroom."
       }
     },
     "lessonPlans": {

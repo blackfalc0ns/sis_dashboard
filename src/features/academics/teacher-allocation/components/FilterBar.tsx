@@ -51,10 +51,10 @@ export default function FilterBar({
 
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
 
-  // Filter sections by selected grade
   const filteredSections = selectedGradeId
     ? sections.filter((s) => s.gradeId === selectedGradeId)
     : sections;
+  const filteredSectionIds = new Set(filteredSections.map((section) => section.id));
 
   const gradeOptions = [
     { value: "", label: t("filters.allGrades") },
@@ -76,9 +76,12 @@ export default function FilterBar({
     })),
   ];
 
-  const filteredClassrooms = selectedSectionId
-    ? classrooms.filter((classroom) => classroom.sectionId === selectedSectionId)
-    : [];
+  const filteredClassrooms = classrooms.filter((classroom) => {
+    if (selectedSectionId) {
+      return classroom.sectionId === selectedSectionId;
+    }
+    return !selectedGradeId || filteredSectionIds.has(classroom.sectionId);
+  });
 
   const classroomOptions = [
     { value: "", label: t("filters.allClassrooms") },
@@ -160,7 +163,7 @@ export default function FilterBar({
                       onChange={onClassroomChange}
                       options={classroomOptions}
                       selectSize="sm"
-                      disabled={!selectedSectionId || filteredClassrooms.length === 0}
+                      disabled={filteredClassrooms.length === 0}
                     />
                   </div>
 
@@ -268,7 +271,7 @@ export default function FilterBar({
                 onChange={onClassroomChange}
                 options={classroomOptions}
                 selectSize="sm"
-                disabled={!selectedSectionId || filteredClassrooms.length === 0}
+                disabled={filteredClassrooms.length === 0}
               />
             </div>
 

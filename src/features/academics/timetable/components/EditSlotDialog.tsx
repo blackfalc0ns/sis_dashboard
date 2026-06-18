@@ -1,15 +1,19 @@
 ﻿"use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import Select from "@/components/ui/input/Select";
 import { Button } from "@/components/ui";
 import Modal from "@/components/ui/modal/Modal";
 import { TimetableEntry } from "@/features/academics/timetable/types/timetable";
 import { Subject } from "@/features/academics/subjects/services/subjectsService";
-import { Teacher } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
+import {
+  type Teacher,
+  type TeacherAllocation,
+} from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { Room } from "@/features/academics/timetable/types/timetable";
 import { RoomAssignmentSource } from "@/features/academics/rooms/services/roomsService";
+import { teacherAllocationOptions } from "@/features/academics/timetable/services/timetableSlotEditing";
 
 type ResolvedRoomSuggestion = {
   roomId: string | null;
@@ -24,6 +28,7 @@ interface EditSlotDialogProps {
   entry?: TimetableEntry;
   subjects: Subject[];
   teachers: Teacher[];
+  teacherAllocations: TeacherAllocation[];
   rooms: Room[];
   onSave: (
     dayKey: string,
@@ -43,6 +48,9 @@ interface EditSlotDialogProps {
     subjectId?: string
   ) => RoomAssignmentSource | null;
   selectedClassroomName?: string;
+  selectedSectionId: string;
+  selectedClassroomId?: string;
+  hasRoomConflict: (roomId: string) => boolean;
   locale: string;
 }
 
@@ -54,6 +62,7 @@ export default function EditSlotDialog({
   entry,
   subjects,
   teachers,
+  teacherAllocations,
   rooms,
   onSave,
   onClose,
@@ -61,6 +70,9 @@ export default function EditSlotDialog({
   getDefaultRoomSuggestion,
   getRoomSource,
   selectedClassroomName,
+  selectedSectionId,
+  selectedClassroomId,
+  hasRoomConflict,
   locale,
 }: EditSlotDialogProps) {
   const t = useTranslations("academics.timetable.editSlot");
@@ -68,6 +80,7 @@ export default function EditSlotDialog({
   const [slotType, setSlotType] = useState<"CLASS" | "BREAK">("CLASS");
   const [subjectId, setSubjectId] = useState<string>("");
   const [teacherId, setTeacherId] = useState<string>("");
+  const [teacherAllocationId, setTeacherAllocationId] = useState<string>("");
   const [roomId, setRoomId] = useState<string>("");
   const [breakLabelAr, setBreakLabelAr] = useState<string>("فسحة");
   const [breakLabelEn, setBreakLabelEn] = useState<string>("Break");
@@ -82,9 +95,20 @@ export default function EditSlotDialog({
     }
 
     if (entry) {
+      const matchingAllocation = teacherAllocationOptions({
+        teacherAllocations,
+        teachers,
+        subjects,
+        sectionId: selectedSectionId,
+        classroomId: selectedClassroomId,
+        subjectId: entry.subjectId || undefined,
+        locale,
+      }).find((allocation) => allocation.teacherId === entry.teacherId);
+
       setSlotType(entry.slotType || "CLASS");
       setSubjectId(entry.subjectId || "");
       setTeacherId(entry.teacherId || "");
+      setTeacherAllocationId(matchingAllocation?.allocationId ?? "");
       setRoomId(entry.roomId || "");
       setRoomSource(getRoomSource(entry.roomId || null, entry.subjectId || undefined));
       setBreakLabelAr(entry.breakLabelAr || "فسحة");
@@ -93,6 +117,7 @@ export default function EditSlotDialog({
       setSlotType("CLASS");
       setSubjectId("");
       setTeacherId("");
+      setTeacherAllocationId("");
       setRoomId("");
       setRoomSource(null);
       setBreakLabelAr("فسحة");
@@ -101,7 +126,17 @@ export default function EditSlotDialog({
 
     setAutoFilledTeacher(false);
     setAutoFilledRoom(false);
-  }, [open, entry, getRoomSource]);
+  }, [
+    entry,
+    getRoomSource,
+    locale,
+    open,
+    selectedClassroomId,
+    selectedSectionId,
+    subjects,
+    teacherAllocations,
+    teachers,
+  ]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const slotTypeOptions = [
@@ -117,13 +152,40 @@ export default function EditSlotDialog({
     })),
   ];
 
+  const allocationOptions = useMemo(
+    () =>
+      teacherAllocationOptions({
+        teacherAllocations,
+        teachers,
+        subjects,
+        sectionId: selectedSectionId,
+        classroomId: selectedClassroomId,
+        subjectId: subjectId || undefined,
+        locale,
+      }),
+    [
+      locale,
+      selectedClassroomId,
+      selectedSectionId,
+      subjectId,
+      subjects,
+      teacherAllocations,
+      teachers,
+    ],
+  );
+
   const teacherOptions = [
     { value: "", label: t("noTeacher") },
-    ...teachers.map((teacher) => ({
-      value: teacher.id,
-      label: locale === "ar" ? teacher.nameAr : teacher.nameEn,
+    ...allocationOptions.map((allocation) => ({
+      value: allocation.allocationId,
+      label: allocation.label,
     })),
   ];
+  const teacherSelectHelperText = !subjectId
+    ? t("selectSubjectBeforeTeacher")
+    : allocationOptions.length === 0
+      ? t("noTeacherAllocationForClassroom")
+      : undefined;
 
   const roomOptions = [
     { value: "", label: t("noRoom") },
@@ -150,6 +212,7 @@ export default function EditSlotDialog({
 
   const handleSubjectChange = (value: string) => {
     setSubjectId(value);
+    setTeacherAllocationId("");
 
     if (!value) {
       setTeacherId("");
@@ -160,7 +223,19 @@ export default function EditSlotDialog({
       return;
     }
 
-    const defaultTeacher = getDefaultTeacher(value);
+    const validAllocation = teacherAllocationOptions({
+      teacherAllocations,
+      teachers,
+      subjects,
+      sectionId: selectedSectionId,
+      classroomId: selectedClassroomId,
+      subjectId: value,
+      locale,
+    })[0];
+    const defaultTeacher = validAllocation?.teacherId ?? getDefaultTeacher(value);
+    if (validAllocation) {
+      setTeacherAllocationId(validAllocation.allocationId);
+    }
     if (defaultTeacher) {
       setTeacherId(defaultTeacher);
       setAutoFilledTeacher(true);
@@ -179,6 +254,38 @@ export default function EditSlotDialog({
       setAutoFilledRoom(false);
     }
   };
+
+  const handleTeacherAllocationChange = (value: string) => {
+    setTeacherAllocationId(value);
+    setAutoFilledTeacher(false);
+
+    if (!value) {
+      setTeacherId("");
+      return;
+    }
+
+    const selectedAllocation = allocationOptions.find(
+      (allocation) => allocation.allocationId === value,
+    );
+    if (!selectedAllocation) {
+      return;
+    }
+
+    setTeacherId(selectedAllocation.teacherId);
+    if (selectedAllocation.subjectId !== subjectId) {
+      setSubjectId(selectedAllocation.subjectId);
+      const roomSuggestion = getDefaultRoomSuggestion(selectedAllocation.subjectId);
+      if (roomSuggestion.roomId && !roomId) {
+        setRoomId(roomSuggestion.roomId);
+        setRoomSource(roomSuggestion.source);
+        setAutoFilledRoom(true);
+      }
+    }
+  };
+
+  const roomConflictWarning =
+    slotType === "CLASS" && roomId ? hasRoomConflict(roomId) : false;
+  const missingRoomWarning = slotType === "CLASS" && subjectId && !roomId;
 
   const handleSave = () => {
     if (slotType === "BREAK") {
@@ -206,15 +313,7 @@ export default function EditSlotDialog({
   };
 
   const handleClear = () => {
-    setSlotType("CLASS");
-    setSubjectId("");
-    setTeacherId("");
-    setRoomId("");
-    setRoomSource(null);
-    setBreakLabelAr("فسحة");
-    setBreakLabelEn("Break");
-    setAutoFilledTeacher(false);
-    setAutoFilledRoom(false);
+    onSave(dayKey, periodIndex, null, null, null, "CLASS");
   };
 
   return (
@@ -301,14 +400,12 @@ export default function EditSlotDialog({
             <div>
               <Select
                 label={t("teacher")}
-                value={teacherId}
-                onChange={(value) => {
-                  setTeacherId(value);
-                  setAutoFilledTeacher(false);
-                }}
+                value={teacherAllocationId}
+                onChange={handleTeacherAllocationChange}
                 options={teacherOptions}
                 placeholder={t("selectTeacher")}
-                disabled={!subjectId}
+                disabled={allocationOptions.length === 0}
+                helperText={teacherSelectHelperText}
               />
               {autoFilledTeacher && (
                 <p className="mt-1 text-xs text-blue-600">{t("autoFilled")}</p>
@@ -332,6 +429,16 @@ export default function EditSlotDialog({
                 <p className="mt-1 text-xs text-blue-600">
                   {autoFilledRoom ? t("autoFilledRoom") : t("roomSourceLabel")}
                   {roomSource ? ` ${getRoomSourceLabel(roomSource)}` : ""}
+                </p>
+              )}
+              {missingRoomWarning && (
+                <p className="mt-1 text-xs text-amber-700">
+                  {t("roomOptionalWarning")}
+                </p>
+              )}
+              {roomConflictWarning && (
+                <p className="mt-1 text-xs text-amber-700">
+                  {t("roomConflictWarning")}
                 </p>
               )}
             </div>

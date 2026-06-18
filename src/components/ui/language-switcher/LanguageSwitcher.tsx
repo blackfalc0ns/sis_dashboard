@@ -1,13 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const LOCALES = ["en", "ar"] as const;
 
 export default function LanguageSwitcher() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const segments = pathname.split("/").filter(Boolean);
   const currentLocale = LOCALES.includes(segments[0] as "ar" | "en")
@@ -25,7 +26,10 @@ export default function LanguageSwitcher() {
       newSegments.unshift(locale);
     }
 
-    router.push("/" + newSegments.join("/"));
+    const nextPath = "/" + newSegments.join("/");
+    const queryString = searchParams.toString();
+
+    router.push(queryString ? `${nextPath}?${queryString}` : nextPath);
   }
 
   return (

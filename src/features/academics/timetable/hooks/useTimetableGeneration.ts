@@ -68,6 +68,15 @@ export function useTimetableGeneration({
           message: "No section or config selected",
         };
       }
+      if (!selectedClassroomId) {
+        return {
+          success: false,
+          entries: [],
+          unresolved: [],
+          conflicts: [],
+          message: "Select a classroom before generating a timetable",
+        };
+      }
 
       const selectedSection = sections.find((section) => section.id === selectedSectionId);
       if (!selectedSection) {
@@ -121,7 +130,9 @@ export function useTimetableGeneration({
 
   const applyGenerated = useCallback(
     (result: GenerationResult) => {
-      setTimetableEntries(result.entries);
+      setTimetableEntries((currentEntries) =>
+        mergeGeneratedEntries(currentEntries, result.entries),
+      );
       markDirty();
       showApplied(result.entries.length);
     },
@@ -132,4 +143,29 @@ export function useTimetableGeneration({
     handleGenerate,
     applyGenerated,
   };
+}
+
+function mergeGeneratedEntries(
+  currentEntries: TimetableEntry[],
+  generatedEntries: TimetableEntry[],
+): TimetableEntry[] {
+  const nextEntries = [...currentEntries];
+
+  for (const generatedEntry of generatedEntries) {
+    const existingIndex = nextEntries.findIndex(
+      (entry) =>
+        entry.sectionId === generatedEntry.sectionId &&
+        (entry.classroomId || "") === (generatedEntry.classroomId || "") &&
+        entry.dayKey === generatedEntry.dayKey &&
+        entry.periodIndex === generatedEntry.periodIndex,
+    );
+
+    if (existingIndex >= 0) {
+      nextEntries[existingIndex] = generatedEntry;
+    } else {
+      nextEntries.push(generatedEntry);
+    }
+  }
+
+  return nextEntries;
 }
