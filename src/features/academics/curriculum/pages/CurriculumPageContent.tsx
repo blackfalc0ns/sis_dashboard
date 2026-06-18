@@ -25,19 +25,19 @@ import {
   Subject,
 } from "@/features/academics/subjects/services/subjectsService";
 import {
-  fetchCurriculum,
-  fetchUnits,
-  fetchAllLessons,
-  Curriculum,
-  Unit,
-  Lesson,
+  archiveCurriculum,
+  activateCurriculum,
+  fetchCurriculumForScope,
+  type Curriculum,
+  type Lesson,
+  type Unit,
   calculateTermWeeks,
 } from "@/features/academics/curriculum/services/curriculumService";
+import { curriculumUiError } from "@/features/academics/curriculum/services/curriculumErrors";
 import CurriculumOutline from "../components/CurriculumOutline";
 import CurriculumEditor from "../components/CurriculumEditor";
 import CurriculumPlan from "../components/CurriculumPlan";
 import CreateCurriculumDialog from "../components/CreateCurriculumDialog";
-import CurriculumCarryOverDialog from "../components/CurriculumCarryOverDialog";
 import {
   type AcademicsExportFormat,
   exportAcademicsData,
@@ -62,6 +62,7 @@ export default function CurriculumPageContent() {
   const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
   const isRTL = locale === "ar";
   const { hasPermission } = usePermissions();
+  const canViewCurriculum = hasPermission("academics.curriculum.view");
   const canManageCurriculum = hasPermission("academics.curriculum.manage");
 
   // Fixed panel widths
@@ -115,38 +116,32 @@ export default function CurriculumPageContent() {
     id: string;
   } | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showCarryOverDialog, setShowCarryOverDialog] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const optionsRequestIdRef = useRef(0);
   const curriculumRequestIdRef = useRef(0);
 
-  const isReadOnly = termStatus === "closed" || !canManageCurriculum;
+  const isArchived = curriculum?.status === "archived";
+  const isClosedTerm = termStatus === "closed";
+  const isReadOnly = !canManageCurriculum || isArchived || isClosedTerm;
+  const canMutate = canViewCurriculum && !isReadOnly;
+  const canActivate =
+    canMutate &&
+    curriculum?.status === "draft" &&
+    (curriculum?.unitCount || 0) > 0 &&
+    (curriculum?.lessonCount || 0) > 0;
+  const canArchive = canMutate && curriculum != null;
+
   const confirmDiscardChanges = useCallback(
     () => confirm(t("unsaved_changes.message")),
     [t],
   );
-  const handlePromoteCarryOver = useCallback(() => {
-    setShowCarryOverDialog(true);
-  }, []);
 
   useGuardedAcademicContextChange({
     hasUnsavedChanges,
     confirmDiscard: confirmDiscardChanges,
     onDiscard: () => setHasUnsavedChanges(false),
   });
-
-  const contextBarActions = useMemo(
-    () => ({
-      onPromoteCarryOver: handlePromoteCarryOver,
-      showPromoteCarryOver: true,
-      disablePromoteCarryOver:
-        !selectedGradeId || !selectedSubjectId || isReadOnly,
-    }),
-    [handlePromoteCarryOver, isReadOnly, selectedGradeId, selectedSubjectId],
-  );
-
-  useAcademicContextBarActions(contextBarActions);
 
   useEffect(() => {
     setSearchInputValue(queryState.searchQuery);
@@ -366,33 +361,36 @@ export default function CurriculumPageContent() {
 
   // Load curriculum when grade/subject changes
   const loadCurriculumData = useCallback(async () => {
-    if (!termId || !selectedGradeId || !selectedSubjectId) return;
+    if (!academicYearId || !termId || !selectedGradeId || !selectedSubjectId) {
+      setCurriculum(null);
+      setUnits([]);
+      setLessons([]);
+      return;
+    }
 
     const requestId = ++curriculumRequestIdRef.current;
+    setIsLoading(true);
+    setCurriculumError("");
     try {
-      setCurriculumError("");
-      const curriculumData = await fetchCurriculum(
+      const curriculumData = await fetchCurriculumForScope({
+        academicYearId,
         termId,
-        selectedGradeId,
-        selectedSubjectId,
-      );
+        gradeId: selectedGradeId,
+        subjectId: selectedSubjectId,
+      });
       if (requestId !== curriculumRequestIdRef.current) return;
+
       setCurriculum(curriculumData);
+      const nextUnits = curriculumData?.units ?? [];
+      setUnits(nextUnits);
+      setLessons(nextUnits.flatMap((unit) => unit.lessons));
 
       if (curriculumData) {
-        const [unitsData, lessonsData] = await Promise.all([
-          fetchUnits(curriculumData.id),
-          fetchAllLessons(curriculumData.id),
-        ]);
-        if (requestId !== curriculumRequestIdRef.current) return;
-        setUnits(unitsData);
-        setLessons(lessonsData);
-
         if (queryState.lessonId) {
           if (queryState.lessonId.startsWith("new-")) {
             setSelectedNode({ type: "lesson", id: queryState.lessonId });
           } else {
-            const lessonExists = lessonsData.some(
+            const lessonExists = nextUnits.flatMap(u => u.lessons).some(
               (l) => l.id === queryState.lessonId,
             );
             setSelectedNode(
@@ -403,7 +401,7 @@ export default function CurriculumPageContent() {
           if (queryState.unitId === "new") {
             setSelectedNode({ type: "unit", id: "new" });
           } else {
-            const unitExists = unitsData.some(
+            const unitExists = nextUnits.some(
               (u) => u.id === queryState.unitId,
             );
             setSelectedNode(
@@ -423,20 +421,27 @@ export default function CurriculumPageContent() {
           });
         }
       } else {
-        setUnits([]);
-        setLessons([]);
         setSelectedNode(null);
       }
     } catch (error) {
       if (requestId !== curriculumRequestIdRef.current) return;
-      console.error("Failed to load curriculum:", error);
+      const mapped = curriculumUiError(error, tCommon("error"));
+      setCurriculumError(
+        mapped.traceId
+          ? `${mapped.message} (${mapped.traceId})`
+          : mapped.message,
+      );
       setCurriculum(null);
       setUnits([]);
       setLessons([]);
       setSelectedNode(null);
-      setCurriculumError(tCommon("error"));
+    } finally {
+      if (requestId === curriculumRequestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [
+    academicYearId,
     queryState.lessonId,
     queryState.unitId,
     selectedGradeId,
@@ -709,9 +714,26 @@ export default function CurriculumPageContent() {
     setShowCreateDialog(false);
   };
 
-  const handleCarryOverSuccess = async () => {
-    await refreshCurriculum();
-    setShowCarryOverDialog(false);
+  const handleActivateCurriculum = async () => {
+    if (!curriculum || !canActivate) return;
+    try {
+      await activateCurriculum(curriculum.id);
+      await refreshCurriculum();
+    } catch (error) {
+      const mapped = curriculumUiError(error, tCommon("error"));
+      setCurriculumError(mapped.message);
+    }
+  };
+
+  const handleArchiveCurriculum = async () => {
+    if (!curriculum || !canArchive) return;
+    try {
+      await archiveCurriculum(curriculum.id);
+      await refreshCurriculum();
+    } catch (error) {
+      const mapped = curriculumUiError(error, tCommon("error"));
+      setCurriculumError(mapped.message);
+    }
   };
 
   const gradeOptions = grades.map((g) => ({ value: g.id, label: g.name }));
@@ -721,24 +743,14 @@ export default function CurriculumPageContent() {
   const hasGrades = grades.length > 0;
   const hasSubjects = subjects.length > 0;
   const curriculumExportRows = useMemo(() => {
-    return units.flatMap((unit) => {
-      const unitTitle =
-        locale === "ar"
-          ? unit.titleAr || unit.titleEn || unit.title
-          : unit.titleEn || unit.titleAr || unit.title;
-      const unitLessons = lessons.filter((lesson) => lesson.unitId === unit.id);
-      return unitLessons.map((lesson) => ({
-        unit: unitTitle,
-        lesson:
-          locale === "ar"
-            ? lesson.titleAr || lesson.titleEn || lesson.title
-            : lesson.titleEn || lesson.titleAr || lesson.title,
-        plannedWeek: lesson.plannedWeek,
-        status: lesson.status === "done" ? t("plan.done") : t("plan.planned"),
-        durationMinutes: lesson.durationMinutes || "",
-      }));
-    });
-  }, [lessons, locale, t, units]);
+    return units.flatMap((unit) =>
+      unit.lessons.map((lesson) => ({
+        unit: unit.title,
+        lesson: lesson.title,
+        estimatedMinutes: lesson.estimatedMinutes || "",
+      })),
+    );
+  }, [units]);
 
   const handleExport = (format: AcademicsExportFormat) => {
     const metadata: ExportMetadata = {
@@ -751,12 +763,7 @@ export default function CurriculumPageContent() {
       { key: "unit", label: locale === "ar" ? "الوحدة" : "Unit" },
       { key: "lesson", label: locale === "ar" ? "الدرس" : "Lesson" },
       {
-        key: "plannedWeek",
-        label: locale === "ar" ? "الأسبوع المخطط" : "Planned week",
-      },
-      { key: "status", label: locale === "ar" ? "الحالة" : "Status" },
-      {
-        key: "durationMinutes",
+        key: "estimatedMinutes",
         label: locale === "ar" ? "المدة (دقائق)" : "Duration (minutes)",
       },
     ];
@@ -859,6 +866,26 @@ export default function CurriculumPageContent() {
                   >
                     {t("actions.create_curriculum")}
                   </Button>
+                )}
+                {hasCurriculum && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      onClick={handleActivateCurriculum}
+                      disabled={!canActivate}
+                    >
+                      {t("actions.activate_curriculum")}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      onClick={handleArchiveCurriculum}
+                      disabled={!canArchive}
+                    >
+                      {t("actions.archive_curriculum")}
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -1132,25 +1159,14 @@ export default function CurriculumPageContent() {
         isOpen={showCreateDialog}
         onClose={() => setShowCreateDialog(false)}
         onSuccess={handleCreateSuccess}
-        termId={termId}
+        academicYearId={academicYearId!}
+        termId={termId!}
         gradeId={selectedGradeId}
         subjectId={selectedSubjectId}
         gradeName={grades.find((g) => g.id === selectedGradeId)?.name || ""}
         subjectName={
           subjects.find((s) => s.id === selectedSubjectId)?.name || ""
         }
-      />
-
-      <CurriculumCarryOverDialog
-        isOpen={showCarryOverDialog}
-        onClose={() => setShowCarryOverDialog(false)}
-        onSuccess={handleCarryOverSuccess}
-        academicYears={academicYears}
-        currentYearId={academicYearId}
-        currentTermId={termId}
-        gradeId={selectedGradeId}
-        subjectId={selectedSubjectId}
-        isReadOnly={isReadOnly}
       />
 
       <AcademicsGlobalExportModal

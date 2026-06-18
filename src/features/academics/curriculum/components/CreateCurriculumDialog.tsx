@@ -11,6 +11,7 @@ interface CreateCurriculumDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  academicYearId: string;
   termId: string;
   gradeId: string;
   subjectId: string;
@@ -22,6 +23,7 @@ export default function CreateCurriculumDialog({
   isOpen,
   onClose,
   onSuccess,
+  academicYearId,
   termId,
   gradeId,
   subjectId,
@@ -30,17 +32,26 @@ export default function CreateCurriculumDialog({
 }: CreateCurriculumDialogProps) {
   const t = useTranslations("academics.curriculum.create_dialog");
 
-  const [name, setName] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const defaultName = `${gradeName} - ${subjectName}`;
+  const defaultTitle = `${gradeName} - ${subjectName}`;
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      await createCurriculum(termId, gradeId, subjectId, name.trim() || defaultName);
+      await createCurriculum({
+        academicYearId,
+        termId,
+        gradeId,
+        subjectId,
+        title: title.trim() || defaultTitle,
+        description: description.trim() || null,
+      });
       onSuccess();
-      setName("");
+      setTitle("");
+      setDescription("");
     } catch (error) {
       console.error("Failed to create curriculum:", error);
     } finally {
@@ -70,11 +81,23 @@ export default function CreateCurriculumDialog({
 
         <Input
           label={t("name")}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={defaultName}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={defaultTitle}
           helperText={t("name_helper")}
         />
+        
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-gray-700">
+            Description (Optional)
+          </label>
+          <textarea
+            className="w-full border-gray-300 rounded-md shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 border"
+            rows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </div>
       </div>
     </Modal>
   );
