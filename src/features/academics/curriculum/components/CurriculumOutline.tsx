@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Plus, Search, ChevronRight, ChevronDown } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import { Curriculum, Unit, Lesson } from "@/features/academics/curriculum/services/curriculumService";
-import { normalizeSearchText, buildSearchText, getHighlightedParts } from "@/utils/text/normalizeSearch";
+import { normalizeSearchText, getHighlightedParts } from "@/utils/text/normalizeSearch";
 
 // Helper component to render highlighted text
 function HighlightedText({ text, query }: { text: string; query: string }) {
@@ -54,7 +54,6 @@ export default function CurriculumOutline({
   isReadOnly,
 }: CurriculumOutlineProps) {
   const t = useTranslations("academics.curriculum.outline");
-  const locale = useLocale();
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(
     new Set(units.map((u) => u.id))
   );
@@ -77,9 +76,7 @@ export default function CurriculumOutline({
     if (!searchQuery.trim()) return true;
     
     const normalizedQuery = normalizeSearchText(searchQuery);
-    const unitSearchText = normalizeSearchText(
-      buildSearchText(unit.titleAr, unit.titleEn, unit.title)
-    );
+    const unitSearchText = normalizeSearchText(unit.title);
     
     // Check if unit matches
     if (unitSearchText.includes(normalizedQuery)) {
@@ -89,9 +86,7 @@ export default function CurriculumOutline({
     // Check if any lesson in this unit matches
     const unitLessons = getLessonsForUnit(unit.id);
     return unitLessons.some((lesson) => {
-      const lessonSearchText = normalizeSearchText(
-        buildSearchText(lesson.titleAr, lesson.titleEn, lesson.title)
-      );
+      const lessonSearchText = normalizeSearchText(lesson.title);
       return lessonSearchText.includes(normalizedQuery);
     });
   });
@@ -102,9 +97,7 @@ export default function CurriculumOutline({
     
     const normalizedQuery = normalizeSearchText(searchQuery);
     return unitLessons.filter((lesson) => {
-      const lessonSearchText = normalizeSearchText(
-        buildSearchText(lesson.titleAr, lesson.titleEn, lesson.title)
-      );
+      const lessonSearchText = normalizeSearchText(lesson.title);
       return lessonSearchText.includes(normalizedQuery);
     });
   };
@@ -155,7 +148,7 @@ export default function CurriculumOutline({
           const isExpanded = shouldExpandUnit(unit.id);
           const unitLessons = getFilteredLessonsForUnit(unit.id);
           const isSelected = selectedNode?.type === "unit" && selectedNode.id === unit.id;
-          const unitTitle = locale === "ar" ? (unit.titleAr || unit.titleEn || unit.title) : (unit.titleEn || unit.titleAr || unit.title);
+          const unitTitle = unit.title;
 
           return (
             <div key={unit.id} className="space-y-1">
@@ -193,7 +186,7 @@ export default function CurriculumOutline({
                   {unitLessons.map((lesson) => {
                     const isLessonSelected =
                       selectedNode?.type === "lesson" && selectedNode.id === lesson.id;
-                    const lessonTitle = locale === "ar" ? (lesson.titleAr || lesson.titleEn || lesson.title) : (lesson.titleEn || lesson.titleAr || lesson.title);
+                    const lessonTitle = lesson.title;
 
                     return (
                       <div
@@ -208,14 +201,6 @@ export default function CurriculumOutline({
                         <div className="flex-1 text-sm text-gray-700">
                           <HighlightedText text={lessonTitle} query={searchQuery} />
                         </div>
-                        {lesson.status === "done" && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                            {t("status_done")}
-                          </span>
-                        )}
-                        <span className="text-xs text-gray-500">
-                          {t("week_short", { week: lesson.plannedWeek })}
-                        </span>
                       </div>
                     );
                   })}
