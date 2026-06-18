@@ -3655,7 +3655,9 @@
       },
       "actions": {
         "create_curriculum": "إنشاء منهج",
-        "carry_over": "نقل"
+        "carry_over": "نقل",
+        "activate_curriculum": "تفعيل المنهج",
+        "archive_curriculum": "أرشفة المنهج"
       },
       "tabs": {
         "outline": "المخطط",
@@ -3739,7 +3741,8 @@
         "undo_done": "إلغاء الإنجاز",
         "confirm_delete": "هل أنت متأكد من حذف هذا العنصر ",
         "learning_content": "محتوى التعلم",
-        "unsaved_changes": "تغييرات غير محفوظة"
+        "unsaved_changes": "تغييرات غير محفوظة",
+        "estimated_lessons": "عدد الدروس المتوقع"
       },
       "plan": {
         "title": "التخطيط والتقدم",
@@ -3854,7 +3857,13 @@
         "materials": "المواد",
         "video": "الفيديو",
         "assignments": "الواجبات",
-        "close": "إغلاق"
+        "close": "إغلاق",
+        "body_text": "النص",
+        "file_disabled_tooltip": "محتوى الملفات معطل إلى أن يتوفر اختيار ملف يعيد معرّف ملف من الخادم.",
+        "file_id": "معرّف الملف",
+        "load_failed": "تعذر تحميل محتوى الدرس.",
+        "save_failed": "تعذر حفظ محتوى الدرس.",
+        "url": "الرابط"
       },
       "questions": {
         "title": "الأسئلة",
@@ -3954,7 +3963,13 @@
         "expected_time_short": "الوقت المتوقع",
         "minutes_short": "دقائق"
       },
-      "teachingWeeksHint": "أسابيع الدراسة: {count} (مع استبعاد الإجازات)"
+      "teachingWeeksHint": "أسابيع الدراسة: {count} (مع استبعاد الإجازات)",
+      "details": {
+        "title": "تفاصيل المنهج",
+        "status": "الحالة",
+        "units": "الوحدات",
+        "lessons": "الدروس"
+      }
     },
     "calendar": {
       "title": "التقويم الأكاديمي",

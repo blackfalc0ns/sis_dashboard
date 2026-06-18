@@ -36,7 +36,6 @@ import {
 import { curriculumUiError } from "@/features/academics/curriculum/services/curriculumErrors";
 import CurriculumOutline from "../components/CurriculumOutline";
 import CurriculumEditor from "../components/CurriculumEditor";
-import CurriculumPlan from "../components/CurriculumPlan";
 import CreateCurriculumDialog from "../components/CreateCurriculumDialog";
 import {
   type AcademicsExportFormat,
@@ -1027,14 +1026,20 @@ export default function CurriculumPageContent() {
               >
                 <div className="h-full flex flex-col">
                   <div className="flex-1 overflow-auto">
-                    <CurriculumPlan
-                      curriculum={curriculum!}
-                      units={units}
-                      lessons={lessons}
-                      termWeeks={termWeeks}
-                      onRefresh={refreshCurriculum}
-                      isReadOnly={isReadOnly}
-                    />
+                    <div className="p-6 space-y-4">
+                      <h2 className="text-lg font-semibold text-gray-900">
+                        {t("details.title")}
+                      </h2>
+                      <div className="text-sm text-gray-700">
+                        {t("details.status")}: {curriculum?.status}
+                      </div>
+                      <div className="text-sm text-gray-700">
+                        {t("details.units")}: {curriculum?.unitCount}
+                      </div>
+                      <div className="text-sm text-gray-700">
+                        {t("details.lessons")}: {curriculum?.lessonCount}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1138,14 +1143,20 @@ export default function CurriculumPageContent() {
                     </IconButton>
                   </div>
                   <div className="flex-1 overflow-auto">
-                    <CurriculumPlan
-                      curriculum={curriculum!}
-                      units={units}
-                      lessons={lessons}
-                      termWeeks={termWeeks}
-                      onRefresh={refreshCurriculum}
-                      isReadOnly={isReadOnly}
-                    />
+                    <div className="p-6 space-y-4">
+                      <h2 className="text-lg font-semibold text-gray-900">
+                        {t("details.title")}
+                      </h2>
+                      <div className="text-sm text-gray-700">
+                        {t("details.status")}: {curriculum?.status}
+                      </div>
+                      <div className="text-sm text-gray-700">
+                        {t("details.units")}: {curriculum?.unitCount}
+                      </div>
+                      <div className="text-sm text-gray-700">
+                        {t("details.lessons")}: {curriculum?.lessonCount}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </Drawer>
