@@ -36,11 +36,13 @@ A unit uses `title`, nullable `description`, zero-based `sortOrder`, and nullabl
 
 A lesson uses `title`, nullable `description`, up to 20 string objectives, zero-based `sortOrder`, and nullable `estimatedMinutes` from 1 through 600. The frontend will not synthesize planned-week or completion state because those fields and mutations do not exist in the curriculum backend contract.
 
-Lesson content supports exactly four backend types:
+The frontend's canonical lesson-content type and every create or update request use the Prisma enum casing:
 
-- `text` requires `bodyText` and rejects URL and file values.
-- `file` requires an existing `fileId` and rejects URL values.
-- `video_link` and `external_link` require an HTTP or HTTPS URL and reject file values.
+- `TEXT` requires `bodyText` and rejects URL and file values.
+- `FILE` requires an existing `fileId` and rejects URL values.
+- `VIDEO_LINK` and `EXTERNAL_LINK` require an HTTP or HTTPS URL and reject file values.
+
+The current backend presenter serializes response types as `text`, `file`, `video_link`, and `external_link`. The response mapper must normalize those values to the uppercase canonical frontend type before data reaches components.
 
 Every content item also supports `title`, zero-based `sortOrder`, `isRequired`, nullable `estimatedMinutes` from 1 through 600, and optional metadata. Type changes clear fields that are invalid for the new type.
 
@@ -50,7 +52,34 @@ The page keeps the academic-year and term context and grade and subject selector
 
 Creating a curriculum requires a non-empty title and all four scope IDs. The existing bilingual-only editor fields will be replaced by the backend's single `title` and `description` values. Unit and lesson editors follow the same single-title contract.
 
-Draft curricula can be activated only after at least one active unit and one active lesson exist. Any non-archived curriculum can be archived. Archived curricula are read-only. A closed term remains read-only in the dashboard, and users lacking the manage permission receive the same read-only presentation. The page-level view guard continues to require the view permission.
+Draft curricula can be activated only after at least one non-deleted unit and one non-deleted lesson exist. Any non-archived curriculum can be archived. Archived curricula are read-only. A closed term remains read-only in the dashboard, and users lacking the manage permission receive the same read-only presentation. The page-level view guard continues to require the view permission.
+
+The page and component access logic will be explicit:
+
+```tsx
+<AcademicsPermissionGuard permission="academics.curriculum.view">
+  <CurriculumPageContent />
+</AcademicsPermissionGuard>
+```
+
+```ts
+const canViewCurriculum = hasPermission("academics.curriculum.view");
+const canManageCurriculum = hasPermission("academics.curriculum.manage");
+
+const isArchived = curriculum?.status === "archived";
+const isClosedTerm = termStatus === "closed";
+const isReadOnly = !canManageCurriculum || isArchived || isClosedTerm;
+
+const canMutate = canViewCurriculum && !isReadOnly;
+const canActivate =
+  canMutate &&
+  curriculum?.status === "draft" &&
+  curriculum.unitCount > 0 &&
+  curriculum.lessonCount > 0;
+const canArchive = canMutate && curriculum != null;
+```
+
+The route guard blocks users without view permission. Components render mutation controls only when `canMutate` is true, use `canActivate` for the activation action, and use `canArchive` for the archive action. Event handlers repeat the same guards before issuing requests so disabled or hidden controls are not the only enforcement layer. The backend remains authoritative and independently enforces both permissions and lifecycle constraints.
 
 Unsupported curriculum features will be removed from the reachable UI and service interface:
 
