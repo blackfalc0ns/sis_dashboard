@@ -43,6 +43,9 @@ yarn-error.log*
 # local assistant/tooling config with private credentials
 .claude/settings.local.json
 
+# local implementation worktrees
+.worktrees/
+
 # vercel
 .vercel
 
