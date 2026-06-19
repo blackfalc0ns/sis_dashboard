@@ -739,6 +739,8 @@ export default function LessonPlansPage() {
                 teacherSubjectAllocationId={teacherSubjectAllocationId}
                 curriculumId={curriculumId}
                 subjectId={selectedSubjectId}
+                gradeId={selectedGradeId}
+                sectionId={selectedSectionId}
                 classroomId={resolvedClassroomId}
                 teacherId={assignedTeacherId}
                 lessons={lessons}
@@ -803,23 +805,6 @@ export default function LessonPlansPage() {
             isReadOnly={isReadOnly}
           />
 
-          <AddLessonDialog
-            isOpen={addLessonDialog.isOpen}
-            lesson={addLessonDialog.lesson}
-            weeks={weeks}
-            preselectedWeekIndex={addLessonDialog.preselectedWeekIndex}
-            termStartDate={selectedTerm?.startDate}
-            termEndDate={selectedTerm?.endDate}
-            academicYearId={academicYearId}
-            termId={termId}
-            classroomId={resolvedClassroomId}
-            teacherUserId={assignedTeacherId}
-            subjectId={selectedSubjectId}
-            teacherSubjectAllocationId={teacherSubjectAllocationId}
-            onClose={closeAddLessonDialog}
-            onConfirm={handleConfirmAddLesson}
-          />
-
           <MobileBottomBar
             onOpenFilters={() => setFiltersDrawerOpen(true)}
             onOpenLibrary={handleOpenLibrary}
@@ -828,6 +813,25 @@ export default function LessonPlansPage() {
           />
         </>
       )}
+
+      <AddLessonDialog
+        isOpen={addLessonDialog.isOpen}
+        lesson={addLessonDialog.lesson}
+        weeks={weeks}
+        preselectedWeekIndex={addLessonDialog.preselectedWeekIndex}
+        termStartDate={selectedTerm?.startDate}
+        termEndDate={selectedTerm?.endDate}
+        academicYearId={academicYearId}
+        termId={termId}
+        gradeId={selectedGradeId}
+        sectionId={selectedSectionId}
+        classroomId={resolvedClassroomId}
+        teacherUserId={assignedTeacherId}
+        subjectId={selectedSubjectId}
+        teacherSubjectAllocationId={teacherSubjectAllocationId}
+        onClose={closeAddLessonDialog}
+        onConfirm={handleConfirmAddLesson}
+      />
 
       <AcademicsGlobalExportModal
         isOpen={showExportModal}

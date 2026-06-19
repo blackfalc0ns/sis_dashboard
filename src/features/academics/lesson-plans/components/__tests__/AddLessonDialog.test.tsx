@@ -43,6 +43,8 @@ function renderDialog(instructionalDays: string[], onConfirm = vi.fn()) {
       termEndDate="2026-12-31"
       academicYearId="year-1"
       termId="term-1"
+      gradeId="grade-1"
+      sectionId="section-1"
       classroomId="classroom-1"
       teacherUserId="teacher-1"
       subjectId="subject-1"
@@ -88,6 +90,10 @@ describe("AddLessonDialog planned day selection", () => {
         periodId: "period-1",
         period: { label: "Period 2", index: 2 },
         teacherSubjectAllocationId: "allocation-1",
+        status: "active",
+        classroom: { id: "classroom-1" },
+        subject: { id: "subject-1" },
+        teacher: { userId: "teacher-1" },
       },
     ] as never);
     const user = userEvent.setup();

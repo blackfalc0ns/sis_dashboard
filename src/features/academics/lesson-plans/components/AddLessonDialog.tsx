@@ -52,6 +52,8 @@ export default function AddLessonDialog({
   onConfirm,
   academicYearId,
   termId,
+  gradeId,
+  sectionId,
   classroomId,
   teacherUserId,
   subjectId,
@@ -205,6 +207,8 @@ export default function AddLessonDialog({
           <TimetableSlotSelect
             academicYearId={academicYearId}
             termId={termId}
+            gradeId={gradeId}
+            sectionId={sectionId}
             classroomId={classroomId}
             teacherUserId={teacherUserId}
             subjectId={subjectId}
