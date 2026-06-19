@@ -187,6 +187,9 @@ export function useLessonPlansData(params: Params) {
             classroomId: classroomId || undefined,
           }),
         ]);
+      const detailedPlans = await Promise.all(
+        planList.map((plan) => getLessonPlan(plan.id)),
+      );
       if (currentRequest !== requestId.current) return;
       setResolvedClassroomId(classroomId);
       setAssignedTeacherId(allocation.teacherId ?? "");
@@ -196,7 +199,7 @@ export function useLessonPlansData(params: Params) {
       setLessons((curriculum.units ?? []).flatMap((unit) => unit.lessons));
       setWeeks(weekList);
       setPlans(
-        planList.map((plan) => ({
+        detailedPlans.map((plan) => ({
           ...plan,
           weekIndex:
             weekList.find(

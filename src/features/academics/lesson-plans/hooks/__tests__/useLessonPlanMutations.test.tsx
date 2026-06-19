@@ -165,6 +165,39 @@ describe("useLessonPlanMutations", () => {
     );
   });
 
+  it("does not reuse an archived weekly plan for item creation", async () => {
+    vi.mocked(createLessonPlan).mockResolvedValue(plan({ id: "new-plan" }));
+    const params = makeParams({ plans: [plan({ status: "ARCHIVED" })] });
+    const { result } = renderHook(() => useLessonPlanMutations(params));
+
+    await act(() => result.current.handleConfirmAddLesson("lesson-1", 2));
+
+    expect(createLessonPlan).toHaveBeenCalledOnce();
+    expect(createLessonPlanItem).toHaveBeenCalledWith(
+      expect.objectContaining({ lessonPlanId: "new-plan" }),
+    );
+  });
+
+  it("shows success only after the created item has been refreshed", async () => {
+    const events: string[] = [];
+    vi.mocked(createLessonPlan).mockResolvedValue(plan());
+    vi.mocked(createLessonPlanItem).mockImplementation(async () => {
+      events.push("create-item");
+      return {} as never;
+    });
+    const params = makeParams({
+      refreshPlans: vi.fn().mockImplementation(async () => {
+        events.push("refresh");
+      }),
+      showSuccess: vi.fn().mockImplementation(() => events.push("success")),
+    });
+    const { result } = renderHook(() => useLessonPlanMutations(params));
+
+    await act(() => result.current.handleConfirmAddLesson("lesson-1", 2));
+
+    expect(events).toEqual(["create-item", "refresh", "success"]);
+  });
+
   it("blocks a week with no instructional days", async () => {
     const params = makeParams({ weeks: [week({ instructionalDays: [] })] });
     const { result } = renderHook(() => useLessonPlanMutations(params));

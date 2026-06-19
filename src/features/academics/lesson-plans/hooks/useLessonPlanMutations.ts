@@ -113,7 +113,9 @@ export function useLessonPlanMutations(params: Params) {
       }
       try {
         let plan = params.plans.find(
-          (candidate) => candidate.weekIndex === weekIndex,
+          (candidate) =>
+            candidate.weekIndex === weekIndex &&
+            candidate.status !== "ARCHIVED",
         );
         if (!plan)
           plan = await createLessonPlan({

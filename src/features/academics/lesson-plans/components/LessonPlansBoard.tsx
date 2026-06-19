@@ -202,7 +202,9 @@ export default function LessonPlansBoard({
             return;
           }
           let plan = plans.find(
-            (candidate) => candidate.weekIndex === weekIndex,
+            (candidate) =>
+              candidate.weekIndex === weekIndex &&
+              candidate.status !== "ARCHIVED",
           );
           if (!plan)
             plan = await createLessonPlan({
@@ -247,7 +249,8 @@ export default function LessonPlansBoard({
             }
 
             const targetPlan = plans.find(
-              (plan) => plan.weekIndex === weekIndex,
+              (plan) =>
+                plan.weekIndex === weekIndex && plan.status !== "ARCHIVED",
             );
 
             await moveLessonPlanItem(draggedItem.itemId, {
