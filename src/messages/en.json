@@ -3657,6 +3657,7 @@
       }
     },
     "curriculum": {
+      "loading_curriculum": "Loading curriculum...",
       "readonly_banner": {
         "message": "This term is closed. Curriculum is read-only."
       },
@@ -3671,6 +3672,7 @@
         "carry_over": "Carry Over",
         "activate_curriculum": "Activate curriculum",
         "archive_curriculum": "Archive curriculum",
+        "archive_confirm": "Are you sure you want to archive this curriculum? It will become read-only.",
         "delete_curriculum": "Delete curriculum",
         "delete_confirm": "Are you sure you want to delete this curriculum? This cannot be undone."
       },
@@ -4866,7 +4868,9 @@
         "PLANNED": "Planned",
         "IN_PROGRESS": "In Progress",
         "DONE": "Done",
-        "SKIPPED": "Skipped"
+        "SKIPPED": "Skipped",
+        "CANCELLED": "Cancelled",
+        "UNKNOWN": "Unknown"
       },
       "actions": {
         "addToWeek": "Add to Week",
@@ -4877,6 +4881,7 @@
         "markInProgress": "Mark In Progress",
         "markDone": "Mark Done",
         "skip": "Skip",
+        "cancel": "Cancel",
         "markPlanned": "Mark Planned",
         "validate": "Validate",
         "autoPlan": "Auto-plan",
@@ -4884,12 +4889,15 @@
       },
       "summary": {
         "title": "Progress Summary",
+        "plans": "Plans",
         "planned": "Planned",
         "inProgress": "In Progress",
         "done": "Done",
         "skipped": "Skipped",
         "completion": "Completion",
-        "totalLessons": "Total Lessons"
+        "totalLessons": "Total Lessons",
+        "unplanned": "Unplanned Lessons",
+        "coverage": "Curriculum Coverage"
       },
       "warnings": {
         "holidayWeek": "This week contains holidays",

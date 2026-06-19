@@ -1,7 +1,10 @@
 "use client";
 
 import { Lesson } from "@/features/academics/curriculum/services/curriculumService";
-import { LessonPlan, WeekInfo } from "@/features/academics/lesson-plans/services/lessonPlansService";
+import {
+  LessonPlan,
+  WeekInfo,
+} from "@/features/academics/lesson-plans/services/lessonPlansService";
 import WeekColumn from "./WeekColumn";
 
 interface DraggedPlanItem {
@@ -19,7 +22,10 @@ interface WeeksBoardDesktopProps {
   onDropOnWeek: (weekIndex: number) => void;
   onDragStartItem: (itemId: string, weekIndex: number) => void;
   onDragEndItem: () => void;
-  onStatusChange: (itemId: string, status: "PLANNED" | "IN_PROGRESS" | "DONE" | "SKIPPED") => void;
+  onStatusChange: (
+    itemId: string,
+    status: "IN_PROGRESS" | "DONE" | "SKIPPED" | "CANCELLED",
+  ) => void;
   onEditNotes: (itemId: string, notesAr?: string, notesEn?: string) => void;
   onRemove: (itemId: string) => void;
 }
@@ -43,7 +49,7 @@ export default function WeeksBoardDesktop({
       {weeks.map((week) => {
         const weekPlan = plans.find((p) => p.weekIndex === week.weekIndex);
         const planKey = `${week.weekIndex}-${weekPlan?.items.length || 0}`;
-        
+
         return (
           <WeekColumn
             key={planKey}
@@ -58,8 +64,7 @@ export default function WeeksBoardDesktop({
             onRemove={onRemove}
             isReadOnly={isReadOnly}
             isDragOver={
-              (draggedLesson !== null || draggedItem !== null) &&
-              !isReadOnly
+              (draggedLesson !== null || draggedItem !== null) && !isReadOnly
             }
           />
         );

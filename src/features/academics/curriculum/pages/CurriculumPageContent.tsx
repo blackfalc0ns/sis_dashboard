@@ -14,6 +14,7 @@ import {
 import { Drawer, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import Button from "@/components/ui/button/Button";
+import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import Select from "@/components/ui/input/Select";
 import {
   fetchStructureTree,
@@ -52,7 +53,13 @@ import { usePermissions } from "@/hooks/usePermissions";
 import {
   canSyncCurriculumFilters,
   curriculumOptionsContextKey,
+  curriculumPageVisibility,
 } from "./curriculumFilterState";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import {
+  curriculumConfirmation,
+  type CurriculumConfirmationAction,
+} from "./curriculumConfirmation";
 
 const isDraftNode = (node: { id: string } | null) =>
   node?.id === "new" || !!node?.id.startsWith("new-");
@@ -96,7 +103,9 @@ export default function CurriculumPageContent() {
 
   const [grades, setGrades] = useState<Grade[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [loadedOptionsContextKey, setLoadedOptionsContextKey] = useState<string | null>(null);
+  const [loadedOptionsContextKey, setLoadedOptionsContextKey] = useState<
+    string | null
+  >(null);
 
   // Filters
   const [selectedGradeId, setSelectedGradeId] = useState("");
@@ -107,7 +116,9 @@ export default function CurriculumPageContent() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [termWeeks, setTermWeeks] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isOptionsLoading, setIsOptionsLoading] = useState(true);
+  const [isCurriculumLoading, setIsCurriculumLoading] = useState(false);
+  const [hasCheckedCurriculum, setHasCheckedCurriculum] = useState(false);
   const [contextError, setContextError] = useState("");
   const [curriculumError, setCurriculumError] = useState("");
   const [searchInputValue, setSearchInputValue] = useState(
@@ -122,6 +133,9 @@ export default function CurriculumPageContent() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [confirmationAction, setConfirmationAction] =
+    useState<CurriculumConfirmationAction | null>(null);
+  const [isConfirmingAction, setIsConfirmingAction] = useState(false);
   const optionsRequestIdRef = useRef(0);
   const curriculumRequestIdRef = useRef(0);
 
@@ -135,6 +149,21 @@ export default function CurriculumPageContent() {
     (curriculum?.unitCount || 0) > 0 &&
     (curriculum?.lessonCount || 0) > 0;
   const canArchive = canMutate && curriculum != null;
+  const hasScope =
+    !!academicYearId && !!termId && !!selectedGradeId && !!selectedSubjectId;
+  const { isPageLoading, canShowCreateCurriculum, canShowCurriculumError } =
+    curriculumPageVisibility({
+      isInitializing,
+      isOptionsLoading,
+      isCurriculumLoading,
+      hasScope,
+      hasCheckedCurriculum,
+      hasCurriculum: curriculum != null,
+      hasCurriculumError: Boolean(curriculumError),
+    });
+  const confirmation = confirmationAction
+    ? curriculumConfirmation(confirmationAction)
+    : null;
 
   const confirmDiscardChanges = useCallback(
     () => confirm(t("unsaved_changes.message")),
@@ -150,6 +179,16 @@ export default function CurriculumPageContent() {
   useEffect(() => {
     setSearchInputValue(queryState.searchQuery);
   }, [queryState.searchQuery]);
+
+  useEffect(() => {
+    curriculumRequestIdRef.current += 1;
+    setHasCheckedCurriculum(false);
+    setIsCurriculumLoading(false);
+    setCurriculum(null);
+    setUnits([]);
+    setLessons([]);
+    setSelectedNode(null);
+  }, [academicYearId, termId]);
 
   useEffect(() => {
     if (!selectedTerm) {
@@ -246,12 +285,12 @@ export default function CurriculumPageContent() {
       setSelectedGradeId("");
       setSelectedSubjectId("");
       setContextError("");
-      setIsLoading(false);
+      setIsOptionsLoading(false);
       return;
     }
 
     const requestId = ++optionsRequestIdRef.current;
-    setIsLoading(true);
+    setIsOptionsLoading(true);
     try {
       setContextError("");
       const [structureData, subjectsData] = await Promise.all([
@@ -302,7 +341,7 @@ export default function CurriculumPageContent() {
       setContextError(tCommon("error"));
     } finally {
       if (requestId === optionsRequestIdRef.current) {
-        setIsLoading(false);
+        setIsOptionsLoading(false);
       }
     }
   }, [
@@ -323,11 +362,7 @@ export default function CurriculumPageContent() {
     if (
       !academicYearId ||
       !termId ||
-      !canSyncCurriculumFilters(
-        loadedOptionsContextKey,
-        academicYearId,
-        termId,
-      )
+      !canSyncCurriculumFilters(loadedOptionsContextKey, academicYearId, termId)
     ) {
       return;
     }
@@ -378,15 +413,23 @@ export default function CurriculumPageContent() {
 
   // Load curriculum when grade/subject changes
   const loadCurriculumData = useCallback(async () => {
-    if (!academicYearId || !termId || !selectedGradeId || !selectedSubjectId) {
+    const requestId = ++curriculumRequestIdRef.current;
+    if (
+      !academicYearId ||
+      !termId ||
+      !selectedGradeId ||
+      !selectedSubjectId ||
+      !canSyncCurriculumFilters(loadedOptionsContextKey, academicYearId, termId)
+    ) {
       setCurriculum(null);
       setUnits([]);
       setLessons([]);
+      setHasCheckedCurriculum(false);
       return;
     }
 
-    const requestId = ++curriculumRequestIdRef.current;
-    setIsLoading(true);
+    setIsCurriculumLoading(true);
+    setHasCheckedCurriculum(false);
     setCurriculumError("");
     try {
       const curriculumData = await fetchCurriculumForScope({
@@ -401,6 +444,7 @@ export default function CurriculumPageContent() {
       const nextUnits = curriculumData?.units ?? [];
       setUnits(nextUnits);
       setLessons(nextUnits.flatMap((unit) => unit.lessons));
+      setHasCheckedCurriculum(true);
 
       if (!curriculumData) {
         setSelectedNode(null);
@@ -417,12 +461,20 @@ export default function CurriculumPageContent() {
       setUnits([]);
       setLessons([]);
       setSelectedNode(null);
+      setHasCheckedCurriculum(true);
     } finally {
       if (requestId === curriculumRequestIdRef.current) {
-        setIsLoading(false);
+        setIsCurriculumLoading(false);
       }
     }
-  }, [academicYearId, selectedGradeId, selectedSubjectId, tCommon, termId]);
+  }, [
+    academicYearId,
+    loadedOptionsContextKey,
+    selectedGradeId,
+    selectedSubjectId,
+    tCommon,
+    termId,
+  ]);
 
   useEffect(() => {
     loadCurriculumData();
@@ -733,20 +785,20 @@ export default function CurriculumPageContent() {
   };
 
   const handleArchiveCurriculum = async () => {
-    if (!curriculum || !canArchive) return;
+    if (!curriculum || !canArchive) return false;
     try {
       await archiveCurriculum(curriculum.id);
       await refreshCurriculum();
+      return true;
     } catch (error) {
       const mapped = curriculumUiError(error, tCommon("error"));
       setCurriculumError(mapped.message);
+      return false;
     }
   };
 
   const handleDeleteCurriculum = async () => {
-    if (!curriculum || !canMutate || !confirm(t("actions.delete_confirm"))) {
-      return;
-    }
+    if (!curriculum || !canMutate) return false;
 
     try {
       await deleteCurriculum(curriculum.id);
@@ -755,10 +807,23 @@ export default function CurriculumPageContent() {
       setUnits([]);
       setLessons([]);
       await refreshCurriculum();
+      return true;
     } catch (error) {
       const mapped = curriculumUiError(error, tCommon("error"));
       setCurriculumError(mapped.message);
+      return false;
     }
+  };
+
+  const handleConfirmCurriculumAction = async () => {
+    if (!confirmationAction) return;
+    setIsConfirmingAction(true);
+    const succeeded =
+      confirmationAction === "archive"
+        ? await handleArchiveCurriculum()
+        : await handleDeleteCurriculum();
+    setIsConfirmingAction(false);
+    if (succeeded) setConfirmationAction(null);
   };
 
   const gradeOptions = grades.map((g) => ({ value: g.id, label: g.name }));
@@ -874,7 +939,7 @@ export default function CurriculumPageContent() {
               </div>
 
               <div className="flex gap-2">
-                {!hasCurriculum && selectedGradeId && selectedSubjectId && (
+                {canShowCreateCurriculum && (
                   <Button
                     variant="primary"
                     size="md"
@@ -895,8 +960,8 @@ export default function CurriculumPageContent() {
                     }}
                     onExport={() => setShowExportModal(true)}
                     onActivate={() => void handleActivateCurriculum()}
-                    onArchive={() => void handleArchiveCurriculum()}
-                    onDelete={() => void handleDeleteCurriculum()}
+                    onArchive={() => setConfirmationAction("archive")}
+                    onDelete={() => setConfirmationAction("delete")}
                     canExport={curriculumExportRows.length > 0}
                     canActivate={canActivate}
                     canArchive={canArchive}
@@ -910,7 +975,7 @@ export default function CurriculumPageContent() {
       </div>
 
       {/* Empty States */}
-      {!isLoading && contextError && (
+      {!isInitializing && !isOptionsLoading && contextError && (
         <div className="flex-1 flex items-center justify-center bg-gray-50">
           <div className="text-center max-w-md px-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -924,7 +989,7 @@ export default function CurriculumPageContent() {
         </div>
       )}
 
-      {!isLoading && !contextError && !hasGrades && (
+      {!isInitializing && !isOptionsLoading && !contextError && !hasGrades && (
         <div className="flex-1 flex items-center justify-center bg-gray-50">
           <div className="text-center max-w-md px-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -943,57 +1008,63 @@ export default function CurriculumPageContent() {
         </div>
       )}
 
-      {!isLoading && !contextError && hasGrades && !hasSubjects && (
-        <div className="flex-1 flex items-center justify-center bg-gray-50">
-          <div className="text-center max-w-md px-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {t("empty_state.no_subjects.title")}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {t("empty_state.no_subjects.message")}
-            </p>
-            <Button
-              variant="primary"
-              onClick={() => router.push(`/${locale}/academics/subjects`)}
-            >
-              {t("empty_state.no_subjects.cta")}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {!isLoading &&
+      {!isInitializing &&
+        !isOptionsLoading &&
         !contextError &&
         hasGrades &&
-        hasSubjects &&
-        !hasCurriculum && (
+        !hasSubjects && (
           <div className="flex-1 flex items-center justify-center bg-gray-50">
             <div className="text-center max-w-md px-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {curriculumError || t("empty_state.no_curriculum.title")}
+                {t("empty_state.no_subjects.title")}
               </h3>
               <p className="text-gray-600 mb-6">
-                {curriculumError || t("empty_state.no_curriculum.message")}
+                {t("empty_state.no_subjects.message")}
               </p>
-              {curriculumError ? (
-                <Button variant="primary" onClick={loadCurriculumData}>
-                  {tCommon("retry")}
-                </Button>
-              ) : (
-                <Button
-                  variant="primary"
-                  onClick={() => setShowCreateDialog(true)}
-                  disabled={isReadOnly}
-                >
-                  {t("actions.create_curriculum")}
-                </Button>
-              )}
+              <Button
+                variant="primary"
+                onClick={() => router.push(`/${locale}/academics/subjects`)}
+              >
+                {t("empty_state.no_subjects.cta")}
+              </Button>
             </div>
           </div>
         )}
 
+      {isPageLoading && hasScope && (
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <PartialLoader />
+        </div>
+      )}
+
+      {(canShowCreateCurriculum || canShowCurriculumError) && (
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-center max-w-md px-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {curriculumError || t("empty_state.no_curriculum.title")}
+            </h3>
+            <p className="text-gray-600 mb-6">
+              {curriculumError || t("empty_state.no_curriculum.message")}
+            </p>
+            {canShowCurriculumError ? (
+              <Button variant="primary" onClick={loadCurriculumData}>
+                {tCommon("retry")}
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                onClick={() => setShowCreateDialog(true)}
+                disabled={isReadOnly}
+              >
+                {t("actions.create_curriculum")}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
-      {!isLoading && hasCurriculum && (
+      {!isPageLoading && hasCurriculum && (
         <>
           {/* Desktop: Fixed Three-Panel Layout */}
           {!isMobile && (
@@ -1211,6 +1282,22 @@ export default function CurriculumPageContent() {
         subtitle={t("outline.title")}
         datasetCount={curriculumExportRows.length}
       />
+
+      {confirmation && (
+        <ConfirmDialog
+          isOpen
+          onClose={() => {
+            if (!isConfirmingAction) setConfirmationAction(null);
+          }}
+          onConfirm={() => void handleConfirmCurriculumAction()}
+          title={t(confirmation.titleKey)}
+          description={t(confirmation.descriptionKey)}
+          confirmLabel={t(confirmation.confirmLabelKey)}
+          cancelLabel={tCommon("cancel")}
+          loading={isConfirmingAction}
+          severity={confirmation.severity}
+        />
+      )}
     </div>
   );
 }

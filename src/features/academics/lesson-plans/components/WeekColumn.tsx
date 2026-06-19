@@ -4,7 +4,10 @@ import { useState, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { AlertTriangle, Calendar } from "lucide-react";
 import { Lesson } from "@/features/academics/curriculum/services/curriculumService";
-import { LessonPlan, WeekInfo } from "@/features/academics/lesson-plans/services/lessonPlansService";
+import {
+  LessonPlan,
+  WeekInfo,
+} from "@/features/academics/lesson-plans/services/lessonPlansService";
 import LessonPlanItemCard from "./LessonPlanItemCard";
 
 interface WeekColumnProps {
@@ -14,7 +17,10 @@ interface WeekColumnProps {
   onDrop: (weekIndex: number) => void;
   onDragStartItem: (itemId: string, weekIndex: number) => void;
   onDragEndItem: () => void;
-  onStatusChange: (itemId: string, status: "PLANNED" | "IN_PROGRESS" | "DONE" | "SKIPPED") => void;
+  onStatusChange: (
+    itemId: string,
+    status: "IN_PROGRESS" | "DONE" | "SKIPPED" | "CANCELLED",
+  ) => void;
   onEditNotes: (itemId: string, notesAr?: string, notesEn?: string) => void;
   onRemove: (itemId: string) => void;
   isReadOnly: boolean;
@@ -39,40 +45,50 @@ export default function WeekColumn({
 
   const [dragOverColumn, setDragOverColumn] = useState(false);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    if (!isReadOnly) {
-      setDragOverColumn(true);
-    }
-  }, [isReadOnly]);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      if (!isReadOnly) {
+        setDragOverColumn(true);
+      }
+    },
+    [isReadOnly],
+  );
 
   const handleDragLeave = useCallback(() => {
     setDragOverColumn(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOverColumn(false);
-    if (!isReadOnly) {
-      onDrop(week.weekIndex);
-    }
-  }, [isReadOnly, onDrop, week.weekIndex]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOverColumn(false);
+      if (!isReadOnly) {
+        onDrop(week.weekIndex);
+      }
+    },
+    [isReadOnly, onDrop, week.weekIndex],
+  );
 
   const items = plan ? [...plan.items].sort((a, b) => a.order - b.order) : [];
 
   // Format dates
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(date);
+    return new Intl.DateTimeFormat(locale, {
+      month: "short",
+      day: "numeric",
+    }).format(date);
   };
 
   return (
     <div
       className={`
          shrink-0 bg-white rounded-lg border transition-all
-        ${dragOverColumn && isDragOver
-          ? "border-primary border-2 bg-primary/5"
-          : "border-gray-200"
+        ${
+          dragOverColumn && isDragOver
+            ? "border-primary border-2 bg-primary/5"
+            : "border-gray-200"
         }
       `}
       onDragOver={handleDragOver}
@@ -104,7 +120,9 @@ export default function WeekColumn({
           <div className="mt-2 px-2 py-1 bg-orange-50 border border-orange-200 rounded-md">
             <div className="flex items-center gap-1 text-xs text-orange-800">
               <AlertTriangle className="w-3 h-3 shrink-0" />
-              <span>{t("holidayWarning", { count: week.lostTeachingDays })}</span>
+              <span>
+                {t("holidayWarning", { count: week.lostTeachingDays })}
+              </span>
             </div>
           </div>
         )}

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildContentPayload,
   isFileUploadDisabled,
+  learningContentTypeOptions,
   resolveLessonContentFileId,
   validateLearningContentFile,
   type ContentForm,
@@ -57,6 +58,15 @@ describe("learning content files", () => {
   it("disables file upload in read-only mode", () => {
     expect(isFileUploadDisabled(true, true)).toBe(true);
     expect(isFileUploadDisabled(false, true)).toBe(false);
+  });
+
+  it("disables only the FILE content option without upload permission", () => {
+    expect(learningContentTypeOptions(false)).toEqual([
+      { value: "TEXT", label: "TEXT" },
+      { value: "FILE", label: "FILE", disabled: true },
+      { value: "VIDEO_LINK", label: "VIDEO_LINK" },
+      { value: "EXTERNAL_LINK", label: "EXTERNAL_LINK" },
+    ]);
   });
 
   it.each(["TEXT", "VIDEO_LINK", "EXTERNAL_LINK"] as const)(

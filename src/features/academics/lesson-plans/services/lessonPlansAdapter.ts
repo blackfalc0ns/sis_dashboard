@@ -1,86 +1,56 @@
-import type {
-  LessonPlan,
-  LessonPlanItem,
-  LessonPlanSummary,
-} from "@/features/academics/lesson-plans/services/lessonPlansService";
-
-export interface LessonPlanItemUpsertPayload {
-  termId: string;
-  sectionId: string;
-  subjectId: string;
-  classroomId?: string;
-  teacherId?: string;
-  weekIndex: number;
-  lessonId: string;
-  unitId?: string;
-  status?: "PLANNED" | "IN_PROGRESS" | "DONE" | "SKIPPED";
-  order?: number;
-  notesAr?: string;
-  notesEn?: string;
-}
+import type * as Types from "./lessonPlansBackendTypes";
 
 export interface LessonPlansAdapter {
-  fetchLessonPlans(
-    termId: string,
-    sectionId: string,
-    subjectId: string,
-    classroomId?: string
-  ): Promise<LessonPlan[]>;
-  upsertLessonPlanItem(payload: LessonPlanItemUpsertPayload): Promise<LessonPlanItem>;
-  deleteLessonPlanItem(
-    termId: string,
-    sectionId: string,
-    subjectId: string,
-    itemId: string,
-    classroomId?: string
-  ): Promise<void>;
-  reorderLessonPlanItems(
-    termId: string,
-    sectionId: string,
-    subjectId: string,
-    weekIndex: number,
-    orderedItemIds: string[],
-    classroomId?: string
-  ): Promise<void>;
+  listLessonPlans(
+    filters: Types.LessonPlanListFilters,
+  ): Promise<Types.LessonPlan[]>;
+  createLessonPlan(
+    payload: Types.CreateLessonPlanRequest,
+  ): Promise<Types.LessonPlan>;
+  getLessonPlan(lessonPlanId: string): Promise<Types.LessonPlan>;
+  updateLessonPlan(
+    lessonPlanId: string,
+    payload: Types.UpdateLessonPlanRequest,
+  ): Promise<Types.LessonPlan>;
+  activateLessonPlan(lessonPlanId: string): Promise<Types.LessonPlan>;
+  archiveLessonPlan(lessonPlanId: string): Promise<Types.LessonPlan>;
+  deleteLessonPlan(lessonPlanId: string): Promise<Types.DeleteResponse>;
+  listWeeks(query: Types.LessonPlanWeeksQuery): Promise<Types.WeekInfo[]>;
+  getSummary(
+    query: Types.LessonPlanSummaryQuery,
+  ): Promise<Types.LessonPlanSummary>;
+  getValidation(
+    query: Types.LessonPlanValidationQuery,
+  ): Promise<Types.LessonPlanValidationResponseDto>;
+  autoPlan(
+    payload: Types.AutoPlanLessonPlanRequest,
+  ): Promise<Types.AutoPlanLessonPlanResponseDto>;
   moveLessonPlanItem(
-    termId: string,
-    sectionId: string,
-    subjectId: string,
     itemId: string,
-    toWeekIndex: number,
-    toOrder?: number,
-    classroomId?: string
-  ): Promise<void>;
-  updateLessonPlanItemStatus(
-    termId: string,
-    sectionId: string,
-    subjectId: string,
-    itemId: string,
-    status: "PLANNED" | "IN_PROGRESS" | "DONE" | "SKIPPED",
-    classroomId?: string
-  ): Promise<void>;
-  updateLessonPlanItemNotes(
-    termId: string,
-    sectionId: string,
-    subjectId: string,
-    itemId: string,
-    notesAr?: string,
-    notesEn?: string,
-    classroomId?: string
-  ): Promise<void>;
-  getLessonPlanSummary(
-    termId: string,
-    sectionId: string,
-    subjectId: string,
-    classroomId?: string
-  ): Promise<LessonPlanSummary>;
-  bulkAutoPlan(
-    termId: string,
-    sectionId: string,
-    subjectId: string,
-    classroomId: string | undefined,
-    teacherId: string | undefined,
-    lessonIds: string[],
-    weekCount: number
-  ): Promise<void>;
+    payload: Types.MoveLessonPlanItemRequest,
+  ): Promise<Types.LessonPlanItem>;
+  createLessonPlanItem(
+    command: Types.CreateLessonPlanItemCommand,
+  ): Promise<Types.LessonPlanItem>;
+  updateLessonPlanItem(
+    command: Types.UpdateLessonPlanItemCommand,
+  ): Promise<Types.LessonPlanItem>;
+  reorderLessonPlanItem(
+    command: Types.ReorderLessonPlanItemCommand,
+  ): Promise<Types.LessonPlanItem>;
+  startLessonPlanItem(
+    command: Types.LessonPlanItemActionCommand,
+  ): Promise<Types.LessonPlanItem>;
+  completeLessonPlanItem(
+    command: Types.LessonPlanItemActionCommand,
+  ): Promise<Types.LessonPlanItem>;
+  skipLessonPlanItem(
+    command: Types.LessonPlanItemActionCommand,
+  ): Promise<Types.LessonPlanItem>;
+  cancelLessonPlanItem(
+    command: Types.LessonPlanItemActionCommand,
+  ): Promise<Types.LessonPlanItem>;
+  deleteLessonPlanItem(
+    command: Types.DeleteLessonPlanItemCommand,
+  ): Promise<Types.DeleteResponse>;
 }

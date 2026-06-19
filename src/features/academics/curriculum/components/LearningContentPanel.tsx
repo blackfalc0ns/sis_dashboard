@@ -6,15 +6,13 @@ import { X, FileText, Link as LinkIcon, Trash2, ArrowUp, ArrowDown, Download } f
 import {
   Drawer,
   IconButton,
-  MenuItem,
-  Select as MuiSelect,
-  Tooltip,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import TextArea from "@/components/ui/input/TextArea";
+import Select from "@/components/ui/input/Select";
 import {
   createLessonContent,
   deleteLessonContent,
@@ -31,6 +29,7 @@ import {
   buildContentPayload,
   LEARNING_CONTENT_FILE_ACCEPT,
   isFileUploadDisabled,
+  learningContentTypeOptions,
   resolveLessonContentFileId,
   validateLearningContentFile,
   type ContentForm,
@@ -260,12 +259,13 @@ export default function LearningContentPanel({
               required
             />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("item_type")}</label>
-              <MuiSelect
+            <Select
+                label={t("item_type")}
                 value={form.type}
-                onChange={(event) => {
-                  const type = event.target.value as LessonContentType;
+                options={learningContentTypeOptions(canUploadFiles)}
+                helperText={!canUploadFiles ? t("file_permission_tooltip") : undefined}
+                onChange={(value) => {
+                  const type = value as LessonContentType;
                   setSelectedFile(undefined);
                   setExistingFileId(null);
                   setExistingFileName(null);
@@ -278,19 +278,8 @@ export default function LearningContentPanel({
                   });
                 }}
                 disabled={isReadOnly}
-                size="small"
-                fullWidth
-              >
-                <MenuItem value="TEXT">TEXT</MenuItem>
-                <MenuItem value="FILE" disabled={!canUploadFiles}>
-                  <Tooltip title={!canUploadFiles ? t("file_permission_tooltip") : ""}>
-                    <span>FILE</span>
-                  </Tooltip>
-                </MenuItem>
-                <MenuItem value="VIDEO_LINK">VIDEO_LINK</MenuItem>
-                <MenuItem value="EXTERNAL_LINK">EXTERNAL_LINK</MenuItem>
-              </MuiSelect>
-            </div>
+                selectSize="sm"
+              />
 
             {form.type === "TEXT" && (
               <TextArea

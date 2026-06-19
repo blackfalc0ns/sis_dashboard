@@ -3658,6 +3658,7 @@
       }
     },
     "curriculum": {
+      "loading_curriculum": "جارٍ تحميل المنهج...",
       "readonly_banner": {
         "message": "هذا الترم مغلق. المنهج للعرض فقط."
       },
@@ -3672,6 +3673,7 @@
         "carry_over": "نقل",
         "activate_curriculum": "تفعيل المنهج",
         "archive_curriculum": "أرشفة المنهج",
+        "archive_confirm": "هل أنت متأكد من أرشفة هذا المنهج؟ سيصبح للقراءة فقط.",
         "delete_curriculum": "حذف المنهج",
         "delete_confirm": "هل أنت متأكد من حذف هذا المنهج؟ لا يمكن التراجع عن هذا الإجراء."
       },
@@ -4851,7 +4853,9 @@
         "PLANNED": "مخطط",
         "IN_PROGRESS": "قيد التنفيذ",
         "DONE": "منتهي",
-        "SKIPPED": "متخطى"
+        "SKIPPED": "متخطى",
+        "CANCELLED": "ملغى",
+        "UNKNOWN": "غير معروف"
       },
       "actions": {
         "addToWeek": "إضافة إلى الأسبوع",
@@ -4862,6 +4866,7 @@
         "markInProgress": "وضع علامة قيد التنفيذ",
         "markDone": "وضع علامة منتهي",
         "skip": "تخطي",
+        "cancel": "إلغاء",
         "markPlanned": "وضع علامة مخطط",
         "validate": "التحقق",
         "autoPlan": "تخطيط تلقائي",
@@ -4869,12 +4874,15 @@
       },
       "summary": {
         "title": "ملخص التقدم",
+        "plans": "الخطط",
         "planned": "مخطط",
         "inProgress": "قيد التنفيذ",
         "done": "منتهي",
         "skipped": "متخطى",
         "completion": "الإنجاز",
-        "totalLessons": "إجمالي الدروس"
+        "totalLessons": "إجمالي الدروس",
+        "unplanned": "دروس غير مخططة",
+        "coverage": "تغطية المنهج"
       },
       "warnings": {
         "holidayWeek": "يحتوي هذا الأسبوع على عطلات",

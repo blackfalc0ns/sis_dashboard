@@ -1,108 +1,113 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Lesson } from "@/features/academics/curriculum/services/curriculumService";
-import { upsertLessonPlanItem } from "@/features/academics/lesson-plans/services/lessonPlansService";
+import type { Lesson } from "@/features/academics/curriculum/services/curriculumService";
+import {
+  createLessonPlan,
+  createLessonPlanItem,
+  type LessonPlan,
+  type WeekInfo,
+} from "@/features/academics/lesson-plans/services/lessonPlansService";
+import { lessonPlansUiError } from "@/features/academics/lesson-plans/services/lessonPlansErrors";
 
-interface UseLessonPlanMutationsParams {
+interface Params {
+  academicYearId: string;
   termId: string;
-  selectedSectionId: string;
   selectedSubjectId: string;
   selectedClassroomId: string;
   assignedTeacherId: string;
+  teacherSubjectAllocationId: string;
+  curriculumId: string;
   lessons: Lesson[];
+  plans: LessonPlan[];
+  weeks: WeekInfo[];
   refreshPlans: () => Promise<void>;
   showSuccess: (message: string) => void;
   showError: (message: string) => void;
   onLessonSelected?: () => void;
 }
 
-export function useLessonPlanMutations({
-  termId,
-  selectedSectionId,
-  selectedSubjectId,
-  selectedClassroomId,
-  assignedTeacherId,
-  lessons,
-  refreshPlans,
-  showSuccess,
-  showError,
-  onLessonSelected,
-}: UseLessonPlanMutationsParams) {
+export function useLessonPlanMutations(params: Params) {
   const [addLessonDialog, setAddLessonDialog] = useState<{
     isOpen: boolean;
     lesson: Lesson | null;
     preselectedWeekIndex?: number;
   }>({ isOpen: false, lesson: null });
-
-  const handleSelectLessonFromLibrary = useCallback((lesson: Lesson) => {
-    setAddLessonDialog((prev) => ({
-      isOpen: true,
-      lesson,
-      preselectedWeekIndex: prev.preselectedWeekIndex,
-    }));
-    onLessonSelected?.();
-  }, [onLessonSelected]);
-
-  const handleAddLessonFromWeek = useCallback((weekIndex: number) => {
-    setAddLessonDialog((prev) => ({ ...prev, preselectedWeekIndex: weekIndex }));
-  }, []);
-
-  const closeAddLessonDialog = useCallback(() => {
-    setAddLessonDialog({ isOpen: false, lesson: null });
-  }, []);
-
+  const handleSelectLessonFromLibrary = useCallback(
+    (lesson: Lesson) => {
+      setAddLessonDialog((current) => ({
+        isOpen: true,
+        lesson,
+        preselectedWeekIndex: current.preselectedWeekIndex,
+      }));
+      params.onLessonSelected?.();
+    },
+    [params],
+  );
+  const handleAddLessonFromWeek = useCallback(
+    (weekIndex: number) =>
+      setAddLessonDialog((current) => ({
+        ...current,
+        preselectedWeekIndex: weekIndex,
+      })),
+    [],
+  );
+  const closeAddLessonDialog = useCallback(
+    () => setAddLessonDialog({ isOpen: false, lesson: null }),
+    [],
+  );
   const handleConfirmAddLesson = useCallback(
     async (lessonId: string, weekIndex: number) => {
-      if (!termId || !selectedSectionId || !selectedSubjectId) {
-        console.error("Missing required IDs:", {
-          termId,
-          selectedSectionId,
-          selectedSubjectId,
-        });
+      const lesson = params.lessons.find(
+        (candidate) => candidate.id === lessonId,
+      );
+      const week = params.weeks.find(
+        (candidate) => candidate.weekIndex === weekIndex,
+      );
+      if (
+        !lesson ||
+        !week ||
+        !params.teacherSubjectAllocationId ||
+        !params.curriculumId
+      ) {
+        params.showError("Missing lesson plan context");
         return;
       }
-
       try {
-        const lesson = lessons.find((item) => item.id === lessonId);
-        if (!lesson) {
-          console.error("Lesson not found:", lessonId);
-          return;
-        }
-
-        await upsertLessonPlanItem({
-          termId,
-          sectionId: selectedSectionId,
-          subjectId: selectedSubjectId,
-          classroomId: selectedClassroomId || undefined,
-          teacherId: assignedTeacherId || undefined,
-          weekIndex,
-          lessonId: lesson.id,
-          unitId: lesson.unitId,
-          status: "PLANNED",
+        let plan = params.plans.find(
+          (candidate) => candidate.weekIndex === weekIndex,
+        );
+        if (!plan)
+          plan = await createLessonPlan({
+            academicYearId: params.academicYearId,
+            termId: params.termId,
+            teacherSubjectAllocationId: params.teacherSubjectAllocationId,
+            teacherUserId: params.assignedTeacherId || undefined,
+            classroomId: params.selectedClassroomId || undefined,
+            subjectId: params.selectedSubjectId || undefined,
+            curriculumId: params.curriculumId,
+            title: `${lesson.title} — ${week.startDate}`,
+            weekStartDate: week.startDate,
+            weekEndDate: week.endDate,
+          });
+        await createLessonPlanItem({
+          lessonPlanId: plan.id,
+          payload: {
+            unitId: lesson.unitId,
+            lessonId: lesson.id,
+            plannedDate: week.startDate,
+            sortOrder: plan.items.length,
+          },
         });
-
-        await refreshPlans();
-        showSuccess("Saved successfully");
+        await params.refreshPlans();
+        params.showSuccess("Saved successfully");
         setAddLessonDialog({ isOpen: false, lesson: null });
       } catch (error) {
-        console.error("Failed to add lesson:", error);
-        showError("Failed to save");
+        params.showError(lessonPlansUiError(error));
       }
     },
-    [
-      assignedTeacherId,
-      lessons,
-      refreshPlans,
-      selectedSectionId,
-      selectedClassroomId,
-      selectedSubjectId,
-      showError,
-      showSuccess,
-      termId,
-    ]
+    [params],
   );
-
   return {
     addLessonDialog,
     handleSelectLessonFromLibrary,

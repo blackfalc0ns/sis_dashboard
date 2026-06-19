@@ -4,7 +4,10 @@ import { useTranslations, useLocale } from "next-intl";
 import { Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
 import { ChevronDown, Calendar, AlertTriangle, Plus } from "lucide-react";
 import { Lesson } from "@/features/academics/curriculum/services/curriculumService";
-import { LessonPlan, WeekInfo } from "@/features/academics/lesson-plans/services/lessonPlansService";
+import {
+  LessonPlan,
+  WeekInfo,
+} from "@/features/academics/lesson-plans/services/lessonPlansService";
 import LessonPlanItemCard from "./LessonPlanItemCard";
 
 interface WeeksBoardMobileProps {
@@ -12,7 +15,10 @@ interface WeeksBoardMobileProps {
   plans: LessonPlan[];
   lessons: Lesson[];
   isReadOnly: boolean;
-  onStatusChange: (itemId: string, status: "PLANNED" | "IN_PROGRESS" | "DONE" | "SKIPPED") => void;
+  onStatusChange: (
+    itemId: string,
+    status: "IN_PROGRESS" | "DONE" | "SKIPPED" | "CANCELLED",
+  ) => void;
   onEditNotes: (itemId: string, notesAr?: string, notesEn?: string) => void;
   onRemove: (itemId: string) => void;
   onAddLesson: (weekIndex: number) => void;
@@ -34,14 +40,19 @@ export default function WeeksBoardMobile({
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(date);
+    return new Intl.DateTimeFormat(locale, {
+      month: "short",
+      day: "numeric",
+    }).format(date);
   };
 
   return (
     <div className="space-y-2">
       {weeks.map((week) => {
         const weekPlan = plans.find((p) => p.weekIndex === week.weekIndex);
-        const items = weekPlan ? [...weekPlan.items].sort((a, b) => a.order - b.order) : [];
+        const items = weekPlan
+          ? [...weekPlan.items].sort((a, b) => a.order - b.order)
+          : [];
 
         return (
           <Accordion
@@ -72,11 +83,11 @@ export default function WeeksBoardMobile({
                   </h4>
                   <div className="flex items-center gap-2">
                     {week.hasHolidays && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-50 border border-orange-200 rounded text-xs text-orange-800">
-                          <AlertTriangle className="w-3 h-3" />
-                          {week.lostTeachingDays}
-                        </span>
-                      )}
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-50 border border-orange-200 rounded text-xs text-orange-800">
+                        <AlertTriangle className="w-3 h-3" />
+                        {week.lostTeachingDays}
+                      </span>
+                    )}
                     <span className="px-2 py-0.5 text-xs font-medium text-primary border border-primary rounded-full">
                       {items.length}
                     </span>

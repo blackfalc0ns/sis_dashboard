@@ -1,18 +1,23 @@
 "use client";
 
 import { useMemo } from "react";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { MoreVertical, GripVertical, FileText } from "lucide-react";
 import { Lesson } from "@/features/academics/curriculum/services/curriculumService";
 import { LessonPlanItem } from "@/features/academics/lesson-plans/services/lessonPlansService";
-import DropdownMenu, { DropdownItem } from "@/components/ui/dropdown/DropdownMenu";
+import DropdownMenu, {
+  DropdownItem,
+} from "@/components/ui/dropdown/DropdownMenu";
 
 interface LessonPlanItemCardProps {
   item: LessonPlanItem;
   lesson: Lesson;
   onDragStart: () => void;
   onDragEnd: () => void;
-  onStatusChange: (itemId: string, status: "PLANNED" | "IN_PROGRESS" | "DONE" | "SKIPPED") => void;
+  onStatusChange: (
+    itemId: string,
+    status: "IN_PROGRESS" | "DONE" | "SKIPPED" | "CANCELLED",
+  ) => void;
   onEditNotes: (itemId: string, notesAr?: string, notesEn?: string) => void;
   onRemove: (itemId: string) => void;
   isReadOnly: boolean;
@@ -29,9 +34,6 @@ export default function LessonPlanItemCard({
   isReadOnly,
 }: LessonPlanItemCardProps) {
   const t = useTranslations("academics.lessonPlans");
-  const locale = useLocale();
-  const isRTL = locale === "ar";
-
   const getStatusStyles = (status: string) => {
     switch (status) {
       case "PLANNED":
@@ -77,11 +79,11 @@ export default function LessonPlanItemCard({
       });
     }
 
-    if (item.status !== "PLANNED") {
+    if (item.status !== "CANCELLED") {
       items.push({
-        label: t("actions.markPlanned"),
-        value: "planned",
-        onClick: () => onStatusChange(item.id, "PLANNED"),
+        label: t("actions.cancel"),
+        value: "cancel",
+        onClick: () => onStatusChange(item.id, "CANCELLED"),
       });
     }
 
@@ -98,7 +100,16 @@ export default function LessonPlanItemCard({
     });
 
     return items;
-  }, [item.status, item.id, item.notesAr, item.notesEn, t, onStatusChange, onEditNotes, onRemove]);
+  }, [
+    item.status,
+    item.id,
+    item.notesAr,
+    item.notesEn,
+    t,
+    onStatusChange,
+    onEditNotes,
+    onRemove,
+  ]);
 
   return (
     <div
@@ -107,9 +118,10 @@ export default function LessonPlanItemCard({
       onDragEnd={onDragEnd}
       className={`
         p-3 rounded-lg border bg-white transition-all
-        ${isReadOnly
-          ? "border-gray-200 cursor-default"
-          : "border-gray-200 hover:border-primary hover:shadow-sm cursor-grab active:cursor-grabbing"
+        ${
+          isReadOnly
+            ? "border-gray-200 cursor-default"
+            : "border-gray-200 hover:border-primary hover:shadow-sm cursor-grab active:cursor-grabbing"
         }
       `}
     >
@@ -117,19 +129,19 @@ export default function LessonPlanItemCard({
         {!isReadOnly && (
           <GripVertical className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
         )}
-        
+
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">
             {lesson.title}
           </p>
-          
+
           <div className="flex items-center gap-2 mt-2">
-            <span className={`px-2 py-0.5 text-[0.65rem] font-medium border rounded ${getStatusStyles(item.status)}`}>
+            <span
+              className={`px-2 py-0.5 text-[0.65rem] font-medium border rounded ${getStatusStyles(item.status)}`}
+            >
               {t(`status.${item.status}`)}
             </span>
-            {hasNotes && (
-              <FileText className="w-3 h-3 text-gray-400" />
-            )}
+            {hasNotes && <FileText className="w-3 h-3 text-gray-400" />}
           </div>
         </div>
 

@@ -1,10 +1,17 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useMediaQuery, useTheme } from "@mui/material";
-import { Lesson, Unit } from "@/features/academics/curriculum/services/curriculumService";
-import { LessonPlan, WeekInfo, LessonPlanSummary } from "@/features/academics/lesson-plans/services/lessonPlansService";
+import {
+  Lesson,
+  Unit,
+} from "@/features/academics/curriculum/services/curriculumService";
+import {
+  LessonPlan,
+  WeekInfo,
+  LessonPlanSummary,
+} from "@/features/academics/lesson-plans/services/lessonPlansService";
 import LessonLibrary from "./LessonLibrary";
 import WeeksBoardDesktop from "./WeeksBoardDesktop";
 import WeeksBoardMobile from "./WeeksBoardMobile";
@@ -13,16 +20,22 @@ import NotesDialog from "./NotesDialog";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useToast } from "@/components/ui/toast/Toast";
 import {
-  upsertLessonPlanItem,
+  createLessonPlan,
+  createLessonPlanItem,
   deleteLessonPlanItem,
   moveLessonPlanItem,
-  updateLessonPlanItemStatus,
-  updateLessonPlanItemNotes,
+  updateLessonPlanItem,
+  startLessonPlanItem,
+  completeLessonPlanItem,
+  skipLessonPlanItem,
+  cancelLessonPlanItem,
 } from "@/features/academics/lesson-plans/services/lessonPlansService";
 
 interface LessonPlansBoardProps {
+  academicYearId: string;
   termId: string;
-  sectionId: string;
+  teacherSubjectAllocationId: string;
+  curriculumId: string;
   subjectId: string;
   classroomId: string;
   teacherId: string;
@@ -42,8 +55,10 @@ interface LessonPlansBoardProps {
 
 export default function LessonPlansBoard({
   termId,
-  sectionId,
+  academicYearId,
   subjectId,
+  teacherSubjectAllocationId,
+  curriculumId,
   classroomId,
   teacherId,
   lessons,
@@ -60,6 +75,7 @@ export default function LessonPlansBoard({
   onAddLessonMobile,
 }: LessonPlansBoardProps) {
   const t = useTranslations("academics.lessonPlans");
+  const locale = useLocale();
   const { showError, showSuccess } = useToast();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -89,160 +105,189 @@ export default function LessonPlansBoard({
   } | null>(null);
 
   // Handle drag from library
-  const handleDragStartLesson = useCallback((lesson: Lesson) => {
-    if (isReadOnly) return;
-    setDraggedLesson(lesson);
-  }, [isReadOnly]);
+  const handleDragStartLesson = useCallback(
+    (lesson: Lesson) => {
+      if (isReadOnly) return;
+      setDraggedLesson(lesson);
+    },
+    [isReadOnly],
+  );
 
   const handleDragEndLesson = useCallback(() => {
     setDraggedLesson(null);
   }, []);
 
   // Handle drag from week
-  const handleDragStartItem = useCallback((itemId: string, weekIndex: number) => {
-    if (isReadOnly) return;
-    setDraggedItem({ itemId, fromWeekIndex: weekIndex });
-  }, [isReadOnly]);
+  const handleDragStartItem = useCallback(
+    (itemId: string, weekIndex: number) => {
+      if (isReadOnly) return;
+      setDraggedItem({ itemId, fromWeekIndex: weekIndex });
+    },
+    [isReadOnly],
+  );
 
   const handleDragEndItem = useCallback(() => {
     setDraggedItem(null);
   }, []);
 
   // Handle drop on week
-  const handleDropOnWeek = useCallback(async (weekIndex: number) => {
-    if (isReadOnly || isUpdating) return;
+  const handleDropOnWeek = useCallback(
+    async (weekIndex: number) => {
+      if (isReadOnly || isUpdating) return;
 
-    setIsUpdating(true);
-    try {
-      if (draggedLesson) {
-        // Adding new lesson from library
-        await upsertLessonPlanItem({
-          termId,
-          sectionId,
-          subjectId,
-          classroomId: classroomId || undefined,
-          teacherId,
-          weekIndex,
-          lessonId: draggedLesson.id,
-          unitId: draggedLesson.unitId,
-          status: "PLANNED",
-        });
-        setDraggedLesson(null); // Clear drag state immediately
-        await onUpdate(); // Wait for update to complete
-        showSuccess("Saved successfully");
-      } else if (draggedItem) {
-        // Moving existing item
-        if (draggedItem.fromWeekIndex !== weekIndex) {
-          await moveLessonPlanItem(
-            termId,
-            sectionId,
-            subjectId,
-            draggedItem.itemId,
-            weekIndex,
-            undefined,
-            classroomId || undefined
+      setIsUpdating(true);
+      try {
+        if (draggedLesson) {
+          // Adding new lesson from library
+          const week = weeks.find(
+            (candidate) => candidate.weekIndex === weekIndex,
           );
-          setDraggedItem(null); // Clear drag state immediately
+          if (!week) return;
+          let plan = plans.find(
+            (candidate) => candidate.weekIndex === weekIndex,
+          );
+          if (!plan)
+            plan = await createLessonPlan({
+              academicYearId,
+              termId,
+              teacherSubjectAllocationId,
+              teacherUserId: teacherId || undefined,
+              classroomId: classroomId || undefined,
+              subjectId,
+              curriculumId,
+              title: `${draggedLesson.title} — ${week.startDate}`,
+              weekStartDate: week.startDate,
+              weekEndDate: week.endDate,
+            });
+          await createLessonPlanItem({
+            lessonPlanId: plan.id,
+            payload: {
+              unitId: draggedLesson.unitId,
+              lessonId: draggedLesson.id,
+              plannedDate: week.startDate,
+              sortOrder: plan.items.length,
+            },
+          });
+          setDraggedLesson(null); // Clear drag state immediately
           await onUpdate(); // Wait for update to complete
           showSuccess("Saved successfully");
-        } else {
-          setDraggedItem(null); // Clear drag state even if not moved
+        } else if (draggedItem) {
+          // Moving existing item
+          if (draggedItem.fromWeekIndex !== weekIndex) {
+            await moveLessonPlanItem(draggedItem.itemId, { weekIndex });
+            setDraggedItem(null); // Clear drag state immediately
+            await onUpdate(); // Wait for update to complete
+            showSuccess("Saved successfully");
+          } else {
+            setDraggedItem(null); // Clear drag state even if not moved
+          }
         }
+      } catch (error) {
+        console.error("Failed to drop:", error);
+        showError("Failed to save");
+        // Clear drag state on error too
+        setDraggedLesson(null);
+        setDraggedItem(null);
+      } finally {
+        setIsUpdating(false);
       }
-    } catch (error) {
-      console.error("Failed to drop:", error);
-      showError("Failed to save");
-      // Clear drag state on error too
-      setDraggedLesson(null);
-      setDraggedItem(null);
-    } finally {
-      setIsUpdating(false);
-    }
-  }, [
-    isReadOnly,
-    isUpdating,
-    draggedLesson,
-    draggedItem,
-    termId,
-    sectionId,
-    subjectId,
-    classroomId,
-    teacherId,
-    showSuccess,
-    showError,
-    onUpdate,
-  ]);
+    },
+    [
+      isReadOnly,
+      isUpdating,
+      draggedLesson,
+      draggedItem,
+      termId,
+      academicYearId,
+      subjectId,
+      classroomId,
+      teacherId,
+      teacherSubjectAllocationId,
+      curriculumId,
+      plans,
+      weeks,
+      showSuccess,
+      showError,
+      onUpdate,
+    ],
+  );
 
   // Handle status change
-  const handleStatusChange = useCallback(async (
-    itemId: string,
-    status: "PLANNED" | "IN_PROGRESS" | "DONE" | "SKIPPED"
-  ) => {
-    if (isReadOnly || isUpdating) return;
+  const handleStatusChange = useCallback(
+    async (
+      itemId: string,
+      status: "IN_PROGRESS" | "DONE" | "SKIPPED" | "CANCELLED",
+    ) => {
+      if (isReadOnly || isUpdating) return;
 
-    setIsUpdating(true);
-    try {
-      await updateLessonPlanItemStatus(
-        termId,
-        sectionId,
-        subjectId,
-        itemId,
-        status,
-        classroomId || undefined
-      );
-      await onUpdate(); // Wait for update to complete
-      showSuccess("Saved successfully");
-    } catch (error) {
-      console.error("Failed to update status:", error);
-      showError("Failed to save");
-    } finally {
-      setIsUpdating(false);
-    }
-  }, [isReadOnly, isUpdating, termId, sectionId, subjectId, classroomId, showSuccess, showError, onUpdate]);
+      setIsUpdating(true);
+      try {
+        const plan = plans.find((candidate) =>
+          candidate.items.some((item) => item.id === itemId),
+        );
+        if (!plan) throw new Error("Lesson plan item was not found");
+        const command = { lessonPlanId: plan.id, itemId };
+        if (status === "IN_PROGRESS") await startLessonPlanItem(command);
+        if (status === "DONE") await completeLessonPlanItem(command);
+        if (status === "SKIPPED") await skipLessonPlanItem(command);
+        if (status === "CANCELLED") await cancelLessonPlanItem(command);
+        await onUpdate(); // Wait for update to complete
+        showSuccess("Saved successfully");
+      } catch (error) {
+        console.error("Failed to update status:", error);
+        showError("Failed to save");
+      } finally {
+        setIsUpdating(false);
+      }
+    },
+    [isReadOnly, isUpdating, plans, showSuccess, showError, onUpdate],
+  );
 
   // Handle edit notes
-  const handleEditNotes = useCallback((
-    itemId: string,
-    notesAr?: string,
-    notesEn?: string
-  ) => {
-    setNotesDialog({ isOpen: true, itemId, notesAr, notesEn });
-  }, []);
+  const handleEditNotes = useCallback(
+    (itemId: string, notesAr?: string, notesEn?: string) => {
+      setNotesDialog({ isOpen: true, itemId, notesAr, notesEn });
+    },
+    [],
+  );
 
-  const handleSaveNotes = useCallback(async (notesAr: string, notesEn: string) => {
-    if (isUpdating) return;
+  const handleSaveNotes = useCallback(
+    async (notesAr: string, notesEn: string) => {
+      if (isUpdating) return;
 
-    setIsUpdating(true);
-    try {
-      await updateLessonPlanItemNotes(
-        termId,
-        sectionId,
-        subjectId,
-        notesDialog.itemId,
-        notesAr,
-        notesEn,
-        classroomId || undefined
-      );
-      setNotesDialog({ isOpen: false, itemId: "" });
-      await onUpdate(); // Wait for update to complete
-      showSuccess("Saved successfully");
-    } catch (error) {
-      console.error("Failed to save notes:", error);
-      showError("Failed to save");
-    } finally {
-      setIsUpdating(false);
-    }
-  }, [
-    isUpdating,
-    termId,
-    sectionId,
-    subjectId,
-    classroomId,
-    notesDialog.itemId,
-    showSuccess,
-    showError,
-    onUpdate,
-  ]);
+      setIsUpdating(true);
+      try {
+        const plan = plans.find((candidate) =>
+          candidate.items.some((item) => item.id === notesDialog.itemId),
+        );
+        if (!plan) throw new Error("Lesson plan item was not found");
+        const notes =
+          (locale === "ar" ? notesAr || notesEn : notesEn || notesAr) || null;
+        await updateLessonPlanItem({
+          lessonPlanId: plan.id,
+          itemId: notesDialog.itemId,
+          payload: { notes },
+        });
+        setNotesDialog({ isOpen: false, itemId: "" });
+        await onUpdate(); // Wait for update to complete
+        showSuccess("Saved successfully");
+      } catch (error) {
+        console.error("Failed to save notes:", error);
+        showError("Failed to save");
+      } finally {
+        setIsUpdating(false);
+      }
+    },
+    [
+      isUpdating,
+      locale,
+      plans,
+      notesDialog.itemId,
+      showSuccess,
+      showError,
+      onUpdate,
+    ],
+  );
 
   // Handle remove
   const handleRemove = useCallback((itemId: string) => {
@@ -254,13 +299,14 @@ export default function LessonPlansBoard({
 
     setIsUpdating(true);
     try {
-      await deleteLessonPlanItem(
-        termId,
-        sectionId,
-        subjectId,
-        confirmDialog.itemId,
-        classroomId || undefined
+      const plan = plans.find((candidate) =>
+        candidate.items.some((item) => item.id === confirmDialog.itemId),
       );
+      if (!plan) throw new Error("Lesson plan item was not found");
+      await deleteLessonPlanItem({
+        lessonPlanId: plan.id,
+        itemId: confirmDialog.itemId,
+      });
       setConfirmDialog({ isOpen: false, type: null });
       await onUpdate(); // Wait for update to complete
       showSuccess("Saved successfully");
@@ -272,10 +318,7 @@ export default function LessonPlansBoard({
     }
   }, [
     isUpdating,
-    termId,
-    sectionId,
-    subjectId,
-    classroomId,
+    plans,
     confirmDialog.itemId,
     showSuccess,
     showError,
@@ -291,7 +334,7 @@ export default function LessonPlansBoard({
       });
     });
     // Sort to ensure consistent hash
-    return allLessonIds.sort().join(',');
+    return allLessonIds.sort().join(",");
   }, [plans]);
 
   return (

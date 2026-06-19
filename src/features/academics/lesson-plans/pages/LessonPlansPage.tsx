@@ -3,7 +3,13 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Alert, AlertTitle, CircularProgress, useMediaQuery, useTheme } from "@mui/material";
+import {
+  Alert,
+  AlertTitle,
+  CircularProgress,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import { Download } from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
@@ -20,6 +26,7 @@ import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/Aca
 import { useLessonPlansData } from "../hooks/useLessonPlansData";
 import { useLessonPlansFilters } from "../hooks/useLessonPlansFilters";
 import { useLessonPlanMutations } from "../hooks/useLessonPlanMutations";
+import { canEditLessonPlans } from "./lessonPlansPageState";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
   type AcademicsExportFormat,
@@ -42,14 +49,8 @@ export default function LessonPlansPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const { hasPermission } = usePermissions();
   const canManageLessonPlans = hasPermission("academics.lesson_plans.manage");
-  const {
-    academicYearId,
-    termId,
-    termStatus,
-    terms,
-    isInitializing,
-  } = useAcademicYearTermLayoutContext();
-  const isReadOnly = termStatus === "closed" || !canManageLessonPlans;
+  const { academicYearId, termId, termStatus, isInitializing } =
+    useAcademicYearTermLayoutContext();
   const handleLoadError = useCallback(() => {
     showError(tCommon("error"));
   }, [showError, tCommon]);
@@ -61,7 +62,7 @@ export default function LessonPlansPage() {
       classroomId: searchParams.get("classroom") || "",
       subjectId: searchParams.get("subject") || "",
     }),
-    [searchParams]
+    [searchParams],
   );
   const {
     selectedStageId,
@@ -86,9 +87,11 @@ export default function LessonPlansPage() {
       search: searchParams.get("librarySearch") || "",
       unitId: searchParams.get("libraryUnit") || "",
     }),
-    [searchParams]
+    [searchParams],
   );
-  const [librarySearchInput, setLibrarySearchInput] = useState(libraryQueryState.search);
+  const [librarySearchInput, setLibrarySearchInput] = useState(
+    libraryQueryState.search,
+  );
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setLibrarySearchInput(libraryQueryState.search);
@@ -107,6 +110,8 @@ export default function LessonPlansPage() {
     weeks,
     summary,
     assignedTeacherId,
+    teacherSubjectAllocationId,
+    curriculumId,
     resolvedClassroomId,
     loading,
     plansLoading,
@@ -115,24 +120,28 @@ export default function LessonPlansPage() {
     academicYearId,
     termId,
     isInitializing,
-    terms,
     selectedGradeId,
     selectedSectionId,
     selectedClassroomId,
     selectedSubjectId,
     onLoadError: handleLoadError,
   });
+  const isReadOnly = !canEditLessonPlans({
+    canManage: canManageLessonPlans,
+    termStatus,
+    plans,
+  });
   const filteredGrades = useMemo(
     () => getFilteredGrades(grades),
-    [getFilteredGrades, grades]
+    [getFilteredGrades, grades],
   );
   const filteredSections = useMemo(
     () => getFilteredSections(sections),
-    [getFilteredSections, sections]
+    [getFilteredSections, sections],
   );
   const filteredClassrooms = useMemo(
     () => getFilteredClassrooms(classrooms),
-    [classrooms, getFilteredClassrooms]
+    [classrooms, getFilteredClassrooms],
   );
   const displayedClassroomId = selectedClassroomId || resolvedClassroomId;
   const syncFilterParams = useCallback(
@@ -144,7 +153,7 @@ export default function LessonPlansPage() {
         classroomId: string;
         subjectId: string;
       },
-      historyMode: "push" | "replace" = "push"
+      historyMode: "push" | "replace" = "push",
     ) => {
       const params = new URLSearchParams(searchParams.toString());
       const entries: Array<[string, string]> = [
@@ -170,7 +179,7 @@ export default function LessonPlansPage() {
       }
       router.replace(nextUrl, { scroll: false });
     },
-    [router, searchParams]
+    [router, searchParams],
   );
   const syncLibraryParams = useCallback(
     (
@@ -179,11 +188,10 @@ export default function LessonPlansPage() {
         search?: string;
         unitId?: string;
       },
-      historyMode: "push" | "replace" = "replace"
+      historyMode: "push" | "replace" = "replace",
     ) => {
       const params = new URLSearchParams(searchParams.toString());
-      const isOpen =
-        nextLibraryState.isOpen ?? libraryQueryState.isOpen;
+      const isOpen = nextLibraryState.isOpen ?? libraryQueryState.isOpen;
       const search = nextLibraryState.search ?? libraryQueryState.search;
       const unitId = nextLibraryState.unitId ?? libraryQueryState.unitId;
 
@@ -218,7 +226,13 @@ export default function LessonPlansPage() {
       }
       router.replace(nextUrl, { scroll: false });
     },
-    [libraryQueryState.isOpen, libraryQueryState.search, libraryQueryState.unitId, router, searchParams]
+    [
+      libraryQueryState.isOpen,
+      libraryQueryState.search,
+      libraryQueryState.unitId,
+      router,
+      searchParams,
+    ],
   );
   const syncLibrarySearchParam = useDebouncedCallback((value: string) => {
     syncLibraryParams({ search: value }, "replace");
@@ -230,7 +244,9 @@ export default function LessonPlansPage() {
 
     const hasValidSelectedClassroom =
       !!selectedClassroomId &&
-      filteredClassrooms.some((classroom) => classroom.id === selectedClassroomId);
+      filteredClassrooms.some(
+        (classroom) => classroom.id === selectedClassroomId,
+      );
 
     if (hasValidSelectedClassroom) {
       return;
@@ -248,7 +264,7 @@ export default function LessonPlansPage() {
         classroomId: resolvedClassroomId,
         subjectId: selectedSubjectId,
       },
-      "replace"
+      "replace",
     );
   }, [
     resolvedClassroomId,
@@ -260,9 +276,12 @@ export default function LessonPlansPage() {
     selectedSubjectId,
     syncFilterParams,
   ]);
-  useEffect(() => () => {
-    syncLibrarySearchParam.cancel();
-  }, [syncLibrarySearchParam]);
+  useEffect(
+    () => () => {
+      syncLibrarySearchParam.cancel();
+    },
+    [syncLibrarySearchParam],
+  );
   const {
     addLessonDialog,
     handleSelectLessonFromLibrary,
@@ -270,12 +289,16 @@ export default function LessonPlansPage() {
     handleConfirmAddLesson,
     closeAddLessonDialog,
   } = useLessonPlanMutations({
+    academicYearId,
     termId,
-    selectedSectionId,
     selectedSubjectId,
     selectedClassroomId: resolvedClassroomId,
     assignedTeacherId,
+    teacherSubjectAllocationId,
+    curriculumId,
     lessons,
+    plans,
+    weeks,
     refreshPlans,
     showSuccess,
     showError,
@@ -296,10 +319,10 @@ export default function LessonPlansPage() {
           classroomId: "",
           subjectId: selectedSubjectId,
         },
-        "push"
+        "push",
       );
     },
-    [selectedSubjectId, syncFilterParams]
+    [selectedSubjectId, syncFilterParams],
   );
 
   const handleGradeFilterChange = useCallback(
@@ -312,10 +335,10 @@ export default function LessonPlansPage() {
           classroomId: "",
           subjectId: selectedSubjectId,
         },
-        "push"
+        "push",
       );
     },
-    [selectedStageId, selectedSubjectId, syncFilterParams]
+    [selectedStageId, selectedSubjectId, syncFilterParams],
   );
 
   const handleSectionFilterChange = useCallback(
@@ -328,15 +351,10 @@ export default function LessonPlansPage() {
           classroomId: "",
           subjectId: selectedSubjectId,
         },
-        "push"
+        "push",
       );
     },
-    [
-      selectedGradeId,
-      selectedStageId,
-      selectedSubjectId,
-      syncFilterParams,
-    ]
+    [selectedGradeId, selectedStageId, selectedSubjectId, syncFilterParams],
   );
 
   const handleClassroomFilterChange = useCallback(
@@ -349,7 +367,7 @@ export default function LessonPlansPage() {
           classroomId,
           subjectId: selectedSubjectId,
         },
-        "push"
+        "push",
       );
     },
     [
@@ -358,7 +376,7 @@ export default function LessonPlansPage() {
       selectedStageId,
       selectedSubjectId,
       syncFilterParams,
-    ]
+    ],
   );
 
   const handleSubjectFilterChange = useCallback(
@@ -371,7 +389,7 @@ export default function LessonPlansPage() {
           classroomId: selectedClassroomId,
           subjectId,
         },
-        "push"
+        "push",
       );
     },
     [
@@ -380,7 +398,7 @@ export default function LessonPlansPage() {
       selectedSectionId,
       selectedStageId,
       syncFilterParams,
-    ]
+    ],
   );
 
   const handleApplyFilters = useCallback(
@@ -393,7 +411,7 @@ export default function LessonPlansPage() {
     }) => {
       syncFilterParams(filters, "push");
     },
-    [syncFilterParams]
+    [syncFilterParams],
   );
   const handleOpenLibrary = useCallback(() => {
     syncLibraryParams({ isOpen: true }, "push");
@@ -403,19 +421,16 @@ export default function LessonPlansPage() {
     syncLibraryParams({ isOpen: false }, "replace");
   }, [syncLibraryParams]);
 
-  const handleLibrarySearchChange = useCallback(
-    (value: string) => {
-      setLibrarySearchInput(value);
-      syncLibrarySearchParam(value);
-    },
-    [syncLibrarySearchParam]
-  );
+  const handleLibrarySearchChange = (value: string) => {
+    setLibrarySearchInput(value);
+    syncLibrarySearchParam(value);
+  };
 
   const handleLibraryUnitChange = useCallback(
     (value: string) => {
       syncLibraryParams({ unitId: value }, "replace");
     },
-    [syncLibraryParams]
+    [syncLibraryParams],
   );
 
   const handleAddLessonFromWeekWithLibrary = useCallback(
@@ -423,7 +438,7 @@ export default function LessonPlansPage() {
       handleAddLessonFromWeek(weekIndex);
       syncLibraryParams({ isOpen: true }, "push");
     },
-    [handleAddLessonFromWeek, syncLibraryParams]
+    [handleAddLessonFromWeek, syncLibraryParams],
   );
 
   const handleGoToCurriculum = useCallback(() => {
@@ -442,10 +457,15 @@ export default function LessonPlansPage() {
     }
 
     const query = params.toString();
-    router.push(
-      `/${locale}/academics/curriculum${query ? `?${query}` : ""}`
-    );
-  }, [academicYearId, locale, router, selectedGradeId, selectedSubjectId, termId]);
+    router.push(`/${locale}/academics/curriculum${query ? `?${query}` : ""}`);
+  }, [
+    academicYearId,
+    locale,
+    router,
+    selectedGradeId,
+    selectedSubjectId,
+    termId,
+  ]);
 
   const lessonPlanExportRows = useMemo(() => {
     const unitMap = new Map(units.map((unit) => [unit.id, unit]));
@@ -494,7 +514,10 @@ export default function LessonPlansPage() {
       filename: generateExportFilename(
         "lesson-plans",
         termId,
-        displayedClassroomId || selectedSectionId || selectedGradeId || undefined,
+        displayedClassroomId ||
+          selectedSectionId ||
+          selectedGradeId ||
+          undefined,
       ),
       format,
       columns,
@@ -533,7 +556,9 @@ export default function LessonPlansPage() {
       <div className="flex-1 overflow-auto">
         <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 md:px-6">
           <div>
-            <h1 className="text-lg font-semibold text-gray-900">{t("title")}</h1>
+            <h1 className="text-lg font-semibold text-gray-900">
+              {t("title")}
+            </h1>
             <p className="text-sm text-gray-500">{t("subtitle")}</p>
           </div>
           <Button
@@ -585,7 +610,9 @@ export default function LessonPlansPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {t("emptyState.noSelection.title")}
               </h3>
-              <p className="text-gray-600">{t("emptyState.noSelection.message")}</p>
+              <p className="text-gray-600">
+                {t("emptyState.noSelection.message")}
+              </p>
             </div>
           ) : filteredClassrooms.length > 1 && !resolvedClassroomId ? (
             <div className="text-center py-12">
@@ -603,7 +630,9 @@ export default function LessonPlansPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {t("emptyState.noLessons.title")}
               </h3>
-              <p className="text-gray-600 mb-4">{t("emptyState.noLessons.message")}</p>
+              <p className="text-gray-600 mb-4">
+                {t("emptyState.noLessons.message")}
+              </p>
               <button
                 type="button"
                 onClick={handleGoToCurriculum}
@@ -618,8 +647,10 @@ export default function LessonPlansPage() {
             </div>
           ) : (
             <LessonPlansBoard
+              academicYearId={academicYearId}
               termId={termId}
-              sectionId={selectedSectionId}
+              teacherSubjectAllocationId={teacherSubjectAllocationId}
+              curriculumId={curriculumId}
               subjectId={selectedSubjectId}
               classroomId={resolvedClassroomId}
               teacherId={assignedTeacherId}

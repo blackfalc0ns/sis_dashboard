@@ -14,6 +14,15 @@ export const ALLOWED_LEARNING_CONTENT_MIME_TYPES = new Set([
 
 export type FileValidationError = "required" | "size" | "mime";
 
+export function learningContentTypeOptions(canUploadFiles: boolean) {
+  return [
+    { value: "TEXT", label: "TEXT" },
+    { value: "FILE", label: "FILE", disabled: !canUploadFiles },
+    { value: "VIDEO_LINK", label: "VIDEO_LINK" },
+    { value: "EXTERNAL_LINK", label: "EXTERNAL_LINK" },
+  ];
+}
+
 export function isFileUploadDisabled(isReadOnly: boolean, canUploadFiles: boolean) {
   return isReadOnly || !canUploadFiles;
 }

@@ -1,43 +1,42 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type Classroom,
   fetchStructureTree,
   type Grade,
   type Section,
   type Stage,
-  type Term,
 } from "@/features/academics/academic-structure-tree/services/structureService";
-import { fetchSubjects, type Subject } from "@/features/academics/subjects/services/subjectsService";
+import {
+  fetchCurriculumForScope,
+  type Lesson,
+  type Unit,
+} from "@/features/academics/curriculum/services/curriculumService";
+import {
+  getLessonPlan,
+  getLessonPlanSummary,
+  listLessonPlans,
+  listLessonPlanWeeks,
+  type LessonPlan,
+  type LessonPlanSummary,
+  type WeekInfo,
+} from "@/features/academics/lesson-plans/services/lessonPlansService";
+import {
+  fetchSubjects,
+  type Subject,
+} from "@/features/academics/subjects/services/subjectsService";
 import {
   fetchTeacherAllocations,
   fetchTeachers,
   resolveTeacherAllocationForTarget,
   type Teacher,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import { fetchTermEvents } from "@/features/academics/calendar/services/calendarService";
-import {
-  fetchCurriculum,
-  fetchAllLessons,
-  fetchUnits,
-  type Lesson,
-  type Unit,
-} from "@/features/academics/curriculum/services/curriculumService";
-import {
-  computeTermWeeks,
-  fetchLessonPlans,
-  getLessonPlanSummary,
-  type LessonPlan,
-  type LessonPlanSummary,
-  type WeekInfo,
-} from "@/features/academics/lesson-plans/services/lessonPlansService";
 
-interface UseLessonPlansDataParams {
+interface Params {
   academicYearId: string;
   termId: string;
   isInitializing: boolean;
-  terms: Term[];
   selectedGradeId: string;
   selectedSectionId: string;
   selectedClassroomId: string;
@@ -45,17 +44,17 @@ interface UseLessonPlansDataParams {
   onLoadError: () => void;
 }
 
-export function useLessonPlansData({
-  academicYearId,
-  termId,
-  isInitializing,
-  terms,
-  selectedGradeId,
-  selectedSectionId,
-  selectedClassroomId,
-  selectedSubjectId,
-  onLoadError,
-}: UseLessonPlansDataParams) {
+export function useLessonPlansData(params: Params) {
+  const {
+    academicYearId,
+    termId,
+    isInitializing,
+    selectedGradeId,
+    selectedSectionId,
+    selectedClassroomId,
+    selectedSubjectId,
+    onLoadError,
+  } = params;
   const [stages, setStages] = useState<Stage[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
@@ -68,162 +67,152 @@ export function useLessonPlansData({
   const [weeks, setWeeks] = useState<WeekInfo[]>([]);
   const [summary, setSummary] = useState<LessonPlanSummary | null>(null);
   const [assignedTeacherId, setAssignedTeacherId] = useState("");
+  const [teacherSubjectAllocationId, setTeacherSubjectAllocationId] =
+    useState("");
+  const [curriculumId, setCurriculumId] = useState("");
   const [resolvedClassroomId, setResolvedClassroomId] = useState("");
   const [loading, setLoading] = useState(true);
   const [plansLoading, setPlansLoading] = useState(false);
+  const requestId = useRef(0);
 
   useEffect(() => {
-    const loadContextData = async () => {
+    void (async () => {
       if (!termId || !academicYearId) {
         setStages([]);
         setGrades([]);
-        setSections([]);
-        setClassrooms([]);
-        setSubjects([]);
-        setTeachers([]);
-        if (!isInitializing) {
-          setLoading(false);
-        }
+        setLoading(isInitializing);
         return;
       }
-
       try {
         setLoading(true);
-        const [structureData, subjectsData, teachersData] = await Promise.all([
+        const [tree, subjectList, teacherList] = await Promise.all([
           fetchStructureTree(academicYearId, termId),
           fetchSubjects(termId),
           fetchTeachers(),
         ]);
-
-        setStages(structureData.stages);
-        setGrades(structureData.grades);
-        setSections(structureData.sections);
-        setClassrooms(structureData.classrooms);
-        setSubjects(subjectsData);
-        setTeachers(teachersData);
+        setStages(tree.stages);
+        setGrades(tree.grades);
+        setSections(tree.sections);
+        setClassrooms(tree.classrooms);
+        setSubjects(subjectList);
+        setTeachers(teacherList);
       } catch (error) {
         console.error("Failed to load lesson plans context data:", error);
         onLoadError();
       } finally {
         setLoading(false);
       }
-    };
-
-    loadContextData();
+    })();
   }, [academicYearId, isInitializing, onLoadError, termId]);
 
-  useEffect(() => {
-    const loadCurriculum = async () => {
-      if (!academicYearId || !termId || !selectedGradeId || !selectedSubjectId) {
-        setUnits([]);
-        setLessons([]);
-        return;
-      }
-
-      try {
-        const curriculum = await fetchCurriculum(
-          academicYearId,
-          termId,
-          selectedGradeId,
-          selectedSubjectId,
-        );
-        if (!curriculum) {
-          setUnits([]);
-          setLessons([]);
-          return;
-        }
-
-        const [unitsData, lessonsData] = await Promise.all([
-          fetchUnits(curriculum.id),
-          fetchAllLessons(curriculum.id),
-        ]);
-        setUnits(unitsData);
-        setLessons(lessonsData);
-      } catch (error) {
-        console.error("Failed to load lesson plans curriculum:", error);
-        onLoadError();
-      }
-    };
-
-    loadCurriculum();
-  }, [academicYearId, onLoadError, selectedGradeId, selectedSubjectId, termId]);
-
   const refreshPlans = useCallback(async () => {
-    if (!termId || !selectedSectionId || !selectedSubjectId) {
+    const currentRequest = ++requestId.current;
+    if (
+      !academicYearId ||
+      !termId ||
+      !selectedGradeId ||
+      !selectedSectionId ||
+      !selectedSubjectId
+    ) {
       setPlans([]);
       setWeeks([]);
       setSummary(null);
+      setUnits([]);
+      setLessons([]);
+      setCurriculumId("");
+      setTeacherSubjectAllocationId("");
       setAssignedTeacherId("");
       setResolvedClassroomId("");
+      setPlansLoading(false);
       return;
     }
-
+    setPlansLoading(true);
     try {
-      setPlansLoading(true);
-      const term = terms.find((item) => item.id === termId);
-      if (!term) {
-        return;
-      }
-
-      const events = await fetchTermEvents(termId);
-      const holidays = events.filter((event) => event.type === "HOLIDAY");
       const sectionClassrooms = classrooms.filter(
-        (item) => item.sectionId === selectedSectionId
+        (classroom) => classroom.sectionId === selectedSectionId,
       );
-      const hasSelectedClassroom =
-        selectedClassroomId &&
-        sectionClassrooms.some((item) => item.id === selectedClassroomId);
-      const nextResolvedClassroomId = hasSelectedClassroom
+      const classroomId = sectionClassrooms.some(
+        (classroom) => classroom.id === selectedClassroomId,
+      )
         ? selectedClassroomId
         : sectionClassrooms.length === 1
           ? sectionClassrooms[0]!.id
           : "";
-
-      const [weeksData, plansData, summaryData, allocations] = await Promise.all([
-        computeTermWeeks(
-          term.startDate,
-          term.endDate,
-          holidays.map((holiday) => ({
-            startDate: holiday.startDate,
-            endDate: holiday.endDate,
-          }))
-        ),
-        fetchLessonPlans(termId, selectedSectionId, selectedSubjectId, nextResolvedClassroomId || undefined),
-        getLessonPlanSummary(termId, selectedSectionId, selectedSubjectId, nextResolvedClassroomId || undefined),
+      const [curriculum, allocations] = await Promise.all([
+        fetchCurriculumForScope({
+          academicYearId,
+          termId,
+          gradeId: selectedGradeId,
+          subjectId: selectedSubjectId,
+        }),
         fetchTeacherAllocations(termId),
       ]);
-
-      setWeeks(weeksData);
-      setPlans(plansData);
-      setSummary(summaryData);
-      setResolvedClassroomId(nextResolvedClassroomId);
-
       const allocation = resolveTeacherAllocationForTarget(allocations, {
         sectionId: selectedSectionId,
         subjectId: selectedSubjectId,
-        classroomId: nextResolvedClassroomId || undefined,
+        classroomId: classroomId || undefined,
       });
-      setAssignedTeacherId(allocation?.teacherId || "");
+      if (!curriculum || !allocation || currentRequest !== requestId.current) {
+        setPlans([]);
+        setWeeks([]);
+        setSummary(null);
+        setUnits(curriculum?.units ?? []);
+        setLessons((curriculum?.units ?? []).flatMap((unit) => unit.lessons));
+        setCurriculumId(curriculum?.id ?? "");
+        setTeacherSubjectAllocationId("");
+        setAssignedTeacherId("");
+        setResolvedClassroomId(classroomId);
+        return;
+      }
+      const query = { termId, teacherSubjectAllocationId: allocation.id };
+      const [weekList, planList, planSummary] = await Promise.all([
+        listLessonPlanWeeks(query),
+        listLessonPlans(query),
+        getLessonPlanSummary(query),
+      ]);
+      const details = await Promise.all(
+        planList.map((plan) => getLessonPlan(plan.id)),
+      );
+      if (currentRequest !== requestId.current) return;
+      setResolvedClassroomId(classroomId);
+      setAssignedTeacherId(allocation.teacherId ?? "");
+      setTeacherSubjectAllocationId(allocation.id);
+      setCurriculumId(curriculum.id);
+      setUnits(curriculum.units ?? []);
+      setLessons((curriculum.units ?? []).flatMap((unit) => unit.lessons));
+      setWeeks(weekList);
+      setPlans(
+        details.map((plan) => ({
+          ...plan,
+          weekIndex:
+            weekList.find(
+              (week) =>
+                plan.weekStartDate >= week.startDate &&
+                plan.weekStartDate <= week.endDate,
+            )?.weekIndex ?? plan.weekIndex,
+        })),
+      );
+      setSummary(planSummary);
     } catch (error) {
       console.error("Failed to load lesson plans:", error);
       onLoadError();
     } finally {
-      setPlansLoading(false);
+      if (currentRequest === requestId.current) setPlansLoading(false);
     }
   }, [
+    academicYearId,
     classrooms,
     onLoadError,
     selectedClassroomId,
+    selectedGradeId,
     selectedSectionId,
     selectedSubjectId,
     termId,
-    terms,
   ]);
 
   useEffect(() => {
-    refreshPlans();
+    void refreshPlans();
   }, [refreshPlans]);
-
   return {
     stages,
     grades,
@@ -237,6 +226,8 @@ export function useLessonPlansData({
     weeks,
     summary,
     assignedTeacherId,
+    teacherSubjectAllocationId,
+    curriculumId,
     resolvedClassroomId,
     loading,
     plansLoading,

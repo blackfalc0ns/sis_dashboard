@@ -1,203 +1,115 @@
-import { apiWithToken } from "@/lib/api";
-import type {
-  LessonPlan,
-  LessonPlanItem,
-  LessonPlanSummary,
-} from "@/features/academics/lesson-plans/services/lessonPlansService";
-import type {
-  LessonPlanItemUpsertPayload,
-  LessonPlansAdapter,
-} from "@/features/academics/lesson-plans/services/lessonPlansAdapter";
+import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
+import type { LessonPlansAdapter } from "./lessonPlansAdapter";
+import type * as Types from "./lessonPlansBackendTypes";
+import {
+  mapLessonPlanDetailDto,
+  mapLessonPlanDto,
+  mapLessonPlanItemDto,
+  mapLessonPlanSummaryDto,
+  mapLessonPlanWeeksDto,
+} from "./lessonPlansMappers";
 
-interface ApiEnvelope<T> {
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
-const unwrap = async <T>(request: Promise<ApiEnvelope<T> | T>): Promise<T> => {
-  const response = await request;
-
-  if (
-    response &&
-    typeof response === "object" &&
-    ("data" in response || "error" in response || "message" in response)
-  ) {
-    const envelope = response as ApiEnvelope<T>;
-    if (envelope.error) {
-      throw new Error(envelope.error);
-    }
-    if (typeof envelope.data === "undefined") {
-      throw new Error(envelope.message || "Missing API response data");
-    }
-    return envelope.data;
-  }
-
-  return response as T;
+const basePath = "/academics/lesson-plans";
+const queryPath = (path: string, query: object) => {
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  });
+  const suffix = params.toString();
+  return suffix ? `${path}?${suffix}` : path;
 };
+const planAction = async (id: string, action: string) =>
+  mapLessonPlanDto(
+    await apiPost<Types.LessonPlanResponseDto>(`${basePath}/${id}/${action}`),
+  );
+const itemAction = async (
+  command: Types.LessonPlanItemActionCommand,
+  action: string,
+) =>
+  mapLessonPlanItemDto(
+    await apiPost<Types.LessonPlanItemResponseDto>(
+      `${basePath}/${command.lessonPlanId}/items/${command.itemId}/${action}`,
+      command.payload,
+    ),
+  );
 
-const buildQuery = (params: Record<string, string>) => {
-  const search = new URLSearchParams(params);
-  return `?${search.toString()}`;
+export const lessonPlansApiAdapter: LessonPlansAdapter = {
+  async listLessonPlans(filters) {
+    const response = await apiGet<Types.LessonPlansListResponseDto>(
+      queryPath(basePath, filters),
+    );
+    return response.items.map((plan) => mapLessonPlanDto(plan));
+  },
+  async createLessonPlan(payload) {
+    return mapLessonPlanDto(
+      await apiPost<Types.LessonPlanResponseDto>(basePath, payload),
+    );
+  },
+  async getLessonPlan(id) {
+    return mapLessonPlanDetailDto(
+      await apiGet<Types.LessonPlanDetailResponseDto>(`${basePath}/${id}`),
+    );
+  },
+  async updateLessonPlan(id, payload) {
+    return mapLessonPlanDto(
+      await apiPatch<Types.LessonPlanResponseDto>(`${basePath}/${id}`, payload),
+    );
+  },
+  activateLessonPlan: (id) => planAction(id, "activate"),
+  archiveLessonPlan: (id) => planAction(id, "archive"),
+  deleteLessonPlan: (id) => apiDelete(`${basePath}/${id}`),
+  async listWeeks(query) {
+    return mapLessonPlanWeeksDto(
+      await apiGet<Types.LessonPlanWeeksResponseDto>(
+        queryPath(`${basePath}/weeks`, query),
+      ),
+    );
+  },
+  async getSummary(query) {
+    return mapLessonPlanSummaryDto(
+      await apiGet<Types.LessonPlanSummaryResponseDto>(
+        queryPath(`${basePath}/summary`, query),
+      ),
+    );
+  },
+  getValidation: (query) => apiGet(queryPath(`${basePath}/validation`, query)),
+  autoPlan: (payload) => apiPost(`${basePath}/auto-plan`, payload),
+  async moveLessonPlanItem(id, payload) {
+    return mapLessonPlanItemDto(
+      await apiPatch<Types.LessonPlanItemResponseDto>(
+        `${basePath}/items/${id}/move`,
+        payload,
+      ),
+    );
+  },
+  async createLessonPlanItem(command) {
+    return mapLessonPlanItemDto(
+      await apiPost<Types.LessonPlanItemResponseDto>(
+        `${basePath}/${command.lessonPlanId}/items`,
+        command.payload,
+      ),
+    );
+  },
+  async updateLessonPlanItem(command) {
+    return mapLessonPlanItemDto(
+      await apiPatch<Types.LessonPlanItemResponseDto>(
+        `${basePath}/${command.lessonPlanId}/items/${command.itemId}`,
+        command.payload,
+      ),
+    );
+  },
+  async reorderLessonPlanItem(command) {
+    return mapLessonPlanItemDto(
+      await apiPatch<Types.LessonPlanItemResponseDto>(
+        `${basePath}/${command.lessonPlanId}/items/${command.itemId}/reorder`,
+        command.payload,
+      ),
+    );
+  },
+  startLessonPlanItem: (command) => itemAction(command, "start"),
+  completeLessonPlanItem: (command) => itemAction(command, "complete"),
+  skipLessonPlanItem: (command) => itemAction(command, "skip"),
+  cancelLessonPlanItem: (command) => itemAction(command, "cancel"),
+  deleteLessonPlanItem: (command) =>
+    apiDelete(`${basePath}/${command.lessonPlanId}/items/${command.itemId}`),
 };
-
-export const createLessonPlansApiAdapter = (
-  basePath: string = "/academics/lesson-plans"
-): LessonPlansAdapter => ({
-  async fetchLessonPlans(termId, sectionId, subjectId, classroomId) {
-    const queryParams: Record<string, string> = { termId, sectionId, subjectId };
-    if (classroomId) {
-      queryParams.classroomId = classroomId;
-    }
-
-    return unwrap<LessonPlan[]>(
-      apiWithToken(`${basePath}${buildQuery(queryParams)}`, {
-        method: "GET",
-      })
-    );
-  },
-
-  async upsertLessonPlanItem(payload) {
-    return unwrap<LessonPlanItem>(
-      apiWithToken(`${basePath}/items`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      })
-    );
-  },
-
-  async deleteLessonPlanItem(termId, sectionId, subjectId, itemId, classroomId) {
-    const queryParams: Record<string, string> = {
-      termId,
-      sectionId,
-      subjectId,
-      itemId,
-    };
-    if (classroomId) {
-      queryParams.classroomId = classroomId;
-    }
-
-    await unwrap<void>(
-      apiWithToken(`${basePath}/items${buildQuery(queryParams)}`, {
-        method: "DELETE",
-      })
-    );
-  },
-
-  async reorderLessonPlanItems(termId, sectionId, subjectId, weekIndex, orderedItemIds, classroomId) {
-    await unwrap<void>(
-      apiWithToken(`${basePath}/items/reorder`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          termId,
-          sectionId,
-          subjectId,
-          weekIndex,
-          orderedItemIds,
-          classroomId,
-        }),
-      })
-    );
-  },
-
-  async moveLessonPlanItem(termId, sectionId, subjectId, itemId, toWeekIndex, toOrder, classroomId) {
-    await unwrap<void>(
-      apiWithToken(`${basePath}/items/move`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          termId,
-          sectionId,
-          subjectId,
-          itemId,
-          toWeekIndex,
-          toOrder,
-          classroomId,
-        }),
-      })
-    );
-  },
-
-  async updateLessonPlanItemStatus(termId, sectionId, subjectId, itemId, status, classroomId) {
-    await unwrap<void>(
-      apiWithToken(`${basePath}/items/${itemId}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          termId,
-          sectionId,
-          subjectId,
-          status,
-          classroomId,
-        }),
-      })
-    );
-  },
-
-  async updateLessonPlanItemNotes(termId, sectionId, subjectId, itemId, notesAr, notesEn, classroomId) {
-    await unwrap<void>(
-      apiWithToken(`${basePath}/items/${itemId}/notes`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          termId,
-          sectionId,
-          subjectId,
-          notesAr,
-          notesEn,
-          classroomId,
-        }),
-      })
-    );
-  },
-
-  async getLessonPlanSummary(termId, sectionId, subjectId, classroomId) {
-    const queryParams: Record<string, string> = { termId, sectionId, subjectId };
-    if (classroomId) {
-      queryParams.classroomId = classroomId;
-    }
-
-    return unwrap<LessonPlanSummary>(
-      apiWithToken(`${basePath}/summary${buildQuery(queryParams)}`, {
-        method: "GET",
-      })
-    );
-  },
-
-  async bulkAutoPlan(termId, sectionId, subjectId, classroomId, teacherId, lessonIds, weekCount) {
-    await unwrap<void>(
-      apiWithToken(`${basePath}/auto-plan`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          termId,
-          sectionId,
-          subjectId,
-          classroomId,
-          teacherId,
-          lessonIds,
-          weekCount,
-        } satisfies Omit<LessonPlanItemUpsertPayload, "weekIndex" | "lessonId"> & {
-          lessonIds: string[];
-          weekCount: number;
-        }),
-      })
-    );
-  },
-});
-
-export const lessonPlansApiAdapter = createLessonPlansApiAdapter();

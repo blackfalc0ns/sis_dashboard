@@ -1,0 +1,153 @@
+import { describe, expect, it } from "vitest";
+import {
+  mapLessonPlanDetailDto,
+  mapLessonPlanItemDto,
+  mapLessonPlanSummaryDto,
+  mapLessonPlanWeeksDto,
+} from "../lessonPlansMappers";
+
+const itemDto = {
+  id: "item-1",
+  itemId: "item-1",
+  lessonPlanId: "plan-1",
+  curriculumId: "curriculum-1",
+  unitId: "unit-1",
+  lessonId: "lesson-1",
+  unitTitle: "Unit",
+  lessonTitle: "Lesson",
+  timetableEntryId: null,
+  plannedDate: "2026-09-02",
+  dayOfWeek: 2,
+  periodId: null,
+  periodLabel: null,
+  title: "Lesson",
+  notes: "Prepare examples",
+  status: "in_progress",
+  sortOrder: 3,
+  startedAt: null,
+  completedAt: null,
+  skippedAt: null,
+  cancelledAt: null,
+  createdAt: "2026-09-01T00:00:00.000Z",
+  updatedAt: "2026-09-01T00:00:00.000Z",
+};
+
+const planDto = {
+  id: "plan-1",
+  lessonPlanId: "plan-1",
+  academicYearId: "year-1",
+  termId: "term-1",
+  teacherSubjectAllocationId: "allocation-1",
+  teacherUserId: "teacher-1",
+  classroomId: "class-1",
+  subjectId: "subject-1",
+  curriculumId: "curriculum-1",
+  title: "Week 1",
+  description: null,
+  status: "active",
+  weekStartDate: "2026-09-01",
+  weekEndDate: "2026-09-07",
+  activatedAt: null,
+  archivedAt: null,
+  createdAt: "2026-09-01T00:00:00.000Z",
+  updatedAt: "2026-09-01T00:00:00.000Z",
+  academicYear: { id: "year-1", name: "Year", nameAr: "سنة", nameEn: "Year" },
+  term: { id: "term-1", name: "Term", nameAr: "فصل", nameEn: "Term" },
+  teacher: {
+    id: "teacher-1",
+    name: "Teacher",
+    firstName: "T",
+    lastName: "One",
+    email: null,
+  },
+  classroom: { id: "class-1", name: "Class", nameAr: "فصل", nameEn: "Class" },
+  subject: {
+    id: "subject-1",
+    name: "Math",
+    nameAr: "رياضيات",
+    nameEn: "Math",
+    code: null,
+    color: null,
+  },
+  curriculum: { curriculumId: "curriculum-1", title: "Math", status: "active" },
+  itemCount: 1,
+  items: [itemDto],
+};
+
+describe("lesson plan mappers", () => {
+  it("maps backend detail into the weekly board model", () => {
+    const plan = mapLessonPlanDetailDto(planDto, [
+      {
+        weekIndex: 1,
+        startsAt: "2026-09-01",
+        endsAt: "2026-09-07",
+        instructionalDays: [],
+        holidayDays: [],
+        plannedItemsCount: 1,
+      },
+    ]);
+    expect(plan).toMatchObject({
+      id: "plan-1",
+      status: "ACTIVE",
+      rawStatus: "active",
+      weekIndex: 1,
+    });
+    expect(plan.items[0]).toMatchObject({
+      id: "item-1",
+      planId: "plan-1",
+      status: "IN_PROGRESS",
+      order: 3,
+      notes: "Prepare examples",
+    });
+  });
+
+  it("maps unknown statuses without throwing", () => {
+    expect(
+      mapLessonPlanDetailDto({ ...planDto, status: "paused" }, []).status,
+    ).toBe("UNKNOWN");
+    expect(mapLessonPlanItemDto({ ...itemDto, status: "blocked" }).status).toBe(
+      "UNKNOWN",
+    );
+    expect(
+      mapLessonPlanItemDto({ ...itemDto, status: "blocked" }).rawStatus,
+    ).toBe("blocked");
+  });
+
+  it("maps backend weeks and summary fields exactly", () => {
+    expect(
+      mapLessonPlanWeeksDto({
+        termId: "term-1",
+        academicYearId: "year-1",
+        weeks: [
+          {
+            weekIndex: 1,
+            startsAt: "2026-09-01",
+            endsAt: "2026-09-07",
+            instructionalDays: [],
+            holidayDays: [],
+            plannedItemsCount: 2,
+          },
+        ],
+      })[0],
+    ).toMatchObject({
+      startDate: "2026-09-01",
+      endDate: "2026-09-07",
+      plannedItemsCount: 2,
+    });
+    expect(
+      mapLessonPlanSummaryDto({
+        termId: "term-1",
+        academicYearId: "year-1",
+        summary: {
+          lessonPlansCount: 2,
+          itemsCount: 10,
+          plannedItemsCount: 7,
+          completedItemsCount: 3,
+          unplannedLessonsCount: 4,
+          coveragePercent: 42,
+        },
+        byTeacherAllocation: [],
+      }),
+    ).toMatchObject({ lessonPlansCount: 2, coveragePercent: 42 });
+  });
+});
