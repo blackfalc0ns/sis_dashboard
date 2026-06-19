@@ -68,7 +68,7 @@ export function useLessonPlanMutations(params: Params) {
     [],
   );
   const handleConfirmAddLesson = useCallback(
-    async (lessonId: string, weekIndex: number) => {
+    async (lessonId: string, weekIndex: number, selectedPlannedDate: string) => {
       const lesson = params.lessons.find(
         (candidate) => candidate.id === lessonId,
       );
@@ -84,11 +84,11 @@ export function useLessonPlanMutations(params: Params) {
         params.showError(params.validationMessages.missingWeek);
         return;
       }
-      const plannedDate = week.instructionalDays[0];
-      if (!plannedDate) {
+      if (week.instructionalDays.length === 0) {
         params.showError(params.validationMessages.noInstructionalDays);
         return;
       }
+      const plannedDate = selectedPlannedDate;
       if (
         week.startDate > week.endDate ||
         !isDateOnlyInside(
@@ -106,6 +106,10 @@ export function useLessonPlanMutations(params: Params) {
         return;
       }
       if (
+        !plannedDate ||
+        !week.instructionalDays.includes(plannedDate) ||
+        plannedDate < week.startDate ||
+        plannedDate > week.endDate ||
         !isDateOnlyInside(plannedDate, params.termStartDate, params.termEndDate)
       ) {
         params.showError(params.validationMessages.plannedDateOutsideTerm);

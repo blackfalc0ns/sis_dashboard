@@ -808,6 +808,8 @@ export default function LessonPlansPage() {
             lesson={addLessonDialog.lesson}
             weeks={weeks}
             preselectedWeekIndex={addLessonDialog.preselectedWeekIndex}
+            termStartDate={selectedTerm?.startDate}
+            termEndDate={selectedTerm?.endDate}
             onClose={closeAddLessonDialog}
             onConfirm={handleConfirmAddLesson}
           />

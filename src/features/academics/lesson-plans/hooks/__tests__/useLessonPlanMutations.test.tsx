@@ -131,7 +131,9 @@ describe("useLessonPlanMutations", () => {
     });
     const { result } = renderHook(() => useLessonPlanMutations(params));
 
-    await act(() => result.current.handleConfirmAddLesson("lesson-1", 2));
+    await act(() =>
+      result.current.handleConfirmAddLesson("lesson-1", 2, "2026-09-10"),
+    );
 
     expect(createLessonPlan).not.toHaveBeenCalled();
     expect(createLessonPlanItem).toHaveBeenCalledWith({
@@ -139,7 +141,7 @@ describe("useLessonPlanMutations", () => {
       payload: {
         unitId: "unit-1",
         lessonId: "lesson-1",
-        plannedDate: "2026-09-09",
+        plannedDate: "2026-09-10",
         sortOrder: 1,
       },
     });
@@ -150,7 +152,9 @@ describe("useLessonPlanMutations", () => {
     const params = makeParams();
     const { result } = renderHook(() => useLessonPlanMutations(params));
 
-    await act(() => result.current.handleConfirmAddLesson("lesson-1", 2));
+    await act(() =>
+      result.current.handleConfirmAddLesson("lesson-1", 2, "2026-09-09"),
+    );
 
     expect(createLessonPlan).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -170,7 +174,9 @@ describe("useLessonPlanMutations", () => {
     const params = makeParams({ plans: [plan({ status: "ARCHIVED" })] });
     const { result } = renderHook(() => useLessonPlanMutations(params));
 
-    await act(() => result.current.handleConfirmAddLesson("lesson-1", 2));
+    await act(() =>
+      result.current.handleConfirmAddLesson("lesson-1", 2, "2026-09-09"),
+    );
 
     expect(createLessonPlan).toHaveBeenCalledOnce();
     expect(createLessonPlanItem).toHaveBeenCalledWith(
@@ -193,7 +199,9 @@ describe("useLessonPlanMutations", () => {
     });
     const { result } = renderHook(() => useLessonPlanMutations(params));
 
-    await act(() => result.current.handleConfirmAddLesson("lesson-1", 2));
+    await act(() =>
+      result.current.handleConfirmAddLesson("lesson-1", 2, "2026-09-09"),
+    );
 
     expect(events).toEqual(["create-item", "refresh", "success"]);
   });
@@ -202,7 +210,9 @@ describe("useLessonPlanMutations", () => {
     const params = makeParams({ weeks: [week({ instructionalDays: [] })] });
     const { result } = renderHook(() => useLessonPlanMutations(params));
 
-    await act(() => result.current.handleConfirmAddLesson("lesson-1", 2));
+    await act(() =>
+      result.current.handleConfirmAddLesson("lesson-1", 2, ""),
+    );
 
     expect(params.showError).toHaveBeenCalledWith("no instructional days");
     expect(createLessonPlan).not.toHaveBeenCalled();
@@ -219,9 +229,11 @@ describe("useLessonPlanMutations", () => {
     const first = renderHook(() => useLessonPlanMutations(outsideWeekParams));
     const second = renderHook(() => useLessonPlanMutations(outsideDateParams));
 
-    await act(() => first.result.current.handleConfirmAddLesson("lesson-1", 2));
     await act(() =>
-      second.result.current.handleConfirmAddLesson("lesson-1", 2),
+      first.result.current.handleConfirmAddLesson("lesson-1", 2, "2026-09-09"),
+    );
+    await act(() =>
+      second.result.current.handleConfirmAddLesson("lesson-1", 2, "2027-01-01"),
     );
 
     expect(outsideWeekParams.showError).toHaveBeenCalledWith(

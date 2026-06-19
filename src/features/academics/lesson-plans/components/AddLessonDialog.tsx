@@ -13,8 +13,25 @@ interface AddLessonDialogProps {
   lesson: Lesson | null;
   weeks: WeekInfo[];
   preselectedWeekIndex?: number;
+  termStartDate?: string;
+  termEndDate?: string;
   onClose: () => void;
-  onConfirm: (lessonId: string, weekIndex: number) => void;
+  onConfirm: (lessonId: string, weekIndex: number, plannedDate: string) => void;
+}
+
+function getAvailableInstructionalDays(
+  week: WeekInfo | undefined,
+  termStartDate?: string,
+  termEndDate?: string,
+) {
+  if (!week) return [];
+  return week.instructionalDays.filter(
+    (date) =>
+      date >= week.startDate &&
+      date <= week.endDate &&
+      (!termStartDate || date >= termStartDate) &&
+      (!termEndDate || date <= termEndDate),
+  );
 }
 
 export default function AddLessonDialog({
@@ -22,30 +39,68 @@ export default function AddLessonDialog({
   lesson,
   weeks,
   preselectedWeekIndex,
+  termStartDate,
+  termEndDate,
   onClose,
   onConfirm,
 }: AddLessonDialogProps) {
   const t = useTranslations("academics.lessonPlans.mobile");
+  const tLessonPlans = useTranslations("academics.lessonPlans");
   const locale = useLocale();
   const isRTL = locale === "ar";
 
   const [selectedWeekIndex, setSelectedWeekIndex] = useState<string>(
     preselectedWeekIndex?.toString() || "",
   );
+  const [selectedPlannedDate, setSelectedPlannedDate] = useState("");
+
+  const selectedWeek = weeks.find(
+    (week) => week.weekIndex.toString() === selectedWeekIndex,
+  );
+  const availableInstructionalDays = getAvailableInstructionalDays(
+    selectedWeek,
+    termStartDate,
+    termEndDate,
+  );
 
   // Update selectedWeekIndex when preselectedWeekIndex or isOpen changes
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (isOpen) {
-      setSelectedWeekIndex(preselectedWeekIndex?.toString() || "");
+      const initialWeekIndex = preselectedWeekIndex?.toString() || "";
+      const initialWeek = weeks.find(
+        (week) => week.weekIndex.toString() === initialWeekIndex,
+      );
+      setSelectedWeekIndex(initialWeekIndex);
+      setSelectedPlannedDate(
+        getAvailableInstructionalDays(
+          initialWeek,
+          termStartDate,
+          termEndDate,
+        )[0] || "",
+      );
     }
-  }, [isOpen, preselectedWeekIndex]);
+  }, [isOpen, preselectedWeekIndex, termEndDate, termStartDate, weeks]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleConfirm = () => {
-    if (lesson && selectedWeekIndex) {
-      onConfirm(lesson.id, parseInt(selectedWeekIndex));
+    if (lesson && selectedWeekIndex && selectedPlannedDate) {
+      onConfirm(
+        lesson.id,
+        parseInt(selectedWeekIndex, 10),
+        selectedPlannedDate,
+      );
     }
+  };
+
+  const handleWeekChange = (value: string) => {
+    const week = weeks.find(
+      (candidate) => candidate.weekIndex.toString() === value,
+    );
+    setSelectedWeekIndex(value);
+    setSelectedPlannedDate(
+      getAvailableInstructionalDays(week, termStartDate, termEndDate)[0] || "",
+    );
   };
 
   const formatDate = (dateStr: string) => {
@@ -70,7 +125,12 @@ export default function AddLessonDialog({
           <Button
             onClick={handleConfirm}
             variant="primary"
-            disabled={!selectedWeekIndex || weeks.length === 0}
+            disabled={
+              !lesson ||
+              !selectedWeekIndex ||
+              !selectedPlannedDate ||
+              availableInstructionalDays.length === 0
+            }
           >
             {t("confirm")}
           </Button>
@@ -96,7 +156,7 @@ export default function AddLessonDialog({
           <Select
             label={t("selectWeek")}
             value={selectedWeekIndex}
-            onChange={setSelectedWeekIndex}
+            onChange={handleWeekChange}
             options={[
               { value: "", label: t("chooseWeek") },
               ...weeks.map((week) => ({
@@ -104,6 +164,24 @@ export default function AddLessonDialog({
                 label: `${t("week")} ${week.weekIndex} (${formatDate(week.startDate)} - ${formatDate(week.endDate)})`,
               })),
             ]}
+          />
+        )}
+
+        {selectedWeekIndex && (
+          <Select
+            label={t("selectPlannedDay")}
+            value={selectedPlannedDate}
+            onChange={setSelectedPlannedDate}
+            options={availableInstructionalDays.map((date) => ({
+              value: date,
+              label: formatDate(date),
+            }))}
+            disabled={availableInstructionalDays.length === 0}
+            error={
+              availableInstructionalDays.length === 0
+                ? tLessonPlans("validation.no_instructional_days")
+                : undefined
+            }
           />
         )}
       </div>
