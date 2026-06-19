@@ -121,41 +121,40 @@ export const reinforcementNavigationPermissionByKey: Partial<
   "reinforcement-xp-ledger": "reinforcement.xp.view",
 };
 
-export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> = {
-  ...settingsNavigationPermissionByKey,
-  ...reinforcementNavigationPermissionByKey,
-  "admissions-applications": "admissions.applications.view",
-  "academics-overview": "academics.overview.view",
-  "academics-structure": "academics.structure.view",
-  "academics-rooms": "academics.structure.view",
-  "academics-subjects": "academics.subjects.view",
-  "academics-teacher-allocation": "academics.structure.view",
-  "academics-timetable": "academics.structure.view",
-  "academics-calendar": "academics.calendar.view",
-  "academics-curriculum": "academics.curriculum.view",
-  "academics-lesson-plans": "academics.lesson_plans.view",
-};
+export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
+  {
+    ...settingsNavigationPermissionByKey,
+    ...reinforcementNavigationPermissionByKey,
+    "admissions-applications": "admissions.applications.view",
+    "academics-overview": "academics.overview.view",
+    "academics-structure": "academics.structure.view",
+    "academics-rooms": "academics.structure.view",
+    "academics-subjects": "academics.subjects.view",
+    "academics-teacher-allocation": "academics.structure.view",
+    "academics-timetable": "academics.structure.view",
+    "academics-calendar": "academics.calendar.view",
+    "academics-curriculum": "academics.curriculum.view",
+    "academics-lesson-plans": "academics.lesson_plans.view",
+  };
 
 export function usePermissions() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 
   const membershipPermissions = useMemo(
     () => (user?.activeMembership?.permissions ?? []) as PermissionKey[],
     [user],
   );
 
-  const grantedPermissions = useMemo(
-    () => {
-      return new Set<PermissionKey>([
-        ...legacyAdminPermissions,
-        ...alwaysGrantedNedaaPermissions,
-        ...membershipPermissions,
-      ]);
-    },
-    [membershipPermissions],
-  );
+  const grantedPermissions = useMemo(() => {
+    return new Set<PermissionKey>([
+      ...legacyAdminPermissions,
+      ...alwaysGrantedNedaaPermissions,
+      ...membershipPermissions,
+    ]);
+  }, [membershipPermissions]);
 
-  const hasPermission = (key: PermissionKey): boolean => grantedPermissions.has(key);
+  const hasPermission = (key: PermissionKey): boolean =>
+    grantedPermissions.has(key);
   const hasAnyPermission = (keys: PermissionKey[]): boolean =>
     keys.some((key) => grantedPermissions.has(key));
   const hasAllPermissions = (keys: PermissionKey[]): boolean =>
@@ -176,5 +175,7 @@ export function usePermissions() {
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
+    isLoading,
+    isPermissionsReady: !isLoading,
   };
 }

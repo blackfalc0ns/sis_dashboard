@@ -20,7 +20,8 @@ export function AdmissionsAccessDenied() {
             You do not have access to this admissions area
           </h1>
           <p className="mt-1 text-sm text-amber-800">
-            Ask a system administrator to update your admissions permissions if you need access.
+            Ask a system administrator to update your admissions permissions if
+            you need access.
           </p>
         </div>
       </div>
@@ -32,7 +33,9 @@ export default function AdmissionsAccessGuard({
   permission,
   children,
 }: AdmissionsAccessGuardProps) {
-  const { hasPermission } = usePermissions();
+  const { hasPermission, isLoading } = usePermissions();
+
+  if (isLoading) return;
 
   if (hasPermission(permission)) {
     return <>{children}</>;

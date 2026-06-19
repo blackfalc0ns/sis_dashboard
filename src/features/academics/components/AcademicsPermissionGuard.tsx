@@ -12,7 +12,10 @@ export default function AcademicsPermissionGuard({
   children,
   permission,
 }: AcademicsPermissionGuardProps) {
-  const { hasPermission } = usePermissions();
+  const { hasPermission, isLoading } = usePermissions();
+  if (isLoading) {
+    return;
+  }
 
   if (hasPermission(permission)) {
     return <>{children}</>;
