@@ -34,7 +34,7 @@ export const autoPlanLessons = (payload: Types.AutoPlanLessonPlanRequest) =>
   adapter.autoPlan(payload);
 export const moveLessonPlanItem = (
   id: string,
-  payload: Types.MoveLessonPlanItemRequest,
+  payload: Types.MoveLessonPlanItemRequestDto,
 ) => adapter.moveLessonPlanItem(id, payload);
 export const createLessonPlanItem = (
   command: Types.CreateLessonPlanItemCommand,

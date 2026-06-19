@@ -44,6 +44,8 @@ describe("lesson plans API adapter", () => {
     vi.mocked(apiDelete).mockResolvedValue({ ok: true });
     await lessonPlansApiAdapter.moveLessonPlanItem("item-1", {
       weekIndex: 3,
+      plannedDate: "2026-09-16",
+      timetableEntryId: "entry-1",
       sortOrder: 0,
     });
     await lessonPlansApiAdapter.createLessonPlanItem({
@@ -85,7 +87,12 @@ describe("lesson plans API adapter", () => {
     expect(apiPatch).toHaveBeenNthCalledWith(
       1,
       "/academics/lesson-plans/items/item-1/move",
-      { weekIndex: 3, sortOrder: 0 },
+      {
+        weekIndex: 3,
+        plannedDate: "2026-09-16",
+        timetableEntryId: "entry-1",
+        sortOrder: 0,
+      },
     );
     expect(apiPatch).toHaveBeenNthCalledWith(
       2,

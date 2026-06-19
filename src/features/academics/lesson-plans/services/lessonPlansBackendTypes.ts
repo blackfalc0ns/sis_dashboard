@@ -210,12 +210,9 @@ export type UpdateLessonPlanItemRequest = Omit<
 export interface ReorderLessonPlanItemRequest {
   sortOrder: number;
 }
-export interface MoveLessonPlanItemRequest {
-  plannedDate?: string;
+export interface MoveLessonPlanItemRequestDto {
   weekIndex?: number;
-  dayOfWeek?: number;
-  periodId?: string;
-  periodLabel?: string;
+  plannedDate?: string;
   timetableEntryId?: string | null;
   sortOrder?: number;
 }

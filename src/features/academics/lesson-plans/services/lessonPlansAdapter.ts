@@ -27,7 +27,7 @@ export interface LessonPlansAdapter {
   ): Promise<Types.AutoPlanLessonPlanResponseDto>;
   moveLessonPlanItem(
     itemId: string,
-    payload: Types.MoveLessonPlanItemRequest,
+    payload: Types.MoveLessonPlanItemRequestDto,
   ): Promise<Types.LessonPlanItem>;
   createLessonPlanItem(
     command: Types.CreateLessonPlanItemCommand,

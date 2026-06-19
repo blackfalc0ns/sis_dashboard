@@ -6,8 +6,8 @@ import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
 import type { BackendTimetableEntryDto } from "@/features/academics/timetable/services/timetableApiTypes";
-import type { MoveLessonPlanItemRequest, WeekInfo } from "../services/lessonPlansBackendTypes";
-import TimetableSlotSelect, { dayOfWeekFromDateOnly, type TimetableSlotScope } from "./TimetableSlotSelect";
+import type { MoveLessonPlanItemRequestDto, WeekInfo } from "../services/lessonPlansBackendTypes";
+import TimetableSlotSelect, { type TimetableSlotScope } from "./TimetableSlotSelect";
 
 interface MoveLessonDialogProps extends TimetableSlotScope {
   isOpen: boolean;
@@ -16,7 +16,7 @@ interface MoveLessonDialogProps extends TimetableSlotScope {
   termEndDate?: string;
   sortOrder: number;
   onClose: () => void;
-  onConfirm: (payload: MoveLessonPlanItemRequest) => void;
+  onConfirm: (payload: MoveLessonPlanItemRequestDto) => void;
 }
 
 export default function MoveLessonDialog(props: MoveLessonDialogProps) {
@@ -40,14 +40,7 @@ export default function MoveLessonDialog(props: MoveLessonDialogProps) {
     props.onConfirm({
       weekIndex: props.targetWeek.weekIndex,
       plannedDate,
-      dayOfWeek: entry?.dayOfWeek ?? dayOfWeekFromDateOnly(plannedDate),
-      ...(entry
-        ? {
-            periodId: entry.periodId,
-            periodLabel: entry.period.label,
-            timetableEntryId: entry.id,
-          }
-        : {}),
+      ...(entry ? { timetableEntryId: entry.id } : {}),
       sortOrder: props.sortOrder,
     });
   };
