@@ -4813,6 +4813,13 @@
     "lessonPlans": {
       "title": "خطة الدروس",
       "subtitle": "خطط وتتبع الدروس عبر الأسابيع",
+      "plannedDay": "يوم التخطيط",
+      "timetableSlot": "حصة الجدول الدراسي",
+      "selectTimetableSlot": "اختر حصة من الجدول الدراسي",
+      "noTimetableSlots": "لا توجد حصص في الجدول لهذا اليوم. لا يزال بإمكانك إضافة الدرس دون حصة.",
+      "addWithoutSlot": "إضافة دون حصة في الجدول",
+      "moveWithoutSlot": "نقل دون حصة في الجدول",
+      "loadingTimetableSlots": "جارٍ تحميل حصص الجدول...",
       "filters": {
         "title": "الفلاتر",
         "stage": "المرحلة",
@@ -4894,6 +4901,7 @@
       "actions": {
         "addToWeek": "إضافة إلى الأسبوع",
         "move": "نقل",
+        "confirmMove": "نقل الدرس",
         "reorder": "إعادة ترتيب",
         "remove": "إزالة من الخطة",
         "editNotes": "تعديل الملاحظات",

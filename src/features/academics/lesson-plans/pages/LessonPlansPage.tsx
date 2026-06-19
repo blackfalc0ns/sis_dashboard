@@ -810,6 +810,12 @@ export default function LessonPlansPage() {
             preselectedWeekIndex={addLessonDialog.preselectedWeekIndex}
             termStartDate={selectedTerm?.startDate}
             termEndDate={selectedTerm?.endDate}
+            academicYearId={academicYearId}
+            termId={termId}
+            classroomId={resolvedClassroomId}
+            teacherUserId={assignedTeacherId}
+            subjectId={selectedSubjectId}
+            teacherSubjectAllocationId={teacherSubjectAllocationId}
             onClose={closeAddLessonDialog}
             onConfirm={handleConfirmAddLesson}
           />

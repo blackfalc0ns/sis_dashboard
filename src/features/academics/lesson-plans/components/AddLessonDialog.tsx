@@ -7,8 +7,10 @@ import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
 import { Lesson } from "@/features/academics/curriculum/services/curriculumService";
 import { WeekInfo } from "@/features/academics/lesson-plans/services/lessonPlansService";
+import type { BackendTimetableEntryDto } from "@/features/academics/timetable/services/timetableApiTypes";
+import TimetableSlotSelect, { type TimetableSlotScope } from "./TimetableSlotSelect";
 
-interface AddLessonDialogProps {
+interface AddLessonDialogProps extends TimetableSlotScope {
   isOpen: boolean;
   lesson: Lesson | null;
   weeks: WeekInfo[];
@@ -16,7 +18,12 @@ interface AddLessonDialogProps {
   termStartDate?: string;
   termEndDate?: string;
   onClose: () => void;
-  onConfirm: (lessonId: string, weekIndex: number, plannedDate: string) => void;
+  onConfirm: (
+    lessonId: string,
+    weekIndex: number,
+    plannedDate: string,
+    timetableEntry: BackendTimetableEntryDto | null,
+  ) => void;
 }
 
 function getAvailableInstructionalDays(
@@ -43,6 +50,12 @@ export default function AddLessonDialog({
   termEndDate,
   onClose,
   onConfirm,
+  academicYearId,
+  termId,
+  classroomId,
+  teacherUserId,
+  subjectId,
+  teacherSubjectAllocationId,
 }: AddLessonDialogProps) {
   const t = useTranslations("academics.lessonPlans.mobile");
   const tLessonPlans = useTranslations("academics.lessonPlans");
@@ -53,6 +66,8 @@ export default function AddLessonDialog({
     preselectedWeekIndex?.toString() || "",
   );
   const [selectedPlannedDate, setSelectedPlannedDate] = useState("");
+  const [selectedTimetableEntry, setSelectedTimetableEntry] =
+    useState<BackendTimetableEntryDto | null>(null);
 
   const selectedWeek = weeks.find(
     (week) => week.weekIndex.toString() === selectedWeekIndex,
@@ -89,6 +104,7 @@ export default function AddLessonDialog({
         lesson.id,
         parseInt(selectedWeekIndex, 10),
         selectedPlannedDate,
+        selectedTimetableEntry,
       );
     }
   };
@@ -101,6 +117,7 @@ export default function AddLessonDialog({
     setSelectedPlannedDate(
       getAvailableInstructionalDays(week, termStartDate, termEndDate)[0] || "",
     );
+    setSelectedTimetableEntry(null);
   };
 
   const formatDate = (dateStr: string) => {
@@ -182,6 +199,23 @@ export default function AddLessonDialog({
                 ? tLessonPlans("validation.no_instructional_days")
                 : undefined
             }
+          />
+        )}
+        {selectedPlannedDate && (
+          <TimetableSlotSelect
+            academicYearId={academicYearId}
+            termId={termId}
+            classroomId={classroomId}
+            teacherUserId={teacherUserId}
+            subjectId={subjectId}
+            teacherSubjectAllocationId={teacherSubjectAllocationId}
+            plannedDate={selectedPlannedDate}
+            value={selectedTimetableEntry?.id ?? ""}
+            onChange={setSelectedTimetableEntry}
+            label={tLessonPlans("timetableSlot")}
+            emptyOptionLabel={tLessonPlans("addWithoutSlot")}
+            noSlotsMessage={tLessonPlans("noTimetableSlots")}
+            loadingMessage={tLessonPlans("loadingTimetableSlots")}
           />
         )}
       </div>

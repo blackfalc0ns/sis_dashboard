@@ -1,8 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getConfig, listEntries } from "@/features/academics/timetable/services/timetableApiAdapter";
 import type { WeekInfo } from "../../services/lessonPlansService";
 import AddLessonDialog from "../AddLessonDialog";
+
+vi.mock("@/features/academics/timetable/services/timetableApiAdapter", () => ({
+  getConfig: vi.fn(),
+  listEntries: vi.fn(),
+}));
 
 const week = (instructionalDays: string[]): WeekInfo => ({
   weekIndex: 2,
@@ -35,6 +41,12 @@ function renderDialog(instructionalDays: string[], onConfirm = vi.fn()) {
       preselectedWeekIndex={2}
       termStartDate="2026-09-01"
       termEndDate="2026-12-31"
+      academicYearId="year-1"
+      termId="term-1"
+      classroomId="classroom-1"
+      teacherUserId="teacher-1"
+      subjectId="subject-1"
+      teacherSubjectAllocationId="allocation-1"
       onClose={vi.fn()}
       onConfirm={onConfirm}
     />,
@@ -43,13 +55,17 @@ function renderDialog(instructionalDays: string[], onConfirm = vi.fn()) {
 }
 
 describe("AddLessonDialog planned day selection", () => {
+  beforeEach(() => {
+    vi.mocked(getConfig).mockResolvedValue({ id: "config-1" } as never);
+    vi.mocked(listEntries).mockResolvedValue([]);
+  });
   it("defaults confirmation to the first instructional day", async () => {
     const user = userEvent.setup();
     const onConfirm = renderDialog(["2026-09-09", "2026-09-10"]);
 
     await user.click(screen.getByRole("button", { name: "confirm" }));
 
-    expect(onConfirm).toHaveBeenCalledWith("lesson-1", 2, "2026-09-09");
+    expect(onConfirm).toHaveBeenCalledWith("lesson-1", 2, "2026-09-09", null);
   });
 
   it("allows another instructional day in the same week", async () => {
@@ -60,7 +76,35 @@ describe("AddLessonDialog planned day selection", () => {
     await user.click(screen.getByRole("button", { name: /Sep 10/i }));
     await user.click(screen.getByRole("button", { name: "confirm" }));
 
-    expect(onConfirm).toHaveBeenCalledWith("lesson-1", 2, "2026-09-10");
+    expect(onConfirm).toHaveBeenCalledWith("lesson-1", 2, "2026-09-10", null);
+  });
+
+  it("includes the selected timetable slot in confirmation", async () => {
+    vi.mocked(getConfig).mockResolvedValue({ id: "config-1" } as never);
+    vi.mocked(listEntries).mockResolvedValue([
+      {
+        id: "entry-1",
+        dayOfWeek: 4,
+        periodId: "period-1",
+        period: { label: "Period 2", index: 2 },
+        teacherSubjectAllocationId: "allocation-1",
+      },
+    ] as never);
+    const user = userEvent.setup();
+    const onConfirm = renderDialog(["2026-09-10"]);
+
+    await user.click(
+      await screen.findByRole("button", { name: "addWithoutSlot" }),
+    );
+    await user.click(screen.getByRole("button", { name: /Period 2/i }));
+    await user.click(screen.getByRole("button", { name: "confirm" }));
+
+    expect(onConfirm).toHaveBeenCalledWith(
+      "lesson-1",
+      2,
+      "2026-09-10",
+      expect.objectContaining({ id: "entry-1", periodId: "period-1" }),
+    );
   });
 
   it("blocks confirmation when the week has no valid instructional day", () => {

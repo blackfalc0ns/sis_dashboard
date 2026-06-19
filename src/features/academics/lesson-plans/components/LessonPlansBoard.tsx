@@ -40,6 +40,7 @@ import {
 } from "@/features/academics/lesson-plans/services/lessonPlansService";
 import EditLessonPlanDialog from "./EditLessonPlanDialog";
 import SkipCancelReasonDialog from "./SkipCancelReasonDialog";
+import MoveLessonDialog from "./MoveLessonDialog";
 import { lessonPlansUiError } from "../services/lessonPlansErrors";
 import { isDateOnlyInside } from "../services/lessonPlanDates";
 import {
@@ -138,6 +139,11 @@ export default function LessonPlansBoard({
     itemId: string;
     action: "skip" | "cancel";
   } | null>(null);
+  const [moveDialog, setMoveDialog] = useState<{
+    itemId: string;
+    targetWeek: WeekInfo;
+    sortOrder: number;
+  } | null>(null);
 
   // Drag state
   const [draggedLesson, setDraggedLesson] = useState<Lesson | null>(null);
@@ -176,6 +182,12 @@ export default function LessonPlansBoard({
   const handleDropOnWeek = useCallback(
     async (weekIndex: number) => {
       if (isReadOnly || isUpdating) return;
+      if (draggedLesson && onAddLessonMobile && onSelectLessonFromLibrary) {
+        onAddLessonMobile(weekIndex);
+        onSelectLessonFromLibrary(draggedLesson);
+        setDraggedLesson(null);
+        return;
+      }
       setIsUpdating(true);
       try {
         if (draggedLesson) {
@@ -242,9 +254,8 @@ export default function LessonPlansBoard({
               return;
             }
 
-            const plannedDate = targetWeek.instructionalDays[0];
-            if (!plannedDate) {
-              showError("This week has no instructional days.");
+            if (targetWeek.instructionalDays.length === 0) {
+              showError(validationMessages.noInstructionalDays);
               return;
             }
 
@@ -253,14 +264,12 @@ export default function LessonPlansBoard({
                 plan.weekIndex === weekIndex && plan.status !== "ARCHIVED",
             );
 
-            await moveLessonPlanItem(draggedItem.itemId, {
-              weekIndex,
-              plannedDate,
+            setMoveDialog({
+              itemId: draggedItem.itemId,
+              targetWeek,
               sortOrder: targetPlan?.items.length ?? 0,
             });
-            setDraggedItem(null); // Clear drag state immediately
-            await onUpdate(); // Wait for update to complete
-            showSuccess("Saved successfully");
+            setDraggedItem(null);
           } else {
             setDraggedItem(null); // Clear drag state even if not moved
           }
@@ -294,7 +303,27 @@ export default function LessonPlansBoard({
       showSuccess,
       showError,
       onUpdate,
+      onAddLessonMobile,
+      onSelectLessonFromLibrary,
     ],
+  );
+
+  const confirmMove = useCallback(
+    async (payload: Parameters<typeof moveLessonPlanItem>[1]) => {
+      if (!moveDialog) return;
+      setIsUpdating(true);
+      try {
+        await moveLessonPlanItem(moveDialog.itemId, payload);
+        await onUpdate();
+        setMoveDialog(null);
+        showSuccess("Saved successfully");
+      } catch (error) {
+        showError(lessonPlansUiError(error));
+      } finally {
+        setIsUpdating(false);
+      }
+    },
+    [moveDialog, onUpdate, showError, showSuccess],
   );
 
   // Handle status change
@@ -718,6 +747,23 @@ export default function LessonPlansBoard({
         onConfirm={handleReasonConfirm}
         loading={isUpdating}
       />
+      {moveDialog && (
+        <MoveLessonDialog
+          isOpen
+          targetWeek={moveDialog.targetWeek}
+          termStartDate={termStartDate}
+          termEndDate={termEndDate}
+          academicYearId={academicYearId}
+          termId={termId}
+          classroomId={classroomId}
+          teacherUserId={teacherId}
+          subjectId={subjectId}
+          teacherSubjectAllocationId={teacherSubjectAllocationId}
+          sortOrder={moveDialog.sortOrder}
+          onClose={() => setMoveDialog(null)}
+          onConfirm={confirmMove}
+        />
+      )}
     </div>
   );
 }

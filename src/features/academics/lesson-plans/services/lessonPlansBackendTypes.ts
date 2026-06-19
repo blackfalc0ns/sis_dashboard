@@ -213,6 +213,9 @@ export interface ReorderLessonPlanItemRequest {
 export interface MoveLessonPlanItemRequest {
   plannedDate?: string;
   weekIndex?: number;
+  dayOfWeek?: number;
+  periodId?: string;
+  periodLabel?: string;
   timetableEntryId?: string | null;
   sortOrder?: number;
 }

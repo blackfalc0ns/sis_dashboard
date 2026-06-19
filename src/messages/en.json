@@ -4812,6 +4812,13 @@
     "lessonPlans": {
       "title": "Lesson Plans",
       "subtitle": "Plan and track lessons across weeks",
+      "plannedDay": "Planned day",
+      "timetableSlot": "Timetable slot",
+      "selectTimetableSlot": "Select a timetable slot",
+      "noTimetableSlots": "No timetable slots found for this day. You can still add the lesson without a slot.",
+      "addWithoutSlot": "Add without a timetable slot",
+      "moveWithoutSlot": "Move without a timetable slot",
+      "loadingTimetableSlots": "Loading timetable slots...",
       "filters": {
         "title": "Filters",
         "stage": "Stage",
@@ -4910,6 +4917,7 @@
       "actions": {
         "addToWeek": "Add to Week",
         "move": "Move",
+        "confirmMove": "Move lesson",
         "reorder": "Reorder",
         "remove": "Remove from Plan",
         "editNotes": "Edit Notes",

@@ -142,6 +142,7 @@ describe("useLessonPlanMutations", () => {
         unitId: "unit-1",
         lessonId: "lesson-1",
         plannedDate: "2026-09-10",
+        dayOfWeek: 4,
         sortOrder: 1,
       },
     });

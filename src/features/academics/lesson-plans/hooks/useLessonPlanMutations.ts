@@ -12,6 +12,8 @@ import {
 } from "@/features/academics/lesson-plans/services/lessonPlansService";
 import { lessonPlansUiError } from "@/features/academics/lesson-plans/services/lessonPlansErrors";
 import { isDateOnlyInside } from "@/features/academics/lesson-plans/services/lessonPlanDates";
+import type { BackendTimetableEntryDto } from "@/features/academics/timetable/services/timetableApiTypes";
+import { dayOfWeekFromDateOnly } from "../components/TimetableSlotSelect";
 
 interface Params {
   academicYearId: string;
@@ -68,7 +70,12 @@ export function useLessonPlanMutations(params: Params) {
     [],
   );
   const handleConfirmAddLesson = useCallback(
-    async (lessonId: string, weekIndex: number, selectedPlannedDate: string) => {
+    async (
+      lessonId: string,
+      weekIndex: number,
+      selectedPlannedDate: string,
+      timetableEntry: BackendTimetableEntryDto | null = null,
+    ) => {
       const lesson = params.lessons.find(
         (candidate) => candidate.id === lessonId,
       );
@@ -140,6 +147,15 @@ export function useLessonPlanMutations(params: Params) {
             unitId: lesson.unitId,
             lessonId: lesson.id,
             plannedDate,
+            dayOfWeek:
+              timetableEntry?.dayOfWeek ?? dayOfWeekFromDateOnly(plannedDate),
+            ...(timetableEntry
+              ? {
+                  timetableEntryId: timetableEntry.id,
+                  periodId: timetableEntry.periodId,
+                  periodLabel: timetableEntry.period.label,
+                }
+              : {}),
             sortOrder: plan.items.length,
           },
         });
