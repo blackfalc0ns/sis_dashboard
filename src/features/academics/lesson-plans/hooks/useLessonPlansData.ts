@@ -114,14 +114,19 @@ export function useLessonPlansData({
 
   useEffect(() => {
     const loadCurriculum = async () => {
-      if (!termId || !selectedGradeId || !selectedSubjectId) {
+      if (!academicYearId || !termId || !selectedGradeId || !selectedSubjectId) {
         setUnits([]);
         setLessons([]);
         return;
       }
 
       try {
-        const curriculum = await fetchCurriculum(termId, selectedGradeId, selectedSubjectId);
+        const curriculum = await fetchCurriculum(
+          academicYearId,
+          termId,
+          selectedGradeId,
+          selectedSubjectId,
+        );
         if (!curriculum) {
           setUnits([]);
           setLessons([]);
@@ -141,7 +146,7 @@ export function useLessonPlansData({
     };
 
     loadCurriculum();
-  }, [onLoadError, selectedGradeId, selectedSubjectId, termId]);
+  }, [academicYearId, onLoadError, selectedGradeId, selectedSubjectId, termId]);
 
   const refreshPlans = useCallback(async () => {
     if (!termId || !selectedSectionId || !selectedSubjectId) {

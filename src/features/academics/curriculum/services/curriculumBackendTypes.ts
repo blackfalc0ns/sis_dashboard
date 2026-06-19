@@ -144,7 +144,6 @@ export interface UpdateCurriculumRequest {
 }
 
 export interface CreateUnitRequest {
-  curriculumId: string;
   title: string;
   description?: string | null;
   sortOrder?: number;
@@ -159,8 +158,6 @@ export interface UpdateUnitRequest {
 }
 
 export interface CreateLessonRequest {
-  curriculumId: string;
-  unitId: string;
   title: string;
   description?: string | null;
   objectives?: string[];

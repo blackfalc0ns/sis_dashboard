@@ -4,6 +4,7 @@
 
 import { useState, useRef } from "react";
 import { XCircle, Upload, FileText, AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface UploadDocumentModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export default function UploadDocumentModal({
   onClose,
   onSubmit,
 }: UploadDocumentModalProps) {
+  const t = useTranslations("students_guardians.students.documents");
   const [formData, setFormData] = useState({
     type: "",
     notes: "",
@@ -248,10 +250,10 @@ export default function UploadDocumentModal({
                     Document Upload Guidelines
                   </p>
                   <ul className="text-xs text-blue-700 space-y-1">
-                    <li>• Ensure the document is clear and readable</li>
-                    <li>• File size should not exceed 10MB</li>
-                    <li>• Accepted formats: PDF, DOC, DOCX, JPG, PNG</li>
-                    <li>• Documents will be reviewed by administration</li>
+                    <li>{t("guidelines.clearAndReadable")}</li>
+                    <li>{t("guidelines.maxSize")}</li>
+                    <li>{t("guidelines.acceptedFormats")}</li>
+                    <li>{t("guidelines.reviewedByAdmin")}</li>
                   </ul>
                 </div>
               </div>

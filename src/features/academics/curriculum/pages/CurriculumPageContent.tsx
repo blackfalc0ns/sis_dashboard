@@ -46,7 +46,6 @@ import {
   type ExportMetadata,
 } from "@/features/academics/utils/exportAdapter";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
-import { useAcademicContextBarActions } from "@/features/academics/hooks/useAcademicContextBarActions";
 import { useGuardedAcademicContextChange } from "@/features/academics/hooks/useGuardedAcademicContextChange";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -71,7 +70,6 @@ export default function CurriculumPageContent() {
     academicYearId,
     termId,
     termStatus,
-    academicYears,
     selectedTerm,
     isInitializing,
   } = useAcademicYearTermLayoutContext();

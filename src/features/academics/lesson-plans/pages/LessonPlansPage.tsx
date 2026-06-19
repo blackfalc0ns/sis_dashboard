@@ -458,14 +458,8 @@ export default function LessonPlansPage() {
         return {
           week: plan.weekIndex,
           status: t(`status.${item.status}`),
-          lesson:
-            locale === "ar"
-              ? lesson?.titleAr || lesson?.titleEn || lesson?.title || ""
-              : lesson?.titleEn || lesson?.titleAr || lesson?.title || "",
-          unit:
-            locale === "ar"
-              ? unit?.titleAr || unit?.titleEn || unit?.title || ""
-              : unit?.titleEn || unit?.titleAr || unit?.title || "",
+          lesson: lesson?.title || "",
+          unit: unit?.title || "",
           order: item.order,
           notes:
             locale === "ar"

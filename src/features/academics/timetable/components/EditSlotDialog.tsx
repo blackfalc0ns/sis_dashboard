@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
@@ -367,7 +367,7 @@ export default function EditSlotDialog({
                   value={breakLabelAr}
                   onChange={(event) => setBreakLabelAr(event.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-primary"
-                  placeholder="فسحة"
+                  placeholder={t("breakLabelPlaceholderAr")}
                   dir="rtl"
                 />
               </div>

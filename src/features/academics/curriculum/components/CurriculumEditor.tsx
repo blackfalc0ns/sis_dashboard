@@ -62,6 +62,7 @@ export default function CurriculumEditor({
 }: CurriculumEditorProps) {
   const t = useTranslations("academics.curriculum.editor");
   const tValidation = useTranslations("validation");
+  void termWeeks;
 
   const [formData, setFormData] = useState<CurriculumEditorForm>(emptyForm);
   const [originalData, setOriginalData] = useState<CurriculumEditorForm>(emptyForm);

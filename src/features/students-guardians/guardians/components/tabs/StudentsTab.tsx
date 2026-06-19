@@ -271,7 +271,7 @@ export default function StudentsTab({ guardian }: StudentsTabProps) {
                     setSelectedStudentId("");
                   }}
                   className="w-full rounded-lg border border-gray-300 pl-9 pr-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  placeholder="Search by name or student ID…"
+                  placeholder={t("searchPlaceholder")}
                 />
               </div>
             </label>

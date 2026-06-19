@@ -136,8 +136,134 @@ export const resetCurriculumAdapter = () => {
 };
 
 // ============================================================================
+// ASSIGNMENT SERVICE FUNCTIONS (disabled until a supported backend contract exists)
+// ============================================================================
+
+const unsupportedAssignmentFeature = () =>
+  new Error("Curriculum assignments are not supported by the backend contract.");
+
+const rejectUnsupportedAssignmentFeature = <T>(): Promise<T> =>
+  Promise.reject(unsupportedAssignmentFeature());
+
+export const fetchLessonAssignments = (lessonId: string): Promise<Assignment[]> => {
+  void lessonId;
+  return rejectUnsupportedAssignmentFeature();
+};
+
+export const fetchAssignmentById = (
+  lessonId: string,
+  assignmentId: string,
+): Promise<Assignment | null> => {
+  void lessonId;
+  void assignmentId;
+  return rejectUnsupportedAssignmentFeature();
+};
+
+export const createAssignment = (
+  lessonId: string,
+  payload: Omit<Assignment, "id" | "lessonId" | "createdAt">,
+): Promise<Assignment> => {
+  void lessonId;
+  void payload;
+  return rejectUnsupportedAssignmentFeature();
+};
+
+export const updateAssignment = (
+  assignmentId: string,
+  payload: Partial<Omit<Assignment, "id" | "lessonId" | "createdAt">>,
+): Promise<Assignment> => {
+  void assignmentId;
+  void payload;
+  return rejectUnsupportedAssignmentFeature();
+};
+
+export const deleteAssignment = (assignmentId: string): Promise<void> => {
+  void assignmentId;
+  return rejectUnsupportedAssignmentFeature();
+};
+
+export const fetchAssignmentAttachments = (
+  assignmentId: string,
+): Promise<AssignmentAttachment[]> => {
+  void assignmentId;
+  return rejectUnsupportedAssignmentFeature();
+};
+
+export const uploadAssignmentAttachmentFile = (
+  assignmentId: string,
+  file: File,
+): Promise<AssignmentAttachment> => {
+  void assignmentId;
+  void file;
+  return rejectUnsupportedAssignmentFeature();
+};
+
+export const createAssignmentAttachmentLink = (
+  assignmentId: string,
+  payload: { title: string; url: string },
+): Promise<AssignmentAttachment> => {
+  void assignmentId;
+  void payload;
+  return rejectUnsupportedAssignmentFeature();
+};
+
+export const deleteAssignmentAttachment = (attachmentId: string): Promise<void> => {
+  void attachmentId;
+  return rejectUnsupportedAssignmentFeature();
+};
+
+export const fetchAssignmentQuestions = (
+  assignmentId: string,
+): Promise<AssignmentQuestion[]> => {
+  void assignmentId;
+  return rejectUnsupportedAssignmentFeature();
+};
+
+export const createAssignmentQuestion = (
+  assignmentId: string,
+  payload: Omit<AssignmentQuestion, "id" | "assignmentId" | "createdAt" | "order">,
+): Promise<AssignmentQuestion> => {
+  void assignmentId;
+  void payload;
+  return rejectUnsupportedAssignmentFeature();
+};
+
+export const updateAssignmentQuestion = (
+  questionId: string,
+  payload: Partial<Omit<AssignmentQuestion, "id" | "assignmentId" | "createdAt">>,
+): Promise<AssignmentQuestion> => {
+  void questionId;
+  void payload;
+  return rejectUnsupportedAssignmentFeature();
+};
+
+export const deleteAssignmentQuestion = (questionId: string): Promise<void> => {
+  void questionId;
+  return rejectUnsupportedAssignmentFeature();
+};
+
+export const reorderAssignmentQuestions = (
+  assignmentId: string,
+  orderedQuestionIds: string[],
+): Promise<void> => {
+  void assignmentId;
+  void orderedQuestionIds;
+  return rejectUnsupportedAssignmentFeature();
+};
+
+export const bulkUpdateQuestionPoints = (
+  assignmentId: string,
+  updates: Array<{ questionId: string; points: number }>,
+): Promise<void> => {
+  void assignmentId;
+  void updates;
+  return rejectUnsupportedAssignmentFeature();
+};
+
+// ============================================================================
 // CURRICULUM SERVICE FUNCTIONS (backend-aligned)
 // ============================================================================
+
 
 export const listCurricula = (filters: CurriculumListFilters): Promise<Curriculum[]> =>
   curriculumAdapter.listCurricula(filters);
@@ -154,6 +280,33 @@ export const fetchCurriculumForScope = async (
   const first = curricula[0];
   return first ? curriculumAdapter.getCurriculum(first.id) : null;
 };
+
+// Legacy method for lesson plans backwards compatibility
+export const fetchCurriculum = (
+  academicYearId: string,
+  termId: string,
+  gradeId: string,
+  subjectId: string,
+): Promise<Curriculum | null> =>
+  fetchCurriculumForScope({
+    academicYearId,
+    termId,
+    gradeId,
+    subjectId,
+  });
+
+// Legacy method for lesson plans
+export const fetchUnits = async (curriculumId: string): Promise<Unit[]> => {
+  const curr = await curriculumAdapter.getCurriculum(curriculumId);
+  return curr.units || [];
+};
+
+// Legacy method for lesson plans
+export const fetchAllLessons = async (curriculumId: string): Promise<Lesson[]> => {
+  const curr = await curriculumAdapter.getCurriculum(curriculumId);
+  return (curr.units || []).flatMap((u) => u.lessons || []);
+};
+
 
 export const createCurriculum = (
   payload: CreateCurriculumRequest,

@@ -178,4 +178,21 @@ describe("curriculumMappers", () => {
       }),
     );
   });
+
+  it.each(["draft", "active", "archived", "Draft"] as const)(
+    "does not accept non-backend status casing %s",
+    (status) => {
+      expect(
+        mapCurriculumDetailDto({
+          ...curriculumDetailDto,
+          status,
+        }),
+      ).toEqual(
+        expect.objectContaining({
+          status: "unknown",
+          rawStatus: status,
+        }),
+      );
+    },
+  );
 });

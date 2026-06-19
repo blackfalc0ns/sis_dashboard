@@ -418,7 +418,7 @@ export default function PersonalInfoTab({
                   : "bg-gray-50 border-gray-200 text-gray-700"
               }`}
             >
-              <option value="">— Not set —</option>
+              <option value="">{t("notSet")}</option>
               <option value="male">{t("male")}</option>
               <option value="female">{t("female")}</option>
             </select>
@@ -578,7 +578,7 @@ export default function PersonalInfoTab({
                   }))
                 }
                 disabled={!isEditing}
-                placeholder="student@example.com"
+                placeholder={t("emailPlaceholder")}
                 className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
                   isEditing
                     ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"

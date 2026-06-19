@@ -15,7 +15,7 @@ import type {
 } from "./curriculumBackendTypes";
 
 export function mapCurriculumStatus(status: string): CurriculumStatus {
-  switch (status.toUpperCase()) {
+  switch (status) {
     case "DRAFT":
       return "draft";
     case "ACTIVE":

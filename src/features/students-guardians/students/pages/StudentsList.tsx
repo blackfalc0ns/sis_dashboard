@@ -936,7 +936,7 @@ export default function StudentsList() {
           data={
             filteredStudents as unknown as Array<{ [key: string]: unknown }>
           }
-          isLoading={isLoading}
+          isLoading={isPageLoading}
           onRowClick={handleRowClick}
           searchQuery={searchQuery}
           virtualize={true}

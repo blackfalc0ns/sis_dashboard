@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { X, FileText, Link as LinkIcon, Trash2 } from "lucide-react";
 import {
@@ -122,7 +122,7 @@ export default function LearningContentPanel({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadItems = async () => {
+  const loadItems = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -132,11 +132,11 @@ export default function LearningContentPanel({
     } finally {
       setLoading(false);
     }
-  };
+  }, [curriculumId, lessonId, t, unitId]);
 
   useEffect(() => {
     if (open) void loadItems();
-  }, [open, curriculumId, unitId, lessonId]);
+  }, [loadItems, open]);
 
   const handleSave = async () => {
     if (
@@ -364,7 +364,7 @@ export default function LearningContentPanel({
                         title: item.title,
                         bodyText: item.bodyText || "",
                         url: item.url || "",
-                        fileId: item.fileId || "",
+                        fileId: item.file?.id || item.file?.fileId || "",
                         estimatedMinutes: item.estimatedMinutes?.toString() || "",
                         isRequired: item.isRequired,
                       })}

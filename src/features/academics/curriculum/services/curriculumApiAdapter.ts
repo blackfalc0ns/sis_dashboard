@@ -2,7 +2,6 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import type { CurriculumAdapter } from "./curriculumAdapter";
 import type {
   CreateCurriculumRequest,
-  CreateLessonContentRequest,
   CreateLessonRequest,
   CreateUnitRequest,
   CurriculaListResponseDto,

@@ -120,7 +120,7 @@ export default function LessonPlanItemCard({
         
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">
-            {isRTL ? lesson.titleAr : lesson.titleEn}
+            {lesson.title}
           </p>
           
           <div className="flex items-center gap-2 mt-2">

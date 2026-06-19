@@ -82,7 +82,7 @@ export default function AddLessonDialog({
         {lesson && (
           <div className="p-3 bg-gray-50 rounded-lg">
             <p className="text-sm font-medium text-gray-900">
-              {isRTL ? lesson.titleAr : lesson.titleEn}
+              {lesson.title}
             </p>
           </div>
         )}

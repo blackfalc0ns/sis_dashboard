@@ -2159,6 +2159,14 @@
         "low_attendance": "حضور منخفض",
         "low_grades": "درجات منخفضة",
         "behavior_issues": "مشاكل سلوكية"
+      },
+      "documents": {
+        "guidelines": {
+          "clearAndReadable": "• تأكد من أن المستند واضح ومقروء",
+          "maxSize": "• يجب ألا يتجاوز حجم الملف 10 ميغابايت",
+          "acceptedFormats": "• الصيغ المقبولة: PDF, DOC, DOCX, JPG, PNG",
+          "reviewedByAdmin": "• ستتم مراجعة المستندات من قبل الإدارة"
+        }
       }
     },
     "guardians_list": {
@@ -2257,7 +2265,8 @@
         "workplace": "مكان العمل",
         "can_pickup": "يمكنه استلام الطالب",
         "can_receive_notifications": "يستقبل الإشعارات"
-      }
+      },
+      "searchPlaceholder": "البحث بالاسم أو الرقم الأكاديمي..."
     },
     "tabs": {
       "overview": "نظرة عامة",
@@ -2780,7 +2789,9 @@
         "city": "المدينة",
         "district": "الحي",
         "student_phone": "هاتف الطالب",
-        "student_email": "البريد الإلكتروني للطالب"
+        "student_email": "البريد الإلكتروني للطالب",
+        "notSet": "— غير محدد —",
+        "emailPlaceholder": "student@example.com"
       },
       "guardians": {
         "title": "أولياء الأمور",
@@ -3000,7 +3011,9 @@
         "resolved": "محلول",
         "no_reinforcement": "لا توجد أحداث XP مرتبطة بالملاحظات حتى الآن",
         "no_incidents": "لا توجد خصومات XP مسجلة حتى الآن",
-        "xp_deduction": "خصم XP: {count}"
+        "xp_deduction": "خصم XP: {count}",
+        "optionalPlaceholderAr": "اختياري",
+        "optionalPlaceholderEn": "تفاصيل اختيارية..."
       },
       "documents": {
         "title": "المستندات",
@@ -3824,7 +3837,11 @@
           "difference": "الفرق"
         },
         "pointsMatch": "الدرجات متطابقة",
-        "pointsMismatch": "الدرجات غير متطابقة"
+        "pointsMismatch": "الدرجات غير متطابقة",
+        "titlePlaceholderAr": "أدخل عنوان الواجب بالعربية",
+        "titlePlaceholderEn": "Enter assignment title in English",
+        "descriptionPlaceholderAr": "أدخل وصف الواجب (اختياري)",
+        "descriptionPlaceholderEn": "Enter assignment description (optional)"
       },
       "assignmentBuilder": {
         "backToLesson": "العودة إلى الدرس",
@@ -3863,7 +3880,23 @@
         "file_id": "معرّف الملف",
         "load_failed": "تعذر تحميل محتوى الدرس.",
         "save_failed": "تعذر حفظ محتوى الدرس.",
-        "url": "الرابط"
+        "url": "الرابط",
+        "required_badge": "مطلوب",
+        "edit_item": "تعديل عنصر المحتوى",
+        "add_item": "إضافة عنصر محتوى",
+        "item_title": "العنوان",
+        "item_type": "النوع",
+        "estimated_minutes": "الدقائق المقدرة",
+        "is_required": "مطلوب",
+        "content_items": "عناصر المحتوى",
+        "loading": "جاري التحميل...",
+        "no_items": "لا توجد عناصر محتوى.",
+        "edit": "تعديل",
+        "cancel": "إلغاء",
+        "save": "حفظ",
+        "saving": "جاري الحفظ...",
+        "confirm_delete": "هل أنت متأكد أنك تريد حذف عنصر المحتوى هذا؟",
+        "delete_failed": "فشل في حذف عنصر المحتوى."
       },
       "questions": {
         "title": "الأسئلة",
@@ -4177,7 +4210,9 @@
         "roomSourceRecommended": "مقترحة من النظام",
         "roomSourceManual": "اختيار يدوي",
         "roomOptionalWarning": "الغرفة اختيارية، لكن سيتم حفظ هذه الحصة بدون غرفة.",
-        "roomConflictWarning": "هذه الغرفة مستخدمة بالفعل في حصة أخرى في نفس الوقت."
+        "roomConflictWarning": "هذه الغرفة مستخدمة بالفعل في حصة أخرى في نفس الوقت.",
+        "breakLabelPlaceholderAr": "فسحة",
+        "breakLabelPlaceholderEn": "Break"
       },
       "validation": {
         "title": "التحقق",
@@ -9332,5 +9367,26 @@
   "unmute_notifications": "تفعيل الإشعارات",
   "saving": "جارٍ الحفظ...",
   "save": "حفظ",
-  "cancel": "إلغاء"
+  "cancel": "إلغاء",
+  "students": {
+    "guardians": {
+      "searchPlaceholder": "البحث بالاسم أو الرقم الأكاديمي..."
+    },
+    "documents": {
+      "guidelines": {
+        "clearAndReadable": "• تأكد من أن المستند واضح ومقروء",
+        "maxSize": "• يجب ألا يتجاوز حجم الملف 10 ميغابايت",
+        "acceptedFormats": "• الصيغ المقبولة: PDF, DOC, DOCX, JPG, PNG",
+        "reviewedByAdmin": "• ستتم مراجعة المستندات من قبل الإدارة"
+      }
+    },
+    "behavior": {
+      "optionalPlaceholderAr": "اختياري",
+      "optionalPlaceholderEn": "تفاصيل اختيارية..."
+    },
+    "personalInfo": {
+      "notSet": "— غير محدد —",
+      "emailPlaceholder": "student@example.com"
+    }
+  }
 }

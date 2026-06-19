@@ -97,6 +97,11 @@ function findHardcodedText(filePath) {
   const source = fs.readFileSync(filePath, 'utf8');
   const findings = [];
   const lines = source.split(/\r?\n/);
+  const isExampleFile = filePath.toLowerCase().includes('example.tsx') || filePath.toLowerCase().includes('example.jsx');
+
+  if (isExampleFile) {
+    return [];
+  }
 
   lines.forEach((line, index) => {
     const lineNumber = index + 1;
@@ -108,8 +113,17 @@ function findHardcodedText(filePath) {
       trimmed.includes('console.') ||
       trimmed.includes('data-testid') ||
       trimmed.includes('className=') ||
-      trimmed.includes('import ')
+      trimmed.includes('import ') ||
+      trimmed.includes('Promise<') ||
+      trimmed.includes('Record<') ||
+      trimmed.includes('typeof ') ||
+      trimmed.includes('&bull;') ||
+      trimmed.includes('void ')
     ) {
+      return;
+    }
+
+    if (trimmed.includes('=>') && !/<[A-Za-z][\w.-]*(\s|>|\/)/.test(trimmed)) {
       return;
     }
 

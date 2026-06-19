@@ -148,8 +148,8 @@ export default function AssignmentDialog({
           errors={errors}
           disabled={isReadOnly}
           placeholder={{
-            ar: "أدخل عنوان الواجب بالعربية",
-            en: "Enter assignment title in English",
+            ar: t("titlePlaceholderAr"),
+            en: t("titlePlaceholderEn"),
           }}
         />
 
@@ -163,7 +163,7 @@ export default function AssignmentDialog({
               onChange={(e) => setDescriptionAr(e.target.value)}
               disabled={isReadOnly}
               rows={3}
-              placeholder="أدخل وصف الواجب (اختياري)"
+              placeholder={t("descriptionPlaceholderAr")}
             />
           </div>
           <div>
@@ -175,7 +175,7 @@ export default function AssignmentDialog({
               onChange={(e) => setDescriptionEn(e.target.value)}
               disabled={isReadOnly}
               rows={3}
-              placeholder="Enter assignment description (optional)"
+              placeholder={t("descriptionPlaceholderEn")}
             />
           </div>
         </div>

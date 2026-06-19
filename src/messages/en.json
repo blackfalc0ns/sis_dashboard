@@ -2159,6 +2159,14 @@
         "low_attendance": "Low Attendance",
         "low_grades": "Low Grades",
         "behavior_issues": "Behavior Issues"
+      },
+      "documents": {
+        "guidelines": {
+          "clearAndReadable": "• Ensure the document is clear and readable",
+          "maxSize": "• File size should not exceed 10MB",
+          "acceptedFormats": "• Accepted formats: PDF, DOC, DOCX, JPG, PNG",
+          "reviewedByAdmin": "• Documents will be reviewed by administration"
+        }
       }
     },
     "guardians_list": {
@@ -2257,7 +2265,8 @@
         "workplace": "Workplace",
         "can_pickup": "Can Pickup Student",
         "can_receive_notifications": "Receive Notifications"
-      }
+      },
+      "searchPlaceholder": "Search by name or student ID..."
     },
     "tabs": {
       "overview": "Overview",
@@ -2779,7 +2788,9 @@
         "city": "City",
         "district": "District",
         "student_phone": "Student Phone",
-        "student_email": "Student Email"
+        "student_email": "Student Email",
+        "notSet": "— Not set —",
+        "emailPlaceholder": "student@example.com"
       },
       "guardians": {
         "title": "Guardians",
@@ -2999,7 +3010,9 @@
         "resolved": "Resolved",
         "no_reinforcement": "No XP note events recorded yet",
         "no_incidents": "No XP deductions recorded yet",
-        "xp_deduction": "XP deduction: {count}"
+        "xp_deduction": "XP deduction: {count}",
+        "optionalPlaceholderAr": "Optional",
+        "optionalPlaceholderEn": "Optional details..."
       },
       "documents": {
         "title": "Documents",
@@ -3823,7 +3836,11 @@
           "difference": "Difference"
         },
         "pointsMatch": "Points match",
-        "pointsMismatch": "Points mismatch"
+        "pointsMismatch": "Points mismatch",
+        "titlePlaceholderAr": "أدخل عنوان الواجب بالعربية",
+        "titlePlaceholderEn": "Enter assignment title in English",
+        "descriptionPlaceholderAr": "أدخل وصف الواجب (اختياري)",
+        "descriptionPlaceholderEn": "Enter assignment description (optional)"
       },
       "assignmentBuilder": {
         "backToLesson": "Back to Lesson",
@@ -3862,7 +3879,23 @@
         "file_id": "File ID",
         "load_failed": "Could not load lesson content.",
         "save_failed": "Could not save lesson content.",
-        "url": "URL"
+        "url": "URL",
+        "required_badge": "Required",
+        "edit_item": "Edit Content Item",
+        "add_item": "Add Content Item",
+        "item_title": "Title",
+        "item_type": "Type",
+        "estimated_minutes": "Estimated Minutes",
+        "is_required": "Is Required",
+        "content_items": "Content Items",
+        "loading": "Loading...",
+        "no_items": "No content items found.",
+        "edit": "Edit",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving...",
+        "confirm_delete": "Are you sure you want to delete this content item?",
+        "delete_failed": "Failed to delete content item."
       },
       "questions": {
         "title": "Questions",
@@ -4421,7 +4454,9 @@
         "roomSourceRecommended": "recommended room",
         "roomSourceManual": "manual selection",
         "roomOptionalWarning": "Room is optional, but this slot will save without a room.",
-        "roomConflictWarning": "This room is already used in another slot at this time."
+        "roomConflictWarning": "This room is already used in another slot at this time.",
+        "breakLabelPlaceholderAr": "فسحة",
+        "breakLabelPlaceholderEn": "Break"
       },
       "validation": {
         "title": "Validation",
@@ -9331,5 +9366,26 @@
   "unmute_notifications": "Unmute notifications",
   "saving": "Saving...",
   "save": "Save",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "students": {
+    "guardians": {
+      "searchPlaceholder": "Search by name or student ID..."
+    },
+    "documents": {
+      "guidelines": {
+        "clearAndReadable": "• Ensure the document is clear and readable",
+        "maxSize": "• File size should not exceed 10MB",
+        "acceptedFormats": "• Accepted formats: PDF, DOC, DOCX, JPG, PNG",
+        "reviewedByAdmin": "• Documents will be reviewed by administration"
+      }
+    },
+    "behavior": {
+      "optionalPlaceholderAr": "Optional",
+      "optionalPlaceholderEn": "Optional details..."
+    },
+    "personalInfo": {
+      "notSet": "— Not set —",
+      "emailPlaceholder": "student@example.com"
+    }
+  }
 }

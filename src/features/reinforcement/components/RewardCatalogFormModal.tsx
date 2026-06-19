@@ -182,7 +182,7 @@ export default function RewardCatalogFormModal({
             label={t("rewardsModule.catalog.table.title") + " (AR)"}
             value={titleAr}
             onChange={(e) => setTitleAr(e.target.value)}
-            placeholder="عنوان المكافأة بالعربية"
+            placeholder={t("rewards.titlePlaceholderAr")}
             dir="rtl"
             required={!titleEn.trim()}
           />
@@ -201,7 +201,7 @@ export default function RewardCatalogFormModal({
             label={`${t("rewardsModule.description")} (AR)`}
             value={descriptionAr}
             onChange={(e) => setDescriptionAr(e.target.value)}
-            placeholder="الوصف بالعربية"
+            placeholder={t("rewards.descriptionPlaceholderAr")}
             dir="rtl"
             rows={3}
           />

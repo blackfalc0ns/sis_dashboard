@@ -518,7 +518,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
                 onChange={(e) => setTitleAr(e.target.value)}
                 dir="rtl"
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder="اختياري"
+                placeholder={t("optionalPlaceholderAr")}
               />
             </label>
 
@@ -530,7 +530,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
                 onChange={(e) => setNoteEn(e.target.value)}
                 rows={2}
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder="Optional details…"
+                placeholder={t("optionalPlaceholderEn")}
               />
             </label>
 

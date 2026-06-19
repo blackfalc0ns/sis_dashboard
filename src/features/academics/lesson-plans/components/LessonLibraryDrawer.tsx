@@ -62,9 +62,8 @@ export default function LessonLibraryDrawer({
       // Filter by search
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const titleAr = lesson.titleAr?.toLowerCase() || "";
-        const titleEn = lesson.titleEn?.toLowerCase() || "";
-        return titleAr.includes(query) || titleEn.includes(query);
+        const title = lesson.title?.toLowerCase() || "";
+        return title.includes(query);
       }
 
       return true;
@@ -115,7 +114,7 @@ export default function LessonLibraryDrawer({
               { value: "", label: t("allUnits") },
               ...units.map((unit) => ({
                 value: unit.id,
-                label: isRTL ? unit.titleAr : unit.titleEn,
+                label: unit.title,
               })),
             ]}
             selectSize="sm"
@@ -150,11 +149,11 @@ export default function LessonLibraryDrawer({
                   `}
                 >
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {isRTL ? lesson.titleAr : lesson.titleEn}
+                    {lesson.title}
                   </p>
                   {unit && (
                     <p className="text-xs text-gray-500 truncate mt-0.5">
-                      {isRTL ? unit.titleAr : unit.titleEn}
+                      {unit.title}
                     </p>
                   )}
                   {isPlanned && (
