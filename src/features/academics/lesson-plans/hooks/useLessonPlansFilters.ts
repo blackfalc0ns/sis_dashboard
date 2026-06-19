@@ -43,7 +43,7 @@ export function useLessonPlansFilters({
       }
       return grades.filter((grade) => grade.stageId === selectedStageId);
     },
-    [selectedStageId]
+    [selectedStageId],
   );
 
   const getFilteredSections = useCallback(
@@ -53,7 +53,7 @@ export function useLessonPlansFilters({
       }
       return sections.filter((section) => section.gradeId === selectedGradeId);
     },
-    [selectedGradeId]
+    [selectedGradeId],
   );
 
   const getFilteredClassrooms = useCallback(
@@ -61,9 +61,11 @@ export function useLessonPlansFilters({
       if (!selectedSectionId) {
         return [];
       }
-      return classrooms.filter((classroom) => classroom.sectionId === selectedSectionId);
+      return classrooms.filter(
+        (classroom) => classroom.sectionId === selectedSectionId,
+      );
     },
-    [selectedSectionId]
+    [selectedSectionId],
   );
 
   return {

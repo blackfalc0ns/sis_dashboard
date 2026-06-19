@@ -191,7 +191,9 @@ export default function Sidebar({
 
     const { top } = element.getBoundingClientRect();
     const maxTop =
-      window.innerHeight - COLLAPSED_FLYOUT_MAX_HEIGHT - COLLAPSED_FLYOUT_MARGIN;
+      window.innerHeight -
+      COLLAPSED_FLYOUT_MAX_HEIGHT -
+      COLLAPSED_FLYOUT_MARGIN;
     setCollapsedFlyoutTop(
       Math.max(
         COLLAPSED_FLYOUT_MARGIN,
@@ -342,9 +344,7 @@ export default function Sidebar({
                 <p className="text-sm text-white/60 font-medium">
                   {t("school")}
                 </p>
-                <p className="text-sm font-bold text-white truncate">
-                  {schoolName}
-                </p>
+                <p className="text-sm font-bold text-white">{schoolName}</p>
               </div>
             </div>
           </div>

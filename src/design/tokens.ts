@@ -153,7 +153,7 @@ export const spacing = {
 
 export const typography = {
   fontFamily: {
-    sans: ['Cairo', 'system-ui', 'sans-serif'],
+    sans: ['var(--font-somar)', 'system-ui', 'sans-serif'],
     mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
   },
   

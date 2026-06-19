@@ -81,9 +81,9 @@ describe("lesson plan mappers", () => {
         weekIndex: 1,
         startsAt: "2026-09-01",
         endsAt: "2026-09-07",
-        instructionalDays: [],
-        holidayDays: [],
         plannedItemsCount: 1,
+        instructionalDays: ["2026-09-02"],
+        holidayDays: [],
       },
     ]);
     expect(plan).toMatchObject({
@@ -95,9 +95,15 @@ describe("lesson plan mappers", () => {
     expect(plan.items[0]).toMatchObject({
       id: "item-1",
       planId: "plan-1",
+      unitTitle: "Unit",
+      lessonTitle: "Lesson",
       status: "IN_PROGRESS",
       order: 3,
       notes: "Prepare examples",
+      timetableEntryId: undefined,
+      dayOfWeek: 2,
+      createdAt: "2026-09-01T00:00:00.000Z",
+      updatedAt: "2026-09-01T00:00:00.000Z",
     });
   });
 
@@ -108,6 +114,9 @@ describe("lesson plan mappers", () => {
     expect(mapLessonPlanItemDto({ ...itemDto, status: "blocked" }).status).toBe(
       "UNKNOWN",
     );
+    expect(
+      mapLessonPlanItemDto({ ...itemDto, status: "rescheduled" }).status,
+    ).toBe("UNKNOWN");
     expect(
       mapLessonPlanItemDto({ ...itemDto, status: "blocked" }).rawStatus,
     ).toBe("blocked");
@@ -123,8 +132,10 @@ describe("lesson plan mappers", () => {
             weekIndex: 1,
             startsAt: "2026-09-01",
             endsAt: "2026-09-07",
-            instructionalDays: [],
-            holidayDays: [],
+            instructionalDays: ["2026-09-02"],
+            holidayDays: [
+              { date: "2026-09-03", eventId: "holiday-1", title: "Holiday" },
+            ],
             plannedItemsCount: 2,
           },
         ],
@@ -133,6 +144,10 @@ describe("lesson plan mappers", () => {
       startDate: "2026-09-01",
       endDate: "2026-09-07",
       plannedItemsCount: 2,
+      instructionalDays: ["2026-09-02"],
+      holidayDays: [{ date: "2026-09-03" }],
+      hasHolidays: true,
+      lostTeachingDays: 1,
     });
     expect(
       mapLessonPlanSummaryDto({

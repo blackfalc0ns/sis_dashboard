@@ -6,7 +6,10 @@ import { Drawer } from "@mui/material";
 import { X, Search } from "lucide-react";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
-import { Lesson, Unit } from "@/features/academics/curriculum/services/curriculumService";
+import {
+  Lesson,
+  Unit,
+} from "@/features/academics/curriculum/services/curriculumService";
 import { LessonPlan } from "@/features/academics/lesson-plans/services/lessonPlansService";
 
 interface LessonLibraryDrawerProps {
@@ -143,8 +146,8 @@ export default function LessonLibraryDrawer({
                       isPlanned
                         ? "bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed"
                         : isReadOnly
-                        ? "bg-white border-gray-200 cursor-default"
-                        : "bg-white border-gray-200 hover:border-primary hover:shadow-sm active:scale-[0.98]"
+                          ? "bg-white border-gray-200 cursor-default"
+                          : "bg-white border-gray-200 hover:border-primary hover:shadow-sm active:scale-[0.98]"
                     }
                   `}
                 >
@@ -170,9 +173,7 @@ export default function LessonLibraryDrawer({
         {/* Footer Hint */}
         {!isReadOnly && filteredLessons.length > 0 && (
           <div className="p-3 border-t border-gray-200 bg-gray-50">
-            <p className="text-xs text-gray-600 text-center">
-              {t("tapToAdd")}
-            </p>
+            <p className="text-xs text-gray-600 text-center">{t("tapToAdd")}</p>
           </div>
         )}
       </div>

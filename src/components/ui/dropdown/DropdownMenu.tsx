@@ -1,6 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect, ReactNode } from "react";
+import {
+  cloneElement,
+  isValidElement,
+  useState,
+  useRef,
+  useEffect,
+  ReactElement,
+  ReactNode,
+} from "react";
 import { ChevronDown } from "lucide-react";
 import { useLocale } from "next-intl";
 
@@ -77,20 +85,36 @@ export default function DropdownMenu({
   const selectedItem = items.find((item) => item.value === selectedValue);
   const displayLabel = selectedItem?.label || placeholder;
 
+  const toggleOpen = () => {
+    if (!disabled) setIsOpen((value) => !value);
+  };
+
+  const triggerElement = (() => {
+    if (!trigger || !isValidElement(trigger)) return trigger;
+    const element = trigger as ReactElement<
+      React.HTMLAttributes<HTMLElement>
+    >;
+    return cloneElement(element, {
+      onClick: (event) => {
+        element.props.onClick?.(event);
+        toggleOpen();
+      },
+      "aria-haspopup": "menu",
+      "aria-expanded": isOpen,
+    });
+  })();
+
   return (
     <div ref={dropdownRef} className={`relative inline-block ${className}`}>
       {/* Trigger Button */}
       {trigger ? (
-        <div
-          onClick={() => !disabled && setIsOpen(!isOpen)}
-          className="focus:outline-none cursor-pointer"
-        >
-          {trigger}
-        </div>
+        triggerElement
       ) : (
         <button
-          onClick={() => !disabled && setIsOpen(!isOpen)}
+          onClick={toggleOpen}
           disabled={disabled}
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
           className={`${width} flex items-center justify-between px-4 py-2.5 bg-white border border-border rounded-lg hover:border-hover hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           <span className="flex items-center gap-2 text-sm text-black">
@@ -109,6 +133,7 @@ export default function DropdownMenu({
       {/* Dropdown Menu */}
       {isOpen && (
         <div
+          role="menu"
           className={`absolute z-50 mt-2 ${width} bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200 ${
             isRTL ? "left-0" : "right-0"
           }`}
@@ -124,6 +149,7 @@ export default function DropdownMenu({
                 }}
               >
                 <button
+                  role="menuitem"
                   onClick={() => handleSelect(item)}
                   disabled={item.disabled}
                   className={`group w-full flex items-center gap-3 px-4 py-2.5 text-sm ${isRTL ? "text-right" : "text-left"} transition-all duration-200 ${

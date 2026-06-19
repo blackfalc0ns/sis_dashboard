@@ -3,30 +3,29 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Alert,
-  AlertTitle,
-  CircularProgress,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
-import { Download } from "lucide-react";
+import { Alert, AlertTitle, useMediaQuery, useTheme } from "@mui/material";
 import { useDebouncedCallback } from "use-debounce";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
 import LessonPlansFilters from "../components/LessonPlansFilters";
 import LessonPlansBoard from "../components/LessonPlansBoard";
+import LessonPlansPageHeader from "../components/LessonPlansPageHeader";
+import LessonPlansSkeleton from "../components/LessonPlansSkeleton";
 import FiltersDrawer from "../components/FiltersDrawer";
 import LessonLibraryDrawer from "../components/LessonLibraryDrawer";
 import AddLessonDialog from "../components/AddLessonDialog";
 import MobileBottomBar from "../components/MobileBottomBar";
-import MainLoader from "@/components/ui/loaders/MainLoader";
+import AutoPlanDialog from "../components/AutoPlanDialog";
+import LessonPlanValidationPanel from "../components/LessonPlanValidationPanel";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { useLessonPlansData } from "../hooks/useLessonPlansData";
 import { useLessonPlansFilters } from "../hooks/useLessonPlansFilters";
 import { useLessonPlanMutations } from "../hooks/useLessonPlanMutations";
-import { canEditLessonPlans } from "./lessonPlansPageState";
+import {
+  canEditLessonPlans,
+  resolveLessonPlansView,
+} from "./lessonPlansPageState";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
   type AcademicsExportFormat,
@@ -49,7 +48,7 @@ export default function LessonPlansPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const { hasPermission } = usePermissions();
   const canManageLessonPlans = hasPermission("academics.lesson_plans.manage");
-  const { academicYearId, termId, termStatus, isInitializing } =
+  const { academicYearId, termId, termStatus, selectedTerm, isInitializing } =
     useAcademicYearTermLayoutContext();
   const handleLoadError = useCallback(() => {
     showError(tCommon("error"));
@@ -81,6 +80,7 @@ export default function LessonPlansPage() {
   // Mobile drawer states
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showAutoPlanDialog, setShowAutoPlanDialog] = useState(false);
   const libraryQueryState = useMemo(
     () => ({
       isOpen: searchParams.get("library") === "1",
@@ -109,12 +109,14 @@ export default function LessonPlansPage() {
     plans,
     weeks,
     summary,
+    validation,
     assignedTeacherId,
     teacherSubjectAllocationId,
     curriculumId,
     resolvedClassroomId,
     loading,
     plansLoading,
+    dataChecked,
     refreshPlans,
   } = useLessonPlansData({
     academicYearId,
@@ -144,6 +146,46 @@ export default function LessonPlansPage() {
     [classrooms, getFilteredClassrooms],
   );
   const displayedClassroomId = selectedClassroomId || resolvedClassroomId;
+  const scopeLabels = useMemo(() => {
+    const selectedStage = stages.find((stage) => stage.id === selectedStageId);
+    const selectedGrade = grades.find((grade) => grade.id === selectedGradeId);
+    const selectedSection = sections.find(
+      (section) => section.id === selectedSectionId,
+    );
+    const selectedClassroom = classrooms.find(
+      (classroom) => classroom.id === displayedClassroomId,
+    );
+    const selectedSubject = subjects.find(
+      (subject) => subject.id === selectedSubjectId,
+    );
+
+    return [
+      selectedStage &&
+        (locale === "ar" ? selectedStage.nameAr : selectedStage.nameEn),
+      selectedGrade &&
+        (locale === "ar" ? selectedGrade.nameAr : selectedGrade.nameEn),
+      selectedSection &&
+        (locale === "ar" ? selectedSection.nameAr : selectedSection.nameEn),
+      selectedClassroom &&
+        (locale === "ar"
+          ? selectedClassroom.nameAr
+          : selectedClassroom.nameEn),
+      selectedSubject &&
+        (locale === "ar" ? selectedSubject.nameAr : selectedSubject.nameEn),
+    ].filter(Boolean) as string[];
+  }, [
+    classrooms,
+    displayedClassroomId,
+    grades,
+    locale,
+    sections,
+    selectedGradeId,
+    selectedSectionId,
+    selectedStageId,
+    selectedSubjectId,
+    stages,
+    subjects,
+  ]);
   const syncFilterParams = useCallback(
     (
       filters: {
@@ -288,9 +330,13 @@ export default function LessonPlansPage() {
     handleAddLessonFromWeek,
     handleConfirmAddLesson,
     closeAddLessonDialog,
+    previewAutoPlan,
+    applyAutoPlan,
   } = useLessonPlanMutations({
     academicYearId,
     termId,
+    termStartDate: selectedTerm?.startDate,
+    termEndDate: selectedTerm?.endDate,
     selectedSubjectId,
     selectedClassroomId: resolvedClassroomId,
     assignedTeacherId,
@@ -303,6 +349,12 @@ export default function LessonPlansPage() {
     showSuccess,
     showError,
     onLessonSelected: () => syncLibraryParams({ isOpen: false }, "replace"),
+    validationMessages: {
+      missingWeek: t("validation.week_outside_term"),
+      noInstructionalDays: t("validation.no_instructional_days"),
+      weekOutsideTerm: t("validation.week_outside_term"),
+      plannedDateOutsideTerm: t("validation.planned_date_outside_term"),
+    },
   });
 
   const handlePlansUpdate = useCallback(async () => {
@@ -543,33 +595,35 @@ export default function LessonPlansPage() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center">
-        <MainLoader />
-      </div>
-    );
-  }
+  const scopeResolved = !isInitializing && !loading;
+  const viewState = resolveLessonPlansView({
+    loading: loading || plansLoading,
+    scopeResolved,
+    dataChecked,
+    selectedSectionId,
+    selectedSubjectId,
+    teacherSubjectAllocationId,
+    curriculumId,
+    weeks,
+    lessons,
+  });
+  const showSkeleton = viewState === "loading";
+  const autoPlanDisabled =
+    isReadOnly || !termId || !teacherSubjectAllocationId || !curriculumId;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
-      <div className="flex-1 overflow-auto">
-        <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 md:px-6">
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900">
-              {t("title")}
-            </h1>
-            <p className="text-sm text-gray-500">{t("subtitle")}</p>
-          </div>
-          <Button
-            variant="secondary"
-            onClick={() => setShowExportModal(true)}
-            leftIcon={<Download className="w-4 h-4" />}
-            disabled={lessonPlanExportRows.length === 0}
-          >
-            {tExport("button")}
-          </Button>
-        </div>
+      <div className="flex-1">
+        <LessonPlansPageHeader
+          scopeLabels={scopeLabels}
+          autoPlanDisabled={autoPlanDisabled}
+          autoPlanUnavailableReason={t("tooltips.autoPlanUnavailable")}
+          exportDisabled={lessonPlanExportRows.length === 0}
+          refreshing={plansLoading}
+          onAutoPlan={() => setShowAutoPlanDialog(true)}
+          onRefresh={handlePlansUpdate}
+          onExport={() => setShowExportModal(true)}
+        />
 
         {/* Read-only banner */}
         {isReadOnly && (
@@ -600,12 +654,16 @@ export default function LessonPlansPage() {
             onSectionChange={handleSectionFilterChange}
             onClassroomChange={handleClassroomFilterChange}
             onSubjectChange={handleSubjectFilterChange}
+            disabled={loading}
+            loading={loading}
           />
         )}
 
         {/* Main content */}
         <div className={isMobile ? "p-4 pb-24" : "p-6"}>
-          {!selectedSectionId || !selectedSubjectId ? (
+          {showSkeleton ? (
+            <LessonPlansSkeleton />
+          ) : viewState === "no-selection" ? (
             <div className="text-center py-12">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {t("emptyState.noSelection.title")}
@@ -617,15 +675,43 @@ export default function LessonPlansPage() {
           ) : filteredClassrooms.length > 1 && !resolvedClassroomId ? (
             <div className="text-center py-12">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {locale === "ar" ? "اختر الفصل" : "Select Classroom"}
+                {t("filters.selectClassroom")}
               </h3>
               <p className="text-gray-600">
-                {locale === "ar"
-                  ? "يرجى اختيار الفصل المطلوب لعرض خطة الدروس لهذه الشعبة"
-                  : "Choose the classroom to load the lesson plan for this section."}
+                {t("emptyState.selectClassroom.message")}
               </p>
             </div>
-          ) : lessons.length === 0 ? (
+          ) : viewState === "no-allocation" ? (
+            <div className="text-center py-12">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {t("emptyState.noAllocation.title")}
+              </h3>
+              <p className="text-gray-600">
+                {t("emptyState.noAllocation.message")}
+              </p>
+            </div>
+          ) : viewState === "no-curriculum" ? (
+            <div className="text-center py-12">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {t("emptyState.noCurriculum.title")}
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {t("emptyState.noCurriculum.message")}
+              </p>
+              <Button type="button" onClick={handleGoToCurriculum}>
+                {t("emptyState.noLessons.cta")}
+              </Button>
+            </div>
+          ) : viewState === "no-weeks" ? (
+            <div className="text-center py-12">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {t("emptyState.noWeeks.title")}
+              </h3>
+              <p className="text-gray-600">
+                {t("emptyState.noWeeks.message")}
+              </p>
+            </div>
+          ) : viewState === "no-lessons" ? (
             <div className="text-center py-12">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {t("emptyState.noLessons.title")}
@@ -633,40 +719,51 @@ export default function LessonPlansPage() {
               <p className="text-gray-600 mb-4">
                 {t("emptyState.noLessons.message")}
               </p>
-              <button
+              <Button
                 type="button"
                 onClick={handleGoToCurriculum}
-                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark"
               >
                 {t("emptyState.noLessons.cta")}
-              </button>
-            </div>
-          ) : plansLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <CircularProgress />
+              </Button>
             </div>
           ) : (
-            <LessonPlansBoard
-              academicYearId={academicYearId}
-              termId={termId}
-              teacherSubjectAllocationId={teacherSubjectAllocationId}
-              curriculumId={curriculumId}
-              subjectId={selectedSubjectId}
-              classroomId={resolvedClassroomId}
-              teacherId={assignedTeacherId}
-              lessons={lessons}
-              units={units}
-              plans={plans}
-              weeks={weeks}
-              summary={summary}
-              isReadOnly={isReadOnly}
-              librarySearchQuery={librarySearchInput}
-              librarySelectedUnitId={libraryQueryState.unitId}
-              onLibrarySearchQueryChange={handleLibrarySearchChange}
-              onLibrarySelectedUnitIdChange={handleLibraryUnitChange}
-              onUpdate={handlePlansUpdate}
-              onAddLessonMobile={handleAddLessonFromWeekWithLibrary}
-            />
+            <div className="space-y-4">
+              {validation && (
+                <LessonPlanValidationPanel validation={validation} />
+              )}
+              <LessonPlansBoard
+                academicYearId={academicYearId}
+                termId={termId}
+                termStartDate={selectedTerm?.startDate}
+                termEndDate={selectedTerm?.endDate}
+                teacherSubjectAllocationId={teacherSubjectAllocationId}
+                curriculumId={curriculumId}
+                subjectId={selectedSubjectId}
+                classroomId={resolvedClassroomId}
+                teacherId={assignedTeacherId}
+                lessons={lessons}
+                units={units}
+                plans={plans}
+                weeks={weeks}
+                summary={summary}
+                validation={validation}
+                isReadOnly={isReadOnly}
+                librarySearchQuery={librarySearchInput}
+                librarySelectedUnitId={libraryQueryState.unitId}
+                onLibrarySearchQueryChange={handleLibrarySearchChange}
+                onLibrarySelectedUnitIdChange={handleLibraryUnitChange}
+                onUpdate={handlePlansUpdate}
+                onSelectLessonFromLibrary={handleSelectLessonFromLibrary}
+                onAddLessonMobile={handleAddLessonFromWeekWithLibrary}
+                validationMessages={{
+                  noInstructionalDays: t("validation.no_instructional_days"),
+                  weekOutsideTerm: t("validation.week_outside_term"),
+                  plannedDateOutsideTerm: t(
+                    "validation.planned_date_outside_term",
+                  ),
+                }}
+              />
+            </div>
           )}
         </div>
       </div>
@@ -731,6 +828,15 @@ export default function LessonPlansPage() {
         title={tExport("title")}
         subtitle={t("title")}
         datasetCount={lessonPlanExportRows.length}
+      />
+      <AutoPlanDialog
+        isOpen={showAutoPlanDialog}
+        termStartDate={selectedTerm?.startDate}
+        termEndDate={selectedTerm?.endDate}
+        onClose={() => setShowAutoPlanDialog(false)}
+        onPreview={previewAutoPlan}
+        onApply={applyAutoPlan}
+        showError={showError}
       />
     </div>
   );

@@ -156,7 +156,7 @@ export default function Modal({
         `}
         style={{ 
           animation: "modalFadeIn 0.2s ease-out",
-          fontFamily: "Cairo, sans-serif"
+          fontFamily: "var(--font-somar), sans-serif"
         }}
         {...ariaProps}
       >

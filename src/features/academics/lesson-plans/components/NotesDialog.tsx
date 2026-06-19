@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
+import { TextArea } from "@/components/ui/input";
 
 interface NotesDialogProps {
   isOpen: boolean;
@@ -56,27 +57,21 @@ export default function NotesDialog({
     >
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1 text-right">
-            {t("notesAr")}
-          </label>
-          <textarea
+          <TextArea
+            label={t("notesAr")}
             value={localNotesAr}
             onChange={(e) => setLocalNotesAr(e.target.value)}
             rows={4}
             dir="rtl"
-            className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-colors placeholder:text-gray-400"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
-            {t("notesEn")}
-          </label>
-          <textarea
+          <TextArea
+            label={t("notesEn")}
             value={localNotesEn}
             onChange={(e) => setLocalNotesEn(e.target.value)}
             rows={4}
             dir="ltr"
-            className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-colors placeholder:text-gray-400"
           />
         </div>
       </div>

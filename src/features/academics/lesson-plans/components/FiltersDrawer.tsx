@@ -15,7 +15,12 @@ interface FiltersDrawerProps {
   stages: { id: string; nameAr: string; nameEn: string }[];
   grades: { id: string; nameAr: string; nameEn: string; stageId: string }[];
   sections: { id: string; nameAr: string; nameEn: string; gradeId: string }[];
-  classrooms: { id: string; nameAr: string; nameEn: string; sectionId: string }[];
+  classrooms: {
+    id: string;
+    nameAr: string;
+    nameEn: string;
+    sectionId: string;
+  }[];
   subjects: Subject[];
   teachers: Teacher[];
   selectedStageId: string;
@@ -75,7 +80,14 @@ export default function FiltersDrawer({
       setLocalClassroomId(selectedClassroomId);
       setLocalSubjectId(selectedSubjectId);
     }
-  }, [isOpen, selectedStageId, selectedGradeId, selectedSectionId, selectedClassroomId, selectedSubjectId]);
+  }, [
+    isOpen,
+    selectedStageId,
+    selectedGradeId,
+    selectedSectionId,
+    selectedClassroomId,
+    selectedSubjectId,
+  ]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleStageChange = (stageId: string) => {
@@ -117,19 +129,24 @@ export default function FiltersDrawer({
 
   const assignedTeacher = teachers.find((t) => t.id === assignedTeacherId);
   const filteredGrades = useMemo(
-    () => grades.filter((grade) => !localStageId || grade.stageId === localStageId),
-    [grades, localStageId]
+    () =>
+      grades.filter((grade) => !localStageId || grade.stageId === localStageId),
+    [grades, localStageId],
   );
   const filteredSections = useMemo(
-    () => sections.filter((section) => !localGradeId || section.gradeId === localGradeId),
-    [sections, localGradeId]
+    () =>
+      sections.filter(
+        (section) => !localGradeId || section.gradeId === localGradeId,
+      ),
+    [sections, localGradeId],
   );
   const filteredClassrooms = useMemo(
     () =>
       classrooms.filter(
-        (classroom) => !localSectionId || classroom.sectionId === localSectionId
+        (classroom) =>
+          !localSectionId || classroom.sectionId === localSectionId,
       ),
-    [classrooms, localSectionId]
+    [classrooms, localSectionId],
   );
 
   return (

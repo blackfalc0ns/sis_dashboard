@@ -12,6 +12,8 @@
   --blue-color: rgb(40, 107, 250);
   --border-color: #cccccccc;
 
+  --header-height: 88px;
+
   --main-box-shadow-value: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
 
   /* Extended palette for matrix/table components */
@@ -25,7 +27,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-cairo);
+  --font-sans: var(--font-somar);
 
   /* base colors */
   --color-primary: var(--primary-color);
@@ -122,7 +124,7 @@ body {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-cairo), system-ui, sans-serif;
+  font-family: var(--font-somar), system-ui, sans-serif;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -214,7 +216,7 @@ textarea::placeholder {
 
 .MuiChartsLegend-label {
   font-size: 14px !important;
-  font-family: var(--font-cairo), system-ui, sans-serif;
+  font-family: var(--font-somar), system-ui, sans-serif;
 }
 
 /* Select dropdown animations */
@@ -274,8 +276,12 @@ textarea::placeholder {
 
 /* WhatsApp-style message highlight when scrolling to a replied message */
 @keyframes message-highlight {
-  0% { background-color: rgba(3, 107, 128, 0.15); }
-  100% { background-color: transparent; }
+  0% {
+    background-color: rgba(3, 107, 128, 0.15);
+  }
+  100% {
+    background-color: transparent;
+  }
 }
 
 .highlight-message {

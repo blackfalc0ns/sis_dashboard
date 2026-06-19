@@ -16,10 +16,12 @@ import {
 import {
   getLessonPlan,
   getLessonPlanSummary,
+  getLessonPlanValidation,
   listLessonPlans,
   listLessonPlanWeeks,
   type LessonPlan,
   type LessonPlanSummary,
+  type LessonPlanValidationResponseDto,
   type WeekInfo,
 } from "@/features/academics/lesson-plans/services/lessonPlansService";
 import {
@@ -66,6 +68,8 @@ export function useLessonPlansData(params: Params) {
   const [plans, setPlans] = useState<LessonPlan[]>([]);
   const [weeks, setWeeks] = useState<WeekInfo[]>([]);
   const [summary, setSummary] = useState<LessonPlanSummary | null>(null);
+  const [validation, setValidation] =
+    useState<LessonPlanValidationResponseDto | null>(null);
   const [assignedTeacherId, setAssignedTeacherId] = useState("");
   const [teacherSubjectAllocationId, setTeacherSubjectAllocationId] =
     useState("");
@@ -73,6 +77,7 @@ export function useLessonPlansData(params: Params) {
   const [resolvedClassroomId, setResolvedClassroomId] = useState("");
   const [loading, setLoading] = useState(true);
   const [plansLoading, setPlansLoading] = useState(false);
+  const [dataChecked, setDataChecked] = useState(false);
   const requestId = useRef(0);
 
   useEffect(() => {
@@ -117,16 +122,19 @@ export function useLessonPlansData(params: Params) {
       setPlans([]);
       setWeeks([]);
       setSummary(null);
+      setValidation(null);
       setUnits([]);
       setLessons([]);
       setCurriculumId("");
       setTeacherSubjectAllocationId("");
       setAssignedTeacherId("");
       setResolvedClassroomId("");
+      setDataChecked(false);
       setPlansLoading(false);
       return;
     }
     setPlansLoading(true);
+    setDataChecked(false);
     try {
       const sectionClassrooms = classrooms.filter(
         (classroom) => classroom.sectionId === selectedSectionId,
@@ -156,23 +164,29 @@ export function useLessonPlansData(params: Params) {
         setPlans([]);
         setWeeks([]);
         setSummary(null);
+        setValidation(null);
         setUnits(curriculum?.units ?? []);
         setLessons((curriculum?.units ?? []).flatMap((unit) => unit.lessons));
         setCurriculumId(curriculum?.id ?? "");
-        setTeacherSubjectAllocationId("");
-        setAssignedTeacherId("");
+        setTeacherSubjectAllocationId(allocation?.id ?? "");
+        setAssignedTeacherId(allocation?.teacherId ?? "");
         setResolvedClassroomId(classroomId);
+        setDataChecked(true);
         return;
       }
       const query = { termId, teacherSubjectAllocationId: allocation.id };
-      const [weekList, planList, planSummary] = await Promise.all([
-        listLessonPlanWeeks(query),
-        listLessonPlans(query),
-        getLessonPlanSummary(query),
-      ]);
-      const details = await Promise.all(
-        planList.map((plan) => getLessonPlan(plan.id)),
-      );
+      const [weekList, planList, planSummary, planValidation] =
+        await Promise.all([
+          listLessonPlanWeeks(query),
+          listLessonPlans(query),
+          getLessonPlanSummary(query),
+          getLessonPlanValidation({
+            ...query,
+            gradeId: selectedGradeId,
+            subjectId: selectedSubjectId,
+            classroomId: classroomId || undefined,
+          }),
+        ]);
       if (currentRequest !== requestId.current) return;
       setResolvedClassroomId(classroomId);
       setAssignedTeacherId(allocation.teacherId ?? "");
@@ -182,7 +196,7 @@ export function useLessonPlansData(params: Params) {
       setLessons((curriculum.units ?? []).flatMap((unit) => unit.lessons));
       setWeeks(weekList);
       setPlans(
-        details.map((plan) => ({
+        planList.map((plan) => ({
           ...plan,
           weekIndex:
             weekList.find(
@@ -193,9 +207,12 @@ export function useLessonPlansData(params: Params) {
         })),
       );
       setSummary(planSummary);
+      setValidation(planValidation);
+      setDataChecked(true);
     } catch (error) {
       console.error("Failed to load lesson plans:", error);
       onLoadError();
+      setDataChecked(true);
     } finally {
       if (currentRequest === requestId.current) setPlansLoading(false);
     }
@@ -225,12 +242,14 @@ export function useLessonPlansData(params: Params) {
     plans,
     weeks,
     summary,
+    validation,
     assignedTeacherId,
     teacherSubjectAllocationId,
     curriculumId,
     resolvedClassroomId,
     loading,
     plansLoading,
+    dataChecked,
     refreshPlans,
   };
 }

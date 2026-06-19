@@ -29,8 +29,8 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
     user === null
       ? "Ahmed Mostafa"
       : `${user.firstName} ${user.lastName}`.trim();
-  const userRole = user?.activeMembership?.roleKey ?? user?.userType ?? "Admin";
-  const schoolName = brandingProfile?.schoolName.trim() || t("school_name");
+  const userRole = user?.activeMembership?.roleKey ?? user?.userType;
+  const schoolName = brandingProfile?.schoolName?.trim() || t("school_name");
 
   // Set initial sidebar state based on screen size
   useEffect(() => {
@@ -55,7 +55,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
   // Full-screen mode for conversations — collapse sidebar (expandable) and hide topnav
   if (isFullScreenChat) {
     return (
-      <div className="h-[100dvh] overflow-x-hidden bg-gray-50">
+      <div className="h-[100dvh] overflow-x-clip bg-gray-50">
         <GlobalMessageNotifications />
         <Sidebar
           onSelect={() => {}}
@@ -74,7 +74,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-gray-50">
+    <div className="min-h-screen overflow-x-clip bg-gray-50">
       <GlobalMessageNotifications />
       <Sidebar
         onSelect={() => {}}
@@ -90,6 +90,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
           userName={userName}
           userRole={userRole}
           notificationCount={1}
+          schoolName={schoolName}
           onSearchChange={(value) => console.log("Search:", value)}
           onLanguageChange={() => console.log("Language changed")}
           onNotificationClick={() => console.log("Notifications clicked")}

@@ -31,7 +31,7 @@ const CustomTooltip = ({
     
     return (
       <div
-        className="bg-white px-3 py-2 rounded-lg shadow-lg border font-[Cairo]"
+        className="bg-white px-3 py-2 rounded-lg shadow-lg border font-sans"
         style={{ borderColor: chartColor }}
       >
         {hasTimestamp && (

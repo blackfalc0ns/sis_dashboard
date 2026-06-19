@@ -1,7 +1,7 @@
 import { NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
-import { cairo } from "@/lib/fonts";
+import { somar } from "@/lib/fonts";
 import "../globals.css";
 import Providers from "../providers";
 
@@ -27,7 +27,7 @@ export default async function DashboardLayout({
 
   return (
     <html lang={lang} dir={lang === "ar" ? "rtl" : "ltr"}>
-      <body className={`${cairo.variable} antialiased`}>
+      <body className={`${somar.variable} antialiased`}>
         <NextIntlClientProvider locale={lang} messages={messages}>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>

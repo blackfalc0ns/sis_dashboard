@@ -2,16 +2,30 @@
 
 import { useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { MoreVertical, GripVertical, FileText } from "lucide-react";
+import {
+  MoreVertical,
+  GripVertical,
+  FileText,
+  ArrowUp,
+  ArrowDown,
+  CheckCircle2,
+  CircleDot,
+  Clock3,
+  Edit3,
+  SkipForward,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 import { Lesson } from "@/features/academics/curriculum/services/curriculumService";
 import { LessonPlanItem } from "@/features/academics/lesson-plans/services/lessonPlansService";
 import DropdownMenu, {
   DropdownItem,
 } from "@/components/ui/dropdown/DropdownMenu";
+import { lessonPlanItemTransitions } from "./lessonPlanBoardActions";
 
 interface LessonPlanItemCardProps {
   item: LessonPlanItem;
-  lesson: Lesson;
+  lesson?: Lesson;
   onDragStart: () => void;
   onDragEnd: () => void;
   onStatusChange: (
@@ -21,6 +35,9 @@ interface LessonPlanItemCardProps {
   onEditNotes: (itemId: string, notesAr?: string, notesEn?: string) => void;
   onRemove: (itemId: string) => void;
   isReadOnly: boolean;
+  onReorder: (itemId: string, direction: "up" | "down") => void;
+  disableMoveUp: boolean;
+  disableMoveDown: boolean;
 }
 
 export default function LessonPlanItemCard({
@@ -32,57 +49,78 @@ export default function LessonPlanItemCard({
   onEditNotes,
   onRemove,
   isReadOnly,
+  onReorder,
+  disableMoveUp,
+  disableMoveDown,
 }: LessonPlanItemCardProps) {
   const t = useTranslations("academics.lessonPlans");
-  const getStatusStyles = (status: string) => {
-    switch (status) {
-      case "PLANNED":
-        return "bg-gray-100 text-gray-700 border-gray-200";
-      case "IN_PROGRESS":
-        return "bg-blue-100 text-blue-700 border-blue-200";
-      case "DONE":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "SKIPPED":
-        return "bg-orange-100 text-orange-700 border-orange-200";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
-    }
-  };
+  const statusStyles = {
+    PLANNED: "bg-gray-100 text-gray-700 border-gray-200",
+    IN_PROGRESS: "bg-blue-100 text-blue-700 border-blue-200",
+    DONE: "bg-green-100 text-green-700 border-green-200",
+    SKIPPED: "bg-orange-100 text-orange-700 border-orange-200",
+    CANCELLED: "bg-red-100 text-red-700 border-red-200",
+    UNKNOWN: "bg-gray-100 text-gray-700 border-gray-200",
+  } satisfies Record<typeof item.status, string>;
 
   const hasNotes = Boolean(item.notesAr || item.notesEn);
+  const plannedMeta = [item.plannedDate, item.periodLabel]
+    .filter(Boolean)
+    .join(" · ");
 
-  // Build dropdown menu items
+  const displayTitle = item.title || item.lessonTitle || lesson?.title;
+
   const menuItems: DropdownItem[] = useMemo(() => {
     const items: DropdownItem[] = [];
+    const transitions = lessonPlanItemTransitions(item.status);
 
-    if (item.status !== "IN_PROGRESS") {
+    items.push({
+      label: t("actions.moveUp"),
+      value: "move-up",
+      icon: <ArrowUp className="h-4 w-4" />,
+      disabled: disableMoveUp,
+      onClick: () => onReorder(item.id, "up"),
+    });
+    items.push({
+      label: t("actions.moveDown"),
+      value: "move-down",
+      icon: <ArrowDown className="h-4 w-4" />,
+      disabled: disableMoveDown,
+      onClick: () => onReorder(item.id, "down"),
+    });
+
+    if (transitions.includes("IN_PROGRESS")) {
       items.push({
         label: t("actions.markInProgress"),
         value: "in-progress",
+        icon: <CircleDot className="h-4 w-4" />,
         onClick: () => onStatusChange(item.id, "IN_PROGRESS"),
       });
     }
 
-    if (item.status !== "DONE") {
+    if (transitions.includes("DONE")) {
       items.push({
         label: t("actions.markDone"),
         value: "done",
+        icon: <CheckCircle2 className="h-4 w-4" />,
         onClick: () => onStatusChange(item.id, "DONE"),
       });
     }
 
-    if (item.status !== "SKIPPED") {
+    if (transitions.includes("SKIPPED")) {
       items.push({
         label: t("actions.skip"),
         value: "skip",
+        icon: <SkipForward className="h-4 w-4" />,
         onClick: () => onStatusChange(item.id, "SKIPPED"),
       });
     }
 
-    if (item.status !== "CANCELLED") {
+    if (transitions.includes("CANCELLED")) {
       items.push({
         label: t("actions.cancel"),
         value: "cancel",
+        icon: <XCircle className="h-4 w-4" />,
         onClick: () => onStatusChange(item.id, "CANCELLED"),
       });
     }
@@ -90,12 +128,14 @@ export default function LessonPlanItemCard({
     items.push({
       label: t("actions.editNotes"),
       value: "edit-notes",
+      icon: <Edit3 className="h-4 w-4" />,
       onClick: () => onEditNotes(item.id, item.notesAr, item.notesEn),
     });
 
     items.push({
       label: t("actions.remove"),
       value: "remove",
+      icon: <Trash2 className="h-4 w-4" />,
       onClick: () => onRemove(item.id),
     });
 
@@ -109,6 +149,9 @@ export default function LessonPlanItemCard({
     onStatusChange,
     onEditNotes,
     onRemove,
+    onReorder,
+    disableMoveUp,
+    disableMoveDown,
   ]);
 
   return (
@@ -132,23 +175,38 @@ export default function LessonPlanItemCard({
 
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">
-            {lesson.title}
+            {displayTitle}
           </p>
+          {plannedMeta && (
+            <p className="mt-1 inline-flex items-center gap-1 text-xs text-gray-500">
+              <Clock3 className="h-3 w-3" aria-hidden="true" />
+              {plannedMeta}
+            </p>
+          )}
 
           <div className="flex items-center gap-2 mt-2">
             <span
-              className={`px-2 py-0.5 text-[0.65rem] font-medium border rounded ${getStatusStyles(item.status)}`}
+              className={`px-2 py-0.5 text-[0.65rem] font-medium border rounded ${statusStyles[item.status]}`}
             >
               {t(`status.${item.status}`)}
             </span>
-            {hasNotes && <FileText className="w-3 h-3 text-gray-400" />}
+            {hasNotes && (
+              <FileText
+                className="w-3 h-3 text-gray-400"
+                aria-label={t("labels.hasNotes")}
+              />
+            )}
           </div>
         </div>
 
         {!isReadOnly && (
           <DropdownMenu
             trigger={
-              <button className="shrink-0 p-1 hover:bg-gray-100 rounded transition-colors">
+              <button
+                type="button"
+                aria-label={t("actions.lessonActions")}
+                className="shrink-0 p-1 hover:bg-gray-100 rounded transition-colors"
+              >
                 <MoreVertical className="w-4 h-4 text-gray-600" />
               </button>
             }

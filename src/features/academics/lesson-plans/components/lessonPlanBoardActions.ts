@@ -12,3 +12,24 @@ export function lessonPlanItemAction(status: LessonPlanItemStatus) {
     throw new Error(`Unsupported lesson plan item transition: ${status}`);
   return action;
 }
+
+type LessonPlanItemTransition = Exclude<
+  LessonPlanItemStatus,
+  "PLANNED" | "UNKNOWN"
+>;
+
+const transitions: Record<
+  LessonPlanItemStatus,
+  readonly LessonPlanItemTransition[]
+> = {
+  PLANNED: ["IN_PROGRESS", "DONE", "SKIPPED", "CANCELLED"],
+  IN_PROGRESS: ["DONE", "SKIPPED", "CANCELLED"],
+  DONE: [],
+  SKIPPED: [],
+  CANCELLED: [],
+  UNKNOWN: [],
+};
+
+export function lessonPlanItemTransitions(status: LessonPlanItemStatus) {
+  return transitions[status];
+}

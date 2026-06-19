@@ -30,7 +30,7 @@ export default function AddLessonDialog({
   const isRTL = locale === "ar";
 
   const [selectedWeekIndex, setSelectedWeekIndex] = useState<string>(
-    preselectedWeekIndex?.toString() || ""
+    preselectedWeekIndex?.toString() || "",
   );
 
   // Update selectedWeekIndex when preselectedWeekIndex or isOpen changes
@@ -81,9 +81,7 @@ export default function AddLessonDialog({
         {/* Lesson Info */}
         {lesson && (
           <div className="p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm font-medium text-gray-900">
-              {lesson.title}
-            </p>
+            <p className="text-sm font-medium text-gray-900">{lesson.title}</p>
           </div>
         )}
 

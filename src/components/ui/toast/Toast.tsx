@@ -94,7 +94,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
           aria-atomic="true"
           sx={{
             width: "100%",
-            fontFamily: "Cairo, sans-serif",
+            fontFamily: "var(--font-somar), sans-serif",
             fontSize: "0.875rem",
             boxShadow: 3,
           }}

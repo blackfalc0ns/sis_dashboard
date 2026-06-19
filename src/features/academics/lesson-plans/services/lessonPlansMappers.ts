@@ -40,6 +40,8 @@ export function mapLessonPlanItemDto(
     planId: dto.lessonPlanId,
     lessonId: dto.lessonId,
     unitId: dto.unitId,
+    unitTitle: dto.unitTitle,
+    lessonTitle: dto.lessonTitle,
     status: itemStatuses[dto.status as keyof typeof itemStatuses] ?? "UNKNOWN",
     rawStatus: dto.status,
     order: dto.sortOrder,
@@ -47,7 +49,17 @@ export function mapLessonPlanItemDto(
     notesAr: dto.notes ?? undefined,
     notesEn: dto.notes ?? undefined,
     plannedDate: dto.plannedDate ?? undefined,
+    timetableEntryId: dto.timetableEntryId ?? undefined,
+    dayOfWeek: dto.dayOfWeek ?? undefined,
+    periodId: dto.periodId ?? undefined,
+    periodLabel: dto.periodLabel ?? undefined,
     title: dto.title,
+    startedAt: dto.startedAt ?? undefined,
+    completedAt: dto.completedAt ?? undefined,
+    skippedAt: dto.skippedAt ?? undefined,
+    cancelledAt: dto.cancelledAt ?? undefined,
+    createdAt: dto.createdAt,
+    updatedAt: dto.updatedAt,
   };
 }
 
@@ -71,7 +83,7 @@ export function mapLessonPlanDto(
     weekIndex: weekContaining(dto.weekStartDate, weeks) ?? 0,
     weekStartDate: dto.weekStartDate,
     weekEndDate: dto.weekEndDate,
-    items: [],
+    items: dto.items ? dto.items.map(mapLessonPlanItemDto) : [],
     updatedAt: dto.updatedAt,
   };
 }
@@ -94,6 +106,8 @@ export const mapLessonPlanWeeksDto = (
     lostTeachingDays: week.holidayDays.length,
     hasHolidays: week.holidayDays.length > 0,
     plannedItemsCount: week.plannedItemsCount,
+    instructionalDays: [...week.instructionalDays],
+    holidayDays: week.holidayDays.map((holiday) => ({ ...holiday })),
   }));
 export const mapLessonPlanSummaryDto = (
   dto: LessonPlanSummaryResponseDto,

@@ -4,7 +4,6 @@ export type LessonPlanItemStatusDto =
   | "in_progress"
   | "done"
   | "skipped"
-  | "rescheduled"
   | "cancelled";
 export type LessonPlanStatus = "DRAFT" | "ACTIVE" | "ARCHIVED" | "UNKNOWN";
 export type LessonPlanItemStatus =
@@ -79,6 +78,7 @@ export interface LessonPlanResponseDto {
   subject: NamedSummaryDto & { code: string | null; color: string | null };
   curriculum: { curriculumId: string; title: string; status: string };
   itemCount: number;
+  items?: LessonPlanItemResponseDto[];
 }
 export interface LessonPlanDetailResponseDto extends LessonPlanResponseDto {
   items: LessonPlanItemResponseDto[];
@@ -116,16 +116,48 @@ export interface LessonPlanSummaryResponseDto {
 export interface LessonPlanValidationResponseDto {
   termId: string;
   academicYearId: string;
-  summary: Record<string, number>;
-  issues: Array<Record<string, unknown>>;
+  summary: LessonPlanValidationSummary;
+  issues: LessonPlanValidationIssue[];
+}
+export interface LessonPlanValidationSummary {
+  lessonPlansChecked: number;
+  itemsChecked: number;
+  missingPlannedLessons: number;
+  holidayItems: number;
+  outsideTermItems: number;
+  duplicateLessons: number;
+}
+export interface LessonPlanValidationIssue {
+  code: string;
+  severity: string;
+  message: string;
+  lessonId?: string;
+  itemId?: string;
+  teacherSubjectAllocationId?: string;
 }
 export interface AutoPlanLessonPlanResponseDto {
   termId: string;
   academicYearId: string;
   teacherSubjectAllocationId: string;
   dryRun: boolean;
-  summary: Record<string, number>;
-  items: Array<Record<string, unknown>>;
+  summary: AutoPlanLessonPlanSummary;
+  items: AutoPlanLessonPlanItem[];
+}
+export interface AutoPlanLessonPlanSummary {
+  candidateLessons: number;
+  availableSlots: number;
+  proposedItems: number;
+  createdItems: number;
+  skippedExistingItems: number;
+  skippedHolidaySlots: number;
+}
+export interface AutoPlanLessonPlanItem {
+  lessonId: string;
+  title: string;
+  plannedDate: string;
+  timetableEntryId: string | null;
+  weekIndex: number;
+  status: string;
 }
 
 export interface LessonPlanListFilters {
@@ -218,6 +250,8 @@ export interface LessonPlanItem {
   planId: string;
   lessonId: string;
   unitId: string;
+  unitTitle: string;
+  lessonTitle: string;
   status: LessonPlanItemStatus;
   rawStatus: string;
   order: number;
@@ -225,7 +259,17 @@ export interface LessonPlanItem {
   notesAr?: string;
   notesEn?: string;
   plannedDate?: string;
+  timetableEntryId?: string;
+  dayOfWeek?: number;
+  periodId?: string;
+  periodLabel?: string;
   title?: string;
+  startedAt?: string;
+  completedAt?: string;
+  skippedAt?: string;
+  cancelledAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 export interface LessonPlan {
   id: string;
@@ -250,6 +294,12 @@ export interface WeekInfo {
   weekIndex: number;
   startDate: string;
   endDate: string;
+  instructionalDays: string[];
+  holidayDays: Array<{
+    date: string;
+    eventId: string;
+    title: string;
+  }>;
   lostTeachingDays: number;
   hasHolidays: boolean;
   plannedItemsCount: number;

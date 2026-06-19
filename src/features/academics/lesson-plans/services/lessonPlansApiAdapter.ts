@@ -19,8 +19,10 @@ const queryPath = (path: string, query: object) => {
   return suffix ? `${path}?${suffix}` : path;
 };
 const planAction = async (id: string, action: string) =>
-  mapLessonPlanDto(
-    await apiPost<Types.LessonPlanResponseDto>(`${basePath}/${id}/${action}`),
+  mapLessonPlanDetailDto(
+    await apiPost<Types.LessonPlanDetailResponseDto>(
+      `${basePath}/${id}/${action}`,
+    ),
   );
 const itemAction = async (
   command: Types.LessonPlanItemActionCommand,
@@ -41,8 +43,8 @@ export const lessonPlansApiAdapter: LessonPlansAdapter = {
     return response.items.map((plan) => mapLessonPlanDto(plan));
   },
   async createLessonPlan(payload) {
-    return mapLessonPlanDto(
-      await apiPost<Types.LessonPlanResponseDto>(basePath, payload),
+    return mapLessonPlanDetailDto(
+      await apiPost<Types.LessonPlanDetailResponseDto>(basePath, payload),
     );
   },
   async getLessonPlan(id) {
@@ -51,8 +53,11 @@ export const lessonPlansApiAdapter: LessonPlansAdapter = {
     );
   },
   async updateLessonPlan(id, payload) {
-    return mapLessonPlanDto(
-      await apiPatch<Types.LessonPlanResponseDto>(`${basePath}/${id}`, payload),
+    return mapLessonPlanDetailDto(
+      await apiPatch<Types.LessonPlanDetailResponseDto>(
+        `${basePath}/${id}`,
+        payload,
+      ),
     );
   },
   activateLessonPlan: (id) => planAction(id, "activate"),

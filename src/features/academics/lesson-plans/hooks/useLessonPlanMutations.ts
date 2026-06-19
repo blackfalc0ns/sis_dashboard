@@ -5,14 +5,19 @@ import type { Lesson } from "@/features/academics/curriculum/services/curriculum
 import {
   createLessonPlan,
   createLessonPlanItem,
+  autoPlanLessons,
+  type AutoPlanLessonPlanRequest,
   type LessonPlan,
   type WeekInfo,
 } from "@/features/academics/lesson-plans/services/lessonPlansService";
 import { lessonPlansUiError } from "@/features/academics/lesson-plans/services/lessonPlansErrors";
+import { isDateOnlyInside } from "@/features/academics/lesson-plans/services/lessonPlanDates";
 
 interface Params {
   academicYearId: string;
   termId: string;
+  termStartDate?: string;
+  termEndDate?: string;
   selectedSubjectId: string;
   selectedClassroomId: string;
   assignedTeacherId: string;
@@ -25,6 +30,12 @@ interface Params {
   showSuccess: (message: string) => void;
   showError: (message: string) => void;
   onLessonSelected?: () => void;
+  validationMessages: {
+    missingWeek: string;
+    noInstructionalDays: string;
+    weekOutsideTerm: string;
+    plannedDateOutsideTerm: string;
+  };
 }
 
 export function useLessonPlanMutations(params: Params) {
@@ -70,7 +81,34 @@ export function useLessonPlanMutations(params: Params) {
         !params.teacherSubjectAllocationId ||
         !params.curriculumId
       ) {
-        params.showError("Missing lesson plan context");
+        params.showError(params.validationMessages.missingWeek);
+        return;
+      }
+      const plannedDate = week.instructionalDays[0];
+      if (!plannedDate) {
+        params.showError(params.validationMessages.noInstructionalDays);
+        return;
+      }
+      if (
+        week.startDate > week.endDate ||
+        !isDateOnlyInside(
+          week.startDate,
+          params.termStartDate,
+          params.termEndDate,
+        ) ||
+        !isDateOnlyInside(
+          week.endDate,
+          params.termStartDate,
+          params.termEndDate,
+        )
+      ) {
+        params.showError(params.validationMessages.weekOutsideTerm);
+        return;
+      }
+      if (
+        !isDateOnlyInside(plannedDate, params.termStartDate, params.termEndDate)
+      ) {
+        params.showError(params.validationMessages.plannedDateOutsideTerm);
         return;
       }
       try {
@@ -95,7 +133,7 @@ export function useLessonPlanMutations(params: Params) {
           payload: {
             unitId: lesson.unitId,
             lessonId: lesson.id,
-            plannedDate: week.startDate,
+            plannedDate,
             sortOrder: plan.items.length,
           },
         });
@@ -108,11 +146,46 @@ export function useLessonPlanMutations(params: Params) {
     },
     [params],
   );
+  const previewAutoPlan = useCallback(
+    (
+      payload: Omit<
+        AutoPlanLessonPlanRequest,
+        "termId" | "teacherSubjectAllocationId" | "dryRun"
+      >,
+    ) =>
+      autoPlanLessons({
+        ...payload,
+        termId: params.termId,
+        teacherSubjectAllocationId: params.teacherSubjectAllocationId,
+        dryRun: true,
+      }),
+    [params.teacherSubjectAllocationId, params.termId],
+  );
+  const applyAutoPlan = useCallback(
+    async (
+      payload: Omit<
+        AutoPlanLessonPlanRequest,
+        "termId" | "teacherSubjectAllocationId" | "dryRun"
+      >,
+    ) => {
+      const response = await autoPlanLessons({
+        ...payload,
+        termId: params.termId,
+        teacherSubjectAllocationId: params.teacherSubjectAllocationId,
+        dryRun: false,
+      });
+      await params.refreshPlans();
+      return response;
+    },
+    [params],
+  );
   return {
     addLessonDialog,
     handleSelectLessonFromLibrary,
     handleAddLessonFromWeek,
     handleConfirmAddLesson,
     closeAddLessonDialog,
+    previewAutoPlan,
+    applyAutoPlan,
   };
 }

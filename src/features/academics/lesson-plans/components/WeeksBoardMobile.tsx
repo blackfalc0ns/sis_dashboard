@@ -2,18 +2,22 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import { Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
-import { ChevronDown, Calendar, AlertTriangle, Plus } from "lucide-react";
+import { ChevronDown, Calendar, AlertTriangle, Plus, CircleDot } from "lucide-react";
 import { Lesson } from "@/features/academics/curriculum/services/curriculumService";
 import {
   LessonPlan,
   WeekInfo,
 } from "@/features/academics/lesson-plans/services/lessonPlansService";
 import LessonPlanItemCard from "./LessonPlanItemCard";
+import LessonPlanActionsMenu from "./LessonPlanActionsMenu";
+import { getWeekPresentation } from "./lessonPlansPresentation";
 
 interface WeeksBoardMobileProps {
   weeks: WeekInfo[];
   plans: LessonPlan[];
   lessons: Lesson[];
+  issueWeekIndexes: Set<number>;
+  today: string;
   isReadOnly: boolean;
   onStatusChange: (
     itemId: string,
@@ -21,6 +25,11 @@ interface WeeksBoardMobileProps {
   ) => void;
   onEditNotes: (itemId: string, notesAr?: string, notesEn?: string) => void;
   onRemove: (itemId: string) => void;
+  onEditPlan: (plan: LessonPlan) => void;
+  onActivatePlan: (plan: LessonPlan) => void;
+  onArchivePlan: (plan: LessonPlan) => void;
+  onDeletePlan: (plan: LessonPlan) => void;
+  onReorder: (itemId: string, direction: "up" | "down") => void;
   onAddLesson: (weekIndex: number) => void;
 }
 
@@ -28,15 +37,29 @@ export default function WeeksBoardMobile({
   weeks,
   plans,
   lessons,
+  issueWeekIndexes,
+  today,
   isReadOnly,
   onStatusChange,
   onEditNotes,
   onRemove,
+  onEditPlan,
+  onActivatePlan,
+  onArchivePlan,
+  onDeletePlan,
+  onReorder,
   onAddLesson,
 }: WeeksBoardMobileProps) {
   const t = useTranslations("academics.lessonPlans");
   const tMobile = useTranslations("academics.lessonPlans.mobile");
   const locale = useLocale();
+
+  const planStatusStyles: Record<string, string> = {
+    DRAFT: "bg-gray-100 text-gray-700 border-gray-200",
+    ACTIVE: "bg-green-50 text-green-700 border-green-200",
+    ARCHIVED: "bg-amber-50 text-amber-700 border-amber-200",
+    UNKNOWN: "bg-gray-100 text-gray-500 border-gray-200",
+  };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -53,10 +76,17 @@ export default function WeeksBoardMobile({
         const items = weekPlan
           ? [...weekPlan.items].sort((a, b) => a.order - b.order)
           : [];
+        const presentation = getWeekPresentation({
+          week,
+          itemCount: items.length,
+          hasIssue: issueWeekIndexes.has(week.weekIndex),
+          today,
+        });
 
         return (
           <Accordion
             key={week.weekIndex}
+            data-testid="week-column"
             defaultExpanded={false}
             sx={{
               boxShadow: "none",
@@ -88,9 +118,38 @@ export default function WeeksBoardMobile({
                         {week.lostTeachingDays}
                       </span>
                     )}
+                    {presentation.isCurrent && (
+                      <span className="flex items-center gap-1 rounded border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                        <CircleDot className="h-3 w-3" />
+                        {t("week.current")}
+                      </span>
+                    )}
+                    {presentation.hasIssue && (
+                      <span className="flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-800">
+                        <AlertTriangle className="h-3 w-3" />
+                        {t("week.issues")}
+                      </span>
+                    )}
                     <span className="px-2 py-0.5 text-xs font-medium text-primary border border-primary rounded-full">
                       {items.length}
                     </span>
+                    {weekPlan && (
+                      <span
+                        className={`px-2 py-0.5 text-xs font-medium border rounded-full ${planStatusStyles[weekPlan.status] || planStatusStyles.UNKNOWN}`}
+                      >
+                        {t(`planStatus.${weekPlan.status}`)}
+                      </span>
+                    )}
+                    {weekPlan && (
+                      <LessonPlanActionsMenu
+                        plan={weekPlan}
+                        isReadOnly={isReadOnly}
+                        onEdit={() => onEditPlan(weekPlan)}
+                        onActivate={() => onActivatePlan(weekPlan)}
+                        onArchive={() => onArchivePlan(weekPlan)}
+                        onDelete={() => onDeletePlan(weekPlan)}
+                      />
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 text-xs text-gray-600">
@@ -111,14 +170,20 @@ export default function WeeksBoardMobile({
               <div className="space-y-2">
                 {items.length === 0 ? (
                   <div className="text-center py-4">
-                    <p className="text-xs text-gray-400">
-                      {isReadOnly ? "-" : t("week.plannedItems", { count: 0 })}
+                    <p className="text-sm font-medium text-gray-700">
+                      {week.instructionalDays.length === 0
+                        ? t("week.noInstructionalDays")
+                        : t("week.noLessonsPlanned")}
                     </p>
+                    {!isReadOnly && week.instructionalDays.length > 0 && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        {t("week.dragLessonHere")}
+                      </p>
+                    )}
                   </div>
                 ) : (
-                  items.map((item) => {
+                  items.map((item, index) => {
                     const lesson = lessons.find((l) => l.id === item.lessonId);
-                    if (!lesson) return null;
 
                     return (
                       <LessonPlanItemCard
@@ -131,6 +196,9 @@ export default function WeeksBoardMobile({
                         onEditNotes={onEditNotes}
                         onRemove={onRemove}
                         isReadOnly={isReadOnly}
+                        onReorder={onReorder}
+                        disableMoveUp={index === 0}
+                        disableMoveDown={index === items.length - 1}
                       />
                     );
                   })
@@ -140,7 +208,13 @@ export default function WeeksBoardMobile({
                 {!isReadOnly && (
                   <button
                     onClick={() => onAddLesson(week.weekIndex)}
-                    className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2"
+                    disabled={week.instructionalDays.length === 0}
+                    title={
+                      week.instructionalDays.length === 0
+                        ? t("validation.no_instructional_days")
+                        : undefined
+                    }
+                    className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Plus className="w-4 h-4" />
                     {tMobile("addLesson")}

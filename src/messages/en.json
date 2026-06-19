@@ -4,7 +4,7 @@
   "management": "Management",
   "logout": "Logout",
   "dashboard_title": "School Management Dashboard",
-  "hello_school": "Hello Al-Amal School",
+  "hello_school": "Hello {schoolName} School",
   "lead_new_generation": "Flacon's Eye Dashboard",
   "search_placeholder": "Search In Moazzez",
   "today": "Today",
@@ -1405,6 +1405,9 @@
         "decision": "Decision"
       },
       "actions": {
+        "back": "Back",
+        "confirm": "Confirm",
+        "cancelLesson": "Cancel lesson",
         "schedule_test": "Schedule Test",
         "schedule_interview": "Schedule Interview",
         "make_decision": "Make Decision",
@@ -4838,7 +4841,25 @@
         "noLessons": "No lessons available",
         "dragToAdd": "Drag lessons to weeks to plan",
         "tapToAdd": "Tap a lesson to add it to a week",
-        "planned": "Planned"
+        "planned": "Planned",
+        "noFilteredLessons": "No lessons match these filters",
+        "curriculumGuidance": "Add lessons to the curriculum first, then return here to plan the week.",
+        "adjustFilters": "Try a different search term or unit filter.",
+        "unassignedUnit": "Unassigned unit",
+        "estimatedMinutes": "{count} min",
+        "add": "Add"
+      },
+      "scope": {
+        "title": "Selected scope"
+      },
+      "tooltips": {
+        "autoPlanUnavailable": "Auto-plan is unavailable until the term, allocation, and curriculum are ready."
+      },
+      "boardFilters": {
+        "all": "All weeks",
+        "currentUpcoming": "Current/upcoming",
+        "planned": "Planned only",
+        "issues": "Issues only"
       },
       "mobile": {
         "openFilters": "Filters",
@@ -4858,11 +4879,18 @@
       },
       "week": {
         "label": "Week {index}",
+        "totalWeeks": "{count} weeks",
         "dateRange": "{start} - {end}",
+        "noInstructionalDays": "This week has no instructional days.",
         "holidayWarning": "{count} holiday(s) this week",
         "capacityWarning": "Exceeds available periods",
         "availablePeriods": "{available} periods available",
-        "plannedItems": "{count} lessons planned"
+        "plannedItems": "{count} lessons planned",
+        "current": "Current",
+        "issues": "Issues",
+        "noLessonsPlanned": "No lessons planned",
+        "dragLessonHere": "Drag a lesson here",
+        "noMatchingWeeks": "No weeks match this view."
       },
       "status": {
         "PLANNED": "Planned",
@@ -4870,6 +4898,12 @@
         "DONE": "Done",
         "SKIPPED": "Skipped",
         "CANCELLED": "Cancelled",
+        "UNKNOWN": "Unknown"
+      },
+      "planStatus": {
+        "DRAFT": "Draft",
+        "ACTIVE": "Active",
+        "ARCHIVED": "Archived",
         "UNKNOWN": "Unknown"
       },
       "actions": {
@@ -4885,7 +4919,47 @@
         "markPlanned": "Mark Planned",
         "validate": "Validate",
         "autoPlan": "Auto-plan",
-        "publish": "Publish Plan"
+        "preview": "Preview",
+        "apply": "Apply",
+        "save": "Save",
+        "validateRefresh": "Validate and refresh",
+        "editPlan": "Edit plan",
+        "publish": "Publish Plan",
+        "export": "Export",
+        "lessonActions": "Lesson actions",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "planActions": "Plan actions",
+        "activatePlan": "Activate plan",
+        "archivePlan": "Archive plan",
+        "deletePlan": "Delete plan"
+      },
+      "labels": {
+        "reason_optional": "Reason (optional)",
+        "from": "From",
+        "to": "To",
+        "week_start_date": "Week start date",
+        "week_end_date": "Week end date",
+        "term_range": "Term range: {start} - {end}",
+        "overwrite": "Overwrite existing items",
+        "title": "Title",
+        "description": "Description",
+        "hasNotes": "Has notes"
+      },
+      "validation": {
+        "from_required": "From date is required.",
+        "to_required": "To date is required.",
+        "from_before_term": "From date must be inside the selected term.",
+        "to_after_term": "To date must be inside the selected term.",
+        "from_after_to": "From date must be before or equal to To date.",
+        "week_start_required": "Week start date is required.",
+        "week_end_required": "Week end date is required.",
+        "week_start_before_term": "Week start date must be inside the selected term.",
+        "week_end_after_term": "Week end date must be inside the selected term.",
+        "week_start_after_end": "Week start date must be before or equal to week end date.",
+        "week_outside_term": "This week is outside the selected term.",
+        "no_instructional_days": "This week has no instructional days.",
+        "planned_date_outside_term": "Planned date must be inside the selected term."
       },
       "summary": {
         "title": "Progress Summary",
@@ -4896,8 +4970,41 @@
         "skipped": "Skipped",
         "completion": "Completion",
         "totalLessons": "Total Lessons",
+        "lessonPlans": "Lesson plans",
+        "items": "Items",
+        "completed": "Completed",
         "unplanned": "Unplanned Lessons",
         "coverage": "Curriculum Coverage"
+      },
+      "validationPanel": {
+        "successTitle": "No validation issues",
+        "successDescription": "The current lesson plans match backend validation checks.",
+        "warningTitle": "Validation needs attention",
+        "warningDescription": "{count} issue(s) need review.",
+        "showIssues": "Show {count} issues",
+        "hideIssues": "Hide {count} issues",
+        "summary": {
+          "lessonPlansChecked": "Plans checked",
+          "itemsChecked": "Items checked",
+          "missingPlannedLessons": "Missing planned lessons",
+          "holidayItems": "Holiday items",
+          "outsideTermItems": "Outside term",
+          "duplicateLessons": "Duplicate lessons"
+        },
+        "severity": {
+          "warning": "Warning",
+          "error": "Error",
+          "info": "Info"
+        }
+      },
+      "validationIssues": {
+        "duplicateLessons": "Duplicate lesson planning was detected.",
+        "outsideTermItems": "Some planned items fall outside the selected term.",
+        "holidayItems": "Some planned items are scheduled on holidays.",
+        "missingPlannedLessons": "Some curriculum lessons are not planned yet.",
+        "academics_lesson_plan_duplicate": "Duplicate lesson planning was detected.",
+        "academics_lesson_plan_outside_term": "A planned item falls outside the selected term.",
+        "academics_lesson_plan_holiday": "A planned item is scheduled on a holiday."
       },
       "warnings": {
         "holidayWeek": "This week contains holidays",
@@ -4909,6 +5016,21 @@
         "noSelection": {
           "title": "Select Section and Subject",
           "message": "Please select a section and subject to view lesson plans"
+        },
+        "selectClassroom": {
+          "message": "Choose the classroom to load the lesson plan for this section."
+        },
+        "noAllocation": {
+          "title": "No teacher allocation found",
+          "message": "Assign a teacher to this subject and classroom before planning lessons."
+        },
+        "noCurriculum": {
+          "title": "No curriculum found",
+          "message": "Create or activate a curriculum for this grade and subject before planning lessons."
+        },
+        "noWeeks": {
+          "title": "No backend weeks available",
+          "message": "The selected term has no lesson-planning weeks from the backend."
         },
         "noLessons": {
           "title": "No Lessons in Curriculum",
@@ -4931,6 +5053,14 @@
         "title": "Remove Lesson",
         "message": "Are you sure you want to remove this lesson from the plan?",
         "confirm": "Remove",
+        "cancel": "Cancel"
+      },
+      "planConfirm": {
+        "archiveTitle": "Archive lesson plan",
+        "deleteTitle": "Delete lesson plan",
+        "description": "This action will update the selected lesson plan.",
+        "archiveConfirm": "Archive",
+        "deleteConfirm": "Delete",
         "cancel": "Cancel"
       },
       "autoPlanDialog": {

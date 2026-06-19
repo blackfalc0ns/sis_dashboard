@@ -33,7 +33,7 @@ const CustomTooltip = ({ active, payload, locale = "en" }: CustomTooltipProps) =
     const hasTimestamp = dataPoint.ts !== undefined;
     
     return (
-      <div className="bg-white px-3 py-2 rounded-lg shadow-lg border border-[#036b80] font-[Cairo]">
+      <div className="bg-white px-3 py-2 rounded-lg shadow-lg border border-[#036b80] font-sans">
         {hasTimestamp && (
           <p className="text-[10px] text-gray-500 mb-1">
             {formatDateTime(dataPoint.ts!, locale)}

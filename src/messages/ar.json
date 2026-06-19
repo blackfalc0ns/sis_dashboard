@@ -4,7 +4,7 @@
   "management": "إدارة المدرسة",
   "logout": "تسجيل الخروج",
   "dashboard_title": "لوحة إدارة المدرسة",
-  "hello_school": "مرحبا مدرسة الأمل",
+  "hello_school": "مرحباً مدرسة {schoolName}",
   "lead_new_generation": "لوحة تحكم عين الصقر",
   "search_placeholder": "البحث في معزز",
   "today": "اليوم",
@@ -1405,6 +1405,9 @@
         "decision": "القرار"
       },
       "actions": {
+        "back": "رجوع",
+        "confirm": "تأكيد",
+        "cancelLesson": "إلغاء الدرس",
         "schedule_test": "جدولة اختبار",
         "schedule_interview": "جدولة مقابلة",
         "make_decision": "اتخاذ قرار",
@@ -4839,15 +4842,40 @@
         "noLessons": "لا توجد دروس متاحة",
         "dragToAdd": "اسحب الدروس إلى الأسابيع للتخطيط",
         "tapToAdd": "اضغط على درس لإضافته",
-        "planned": "مخطط"
+        "planned": "مخطط",
+        "noFilteredLessons": "لا توجد دروس تطابق هذه الفلاتر",
+        "curriculumGuidance": "أضف الدروس إلى المنهج أولاً، ثم عد إلى هنا لتخطيط الأسبوع.",
+        "adjustFilters": "جرّب كلمة بحث أو فلتر وحدة مختلف.",
+        "unassignedUnit": "وحدة غير محددة",
+        "estimatedMinutes": "{count} دقيقة",
+        "add": "إضافة"
+      },
+      "scope": {
+        "title": "النطاق المحدد"
+      },
+      "tooltips": {
+        "autoPlanUnavailable": "التخطيط التلقائي غير متاح حتى يكتمل الفصل والتكليف والمنهج."
+      },
+      "boardFilters": {
+        "all": "كل الأسابيع",
+        "currentUpcoming": "الحالي/القادم",
+        "planned": "المخطط فقط",
+        "issues": "المشاكل فقط"
       },
       "week": {
         "label": "الأسبوع {index}",
+        "totalWeeks": "{count} أسبوع",
         "dateRange": "{start} - {end}",
+        "noInstructionalDays": "هذا الأسبوع لا يحتوي على أيام تدريس.",
         "holidayWarning": "{count} عطلة في هذا الأسبوع",
         "capacityWarning": "يتجاوز الحصص المتاحة",
         "availablePeriods": "{available} حصة متاحة",
-        "plannedItems": "{count} درس مخطط"
+        "plannedItems": "{count} درس مخطط",
+        "current": "الحالي",
+        "issues": "مشاكل",
+        "noLessonsPlanned": "لا توجد دروس مخططة",
+        "dragLessonHere": "اسحب درسًا هنا",
+        "noMatchingWeeks": "لا توجد أسابيع تطابق هذا العرض."
       },
       "status": {
         "PLANNED": "مخطط",
@@ -4855,6 +4883,12 @@
         "DONE": "منتهي",
         "SKIPPED": "متخطى",
         "CANCELLED": "ملغى",
+        "UNKNOWN": "غير معروف"
+      },
+      "planStatus": {
+        "DRAFT": "مسودة",
+        "ACTIVE": "نشط",
+        "ARCHIVED": "مؤرشف",
         "UNKNOWN": "غير معروف"
       },
       "actions": {
@@ -4870,7 +4904,47 @@
         "markPlanned": "وضع علامة مخطط",
         "validate": "التحقق",
         "autoPlan": "تخطيط تلقائي",
-        "publish": "نشر الخطة"
+        "preview": "معاينة",
+        "apply": "تطبيق",
+        "save": "حفظ",
+        "validateRefresh": "التحقق والتحديث",
+        "editPlan": "تعديل الخطة",
+        "publish": "نشر الخطة",
+        "export": "تصدير",
+        "lessonActions": "إجراءات الدرس",
+        "moveUp": "نقل لأعلى",
+        "moveDown": "نقل لأسفل",
+        "planActions": "إجراءات الخطة",
+        "activatePlan": "تفعيل الخطة",
+        "archivePlan": "أرشفة الخطة",
+        "deletePlan": "حذف الخطة"
+      },
+      "labels": {
+        "reason_optional": "السبب (اختياري)",
+        "from": "من",
+        "to": "إلى",
+        "week_start_date": "تاريخ بداية الأسبوع",
+        "week_end_date": "تاريخ نهاية الأسبوع",
+        "term_range": "نطاق الفصل الدراسي: {start} - {end}",
+        "overwrite": "استبدال العناصر الموجودة",
+        "title": "العنوان",
+        "description": "الوصف",
+        "hasNotes": "يحتوي على ملاحظات"
+      },
+      "validation": {
+        "from_required": "تاريخ البداية مطلوب.",
+        "to_required": "تاريخ النهاية مطلوب.",
+        "from_before_term": "تاريخ البداية يجب أن يكون داخل الفصل الدراسي المحدد.",
+        "to_after_term": "تاريخ النهاية يجب أن يكون داخل الفصل الدراسي المحدد.",
+        "from_after_to": "تاريخ البداية يجب أن يكون قبل أو مساويًا لتاريخ النهاية.",
+        "week_start_required": "تاريخ بداية الأسبوع مطلوب.",
+        "week_end_required": "تاريخ نهاية الأسبوع مطلوب.",
+        "week_start_before_term": "تاريخ بداية الأسبوع يجب أن يكون داخل الفصل الدراسي المحدد.",
+        "week_end_after_term": "تاريخ نهاية الأسبوع يجب أن يكون داخل الفصل الدراسي المحدد.",
+        "week_start_after_end": "تاريخ بداية الأسبوع يجب أن يكون قبل أو مساويًا لتاريخ نهاية الأسبوع.",
+        "week_outside_term": "هذا الأسبوع خارج الفصل الدراسي المحدد.",
+        "no_instructional_days": "هذا الأسبوع لا يحتوي على أيام تدريس.",
+        "planned_date_outside_term": "تاريخ التخطيط يجب أن يكون داخل الفصل الدراسي المحدد."
       },
       "summary": {
         "title": "ملخص التقدم",
@@ -4881,8 +4955,41 @@
         "skipped": "متخطى",
         "completion": "الإنجاز",
         "totalLessons": "إجمالي الدروس",
+        "lessonPlans": "خطط الدروس",
+        "items": "العناصر",
+        "completed": "مكتملة",
         "unplanned": "دروس غير مخططة",
         "coverage": "تغطية المنهج"
+      },
+      "validationPanel": {
+        "successTitle": "لا توجد مشاكل تحقق",
+        "successDescription": "خطط الدروس الحالية مطابقة لفحوصات التحقق من الخادم.",
+        "warningTitle": "التحقق يحتاج إلى مراجعة",
+        "warningDescription": "توجد {count} مشكلة تحتاج إلى مراجعة.",
+        "showIssues": "عرض {count} مشكلة",
+        "hideIssues": "إخفاء {count} مشكلة",
+        "summary": {
+          "lessonPlansChecked": "الخطط التي تم فحصها",
+          "itemsChecked": "العناصر التي تم فحصها",
+          "missingPlannedLessons": "دروس غير مخططة",
+          "holidayItems": "عناصر في عطلات",
+          "outsideTermItems": "خارج الفصل",
+          "duplicateLessons": "دروس مكررة"
+        },
+        "severity": {
+          "warning": "تحذير",
+          "error": "خطأ",
+          "info": "معلومة"
+        }
+      },
+      "validationIssues": {
+        "duplicateLessons": "تم اكتشاف تخطيط مكرر لبعض الدروس.",
+        "outsideTermItems": "بعض العناصر المخططة خارج الفصل الدراسي المحدد.",
+        "holidayItems": "بعض العناصر المخططة مجدولة في أيام عطلات.",
+        "missingPlannedLessons": "بعض دروس المنهج لم يتم تخطيطها بعد.",
+        "academics_lesson_plan_duplicate": "تم اكتشاف تخطيط مكرر لبعض الدروس.",
+        "academics_lesson_plan_outside_term": "يوجد عنصر مخطط خارج الفصل الدراسي المحدد.",
+        "academics_lesson_plan_holiday": "يوجد عنصر مخطط في يوم عطلة."
       },
       "warnings": {
         "holidayWeek": "يحتوي هذا الأسبوع على عطلات",
@@ -4894,6 +5001,21 @@
         "noSelection": {
           "title": "اختر الشعبة والمادة",
           "message": "يرجى اختيار شعبة ومادة لعرض خطط الدروس"
+        },
+        "selectClassroom": {
+          "message": "اختر الفصل المطلوب لتحميل خطة الدروس لهذه الشعبة."
+        },
+        "noAllocation": {
+          "title": "لا يوجد تكليف معلم",
+          "message": "قم بتكليف معلم لهذه المادة والفصل قبل تخطيط الدروس."
+        },
+        "noCurriculum": {
+          "title": "لا يوجد منهج",
+          "message": "أنشئ أو فعّل منهجًا لهذا الصف والمادة قبل تخطيط الدروس."
+        },
+        "noWeeks": {
+          "title": "لا توجد أسابيع من الخادم",
+          "message": "الفصل المحدد لا يحتوي على أسابيع تخطيط دروس من الخادم."
         },
         "noLessons": {
           "title": "لا توجد دروس في المنهج",
@@ -4916,6 +5038,14 @@
         "title": "إزالة الدرس",
         "message": "هل أنت متأكد من إزالة هذا الدرس من الخطة؟",
         "confirm": "إزالة",
+        "cancel": "إلغاء"
+      },
+      "planConfirm": {
+        "archiveTitle": "أرشفة خطة الدروس",
+        "deleteTitle": "حذف خطة الدروس",
+        "description": "سيؤدي هذا الإجراء إلى تحديث خطة الدروس المحددة.",
+        "archiveConfirm": "أرشفة",
+        "deleteConfirm": "حذف",
         "cancel": "إلغاء"
       },
       "autoPlanDialog": {

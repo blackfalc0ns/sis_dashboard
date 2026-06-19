@@ -162,7 +162,7 @@ export default function KPICard({
                   boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                 },
                 "& .MuiChartsTooltip-table": {
-                  fontFamily: "Cairo, sans-serif",
+                  fontFamily: "var(--font-somar), sans-serif",
                   fontSize: "11px",
                   lineHeight: "1.4",
                   color: isGradient ? "#036b80" : "#036b80",
