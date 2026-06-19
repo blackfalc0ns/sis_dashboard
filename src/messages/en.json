@@ -3667,9 +3667,18 @@
       },
       "actions": {
         "create_curriculum": "Create Curriculum",
+        "menu": "Curriculum actions",
         "carry_over": "Carry Over",
         "activate_curriculum": "Activate curriculum",
-        "archive_curriculum": "Archive curriculum"
+        "archive_curriculum": "Archive curriculum",
+        "delete_curriculum": "Delete curriculum",
+        "delete_confirm": "Are you sure you want to delete this curriculum? This cannot be undone."
+      },
+      "status": {
+        "draft": "Draft",
+        "active": "Active",
+        "archived": "Archived",
+        "unknown": "Unknown"
       },
       "tabs": {
         "outline": "Outline",
@@ -3875,8 +3884,15 @@
         "assignments": "Assignments",
         "close": "Close",
         "body_text": "Body text",
-        "file_disabled_tooltip": "File content is disabled until a supported file picker provides a backend file ID.",
-        "file_id": "File ID",
+        "file_permission_tooltip": "You need file upload permission to add file content.",
+        "choose_file": "Choose file",
+        "current_file": "Current file: {name}",
+        "file_help": "PDF, JPEG, PNG, or TXT up to 10 MB.",
+        "file_required": "Select a file to upload.",
+        "file_size": "The selected file exceeds the 10 MB limit.",
+        "file_mime": "Select a PDF, JPEG, PNG, or TXT file.",
+        "download": "Open or download file",
+        "download_failed": "Could not download the file.",
         "load_failed": "Could not load lesson content.",
         "save_failed": "Could not save lesson content.",
         "url": "URL",
@@ -3891,11 +3907,15 @@
         "loading": "Loading...",
         "no_items": "No content items found.",
         "edit": "Edit",
+        "create_new": "Create New",
         "cancel": "Cancel",
         "save": "Save",
         "saving": "Saving...",
         "confirm_delete": "Are you sure you want to delete this content item?",
-        "delete_failed": "Failed to delete content item."
+        "delete_failed": "Failed to delete content item.",
+        "move_up": "Move up",
+        "move_down": "Move down",
+        "reorder_failed": "Failed to reorder content item."
       },
       "questions": {
         "title": "Questions",

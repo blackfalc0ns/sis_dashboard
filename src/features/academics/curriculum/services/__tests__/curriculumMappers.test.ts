@@ -179,9 +179,15 @@ describe("curriculumMappers", () => {
     );
   });
 
-  it.each(["draft", "active", "archived", "Draft"] as const)(
-    "does not accept non-backend status casing %s",
-    (status) => {
+  it.each([
+    ["DRAFT", "draft"],
+    ["draft", "draft"],
+    ["Draft", "draft"],
+    ["ACTIVE", "active"],
+    ["active", "active"],
+    ["ARCHIVED", "archived"],
+    ["archived", "archived"],
+  ] as const)("maps backend status casing %s to %s", (status, expectedStatus) => {
       expect(
         mapCurriculumDetailDto({
           ...curriculumDetailDto,
@@ -189,7 +195,7 @@ describe("curriculumMappers", () => {
         }),
       ).toEqual(
         expect.objectContaining({
-          status: "unknown",
+          status: expectedStatus,
           rawStatus: status,
         }),
       );

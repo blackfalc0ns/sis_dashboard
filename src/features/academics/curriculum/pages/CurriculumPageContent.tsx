@@ -10,7 +10,6 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Download,
 } from "lucide-react";
 import { Drawer, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
@@ -27,6 +26,7 @@ import {
 import {
   archiveCurriculum,
   activateCurriculum,
+  deleteCurriculum,
   fetchCurriculumForScope,
   type Curriculum,
   type Lesson,
@@ -36,6 +36,7 @@ import {
 import { curriculumUiError } from "@/features/academics/curriculum/services/curriculumErrors";
 import CurriculumOutline from "../components/CurriculumOutline";
 import CurriculumEditor from "../components/CurriculumEditor";
+import CurriculumActionsMenu from "../components/CurriculumActionsMenu";
 import CreateCurriculumDialog from "../components/CreateCurriculumDialog";
 import {
   type AcademicsExportFormat,
@@ -48,6 +49,16 @@ import {
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { useGuardedAcademicContextChange } from "@/features/academics/hooks/useGuardedAcademicContextChange";
 import { usePermissions } from "@/hooks/usePermissions";
+import {
+  canSyncCurriculumFilters,
+  curriculumOptionsContextKey,
+} from "./curriculumFilterState";
+
+const isDraftNode = (node: { id: string } | null) =>
+  node?.id === "new" || !!node?.id.startsWith("new-");
+
+const curriculumStatusLabelKey = (status: Curriculum["status"]) =>
+  `status.${status}` as const;
 
 export default function CurriculumPageContent() {
   const t = useTranslations("academics.curriculum");
@@ -66,13 +77,8 @@ export default function CurriculumPageContent() {
   // Fixed panel widths
   const LEFT_PANEL_WIDTH = 280;
   const RIGHT_PANEL_WIDTH = 320;
-  const {
-    academicYearId,
-    termId,
-    termStatus,
-    selectedTerm,
-    isInitializing,
-  } = useAcademicYearTermLayoutContext();
+  const { academicYearId, termId, termStatus, selectedTerm, isInitializing } =
+    useAcademicYearTermLayoutContext();
 
   const queryState = useMemo(
     () => ({
@@ -90,6 +96,7 @@ export default function CurriculumPageContent() {
 
   const [grades, setGrades] = useState<Grade[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loadedOptionsContextKey, setLoadedOptionsContextKey] = useState<string | null>(null);
 
   // Filters
   const [selectedGradeId, setSelectedGradeId] = useState("");
@@ -200,6 +207,7 @@ export default function CurriculumPageContent() {
   );
   const syncSearchQueryParam = useDebouncedCallback((value: string) => {
     if (!academicYearId || !termId) {
+      setLoadedOptionsContextKey(null);
       return;
     }
 
@@ -254,6 +262,9 @@ export default function CurriculumPageContent() {
 
       setGrades(structureData.grades);
       setSubjects(subjectsData);
+      setLoadedOptionsContextKey(
+        curriculumOptionsContextKey(academicYearId, termId),
+      );
 
       if (structureData.grades.length > 0) {
         const nextGradeId =
@@ -309,7 +320,15 @@ export default function CurriculumPageContent() {
     loadOptionsData();
   }, [loadOptionsData]);
   useEffect(() => {
-    if (!academicYearId || !termId) {
+    if (
+      !academicYearId ||
+      !termId ||
+      !canSyncCurriculumFilters(
+        loadedOptionsContextKey,
+        academicYearId,
+        termId,
+      )
+    ) {
       return;
     }
 
@@ -343,6 +362,7 @@ export default function CurriculumPageContent() {
   }, [
     academicYearId,
     grades,
+    loadedOptionsContextKey,
     queryState.filtersCollapsed,
     queryState.gradeId,
     queryState.leftDrawerOpen,
@@ -382,42 +402,7 @@ export default function CurriculumPageContent() {
       setUnits(nextUnits);
       setLessons(nextUnits.flatMap((unit) => unit.lessons));
 
-      if (curriculumData) {
-        if (queryState.lessonId) {
-          if (queryState.lessonId.startsWith("new-")) {
-            setSelectedNode({ type: "lesson", id: queryState.lessonId });
-          } else {
-            const lessonExists = nextUnits.flatMap(u => u.lessons).some(
-              (l) => l.id === queryState.lessonId,
-            );
-            setSelectedNode(
-              lessonExists ? { type: "lesson", id: queryState.lessonId } : null,
-            );
-          }
-        } else if (queryState.unitId) {
-          if (queryState.unitId === "new") {
-            setSelectedNode({ type: "unit", id: "new" });
-          } else {
-            const unitExists = nextUnits.some(
-              (u) => u.id === queryState.unitId,
-            );
-            setSelectedNode(
-              unitExists ? { type: "unit", id: queryState.unitId } : null,
-            );
-          }
-        } else {
-          setSelectedNode((previous) => {
-            if (!previous) {
-              return null;
-            }
-            const isDraftUnit =
-              previous.type === "unit" && previous.id === "new";
-            const isDraftLesson =
-              previous.type === "lesson" && previous.id.startsWith("new-");
-            return isDraftUnit || isDraftLesson ? previous : null;
-          });
-        }
-      } else {
+      if (!curriculumData) {
         setSelectedNode(null);
       }
     } catch (error) {
@@ -437,15 +422,7 @@ export default function CurriculumPageContent() {
         setIsLoading(false);
       }
     }
-  }, [
-    academicYearId,
-    queryState.lessonId,
-    queryState.unitId,
-    selectedGradeId,
-    selectedSubjectId,
-    tCommon,
-    termId,
-  ]);
+  }, [academicYearId, selectedGradeId, selectedSubjectId, tCommon, termId]);
 
   useEffect(() => {
     loadCurriculumData();
@@ -456,19 +433,15 @@ export default function CurriculumPageContent() {
       return;
     }
 
-    const isDraftLessonId =
-      !!queryState.lessonId && queryState.lessonId.startsWith("new-");
     const normalizedLessonId =
       queryState.lessonId &&
-      (isDraftLessonId ||
-        lessons.some((lesson) => lesson.id === queryState.lessonId))
+      lessons.some((lesson) => lesson.id === queryState.lessonId)
         ? queryState.lessonId
         : null;
-    const isDraftUnitId = queryState.unitId === "new";
     const normalizedUnitId =
       !normalizedLessonId &&
       queryState.unitId &&
-      (isDraftUnitId || units.some((unit) => unit.id === queryState.unitId))
+      units.some((unit) => unit.id === queryState.unitId)
         ? queryState.unitId
         : null;
 
@@ -506,6 +479,39 @@ export default function CurriculumPageContent() {
     units,
     updateURL,
   ]);
+
+  useEffect(() => {
+    if (!curriculum) {
+      return;
+    }
+
+    if (
+      queryState.lessonId?.startsWith("new-") ||
+      queryState.unitId === "new"
+    ) {
+      return;
+    }
+
+    if (queryState.lessonId) {
+      const lessonExists = lessons.some(
+        (lesson) => lesson.id === queryState.lessonId,
+      );
+      setSelectedNode(
+        lessonExists ? { type: "lesson", id: queryState.lessonId } : null,
+      );
+      return;
+    }
+
+    if (queryState.unitId) {
+      const unitExists = units.some((unit) => unit.id === queryState.unitId);
+      setSelectedNode(
+        unitExists ? { type: "unit", id: queryState.unitId } : null,
+      );
+      return;
+    }
+
+    setSelectedNode((previous) => (isDraftNode(previous) ? previous : null));
+  }, [curriculum, lessons, queryState.lessonId, queryState.unitId, units]);
 
   const handleGradeChange = (gradeId: string) => {
     if (hasUnsavedChanges) {
@@ -557,6 +563,10 @@ export default function CurriculumPageContent() {
     node: { type: "unit" | "lesson"; id: string } | null,
   ) => {
     setSelectedNode(node);
+
+    if (isDraftNode(node)) {
+      return;
+    }
 
     if (node) {
       if (node.type === "lesson") {
@@ -733,6 +743,24 @@ export default function CurriculumPageContent() {
     }
   };
 
+  const handleDeleteCurriculum = async () => {
+    if (!curriculum || !canMutate || !confirm(t("actions.delete_confirm"))) {
+      return;
+    }
+
+    try {
+      await deleteCurriculum(curriculum.id);
+      setSelectedNode(null);
+      setCurriculum(null);
+      setUnits([]);
+      setLessons([]);
+      await refreshCurriculum();
+    } catch (error) {
+      const mapped = curriculumUiError(error, tCommon("error"));
+      setCurriculumError(mapped.message);
+    }
+  };
+
   const gradeOptions = grades.map((g) => ({ value: g.id, label: g.name }));
   const subjectOptions = subjects.map((s) => ({ value: s.id, label: s.name }));
 
@@ -802,6 +830,7 @@ export default function CurriculumPageContent() {
       {/* Filters Bar */}
       <div className="bg-white border-b border-border">
         <button
+          type="button"
           onClick={handleToggleFilters}
           className="w-full px-6 py-3 flex items-center justify-between border-b border-border hover:bg-gray-50 transition-colors cursor-pointer"
         >
@@ -820,7 +849,7 @@ export default function CurriculumPageContent() {
         {!queryState.filtersCollapsed && (
           <div className="px-6 py-4">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
-              <div className="flex-1 min-w-[200px]">
+              <div className="flex-1 min-w-[200px] w-full">
                 <Select
                   label={t("filters.grade")}
                   required
@@ -832,7 +861,7 @@ export default function CurriculumPageContent() {
                 />
               </div>
 
-              <div className="flex-1 min-w-[200px]">
+              <div className="flex-1 min-w-[200px] w-full">
                 <Select
                   label={t("filters.subject")}
                   required
@@ -845,15 +874,6 @@ export default function CurriculumPageContent() {
               </div>
 
               <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={() => setShowExportModal(true)}
-                  disabled={!hasCurriculum || curriculumExportRows.length === 0}
-                  leftIcon={<Download className="w-4 h-4" />}
-                >
-                  {tExport("button")}
-                </Button>
                 {!hasCurriculum && selectedGradeId && selectedSubjectId && (
                   <Button
                     variant="primary"
@@ -865,24 +885,23 @@ export default function CurriculumPageContent() {
                   </Button>
                 )}
                 {hasCurriculum && (
-                  <>
-                    <Button
-                      variant="secondary"
-                      size="md"
-                      onClick={handleActivateCurriculum}
-                      disabled={!canActivate}
-                    >
-                      {t("actions.activate_curriculum")}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="md"
-                      onClick={handleArchiveCurriculum}
-                      disabled={!canArchive}
-                    >
-                      {t("actions.archive_curriculum")}
-                    </Button>
-                  </>
+                  <CurriculumActionsMenu
+                    labels={{
+                      menu: t("actions.menu"),
+                      export: tExport("button"),
+                      activate: t("actions.activate_curriculum"),
+                      archive: t("actions.archive_curriculum"),
+                      delete: t("actions.delete_curriculum"),
+                    }}
+                    onExport={() => setShowExportModal(true)}
+                    onActivate={() => void handleActivateCurriculum()}
+                    onArchive={() => void handleArchiveCurriculum()}
+                    onDelete={() => void handleDeleteCurriculum()}
+                    canExport={curriculumExportRows.length > 0}
+                    canActivate={canActivate}
+                    canArchive={canArchive}
+                    canDelete={canMutate}
+                  />
                 )}
               </div>
             </div>
@@ -1029,7 +1048,10 @@ export default function CurriculumPageContent() {
                         {t("details.title")}
                       </h2>
                       <div className="text-sm text-gray-700">
-                        {t("details.status")}: {curriculum?.status}
+                        {t("details.status")}:{" "}
+                        {curriculum
+                          ? t(curriculumStatusLabelKey(curriculum.status))
+                          : ""}
                       </div>
                       <div className="text-sm text-gray-700">
                         {t("details.units")}: {curriculum?.unitCount}
@@ -1146,7 +1168,10 @@ export default function CurriculumPageContent() {
                         {t("details.title")}
                       </h2>
                       <div className="text-sm text-gray-700">
-                        {t("details.status")}: {curriculum?.status}
+                        {t("details.status")}:{" "}
+                        {curriculum
+                          ? t(curriculumStatusLabelKey(curriculum.status))
+                          : ""}
                       </div>
                       <div className="text-sm text-gray-700">
                         {t("details.units")}: {curriculum?.unitCount}

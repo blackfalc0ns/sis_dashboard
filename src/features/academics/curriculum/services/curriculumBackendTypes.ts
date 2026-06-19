@@ -1,6 +1,10 @@
 export type BackendCurriculumStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 export type CurriculumStatus = "draft" | "active" | "archived" | "unknown";
-export type LessonContentType = "TEXT" | "FILE" | "VIDEO_LINK" | "EXTERNAL_LINK";
+export type LessonContentType =
+  | "TEXT"
+  | "FILE"
+  | "VIDEO_LINK"
+  | "EXTERNAL_LINK";
 
 export interface CurriculumScopeSummaryDto {
   id: string;
@@ -70,16 +74,18 @@ export interface CurriculaListResponseDto {
   items: CurriculumResponseDto[];
 }
 
-export interface DeleteCurriculumNodeResponseDto {
-  success: boolean;
-  id: string;
-  deletedAt?: string;
+export interface DeleteResponse {
+  ok: true;
 }
+
+export type DeleteCurriculumNodeResponseDto = DeleteResponse;
 
 export interface LessonContentFileSummaryDto {
   id: string;
   fileId?: string;
-  name: string;
+  name?: string;
+  filename?: string;
+  originalName?: string;
   url: string;
   mimeType: string;
   sizeBytes: number;
@@ -108,11 +114,7 @@ export interface LessonContentListResponseDto {
   items: LessonContentItemResponseDto[];
 }
 
-export interface DeleteLessonContentItemResponseDto {
-  success: boolean;
-  id: string;
-  deletedAt?: string;
-}
+export type DeleteLessonContentItemResponseDto = DeleteResponse;
 
 export interface CurriculumListFilters {
   academicYearId?: string;

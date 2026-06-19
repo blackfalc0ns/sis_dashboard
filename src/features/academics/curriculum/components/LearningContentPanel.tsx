@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { X, FileText, Link as LinkIcon, Trash2 } from "lucide-react";
+import { X, FileText, Link as LinkIcon, Trash2, ArrowUp, ArrowDown, Download } from "lucide-react";
 import {
   Drawer,
   IconButton,
@@ -19,11 +19,22 @@ import {
   createLessonContent,
   deleteLessonContent,
   listLessonContent,
+  reorderLessonContent,
   updateLessonContent,
   type LessonContentItem,
   type LessonContentType,
 } from "@/features/academics/curriculum/services/curriculumService";
 import { curriculumUiError } from "@/features/academics/curriculum/services/curriculumErrors";
+import { usePermissions } from "@/hooks/usePermissions";
+import { downloadFile, uploadFile } from "../services/filesService";
+import {
+  buildContentPayload,
+  LEARNING_CONTENT_FILE_ACCEPT,
+  isFileUploadDisabled,
+  resolveLessonContentFileId,
+  validateLearningContentFile,
+  type ContentForm,
+} from "./learningContentFile";
 
 interface LearningContentPanelProps {
   curriculumId: string;
@@ -35,71 +46,32 @@ interface LearningContentPanelProps {
   onClose: () => void;
 }
 
-type ContentForm = {
-  id?: string;
-  type: LessonContentType;
-  title: string;
-  bodyText: string;
-  url: string;
-  fileId: string;
-  estimatedMinutes: string;
-  isRequired: boolean;
-};
-
-const emptyContentForm: ContentForm = {
-  type: "TEXT",
-  title: "",
-  bodyText: "",
-  url: "",
-  fileId: "",
-  estimatedMinutes: "",
-  isRequired: true,
-};
-
-const hasBackendFileIdPicker = false;
-
-function buildContentPayload(form: ContentForm) {
-  const estimatedMinutes = form.estimatedMinutes.trim()
-    ? Number(form.estimatedMinutes)
-    : null;
-
-  if (form.type === "TEXT") {
-    return {
-      type: "TEXT" as const,
-      title: form.title.trim(),
-      bodyText: form.bodyText.trim(),
-      url: null,
-      fileId: null,
-      estimatedMinutes,
-      isRequired: form.isRequired,
-    };
-  }
-
-  if (form.type === "FILE") {
-    if (!form.fileId.trim()) {
-      throw new Error("FILE content requires a backend fileId.");
-    }
-
-    return {
-      type: "FILE" as const,
-      title: form.title.trim(),
-      bodyText: null,
-      url: null,
-      fileId: form.fileId.trim(),
-      estimatedMinutes,
-      isRequired: form.isRequired,
-    };
-  }
-
+function createEmptyContentForm(): ContentForm {
   return {
-    type: form.type,
-    title: form.title.trim(),
-    bodyText: null,
-    url: form.url.trim(),
-    fileId: null,
-    estimatedMinutes,
-    isRequired: form.isRequired,
+    type: "TEXT",
+    title: "",
+    bodyText: "",
+    url: "",
+    estimatedMinutes: "",
+    isRequired: true,
   };
+}
+
+function isValidHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function formatFileSize(sizeBytes: number | string) {
+  const bytes = Number(sizeBytes);
+  if (!Number.isFinite(bytes)) return String(sizeBytes);
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export default function LearningContentPanel({
@@ -115,12 +87,25 @@ export default function LearningContentPanel({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const isRTL = locale === "ar";
+  const { hasPermission } = usePermissions();
+  const canUploadFiles = hasPermission("files.uploads.manage");
 
   const [items, setItems] = useState<LessonContentItem[]>([]);
-  const [form, setForm] = useState<ContentForm>(emptyContentForm);
+  const [form, setForm] = useState<ContentForm>(() => createEmptyContentForm());
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File>();
+  const [existingFileId, setExistingFileId] = useState<string | null>(null);
+  const [existingFileName, setExistingFileName] = useState<string | null>(null);
+
+  const resetFormToCreate = useCallback(() => {
+    setForm(createEmptyContentForm());
+    setSelectedFile(undefined);
+    setExistingFileId(null);
+    setExistingFileName(null);
+    setError(null);
+  }, []);
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -135,21 +120,35 @@ export default function LearningContentPanel({
   }, [curriculumId, lessonId, t, unitId]);
 
   useEffect(() => {
+    resetFormToCreate();
     if (open) void loadItems();
-  }, [loadItems, open]);
+  }, [curriculumId, lessonId, loadItems, open, resetFormToCreate, unitId]);
 
   const handleSave = async () => {
+    const fileValidation = form.type === "FILE"
+      ? validateLearningContentFile(selectedFile, existingFileId)
+      : null;
     if (
       isReadOnly ||
       !form.title.trim() ||
-      (form.type === "FILE" && !hasBackendFileIdPicker)
+      (form.type === "TEXT" && !form.bodyText.trim()) ||
+      ((form.type === "VIDEO_LINK" || form.type === "EXTERNAL_LINK") &&
+        !isValidHttpUrl(form.url.trim())) ||
+      (form.type === "FILE" && !canUploadFiles)
     ) {
+      return;
+    }
+    if (fileValidation) {
+      setError(t(`file_${fileValidation}`));
       return;
     }
     setSaving(true);
     setError(null);
     try {
-      const payload = buildContentPayload(form);
+      const fileId = form.type === "FILE"
+        ? await resolveLessonContentFileId(selectedFile, existingFileId, uploadFile)
+        : null;
+      const payload = buildContentPayload(form, fileId);
       if (form.id) {
         await updateLessonContent(
           curriculumId,
@@ -164,8 +163,8 @@ export default function LearningContentPanel({
           sortOrder: items.length,
         });
       }
-      setForm(emptyContentForm);
       await loadItems();
+      resetFormToCreate();
     } catch (saveError) {
       setError(curriculumUiError(saveError, t("save_failed")).message);
     } finally {
@@ -177,9 +176,46 @@ export default function LearningContentPanel({
     if (isReadOnly || !confirm(t("confirm_delete"))) return;
     try {
       await deleteLessonContent(curriculumId, unitId, lessonId, item.id);
+      if (form.id === item.id) {
+        resetFormToCreate();
+      }
       await loadItems();
     } catch (deleteError) {
       setError(curriculumUiError(deleteError, t("delete_failed")).message);
+    }
+  };
+
+  const handleReorder = async (item: LessonContentItem, nextIndex: number) => {
+    if (isReadOnly) return;
+    setError(null);
+    try {
+      await reorderLessonContent(curriculumId, unitId, lessonId, item.id, {
+        sortOrder: nextIndex,
+      });
+      await loadItems();
+    } catch (reorderError) {
+      setError(curriculumUiError(reorderError, t("reorder_failed")).message);
+    }
+  };
+
+  const handleDownload = async (item: LessonContentItem) => {
+    if (!item.file) return;
+    setError(null);
+    try {
+      const downloadedFile = await downloadFile(item.file.fileId || item.file.id);
+      const objectUrl = URL.createObjectURL(downloadedFile.blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download =
+        downloadedFile.filename ||
+        item.file.name ||
+        item.file.filename ||
+        item.file.originalName ||
+        item.title;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch (downloadError) {
+      setError(curriculumUiError(downloadError, t("download_failed")).message);
     }
   };
 
@@ -230,8 +266,11 @@ export default function LearningContentPanel({
                 value={form.type}
                 onChange={(event) => {
                   const type = event.target.value as LessonContentType;
+                  setSelectedFile(undefined);
+                  setExistingFileId(null);
+                  setExistingFileName(null);
                   setForm({
-                    ...emptyContentForm,
+                    ...createEmptyContentForm(),
                     id: form.id,
                     title: form.title,
                     type,
@@ -243,8 +282,8 @@ export default function LearningContentPanel({
                 fullWidth
               >
                 <MenuItem value="TEXT">TEXT</MenuItem>
-                <MenuItem value="FILE" disabled={!hasBackendFileIdPicker}>
-                  <Tooltip title={t("file_disabled_tooltip")}>
+                <MenuItem value="FILE" disabled={!canUploadFiles}>
+                  <Tooltip title={!canUploadFiles ? t("file_permission_tooltip") : ""}>
                     <span>FILE</span>
                   </Tooltip>
                 </MenuItem>
@@ -263,16 +302,24 @@ export default function LearningContentPanel({
               />
             )}
             {form.type === "FILE" && (
-              <Tooltip title={t("file_disabled_tooltip")}>
-                <span>
-                  <Input
-                    label={t("file_id")}
-                    value={form.fileId}
-                    onChange={(event) => setForm({ ...form, fileId: event.target.value })}
-                    disabled
-                  />
-                </span>
-              </Tooltip>
+              <div className="space-y-2">
+                {existingFileName && (
+                  <p className="text-sm text-gray-600">{t("current_file", { name: existingFileName })}</p>
+                )}
+                <input
+                  aria-label={t("choose_file")}
+                  type="file"
+                  accept={LEARNING_CONTENT_FILE_ACCEPT}
+                  disabled={isFileUploadDisabled(isReadOnly, canUploadFiles) || saving}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    setSelectedFile(file);
+                    const validation = validateLearningContentFile(file, existingFileId);
+                    setError(validation ? t(`file_${validation}`) : null);
+                  }}
+                />
+                <p className="text-xs text-gray-500">{t("file_help")}</p>
+              </div>
             )}
             {(form.type === "VIDEO_LINK" || form.type === "EXTERNAL_LINK") && (
               <Input
@@ -308,20 +355,38 @@ export default function LearningContentPanel({
 
             <div className="flex gap-2 justify-end">
               {form.id && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setForm(emptyContentForm)}
-                  disabled={saving || isReadOnly}
-                >
-                  {t("cancel")}
-                </Button>
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={resetFormToCreate}
+                    disabled={saving || isReadOnly}
+                  >
+                    {t("create_new")}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={resetFormToCreate}
+                    disabled={saving || isReadOnly}
+                  >
+                    {t("cancel")}
+                  </Button>
+                </>
               )}
               <Button
                 variant="primary"
                 size="sm"
                 onClick={handleSave}
-                disabled={saving || isReadOnly || !form.title.trim()}
+                disabled={
+                  saving ||
+                  isReadOnly ||
+                  !form.title.trim() ||
+                  (form.type === "TEXT" && !form.bodyText.trim()) ||
+                  ((form.type === "VIDEO_LINK" || form.type === "EXTERNAL_LINK") &&
+                    !isValidHttpUrl(form.url.trim())) ||
+                  (form.type === "FILE" && !canUploadFiles)
+                }
               >
                 {saving ? t("saving") : t("save")}
               </Button>
@@ -335,7 +400,7 @@ export default function LearningContentPanel({
             ) : items.length === 0 ? (
               <p className="text-sm text-gray-500">{t("no_items")}</p>
             ) : (
-              items.map((item) => (
+              items.map((item, index) => (
                 <div key={item.id} className="bg-white p-3 rounded-lg border border-border flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -353,21 +418,63 @@ export default function LearningContentPanel({
                       <span>{item.type}</span>
                       {item.estimatedMinutes && <span>{item.estimatedMinutes} min</span>}
                     </div>
+                    {item.type === "FILE" && item.file && (
+                      <div className="mt-2 text-xs text-gray-600">
+                        <div>
+                          {item.file.name || item.file.filename || item.file.originalName || item.title}
+                        </div>
+                        <div>{item.file.mimeType} · {formatFileSize(item.file.sizeBytes)}</div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-1">
+                    {item.type === "FILE" && item.file && (
+                      <IconButton
+                        size="small"
+                        onClick={() => void handleDownload(item)}
+                        title={t("download")}
+                      >
+                        <Download className="w-4 h-4" />
+                      </IconButton>
+                    )}
+                    <IconButton
+                      size="small"
+                      onClick={() => handleReorder(item, index - 1)}
+                      disabled={isReadOnly || index === 0}
+                      title={t("move_up")}
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleReorder(item, index + 1)}
+                      disabled={isReadOnly || index === items.length - 1}
+                      title={t("move_down")}
+                    >
+                      <ArrowDown className="w-4 h-4" />
+                    </IconButton>
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => setForm({
-                        id: item.id,
-                        type: item.type,
-                        title: item.title,
-                        bodyText: item.bodyText || "",
-                        url: item.url || "",
-                        fileId: item.file?.id || item.file?.fileId || "",
-                        estimatedMinutes: item.estimatedMinutes?.toString() || "",
-                        isRequired: item.isRequired,
-                      })}
+                      onClick={() => {
+                        setSelectedFile(undefined);
+                        setExistingFileId(item.file?.fileId || item.file?.id || null);
+                        setExistingFileName(
+                          item.file?.name ||
+                          item.file?.filename ||
+                          item.file?.originalName ||
+                          null,
+                        );
+                        setForm({
+                          id: item.id,
+                          type: item.type,
+                          title: item.title,
+                          bodyText: item.bodyText || "",
+                          url: item.url || "",
+                          estimatedMinutes: item.estimatedMinutes?.toString() || "",
+                          isRequired: item.isRequired,
+                        });
+                      }}
                       disabled={isReadOnly}
                     >
                       {t("edit")}

@@ -15,6 +15,8 @@ export type CurriculumErrorCode =
   | "academics.lesson_content.invalid_url"
   | "academics.lesson_content.file_not_found"
   | "academics.lesson_content.read_only"
+  | "files.uploads.size_exceeded"
+  | "files.uploads.mime_not_allowed"
   | "validation.failed"
   | "auth.scope.missing";
 
@@ -43,6 +45,8 @@ const curriculumErrorMessages: Record<CurriculumErrorCode, string> = {
   "academics.lesson_content.file_not_found":
     "The selected file could not be found.",
   "academics.lesson_content.read_only": "This lesson content item is read-only.",
+  "files.uploads.size_exceeded": "The selected file exceeds the 10 MB limit.",
+  "files.uploads.mime_not_allowed": "This file type is not supported.",
   "validation.failed": "Check the submitted curriculum fields.",
   "auth.scope.missing": "You do not have permission to perform this action.",
 };

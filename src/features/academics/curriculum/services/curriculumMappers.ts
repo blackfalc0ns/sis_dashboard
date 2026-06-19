@@ -15,7 +15,9 @@ import type {
 } from "./curriculumBackendTypes";
 
 export function mapCurriculumStatus(status: string): CurriculumStatus {
-  switch (status) {
+  const normalized = status.trim().toUpperCase();
+
+  switch (normalized) {
     case "DRAFT":
       return "draft";
     case "ACTIVE":
@@ -42,7 +44,9 @@ export function normalizeLessonContentType(type: string): LessonContentType {
   }
 }
 
-export function mapCurriculumSummaryDto(dto: CurriculumResponseDto): Curriculum {
+export function mapCurriculumSummaryDto(
+  dto: CurriculumResponseDto,
+): Curriculum {
   return {
     id: dto.curriculumId || dto.id,
     academicYearId: dto.academicYearId,
@@ -67,11 +71,15 @@ export function mapCurriculumSummaryDto(dto: CurriculumResponseDto): Curriculum 
   };
 }
 
-export function mapCurriculumListDto(dto: CurriculaListResponseDto): Curriculum[] {
+export function mapCurriculumListDto(
+  dto: CurriculaListResponseDto,
+): Curriculum[] {
   return dto.items.map(mapCurriculumSummaryDto);
 }
 
-export function mapCurriculumDetailDto(dto: CurriculumDetailResponseDto): Curriculum {
+export function mapCurriculumDetailDto(
+  dto: CurriculumDetailResponseDto,
+): Curriculum {
   return {
     ...mapCurriculumSummaryDto(dto),
     units: dto.units.map(mapCurriculumUnitDto),
@@ -93,7 +101,9 @@ export function mapCurriculumUnitDto(dto: CurriculumUnitResponseDto): Unit {
   };
 }
 
-export function mapCurriculumLessonDto(dto: CurriculumLessonResponseDto): Lesson {
+export function mapCurriculumLessonDto(
+  dto: CurriculumLessonResponseDto,
+): Lesson {
   return {
     id: dto.lessonId || dto.id,
     curriculumId: dto.curriculumId,
@@ -108,11 +118,15 @@ export function mapCurriculumLessonDto(dto: CurriculumLessonResponseDto): Lesson
   };
 }
 
-export function mapLessonContentListDto(dto: LessonContentListResponseDto): LessonContentItem[] {
+export function mapLessonContentListDto(
+  dto: LessonContentListResponseDto,
+): LessonContentItem[] {
   return dto.items.map(mapLessonContentItemDto);
 }
 
-export function mapLessonContentItemDto(dto: LessonContentItemResponseDto): LessonContentItem {
+export function mapLessonContentItemDto(
+  dto: LessonContentItemResponseDto,
+): LessonContentItem {
   return {
     id: dto.contentItemId || dto.id,
     curriculumId: dto.curriculumId,

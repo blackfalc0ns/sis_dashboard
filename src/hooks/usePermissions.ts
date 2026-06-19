@@ -51,6 +51,7 @@ export type PermissionKey =
   | "academics.curriculum.manage"
   | "academics.lesson_plans.view"
   | "academics.lesson_plans.manage"
+  | "files.uploads.manage"
   | "homework.assignments.view"
   | "homework.assignments.manage"
   | "reinforcement.overview.view"

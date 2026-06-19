@@ -5,9 +5,12 @@ import {
   createCurriculum,
   createLesson,
   createLessonContent,
+  deleteCurriculum,
+  deleteLessonContent,
   fetchCurriculumForScope,
   getCurriculum,
   listLessonContent,
+  reorderLessonContent,
 } from "../curriculumService";
 
 describe("curriculumService backend boundary", () => {
@@ -106,6 +109,45 @@ describe("curriculumService backend boundary", () => {
         fileId: null,
         url: null,
       },
+    );
+  });
+
+  it("exports delete and reorder helpers using backend response shapes", async () => {
+    const adapter = {
+      deleteCurriculum: vi.fn().mockResolvedValue({ ok: true }),
+      deleteLessonContent: vi.fn().mockResolvedValue({ ok: true }),
+      reorderLessonContent: vi.fn().mockResolvedValue({ id: "content-1" }),
+    } as unknown as CurriculumAdapter;
+
+    activateCurriculumAdapter(adapter);
+
+    await expect(deleteCurriculum("curriculum-1")).resolves.toEqual({ ok: true });
+    await expect(
+      reorderLessonContent(
+        "curriculum-1",
+        "unit-1",
+        "lesson-1",
+        "content-1",
+        { sortOrder: 2 },
+      ),
+    ).resolves.toEqual({ id: "content-1" });
+    await expect(
+      deleteLessonContent("curriculum-1", "unit-1", "lesson-1", "content-1"),
+    ).resolves.toEqual({ ok: true });
+
+    expect(adapter.deleteCurriculum).toHaveBeenCalledWith("curriculum-1");
+    expect(adapter.reorderLessonContent).toHaveBeenCalledWith(
+      "curriculum-1",
+      "unit-1",
+      "lesson-1",
+      "content-1",
+      { sortOrder: 2 },
+    );
+    expect(adapter.deleteLessonContent).toHaveBeenCalledWith(
+      "curriculum-1",
+      "unit-1",
+      "lesson-1",
+      "content-1",
     );
   });
 });

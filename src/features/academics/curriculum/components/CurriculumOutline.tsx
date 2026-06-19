@@ -126,6 +126,7 @@ export default function CurriculumOutline({
 
       <div className="p-4 border-b">
         <Button
+          type="button"
           onClick={() => onSelectNode({ type: "unit", id: "new" })}
           variant="primary"
           fullWidth
@@ -161,6 +162,7 @@ export default function CurriculumOutline({
                 onClick={() => onSelectNode({ type: "unit", id: unit.id })}
               >
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleUnit(unit.id);
@@ -206,6 +208,7 @@ export default function CurriculumOutline({
                   })}
                   {!searchQuery.trim() && (
                     <button
+                      type="button"
                       onClick={() => onSelectNode({ type: "lesson", id: `new-${unit.id}` })}
                       className="w-full text-left p-2 text-sm text-primary hover:bg-primary/5 rounded-lg disabled:opacity-50"
                       disabled={isReadOnly}

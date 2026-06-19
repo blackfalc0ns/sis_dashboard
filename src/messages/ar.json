@@ -3668,9 +3668,18 @@
       },
       "actions": {
         "create_curriculum": "إنشاء منهج",
+        "menu": "إجراءات المنهج",
         "carry_over": "نقل",
         "activate_curriculum": "تفعيل المنهج",
-        "archive_curriculum": "أرشفة المنهج"
+        "archive_curriculum": "أرشفة المنهج",
+        "delete_curriculum": "حذف المنهج",
+        "delete_confirm": "هل أنت متأكد من حذف هذا المنهج؟ لا يمكن التراجع عن هذا الإجراء."
+      },
+      "status": {
+        "draft": "مسودة",
+        "active": "نشط",
+        "archived": "مؤرشف",
+        "unknown": "غير معروف"
       },
       "tabs": {
         "outline": "المخطط",
@@ -3876,8 +3885,15 @@
         "assignments": "الواجبات",
         "close": "إغلاق",
         "body_text": "النص",
-        "file_disabled_tooltip": "محتوى الملفات معطل إلى أن يتوفر اختيار ملف يعيد معرّف ملف من الخادم.",
-        "file_id": "معرّف الملف",
+        "file_permission_tooltip": "تحتاج إلى صلاحية رفع الملفات لإضافة محتوى ملف.",
+        "choose_file": "اختيار ملف",
+        "current_file": "الملف الحالي: {name}",
+        "file_help": "PDF أو JPEG أو PNG أو TXT بحد أقصى 10 ميجابايت.",
+        "file_required": "اختر ملفاً لرفعه.",
+        "file_size": "يتجاوز الملف المحدد الحد الأقصى 10 ميجابايت.",
+        "file_mime": "اختر ملف PDF أو JPEG أو PNG أو TXT.",
+        "download": "فتح الملف أو تنزيله",
+        "download_failed": "تعذر تنزيل الملف.",
         "load_failed": "تعذر تحميل محتوى الدرس.",
         "save_failed": "تعذر حفظ محتوى الدرس.",
         "url": "الرابط",
@@ -3892,11 +3908,15 @@
         "loading": "جاري التحميل...",
         "no_items": "لا توجد عناصر محتوى.",
         "edit": "تعديل",
+        "create_new": "إنشاء جديد",
         "cancel": "إلغاء",
         "save": "حفظ",
         "saving": "جاري الحفظ...",
         "confirm_delete": "هل أنت متأكد أنك تريد حذف عنصر المحتوى هذا؟",
-        "delete_failed": "فشل في حذف عنصر المحتوى."
+        "delete_failed": "فشل في حذف عنصر المحتوى.",
+        "move_up": "نقل لأعلى",
+        "move_down": "نقل لأسفل",
+        "reorder_failed": "فشل في إعادة ترتيب عنصر المحتوى."
       },
       "questions": {
         "title": "الأسئلة",
