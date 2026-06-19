@@ -216,10 +216,10 @@ export default function AddLessonDialog({
             plannedDate={selectedPlannedDate}
             value={selectedTimetableEntry?.id ?? ""}
             onChange={setSelectedTimetableEntry}
-            label={tLessonPlans("timetableSlot")}
+            label={tLessonPlans("timetableSlotOptions.label")}
             emptyOptionLabel={tLessonPlans("addWithoutSlot")}
-            noSlotsMessage={tLessonPlans("noTimetableSlots")}
-            loadingMessage={tLessonPlans("loadingTimetableSlots")}
+            noSlotsMessage={tLessonPlans("timetableSlotOptions.noSlots")}
+            loadingMessage={tLessonPlans("timetableSlotOptions.loading")}
           />
         )}
       </div>

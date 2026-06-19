@@ -87,10 +87,10 @@ export default function EditLessonPlanItemDialog(props: Props) {
             plannedDate={plannedDate}
             value={slot?.id ?? ""}
             onChange={setSlot}
-            label={t("editItem.timetableSlot")}
+            label={t("timetableSlotOptions.label")}
             emptyOptionLabel={t("addWithoutSlot")}
-            noSlotsMessage={t("noTimetableSlots")}
-            loadingMessage={t("loadingTimetableSlots")}
+            noSlotsMessage={t("timetableSlotOptions.noSlots")}
+            loadingMessage={t("timetableSlotOptions.loading")}
           />
         )}
       </div>

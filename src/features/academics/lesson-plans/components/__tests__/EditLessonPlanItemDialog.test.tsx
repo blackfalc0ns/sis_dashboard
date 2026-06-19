@@ -70,7 +70,7 @@ describe("EditLessonPlanItemDialog", () => {
       />,
     );
 
-    await screen.findByText("noTimetableSlots");
+    await screen.findByText("timetableSlotOptions.noSlots");
     const [titleInput, notesInput] = screen.getAllByRole("textbox");
     await user.clear(titleInput);
     await user.type(titleInput, "New title");

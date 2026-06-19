@@ -4819,6 +4819,14 @@
       "addWithoutSlot": "Add without a timetable slot",
       "moveWithoutSlot": "Move without a timetable slot",
       "loadingTimetableSlots": "Loading timetable slots...",
+      "timetableSlotOptions": {
+        "label": "Timetable slot",
+        "placeholder": "Select a timetable slot",
+        "loading": "Loading timetable slots...",
+        "noSlots": "No timetable slots found for this day. You can still save the lesson without a timetable slot.",
+        "optional": "Optional",
+        "retry": "Retry"
+      },
       "filters": {
         "title": "Filters",
         "stage": "Stage",
@@ -4977,7 +4985,8 @@
         "week_start_after_end": "Week start date must be before or equal to week end date.",
         "week_outside_term": "This week is outside the selected term.",
         "no_instructional_days": "This week has no instructional days.",
-        "planned_date_outside_term": "Planned date must be inside the selected term."
+        "planned_date_outside_term": "Planned date must be inside the selected term.",
+        "invalid_planned_day": "Select an instructional day inside the current week."
       },
       "summary": {
         "title": "Progress Summary",

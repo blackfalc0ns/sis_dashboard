@@ -61,7 +61,7 @@ export default function MoveLessonDialog(props: MoveLessonDialogProps) {
           disabled={validDays.length === 0}
           error={validDays.length === 0 ? t("validation.no_instructional_days") : undefined}
         />
-        {plannedDate && <TimetableSlotSelect {...props} plannedDate={plannedDate} value={entry?.id ?? ""} onChange={setEntry} label={t("timetableSlot")} emptyOptionLabel={t("moveWithoutSlot")} noSlotsMessage={t("noTimetableSlots")} loadingMessage={t("loadingTimetableSlots")} />}
+        {plannedDate && <TimetableSlotSelect {...props} plannedDate={plannedDate} value={entry?.id ?? ""} onChange={setEntry} label={t("timetableSlotOptions.label")} emptyOptionLabel={t("moveWithoutSlot")} noSlotsMessage={t("timetableSlotOptions.noSlots")} loadingMessage={t("timetableSlotOptions.loading")} />}
       </div>
     </Modal>
   );
