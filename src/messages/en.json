@@ -4865,7 +4865,15 @@
         "add": "Add"
       },
       "scope": {
-        "title": "Selected scope"
+        "title": "Selected scope",
+        "selectClassroom": "Select a classroom to load lesson plans.",
+        "noTeacherAllocation": "No teacher is assigned to this subject in the selected classroom.",
+        "noCurriculum": "No curriculum was found for the selected grade and subject.",
+        "incompleteScope": "Complete the academic scope to load lesson plans.",
+        "invalidSubjectForGrade": "The selected subject is not valid for this grade.",
+        "selectSubject": "Select a subject to load lesson plans.",
+        "selectGrade": "Select a grade to load lesson plans.",
+        "selectSection": "Select a section to load lesson plans."
       },
       "tooltips": {
         "autoPlanUnavailable": "Auto-plan is unavailable until the term, allocation, and curriculum are ready."
@@ -4936,6 +4944,8 @@
         "markPlanned": "Mark Planned",
         "validate": "Validate",
         "autoPlan": "Auto-plan",
+        "createPlan": "Create plan",
+        "createPlanForWeek": "Create plan for this week",
         "preview": "Preview",
         "apply": "Apply",
         "save": "Save",
@@ -4962,6 +4972,26 @@
         "title": "Title",
         "description": "Description",
         "hasNotes": "Has notes"
+      },
+      "createPlan": {
+        "title": "Create lesson plan",
+        "description": "Create an empty weekly lesson plan. You can add lessons later.",
+        "weekLabel": "Week",
+        "weekPlaceholder": "Select week",
+        "titleLabel": "Title",
+        "descriptionLabel": "Description",
+        "submit": "Create plan",
+        "cancel": "Cancel",
+        "alreadyHasPlan": "Already has a plan",
+        "success": "Lesson plan created successfully.",
+        "defaultTitle": "Week {index} lesson plan",
+        "validation": {
+          "weekRequired": "Select a week.",
+          "titleRequired": "Title is required.",
+          "weekAlreadyHasPlan": "This week already has a lesson plan.",
+          "weekOutsideTerm": "This week is outside the selected term.",
+          "invalidWeekRange": "The selected week date range is invalid."
+        }
       },
       "editItem": {
         "title": "Edit item",

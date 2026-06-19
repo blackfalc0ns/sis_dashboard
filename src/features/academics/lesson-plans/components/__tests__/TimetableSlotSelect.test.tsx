@@ -131,4 +131,23 @@ describe("TimetableSlotSelect", () => {
     await user.click(screen.getByRole("button", { name: /Period 2/ }));
     await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ id: "entry-1" })));
   });
+
+  it("does not load slots until subject and classroom scope are complete", async () => {
+    render(
+      <TimetableSlotSelect
+        {...scope}
+        classroomId=""
+        plannedDate="2026-09-16"
+        value=""
+        onChange={vi.fn()}
+        label="Timetable slot"
+        emptyOptionLabel="Without slot"
+        noSlotsMessage="No slots"
+        loadingMessage="Loading slots"
+      />,
+    );
+
+    expect(getConfig).not.toHaveBeenCalled();
+    expect(listEntries).not.toHaveBeenCalled();
+  });
 });

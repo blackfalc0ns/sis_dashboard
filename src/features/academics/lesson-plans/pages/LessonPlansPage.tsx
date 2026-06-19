@@ -17,6 +17,7 @@ import LessonLibraryDrawer from "../components/LessonLibraryDrawer";
 import AddLessonDialog from "../components/AddLessonDialog";
 import MobileBottomBar from "../components/MobileBottomBar";
 import AutoPlanDialog from "../components/AutoPlanDialog";
+import CreateLessonPlanDialog, { type CreateLessonPlanDialogPayload } from "../components/CreateLessonPlanDialog";
 import LessonPlanValidationPanel from "../components/LessonPlanValidationPanel";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { useLessonPlansData } from "../hooks/useLessonPlansData";
@@ -27,6 +28,8 @@ import {
   resolveLessonPlansView,
 } from "./lessonPlansPageState";
 import { usePermissions } from "@/hooks/usePermissions";
+import { createLessonPlan } from "../services/lessonPlansService";
+import { lessonPlansUiError } from "../services/lessonPlansErrors";
 import {
   type AcademicsExportFormat,
   exportAcademicsData,
@@ -81,6 +84,8 @@ export default function LessonPlansPage() {
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showAutoPlanDialog, setShowAutoPlanDialog] = useState(false);
+  const [showCreatePlanDialog, setShowCreatePlanDialog] = useState(false);
+  const [creatingPlan, setCreatingPlan] = useState(false);
   const libraryQueryState = useMemo(
     () => ({
       isOpen: searchParams.get("library") === "1",
@@ -92,11 +97,9 @@ export default function LessonPlansPage() {
   const [librarySearchInput, setLibrarySearchInput] = useState(
     libraryQueryState.search,
   );
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setLibrarySearchInput(libraryQueryState.search);
   }, [libraryQueryState.search]);
-  /* eslint-enable react-hooks/set-state-in-effect */
   const {
     stages,
     grades,
@@ -117,6 +120,7 @@ export default function LessonPlansPage() {
     loading,
     plansLoading,
     dataChecked,
+    scopeStatus,
     refreshPlans,
   } = useLessonPlansData({
     academicYearId,
@@ -146,6 +150,9 @@ export default function LessonPlansPage() {
     [classrooms, getFilteredClassrooms],
   );
   const displayedClassroomId = selectedClassroomId || resolvedClassroomId;
+  const classroomRequired = classrooms.some(
+    (classroom) => classroom.sectionId === selectedSectionId,
+  );
   const scopeLabels = useMemo(() => {
     const selectedStage = stages.find((stage) => stage.id === selectedStageId);
     const selectedGrade = grades.find((grade) => grade.id === selectedGradeId);
@@ -342,6 +349,7 @@ export default function LessonPlansPage() {
     assignedTeacherId,
     teacherSubjectAllocationId,
     curriculumId,
+    classroomRequired,
     lessons,
     plans,
     weeks,
@@ -369,12 +377,12 @@ export default function LessonPlansPage() {
           gradeId: "",
           sectionId: "",
           classroomId: "",
-          subjectId: selectedSubjectId,
+          subjectId: "",
         },
         "push",
       );
     },
-    [selectedSubjectId, syncFilterParams],
+    [syncFilterParams],
   );
 
   const handleGradeFilterChange = useCallback(
@@ -385,12 +393,12 @@ export default function LessonPlansPage() {
           gradeId,
           sectionId: "",
           classroomId: "",
-          subjectId: selectedSubjectId,
+          subjectId: "",
         },
         "push",
       );
     },
-    [selectedStageId, selectedSubjectId, syncFilterParams],
+    [selectedStageId, syncFilterParams],
   );
 
   const handleSectionFilterChange = useCallback(
@@ -609,18 +617,59 @@ export default function LessonPlansPage() {
   });
   const showSkeleton = viewState === "loading";
   const autoPlanDisabled =
-    isReadOnly || !termId || !teacherSubjectAllocationId || !curriculumId;
+    isReadOnly || scopeStatus !== "ready";
+  const createPlanDisabled =
+    isReadOnly ||
+    scopeStatus !== "ready" ||
+    weeks.length === 0;
+
+  const handleCreatePlan = async (payload: CreateLessonPlanDialogPayload) => {
+    if (
+      scopeStatus !== "ready" ||
+      !academicYearId ||
+      !termId ||
+      !teacherSubjectAllocationId ||
+      !curriculumId ||
+      !selectedSubjectId ||
+      (classroomRequired && !resolvedClassroomId)
+    ) {
+      showError(t("scope.incompleteScope"));
+      return;
+    }
+    setCreatingPlan(true);
+    try {
+      await createLessonPlan({
+        academicYearId,
+        termId,
+        teacherSubjectAllocationId,
+        teacherUserId: assignedTeacherId || undefined,
+        classroomId: resolvedClassroomId || undefined,
+        subjectId: selectedSubjectId || undefined,
+        curriculumId,
+        ...payload,
+      });
+      await refreshPlans();
+      setShowCreatePlanDialog(false);
+      showSuccess(t("createPlan.success"));
+    } catch (error) {
+      showError(lessonPlansUiError(error));
+    } finally {
+      setCreatingPlan(false);
+    }
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
       <div className="flex-1">
         <LessonPlansPageHeader
           scopeLabels={scopeLabels}
+          createPlanDisabled={createPlanDisabled}
           autoPlanDisabled={autoPlanDisabled}
           autoPlanUnavailableReason={t("tooltips.autoPlanUnavailable")}
           exportDisabled={lessonPlanExportRows.length === 0}
           refreshing={plansLoading}
           onAutoPlan={() => setShowAutoPlanDialog(true)}
+          onCreatePlan={() => setShowCreatePlanDialog(true)}
           onRefresh={handlePlansUpdate}
           onExport={() => setShowExportModal(true)}
         />
@@ -663,14 +712,32 @@ export default function LessonPlansPage() {
         <div className={isMobile ? "p-4 pb-24" : "p-6"}>
           {showSkeleton ? (
             <LessonPlansSkeleton />
-          ) : viewState === "no-selection" ? (
+          ) : scopeStatus !== "ready" ? (
             <div className="text-center py-12">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {t("emptyState.noSelection.title")}
               </h3>
               <p className="text-gray-600">
-                {t("emptyState.noSelection.message")}
+                {t(
+                  scopeStatus === "missing-classroom"
+                    ? "scope.selectClassroom"
+                    : scopeStatus === "missing-teacher-allocation"
+                      ? "scope.noTeacherAllocation"
+                      : scopeStatus === "missing-curriculum"
+                        ? "scope.noCurriculum"
+                        : scopeStatus === "missing-grade"
+                          ? "scope.selectGrade"
+                          : scopeStatus === "missing-section"
+                            ? "scope.selectSection"
+                            : scopeStatus === "missing-subject"
+                              ? "scope.selectSubject"
+                              : "scope.incompleteScope",
+                )}
               </p>
+            </div>
+          ) : viewState === "no-selection" ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600">{t("scope.incompleteScope")}</p>
             </div>
           ) : filteredClassrooms.length > 1 && !resolvedClassroomId ? (
             <div className="text-center py-12">
@@ -832,6 +899,19 @@ export default function LessonPlansPage() {
         onClose={closeAddLessonDialog}
         onConfirm={handleConfirmAddLesson}
       />
+
+      {showCreatePlanDialog && (
+        <CreateLessonPlanDialog
+          isOpen
+          weeks={weeks}
+          plans={plans}
+          termStartDate={selectedTerm?.startDate}
+          termEndDate={selectedTerm?.endDate}
+          loading={creatingPlan}
+          onClose={() => setShowCreatePlanDialog(false)}
+          onSubmit={handleCreatePlan}
+        />
+      )}
 
       <AcademicsGlobalExportModal
         isOpen={showExportModal}

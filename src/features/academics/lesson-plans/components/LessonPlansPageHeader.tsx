@@ -1,16 +1,18 @@
 "use client";
 
-import { Download, RefreshCw, Sparkles } from "lucide-react";
+import { CalendarPlus, Download, RefreshCw, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 
 interface LessonPlansPageHeaderProps {
   scopeLabels: string[];
   autoPlanDisabled: boolean;
+  createPlanDisabled: boolean;
   autoPlanUnavailableReason?: string;
   exportDisabled: boolean;
   refreshing: boolean;
   onAutoPlan: () => void;
+  onCreatePlan: () => void;
   onRefresh: () => void;
   onExport: () => void;
 }
@@ -18,10 +20,12 @@ interface LessonPlansPageHeaderProps {
 export default function LessonPlansPageHeader({
   scopeLabels,
   autoPlanDisabled,
+  createPlanDisabled,
   autoPlanUnavailableReason,
   exportDisabled,
   refreshing,
   onAutoPlan,
+  onCreatePlan,
   onRefresh,
   onExport,
 }: LessonPlansPageHeaderProps) {
@@ -54,6 +58,13 @@ export default function LessonPlansPageHeader({
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={onCreatePlan}
+            leftIcon={<CalendarPlus className="h-4 w-4" />}
+            disabled={createPlanDisabled}
+          >
+            {t("actions.createPlan")}
+          </Button>
           <span
             title={autoPlanDisabled ? autoPlanUnavailableReason : undefined}
             className="inline-flex"

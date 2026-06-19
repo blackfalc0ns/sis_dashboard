@@ -31,9 +31,20 @@ import {
 import {
   fetchTeacherAllocations,
   fetchTeachers,
-  resolveTeacherAllocationForTarget,
   type Teacher,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
+
+export type LessonPlansScopeStatus =
+  | "loading-options"
+  | "missing-academic-year"
+  | "missing-term"
+  | "missing-grade"
+  | "missing-section"
+  | "missing-classroom"
+  | "missing-subject"
+  | "missing-curriculum"
+  | "missing-teacher-allocation"
+  | "ready";
 
 interface Params {
   academicYearId: string;
@@ -78,6 +89,8 @@ export function useLessonPlansData(params: Params) {
   const [loading, setLoading] = useState(true);
   const [plansLoading, setPlansLoading] = useState(false);
   const [dataChecked, setDataChecked] = useState(false);
+  const [scopeStatus, setScopeStatus] =
+    useState<LessonPlansScopeStatus>("loading-options");
   const requestId = useRef(0);
 
   useEffect(() => {
@@ -112,13 +125,7 @@ export function useLessonPlansData(params: Params) {
 
   const refreshPlans = useCallback(async () => {
     const currentRequest = ++requestId.current;
-    if (
-      !academicYearId ||
-      !termId ||
-      !selectedGradeId ||
-      !selectedSectionId ||
-      !selectedSubjectId
-    ) {
+    const clearScopedData = () => {
       setPlans([]);
       setWeeks([]);
       setSummary(null);
@@ -129,23 +136,50 @@ export function useLessonPlansData(params: Params) {
       setTeacherSubjectAllocationId("");
       setAssignedTeacherId("");
       setResolvedClassroomId("");
-      setDataChecked(false);
       setPlansLoading(false);
+    };
+    if (loading) {
+      clearScopedData();
+      setScopeStatus("loading-options");
+      setDataChecked(false);
       return;
     }
+    const missingStatus: LessonPlansScopeStatus | null = !academicYearId
+      ? "missing-academic-year"
+      : !termId
+        ? "missing-term"
+        : !selectedGradeId
+          ? "missing-grade"
+          : !selectedSectionId
+            ? "missing-section"
+            : !selectedSubjectId
+              ? "missing-subject"
+              : null;
+    if (missingStatus) {
+      clearScopedData();
+      setScopeStatus(missingStatus);
+      setDataChecked(true);
+      return;
+    }
+    const sectionClassrooms = classrooms.filter(
+      (classroom) => classroom.sectionId === selectedSectionId,
+    );
+    const classroomId = sectionClassrooms.some(
+      (classroom) => classroom.id === selectedClassroomId,
+    )
+      ? selectedClassroomId
+      : "";
+    if (sectionClassrooms.length > 0 && !classroomId) {
+      clearScopedData();
+      setScopeStatus("missing-classroom");
+      setDataChecked(true);
+      return;
+    }
+    clearScopedData();
     setPlansLoading(true);
     setDataChecked(false);
+    setScopeStatus("loading-options");
     try {
-      const sectionClassrooms = classrooms.filter(
-        (classroom) => classroom.sectionId === selectedSectionId,
-      );
-      const classroomId = sectionClassrooms.some(
-        (classroom) => classroom.id === selectedClassroomId,
-      )
-        ? selectedClassroomId
-        : sectionClassrooms.length === 1
-          ? sectionClassrooms[0]!.id
-          : "";
       const [curriculum, allocations] = await Promise.all([
         fetchCurriculumForScope({
           academicYearId,
@@ -155,11 +189,15 @@ export function useLessonPlansData(params: Params) {
         }),
         fetchTeacherAllocations(termId),
       ]);
-      const allocation = resolveTeacherAllocationForTarget(allocations, {
-        sectionId: selectedSectionId,
-        subjectId: selectedSubjectId,
-        classroomId: classroomId || undefined,
-      });
+      const allocation = allocations.find(
+        (candidate) =>
+          candidate.termId === termId &&
+          candidate.sectionId === selectedSectionId &&
+          candidate.subjectId === selectedSubjectId &&
+          (classroomId
+            ? candidate.classroomId === classroomId
+            : !candidate.classroomId),
+      );
       if (!curriculum || !allocation || currentRequest !== requestId.current) {
         setPlans([]);
         setWeeks([]);
@@ -172,6 +210,9 @@ export function useLessonPlansData(params: Params) {
         setAssignedTeacherId(allocation?.teacherId ?? "");
         setResolvedClassroomId(classroomId);
         setDataChecked(true);
+        setScopeStatus(
+          !curriculum ? "missing-curriculum" : "missing-teacher-allocation",
+        );
         return;
       }
       const query = { termId, teacherSubjectAllocationId: allocation.id };
@@ -179,7 +220,12 @@ export function useLessonPlansData(params: Params) {
         await Promise.all([
           listLessonPlanWeeks(query),
           listLessonPlans(query),
-          getLessonPlanSummary(query),
+          getLessonPlanSummary({
+            ...query,
+            gradeId: selectedGradeId,
+            subjectId: selectedSubjectId,
+            classroomId: classroomId || undefined,
+          }),
           getLessonPlanValidation({
             ...query,
             gradeId: selectedGradeId,
@@ -212,6 +258,7 @@ export function useLessonPlansData(params: Params) {
       setSummary(planSummary);
       setValidation(planValidation);
       setDataChecked(true);
+      setScopeStatus("ready");
     } catch (error) {
       console.error("Failed to load lesson plans:", error);
       onLoadError();
@@ -222,6 +269,7 @@ export function useLessonPlansData(params: Params) {
   }, [
     academicYearId,
     classrooms,
+    loading,
     onLoadError,
     selectedClassroomId,
     selectedGradeId,
@@ -253,6 +301,11 @@ export function useLessonPlansData(params: Params) {
     loading,
     plansLoading,
     dataChecked,
+    scopeStatus,
+    scopeMessage: scopeStatus,
+    canLoadLessonPlans: scopeStatus === "ready",
+    missingScopeReason: scopeStatus === "ready" ? null : scopeStatus,
+    isLoading: loading || plansLoading,
     refreshPlans,
   };
 }

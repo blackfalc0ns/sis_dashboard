@@ -6,7 +6,6 @@ import { fetchSubjects } from "@/features/academics/subjects/services/subjectsSe
 import {
   fetchTeacherAllocations,
   fetchTeachers,
-  resolveTeacherAllocationForTarget,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import {
   getLessonPlan,
@@ -30,7 +29,6 @@ vi.mock("@/features/academics/subjects/services/subjectsService", () => ({
 vi.mock("@/features/academics/teacher-allocation/services/teacherAllocationService", () => ({
   fetchTeacherAllocations: vi.fn(),
   fetchTeachers: vi.fn(),
-  resolveTeacherAllocationForTarget: vi.fn(),
 }));
 vi.mock("../../services/lessonPlansService", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../services/lessonPlansService")>()),
@@ -94,11 +92,15 @@ describe("useLessonPlansData", () => {
       id: "curriculum-1",
       units: [],
     } as never);
-    vi.mocked(fetchTeacherAllocations).mockResolvedValue([]);
-    vi.mocked(resolveTeacherAllocationForTarget).mockReturnValue({
-      id: "allocation-1",
-      teacherId: "teacher-1",
-    } as never);
+    vi.mocked(fetchTeacherAllocations).mockResolvedValue([
+      {
+        id: "allocation-1",
+        termId: "term-1",
+        sectionId: "section-1",
+        subjectId: "subject-1",
+        teacherId: "teacher-1",
+      },
+    ]);
     vi.mocked(listLessonPlanWeeks).mockResolvedValue([
       {
         weekIndex: 1,
@@ -137,5 +139,33 @@ describe("useLessonPlansData", () => {
     expect(getLessonPlan).toHaveBeenCalledWith("plan-1");
     expect(result.current.plans[0]?.items).toEqual(detailPlan.items);
     expect(result.current.plans[0]?.weekIndex).toBe(1);
+  });
+
+  it("does not resolve allocation or load lesson plans when the section requires a classroom", async () => {
+    vi.mocked(fetchStructureTree).mockResolvedValue({
+      stages: [],
+      grades: [],
+      sections: [],
+      classrooms: [{ id: "classroom-1", sectionId: "section-1" }],
+    } as never);
+    const onLoadError = vi.fn();
+    const { result } = renderHook(() =>
+      useLessonPlansData({
+        academicYearId: "year-1",
+        termId: "term-1",
+        isInitializing: false,
+        selectedGradeId: "grade-1",
+        selectedSectionId: "section-1",
+        selectedClassroomId: "",
+        selectedSubjectId: "subject-1",
+        onLoadError,
+      }),
+    );
+
+    await waitFor(() => expect(result.current.scopeStatus).toBe("missing-classroom"));
+    expect(result.current.dataChecked).toBe(true);
+    expect(fetchCurriculumForScope).not.toHaveBeenCalled();
+    expect(fetchTeacherAllocations).not.toHaveBeenCalled();
+    expect(listLessonPlans).not.toHaveBeenCalled();
   });
 });

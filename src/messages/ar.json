@@ -4866,7 +4866,15 @@
         "add": "إضافة"
       },
       "scope": {
-        "title": "النطاق المحدد"
+        "title": "النطاق المحدد",
+        "selectClassroom": "اختر الفصل لعرض خطط الدروس.",
+        "noTeacherAllocation": "لا يوجد معلم مخصص لهذه المادة في الفصل المحدد.",
+        "noCurriculum": "لا يوجد منهج للصف والمادة المحددين.",
+        "incompleteScope": "أكمل النطاق الأكاديمي لعرض خطط الدروس.",
+        "invalidSubjectForGrade": "المادة المحددة غير صالحة لهذا الصف.",
+        "selectSubject": "اختر المادة لعرض خطط الدروس.",
+        "selectGrade": "اختر الصف لعرض خطط الدروس.",
+        "selectSection": "اختر الشعبة لعرض خطط الدروس."
       },
       "tooltips": {
         "autoPlanUnavailable": "التخطيط التلقائي غير متاح حتى يكتمل الفصل والتكليف والمنهج."
@@ -4920,6 +4928,8 @@
         "markPlanned": "وضع علامة مخطط",
         "validate": "التحقق",
         "autoPlan": "تخطيط تلقائي",
+        "createPlan": "إنشاء خطة",
+        "createPlanForWeek": "إنشاء خطة لهذا الأسبوع",
         "preview": "معاينة",
         "apply": "تطبيق",
         "save": "حفظ",
@@ -4946,6 +4956,26 @@
         "title": "العنوان",
         "description": "الوصف",
         "hasNotes": "يحتوي على ملاحظات"
+      },
+      "createPlan": {
+        "title": "إنشاء خطة دروس",
+        "description": "أنشئ خطة أسبوعية فارغة ويمكنك إضافة الدروس لاحقًا.",
+        "weekLabel": "الأسبوع",
+        "weekPlaceholder": "اختر الأسبوع",
+        "titleLabel": "العنوان",
+        "descriptionLabel": "الوصف",
+        "submit": "إنشاء الخطة",
+        "cancel": "إلغاء",
+        "alreadyHasPlan": "توجد خطة بالفعل",
+        "success": "تم إنشاء خطة الدروس بنجاح.",
+        "defaultTitle": "خطة دروس الأسبوع {index}",
+        "validation": {
+          "weekRequired": "اختر أسبوعًا.",
+          "titleRequired": "العنوان مطلوب.",
+          "weekAlreadyHasPlan": "توجد خطة دروس بالفعل لهذا الأسبوع.",
+          "weekOutsideTerm": "هذا الأسبوع خارج الفصل الدراسي المحدد.",
+          "invalidWeekRange": "نطاق تواريخ الأسبوع المحدد غير صالح."
+        }
       },
       "editItem": {
         "title": "تعديل العنصر",

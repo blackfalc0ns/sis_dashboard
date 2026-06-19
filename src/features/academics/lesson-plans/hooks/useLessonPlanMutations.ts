@@ -25,6 +25,7 @@ interface Params {
   assignedTeacherId: string;
   teacherSubjectAllocationId: string;
   curriculumId: string;
+  classroomRequired: boolean;
   lessons: Lesson[];
   plans: LessonPlan[];
   weeks: WeekInfo[];
@@ -86,7 +87,8 @@ export function useLessonPlanMutations(params: Params) {
         !lesson ||
         !week ||
         !params.teacherSubjectAllocationId ||
-        !params.curriculumId
+        !params.curriculumId ||
+        (params.classroomRequired && !params.selectedClassroomId)
       ) {
         params.showError(params.validationMessages.missingWeek);
         return;

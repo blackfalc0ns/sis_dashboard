@@ -157,7 +157,17 @@ export default function TimetableSlotSelect({
   useEffect(() => {
     let active = true;
     onChange(null);
-    if (!plannedDate || !scope.academicYearId || !scope.termId) return () => { active = false; };
+    if (
+      !plannedDate ||
+      !scope.academicYearId ||
+      !scope.termId ||
+      !scope.subjectId ||
+      !scope.classroomId
+    ) {
+      return () => {
+        active = false;
+      };
+    }
 
     void Promise.resolve().then(() => {
       if (active) setIsLoading(true);

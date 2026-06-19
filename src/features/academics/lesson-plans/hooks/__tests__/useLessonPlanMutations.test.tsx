@@ -59,6 +59,7 @@ function makeParams(
     assignedTeacherId: "teacher-1",
     teacherSubjectAllocationId: "allocation-1",
     curriculumId: "curriculum-1",
+    classroomRequired: true,
     lessons: [
       { id: "lesson-1", unitId: "unit-1", title: "Fractions" } as never,
     ],
@@ -218,6 +219,19 @@ describe("useLessonPlanMutations", () => {
     expect(params.showError).toHaveBeenCalledWith("no instructional days");
     expect(createLessonPlan).not.toHaveBeenCalled();
     expect(createLessonPlanItem).not.toHaveBeenCalled();
+  });
+
+  it("does not create a plan when the required classroom scope is missing", async () => {
+    const params = makeParams({ selectedClassroomId: "", classroomRequired: true });
+    const { result } = renderHook(() => useLessonPlanMutations(params));
+
+    await act(() =>
+      result.current.handleConfirmAddLesson("lesson-1", 2, "2026-09-08"),
+    );
+
+    expect(createLessonPlan).not.toHaveBeenCalled();
+    expect(createLessonPlanItem).not.toHaveBeenCalled();
+    expect(params.showError).toHaveBeenCalled();
   });
 
   it("blocks backend weeks and instructional dates outside the term", async () => {
