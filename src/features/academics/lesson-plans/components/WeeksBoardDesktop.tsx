@@ -29,7 +29,7 @@ interface WeeksBoardDesktopProps {
     itemId: string,
     status: "IN_PROGRESS" | "DONE" | "SKIPPED" | "CANCELLED",
   ) => void;
-  onEditNotes: (itemId: string, notesAr?: string, notesEn?: string) => void;
+  onEditItem: (itemId: string) => void;
   onRemove: (itemId: string) => void;
   onEditPlan: (plan: LessonPlan) => void;
   onActivatePlan: (plan: LessonPlan) => void;
@@ -51,7 +51,7 @@ export default function WeeksBoardDesktop({
   onDragStartItem,
   onDragEndItem,
   onStatusChange,
-  onEditNotes,
+  onEditItem,
   onRemove,
   onEditPlan,
   onActivatePlan,
@@ -83,7 +83,7 @@ export default function WeeksBoardDesktop({
             onDragStartItem={onDragStartItem}
             onDragEndItem={onDragEndItem}
             onStatusChange={onStatusChange}
-            onEditNotes={onEditNotes}
+            onEditItem={onEditItem}
             onRemove={onRemove}
             onEditPlan={onEditPlan}
             onActivatePlan={onActivatePlan}

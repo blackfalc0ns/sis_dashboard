@@ -4920,7 +4920,7 @@
         "confirmMove": "Move lesson",
         "reorder": "Reorder",
         "remove": "Remove from Plan",
-        "editNotes": "Edit Notes",
+        "editItem": "Edit item",
         "markInProgress": "Mark In Progress",
         "markDone": "Mark Done",
         "skip": "Skip",
@@ -4954,6 +4954,15 @@
         "title": "Title",
         "description": "Description",
         "hasNotes": "Has notes"
+      },
+      "editItem": {
+        "title": "Edit item",
+        "titleLabel": "Title",
+        "notesLabel": "Notes",
+        "plannedDay": "Planned day",
+        "timetableSlot": "Timetable slot",
+        "save": "Save",
+        "cancel": "Cancel"
       },
       "validation": {
         "from_required": "From date is required.",

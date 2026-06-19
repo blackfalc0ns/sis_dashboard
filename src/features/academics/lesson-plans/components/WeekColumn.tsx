@@ -24,7 +24,7 @@ interface WeekColumnProps {
     itemId: string,
     status: "IN_PROGRESS" | "DONE" | "SKIPPED" | "CANCELLED",
   ) => void;
-  onEditNotes: (itemId: string, notesAr?: string, notesEn?: string) => void;
+  onEditItem: (itemId: string) => void;
   onRemove: (itemId: string) => void;
   isReadOnly: boolean;
   isDragOver: boolean;
@@ -45,7 +45,7 @@ export default function WeekColumn({
   onDragStartItem,
   onDragEndItem,
   onStatusChange,
-  onEditNotes,
+  onEditItem,
   onRemove,
   isReadOnly,
   isDragOver,
@@ -231,7 +231,7 @@ export default function WeekColumn({
                 onDragStart={() => onDragStartItem(item.id, week.weekIndex)}
                 onDragEnd={onDragEndItem}
                 onStatusChange={onStatusChange}
-                onEditNotes={onEditNotes}
+                onEditItem={onEditItem}
                 onRemove={onRemove}
                 isReadOnly={isReadOnly}
                 onReorder={onReorder}

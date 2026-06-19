@@ -32,7 +32,7 @@ interface LessonPlanItemCardProps {
     itemId: string,
     status: "IN_PROGRESS" | "DONE" | "SKIPPED" | "CANCELLED",
   ) => void;
-  onEditNotes: (itemId: string, notesAr?: string, notesEn?: string) => void;
+  onEditItem: (itemId: string) => void;
   onRemove: (itemId: string) => void;
   isReadOnly: boolean;
   onReorder: (itemId: string, direction: "up" | "down") => void;
@@ -46,7 +46,7 @@ export default function LessonPlanItemCard({
   onDragStart,
   onDragEnd,
   onStatusChange,
-  onEditNotes,
+  onEditItem,
   onRemove,
   isReadOnly,
   onReorder,
@@ -126,10 +126,10 @@ export default function LessonPlanItemCard({
     }
 
     items.push({
-      label: t("actions.editNotes"),
-      value: "edit-notes",
+      label: t("actions.editItem"),
+      value: "edit-item",
       icon: <Edit3 className="h-4 w-4" />,
-      onClick: () => onEditNotes(item.id, item.notesAr, item.notesEn),
+      onClick: () => onEditItem(item.id),
     });
 
     items.push({
@@ -143,11 +143,9 @@ export default function LessonPlanItemCard({
   }, [
     item.status,
     item.id,
-    item.notesAr,
-    item.notesEn,
     t,
     onStatusChange,
-    onEditNotes,
+    onEditItem,
     onRemove,
     onReorder,
     disableMoveUp,

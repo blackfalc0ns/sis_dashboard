@@ -29,7 +29,7 @@ describe("lesson plan item card", () => {
         onDragStart={vi.fn()}
         onDragEnd={vi.fn()}
         onStatusChange={vi.fn()}
-        onEditNotes={vi.fn()}
+        onEditItem={vi.fn()}
         onRemove={vi.fn()}
         isReadOnly
         onReorder={vi.fn()}
@@ -45,13 +45,14 @@ describe("lesson plan item card", () => {
 
   it("hides backend-invalid transitions for a completed item", async () => {
     const user = userEvent.setup();
+    const onEditItem = vi.fn();
     render(
       <LessonPlanItemCard
         item={item}
         onDragStart={vi.fn()}
         onDragEnd={vi.fn()}
         onStatusChange={vi.fn()}
-        onEditNotes={vi.fn()}
+        onEditItem={onEditItem}
         onRemove={vi.fn()}
         isReadOnly={false}
         onReorder={vi.fn()}
@@ -63,7 +64,9 @@ describe("lesson plan item card", () => {
     await user.click(
       screen.getByRole("button", { name: "actions.lessonActions" }),
     );
-    expect(screen.getByText("actions.editNotes")).toBeInTheDocument();
+    expect(screen.queryByText("actions.editNotes")).not.toBeInTheDocument();
+    await user.click(screen.getByText("actions.editItem"));
+    expect(onEditItem).toHaveBeenCalledWith("item-1");
     expect(screen.queryByText("actions.markInProgress")).not.toBeInTheDocument();
     expect(screen.queryByText("actions.markDone")).not.toBeInTheDocument();
     expect(screen.queryByText("actions.skip")).not.toBeInTheDocument();

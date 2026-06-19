@@ -4904,7 +4904,7 @@
         "confirmMove": "نقل الدرس",
         "reorder": "إعادة ترتيب",
         "remove": "إزالة من الخطة",
-        "editNotes": "تعديل الملاحظات",
+        "editItem": "تعديل العنصر",
         "markInProgress": "وضع علامة قيد التنفيذ",
         "markDone": "وضع علامة منتهي",
         "skip": "تخطي",
@@ -4938,6 +4938,15 @@
         "title": "العنوان",
         "description": "الوصف",
         "hasNotes": "يحتوي على ملاحظات"
+      },
+      "editItem": {
+        "title": "تعديل العنصر",
+        "titleLabel": "العنوان",
+        "notesLabel": "الملاحظات",
+        "plannedDay": "يوم التخطيط",
+        "timetableSlot": "حصة الجدول الدراسي",
+        "save": "حفظ",
+        "cancel": "إلغاء"
       },
       "validation": {
         "from_required": "تاريخ البداية مطلوب.",

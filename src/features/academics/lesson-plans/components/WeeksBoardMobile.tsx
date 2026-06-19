@@ -23,7 +23,7 @@ interface WeeksBoardMobileProps {
     itemId: string,
     status: "IN_PROGRESS" | "DONE" | "SKIPPED" | "CANCELLED",
   ) => void;
-  onEditNotes: (itemId: string, notesAr?: string, notesEn?: string) => void;
+  onEditItem: (itemId: string) => void;
   onRemove: (itemId: string) => void;
   onEditPlan: (plan: LessonPlan) => void;
   onActivatePlan: (plan: LessonPlan) => void;
@@ -41,7 +41,7 @@ export default function WeeksBoardMobile({
   today,
   isReadOnly,
   onStatusChange,
-  onEditNotes,
+  onEditItem,
   onRemove,
   onEditPlan,
   onActivatePlan,
@@ -193,7 +193,7 @@ export default function WeeksBoardMobile({
                         onDragStart={() => {}}
                         onDragEnd={() => {}}
                         onStatusChange={onStatusChange}
-                        onEditNotes={onEditNotes}
+                        onEditItem={onEditItem}
                         onRemove={onRemove}
                         isReadOnly={isReadOnly}
                         onReorder={onReorder}

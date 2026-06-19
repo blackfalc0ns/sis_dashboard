@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useMediaQuery, useTheme } from "@mui/material";
 import {
   Lesson,
@@ -16,7 +16,6 @@ import LessonLibrary from "./LessonLibrary";
 import WeeksBoardDesktop from "./WeeksBoardDesktop";
 import WeeksBoardMobile from "./WeeksBoardMobile";
 import ProgressSummary from "./ProgressSummary";
-import NotesDialog from "./NotesDialog";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -36,11 +35,13 @@ import {
   deleteLessonPlan,
   reorderLessonPlanItem,
   type UpdateLessonPlanRequest,
+  type UpdateLessonPlanItemRequest,
   type LessonPlanValidationResponseDto,
 } from "@/features/academics/lesson-plans/services/lessonPlansService";
 import EditLessonPlanDialog from "./EditLessonPlanDialog";
 import SkipCancelReasonDialog from "./SkipCancelReasonDialog";
 import MoveLessonDialog from "./MoveLessonDialog";
+import EditLessonPlanItemDialog from "./EditLessonPlanItemDialog";
 import { lessonPlansUiError } from "../services/lessonPlansErrors";
 import { isDateOnlyInside } from "../services/lessonPlanDates";
 import {
@@ -112,7 +113,6 @@ export default function LessonPlansBoard({
   validationMessages,
 }: LessonPlansBoardProps) {
   const t = useTranslations("academics.lessonPlans");
-  const locale = useLocale();
   const { showError, showSuccess } = useToast();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -122,12 +122,7 @@ export default function LessonPlansBoard({
   const [weekFilter, setWeekFilter] = useState<WeekBoardFilter>("ALL");
 
   // Dialog states
-  const [notesDialog, setNotesDialog] = useState<{
-    isOpen: boolean;
-    itemId: string;
-    notesAr?: string;
-    notesEn?: string;
-  }>({ isOpen: false, itemId: "" });
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -422,33 +417,22 @@ export default function LessonPlansBoard({
     [isReadOnly, isUpdating, onUpdate, plans, showError, showSuccess],
   );
 
-  // Handle edit notes
-  const handleEditNotes = useCallback(
-    (itemId: string, notesAr?: string, notesEn?: string) => {
-      setNotesDialog({ isOpen: true, itemId, notesAr, notesEn });
-    },
-    [],
-  );
-
-  const handleSaveNotes = useCallback(
-    async (notesAr: string, notesEn: string) => {
-      if (isUpdating) return;
-
+  const saveEditedItem = useCallback(
+    async (payload: UpdateLessonPlanItemRequest) => {
+      if (isUpdating || !editingItemId) return;
       setIsUpdating(true);
       try {
         const plan = plans.find((candidate) =>
-          candidate.items.some((item) => item.id === notesDialog.itemId),
+          candidate.items.some((item) => item.id === editingItemId),
         );
         if (!plan) throw new Error("Lesson plan item was not found");
-        const notes =
-          (locale === "ar" ? notesAr || notesEn : notesEn || notesAr) || null;
         await updateLessonPlanItem({
           lessonPlanId: plan.id,
-          itemId: notesDialog.itemId,
-          payload: { notes },
+          itemId: editingItemId,
+          payload,
         });
-        setNotesDialog({ isOpen: false, itemId: "" });
-        await onUpdate(); // Wait for update to complete
+        await onUpdate();
+        setEditingItemId(null);
         showSuccess("Saved successfully");
       } catch (error) {
         showError(lessonPlansUiError(error));
@@ -458,9 +442,8 @@ export default function LessonPlansBoard({
     },
     [
       isUpdating,
-      locale,
       plans,
-      notesDialog.itemId,
+      editingItemId,
       showSuccess,
       showError,
       onUpdate,
@@ -660,7 +643,7 @@ export default function LessonPlansBoard({
                 setPlanConfirmation({ plan, action: "delete" })
               }
               onReorder={handleReorder}
-              onEditNotes={handleEditNotes}
+              onEditItem={setEditingItemId}
               onRemove={handleRemove}
               onAddLesson={onAddLessonMobile || (() => {})}
             />
@@ -687,21 +670,39 @@ export default function LessonPlansBoard({
                 setPlanConfirmation({ plan, action: "delete" })
               }
               onReorder={handleReorder}
-              onEditNotes={handleEditNotes}
+              onEditItem={setEditingItemId}
               onRemove={handleRemove}
             />
           )}
         </div>
       </div>
 
-      {/* Notes Dialog */}
-      <NotesDialog
-        isOpen={notesDialog.isOpen}
-        notesAr={notesDialog.notesAr}
-        notesEn={notesDialog.notesEn}
-        onClose={() => setNotesDialog({ isOpen: false, itemId: "" })}
-        onSave={handleSaveNotes}
-      />
+      {editingItemId && (() => {
+        const plan = plans.find((candidate) =>
+          candidate.items.some((item) => item.id === editingItemId),
+        );
+        const item = plan?.items.find((candidate) => candidate.id === editingItemId);
+        const week = weeks.find((candidate) => candidate.weekIndex === plan?.weekIndex);
+        return plan && item && week ? (
+          <EditLessonPlanItemDialog
+            item={item}
+            week={week}
+            termStartDate={termStartDate}
+            termEndDate={termEndDate}
+            academicYearId={academicYearId}
+            termId={termId}
+            gradeId={gradeId}
+            sectionId={sectionId}
+            classroomId={classroomId}
+            teacherUserId={teacherId}
+            subjectId={subjectId}
+            teacherSubjectAllocationId={teacherSubjectAllocationId}
+            onClose={() => setEditingItemId(null)}
+            onSave={saveEditedItem}
+            loading={isUpdating}
+          />
+        ) : null;
+      })()}
 
       {/* Confirm Remove Dialog */}
       <ConfirmDialog
