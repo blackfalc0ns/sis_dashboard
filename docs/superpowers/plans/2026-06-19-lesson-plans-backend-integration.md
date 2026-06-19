@@ -20,11 +20,12 @@
 - Modify `useLessonPlanMutations.ts` and `LessonPlansBoard.tsx` to use plan/item IDs and supported mutations.
 - Modify `LessonPlansPage.tsx` only for the new hook/board props and archived-plan read-only state.
 - Modify `ProgressSummary.tsx` to display only totals returned by `/summary`; remove mock-only weekly breakdown and inferred status totals.
-- Preserve all other presentation components unless their status type requires `RESCHEDULED` or `CANCELLED` support.
+- Preserve all other presentation components unless their status type requires `CANCELLED` support.
 
 ### Task 1: Backend types, mappers, and errors
 
 **Files:**
+
 - Create: `src/features/academics/lesson-plans/services/lessonPlansBackendTypes.ts`
 - Create: `src/features/academics/lesson-plans/services/lessonPlansMappers.ts`
 - Create: `src/features/academics/lesson-plans/services/lessonPlansErrors.ts`
@@ -53,6 +54,16 @@ it("maps backend detail into the existing weekly board model", () => {
     order: 3,
     notes: "Prepare examples",
   });
+});
+
+it("preserves a newly introduced backend status without crashing", () => {
+  const plan = mapLessonPlanDetailDto({ ...detailDto, status: "paused" });
+  expect(plan.status).toBe("UNKNOWN");
+  expect(plan.rawStatus).toBe("paused");
+
+  const item = mapLessonPlanItemDto({ ...itemDto, status: "blocked" });
+  expect(item.status).toBe("UNKNOWN");
+  expect(item.rawStatus).toBe("blocked");
 });
 
 it("maps backend weeks without recomputing term dates", () => {
@@ -125,9 +136,24 @@ export interface LessonPlanItemResponseDto {
 
 Also define every request type listed in the approved spec and all weeks/summary/validation/auto-plan response types.
 
+Define forward-compatible UI status types:
+
+```ts
+export type LessonPlanStatus = "DRAFT" | "ACTIVE" | "ARCHIVED" | "UNKNOWN";
+export type LessonPlanItemStatus =
+  | "PLANNED"
+  | "IN_PROGRESS"
+  | "DONE"
+  | "SKIPPED"
+  | "CANCELLED"
+  | "UNKNOWN";
+```
+
+DTOs document currently known backend values, including `rescheduled`, but mapper inputs must tolerate arbitrary status strings at runtime. A known backend status with no supported UI representation also maps to `UNKNOWN` while retaining `rawStatus`.
+
 - [ ] **Step 4: Implement pure mappers**
 
-Use exhaustive status maps and throw on unknown values. Keep `rawStatus`; derive board `weekIndex` by locating `plannedDate` inside backend week ranges, falling back to plan week dates only for unscheduled items.
+Use explicit maps for known statuses, map any unrecognized plan or item status to `UNKNOWN`, and always preserve the original string in `rawStatus` for diagnostics. Status mapping must never throw merely because the backend introduced a new enum value. Derive board `weekIndex` by locating `plannedDate` inside backend week ranges, falling back to plan week dates only for unscheduled items.
 
 - [ ] **Step 5: Write and run error mapping tests**
 
@@ -147,6 +173,7 @@ git commit -m "feat: add lesson plans backend contract"
 ### Task 2: Route-accurate API adapter
 
 **Files:**
+
 - Replace: `src/features/academics/lesson-plans/services/lessonPlansAdapter.ts`
 - Replace: `src/features/academics/lesson-plans/services/lessonPlansApiAdapter.ts`
 - Create: `src/features/academics/lesson-plans/services/__tests__/lessonPlansApiAdapter.test.ts`
@@ -211,6 +238,7 @@ git commit -m "feat: align lesson plans API routes"
 ### Task 3: Real production service boundary
 
 **Files:**
+
 - Replace: `src/features/academics/lesson-plans/services/lessonPlansService.ts`
 - Create: `src/features/academics/lesson-plans/services/__tests__/lessonPlansService.test.ts`
 
@@ -233,8 +261,10 @@ export const listLessonPlans = (filters: LessonPlanListFilters) =>
   getLessonPlansAdapter().listLessonPlans(filters);
 export const createLessonPlanItem = (request: CreateLessonPlanItemCommand) =>
   getLessonPlansAdapter().createLessonPlanItem(request);
-export const moveLessonPlanItem = (itemId: string, payload: MoveLessonPlanItemRequest) =>
-  getLessonPlansAdapter().moveLessonPlanItem(itemId, payload);
+export const moveLessonPlanItem = (
+  itemId: string,
+  payload: MoveLessonPlanItemRequest,
+) => getLessonPlansAdapter().moveLessonPlanItem(itemId, payload);
 ```
 
 Do not export the old section-scoped mutation signatures.
@@ -255,6 +285,7 @@ git commit -m "feat: use real lesson plans service by default"
 ### Task 4: Allocation, curriculum, weeks, plans, and summary loading
 
 **Files:**
+
 - Modify: `src/features/academics/lesson-plans/hooks/useLessonPlansData.ts`
 - Create: `src/features/academics/lesson-plans/hooks/__tests__/useLessonPlansData.test.tsx`
 
@@ -263,9 +294,18 @@ git commit -m "feat: use real lesson plans service by default"
 Mock external API boundaries and verify that a selected section/classroom/subject resolves an allocation, then calls:
 
 ```ts
-listLessonPlanWeeks({ termId: "term-1", teacherSubjectAllocationId: "allocation-1" });
-listLessonPlans({ termId: "term-1", teacherSubjectAllocationId: "allocation-1" });
-getLessonPlanSummary({ termId: "term-1", teacherSubjectAllocationId: "allocation-1" });
+listLessonPlanWeeks({
+  termId: "term-1",
+  teacherSubjectAllocationId: "allocation-1",
+});
+listLessonPlans({
+  termId: "term-1",
+  teacherSubjectAllocationId: "allocation-1",
+});
+getLessonPlanSummary({
+  termId: "term-1",
+  teacherSubjectAllocationId: "allocation-1",
+});
 ```
 
 Verify each list result is followed by `getLessonPlan(plan.id)` so item detail is real, and verify no request occurs when allocation or curriculum resolution fails.
@@ -304,6 +344,7 @@ git commit -m "feat: load lesson plans from backend workflow APIs"
 ### Task 5: Create plans and add lesson items
 
 **Files:**
+
 - Modify: `src/features/academics/lesson-plans/hooks/useLessonPlanMutations.ts`
 - Create: `src/features/academics/lesson-plans/hooks/__tests__/useLessonPlanMutations.test.tsx`
 
@@ -342,6 +383,7 @@ git commit -m "feat: create backend lesson plans and items"
 ### Task 6: Board item updates, movement, lifecycle, and deletion
 
 **Files:**
+
 - Modify: `src/features/academics/lesson-plans/components/LessonPlansBoard.tsx`
 - Modify: `src/features/academics/lesson-plans/components/LessonPlanItemCard.tsx`
 - Modify: `src/features/academics/lesson-plans/components/WeeksBoardDesktop.tsx`
@@ -382,7 +424,7 @@ Expected: FAIL because the old board targets unsupported status/notes routes.
 
 - [ ] **Step 4: Update status and notes presentation**
 
-Continue showing existing board labels for planned/in-progress/done/skipped. Add read-only display handling for rescheduled and cancelled backend items. Convert the bilingual notes dialog into one backend `notes` string deterministically: use the current locale field when non-empty, otherwise the other field.
+Continue showing existing board labels for planned/in-progress/done/skipped. Add read-only display handling for cancelled backend items. Convert the bilingual notes dialog into one backend `notes` string deterministically: use the current locale field when non-empty, otherwise the other field.
 
 Update `ProgressSummary` to render only `lessonPlansCount`, `itemsCount`, `plannedItemsCount`, `completedItemsCount`, `unplannedLessonsCount`, and `coveragePercent` from `/summary`. Do not derive in-progress/skipped totals or a weekly breakdown that the backend did not return.
 
@@ -402,6 +444,7 @@ git commit -m "feat: align lesson plan board mutations"
 ### Task 7: Page scope, permissions, archived read-only state, and final verification
 
 **Files:**
+
 - Modify: `src/features/academics/lesson-plans/pages/LessonPlansPage.tsx`
 - Modify: `src/messages/en.json`
 - Modify: `src/messages/ar.json`
@@ -412,10 +455,34 @@ git commit -m "feat: align lesson plan board mutations"
 Test the derived mutation gate:
 
 ```ts
-expect(canEditLessonPlans({ canManage: true, termStatus: "open", plans: activePlans })).toBe(true);
-expect(canEditLessonPlans({ canManage: true, termStatus: "closed", plans: activePlans })).toBe(false);
-expect(canEditLessonPlans({ canManage: true, termStatus: "open", plans: archivedPlans })).toBe(false);
-expect(canEditLessonPlans({ canManage: false, termStatus: "open", plans: activePlans })).toBe(false);
+expect(
+  canEditLessonPlans({
+    canManage: true,
+    termStatus: "open",
+    plans: activePlans,
+  }),
+).toBe(true);
+expect(
+  canEditLessonPlans({
+    canManage: true,
+    termStatus: "closed",
+    plans: activePlans,
+  }),
+).toBe(false);
+expect(
+  canEditLessonPlans({
+    canManage: true,
+    termStatus: "open",
+    plans: archivedPlans,
+  }),
+).toBe(false);
+expect(
+  canEditLessonPlans({
+    canManage: false,
+    termStatus: "open",
+    plans: activePlans,
+  }),
+).toBe(false);
 ```
 
 Verify page access remains under `academics.lesson_plans.view` and write actions require `academics.lesson_plans.manage`.
@@ -444,10 +511,10 @@ npm run typecheck
 npm run lint -- src/features/academics/lesson-plans
 npm run guard:i18n
 npm run build
-rg -n "apiWithToken|/items/reorder|/items/.*/status|/items/.*/notes|method: \"PUT\"|sectionId" src/features/academics/lesson-plans/services
+rg -n "apiWithToken|/lesson-plans/items/reorder|/lesson-plans/items/move|/items/.*/status|/items/.*/notes|method: \"PUT\"|sectionId" src/features/academics/lesson-plans
 ```
 
-Expected: tests, typecheck, lint, translation guard, and build pass. The final search returns no deprecated helper, unsupported route, PUT operation, or section-scoped service contract.
+Expected: tests, typecheck, lint, translation guard, and build pass. The final search returns no deprecated helper, legacy bulk-reorder or POST-move route, unsupported status/notes route, PUT operation, or section-scoped service contract. The supported move call remains `PATCH /academics/lesson-plans/items/:itemId/move`.
 
 - [ ] **Step 6: Commit**
 
