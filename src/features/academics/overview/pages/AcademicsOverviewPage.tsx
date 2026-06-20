@@ -286,6 +286,34 @@ export default function AcademicsOverviewPage() {
     loadOverview();
   }, [isInitializing, loadOverview]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    let changed = false;
+
+    if (params.has("chart")) {
+      params.delete("chart");
+      changed = true;
+    }
+
+    const currentExportDataset = params.get("exportDataset");
+    if (
+      currentExportDataset &&
+      currentExportDataset !== "summary" &&
+      currentExportDataset !== "checklist" &&
+      currentExportDataset !== "alerts" &&
+      currentExportDataset !== "upcomingEvents"
+    ) {
+      params.delete("exportDataset");
+      changed = true;
+    }
+
+    if (changed) {
+      const nextQuery = params.toString();
+      const nextUrl = nextQuery ? `?${nextQuery}` : "?";
+      router.replace(nextUrl, { scroll: false });
+    }
+  }, [searchParams, router]);
+
   const filteredChecklist = useMemo(() => {
     if (checklistStatusFilter === "all") {
       return checklist;
