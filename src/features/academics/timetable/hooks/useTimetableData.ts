@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
-  fetchAcademicYears,
   fetchStructureTree,
   type Classroom,
   type Grade,
@@ -86,7 +85,10 @@ interface UseTimetableDataParams {
   selectedSectionId: string;
   selectedClassroomId: string;
   isScopeSelectionNormalized: boolean;
-  showToast: (message: string, type?: "success" | "error" | "info" | "warning") => void;
+  showToast: (
+    message: string,
+    type?: "success" | "error" | "info" | "warning",
+  ) => void;
   translateErrorCode?: TimetableErrorTranslator;
   messages?: {
     loadFailed: string;
@@ -111,11 +113,31 @@ type ScopeSelection = {
 
 const dayNames = [
   { key: "sun", nameAr: "\u0627\u0644\u0623\u062d\u062f", nameEn: "Sunday" },
-  { key: "mon", nameAr: "\u0627\u0644\u0625\u062b\u0646\u064a\u0646", nameEn: "Monday" },
-  { key: "tue", nameAr: "\u0627\u0644\u062b\u0644\u0627\u062b\u0627\u0621", nameEn: "Tuesday" },
-  { key: "wed", nameAr: "\u0627\u0644\u0623\u0631\u0628\u0639\u0627\u0621", nameEn: "Wednesday" },
-  { key: "thu", nameAr: "\u0627\u0644\u062e\u0645\u064a\u0633", nameEn: "Thursday" },
-  { key: "fri", nameAr: "\u0627\u0644\u062c\u0645\u0639\u0629", nameEn: "Friday" },
+  {
+    key: "mon",
+    nameAr: "\u0627\u0644\u0625\u062b\u0646\u064a\u0646",
+    nameEn: "Monday",
+  },
+  {
+    key: "tue",
+    nameAr: "\u0627\u0644\u062b\u0644\u0627\u062b\u0627\u0621",
+    nameEn: "Tuesday",
+  },
+  {
+    key: "wed",
+    nameAr: "\u0627\u0644\u0623\u0631\u0628\u0639\u0627\u0621",
+    nameEn: "Wednesday",
+  },
+  {
+    key: "thu",
+    nameAr: "\u0627\u0644\u062e\u0645\u064a\u0633",
+    nameEn: "Thursday",
+  },
+  {
+    key: "fri",
+    nameAr: "\u0627\u0644\u062c\u0645\u0639\u0629",
+    nameEn: "Friday",
+  },
   { key: "sat", nameAr: "\u0627\u0644\u0633\u0628\u062a", nameEn: "Saturday" },
 ] as const;
 
@@ -180,7 +202,9 @@ const configMissing = (error: unknown): boolean =>
   (isApiError(error) && error.status === 404) ||
   isTimetableErrorCode(error, "academics.timetable.config_not_found");
 
-const isPublicationActive = (publication: PublicationResponse | null): boolean =>
+const isPublicationActive = (
+  publication: PublicationResponse | null,
+): boolean =>
   publication?.isPublished === true ||
   publication?.status === "published" ||
   publication?.status === "active" ||
@@ -205,8 +229,9 @@ const publishReadinessMessage = (
     ...validation.warnings,
   ][0] ?? "Backend publication readiness is not satisfied.";
 
-const readinessReasonText = (reason: string | TimetablePublishReason): string =>
-  typeof reason === "string" ? reason : reason.message;
+const readinessReasonText = (
+  reason: string | TimetablePublishReason,
+): string => (typeof reason === "string" ? reason : reason.message);
 
 function resolveScopeSelection(params: {
   selectedGradeId: string;
@@ -252,18 +277,27 @@ export function useTimetableData({
   const [sections, setSections] = useState<Section[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [subjectAllocations, setSubjectAllocations] = useState<SubjectAllocation[]>([]);
+  const [subjectAllocations, setSubjectAllocations] = useState<
+    SubjectAllocation[]
+  >([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [teacherAllocations, setTeacherAllocations] = useState<TeacherAllocation[]>([]);
+  const [teacherAllocations, setTeacherAllocations] = useState<
+    TeacherAllocation[]
+  >([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomDefaults, setRoomDefaults] = useState<RoomDefaultAssignment[]>([]);
-  const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>([]);
+  const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>(
+    [],
+  );
   const [allTermEntries, setAllTermEntries] = useState<TimetableEntry[]>([]);
   const [configs, setConfigs] = useState<TimetableConfig[]>([]);
-  const [resolvedConfig, setResolvedConfig] = useState<ResolvedTimetableConfig | null>(null);
+  const [resolvedConfig, setResolvedConfig] =
+    useState<ResolvedTimetableConfig | null>(null);
   const [config, setConfig] = useState<BackendTimetableConfigDto | null>(null);
   const [periods, setPeriods] = useState<BackendTimetablePeriodDto[]>([]);
-  const [publication, setPublication] = useState<PublicationResponse | null>(null);
+  const [publication, setPublication] = useState<PublicationResponse | null>(
+    null,
+  );
   const [conflicts, setConflicts] = useState<TimetableConflict[]>([]);
   const [validationSummary, setValidationSummary] =
     useState<TimetableValidationSummary>(emptyValidationSummary);
@@ -275,7 +309,7 @@ export function useTimetableData({
   const dependenciesRequestIdRef = useRef(0);
   const timetableRequestIdRef = useRef(0);
 
-  const isLoading = dependenciesLoading || (timetableLoading && configs.length === 0 && !config);
+  const isLoading = dependenciesLoading && stages.length === 0;
 
   const scopeSelection = useMemo(
     () =>
@@ -299,158 +333,171 @@ export function useTimetableData({
     setResolvedConfig(null);
   }, []);
 
-  const loadAcademicDependencies = useCallback(
-    async () => {
-      const requestId = ++dependenciesRequestIdRef.current;
-      
-      if (!enabled || !termId || !academicYearId) {
-        setStages([]);
-        setGrades([]);
-        setSections([]);
-        setClassrooms([]);
-        setSubjects([]);
-        setSubjectAllocations([]);
-        setTeachers([]);
-        setTeacherAllocations([]);
-        setRooms([]);
-        setRoomDefaults([]);
+  const loadAcademicDependencies = useCallback(async () => {
+    const requestId = ++dependenciesRequestIdRef.current;
+
+    if (!enabled || !termId || !academicYearId) {
+      setStages([]);
+      setGrades([]);
+      setSections([]);
+      setClassrooms([]);
+      setSubjects([]);
+      setSubjectAllocations([]);
+      setTeachers([]);
+      setTeacherAllocations([]);
+      setRooms([]);
+      setRoomDefaults([]);
+      setDependenciesLoading(false);
+      return;
+    }
+
+    setDependenciesLoading(true);
+    setApiError(null);
+
+    try {
+      if (requestId !== dependenciesRequestIdRef.current) return;
+
+      const [
+        structure,
+        subjectsData,
+        subjectAllocsData,
+        teachersData,
+        teacherAllocsData,
+        roomsData,
+      ] = await Promise.all([
+        fetchStructureTree(academicYearId, termId),
+        fetchSubjects(termId),
+        fetchSubjectAllocations(termId),
+        fetchTeachers(),
+        fetchTeacherAllocations(termId),
+        fetchRooms(schoolId),
+      ]);
+
+      if (requestId !== dependenciesRequestIdRef.current) return;
+
+      setStages(structure.stages || []);
+      setGrades(structure.grades || []);
+      setSections(structure.sections || []);
+      setClassrooms(structure.classrooms || []);
+      setSubjects(subjectsData);
+      setSubjectAllocations(subjectAllocsData);
+      setTeachers(teachersData);
+      setTeacherAllocations(teacherAllocsData);
+      setRooms(roomsData.filter((room) => room.isActive));
+      setRoomDefaults([]);
+    } catch (error) {
+      if (requestId !== dependenciesRequestIdRef.current) return;
+      const message = timetableErrorMessage(
+        error,
+        messages?.loadFailed ?? "Failed to load academic dependencies.",
+        translateErrorCode,
+      );
+      setApiError(message);
+      console.error("Failed to load academic dependencies:", error);
+      showToast(message, "error");
+    } finally {
+      if (requestId === dependenciesRequestIdRef.current) {
         setDependenciesLoading(false);
-        return;
       }
+    }
+  }, [
+    enabled,
+    schoolId,
+    termId,
+    academicYearId,
+    messages,
+    translateErrorCode,
+    showToast,
+  ]);
 
-      setDependenciesLoading(true);
-      setApiError(null);
+  const loadTimetableForScope = useCallback(async () => {
+    const requestId = ++timetableRequestIdRef.current;
 
-      try {
-        if (requestId !== dependenciesRequestIdRef.current) return;
+    const hasTarget = scopeSelection.gradeId || scopeSelection.sectionId || scopeSelection.classroomId;
 
-        const [
-          structure,
-          subjectsData,
-          subjectAllocsData,
-          teachersData,
-          teacherAllocsData,
-          roomsData,
-        ] = await Promise.all([
-          fetchStructureTree(academicYearId, termId),
-          fetchSubjects(termId),
-          fetchSubjectAllocations(termId),
-          fetchTeachers(),
-          fetchTeacherAllocations(termId),
-          fetchRooms(schoolId),
+    if (!enabled || !termId || !academicYearId || !isScopeSelectionNormalized || !hasTarget) {
+      clearTimetableState();
+      setTimetableLoading(false);
+      return;
+    }
+
+    setTimetableLoading(true);
+    setApiError(null);
+
+    try {
+      if (requestId !== timetableRequestIdRef.current) return;
+
+      const nextConfig = await getConfig({
+        academicYearId,
+        termId,
+        scopeType: scopeSelection.scopeType,
+        gradeId: scopeSelection.gradeId,
+        sectionId: scopeSelection.sectionId,
+        classroomId: scopeSelection.classroomId,
+      });
+
+      if (requestId !== timetableRequestIdRef.current) return;
+
+      const configId = nextConfig.id || nextConfig.timetableConfigId || "";
+      const [periodsResponse, entriesResponse, publicationResponse] =
+        await Promise.all([
+          listPeriods(configId),
+          listEntries({
+            timetableConfigId: configId,
+            classroomId: selectedClassroomId || undefined,
+          }),
+          getPublication(configId) as Promise<PublicationResponse>,
         ]);
 
-        if (requestId !== dependenciesRequestIdRef.current) return;
+      if (requestId !== timetableRequestIdRef.current) return;
 
-        setStages(structure.stages || []);
-        setGrades(structure.grades || []);
-        setSections(structure.sections || []);
-        setClassrooms(structure.classrooms || []);
-        setSubjects(subjectsData);
-        setSubjectAllocations(subjectAllocsData);
-        setTeachers(teachersData);
-        setTeacherAllocations(teacherAllocsData);
-        setRooms(roomsData.filter((room) => room.isActive));
-        setRoomDefaults([]);
-      } catch (error) {
-        if (requestId !== dependenciesRequestIdRef.current) return;
-        const message = timetableErrorMessage(
-          error,
-          messages?.loadFailed ?? "Failed to load academic dependencies.",
-          translateErrorCode,
-        );
-        setApiError(message);
-        console.error("Failed to load academic dependencies:", error);
-        showToast(message, "error");
-      } finally {
-        if (requestId === dependenciesRequestIdRef.current) {
-          setDependenciesLoading(false);
-        }
-      }
-    },
-    [enabled, schoolId, termId, academicYearId, messages, translateErrorCode, showToast],
-  );
+      const nextPeriods =
+        listResponseItems<BackendTimetablePeriodDto>(periodsResponse);
+      const nextEntries =
+        listResponseItems<BackendTimetableEntryDto>(entriesResponse);
+      const mappedEntries = mapBackendEntriesToUi(nextEntries);
+      const nextConfigModel = configDtoToUi(nextConfig, nextPeriods);
 
-  const loadTimetableForScope = useCallback(
-    async () => {
-      const requestId = ++timetableRequestIdRef.current;
-      
-      if (!enabled || !termId || !academicYearId || !isScopeSelectionNormalized) {
+      setConfig(nextConfig);
+      setPeriods(nextPeriods);
+      setPublication(publicationResponse);
+      setConflicts([]);
+      setValidationSummary(emptyValidationSummary());
+      setTimetableEntries(mappedEntries.entries);
+      setAllTermEntries(mappedEntries.entries);
+      setConfigs([nextConfigModel]);
+      setResolvedConfig(configDtoToResolvedConfig(nextConfig, nextPeriods));
+    } catch (error) {
+      if (requestId !== timetableRequestIdRef.current) return;
+      if (configMissing(error)) {
         clearTimetableState();
-        setTimetableLoading(false);
         return;
       }
-
-      setTimetableLoading(true);
-      setApiError(null);
-
-      try {
-        if (requestId !== timetableRequestIdRef.current) return;
-
-        const nextConfig = await getConfig({
-          academicYearId,
-          termId,
-          scopeType: scopeSelection.scopeType,
-          gradeId: scopeSelection.gradeId,
-          sectionId: scopeSelection.sectionId,
-          classroomId: scopeSelection.classroomId,
-        });
-        
-        if (requestId !== timetableRequestIdRef.current) return;
-
-        const configId = nextConfig.id || nextConfig.timetableConfigId || "";
-        const [periodsResponse, entriesResponse, publicationResponse] =
-          await Promise.all([
-            listPeriods(configId),
-            listEntries({
-              timetableConfigId: configId,
-              classroomId: selectedClassroomId || undefined,
-            }),
-            getPublication(configId) as Promise<PublicationResponse>,
-          ]);
-
-        if (requestId !== timetableRequestIdRef.current) return;
-
-        const nextPeriods = listResponseItems<BackendTimetablePeriodDto>(
-          periodsResponse,
-        );
-        const nextEntries = listResponseItems<BackendTimetableEntryDto>(
-          entriesResponse,
-        );
-        const mappedEntries = mapBackendEntriesToUi(nextEntries);
-        const nextConfigModel = configDtoToUi(nextConfig, nextPeriods);
-
-        setConfig(nextConfig);
-        setPeriods(nextPeriods);
-        setPublication(publicationResponse);
-        setConflicts([]);
-        setValidationSummary(emptyValidationSummary());
-        setTimetableEntries(mappedEntries.entries);
-        setAllTermEntries(mappedEntries.entries);
-        setConfigs([nextConfigModel]);
-        setResolvedConfig(configDtoToResolvedConfig(nextConfig, nextPeriods));
-      } catch (error) {
-        if (requestId !== timetableRequestIdRef.current) return;
-        if (configMissing(error)) {
-          clearTimetableState();
-          return;
-        }
-        const message = timetableErrorMessage(
-          error,
-          messages?.loadFailed ?? "Failed to load timetable for scope.",
-          translateErrorCode,
-        );
-        setApiError(message);
-        console.error("Failed to load timetable for scope:", error);
-        showToast(message, "error");
-      } finally {
-        if (requestId === timetableRequestIdRef.current) {
-          setTimetableLoading(false);
-        }
+      const message = timetableErrorMessage(
+        error,
+        messages?.loadFailed ?? "Failed to load timetable for scope.",
+        translateErrorCode,
+      );
+      setApiError(message);
+      console.error("Failed to load timetable for scope:", error);
+      showToast(message, "error");
+    } finally {
+      if (requestId === timetableRequestIdRef.current) {
+        setTimetableLoading(false);
       }
-    },
-    [enabled, termId, academicYearId, isScopeSelectionNormalized, scopeSelection, selectedClassroomId, clearTimetableState, messages, translateErrorCode, showToast],
-  );
+    }
+  }, [
+    enabled,
+    termId,
+    academicYearId,
+    isScopeSelectionNormalized,
+    scopeSelection,
+    selectedClassroomId,
+    clearTimetableState,
+    messages,
+    translateErrorCode,
+    showToast,
+  ]);
   const reloadConfigs = useCallback(async () => {
     await loadTimetableForScope();
     return configs;
@@ -471,26 +518,30 @@ export function useTimetableData({
     return nextConflicts;
   }, [config]);
 
-  const loadValidation = useCallback(async (): Promise<TimetableValidationSummary> => {
-    const response = await validate({
-      termId,
-      gradeId: selectedGradeId || undefined,
-      classroomId: selectedClassroomId || undefined,
-    });
-    const nextValidationSummary = validationSummaryFromResponse(response);
-    setValidationSummary(nextValidationSummary);
-    return nextValidationSummary;
-  }, [selectedClassroomId, selectedGradeId, termId]);
+  const loadValidation =
+    useCallback(async (): Promise<TimetableValidationSummary> => {
+      const response = await validate({
+        termId,
+        gradeId: selectedGradeId || undefined,
+        classroomId: selectedClassroomId || undefined,
+      });
+      const nextValidationSummary = validationSummaryFromResponse(response);
+      setValidationSummary(nextValidationSummary);
+      return nextValidationSummary;
+    }, [selectedClassroomId, selectedGradeId, termId]);
 
-  const loadPublication = useCallback(async (): Promise<PublicationResponse | null> => {
-    if (!config) {
-      setPublication(null);
-      return null;
-    }
-    const nextPublication = (await getPublication(config.id)) as PublicationResponse;
-    setPublication(nextPublication);
-    return nextPublication;
-  }, [config]);
+  const loadPublication =
+    useCallback(async (): Promise<PublicationResponse | null> => {
+      if (!config) {
+        setPublication(null);
+        return null;
+      }
+      const nextPublication = (await getPublication(
+        config.id,
+      )) as PublicationResponse;
+      setPublication(nextPublication);
+      return nextPublication;
+    }, [config]);
 
   const saveTimetable = useCallback(
     async (entries: TimetableEntry[]) => {
@@ -525,7 +576,8 @@ export function useTimetableData({
         }
         if (bulkSaveRequest.payload.items.length === 0) {
           const message =
-            messages?.noFilledSlotsToSave ?? "No filled timetable slots to save.";
+            messages?.noFilledSlotsToSave ??
+            "No filled timetable slots to save.";
           setApiError(message);
           return {
             ok: false,
@@ -546,7 +598,9 @@ export function useTimetableData({
           };
         }
 
-        const savedEntriesResponse = await bulkSaveEntries(bulkSaveRequest.payload);
+        const savedEntriesResponse = await bulkSaveEntries(
+          bulkSaveRequest.payload,
+        );
         const mappedEntries = mapBackendEntriesToUi(
           listResponseItems(savedEntriesResponse),
         );
@@ -582,110 +636,123 @@ export function useTimetableData({
     ],
   );
 
-  const publishCurrentTimetable = useCallback(async (entries: TimetableEntry[]) => {
-    if (!config) {
-      return {
-        ok: false,
-        error: messages?.noConfigSelected ?? "No timetable config selected.",
-      };
-    }
-
-    try {
-      const [nextPublication, nextValidationSummary] = await Promise.all([
-        getPublication(config.id || config.timetableConfigId || "") as Promise<PublicationResponse>,
-        loadValidation(),
-      ]);
-      setPublication(nextPublication);
-
-      if (nextPublication.canPublish !== true) {
+  const publishCurrentTimetable = useCallback(
+    async (entries: TimetableEntry[]) => {
+      if (!config) {
         return {
           ok: false,
-          error: publishReadinessMessage(nextPublication, nextValidationSummary),
-        };
-      }
-      if (hasBlockingValidation(nextValidationSummary)) {
-        return {
-          ok: false,
-          error: publishReadinessMessage(nextPublication, nextValidationSummary),
+          error: messages?.noConfigSelected ?? "No timetable config selected.",
         };
       }
 
-      const bulkSaveRequest = buildBulkSaveTimetableRequest({
-        termId,
-        entries,
-        periods,
-        teacherAllocations,
-        selectedSectionId,
-        selectedClassroomId: selectedClassroomId || undefined,
-      });
-      if (
-        bulkSaveRequest.skippedSlots.some(
-          (slot) => slot.reason === "MISSING_TEACHER_ALLOCATION",
-        )
-      ) {
-        const message =
-          messages?.missingTeacherAllocation ??
-          TEACHER_ALLOCATION_MISSING_MESSAGE;
-        return {
-          ok: false,
-          error: message,
-        };
-      }
-      if (bulkSaveRequest.payload.items.length === 0) {
-        return {
-          ok: false,
-          error:
-            messages?.noFilledSlotsToPublish ??
-            "No filled timetable slots to publish.",
-        };
-      }
-      const conflictResponse = await checkConflicts(bulkSaveRequest.payload);
-      const nextConflicts = conflictsFromResponse(conflictResponse);
-      setConflicts(nextConflicts);
-      if (nextConflicts.length > 0) {
-        return {
-          ok: false,
-          hasConflicts: true,
-          error:
-            messages?.resolveConflictsBeforePublishing ??
-            "Resolve timetable conflicts before publishing.",
-        };
-      }
+      try {
+        const [nextPublication, nextValidationSummary] = await Promise.all([
+          getPublication(
+            config.id || config.timetableConfigId || "",
+          ) as Promise<PublicationResponse>,
+          loadValidation(),
+        ]);
+        setPublication(nextPublication);
 
-      await publish(config.id || config.timetableConfigId || "");
-      const publishedPublication = (await getPublication(
-        config.id || config.timetableConfigId || "",
-      )) as PublicationResponse;
-      setPublication(publishedPublication);
-      setConfig((currentConfig) =>
-        currentConfig ? withConfigStatus(currentConfig, "active") : currentConfig,
-      );
-      return { ok: true };
-    } catch (error) {
-      const conflict = conflictFromTimetableError(error);
-      if (conflict) {
-        setConflicts([conflict]);
+        if (nextPublication.canPublish !== true) {
+          return {
+            ok: false,
+            error: publishReadinessMessage(
+              nextPublication,
+              nextValidationSummary,
+            ),
+          };
+        }
+        if (hasBlockingValidation(nextValidationSummary)) {
+          return {
+            ok: false,
+            error: publishReadinessMessage(
+              nextPublication,
+              nextValidationSummary,
+            ),
+          };
+        }
+
+        const bulkSaveRequest = buildBulkSaveTimetableRequest({
+          termId,
+          entries,
+          periods,
+          teacherAllocations,
+          selectedSectionId,
+          selectedClassroomId: selectedClassroomId || undefined,
+        });
+        if (
+          bulkSaveRequest.skippedSlots.some(
+            (slot) => slot.reason === "MISSING_TEACHER_ALLOCATION",
+          )
+        ) {
+          const message =
+            messages?.missingTeacherAllocation ??
+            TEACHER_ALLOCATION_MISSING_MESSAGE;
+          return {
+            ok: false,
+            error: message,
+          };
+        }
+        if (bulkSaveRequest.payload.items.length === 0) {
+          return {
+            ok: false,
+            error:
+              messages?.noFilledSlotsToPublish ??
+              "No filled timetable slots to publish.",
+          };
+        }
+        const conflictResponse = await checkConflicts(bulkSaveRequest.payload);
+        const nextConflicts = conflictsFromResponse(conflictResponse);
+        setConflicts(nextConflicts);
+        if (nextConflicts.length > 0) {
+          return {
+            ok: false,
+            hasConflicts: true,
+            error:
+              messages?.resolveConflictsBeforePublishing ??
+              "Resolve timetable conflicts before publishing.",
+          };
+        }
+
+        await publish(config.id || config.timetableConfigId || "");
+        const publishedPublication = (await getPublication(
+          config.id || config.timetableConfigId || "",
+        )) as PublicationResponse;
+        setPublication(publishedPublication);
+        setConfig((currentConfig) =>
+          currentConfig
+            ? withConfigStatus(currentConfig, "active")
+            : currentConfig,
+        );
+        return { ok: true };
+      } catch (error) {
+        const conflict = conflictFromTimetableError(error);
+        if (conflict) {
+          setConflicts([conflict]);
+        }
+        const message = timetableErrorMessage(
+          error,
+          messages?.publishFailed ?? "Failed to publish timetable.",
+          translateErrorCode,
+        );
+        setApiError(message);
+        console.error("Failed to publish timetable:", error);
+        return { ok: false, hasConflicts: !!conflict, error: message };
       }
-      const message = timetableErrorMessage(
-        error,
-        messages?.publishFailed ?? "Failed to publish timetable.",
-        translateErrorCode,
-      );
-      setApiError(message);
-      console.error("Failed to publish timetable:", error);
-      return { ok: false, hasConflicts: !!conflict, error: message };
-    }
-  }, [
-    config,
-    loadValidation,
-    messages,
-    periods,
-    selectedClassroomId,
-    selectedSectionId,
-    teacherAllocations,
-    termId,
-    translateErrorCode,
-  ]);
+    },
+    [
+      config,
+      loadValidation,
+      messages,
+      periods,
+      selectedClassroomId,
+      selectedSectionId,
+      teacherAllocations,
+      termId,
+      translateErrorCode,
+    ],
+  );
 
   const unpublishCurrentTimetable = useCallback(async () => {
     if (!config) {
@@ -698,10 +765,14 @@ export function useTimetableData({
         gradeId: selectedGradeId || undefined,
         classroomId: selectedClassroomId || undefined,
       });
-      const nextPublication = (await getPublication(config.id || config.timetableConfigId || "")) as PublicationResponse;
+      const nextPublication = (await getPublication(
+        config.id || config.timetableConfigId || "",
+      )) as PublicationResponse;
       setPublication(nextPublication);
       setConfig((currentConfig) =>
-        currentConfig ? withConfigStatus(currentConfig, "draft") : currentConfig,
+        currentConfig
+          ? withConfigStatus(currentConfig, "draft")
+          : currentConfig,
       );
       return true;
     } catch (error) {

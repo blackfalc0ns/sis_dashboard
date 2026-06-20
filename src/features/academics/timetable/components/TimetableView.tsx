@@ -1513,11 +1513,16 @@ export default function TimetableView({
             </p>
           </div>
         ) : !resolvedConfig ? (
-          <div className="flex h-full flex-col items-center justify-center px-4 text-center">
-            <Settings className="mb-4 h-12 w-12 text-gray-400" />
-            <h3 className="mb-2 text-lg font-semibold text-gray-900">
-              {t("emptyState.noConfig.title")}
-            </h3>
+          timetableLoading ? (
+            <div className="flex h-full items-center justify-center min-h-[400px]">
+              <PartialLoader />
+            </div>
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center px-4 text-center">
+              <Settings className="mb-4 h-12 w-12 text-gray-400" />
+              <h3 className="mb-2 text-lg font-semibold text-gray-900">
+                {t("emptyState.noConfig.title")}
+              </h3>
             <p className="mb-5 max-w-md text-sm text-gray-500">
               {t("emptyState.noConfig.message")}
             </p>
@@ -1530,6 +1535,7 @@ export default function TimetableView({
               {t("emptyState.noConfig.cta")}
             </Button>
           </div>
+          )
         ) : periods.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center px-4 text-center">
             <Settings className="mb-4 h-12 w-12 text-gray-400" />
