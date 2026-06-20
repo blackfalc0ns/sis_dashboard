@@ -17,7 +17,9 @@ import LessonLibraryDrawer from "../components/LessonLibraryDrawer";
 import AddLessonDialog from "../components/AddLessonDialog";
 import MobileBottomBar from "../components/MobileBottomBar";
 import AutoPlanDialog from "../components/AutoPlanDialog";
-import CreateLessonPlanDialog, { type CreateLessonPlanDialogPayload } from "../components/CreateLessonPlanDialog";
+import CreateLessonPlanDialog, {
+  type CreateLessonPlanDialogPayload,
+} from "../components/CreateLessonPlanDialog";
 import LessonPlanValidationPanel from "../components/LessonPlanValidationPanel";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { useLessonPlansData } from "../hooks/useLessonPlansData";
@@ -190,9 +192,7 @@ export default function LessonPlansPage() {
       selectedSection &&
         (locale === "ar" ? selectedSection.nameAr : selectedSection.nameEn),
       selectedClassroom &&
-        (locale === "ar"
-          ? selectedClassroom.nameAr
-          : selectedClassroom.nameEn),
+        (locale === "ar" ? selectedClassroom.nameAr : selectedClassroom.nameEn),
       selectedSubject &&
         (locale === "ar" ? selectedSubject.nameAr : selectedSubject.nameEn),
     ].filter(Boolean) as string[];
@@ -394,9 +394,12 @@ export default function LessonPlansPage() {
     },
   });
 
-  const handlePlansUpdate = useCallback(async (options?: { silent?: boolean }) => {
-    await refreshAllLessonPlans(options);
-  }, [refreshAllLessonPlans]);
+  const handlePlansUpdate = useCallback(
+    async (options?: { silent?: boolean }) => {
+      await refreshAllLessonPlans(options);
+    },
+    [refreshAllLessonPlans],
+  );
 
   const handleStageFilterChange = useCallback(
     (stageId: string) => {
@@ -646,9 +649,7 @@ export default function LessonPlansPage() {
   });
   const showSkeleton = viewState === "loading";
   const createPlanDisabled =
-    isReadOnly ||
-    scopeStatus !== "ready" ||
-    weeks.length === 0;
+    isReadOnly || scopeStatus !== "ready" || weeks.length === 0;
   const autoPlanReadiness = useMemo(
     () =>
       getAutoPlanReadiness({
@@ -688,13 +689,16 @@ export default function LessonPlansPage() {
       termStatus,
     ],
   );
-  const firstAutoPlanBlockingReason =
-    autoPlanReadiness.blockingReasons[0] as AutoPlanBlockingReason | undefined;
-  
+  const firstAutoPlanBlockingReason = autoPlanReadiness.blockingReasons[0] as
+    | AutoPlanBlockingReason
+    | undefined;
+
   const isSecondaryLoading = summaryLoading || validationLoading;
-  
+
   const autoPlanBlockedMessage = isSecondaryLoading
-    ? t("autoPlan.checkingReadiness", { defaultValue: "Checking auto-plan readiness..." })
+    ? t("autoPlan.checkingReadiness", {
+        defaultValue: "Checking auto-plan readiness...",
+      })
     : firstAutoPlanBlockingReason
       ? t(`autoPlan.readiness.${firstAutoPlanBlockingReason}`)
       : t("tooltips.autoPlanUnavailable");
@@ -855,9 +859,7 @@ export default function LessonPlansPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {t("emptyState.noWeeks.title")}
               </h3>
-              <p className="text-gray-600">
-                {t("emptyState.noWeeks.message")}
-              </p>
+              <p className="text-gray-600">{t("emptyState.noWeeks.message")}</p>
             </div>
           ) : viewState === "no-lessons" ? (
             <div className="text-center py-12">
@@ -867,18 +869,15 @@ export default function LessonPlansPage() {
               <p className="text-gray-600 mb-4">
                 {t("emptyState.noLessons.message")}
               </p>
-              <Button
-                type="button"
-                onClick={handleGoToCurriculum}
-              >
+              <Button type="button" onClick={handleGoToCurriculum}>
                 {t("emptyState.noLessons.cta")}
               </Button>
             </div>
           ) : (
             <div className="space-y-4">
               {(validation || validationLoading || validationError) && (
-                <LessonPlanValidationPanel 
-                  validation={validation} 
+                <LessonPlanValidationPanel
+                  validation={validation}
                   isLoading={validationLoading}
                   error={validationError}
                   onRetry={() => void refreshSummaryAndValidation()}
@@ -887,6 +886,8 @@ export default function LessonPlansPage() {
               <LessonPlansBoard
                 academicYearId={academicYearId}
                 termId={termId}
+                summaryLoading={summaryLoading}
+                summaryError={summaryError}
                 termStartDate={selectedTerm?.startDate}
                 termEndDate={selectedTerm?.endDate}
                 teacherSubjectAllocationId={teacherSubjectAllocationId}
