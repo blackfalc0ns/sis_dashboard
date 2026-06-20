@@ -3470,11 +3470,12 @@
           "info": "معلومات",
           "lessonPlans": "خطط الدروس",
           "teacherLoads": "أحمال المعلمين",
-          "readiness": "الجاهزية",
           "summary": "الملخص",
           "checklist": "قائمة الإعداد",
-          "alerts": "التنبيهات"
-        }
+          "alerts": "التنبيهات",
+          "upcomingEvents": "الفعاليات القادمة"
+        },
+        "export": "تصدير"
       },
       "analytics": {
         "title": "التحليلات"
@@ -3600,6 +3601,49 @@
         "title": "لا يوجد عام أكاديمي نشط",
         "description": "يرجى إنشاء وتفعيل عام أكاديمي جديد للبدء",
         "action": "إنشاء عام أكاديمي"
+      },
+      "error": {
+        "title": "تعذر تحميل نظرة الأكاديميات",
+        "invalidContext": "العام الدراسي أو الفصل المحدد غير متاح لهذه المدرسة.",
+        "general": "تحقق من الفلاتر ثم حاول مرة أخرى.",
+        "retry": "إعادة المحاولة"
+      },
+      "exportLabels": {
+        "group": "المجموعة",
+        "metric": "المؤشر",
+        "value": "القيمة",
+        "title": "العنوان",
+        "status": "الحالة",
+        "reason": "السبب",
+        "link": "الرابط",
+        "severity": "الشدة",
+        "description": "الوصف",
+        "count": "العدد",
+        "done": "مكتمل",
+        "warning": "تحذير",
+        "error": "خطأ",
+        "info": "معلومات",
+        "structure": "الهيكل الأكاديمي",
+        "subjects": "المواد الدراسية",
+        "rooms": "الغرف",
+        "teachers": "المعلمين",
+        "curriculum": "المنهج",
+        "lessonPlans": "خطط الدروس",
+        "timetable": "الجدول المدرسي",
+        "calendar": "التقويم",
+        "type": "النوع",
+        "allDay": "يوم كامل",
+        "startDate": "تاريخ البدء",
+        "endDate": "تاريخ الانتهاء",
+        "scope": "النطاق"
+      },
+      "upcomingEvents": {
+        "types": {
+          "holiday": "عطلة",
+          "exam": "اختبار",
+          "activity": "نشاط",
+          "other": "أخرى"
+        }
       }
     },
     "subjects": {

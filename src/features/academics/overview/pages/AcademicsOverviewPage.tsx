@@ -56,6 +56,7 @@ export default function AcademicsOverviewPage() {
   } = useAcademicYearTermLayoutContext();
 
   const [response, setResponse] = useState<AcademicsOverviewResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,66 +92,14 @@ export default function AcademicsOverviewPage() {
     if (
       value === "checklist" ||
       value === "alerts" ||
-      value === "readiness"
+      value === "upcomingEvents"
     ) {
       return value;
     }
     return "summary";
   }, [searchParams]);
 
-  const exportLabels = useMemo(
-    () =>
-      locale === "ar"
-        ? {
-            group: "المجموعة",
-            metric: "المؤشر",
-            value: "القيمة",
-            title: "العنوان",
-            status: "الحالة",
-            reason: "السبب",
-            link: "الرابط",
-            severity: "الشدة",
-            description: "الوصف",
-            count: "العدد",
-            done: "مكتمل",
-            warning: "تحذير",
-            error: "خطأ",
-            info: "معلومات",
-            structure: "الهيكل الأكاديمي",
-            subjects: "المواد الدراسية",
-            rooms: "الغرف",
-            teachers: "المعلمين",
-            curriculum: "المنهج",
-            lessonPlans: "خطط الدروس",
-            timetable: "الجدول المدرسي",
-            calendar: "التقويم",
-          }
-        : {
-            group: "Group",
-            metric: "Metric",
-            value: "Value",
-            title: "Title",
-            status: "Status",
-            reason: "Reason",
-            link: "Link",
-            severity: "Severity",
-            description: "Description",
-            count: "Count",
-            done: "Done",
-            warning: "Warning",
-            error: "Error",
-            info: "Info",
-            structure: "Structure",
-            subjects: "Subjects",
-            rooms: "Rooms",
-            teachers: "Teachers",
-            curriculum: "Curriculum",
-            lessonPlans: "Lesson Plans",
-            timetable: "Timetable",
-            calendar: "Calendar",
-          },
-    [locale]
-  );
+  const exportLabels = t.raw("exportLabels") as Record<string, string>;
 
   const resetOverviewState = () => {
     setResponse(null);
@@ -225,6 +174,7 @@ export default function AcademicsOverviewPage() {
         });
         
         setResponse(overviewResponse);
+        setError(null);
 
         const checklistItems = generateChecklist(overviewResponse, lang);
         const alertsItems = generateAlerts(overviewResponse, lang);
@@ -263,9 +213,16 @@ export default function AcademicsOverviewPage() {
             color: "#ef4444",
           },
         ]);
-      } catch (error) {
-        console.error("Failed to load overview data:", error);
+      } catch (err: any) {
+        console.error("Failed to load overview data:", err);
         resetOverviewState();
+        if (err?.status === 422 || err?.status === 400) {
+          setError(t("error.invalidContext"));
+        } else if (err?.status === 403) {
+          setError(t("error.invalidContext"));
+        } else {
+          setError(t("error.general"));
+        }
       } finally {
         setIsLoading(false);
       }
@@ -372,16 +329,24 @@ export default function AcademicsOverviewPage() {
         description: t(item.descriptionKey),
         link: item.link,
       }));
-    } else {
-      title = t("charts.readiness.title");
-      filename = generateExportFilename("academics-overview-readiness", termId || "all");
+    } else if (exportDataset === "upcomingEvents") {
+      title = t("events.sectionTitle");
+      filename = generateExportFilename("academics-overview-events", termId || "all");
       columns = [
-        { key: "name", label: exportLabels.title },
-        { key: "value", label: exportLabels.value },
+        { key: "title", label: exportLabels.title },
+        { key: "type", label: exportLabels.type },
+        { key: "scope", label: exportLabels.scope },
+        { key: "allDay", label: exportLabels.allDay },
+        { key: "startDate", label: exportLabels.startDate },
+        { key: "endDate", label: exportLabels.endDate },
       ];
-      rows = readinessData.map((item) => ({
-        name: item.name,
-        value: `${item.value}%`,
+      rows = (response.upcomingEvents || []).map((event) => ({
+        title: event.title,
+        type: event.type,
+        scope: event.scope.type,
+        allDay: event.allDay ? exportLabels.done : "-",
+        startDate: new Date(event.startDate).toLocaleDateString(locale),
+        endDate: new Date(event.endDate).toLocaleDateString(locale),
       }));
     }
 
@@ -422,20 +387,33 @@ export default function AcademicsOverviewPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
       <div className="px-4 sm:px-6 my-6 space-y-6">
-        
-        {!isLoading && response && !response.setupIndicators.hasAcademicYear && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-4">
-            <div className="flex-1">
-              <h3 className="font-semibold text-blue-900">{t("noActiveYearCallout.title")}</h3>
-              <p className="text-sm text-blue-800 mt-1">{t("noActiveYearCallout.description")}</p>
+        {isLoading ? (
+          <div className="flex min-h-[400px] items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
             </div>
-            <Link href={`/${lang}/academics/academic-years`}>
-              <Button leftIcon={<PlusCircle className="w-4 h-4 mr-2" />}>
-                {t("noActiveYearCallout.action")}
-              </Button>
-            </Link>
           </div>
-        )}
+        ) : error || !response ? (
+          <div className="flex min-h-[400px] flex-col items-center justify-center bg-white rounded-2xl border border-gray-200 px-4 text-center">
+            <h2 className="mb-2 text-xl font-bold text-gray-900">{t("error.title")}</h2>
+            <p className="mb-6 text-gray-500 max-w-md">{error || t("error.general")}</p>
+            <Button onClick={() => window.location.reload()}>{t("error.retry")}</Button>
+          </div>
+        ) : (
+          <>
+            {!response.setupIndicators.hasAcademicYear && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-4">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-blue-900">{t("noActiveYearCallout.title")}</h3>
+                  <p className="text-sm text-blue-800 mt-1">{t("noActiveYearCallout.description")}</p>
+                </div>
+                <Link href={`/${lang}/academics/academic-years`}>
+                  <Button leftIcon={<PlusCircle className="w-4 h-4 mr-2" />}>
+                    {t("noActiveYearCallout.action")}
+                  </Button>
+                </Link>
+              </div>
+            )}
 
         <AcademicsOverviewFiltersBar
           checklistStatus={checklistStatusFilter}
@@ -498,6 +476,8 @@ export default function AcademicsOverviewPage() {
 
         {/* Quick Links */}
         <QuickLinks lang={lang} />
+          </>
+        )}
       </div>
 
       <AcademicsGlobalExportModal

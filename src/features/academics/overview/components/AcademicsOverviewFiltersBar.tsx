@@ -1,6 +1,6 @@
 "use client";
 
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Download } from "lucide-react";
 import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
@@ -19,7 +19,7 @@ export type AcademicsOverviewExportDataset =
   | "summary"
   | "checklist"
   | "alerts"
-  | "readiness";
+  | "upcomingEvents";
 
 interface AcademicsOverviewFiltersBarProps {
   checklistStatus: AcademicsOverviewChecklistStatusFilter;
@@ -48,9 +48,7 @@ export default function AcademicsOverviewFiltersBar({
   onReset,
   onExportClick,
 }: AcademicsOverviewFiltersBarProps) {
-  const locale = useLocale();
   const t = useTranslations("academics.overview.filters");
-  const tCommon = useTranslations("common");
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -98,7 +96,7 @@ export default function AcademicsOverviewFiltersBar({
               { value: "summary", label: t("options.summary") },
               { value: "checklist", label: t("options.checklist") },
               { value: "alerts", label: t("options.alerts") },
-              { value: "readiness", label: t("options.readiness") },
+              { value: "upcomingEvents", label: t("options.upcomingEvents") },
             ]}
             selectSize="sm"
           />
@@ -113,7 +111,7 @@ export default function AcademicsOverviewFiltersBar({
             onClick={onExportClick}
             leftIcon={<Download className="w-4 h-4" />}
           >
-            {locale === "ar" ? "تصدير" : "Export"}
+            {t("export")}
           </Button>
         </div>
       </div>

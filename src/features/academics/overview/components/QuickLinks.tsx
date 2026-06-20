@@ -75,7 +75,7 @@ export default function QuickLinks({ lang }: QuickLinksProps) {
       <h2 className="text-lg font-semibold text-gray-900 mb-4">{t("title")}</h2>
       
       {/* Desktop/Tablet: Grid */}
-      <div className="hidden sm:grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+      <div className="hidden sm:grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
         {links.map((link) => {
           const Icon = link.icon;
           return (

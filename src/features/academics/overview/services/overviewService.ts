@@ -20,7 +20,7 @@ export function generateChecklist(
     status: setupIndicators.hasAcademicYear ? "done" : "error",
     titleKey: "academics.overview.checklist.academicYear.title",
     descriptionKey: "academics.overview.checklist.academicYear.description",
-    link: `/${lang}/academics/academic-years`,
+    link: `/${lang}/academics/structure`,
   });
 
   items.push({
@@ -28,7 +28,7 @@ export function generateChecklist(
     status: setupIndicators.hasTerm ? "done" : "error",
     titleKey: "academics.overview.checklist.term.title",
     descriptionKey: "academics.overview.checklist.term.description",
-    link: `/${lang}/academics/terms`,
+    link: `/${lang}/academics/structure`,
   });
 
   items.push({
@@ -112,7 +112,7 @@ export function generateAlerts(
   lang: string,
 ): Alert[] {
   const alerts: Alert[] = [];
-  const { setupIndicators, structure, subjects, teacherAllocation, curriculum, lessonPlans, timetable } = response;
+  const { setupIndicators, curriculum, lessonPlans, timetable } = response;
 
   if (!setupIndicators.hasAcademicYear) {
     alerts.push({
@@ -120,7 +120,7 @@ export function generateAlerts(
       severity: "error",
       titleKey: "academics.overview.alerts.noAcademicYear.title",
       descriptionKey: "academics.overview.alerts.noAcademicYear.description",
-      link: `/${lang}/academics/academic-years`,
+      link: `/${lang}/academics/structure`,
     });
   }
 
@@ -130,7 +130,7 @@ export function generateAlerts(
       severity: "error",
       titleKey: "academics.overview.alerts.noTerm.title",
       descriptionKey: "academics.overview.alerts.noTerm.description",
-      link: `/${lang}/academics/terms`,
+      link: `/${lang}/academics/structure`,
     });
   }
 

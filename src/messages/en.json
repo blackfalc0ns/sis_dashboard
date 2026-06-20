@@ -3469,11 +3469,12 @@
           "info": "Info",
           "lessonPlans": "Lesson plans",
           "teacherLoads": "Teacher loads",
-          "readiness": "Readiness",
           "summary": "Summary",
           "checklist": "Checklist",
-          "alerts": "Alerts"
-        }
+          "alerts": "Alerts",
+          "upcomingEvents": "Upcoming Events"
+        },
+        "export": "Export"
       },
       "analytics": {
         "title": "Analytics"
@@ -3599,6 +3600,49 @@
         "title": "No Active Academic Year",
         "description": "Please create and activate a new academic year to get started",
         "action": "Create Academic Year"
+      },
+      "error": {
+        "title": "Could not load academics overview",
+        "invalidContext": "The selected academic year or term is not available for this school.",
+        "general": "Check the filters and try again.",
+        "retry": "Retry"
+      },
+      "exportLabels": {
+        "group": "Group",
+        "metric": "Metric",
+        "value": "Value",
+        "title": "Title",
+        "status": "Status",
+        "reason": "Reason",
+        "link": "Link",
+        "severity": "Severity",
+        "description": "Description",
+        "count": "Count",
+        "done": "Done",
+        "warning": "Warning",
+        "error": "Error",
+        "info": "Info",
+        "structure": "Structure",
+        "subjects": "Subjects",
+        "rooms": "Rooms",
+        "teachers": "Teachers",
+        "curriculum": "Curriculum",
+        "lessonPlans": "Lesson Plans",
+        "timetable": "Timetable",
+        "calendar": "Calendar",
+        "type": "Type",
+        "allDay": "All Day",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "scope": "Scope"
+      },
+      "upcomingEvents": {
+        "types": {
+          "holiday": "Holiday",
+          "exam": "Exam",
+          "activity": "Activity",
+          "other": "Other"
+        }
       }
     },
     "subjects": {

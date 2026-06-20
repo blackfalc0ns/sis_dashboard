@@ -1,7 +1,7 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { Calendar, Clock, MapPin, Tag } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { Calendar, Clock, Tag } from "lucide-react";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import type { AcademicsOverviewResponse } from "../services/overviewApiAdapter";
 
@@ -11,7 +11,23 @@ interface UpcomingEventsPanelProps {
 }
 
 export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEventsPanelProps) {
+  const locale = useLocale();
   const t = useTranslations("academics.overview.events");
+  const tTypes = useTranslations("academics.overview.upcomingEvents.types");
+
+  const getEventTypeTranslation = (type: string) => {
+    const key = type.toLowerCase();
+    switch (key) {
+      case "holiday":
+        return tTypes("holiday");
+      case "exam":
+        return tTypes("exam");
+      case "activity":
+        return tTypes("activity");
+      default:
+        return tTypes("other");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -58,7 +74,7 @@ export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEvent
               <div className="flex-shrink-0 mt-0.5">
                 <div className="w-10 h-10 rounded bg-blue-100 flex flex-col items-center justify-center border border-blue-200">
                   <span className="text-[10px] font-semibold text-blue-600 uppercase leading-none mb-1">
-                    {startDate.toLocaleDateString("en-US", { month: "short" })}
+                    {startDate.toLocaleDateString(locale, { month: "short" })}
                   </span>
                   <span className="text-sm font-bold text-blue-900 leading-none">
                     {startDate.getDate()}
@@ -80,15 +96,15 @@ export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEvent
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-500">
                   <div className="flex items-center gap-1 shrink-0">
                     <Tag className="w-3 h-3 text-gray-400" />
-                    <span>{event.type}</span>
+                    <span>{getEventTypeTranslation(event.type)}</span>
                   </div>
                   
                   {!event.allDay && (
                     <div className="flex items-center gap-1 shrink-0">
                       <Clock className="w-3 h-3 text-gray-400" />
                       <span>
-                        {startDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        {!isSameDay && ` - ${endDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+                        {startDate.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
+                        {!isSameDay && ` - ${endDate.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}`}
                       </span>
                     </div>
                   )}
@@ -97,7 +113,7 @@ export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEvent
                     <div className="flex items-center gap-1 shrink-0 text-amber-600">
                       <Calendar className="w-3 h-3" />
                       <span>
-                        {t("until", { date: endDate.toLocaleDateString() })}
+                        {t("until", { date: endDate.toLocaleDateString(locale) })}
                       </span>
                     </div>
                   )}
