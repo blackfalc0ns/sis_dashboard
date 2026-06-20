@@ -308,6 +308,24 @@ export function useTimetableData({
 
   const dependenciesRequestIdRef = useRef(0);
   const timetableRequestIdRef = useRef(0);
+  const dependenciesLoadedKeyRef = useRef<string | null>(null);
+  const dependenciesInFlightKeyRef = useRef<string | null>(null);
+
+  const messagesRef = useRef(messages);
+  const translateErrorCodeRef = useRef(translateErrorCode);
+  const showToastRef = useRef(showToast);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    translateErrorCodeRef.current = translateErrorCode;
+  }, [translateErrorCode]);
+
+  useEffect(() => {
+    showToastRef.current = showToast;
+  }, [showToast]);
 
   const isLoading = dependenciesLoading && stages.length === 0;
 
@@ -335,6 +353,7 @@ export function useTimetableData({
 
   const loadAcademicDependencies = useCallback(async () => {
     const requestId = ++dependenciesRequestIdRef.current;
+    const dependenciesKey = `${academicYearId}:${termId}:${schoolId}`;
 
     if (!enabled || !termId || !academicYearId) {
       setStages([]);
@@ -348,9 +367,34 @@ export function useTimetableData({
       setRooms([]);
       setRoomDefaults([]);
       setDependenciesLoading(false);
+      dependenciesLoadedKeyRef.current = null;
+      dependenciesInFlightKeyRef.current = null;
       return;
     }
 
+    if (dependenciesInFlightKeyRef.current === dependenciesKey) {
+      if (process.env.NODE_ENV === "development") {
+        console.debug("[Timetable] loadAcademicDependencies skipped (in-flight)", { dependenciesKey });
+      }
+      return;
+    }
+
+    if (dependenciesLoadedKeyRef.current === dependenciesKey) {
+      if (process.env.NODE_ENV === "development") {
+        console.debug("[Timetable] loadAcademicDependencies skipped (already loaded)", { dependenciesKey });
+      }
+      return;
+    }
+
+    if (process.env.NODE_ENV === "development") {
+      console.debug("[Timetable] loadAcademicDependencies", {
+        dependenciesKey,
+        requestId,
+        reason: "start",
+      });
+    }
+
+    dependenciesInFlightKeyRef.current = dependenciesKey;
     setDependenciesLoading(true);
     setApiError(null);
 
@@ -385,30 +429,32 @@ export function useTimetableData({
       setTeacherAllocations(teacherAllocsData);
       setRooms(roomsData.filter((room) => room.isActive));
       setRoomDefaults([]);
+      
+      dependenciesLoadedKeyRef.current = dependenciesKey;
     } catch (error) {
       if (requestId !== dependenciesRequestIdRef.current) return;
+      
+      const currentMessages = messagesRef.current;
+      const currentTranslateErrorCode = translateErrorCodeRef.current;
+      const currentShowToast = showToastRef.current;
+
       const message = timetableErrorMessage(
         error,
-        messages?.loadFailed ?? "Failed to load academic dependencies.",
-        translateErrorCode,
+        currentMessages?.loadFailed ?? "Failed to load academic dependencies.",
+        currentTranslateErrorCode,
       );
       setApiError(message);
       console.error("Failed to load academic dependencies:", error);
-      showToast(message, "error");
+      currentShowToast(message, "error");
     } finally {
+      if (dependenciesInFlightKeyRef.current === dependenciesKey) {
+        dependenciesInFlightKeyRef.current = null;
+      }
       if (requestId === dependenciesRequestIdRef.current) {
         setDependenciesLoading(false);
       }
     }
-  }, [
-    enabled,
-    schoolId,
-    termId,
-    academicYearId,
-    messages,
-    translateErrorCode,
-    showToast,
-  ]);
+  }, [enabled, schoolId, termId, academicYearId]);
 
   const loadTimetableForScope = useCallback(async () => {
     const requestId = ++timetableRequestIdRef.current;
