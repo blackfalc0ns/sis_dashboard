@@ -3389,64 +3389,7 @@
           "subtitle": "{teachers} teachers, {subjects} subjects"
         }
       },
-      "alerts": {
-        "title": "Alerts",
-        "noAlerts": "All systems are ready",
-        "sectionsCapacity": {
-          "title": "Sections Missing Capacity",
-          "description": "Some sections have no capacity set"
-        },
-        "gradesSections": {
-          "title": "Grades Without Sections",
-          "description": "Some grades have no sections"
-        },
-        "teacherMissing": {
-          "title": "Missing Teacher Assignments",
-          "description": "Some sections need teachers"
-        },
-        "teacherOverloaded": {
-          "title": "Overloaded Teachers",
-          "description": "Some teachers exceed max load"
-        },
-        "examSoon": {
-          "title": "Exam Coming Soon",
-          "description": "Exam scheduled within 7 days"
-        },
-        "lessonsBehind": {
-          "title": "Lesson Plans Behind Schedule",
-          "description": "Completion rate is below 70%"
-        },
-        "noAcademicYear": {
-          "title": "Missing academic year",
-          "description": "Please set up an academic year."
-        },
-        "noTerm": {
-          "title": "Missing term",
-          "description": "Please set up a term for the current year."
-        },
-        "notReadyForScheduling": {
-          "title": "Not ready for scheduling",
-          "description": "Complete the prerequisites to start scheduling."
-        },
-        "notReadyForLearning": {
-          "title": "Not ready for learning flow",
-          "description": "Complete the curriculum requirements to start learning flow."
-        },
-        "noTimetable": {
-          "title": "No timetable",
-          "description": "Complete timetable setup."
-        },
-        "noCurriculum": {
-          "title": "No curriculum",
-          "description": "Curriculum is not set up."
-        },
-        "noLessonPlans": {
-          "title": "No lesson plans",
-          "description": "No lesson plans have been added yet."
-        },
-        "noAlertsDescription": "There are no items requiring action right now.",
-        "noAlertsTitle": "All systems are ready"
-      },
+
       "quickLinks": {
         "title": "Quick Links",
         "structure": "Structure",
@@ -3463,7 +3406,6 @@
       },
       "filters": {
         "checklistStatus": "Checklist status",
-        "alertSeverity": "Alert severity",
         "chart": "Chart",
         "exportDataset": "Export dataset",
         "reset": "Reset",
@@ -3472,12 +3414,10 @@
           "done": "Done",
           "warning": "Warning",
           "error": "Error",
-          "info": "Info",
           "lessonPlans": "Lesson plans",
           "teacherLoads": "Teacher loads",
           "summary": "Summary",
           "checklist": "Checklist",
-          "alerts": "Alerts",
           "upcomingEvents": "Upcoming events"
         },
         "export": "Export"

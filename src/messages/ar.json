@@ -3390,64 +3390,7 @@
           "subtitle": "{teachers} معلمين، {subjects} مواد"
         }
       },
-      "alerts": {
-        "title": "التنبيهات",
-        "noAlerts": "جميع الأنظمة جاهزة",
-        "sectionsCapacity": {
-          "title": "شعب بدون سعة",
-          "description": "بعض الشعب ليس لديها سعة محددة"
-        },
-        "gradesSections": {
-          "title": "صفوف بدون شعب",
-          "description": "بعض الصفوف ليس لديها شعب"
-        },
-        "teacherMissing": {
-          "title": "تعيينات معلمين مفقودة",
-          "description": "بعض الشعب تحتاج معلمين"
-        },
-        "teacherOverloaded": {
-          "title": "معلمون محملون زائد",
-          "description": "بعض المعلمين يتجاوزون الحد الأقصى"
-        },
-        "examSoon": {
-          "title": "امتحان قريب",
-          "description": "امتحان مجدول خلال 7 أيام"
-        },
-        "lessonsBehind": {
-          "title": "خطط الدروس متأخرة",
-          "description": "معدل الإنجاز أقل من 70%"
-        },
-        "noAcademicYear": {
-          "title": "عام دراسي مفقود",
-          "description": "يرجى إعداد عام دراسي."
-        },
-        "noTerm": {
-          "title": "فصل دراسي مفقود",
-          "description": "يرجى إعداد فصل دراسي للعام الحالي."
-        },
-        "notReadyForScheduling": {
-          "title": "غير جاهز للجدولة",
-          "description": "أكمل المتطلبات الأساسية للبدء بإنشاء الجداول."
-        },
-        "notReadyForLearning": {
-          "title": "غير جاهز لمسار التعلم",
-          "description": "أكمل متطلبات المنهج للبدء بمسار التعلم."
-        },
-        "noTimetable": {
-          "title": "لا يوجد جدول دراسي",
-          "description": "أكمل إعداد الجدول الدراسي."
-        },
-        "noCurriculum": {
-          "title": "لا يوجد منهج",
-          "description": "المنهج غير معد."
-        },
-        "noLessonPlans": {
-          "title": "لا توجد خطط دروس",
-          "description": "لم يتم إضافة أي خطط دروس بعد."
-        },
-        "noAlertsDescription": "لا توجد عناصر تحتاج إلى إجراء الآن.",
-        "noAlertsTitle": "جميع الأنظمة جاهزة"
-      },
+
       "quickLinks": {
         "title": "روابط سريعة",
         "structure": "الهيكل",
@@ -3464,7 +3407,6 @@
       },
       "filters": {
         "checklistStatus": "حالة قائمة الإعداد",
-        "alertSeverity": "مستوى التنبيه",
         "chart": "الرسم البياني",
         "exportDataset": "بيانات التصدير",
         "reset": "إعادة ضبط",
@@ -3473,12 +3415,10 @@
           "done": "مكتمل",
           "warning": "تحذير",
           "error": "خطأ",
-          "info": "معلومات",
           "lessonPlans": "خطط الدروس",
           "teacherLoads": "أحمال المعلمين",
           "summary": "الملخص",
           "checklist": "قائمة الإعداد",
-          "alerts": "التنبيهات",
           "upcomingEvents": "الفعاليات القادمة"
         },
         "export": "تصدير"

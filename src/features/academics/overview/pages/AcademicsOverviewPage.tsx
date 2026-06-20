@@ -7,19 +7,16 @@ import AcademicsGlobalExportModal from "@/features/academics/shared/components/e
 import KPICards from "../components/KPICards";
 import SetupChecklist from "../components/SetupChecklist";
 import OverviewCharts from "../components/OverviewCharts";
-import AlertsPanel from "../components/AlertsPanel";
+
 import QuickLinks from "../components/QuickLinks";
 import UpcomingEventsPanel from "../components/UpcomingEventsPanel";
 import AcademicsOverviewFiltersBar, {
-  type AcademicsOverviewAlertSeverityFilter,
   type AcademicsOverviewChecklistStatusFilter,
   type AcademicsOverviewExportDataset,
 } from "../components/AcademicsOverviewFiltersBar";
 import {
   generateChecklist,
-  generateAlerts,
   type ChecklistItem,
-  type Alert,
 } from "../services/overviewService";
 import {
   fetchAcademicsOverview,
@@ -110,7 +107,6 @@ export default function AcademicsOverviewPage() {
   );
   const [error, setError] = useState<string | null>(null);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
-  const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
 
@@ -133,20 +129,10 @@ export default function AcademicsOverviewPage() {
       return "all";
     }, [searchParams]);
 
-  const alertSeverityFilter =
-    useMemo<AcademicsOverviewAlertSeverityFilter>(() => {
-      const value = searchParams.get("alertSeverity");
-      if (value === "error" || value === "warning" || value === "info") {
-        return value;
-      }
-      return "all";
-    }, [searchParams]);
-
   const exportDataset = useMemo<AcademicsOverviewExportDataset>(() => {
     const value = searchParams.get("exportDataset");
     if (
       value === "checklist" ||
-      value === "alerts" ||
       value === "upcomingEvents"
     ) {
       return value;
@@ -159,7 +145,6 @@ export default function AcademicsOverviewPage() {
   const resetOverviewState = useCallback(() => {
     setResponse(null);
     setChecklist([]);
-    setAlerts([]);
     setReadinessData([]);
   }, []);
 
@@ -176,9 +161,7 @@ export default function AcademicsOverviewPage() {
       setError(null);
 
       const checklistItems = generateChecklist(overviewResponse, lang);
-      const alertsItems = generateAlerts(overviewResponse, lang);
       setChecklist(checklistItems);
-      setAlerts(alertsItems);
 
       const { setupIndicators } = overviewResponse;
       const totalCount = 10;
@@ -253,7 +236,6 @@ export default function AcademicsOverviewPage() {
       currentExportDataset &&
       currentExportDataset !== "summary" &&
       currentExportDataset !== "checklist" &&
-      currentExportDataset !== "alerts" &&
       currentExportDataset !== "upcomingEvents"
     ) {
       params.delete("exportDataset");
@@ -273,13 +255,6 @@ export default function AcademicsOverviewPage() {
     }
     return checklist.filter((item) => item.status === checklistStatusFilter);
   }, [checklist, checklistStatusFilter]);
-
-  const filteredAlerts = useMemo(() => {
-    if (alertSeverityFilter === "all") {
-      return alerts;
-    }
-    return alerts.filter((item) => item.severity === alertSeverityFilter);
-  }, [alertSeverityFilter, alerts]);
 
   const overviewExportData = useMemo(() => {
     if (!response) {
@@ -379,26 +354,6 @@ export default function AcademicsOverviewPage() {
         description: t(item.descriptionKey),
         link: item.link,
       }));
-    } else if (exportDataset === "alerts") {
-      title = t("alerts.title");
-      filename = generateExportFilename(
-        "academics-overview-alerts",
-        termId || "all",
-      );
-      columns = [
-        { key: "title", label: exportLabels.title },
-        { key: "severity", label: exportLabels.severity },
-        { key: "description", label: exportLabels.description },
-        { key: "link", label: exportLabels.link },
-      ];
-      rows = filteredAlerts.map((item) => ({
-        title: t(item.titleKey),
-        severity:
-          exportLabels[item.severity as keyof typeof exportLabels] ||
-          item.severity,
-        description: t(item.descriptionKey),
-        link: item.link,
-      }));
     } else if (exportDataset === "upcomingEvents") {
       title = t("events.sectionTitle");
       filename = generateExportFilename(
@@ -444,7 +399,6 @@ export default function AcademicsOverviewPage() {
     academicYears,
     exportDataset,
     exportLabels,
-    filteredAlerts,
     filteredChecklist,
     locale,
     response,
@@ -522,13 +476,12 @@ export default function AcademicsOverviewPage() {
             </div>
 
             {/* Section B: Setup & Actions */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               <SetupChecklist
                 items={filteredChecklist}
                 response={response}
                 isLoading={isLoading}
               />
-              <AlertsPanel alerts={filteredAlerts} isLoading={isLoading} />
             </div>
 
             {/* Section C: Readiness & Events */}

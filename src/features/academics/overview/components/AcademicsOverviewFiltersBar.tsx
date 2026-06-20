@@ -10,26 +10,17 @@ export type AcademicsOverviewChecklistStatusFilter =
   | "done"
   | "warning"
   | "error";
-export type AcademicsOverviewAlertSeverityFilter =
-  | "all"
-  | "error"
-  | "warning"
-  | "info";
+
 export type AcademicsOverviewExportDataset =
   | "summary"
   | "checklist"
-  | "alerts"
   | "upcomingEvents";
 
 interface AcademicsOverviewFiltersBarProps {
   checklistStatus: AcademicsOverviewChecklistStatusFilter;
-  alertSeverity: AcademicsOverviewAlertSeverityFilter;
   exportDataset: AcademicsOverviewExportDataset;
   onChecklistStatusChange: (
     value: AcademicsOverviewChecklistStatusFilter
-  ) => void;
-  onAlertSeverityChange: (
-    value: AcademicsOverviewAlertSeverityFilter
   ) => void;
   onExportDatasetChange: (
     value: AcademicsOverviewExportDataset
@@ -40,10 +31,8 @@ interface AcademicsOverviewFiltersBarProps {
 
 export default function AcademicsOverviewFiltersBar({
   checklistStatus,
-  alertSeverity,
   exportDataset,
   onChecklistStatusChange,
-  onAlertSeverityChange,
   onExportDatasetChange,
   onReset,
   onExportClick,
@@ -71,22 +60,6 @@ export default function AcademicsOverviewFiltersBar({
             selectSize="sm"
           />
           <Select
-            label={t("alertSeverity")}
-            value={alertSeverity}
-            onChange={(value) =>
-              onAlertSeverityChange(
-                value as AcademicsOverviewAlertSeverityFilter
-              )
-            }
-            options={[
-              { value: "all", label: t("options.all") },
-              { value: "error", label: t("options.error") },
-              { value: "warning", label: t("options.warning") },
-              { value: "info", label: t("options.info") },
-            ]}
-            selectSize="sm"
-          />
-          <Select
             label={t("exportDataset")}
             value={exportDataset}
             onChange={(value) =>
@@ -95,7 +68,6 @@ export default function AcademicsOverviewFiltersBar({
             options={[
               { value: "summary", label: t("options.summary") },
               { value: "checklist", label: t("options.checklist") },
-              { value: "alerts", label: t("options.alerts") },
               { value: "upcomingEvents", label: t("options.upcomingEvents") },
             ]}
             selectSize="sm"
