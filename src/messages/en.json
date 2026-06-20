@@ -3597,15 +3597,18 @@
       },
       "readinessSnapshot": "Readiness indicator",
       "noActiveYearCallout": {
-        "title": "No Active Academic Year",
-        "description": "Please create and activate a new academic year to get started",
-        "action": "Create Academic Year"
+        "title": "No active academic year",
+        "description": "Please set up an academic year to get started.",
+        "action": "Set up academic year"
       },
       "error": {
         "title": "Could not load academics overview",
-        "invalidContext": "The selected academic year or term is not available for this school.",
+        "invalidContext": "Invalid context",
         "general": "Check the filters and try again.",
-        "retry": "Retry"
+        "retry": "Retry",
+        "loadFailed": "Failed to load overview data.",
+        "invalidFilter": "Invalid filters selected. Please adjust them.",
+        "accessDenied": "You do not have permission to view the academics overview."
       },
       "exportLabels": {
         "group": "Group",
@@ -3641,6 +3644,13 @@
           "holiday": "Holiday",
           "exam": "Exam",
           "activity": "Activity",
+          "other": "Other"
+        },
+        "scopes": {
+          "school": "School",
+          "stage": "Stage",
+          "grade": "Grade",
+          "section": "Section",
           "other": "Other"
         }
       }

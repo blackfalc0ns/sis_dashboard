@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Calendar, Clock, Tag } from "lucide-react";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
@@ -28,6 +29,16 @@ export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEvent
         return tTypes("other");
     }
   };
+
+  const dayFormatter = useMemo(
+    () => new Intl.DateTimeFormat(locale, { day: "numeric" }),
+    [locale]
+  );
+
+  const monthFormatter = useMemo(
+    () => new Intl.DateTimeFormat(locale, { month: "short" }),
+    [locale]
+  );
 
   if (isLoading) {
     return (
@@ -74,10 +85,10 @@ export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEvent
               <div className="flex-shrink-0 mt-0.5">
                 <div className="w-10 h-10 rounded bg-blue-100 flex flex-col items-center justify-center border border-blue-200">
                   <span className="text-[10px] font-semibold text-blue-600 uppercase leading-none mb-1">
-                    {startDate.toLocaleDateString(locale, { month: "short" })}
+                    {monthFormatter.format(startDate)}
                   </span>
                   <span className="text-sm font-bold text-blue-900 leading-none">
-                    {startDate.getDate()}
+                    {dayFormatter.format(startDate)}
                   </span>
                 </div>
               </div>

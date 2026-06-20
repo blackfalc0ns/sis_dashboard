@@ -33,6 +33,7 @@ export default function OverviewCharts({
   isLoading,
 }: OverviewChartsProps) {
   const t = useTranslations("academics.overview.charts.readiness");
+  const tSnapshot = useTranslations("academics.overview.readinessSnapshot");
 
   if (isLoading) {
     return <PartialLoader />;
@@ -104,7 +105,7 @@ export default function OverviewCharts({
 
           <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
             <div className="flex flex-col gap-1 items-center justify-center text-center p-2 rounded bg-gray-50">
-              <span className="text-xs text-gray-500">{t("readyForScheduling")}</span>
+              <span className="text-xs text-gray-500">{tSnapshot("readyForScheduling")}</span>
               {readyForScheduling ? (
                 <CheckCircle className="w-5 h-5 text-green-500" />
               ) : (
@@ -112,7 +113,7 @@ export default function OverviewCharts({
               )}
             </div>
             <div className="flex flex-col gap-1 items-center justify-center text-center p-2 rounded bg-gray-50">
-              <span className="text-xs text-gray-500">{t("readyForLearning")}</span>
+              <span className="text-xs text-gray-500">{tSnapshot("readyForLearningFlow")}</span>
               {readyForLearningFlow ? (
                 <CheckCircle className="w-5 h-5 text-green-500" />
               ) : (

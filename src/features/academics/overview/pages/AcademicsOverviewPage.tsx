@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
@@ -39,9 +39,61 @@ import Link from "next/link";
 import Button from "@/components/ui/button/Button";
 import { PlusCircle } from "lucide-react";
 
+type OverviewErrorInfo = {
+  status?: number;
+  code?: string;
+  message?: string;
+};
+
+function getOverviewErrorInfo(error: unknown): OverviewErrorInfo {
+  if (typeof error !== "object" || error === null) {
+    return {};
+  }
+
+  const candidate = error as {
+    status?: unknown;
+    code?: unknown;
+    message?: unknown;
+    response?: {
+      status?: unknown;
+      data?: {
+        code?: unknown;
+        error?: unknown;
+        message?: unknown;
+      };
+    };
+  };
+
+  return {
+    status:
+      typeof candidate.status === "number"
+        ? candidate.status
+        : typeof candidate.response?.status === "number"
+          ? candidate.response.status
+          : undefined,
+    code:
+      typeof candidate.code === "string"
+        ? candidate.code
+        : typeof candidate.response?.data?.code === "string"
+          ? candidate.response.data.code
+          : undefined,
+    message:
+      typeof candidate.message === "string"
+        ? candidate.message
+        : typeof candidate.response?.data?.message === "string"
+          ? candidate.response.data.message
+          : typeof candidate.response?.data?.error === "string"
+            ? candidate.response.data.error
+            : undefined,
+  };
+}
+
 export default function AcademicsOverviewPage() {
   const t = useTranslations("academics.overview");
   const tExport = useTranslations("academics.export");
+  const tTypes = useTranslations("academics.overview.upcomingEvents.types");
+  const tScopes = useTranslations("academics.overview.upcomingEvents.scopes");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
   const params = useParams();
   const router = useRouter();
@@ -101,12 +153,12 @@ export default function AcademicsOverviewPage() {
 
   const exportLabels = t.raw("exportLabels") as Record<string, string>;
 
-  const resetOverviewState = () => {
+  const resetOverviewState = useCallback(() => {
     setResponse(null);
     setChecklist([]);
     setAlerts([]);
     setReadinessData([]);
-  };
+  }, []);
 
   const syncOverviewQueryParams = (
     nextState: Partial<{
@@ -161,75 +213,78 @@ export default function AcademicsOverviewPage() {
     router.replace(nextUrl, { scroll: false });
   };
 
+  const loadOverview = useCallback(async () => {
+    try {
+      setIsLoading(true);
+
+      const overviewResponse = await fetchAcademicsOverview({
+        academicYearId: academicYearId || undefined,
+        termId: termId || undefined,
+      });
+      
+      setResponse(overviewResponse);
+      setError(null);
+
+      const checklistItems = generateChecklist(overviewResponse, lang);
+      const alertsItems = generateAlerts(overviewResponse, lang);
+      setChecklist(checklistItems);
+      setAlerts(alertsItems);
+
+      const { setupIndicators } = overviewResponse;
+      const totalCount = 10;
+      const readyCount = [
+        setupIndicators.hasAcademicYear,
+        setupIndicators.hasTerm,
+        setupIndicators.hasStructure,
+        setupIndicators.hasSubjects,
+        setupIndicators.hasRooms,
+        setupIndicators.hasTeacherAllocations,
+        setupIndicators.hasCurriculum,
+        setupIndicators.hasLessonPlans,
+        setupIndicators.hasTimetable,
+        setupIndicators.hasCalendarEvents,
+      ].filter(Boolean).length;
+      
+      const readyPercentage = Math.round((readyCount / totalCount) * 100);
+      const notReadyPercentage = 100 - readyPercentage;
+
+      setReadinessData([
+        {
+          key: "ready",
+          name: t("charts.readiness.ready"),
+          value: readyPercentage,
+          color: "#10b981",
+        },
+        {
+          key: "notReady",
+          name: t("charts.readiness.notReady"),
+          value: notReadyPercentage,
+          color: "#ef4444",
+        },
+      ]);
+    } catch (err: unknown) {
+      console.error("Failed to load overview data:", err);
+      resetOverviewState();
+      
+      const errorInfo = getOverviewErrorInfo(err);
+      if (errorInfo.status === 403) {
+        setError(t("error.accessDenied"));
+      } else if (errorInfo.status === 400) {
+        setError(t("error.invalidFilter"));
+      } else if (errorInfo.status === 422 || errorInfo.code === "academics.overview.invalid_context") {
+        setError(t("error.invalidContext"));
+      } else {
+        setError(t("error.loadFailed"));
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [academicYearId, termId, lang, t, resetOverviewState]);
+
   useEffect(() => {
     if (isInitializing) return;
-
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-
-        const overviewResponse = await fetchAcademicsOverview({
-          academicYearId: academicYearId || undefined,
-          termId: termId || undefined,
-        });
-        
-        setResponse(overviewResponse);
-        setError(null);
-
-        const checklistItems = generateChecklist(overviewResponse, lang);
-        const alertsItems = generateAlerts(overviewResponse, lang);
-        setChecklist(checklistItems);
-        setAlerts(alertsItems);
-
-        const { setupIndicators } = overviewResponse;
-        const totalCount = 10;
-        const readyCount = [
-          setupIndicators.hasAcademicYear,
-          setupIndicators.hasTerm,
-          setupIndicators.hasStructure,
-          setupIndicators.hasSubjects,
-          setupIndicators.hasRooms,
-          setupIndicators.hasTeacherAllocations,
-          setupIndicators.hasCurriculum,
-          setupIndicators.hasLessonPlans,
-          setupIndicators.hasTimetable,
-          setupIndicators.hasCalendarEvents,
-        ].filter(Boolean).length;
-        
-        const readyPercentage = Math.round((readyCount / totalCount) * 100);
-        const notReadyPercentage = 100 - readyPercentage;
-
-        setReadinessData([
-          {
-            key: "ready",
-            name: t("charts.readiness.ready"),
-            value: readyPercentage,
-            color: "#10b981",
-          },
-          {
-            key: "notReady",
-            name: t("charts.readiness.notReady"),
-            value: notReadyPercentage,
-            color: "#ef4444",
-          },
-        ]);
-      } catch (err: any) {
-        console.error("Failed to load overview data:", err);
-        resetOverviewState();
-        if (err?.status === 422 || err?.status === 400) {
-          setError(t("error.invalidContext"));
-        } else if (err?.status === 403) {
-          setError(t("error.invalidContext"));
-        } else {
-          setError(t("error.general"));
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [academicYearId, isInitializing, termId, lang, t]);
+    loadOverview();
+  }, [isInitializing, loadOverview]);
 
   const filteredChecklist = useMemo(() => {
     if (checklistStatusFilter === "all") {
@@ -340,14 +395,29 @@ export default function AcademicsOverviewPage() {
         { key: "startDate", label: exportLabels.startDate },
         { key: "endDate", label: exportLabels.endDate },
       ];
-      rows = (response.upcomingEvents || []).map((event) => ({
-        title: event.title,
-        type: event.type,
-        scope: event.scope.type,
-        allDay: event.allDay ? exportLabels.done : "-",
-        startDate: new Date(event.startDate).toLocaleDateString(locale),
-        endDate: new Date(event.endDate).toLocaleDateString(locale),
-      }));
+      rows = (response.upcomingEvents || []).map((event) => {
+        let typeLabel = tTypes("other");
+        const typeKey = event.type?.toLowerCase();
+        if (typeKey === "holiday") typeLabel = tTypes("holiday");
+        if (typeKey === "exam") typeLabel = tTypes("exam");
+        if (typeKey === "activity") typeLabel = tTypes("activity");
+
+        let scopeLabel = tScopes("other");
+        const scopeKey = event.scope.type?.toLowerCase();
+        if (scopeKey === "school") scopeLabel = tScopes("school");
+        if (scopeKey === "stage") scopeLabel = tScopes("stage");
+        if (scopeKey === "grade") scopeLabel = tScopes("grade");
+        if (scopeKey === "section") scopeLabel = tScopes("section");
+
+        return {
+          title: event.title,
+          type: typeLabel,
+          scope: scopeLabel,
+          allDay: event.allDay ? tCommon("yes") : tCommon("no"),
+          startDate: new Date(event.startDate).toLocaleDateString(locale),
+          endDate: new Date(event.endDate).toLocaleDateString(locale),
+        };
+      });
     }
 
     return { title, metadata, filename, columns, rows };
@@ -364,6 +434,9 @@ export default function AcademicsOverviewPage() {
     termId,
     terms,
     readinessData,
+    tTypes,
+    tScopes,
+    tCommon,
   ]);
 
   const handleExport = (format: AcademicsExportFormat) => {
@@ -396,8 +469,8 @@ export default function AcademicsOverviewPage() {
         ) : error || !response ? (
           <div className="flex min-h-[400px] flex-col items-center justify-center bg-white rounded-2xl border border-gray-200 px-4 text-center">
             <h2 className="mb-2 text-xl font-bold text-gray-900">{t("error.title")}</h2>
-            <p className="mb-6 text-gray-500 max-w-md">{error || t("error.general")}</p>
-            <Button onClick={() => window.location.reload()}>{t("error.retry")}</Button>
+            <p className="mb-6 text-gray-500 max-w-md">{error || t("error.loadFailed")}</p>
+            <Button onClick={loadOverview}>{t("error.retry")}</Button>
           </div>
         ) : (
           <>
@@ -407,7 +480,7 @@ export default function AcademicsOverviewPage() {
                   <h3 className="font-semibold text-blue-900">{t("noActiveYearCallout.title")}</h3>
                   <p className="text-sm text-blue-800 mt-1">{t("noActiveYearCallout.description")}</p>
                 </div>
-                <Link href={`/${lang}/academics/academic-years`}>
+                <Link href={`/${lang}/academics/structure`}>
                   <Button leftIcon={<PlusCircle className="w-4 h-4 mr-2" />}>
                     {t("noActiveYearCallout.action")}
                   </Button>
@@ -437,14 +510,14 @@ export default function AcademicsOverviewPage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             {t("summary.title")}
           </h2>
-          <KPICards response={response as AcademicsOverviewResponse} isLoading={isLoading} />
+          <KPICards response={response} isLoading={isLoading} />
         </div>
 
         {/* Section B: Setup & Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <SetupChecklist
             items={filteredChecklist}
-            response={response as AcademicsOverviewResponse}
+            response={response}
             isLoading={isLoading}
           />
           <AlertsPanel alerts={filteredAlerts} isLoading={isLoading} />
@@ -454,12 +527,12 @@ export default function AcademicsOverviewPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 px-2">
-              {t("readinessSnapshot")}
+              {t("readinessSnapshot.title")}
             </h2>
             <OverviewCharts
               readinessData={readinessData}
-              readyForScheduling={response?.setupIndicators.readyForScheduling}
-              readyForLearningFlow={response?.setupIndicators.readyForLearningFlow}
+              readyForScheduling={response.setupIndicators.readyForScheduling}
+              readyForLearningFlow={response.setupIndicators.readyForLearningFlow}
               isLoading={isLoading}
             />
           </div>
@@ -468,7 +541,7 @@ export default function AcademicsOverviewPage() {
               {t("events.sectionTitle")}
             </h2>
             <UpcomingEventsPanel 
-              events={response?.upcomingEvents || []} 
+              events={response.upcomingEvents || []} 
               isLoading={isLoading} 
             />
           </div>
