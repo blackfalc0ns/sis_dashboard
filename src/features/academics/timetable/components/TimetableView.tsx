@@ -40,6 +40,12 @@ import MainLoader from "@/components/ui/loaders/MainLoader";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useTimetableData } from "@/features/academics/timetable/hooks/useTimetableData";
 import { useTimetableGeneration } from "@/features/academics/timetable/hooks/useTimetableGeneration";
+import type {
+  Stage,
+  Grade,
+  Section,
+  Classroom,
+} from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   type AcademicsExportFormat,
   exportAcademicsData,
@@ -48,6 +54,7 @@ import {
   type ExportMetadata,
   formatExportDate,
 } from "@/features/academics/utils/exportAdapter";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 interface TimetableViewProps {
   schoolId: string;
@@ -147,6 +154,72 @@ export default function TimetableView({
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const [publishWithErrors, setPublishWithErrors] = useState(false);
 
+  // We need to fetch dependencies before we can normalize.
+  // We can pass a preliminary normalized state to useTimetableData to prevent premature timetable loading.
+  const [internalStages, setInternalStages] = useState<Stage[]>([]);
+  const [internalGrades, setInternalGrades] = useState<Grade[]>([]);
+  const [internalSections, setInternalSections] = useState<Section[]>([]);
+  const [internalClassrooms, setInternalClassrooms] = useState<Classroom[]>([]);
+
+  const isScopeSelectionNormalized = useMemo(() => {
+    // If dependencies haven't loaded yet, return false UNLESS we have NO selection at all
+    if (
+      internalStages.length === 0 &&
+      internalGrades.length === 0 &&
+      internalSections.length === 0
+    ) {
+      return (
+        !selectedStageId &&
+        !selectedGradeId &&
+        !selectedSectionId &&
+        !selectedClassroomId
+      );
+    }
+
+    const normalizedStageId = internalStages.some(
+      (stage) => stage.id === selectedStageId,
+    )
+      ? selectedStageId
+      : "";
+    const normalizedGradeId = internalGrades.some(
+      (grade) =>
+        grade.id === selectedGradeId &&
+        (!normalizedStageId || grade.stageId === normalizedStageId),
+    )
+      ? selectedGradeId
+      : "";
+    const normalizedSectionId = internalSections.some(
+      (section) =>
+        section.id === selectedSectionId &&
+        (!normalizedGradeId || section.gradeId === normalizedGradeId),
+    )
+      ? selectedSectionId
+      : "";
+    const normalizedClassroomId = internalClassrooms.some(
+      (classroom) =>
+        classroom.id === selectedClassroomId &&
+        (!normalizedSectionId || classroom.sectionId === normalizedSectionId),
+    )
+      ? selectedClassroomId
+      : "";
+
+    return (
+      normalizedStageId === selectedStageId &&
+      normalizedGradeId === selectedGradeId &&
+      normalizedSectionId === selectedSectionId &&
+      normalizedClassroomId === selectedClassroomId
+    );
+  }, [
+    internalStages,
+    internalGrades,
+    internalSections,
+    internalClassrooms,
+    selectedStageId,
+    selectedGradeId,
+    selectedSectionId,
+    selectedClassroomId,
+  ]);
+
   const {
     stages,
     grades,
@@ -188,10 +261,19 @@ export default function TimetableView({
     selectedGradeId,
     selectedSectionId,
     selectedClassroomId,
+    isScopeSelectionNormalized,
     showToast,
     translateErrorCode: translateTimetableError,
     messages: timetableMessages,
   });
+
+  // Sync internal refs for normalization
+  useEffect(() => {
+    setInternalStages(stages);
+    setInternalGrades(grades);
+    setInternalSections(sections);
+    setInternalClassrooms(classrooms);
+  }, [stages, grades, sections, classrooms]);
   const { handleGenerate, applyGenerated } = useTimetableGeneration({
     termId,
     selectedSectionId,
@@ -1533,7 +1615,7 @@ export default function TimetableView({
                       )}
                       {timetableLoading && !isLoading && (
                         <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/60 backdrop-blur-sm min-h-[200px]">
-                          <MainLoader />
+                          <PartialLoader />
                         </div>
                       )}
                       <TimetableGrid

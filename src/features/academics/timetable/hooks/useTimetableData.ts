@@ -80,11 +80,12 @@ import { isApiError } from "@/lib/api-error";
 interface UseTimetableDataParams {
   schoolId: string;
   termId: string;
-  academicYearId?: string;
+  academicYearId: string;
   enabled?: boolean;
   selectedGradeId: string;
   selectedSectionId: string;
   selectedClassroomId: string;
+  isScopeSelectionNormalized: boolean;
   showToast: (message: string, type?: "success" | "error" | "info" | "warning") => void;
   translateErrorCode?: TimetableErrorTranslator;
   messages?: {
@@ -241,6 +242,7 @@ export function useTimetableData({
   selectedGradeId,
   selectedSectionId,
   selectedClassroomId,
+  isScopeSelectionNormalized,
   showToast,
   translateErrorCode,
   messages,
@@ -297,23 +299,11 @@ export function useTimetableData({
     setResolvedConfig(null);
   }, []);
 
-  const resolveAcademicYearId = useCallback(async (): Promise<string> => {
-    if (academicYearId) {
-      return academicYearId;
-    }
-    const years = await fetchAcademicYears();
-    const currentYear = years[0];
-    if (!currentYear) {
-      throw new Error("No academic year found");
-    }
-    return currentYear.id;
-  }, [academicYearId]);
-
   const loadAcademicDependencies = useCallback(
     async () => {
       const requestId = ++dependenciesRequestIdRef.current;
       
-      if (!enabled || !termId) {
+      if (!enabled || !termId || !academicYearId) {
         setStages([]);
         setGrades([]);
         setSections([]);
@@ -332,7 +322,6 @@ export function useTimetableData({
       setApiError(null);
 
       try {
-        const yearId = await resolveAcademicYearId();
         if (requestId !== dependenciesRequestIdRef.current) return;
 
         const [
@@ -343,7 +332,7 @@ export function useTimetableData({
           teacherAllocsData,
           roomsData,
         ] = await Promise.all([
-          fetchStructureTree(yearId, termId),
+          fetchStructureTree(academicYearId, termId),
           fetchSubjects(termId),
           fetchSubjectAllocations(termId),
           fetchTeachers(),
@@ -379,14 +368,14 @@ export function useTimetableData({
         }
       }
     },
-    [enabled, schoolId, termId, resolveAcademicYearId, messages, translateErrorCode, showToast],
+    [enabled, schoolId, termId, academicYearId, messages, translateErrorCode, showToast],
   );
 
   const loadTimetableForScope = useCallback(
     async () => {
       const requestId = ++timetableRequestIdRef.current;
       
-      if (!enabled || !termId) {
+      if (!enabled || !termId || !academicYearId || !isScopeSelectionNormalized) {
         clearTimetableState();
         setTimetableLoading(false);
         return;
@@ -396,11 +385,10 @@ export function useTimetableData({
       setApiError(null);
 
       try {
-        const yearId = await resolveAcademicYearId();
         if (requestId !== timetableRequestIdRef.current) return;
 
         const nextConfig = await getConfig({
-          academicYearId: yearId,
+          academicYearId,
           termId,
           scopeType: scopeSelection.scopeType,
           gradeId: scopeSelection.gradeId,
@@ -461,7 +449,7 @@ export function useTimetableData({
         }
       }
     },
-    [enabled, termId, resolveAcademicYearId, scopeSelection, selectedClassroomId, clearTimetableState, messages, translateErrorCode, showToast],
+    [enabled, termId, academicYearId, isScopeSelectionNormalized, scopeSelection, selectedClassroomId, clearTimetableState, messages, translateErrorCode, showToast],
   );
   const reloadConfigs = useCallback(async () => {
     await loadTimetableForScope();
