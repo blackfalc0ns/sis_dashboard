@@ -9,6 +9,7 @@ import { DatePicker, Input, Select } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast/Toast";
 import { fetchGradesFiltersData } from "../../gradebook/services/gradesGradebookService";
 import { createAssessment } from "../services/gradesAssessmentsService";
+import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
 import type { AssessmentDeliveryMode, AssessmentType, CreateAssessmentPayload, ExamScopeType, ScopeEntityOption } from "../../shared/types";
 import { useGradesYearTermLayoutContext } from "@/features/grades/hooks/GradesYearTermLayoutContext";
 
@@ -137,7 +138,7 @@ export default function CreateAssessmentPage() {
       params.set("maxScore", String(draft.maxScore));
       router.push(`/${locale}/grades/assessments/new/questions?${params.toString()}`);
     } catch (error) {
-      showError(t(`errors.${error instanceof Error ? error.message : "generic"}`));
+      showError(t(`errors.${mapGradesApiError(error)}`));
     } finally {
       setIsSubmitting(false);
     }

@@ -25,6 +25,7 @@ import {
   updateAssessment,
   updateAssessmentQuestion,
 } from "../services/gradesAssessmentsService";
+import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
 import type { Assessment, AssessmentQuestion, AssessmentType } from "../types";
 import { useGradesRouteYearTerm } from "@/features/grades/hooks/useGradesRouteYearTerm";
 
@@ -446,7 +447,7 @@ export default function AssessmentQuestionsPage({
       showSuccess(tCommon("save_success"));
     } catch (error) {
       showError(
-        tGrades(`errors.${error instanceof Error ? error.message : "generic"}`),
+        tGrades(`errors.${mapGradesApiError(error)}`),
       );
     } finally {
       setIsAssignmentSaving(false);
@@ -523,7 +524,7 @@ export default function AssessmentQuestionsPage({
       setSelectedQuestionId(nextQuestion.id);
     } catch (error) {
       showError(
-        tGrades(`errors.${error instanceof Error ? error.message : "generic"}`),
+        tGrades(`errors.${mapGradesApiError(error)}`),
       );
     }
   };
@@ -616,7 +617,7 @@ export default function AssessmentQuestionsPage({
       showSuccess(tCommon("save_success"));
     } catch (error) {
       showError(
-        tGrades(`errors.${error instanceof Error ? error.message : "generic"}`),
+        tGrades(`errors.${mapGradesApiError(error)}`),
       );
     } finally {
       setIsQuestionSaving(false);
@@ -642,7 +643,7 @@ export default function AssessmentQuestionsPage({
       showSuccess(t("messages.deleted"));
     } catch (error) {
       showError(
-        tGrades(`errors.${error instanceof Error ? error.message : "generic"}`),
+        tGrades(`errors.${mapGradesApiError(error)}`),
       );
     }
   };

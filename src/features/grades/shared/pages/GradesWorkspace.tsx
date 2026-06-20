@@ -14,6 +14,7 @@ import {
   saveAssessmentSubmissionCorrection,
   updateGradeItem,
 } from "../../gradebook/services/gradesGradebookService";
+import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
 import {
   approveAssessment,
   bulkUpdateAssessmentGrades,
@@ -267,7 +268,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         );
         setSubmissionReviewState(review);
       } catch (error) {
-        showError(t(`errors.${error instanceof Error ? error.message : "generic"}`));
+        showError(t(`errors.${mapGradesApiError(error)}`));
       }
       return;
     }
@@ -284,7 +285,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
       await refreshGradebook();
       showSuccess(t("messages.assessmentUpdated"));
     } catch (error) {
-      showError(t(`errors.${error instanceof Error ? error.message : "generic"}`));
+      showError(t(`errors.${mapGradesApiError(error)}`));
     } finally {
       setIsCreatingAssessment(false);
     }
@@ -300,7 +301,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
       await refreshGradebook();
       showSuccess(t("messages.assessmentDeleted"));
     } catch (error) {
-      showError(t(`errors.${error instanceof Error ? error.message : "generic"}`));
+      showError(t(`errors.${mapGradesApiError(error)}`));
     } finally {
       setAssessmentActionId(null);
       setAssessmentActionType(null);
@@ -322,7 +323,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
       await refreshGradebook();
       showSuccess(t("messages.gradeSaved"));
     } catch (error) {
-      showError(t(`errors.${error instanceof Error ? error.message : "generic"}`));
+      showError(t(`errors.${mapGradesApiError(error)}`));
     } finally {
       setIsSavingGrade(false);
     }
@@ -345,7 +346,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
       await refreshGradebook();
       showSuccess(t("messages.questionsCorrected"));
     } catch (error) {
-      showError(t(`errors.${error instanceof Error ? error.message : "generic"}`));
+      showError(t(`errors.${mapGradesApiError(error)}`));
     } finally {
       setIsSavingSubmissionCorrection(false);
     }
@@ -359,7 +360,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
       const roster = await fetchAssessmentRoster(academicYearId, termId, assessment.id);
       setBulkEntryState({ assessment, rows: roster });
     } catch (error) {
-      showError(t(`errors.${error instanceof Error ? error.message : "generic"}`));
+      showError(t(`errors.${mapGradesApiError(error)}`));
     } finally {
       setIsBulkLoading(false);
       setAssessmentActionId(null);
@@ -376,7 +377,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
       await refreshGradebook();
       showSuccess(t("messages.bulkGradesSaved"));
     } catch (error) {
-      showError(t(`errors.${error instanceof Error ? error.message : "generic"}`));
+      showError(t(`errors.${mapGradesApiError(error)}`));
     } finally {
       setIsBulkSaving(false);
     }
@@ -392,7 +393,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
       await refreshGradebook();
       showSuccess(t(`messages.assessment${type === "publish" ? "Published" : type === "approve" ? "Approved" : "Locked"}`));
     } catch (error) {
-      showError(t(`errors.${error instanceof Error ? error.message : "generic"}`));
+      showError(t(`errors.${mapGradesApiError(error)}`));
     } finally {
       setAssessmentActionId(null);
       setAssessmentActionType(null);
