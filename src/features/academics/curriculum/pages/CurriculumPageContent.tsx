@@ -289,13 +289,12 @@ export default function CurriculumPageContent() {
       return;
     }
 
-    const currentContextKey = curriculumOptionsContextKey(academicYearId, termId);
+    const currentContextKey = curriculumOptionsContextKey(
+      academicYearId,
+      termId,
+    );
 
-    if (
-      loadedOptionsContextKey === currentContextKey &&
-      grades.length > 0 &&
-      subjects.length > 0
-    ) {
+    if (loadedOptionsContextKey === currentContextKey) {
       setSelectedGradeId((previous) => {
         if (
           queryState.gradeId &&
@@ -303,9 +302,11 @@ export default function CurriculumPageContent() {
         ) {
           return queryState.gradeId;
         }
+
         if (previous && grades.some((grade) => grade.id === previous)) {
           return previous;
         }
+
         return grades[0]?.id ?? "";
       });
 
@@ -316,11 +317,14 @@ export default function CurriculumPageContent() {
         ) {
           return queryState.subjectId;
         }
+
         if (previous && subjects.some((subject) => subject.id === previous)) {
           return previous;
         }
+
         return subjects[0]?.id ?? "";
       });
+
       return;
     }
 
