@@ -1,313 +1,4 @@
-import type { OverviewAdapter } from "@/features/academics/overview/services/overviewAdapter";
-import { overviewApiAdapter } from "@/features/academics/overview/services/overviewApiAdapter";
-
-// Service to aggregate data from all academics modules for the overview
-
-import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
-import {
-  fetchSubjects,
-  fetchSubjectAllocations,
-} from "@/features/academics/subjects/services/subjectsService";
-import {
-  fetchTeacherAllocations,
-  fetchTeachers,
-} from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import { fetchTermEvents } from "@/features/academics/calendar/services/calendarService";
-import { getLessonPlanSummary } from "@/features/academics/lesson-plans/services/lessonPlansService";
-
-export interface OverviewMetrics {
-  structure: {
-    totalStages: number;
-    totalGrades: number;
-    totalSections: number;
-    sectionsWithoutCapacity: number;
-    gradesWithoutSections: number;
-  };
-  subjects: {
-    totalSubjects: number;
-    totalAllocations: number;
-    expectedAllocations: number;
-    completionPercentage: number;
-    missingAllocations: number;
-  };
-  teacherAllocation: {
-    totalAllocations: number;
-    missingAllocations: number;
-    overloadedTeachers: number;
-    averageLoad: number;
-  };
-  calendar: {
-    upcomingEvents: number;
-    nextHolidayDate: string | null;
-    nextExamDate: string | null;
-  };
-  lessonPlans: {
-    totalPlanned: number;
-    totalDone: number;
-    completionPercentage: number;
-    weeklyBreakdown?: Array<{
-      week: string;
-      planned: number;
-      done: number;
-    }>;
-  };
-}
-
-const fetchOverviewMetricsImpl = async (
-  yearId: string,
-  termId: string,
-): Promise<OverviewMetrics> => {
-  // Fetch all data in parallel
-  const [
-    structure,
-    subjects,
-    allocations,
-    teacherAllocations,
-    teachers,
-    events,
-  ] = await Promise.all([
-    fetchStructureTree(yearId, termId),
-    fetchSubjects(termId),
-    fetchSubjectAllocations(termId),
-    fetchTeacherAllocations(termId),
-    fetchTeachers(),
-    fetchTermEvents(termId),
-  ]);
-
-  // Calculate structure metrics
-  const sectionsWithoutCapacity = structure.sections.filter(
-    (s) => !s.capacity || s.capacity === 0,
-  ).length;
-  const gradesWithoutSections = structure.grades.filter(
-    (g) => !structure.sections.some((s) => s.gradeId === g.id),
-  ).length;
-
-  // Calculate subject allocation metrics
-  const stageNamesById = new Map(
-    structure.stages.map((stage) => [
-      stage.id,
-      [
-        normalizeOverviewLabel(stage.name),
-        normalizeOverviewLabel(stage.nameEn),
-        normalizeOverviewLabel(stage.nameAr),
-      ].filter(Boolean),
-    ]),
-  );
-  const eligibleAllocationKeys = new Set<string>();
-
-  structure.grades.forEach((grade) => {
-    const stageNames = new Set(stageNamesById.get(grade.stageId) || []);
-    subjects.forEach((subject) => {
-      const subjectStage = normalizeOverviewLabel(subject.stage);
-      const isEligible = !subjectStage || stageNames.has(subjectStage);
-      if (isEligible) {
-        eligibleAllocationKeys.add(`${grade.id}:${subject.id}`);
-      }
-    });
-  });
-
-  const actualAllocationKeys = new Set(
-    allocations
-      .filter((allocation) => allocation.weeklyHours > 0)
-      .map((allocation) => `${allocation.gradeId}:${allocation.subjectId}`),
-  );
-
-  const expectedAllocations = eligibleAllocationKeys.size;
-  const completionPercentage =
-    expectedAllocations > 0
-      ? Math.min(
-          100,
-          Math.round((actualAllocationKeys.size / expectedAllocations) * 100),
-        )
-      : 0;
-  const missingSubjectAllocations = Math.max(
-    0,
-    expectedAllocations - actualAllocationKeys.size,
-  );
-
-  // Calculate teacher allocation metrics
-  const missingTeacherAllocations = teacherAllocations.filter(
-    (a) => !a.teacherId,
-  ).length;
-
-  // Calculate teacher loads
-  const teacherLoads = new Map<string, number>();
-  teacherAllocations.forEach((allocation) => {
-    if (allocation.teacherId) {
-      const subjectAlloc = allocations.find(
-        (a) => a.subjectId === allocation.subjectId,
-      );
-      const weeklyHours = subjectAlloc?.weeklyHours || 0;
-      const current = teacherLoads.get(allocation.teacherId) || 0;
-      teacherLoads.set(allocation.teacherId, current + weeklyHours);
-    }
-  });
-
-  const overloadedTeachers = Array.from(teacherLoads.entries()).filter(
-    ([teacherId, load]) => {
-      const teacher = teachers.find((t) => t.id === teacherId);
-      return teacher?.maxWeeklyLoad && load > teacher.maxWeeklyLoad;
-    },
-  ).length;
-
-  const averageLoad =
-    teacherLoads.size > 0
-      ? Math.round(
-          Array.from(teacherLoads.values()).reduce((a, b) => a + b, 0) /
-            teacherLoads.size,
-        )
-      : 0;
-
-  // Calculate calendar metrics
-  const today = new Date();
-  const upcomingEvents = events.filter((e) => {
-    const eventDate = new Date(e.startDate);
-    const diffDays = Math.ceil(
-      (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-    );
-    return diffDays >= 0 && diffDays <= 14;
-  }).length;
-
-  const nextHoliday = events
-    .filter((e) => e.type === "HOLIDAY" && new Date(e.startDate) > today)
-    .sort(
-      (a, b) =>
-        new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-    )[0];
-
-  const nextExam = events
-    .filter((e) => e.type === "EXAM" && new Date(e.startDate) > today)
-    .sort(
-      (a, b) =>
-        new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-    )[0];
-
-  const lessonPlanTargets: Array<{
-    sectionId: string;
-    subjectId: string;
-    classroomId?: string;
-  }> = structure.sections.flatMap<{
-    sectionId: string;
-    subjectId: string;
-    classroomId?: string;
-  }>((section) => {
-    const subjectTargets = allocations.filter(
-      (allocation) =>
-        allocation.gradeId === section.gradeId && allocation.weeklyHours > 0,
-    );
-    const classrooms = structure.classrooms.filter(
-      (classroom) => classroom.sectionId === section.id,
-    );
-
-    if (classrooms.length > 0) {
-      return subjectTargets.flatMap((allocation) =>
-        classrooms.map((classroom) => ({
-          sectionId: section.id,
-          subjectId: allocation.subjectId,
-          classroomId: classroom.id,
-        })),
-      );
-    }
-
-    return subjectTargets.map((allocation) => ({
-      sectionId: section.id,
-      subjectId: allocation.subjectId,
-    }));
-  });
-
-  const lessonPlanSummaries = await Promise.all(
-    lessonPlanTargets.map((target) =>
-      getLessonPlanSummary({
-        termId,
-        subjectId: target.subjectId,
-        classroomId: target.classroomId,
-      }),
-    ),
-  );
-
-  let totalPlanned = 0;
-  let totalDone = 0;
-
-  lessonPlanSummaries.forEach((summary) => {
-    totalPlanned += summary.plannedItemsCount;
-    totalDone += summary.completedItemsCount;
-  });
-
-  const totalLessonItems = lessonPlanSummaries.reduce(
-    (total, summary) => total + summary.itemsCount,
-    0,
-  );
-  const lessonPlansMetrics = {
-    totalPlanned,
-    totalDone,
-    completionPercentage:
-      totalLessonItems > 0
-        ? Math.round((totalDone / totalLessonItems) * 100)
-        : 0,
-    weeklyBreakdown: [],
-  };
-
-  return {
-    structure: {
-      totalStages: structure.stages.length,
-      totalGrades: structure.grades.length,
-      totalSections: structure.sections.length,
-      sectionsWithoutCapacity,
-      gradesWithoutSections,
-    },
-    subjects: {
-      totalSubjects: subjects.length,
-      totalAllocations: allocations.length,
-      expectedAllocations,
-      completionPercentage,
-      missingAllocations: missingSubjectAllocations,
-    },
-    teacherAllocation: {
-      totalAllocations: teacherAllocations.length,
-      missingAllocations: missingTeacherAllocations,
-      overloadedTeachers,
-      averageLoad,
-    },
-    calendar: {
-      upcomingEvents,
-      nextHolidayDate: nextHoliday?.startDate || null,
-      nextExamDate: nextExam?.startDate || null,
-    },
-    lessonPlans: lessonPlansMetrics,
-  };
-};
-
-const mockOverviewAdapter: OverviewAdapter = {
-  fetchOverviewMetrics: fetchOverviewMetricsImpl,
-};
-
-let overviewAdapter: OverviewAdapter =
-  process.env.NEXT_PUBLIC_USE_OVERVIEW_API === "true"
-    ? overviewApiAdapter
-    : mockOverviewAdapter;
-
-export const getOverviewAdapter = (): OverviewAdapter => overviewAdapter;
-
-export const setOverviewAdapter = (adapter: OverviewAdapter) => {
-  overviewAdapter = adapter;
-};
-
-export const resetOverviewAdapter = () => {
-  overviewAdapter =
-    process.env.NEXT_PUBLIC_USE_OVERVIEW_API === "true"
-      ? overviewApiAdapter
-      : mockOverviewAdapter;
-};
-
-export const activateOverviewAdapter = () => {
-  overviewAdapter = overviewApiAdapter;
-};
-
-export const fetchOverviewMetrics = (
-  yearId: string,
-  termId: string,
-): Promise<OverviewMetrics> =>
-  getOverviewAdapter().fetchOverviewMetrics(yearId, termId);
+import type { AcademicsOverviewResponse } from "./overviewApiAdapter";
 
 export interface ChecklistItem {
   id: string;
@@ -318,89 +9,90 @@ export interface ChecklistItem {
 }
 
 export function generateChecklist(
-  metrics: OverviewMetrics,
+  response: AcademicsOverviewResponse,
   lang: string,
 ): ChecklistItem[] {
   const items: ChecklistItem[] = [];
+  const { setupIndicators } = response;
 
-  // 1. Structure ready
-  const structureStatus =
-    metrics.structure.gradesWithoutSections === 0 &&
-    metrics.structure.sectionsWithoutCapacity === 0
-      ? "done"
-      : metrics.structure.gradesWithoutSections > 0
-        ? "error"
-        : "warning";
+  items.push({
+    id: "academicYear",
+    status: setupIndicators.hasAcademicYear ? "done" : "error",
+    titleKey: "academics.overview.checklist.academicYear.title",
+    descriptionKey: "academics.overview.checklist.academicYear.description",
+    link: `/${lang}/academics/academic-years`,
+  });
+
+  items.push({
+    id: "term",
+    status: setupIndicators.hasTerm ? "done" : "error",
+    titleKey: "academics.overview.checklist.term.title",
+    descriptionKey: "academics.overview.checklist.term.description",
+    link: `/${lang}/academics/terms`,
+  });
 
   items.push({
     id: "structure",
-    status: structureStatus,
+    status: setupIndicators.hasStructure ? "done" : "warning",
     titleKey: "academics.overview.checklist.structure.title",
     descriptionKey: "academics.overview.checklist.structure.description",
     link: `/${lang}/academics/structure`,
   });
 
-  // 2. Subjects allocation ready
-  const subjectsStatus =
-    metrics.subjects.completionPercentage === 100
-      ? "done"
-      : metrics.subjects.completionPercentage >= 80
-        ? "warning"
-        : "error";
-
   items.push({
     id: "subjects",
-    status: subjectsStatus,
+    status: setupIndicators.hasSubjects ? "done" : "warning",
     titleKey: "academics.overview.checklist.subjects.title",
     descriptionKey: "academics.overview.checklist.subjects.description",
     link: `/${lang}/academics/subjects`,
   });
 
-  // 3. Teacher allocation ready
-  const teacherStatus =
-    metrics.teacherAllocation.missingAllocations === 0 &&
-    metrics.teacherAllocation.overloadedTeachers === 0
-      ? "done"
-      : metrics.teacherAllocation.overloadedTeachers > 0
-        ? "error"
-        : "warning";
+  items.push({
+    id: "rooms",
+    status: setupIndicators.hasRooms ? "done" : "warning",
+    titleKey: "academics.overview.checklist.rooms.title",
+    descriptionKey: "academics.overview.checklist.rooms.description",
+    link: `/${lang}/academics/rooms`,
+  });
 
   items.push({
     id: "teachers",
-    status: teacherStatus,
+    status: setupIndicators.hasTeacherAllocations ? "done" : "warning",
     titleKey: "academics.overview.checklist.teachers.title",
     descriptionKey: "academics.overview.checklist.teachers.description",
     link: `/${lang}/academics/teacher-allocation`,
   });
 
-  // 4. Calendar ready
-  const calendarStatus =
-    metrics.calendar.nextHolidayDate || metrics.calendar.nextExamDate
-      ? "done"
-      : "warning";
-
   items.push({
-    id: "calendar",
-    status: calendarStatus,
-    titleKey: "academics.overview.checklist.calendar.title",
-    descriptionKey: "academics.overview.checklist.calendar.description",
-    link: `/${lang}/academics/calendar`,
+    id: "curriculum",
+    status: setupIndicators.hasCurriculum ? "done" : "warning",
+    titleKey: "academics.overview.checklist.curriculum.title",
+    descriptionKey: "academics.overview.checklist.curriculum.description",
+    link: `/${lang}/academics/curriculum`,
   });
-
-  // 5. Lesson plans started
-  const lessonPlansStatus =
-    metrics.lessonPlans.totalPlanned >= 10
-      ? "done"
-      : metrics.lessonPlans.totalPlanned > 0
-        ? "warning"
-        : "error";
 
   items.push({
     id: "lessonPlans",
-    status: lessonPlansStatus,
+    status: setupIndicators.hasLessonPlans ? "done" : "warning",
     titleKey: "academics.overview.checklist.lessonPlans.title",
     descriptionKey: "academics.overview.checklist.lessonPlans.description",
     link: `/${lang}/academics/lesson-plans`,
+  });
+
+  items.push({
+    id: "timetable",
+    status: setupIndicators.hasTimetable ? "done" : "warning",
+    titleKey: "academics.overview.checklist.timetable.title",
+    descriptionKey: "academics.overview.checklist.timetable.description",
+    link: `/${lang}/academics/timetable`,
+  });
+
+  items.push({
+    id: "calendar",
+    status: setupIndicators.hasCalendarEvents ? "done" : "warning",
+    titleKey: "academics.overview.checklist.calendar.title",
+    descriptionKey: "academics.overview.checklist.calendar.description",
+    link: `/${lang}/academics/calendar`,
   });
 
   return items;
@@ -415,95 +107,86 @@ export interface Alert {
   count?: number;
 }
 
-const normalizeOverviewLabel = (value?: string | null) =>
-  (value || "").trim().toLowerCase();
-
 export function generateAlerts(
-  metrics: OverviewMetrics,
+  response: AcademicsOverviewResponse,
   lang: string,
 ): Alert[] {
   const alerts: Alert[] = [];
+  const { setupIndicators, structure, subjects, teacherAllocation, curriculum, lessonPlans, timetable } = response;
 
-  // Sections missing capacity
-  if (metrics.structure.sectionsWithoutCapacity > 0) {
+  if (!setupIndicators.hasAcademicYear) {
     alerts.push({
-      id: "sections-capacity",
-      severity: "warning",
-      titleKey: "academics.overview.alerts.sectionsCapacity.title",
-      descriptionKey: "academics.overview.alerts.sectionsCapacity.description",
-      link: `/${lang}/academics/structure`,
-      count: metrics.structure.sectionsWithoutCapacity,
-    });
-  }
-
-  // Grades without sections
-  if (metrics.structure.gradesWithoutSections > 0) {
-    alerts.push({
-      id: "grades-sections",
+      id: "no-academic-year",
       severity: "error",
-      titleKey: "academics.overview.alerts.gradesSections.title",
-      descriptionKey: "academics.overview.alerts.gradesSections.description",
-      link: `/${lang}/academics/structure`,
-      count: metrics.structure.gradesWithoutSections,
+      titleKey: "academics.overview.alerts.noAcademicYear.title",
+      descriptionKey: "academics.overview.alerts.noAcademicYear.description",
+      link: `/${lang}/academics/academic-years`,
     });
   }
 
-  // Missing teacher allocations
-  if (metrics.teacherAllocation.missingAllocations > 0) {
+  if (setupIndicators.hasAcademicYear && !setupIndicators.hasTerm) {
     alerts.push({
-      id: "teacher-missing",
+      id: "no-term",
       severity: "error",
-      titleKey: "academics.overview.alerts.teacherMissing.title",
-      descriptionKey: "academics.overview.alerts.teacherMissing.description",
-      link: `/${lang}/academics/teacher-allocation`,
-      count: metrics.teacherAllocation.missingAllocations,
+      titleKey: "academics.overview.alerts.noTerm.title",
+      descriptionKey: "academics.overview.alerts.noTerm.description",
+      link: `/${lang}/academics/terms`,
     });
   }
 
-  // Overloaded teachers
-  if (metrics.teacherAllocation.overloadedTeachers > 0) {
+  if (setupIndicators.hasTerm && !setupIndicators.readyForScheduling) {
     alerts.push({
-      id: "teacher-overloaded",
+      id: "not-ready-for-scheduling",
       severity: "warning",
-      titleKey: "academics.overview.alerts.teacherOverloaded.title",
-      descriptionKey: "academics.overview.alerts.teacherOverloaded.description",
-      link: `/${lang}/academics/teacher-allocation`,
-      count: metrics.teacherAllocation.overloadedTeachers,
+      titleKey: "academics.overview.alerts.notReadyForScheduling.title",
+      descriptionKey: "academics.overview.alerts.notReadyForScheduling.description",
+      link: `/${lang}/academics`,
     });
   }
 
-  // Upcoming exam soon
-  if (metrics.calendar.nextExamDate) {
-    const daysUntil = Math.ceil(
-      (new Date(metrics.calendar.nextExamDate).getTime() -
-        new Date().getTime()) /
-        (1000 * 60 * 60 * 24),
-    );
-    if (daysUntil <= 7) {
-      alerts.push({
-        id: "exam-soon",
-        severity: "info",
-        titleKey: "academics.overview.alerts.examSoon.title",
-        descriptionKey: "academics.overview.alerts.examSoon.description",
-        link: `/${lang}/academics/calendar`,
-      });
-    }
+  if (setupIndicators.hasTerm && !setupIndicators.readyForLearningFlow) {
+    alerts.push({
+      id: "not-ready-for-learning",
+      severity: "warning",
+      titleKey: "academics.overview.alerts.notReadyForLearning.title",
+      descriptionKey: "academics.overview.alerts.notReadyForLearning.description",
+      link: `/${lang}/academics`,
+    });
   }
 
-  // Lesson plans behind schedule (if completion < 70%)
-  if (metrics.lessonPlans.completionPercentage < 70) {
+  if (setupIndicators.hasTerm && timetable.entriesCount === 0) {
     alerts.push({
-      id: "lessons-behind",
-      severity: "warning",
-      titleKey: "academics.overview.alerts.lessonsBehind.title",
-      descriptionKey: "academics.overview.alerts.lessonsBehind.description",
+      id: "no-timetable",
+      severity: "info",
+      titleKey: "academics.overview.alerts.noTimetable.title",
+      descriptionKey: "academics.overview.alerts.noTimetable.description",
+      link: `/${lang}/academics/timetable`,
+    });
+  }
+
+  if (setupIndicators.hasTerm && curriculum.curriculaCount === 0) {
+    alerts.push({
+      id: "no-curriculum",
+      severity: "info",
+      titleKey: "academics.overview.alerts.noCurriculum.title",
+      descriptionKey: "academics.overview.alerts.noCurriculum.description",
+      link: `/${lang}/academics/curriculum`,
+    });
+  }
+
+  if (setupIndicators.hasTerm && lessonPlans.lessonPlansCount === 0) {
+    alerts.push({
+      id: "no-lesson-plans",
+      severity: "info",
+      titleKey: "academics.overview.alerts.noLessonPlans.title",
+      descriptionKey: "academics.overview.alerts.noLessonPlans.description",
       link: `/${lang}/academics/lesson-plans`,
     });
   }
 
-  // Sort by severity
   const severityOrder = { error: 0, warning: 1, info: 2 };
   return alerts
     .sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity])
     .slice(0, 6);
 }
+

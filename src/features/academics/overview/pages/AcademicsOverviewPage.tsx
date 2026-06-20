@@ -9,23 +9,19 @@ import SetupChecklist from "../components/SetupChecklist";
 import OverviewCharts from "../components/OverviewCharts";
 import AlertsPanel from "../components/AlertsPanel";
 import QuickLinks from "../components/QuickLinks";
+import UpcomingEventsPanel from "../components/UpcomingEventsPanel";
 import AcademicsOverviewFiltersBar, {
   type AcademicsOverviewAlertSeverityFilter,
-  type AcademicsOverviewChartFilter,
   type AcademicsOverviewChecklistStatusFilter,
   type AcademicsOverviewExportDataset,
 } from "../components/AcademicsOverviewFiltersBar";
 import {
-  fetchOverviewMetrics,
   generateChecklist,
   generateAlerts,
-  type OverviewMetrics,
   type ChecklistItem,
   type Alert,
 } from "../services/overviewService";
-import { fetchTeachers, calculateTeacherLoads } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
-import { fetchSubjectAllocations } from "@/features/academics/subjects/services/subjectsService";
+import { fetchAcademicsOverview, type AcademicsOverviewResponse } from "../services/overviewApiAdapter";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import type {
   AcademicYear,
@@ -39,10 +35,12 @@ import {
   type ExportColumn,
   type ExportMetadata,
 } from "@/features/academics/utils/exportAdapter";
+import Link from "next/link";
+import Button from "@/components/ui/button/Button";
+import { PlusCircle } from "lucide-react";
 
 export default function AcademicsOverviewPage() {
   const t = useTranslations("academics.overview");
-  const tCommon = useTranslations("common");
   const tExport = useTranslations("academics.export");
   const locale = useLocale();
   const params = useParams();
@@ -57,18 +55,17 @@ export default function AcademicsOverviewPage() {
     terms,
   } = useAcademicYearTermLayoutContext();
 
-  const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
+  const [response, setResponse] = useState<AcademicsOverviewResponse | null>(null);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
 
   // Chart data
-  const [lessonPlansData, setLessonPlansData] = useState<Array<{ week: string; planned: number; done: number }>>([]);
-  const [teacherLoadsData, setTeacherLoadsData] = useState<Array<{ name: string; load: number; isOverloaded: boolean }>>([]);
   const [readinessData, setReadinessData] = useState<
     Array<{ key: "ready" | "notReady"; name: string; value: number; color: string }>
   >([]);
+
   const checklistStatusFilter = useMemo<AcademicsOverviewChecklistStatusFilter>(() => {
     const value = searchParams.get("checklistStatus");
     if (
@@ -80,6 +77,7 @@ export default function AcademicsOverviewPage() {
     }
     return "all";
   }, [searchParams]);
+
   const alertSeverityFilter = useMemo<AcademicsOverviewAlertSeverityFilter>(() => {
     const value = searchParams.get("alertSeverity");
     if (value === "error" || value === "warning" || value === "info") {
@@ -87,24 +85,12 @@ export default function AcademicsOverviewPage() {
     }
     return "all";
   }, [searchParams]);
-  const chartFilter = useMemo<AcademicsOverviewChartFilter>(() => {
-    const value = searchParams.get("chart");
-    if (
-      value === "lessonPlans" ||
-      value === "teacherLoads" ||
-      value === "readiness"
-    ) {
-      return value;
-    }
-    return "all";
-  }, [searchParams]);
+
   const exportDataset = useMemo<AcademicsOverviewExportDataset>(() => {
     const value = searchParams.get("exportDataset");
     if (
       value === "checklist" ||
       value === "alerts" ||
-      value === "lessonPlans" ||
-      value === "teacherLoads" ||
       value === "readiness"
     ) {
       return value;
@@ -126,25 +112,18 @@ export default function AcademicsOverviewPage() {
             severity: "الشدة",
             description: "الوصف",
             count: "العدد",
-            week: "الأسبوع",
-            teacher: "المعلم",
-            totalStages: "إجمالي المراحل",
-            totalGrades: "إجمالي الصفوف",
-            totalSections: "إجمالي الشعب",
-            sectionsWithoutCapacity: "شعب بدون سعة",
-            totalSubjects: "إجمالي المواد",
-            subjectCompletion: "نسبة اكتمال توزيع المواد",
-            missingTeacherAllocations: "توزيعات المعلمين المفقودة",
-            overloadedTeachers: "المعلمون المحملون زائد",
-            lessonPlansPlanned: "خطط الدروس المخططة",
-            lessonPlansDone: "خطط الدروس المنجزة",
-            lessonPlansCompletion: "نسبة اكتمال خطط الدروس",
-            overloaded: "محمل زائد",
-            normal: "طبيعي",
             done: "مكتمل",
             warning: "تحذير",
             error: "خطأ",
             info: "معلومات",
+            structure: "الهيكل الأكاديمي",
+            subjects: "المواد الدراسية",
+            rooms: "الغرف",
+            teachers: "المعلمين",
+            curriculum: "المنهج",
+            lessonPlans: "خطط الدروس",
+            timetable: "الجدول المدرسي",
+            calendar: "التقويم",
           }
         : {
             group: "Group",
@@ -157,35 +136,26 @@ export default function AcademicsOverviewPage() {
             severity: "Severity",
             description: "Description",
             count: "Count",
-            week: "Week",
-            teacher: "Teacher",
-            totalStages: "Total stages",
-            totalGrades: "Total grades",
-            totalSections: "Total sections",
-            sectionsWithoutCapacity: "Sections without capacity",
-            totalSubjects: "Total subjects",
-            subjectCompletion: "Subject allocation completion",
-            missingTeacherAllocations: "Missing teacher allocations",
-            overloadedTeachers: "Overloaded teachers",
-            lessonPlansPlanned: "Lesson plans planned",
-            lessonPlansDone: "Lesson plans done",
-            lessonPlansCompletion: "Lesson plans completion",
-            overloaded: "Overloaded",
-            normal: "Normal",
             done: "Done",
             warning: "Warning",
             error: "Error",
             info: "Info",
+            structure: "Structure",
+            subjects: "Subjects",
+            rooms: "Rooms",
+            teachers: "Teachers",
+            curriculum: "Curriculum",
+            lessonPlans: "Lesson Plans",
+            timetable: "Timetable",
+            calendar: "Calendar",
           },
     [locale]
   );
 
   const resetOverviewState = () => {
-    setMetrics(null);
+    setResponse(null);
     setChecklist([]);
     setAlerts([]);
-    setLessonPlansData([]);
-    setTeacherLoadsData([]);
     setReadinessData([]);
   };
 
@@ -193,7 +163,6 @@ export default function AcademicsOverviewPage() {
     nextState: Partial<{
       checklistStatus: AcademicsOverviewChecklistStatusFilter;
       alertSeverity: AcademicsOverviewAlertSeverityFilter;
-      chart: AcademicsOverviewChartFilter;
       exportDataset: AcademicsOverviewExportDataset;
     }>,
     historyMode: "push" | "replace" = "push"
@@ -204,7 +173,6 @@ export default function AcademicsOverviewPage() {
         nextState.checklistStatus ?? checklistStatusFilter,
       alertSeverity:
         nextState.alertSeverity ?? alertSeverityFilter,
-      chart: nextState.chart ?? chartFilter,
       exportDataset: nextState.exportDataset ?? exportDataset,
     };
 
@@ -220,17 +188,14 @@ export default function AcademicsOverviewPage() {
       params.set("alertSeverity", mergedState.alertSeverity);
     }
 
-    if (mergedState.chart === "all") {
-      params.delete("chart");
-    } else {
-      params.set("chart", mergedState.chart);
-    }
-
     if (mergedState.exportDataset === "summary") {
       params.delete("exportDataset");
     } else {
       params.set("exportDataset", mergedState.exportDataset);
     }
+
+    // Always clean up old chart filter that is no longer supported
+    params.delete("chart");
 
     const nextQuery = params.toString();
     const currentQuery = searchParams.toString();
@@ -247,63 +212,40 @@ export default function AcademicsOverviewPage() {
     router.replace(nextUrl, { scroll: false });
   };
 
-  // Load data when year/term changes
   useEffect(() => {
     if (isInitializing) return;
-    if (!academicYearId || !termId) {
-      resetOverviewState();
-      setIsLoading(false);
-      return;
-    }
 
     const loadData = async () => {
       try {
         setIsLoading(true);
 
-        // Fetch overview metrics
-        const metricsData = await fetchOverviewMetrics(academicYearId, termId);
-        setMetrics(metricsData);
+        const overviewResponse = await fetchAcademicsOverview({
+          academicYearId: academicYearId || undefined,
+          termId: termId || undefined,
+        });
+        
+        setResponse(overviewResponse);
 
-        // Generate checklist and alerts
-        const checklistItems = generateChecklist(metricsData, lang);
-        const alertsItems = generateAlerts(metricsData, lang);
+        const checklistItems = generateChecklist(overviewResponse, lang);
+        const alertsItems = generateAlerts(overviewResponse, lang);
         setChecklist(checklistItems);
         setAlerts(alertsItems);
 
-        setLessonPlansData(metricsData.lessonPlans.weeklyBreakdown || []);
-
-        // Prepare teacher loads chart data
-        const structure = await fetchStructureTree(academicYearId, termId);
-        const subjectAllocations = await fetchSubjectAllocations(termId);
-        const teachers = await fetchTeachers();
+        const { setupIndicators } = overviewResponse;
+        const totalCount = 10;
+        const readyCount = [
+          setupIndicators.hasAcademicYear,
+          setupIndicators.hasTerm,
+          setupIndicators.hasStructure,
+          setupIndicators.hasSubjects,
+          setupIndicators.hasRooms,
+          setupIndicators.hasTeacherAllocations,
+          setupIndicators.hasCurriculum,
+          setupIndicators.hasLessonPlans,
+          setupIndicators.hasTimetable,
+          setupIndicators.hasCalendarEvents,
+        ].filter(Boolean).length;
         
-        const loads = await calculateTeacherLoads(termId, {
-          grades: structure.grades,
-          sections: structure.sections,
-        }, subjectAllocations);
-
-        const topTeachers = loads.slice(0, 8).map((load) => {
-          const teacher = teachers.find((t) => t.id === load.teacherId);
-          const isOverloaded = teacher?.maxWeeklyLoad
-            ? load.totalWeeklyPeriods > teacher.maxWeeklyLoad
-            : false;
-
-          return {
-            name: load.teacherName.length > 15 ? load.teacherName.substring(0, 12) + "..." : load.teacherName,
-            load: load.totalWeeklyPeriods,
-            isOverloaded,
-          };
-        });
-        setTeacherLoadsData(topTeachers);
-
-        // Prepare readiness donut data
-        const structureReady = metricsData.structure.gradesWithoutSections === 0 && metricsData.structure.sectionsWithoutCapacity === 0;
-        const subjectsReady = metricsData.subjects.completionPercentage === 100;
-        const teachersReady = metricsData.teacherAllocation.missingAllocations === 0 && metricsData.teacherAllocation.overloadedTeachers === 0;
-        const plansReady = metricsData.lessonPlans.totalPlanned >= 10;
-
-        const readyCount = [structureReady, subjectsReady, teachersReady, plansReady].filter(Boolean).length;
-        const totalCount = 4;
         const readyPercentage = Math.round((readyCount / totalCount) * 100);
         const notReadyPercentage = 100 - readyPercentage;
 
@@ -336,7 +278,6 @@ export default function AcademicsOverviewPage() {
     if (checklistStatusFilter === "all") {
       return checklist;
     }
-
     return checklist.filter((item) => item.status === checklistStatusFilter);
   }, [checklist, checklistStatusFilter]);
 
@@ -344,7 +285,6 @@ export default function AcademicsOverviewPage() {
     if (alertSeverityFilter === "all") {
       return alerts;
     }
-
     return alerts.filter((item) => item.severity === alertSeverityFilter);
   }, [alertSeverityFilter, alerts]);
 
@@ -353,7 +293,6 @@ export default function AcademicsOverviewPage() {
       {
         checklistStatus: "all",
         alertSeverity: "all",
-        chart: "all",
         exportDataset: "summary",
       },
       "replace"
@@ -361,19 +300,28 @@ export default function AcademicsOverviewPage() {
   };
 
   const overviewExportData = useMemo(() => {
-    if (!metrics || !academicYearId || !termId) {
+    if (!response) {
       return null;
     }
+    
+    // Provide generic name for the fallback "Zero State" scenario when there's no year
+    const activeYearName =
+      academicYears.find((item: AcademicYear) => item.id === academicYearId)?.name ||
+      academicYearId ||
+      t("filters.options.all");
+    const activeTermName = 
+      terms.find((item: Term) => item.id === termId)?.name || 
+      termId || 
+      t("filters.options.all");
+
     const metadata: ExportMetadata = {
-      yearName:
-        academicYears.find((item: AcademicYear) => item.id === academicYearId)?.name ||
-        academicYearId,
-      termName: terms.find((item: Term) => item.id === termId)?.name || termId,
+      yearName: activeYearName,
+      termName: activeTermName,
       exportDate: formatExportDate(locale),
     };
 
     let title = t("title");
-    let filename = generateExportFilename("academics-overview", termId);
+    let filename = generateExportFilename("academics-overview", termId || "all");
     let columns: ExportColumn[] = [];
     let rows: Record<string, unknown>[] = [];
 
@@ -385,153 +333,48 @@ export default function AcademicsOverviewPage() {
         { key: "value", label: exportLabels.value },
       ];
       rows = [
-        {
-          group: t("kpi.structure.title"),
-          metric: exportLabels.totalStages,
-          value: metrics.structure.totalStages,
-        },
-        {
-          group: t("kpi.structure.title"),
-          metric: exportLabels.totalGrades,
-          value: metrics.structure.totalGrades,
-        },
-        {
-          group: t("kpi.structure.title"),
-          metric: exportLabels.totalSections,
-          value: metrics.structure.totalSections,
-        },
-        {
-          group: t("kpi.structure.title"),
-          metric: exportLabels.sectionsWithoutCapacity,
-          value: metrics.structure.sectionsWithoutCapacity,
-        },
-        {
-          group: t("kpi.subjects.title"),
-          metric: exportLabels.totalSubjects,
-          value: metrics.subjects.totalSubjects,
-        },
-        {
-          group: t("kpi.subjects.title"),
-          metric: exportLabels.subjectCompletion,
-          value: `${metrics.subjects.completionPercentage}%`,
-        },
-        {
-          group: t("kpi.teachers.title"),
-          metric: exportLabels.missingTeacherAllocations,
-          value: metrics.teacherAllocation.missingAllocations,
-        },
-        {
-          group: t("kpi.teachers.title"),
-          metric: exportLabels.overloadedTeachers,
-          value: metrics.teacherAllocation.overloadedTeachers,
-        },
-        {
-          group: t("kpi.lessonPlans.title"),
-          metric: exportLabels.lessonPlansPlanned,
-          value: metrics.lessonPlans.totalPlanned,
-        },
-        {
-          group: t("kpi.lessonPlans.title"),
-          metric: exportLabels.lessonPlansDone,
-          value: metrics.lessonPlans.totalDone,
-        },
-        {
-          group: t("kpi.lessonPlans.title"),
-          metric: exportLabels.lessonPlansCompletion,
-          value: `${metrics.lessonPlans.completionPercentage}%`,
-        },
+        { group: exportLabels.structure, metric: t("kpi.structure.title"), value: response.structure.gradesCount },
+        { group: exportLabels.subjects, metric: t("kpi.subjects.title"), value: response.subjects.subjectsCount },
+        { group: exportLabels.rooms, metric: t("kpi.rooms.title"), value: response.rooms.roomsCount },
+        { group: exportLabels.teachers, metric: t("kpi.teachers.title"), value: response.teacherAllocation.allocationsCount },
+        { group: exportLabels.curriculum, metric: t("kpi.curriculum.title"), value: response.curriculum.curriculaCount },
+        { group: exportLabels.lessonPlans, metric: t("kpi.lessonPlans.title"), value: response.lessonPlans.lessonPlansCount },
+        { group: exportLabels.timetable, metric: t("kpi.timetable.title"), value: response.timetable.entriesCount },
+        { group: exportLabels.calendar, metric: t("kpi.calendar.title"), value: response.calendar.eventsCount },
       ];
     } else if (exportDataset === "checklist") {
       title = t("checklist.title");
-      filename = generateExportFilename("academics-overview-checklist", termId);
+      filename = generateExportFilename("academics-overview-checklist", termId || "all");
       columns = [
         { key: "title", label: exportLabels.title },
         { key: "status", label: exportLabels.status },
-        { key: "reason", label: exportLabels.reason },
+        { key: "description", label: exportLabels.description },
         { key: "link", label: exportLabels.link },
       ];
       rows = filteredChecklist.map((item) => ({
         title: t(item.titleKey),
-        status: exportLabels[item.status],
-        reason:
-          item.id === "structure"
-            ? metrics.structure.gradesWithoutSections > 0
-              ? t("checklist.structure.reason", {
-                  count: metrics.structure.gradesWithoutSections,
-                })
-              : metrics.structure.sectionsWithoutCapacity > 0
-                ? t("checklist.structure.reasonCapacity", {
-                    count: metrics.structure.sectionsWithoutCapacity,
-                  })
-                : t("checklist.allGood")
-            : item.id === "subjects"
-              ? metrics.subjects.completionPercentage < 100
-                ? t("checklist.subjects.reason", {
-                    percentage: metrics.subjects.completionPercentage,
-                  })
-                : t("checklist.allGood")
-              : item.id === "teachers"
-                ? metrics.teacherAllocation.missingAllocations > 0
-                  ? t("checklist.teachers.reason", {
-                      count: metrics.teacherAllocation.missingAllocations,
-                    })
-                  : metrics.teacherAllocation.overloadedTeachers > 0
-                    ? t(
-                        "checklist.teachers.reasonOverloaded",
-                        { count: metrics.teacherAllocation.overloadedTeachers }
-                      )
-                    : t("checklist.allGood")
-                : item.id === "calendar"
-                  ? item.status === "done"
-                    ? t("checklist.allGood")
-                    : t("checklist.calendar.reason")
-                  : t("checklist.lessonPlans.reason", {
-                      count: metrics.lessonPlans.totalPlanned,
-                    }),
+        status: exportLabels[item.status as keyof typeof exportLabels] || item.status,
+        description: t(item.descriptionKey),
         link: item.link,
       }));
     } else if (exportDataset === "alerts") {
       title = t("alerts.title");
-      filename = generateExportFilename("academics-overview-alerts", termId);
+      filename = generateExportFilename("academics-overview-alerts", termId || "all");
       columns = [
         { key: "title", label: exportLabels.title },
         { key: "severity", label: exportLabels.severity },
         { key: "description", label: exportLabels.description },
-        { key: "count", label: exportLabels.count },
         { key: "link", label: exportLabels.link },
       ];
       rows = filteredAlerts.map((item) => ({
         title: t(item.titleKey),
-        severity: exportLabels[item.severity],
+        severity: exportLabels[item.severity as keyof typeof exportLabels] || item.severity,
         description: t(item.descriptionKey),
-        count: item.count ?? "",
         link: item.link,
-      }));
-    } else if (exportDataset === "lessonPlans") {
-      title = t("charts.lessonPlans.title");
-      filename = generateExportFilename("academics-overview-lesson-plans", termId);
-      columns = [
-        { key: "week", label: exportLabels.week },
-        { key: "planned", label: t("charts.lessonPlans.planned") },
-        { key: "done", label: t("charts.lessonPlans.done") },
-      ];
-      rows = lessonPlansData;
-    } else if (exportDataset === "teacherLoads") {
-      title = t("charts.teacherLoads.title");
-      filename = generateExportFilename("academics-overview-teacher-loads", termId);
-      columns = [
-        { key: "name", label: exportLabels.teacher },
-        { key: "load", label: t("charts.teacherLoads.weeklyPeriods") },
-        { key: "status", label: exportLabels.status },
-      ];
-      rows = teacherLoadsData.map((item) => ({
-        name: item.name,
-        load: item.load,
-        status: item.isOverloaded ? exportLabels.overloaded : exportLabels.normal,
       }));
     } else {
       title = t("charts.readiness.title");
-      filename = generateExportFilename("academics-overview-readiness", termId);
+      filename = generateExportFilename("academics-overview-readiness", termId || "all");
       columns = [
         { key: "name", label: exportLabels.title },
         { key: "value", label: exportLabels.value },
@@ -550,11 +393,9 @@ export default function AcademicsOverviewPage() {
     exportLabels,
     filteredAlerts,
     filteredChecklist,
-    lessonPlansData,
     locale,
-    metrics,
+    response,
     t,
-    teacherLoadsData,
     termId,
     terms,
     readinessData,
@@ -581,19 +422,30 @@ export default function AcademicsOverviewPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
       <div className="px-4 sm:px-6 my-6 space-y-6">
+        
+        {!isLoading && response && !response.setupIndicators.hasAcademicYear && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-4">
+            <div className="flex-1">
+              <h3 className="font-semibold text-blue-900">{t("noActiveYearCallout.title")}</h3>
+              <p className="text-sm text-blue-800 mt-1">{t("noActiveYearCallout.description")}</p>
+            </div>
+            <Link href={`/${lang}/academics/academic-years`}>
+              <Button leftIcon={<PlusCircle className="w-4 h-4 mr-2" />}>
+                {t("noActiveYearCallout.action")}
+              </Button>
+            </Link>
+          </div>
+        )}
+
         <AcademicsOverviewFiltersBar
           checklistStatus={checklistStatusFilter}
           alertSeverity={alertSeverityFilter}
-          chartFilter={chartFilter}
           exportDataset={exportDataset}
           onChecklistStatusChange={(value) =>
             syncOverviewQueryParams({ checklistStatus: value }, "push")
           }
           onAlertSeverityChange={(value) =>
             syncOverviewQueryParams({ alertSeverity: value }, "push")
-          }
-          onChartFilterChange={(value) =>
-            syncOverviewQueryParams({ chart: value }, "push")
           }
           onExportDatasetChange={(value) =>
             syncOverviewQueryParams({ exportDataset: value }, "push")
@@ -607,82 +459,41 @@ export default function AcademicsOverviewPage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             {t("summary.title")}
           </h2>
-          {isLoading ? (
-            <KPICards
-              metrics={
-                {
-                  structure: {
-                    totalStages: 0,
-                    totalGrades: 0,
-                    totalSections: 0,
-                    sectionsWithoutCapacity: 0,
-                    gradesWithoutSections: 0,
-                  },
-                  subjects: {
-                    totalSubjects: 0,
-                    totalAllocations: 0,
-                    expectedAllocations: 0,
-                    completionPercentage: 0,
-                    missingAllocations: 0,
-                  },
-                  teacherAllocation: {
-                    totalAllocations: 0,
-                    missingAllocations: 0,
-                    overloadedTeachers: 0,
-                    averageLoad: 0,
-                  },
-                  calendar: {
-                    upcomingEvents: 0,
-                    nextHolidayDate: null,
-                    nextExamDate: null,
-                  },
-                  lessonPlans: {
-                    totalPlanned: 0,
-                    totalDone: 0,
-                    completionPercentage: 0,
-                    weeklyBreakdown: [],
-                  },
-                }
-              }
-              isLoading
-            />
-          ) : metrics ? (
-            <KPICards metrics={metrics} isLoading={isLoading} />
-          ) : (
-            <p className="text-sm text-gray-500">{tCommon("noData")}</p>
-          )}
+          <KPICards response={response as AcademicsOverviewResponse} isLoading={isLoading} />
         </div>
 
         {/* Section B: Setup & Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {isLoading ? (
-            <SetupChecklist items={[]} isLoading />
-          ) : metrics ? (
-            <SetupChecklist
-              items={filteredChecklist}
-              metrics={metrics}
-              isLoading={isLoading}
-            />
-          ) : (
-            <div className="bg-white rounded-2xl border border-gray-200 p-6">
-              <p className="text-sm text-gray-500">{tCommon("noData")}</p>
-            </div>
-          )}
+          <SetupChecklist
+            items={filteredChecklist}
+            response={response as AcademicsOverviewResponse}
+            isLoading={isLoading}
+          />
           <AlertsPanel alerts={filteredAlerts} isLoading={isLoading} />
         </div>
 
-        {/* Section C: Analytics (Charts) */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 px-2">
-            {t("analytics.title")}
-          </h2>
-          <OverviewCharts
-            lessonPlansData={lessonPlansData}
-            teacherLoadsData={teacherLoadsData}
-            readinessData={readinessData}
-            isLoading={isLoading}
-            chartFilter={chartFilter}
-          />
+        {/* Section C: Readiness & Events */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 px-2">
+              {t("readinessSnapshot")}
+            </h2>
+            <OverviewCharts
+              readinessData={readinessData}
+              readyForScheduling={response?.setupIndicators.readyForScheduling}
+              readyForLearningFlow={response?.setupIndicators.readyForLearningFlow}
+              isLoading={isLoading}
+            />
+          </div>
+          <div className="lg:col-span-2">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 px-2">
+              {t("events.sectionTitle")}
+            </h2>
+            <UpcomingEventsPanel 
+              events={response?.upcomingEvents || []} 
+              isLoading={isLoading} 
+            />
+          </div>
         </div>
 
         {/* Quick Links */}

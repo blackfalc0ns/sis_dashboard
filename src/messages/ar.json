@@ -3350,34 +3350,44 @@
       "title": "نظرة عامة على الأكاديميات",
       "kpi": {
         "structure": {
-          "title": "الهيكل",
-          "subtitle": "{sections} شعبة"
+          "title": "الهيكل الأكاديمي",
+          "subtitle": "{sections} شعب، {classrooms} فصول"
         },
         "subjects": {
-          "title": "توزيع المواد",
+          "title": "المواد",
           "subtitle": "{total} مادة"
         },
         "teachers": {
-          "title": "التوزيعات المفقودة",
-          "subtitle": "{overloaded} محمل زائد"
+          "title": "توزيع المعلمين",
+          "subtitle": "{teachers} معلمين، {subjects} مواد"
         },
         "lessonPlans": {
           "title": "خطط الدروس",
-          "subtitle": "{done}/{total} منجز"
+          "subtitle": "{plannedItems} خطة"
         },
         "calendar": {
-          "title": "الأحداث القادمة",
+          "title": "التقويم",
           "nextHoliday": "التالي: {date}",
-          "noUpcoming": "لا توجد أحداث قادمة"
+          "noUpcoming": "لا توجد أحداث قادمة",
+          "subtitle": "{total} حدث"
         },
         "timetable": {
           "title": "الجدول الدراسي",
-          "comingSoon": "قريباً"
+          "comingSoon": "قريباً",
+          "subtitle": "{total} حصة"
+        },
+        "rooms": {
+          "title": "الغرف",
+          "subtitle": "{total} غرفة"
+        },
+        "curriculum": {
+          "title": "المنهج",
+          "subtitle": "{lessons} درس"
         }
       },
       "alerts": {
         "title": "التنبيهات والمشاكل",
-        "noAlerts": "جميع الأنظمة جاهزة!",
+        "noAlerts": "جميع الأنظمة جاهزة",
         "sectionsCapacity": {
           "title": "شعب بدون سعة",
           "description": "بعض الشعب ليس لديها سعة محددة"
@@ -3401,7 +3411,36 @@
         "lessonsBehind": {
           "title": "خطط الدروس متأخرة",
           "description": "معدل الإنجاز أقل من 70%"
-        }
+        },
+        "noAcademicYear": {
+          "title": "لا يوجد عام أكاديمي",
+          "description": "الرجاء إنشاء عام أكاديمي"
+        },
+        "noTerm": {
+          "title": "لا يوجد فصل دراسي",
+          "description": "الرجاء إنشاء فصل دراسي"
+        },
+        "notReadyForScheduling": {
+          "title": "غير جاهز للجدولة",
+          "description": "أكمل المتطلبات الأساسية للجدولة"
+        },
+        "notReadyForLearning": {
+          "title": "غير جاهز للتعليم",
+          "description": "أكمل متطلبات التعليم"
+        },
+        "noTimetable": {
+          "title": "لا يوجد جدول",
+          "description": "لم يتم إنشاء الجدول"
+        },
+        "noCurriculum": {
+          "title": "لا يوجد منهج",
+          "description": "لم يتم إنشاء منهج"
+        },
+        "noLessonPlans": {
+          "title": "لا توجد خطط دروس",
+          "description": "لم يتم إنشاء خطط دروس"
+        },
+        "noAlertsDescription": "لا توجد عناصر تحتاج إلى إجراء الآن."
       },
       "quickLinks": {
         "title": "روابط سريعة",
@@ -3411,7 +3450,8 @@
         "calendar": "التقويم",
         "timetable": "الجدول الدراسي",
         "lessonPlans": "خطط الدروس",
-        "teacherAllocation": "توزيع المعلمين"
+        "teacherAllocation": "توزيع المعلمين",
+        "rooms": "الغرف"
       },
       "summary": {
         "title": "ملخص"
@@ -3502,6 +3542,26 @@
           "title": "خطط الدروس بدأت",
           "description": "تخطيط الدروس جارٍ",
           "reason": "{count} دروس مخططة"
+        },
+        "academicYear": {
+          "title": "العام الأكاديمي جاهز",
+          "description": "يوجد عام أكاديمي مفعل"
+        },
+        "term": {
+          "title": "الفصل الدراسي جاهز",
+          "description": "يوجد فصل دراسي مفعل"
+        },
+        "rooms": {
+          "title": "الغرف جاهزة",
+          "description": "الغرف الدراسية مضافة"
+        },
+        "curriculum": {
+          "title": "المنهج جاهز",
+          "description": "تمت إضافة الخطط الدراسية"
+        },
+        "timetable": {
+          "title": "الجدول المدرسي جاهز",
+          "description": "تم إنشاء الجدول المدرسي"
         }
       },
       "charts": {
@@ -3518,13 +3578,28 @@
           "insight": "أعلى حمل: {teacher} ({load} حصة/أسبوع)"
         },
         "readiness": {
-          "title": "الجاهزية الإجمالية",
+          "title": "مؤشر الجاهزية",
           "ready": "جاهز",
           "notReady": "غير جاهز",
           "insightGood": "{percentage}% جاهز - تقدم رائع!",
-          "insightNeedsWork": "{percentage}% جاهز - يحتاج اهتمام"
+          "insightNeedsWork": "{percentage}% جاهز - يحتاج اهتمام",
+          "readyForScheduling": "جاهز للجدولة",
+          "readyForLearning": "جاهز للتعليم"
         },
         "noData": "لا توجد بيانات متاحة"
+      },
+      "events": {
+        "sectionTitle": "الفعاليات القادمة",
+        "title": "الفعاليات",
+        "noEvents": "لا توجد فعاليات قادمة",
+        "allDay": "طوال اليوم",
+        "until": "حتى {date}"
+      },
+      "readinessSnapshot": "مؤشر الجاهزية",
+      "noActiveYearCallout": {
+        "title": "لا يوجد عام أكاديمي نشط",
+        "description": "يرجى إنشاء وتفعيل عام أكاديمي جديد للبدء",
+        "action": "إنشاء عام أكاديمي"
       }
     },
     "subjects": {

@@ -26,15 +26,20 @@ export default function AlertsPanel({ alerts, isLoading }: AlertsPanelProps) {
 
   if (alerts.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-white rounded-lg border border-gray-200 p-6 flex flex-col justify-center min-h-[200px]">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           {t("academics.overview.alerts.title")}
         </h2>
-        <div className="flex flex-col items-center justify-center py-8 text-center">
-          <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-3">
-            <AlertCircle className="w-8 h-8 text-green-600" />
+        <div className="flex flex-col items-center text-center mt-2">
+          <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mb-3">
+            <AlertCircle className="w-6 h-6 text-green-500" />
           </div>
-          <p className="text-gray-600">{t("academics.overview.alerts.noAlerts")}</p>
+          <p className="font-medium text-gray-900 text-sm">
+            {t("academics.overview.alerts.noAlerts")}
+          </p>
+          <p className="text-gray-500 text-xs mt-1">
+            {t("academics.overview.alerts.noAlertsDescription")}
+          </p>
         </div>
       </div>
     );

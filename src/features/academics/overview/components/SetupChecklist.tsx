@@ -6,15 +6,15 @@ import { CheckCircle2, AlertCircle, XCircle, ArrowRight } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import type { ChecklistItem } from "../services/overviewService";
-import type { OverviewMetrics } from "../services/overviewService";
+import type { AcademicsOverviewResponse } from "../services/overviewApiAdapter";
 
 interface SetupChecklistProps {
   items: ChecklistItem[];
-  metrics?: OverviewMetrics;
+  response?: AcademicsOverviewResponse;
   isLoading?: boolean;
 }
 
-export default function SetupChecklist({ items, metrics, isLoading }: SetupChecklistProps) {
+export default function SetupChecklist({ items, response, isLoading }: SetupChecklistProps) {
   const t = useTranslations();
 
   if (isLoading) {
@@ -27,7 +27,7 @@ export default function SetupChecklist({ items, metrics, isLoading }: SetupCheck
     );
   }
 
-  if (!metrics) {
+  if (!response) {
     return null;
   }
 
@@ -57,52 +57,6 @@ export default function SetupChecklist({ items, metrics, isLoading }: SetupCheck
     }
   };
 
-  const getReasonText = (item: ChecklistItem) => {
-    switch (item.id) {
-      case "structure":
-        if (metrics.structure.gradesWithoutSections > 0) {
-          return t("academics.overview.checklist.structure.reason", {
-            count: metrics.structure.gradesWithoutSections,
-          });
-        }
-        if (metrics.structure.sectionsWithoutCapacity > 0) {
-          return t("academics.overview.checklist.structure.reasonCapacity", {
-            count: metrics.structure.sectionsWithoutCapacity,
-          });
-        }
-        return t("academics.overview.checklist.allGood");
-      case "subjects":
-        if (metrics.subjects.completionPercentage < 100) {
-          return t("academics.overview.checklist.subjects.reason", {
-            percentage: metrics.subjects.completionPercentage,
-          });
-        }
-        return t("academics.overview.checklist.allGood");
-      case "teachers":
-        if (metrics.teacherAllocation.missingAllocations > 0) {
-          return t("academics.overview.checklist.teachers.reason", {
-            count: metrics.teacherAllocation.missingAllocations,
-          });
-        }
-        if (metrics.teacherAllocation.overloadedTeachers > 0) {
-          return t("academics.overview.checklist.teachers.reasonOverloaded", {
-            count: metrics.teacherAllocation.overloadedTeachers,
-          });
-        }
-        return t("academics.overview.checklist.allGood");
-      case "calendar":
-        return item.status === "done"
-          ? t("academics.overview.checklist.allGood")
-          : t("academics.overview.checklist.calendar.reason");
-      case "lessonPlans":
-        return t("academics.overview.checklist.lessonPlans.reason", {
-          count: metrics.lessonPlans.totalPlanned,
-        });
-      default:
-        return "";
-    }
-  };
-
   const doneCount = items.filter((i) => i.status === "done").length;
   const totalCount = items.length;
 
@@ -119,7 +73,7 @@ export default function SetupChecklist({ items, metrics, isLoading }: SetupCheck
         </div>
         <div className="flex items-center gap-2">
           <div className="text-right">
-            <div className="text-2xl font-bold text-gray-900">{Math.round((doneCount / totalCount) * 100)}%</div>
+            <div className="text-2xl font-bold text-gray-900">{totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0}%</div>
             <div className="text-xs text-gray-500">{t("academics.overview.checklist.complete")}</div>
           </div>
         </div>
@@ -130,7 +84,7 @@ export default function SetupChecklist({ items, metrics, isLoading }: SetupCheck
         <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
-            style={{ width: `${(doneCount / totalCount) * 100}%` }}
+            style={{ width: `${totalCount > 0 ? (doneCount / totalCount) * 100 : 0}%` }}
           />
         </div>
       </div>
@@ -151,12 +105,11 @@ export default function SetupChecklist({ items, metrics, isLoading }: SetupCheck
                   <Link href={item.link}>
                     <Button variant="secondary" size="sm" className="h-7 px-2 text-xs" leftIcon={<ArrowRight className="w-3 h-3 ml-1" />}> 
                       {t("academics.overview.checklist.fix")}
-                      
                     </Button>
                   </Link>
                 )}
               </div>
-              <p className="text-xs text-gray-600">{getReasonText(item)}</p>
+              <p className="text-xs text-gray-600">{t(item.descriptionKey)}</p>
             </div>
           </div>
         ))}

@@ -1,17 +1,17 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Layers, BookOpen, Users, Calendar, FileText, Grid } from "lucide-react";
+import { Layers, BookOpen, Users, Calendar, FileText, Grid, DoorOpen, PlaySquare } from "lucide-react";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
-import type { OverviewMetrics } from "../services/overviewService";
+import type { AcademicsOverviewResponse } from "../services/overviewApiAdapter";
 
 interface KPICardsProps {
-  metrics: OverviewMetrics;
+  response: AcademicsOverviewResponse;
   isLoading?: boolean;
 }
 
-export default function KPICards({ metrics, isLoading }: KPICardsProps) {
+export default function KPICards({ response, isLoading }: KPICardsProps) {
   const t = useTranslations("academics.overview.kpi");
 
   if (isLoading) {
@@ -22,64 +22,77 @@ export default function KPICards({ metrics, isLoading }: KPICardsProps) {
     );
   }
 
+  const { structure, subjects, rooms, teacherAllocation, curriculum, lessonPlans, timetable, calendar } = response;
+
   const cards = [
     {
       icon: Layers,
       iconColor: "#2563eb",
       iconBgColor: "#dbeafe",
       title: t("structure.title"),
-      value: metrics.structure.totalGrades,
-      subtitle: t("structure.subtitle", { sections: metrics.structure.totalSections }),
+      value: structure.gradesCount,
+      subtitle: t("structure.subtitle", { sections: structure.sectionsCount, classrooms: structure.classroomsCount }),
     },
     {
       icon: BookOpen,
       iconColor: "#16a34a",
       iconBgColor: "#dcfce7",
       title: t("subjects.title"),
-      value: `${metrics.subjects.completionPercentage}%`,
-      subtitle: t("subjects.subtitle", { total: metrics.subjects.totalSubjects }),
+      value: subjects.activeSubjectsCount,
+      subtitle: t("subjects.subtitle", { total: subjects.subjectsCount }),
+    },
+    {
+      icon: DoorOpen,
+      iconColor: "#f59e0b",
+      iconBgColor: "#fef3c7",
+      title: t("rooms.title"),
+      value: rooms.roomsCount,
+      subtitle: t("rooms.subtitle", { total: rooms.roomsCount }),
     },
     {
       icon: Users,
       iconColor: "#9333ea",
       iconBgColor: "#f3e8ff",
       title: t("teachers.title"),
-      value: metrics.teacherAllocation.missingAllocations,
-      subtitle: t("teachers.subtitle", { overloaded: metrics.teacherAllocation.overloadedTeachers }),
+      value: teacherAllocation.allocatedTeachersCount,
+      subtitle: t("teachers.subtitle", { allocations: teacherAllocation.allocationsCount, subjects: teacherAllocation.allocatedSubjectsCount }),
+    },
+    {
+      icon: PlaySquare,
+      iconColor: "#0ea5e9",
+      iconBgColor: "#e0f2fe",
+      title: t("curriculum.title"),
+      value: curriculum.activeCurriculaCount,
+      subtitle: t("curriculum.subtitle", { lessons: curriculum.lessonsCount }),
     },
     {
       icon: FileText,
-      iconColor: "#f59e0b",
-      iconBgColor: "#fef3c7",
+      iconColor: "#8b5cf6",
+      iconBgColor: "#ede9fe",
       title: t("lessonPlans.title"),
-      value: `${metrics.lessonPlans.completionPercentage}%`,
-      subtitle: t("lessonPlans.subtitle", {
-        done: metrics.lessonPlans.totalDone,
-        total: metrics.lessonPlans.totalPlanned,
-      }),
-    },
-    {
-      icon: Calendar,
-      iconColor: "#ec4899",
-      iconBgColor: "#fce7f3",
-      title: t("calendar.title"),
-      value: metrics.calendar.upcomingEvents,
-      subtitle: metrics.calendar.nextHolidayDate
-        ? t("calendar.nextHoliday", { date: new Date(metrics.calendar.nextHolidayDate).toLocaleDateString() })
-        : t("calendar.noUpcoming"),
+      value: lessonPlans.lessonPlansCount,
+      subtitle: t("lessonPlans.subtitle", { plannedItems: lessonPlans.plannedItemsCount }),
     },
     {
       icon: Grid,
       iconColor: "#6366f1",
       iconBgColor: "#e0e7ff",
       title: t("timetable.title"),
-      value: "—",
-      subtitle: t("timetable.comingSoon"),
+      value: timetable.activeEntriesCount,
+      subtitle: t("timetable.subtitle", { total: timetable.entriesCount }),
+    },
+    {
+      icon: Calendar,
+      iconColor: "#ec4899",
+      iconBgColor: "#fce7f3",
+      title: t("calendar.title"),
+      value: calendar.upcomingEventsCount,
+      subtitle: t("calendar.subtitle", { total: calendar.eventsCount }),
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card, index) => (
         <KPICardV2
           key={index}

@@ -3349,34 +3349,44 @@
       "title": "Academics Overview",
       "kpi": {
         "structure": {
-          "title": "Structure",
-          "subtitle": "{sections} sections"
+          "title": "Academic structure",
+          "subtitle": "{sections} sections, {classrooms} classrooms"
         },
         "subjects": {
-          "title": "Subjects Allocation",
+          "title": "Subjects",
           "subtitle": "{total} subjects"
         },
         "teachers": {
-          "title": "Missing Allocations",
-          "subtitle": "{overloaded} overloaded"
+          "title": "Teacher allocation",
+          "subtitle": "{teachers} teachers, {subjects} subjects"
         },
         "lessonPlans": {
-          "title": "Lesson Plans",
-          "subtitle": "{done}/{total} done"
+          "title": "Lesson plans",
+          "subtitle": "{plannedItems} planned items"
         },
         "calendar": {
-          "title": "Upcoming Events",
+          "title": "Calendar",
           "nextHoliday": "Next: {date}",
-          "noUpcoming": "No upcoming events"
+          "noUpcoming": "No upcoming events",
+          "subtitle": "{total} events"
         },
         "timetable": {
           "title": "Timetable",
-          "comingSoon": "Coming soon"
+          "comingSoon": "Coming soon",
+          "subtitle": "{total} entries"
+        },
+        "rooms": {
+          "title": "Rooms",
+          "subtitle": "{total} rooms"
+        },
+        "curriculum": {
+          "title": "Curriculum",
+          "subtitle": "{lessons} lessons"
         }
       },
       "alerts": {
         "title": "Alerts & Issues",
-        "noAlerts": "All systems ready!",
+        "noAlerts": "All systems are ready",
         "sectionsCapacity": {
           "title": "Sections Missing Capacity",
           "description": "Some sections have no capacity set"
@@ -3400,7 +3410,36 @@
         "lessonsBehind": {
           "title": "Lesson Plans Behind Schedule",
           "description": "Completion rate is below 70%"
-        }
+        },
+        "noAcademicYear": {
+          "title": "No Academic Year",
+          "description": "Please create an academic year"
+        },
+        "noTerm": {
+          "title": "No Term",
+          "description": "Please create a term"
+        },
+        "notReadyForScheduling": {
+          "title": "Not Ready For Scheduling",
+          "description": "Complete prerequisites for scheduling"
+        },
+        "notReadyForLearning": {
+          "title": "Not Ready For Learning",
+          "description": "Complete learning prerequisites"
+        },
+        "noTimetable": {
+          "title": "No Timetable",
+          "description": "Timetable has not been created"
+        },
+        "noCurriculum": {
+          "title": "No Curriculum",
+          "description": "Curriculum has not been created"
+        },
+        "noLessonPlans": {
+          "title": "No Lesson Plans",
+          "description": "Lesson plans have not been created"
+        },
+        "noAlertsDescription": "There are no items requiring action right now."
       },
       "quickLinks": {
         "title": "Quick Links",
@@ -3410,7 +3449,8 @@
         "calendar": "Calendar",
         "timetable": "Timetable",
         "lessonPlans": "Lesson Plans",
-        "teacherAllocation": "Teacher Allocation"
+        "teacherAllocation": "Teacher Allocation",
+        "rooms": "Rooms"
       },
       "summary": {
         "title": "Summary"
@@ -3501,6 +3541,26 @@
           "title": "Lesson Plans Started",
           "description": "Lesson planning is underway",
           "reason": "{count} lessons planned"
+        },
+        "academicYear": {
+          "title": "Academic Year Ready",
+          "description": "An active academic year exists"
+        },
+        "term": {
+          "title": "Term Ready",
+          "description": "An active term exists"
+        },
+        "rooms": {
+          "title": "Rooms Ready",
+          "description": "Classrooms are added"
+        },
+        "curriculum": {
+          "title": "Curriculum Ready",
+          "description": "Curricula are added"
+        },
+        "timetable": {
+          "title": "Timetable Ready",
+          "description": "Timetable is created"
         }
       },
       "charts": {
@@ -3517,13 +3577,28 @@
           "insight": "Highest load: {teacher} ({load} periods/week)"
         },
         "readiness": {
-          "title": "Overall Readiness",
+          "title": "Readiness indicator",
           "ready": "Ready",
           "notReady": "Not Ready",
           "insightGood": "{percentage}% ready - Great progress!",
-          "insightNeedsWork": "{percentage}% ready - Needs attention"
+          "insightNeedsWork": "{percentage}% ready - Needs attention",
+          "readyForScheduling": "Ready for scheduling",
+          "readyForLearning": "Ready for learning flow"
         },
         "noData": "No data available"
+      },
+      "events": {
+        "sectionTitle": "Upcoming events",
+        "title": "Events",
+        "noEvents": "No upcoming events",
+        "allDay": "All Day",
+        "until": "Until {date}"
+      },
+      "readinessSnapshot": "Readiness indicator",
+      "noActiveYearCallout": {
+        "title": "No Active Academic Year",
+        "description": "Please create and activate a new academic year to get started",
+        "action": "Create Academic Year"
       }
     },
     "subjects": {

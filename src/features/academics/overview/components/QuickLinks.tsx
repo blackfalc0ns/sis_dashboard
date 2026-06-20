@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { Layers, BookOpen, Grid, Calendar, Clock, Users, FileText } from "lucide-react";
+import { Layers, BookOpen, Grid, Calendar, Clock, Users, FileText, DoorOpen } from "lucide-react";
 
 interface QuickLinksProps {
   lang: string;
@@ -25,6 +25,13 @@ export default function QuickLinks({ lang }: QuickLinksProps) {
       titleKey: "subjects",
       iconBg: "bg-green-100",
       iconColor: "text-green-600",
+    },
+    {
+      href: `/${lang}/academics/rooms`,
+      icon: DoorOpen,
+      titleKey: "rooms",
+      iconBg: "bg-yellow-100",
+      iconColor: "text-yellow-600",
     },
     {
       href: `/${lang}/academics/curriculum`,
