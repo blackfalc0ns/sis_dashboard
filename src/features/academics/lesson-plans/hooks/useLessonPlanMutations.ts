@@ -29,7 +29,7 @@ interface Params {
   lessons: Lesson[];
   plans: LessonPlan[];
   weeks: WeekInfo[];
-  refreshPlans: () => Promise<void>;
+  refreshPlans: (options?: { silent?: boolean }) => Promise<void>;
   showSuccess: (message: string) => void;
   showError: (message: string) => void;
   onLessonSelected?: () => void;
@@ -161,7 +161,7 @@ export function useLessonPlanMutations(params: Params) {
             sortOrder: plan.items.length,
           },
         });
-        await params.refreshPlans();
+        await params.refreshPlans({ silent: true });
         params.showSuccess("Saved successfully");
         setAddLessonDialog({ isOpen: false, lesson: null });
       } catch (error) {
@@ -198,7 +198,7 @@ export function useLessonPlanMutations(params: Params) {
         teacherSubjectAllocationId: params.teacherSubjectAllocationId,
         dryRun: false,
       });
-      await params.refreshPlans();
+      await params.refreshPlans({ silent: true });
       return response;
     },
     [params],

@@ -31,6 +31,8 @@ interface WeeksBoardMobileProps {
   onDeletePlan: (plan: LessonPlan) => void;
   onReorder: (itemId: string, direction: "up" | "down") => void;
   onAddLesson: (weekIndex: number) => void;
+  pendingItemIds?: Set<string>;
+  pendingPlanIds?: Set<string>;
 }
 
 export default function WeeksBoardMobile({
@@ -49,6 +51,8 @@ export default function WeeksBoardMobile({
   onDeletePlan,
   onReorder,
   onAddLesson,
+  pendingItemIds = new Set(),
+  pendingPlanIds = new Set(),
 }: WeeksBoardMobileProps) {
   const t = useTranslations("academics.lessonPlans");
   const tMobile = useTranslations("academics.lessonPlans.mobile");
@@ -144,6 +148,7 @@ export default function WeeksBoardMobile({
                       <LessonPlanActionsMenu
                         plan={weekPlan}
                         isReadOnly={isReadOnly}
+                        isPending={pendingPlanIds.has(weekPlan.id)}
                         onEdit={() => onEditPlan(weekPlan)}
                         onActivate={() => onActivatePlan(weekPlan)}
                         onArchive={() => onArchivePlan(weekPlan)}
@@ -199,6 +204,7 @@ export default function WeeksBoardMobile({
                         onReorder={onReorder}
                         disableMoveUp={index === 0}
                         disableMoveDown={index === items.length - 1}
+                        isPending={pendingItemIds.has(item.id)}
                       />
                     );
                   })

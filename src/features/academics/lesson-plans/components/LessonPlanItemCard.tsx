@@ -12,6 +12,7 @@ import {
   CircleDot,
   Clock3,
   Edit3,
+  Loader2,
   SkipForward,
   Trash2,
   XCircle,
@@ -38,6 +39,7 @@ interface LessonPlanItemCardProps {
   onReorder: (itemId: string, direction: "up" | "down") => void;
   disableMoveUp: boolean;
   disableMoveDown: boolean;
+  isPending?: boolean;
 }
 
 export default function LessonPlanItemCard({
@@ -52,6 +54,7 @@ export default function LessonPlanItemCard({
   onReorder,
   disableMoveUp,
   disableMoveDown,
+  isPending = false,
 }: LessonPlanItemCardProps) {
   const t = useTranslations("academics.lessonPlans");
   const statusStyles = {
@@ -154,11 +157,12 @@ export default function LessonPlanItemCard({
 
   return (
     <div
-      draggable={!isReadOnly}
+      draggable={!isReadOnly && !isPending}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       className={`
         p-3 rounded-lg border bg-white transition-all
+        ${isPending ? "opacity-60" : ""}
         ${
           isReadOnly
             ? "border-gray-200 cursor-default"
@@ -167,7 +171,7 @@ export default function LessonPlanItemCard({
       `}
     >
       <div className="flex items-start gap-2">
-        {!isReadOnly && (
+        {!isReadOnly && !isPending && (
           <GripVertical className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
         )}
 
@@ -203,9 +207,14 @@ export default function LessonPlanItemCard({
               <button
                 type="button"
                 aria-label={t("actions.lessonActions")}
+                disabled={isPending}
                 className="shrink-0 p-1 hover:bg-gray-100 rounded transition-colors"
               >
-                <MoreVertical className="w-4 h-4 text-gray-600" />
+                {isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+                ) : (
+                  <MoreVertical className="w-4 h-4 text-gray-600" />
+                )}
               </button>
             }
             items={menuItems}

@@ -57,6 +57,10 @@ interface Params {
   onLoadError: () => void;
 }
 
+export interface RefreshLessonPlansOptions {
+  silent?: boolean;
+}
+
 export function useLessonPlansData(params: Params) {
   const {
     academicYearId,
@@ -88,6 +92,7 @@ export function useLessonPlansData(params: Params) {
   const [resolvedClassroomId, setResolvedClassroomId] = useState("");
   const [loading, setLoading] = useState(true);
   const [plansLoading, setPlansLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [dataChecked, setDataChecked] = useState(false);
   const [scopeStatus, setScopeStatus] =
     useState<LessonPlansScopeStatus>("loading-options");
@@ -123,7 +128,8 @@ export function useLessonPlansData(params: Params) {
     })();
   }, [academicYearId, isInitializing, onLoadError, termId]);
 
-  const refreshPlans = useCallback(async () => {
+  const refreshPlans = useCallback(async (options: RefreshLessonPlansOptions = {}) => {
+    const silent = options.silent === true;
     const currentRequest = ++requestId.current;
     const clearScopedData = () => {
       setPlans([]);
@@ -137,6 +143,7 @@ export function useLessonPlansData(params: Params) {
       setAssignedTeacherId("");
       setResolvedClassroomId("");
       setPlansLoading(false);
+      setIsRefreshing(false);
     };
     if (loading) {
       clearScopedData();
@@ -175,10 +182,16 @@ export function useLessonPlansData(params: Params) {
       setDataChecked(true);
       return;
     }
-    clearScopedData();
-    setPlansLoading(true);
-    setDataChecked(false);
-    setScopeStatus("loading-options");
+    if (!silent) {
+      clearScopedData();
+      setPlansLoading(true);
+      setDataChecked(false);
+    } else {
+      setIsRefreshing(true);
+    }
+    if (!silent) {
+      setScopeStatus("loading-options");
+    }
     try {
       const [curriculum, allocations] = await Promise.all([
         fetchCurriculumForScope({
@@ -261,10 +274,16 @@ export function useLessonPlansData(params: Params) {
       setScopeStatus("ready");
     } catch (error) {
       console.error("Failed to load lesson plans:", error);
+      if (silent) {
+        throw error;
+      }
       onLoadError();
       setDataChecked(true);
     } finally {
-      if (currentRequest === requestId.current) setPlansLoading(false);
+      if (currentRequest === requestId.current) {
+        setPlansLoading(false);
+        setIsRefreshing(false);
+      }
     }
   }, [
     academicYearId,
@@ -279,7 +298,7 @@ export function useLessonPlansData(params: Params) {
   ]);
 
   useEffect(() => {
-    void refreshPlans();
+    void refreshPlans().catch(() => undefined);
   }, [refreshPlans]);
   return {
     stages,
@@ -300,12 +319,14 @@ export function useLessonPlansData(params: Params) {
     resolvedClassroomId,
     loading,
     plansLoading,
+    isInitialLoading: loading || (plansLoading && plans.length === 0 && weeks.length === 0),
+    isRefreshing,
     dataChecked,
     scopeStatus,
     scopeMessage: scopeStatus,
     canLoadLessonPlans: scopeStatus === "ready",
     missingScopeReason: scopeStatus === "ready" ? null : scopeStatus,
-    isLoading: loading || plansLoading,
+    isLoading: loading || (plansLoading && plans.length === 0 && weeks.length === 0),
     refreshPlans,
   };
 }

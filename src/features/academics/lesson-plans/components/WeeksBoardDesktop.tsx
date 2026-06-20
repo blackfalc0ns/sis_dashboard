@@ -36,6 +36,8 @@ interface WeeksBoardDesktopProps {
   onArchivePlan: (plan: LessonPlan) => void;
   onDeletePlan: (plan: LessonPlan) => void;
   onReorder: (itemId: string, direction: "up" | "down") => void;
+  pendingItemIds?: Set<string>;
+  pendingPlanIds?: Set<string>;
 }
 
 export default function WeeksBoardDesktop({
@@ -58,6 +60,8 @@ export default function WeeksBoardDesktop({
   onArchivePlan,
   onDeletePlan,
   onReorder,
+  pendingItemIds = new Set(),
+  pendingPlanIds = new Set(),
 }: WeeksBoardDesktopProps) {
   return (
     <div className="grid grid-cols-1 gap-3 pb-4 md:grid-cols-2 2xl:grid-cols-3">
@@ -90,6 +94,8 @@ export default function WeeksBoardDesktop({
             onArchivePlan={onArchivePlan}
             onDeletePlan={onDeletePlan}
             onReorder={onReorder}
+            pendingItemIds={pendingItemIds}
+            pendingPlanIds={pendingPlanIds}
             isReadOnly={isReadOnly}
             isDragOver={
               (draggedLesson !== null || draggedItem !== null) && !isReadOnly

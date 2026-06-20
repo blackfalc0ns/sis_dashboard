@@ -33,6 +33,8 @@ interface WeekColumnProps {
   onArchivePlan: (plan: LessonPlan) => void;
   onDeletePlan: (plan: LessonPlan) => void;
   onReorder: (itemId: string, direction: "up" | "down") => void;
+  pendingItemIds?: Set<string>;
+  pendingPlanIds?: Set<string>;
 }
 
 export default function WeekColumn({
@@ -54,6 +56,8 @@ export default function WeekColumn({
   onArchivePlan,
   onDeletePlan,
   onReorder,
+  pendingItemIds = new Set(),
+  pendingPlanIds = new Set(),
 }: WeekColumnProps) {
   const t = useTranslations("academics.lessonPlans.week");
   const tStatus = useTranslations("academics.lessonPlans.planStatus");
@@ -157,6 +161,7 @@ export default function WeekColumn({
               <LessonPlanActionsMenu
                 plan={plan}
                 isReadOnly={isReadOnly}
+                isPending={pendingPlanIds.has(plan.id)}
                 onEdit={() => onEditPlan(plan)}
                 onActivate={() => onActivatePlan(plan)}
                 onArchive={() => onArchivePlan(plan)}
@@ -237,6 +242,7 @@ export default function WeekColumn({
                 onReorder={onReorder}
                 disableMoveUp={index === 0}
                 disableMoveDown={index === items.length - 1}
+                isPending={pendingItemIds.has(item.id)}
               />
             );
           })

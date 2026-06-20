@@ -15,6 +15,7 @@ interface MoveLessonDialogProps extends TimetableSlotScope {
   termStartDate?: string;
   termEndDate?: string;
   sortOrder: number;
+  loading?: boolean;
   onClose: () => void;
   onConfirm: (payload: MoveLessonPlanItemRequestDto) => void;
 }
@@ -50,7 +51,7 @@ export default function MoveLessonDialog(props: MoveLessonDialogProps) {
       onClose={props.onClose}
       title={t("actions.move")}
       size="sm"
-      footer={<div className="flex gap-2 justify-end"><Button variant="secondary" onClick={props.onClose}>{t("actions.cancel")}</Button><Button onClick={confirm} disabled={!plannedDate}>{t("actions.confirmMove")}</Button></div>}
+      footer={<div className="flex gap-2 justify-end"><Button variant="secondary" onClick={props.onClose} disabled={props.loading}>{t("actions.cancel")}</Button><Button onClick={confirm} disabled={!plannedDate} loading={props.loading}>{t("actions.confirmMove")}</Button></div>}
     >
       <div className="space-y-4">
         <Select

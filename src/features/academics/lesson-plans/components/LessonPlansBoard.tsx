@@ -74,7 +74,7 @@ interface LessonPlansBoardProps {
   librarySelectedUnitId: string;
   onLibrarySearchQueryChange: (value: string) => void;
   onLibrarySelectedUnitIdChange: (value: string) => void;
-  onUpdate: () => void;
+  onUpdate: (options?: { silent?: boolean }) => Promise<void>;
   onSelectLessonFromLibrary?: (lesson: Lesson) => void;
   onAddLessonMobile?: (weekIndex: number) => void;
   validationMessages: {
@@ -119,6 +119,12 @@ export default function LessonPlansBoard({
 
   // Local loading state for operations
   const [isUpdating, setIsUpdating] = useState(false);
+  const [pendingItemIds, setPendingItemIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [pendingPlanIds, setPendingPlanIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [weekFilter, setWeekFilter] = useState<WeekBoardFilter>("ALL");
 
   // Dialog states
@@ -150,6 +156,24 @@ export default function LessonPlansBoard({
     itemId: string;
     fromWeekIndex: number;
   } | null>(null);
+
+  const markItemPending = useCallback((itemId: string, pending: boolean) => {
+    setPendingItemIds((current) => {
+      const next = new Set(current);
+      if (pending) next.add(itemId);
+      else next.delete(itemId);
+      return next;
+    });
+  }, []);
+
+  const markPlanPending = useCallback((planId: string, pending: boolean) => {
+    setPendingPlanIds((current) => {
+      const next = new Set(current);
+      if (pending) next.add(planId);
+      else next.delete(planId);
+      return next;
+    });
+  }, []);
 
   // Handle drag from library
   const handleDragStartLesson = useCallback(
@@ -240,7 +264,7 @@ export default function LessonPlansBoard({
             },
           });
           setDraggedLesson(null); // Clear drag state immediately
-          await onUpdate(); // Wait for update to complete
+          await onUpdate({ silent: true });
           showSuccess("Saved successfully");
         } else if (draggedItem) {
           // Moving existing item
@@ -311,18 +335,20 @@ export default function LessonPlansBoard({
     async (payload: Parameters<typeof moveLessonPlanItem>[1]) => {
       if (!moveDialog) return;
       setIsUpdating(true);
+      markItemPending(moveDialog.itemId, true);
       try {
         await moveLessonPlanItem(moveDialog.itemId, payload);
-        await onUpdate();
+        await onUpdate({ silent: true });
         setMoveDialog(null);
         showSuccess("Saved successfully");
       } catch (error) {
         showError(lessonPlansUiError(error));
       } finally {
         setIsUpdating(false);
+        markItemPending(moveDialog.itemId, false);
       }
     },
-    [moveDialog, onUpdate, showError, showSuccess],
+    [markItemPending, moveDialog, onUpdate, showError, showSuccess],
   );
 
   // Handle status change
@@ -331,7 +357,7 @@ export default function LessonPlansBoard({
       itemId: string,
       status: "IN_PROGRESS" | "DONE" | "SKIPPED" | "CANCELLED",
     ) => {
-      if (isReadOnly || isUpdating) return;
+      if (isReadOnly || pendingItemIds.has(itemId)) return;
       if (status === "SKIPPED" || status === "CANCELLED") {
         setReasonDialog({
           itemId,
@@ -341,6 +367,7 @@ export default function LessonPlansBoard({
       }
 
       setIsUpdating(true);
+      markItemPending(itemId, true);
       try {
         const plan = plans.find((candidate) =>
           candidate.items.some((item) => item.id === itemId),
@@ -349,15 +376,24 @@ export default function LessonPlansBoard({
         const command = { lessonPlanId: plan.id, itemId };
         if (status === "IN_PROGRESS") await startLessonPlanItem(command);
         if (status === "DONE") await completeLessonPlanItem(command);
-        await onUpdate(); // Wait for update to complete
+        await onUpdate({ silent: true });
         showSuccess("Saved successfully");
       } catch (error) {
         showError(lessonPlansUiError(error));
       } finally {
         setIsUpdating(false);
+        markItemPending(itemId, false);
       }
     },
-    [isReadOnly, isUpdating, plans, showSuccess, showError, onUpdate],
+    [
+      isReadOnly,
+      markItemPending,
+      onUpdate,
+      pendingItemIds,
+      plans,
+      showError,
+      showSuccess,
+    ],
   );
 
   const handleReasonConfirm = useCallback(
@@ -368,6 +404,7 @@ export default function LessonPlansBoard({
       );
       if (!plan) return;
       setIsUpdating(true);
+      markItemPending(reasonDialog.itemId, true);
       try {
         const command = {
           lessonPlanId: plan.id,
@@ -377,20 +414,29 @@ export default function LessonPlansBoard({
         if (reasonDialog.action === "skip") await skipLessonPlanItem(command);
         else await cancelLessonPlanItem(command);
         setReasonDialog(null);
-        await onUpdate();
+        await onUpdate({ silent: true });
         showSuccess("Saved successfully");
       } catch (error) {
         showError(lessonPlansUiError(error));
       } finally {
         setIsUpdating(false);
+        markItemPending(reasonDialog.itemId, false);
       }
     },
-    [isUpdating, onUpdate, plans, reasonDialog, showError, showSuccess],
+    [
+      isUpdating,
+      markItemPending,
+      onUpdate,
+      plans,
+      reasonDialog,
+      showError,
+      showSuccess,
+    ],
   );
 
   const handleReorder = useCallback(
     async (itemId: string, direction: "up" | "down") => {
-      if (isReadOnly || isUpdating) return;
+      if (isReadOnly || pendingItemIds.has(itemId)) return;
       const plan = plans.find((candidate) =>
         candidate.items.some((item) => item.id === itemId),
       );
@@ -400,27 +446,38 @@ export default function LessonPlansBoard({
       const target = ordered[index + (direction === "up" ? -1 : 1)];
       if (!target) return;
       setIsUpdating(true);
+      markItemPending(itemId, true);
       try {
         await reorderLessonPlanItem({
           lessonPlanId: plan.id,
           itemId,
           payload: { sortOrder: target.order },
         });
-        await onUpdate();
+        await onUpdate({ silent: true });
         showSuccess("Saved successfully");
       } catch (error) {
         showError(lessonPlansUiError(error));
       } finally {
         setIsUpdating(false);
+        markItemPending(itemId, false);
       }
     },
-    [isReadOnly, isUpdating, onUpdate, plans, showError, showSuccess],
+    [
+      isReadOnly,
+      markItemPending,
+      onUpdate,
+      pendingItemIds,
+      plans,
+      showError,
+      showSuccess,
+    ],
   );
 
   const saveEditedItem = useCallback(
     async (payload: UpdateLessonPlanItemRequest) => {
       if (isUpdating || !editingItemId) return;
       setIsUpdating(true);
+      markItemPending(editingItemId, true);
       try {
         const plan = plans.find((candidate) =>
           candidate.items.some((item) => item.id === editingItemId),
@@ -431,19 +488,21 @@ export default function LessonPlansBoard({
           itemId: editingItemId,
           payload,
         });
-        await onUpdate();
+        await onUpdate({ silent: true });
         setEditingItemId(null);
         showSuccess("Saved successfully");
       } catch (error) {
         showError(lessonPlansUiError(error));
       } finally {
         setIsUpdating(false);
+        markItemPending(editingItemId, false);
       }
     },
     [
       isUpdating,
       plans,
       editingItemId,
+      markItemPending,
       showSuccess,
       showError,
       onUpdate,
@@ -459,6 +518,7 @@ export default function LessonPlansBoard({
     if (!confirmDialog.itemId || isUpdating) return;
 
     setIsUpdating(true);
+    markItemPending(confirmDialog.itemId, true);
     try {
       const plan = plans.find((candidate) =>
         candidate.items.some((item) => item.id === confirmDialog.itemId),
@@ -469,42 +529,53 @@ export default function LessonPlansBoard({
         itemId: confirmDialog.itemId,
       });
       setConfirmDialog({ isOpen: false, type: null });
-      await onUpdate(); // Wait for update to complete
+      await onUpdate({ silent: true });
       showSuccess("Saved successfully");
     } catch (error) {
       showError(lessonPlansUiError(error));
     } finally {
       setIsUpdating(false);
+      markItemPending(confirmDialog.itemId, false);
     }
   }, [
     isUpdating,
     plans,
     confirmDialog.itemId,
+    markItemPending,
     showSuccess,
     showError,
     onUpdate,
   ]);
 
   const refreshAfterPlanMutation = useCallback(
-    async (mutation: () => Promise<unknown>) => {
-      if (isReadOnly || isUpdating) return;
+    async (planId: string, mutation: () => Promise<unknown>) => {
+      if (isReadOnly || pendingPlanIds.has(planId)) return;
       setIsUpdating(true);
+      markPlanPending(planId, true);
       try {
         await mutation();
-        await onUpdate();
+        await onUpdate({ silent: true });
         showSuccess("Saved successfully");
       } catch (error) {
         showError(lessonPlansUiError(error));
       } finally {
         setIsUpdating(false);
+        markPlanPending(planId, false);
       }
     },
-    [isReadOnly, isUpdating, onUpdate, showError, showSuccess],
+    [
+      isReadOnly,
+      markPlanPending,
+      onUpdate,
+      pendingPlanIds,
+      showError,
+      showSuccess,
+    ],
   );
   const handleSavePlan = useCallback(
     (payload: UpdateLessonPlanRequest) => {
       if (!editingPlan) return;
-      void refreshAfterPlanMutation(async () => {
+      void refreshAfterPlanMutation(editingPlan.id, async () => {
         await updateLessonPlan(editingPlan.id, payload);
         setEditingPlan(null);
       });
@@ -513,13 +584,13 @@ export default function LessonPlansBoard({
   );
   const handleActivatePlan = useCallback(
     (plan: LessonPlan) =>
-      void refreshAfterPlanMutation(() => activateLessonPlan(plan.id)),
+      void refreshAfterPlanMutation(plan.id, () => activateLessonPlan(plan.id)),
     [refreshAfterPlanMutation],
   );
   const handleConfirmPlanAction = useCallback(() => {
     if (!planConfirmation) return;
     const { plan, action } = planConfirmation;
-    void refreshAfterPlanMutation(async () => {
+    void refreshAfterPlanMutation(plan.id, async () => {
       if (action === "archive") await archiveLessonPlan(plan.id);
       else await deleteLessonPlan(plan.id);
       setPlanConfirmation(null);
@@ -590,7 +661,7 @@ export default function LessonPlansBoard({
               onDragStart={handleDragStartLesson}
               onDragEnd={handleDragEndLesson}
               onSelectLesson={onSelectLessonFromLibrary}
-              isReadOnly={isReadOnly || isUpdating}
+              isReadOnly={isReadOnly}
             />
           </div>
         )}
@@ -632,7 +703,7 @@ export default function LessonPlansBoard({
               lessons={lessons}
               issueWeekIndexes={issueWeekIndexes}
               today={today}
-              isReadOnly={isReadOnly || isUpdating}
+              isReadOnly={isReadOnly}
               onStatusChange={handleStatusChange}
               onEditPlan={setEditingPlan}
               onActivatePlan={handleActivatePlan}
@@ -646,6 +717,8 @@ export default function LessonPlansBoard({
               onEditItem={setEditingItemId}
               onRemove={handleRemove}
               onAddLesson={onAddLessonMobile || (() => {})}
+              pendingItemIds={pendingItemIds}
+              pendingPlanIds={pendingPlanIds}
             />
           ) : (
             <WeeksBoardDesktop
@@ -656,7 +729,7 @@ export default function LessonPlansBoard({
               today={today}
               draggedLesson={draggedLesson}
               draggedItem={draggedItem}
-              isReadOnly={isReadOnly || isUpdating}
+              isReadOnly={isReadOnly}
               onDropOnWeek={handleDropOnWeek}
               onDragStartItem={handleDragStartItem}
               onDragEndItem={handleDragEndItem}
@@ -672,6 +745,8 @@ export default function LessonPlansBoard({
               onReorder={handleReorder}
               onEditItem={setEditingItemId}
               onRemove={handleRemove}
+              pendingItemIds={pendingItemIds}
+              pendingPlanIds={pendingPlanIds}
             />
           )}
         </div>
@@ -767,6 +842,7 @@ export default function LessonPlansBoard({
           subjectId={subjectId}
           teacherSubjectAllocationId={teacherSubjectAllocationId}
           sortOrder={moveDialog.sortOrder}
+          loading={isUpdating}
           onClose={() => setMoveDialog(null)}
           onConfirm={confirmMove}
         />
@@ -774,3 +850,4 @@ export default function LessonPlansBoard({
     </div>
   );
 }
+

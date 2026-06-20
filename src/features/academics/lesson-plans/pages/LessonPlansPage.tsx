@@ -119,6 +119,8 @@ export default function LessonPlansPage() {
     resolvedClassroomId,
     loading,
     plansLoading,
+    isInitialLoading,
+    isRefreshing,
     dataChecked,
     scopeStatus,
     refreshPlans,
@@ -365,8 +367,8 @@ export default function LessonPlansPage() {
     },
   });
 
-  const handlePlansUpdate = useCallback(async () => {
-    await refreshPlans();
+  const handlePlansUpdate = useCallback(async (options?: { silent?: boolean }) => {
+    await refreshPlans(options);
   }, [refreshPlans]);
 
   const handleStageFilterChange = useCallback(
@@ -605,7 +607,7 @@ export default function LessonPlansPage() {
 
   const scopeResolved = !isInitializing && !loading;
   const viewState = resolveLessonPlansView({
-    loading: loading || plansLoading,
+    loading: isInitialLoading,
     scopeResolved,
     dataChecked,
     selectedSectionId,
@@ -648,7 +650,7 @@ export default function LessonPlansPage() {
         curriculumId,
         ...payload,
       });
-      await refreshPlans();
+      await refreshPlans({ silent: true });
       setShowCreatePlanDialog(false);
       showSuccess(t("createPlan.success"));
     } catch (error) {
@@ -667,7 +669,7 @@ export default function LessonPlansPage() {
           autoPlanDisabled={autoPlanDisabled}
           autoPlanUnavailableReason={t("tooltips.autoPlanUnavailable")}
           exportDisabled={lessonPlanExportRows.length === 0}
-          refreshing={plansLoading}
+          refreshing={isRefreshing || plansLoading}
           onAutoPlan={() => setShowAutoPlanDialog(true)}
           onCreatePlan={() => setShowCreatePlanDialog(true)}
           onRefresh={handlePlansUpdate}

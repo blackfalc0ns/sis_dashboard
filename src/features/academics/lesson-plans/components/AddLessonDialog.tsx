@@ -23,7 +23,7 @@ interface AddLessonDialogProps extends TimetableSlotScope {
     weekIndex: number,
     plannedDate: string,
     timetableEntry: BackendTimetableEntryDto | null,
-  ) => void;
+  ) => Promise<void> | void;
 }
 
 function getAvailableInstructionalDays(
@@ -70,6 +70,7 @@ export default function AddLessonDialog({
   const [selectedPlannedDate, setSelectedPlannedDate] = useState("");
   const [selectedTimetableEntry, setSelectedTimetableEntry] =
     useState<BackendTimetableEntryDto | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const selectedWeek = weeks.find(
     (week) => week.weekIndex.toString() === selectedWeekIndex,
@@ -80,8 +81,6 @@ export default function AddLessonDialog({
     termEndDate,
   );
 
-  // Update selectedWeekIndex when preselectedWeekIndex or isOpen changes
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (isOpen) {
       const initialWeekIndex = preselectedWeekIndex?.toString() || "";
@@ -98,16 +97,20 @@ export default function AddLessonDialog({
       );
     }
   }, [isOpen, preselectedWeekIndex, termEndDate, termStartDate, weeks]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (lesson && selectedWeekIndex && selectedPlannedDate) {
-      onConfirm(
-        lesson.id,
-        parseInt(selectedWeekIndex, 10),
-        selectedPlannedDate,
-        selectedTimetableEntry,
-      );
+      setSubmitting(true);
+      try {
+        await onConfirm(
+          lesson.id,
+          parseInt(selectedWeekIndex, 10),
+          selectedPlannedDate,
+          selectedTimetableEntry,
+        );
+      } finally {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -138,12 +141,13 @@ export default function AddLessonDialog({
       size="sm"
       footer={
         <div className="flex gap-2 justify-end">
-          <Button onClick={onClose} variant="secondary">
+          <Button onClick={onClose} variant="secondary" disabled={submitting}>
             {t("cancel")}
           </Button>
           <Button
             onClick={handleConfirm}
             variant="primary"
+            loading={submitting}
             disabled={
               !lesson ||
               !selectedWeekIndex ||
