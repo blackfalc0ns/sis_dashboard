@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import KPICards from "../components/KPICards";
 import SetupChecklist from "../components/SetupChecklist";
@@ -11,7 +11,6 @@ import OverviewCharts from "../components/OverviewCharts";
 import QuickLinks from "../components/QuickLinks";
 import UpcomingEventsPanel from "../components/UpcomingEventsPanel";
 import AcademicsOverviewFiltersBar, {
-  type AcademicsOverviewChecklistStatusFilter,
   type AcademicsOverviewExportDataset,
 } from "../components/AcademicsOverviewFiltersBar";
 import {
@@ -98,6 +97,7 @@ export default function AcademicsOverviewPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const lang = params.lang as string;
   const { academicYearId, termId, isInitializing, academicYears, terms } =
     useAcademicYearTermLayoutContext();
@@ -120,27 +120,19 @@ export default function AcademicsOverviewPage() {
     }>
   >([]);
 
-  const checklistStatusFilter =
-    useMemo<AcademicsOverviewChecklistStatusFilter>(() => {
-      const value = searchParams.get("checklistStatus");
-      if (value === "done" || value === "warning" || value === "error") {
-        return value;
-      }
-      return "all";
-    }, [searchParams]);
+
 
   const exportDataset = useMemo<AcademicsOverviewExportDataset>(() => {
     const value = searchParams.get("exportDataset");
-    if (
-      value === "checklist" ||
-      value === "upcomingEvents"
-    ) {
+    if (value === "checklist" || value === "upcomingEvents") {
       return value;
     }
     return "summary";
   }, [searchParams]);
 
   const exportLabels = t.raw("exportLabels") as Record<string, string>;
+
+  const tGlobal = useTranslations();
 
   const resetOverviewState = useCallback(() => {
     setResponse(null);
@@ -151,7 +143,6 @@ export default function AcademicsOverviewPage() {
   const loadOverview = useCallback(async () => {
     try {
       setIsLoading(true);
-
       const overviewResponse = await fetchAcademicsOverview({
         academicYearId: academicYearId || undefined,
         termId: termId || undefined,
@@ -244,17 +235,10 @@ export default function AcademicsOverviewPage() {
 
     if (changed) {
       const nextQuery = params.toString();
-      const nextUrl = nextQuery ? `?${nextQuery}` : "?";
+      const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
       router.replace(nextUrl, { scroll: false });
     }
-  }, [searchParams, router]);
-
-  const filteredChecklist = useMemo(() => {
-    if (checklistStatusFilter === "all") {
-      return checklist;
-    }
-    return checklist.filter((item) => item.status === checklistStatusFilter);
-  }, [checklist, checklistStatusFilter]);
+  }, [searchParams, router, pathname]);
 
   const overviewExportData = useMemo(() => {
     if (!response) {
@@ -264,13 +248,17 @@ export default function AcademicsOverviewPage() {
     // Provide generic name for the fallback "Zero State" scenario when there's no year
     const activeYearName =
       academicYears.find((item: AcademicYear) => item.id === academicYearId)
-        ?.name ||
-      academicYearId ||
-      t("filters.options.all");
+        ? (lang === "ar"
+            ? academicYears.find((item: AcademicYear) => item.id === academicYearId)?.nameAr
+            : academicYears.find((item: AcademicYear) => item.id === academicYearId)?.nameEn)
+        : academicYearId || t("filters.options.all");
+
     const activeTermName =
-      terms.find((item: Term) => item.id === termId)?.name ||
-      termId ||
-      t("filters.options.all");
+      terms.find((item: Term) => item.id === termId)
+        ? (lang === "ar"
+            ? terms.find((item: Term) => item.id === termId)?.nameAr
+            : terms.find((item: Term) => item.id === termId)?.nameEn)
+        : termId || t("filters.options.all");
 
     const metadata: ExportMetadata = {
       yearName: activeYearName,
@@ -310,8 +298,8 @@ export default function AcademicsOverviewPage() {
           value: response.rooms.roomsCount,
         },
         {
-          group: exportLabels.teachers,
-          metric: t("kpi.teachers.title"),
+          group: exportLabels.teacherAllocation,
+          metric: t("kpi.teacherAllocation.title"),
           value: response.teacherAllocation.allocationsCount,
         },
         {
@@ -347,11 +335,11 @@ export default function AcademicsOverviewPage() {
         { key: "description", label: exportLabels.description },
         { key: "link", label: exportLabels.link },
       ];
-      rows = filteredChecklist.map((item) => ({
-        title: t(item.titleKey),
+      rows = checklist.map((item) => ({
+        title: tGlobal(item.titleKey),
         status:
           exportLabels[item.status as keyof typeof exportLabels] || item.status,
-        description: t(item.descriptionKey),
+        description: tGlobal(item.descriptionKey),
         link: item.link,
       }));
     } else if (exportDataset === "upcomingEvents") {
@@ -398,8 +386,7 @@ export default function AcademicsOverviewPage() {
     academicYearId,
     academicYears,
     exportDataset,
-    exportLabels,
-    filteredChecklist,
+    checklist,
     locale,
     response,
     t,
@@ -467,7 +454,44 @@ export default function AcademicsOverviewPage() {
               </div>
             )}
 
-            {/* Section A: Summary (KPIs) */}
+            {/* Section A: Academic Context & Filter */}
+            <div className="flex flex-col gap-6">
+              <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">
+                    {(lang === "ar" ? response.academicContext?.academicYear?.nameAr : response.academicContext?.academicYear?.nameEn) || t("context.noYear")}
+                  </h1>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {(lang === "ar" ? response.academicContext?.term?.nameAr : response.academicContext?.term?.nameEn) || t("context.noTerm")}
+                  </p>
+                </div>
+                {response.generatedAt && (
+                  <div className="text-sm text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+                    {t("context.lastUpdated", {
+                      date: new Date(response.generatedAt).toLocaleString(locale),
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <AcademicsOverviewFiltersBar
+                exportDataset={exportDataset}
+                onExportDatasetChange={(value) => {
+                  const newParams = new URLSearchParams(searchParams.toString());
+                  if (value === "summary") {
+                    newParams.delete("exportDataset");
+                  } else {
+                    newParams.set("exportDataset", value);
+                  }
+                  const nextQuery = newParams.toString();
+                  const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+                  router.replace(nextUrl, { scroll: false });
+                }}
+                onExportClick={() => setShowExportModal(true)}
+              />
+            </div>
+
+            {/* Section B: Summary (KPIs) */}
             <div className="bg-white rounded-2xl border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 {t("summary.title")}
@@ -475,10 +499,10 @@ export default function AcademicsOverviewPage() {
               <KPICards response={response} isLoading={isLoading} />
             </div>
 
-            {/* Section B: Setup & Actions */}
+            {/* Section C: Setup Checklist */}
             <div className="grid grid-cols-1 gap-6">
               <SetupChecklist
-                items={filteredChecklist}
+                items={checklist}
                 response={response}
                 isLoading={isLoading}
               />

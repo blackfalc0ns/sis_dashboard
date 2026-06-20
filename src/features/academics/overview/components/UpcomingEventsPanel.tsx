@@ -15,6 +15,7 @@ export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEvent
   const locale = useLocale();
   const t = useTranslations("academics.overview.upcomingEvents");
   const tTypes = useTranslations("academics.overview.upcomingEvents.types");
+  const tScopes = useTranslations("academics.overview.upcomingEvents.scopes");
 
   const getEventTypeTranslation = (type: string) => {
     const key = type.toLowerCase();
@@ -30,6 +31,22 @@ export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEvent
     }
   };
 
+  const getEventScopeTranslation = (type?: string) => {
+    const key = type?.toLowerCase();
+    switch (key) {
+      case "school":
+        return tScopes("school");
+      case "stage":
+        return tScopes("stage");
+      case "grade":
+        return tScopes("grade");
+      case "section":
+        return tScopes("section");
+      default:
+        return tScopes("other");
+    }
+  };
+
   const dayFormatter = useMemo(
     () => new Intl.DateTimeFormat(locale, { day: "numeric" }),
     [locale]
@@ -42,8 +59,8 @@ export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEvent
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex min-h-[160px] items-center justify-center">
+      <div className="bg-white rounded-lg border border-gray-200 p-6 h-full flex flex-col">
+        <div className="flex flex-1 items-center justify-center">
           <PartialLoader />
         </div>
       </div>
@@ -52,11 +69,11 @@ export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEvent
 
   if (events.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-white rounded-lg border border-gray-200 p-6 h-full flex flex-col">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           {t("title")}
         </h2>
-        <div className="flex flex-col items-center justify-center py-8 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
           <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-3">
             <Calendar className="w-8 h-8 text-gray-400" />
           </div>
@@ -68,11 +85,11 @@ export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEvent
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
+    <div className="bg-white rounded-lg border border-gray-200 p-6 h-full flex flex-col">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">
         {t("title")}
       </h2>
-      <div className="space-y-4">
+      <div className="space-y-4 flex-1">
         {events.map((event) => {
           const startDate = new Date(event.startDate);
           const endDate = new Date(event.endDate);
@@ -98,11 +115,16 @@ export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEvent
                   <h3 className="font-medium text-gray-900 text-sm truncate">
                     {event.title}
                   </h3>
-                  {event.allDay && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 shrink-0">
-                      {t("allDay")}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                      {getEventScopeTranslation(event.scope?.type)}
                     </span>
-                  )}
+                    {event.allDay && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                        {t("allDay")}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-500">

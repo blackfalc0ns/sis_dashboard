@@ -3358,10 +3358,7 @@
           "title": "المواد",
           "subtitle": "{active} نشطة من أصل {total}"
         },
-        "teachers": {
-          "title": "توزيع المعلمين",
-          "subtitle": "{teachers} معلمين، {subjects} مواد"
-        },
+
         "lessonPlans": {
           "title": "خطط الدروس",
           "subtitle": "{plannedItems} عناصر مخططة"
@@ -3592,7 +3589,7 @@
         "structure": "الهيكل الأكاديمي",
         "subjects": "المواد الدراسية",
         "rooms": "الغرف",
-        "teachers": "المعلمين",
+        "teacherAllocation": "توزيع المعلمين",
         "curriculum": "المنهج",
         "lessonPlans": "خطط الدروس",
         "timetable": "الجدول المدرسي",
@@ -3641,7 +3638,13 @@
         "title": "الفعاليات القادمة",
         "emptyTitle": "لا توجد فعاليات قادمة",
         "emptyDescription": "ستظهر الفعاليات القادمة هنا عند إضافتها إلى التقويم.",
-        "allDay": "طوال اليوم"
+        "allDay": "طوال اليوم",
+        "until": "حتى {date}"
+      },
+      "context": {
+        "noYear": "لم يتم تحديد عام دراسي",
+        "noTerm": "لم يتم تحديد فصل دراسي",
+        "lastUpdated": "آخر تحديث: {date}"
       }
     },
     "subjects": {

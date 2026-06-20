@@ -53,9 +53,9 @@ export default function KPICards({ response, isLoading }: KPICardsProps) {
       icon: Users,
       iconColor: "#9333ea",
       iconBgColor: "#f3e8ff",
-      title: t("teachers.title"),
+      title: t("teacherAllocation.title"),
       value: teacherAllocation.allocatedTeachersCount,
-      subtitle: t("teachers.subtitle", { teachers: teacherAllocation.allocatedTeachersCount, subjects: teacherAllocation.allocatedSubjectsCount }),
+      subtitle: t("teacherAllocation.subtitle", { teachers: teacherAllocation.allocatedTeachersCount, subjects: teacherAllocation.allocatedSubjectsCount }),
     },
     {
       icon: PlaySquare,

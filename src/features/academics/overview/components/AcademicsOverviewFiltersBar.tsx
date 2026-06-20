@@ -5,36 +5,22 @@ import { Download } from "lucide-react";
 import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
 
-export type AcademicsOverviewChecklistStatusFilter =
-  | "all"
-  | "done"
-  | "warning"
-  | "error";
-
 export type AcademicsOverviewExportDataset =
   | "summary"
   | "checklist"
   | "upcomingEvents";
 
 interface AcademicsOverviewFiltersBarProps {
-  checklistStatus: AcademicsOverviewChecklistStatusFilter;
   exportDataset: AcademicsOverviewExportDataset;
-  onChecklistStatusChange: (
-    value: AcademicsOverviewChecklistStatusFilter
-  ) => void;
   onExportDatasetChange: (
     value: AcademicsOverviewExportDataset
   ) => void;
-  onReset: () => void;
   onExportClick: () => void;
 }
 
 export default function AcademicsOverviewFiltersBar({
-  checklistStatus,
   exportDataset,
-  onChecklistStatusChange,
   onExportDatasetChange,
-  onReset,
   onExportClick,
 }: AcademicsOverviewFiltersBarProps) {
   const t = useTranslations("academics.overview.filters");
@@ -42,23 +28,7 @@ export default function AcademicsOverviewFiltersBar({
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 flex-1">
-          <Select
-            label={t("checklistStatus")}
-            value={checklistStatus}
-            onChange={(value) =>
-              onChecklistStatusChange(
-                value as AcademicsOverviewChecklistStatusFilter
-              )
-            }
-            options={[
-              { value: "all", label: t("options.all") },
-              { value: "done", label: t("options.done") },
-              { value: "warning", label: t("options.warning") },
-              { value: "error", label: t("options.error") },
-            ]}
-            selectSize="sm"
-          />
+        <div className="flex-1 max-w-sm">
           <Select
             label={t("exportDataset")}
             value={exportDataset}
@@ -75,9 +45,6 @@ export default function AcademicsOverviewFiltersBar({
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={onReset}>
-            {t("reset")}
-          </Button>
           <Button
             variant="secondary"
             onClick={onExportClick}

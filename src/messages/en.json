@@ -3357,10 +3357,7 @@
           "title": "Subjects",
           "subtitle": "{active} active of {total}"
         },
-        "teachers": {
-          "title": "Teacher allocation",
-          "subtitle": "{teachers} teachers, {subjects} subjects"
-        },
+
         "lessonPlans": {
           "title": "Lesson plans",
           "subtitle": "{plannedItems} planned items"
@@ -3591,7 +3588,7 @@
         "structure": "Structure",
         "subjects": "Subjects",
         "rooms": "Rooms",
-        "teachers": "Teachers",
+        "teacherAllocation": "Teacher allocation",
         "curriculum": "Curriculum",
         "lessonPlans": "Lesson plans",
         "timetable": "Timetable",
@@ -3640,7 +3637,13 @@
         "title": "Upcoming events",
         "emptyTitle": "No upcoming events",
         "emptyDescription": "Upcoming events will appear here when they are added to the calendar.",
-        "allDay": "All day"
+        "allDay": "All day",
+        "until": "Until {date}"
+      },
+      "context": {
+        "noYear": "No academic year selected",
+        "noTerm": "No term selected",
+        "lastUpdated": "Last updated: {date}"
       }
     },
     "subjects": {
