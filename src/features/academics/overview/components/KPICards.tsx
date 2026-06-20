@@ -31,7 +31,7 @@ export default function KPICards({ response, isLoading }: KPICardsProps) {
       iconBgColor: "#dbeafe",
       title: t("structure.title"),
       value: structure.gradesCount,
-      subtitle: t("structure.subtitle", { sections: structure.sectionsCount, classrooms: structure.classroomsCount }),
+      subtitle: t("structure.subtitle", { grades: structure.gradesCount, sections: structure.sectionsCount, classrooms: structure.classroomsCount }),
     },
     {
       icon: BookOpen,
@@ -39,7 +39,7 @@ export default function KPICards({ response, isLoading }: KPICardsProps) {
       iconBgColor: "#dcfce7",
       title: t("subjects.title"),
       value: subjects.activeSubjectsCount,
-      subtitle: t("subjects.subtitle", { total: subjects.subjectsCount }),
+      subtitle: t("subjects.subtitle", { active: subjects.activeSubjectsCount, total: subjects.subjectsCount }),
     },
     {
       icon: DoorOpen,
@@ -55,7 +55,7 @@ export default function KPICards({ response, isLoading }: KPICardsProps) {
       iconBgColor: "#f3e8ff",
       title: t("teachers.title"),
       value: teacherAllocation.allocatedTeachersCount,
-      subtitle: t("teachers.subtitle", { allocations: teacherAllocation.allocationsCount, subjects: teacherAllocation.allocatedSubjectsCount }),
+      subtitle: t("teachers.subtitle", { teachers: teacherAllocation.allocatedTeachersCount, subjects: teacherAllocation.allocatedSubjectsCount }),
     },
     {
       icon: PlaySquare,
@@ -63,7 +63,7 @@ export default function KPICards({ response, isLoading }: KPICardsProps) {
       iconBgColor: "#e0f2fe",
       title: t("curriculum.title"),
       value: curriculum.activeCurriculaCount,
-      subtitle: t("curriculum.subtitle", { lessons: curriculum.lessonsCount }),
+      subtitle: t("curriculum.subtitle", { units: curriculum.unitsCount, lessons: curriculum.lessonsCount }),
     },
     {
       icon: FileText,
@@ -79,7 +79,7 @@ export default function KPICards({ response, isLoading }: KPICardsProps) {
       iconBgColor: "#e0e7ff",
       title: t("timetable.title"),
       value: timetable.activeEntriesCount,
-      subtitle: t("timetable.subtitle", { total: timetable.entriesCount }),
+      subtitle: t("timetable.subtitle", { active: timetable.activeEntriesCount, total: timetable.entriesCount }),
     },
     {
       icon: Calendar,
@@ -87,7 +87,7 @@ export default function KPICards({ response, isLoading }: KPICardsProps) {
       iconBgColor: "#fce7f3",
       title: t("calendar.title"),
       value: calendar.upcomingEventsCount,
-      subtitle: t("calendar.subtitle", { total: calendar.eventsCount }),
+      subtitle: t("calendar.subtitle", { upcoming: calendar.upcomingEventsCount, total: calendar.eventsCount }),
     },
   ];
 

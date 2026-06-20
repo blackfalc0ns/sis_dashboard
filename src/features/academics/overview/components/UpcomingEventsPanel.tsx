@@ -13,7 +13,7 @@ interface UpcomingEventsPanelProps {
 
 export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEventsPanelProps) {
   const locale = useLocale();
-  const t = useTranslations("academics.overview.events");
+  const t = useTranslations("academics.overview.upcomingEvents");
   const tTypes = useTranslations("academics.overview.upcomingEvents.types");
 
   const getEventTypeTranslation = (type: string) => {
@@ -60,7 +60,8 @@ export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEvent
           <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-3">
             <Calendar className="w-8 h-8 text-gray-400" />
           </div>
-          <p className="text-gray-600">{t("noEvents")}</p>
+          <p className="text-gray-900 font-medium mb-1">{t("emptyTitle")}</p>
+          <p className="text-gray-500 text-sm max-w-sm">{t("emptyDescription")}</p>
         </div>
       </div>
     );

@@ -53,7 +53,7 @@ export default function OverviewCharts({
 
   return (
     <div className="grid grid-cols-1 gap-6">
-      <ChartCard title={t("title")} showPeriodFilter={false}>
+      <ChartCard title={tSnapshot("title")} showPeriodFilter={false}>
         {readinessInsight && (
           <div className="mb-4 flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
             <TrendingUp className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />

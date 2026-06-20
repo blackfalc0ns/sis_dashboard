@@ -1,5 +1,6 @@
 {
   "school_name": "School Name",
+  "short_school_name": "School",
   "dashboard": "Dashboard",
   "management": "Management",
   "logout": "Logout",
@@ -3606,7 +3607,18 @@
         "allDay": "All day",
         "until": "Until {date}"
       },
-      "readinessSnapshot": "Readiness indicator",
+      "readinessSnapshot": {
+        "title": "Readiness indicator",
+        "ready": "Ready",
+        "notReady": "Not ready",
+        "complete": "Complete",
+        "readyForScheduling": "Scheduling readiness",
+        "readyForLearningFlow": "Learning flow readiness",
+        "schedulingReady": "Ready for scheduling",
+        "schedulingNotReady": "Not ready for scheduling",
+        "learningFlowReady": "Ready for learning flow",
+        "learningFlowNotReady": "Not ready for learning flow"
+      },
       "noActiveYearCallout": {
         "title": "No active academic year",
         "description": "Create an academic year and term to start configuring academics.",

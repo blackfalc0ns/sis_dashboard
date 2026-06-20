@@ -1,5 +1,6 @@
 {
   "school_name": "اسم المدرسة",
+  "short_school_name": "المدرسة",
   "dashboard": "لوحة المراقبة",
   "management": "إدارة المدرسة",
   "logout": "تسجيل الخروج",
@@ -3607,7 +3608,18 @@
         "allDay": "طوال اليوم",
         "until": "حتى {date}"
       },
-      "readinessSnapshot": "مؤشر الجاهزية",
+      "readinessSnapshot": {
+        "title": "مؤشر الجاهزية",
+        "ready": "جاهز",
+        "notReady": "غير جاهز",
+        "complete": "مكتمل",
+        "readyForScheduling": "جاهزية الجدولة",
+        "readyForLearningFlow": "جاهزية مسار التعلم",
+        "schedulingReady": "جاهز للجدولة",
+        "schedulingNotReady": "غير جاهز للجدولة",
+        "learningFlowReady": "جاهز لمسار التعلم",
+        "learningFlowNotReady": "غير جاهز لمسار التعلم"
+      },
       "noActiveYearCallout": {
         "title": "لا يوجد عام دراسي نشط",
         "description": "أنشئ عامًا دراسيًا وفصلًا دراسيًا لبدء إعداد الأكاديميات.",
