@@ -91,6 +91,7 @@ export default function AcademicCalendarPage() {
 
   const defaultDateRef = useRef(new Date());
   const eventsRequestIdRef = useRef(0);
+  const structureRequestIdRef = useRef(0);
 
   const queryState = useMemo(() => {
     const rawDate = searchParams.get("date");
@@ -155,21 +156,32 @@ export default function AcademicCalendarPage() {
 
   // Load structure data for scope target filter
   useEffect(() => {
-    if (academicYearId && termId) {
-      fetchStructureTree(academicYearId, termId)
-        .then((structure) => {
-          setStages(
-            structure.stages.map((s) => ({ id: s.id, name: s.name }))
-          );
-          setGrades(
-            structure.grades.map((g) => ({ id: g.id, name: g.name }))
-          );
-          setSections(
-            structure.sections.map((s) => ({ id: s.id, name: s.name }))
-          );
-        })
-        .catch(console.error);
+    if (!academicYearId || !termId) {
+      setStages([]);
+      setGrades([]);
+      setSections([]);
+      return;
     }
+
+    const requestId = ++structureRequestIdRef.current;
+
+    fetchStructureTree(academicYearId, termId)
+      .then((structure) => {
+        if (requestId !== structureRequestIdRef.current) return;
+        setStages(
+          structure.stages.map((s) => ({ id: s.id, name: s.name }))
+        );
+        setGrades(
+          structure.grades.map((g) => ({ id: g.id, name: g.name }))
+        );
+        setSections(
+          structure.sections.map((s) => ({ id: s.id, name: s.name }))
+        );
+      })
+      .catch((error) => {
+        if (requestId !== structureRequestIdRef.current) return;
+        console.error("Failed to load structure:", error);
+      });
   }, [academicYearId, termId]);
 
   // View and display mode state
@@ -435,7 +447,6 @@ export default function AcademicCalendarPage() {
   );
 
   const handleViewChange = (newView: "month" | "week" | "agenda") => {
-    setView(newView);
     updateURL(
       academicYearId,
       termId,
@@ -447,7 +458,6 @@ export default function AcademicCalendarPage() {
   };
 
   const handleDisplayModeChange = (newMode: "compact" | "comfortable" | "minimal") => {
-    setDisplayMode(newMode);
     updateURL(
       academicYearId,
       termId,
@@ -460,7 +470,6 @@ export default function AcademicCalendarPage() {
 
   const handleDateChange = useCallback(
     (date: Date) => {
-      setCurrentDate(date);
       updateURL(
         academicYearId,
         termId,
@@ -475,7 +484,6 @@ export default function AcademicCalendarPage() {
 
   const handleTypeFiltersChange = useCallback(
     (filters: AcademicEvent["type"][]) => {
-      setTypeFilters(filters);
       updateURL(
         academicYearId,
         termId,
@@ -490,8 +498,6 @@ export default function AcademicCalendarPage() {
 
   const handleScopeFilterChange = useCallback(
     (scope: "ALL" | AcademicEvent["scopeType"]) => {
-      setScopeFilter(scope);
-      setScopeIdFilter(null);
       updateURL(
         academicYearId,
         termId,
