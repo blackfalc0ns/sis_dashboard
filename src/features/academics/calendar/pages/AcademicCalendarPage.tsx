@@ -156,6 +156,8 @@ export default function AcademicCalendarPage() {
 
   // Load structure data for scope target filter
   useEffect(() => {
+    const requestId = ++structureRequestIdRef.current;
+
     if (!academicYearId || !termId) {
       setStages([]);
       setGrades([]);
@@ -163,7 +165,12 @@ export default function AcademicCalendarPage() {
       return;
     }
 
-    const requestId = ++structureRequestIdRef.current;
+    if (process.env.NODE_ENV === "development") {
+      console.debug("[Calendar] loadStructureTree", {
+        academicYearId,
+        termId,
+      });
+    }
 
     fetchStructureTree(academicYearId, termId)
       .then((structure) => {
@@ -181,6 +188,9 @@ export default function AcademicCalendarPage() {
       .catch((error) => {
         if (requestId !== structureRequestIdRef.current) return;
         console.error("Failed to load structure:", error);
+        setStages([]);
+        setGrades([]);
+        setSections([]);
       });
   }, [academicYearId, termId]);
 
@@ -277,28 +287,42 @@ export default function AcademicCalendarPage() {
   };
 
   useEffect(() => {
-    setCurrentDate(queryState.currentDate);
-  }, [queryState.currentDate]);
+    const nextDateKey = formatCalendarDate(queryState.currentDate);
+    const currentDateKey = formatCalendarDate(currentDate);
+    if (nextDateKey !== currentDateKey) {
+      setCurrentDate(queryState.currentDate);
+    }
+  }, [queryState.currentDate, currentDate]);
 
   useEffect(() => {
-    setTypeFilters(queryState.typeFilters);
-  }, [queryState.typeFilters]);
+    if (queryState.typeFilters.join(",") !== typeFilters.join(",")) {
+      setTypeFilters(queryState.typeFilters);
+    }
+  }, [queryState.typeFilters, typeFilters]);
 
   useEffect(() => {
-    setScopeFilter(queryState.scopeFilter);
-  }, [queryState.scopeFilter]);
+    if (queryState.scopeFilter !== scopeFilter) {
+      setScopeFilter(queryState.scopeFilter);
+    }
+  }, [queryState.scopeFilter, scopeFilter]);
 
   useEffect(() => {
-    setScopeIdFilter(queryState.scopeIdFilter);
-  }, [queryState.scopeIdFilter]);
+    if (queryState.scopeIdFilter !== scopeIdFilter) {
+      setScopeIdFilter(queryState.scopeIdFilter);
+    }
+  }, [queryState.scopeIdFilter, scopeIdFilter]);
 
   useEffect(() => {
-    setView(queryState.view);
-  }, [queryState.view]);
+    if (queryState.view !== view) {
+      setView(queryState.view);
+    }
+  }, [queryState.view, view]);
 
   useEffect(() => {
-    setDisplayMode(queryState.displayMode);
-  }, [queryState.displayMode]);
+    if (queryState.displayMode !== displayMode) {
+      setDisplayMode(queryState.displayMode);
+    }
+  }, [queryState.displayMode, displayMode]);
 
   const filterEvents = useCallback(
     (sourceEvents: AcademicEvent[]) => {
@@ -319,15 +343,26 @@ export default function AcademicCalendarPage() {
   );
 
   const loadEvents = useCallback(async () => {
+    const requestId = ++eventsRequestIdRef.current;
+
     if (!canView || !academicYearId || !termId) {
       setIsLoading(false);
       return;
     }
 
-    const requestId = ++eventsRequestIdRef.current;
-
     try {
       const { from, to } = getCalendarViewRange(view, currentDate);
+
+      if (process.env.NODE_ENV === "development") {
+        console.debug("[Calendar] loadEvents", {
+          academicYearId,
+          termId,
+          view,
+          currentDate: formatCalendarDate(currentDate),
+          from,
+          to,
+        });
+      }
 
       const allEvents: AcademicEvent[] = [];
       let cursor: string | undefined;
@@ -649,7 +684,6 @@ export default function AcademicCalendarPage() {
             onScopeFilterChange={handleScopeFilterChange}
             scopeIdFilter={scopeIdFilter}
             onScopeIdFilterChange={(id) => {
-              setScopeIdFilter(id);
               updateURL(academicYearId!, termId!, { currentScopeIdFilter: id }, "push");
             }}
             onAddEvent={() => handleAddEvent()}
