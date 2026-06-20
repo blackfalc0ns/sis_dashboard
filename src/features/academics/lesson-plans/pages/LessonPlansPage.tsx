@@ -31,6 +31,10 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { createLessonPlan } from "../services/lessonPlansService";
 import { lessonPlansUiError } from "../services/lessonPlansErrors";
 import {
+  getAutoPlanReadiness,
+  type AutoPlanBlockingReason,
+} from "../services/autoPlanReadiness";
+import {
   type AcademicsExportFormat,
   exportAcademicsData,
   formatExportDate,
@@ -627,12 +631,54 @@ export default function LessonPlansPage() {
     lessons,
   });
   const showSkeleton = viewState === "loading";
-  const autoPlanDisabled =
-    isReadOnly || scopeStatus !== "ready";
   const createPlanDisabled =
     isReadOnly ||
     scopeStatus !== "ready" ||
     weeks.length === 0;
+  const autoPlanReadiness = useMemo(
+    () =>
+      getAutoPlanReadiness({
+        scopeStatus,
+        termId,
+        teacherSubjectAllocationId,
+        curriculumId,
+        lessons,
+        selectedSubjectId,
+        selectedGradeId,
+        selectedClassroomId: resolvedClassroomId,
+        teacherAllocation: {
+          id: teacherSubjectAllocationId,
+          subjectId: selectedSubjectId,
+          classroomId: resolvedClassroomId,
+        },
+        curriculum: {
+          id: curriculumId,
+          subjectId: selectedSubjectId,
+          gradeId: selectedGradeId,
+        },
+        termStartDate: selectedTerm?.startDate,
+        termEndDate: selectedTerm?.endDate,
+        termStatus,
+      }),
+    [
+      curriculumId,
+      lessons,
+      resolvedClassroomId,
+      scopeStatus,
+      selectedGradeId,
+      selectedSubjectId,
+      selectedTerm?.endDate,
+      selectedTerm?.startDate,
+      teacherSubjectAllocationId,
+      termId,
+      termStatus,
+    ],
+  );
+  const firstAutoPlanBlockingReason =
+    autoPlanReadiness.blockingReasons[0] as AutoPlanBlockingReason | undefined;
+  const autoPlanBlockedMessage = firstAutoPlanBlockingReason
+    ? t(`autoPlan.readiness.${firstAutoPlanBlockingReason}`)
+    : t("tooltips.autoPlanUnavailable");
 
   const handleCreatePlan = async (payload: CreateLessonPlanDialogPayload) => {
     if (
@@ -676,8 +722,12 @@ export default function LessonPlansPage() {
         <LessonPlansPageHeader
           scopeLabels={scopeLabels}
           createPlanDisabled={createPlanDisabled}
-          autoPlanDisabled={autoPlanDisabled}
-          autoPlanUnavailableReason={t("tooltips.autoPlanUnavailable")}
+          autoPlanDisabled={isReadOnly || !autoPlanReadiness.canAutoPlan}
+          autoPlanUnavailableReason={
+            isReadOnly && autoPlanReadiness.canAutoPlan
+              ? t("readOnlyBanner")
+              : autoPlanBlockedMessage
+          }
           exportDisabled={lessonPlanExportRows.length === 0}
           refreshing={isRefreshing || plansLoading}
           onAutoPlan={() => setShowAutoPlanDialog(true)}
@@ -946,6 +996,9 @@ export default function LessonPlansPage() {
         onPreview={previewAutoPlan}
         onApply={applyAutoPlan}
         showError={showError}
+        readiness={autoPlanReadiness}
+        blockedMessage={autoPlanBlockedMessage}
+        hasVisibleLessons={lessons.length > 0}
       />
     </div>
   );

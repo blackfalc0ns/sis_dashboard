@@ -5003,20 +5003,9 @@
         "cancel": "Cancel"
       },
       "validation": {
-        "from_required": "From date is required.",
-        "to_required": "To date is required.",
-        "from_before_term": "From date must be inside the selected term.",
-        "to_after_term": "To date must be inside the selected term.",
-        "from_after_to": "From date must be before or equal to To date.",
-        "week_start_required": "Week start date is required.",
-        "week_end_required": "Week end date is required.",
-        "week_start_before_term": "Week start date must be inside the selected term.",
-        "week_end_after_term": "Week end date must be inside the selected term.",
-        "week_start_after_end": "Week start date must be before or equal to week end date.",
-        "week_outside_term": "This week is outside the selected term.",
-        "no_instructional_days": "This week has no instructional days.",
-        "planned_date_outside_term": "Planned date must be inside the selected term.",
-        "invalid_planned_day": "Select an instructional day inside the current week."
+        "noIssues": "No issues found",
+        "issuesFound": "{count} issue(s) found",
+        "viewDetails": "View Details"
       },
       "summary": {
         "title": "Progress Summary",
@@ -5136,12 +5125,34 @@
         "success": "Lesson plan published successfully",
         "error": "Failed to publish lesson plan"
       },
-      "validation": {
-        "noIssues": "No issues found",
-        "issuesFound": "{count} issue(s) found",
-        "viewDetails": "View Details"
-      },
-      "readOnlyBanner": "This term is closed. Lesson plans are read-only."
+      "readOnlyBanner": "This term is closed. Lesson plans are read-only.",
+      "autoPlan": {
+        "readiness": {
+          "title": "Auto-plan readiness",
+          "ready": "Ready",
+          "notReady": "Not ready",
+          "scopeComplete": "Scope is complete",
+          "teacherAllocationFound": "Teacher allocation found",
+          "curriculumFound": "Curriculum found",
+          "curriculumLessonsAvailable": "Curriculum lessons are available",
+          "timetableSlotsBackendCheck": "Timetable slots will be checked by the backend",
+          "incomplete_scope": "Complete the academic scope before using Auto-plan.",
+          "missing_term": "Select a term before using Auto-plan.",
+          "missing_teacher_allocation": "Assign a teacher to this subject and classroom before using Auto-plan.",
+          "missing_curriculum": "Create or activate a curriculum for this grade and subject before using Auto-plan.",
+          "no_curriculum_lessons": "No curriculum lessons are available for auto-plan. Add units and lessons to the curriculum for this subject first.",
+          "curriculum_subject_mismatch": "The selected curriculum does not match the selected grade or subject.",
+          "allocation_subject_mismatch": "The teacher allocation does not match the selected subject or classroom.",
+          "missing_classroom": "Select a classroom before using Auto-plan.",
+          "invalid_date_range": "Select a valid term date range before using Auto-plan.",
+          "closed_term": "Auto-plan is not available because the selected term is closed.",
+          "no_timetable_slots_if_known": "No timetable slots are available for Auto-plan.",
+          "backendNoCurriculum": "No curriculum lessons are available for auto-plan. Add units and lessons to the curriculum for this subject first.",
+          "backendNoSlots": "No timetable slots are available for auto-plan. Check the timetable for this teacher, subject, and classroom.",
+          "backendInvalidScope": "The selected academic scope is invalid for auto-plan.",
+          "visibleLibraryMismatchHint": "The visible lesson library may not match the teacher allocation used by Auto-plan. Check subject, classroom, and curriculum status."
+        }
+      }
     },
     "grades": {
       "title": "Assessments & Grades",
