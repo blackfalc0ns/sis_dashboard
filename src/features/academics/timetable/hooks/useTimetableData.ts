@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   fetchAcademicYears,
   fetchStructureTree,
@@ -266,8 +266,14 @@ export function useTimetableData({
   const [validationSummary, setValidationSummary] =
     useState<TimetableValidationSummary>(emptyValidationSummary);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [dependenciesLoading, setDependenciesLoading] = useState(true);
+  const [timetableLoading, setTimetableLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  const dependenciesRequestIdRef = useRef(0);
+  const timetableRequestIdRef = useRef(0);
+
+  const isLoading = dependenciesLoading || (timetableLoading && configs.length === 0 && !config);
 
   const scopeSelection = useMemo(
     () =>
@@ -291,41 +297,108 @@ export function useTimetableData({
     setResolvedConfig(null);
   }, []);
 
-  const loadAcademicDependencies = useCallback(
-    async (yearId: string) => {
-      const [
-        structure,
-        subjectsData,
-        subjectAllocsData,
-        teachersData,
-        teacherAllocsData,
-        roomsData,
-      ] = await Promise.all([
-        fetchStructureTree(yearId, termId),
-        fetchSubjects(termId),
-        fetchSubjectAllocations(termId),
-        fetchTeachers(),
-        fetchTeacherAllocations(termId),
-        fetchRooms(schoolId),
-      ]);
+  const resolveAcademicYearId = useCallback(async (): Promise<string> => {
+    if (academicYearId) {
+      return academicYearId;
+    }
+    const years = await fetchAcademicYears();
+    const currentYear = years[0];
+    if (!currentYear) {
+      throw new Error("No academic year found");
+    }
+    return currentYear.id;
+  }, [academicYearId]);
 
-      setStages(structure.stages || []);
-      setGrades(structure.grades || []);
-      setSections(structure.sections || []);
-      setClassrooms(structure.classrooms || []);
-      setSubjects(subjectsData);
-      setSubjectAllocations(subjectAllocsData);
-      setTeachers(teachersData);
-      setTeacherAllocations(teacherAllocsData);
-      setRooms(roomsData.filter((room) => room.isActive));
-      setRoomDefaults([]);
+  const loadAcademicDependencies = useCallback(
+    async () => {
+      const requestId = ++dependenciesRequestIdRef.current;
+      
+      if (!enabled || !termId) {
+        setStages([]);
+        setGrades([]);
+        setSections([]);
+        setClassrooms([]);
+        setSubjects([]);
+        setSubjectAllocations([]);
+        setTeachers([]);
+        setTeacherAllocations([]);
+        setRooms([]);
+        setRoomDefaults([]);
+        setDependenciesLoading(false);
+        return;
+      }
+
+      setDependenciesLoading(true);
+      setApiError(null);
+
+      try {
+        const yearId = await resolveAcademicYearId();
+        if (requestId !== dependenciesRequestIdRef.current) return;
+
+        const [
+          structure,
+          subjectsData,
+          subjectAllocsData,
+          teachersData,
+          teacherAllocsData,
+          roomsData,
+        ] = await Promise.all([
+          fetchStructureTree(yearId, termId),
+          fetchSubjects(termId),
+          fetchSubjectAllocations(termId),
+          fetchTeachers(),
+          fetchTeacherAllocations(termId),
+          fetchRooms(schoolId),
+        ]);
+
+        if (requestId !== dependenciesRequestIdRef.current) return;
+
+        setStages(structure.stages || []);
+        setGrades(structure.grades || []);
+        setSections(structure.sections || []);
+        setClassrooms(structure.classrooms || []);
+        setSubjects(subjectsData);
+        setSubjectAllocations(subjectAllocsData);
+        setTeachers(teachersData);
+        setTeacherAllocations(teacherAllocsData);
+        setRooms(roomsData.filter((room) => room.isActive));
+        setRoomDefaults([]);
+      } catch (error) {
+        if (requestId !== dependenciesRequestIdRef.current) return;
+        const message = timetableErrorMessage(
+          error,
+          messages?.loadFailed ?? "Failed to load academic dependencies.",
+          translateErrorCode,
+        );
+        setApiError(message);
+        console.error("Failed to load academic dependencies:", error);
+        showToast(message, "error");
+      } finally {
+        if (requestId === dependenciesRequestIdRef.current) {
+          setDependenciesLoading(false);
+        }
+      }
     },
-    [schoolId, termId],
+    [enabled, schoolId, termId, resolveAcademicYearId, messages, translateErrorCode, showToast],
   );
 
   const loadTimetableForScope = useCallback(
-    async (yearId: string) => {
+    async () => {
+      const requestId = ++timetableRequestIdRef.current;
+      
+      if (!enabled || !termId) {
+        clearTimetableState();
+        setTimetableLoading(false);
+        return;
+      }
+
+      setTimetableLoading(true);
+      setApiError(null);
+
       try {
+        const yearId = await resolveAcademicYearId();
+        if (requestId !== timetableRequestIdRef.current) return;
+
         const nextConfig = await getConfig({
           academicYearId: yearId,
           termId,
@@ -334,15 +407,21 @@ export function useTimetableData({
           sectionId: scopeSelection.sectionId,
           classroomId: scopeSelection.classroomId,
         });
+        
+        if (requestId !== timetableRequestIdRef.current) return;
+
+        const configId = nextConfig.id || nextConfig.timetableConfigId || "";
         const [periodsResponse, entriesResponse, publicationResponse] =
           await Promise.all([
-            listPeriods(nextConfig.id || nextConfig.timetableConfigId || ""),
+            listPeriods(configId),
             listEntries({
-              timetableConfigId: nextConfig.id || nextConfig.timetableConfigId || "",
+              timetableConfigId: configId,
               classroomId: selectedClassroomId || undefined,
             }),
-            getPublication(nextConfig.id || nextConfig.timetableConfigId || "") as Promise<PublicationResponse>,
+            getPublication(configId) as Promise<PublicationResponse>,
           ]);
+
+        if (requestId !== timetableRequestIdRef.current) return;
 
         const nextPeriods = listResponseItems<BackendTimetablePeriodDto>(
           periodsResponse,
@@ -363,74 +442,35 @@ export function useTimetableData({
         setConfigs([nextConfigModel]);
         setResolvedConfig(configDtoToResolvedConfig(nextConfig, nextPeriods));
       } catch (error) {
+        if (requestId !== timetableRequestIdRef.current) return;
         if (configMissing(error)) {
           clearTimetableState();
           return;
         }
-        throw error;
+        const message = timetableErrorMessage(
+          error,
+          messages?.loadFailed ?? "Failed to load timetable for scope.",
+          translateErrorCode,
+        );
+        setApiError(message);
+        console.error("Failed to load timetable for scope:", error);
+        showToast(message, "error");
+      } finally {
+        if (requestId === timetableRequestIdRef.current) {
+          setTimetableLoading(false);
+        }
       }
     },
-    [clearTimetableState, scopeSelection, selectedClassroomId, termId],
+    [enabled, termId, resolveAcademicYearId, scopeSelection, selectedClassroomId, clearTimetableState, messages, translateErrorCode, showToast],
   );
-
-  const resolveAcademicYearId = useCallback(async (): Promise<string> => {
-    if (academicYearId) {
-      return academicYearId;
-    }
-    const years = await fetchAcademicYears();
-    const currentYear = years[0];
-    if (!currentYear) {
-      throw new Error("No academic year found");
-    }
-    return currentYear.id;
-  }, [academicYearId]);
-
-  const loadData = useCallback(async () => {
-    if (!enabled) {
-      clearTimetableState();
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setApiError(null);
-    try {
-      const yearId = await resolveAcademicYearId();
-      await loadAcademicDependencies(yearId);
-      await loadTimetableForScope(yearId);
-    } catch (error) {
-      const message = timetableErrorMessage(
-        error,
-        messages?.loadFailed ?? "Failed to load timetable data.",
-        translateErrorCode,
-      );
-      setApiError(message);
-      console.error("Failed to load data:", error);
-      showToast(message, "error");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [
-    loadAcademicDependencies,
-    loadTimetableForScope,
-    resolveAcademicYearId,
-    clearTimetableState,
-    enabled,
-    messages,
-    showToast,
-    translateErrorCode,
-  ]);
-
   const reloadConfigs = useCallback(async () => {
-    const yearId = await resolveAcademicYearId();
-    await loadTimetableForScope(yearId);
+    await loadTimetableForScope();
     return configs;
-  }, [configs, loadTimetableForScope, resolveAcademicYearId]);
+  }, [configs, loadTimetableForScope]);
 
   const loadTimetable = useCallback(async () => {
-    const yearId = await resolveAcademicYearId();
-    await loadTimetableForScope(yearId);
-  }, [loadTimetableForScope, resolveAcademicYearId]);
+    await loadTimetableForScope();
+  }, [loadTimetableForScope]);
 
   const loadConflicts = useCallback(async (): Promise<TimetableConflict[]> => {
     if (!config) {
@@ -696,8 +736,12 @@ export function useTimetableData({
   ]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadAcademicDependencies();
+  }, [loadAcademicDependencies]);
+
+  useEffect(() => {
+    loadTimetableForScope();
+  }, [loadTimetableForScope]);
 
   return {
     stages,
@@ -723,6 +767,8 @@ export function useTimetableData({
     validationSummary,
     apiError,
     isLoading,
+    dependenciesLoading,
+    timetableLoading,
     isSaving,
     isPublished: isPublicationActive(publication),
     reloadConfigs,

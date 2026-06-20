@@ -166,6 +166,8 @@ export default function TimetableView({
     periods,
     apiError,
     isLoading,
+    dependenciesLoading,
+    timetableLoading,
     isSaving,
     isPublished,
     conflicts: backendConflicts,
@@ -1523,10 +1525,15 @@ export default function TimetableView({
                   const showClassroomHeader = displayedClassrooms.length > 1;
 
                   return (
-                    <section key={classroom.id} className="space-y-3">
+                    <section key={classroom.id} className="space-y-3 relative">
                       {showClassroomHeader && (
                         <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-900 print:rounded-none print:border-x-0 print:px-0">
                           {t("target.classroom")}: {getDisplayName(classroom)}
+                        </div>
+                      )}
+                      {timetableLoading && !isLoading && (
+                        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/60 backdrop-blur-sm min-h-[200px]">
+                          <MainLoader />
                         </div>
                       )}
                       <TimetableGrid
