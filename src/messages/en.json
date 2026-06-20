@@ -4941,6 +4941,9 @@
         "markDone": "Mark Done",
         "skip": "Skip",
         "cancel": "Cancel",
+        "back": "Back",
+        "confirm": "Confirm",
+        "cancelLesson": "Cancel lesson",
         "markPlanned": "Mark Planned",
         "validate": "Validate",
         "autoPlan": "Auto-plan",
@@ -5005,7 +5008,20 @@
       "validation": {
         "noIssues": "No issues found",
         "issuesFound": "{count} issue(s) found",
-        "viewDetails": "View Details"
+        "viewDetails": "View Details",
+        "week_outside_term": "Week is outside the term dates",
+        "no_instructional_days": "No instructional days in this week",
+        "planned_date_outside_term": "Planned date is outside the term dates",
+        "from_required": "Start date is required",
+        "from_before_term": "Start date cannot be before term starts",
+        "to_required": "End date is required",
+        "to_after_term": "End date cannot be after term ends",
+        "from_after_to": "Start date cannot be after end date",
+        "week_start_required": "Week start date is required",
+        "week_start_before_term": "Week start cannot be before term starts",
+        "week_end_required": "Week end date is required",
+        "week_end_after_term": "Week end cannot be after term ends",
+        "week_start_after_end": "Week start cannot be after week end"
       },
       "summary": {
         "title": "Progress Summary",
@@ -5050,7 +5066,11 @@
         "missingPlannedLessons": "Some curriculum lessons are not planned yet.",
         "academics_lesson_plan_duplicate": "Duplicate lesson planning was detected.",
         "academics_lesson_plan_outside_term": "A planned item falls outside the selected term.",
-        "academics_lesson_plan_holiday": "A planned item is scheduled on a holiday."
+        "academics_lesson_plan_holiday": "A planned item is scheduled on a holiday.",
+        "missing_planned_lesson": "Some curriculum lessons are not planned yet.",
+        "duplicate_lesson": "Duplicate lesson planning was detected.",
+        "outside_term_item": "Some planned items fall outside the selected term.",
+        "holiday_item": "Some planned items are scheduled on holidays."
       },
       "warnings": {
         "holidayWeek": "This week contains holidays",
@@ -5127,6 +5147,7 @@
       },
       "readOnlyBanner": "This term is closed. Lesson plans are read-only.",
       "autoPlan": {
+        "checkingReadiness": "Checking auto-plan readiness...",
         "readiness": {
           "title": "Auto-plan readiness",
           "ready": "Ready",

@@ -83,20 +83,23 @@ export function useLessonPlansData(params: Params) {
   const [plans, setPlans] = useState<LessonPlan[]>([]);
   const [weeks, setWeeks] = useState<WeekInfo[]>([]);
   const [summary, setSummary] = useState<LessonPlanSummary | null>(null);
-  const [validation, setValidation] =
-    useState<LessonPlanValidationResponseDto | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState<Error | null>(null);
+  const [validation, setValidation] = useState<LessonPlanValidationResponseDto | null>(null);
+  const [validationLoading, setValidationLoading] = useState(false);
+  const [validationError, setValidationError] = useState<Error | null>(null);
   const [assignedTeacherId, setAssignedTeacherId] = useState("");
-  const [teacherSubjectAllocationId, setTeacherSubjectAllocationId] =
-    useState("");
+  const [teacherSubjectAllocationId, setTeacherSubjectAllocationId] = useState("");
   const [curriculumId, setCurriculumId] = useState("");
   const [resolvedClassroomId, setResolvedClassroomId] = useState("");
   const [loading, setLoading] = useState(true);
   const [plansLoading, setPlansLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dataChecked, setDataChecked] = useState(false);
-  const [scopeStatus, setScopeStatus] =
-    useState<LessonPlansScopeStatus>("loading-options");
+  const [scopeStatus, setScopeStatus] = useState<LessonPlansScopeStatus>("loading-options");
   const requestId = useRef(0);
+  const summaryRequestId = useRef(0);
+  const validationRequestId = useRef(0);
 
   useEffect(() => {
     void (async () => {
@@ -159,7 +162,8 @@ export function useLessonPlansData(params: Params) {
   );
 
   const refreshPlanDetail = useCallback(
-    async (planId: string) => {
+    async (planId: string, options: RefreshLessonPlansOptions = {}) => {
+      void options.silent;
       const plan = withWeekIndex(await getLessonPlan(planId));
       setPlans((current) => {
         const existingIndex = current.findIndex(
@@ -175,23 +179,70 @@ export function useLessonPlansData(params: Params) {
     [withWeekIndex],
   );
 
-  const refreshSummaryAndValidation = useCallback(
-    async (options: RefreshLessonPlansOptions = {}) => {
+  const refreshSummary = useCallback(
+    async (options: RefreshLessonPlansOptions = {}, explicitQuery?: any) => {
       void options.silent;
-      const query = scopedLessonPlansQuery();
+      const query = explicitQuery || scopedLessonPlansQuery();
       if (!query) return;
+      const currentRequest = ++summaryRequestId.current;
+      if (!options.silent) {
+        setSummaryLoading(true);
+        setSummaryError(null);
+      }
       try {
-        const [planSummary, planValidation] = await Promise.all([
-          getLessonPlanSummary(query),
-          getLessonPlanValidation(query),
-        ]);
-        setSummary(planSummary);
-        setValidation(planValidation);
+        const planSummary = await getLessonPlanSummary(query);
+        if (currentRequest === summaryRequestId.current) {
+          setSummary(planSummary);
+        }
       } catch (error) {
-        console.warn("Failed to refresh lesson plan summary/validation:", error);
+        if (currentRequest === summaryRequestId.current) {
+          console.warn("Failed to refresh lesson plan summary:", error);
+          setSummaryError(error instanceof Error ? error : new Error("Failed to load summary"));
+        }
+      } finally {
+        if (currentRequest === summaryRequestId.current) {
+          setSummaryLoading(false);
+        }
       }
     },
     [scopedLessonPlansQuery],
+  );
+
+  const refreshValidation = useCallback(
+    async (options: RefreshLessonPlansOptions = {}, explicitQuery?: any) => {
+      void options.silent;
+      const query = explicitQuery || scopedLessonPlansQuery();
+      if (!query) return;
+      const currentRequest = ++validationRequestId.current;
+      if (!options.silent) {
+        setValidationLoading(true);
+        setValidationError(null);
+      }
+      try {
+        const planValidation = await getLessonPlanValidation(query);
+        if (currentRequest === validationRequestId.current) {
+          setValidation(planValidation);
+        }
+      } catch (error) {
+        if (currentRequest === validationRequestId.current) {
+          console.warn("Failed to refresh lesson plan validation:", error);
+          setValidationError(error instanceof Error ? error : new Error("Failed to load validation"));
+        }
+      } finally {
+        if (currentRequest === validationRequestId.current) {
+          setValidationLoading(false);
+        }
+      }
+    },
+    [scopedLessonPlansQuery],
+  );
+
+  const refreshSummaryAndValidation = useCallback(
+    async (options: RefreshLessonPlansOptions = {}, explicitQuery?: any) => {
+      void refreshSummary(options, explicitQuery);
+      void refreshValidation(options, explicitQuery);
+    },
+    [refreshSummary, refreshValidation],
   );
 
   const refreshWeeks = useCallback(
@@ -273,8 +324,10 @@ export function useLessonPlansData(params: Params) {
       setIsRefreshing(false);
     };
     if (loading) {
-      clearScopedData();
-      setScopeStatus("loading-options");
+      if (!silent) {
+        clearScopedData();
+        setScopeStatus("loading-options");
+      }
       setDataChecked(false);
       return;
     }
@@ -290,8 +343,10 @@ export function useLessonPlansData(params: Params) {
               ? "missing-subject"
               : null;
     if (missingStatus) {
-      clearScopedData();
-      setScopeStatus(missingStatus);
+      if (!silent) {
+        clearScopedData();
+        setScopeStatus(missingStatus);
+      }
       setDataChecked(true);
       return;
     }
@@ -304,8 +359,10 @@ export function useLessonPlansData(params: Params) {
       ? selectedClassroomId
       : "";
     if (sectionClassrooms.length > 0 && !classroomId) {
-      clearScopedData();
-      setScopeStatus("missing-classroom");
+      if (!silent) {
+        clearScopedData();
+        setScopeStatus("missing-classroom");
+      }
       setDataChecked(true);
       return;
     }
@@ -339,44 +396,44 @@ export function useLessonPlansData(params: Params) {
             : !candidate.classroomId),
       );
       if (!curriculum || !allocation || currentRequest !== requestId.current) {
-        setPlans([]);
-        setWeeks([]);
-        setSummary(null);
-        setValidation(null);
-        setUnits(curriculum?.units ?? []);
-        setLessons((curriculum?.units ?? []).flatMap((unit) => unit.lessons));
-        setCurriculumId(curriculum?.id ?? "");
-        setTeacherSubjectAllocationId(allocation?.id ?? "");
-        setAssignedTeacherId(allocation?.teacherId ?? "");
-        setResolvedClassroomId(classroomId);
+        if (!silent) {
+          setPlans([]);
+          setWeeks([]);
+          setSummary(null);
+          setValidation(null);
+          setUnits(curriculum?.units ?? []);
+          setLessons((curriculum?.units ?? []).flatMap((unit) => unit.lessons));
+          setCurriculumId(curriculum?.id ?? "");
+          setTeacherSubjectAllocationId(allocation?.id ?? "");
+          setAssignedTeacherId(allocation?.teacherId ?? "");
+          setResolvedClassroomId(classroomId);
+          setScopeStatus(
+            !curriculum ? "missing-curriculum" : "missing-teacher-allocation",
+          );
+        }
         setDataChecked(true);
-        setScopeStatus(
-          !curriculum ? "missing-curriculum" : "missing-teacher-allocation",
-        );
         return;
       }
       const query = { termId, teacherSubjectAllocationId: allocation.id };
-      const [weekList, planList, planSummary, planValidation] =
+      const summaryQuery = {
+        ...query,
+        gradeId: selectedGradeId,
+        subjectId: selectedSubjectId,
+        classroomId: classroomId || undefined,
+      };
+      
+      const [weekList, planList] =
         await Promise.all([
           listLessonPlanWeeks(query),
           listLessonPlans(query),
-          getLessonPlanSummary({
-            ...query,
-            gradeId: selectedGradeId,
-            subjectId: selectedSubjectId,
-            classroomId: classroomId || undefined,
-          }),
-          getLessonPlanValidation({
-            ...query,
-            gradeId: selectedGradeId,
-            subjectId: selectedSubjectId,
-            classroomId: classroomId || undefined,
-          }),
         ]);
       const detailedPlans = await Promise.all(
         planList.map((plan) => getLessonPlan(plan.id)),
       );
       if (currentRequest !== requestId.current) return;
+      
+      // Fire summary/validation updates concurrently without blocking page load
+      void refreshSummaryAndValidation(options, summaryQuery);
       setResolvedClassroomId(classroomId);
       setAssignedTeacherId(allocation.teacherId ?? "");
       setTeacherSubjectAllocationId(allocation.id);
@@ -395,8 +452,6 @@ export function useLessonPlansData(params: Params) {
             )?.weekIndex ?? plan.weekIndex,
         })),
       );
-      setSummary(planSummary);
-      setValidation(planValidation);
       setDataChecked(true);
       setScopeStatus("ready");
     } catch (error) {
@@ -439,7 +494,11 @@ export function useLessonPlansData(params: Params) {
     plans,
     weeks,
     summary,
+    summaryLoading,
+    summaryError,
     validation,
+    validationLoading,
+    validationError,
     assignedTeacherId,
     teacherSubjectAllocationId,
     curriculumId,

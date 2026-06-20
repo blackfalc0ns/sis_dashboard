@@ -31,6 +31,8 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
       : `${user.firstName} ${user.lastName}`.trim();
   const userRole = user?.activeMembership?.roleKey ?? user?.userType;
   const schoolName = brandingProfile?.schoolName?.trim() || t("school_name");
+  const shortSchoolName =
+    brandingProfile?.shortName?.trim() || t("short_school_name");
 
   // Set initial sidebar state based on screen size
   useEffect(() => {
@@ -90,7 +92,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
           userName={userName}
           userRole={userRole}
           notificationCount={1}
-          schoolName={schoolName}
+          schoolName={shortSchoolName}
           onSearchChange={(value) => console.log("Search:", value)}
           onLanguageChange={() => console.log("Language changed")}
           onNotificationClick={() => console.log("Notifications clicked")}

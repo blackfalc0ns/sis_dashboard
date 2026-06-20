@@ -116,7 +116,11 @@ export default function LessonPlansPage() {
     plans,
     weeks,
     summary,
+    summaryLoading,
+    summaryError,
     validation,
+    validationLoading,
+    validationError,
     assignedTeacherId,
     teacherSubjectAllocationId,
     curriculumId,
@@ -686,9 +690,14 @@ export default function LessonPlansPage() {
   );
   const firstAutoPlanBlockingReason =
     autoPlanReadiness.blockingReasons[0] as AutoPlanBlockingReason | undefined;
-  const autoPlanBlockedMessage = firstAutoPlanBlockingReason
-    ? t(`autoPlan.readiness.${firstAutoPlanBlockingReason}`)
-    : t("tooltips.autoPlanUnavailable");
+  
+  const isSecondaryLoading = summaryLoading || validationLoading;
+  
+  const autoPlanBlockedMessage = isSecondaryLoading
+    ? t("autoPlan.checkingReadiness", { defaultValue: "Checking auto-plan readiness..." })
+    : firstAutoPlanBlockingReason
+      ? t(`autoPlan.readiness.${firstAutoPlanBlockingReason}`)
+      : t("tooltips.autoPlanUnavailable");
 
   const handleCreatePlan = async (payload: CreateLessonPlanDialogPayload) => {
     if (
@@ -867,8 +876,13 @@ export default function LessonPlansPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {validation && (
-                <LessonPlanValidationPanel validation={validation} />
+              {(validation || validationLoading || validationError) && (
+                <LessonPlanValidationPanel 
+                  validation={validation} 
+                  isLoading={validationLoading}
+                  error={validationError}
+                  onRetry={() => void refreshSummaryAndValidation()}
+                />
               )}
               <LessonPlansBoard
                 academicYearId={academicYearId}

@@ -69,6 +69,8 @@ interface LessonPlansBoardProps {
   plans: LessonPlan[];
   weeks: WeekInfo[];
   summary: LessonPlanSummary | null;
+  summaryLoading: boolean;
+  summaryError: Error | null;
   validation: LessonPlanValidationResponseDto | null;
   isReadOnly: boolean;
   librarySearchQuery: string;
@@ -107,6 +109,8 @@ export default function LessonPlansBoard({
   plans,
   weeks,
   summary,
+  summaryLoading,
+  summaryError,
   validation,
   isReadOnly,
   librarySearchQuery,
@@ -703,13 +707,20 @@ export default function LessonPlansBoard({
   return (
     <div className="space-y-6">
       {/* Progress Summary */}
-      {summary && <ProgressSummary summary={summary} />}
+      {(summary || summaryLoading || summaryError) && (
+        <ProgressSummary 
+          summary={summary} 
+          isLoading={summaryLoading} 
+          error={summaryError} 
+          onRetry={() => void onRefreshSummaryAndValidation()} 
+        />
+      )}
 
       {/* Main Board */}
       <div className={isMobile ? "space-y-4" : "flex gap-6"}>
         {/* Lesson Library - Desktop Only */}
         {!isMobile && (
-          <div className="w-80 shrink-0 self-start sticky top-[calc(var(--header-height) + 1rem)]">
+          <div className="w-80 shrink-0 self-start sticky top-[calc(var(--header-height)_+_1rem)] z-10">
             <LessonLibrary
               key={plannedLessonsHash}
               lessons={lessons}
