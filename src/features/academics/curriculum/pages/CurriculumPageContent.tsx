@@ -289,6 +289,41 @@ export default function CurriculumPageContent() {
       return;
     }
 
+    const currentContextKey = curriculumOptionsContextKey(academicYearId, termId);
+
+    if (
+      loadedOptionsContextKey === currentContextKey &&
+      grades.length > 0 &&
+      subjects.length > 0
+    ) {
+      setSelectedGradeId((previous) => {
+        if (
+          queryState.gradeId &&
+          grades.some((grade) => grade.id === queryState.gradeId)
+        ) {
+          return queryState.gradeId;
+        }
+        if (previous && grades.some((grade) => grade.id === previous)) {
+          return previous;
+        }
+        return grades[0]?.id ?? "";
+      });
+
+      setSelectedSubjectId((previous) => {
+        if (
+          queryState.subjectId &&
+          subjects.some((subject) => subject.id === queryState.subjectId)
+        ) {
+          return queryState.subjectId;
+        }
+        if (previous && subjects.some((subject) => subject.id === previous)) {
+          return previous;
+        }
+        return subjects[0]?.id ?? "";
+      });
+      return;
+    }
+
     const requestId = ++optionsRequestIdRef.current;
     setIsOptionsLoading(true);
     try {
@@ -301,36 +336,43 @@ export default function CurriculumPageContent() {
 
       setGrades(structureData.grades);
       setSubjects(subjectsData);
-      setLoadedOptionsContextKey(
-        curriculumOptionsContextKey(academicYearId, termId),
-      );
+      setLoadedOptionsContextKey(currentContextKey);
 
-      if (structureData.grades.length > 0) {
-        const nextGradeId =
-          (queryState.gradeId &&
-            structureData.grades.some(
-              (grade) => grade.id === queryState.gradeId,
-            ) &&
-            queryState.gradeId) ||
-          selectedGradeId ||
-          structureData.grades[0]!.id;
-        setSelectedGradeId(nextGradeId);
-      } else {
-        setSelectedGradeId("");
-      }
-      if (subjectsData.length > 0) {
-        const nextSubjectId =
-          (queryState.subjectId &&
-            subjectsData.some(
-              (subject) => subject.id === queryState.subjectId,
-            ) &&
-            queryState.subjectId) ||
-          selectedSubjectId ||
-          subjectsData[0]!.id;
-        setSelectedSubjectId(nextSubjectId);
-      } else {
-        setSelectedSubjectId("");
-      }
+      setSelectedGradeId((previous) => {
+        if (
+          queryState.gradeId &&
+          structureData.grades.some((grade) => grade.id === queryState.gradeId)
+        ) {
+          return queryState.gradeId;
+        }
+
+        if (
+          previous &&
+          structureData.grades.some((grade) => grade.id === previous)
+        ) {
+          return previous;
+        }
+
+        return structureData.grades[0]?.id ?? "";
+      });
+
+      setSelectedSubjectId((previous) => {
+        if (
+          queryState.subjectId &&
+          subjectsData.some((subject) => subject.id === queryState.subjectId)
+        ) {
+          return queryState.subjectId;
+        }
+
+        if (
+          previous &&
+          subjectsData.some((subject) => subject.id === previous)
+        ) {
+          return previous;
+        }
+
+        return subjectsData[0]?.id ?? "";
+      });
     } catch (error) {
       if (requestId !== optionsRequestIdRef.current) return;
       console.error("Failed to load data:", error);
@@ -346,11 +388,12 @@ export default function CurriculumPageContent() {
     }
   }, [
     academicYearId,
+    grades,
     isInitializing,
+    loadedOptionsContextKey,
     queryState.gradeId,
     queryState.subjectId,
-    selectedGradeId,
-    selectedSubjectId,
+    subjects,
     tCommon,
     termId,
   ]);
