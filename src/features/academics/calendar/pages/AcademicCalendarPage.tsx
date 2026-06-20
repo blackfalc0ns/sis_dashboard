@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AlertCircle, Download } from "lucide-react";
@@ -32,6 +32,7 @@ import {
 import { getCalendarErrorMessage } from "@/features/academics/calendar/services/calendarErrors";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { usePermissions } from "@/hooks/usePermissions";
+import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 
 function getCalendarViewRange(view: "month" | "week" | "agenda", date: Date) {
   const d = new Date(date);
@@ -88,6 +89,9 @@ export default function AcademicCalendarPage() {
   const canView = hasPermission("academics.calendar.view");
   const canManage = hasPermission("academics.calendar.manage");
 
+  const defaultDateRef = useRef(new Date());
+  const eventsRequestIdRef = useRef(0);
+
   const queryState = useMemo(() => {
     const rawDate = searchParams.get("date");
     const parsedDate =
@@ -95,7 +99,7 @@ export default function AcademicCalendarPage() {
         ? new Date(`${rawDate}T00:00:00`)
         : null;
     const validDate =
-      parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : new Date();
+      parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : defaultDateRef.current;
 
     const rawTypes = (searchParams.get("types") || "")
       .split(",")
@@ -143,6 +147,30 @@ export default function AcademicCalendarPage() {
   const [events, setEvents] = useState<AcademicEvent[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<AcademicEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Scope options
+  const [stages, setStages] = useState<Array<{ id: string; name: string }>>([]);
+  const [grades, setGrades] = useState<Array<{ id: string; name: string }>>([]);
+  const [sections, setSections] = useState<Array<{ id: string; name: string }>>([]);
+
+  // Load structure data for scope target filter
+  useEffect(() => {
+    if (academicYearId && termId) {
+      fetchStructureTree(academicYearId, termId)
+        .then((structure) => {
+          setStages(
+            structure.stages.map((s) => ({ id: s.id, name: s.name }))
+          );
+          setGrades(
+            structure.grades.map((g) => ({ id: g.id, name: g.name }))
+          );
+          setSections(
+            structure.sections.map((s) => ({ id: s.id, name: s.name }))
+          );
+        })
+        .catch(console.error);
+    }
+  }, [academicYearId, termId]);
 
   // View and display mode state
   const [view, setView] = useState<"month" | "week" | "agenda">(queryState.view);
@@ -284,6 +312,8 @@ export default function AcademicCalendarPage() {
       return;
     }
 
+    const requestId = ++eventsRequestIdRef.current;
+
     try {
       const { from, to } = getCalendarViewRange(view, currentDate);
 
@@ -300,12 +330,15 @@ export default function AcademicCalendarPage() {
           cursor,
         });
 
+        if (requestId !== eventsRequestIdRef.current) return;
+
         allEvents.push(...res.items);
         cursor = res.nextCursor || undefined;
       } while (cursor);
 
       setEvents(allEvents);
     } catch (error) {
+      if (requestId !== eventsRequestIdRef.current) return;
       console.error("Failed to load events:", error);
       setSnackbar({
         open: true,
@@ -313,7 +346,9 @@ export default function AcademicCalendarPage() {
         severity: "error",
       });
     } finally {
-      setIsLoading(false);
+      if (requestId === eventsRequestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [academicYearId, canView, currentDate, t, termId, view]);
 
@@ -620,6 +655,9 @@ export default function AcademicCalendarPage() {
             onDisplayModeChange={handleDisplayModeChange}
             academicYearId={academicYearId || undefined}
             termId={termId || undefined}
+            stages={stages}
+            grades={grades}
+            sections={sections}
           />
 
           {/* Calendar Views */}
@@ -685,6 +723,9 @@ export default function AcademicCalendarPage() {
           termId={termId || ""}
           prefilledDate={prefilledDate}
           isReadOnly={isReadOnly}
+          stages={stages}
+          grades={grades}
+          sections={sections}
         />
       )}
 

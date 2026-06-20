@@ -19,7 +19,7 @@ import {
   deleteEvent,
 } from "@/features/academics/calendar/services/calendarService";
 import { getCalendarErrorMessage } from "@/features/academics/calendar/services/calendarErrors";
-import { Term, fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
+import { Term } from "@/features/academics/academic-structure-tree/services/structureService";
 
 interface EventDialogProps {
   isOpen: boolean;
@@ -31,6 +31,9 @@ interface EventDialogProps {
   termId: string;
   prefilledDate: Date | null;
   isReadOnly: boolean;
+  stages: Array<{ id: string; name: string }>;
+  grades: Array<{ id: string; name: string }>;
+  sections: Array<{ id: string; name: string }>;
 }
 
 export default function EventDialog({
@@ -43,6 +46,9 @@ export default function EventDialog({
   termId,
   prefilledDate,
   isReadOnly,
+  stages,
+  grades,
+  sections,
 }: EventDialogProps) {
   const t = useTranslations("academics.calendar");
   const tValidation = useTranslations("validation");
@@ -58,24 +64,11 @@ export default function EventDialog({
   const [scopeId, setScopeId] = useState("");
   const [notes, setNotes] = useState("");
 
-  // Scope options
-  const [stages, setStages] = useState<Array<{ id: string; name: string }>>([]);
-  const [grades, setGrades] = useState<Array<{ id: string; name: string }>>([]);
-  const [sections, setSections] = useState<Array<{ id: string; name: string }>>([]);
-
   // UI state
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // Load structure data for scope selection
-  useEffect(() => {
-    if (isOpen && term) {
-      loadStructureData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, term]);
 
   // Initialize form when dialog opens
   useEffect(() => {
@@ -107,34 +100,7 @@ export default function EventDialog({
     }
   }, [isOpen, event, prefilledDate]);
 
-  const loadStructureData = async () => {
-    try {
-      const structure = await fetchStructureTree(term.yearId, term.id);
 
-      setStages(
-        structure.stages.map((s) => ({
-          id: s.id,
-          name: s.name,
-        }))
-      );
-
-      setGrades(
-        structure.grades.map((g) => ({
-          id: g.id,
-          name: g.name,
-        }))
-      );
-
-      setSections(
-        structure.sections.map((s) => ({
-          id: s.id,
-          name: s.name,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to load structure:", error);
-    }
-  };
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};

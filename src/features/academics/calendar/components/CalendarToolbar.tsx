@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Plus, Filter, X, LayoutGrid, List, Calendar 
 import Button from "@/components/ui/button/Button";
 import DatePicker from "@/components/ui/input/DatePicker";
 import { AcademicEvent } from "@/features/academics/calendar/services/calendarService";
-import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
+
 import {
   Drawer,
   Popover,
@@ -44,6 +44,9 @@ interface CalendarToolbarProps {
   termId?: string;
   scopeIdFilter?: string | null;
   onScopeIdFilterChange?: (id: string | null) => void;
+  stages: Array<{ id: string; name: string }>;
+  grades: Array<{ id: string; name: string }>;
+  sections: Array<{ id: string; name: string }>;
 }
 
 // Filters content component (reused in both Popover and Drawer)
@@ -216,6 +219,9 @@ export default function CalendarToolbar({
   termId,
   scopeIdFilter,
   onScopeIdFilterChange,
+  stages,
+  grades,
+  sections,
 }: CalendarToolbarProps) {
   const t = useTranslations("academics.calendar");
   const locale = useLocale();
@@ -226,29 +232,6 @@ export default function CalendarToolbar({
   const [filtersAnchorEl, setFiltersAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
   const [showDatePickerDialog, setShowDatePickerDialog] = useState(false);
-
-  const [stages, setStages] = useState<Array<{ id: string; name: string }>>([]);
-  const [grades, setGrades] = useState<Array<{ id: string; name: string }>>([]);
-  const [sections, setSections] = useState<Array<{ id: string; name: string }>>([]);
-
-  // Load structure data for scope target filter
-  useEffect(() => {
-    if (academicYearId && termId) {
-      fetchStructureTree(academicYearId, termId)
-        .then((structure) => {
-          setStages(
-            structure.stages.map((s) => ({ id: s.id, name: s.name }))
-          );
-          setGrades(
-            structure.grades.map((g) => ({ id: g.id, name: g.name }))
-          );
-          setSections(
-            structure.sections.map((s) => ({ id: s.id, name: s.name }))
-          );
-        })
-        .catch(console.error);
-    }
-  }, [academicYearId, termId]);
 
   const showFiltersPopover = Boolean(filtersAnchorEl);
 
