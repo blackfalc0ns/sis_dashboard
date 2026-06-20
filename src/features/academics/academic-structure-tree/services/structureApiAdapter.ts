@@ -167,6 +167,7 @@ const mapGrade = (dto: GradeApiDto): Grade => ({
   nameAr: dto.nameAr,
   nameEn: dto.nameEn,
   stageId: dto.stageId,
+  capacity: dto.capacity ?? 0,
   order: dto.sortOrder ?? 1,
   notes: dto.notes,
 });
@@ -278,6 +279,7 @@ const toGradePayload = (payload: Partial<Omit<Grade, "id">>) => ({
   ...(typeof payload.nameAr !== "undefined" ? { nameAr: payload.nameAr } : {}),
   ...(typeof payload.nameEn !== "undefined" ? { nameEn: payload.nameEn } : {}),
   ...(typeof payload.order !== "undefined" ? { sortOrder: payload.order } : {}),
+  ...(typeof payload.capacity !== "undefined" ? { capacity: payload.capacity } : {}),
   ...(typeof payload.notes !== "undefined" ? { notes: payload.notes } : {}),
 });
 
@@ -455,7 +457,7 @@ export const createStructureApiAdapter = (
           nameAr: payload.nameAr,
           nameEn: payload.nameEn,
           sortOrder: payload.order,
-          capacity: 30,
+          capacity: payload.capacity,
           notes: payload.notes,
         }),
       })

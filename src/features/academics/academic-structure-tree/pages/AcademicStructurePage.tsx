@@ -10,6 +10,7 @@ import InsightsPanel from "../../components/shared/InsightsPanel";
 import Modal from "@/components/ui/modal/Modal";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
+import TextArea from "@/components/ui/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import {
   type Stage,
@@ -97,11 +98,15 @@ export default function AcademicStructurePage() {
     newItemNameEn,
     newItemCapacity,
     newItemOrder,
+    newItemNotes,
+    newItemDescription,
     addModalErrors,
     setNewItemNameAr,
     setNewItemNameEn,
     setNewItemCapacity,
     setNewItemOrder,
+    setNewItemNotes,
+    setNewItemDescription,
     setAddModalErrors,
     closeAddModal,
     openAddStage,
@@ -708,7 +713,7 @@ export default function AcademicStructurePage() {
               disabled={
                 !newItemNameAr.trim() ||
                 !newItemNameEn.trim() ||
-                ((addModalType === "section" || addModalType === "classroom") &&
+                ((addModalType === "grade" || addModalType === "section" || addModalType === "classroom") &&
                   newItemCapacity <= 0) ||
                 (addModalType === "classroom" && newItemOrder <= 0)
               }
@@ -731,7 +736,17 @@ export default function AcademicStructurePage() {
           requiredEn
           errors={addModalErrors}
         />
-        {(addModalType === "section" || addModalType === "classroom") && (
+        {addModalType === "stage" && (
+          <div className="mt-4">
+            <TextArea
+              label={t("details.description")}
+              value={newItemDescription}
+              onChange={(e) => setNewItemDescription(e.target.value)}
+              rows={3}
+            />
+          </div>
+        )}
+        {(addModalType === "grade" || addModalType === "section" || addModalType === "classroom") && (
           <div className="mt-4">
             <Input
               label={t("details.capacity")}
@@ -743,6 +758,16 @@ export default function AcademicStructurePage() {
                 setAddModalErrors((prev) => ({ ...prev, capacity: undefined }));
               }}
               error={addModalErrors.capacity}
+            />
+          </div>
+        )}
+        {addModalType === "grade" && (
+          <div className="mt-4">
+            <TextArea
+              label={t("details.notes")}
+              value={newItemNotes}
+              onChange={(e) => setNewItemNotes(e.target.value)}
+              rows={3}
             />
           </div>
         )}

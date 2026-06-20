@@ -50,6 +50,8 @@ export function useStructureCreateFlow({
   const [newItemNameEn, setNewItemNameEn] = useState("");
   const [newItemCapacity, setNewItemCapacity] = useState(30);
   const [newItemOrder, setNewItemOrder] = useState(1);
+  const [newItemNotes, setNewItemNotes] = useState("");
+  const [newItemDescription, setNewItemDescription] = useState("");
   const [addModalErrors, setAddModalErrors] = useState<{
     ar?: string;
     en?: string;
@@ -62,6 +64,8 @@ export function useStructureCreateFlow({
     setNewItemNameEn("");
     setNewItemCapacity(30);
     setNewItemOrder(1);
+    setNewItemNotes("");
+    setNewItemDescription("");
     setAddModalErrors({});
   }, []);
 
@@ -124,7 +128,7 @@ export function useStructureCreateFlow({
 
     if (!newItemNameAr.trim()) nextErrors.ar = tValidation("required_ar");
     if (!newItemNameEn.trim()) nextErrors.en = tValidation("required_en");
-    if ((addModalType === "section" || addModalType === "classroom") && newItemCapacity <= 0) {
+    if ((addModalType === "grade" || addModalType === "section" || addModalType === "classroom") && newItemCapacity <= 0) {
       nextErrors.capacity = t("details.validation.capacity_required");
     }
     if (addModalType === "classroom" && newItemOrder <= 0) {
@@ -173,6 +177,7 @@ export function useStructureCreateFlow({
           nameEn: newItemNameEn,
           name: newItemNameEn || newItemNameAr,
           order: maxStageOrder + 1,
+          description: newItemDescription,
         });
       } else if (addModalType === "grade" && addModalParentId) {
         const maxOrder = grades
@@ -183,7 +188,9 @@ export function useStructureCreateFlow({
           nameEn: newItemNameEn,
           name: newItemNameEn || newItemNameAr,
           stageId: addModalParentId,
+          capacity: newItemCapacity,
           order: maxOrder + 1,
+          notes: newItemNotes,
         });
       } else if (addModalType === "section" && addModalParentId) {
         const maxOrder = sections
@@ -223,6 +230,8 @@ export function useStructureCreateFlow({
     newItemCapacity,
     newItemNameAr,
     newItemNameEn,
+    newItemNotes,
+    newItemDescription,
     newItemOrder,
     reload,
     resetForm,
@@ -240,11 +249,15 @@ export function useStructureCreateFlow({
     newItemNameEn,
     newItemCapacity,
     newItemOrder,
+    newItemNotes,
+    newItemDescription,
     addModalErrors,
     setNewItemNameAr,
     setNewItemNameEn,
     setNewItemCapacity,
     setNewItemOrder,
+    setNewItemNotes,
+    setNewItemDescription,
     setAddModalErrors,
     closeAddModal,
     openAddStage,

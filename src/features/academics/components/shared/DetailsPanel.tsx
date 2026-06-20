@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
@@ -187,7 +187,7 @@ export default function DetailsPanel({
       }
     }
 
-    if (selectedNode?.type === "section" || selectedNode?.type === "classroom") {
+    if (selectedNode?.type === "grade" || selectedNode?.type === "section" || selectedNode?.type === "classroom") {
       const capacityValue = formData.capacity as number | undefined;
       if (!capacityValue || capacityValue <= 0) {
         nextErrors.capacity = t("validation.capacity_required");
@@ -305,6 +305,16 @@ export default function DetailsPanel({
                 disabled={isReadOnly}
               />
               <Input label={t("stage")} value={selectedStageName} disabled />
+              <Input
+                label={t("capacity")}
+                required
+                type="number"
+                min="1"
+                value={(formData.capacity as number) || ""}
+                onChange={(e) => handleChange("capacity", parseInt(e.target.value, 10) || 0)}
+                error={errors.capacity}
+                disabled={isReadOnly}
+              />
               <Input label={t("order")} type="number" value={(formData.order as number) || ""} disabled />
               <TextArea
                 label={t("notes")}

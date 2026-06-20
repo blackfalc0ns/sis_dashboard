@@ -15,6 +15,7 @@ export interface Grade {
   nameAr: string;
   nameEn: string;
   stageId: string;
+  capacity: number;
   order: number;
   notes?: string;
 }
@@ -122,11 +123,11 @@ const fallbackStructureTree: StructureTree = {
     { id: "stage-3", name: "High", nameAr: "ثانوي", nameEn: "High", order: 3 },
   ],
   grades: [
-    { id: "grade-1", name: "Grade 1", nameAr: "الصف الأول", nameEn: "Grade 1", stageId: "stage-1", order: 1 },
-    { id: "grade-4", name: "Grade 6", nameAr: "الصف السادس", nameEn: "Grade 6", stageId: "stage-2", order: 1 },
-    { id: "grade-5", name: "Grade 7", nameAr: "الصف السابع", nameEn: "Grade 7", stageId: "stage-2", order: 2 },
-    { id: "grade-6", name: "Grade 8", nameAr: "الصف الثامن", nameEn: "Grade 8", stageId: "stage-2", order: 3 },
-    { id: "grade-7", name: "Grade 9", nameAr: "الصف التاسع", nameEn: "Grade 9", stageId: "stage-3", order: 1 },
+    { id: "grade-1", name: "Grade 1", nameAr: "الصف الأول", nameEn: "Grade 1", stageId: "stage-1", capacity: 30, order: 1 },
+    { id: "grade-4", name: "Grade 6", nameAr: "الصف السادس", nameEn: "Grade 6", stageId: "stage-2", capacity: 30, order: 1 },
+    { id: "grade-5", name: "Grade 7", nameAr: "الصف السابع", nameEn: "Grade 7", stageId: "stage-2", capacity: 30, order: 2 },
+    { id: "grade-6", name: "Grade 8", nameAr: "الصف الثامن", nameEn: "Grade 8", stageId: "stage-2", capacity: 30, order: 3 },
+    { id: "grade-7", name: "Grade 9", nameAr: "الصف التاسع", nameEn: "Grade 9", stageId: "stage-3", capacity: 30, order: 1 },
   ],
   sections: [
     { id: "section-1", name: "Section A", nameAr: "شعبة أ", nameEn: "Section A", gradeId: "grade-1", capacity: 30, order: 1 },
