@@ -303,6 +303,12 @@ export default function LessonPlansPage() {
       return;
     }
 
+    const classroomOptionsLoaded = filteredClassrooms.length > 0;
+
+    if (selectedClassroomId && !classroomOptionsLoaded) {
+      return;
+    }
+
     const hasValidSelectedClassroom =
       !!selectedClassroomId &&
       filteredClassrooms.some(
@@ -313,7 +319,11 @@ export default function LessonPlansPage() {
       return;
     }
 
-    if (!resolvedClassroomId && !selectedClassroomId) {
+    if (!resolvedClassroomId) {
+      return;
+    }
+
+    if (resolvedClassroomId === selectedClassroomId) {
       return;
     }
 
@@ -328,8 +338,8 @@ export default function LessonPlansPage() {
       "replace",
     );
   }, [
-    resolvedClassroomId,
     filteredClassrooms,
+    resolvedClassroomId,
     selectedClassroomId,
     selectedGradeId,
     selectedSectionId,
@@ -461,14 +471,14 @@ export default function LessonPlansPage() {
           stageId: selectedStageId,
           gradeId: selectedGradeId,
           sectionId: selectedSectionId,
-          classroomId: selectedClassroomId,
+          classroomId: displayedClassroomId,
           subjectId,
         },
         "push",
       );
     },
     [
-      selectedClassroomId,
+      displayedClassroomId,
       selectedGradeId,
       selectedSectionId,
       selectedStageId,
