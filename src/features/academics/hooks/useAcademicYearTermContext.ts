@@ -29,6 +29,7 @@ export interface UseAcademicYearTermContextResult {
   selectedTerm: Term | null;
   changeAcademicYear: (yearId: string) => Promise<Term | null>;
   changeTerm: (termId: string) => Term | null;
+  refreshAcademicYears: () => Promise<AcademicYear[]>;
   refreshTerms: (yearId?: string) => Promise<Term[]>;
 }
 
@@ -88,6 +89,12 @@ export function useAcademicYearTermContext(
     },
     [preserveParams, router, searchParams, termParamKey, termStatusParamKey, yearParamKey]
   );
+
+  const refreshAcademicYears = useCallback(async () => {
+    const years = await fetchAcademicYears();
+    setAcademicYears(years);
+    return years;
+  }, []);
 
   const refreshTerms = useCallback(
     async (yearId = academicYearId) => {
@@ -263,6 +270,7 @@ export function useAcademicYearTermContext(
     selectedTerm,
     changeAcademicYear,
     changeTerm,
+    refreshAcademicYears,
     refreshTerms,
   };
 }

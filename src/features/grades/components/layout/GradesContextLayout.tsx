@@ -13,6 +13,11 @@ function GradesContextLayoutContent({
     academicYearId,
     termId,
     termStatus,
+    academicYears,
+    terms,
+    isInitializing,
+    refreshAcademicYears,
+    refreshTerms,
     changeAcademicYear,
     changeTerm,
   } = useGradesYearTermLayoutContext();
@@ -24,6 +29,12 @@ function GradesContextLayoutContent({
         academicYearId={academicYearId}
         termId={termId}
         termStatus={termStatus}
+        academicYears={academicYears}
+        terms={terms}
+        isLoadingYears={isInitializing}
+        isLoadingTerms={false}
+        onRefreshAcademicYears={refreshAcademicYears}
+        onRefreshTerms={() => refreshTerms()}
         onAcademicYearChange={(yearId) => {
           void changeAcademicYear(yearId);
         }}

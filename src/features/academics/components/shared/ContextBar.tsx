@@ -6,8 +6,6 @@ import { ArrowRight, Plus, Edit2, ChevronUp, ChevronDown } from "lucide-react";
 import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
 import {
-  fetchAcademicYears,
-  fetchTermsByYear,
   AcademicYear,
   Term,
 } from "@/features/academics/academic-structure-tree/services/structureService";
@@ -18,9 +16,15 @@ interface ContextBarProps {
   academicYearId: string;
   termId: string;
   termStatus: "open" | "closed";
+  academicYears: AcademicYear[];
+  terms: Term[];
+  isLoadingYears?: boolean;
+  isLoadingTerms?: boolean;
   onAcademicYearChange: (yearId: string) => void;
   onTermChange: (termId: string) => void;
   onPromoteCarryOver?: () => void;
+  onRefreshAcademicYears?: () => Promise<AcademicYear[]>;
+  onRefreshTerms?: () => Promise<Term[]>;
   isReadOnly: boolean;
   showPromoteCarryOver?: boolean;
   disablePromoteCarryOver?: boolean;
@@ -31,9 +35,15 @@ export default function ContextBar({
   academicYearId,
   termId,
   termStatus,
+  academicYears,
+  terms,
+  isLoadingYears = false,
+  isLoadingTerms = false,
   onAcademicYearChange,
   onTermChange,
   onPromoteCarryOver,
+  onRefreshAcademicYears,
+  onRefreshTerms,
   isReadOnly,
   showPromoteCarryOver = true,
   disablePromoteCarryOver = false,
@@ -42,10 +52,6 @@ export default function ContextBar({
   const t = useTranslations("academics.structure.context_bar");
   const locale = useLocale();
 
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
-  const [terms, setTerms] = useState<Term[]>([]);
-  const [isLoadingYears, setIsLoadingYears] = useState(true);
-  const [isLoadingTerms, setIsLoadingTerms] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
 
   // Dialog states
@@ -57,47 +63,12 @@ export default function ContextBar({
   const { hasPermission } = usePermissions();
   const canManageAcademicContext = hasPermission("academics.structure.manage");
 
-  useEffect(() => {
-    loadYears();
-  }, []);
-
-  const loadYears = async () => {
-    setIsLoadingYears(true);
-    try {
-      const years = await fetchAcademicYears();
-      setAcademicYears(years);
-    } catch (error) {
-      console.error("Failed to load academic years:", error);
-    } finally {
-      setIsLoadingYears(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!academicYearId) return;
-    loadTerms();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [academicYearId]);
-
-  const loadTerms = async () => {
-    if (!academicYearId) return;
-    setIsLoadingTerms(true);
-    try {
-      const fetchedTerms = await fetchTermsByYear(academicYearId);
-      setTerms(fetchedTerms);
-    } catch (error) {
-      console.error("Failed to load terms:", error);
-    } finally {
-      setIsLoadingTerms(false);
-    }
-  };
-
   const handleYearSuccess = async () => {
-    await loadYears();
+    await onRefreshAcademicYears?.();
   };
 
   const handleTermSuccess = async () => {
-    await loadTerms();
+    await onRefreshTerms?.();
   };
 
   const handleEditYear = () => {

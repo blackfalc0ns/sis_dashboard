@@ -14,6 +14,11 @@ function AcademicsContextLayoutContent({
     academicYearId,
     termId,
     termStatus,
+    academicYears,
+    terms,
+    isInitializing,
+    refreshAcademicYears,
+    refreshTerms,
     requestAcademicYearChange,
     requestTermChange,
     contextBarActions,
@@ -25,6 +30,12 @@ function AcademicsContextLayoutContent({
         academicYearId={academicYearId}
         termId={termId}
         termStatus={termStatus}
+        academicYears={academicYears}
+        terms={terms}
+        isLoadingYears={isInitializing}
+        isLoadingTerms={false}
+        onRefreshAcademicYears={refreshAcademicYears}
+        onRefreshTerms={() => refreshTerms()}
         onAcademicYearChange={(yearId) => {
           void requestAcademicYearChange(yearId);
         }}
