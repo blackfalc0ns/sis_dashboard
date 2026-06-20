@@ -352,10 +352,10 @@ export function useTimetableData({
   }, []);
 
   const loadAcademicDependencies = useCallback(async () => {
-    const requestId = ++dependenciesRequestIdRef.current;
     const dependenciesKey = `${academicYearId}:${termId}:${schoolId}`;
 
     if (!enabled || !termId || !academicYearId) {
+      ++dependenciesRequestIdRef.current;
       setStages([]);
       setGrades([]);
       setSections([]);
@@ -389,11 +389,11 @@ export function useTimetableData({
     if (process.env.NODE_ENV === "development") {
       console.debug("[Timetable] loadAcademicDependencies", {
         dependenciesKey,
-        requestId,
         reason: "start",
       });
     }
 
+    const requestId = ++dependenciesRequestIdRef.current;
     dependenciesInFlightKeyRef.current = dependenciesKey;
     setDependenciesLoading(true);
     setApiError(null);
