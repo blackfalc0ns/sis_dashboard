@@ -66,6 +66,9 @@ function makeParams(
     plans: [],
     weeks: [week()],
     refreshPlans: vi.fn().mockResolvedValue(undefined),
+    refreshPlanDetail: vi.fn().mockResolvedValue(plan()),
+    refreshSummaryAndValidation: vi.fn().mockResolvedValue(undefined),
+    upsertPlanItem: vi.fn(),
     showSuccess: vi.fn(),
     showError: vi.fn(),
     validationMessages: {
@@ -127,6 +130,8 @@ describe("useLessonPlanMutations", () => {
   });
 
   it("reuses an existing weekly plan and uses its item count as sortOrder", async () => {
+    const createdItem = { id: "item-2", planId: "plan-1" };
+    vi.mocked(createLessonPlanItem).mockResolvedValue(createdItem as never);
     const params = makeParams({
       plans: [plan({ items: [{ id: "existing" } as never] })],
     });
@@ -147,6 +152,9 @@ describe("useLessonPlanMutations", () => {
         sortOrder: 1,
       },
     });
+    expect(params.upsertPlanItem).toHaveBeenCalledWith("plan-1", createdItem);
+    expect(params.refreshPlanDetail).not.toHaveBeenCalled();
+    expect(params.refreshPlans).not.toHaveBeenCalled();
   });
 
   it("creates a weekly plan lazily using backend dates", async () => {
@@ -186,7 +194,7 @@ describe("useLessonPlanMutations", () => {
     );
   });
 
-  it("shows success only after the created item has been refreshed", async () => {
+  it("shows success only after the created plan detail has been refreshed", async () => {
     const events: string[] = [];
     vi.mocked(createLessonPlan).mockResolvedValue(plan());
     vi.mocked(createLessonPlanItem).mockImplementation(async () => {
@@ -194,8 +202,9 @@ describe("useLessonPlanMutations", () => {
       return {} as never;
     });
     const params = makeParams({
-      refreshPlans: vi.fn().mockImplementation(async () => {
+      refreshPlanDetail: vi.fn().mockImplementation(async () => {
         events.push("refresh");
+        return plan();
       }),
       showSuccess: vi.fn().mockImplementation(() => events.push("success")),
     });
@@ -206,6 +215,7 @@ describe("useLessonPlanMutations", () => {
     );
 
     expect(events).toEqual(["create-item", "refresh", "success"]);
+    expect(params.refreshPlans).not.toHaveBeenCalled();
   });
 
   it("blocks a week with no instructional days", async () => {

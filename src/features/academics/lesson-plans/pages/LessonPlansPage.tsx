@@ -123,7 +123,13 @@ export default function LessonPlansPage() {
     isRefreshing,
     dataChecked,
     scopeStatus,
-    refreshPlans,
+    refreshAllLessonPlans,
+    refreshPlanDetail,
+    refreshSummaryAndValidation,
+    upsertPlan,
+    removePlan,
+    upsertPlanItem,
+    removePlanItem,
   } = useLessonPlansData({
     academicYearId,
     termId,
@@ -355,7 +361,10 @@ export default function LessonPlansPage() {
     lessons,
     plans,
     weeks,
-    refreshPlans,
+    refreshPlans: refreshAllLessonPlans,
+    refreshPlanDetail,
+    refreshSummaryAndValidation,
+    upsertPlanItem,
     showSuccess,
     showError,
     onLessonSelected: () => syncLibraryParams({ isOpen: false }, "replace"),
@@ -368,8 +377,8 @@ export default function LessonPlansPage() {
   });
 
   const handlePlansUpdate = useCallback(async (options?: { silent?: boolean }) => {
-    await refreshPlans(options);
-  }, [refreshPlans]);
+    await refreshAllLessonPlans(options);
+  }, [refreshAllLessonPlans]);
 
   const handleStageFilterChange = useCallback(
     (stageId: string) => {
@@ -640,7 +649,7 @@ export default function LessonPlansPage() {
     }
     setCreatingPlan(true);
     try {
-      await createLessonPlan({
+      const createdPlan = await createLessonPlan({
         academicYearId,
         termId,
         teacherSubjectAllocationId,
@@ -650,9 +659,10 @@ export default function LessonPlansPage() {
         curriculumId,
         ...payload,
       });
-      await refreshPlans({ silent: true });
+      await refreshPlanDetail(createdPlan.id);
       setShowCreatePlanDialog(false);
       showSuccess(t("createPlan.success"));
+      void refreshSummaryAndValidation({ silent: true });
     } catch (error) {
       showError(lessonPlansUiError(error));
     } finally {
@@ -823,7 +833,12 @@ export default function LessonPlansPage() {
                 librarySelectedUnitId={libraryQueryState.unitId}
                 onLibrarySearchQueryChange={handleLibrarySearchChange}
                 onLibrarySelectedUnitIdChange={handleLibraryUnitChange}
-                onUpdate={handlePlansUpdate}
+                onRefreshPlanDetail={refreshPlanDetail}
+                onRefreshSummaryAndValidation={refreshSummaryAndValidation}
+                onUpsertPlanItem={upsertPlanItem}
+                onRemovePlanItem={removePlanItem}
+                onUpsertPlan={upsertPlan}
+                onRemovePlan={removePlan}
                 onSelectLessonFromLibrary={handleSelectLessonFromLibrary}
                 onAddLessonMobile={handleAddLessonFromWeekWithLibrary}
                 validationMessages={{

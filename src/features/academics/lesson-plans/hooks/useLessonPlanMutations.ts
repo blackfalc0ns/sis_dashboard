@@ -8,6 +8,7 @@ import {
   autoPlanLessons,
   type AutoPlanLessonPlanRequest,
   type LessonPlan,
+  type LessonPlanItem,
   type WeekInfo,
 } from "@/features/academics/lesson-plans/services/lessonPlansService";
 import { lessonPlansUiError } from "@/features/academics/lesson-plans/services/lessonPlansErrors";
@@ -30,6 +31,9 @@ interface Params {
   plans: LessonPlan[];
   weeks: WeekInfo[];
   refreshPlans: (options?: { silent?: boolean }) => Promise<void>;
+  refreshPlanDetail: (planId: string, options?: { silent?: boolean }) => Promise<LessonPlan>;
+  refreshSummaryAndValidation: (options?: { silent?: boolean }) => Promise<void>;
+  upsertPlanItem: (planId: string, item: LessonPlanItem) => void;
   showSuccess: (message: string) => void;
   showError: (message: string) => void;
   onLessonSelected?: () => void;
@@ -143,7 +147,7 @@ export function useLessonPlanMutations(params: Params) {
             weekStartDate: week.startDate,
             weekEndDate: week.endDate,
           });
-        await createLessonPlanItem({
+        const createdItem = await createLessonPlanItem({
           lessonPlanId: plan.id,
           payload: {
             unitId: lesson.unitId,
@@ -161,7 +165,12 @@ export function useLessonPlanMutations(params: Params) {
             sortOrder: plan.items.length,
           },
         });
-        await params.refreshPlans({ silent: true });
+        if (params.plans.some((candidate) => candidate.id === plan.id)) {
+          params.upsertPlanItem(plan.id, createdItem);
+        } else {
+          await params.refreshPlanDetail(plan.id, { silent: true });
+        }
+        void params.refreshSummaryAndValidation({ silent: true });
         params.showSuccess("Saved successfully");
         setAddLessonDialog({ isOpen: false, lesson: null });
       } catch (error) {

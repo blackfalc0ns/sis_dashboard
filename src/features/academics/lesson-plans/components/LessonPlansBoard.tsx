@@ -9,6 +9,7 @@ import {
 } from "@/features/academics/curriculum/services/curriculumService";
 import {
   LessonPlan,
+  LessonPlanItem,
   WeekInfo,
   LessonPlanSummary,
 } from "@/features/academics/lesson-plans/services/lessonPlansService";
@@ -74,7 +75,12 @@ interface LessonPlansBoardProps {
   librarySelectedUnitId: string;
   onLibrarySearchQueryChange: (value: string) => void;
   onLibrarySelectedUnitIdChange: (value: string) => void;
-  onUpdate: (options?: { silent?: boolean }) => Promise<void>;
+  onRefreshPlanDetail: (planId: string, options?: { silent?: boolean }) => Promise<LessonPlan>;
+  onRefreshSummaryAndValidation: (options?: { silent?: boolean }) => Promise<void>;
+  onUpsertPlan: (plan: LessonPlan) => void;
+  onRemovePlan: (planId: string) => void;
+  onUpsertPlanItem: (planId: string, item: LessonPlanItem) => void;
+  onRemovePlanItem: (planId: string, itemId: string) => void;
   onSelectLessonFromLibrary?: (lesson: Lesson) => void;
   onAddLessonMobile?: (weekIndex: number) => void;
   validationMessages: {
@@ -107,7 +113,12 @@ export default function LessonPlansBoard({
   librarySelectedUnitId,
   onLibrarySearchQueryChange,
   onLibrarySelectedUnitIdChange,
-  onUpdate,
+  onRefreshPlanDetail,
+  onRefreshSummaryAndValidation,
+  onUpsertPlan,
+  onRemovePlan,
+  onUpsertPlanItem,
+  onRemovePlanItem,
   onSelectLessonFromLibrary,
   onAddLessonMobile,
   validationMessages,
@@ -264,7 +275,8 @@ export default function LessonPlansBoard({
             },
           });
           setDraggedLesson(null); // Clear drag state immediately
-          await onUpdate({ silent: true });
+          await onRefreshPlanDetail(plan.id, { silent: true });
+          void onRefreshSummaryAndValidation({ silent: true });
           showSuccess("Saved successfully");
         } else if (draggedItem) {
           // Moving existing item
@@ -325,7 +337,8 @@ export default function LessonPlansBoard({
       validationMessages,
       showSuccess,
       showError,
-      onUpdate,
+      onRefreshPlanDetail,
+      onRefreshSummaryAndValidation,
       onAddLessonMobile,
       onSelectLessonFromLibrary,
     ],
@@ -337,8 +350,19 @@ export default function LessonPlansBoard({
       setIsUpdating(true);
       markItemPending(moveDialog.itemId, true);
       try {
-        await moveLessonPlanItem(moveDialog.itemId, payload);
-        await onUpdate({ silent: true });
+        const movedItem = await moveLessonPlanItem(moveDialog.itemId, payload);
+        const sourcePlan = plans.find((candidate) =>
+          candidate.items.some((item) => item.id === moveDialog.itemId),
+        );
+        const planIds = new Set(
+          [sourcePlan?.id, movedItem.planId].filter(Boolean) as string[],
+        );
+        await Promise.all(
+          Array.from(planIds).map((planId) =>
+            onRefreshPlanDetail(planId, { silent: true }),
+          ),
+        );
+        void onRefreshSummaryAndValidation({ silent: true });
         setMoveDialog(null);
         showSuccess("Saved successfully");
       } catch (error) {
@@ -348,7 +372,15 @@ export default function LessonPlansBoard({
         markItemPending(moveDialog.itemId, false);
       }
     },
-    [markItemPending, moveDialog, onUpdate, showError, showSuccess],
+    [
+      markItemPending,
+      moveDialog,
+      onRefreshPlanDetail,
+      onRefreshSummaryAndValidation,
+      plans,
+      showError,
+      showSuccess,
+    ],
   );
 
   // Handle status change
@@ -374,9 +406,14 @@ export default function LessonPlansBoard({
         );
         if (!plan) throw new Error("Lesson plan item was not found");
         const command = { lessonPlanId: plan.id, itemId };
-        if (status === "IN_PROGRESS") await startLessonPlanItem(command);
-        if (status === "DONE") await completeLessonPlanItem(command);
-        await onUpdate({ silent: true });
+        let updatedItem: LessonPlanItem | null = null;
+        if (status === "IN_PROGRESS")
+          updatedItem = await startLessonPlanItem(command);
+        if (status === "DONE")
+          updatedItem = await completeLessonPlanItem(command);
+        if (updatedItem) onUpsertPlanItem(plan.id, updatedItem);
+        else await onRefreshPlanDetail(plan.id, { silent: true });
+        void onRefreshSummaryAndValidation({ silent: true });
         showSuccess("Saved successfully");
       } catch (error) {
         showError(lessonPlansUiError(error));
@@ -388,7 +425,9 @@ export default function LessonPlansBoard({
     [
       isReadOnly,
       markItemPending,
-      onUpdate,
+      onRefreshPlanDetail,
+      onRefreshSummaryAndValidation,
+      onUpsertPlanItem,
       pendingItemIds,
       plans,
       showError,
@@ -411,10 +450,13 @@ export default function LessonPlansBoard({
           itemId: reasonDialog.itemId,
           payload: { note: note || null },
         };
-        if (reasonDialog.action === "skip") await skipLessonPlanItem(command);
-        else await cancelLessonPlanItem(command);
+        const updatedItem =
+          reasonDialog.action === "skip"
+            ? await skipLessonPlanItem(command)
+            : await cancelLessonPlanItem(command);
+        onUpsertPlanItem(plan.id, updatedItem);
         setReasonDialog(null);
-        await onUpdate({ silent: true });
+        void onRefreshSummaryAndValidation({ silent: true });
         showSuccess("Saved successfully");
       } catch (error) {
         showError(lessonPlansUiError(error));
@@ -426,7 +468,8 @@ export default function LessonPlansBoard({
     [
       isUpdating,
       markItemPending,
-      onUpdate,
+      onRefreshSummaryAndValidation,
+      onUpsertPlanItem,
       plans,
       reasonDialog,
       showError,
@@ -448,12 +491,13 @@ export default function LessonPlansBoard({
       setIsUpdating(true);
       markItemPending(itemId, true);
       try {
-        await reorderLessonPlanItem({
+        const updatedItem = await reorderLessonPlanItem({
           lessonPlanId: plan.id,
           itemId,
           payload: { sortOrder: target.order },
         });
-        await onUpdate({ silent: true });
+        onUpsertPlanItem(plan.id, updatedItem);
+        void onRefreshSummaryAndValidation({ silent: true });
         showSuccess("Saved successfully");
       } catch (error) {
         showError(lessonPlansUiError(error));
@@ -465,7 +509,8 @@ export default function LessonPlansBoard({
     [
       isReadOnly,
       markItemPending,
-      onUpdate,
+      onRefreshSummaryAndValidation,
+      onUpsertPlanItem,
       pendingItemIds,
       plans,
       showError,
@@ -483,12 +528,13 @@ export default function LessonPlansBoard({
           candidate.items.some((item) => item.id === editingItemId),
         );
         if (!plan) throw new Error("Lesson plan item was not found");
-        await updateLessonPlanItem({
+        const updatedItem = await updateLessonPlanItem({
           lessonPlanId: plan.id,
           itemId: editingItemId,
           payload,
         });
-        await onUpdate({ silent: true });
+        onUpsertPlanItem(plan.id, updatedItem);
+        void onRefreshSummaryAndValidation({ silent: true });
         setEditingItemId(null);
         showSuccess("Saved successfully");
       } catch (error) {
@@ -503,9 +549,10 @@ export default function LessonPlansBoard({
       plans,
       editingItemId,
       markItemPending,
+      onRefreshSummaryAndValidation,
+      onUpsertPlanItem,
       showSuccess,
       showError,
-      onUpdate,
     ],
   );
 
@@ -528,8 +575,9 @@ export default function LessonPlansBoard({
         lessonPlanId: plan.id,
         itemId: confirmDialog.itemId,
       });
+      onRemovePlanItem(plan.id, confirmDialog.itemId);
       setConfirmDialog({ isOpen: false, type: null });
-      await onUpdate({ silent: true });
+      void onRefreshSummaryAndValidation({ silent: true });
       showSuccess("Saved successfully");
     } catch (error) {
       showError(lessonPlansUiError(error));
@@ -542,9 +590,10 @@ export default function LessonPlansBoard({
     plans,
     confirmDialog.itemId,
     markItemPending,
+    onRefreshSummaryAndValidation,
+    onRemovePlanItem,
     showSuccess,
     showError,
-    onUpdate,
   ]);
 
   const refreshAfterPlanMutation = useCallback(
@@ -553,8 +602,11 @@ export default function LessonPlansBoard({
       setIsUpdating(true);
       markPlanPending(planId, true);
       try {
-        await mutation();
-        await onUpdate({ silent: true });
+        const result = await mutation();
+        if (result) onUpsertPlan(result as LessonPlan);
+        else if (result === undefined)
+          await onRefreshPlanDetail(planId, { silent: true });
+        void onRefreshSummaryAndValidation({ silent: true });
         showSuccess("Saved successfully");
       } catch (error) {
         showError(lessonPlansUiError(error));
@@ -566,7 +618,9 @@ export default function LessonPlansBoard({
     [
       isReadOnly,
       markPlanPending,
-      onUpdate,
+      onRefreshPlanDetail,
+      onRefreshSummaryAndValidation,
+      onUpsertPlan,
       pendingPlanIds,
       showError,
       showSuccess,
@@ -576,8 +630,9 @@ export default function LessonPlansBoard({
     (payload: UpdateLessonPlanRequest) => {
       if (!editingPlan) return;
       void refreshAfterPlanMutation(editingPlan.id, async () => {
-        await updateLessonPlan(editingPlan.id, payload);
+        const updatedPlan = await updateLessonPlan(editingPlan.id, payload);
         setEditingPlan(null);
+        return updatedPlan;
       });
     },
     [editingPlan, refreshAfterPlanMutation],
@@ -591,11 +646,17 @@ export default function LessonPlansBoard({
     if (!planConfirmation) return;
     const { plan, action } = planConfirmation;
     void refreshAfterPlanMutation(plan.id, async () => {
-      if (action === "archive") await archiveLessonPlan(plan.id);
-      else await deleteLessonPlan(plan.id);
+      if (action === "archive") {
+        const archivedPlan = await archiveLessonPlan(plan.id);
+        setPlanConfirmation(null);
+        return archivedPlan;
+      }
+      await deleteLessonPlan(plan.id);
+      onRemovePlan(plan.id);
       setPlanConfirmation(null);
+      return null;
     });
-  }, [planConfirmation, refreshAfterPlanMutation]);
+  }, [onRemovePlan, planConfirmation, refreshAfterPlanMutation]);
 
   // Calculate a hash of planned lesson IDs for key generation
   const plannedLessonsHash = useMemo(() => {

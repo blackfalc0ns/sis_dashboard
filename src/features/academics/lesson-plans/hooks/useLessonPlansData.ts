@@ -128,7 +128,134 @@ export function useLessonPlansData(params: Params) {
     })();
   }, [academicYearId, isInitializing, onLoadError, termId]);
 
-  const refreshPlans = useCallback(async (options: RefreshLessonPlansOptions = {}) => {
+  const scopedLessonPlansQuery = useCallback(() => {
+    if (!termId || !teacherSubjectAllocationId) return null;
+    return {
+      termId,
+      teacherSubjectAllocationId,
+      gradeId: selectedGradeId,
+      subjectId: selectedSubjectId,
+      classroomId: resolvedClassroomId || undefined,
+    };
+  }, [
+    resolvedClassroomId,
+    selectedGradeId,
+    selectedSubjectId,
+    teacherSubjectAllocationId,
+    termId,
+  ]);
+
+  const withWeekIndex = useCallback(
+    (plan: LessonPlan) => ({
+      ...plan,
+      weekIndex:
+        weeks.find(
+          (week) =>
+            plan.weekStartDate >= week.startDate &&
+            plan.weekStartDate <= week.endDate,
+        )?.weekIndex ?? plan.weekIndex,
+    }),
+    [weeks],
+  );
+
+  const refreshPlanDetail = useCallback(
+    async (planId: string) => {
+      const plan = withWeekIndex(await getLessonPlan(planId));
+      setPlans((current) => {
+        const existingIndex = current.findIndex(
+          (candidate) => candidate.id === plan.id,
+        );
+        if (existingIndex === -1) return [...current, plan];
+        return current.map((candidate) =>
+          candidate.id === plan.id ? plan : candidate,
+        );
+      });
+      return plan;
+    },
+    [withWeekIndex],
+  );
+
+  const refreshSummaryAndValidation = useCallback(
+    async (options: RefreshLessonPlansOptions = {}) => {
+      void options.silent;
+      const query = scopedLessonPlansQuery();
+      if (!query) return;
+      try {
+        const [planSummary, planValidation] = await Promise.all([
+          getLessonPlanSummary(query),
+          getLessonPlanValidation(query),
+        ]);
+        setSummary(planSummary);
+        setValidation(planValidation);
+      } catch (error) {
+        console.warn("Failed to refresh lesson plan summary/validation:", error);
+      }
+    },
+    [scopedLessonPlansQuery],
+  );
+
+  const refreshWeeks = useCallback(
+    async (options: RefreshLessonPlansOptions = {}) => {
+      void options.silent;
+      if (!termId || !teacherSubjectAllocationId) return;
+      const weekList = await listLessonPlanWeeks({
+        termId,
+        teacherSubjectAllocationId,
+      });
+      setWeeks(weekList);
+    },
+    [teacherSubjectAllocationId, termId],
+  );
+
+  const upsertPlan = useCallback(
+    (plan: LessonPlan) => {
+      const nextPlan = withWeekIndex(plan);
+      setPlans((current) => {
+        const exists = current.some((candidate) => candidate.id === nextPlan.id);
+        if (!exists) return [...current, nextPlan];
+        return current.map((candidate) =>
+          candidate.id === nextPlan.id ? nextPlan : candidate,
+        );
+      });
+    },
+    [withWeekIndex],
+  );
+
+  const removePlan = useCallback((planId: string) => {
+    setPlans((current) => current.filter((plan) => plan.id !== planId));
+  }, []);
+
+  const upsertPlanItem = useCallback((planId: string, item: LessonPlan["items"][number]) => {
+    setPlans((current) =>
+      current.map((plan) => {
+        if (plan.id !== planId) return plan;
+        const hasItem = plan.items.some((candidate) => candidate.id === item.id);
+        return {
+          ...plan,
+          items: hasItem
+            ? plan.items.map((candidate) =>
+                candidate.id === item.id ? item : candidate,
+              )
+            : [...plan.items, item],
+        };
+      }),
+    );
+  }, []);
+
+  const removePlanItem = useCallback((planId: string, itemId: string) => {
+    setPlans((current) =>
+      current.map((plan) =>
+        plan.id === planId
+          ? {
+              ...plan,
+              items: plan.items.filter((item) => item.id !== itemId),
+            }
+          : plan,
+      ),
+    );
+  }, []);
+
+  const refreshAllLessonPlans = useCallback(async (options: RefreshLessonPlansOptions = {}) => {
     const silent = options.silent === true;
     const currentRequest = ++requestId.current;
     const clearScopedData = () => {
@@ -298,8 +425,8 @@ export function useLessonPlansData(params: Params) {
   ]);
 
   useEffect(() => {
-    void refreshPlans().catch(() => undefined);
-  }, [refreshPlans]);
+    void refreshAllLessonPlans().catch(() => undefined);
+  }, [refreshAllLessonPlans]);
   return {
     stages,
     grades,
@@ -327,6 +454,14 @@ export function useLessonPlansData(params: Params) {
     canLoadLessonPlans: scopeStatus === "ready",
     missingScopeReason: scopeStatus === "ready" ? null : scopeStatus,
     isLoading: loading || (plansLoading && plans.length === 0 && weeks.length === 0),
-    refreshPlans,
+    refreshAllLessonPlans,
+    refreshPlans: refreshAllLessonPlans,
+    refreshPlanDetail,
+    refreshSummaryAndValidation,
+    refreshWeeks,
+    upsertPlan,
+    removePlan,
+    upsertPlanItem,
+    removePlanItem,
   };
 }
