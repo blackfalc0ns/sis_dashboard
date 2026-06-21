@@ -3,7 +3,7 @@ import type { AxiosError } from "axios";
 import { ApiError } from "@/lib/api-error";
 
 describe("ApiError", () => {
-  it("preserves trace ids from backend error payloads", () => {
+  it("preserves backend messages, details, and trace ids without mixing metadata", () => {
     const axiosError = {
       message: "Request failed",
       response: {
@@ -22,7 +22,8 @@ describe("ApiError", () => {
     const apiError = ApiError.fromAxiosError(axiosError);
 
     expect(apiError.code).toBe("academics.allocation.duplicate");
-    expect(apiError.message).toBe("Allocation already exists: classroom-1");
+    expect(apiError.message).toBe("Allocation already exists");
+    expect(apiError.details).toEqual({ classroomId: "classroom-1" });
     expect(apiError.traceId).toBe("trace-123");
   });
 });

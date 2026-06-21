@@ -14,7 +14,7 @@ import {
   saveAssessmentSubmissionCorrection,
   updateGradeItem,
 } from "../../gradebook/services/gradesGradebookService";
-import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
+import { describeGradesApiError, mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
 import {
   approveAssessment,
   bulkUpdateAssessmentGrades,
@@ -127,6 +127,8 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   const [assessmentToDelete, setAssessmentToDelete] = useState<Assessment | null>(null);
   const [editGradeState, setEditGradeState] = useState<{ assessment: Assessment; row: GradebookStudentRow; comment?: string } | null>(null);
   const [submissionReviewState, setSubmissionReviewState] = useState<AssessmentSubmissionReview | null>(null);
+  const [assessmentApiError, setAssessmentApiError] = useState<{ field?: string; message: string } | null>(null);
+  const [gradeApiError, setGradeApiError] = useState<{ field?: string; message: string } | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedOverviewExportDataset, setSelectedOverviewExportDataset] =
     useState<GradesOverviewExportDataset>("summary");
@@ -277,18 +279,23 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     }
 
     const detail = await fetchGradeItemDetail(academicYearId, termId, assessment.id, row.studentId);
+    setGradeApiError(null);
     setEditGradeState({ assessment, row, comment: detail?.comment });
   }, [academicYearId, showError, t, termId]);
 
   const handleSaveAssessment = async (payload: CreateAssessmentPayload) => {
     try {
       setIsCreatingAssessment(true);
+      setAssessmentApiError(null);
       await updateAssessment(academicYearId, termId, editingAssessment!.id, payload);
       setEditingAssessment(null);
       await refreshGradebook();
       showSuccess(t("messages.assessmentUpdated"));
     } catch (error) {
-      showError(t(`errors.${mapGradesApiError(error)}`));
+      const descriptor = describeGradesApiError(error);
+      const message = t(`errors.${descriptor.key}`);
+      setAssessmentApiError({ field: descriptor.field, message });
+      showError(message);
     } finally {
       setIsCreatingAssessment(false);
     }
@@ -315,6 +322,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     if (!editGradeState) return;
     try {
       setIsSavingGrade(true);
+      setGradeApiError(null);
       await updateGradeItem(academicYearId, termId, {
         assessmentId: editGradeState.assessment.id,
         studentId: editGradeState.row.studentId,
@@ -326,7 +334,10 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
       await refreshGradebook();
       showSuccess(t("messages.gradeSaved"));
     } catch (error) {
-      showError(t(`errors.${mapGradesApiError(error)}`));
+      const descriptor = describeGradesApiError(error);
+      const message = t(`errors.${descriptor.key}`);
+      setGradeApiError({ field: descriptor.field, message });
+      showError(message);
     } finally {
       setIsSavingGrade(false);
     }
@@ -1193,7 +1204,10 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
               onPublish={(assessmentId) => void handleAssessmentAction(assessmentId, "publish")}
               onApprove={(assessmentId) => void handleAssessmentAction(assessmentId, "approve")}
               onLock={(assessmentId) => void handleAssessmentAction(assessmentId, "lock")}
-              onEdit={setEditingAssessment}
+              onEdit={(assessment) => {
+                setAssessmentApiError(null);
+                setEditingAssessment(assessment);
+              }}
               onManageQuestions={(assessment) => {
                 const params = searchParams.toString();
                 const path = `/${locale}/grades/assessments/${assessment.id}/questions`;
@@ -1215,7 +1229,10 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
             onPublish={(assessmentId) => void handleAssessmentAction(assessmentId, "publish")}
             onApprove={(assessmentId) => void handleAssessmentAction(assessmentId, "approve")}
             onLock={(assessmentId) => void handleAssessmentAction(assessmentId, "lock")}
-            onEdit={setEditingAssessment}
+            onEdit={(assessment) => {
+              setAssessmentApiError(null);
+              setEditingAssessment(assessment);
+            }}
             onDelete={setAssessmentToDelete}
             onManageQuestions={(assessment) => {
               const params = searchParams.toString();
@@ -1253,6 +1270,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         isSubmitting={isCreatingAssessment}
         mode="edit"
         initialAssessment={editingAssessment}
+        apiError={assessmentApiError}
       />
 
       <EditGradeDialog
@@ -1265,6 +1283,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         initialScore={editGradeState ? editGradeState.row.scoresByAssessmentId[editGradeState.assessment.id] : null}
         initialStatus={editGradeState ? editGradeState.row.statusByAssessmentId[editGradeState.assessment.id] : "missing"}
         initialComment={editGradeState?.comment}
+        apiError={gradeApiError}
         isSubmitting={isSavingGrade}
       />
 

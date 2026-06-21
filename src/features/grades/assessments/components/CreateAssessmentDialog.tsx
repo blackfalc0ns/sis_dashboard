@@ -33,6 +33,7 @@ interface CreateAssessmentDialogProps {
   isSubmitting: boolean;
   mode?: "create" | "edit";
   initialAssessment?: Assessment | null;
+  apiError?: { field?: string; message: string } | null;
 }
 
 export default function CreateAssessmentDialog({
@@ -49,6 +50,7 @@ export default function CreateAssessmentDialog({
   isSubmitting,
   mode = "create",
   initialAssessment = null,
+  apiError = null,
 }: CreateAssessmentDialogProps) {
   const t = useTranslations(`academics.grades.dialogs.${mode === "edit" ? "editAssessment" : "createAssessment"}`);
   const locale = useLocale();
@@ -141,6 +143,7 @@ export default function CreateAssessmentDialog({
           onChange={handleScopeTypeChange}
           options={scopeOptions}
           disabled={isMetadataLocked}
+          error={apiError?.field === "scopeType" ? apiError.message : undefined}
         />
         <Select
           label={t("scope")}
@@ -151,6 +154,7 @@ export default function CreateAssessmentDialog({
             label: locale === "ar" ? entity.nameAr : entity.nameEn,
           }))}
           disabled={isMetadataLocked}
+          error={apiError?.field === "scopeId" ? apiError.message : undefined}
         />
         <Select
           label={t("subject")}
@@ -161,6 +165,7 @@ export default function CreateAssessmentDialog({
             label: locale === "ar" ? subject.nameAr : subject.nameEn,
           }))}
           disabled={isMetadataLocked}
+          error={apiError?.field === "subjectId" ? apiError.message : undefined}
         />
         <Select
           label={t("type")}
@@ -168,10 +173,11 @@ export default function CreateAssessmentDialog({
           onChange={(value) => setType(value as AssessmentType)}
           options={typeOptions}
           disabled={isMetadataLocked}
+          error={apiError?.field === "type" || apiError?.field === "deliveryMode" ? apiError.message : undefined}
         />
-        <Input label={t("titleEn")} value={title} onChange={(event) => setTitle(event.target.value)} required />
-        <Input label={t("titleAr")} value={titleAr} onChange={(event) => setTitleAr(event.target.value)} required />
-        <DatePicker label={t("date")} value={date} onChange={setDate} disabled={isMetadataLocked} />
+        <Input label={t("titleEn")} value={title} onChange={(event) => setTitle(event.target.value)} error={apiError?.field === "title" || apiError?.field === "titleEn" ? apiError.message : undefined} required />
+        <Input label={t("titleAr")} value={titleAr} onChange={(event) => setTitleAr(event.target.value)} error={apiError?.field === "titleAr" ? apiError.message : undefined} required />
+        <DatePicker label={t("date")} value={date} onChange={setDate} disabled={isMetadataLocked} error={apiError?.field === "date" ? apiError.message : undefined} />
         <Input
           label={t("weight")}
           type="number"
@@ -181,6 +187,7 @@ export default function CreateAssessmentDialog({
           onChange={(event) => setWeight(event.target.value)}
           required
           disabled={isMetadataLocked}
+          error={apiError?.field === "weight" ? apiError.message : undefined}
         />
         <Input
           label={t("maxScore")}
@@ -190,6 +197,7 @@ export default function CreateAssessmentDialog({
           onChange={(event) => setMaxScore(event.target.value)}
           required
           disabled={isMetadataLocked}
+          error={apiError?.field === "maxScore" ? apiError.message : undefined}
         />
       </div>
     </Modal>

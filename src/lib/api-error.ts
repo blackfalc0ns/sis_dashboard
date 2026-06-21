@@ -33,36 +33,12 @@ export class ApiError extends Error {
       const data = error.response.data as any;
       const payload = data?.error ?? data;
 
-      let message =
+      const message =
         payload?.message || payload?.error || data?.message || error.message || "An error occurred";
       const code = payload?.code || data?.code || "API_ERROR";
       const errors = payload?.errors || data?.errors;
       const details = payload?.details || data?.details;
       const traceId = payload?.traceId || data?.traceId;
-
-      const detailMessages: string[] = [];
-      if (details && typeof details === "object") {
-        Object.values(details).forEach((val) => {
-          if (Array.isArray(val)) {
-            detailMessages.push(...val.filter((v) => typeof v === "string"));
-          } else if (typeof val === "string") {
-            detailMessages.push(val);
-          }
-        });
-      }
-
-      if (detailMessages.length > 0) {
-        const uniqueMessages = detailMessages.filter(
-          (msg) => msg !== message && msg.trim() !== "",
-        );
-        if (uniqueMessages.length > 0) {
-          if (!message || message === "An error occurred" || message === "Validation failed") {
-            message = uniqueMessages.join(", ");
-          } else {
-            message = `${message}: ${uniqueMessages.join(", ")}`;
-          }
-        }
-      }
 
       return new ApiError(message, status, code, errors, details, traceId);
     } else if (error.request) {

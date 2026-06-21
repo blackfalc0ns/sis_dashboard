@@ -52,7 +52,8 @@ Submitted answers expose awarded points and bilingual reviewer comments. A revie
 
 Loading, empty, forbidden, not-found, conflict, validation, and retry states are explicit. Mutations disable only the affected controls. Failed saves preserve local edits. No mock data or fallback service is introduced. Backend status transitions and error codes determine which actions are available.
 
+All coded Grades domain errors and every `validation.failed` message emitted under `src/modules/grades` are classified centrally. The frontend translates them in English and Arabic and preserves backend `details.field`, `details.reason`, and `traceId` for contextual form feedback and support diagnostics. Unknown backend errors use status-based fallbacks rather than exposing backend English messages directly.
+
 ## Testing
 
 Contract tests are written first for endpoint paths, query parameters, payloads, and enum casing. Mapper tests cover empty, partial, and populated responses. Focused component tests cover roster empty states and submission action availability. Final verification runs the focused tests, lint, typecheck, and production build.
-

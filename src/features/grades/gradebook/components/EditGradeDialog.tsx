@@ -17,6 +17,7 @@ interface EditGradeDialogProps {
   initialStatus: GradeItemStatus;
   initialComment?: string;
   isSubmitting: boolean;
+  apiError?: { field?: string; message: string } | null;
 }
 
 export default function EditGradeDialog({
@@ -29,6 +30,7 @@ export default function EditGradeDialog({
   initialStatus,
   initialComment,
   isSubmitting,
+  apiError = null,
 }: EditGradeDialogProps) {
   const t = useTranslations("academics.grades.dialogs.editGrade");
   const [score, setScore] = useState(initialScore == null ? "" : String(initialScore));
@@ -74,7 +76,7 @@ export default function EditGradeDialog({
       }
     >
       <div className="space-y-4">
-        <Select label={t("status")} value={status} onChange={(value) => setStatus(value as GradeItemStatus)} options={statusOptions} />
+        <Select label={t("status")} value={status} onChange={(value) => setStatus(value as GradeItemStatus)} options={statusOptions} error={apiError?.field === "status" ? apiError.message : undefined} />
         <Input
           label={t("score")}
           type="number"
@@ -84,8 +86,9 @@ export default function EditGradeDialog({
           onChange={(event) => setScore(event.target.value)}
           disabled={status !== "entered"}
           helperText={assessment ? t("scoreHelp", { maxScore: assessment.maxScore }) : undefined}
+          error={apiError?.field === "score" ? apiError.message : undefined}
         />
-        <TextArea label={t("comment")} value={comment} onChange={(event) => setComment(event.target.value)} rows={4} />
+        <TextArea label={t("comment")} value={comment} onChange={(event) => setComment(event.target.value)} rows={4} error={apiError?.field === "comment" ? apiError.message : undefined} />
       </div>
     </Modal>
   );
