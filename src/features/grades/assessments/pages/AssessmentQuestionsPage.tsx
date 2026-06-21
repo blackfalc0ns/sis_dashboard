@@ -147,6 +147,7 @@ export default function AssessmentQuestionsPage({
   const maxScoreParam = Number(searchParams.get("maxScore") || "20");
   const isReadOnly = termStatus === "closed";
   const isCreateMode = mode === "create";
+  const isTemporaryQuestionId = (questionId: string) => questionId.startsWith("temp-question-");
 
   // Question builders are focused flows: they keep year/term in the route
   // and intentionally stay outside the shared grades ContextBar layout.
@@ -389,24 +390,9 @@ export default function AssessmentQuestionsPage({
               maxScore: assessmentDraft.maxScore,
               expectedTimeMinutes: assessmentDraft.expectedTimeMinutes,
             },
-            questions: questions.map((question) => ({
-              questionTextAr: question.questionTextAr,
-              questionTextEn: question.questionTextEn,
-              questionType: question.questionType,
-              points: question.points,
-              options: question.options,
-              correctAnswer: question.correctAnswer,
-              sampleAnswerAr: question.sampleAnswerAr,
-              sampleAnswerEn: question.sampleAnswerEn,
-              acceptedAnswersAr: question.acceptedAnswersAr,
-              acceptedAnswersEn: question.acceptedAnswersEn,
-              matchingPairs: question.matchingPairs,
-              mediaMode: question.mediaMode,
-              mediaTitle: question.mediaTitle,
-              mediaUrl: question.mediaUrl,
-              mediaFileName: question.mediaFileName,
-              mediaMimeType: question.mediaMimeType,
-              mediaSize: question.mediaSize,
+            questions: questions.map((question, index) => ({
+              ...question,
+              order: index + 1,
             })),
           },
         );
@@ -455,78 +441,40 @@ export default function AssessmentQuestionsPage({
   };
 
   const handleAddQuestion = async () => {
-    if (isCreateMode) {
-      const nextIndex = tempQuestionCounter + 1;
-      setTempQuestionCounter(nextIndex);
-      const tempId = `temp-question-${nextIndex}`;
-      const nextQuestion: AssessmentQuestion = {
-        id: tempId,
-        assessmentId: "draft-assessment",
-        assignmentId: "draft-assessment",
-        createdAt: new Date().toISOString(),
-        order: questions.length + 1,
-        questionTextAr: "",
-        questionTextEn: "",
-        questionType: "MCQ_SINGLE",
-        points: 0,
-        options: [
-          {
-            id: `opt-${nextIndex}-1`,
-            textAr: "",
-            textEn: "",
-            isCorrect: true,
-            order: 1,
-          },
-          {
-            id: `opt-${nextIndex}-2`,
-            textAr: "",
-            textEn: "",
-            isCorrect: false,
-            order: 2,
-          },
-        ],
-      };
-      setQuestions((current) => [...current, nextQuestion]);
-      setSelectedQuestionId(tempId);
-      setQuestionDraft(nextQuestion);
-      setLastSavedQuestion(nextQuestion);
-      return;
-    }
-    try {
-      const nextQuestion = await createAssessmentQuestion(
-        academicYearId,
-        termId,
-        assessmentId!,
+    const nextIndex = tempQuestionCounter + 1;
+    setTempQuestionCounter(nextIndex);
+    const tempId = `temp-question-${nextIndex}`;
+    const nextQuestion: AssessmentQuestion = {
+      id: tempId,
+      assessmentId: assessmentId || "draft-assessment",
+      assignmentId: assessmentId || "draft-assessment",
+      createdAt: new Date().toISOString(),
+      order: questions.length + 1,
+      questionTextAr: "",
+      questionTextEn: "",
+      questionType: "MCQ_SINGLE",
+      points: 1,
+      options: [
         {
-          questionTextAr: "",
-          questionTextEn: "",
-          questionType: "MCQ_SINGLE",
-          points: 0,
-          options: [
-            {
-              id: `opt-${Date.now()}-1`,
-              textAr: "",
-              textEn: "",
-              isCorrect: true,
-              order: 1,
-            },
-            {
-              id: `opt-${Date.now()}-2`,
-              textAr: "",
-              textEn: "",
-              isCorrect: false,
-              order: 2,
-            },
-          ],
+          id: `opt-${nextIndex}-1`,
+          textAr: "",
+          textEn: "",
+          isCorrect: true,
+          order: 1,
         },
-      );
-      await refresh();
-      setSelectedQuestionId(nextQuestion.id);
-    } catch (error) {
-      showError(
-        tGrades(`errors.${mapGradesApiError(error)}`),
-      );
-    }
+        {
+          id: `opt-${nextIndex}-2`,
+          textAr: "",
+          textEn: "",
+          isCorrect: false,
+          order: 2,
+        },
+      ],
+    };
+    setQuestions((current) => [...current, nextQuestion]);
+    setSelectedQuestionId(tempId);
+    setQuestionDraft(nextQuestion);
+    setLastSavedQuestion(nextQuestion);
   };
 
   const handleUpdateQuestionDraft = (
@@ -573,35 +521,25 @@ export default function AssessmentQuestionsPage({
         return;
       }
       setIsQuestionSaving(true);
-      const saved = await updateAssessmentQuestion(
-        academicYearId,
-        termId,
-        questionDraft.id,
-        {
-          questionTextAr: questionDraft.questionTextAr,
-          questionTextEn: questionDraft.questionTextEn,
-          questionType: questionDraft.questionType,
-          points: questionDraft.points,
-          options: questionDraft.options,
-          correctAnswer: questionDraft.correctAnswer,
-          sampleAnswerAr: questionDraft.sampleAnswerAr,
-          sampleAnswerEn: questionDraft.sampleAnswerEn,
-          acceptedAnswersAr: questionDraft.acceptedAnswersAr,
-          acceptedAnswersEn: questionDraft.acceptedAnswersEn,
-          matchingPairs: questionDraft.matchingPairs,
-          mediaMode: questionDraft.mediaMode,
-          mediaTitle: questionDraft.mediaTitle,
-          mediaUrl: questionDraft.mediaUrl,
-          mediaFileName: questionDraft.mediaFileName,
-          mediaMimeType: questionDraft.mediaMimeType,
-          mediaSize: questionDraft.mediaSize,
-        },
-      );
+      const saved = isTemporaryQuestionId(questionDraft.id)
+        ? await createAssessmentQuestion(
+            academicYearId,
+            termId,
+            assessmentId!,
+            questionDraft,
+          )
+        : await updateAssessmentQuestion(
+            academicYearId,
+            termId,
+            questionDraft.id,
+            questionDraft,
+          );
       setQuestions((current) =>
         current.map((question) =>
-          question.id === saved.id ? saved : question,
+          question.id === questionDraft.id ? saved : question,
         ),
       );
+      setSelectedQuestionId(saved.id);
       setQuestionDraft(saved);
       setLastSavedQuestion(saved);
       const nextAssessment = await fetchAssessmentById(
@@ -625,7 +563,7 @@ export default function AssessmentQuestionsPage({
   };
 
   const handleDeleteQuestion = async (questionId: string) => {
-    if (isCreateMode) {
+    if (isCreateMode || isTemporaryQuestionId(questionId)) {
       setQuestions((current) =>
         current
           .filter((question) => question.id !== questionId)
@@ -674,6 +612,15 @@ export default function AssessmentQuestionsPage({
       );
       return;
     }
+    if (reordered.some((question) => isTemporaryQuestionId(question.id))) {
+      setQuestions(
+        reordered.map((question, orderIndex) => ({
+          ...question,
+          order: orderIndex + 1,
+        })),
+      );
+      return;
+    }
     await reorderAssessmentQuestions(
       academicYearId,
       termId,
@@ -699,7 +646,7 @@ export default function AssessmentQuestionsPage({
       questionId: question.id,
       points: index < remainder ? base + 1 : base,
     }));
-    if (isCreateMode) {
+    if (isCreateMode || updates.some((update) => isTemporaryQuestionId(update.questionId))) {
       setQuestions((current) =>
         current.map((question) => {
           const nextUpdate = updates.find(

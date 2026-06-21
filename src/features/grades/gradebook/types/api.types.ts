@@ -5,9 +5,11 @@ import type {
   LegacyAssessmentType,
 } from "../../shared/types";
 
-export type BackendGradeItemStatus = "ENTERED" | "MISSING" | "ABSENT";
+export type BackendGradeItemStatus = "entered" | "missing" | "absent";
+export type BackendGradeItemStatusPayload = "ENTERED" | "MISSING" | "ABSENT";
 
-export type BackendApprovalStatus = "DRAFT" | "PUBLISHED" | "APPROVED";
+export type BackendApprovalStatus = "draft" | "published" | "approved";
+export type BackendApprovalStatusPayload = "DRAFT" | "PUBLISHED" | "APPROVED";
 
 export type BackendAssessmentType = AssessmentType | LegacyAssessmentType;
 
@@ -36,7 +38,7 @@ export interface BackendGradesBootstrapResponse {
   };
   supportedScopes?: ExamScopeType[];
   assessmentTypes?: BackendAssessmentType[];
-  deliveryModes?: AssessmentDeliveryMode[];
+  deliveryModes?: Array<AssessmentDeliveryMode | "question_based">;
   approvalStatuses?: BackendApprovalStatus[];
 }
 
@@ -53,15 +55,14 @@ export interface BackendGradebookQuery {
   sectionId?: string;
   classroomId?: string;
   search?: string;
-  assessmentStatus?: BackendApprovalStatus;
+  assessmentStatus?: BackendApprovalStatusPayload;
   includeVirtualMissing?: boolean;
 }
 
 //Backend Gradebook response types
 export interface BackendGradebookColumn {
   id: string;
-  assessmentId?: string;
-  termId?: string;
+  assessmentId: string;
   subjectId?: string;
   subject?: BackendNamedEntity | null;
 
@@ -77,7 +78,7 @@ export interface BackendGradebookColumn {
   titleEn?: string;
 
   type?: BackendAssessmentType;
-  deliveryMode?: AssessmentDeliveryMode;
+  deliveryMode?: AssessmentDeliveryMode | "question_based";
 
   date?: string;
   weight?: number;
@@ -90,7 +91,7 @@ export interface BackendGradebookColumn {
 
 export interface BackendGradebookCell {
   assessmentId: string;
-  gradeItemId?: string | null;
+  itemId?: string | null;
   score?: number | null;
   status?: BackendGradeItemStatus | null;
   percent?: number | null;
@@ -100,50 +101,38 @@ export interface BackendGradebookCell {
 }
 
 export interface BackendGradebookStudent {
-  id?: string;
-  studentId?: string;
-  name?: string;
+  id: string;
+  firstName?: string;
+  lastName?: string;
   nameAr?: string;
   nameEn?: string;
-  fullName?: string;
-  fullNameAr?: string;
-  fullNameEn?: string;
+  code?: string | null;
+  admissionNo?: string | null;
 }
 
 export interface BackendGradebookRow {
   studentId: string;
+  enrollmentId?: string;
   student?: BackendGradebookStudent | null;
 
-  studentName?: string;
-  studentNameAr?: string;
-  studentNameEn?: string;
-
-  classroomId?: string | null;
-  classroomName?: string | null;
-  classroomNameAr?: string | null;
-  classroomNameEn?: string | null;
-
   finalPercent?: number | null;
-  average?: number | null;
 
   completedWeight?: number | null;
-  completedItems?: number;
-  totalItems?: number;
-
-  enteredCount?: number;
+  totalEnteredCount?: number;
   missingCount?: number;
   absentCount?: number;
+  status?: string;
 
   cells?: BackendGradebookCell[];
 }
 
 export interface BackendGradebookSummary {
-  totalStudents?: number;
-  totalAssessments?: number;
-  classAverage?: number;
-  highestAverage?: number;
-  lowestAverage?: number;
-  completionRate?: number;
+  studentCount?: number;
+  assessmentCount?: number;
+  averagePercent?: number | null;
+  passingCount?: number;
+  failingCount?: number;
+  incompleteCount?: number;
 }
 
 export interface BackendGradebookResponse {
@@ -153,12 +142,11 @@ export interface BackendGradebookResponse {
   subjectId?: string;
   scope?: unknown;
   rule?: {
-    id?: string;
+    ruleId?: string | null;
+    source?: string;
     passMark?: number;
-    scopeType?: "school" | "grade";
-    scopeId?: string;
-    gradingScale?: "percentage";
-    rounding?: "whole" | "decimal_1";
+    gradingScale?: string;
+    rounding?: string;
   } | null;
   columns?: BackendGradebookColumn[];
   rows?: BackendGradebookRow[];
@@ -167,7 +155,7 @@ export interface BackendGradebookResponse {
 
 //Grade item update types
 export interface BackendUpdateGradeItemPayload {
-  status: BackendGradeItemStatus;
+  status: BackendGradeItemStatusPayload;
   score?: number | null;
   comment?: string | null;
 }
@@ -175,7 +163,7 @@ export interface BackendUpdateGradeItemPayload {
 export interface BackendBulkGradeItemPayload {
   items: Array<{
     studentId: string;
-    status: BackendGradeItemStatus;
+    status: BackendGradeItemStatusPayload;
     score?: number | null;
     comment?: string | null;
   }>;
@@ -183,11 +171,18 @@ export interface BackendBulkGradeItemPayload {
 
 //Assessment roster types
 export interface BackendAssessmentRosterItem {
+  id?: string | null;
+  assessmentId: string;
   studentId: string;
-  studentName?: string;
-  studentNameAr?: string;
-  studentNameEn?: string;
-  classroomName?: string | null;
+  student?: {
+    id: string;
+    fullName?: string;
+    nameEn?: string;
+    nameAr?: string | null;
+    code?: string | null;
+    admissionNo?: string | null;
+  } | null;
+  enrollmentId?: string | null;
   score?: number | null;
   status?: BackendGradeItemStatus | null;
   comment?: string | null;
@@ -202,7 +197,10 @@ export interface BackendAssessmentResponse {
   subject?: BackendNamedEntity | null;
 
   scopeType?: ExamScopeType;
+  scopeKey?: string;
   scopeId?: string | null;
+  stageId?: string | null;
+  gradeId?: string | null;
   sectionId?: string | null;
   classroomId?: string | null;
 
@@ -211,7 +209,7 @@ export interface BackendAssessmentResponse {
   titleEn?: string;
 
   type?: BackendAssessmentType;
-  deliveryMode?: AssessmentDeliveryMode;
+  deliveryMode?: AssessmentDeliveryMode | "question_based";
 
   date?: string;
   weight?: number;
@@ -222,19 +220,86 @@ export interface BackendAssessmentResponse {
   isLocked?: boolean;
 }
 
+export interface BackendAssessmentsListResponse {
+  items: BackendAssessmentResponse[];
+}
+
+export interface BackendAssessmentItemsListResponse {
+  items: BackendAssessmentRosterItem[];
+}
+
 // Grade rule response (GET /grades/rules/effective)
 export interface BackendGradeRuleResponse {
-  id?: string;
-  scopeType?: "school" | "grade";
+  id?: string | null;
+  ruleId?: string | null;
+  academicYearId?: string;
+  yearId?: string;
+  termId?: string;
+  scopeType?: string;
+  scopeKey?: string;
   scopeId?: string;
-  gradingScale?: "percentage";
+  gradeId?: string | null;
+  gradingScale?: string;
   passMark?: number;
-  rounding?: "whole" | "decimal_1";
+  rounding?: string;
+  source?: "DEFAULT" | "SCHOOL" | "GRADE" | "STAGE";
+  createdAt?: string;
+  updatedAt?: string;
+  resolvedFrom?: {
+    requestedScopeType: string;
+    requestedScopeKey: string;
+    stageId: string | null;
+    gradeId: string | null;
+    sectionId: string | null;
+    classroomId: string | null;
+  };
+}
+
+export interface BackendGradeRulesListResponse {
+  items: BackendGradeRuleResponse[];
+}
+
+export interface BackendGradesOverviewResponse {
+  academicYearId: string;
+  yearId: string;
+  termId: string;
+  subjectId: string | null;
+  scope: { scopeType: string; scopeId: string; label: string };
+  totals: {
+    studentCount: number;
+    assessmentCount: number;
+    completedAssessmentCount?: number;
+    publishedAssessmentCount?: number;
+    approvedAssessmentCount?: number;
+    lockedAssessmentCount?: number;
+  };
+  performance: {
+    averagePercent: number | null;
+    highestPercent: number | null;
+    lowestPercent: number | null;
+    passingCount?: number;
+    failingCount?: number;
+    incompleteCount?: number;
+  };
+  completion: {
+    enteredCount: number;
+    missingCount: number;
+    absentCount: number;
+    completedWeightAverage: number | null;
+  };
+  assessments: Array<{
+    assessmentId: string;
+    title: string | null;
+    averagePercent: number | null;
+    date: string;
+  }>;
+  rule: { source: string; passMark: number; rounding: string } | null;
+  emptyState: { reason: string; message: string } | null;
 }
 
 // Submission flow types
 export interface BackendSubmissionResolveResponse {
-  submissionId: string;
+  id: string;
   assessmentId: string;
   studentId: string;
   status?: string;
@@ -245,16 +310,65 @@ export interface BackendSubmissionResolveResponse {
 
 export interface BackendSubmissionAnswerResponse {
   id: string;
-  submissionId: string;
-  assessmentId: string;
   questionId: string;
-  studentId: string;
-  selectedOptionIds?: string[];
-  booleanAnswer?: boolean;
-  answerText?: string;
+  type?: string;
+  answerText?: string | null;
+  answerJson?: unknown;
   awardedPoints: number | null;
-  correctionStatus?: "pending" | "corrected";
-  teacherComment?: string;
+  maxPoints?: number | null;
+  correctionStatus: string;
+  reviewerComment?: string | null;
+  selectedOptions?: Array<{ optionId: string }>;
+  reviewerCommentAr?: string | null;
+  reviewedAt?: string | null;
+  reviewedById?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface BackendSubmissionProgressResponse {
+  totalQuestions: number;
+  answeredCount: number;
+  requiredAnsweredCount: number;
+  requiredQuestionCount: number;
+  pendingCorrectionCount: number;
+}
+
+export interface BackendSubmissionStudentResponse {
+  id: string;
+  firstName: string;
+  lastName: string;
+  nameAr: string | null;
+  nameEn: string;
+  code: string | null;
+  admissionNo: string | null;
+}
+
+export interface BackendSubmissionEnrollmentResponse {
+  id: string;
+  classroomId: string;
+  sectionId: string | null;
+  gradeId: string | null;
+  classroomName: string | null;
+  sectionName: string | null;
+  gradeName: string | null;
+}
+
+export interface BackendSubmissionListRowResponse {
+  id: string;
+  assessmentId: string;
+  studentId: string;
+  enrollmentId: string;
+  status: string;
+  startedAt: string;
+  submittedAt: string | null;
+  student: BackendSubmissionStudentResponse | null;
+  enrollment: BackendSubmissionEnrollmentResponse | null;
+  progress: BackendSubmissionProgressResponse;
+}
+
+export interface BackendSubmissionsListResponse {
+  items: BackendSubmissionListRowResponse[];
 }
 
 export interface BackendSubmissionDetailResponse {
@@ -262,24 +376,36 @@ export interface BackendSubmissionDetailResponse {
   termId?: string;
   assessmentId: string;
   studentId: string;
-  status?: string;
-  submittedAt?: string;
+  enrollmentId: string;
+  status: string;
+  startedAt: string;
+  submittedAt: string | null;
+  correctedAt: string | null;
+  reviewedById: string | null;
   totalScore: number | null;
   maxScore: number;
   assessment?: BackendAssessmentResponse;
-  studentNameEn?: string;
-  studentNameAr?: string;
-  questions?: Array<{
-    question: BackendAssessmentQuestionResponse;
+  student: BackendSubmissionStudentResponse | null;
+  enrollment: BackendSubmissionEnrollmentResponse | null;
+  progress: BackendSubmissionProgressResponse;
+  answers: BackendSubmissionAnswerResponse[];
+  questions?: Array<BackendAssessmentQuestionResponse & {
     answer: BackendSubmissionAnswerResponse | null;
   }>;
 }
 
+export interface BackendSubmissionGradeItemSyncResponse {
+  submission: { id: string; status: string; totalScore: number | null; maxScore: number | null };
+  gradeItem: { id: string; status: string; score: number | null };
+  synced: boolean;
+  idempotent: boolean;
+}
+
 export interface BackendSubmissionReviewPayload {
-  answers: Array<{
+  reviews: Array<{
     answerId: string;
-    awardedPoints: number | null;
-    teacherComment?: string;
+    awardedPoints: number;
+    reviewerComment?: string | null;
   }>;
 }
 
@@ -288,36 +414,31 @@ export interface BackendAssessmentQuestionResponse {
   id: string;
   assessmentId: string;
   assignmentId?: string;
-  questionTextAr?: string;
-  questionTextEn?: string;
-  questionType?: string;
+  promptAr?: string | null;
+  prompt?: string;
+  explanation?: string | null;
+  explanationAr?: string | null;
+  type?: string;
   points?: number;
-  order?: number;
+  sortOrder?: number;
+  required?: boolean;
+  answerKey?: unknown;
+  metadata?: Record<string, unknown> | null;
   options?: Array<{
     id: string;
-    textAr?: string;
-    textEn?: string;
+    labelAr?: string | null;
+    label?: string;
+    value?: string | null;
     isCorrect?: boolean;
-    order?: number;
+    sortOrder?: number;
   }>;
-  correctAnswer?: boolean;
-  sampleAnswerAr?: string;
-  sampleAnswerEn?: string;
-  acceptedAnswersAr?: string[];
-  acceptedAnswersEn?: string[];
-  matchingPairs?: Array<{
-    id: string;
-    promptAr?: string;
-    promptEn?: string;
-    matchAr?: string;
-    matchEn?: string;
-    order?: number;
-  }>;
-  mediaMode?: "FILE" | "LINK";
-  mediaTitle?: string;
-  mediaUrl?: string;
-  mediaFileName?: string;
-  mediaMimeType?: string;
-  mediaSize?: number;
   createdAt?: string;
+}
+
+export interface BackendAssessmentQuestionsListResponse {
+  assessmentId: string;
+  totalQuestions: number;
+  totalPoints: number;
+  pointsMatchMaxScore: boolean;
+  questions: BackendAssessmentQuestionResponse[];
 }

@@ -1,8 +1,10 @@
 import { apiGet } from "@/lib/api";
+import { isApiError } from "@/lib/api-error";
 import type {
+  BackendAssessmentsListResponse,
   BackendGradebookResponse,
-  BackendAssessmentResponse,
   BackendGradeRuleResponse,
+  BackendGradesOverviewResponse,
 } from "../../gradebook/types/api.types";
 import type {
   GradesScopeFilters,
@@ -17,6 +19,60 @@ import {
   mapBackendAssessmentToAssessment,
   mapBackendGradeRuleToUi,
 } from "../../gradebook/utils/gradebookMappers";
+
+export interface GradesOverviewReport {
+  summary: {
+    totalStudents: number;
+    totalAssessments: number;
+    classAverage: number;
+    highestAverage: number;
+    lowestAverage: number;
+    completionRate: number;
+  };
+  trend: Array<{ label: string; average: number }>;
+  rule: { passMark: number } | null;
+  emptyState: BackendGradesOverviewResponse["emptyState"];
+}
+
+export async function fetchGradesOverview(
+  academicYearId: string,
+  termId: string,
+  filters: GradesScopeFilters,
+): Promise<GradesOverviewReport> {
+  const response = await apiGet<BackendGradesOverviewResponse>("/grades/overview", {
+    params: {
+      academicYearId,
+      termId,
+      scopeType: filters.scopeType,
+      scopeId: filters.scopeId,
+      subjectId: filters.subjectId,
+    },
+  });
+  const totalGradeItems =
+    response.completion.enteredCount +
+    response.completion.missingCount +
+    response.completion.absentCount;
+  const completionRate = totalGradeItems > 0
+    ? (response.completion.enteredCount / totalGradeItems) * 100
+    : 0;
+
+  return {
+    summary: {
+      totalStudents: response.totals.studentCount,
+      totalAssessments: response.totals.assessmentCount,
+      classAverage: response.performance.averagePercent ?? 0,
+      highestAverage: response.performance.highestPercent ?? 0,
+      lowestAverage: response.performance.lowestPercent ?? 0,
+      completionRate,
+    },
+    trend: response.assessments.map((assessment) => ({
+      label: assessment.title ?? assessment.date,
+      average: assessment.averagePercent ?? 0,
+    })),
+    rule: response.rule ? { passMark: response.rule.passMark } : null,
+    emptyState: response.emptyState,
+  };
+}
 
 export async function fetchOverviewGradebook(
   academicYearId: string,
@@ -40,7 +96,7 @@ export async function fetchAssessments(
   termId: string,
   filters: GradesScopeFilters
 ): Promise<Assessment[]> {
-  const data = await apiGet<BackendAssessmentResponse[]>(
+  const response = await apiGet<BackendAssessmentsListResponse>(
     "/grades/assessments",
     {
       params: {
@@ -49,11 +105,11 @@ export async function fetchAssessments(
         scopeType: filters.scopeType,
         scopeId: filters.scopeId,
         subjectId: filters.subjectId,
-        includeDrafts: filters.includeDrafts,
+        approvalStatus: filters.includeDrafts ? undefined : "PUBLISHED",
       },
     }
   );
-  return data.map(mapBackendAssessmentToAssessment);
+  return response.items.map(mapBackendAssessmentToAssessment);
 }
 
 export async function fetchScopeGradeRule(
@@ -75,8 +131,9 @@ export async function fetchScopeGradeRule(
       }
     );
     return mapBackendGradeRuleToUi(data);
-  } catch {
-    return null;
+  } catch (error) {
+    if (isApiError(error) && error.status === 404) return null;
+    throw error;
   }
 }
 

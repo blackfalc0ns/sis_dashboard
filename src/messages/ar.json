@@ -5299,12 +5299,83 @@
     "grades": {
       "title": "الدرجات والتقييمات",
       "readOnlyBanner": "أنت في وضع العرض فقط. لا يمكنك إجراء أي تعديلات.",
-      "tabs": {
-        "overview": "نظرة عامة",
-        "assessments": "الاختبارات",
-        "analytics": "التحليلات",
-        "gradebook": "سجل الدرجات"
+    "tabs": {
+      "overview": "نظرة عامة",
+      "assessments": "الاختبارات",
+      "analytics": "التحليلات",
+      "gradebook": "سجل الدرجات",
+      "rules": "القواعد"
+    },
+    "submissions": {
+      "title": "تسليمات التقييم",
+      "subtitle": "متابعة تقدم الإجابات وحالة التسليم وجاهزية التصحيح.",
+      "detailTitle": "التسليم",
+      "search": "البحث عن الطلاب",
+      "allStatuses": "كل الحالات",
+      "loading": "جار تحميل التسليمات...",
+      "empty": "لا توجد تسليمات تطابق عوامل التصفية الحالية.",
+      "student": "الطالب",
+      "class": "الفصل",
+      "status": "الحالة",
+      "progress": "تمت الإجابة",
+      "pending": "بانتظار التصحيح",
+      "open": "فتح",
+      "saveAll": "حفظ كل الإجابات",
+      "saveAnswer": "حفظ الإجابة",
+      "submit": "تسليم",
+      "submitConfirm": "هل تريد تسليم هذا التقييم؟ لن يمكن تعديل الإجابات بعد ذلك.",
+      "finalize": "إنهاء التصحيح",
+      "sync": "مزامنة الدرجة",
+      "points": "درجات",
+      "answerPlaceholder": "أدخل إجابة الطالب",
+      "awardedPoints": "الدرجة الممنوحة",
+      "reviewComment": "تعليق المصحح",
+      "saveReview": "حفظ التصحيح",
+      "statuses": {
+        "IN_PROGRESS": "قيد التنفيذ",
+        "SUBMITTED": "تم التسليم",
+        "CORRECTED": "تم التصحيح"
+      }
+    },
+    "rules": {
+      "title": "قواعد الدرجات",
+      "subtitle": "إعداد درجة النجاح وطريقة التقريب للنطاق المحدد.",
+      "form": {
+        "createTitle": "إنشاء قاعدة للنطاق",
+        "editTitle": "تعديل قاعدة النطاق",
+        "description": "القاعدة الصريحة تتجاوز القاعدة الموروثة لهذا النطاق.",
+        "passMark": "درجة النجاح",
+        "rounding": "التقريب"
       },
+      "effective": {
+        "title": "القاعدة الفعالة",
+        "description": "القاعدة التي يطبقها الخادم حالياً بعد احتساب وراثة النطاق.",
+        "source": "المصدر",
+        "explicitRules": "قواعد الفصل"
+      },
+      "rounding": {
+        "NONE": "بدون تقريب",
+        "DECIMAL_0": "عدد صحيح",
+        "DECIMAL_1": "منزلة عشرية واحدة",
+        "DECIMAL_2": "منزلتان عشريتان"
+      },
+      "sources": {
+        "DEFAULT": "الإعداد الافتراضي",
+        "SCHOOL": "المدرسة",
+        "STAGE": "المرحلة",
+        "GRADE": "الصف"
+      },
+      "actions": {
+        "save": "حفظ القاعدة"
+      },
+      "messages": {
+        "saved": "تم حفظ قاعدة الدرجات بنجاح"
+      },
+      "validation": {
+        "passMark": "يجب أن تكون درجة النجاح بين 0 و100."
+      },
+      "empty": "اختر نطاقاً لإعداد قاعدة الدرجات."
+    },
       "filters": {
         "scopeType": "نوع النطاق",
         "scope": "النطاق",
@@ -5350,7 +5421,9 @@
         "average": "المتوسط",
         "completion": "الإكمال",
         "absent": "غائب",
-        "pending": "قيد الانتظار"
+        "pending": "قيد الانتظار",
+        "missing": "مفقود",
+        "openReview": "مراجعة"
       },
       "assessmentTypes": {
         "quiz": "اختبار قصير",
@@ -5374,6 +5447,22 @@
         "manageQuestions": "إدارة الأسئلة",
         "publish": "نشر"
       },
+      "workflow": {
+        "statuses": {
+          "draft": "مسودة",
+          "published": "منشور",
+          "approved": "معتمد",
+          "locked": "مقفل"
+        },
+        "entry": {
+          "scoreOnly": "إدخال الدرجات",
+          "questionBased": "مراجعة الأسئلة"
+        },
+        "reasons": {
+          "termClosed": "هذا الفصل مغلق.",
+          "locked": "هذا التقييم مقفل."
+        }
+      },
       "export": {
         "title": "تصدير بيانات الدرجات",
         "subtitle": "حمّل عرض الدرجات الحالي بالتنسيق الذي تختاره.",
@@ -5390,14 +5479,6 @@
           "analytics_distribution": {
             "label": "تحليلات التوزيع",
             "description": "نطاقات توزيع الدرجات حسب الفلاتر الحالية"
-          },
-          "analytics_assessments": {
-            "label": "تحليلات الاختبارات",
-            "description": "متوسط الأداء حسب كل اختبار"
-          },
-          "analytics_students": {
-            "label": "تحليلات الطلاب",
-            "description": "أفضل الطلاب والطلاب الأقل أداءً في ملف واحد"
           },
           "assessmentsView": {
             "label": "الاختبارات"
@@ -5484,6 +5565,7 @@
           "subtitle": "عدد الطلاب حسب نطاقات الدرجات",
           "count": "العدد"
         },
+        "supportedContract": "مدعوم من الخادم: الملخص والتوزيع",
         "assessments": {
           "title": "أداء التقييمات",
           "subtitle": "متوسط النتائج لكل تقييم",
@@ -5675,7 +5757,29 @@
         "grading_started": "لا يمكن تعديل التقييم بعد بدء عملية التصحيح.",
         "last_question_required": "يجب أن يحتوي التقييم على سؤال واحد على الأقل.",
         "assessment_not_published": "لم يتم نشر التقييم بعد.",
-        "assessment_not_approved": "لم يتم اعتماد التقييم بعد."
+        "assessment_not_approved": "لم يتم اعتماد التقييم بعد.",
+        "term_closed": "هذا الفصل مغلق. الدرجات للعرض فقط.",
+        "invalid_status_transition": "لا يمكن نقل هذا التقييم إلى الحالة المطلوبة.",
+        "assessment_already_published": "تم نشر هذا التقييم بالفعل.",
+        "assessment_already_approved": "تم اعتماد هذا التقييم بالفعل.",
+        "assessment_already_locked": "تم قفل هذا التقييم بالفعل.",
+        "invalid_scope": "هذا التقييم لا يطابق النطاق المحدد.",
+        "gradebook_no_enrollment": "هذا الطالب غير مسجل في نطاق سجل الدرجات المحدد.",
+        "question_structure_locked": "تم قفل بنية الأسئلة بعد بدء التصحيح.",
+        "question_points_mismatch": "يجب أن يطابق مجموع نقاط الأسئلة الدرجة النهائية للتقييم.",
+        "invalid_question": "هذه الإجابة لا تتبع سؤالا صالحا في التقييم.",
+        "invalid_option": "خيار الإجابة غير صالح لهذا السؤال.",
+        "submission_already_submitted": "تم تسليم هذا الاختبار بالفعل.",
+        "submission_locked": "هذا التسليم مقفل.",
+        "submission_not_submitted": "يجب تسليم الاختبار قبل المراجعة النهائية.",
+        "review_already_finalized": "تم إنهاء هذه المراجعة بالفعل.",
+        "review_pending_answers": "راجع كل الإجابات المعلقة قبل الإنهاء.",
+        "rule_conflict": "توجد قاعدة درجات بالفعل لهذا النطاق.",
+        "unauthorized": "يرجى تسجيل الدخول مرة أخرى.",
+        "permission_denied": "ليست لديك صلاحية تنفيذ هذا الإجراء.",
+        "not_found": "لم يتم العثور على سجل الدرجات المطلوب.",
+        "conflict": "هذا الإجراء يتعارض مع حالة الدرجات الحالية.",
+        "validation_failed": "يرجى مراجعة بيانات الدرجات المرسلة."
       },
       "deliveryModes": {
         "scoreOnly": "درجة فقط",

@@ -27,8 +27,8 @@ import {
 } from "../../assessments/services/gradesAssessmentsService";
 import {
   fetchAssessments,
+  fetchGradesOverview,
   fetchOverviewGradebook,
-  fetchScopeGradeRule,
 } from "../../overview/services/gradesOverviewService";
 import type { Assessment } from "../../overview/types";
 import type { CreateAssessmentPayload, ExamScopeType, GradeItemStatus, GradebookStudentRow, ScopeEntityOption } from "../../shared/types";
@@ -62,9 +62,7 @@ type GradebookTableRow = GradebookStudentRow & Record<string, unknown>;
 type GradesOverviewExportDataset =
   | "summary"
   | "assessments"
-  | "analytics_distribution"
-  | "analytics_assessments"
-  | "analytics_students";
+  | "analytics_distribution";
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
 export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
@@ -116,6 +114,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   });
   const [trend, setTrend] = useState<Array<{ label: string; average: number }>>([]);
   const [gradeRule, setGradeRule] = useState<{ passMark: number } | null>(null);
+  const [overviewEmptyState, setOverviewEmptyState] = useState<{ reason: string; message: string } | null>(null);
   const [analyticsReport, setAnalyticsReport] = useState<GradesAnalyticsReport>({
     kpis: { classAverage: 0, passRate: 0, completionRate: 0, failingStudents: 0 },
     distribution: [],
@@ -217,12 +216,14 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
           scopeType: selectedScopeType,
           scopeId: selectedScopeId,
           subjectId: selectedSubjectId,
+          includeDrafts: true,
         });
         setAssessments(scopedAssessments);
         setRows([]);
         setSummary({ totalStudents: 0, totalAssessments: 0, classAverage: 0, highestAverage: 0, lowestAverage: 0, completionRate: 0 });
         setTrend([]);
         setGradeRule(null);
+        setOverviewEmptyState(null);
         setAnalyticsReport({ kpis: { classAverage: 0, passRate: 0, completionRate: 0, failingStudents: 0 }, distribution: [], assessmentPerformance: [], topStudents: [], lowestStudents: [] });
         return;
       }
@@ -231,20 +232,22 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         scopeType: selectedScopeType,
         scopeId: selectedScopeId,
         subjectId: selectedSubjectId,
+        includeDrafts: true,
       };
 
-      const [gradebook, scopedAssessments, rule, analytics] = await Promise.all([
+      const [gradebook, scopedAssessments, overview, analytics] = await Promise.all([
         fetchOverviewGradebook(academicYearId, termId, filters),
         fetchAssessments(academicYearId, termId, filters),
-        fetchScopeGradeRule(academicYearId, termId, selectedScopeType, selectedScopeId),
+        fetchGradesOverview(academicYearId, termId, filters),
         fetchGradesAnalytics(academicYearId, termId, filters),
       ]);
 
       setAssessments(scopedAssessments);
       setRows(gradebook.rows);
-      setSummary(gradebook.summary);
-      setTrend(gradebook.trend.map((point) => ({ label: point.label, average: point.average })));
-      setGradeRule(rule ? { passMark: rule.passMark } : null);
+      setSummary(overview.summary);
+      setTrend(overview.trend);
+      setGradeRule(overview.rule);
+      setOverviewEmptyState(overview.emptyState);
       setAnalyticsReport(analytics);
     } catch {
       showError(tCommon("error_loading"));
@@ -425,17 +428,43 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
       render: (_value: unknown, row: GradebookStudentRow) => {
         const score = row.scoresByAssessmentId[assessment.id];
         const status = row.statusByAssessmentId[assessment.id];
-        let label = t("table.pending");
-        if (status === "absent") label = t("table.absent");
-        else if (status === "entered" && score != null) label = `${score}/${assessment.maxScore}`;
+        const isQuestionBased = assessment.deliveryMode === "QUESTION_BASED";
+        const isDisabled = assessment.isLocked || isReadOnly;
+        const disabledReason = assessment.isLocked
+          ? t("workflow.reasons.locked")
+          : isReadOnly
+            ? t("workflow.reasons.termClosed")
+            : undefined;
+        let label = isQuestionBased ? t("table.openReview") : t("table.missing");
+        let cellStyle = {
+          borderColor: "var(--warning-bg)",
+          backgroundColor: "var(--warning-bg)",
+          color: "var(--warning-text)",
+        };
+        if (status === "absent") {
+          label = t("table.absent");
+          cellStyle = {
+            borderColor: "var(--error-bg)",
+            backgroundColor: "var(--error-bg)",
+            color: "var(--error-text)",
+          };
+        } else if (status === "entered" && score != null) {
+          label = `${score}/${assessment.maxScore}`;
+          cellStyle = {
+            borderColor: "var(--success-bg)",
+            backgroundColor: "var(--success-bg)",
+            color: "var(--success-text)",
+          };
+        }
 
         return (
           <button
             type="button"
             onClick={() => void openEditGradeDialog(assessment, row)}
-            disabled={assessment.isLocked || isReadOnly}
-            className="rounded-md border px-2 py-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ borderColor: "var(--border-color)", color: "var(--text-primary)" }}
+            disabled={isDisabled}
+            title={disabledReason}
+            className="min-w-[72px] rounded-md border px-2 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            style={cellStyle}
           >
             {label}
           </button>
@@ -454,7 +483,8 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
       {
         key: "completion",
         label: t("table.completion"),
-        render: (_value: unknown, row: GradebookStudentRow) => `${row.completedItems}/${row.totalItems}`,
+        render: (_value: unknown, row: GradebookStudentRow) =>
+          row.totalItems > 0 ? `${row.completedItems}/${row.totalItems}` : "-",
       },
     ];
   }, [assessments, isReadOnly, locale, openEditGradeDialog, t]);
@@ -561,8 +591,6 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         summary: "Summary",
         assessments: "Assessments",
         analytics_distribution: "Analytics Distribution",
-        analytics_assessments: "Assessment Analytics",
-        analytics_students: "Student Analytics",
       };
       return labels[dataset];
     },
@@ -639,16 +667,6 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         value: "analytics_distribution",
         label: getOverviewDatasetLocalizedLabel("analytics_distribution"),
         description: getOverviewDatasetLocalizedDescription("analytics_distribution"),
-      },
-      {
-        value: "analytics_assessments",
-        label: getOverviewDatasetLocalizedLabel("analytics_assessments"),
-        description: getOverviewDatasetLocalizedDescription("analytics_assessments"),
-      },
-      {
-        value: "analytics_students",
-        label: getOverviewDatasetLocalizedLabel("analytics_students"),
-        description: getOverviewDatasetLocalizedDescription("analytics_students"),
       },
     ],
     [
@@ -896,154 +914,6 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     view,
   ]);
 
-  const buildOverviewAssessmentAnalyticsExport = useCallback(() => {
-    const rowsForExport = analyticsReport.assessmentPerformance.map((item) => ({
-      assessmentId: item.assessmentId,
-      label: item.label,
-      average: formatPercent(item.average),
-      enteredCount: item.enteredCount,
-      maxScore: item.maxScore,
-    }));
-
-    return {
-      title: getOverviewDatasetLocalizedLabel("analytics_assessments"),
-      filename: generateGradesExportFilename(
-        "grades-overview-assessment-analytics",
-        termId,
-        selectedScopeId,
-      ),
-      columns: [
-        { key: "assessmentId", label: t("export.columns.assessmentId") },
-        { key: "label", label: t("export.columns.title") },
-        { key: "average", label: t("export.columns.average") },
-        { key: "enteredCount", label: t("export.columns.enteredCount") },
-        { key: "maxScore", label: t("export.columns.maxScore") },
-      ] satisfies ExportColumn[],
-      rows: rowsForExport,
-      jsonData: {
-        title: "Grades Assessment Analytics",
-        metadata: {
-          ...englishMetadata,
-          datasetName: getOverviewDatasetEnglishLabel("analytics_assessments"),
-        },
-        filters: {
-          academicYearId,
-          termId,
-          scopeType: selectedScopeType,
-          scopeId: selectedScopeId,
-          subjectId: selectedSubjectId,
-          view,
-          dataset: "analytics_assessments",
-        },
-        assessments: analyticsReport.assessmentPerformance,
-      },
-      count: analyticsReport.assessmentPerformance.length,
-    };
-  }, [
-    academicYearId,
-    analyticsReport.assessmentPerformance,
-    englishMetadata,
-    getOverviewDatasetEnglishLabel,
-    getOverviewDatasetLocalizedLabel,
-    selectedScopeId,
-    selectedScopeType,
-    selectedSubjectId,
-    t,
-    termId,
-    view,
-  ]);
-
-  const buildOverviewStudentAnalyticsExport = useCallback(() => {
-    const studentRows = [
-      ...analyticsReport.topStudents.map((item) => ({
-        group: t("export.groups.top"),
-        ...item,
-      })),
-      ...analyticsReport.lowestStudents.map((item) => ({
-        group: t("export.groups.lowest"),
-        ...item,
-      })),
-    ];
-
-    const rowsForExport = studentRows.map((item) => ({
-      group: item.group,
-      studentId: item.studentId,
-      studentName: locale === "ar" ? item.studentNameAr : item.studentNameEn,
-      studentNameEn: item.studentNameEn,
-      studentNameAr: item.studentNameAr,
-      classroomName: item.classroomName || t("table.notAssigned"),
-      average: formatPercent(item.average),
-      completionRate: formatPercent(item.completionRate),
-      completedItems: item.completedItems,
-      totalItems: item.totalItems,
-      status: item.status,
-    }));
-
-    return {
-      title: getOverviewDatasetLocalizedLabel("analytics_students"),
-      filename: generateGradesExportFilename(
-        "grades-overview-student-analytics",
-        termId,
-        selectedScopeId,
-      ),
-      columns: [
-        { key: "group", label: t("export.columns.group") },
-        { key: "studentId", label: t("export.columns.studentId") },
-        { key: "studentName", label: t("export.columns.studentName") },
-        { key: "studentNameEn", label: t("export.columns.studentNameEn") },
-        { key: "studentNameAr", label: t("export.columns.studentNameAr") },
-        { key: "classroomName", label: t("table.classroom") },
-        { key: "average", label: t("export.columns.average") },
-        { key: "completionRate", label: t("analytics.table.completionRate") },
-        { key: "completedItems", label: t("export.columns.completedItems") },
-        { key: "totalItems", label: t("export.columns.totalItems") },
-        { key: "status", label: t("export.columns.status") },
-      ] satisfies ExportColumn[],
-      rows: rowsForExport,
-      jsonData: {
-        title: "Grades Student Analytics",
-        metadata: {
-          ...englishMetadata,
-          datasetName: getOverviewDatasetEnglishLabel("analytics_students"),
-        },
-        filters: {
-          academicYearId,
-          termId,
-          scopeType: selectedScopeType,
-          scopeId: selectedScopeId,
-          subjectId: selectedSubjectId,
-          view,
-          dataset: "analytics_students",
-        },
-        students: [
-          ...analyticsReport.topStudents.map((item) => ({
-            group: "top",
-            ...item,
-          })),
-          ...analyticsReport.lowestStudents.map((item) => ({
-            group: "lowest",
-            ...item,
-          })),
-        ],
-      },
-      count: studentRows.length,
-    };
-  }, [
-    academicYearId,
-    analyticsReport.lowestStudents,
-    analyticsReport.topStudents,
-    englishMetadata,
-    getOverviewDatasetEnglishLabel,
-    getOverviewDatasetLocalizedLabel,
-    locale,
-    selectedScopeId,
-    selectedScopeType,
-    selectedSubjectId,
-    t,
-    termId,
-    view,
-  ]);
-
   const buildAssessmentsViewExport = useCallback(() => {
     const rowsForExport = buildAssessmentsRows(assessments);
 
@@ -1208,10 +1078,6 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
           return buildOverviewAssessmentsExport();
         case "analytics_distribution":
           return buildOverviewDistributionExport();
-        case "analytics_assessments":
-          return buildOverviewAssessmentAnalyticsExport();
-        case "analytics_students":
-          return buildOverviewStudentAnalyticsExport();
         case "summary":
         default:
           return buildOverviewSummaryExport();
@@ -1226,10 +1092,8 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   }, [
     buildAssessmentsViewExport,
     buildGradebookViewExport,
-    buildOverviewAssessmentAnalyticsExport,
     buildOverviewAssessmentsExport,
     buildOverviewDistributionExport,
-    buildOverviewStudentAnalyticsExport,
     buildOverviewSummaryExport,
     selectedOverviewExportDataset,
     view,
@@ -1319,6 +1183,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
               summary={summary}
               trend={trend}
               gradeRule={gradeRule}
+              emptyState={overviewEmptyState}
               assessments={visibleAssessments}
               isReadOnly={isReadOnly}
               isBulkLoading={isBulkLoading}
@@ -1357,10 +1222,20 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
               const path = `/${locale}/grades/assessments/${assessment.id}/questions`;
               router.push(params ? `${path}?${params}` : path);
             }}
+            onViewSubmissions={(assessment) => {
+              router.push(`/${locale}/grades/assessments/${assessment.id}/submissions`);
+            }}
           />
         )}
 
-        {view === "gradebook" && <GradesGradebookSection isLoading={isDataLoading} rows={tableRows} columns={gradebookColumns} />}
+        {view === "gradebook" && (
+          <GradesGradebookSection
+            isLoading={isDataLoading}
+            hasAssessments={assessments.length > 0}
+            rows={tableRows}
+            columns={gradebookColumns}
+          />
+        )}
       </div>
 
       <CreateAssessmentDialog

@@ -6,6 +6,7 @@ import type {
   BackendGradebookResponse,
   BackendGradebookRow,
   BackendGradeItemStatus,
+  BackendGradeItemStatusPayload,
   BackendGradeRuleResponse,
   BackendGradesBootstrapResponse,
   BackendNamedEntity,
@@ -42,19 +43,19 @@ export function resolveEntityName(
 
 // ── Status mappers ───────────────────────────────────────────────────
 
-const FRONTEND_TO_BACKEND_STATUS: Record<GradeItemStatus, BackendGradeItemStatus> = {
+const FRONTEND_TO_BACKEND_STATUS: Record<GradeItemStatus, BackendGradeItemStatusPayload> = {
   entered: "ENTERED",
   missing: "MISSING",
   absent: "ABSENT",
 };
 
 const BACKEND_TO_FRONTEND_STATUS: Record<BackendGradeItemStatus, GradeItemStatus> = {
-  ENTERED: "entered",
-  MISSING: "missing",
-  ABSENT: "absent",
+  entered: "entered",
+  missing: "missing",
+  absent: "absent",
 };
 
-export function toBackendGradeItemStatus(status: GradeItemStatus): BackendGradeItemStatus {
+export function toBackendGradeItemStatus(status: GradeItemStatus): BackendGradeItemStatusPayload {
   return FRONTEND_TO_BACKEND_STATUS[status] ?? "MISSING";
 }
 
@@ -64,9 +65,20 @@ export function fromBackendGradeItemStatus(status: BackendGradeItemStatus | null
 }
 
 const BACKEND_TO_FRONTEND_APPROVAL: Record<BackendApprovalStatus, Assessment["approvalStatus"]> = {
-  DRAFT: "draft",
-  PUBLISHED: "published",
-  APPROVED: "approved",
+  draft: "draft",
+  published: "published",
+  approved: "approved",
+};
+
+const BACKEND_QUESTION_TYPE_TO_UI: Record<string, AssessmentSubmissionReview["questions"][number]["question"]["questionType"]> = {
+  mcq_single: "MCQ_SINGLE",
+  mcq_multi: "MCQ_MULTI",
+  true_false: "TRUE_FALSE",
+  short_answer: "SHORT_ANSWER",
+  essay: "ESSAY",
+  fill_in_blank: "FILL_IN_BLANK",
+  matching: "MATCHING",
+  media: "MEDIA",
 };
 
 export function fromBackendApprovalStatus(
@@ -74,6 +86,14 @@ export function fromBackendApprovalStatus(
 ): Assessment["approvalStatus"] {
   if (!status) return "draft";
   return BACKEND_TO_FRONTEND_APPROVAL[status] ?? "draft";
+}
+
+function fromBackendQuestionType(
+  type: string | undefined,
+): AssessmentSubmissionReview["questions"][number]["question"]["questionType"] {
+  if (!type) return "SHORT_ANSWER";
+  return BACKEND_QUESTION_TYPE_TO_UI[type] ??
+    (type.toUpperCase() as AssessmentSubmissionReview["questions"][number]["question"]["questionType"]);
 }
 
 // ── Bootstrap → FiltersData ──────────────────────────────────────────
@@ -142,15 +162,15 @@ export function mapBootstrapToFiltersData(
 
 export function mapBackendColumnToAssessment(column: BackendGradebookColumn): Assessment {
   const names = resolveEntityName({
-    id: column.id,
+    id: column.assessmentId,
     title: column.title,
     titleAr: column.titleAr,
     titleEn: column.titleEn,
   });
 
   return {
-    id: column.assessmentId || column.id,
-    termId: column.termId ?? "",
+    id: column.assessmentId,
+    termId: "",
     subjectId: column.subjectId ?? column.subject?.id ?? "",
     scopeType: column.scopeType ?? "school",
     scopeId: column.scopeId ?? "",
@@ -159,7 +179,7 @@ export function mapBackendColumnToAssessment(column: BackendGradebookColumn): As
     title: names.nameEn || names.name,
     titleAr: names.nameAr || names.name,
     type: column.type ?? "QUIZ",
-    deliveryMode: column.deliveryMode ?? "SCORE_ONLY",
+    deliveryMode: column.deliveryMode === "question_based" ? "QUESTION_BASED" : "SCORE_ONLY",
     date: column.date ?? "",
     weight: column.weight ?? 0,
     maxScore: column.maxScore ?? 0,
@@ -190,7 +210,7 @@ export function mapBackendAssessmentToAssessment(item: BackendAssessmentResponse
     title: names.nameEn || names.name,
     titleAr: names.nameAr || names.name,
     type: item.type ?? "QUIZ",
-    deliveryMode: item.deliveryMode ?? "SCORE_ONLY",
+    deliveryMode: item.deliveryMode === "question_based" ? "QUESTION_BASED" : "SCORE_ONLY",
     date: item.date ?? "",
     weight: item.weight ?? 0,
     maxScore: item.maxScore ?? 0,
@@ -207,11 +227,11 @@ export function mapBackendRowToStudentRow(
   columns: BackendGradebookColumn[],
 ): GradebookStudentRow {
   const studentName =
-    row.student?.fullNameEn || row.student?.nameEn || row.student?.fullName || row.student?.name || row.studentNameEn || row.studentName || "";
-  const studentNameAr =
-    row.student?.fullNameAr || row.student?.nameAr || row.studentNameAr || studentName;
-  const studentNameEn =
-    row.student?.fullNameEn || row.student?.nameEn || row.studentNameEn || studentName;
+    row.student?.nameEn ||
+    [row.student?.firstName, row.student?.lastName].filter(Boolean).join(" ") ||
+    "";
+  const studentNameAr = row.student?.nameAr || studentName;
+  const studentNameEn = row.student?.nameEn || studentName;
 
   const scoresByAssessmentId: Record<string, number | null> = {};
   const statusByAssessmentId: Record<string, GradeItemStatus> = {};
@@ -227,13 +247,13 @@ export function mapBackendRowToStudentRow(
   const totalItems = columns.length;
 
   for (const column of columns) {
-    const assessmentId = column.assessmentId || column.id;
+    const assessmentId = column.assessmentId;
     const cell = cellsByAssessmentId.get(assessmentId);
 
     if (cell) {
       scoresByAssessmentId[assessmentId] = cell.score ?? null;
       statusByAssessmentId[assessmentId] = fromBackendGradeItemStatus(cell.status);
-      if (cell.status === "ENTERED") completedItems++;
+      if (cell.status === "entered") completedItems++;
     } else {
       scoresByAssessmentId[assessmentId] = null;
       statusByAssessmentId[assessmentId] = "missing";
@@ -242,14 +262,18 @@ export function mapBackendRowToStudentRow(
 
   return {
     studentId: row.studentId,
+    enrollmentId: row.enrollmentId,
     studentNameEn,
     studentNameAr,
-    classroomName: row.classroomName ?? row.classroomNameEn ?? row.classroomNameAr ?? undefined,
+    studentCode: row.student?.code ?? null,
+    admissionNo: row.student?.admissionNo ?? null,
+    classroomName: undefined,
+    status: row.status,
     scoresByAssessmentId,
     statusByAssessmentId,
-    average: row.average ?? row.finalPercent ?? 0,
-    completedItems: row.completedItems ?? completedItems,
-    totalItems: row.totalItems ?? totalItems,
+    average: row.finalPercent ?? 0,
+    completedItems: row.totalEnteredCount ?? completedItems,
+    totalItems,
   };
 }
 
@@ -264,19 +288,25 @@ export function mapGradebookResponseToUi(response: BackendGradebookResponse): Gr
   const rows = backendRows.map((row) => mapBackendRowToStudentRow(row, columns));
 
   const summary: GradesPageSummary = {
-    totalStudents: backendSummary?.totalStudents ?? rows.length,
-    totalAssessments: backendSummary?.totalAssessments ?? columns.length,
-    classAverage: backendSummary?.classAverage ?? 0,
-    highestAverage: backendSummary?.highestAverage ?? 0,
-    lowestAverage: backendSummary?.lowestAverage ?? 0,
-    completionRate: backendSummary?.completionRate ?? 0,
+    totalStudents: backendSummary?.studentCount ?? rows.length,
+    totalAssessments: backendSummary?.assessmentCount ?? columns.length,
+    classAverage: backendSummary?.averagePercent ?? 0,
+    highestAverage: 0,
+    lowestAverage: 0,
+    completionRate: backendSummary?.studentCount
+      ? Math.round(
+          ((backendSummary.studentCount - (backendSummary.incompleteCount ?? 0)) /
+            backendSummary.studentCount) *
+            1000,
+        ) / 10
+      : 0,
   };
 
   // Derive trend from columns + rows: for each assessment, compute the class average
   const trend: AssessmentTrendPoint[] = columns.map((column) => {
-    const assessmentId = column.assessmentId || column.id;
+    const assessmentId = column.assessmentId;
     const colNames = resolveEntityName({
-      id: column.id,
+      id: column.assessmentId,
       title: column.title,
       titleAr: column.titleAr,
       titleEn: column.titleEn,
@@ -287,7 +317,7 @@ export function mapGradebookResponseToUi(response: BackendGradebookResponse): Gr
 
     for (const row of backendRows) {
       const cell = row.cells?.find((c) => c.assessmentId === assessmentId);
-      if (cell?.status === "ENTERED" && cell.score != null) {
+      if (cell?.status === "entered" && cell.score != null) {
         totalScore += cell.score;
         enteredCount++;
       }
@@ -319,12 +349,19 @@ export function mapBackendGradeRuleToUi(
 ): GradeRule | null {
   if (!response) return null;
   return {
-    id: response.id ?? "",
-    scopeType: response.scopeType ?? "school",
+    id: response.ruleId ?? response.id ?? "",
+    scopeType: (response.scopeType as GradeRule["scopeType"]) ?? "school",
     scopeId: response.scopeId ?? "",
-    gradingScale: response.gradingScale ?? "percentage",
+    gradingScale: "percentage",
     passMark: response.passMark ?? 50,
-    rounding: response.rounding ?? "decimal_1",
+    rounding:
+      response.rounding?.toLowerCase() === "none"
+        ? "none"
+        : response.rounding?.toLowerCase() === "decimal_0"
+          ? "decimal_0"
+          : response.rounding?.toLowerCase() === "decimal_2"
+            ? "decimal_2"
+            : "decimal_1",
   };
 }
 
@@ -333,9 +370,9 @@ export function mapBackendGradeRuleToUi(
 export function mapBackendRosterItemToUi(item: BackendAssessmentRosterItem): AssessmentRosterItem {
   return {
     studentId: item.studentId,
-    studentNameEn: item.studentNameEn ?? item.studentName ?? "",
-    studentNameAr: item.studentNameAr ?? item.studentName ?? "",
-    classroomName: item.classroomName ?? undefined,
+    studentNameEn: item.student?.nameEn ?? item.student?.fullName ?? "",
+    studentNameAr: item.student?.nameAr ?? item.student?.nameEn ?? item.student?.fullName ?? "",
+    classroomName: undefined,
     score: item.score ?? null,
     status: fromBackendGradeItemStatus(item.status),
     comment: item.comment ?? undefined,
@@ -355,66 +392,67 @@ export function mapSubmissionDetailToReview(
       assessmentId: detail.assessmentId,
       studentId: detail.studentId,
       status: (detail.status as AssessmentSubmissionReview["submission"]["status"]) ?? "not_started",
-      submittedAt: detail.submittedAt,
+      submittedAt: detail.submittedAt ?? undefined,
       totalScore: detail.totalScore,
-      maxScore: detail.maxScore,
+      maxScore: detail.maxScore ?? assessment.maxScore,
     },
     assessment,
-    studentNameEn: detail.studentNameEn ?? "",
-    studentNameAr: detail.studentNameAr ?? "",
-    questions: (detail.questions ?? []).map((q) => ({
+    studentNameEn:
+      detail.student?.nameEn ??
+      [detail.student?.firstName, detail.student?.lastName].filter(Boolean).join(" "),
+    studentNameAr: detail.student?.nameAr ?? detail.student?.nameEn ?? "",
+    questions: (detail.questions ?? []).map((q) => {
+      const metadata = q.metadata ?? {};
+      return {
       question: {
-        id: q.question.id,
-        assessmentId: q.question.assessmentId,
-        assignmentId: q.question.assignmentId ?? "",
-        questionTextAr: q.question.questionTextAr ?? "",
-        questionTextEn: q.question.questionTextEn ?? "",
-        questionType: (q.question.questionType ?? "SHORT_ANSWER") as any,
-        points: q.question.points ?? 0,
-        order: q.question.order ?? 0,
-        options: q.question.options?.map((o) => ({
+        id: q.id,
+        assessmentId: q.assessmentId,
+        assignmentId: "",
+        questionTextAr: q.promptAr ?? "",
+        questionTextEn: q.prompt ?? "",
+        questionType: fromBackendQuestionType(q.type),
+        points: q.points ?? 0,
+        order: q.sortOrder ?? 0,
+        options: q.options?.map((o) => ({
           id: o.id,
-          textAr: o.textAr ?? "",
-          textEn: o.textEn ?? "",
+          textAr: o.labelAr ?? "",
+          textEn: o.label ?? "",
           isCorrect: o.isCorrect ?? false,
-          order: o.order ?? 0,
+          order: o.sortOrder ?? 0,
         })),
-        correctAnswer: q.question.correctAnswer,
-        sampleAnswerAr: q.question.sampleAnswerAr,
-        sampleAnswerEn: q.question.sampleAnswerEn,
-        acceptedAnswersAr: q.question.acceptedAnswersAr,
-        acceptedAnswersEn: q.question.acceptedAnswersEn,
-        matchingPairs: q.question.matchingPairs?.map((m) => ({
-          id: m.id,
-          promptAr: m.promptAr ?? "",
-          promptEn: m.promptEn ?? "",
-          matchAr: m.matchAr ?? "",
-          matchEn: m.matchEn ?? "",
-          order: m.order ?? 0,
-        })),
-        mediaMode: q.question.mediaMode,
-        mediaTitle: q.question.mediaTitle,
-        mediaUrl: q.question.mediaUrl,
-        mediaFileName: q.question.mediaFileName,
-        mediaMimeType: q.question.mediaMimeType,
-        mediaSize: q.question.mediaSize,
-        createdAt: q.question.createdAt ?? "",
+        correctAnswer: typeof q.answerKey === "boolean" ? q.answerKey : undefined,
+        sampleAnswerAr: typeof metadata.sampleAnswerAr === "string" ? metadata.sampleAnswerAr : undefined,
+        sampleAnswerEn: typeof metadata.sampleAnswerEn === "string" ? metadata.sampleAnswerEn : undefined,
+        acceptedAnswersAr: Array.isArray(metadata.acceptedAnswersAr)
+          ? metadata.acceptedAnswersAr.filter((answer): answer is string => typeof answer === "string")
+          : undefined,
+        acceptedAnswersEn: Array.isArray(metadata.acceptedAnswersEn)
+          ? metadata.acceptedAnswersEn.filter((answer): answer is string => typeof answer === "string")
+          : undefined,
+        matchingPairs: Array.isArray(metadata.matchingPairs) ? metadata.matchingPairs as AssessmentSubmissionReview["questions"][number]["question"]["matchingPairs"] : undefined,
+        mediaMode: metadata.mediaMode === "FILE" || metadata.mediaMode === "LINK" ? metadata.mediaMode : undefined,
+        mediaTitle: typeof metadata.mediaTitle === "string" ? metadata.mediaTitle : undefined,
+        mediaUrl: typeof metadata.mediaUrl === "string" ? metadata.mediaUrl : undefined,
+        mediaFileName: typeof metadata.mediaFileName === "string" ? metadata.mediaFileName : undefined,
+        mediaMimeType: typeof metadata.mediaMimeType === "string" ? metadata.mediaMimeType : undefined,
+        mediaSize: typeof metadata.mediaSize === "number" ? metadata.mediaSize : undefined,
+        createdAt: q.createdAt ?? "",
       },
       answer: q.answer
         ? {
             id: q.answer.id,
-            submissionId: q.answer.submissionId,
-            assessmentId: q.answer.assessmentId,
+            submissionId: detail.id,
+            assessmentId: detail.assessmentId,
             questionId: q.answer.questionId,
-            studentId: q.answer.studentId,
-            selectedOptionIds: q.answer.selectedOptionIds,
-            booleanAnswer: q.answer.booleanAnswer,
-            answerText: q.answer.answerText,
+            studentId: detail.studentId,
+            selectedOptionIds: q.answer.selectedOptions?.map((option) => option.optionId),
+            answerText: q.answer.answerText ?? undefined,
             awardedPoints: q.answer.awardedPoints,
             correctionStatus: (q.answer.correctionStatus ?? "pending") as "pending" | "corrected",
-            teacherComment: q.answer.teacherComment,
+            teacherComment: q.answer.reviewerComment ?? undefined,
           }
         : null,
-    })),
+    };
+    }),
   };
 }

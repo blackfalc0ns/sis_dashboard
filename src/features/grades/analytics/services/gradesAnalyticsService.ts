@@ -1,75 +1,81 @@
-import { fetchOverviewGradebook, fetchScopeGradeRule } from "../../overview/services/gradesOverviewService";
+import { apiGet } from "@/lib/api";
 import type { GradesScopeFilters } from "../../shared/types";
-import type { GradesAnalyticsReport, GradesDistributionBucket, GradesStudentAnalyticsRow } from "../types";
+import type { GradesAnalyticsReport, GradesDistributionBucket } from "../types";
 
-const round1 = (value: number) => Math.round(value * 10) / 10;
+interface BackendGradesAnalyticsSummaryResponse {
+  studentCount: number;
+  assessmentCount: number;
+  enteredItemCount: number;
+  missingItemCount: number;
+  absentItemCount: number;
+  averagePercent: number | null;
+  highestPercent: number | null;
+  lowestPercent: number | null;
+  passingCount: number;
+  failingCount: number;
+  incompleteCount: number;
+  passRate: number | null;
+  completedWeightAverage: number | null;
+}
 
-const buildDistribution = (averages: number[]): GradesDistributionBucket[] => {
-  const buckets = [
-    { label: "90-100", min: 90, max: 100, count: 0 },
-    { label: "80-89", min: 80, max: 89.99, count: 0 },
-    { label: "70-79", min: 70, max: 79.99, count: 0 },
-    { label: "60-69", min: 60, max: 69.99, count: 0 },
-    { label: "0-59", min: 0, max: 59.99, count: 0 },
-  ];
+interface BackendGradesDistributionResponse {
+  buckets: Array<{
+    from: number;
+    to: number;
+    count: number;
+  }>;
+  incompleteCount: number;
+  totalStudents: number;
+}
 
-  averages.forEach((average) => {
-    const bucket = buckets.find((item) => average >= item.min && average <= item.max);
-    if (bucket) {
-      bucket.count += 1;
-    }
-  });
+function buildGradesAnalyticsParams(
+  academicYearId: string,
+  termId: string,
+  filters: GradesScopeFilters,
+) {
+  return {
+    academicYearId,
+    termId,
+    scopeType: filters.scopeType,
+    scopeId: filters.scopeId,
+    subjectId: filters.subjectId,
+  };
+}
 
-  return buckets.map(({ label, count }) => ({ label, count }));
-};
+function mapDistributionBuckets(
+  response: BackendGradesDistributionResponse,
+): GradesDistributionBucket[] {
+  return response.buckets.map((bucket) => ({
+    label: `${bucket.from}-${bucket.to}`,
+    count: bucket.count,
+  }));
+}
 
 export async function fetchGradesAnalytics(
   academicYearId: string,
   termId: string,
   filters: GradesScopeFilters,
 ): Promise<GradesAnalyticsReport> {
-  const [gradebook, rule] = await Promise.all([
-    fetchOverviewGradebook(academicYearId, termId, filters),
-    filters.scopeType && filters.scopeId
-      ? fetchScopeGradeRule(academicYearId, termId, filters.scopeType, filters.scopeId)
-      : Promise.resolve(null),
+  const params = buildGradesAnalyticsParams(academicYearId, termId, filters);
+  const [summary, distribution] = await Promise.all([
+    apiGet<BackendGradesAnalyticsSummaryResponse>("/grades/analytics/summary", {
+      params,
+    }),
+    apiGet<BackendGradesDistributionResponse>("/grades/analytics/distribution", {
+      params,
+    }),
   ]);
-
-  const passMark = rule?.passMark ?? 50;
-  const rows: GradesStudentAnalyticsRow[] = gradebook.rows.map((row) => {
-    const completionRate = row.totalItems > 0 ? round1((row.completedItems / row.totalItems) * 100) : 0;
-    return {
-      studentId: row.studentId,
-      studentNameEn: row.studentNameEn,
-      studentNameAr: row.studentNameAr,
-      classroomName: row.classroomName,
-      average: row.average,
-      completionRate,
-      completedItems: row.completedItems,
-      totalItems: row.totalItems,
-      status: row.average >= passMark ? "passing" : "failing",
-    };
-  });
-
-  const meaningfulAverages = rows.map((row) => row.average).filter((value) => value > 0);
-  const failingStudents = rows.filter((row) => row.average > 0 && row.average < passMark).length;
 
   return {
     kpis: {
-      classAverage: gradebook.summary.classAverage,
-      passRate: rows.length > 0 ? round1(((rows.length - failingStudents) / rows.length) * 100) : 0,
-      completionRate: gradebook.summary.completionRate,
-      failingStudents,
+      classAverage: summary.averagePercent ?? 0,
+      passRate: summary.passRate ?? 0,
+      completionRate: summary.completedWeightAverage ?? 0,
+      failingStudents: summary.failingCount,
     },
-    distribution: buildDistribution(meaningfulAverages),
-    assessmentPerformance: gradebook.trend.map((point) => ({
-      assessmentId: point.assessmentId,
-      label: point.label,
-      average: point.average,
-      enteredCount: point.enteredCount,
-      maxScore: point.maxScore,
-    })),
-    topStudents: rows.slice().sort((left, right) => right.average - left.average).slice(0, 5),
-    lowestStudents: rows.filter((row) => row.average > 0).slice().sort((left, right) => left.average - right.average).slice(0, 5),
+    distribution: mapDistributionBuckets(distribution),
+    assessmentPerformance: [],
+    topStudents: [],
+    lowestStudents: [],
   };
 }

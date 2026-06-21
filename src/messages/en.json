@@ -5298,12 +5298,83 @@
     "grades": {
       "title": "Assessments & Grades",
       "readOnlyBanner": "This term is closed. Grades are read-only.",
-      "tabs": {
-        "overview": "Overview",
-        "assessments": "Exams",
-        "analytics": "Analytics",
-        "gradebook": "Gradebook"
+    "tabs": {
+      "overview": "Overview",
+      "assessments": "Exams",
+      "analytics": "Analytics",
+      "gradebook": "Gradebook",
+      "rules": "Rules"
+    },
+    "submissions": {
+      "title": "Assessment submissions",
+      "subtitle": "Track answer progress, submission state, and correction readiness.",
+      "detailTitle": "Submission",
+      "search": "Search students",
+      "allStatuses": "All statuses",
+      "loading": "Loading submissions...",
+      "empty": "No submissions match the current filters.",
+      "student": "Student",
+      "class": "Class",
+      "status": "Status",
+      "progress": "Answered",
+      "pending": "Pending review",
+      "open": "Open",
+      "saveAll": "Save all answers",
+      "saveAnswer": "Save answer",
+      "submit": "Submit",
+      "submitConfirm": "Submit this assessment? Answers cannot be edited afterward.",
+      "finalize": "Finalize review",
+      "sync": "Sync grade",
+      "points": "points",
+      "answerPlaceholder": "Enter the student's answer",
+      "awardedPoints": "Awarded points",
+      "reviewComment": "Reviewer comment",
+      "saveReview": "Save review",
+      "statuses": {
+        "IN_PROGRESS": "In progress",
+        "SUBMITTED": "Submitted",
+        "CORRECTED": "Corrected"
+      }
+    },
+    "rules": {
+      "title": "Grade Rules",
+      "subtitle": "Configure the pass mark and rounding policy used for the selected scope.",
+      "form": {
+        "createTitle": "Create scope rule",
+        "editTitle": "Edit scope rule",
+        "description": "An explicit rule overrides the inherited rule for this scope.",
+        "passMark": "Pass mark",
+        "rounding": "Rounding"
       },
+      "effective": {
+        "title": "Effective rule",
+        "description": "The rule currently applied by the backend after scope inheritance.",
+        "source": "Source",
+        "explicitRules": "Rules in term"
+      },
+      "rounding": {
+        "NONE": "No rounding",
+        "DECIMAL_0": "Whole number",
+        "DECIMAL_1": "1 decimal place",
+        "DECIMAL_2": "2 decimal places"
+      },
+      "sources": {
+        "DEFAULT": "System default",
+        "SCHOOL": "School",
+        "STAGE": "Stage",
+        "GRADE": "Grade"
+      },
+      "actions": {
+        "save": "Save rule"
+      },
+      "messages": {
+        "saved": "Grade rule saved successfully"
+      },
+      "validation": {
+        "passMark": "Pass mark must be between 0 and 100."
+      },
+      "empty": "Select a scope to configure its grade rule."
+    },
       "filters": {
         "scopeType": "Scope Type",
         "scope": "Scope",
@@ -5354,6 +5425,7 @@
           "subtitle": "Students grouped by average score bands",
           "count": "Students"
         },
+        "supportedContract": "Backend-supported: summary and distribution",
         "assessments": {
           "title": "Exam performance",
           "subtitle": "Average score by exam",
@@ -5375,7 +5447,9 @@
         "average": "Average",
         "completion": "Completion",
         "absent": "Absent",
-        "pending": "Pending"
+        "pending": "Pending",
+        "missing": "Missing",
+        "openReview": "Review"
       },
       "assessmentTypes": {
         "quiz": "Quiz",
@@ -5399,6 +5473,22 @@
         "manageQuestions": "Manage Questions",
         "publish": "Publish"
       },
+      "workflow": {
+        "statuses": {
+          "draft": "Draft",
+          "published": "Published",
+          "approved": "Approved",
+          "locked": "Locked"
+        },
+        "entry": {
+          "scoreOnly": "Score entry",
+          "questionBased": "Question review"
+        },
+        "reasons": {
+          "termClosed": "This term is closed.",
+          "locked": "This assessment is locked."
+        }
+      },
       "export": {
         "title": "Export Grades Data",
         "subtitle": "Download the current grades view using the selected format.",
@@ -5415,14 +5505,6 @@
           "analytics_distribution": {
             "label": "Distribution analytics",
             "description": "Grade distribution buckets for the current filters"
-          },
-          "analytics_assessments": {
-            "label": "Assessment analytics",
-            "description": "Average performance by assessment"
-          },
-          "analytics_students": {
-            "label": "Student analytics",
-            "description": "Top and lowest student analytics in one export"
           },
           "assessmentsView": {
             "label": "Assessments"
@@ -5674,7 +5756,29 @@
         "grading_started": "Question structure cannot be changed after grade entry has started.",
         "last_question_required": "At least one question must remain on the assessment.",
         "assessment_not_published": "Assessment must be published before approval.",
-        "assessment_not_approved": "Assessment must be approved before locking."
+        "assessment_not_approved": "Assessment must be approved before locking.",
+        "term_closed": "This term is closed. Grades are read-only.",
+        "invalid_status_transition": "This assessment cannot move to the requested status.",
+        "assessment_already_published": "This assessment is already published.",
+        "assessment_already_approved": "This assessment is already approved.",
+        "assessment_already_locked": "This assessment is already locked.",
+        "invalid_scope": "This assessment does not belong to the selected scope.",
+        "gradebook_no_enrollment": "This student is not enrolled in the selected gradebook scope.",
+        "question_structure_locked": "Question structure is locked after grading starts.",
+        "question_points_mismatch": "Question points must match the assessment max score.",
+        "invalid_question": "This answer does not belong to a valid assessment question.",
+        "invalid_option": "This answer option is not valid for the question.",
+        "submission_already_submitted": "This submission has already been submitted.",
+        "submission_locked": "This submission is locked.",
+        "submission_not_submitted": "Submit the assessment before final review.",
+        "review_already_finalized": "This review has already been finalized.",
+        "review_pending_answers": "Review all pending answers before finalizing.",
+        "rule_conflict": "A grade rule already exists for this scope.",
+        "unauthorized": "Please sign in again.",
+        "permission_denied": "You do not have permission to perform this action.",
+        "not_found": "The requested grades record was not found.",
+        "conflict": "This action conflicts with the current grades state.",
+        "validation_failed": "Please check the submitted grades data."
       },
       "deliveryModes": {
         "scoreOnly": "Score only",

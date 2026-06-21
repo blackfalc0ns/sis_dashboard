@@ -7,6 +7,11 @@ import Button from "@/components/ui/button/Button";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import type { Assessment } from "../types";
 import { getAssessmentTypeLabelKey } from "../../assessments/services/gradesAssessmentsService";
+import {
+  ASSESSMENT_WORKFLOW_STATE_STYLES,
+  getAssessmentEntryModeKey,
+  getAssessmentWorkflowState,
+} from "../../shared/utils/assessmentWorkflow";
 
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
@@ -21,6 +26,7 @@ interface GradesOverviewSectionProps {
   };
   trend: Array<{ label: string; average: number }>;
   gradeRule: { passMark: number } | null;
+  emptyState: { reason: string; message: string } | null;
   assessments: Assessment[];
   isReadOnly: boolean;
   isBulkLoading: boolean;
@@ -38,6 +44,7 @@ export default function GradesOverviewSection({
   summary,
   trend,
   gradeRule,
+  emptyState,
   assessments,
   isReadOnly,
   isBulkLoading,
@@ -52,9 +59,54 @@ export default function GradesOverviewSection({
 }: GradesOverviewSectionProps) {
   const t = useTranslations("academics.grades");
   const locale = useLocale();
+  const renderWorkflowAction = (assessment: Assessment) => {
+    if (isReadOnly || assessment.isLocked) return null;
+
+    if (assessment.approvalStatus === "draft") {
+      return (
+        <Button
+          variant="secondary"
+          size="sm"
+          loading={assessmentActionId === assessment.id && assessmentActionType === "publish"}
+          onClick={() => onPublish(assessment.id)}
+        >
+          {t("actions.publish")}
+        </Button>
+      );
+    }
+
+    if (assessment.approvalStatus === "published") {
+      return (
+        <Button
+          variant="secondary"
+          size="sm"
+          loading={assessmentActionId === assessment.id && assessmentActionType === "approve"}
+          onClick={() => onApprove(assessment.id)}
+        >
+          {t("actions.approve")}
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        variant="secondary"
+        size="sm"
+        loading={assessmentActionId === assessment.id && assessmentActionType === "lock"}
+        onClick={() => onLock(assessment.id)}
+      >
+        {t("actions.lock")}
+      </Button>
+    );
+  };
 
   return (
     <>
+      {emptyState ? (
+        <div className="border border-[var(--border-color)] bg-[var(--surface-color)] p-4 text-sm text-[var(--text-secondary)]">
+          {emptyState.message}
+        </div>
+      ) : null}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <KPICardV2 title={t("kpis.students")} value={summary.totalStudents} icon={BookOpenCheck} iconColor="var(--primary-color)" iconBgColor="var(--color-primary-100)" showChart={false} />
         <KPICardV2 title={t("kpis.assessments")} value={summary.totalAssessments} icon={ClipboardCheck} iconColor="var(--accent-color)" iconBgColor="var(--color-primary-50)" showChart={false} />
@@ -104,7 +156,12 @@ export default function GradesOverviewSection({
           <div className="mt-4 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
             <div className="mb-2 text-sm font-medium" style={{ color: "var(--text-primary)" }}>{t("summaryPanel.assessments")}</div>
             <div className="space-y-2">
-              {assessments.map((assessment) => (
+              {assessments.map((assessment) => {
+                const workflowState = getAssessmentWorkflowState(assessment);
+                const workflowStyle = ASSESSMENT_WORKFLOW_STATE_STYLES[workflowState];
+                const entryModeKey = getAssessmentEntryModeKey(assessment);
+
+                return (
                 <div key={assessment.id} className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "var(--border-color)" }}>
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -113,6 +170,14 @@ export default function GradesOverviewSection({
                       </div>
                       <div style={{ color: "var(--text-secondary)" }}>
                         {t(`assessmentTypes.${getAssessmentTypeLabelKey(assessment.type)}`)} · {assessment.weight}%
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className="rounded-full border px-2 py-0.5 text-xs font-medium" style={workflowStyle}>
+                          {t(`workflow.statuses.${workflowState}`)}
+                        </span>
+                        <span className="rounded-full border px-2 py-0.5 text-xs" style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)" }}>
+                          {t(`workflow.entry.${entryModeKey}`)}
+                        </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
@@ -155,36 +220,11 @@ export default function GradesOverviewSection({
                     >
                       {t("actions.bulkEntry")}
                     </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={assessment.approvalStatus !== "draft" || assessment.isLocked || isReadOnly}
-                      loading={assessmentActionId === assessment.id && assessmentActionType === "publish"}
-                      onClick={() => onPublish(assessment.id)}
-                    >
-                      {t("actions.publish")}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={assessment.approvalStatus !== "published" || assessment.isLocked || isReadOnly}
-                      loading={assessmentActionId === assessment.id && assessmentActionType === "approve"}
-                      onClick={() => onApprove(assessment.id)}
-                    >
-                      {t("actions.approve")}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={assessment.approvalStatus !== "approved" || assessment.isLocked || isReadOnly}
-                      loading={assessmentActionId === assessment.id && assessmentActionType === "lock"}
-                      onClick={() => onLock(assessment.id)}
-                    >
-                      {t("actions.lock")}
-                    </Button>
+                    {renderWorkflowAction(assessment)}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

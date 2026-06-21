@@ -1,10 +1,15 @@
 ﻿"use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { ClipboardCheck, FileQuestion, Lock, Pencil, Send, ShieldCheck, Trash2 } from "lucide-react";
+import { ClipboardCheck, FileQuestion, ListChecks, Lock, Pencil, Send, ShieldCheck, Trash2 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import type { Assessment } from "../types";
 import { getAssessmentTypeLabelKey } from "../services/gradesAssessmentsService";
+import {
+  ASSESSMENT_WORKFLOW_STATE_STYLES,
+  getAssessmentEntryModeKey,
+  getAssessmentWorkflowState,
+} from "../../shared/utils/assessmentWorkflow";
 
 interface GradesAssessmentsSectionProps {
   assessments: Assessment[];
@@ -19,6 +24,7 @@ interface GradesAssessmentsSectionProps {
   onEdit: (assessment: Assessment) => void;
   onDelete: (assessment: Assessment) => void;
   onManageQuestions: (assessment: Assessment) => void;
+  onViewSubmissions: (assessment: Assessment) => void;
 }
 
 export default function GradesAssessmentsSection({
@@ -34,9 +40,51 @@ export default function GradesAssessmentsSection({
   onEdit,
   onDelete,
   onManageQuestions,
+  onViewSubmissions,
 }: GradesAssessmentsSectionProps) {
   const t = useTranslations("academics.grades");
   const locale = useLocale();
+
+  const renderWorkflowAction = (assessment: Assessment) => {
+    if (isReadOnly || assessment.isLocked) return null;
+
+    if (assessment.approvalStatus === "draft") {
+      return (
+        <Button
+          variant="secondary"
+          size="sm"
+          loading={assessmentActionId === assessment.id && assessmentActionType === "publish"}
+          onClick={() => onPublish(assessment.id)}
+        >
+          {t("actions.publish")}
+        </Button>
+      );
+    }
+
+    if (assessment.approvalStatus === "published") {
+      return (
+        <Button
+          variant="secondary"
+          size="sm"
+          loading={assessmentActionId === assessment.id && assessmentActionType === "approve"}
+          onClick={() => onApprove(assessment.id)}
+        >
+          {t("actions.approve")}
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        variant="secondary"
+        size="sm"
+        loading={assessmentActionId === assessment.id && assessmentActionType === "lock"}
+        onClick={() => onLock(assessment.id)}
+      >
+        {t("actions.lock")}
+      </Button>
+    );
+  };
 
   return (
     <div className="rounded-xl border p-4" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}>
@@ -53,7 +101,12 @@ export default function GradesAssessmentsSection({
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-          {assessments.map((assessment) => (
+          {assessments.map((assessment) => {
+            const workflowState = getAssessmentWorkflowState(assessment);
+            const workflowStyle = ASSESSMENT_WORKFLOW_STATE_STYLES[workflowState];
+            const entryModeKey = getAssessmentEntryModeKey(assessment);
+
+            return (
             <div key={assessment.id} className="rounded-lg border px-3 py-3 text-sm" style={{ borderColor: "var(--border-color)" }}>
               <div className="flex items-start justify-between gap-2">
                 <div>
@@ -62,6 +115,14 @@ export default function GradesAssessmentsSection({
                   </div>
                   <div style={{ color: "var(--text-secondary)" }}>
                     {t(`assessmentTypes.${getAssessmentTypeLabelKey(assessment.type)}`)} · {assessment.weight}% · {assessment.date}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <span className="rounded-full border px-2 py-0.5 text-xs font-medium" style={workflowStyle}>
+                      {t(`workflow.statuses.${workflowState}`)}
+                    </span>
+                    <span className="rounded-full border px-2 py-0.5 text-xs" style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)" }}>
+                      {t(`workflow.entry.${entryModeKey}`)}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -72,14 +133,24 @@ export default function GradesAssessmentsSection({
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {assessment.deliveryMode === "QUESTION_BASED" ? (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => onManageQuestions(assessment)}
-                    leftIcon={<FileQuestion className="h-4 w-4" />}
-                  >
-                    {t("actions.manageQuestions")}
-                  </Button>
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => onManageQuestions(assessment)}
+                      leftIcon={<FileQuestion className="h-4 w-4" />}
+                    >
+                      {t("actions.manageQuestions")}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => onViewSubmissions(assessment)}
+                      leftIcon={<ListChecks className="h-4 w-4" />}
+                    >
+                      {t("submissions.title")}
+                    </Button>
+                  </>
                 ) : null}
                 <Button
                   variant="secondary"
@@ -104,33 +175,7 @@ export default function GradesAssessmentsSection({
                 >
                   {t("actions.bulkEntry")}
                 </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={assessment.approvalStatus !== "draft" || assessment.isLocked || isReadOnly}
-                  loading={assessmentActionId === assessment.id && assessmentActionType === "publish"}
-                  onClick={() => onPublish(assessment.id)}
-                >
-                  {t("actions.publish")}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={assessment.approvalStatus !== "published" || assessment.isLocked || isReadOnly}
-                  loading={assessmentActionId === assessment.id && assessmentActionType === "approve"}
-                  onClick={() => onApprove(assessment.id)}
-                >
-                  {t("actions.approve")}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={assessment.approvalStatus !== "approved" || assessment.isLocked || isReadOnly}
-                  loading={assessmentActionId === assessment.id && assessmentActionType === "lock"}
-                  onClick={() => onLock(assessment.id)}
-                >
-                  {t("actions.lock")}
-                </Button>
+                {renderWorkflowAction(assessment)}
                 <Button
                   variant="danger"
                   size="sm"
@@ -143,7 +188,8 @@ export default function GradesAssessmentsSection({
                 </Button>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
     </div>

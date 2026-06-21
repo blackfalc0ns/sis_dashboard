@@ -107,7 +107,7 @@ export default function CreateAssessmentDialog({
       scopeId,
       subjectId,
       type,
-      deliveryMode: initialAssessment?.deliveryMode || "QUESTION_BASED",
+      deliveryMode: initialAssessment?.deliveryMode || "SCORE_ONLY",
       title,
       titleAr,
       date: date.toISOString().slice(0, 10),

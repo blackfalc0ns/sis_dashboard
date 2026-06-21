@@ -1,6 +1,6 @@
 import { apiGet, apiPost, apiPut } from "@/lib/api";
 import type {
-  BackendAssessmentRosterItem,
+  BackendAssessmentItemsListResponse,
   BackendGradesBootstrapResponse,
   BackendSubmissionDetailResponse,
   BackendSubmissionResolveResponse,
@@ -17,6 +17,11 @@ import {
   mapSubmissionDetailToReview,
   toBackendGradeItemStatus,
 } from "../utils/gradebookMappers";
+import {
+  finalizeSubmissionReview,
+  reviewSubmissionAnswers,
+  syncSubmissionGradeItem,
+} from "../../submissions/services/gradesSubmissionsService";
 
 // ── Filters / bootstrap ──────────────────────────────────────────────
 
@@ -39,11 +44,14 @@ export async function fetchGradeItemDetail(
   assessmentId: string,
   studentId: string,
 ): Promise<{ comment?: string } | null> {
-  const items = await apiGet<BackendAssessmentRosterItem[]>(
+  void academicYearId;
+  void termId;
+  const response = await apiGet<BackendAssessmentItemsListResponse>(
     `/grades/assessments/${assessmentId}/items`,
-    { params: { academicYearId, termId, includeMissingStudents: true } },
+    { params: { includeMissingStudents: true } },
   );
 
+  const items = response.items;
   const item = items.find((i) => i.studentId === studentId);
   if (!item) return null;
 
@@ -58,15 +66,17 @@ export async function fetchAssessmentSubmissionReview(
   assessmentId: string,
   studentId: string,
 ): Promise<AssessmentSubmissionReview> {
+  void academicYearId;
+  void termId;
   // Step 1: Resolve (or create) the submission for this student
   const resolved = await apiPost<BackendSubmissionResolveResponse>(
     `/grades/assessments/${assessmentId}/submissions/resolve`,
-    { studentId, academicYearId, termId },
+    { studentId },
   );
 
   // Step 2: Fetch the full submission detail (includes questions + answers)
   const detail = await apiGet<BackendSubmissionDetailResponse>(
-    `/grades/submissions/${resolved.submissionId}`,
+    `/grades/submissions/${resolved.id}`,
   );
 
   // Step 3: Map the embedded assessment and build the review object
@@ -94,24 +104,31 @@ export async function saveAssessmentSubmissionCorrection(
     teacherComment?: string;
   }>,
 ): Promise<void> {
+  void academicYearId;
+  void termId;
   // Step 1: Resolve the submission
   const resolved = await apiPost<BackendSubmissionResolveResponse>(
     `/grades/assessments/${assessmentId}/submissions/resolve`,
-    { studentId, academicYearId, termId },
+    { studentId },
   );
 
-  const { submissionId } = resolved;
+  const submissionId = resolved.id;
 
   // Step 2: Save the reviewed answers
-  await apiPut(`/grades/submissions/${submissionId}/answers/review`, {
-    answers,
-  });
+  await reviewSubmissionAnswers(
+    submissionId,
+    answers.map((answer) => ({
+      answerId: answer.answerId,
+      awardedPoints: answer.awardedPoints ?? 0,
+      reviewerComment: answer.teacherComment ?? null,
+    })),
+  );
 
   // Step 3: Finalize the review
-  await apiPost(`/grades/submissions/${submissionId}/review/finalize`);
+  await finalizeSubmissionReview(submissionId);
 
   // Step 4: Sync back to the grade item
-  await apiPost(`/grades/submissions/${submissionId}/sync-grade-item`);
+  await syncSubmissionGradeItem(submissionId);
 }
 
 // ── Single grade-item update ─────────────────────────────────────────
@@ -121,6 +138,8 @@ export async function updateGradeItem(
   termId: string,
   payload: UpdateGradeItemPayload,
 ): Promise<void> {
+  void academicYearId;
+  void termId;
   const backendPayload = {
     status: toBackendGradeItemStatus(payload.status),
     score: payload.score,
@@ -130,7 +149,6 @@ export async function updateGradeItem(
   await apiPut(
     `/grades/assessments/${payload.assessmentId}/items/${payload.studentId}`,
     backendPayload,
-    { params: { academicYearId, termId } },
   );
 }
 
@@ -141,6 +159,7 @@ export async function bulkUpdateGradeItems(
   items: BulkGradeItemPayload[],
   params?: { academicYearId?: string; termId?: string },
 ): Promise<void> {
+  void params;
   const backendItems = items.map((item) => ({
     studentId: item.studentId,
     status: toBackendGradeItemStatus(item.status),
@@ -148,9 +167,5 @@ export async function bulkUpdateGradeItems(
     comment: item.comment ?? null,
   }));
 
-  await apiPut(
-    `/grades/assessments/${assessmentId}/items`,
-    { items: backendItems },
-    { params },
-  );
+  await apiPut(`/grades/assessments/${assessmentId}/items`, { items: backendItems });
 }

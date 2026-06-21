@@ -58,11 +58,11 @@ export interface GradeItem {
 
 export interface GradeRule {
   id: string;
-  scopeType: "school" | "grade";
+  scopeType: ExamScopeType;
   scopeId: string;
   gradingScale: "percentage";
   passMark: number;
-  rounding: "whole" | "decimal_1";
+  rounding: "none" | "decimal_0" | "decimal_1" | "decimal_2";
 }
 
 export interface Rubric {
@@ -84,9 +84,13 @@ export interface ReportCardSummary {
 
 export interface GradebookStudentRow {
   studentId: string;
+  enrollmentId?: string;
   studentNameEn: string;
   studentNameAr: string;
+  studentCode?: string | null;
+  admissionNo?: string | null;
   classroomName?: string;
+  status?: string;
   scoresByAssessmentId: Record<string, number | null>;
   statusByAssessmentId: Record<string, GradeItemStatus>;
   average: number;

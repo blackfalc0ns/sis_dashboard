@@ -6,8 +6,9 @@ import {
   apiDelete,
 } from "@/lib/api";
 import type {
-  BackendAssessmentRosterItem,
+  BackendAssessmentItemsListResponse,
   BackendAssessmentResponse,
+  BackendAssessmentQuestionsListResponse,
   BackendAssessmentQuestionResponse,
 } from "../../gradebook/types/api.types";
 import type {
@@ -23,47 +24,140 @@ import {
   mapBackendAssessmentToAssessment,
 } from "../../gradebook/utils/gradebookMappers";
 
+const BACKEND_QUESTION_TYPE_TO_UI: Record<string, AssessmentQuestion["questionType"]> = {
+  mcq_single: "MCQ_SINGLE",
+  mcq_multi: "MCQ_MULTI",
+  true_false: "TRUE_FALSE",
+  short_answer: "SHORT_ANSWER",
+  essay: "ESSAY",
+  fill_in_blank: "FILL_IN_BLANK",
+  matching: "MATCHING",
+  media: "MEDIA",
+};
+
+function toUiQuestionType(type: string | undefined): AssessmentQuestion["questionType"] {
+  if (!type) return "SHORT_ANSWER";
+  return BACKEND_QUESTION_TYPE_TO_UI[type] ?? (type.toUpperCase() as AssessmentQuestion["questionType"]);
+}
+
+function toBackendAssessmentPayload(
+  academicYearId: string,
+  payload: CreateAssessmentPayload,
+  deliveryMode?: "SCORE_ONLY",
+): Record<string, unknown> {
+  return {
+    academicYearId,
+    termId: payload.termId,
+    subjectId: payload.subjectId,
+    scopeType: payload.scopeType,
+    scopeId: payload.scopeId,
+    sectionId: payload.sectionId,
+    classroomId: payload.classroomId,
+    titleEn: payload.title,
+    titleAr: payload.titleAr,
+    type: payload.type,
+    ...(deliveryMode ? { deliveryMode } : {}),
+    date: payload.date,
+    weight: payload.weight,
+    maxScore: payload.maxScore,
+    expectedTimeMinutes: payload.expectedTimeMinutes,
+  };
+}
+
+function toBackendAssessmentUpdatePayload(payload: CreateAssessmentPayload): Record<string, unknown> {
+  return {
+    subjectId: payload.subjectId,
+    scopeType: payload.scopeType,
+    scopeId: payload.scopeId,
+    sectionId: payload.sectionId,
+    classroomId: payload.classroomId,
+    titleEn: payload.title,
+    titleAr: payload.titleAr,
+    type: payload.type,
+    date: payload.date,
+    weight: payload.weight,
+    maxScore: payload.maxScore,
+    expectedTimeMinutes: payload.expectedTimeMinutes,
+  };
+}
+
+function toBackendQuestionOptions(options: AssessmentQuestion["options"]): Array<Record<string, unknown>> | undefined {
+  return options?.map((option) => ({
+    id: option.id.startsWith("opt-") ? undefined : option.id,
+    labelAr: option.textAr,
+    label: option.textEn,
+    isCorrect: option.isCorrect,
+    sortOrder: option.order,
+  }));
+}
+
 // ── Local helper: Backend question → frontend AssessmentQuestion ─────
 
 function mapBackendQuestionToUi(
   q: BackendAssessmentQuestionResponse,
 ): AssessmentQuestion {
+  const metadata = q.metadata ?? {};
   return {
     id: q.id,
     assessmentId: q.assessmentId,
-    assignmentId: q.assignmentId ?? "",
-    questionTextAr: q.questionTextAr ?? "",
-    questionTextEn: q.questionTextEn ?? "",
-    questionType: (q.questionType ?? "SHORT_ANSWER") as AssessmentQuestion["questionType"],
+    assignmentId: "",
+    questionTextAr: q.promptAr ?? "",
+    questionTextEn: q.prompt ?? "",
+    questionType: toUiQuestionType(q.type),
     points: q.points ?? 0,
-    order: q.order ?? 0,
+    order: q.sortOrder ?? 0,
     options: q.options?.map((o) => ({
       id: o.id,
-      textAr: o.textAr ?? "",
-      textEn: o.textEn ?? "",
+      textAr: o.labelAr ?? "",
+      textEn: o.label ?? "",
       isCorrect: o.isCorrect ?? false,
-      order: o.order ?? 0,
+      order: o.sortOrder ?? 0,
     })),
-    correctAnswer: q.correctAnswer,
-    sampleAnswerAr: q.sampleAnswerAr,
-    sampleAnswerEn: q.sampleAnswerEn,
-    acceptedAnswersAr: q.acceptedAnswersAr,
-    acceptedAnswersEn: q.acceptedAnswersEn,
-    matchingPairs: q.matchingPairs?.map((m) => ({
-      id: m.id,
-      promptAr: m.promptAr ?? "",
-      promptEn: m.promptEn ?? "",
-      matchAr: m.matchAr ?? "",
-      matchEn: m.matchEn ?? "",
-      order: m.order ?? 0,
-    })),
-    mediaMode: q.mediaMode,
-    mediaTitle: q.mediaTitle,
-    mediaUrl: q.mediaUrl,
-    mediaFileName: q.mediaFileName,
-    mediaMimeType: q.mediaMimeType,
-    mediaSize: q.mediaSize,
+    correctAnswer:
+      typeof q.answerKey === "boolean"
+        ? q.answerKey
+        : typeof metadata.correctAnswer === "boolean"
+          ? metadata.correctAnswer
+          : undefined,
+    sampleAnswerAr: typeof metadata.sampleAnswerAr === "string" ? metadata.sampleAnswerAr : undefined,
+    sampleAnswerEn: typeof metadata.sampleAnswerEn === "string" ? metadata.sampleAnswerEn : undefined,
+    acceptedAnswersAr: Array.isArray(metadata.acceptedAnswersAr)
+      ? metadata.acceptedAnswersAr.filter((answer): answer is string => typeof answer === "string")
+      : undefined,
+    acceptedAnswersEn: Array.isArray(metadata.acceptedAnswersEn)
+      ? metadata.acceptedAnswersEn.filter((answer): answer is string => typeof answer === "string")
+      : undefined,
+    matchingPairs: Array.isArray(metadata.matchingPairs) ? metadata.matchingPairs as AssessmentQuestion["matchingPairs"] : undefined,
+    mediaMode: metadata.mediaMode === "FILE" || metadata.mediaMode === "LINK" ? metadata.mediaMode : undefined,
+    mediaTitle: typeof metadata.mediaTitle === "string" ? metadata.mediaTitle : undefined,
+    mediaUrl: typeof metadata.mediaUrl === "string" ? metadata.mediaUrl : undefined,
+    mediaFileName: typeof metadata.mediaFileName === "string" ? metadata.mediaFileName : undefined,
+    mediaMimeType: typeof metadata.mediaMimeType === "string" ? metadata.mediaMimeType : undefined,
+    mediaSize: typeof metadata.mediaSize === "number" ? metadata.mediaSize : undefined,
     createdAt: q.createdAt ?? "",
+  };
+}
+
+function toBackendQuestionPayload(question: AssessmentQuestion): Record<string, unknown> {
+  return {
+    promptAr: question.questionTextAr,
+    prompt: question.questionTextEn,
+    type: question.questionType,
+    points: question.points,
+    sortOrder: question.order,
+    options: toBackendQuestionOptions(question.options),
+    correctAnswer: question.correctAnswer,
+    sampleAnswerAr: question.sampleAnswerAr,
+    sampleAnswerEn: question.sampleAnswerEn,
+    acceptedAnswersAr: question.acceptedAnswersAr,
+    acceptedAnswersEn: question.acceptedAnswersEn,
+    matchingPairs: question.matchingPairs,
+    mediaMode: question.mediaMode,
+    mediaTitle: question.mediaTitle,
+    mediaUrl: question.mediaUrl,
+    mediaFileName: question.mediaFileName,
+    mediaMimeType: question.mediaMimeType,
+    mediaSize: question.mediaSize,
   };
 }
 
@@ -74,11 +168,13 @@ export async function fetchAssessmentRoster(
   termId: string,
   assessmentId: string,
 ): Promise<AssessmentRosterItem[]> {
-  const items = await apiGet<BackendAssessmentRosterItem[]>(
+  void academicYearId;
+  void termId;
+  const response = await apiGet<BackendAssessmentItemsListResponse>(
     `/grades/assessments/${assessmentId}/items`,
-    { params: { academicYearId, termId, includeMissingStudents: true } },
+    { params: { includeMissingStudents: true } },
   );
-  return items.map(mapBackendRosterItemToUi);
+  return response.items.map(mapBackendRosterItemToUi);
 }
 
 // ── 2. Bulk update assessment grades ─────────────────────────────────
@@ -101,11 +197,9 @@ export async function bulkUpdateAssessmentGrades(
     comment: item.comment,
   }));
 
-  await apiPut(
-    `/grades/assessments/${assessmentId}/items`,
-    { items: backendItems },
-    { params: { academicYearId, termId } },
-  );
+  void academicYearId;
+  void termId;
+  await apiPut(`/grades/assessments/${assessmentId}/items`, { items: backendItems });
 }
 
 // ── 3. Publish assessment ────────────────────────────────────────────
@@ -115,10 +209,9 @@ export async function publishAssessment(
   termId: string,
   assessmentId: string,
 ): Promise<void> {
-  await apiPost(
-    `/grades/assessments/${assessmentId}/publish`,
-    { academicYearId, termId },
-  );
+  void academicYearId;
+  void termId;
+  await apiPost(`/grades/assessments/${assessmentId}/publish`);
 }
 
 // ── 4. Approve assessment ────────────────────────────────────────────
@@ -128,10 +221,9 @@ export async function approveAssessment(
   termId: string,
   assessmentId: string,
 ): Promise<void> {
-  await apiPost(
-    `/grades/assessments/${assessmentId}/approve`,
-    { academicYearId, termId },
-  );
+  void academicYearId;
+  void termId;
+  await apiPost(`/grades/assessments/${assessmentId}/approve`);
 }
 
 // ── 5. Lock assessment ───────────────────────────────────────────────
@@ -141,10 +233,9 @@ export async function lockAssessment(
   termId: string,
   assessmentId: string,
 ): Promise<void> {
-  await apiPost(
-    `/grades/assessments/${assessmentId}/lock`,
-    { academicYearId, termId },
-  );
+  void academicYearId;
+  void termId;
+  await apiPost(`/grades/assessments/${assessmentId}/lock`);
 }
 
 // ── 6. Update assessment ─────────────────────────────────────────────
@@ -155,10 +246,11 @@ export async function updateAssessment(
   assessmentId: string,
   payload: CreateAssessmentPayload,
 ): Promise<Assessment> {
+  void academicYearId;
+  void termId;
   const response = await apiPatch<BackendAssessmentResponse>(
     `/grades/assessments/${assessmentId}`,
-    payload,
-    { params: { academicYearId, termId } },
+    toBackendAssessmentUpdatePayload(payload),
   );
   return mapBackendAssessmentToAssessment(response);
 }
@@ -170,10 +262,9 @@ export async function deleteAssessment(
   termId: string,
   assessmentId: string,
 ): Promise<void> {
-  await apiDelete(
-    `/grades/assessments/${assessmentId}`,
-    { params: { academicYearId, termId } },
-  );
+  void academicYearId;
+  void termId;
+  await apiDelete(`/grades/assessments/${assessmentId}`);
 }
 
 // ── 8. Create assessment ─────────────────────────────────────────────
@@ -182,10 +273,9 @@ export async function createAssessment(
   academicYearId: string,
   payload: CreateAssessmentPayload,
 ): Promise<{ id: string }> {
-  const result = await apiPost<{ id: string }>(
+  const result = await apiPost<BackendAssessmentResponse>(
     "/grades/assessments",
-    payload,
-    { params: { academicYearId } },
+    toBackendAssessmentPayload(academicYearId, payload, "SCORE_ONLY"),
   );
   return { id: result.id };
 }
@@ -194,13 +284,20 @@ export async function createAssessment(
 
 export async function createAssessmentWithQuestions(
   academicYearId: string,
-  payload: { assessment: CreateAssessmentPayload; questions: unknown[] },
+  payload: { assessment: CreateAssessmentPayload; questions: AssessmentQuestion[] },
 ): Promise<{ id: string }> {
-  const result = await apiPost<{ id: string }>(
+  const result = await apiPost<BackendAssessmentResponse>(
     "/grades/assessments/question-based",
-    payload,
-    { params: { academicYearId } },
+    toBackendAssessmentPayload(academicYearId, payload.assessment),
   );
+
+  for (const question of payload.questions) {
+    await apiPost<BackendAssessmentQuestionResponse>(
+      `/grades/assessments/${result.id}/questions`,
+      toBackendQuestionPayload(question),
+    );
+  }
+
   return { id: result.id };
 }
 
@@ -226,8 +323,9 @@ export async function fetchAssessmentById(
 ): Promise<Assessment> {
   const response = await apiGet<BackendAssessmentResponse>(
     `/grades/assessments/${assessmentId}`,
-    { params: { academicYearId, termId } },
   );
+  void academicYearId;
+  void termId;
   return mapBackendAssessmentToAssessment(response);
 }
 
@@ -238,11 +336,12 @@ export async function fetchAssessmentQuestions(
   termId: string,
   assessmentId: string,
 ): Promise<AssessmentQuestion[]> {
-  const questions = await apiGet<BackendAssessmentQuestionResponse[]>(
+  void academicYearId;
+  void termId;
+  const response = await apiGet<BackendAssessmentQuestionsListResponse>(
     `/grades/assessments/${assessmentId}/questions`,
-    { params: { academicYearId, termId } },
   );
-  return questions.map(mapBackendQuestionToUi);
+  return response.questions.map(mapBackendQuestionToUi);
 }
 
 // ── 13. Create assessment question ───────────────────────────────────
@@ -251,13 +350,14 @@ export async function createAssessmentQuestion(
   academicYearId: string,
   termId: string,
   assessmentId: string,
-  questionPayload: unknown,
+  questionPayload: AssessmentQuestion,
 ): Promise<AssessmentQuestion> {
   const response = await apiPost<BackendAssessmentQuestionResponse>(
     `/grades/assessments/${assessmentId}/questions`,
-    questionPayload,
-    { params: { academicYearId, termId } },
+    toBackendQuestionPayload(questionPayload),
   );
+  void academicYearId;
+  void termId;
   return mapBackendQuestionToUi(response);
 }
 
@@ -267,13 +367,14 @@ export async function updateAssessmentQuestion(
   academicYearId: string,
   termId: string,
   questionId: string,
-  questionPayload: unknown,
+  questionPayload: AssessmentQuestion,
 ): Promise<AssessmentQuestion> {
   const response = await apiPatch<BackendAssessmentQuestionResponse>(
     `/grades/questions/${questionId}`,
-    questionPayload,
-    { params: { academicYearId, termId } },
+    toBackendQuestionPayload(questionPayload),
   );
+  void academicYearId;
+  void termId;
   return mapBackendQuestionToUi(response);
 }
 
@@ -284,10 +385,9 @@ export async function deleteAssessmentQuestion(
   termId: string,
   questionId: string,
 ): Promise<void> {
-  await apiDelete(
-    `/grades/questions/${questionId}`,
-    { params: { academicYearId, termId } },
-  );
+  void academicYearId;
+  void termId;
+  await apiDelete(`/grades/questions/${questionId}`);
 }
 
 // ── 16. Reorder assessment questions ─────────────────────────────────
@@ -298,10 +398,11 @@ export async function reorderAssessmentQuestions(
   assessmentId: string,
   orderedIds: string[],
 ): Promise<void> {
-  await apiPut(
+  void academicYearId;
+  void termId;
+  await apiPost(
     `/grades/assessments/${assessmentId}/questions/reorder`,
-    { orderedIds },
-    { params: { academicYearId, termId } },
+    { questionIds: orderedIds },
   );
 }
 
@@ -313,9 +414,10 @@ export async function bulkUpdateAssessmentQuestionPoints(
   assessmentId: string,
   updates: Array<{ questionId: string; points: number }>,
 ): Promise<void> {
-  await apiPut(
-    `/grades/assessments/${assessmentId}/questions/points`,
+  void academicYearId;
+  void termId;
+  await apiPost(
+    `/grades/assessments/${assessmentId}/questions/points/bulk`,
     { updates },
-    { params: { academicYearId, termId } },
   );
 }
