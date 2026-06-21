@@ -10,6 +10,18 @@ The feature lives at `src/features/academics/homework` and uses these routes:
 - `/[lang]/academics/homework/new`
 - `/[lang]/academics/homework/[homeworkId]`
 
+Because these pages need the shared academics year/term context bar, their Next.js
+route files must live under the existing hidden route group:
+
+```text
+src/app/[lang]/(dashboard)/academics/(with-context)/homework/page.tsx
+src/app/[lang]/(dashboard)/academics/(with-context)/homework/new/page.tsx
+src/app/[lang]/(dashboard)/academics/(with-context)/homework/[homeworkId]/page.tsx
+```
+
+The browser URLs remain `/en/academics/homework` and `/ar/academics/homework`
+because route groups are hidden from the URL.
+
 The first implementation includes:
 
 - Listing homework assignments with admin filters.
@@ -58,6 +70,19 @@ The service layer follows existing academic feature patterns:
 - `homeworkService.ts` exports public feature functions and supports an adapter setter/resetter for tests.
 - `homeworkErrors.ts` maps domain error codes to stable UI error keys.
 
+The mapper layer is mandatory. Existing assignment builder components use
+curriculum-style fields such as `titleAr`, `titleEn`, `descriptionAr`,
+`descriptionEn`, `dueDate`, `maxScore`, `expectedTimeMinutes`, and
+`isPublished`. The homework backend uses `title`, `description`, `dueAt`,
+`totalMarks`, `estimatedMinutes`, `isGraded`, and lifecycle `status`.
+
+Required mapper directions:
+
+- `BackendHomeworkAssignmentDto` to `HomeworkAssignmentUiModel`
+- `HomeworkAssignmentUiDraft` to `UpdateHomeworkAssignmentRequest`
+- `HomeworkQuestionDto` to `BuilderQuestionUiModel`
+- `BuilderQuestionUiModel` to homework question create/update payloads
+
 ## Routes And Pages
 
 `/[lang]/academics/homework` renders an admin list page guarded by `homework.assignments.view`.
@@ -104,9 +129,46 @@ After successful creation, it redirects to `/{lang}/academics/homework/{homework
 
 `/[lang]/academics/homework/[homeworkId]` renders the builder/edit page guarded by `homework.assignments.view`. Mutating actions require `homework.assignments.manage`; otherwise the page is read-only.
 
+Add a sidebar entry under the existing academics navigation in
+`src/config/navigation.ts`, near Curriculum and Lesson Plans:
+
+```ts
+{
+  key: "academics-homework",
+  label_en: "Homework",
+  label_ar: "الواجبات",
+  href_en: "/en/academics/homework",
+  href_ar: "/ar/academics/homework",
+  icon: ClipboardList,
+}
+```
+
+Add the corresponding navigation permission mapping in `src/hooks/usePermissions.ts`:
+
+```ts
+"academics-homework": "homework.assignments.view"
+```
+
 ## Builder Reuse
 
 Reuse the existing assignment builder interaction model instead of creating a second question editor from scratch.
+
+Do not import or reuse `AssignmentBuilderPage` directly. That page is coupled to
+curriculum concerns including `lessonId`, `useAssignmentData`,
+`useAssignmentMutations`, and `curriculumService`.
+
+Create a homework-specific `HomeworkAssignmentBuilderPage` that reuses
+presentational components where their props remain compatible:
+
+- `BuilderHeader`
+- `DesktopLayout`
+- `MobileLayout`
+- `QuestionsOutline`
+- `QuestionEditor`
+- `AttachmentsPanel`
+
+Replace the curriculum data layer and route assumptions with homework-specific
+hooks, services, and `homeworkId` context.
 
 The homework builder should use homework-specific hooks:
 
@@ -132,6 +194,13 @@ Required builder capabilities:
 
 The builder should preserve existing dirty-state and unsaved-change guard behavior where practical.
 
+Do not implement a publish toggle. Homework lifecycle actions use dedicated
+backend endpoints, so the mutation hook should expose explicit functions:
+
+- `publishHomeworkAssignment(homeworkId)`
+- `closeHomeworkAssignment(homeworkId)`
+- `cancelHomeworkAssignment(homeworkId)`
+
 ## Data Flow
 
 List flow:
@@ -148,6 +217,25 @@ Create flow:
 3. Call `createHomeworkAssignment`.
 4. Redirect to the edit route for the returned assignment id.
 
+The create route must be a real metadata form. It must not auto-create a draft
+on load like the old curriculum assignment builder flow. Homework creation
+requires backend context before the draft can exist.
+
+Minimum create payload fields:
+
+- `academicYearId`
+- `termId`
+- `teacherSubjectAllocationId`
+- `title`
+- `targetMode`
+- `dueAt`
+
+After creation, preserve the active academics query context in the redirect:
+
+```text
+/{lang}/academics/homework/{homeworkId}?year=...&term=...&status=...
+```
+
 Edit flow:
 
 1. Load assignment detail, questions, attachments, and targets.
@@ -157,6 +245,16 @@ Edit flow:
 5. Save attachment changes through the nested homework attachment endpoints.
 6. Resolve targets on demand with `POST /homework/assignments/:homeworkId/targets/resolve`.
 7. Publish, close, or cancel through the dedicated action endpoints.
+
+Attachment flow must not assume that
+`POST /homework/assignments/:homeworkId/attachments` accepts raw multipart file
+uploads. The implementation must choose one of these verified paths:
+
+- Link an already-uploaded file id if the homework attachment endpoint expects a file reference.
+- Upload the file through the existing files/upload service first, then call the homework attachment endpoint with the returned file reference.
+
+Raw multipart upload directly to the homework attachment endpoint is out of
+scope unless the backend contract explicitly confirms it.
 
 ## API Coverage
 
@@ -222,6 +320,18 @@ Targets use:
 - view: `homework.targets.view`
 - resolve: `homework.targets.manage`
 
+Update the frontend `PermissionKey` union in `src/hooks/usePermissions.ts` to
+include the full homework seed permission set used by the backend:
+
+- `homework.assignments.view`
+- `homework.assignments.manage`
+- `homework.targets.view`
+- `homework.targets.manage`
+- `homework.submissions.view`
+
+`homework.submissions.view` is added for permission-model alignment even though
+submission review UI is deferred.
+
 Closed academic terms force read-only behavior even when the user has manage permission.
 
 ## Testing
@@ -231,15 +341,19 @@ Add focused tests for:
 - API adapter endpoint paths, methods, params, and payloads.
 - Mapper conversions for enum casing, dates, title/description fields, marks, counters, targets, questions, options, and attachments.
 - Error mapping for known homework assignment error codes.
+- Route placement under `academics/(with-context)` for the shared context bar.
+- Navigation permission mapping for `academics-homework`.
 - Create flow redirect behavior.
 - Edit flow read-only behavior when the term is closed or manage permission is missing.
-- Publish guard behavior when the draft has validation problems.
+- Publish action behavior through the dedicated lifecycle endpoint.
 
 Do not add broad snapshot tests. Prefer deterministic service, mapper, and narrow component/hook tests.
 
 ## Implementation Notes
 
-Keep changes scoped to the homework feature, route registration, navigation/sidebar entry if required, translations, and tests.
+Keep changes scoped to the homework feature, route registration, required
+navigation/sidebar entry, permission union and navigation permission mapping,
+translations, and tests.
 
 Avoid refactoring grades or curriculum builder internals unless a minimal prop/interface adjustment is required to reuse them cleanly.
 
