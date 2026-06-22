@@ -25,6 +25,7 @@ import { AssignmentQuestion, QuestionOption } from "@/features/academics/curricu
 import { useQuestionFormState } from "@/features/academics/curriculum/hooks/useQuestionFormState";
 import QuestionOptionRow from "./QuestionOptionRow";
 import QuestionTypeSpecificFields from "./QuestionTypeSpecificFields";
+import type { QuestionType } from "../types/types";
 
 interface QuestionEditorProps {
   question: AssignmentQuestion;
@@ -39,7 +40,13 @@ interface QuestionEditorProps {
     acceptedAnswers?: string;
     matchingPairs?: string;
     media?: string;
+    general?: string;
+    instructions?: string;
+    expectedAnswer?: string;
   };
+  allowedQuestionTypes?: QuestionType[];
+  requireBothLocalizedTexts?: boolean;
+  showHomeworkFields?: boolean;
 }
 
 interface OptionErrors {
@@ -52,6 +59,9 @@ export default function QuestionEditor({
   onChange,
   isReadOnly,
   validationErrors,
+  allowedQuestionTypes,
+  requireBothLocalizedTexts = true,
+  showHomeworkFields = false,
 }: QuestionEditorProps) {
   const t = useTranslations("academics.curriculum.questions");
   const tValidation = useTranslations("validation");
@@ -125,19 +135,16 @@ export default function QuestionEditor({
   const validateOption = (option: QuestionOption): OptionErrors => {
     const errors: OptionErrors = {};
 
-    if (!option.textAr?.trim()) {
+    if (requireBothLocalizedTexts && !option.textAr?.trim()) {
       errors.ar = tValidation("required_ar");
     }
 
-    if (!option.textEn?.trim()) {
+    if (requireBothLocalizedTexts && !option.textEn?.trim()) {
       errors.en = tValidation("required_en");
     }
 
-    if (option.textAr?.trim() && option.textEn?.trim()) {
-      if (option.textAr.trim().toLowerCase() === option.textEn.trim().toLowerCase()) {
-        errors.ar = tValidation("arEnMustDiffer");
-        errors.en = tValidation("arEnMustDiffer");
-      }
+    if (!requireBothLocalizedTexts && !option.textAr?.trim() && !option.textEn?.trim()) {
+      errors.en = tValidation("all_options_required");
     }
 
     return errors;
@@ -159,7 +166,7 @@ export default function QuestionEditor({
     { value: "FILL_IN_BLANK", label: t("question_types.FILL_IN_BLANK") },
     { value: "MATCHING", label: t("question_types.MATCHING") },
     { value: "MEDIA", label: t("question_types.MEDIA") },
-  ];
+  ].filter(({ value }) => !allowedQuestionTypes || allowedQuestionTypes.includes(value as QuestionType));
 
   const isMCQ = questionType === "MCQ_SINGLE" || questionType === "MCQ_MULTI";
   const canRemoveOption = options.length > 2;
@@ -168,12 +175,18 @@ export default function QuestionEditor({
   return (
     <div>
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
+        {validationErrors?.general && (
+          <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700" data-error="true">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{validationErrors.general}</span>
+          </div>
+        )}
         <div>
           <BilingualTextField
             label={t("question_text")}
             value={{ ar: questionTextAr, en: questionTextEn }}
             onChange={setQuestionText}
-            requiredAr={questionType !== "MEDIA"}
+            requiredAr={requireBothLocalizedTexts && questionType !== "MEDIA"}
             requiredEn={questionType !== "MEDIA"}
             disabled={isReadOnly}
             placeholder={{
@@ -226,6 +239,22 @@ export default function QuestionEditor({
             )}
           </div>
         </div>
+
+        {showHomeworkFields && (
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">{t("instructions")}</label>
+            <textarea
+              value={question.instructions ?? ""}
+              onChange={(event) => onChange({ instructions: event.target.value })}
+              disabled={isReadOnly}
+              rows={3}
+              maxLength={4001}
+              placeholder={t("instructions_placeholder")}
+              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-transparent focus:ring-2 focus:ring-primary"
+            />
+            {validationErrors?.instructions && <p className="mt-1 text-xs text-red-600">{validationErrors.instructions}</p>}
+          </div>
+        )}
 
         <div className="border-t pt-6">
           <label className="text-sm font-medium block mb-4">
@@ -300,7 +329,23 @@ export default function QuestionEditor({
             </div>
           )}
 
-          {!isMCQ && (
+          {showHomeworkFields && questionType === "SHORT_ANSWER" && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">{t("expected_answer")}</label>
+              <textarea
+                value={question.expectedAnswer ?? ""}
+                onChange={(event) => onChange({ expectedAnswer: event.target.value })}
+                disabled={isReadOnly}
+                rows={4}
+                maxLength={8001}
+                placeholder={t("expected_answer_placeholder")}
+                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-transparent focus:ring-2 focus:ring-primary"
+              />
+              {validationErrors?.expectedAnswer && <p className="mt-1 text-xs text-red-600">{validationErrors.expectedAnswer}</p>}
+            </div>
+          )}
+
+          {!isMCQ && (!showHomeworkFields || questionType !== "SHORT_ANSWER") && (
             <QuestionTypeSpecificFields
               questionId={question.id}
               questionType={questionType}

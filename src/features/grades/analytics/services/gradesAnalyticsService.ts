@@ -37,7 +37,7 @@ function buildGradesAnalyticsParams(
     academicYearId,
     termId,
     scopeType: filters.scopeType,
-    scopeId: filters.scopeId,
+    scopeId: filters.scopeId || undefined,
     subjectId: filters.subjectId,
   };
 }

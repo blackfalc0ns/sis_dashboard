@@ -12,7 +12,7 @@ import {
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import GuardedLink from "@/components/navigation/GuardedLink";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
 import {
@@ -43,6 +43,7 @@ export default function Sidebar({
   const t = useTranslations("sidebar");
   const tApp = useTranslations();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { hasPermission } = usePermissions();
   const { logout } = useAuth();
   const isArabic = pathname.startsWith("/ar");
@@ -165,6 +166,20 @@ export default function Sidebar({
     // Set pending state only when navigation actually starts
     setPendingHref(href);
     setHoveredCollapsedItemKey(null);
+  };
+
+  const preserveGradesQuery = (href: string) => {
+    const currentGradesPrefix = isArabic ? "/ar/grades" : "/en/grades";
+    if (!pathname.startsWith(currentGradesPrefix) || !href.startsWith(currentGradesPrefix)) {
+      return href;
+    }
+
+    const currentQuery = searchParams.toString();
+    if (!currentQuery || href.includes("?")) {
+      return href;
+    }
+
+    return `${href}?${currentQuery}`;
   };
 
   const toggleExpand = (key: string, e: React.MouseEvent) => {
@@ -355,6 +370,8 @@ export default function Sidebar({
           <nav className="space-y-1 pb-4">
             {visibleMenuItems.map((item) => {
               const Icon = item.icon;
+              const itemHref = isArabic ? item.href_ar : item.href_en;
+              const itemNavigationHref = preserveGradesQuery(itemHref);
               const isHeroJourneyItem = item.key === "hero-journey";
 
               const isActive = isItemActive(item);
@@ -438,12 +455,10 @@ export default function Sidebar({
                     </button>
                   ) : (
                     <GuardedLink
-                      href={isArabic ? item.href_ar : item.href_en}
+                      href={itemNavigationHref}
                       onClick={() => handleItemClick(item.key)}
                       onNavigationStart={() =>
-                        handleNavigationStart(
-                          isArabic ? item.href_ar : item.href_en,
-                        )
+                        handleNavigationStart(itemNavigationHref)
                       }
                       prefetch
                       title={
@@ -457,23 +472,19 @@ export default function Sidebar({
                         isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
                       } ${
                         isActive ||
-                        pendingHref === (isArabic ? item.href_ar : item.href_en)
+                        pendingHref === itemNavigationHref
                           ? item.buttonBackgroundImage
                             ? "text-white shadow-sm"
                             : "bg-white text-primary shadow-sm"
                           : "text-white hover:bg-white/15"
                       } ${getVariantClasses(item.buttonVariant, {
                         active: isActive,
-                        pending:
-                          pendingHref ===
-                          (isArabic ? item.href_ar : item.href_en),
+                        pending: pendingHref === itemNavigationHref,
                         backgroundImage: item.buttonBackgroundImage,
                       })} ${isHeroJourneyItem ? "h-27.5" : ""}`}
                       style={getVariantStyle({
                         active: isActive,
-                        pending:
-                          pendingHref ===
-                          (isArabic ? item.href_ar : item.href_en),
+                        pending: pendingHref === itemNavigationHref,
                         backgroundImage: item.buttonBackgroundImage,
                       })}
                     >
@@ -481,8 +492,7 @@ export default function Sidebar({
                         <Icon
                           className={`w-5 h-5 shrink-0 transition-colors ${
                             isActive ||
-                            pendingHref ===
-                              (isArabic ? item.href_ar : item.href_en)
+                            pendingHref === itemNavigationHref
                               ? "text-primary"
                               : item.buttonBackgroundImage
                                 ? "text-white"
@@ -497,8 +507,7 @@ export default function Sidebar({
                           <span className="font-semibold text-[16px] truncate">
                             {isArabic ? item.label_ar : item.label_en}
                           </span>
-                          {pendingHref ===
-                            (isArabic ? item.href_ar : item.href_en) && (
+                          {pendingHref === itemNavigationHref && (
                             <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                           )}
                         </>
@@ -518,6 +527,7 @@ export default function Sidebar({
                         const childHref = isArabic
                           ? child.href_ar
                           : child.href_en;
+                        const childNavigationHref = preserveGradesQuery(childHref);
                         const isChildActive = pathname === childHref;
                         const hasGrandchildren =
                           child.children && child.children.length > 0;
@@ -553,27 +563,27 @@ export default function Sidebar({
                               </button>
                             ) : (
                               <GuardedLink
-                                href={childHref}
+                                href={childNavigationHref}
                                 onClick={() => handleItemClick(child.key)}
                                 onNavigationStart={() =>
-                                  handleNavigationStart(childHref)
+                                  handleNavigationStart(childNavigationHref)
                                 }
                                 prefetch
                                 className={`group w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${
                                   isArabic ? "text-right" : "text-left"
                                 } ${
-                                  isChildActive || pendingHref === childHref
+                                  isChildActive || pendingHref === childNavigationHref
                                     ? "bg-white/20 text-white font-semibold"
                                     : "text-white/80 hover:bg-white/15"
                                 }`}
                               >
                                 <ChildIcon
-                                  className={`w-4 h-4 shrink-0 transition-colors ${isChildActive || pendingHref === childHref ? "text-white" : "group-hover:text-white"}`}
+                                  className={`w-4 h-4 shrink-0 transition-colors ${isChildActive || pendingHref === childNavigationHref ? "text-white" : "group-hover:text-white"}`}
                                 />
                                 <span className="text-sm flex-1 truncate">
                                   {isArabic ? child.label_ar : child.label_en}
                                 </span>
-                                {pendingHref === childHref && (
+                                {pendingHref === childNavigationHref && (
                                   <Loader2 className="w-3 h-3 animate-spin shrink-0" />
                                 )}
                                 {child.badge &&
@@ -609,38 +619,39 @@ export default function Sidebar({
                                   const grandchildHref = isArabic
                                     ? grandchild.href_ar
                                     : grandchild.href_en;
+                                  const grandchildNavigationHref = preserveGradesQuery(grandchildHref);
                                   const isGrandchildActive =
                                     pathname === grandchildHref;
 
                                   return (
                                     <GuardedLink
                                       key={grandchild.key}
-                                      href={grandchildHref}
+                                      href={grandchildNavigationHref}
                                       onClick={() =>
                                         handleItemClick(grandchild.key)
                                       }
                                       onNavigationStart={() =>
-                                        handleNavigationStart(grandchildHref)
+                                        handleNavigationStart(grandchildNavigationHref)
                                       }
                                       prefetch
                                       className={`group w-full flex items-center gap-2 rounded-[6px] transition-all duration-200 px-3 py-2 ${
                                         isArabic ? "text-right" : "text-left"
                                       } ${
                                         isGrandchildActive ||
-                                        pendingHref === grandchildHref
+                                        pendingHref === grandchildNavigationHref
                                           ? "bg-white/20 text-primary font-semibold"
                                           : "text-white/70 hover:bg-white/15"
                                       }`}
                                     >
                                       <GrandchildIcon
-                                        className={`w-3.5 h-3.5 shrink-0 transition-colors ${isGrandchildActive || pendingHref === grandchildHref ? "text-primary" : "group-hover:text-white"}`}
+                                        className={`w-3.5 h-3.5 shrink-0 transition-colors ${isGrandchildActive || pendingHref === grandchildNavigationHref ? "text-primary" : "group-hover:text-white"}`}
                                       />
                                       <span className="text-xs truncate">
                                         {isArabic
                                           ? grandchild.label_ar
                                           : grandchild.label_en}
                                       </span>
-                                      {pendingHref === grandchildHref && (
+                                      {pendingHref === grandchildNavigationHref && (
                                         <Loader2 className="w-3 h-3 animate-spin shrink-0" />
                                       )}
                                     </GuardedLink>
@@ -767,6 +778,7 @@ export default function Sidebar({
               {hoveredCollapsedItem.children.map((child) => {
                 const ChildIcon = child.icon;
                 const childHref = isArabic ? child.href_ar : child.href_en;
+                const childNavigationHref = preserveGradesQuery(childHref);
                 const isChildActive = pathname === childHref;
                 const hasGrandchildren =
                   child.children && child.children.length > 0;
@@ -798,16 +810,16 @@ export default function Sidebar({
                       </button>
                     ) : (
                       <GuardedLink
-                        href={childHref}
+                        href={childNavigationHref}
                         onClick={() => handleItemClick(child.key)}
                         onNavigationStart={() =>
-                          handleNavigationStart(childHref)
+                          handleNavigationStart(childNavigationHref)
                         }
                         prefetch
                         className={`group flex w-full items-center gap-3 rounded-[6px] px-3 py-2 text-sm transition-colors ${
                           isArabic ? "text-right" : "text-left"
                         } ${
-                          isChildActive || pendingHref === childHref
+                          isChildActive || pendingHref === childNavigationHref
                             ? "bg-white/20 text-white font-semibold"
                             : "text-white/85 hover:bg-white/15"
                         }`}
@@ -816,7 +828,7 @@ export default function Sidebar({
                         <span className="flex-1 truncate">
                           {isArabic ? child.label_ar : child.label_en}
                         </span>
-                        {pendingHref === childHref ? (
+                        {pendingHref === childNavigationHref ? (
                           <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
                         ) : null}
                       </GuardedLink>
@@ -829,23 +841,24 @@ export default function Sidebar({
                           const grandchildHref = isArabic
                             ? grandchild.href_ar
                             : grandchild.href_en;
+                          const grandchildNavigationHref = preserveGradesQuery(grandchildHref);
                           const isGrandchildActive =
                             pathname === grandchildHref;
 
                           return (
                             <GuardedLink
                               key={grandchild.key}
-                              href={grandchildHref}
+                              href={grandchildNavigationHref}
                               onClick={() => handleItemClick(grandchild.key)}
                               onNavigationStart={() =>
-                                handleNavigationStart(grandchildHref)
+                                handleNavigationStart(grandchildNavigationHref)
                               }
                               prefetch
                               className={`group flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-xs transition-colors ${
                                 isArabic ? "text-right" : "text-left"
                               } ${
                                 isGrandchildActive ||
-                                pendingHref === grandchildHref
+                                pendingHref === grandchildNavigationHref
                                   ? "bg-white/20 text-white font-semibold"
                                   : "text-white/75 hover:bg-white/15"
                               }`}
@@ -856,7 +869,7 @@ export default function Sidebar({
                                   ? grandchild.label_ar
                                   : grandchild.label_en}
                               </span>
-                              {pendingHref === grandchildHref ? (
+                              {pendingHref === grandchildNavigationHref ? (
                                 <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
                               ) : null}
                             </GuardedLink>

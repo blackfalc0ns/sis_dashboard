@@ -4051,6 +4051,10 @@
         "delete_question": "Delete question?",
         "delete_question_confirm": "Are you sure you want to delete this question?",
         "question_text": "Question Text",
+        "instructions": "Instructions",
+        "instructions_placeholder": "Add optional instructions for this question",
+        "expected_answer": "Expected answer",
+        "expected_answer_placeholder": "Enter the expected answer",
         "question_type": "Question Type",
         "points": "Points",
         "expected_time_minutes": "Expected time (minutes)",
@@ -4234,6 +4238,192 @@
         "invalidPayload": "Check the event title and required fields.",
         "forbidden": "You do not have permission for this calendar scope.",
         "unexpected": "An unexpected calendar error occurred."
+      }
+    },
+    "homework": {
+      "list": {
+        "title": "Homework",
+        "description": "Manage admin homework drafts, questions, targets, and lifecycle.",
+        "empty": "No homework assignments found.",
+        "untitled": "Untitled homework",
+        "allAssignedTargets": "All assigned targets",
+        "notSet": "Not set",
+        "showing": "Showing {shown} of {total} homework assignments.",
+        "contentSummary": "{questions, plural, one {# question} other {# questions}}, {attachments, plural, one {# attachment} other {# attachments}}",
+        "actions": {
+          "newHomework": "New homework",
+          "apply": "Apply",
+          "menu": "Homework actions",
+          "publish": "Publish",
+          "close": "Close",
+          "cancel": "Cancel"
+        },
+        "filters": {
+          "searchPlaceholder": "Search homework",
+          "allStatuses": "All statuses",
+          "allModes": "All modes"
+        },
+        "table": {
+          "title": "Title",
+          "status": "Status",
+          "context": "Context",
+          "due": "Due",
+          "content": "Content"
+        },
+        "statuses": {
+          "draft": "Draft",
+          "published": "Published",
+          "closed": "Closed",
+          "cancelled": "Cancelled",
+          "archived": "Archived"
+        },
+        "modes": {
+          "homework": "Homework",
+          "worksheet": "Worksheet",
+          "writingTask": "Writing task",
+          "quiz": "Quiz",
+          "reading": "Reading",
+          "project": "Project"
+        },
+        "confirm": {
+          "title": "Confirm homework action",
+          "description": "Are you sure you want to {action} this homework?",
+          "confirm": "Confirm",
+          "back": "Back"
+        },
+        "errors": {
+          "loadFailed": "Failed to load homework ({code})",
+          "lifecycleFailed": "Homework action failed ({code})"
+        }
+      },
+      "create": {
+        "title": "Create homework",
+        "description": "Create a backend-backed homework draft before opening the builder.",
+        "fields": {
+          "title": "Title",
+          "teacherSubjectAllocation": "Teacher subject allocation",
+          "targetMode": "Target mode",
+          "mode": "Mode",
+          "dueAt": "Due date",
+          "totalMarks": "Total marks",
+          "estimatedMinutes": "Estimated minutes",
+          "description": "Description"
+        },
+        "placeholders": {
+          "teacherSubjectAllocation": "Select teacher, subject, and classroom",
+          "searchAllocation": "Search teacher, subject, or classroom..."
+        },
+        "helpers": {
+          "teacherSubjectAllocation": "Homework will use this allocation for teacher, subject, classroom, year, and term validation."
+        },
+        "targetModes": {
+          "classroom": "Classroom",
+          "selectedStudents": "Selected students"
+        },
+        "targets": {
+          "title": "Targets",
+          "selectAllocationFirst": "Select a teacher subject allocation to resolve the target classroom.",
+          "classroomSummary": "{teacher} teaches {subject} in {classroom}.",
+          "unknownTeacher": "Selected teacher",
+          "unknownSubject": "selected subject",
+          "unknownClassroom": "selected classroom",
+          "loading": "Loading students...",
+          "eligibleCount": "{count, plural, one {# eligible student} other {# eligible students}}",
+          "noEligibleStudents": "No active students are enrolled in this classroom for the selected academic year.",
+          "searchStudents": "Search students",
+          "selectAll": "Select all",
+          "clear": "Clear",
+          "noStudents": "No students available.",
+          "noStudentResults": "No matching students.",
+          "selectedCount": "{count, plural, one {# student selected} other {# students selected}}"
+        },
+        "modes": {
+          "homework": "Homework",
+          "worksheet": "Worksheet",
+          "writingTask": "Writing task",
+          "quiz": "Quiz",
+          "reading": "Reading",
+          "project": "Project"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "createDraft": "Create draft"
+        },
+        "messages": {
+          "created": "Homework draft created.",
+          "loadingAllocations": "Loading teacher allocations...",
+          "noAllocations": "No teacher allocations found for this term.",
+          "noAllocationResults": "No matching teacher allocations."
+        },
+        "errors": {
+          "contextRequired": "Select an academic year and term first.",
+          "allocationRequired": "Teacher subject allocation is required.",
+          "titleRequired": "Homework title is required.",
+          "dueAtRequired": "Due date is required.",
+          "allocationsLoadFailed": "Failed to load teacher allocations.",
+          "studentsLoadFailed": "Failed to load eligible students.",
+          "noEligibleStudents": "This classroom has no eligible students for homework targets.",
+          "selectedStudentsRequired": "Select at least one student.",
+          "createFailed": "Failed to create homework ({code})"
+        }
+      },
+      "builder": {
+        "untitled": "Untitled homework",
+        "actions": {
+          "backToHomework": "Back to homework",
+          "save": "Save",
+          "reset": "Reset",
+          "publish": "Publish",
+          "close": "Close",
+          "cancel": "Cancel"
+        },
+        "states": {
+          "saving": "Saving",
+          "saved": "Saved",
+          "saveBeforePublish": "Save or reset your changes before publishing."
+        },
+        "statuses": {
+          "draft": "Draft",
+          "published": "Published",
+          "closed": "Closed",
+          "cancelled": "Cancelled",
+          "archived": "Archived"
+        },
+        "lifecycleActions": {
+          "publish": "publish",
+          "close": "close",
+          "cancel": "cancel",
+          "continue": "continue"
+        },
+        "confirm": {
+          "deleteQuestionTitle": "Delete question",
+          "actionTitle": "Confirm action",
+          "deleteQuestionDescription": "Delete this homework question?",
+          "resetTitle": "Reset unsaved changes",
+          "resetDescription": "Discard all unsaved assignment and question changes?",
+          "lifecycleDescription": "Are you sure you want to {action} this homework?",
+          "cancelHomework": "Cancel homework",
+          "confirm": "Confirm",
+          "back": "Back"
+        },
+        "messages": {
+          "homeworkSaved": "Homework saved.",
+          "questionSaved": "Question saved.",
+          "questionDeleted": "Question deleted.",
+          "publishCompleted": "Homework publish action completed.",
+          "closeCompleted": "Homework close action completed.",
+          "cancelCompleted": "Homework cancel action completed."
+        },
+        "errors": {
+          "loadFailed": "Failed to load homework ({code})",
+          "homeworkSaveFailed": "Failed to save homework ({code})",
+          "fixQuestionValidation": "Fix question validation errors before saving.",
+          "questionSaveFailed": "Failed to save question ({code})",
+          "questionDeleteFailed": "Failed to delete question ({code})",
+          "attachmentUploadFailed": "Could not upload the attachment. Error: {code}",
+          "attachmentDeleteFailed": "Failed to delete attachment ({code})",
+          "lifecycleFailed": "Lifecycle action failed ({code})"
+        }
       }
     },
     "teacherAllocation": {
@@ -5411,7 +5601,15 @@
       },
       "gradebook": {
         "title": "Gradebook",
-        "subtitle": "Students by rows, exams by columns"
+        "subtitle": "Students by rows, exams by columns",
+        "search": "Search students or classrooms",
+        "statusFilter": "Filter by grade status",
+        "statuses": {
+          "all": "All statuses",
+          "entered": "Entered",
+          "missing": "Missing",
+          "absent": "Absent"
+        }
       },
       "analytics": {
         "kpis": {
@@ -5460,7 +5658,8 @@
       "emptyState": {
         "selectFilters": "Select a scope and subject to view the gradebook.",
         "noAssessments": "No exams available for the selected filters.",
-        "noStudents": "No enrolled students found for the selected filters."
+        "noStudents": "No enrolled students found for the selected filters.",
+        "noResults": "No students match the current search and status filters."
       },
       "actions": {
         "createAssessment": "Create Exam",
@@ -5486,7 +5685,8 @@
         },
         "reasons": {
           "termClosed": "This term is closed.",
-          "locked": "This assessment is locked."
+          "locked": "This assessment is locked.",
+          "permission": "You do not have permission to manage grade items."
         }
       },
       "export": {
@@ -5672,6 +5872,12 @@
           "comment": "Comment",
           "save": "Save",
           "cancel": "Cancel",
+          "errors": {
+            "scoreRequired": "Enter a score when the status is Entered.",
+            "scoreRange": "Score must be between 0 and {maxScore}.",
+            "scorePrecision": "Score can have at most two decimal places.",
+            "commentLength": "Comment cannot exceed 500 characters."
+          },
           "statuses": {
             "entered": "Entered",
             "missing": "Missing",
@@ -5714,6 +5920,20 @@
           "confirm": "Delete",
           "cancel": "Cancel"
         },
+        "workflow": {
+          "publish": {
+            "title": "Publish assessment",
+            "description": "Publish {assessment}? Its questions and setup must be ready for use."
+          },
+          "approve": {
+            "title": "Approve assessment",
+            "description": "Approve {assessment}? This confirms the published assessment for grading."
+          },
+          "lock": {
+            "title": "Lock assessment",
+            "description": "Lock {assessment}? Grade items and assessment changes will no longer be editable."
+          }
+        },
         "bulkEntry": {
           "title": "Bulk Grade Entry",
           "description": "Update the full roster for {assessment}.",
@@ -5725,7 +5945,21 @@
           "scoreHelp": "Allowed range: 0 - {maxScore}",
           "comment": "Comment",
           "save": "Save All",
+          "saveChanged": "Save {count} changed",
           "cancel": "Cancel",
+          "search": "Search students or classrooms",
+          "applyStatus": "Status to apply",
+          "applyToVisible": "Apply to {count} visible",
+          "changed": "Changed",
+          "changedCount": "{count} changed of {limit} maximum",
+          "batchLimit": "The backend accepts at most {limit} grade changes in one request.",
+          "unsavedConfirm": "Discard the unsaved grade changes?",
+          "errors": {
+            "scoreRequired": "Enter a score when the status is Entered.",
+            "scoreRange": "Score must be between 0 and {maxScore}.",
+            "scorePrecision": "Score can have at most two decimal places.",
+            "commentLength": "Comment cannot exceed 500 characters."
+          },
           "statuses": {
             "entered": "Entered",
             "missing": "Missing",
@@ -5957,6 +6191,14 @@
     "option_ar_en_must_differ": "Option Arabic and English text must be different",
     "at_least_one_question": "At least one question is required",
     "question_text_required": "Question text is required",
+    "unsupportedQuestionType": "This question type is not supported for homework.",
+    "trueFalseTwoOptions": "True/false questions require exactly two options.",
+    "questionTextTooLong": "Question text cannot exceed 8000 characters.",
+    "optionTextTooLong": "Option text cannot exceed 1000 characters.",
+    "tooManyOptions": "A question cannot contain more than 50 options.",
+    "textQuestionOptionsForbidden": "Text questions cannot contain options.",
+    "instructionsTooLong": "Instructions cannot exceed 4000 characters.",
+    "expectedAnswerTooLong": "Expected answer cannot exceed 8000 characters.",
     "invalid_max_score": "Max score must be greater than 0",
     "invalid_points": "Points must be 0 or greater",
     "duplicateAcceptedAnswersAr": "Duplicate Arabic accepted answer",

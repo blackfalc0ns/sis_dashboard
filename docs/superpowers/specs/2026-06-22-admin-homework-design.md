@@ -334,6 +334,52 @@ submission review UI is deferred.
 
 Closed academic terms force read-only behavior even when the user has manage permission.
 
+## Assignment Lifecycle UX
+
+The frontend follows the backend lifecycle exactly:
+
+- `DRAFT` may transition to `PUBLISHED` or `CANCELLED`.
+- `PUBLISHED` may transition to `CLOSED` or `CANCELLED`.
+- `CLOSED` and `CANCELLED` are terminal.
+- Only `DRAFT` assignments are editable.
+
+The backend enum includes `ARCHIVED`, but Core exposes no archive transition
+endpoint. The frontend must not render an Archive option, button, menu item, or
+archive API call. If an archived assignment is returned by a list or detail
+response, display its status and treat it as terminal and read-only.
+
+Define one homework lifecycle policy helper used by both list and builder UIs.
+It returns the valid actions for a normalized assignment status and whether the
+assignment is editable. This prevents the two pages from exposing different or
+backend-invalid transitions.
+
+### Builder
+
+The builder renders only actions valid for the current status. Draft homework
+shows Publish and Cancel. Published homework shows Close and Cancel. Closed,
+cancelled, and archived homework show no lifecycle actions.
+
+Publishing is blocked while assignment details, questions, question additions
+or deletions, or question ordering contain unsaved changes. The UI tells the
+user to save before publishing; it does not auto-save.
+
+Add a Reset command beside Save. Reset is enabled only while the builder is
+dirty and requires confirmation. Confirmation restores assignment details,
+questions, additions, deletions, selection, and ordering to the last
+server-loaded or successfully saved state. Publish, Close, and Cancel also
+require confirmation.
+
+### Homework List
+
+Each assignment row has a three-dot actions menu. The menu contains only valid
+lifecycle actions for that row and never contains Archive. Lifecycle menu clicks
+must not trigger row navigation. Confirm each action, disable that row's menu
+while the request is running, and replace the row with the assignment returned
+by the lifecycle endpoint after success.
+
+Users without `homework.assignments.manage` see statuses but no lifecycle menu.
+Closed academic terms also suppress lifecycle actions.
+
 ## Testing
 
 Add focused tests for:
@@ -346,10 +392,30 @@ Add focused tests for:
 - Create flow redirect behavior.
 - Edit flow read-only behavior when the term is closed or manage permission is missing.
 - Publish action behavior through the dedicated lifecycle endpoint.
+- Lifecycle policy results for draft, published, closed, cancelled, and archived statuses.
+- Published, closed, cancelled, and archived builder read-only behavior.
+- Dirty draft publish blocking and full reset to the last saved state.
+- List quick-action visibility, click isolation, confirmation, pending state, and row replacement.
 
 Do not add broad snapshot tests. Prefer deterministic service, mapper, and narrow component/hook tests.
 
 ## Implementation Notes
+
+### Homework Assignment Detail Inputs
+
+The homework builder displays one Title input and one Description textarea. These
+fields accept either Arabic or English content and map directly to the backend
+`title` and `description` properties.
+
+Reuse `AssignmentSettingsPanel` with an explicit homework single-language mode.
+In that mode, the panel updates both legacy localized fields in the shared
+curriculum UI model with the same value so existing shared layout types remain
+compatible. `mapBuilderAssignmentToHomeworkUpdate` then emits one backend
+`title` and one backend `description` value. Homework validation requires only
+the single title value and reports one title error.
+
+The default panel mode remains bilingual. Existing curriculum assignment pages,
+validation, and API payloads must remain unchanged.
 
 Keep changes scoped to the homework feature, route registration, required
 navigation/sidebar entry, permission union and navigation permission mapping,

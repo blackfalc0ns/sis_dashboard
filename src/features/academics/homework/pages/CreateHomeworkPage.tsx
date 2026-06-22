@@ -1,0 +1,677 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useRouter, useSearchParams } from "next/navigation";
+import Button from "@/components/ui/button/Button";
+import Input from "@/components/ui/input/Input";
+import DatePicker from "@/components/ui/input/DatePicker";
+import Select from "@/components/ui/input/Select";
+import MainLoader from "@/components/ui/loaders/MainLoader";
+import { AccessDenied } from "@/components/ui";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useToast } from "@/components/ui/toast/Toast";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
+import {
+  fetchStructureTree,
+  type StructureTree,
+} from "@/features/academics/academic-structure-tree/services/structureService";
+import {
+  fetchSubjects,
+  type Subject,
+} from "@/features/academics/subjects/services/subjectsService";
+import {
+  fetchTeacherAllocations,
+  fetchTeachers,
+  type Teacher,
+  type TeacherAllocation,
+} from "@/features/academics/teacher-allocation/services/teacherAllocationService";
+import { fetchEnrollments } from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
+import {
+  fetchAllStudents,
+} from "@/features/students-guardians/students/services/studentsService";
+import type {
+  Student,
+  StudentEnrollment,
+} from "@/features/students-guardians/students/types";
+import { createHomeworkAssignment } from "@/features/academics/homework/services/homeworkService";
+import type { CreateHomeworkAssignmentRequest } from "@/features/academics/homework/services/homeworkApi.types";
+import { mapHomeworkApiError } from "@/features/academics/homework/services/homeworkErrors";
+import type { SelectOption } from "@/components/ui/input/Select";
+
+interface AllocationSelectOption extends SelectOption {
+  allocation: TeacherAllocation;
+  teacherLabel: string;
+  subjectLabel: string;
+  classroomLabel: string;
+}
+
+interface EligibleHomeworkStudent {
+  id: string;
+  name: string;
+  studentNumber: string;
+  enrollmentId: string;
+}
+
+function localizedName(
+  locale: string,
+  item?: { nameAr?: string; nameEn?: string; name?: string } | null,
+) {
+  if (!item) return "";
+  return locale === "ar"
+    ? item.nameAr || item.nameEn || item.name || ""
+    : item.nameEn || item.nameAr || item.name || "";
+}
+
+function teacherNameForLocale(locale: string, teacher?: Teacher) {
+  return locale === "ar"
+    ? teacher?.nameAr || teacher?.nameEn || ""
+    : teacher?.nameEn || teacher?.nameAr || "";
+}
+
+function allocationOptionSearchText(input: {
+  allocation: TeacherAllocation;
+  teacher?: Teacher;
+  subject?: Subject;
+  classroom?: StructureTree["classrooms"][number];
+  section?: StructureTree["sections"][number];
+  grade?: StructureTree["grades"][number];
+}) {
+  return [
+    input.teacher?.nameAr,
+    input.teacher?.nameEn,
+    input.subject?.nameAr,
+    input.subject?.nameEn,
+    input.classroom?.nameAr,
+    input.classroom?.nameEn,
+    input.section?.nameAr,
+    input.section?.nameEn,
+    input.grade?.nameAr,
+    input.grade?.nameEn,
+    input.allocation.id,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function studentNameForLocale(locale: string, student: Student) {
+  return locale === "ar"
+    ? student.full_name_ar || student.full_name_en || student.name || student.id
+    : student.full_name_en || student.full_name_ar || student.name || student.id;
+}
+
+function buildEligibleStudents(input: {
+  enrollments: Array<StudentEnrollment & { id: string }>;
+  students: Student[];
+  classroomId?: string;
+  locale: string;
+}): EligibleHomeworkStudent[] {
+  return input.enrollments
+    .filter((enrollment) => enrollment.status === "active")
+    .filter((enrollment) => enrollment.classroomId === input.classroomId)
+    .map((enrollment) => {
+      const student = input.students.find((item) => item.id === enrollment.studentId);
+      return {
+        id: enrollment.studentId,
+        name: student ? studentNameForLocale(input.locale, student) : enrollment.studentId,
+        studentNumber: student?.student_id || enrollment.studentId,
+        enrollmentId: enrollment.enrollmentId || enrollment.id,
+      };
+    })
+    .sort((left, right) => left.name.localeCompare(right.name, input.locale));
+}
+
+function buildAllocationOptions(input: {
+  allocations: TeacherAllocation[];
+  teachers: Teacher[];
+  subjects: Subject[];
+  structure: StructureTree;
+  locale: string;
+}): AllocationSelectOption[] {
+  return input.allocations
+    .filter((allocation) => Boolean(allocation.teacherId))
+    .map((allocation) => {
+      const teacher = input.teachers.find((item) => item.id === allocation.teacherId);
+      const subject = input.subjects.find((item) => item.id === allocation.subjectId);
+      const classroom = input.structure.classrooms.find(
+        (item) => item.id === allocation.classroomId,
+      );
+      const section = input.structure.sections.find(
+        (item) => item.id === allocation.sectionId,
+      );
+      const labelParts = [
+        teacherNameForLocale(input.locale, teacher),
+        localizedName(input.locale, subject),
+        localizedName(input.locale, classroom) || localizedName(input.locale, section),
+      ].filter(Boolean);
+      const teacherLabel = teacherNameForLocale(input.locale, teacher);
+      const subjectLabel = localizedName(input.locale, subject);
+      const classroomLabel =
+        localizedName(input.locale, classroom) || localizedName(input.locale, section);
+
+      return {
+        value: allocation.id,
+        label: labelParts.length > 0 ? labelParts.join(" - ") : allocation.id,
+        searchText: allocationOptionSearchText({
+          allocation,
+          teacher,
+          subject,
+          classroom,
+          section,
+          grade: input.structure.grades.find((item) => item.id === section?.gradeId),
+        }),
+        allocation,
+        teacherLabel,
+        subjectLabel,
+        classroomLabel,
+      };
+    })
+    .sort((left, right) => left.label.localeCompare(right.label, input.locale));
+}
+
+export default function CreateHomeworkPage() {
+  const locale = useLocale();
+  const t = useTranslations("academics.homework.create");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { showError, showSuccess } = useToast();
+  const { hasPermission } = usePermissions();
+  const { academicYearId, termId, isInitializing } =
+    useAcademicYearTermLayoutContext();
+  const canManage = hasPermission("homework.assignments.manage");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingAllocations, setIsLoadingAllocations] = useState(false);
+  const [isLoadingEligibleStudents, setIsLoadingEligibleStudents] =
+    useState(false);
+  const [allocationOptions, setAllocationOptions] = useState<
+    AllocationSelectOption[]
+  >([]);
+  const [eligibleStudents, setEligibleStudents] = useState<
+    EligibleHomeworkStudent[]
+  >([]);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [draft, setDraft] = useState<CreateHomeworkAssignmentRequest>({
+    academicYearId: academicYearId || "",
+    termId: termId || "",
+    teacherSubjectAllocationId: "",
+    title: "",
+    targetMode: "classroom",
+    dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    mode: "homework",
+    isGraded: true,
+    totalMarks: 10,
+  });
+
+  const effectiveDraft = useMemo(
+    () => ({
+      ...draft,
+      academicYearId: academicYearId || draft.academicYearId,
+      termId: termId || draft.termId,
+    }),
+    [academicYearId, draft, termId],
+  );
+
+  const selectedAllocation = useMemo(
+    () =>
+      allocationOptions.find(
+        (option) => option.value === draft.teacherSubjectAllocationId,
+      ),
+    [allocationOptions, draft.teacherSubjectAllocationId],
+  );
+
+  const filteredEligibleStudents = useMemo(() => {
+    const normalizedSearch = studentSearch.trim().toLowerCase();
+    if (!normalizedSearch) return eligibleStudents;
+    return eligibleStudents.filter((student) =>
+      `${student.name} ${student.studentNumber}`.toLowerCase().includes(normalizedSearch),
+    );
+  }, [eligibleStudents, studentSearch]);
+
+  useEffect(() => {
+    if (!academicYearId || !termId || !canManage || isInitializing) {
+      setAllocationOptions([]);
+      return;
+    }
+
+    let isActive = true;
+    const loadAllocationOptions = async () => {
+      setIsLoadingAllocations(true);
+      try {
+        const [structure, subjects, teachers, allocations] = await Promise.all([
+          fetchStructureTree(academicYearId, termId),
+          fetchSubjects(termId),
+          fetchTeachers(),
+          fetchTeacherAllocations(termId),
+        ]);
+
+        if (!isActive) return;
+
+        setAllocationOptions(
+          buildAllocationOptions({
+            allocations,
+            teachers,
+            subjects,
+            structure,
+            locale,
+          }),
+        );
+      } catch {
+        showError(t("errors.allocationsLoadFailed"));
+      } finally {
+        if (isActive) {
+          setIsLoadingAllocations(false);
+        }
+      }
+    };
+
+    void loadAllocationOptions();
+
+    return () => {
+      isActive = false;
+    };
+  }, [academicYearId, canManage, isInitializing, locale, showError, t, termId]);
+
+  useEffect(() => {
+    setEligibleStudents([]);
+    setStudentSearch("");
+    setDraft((current) => ({ ...current, studentIds: [] }));
+
+    if (!selectedAllocation || !effectiveDraft.academicYearId) {
+      return;
+    }
+
+    let isActive = true;
+    const loadEligibleStudents = async () => {
+      setIsLoadingEligibleStudents(true);
+      try {
+        const [enrollments, students] = await Promise.all([
+          fetchEnrollments({
+            academicYearId: effectiveDraft.academicYearId,
+            status: "active",
+          }),
+          fetchAllStudents(),
+        ]);
+        if (!isActive) return;
+        setEligibleStudents(
+          buildEligibleStudents({
+            enrollments,
+            students,
+            classroomId: selectedAllocation.allocation.classroomId,
+            locale,
+          }),
+        );
+      } catch {
+        showError(t("errors.studentsLoadFailed"));
+      } finally {
+        if (isActive) {
+          setIsLoadingEligibleStudents(false);
+        }
+      }
+    };
+
+    void loadEligibleStudents();
+
+    return () => {
+      isActive = false;
+    };
+  }, [
+    effectiveDraft.academicYearId,
+    locale,
+    selectedAllocation,
+    showError,
+    t,
+  ]);
+
+  const toggleSelectedStudent = (studentId: string) => {
+    setDraft((current) => {
+      const currentStudentIds = current.studentIds ?? [];
+      const studentIds = currentStudentIds.includes(studentId)
+        ? currentStudentIds.filter((id) => id !== studentId)
+        : [...currentStudentIds, studentId];
+      return { ...current, studentIds };
+    });
+  };
+
+  const selectAllEligibleStudents = () => {
+    setDraft((current) => ({
+      ...current,
+      studentIds: eligibleStudents.map((student) => student.id),
+    }));
+  };
+
+  const clearSelectedStudents = () => {
+    setDraft((current) => ({ ...current, studentIds: [] }));
+  };
+
+  const handleSubmit = async () => {
+    if (!effectiveDraft.academicYearId || !effectiveDraft.termId) {
+      showError(t("errors.contextRequired"));
+      return;
+    }
+    if (!effectiveDraft.teacherSubjectAllocationId.trim()) {
+      showError(t("errors.allocationRequired"));
+      return;
+    }
+    if (!effectiveDraft.title.trim()) {
+      showError(t("errors.titleRequired"));
+      return;
+    }
+    if (!effectiveDraft.dueAt) {
+      showError(t("errors.dueAtRequired"));
+      return;
+    }
+    if (eligibleStudents.length === 0) {
+      showError(t("errors.noEligibleStudents"));
+      return;
+    }
+    if (
+      effectiveDraft.targetMode === "selected_students" &&
+      (effectiveDraft.studentIds ?? []).length === 0
+    ) {
+      showError(t("errors.selectedStudentsRequired"));
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload: CreateHomeworkAssignmentRequest = {
+        ...effectiveDraft,
+        studentIds:
+          effectiveDraft.targetMode === "selected_students"
+            ? effectiveDraft.studentIds
+            : undefined,
+      };
+      const created = await createHomeworkAssignment(payload);
+      showSuccess(t("messages.created"));
+      const params = new URLSearchParams(searchParams.toString());
+      if (academicYearId) params.set("year", academicYearId);
+      if (termId) params.set("term", termId);
+      router.replace(
+        `/${locale}/academics/homework/${created.id}?${params.toString()}`,
+      );
+    } catch (error) {
+      showError(t("errors.createFailed", { code: mapHomeworkApiError(error) }));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isInitializing) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <MainLoader />
+      </div>
+    );
+  }
+
+  if (!canManage) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+        <AccessDenied className="max-w-md" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
+      <div className="mx-auto w-full max-w-4xl p-6">
+        <div className="rounded-lg border bg-white p-6">
+          <div className="mb-6">
+            <h1 className="text-xl font-semibold text-gray-900">
+              {t("title")}
+            </h1>
+            <p className="mt-1 text-sm text-gray-600">{t("description")}</p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Input
+              label={t("fields.title")}
+              required
+              value={draft.title}
+              onChange={(event) =>
+                setDraft((current) => ({
+                  ...current,
+                  title: event.target.value,
+                }))
+              }
+            />
+            <Select
+              label={t("fields.teacherSubjectAllocation")}
+              required
+              searchable
+              value={draft.teacherSubjectAllocationId}
+              onChange={(teacherSubjectAllocationId) =>
+                setDraft((current) => ({
+                  ...current,
+                  teacherSubjectAllocationId,
+                  studentIds: [],
+                }))
+              }
+              options={allocationOptions}
+              placeholder={t("placeholders.teacherSubjectAllocation")}
+              searchPlaceholder={t("placeholders.searchAllocation")}
+              noOptionsText={
+                isLoadingAllocations
+                  ? t("messages.loadingAllocations")
+                  : t("messages.noAllocations")
+              }
+              noResultsText={t("messages.noAllocationResults")}
+              disabled={
+                isLoadingAllocations ||
+                !effectiveDraft.academicYearId ||
+                !effectiveDraft.termId
+              }
+              helperText={t("helpers.teacherSubjectAllocation")}
+            />
+            <Select
+              label={t("fields.targetMode")}
+              value={draft.targetMode}
+              onChange={(targetMode) =>
+                setDraft((current) => ({
+                  ...current,
+                  targetMode,
+                  studentIds:
+                    targetMode === "selected_students"
+                      ? current.studentIds
+                      : undefined,
+                }))
+              }
+              options={[
+                { value: "classroom", label: t("targetModes.classroom") },
+                {
+                  value: "selected_students",
+                  label: t("targetModes.selectedStudents"),
+                },
+              ]}
+            />
+            <Select
+              label={t("fields.mode")}
+              value={draft.mode}
+              onChange={(mode) => setDraft((current) => ({ ...current, mode }))}
+              options={[
+                { value: "homework", label: t("modes.homework") },
+                { value: "worksheet", label: t("modes.worksheet") },
+                { value: "writing_task", label: t("modes.writingTask") },
+                { value: "quiz", label: t("modes.quiz") },
+                { value: "reading", label: t("modes.reading") },
+                { value: "project", label: t("modes.project") },
+              ]}
+            />
+            <DatePicker
+              label={t("fields.dueAt")}
+              value={draft.dueAt ? new Date(draft.dueAt) : null}
+              onChange={(date) =>
+                setDraft((current) => ({
+                  ...current,
+                  dueAt: date?.toISOString() || "",
+                }))
+              }
+            />
+            <Input
+              label={t("fields.totalMarks")}
+              type="number"
+              min={0}
+              value={draft.totalMarks ?? 0}
+              onChange={(event) =>
+                setDraft((current) => ({
+                  ...current,
+                  totalMarks: Number(event.target.value),
+                }))
+              }
+            />
+            <Input
+              label={t("fields.estimatedMinutes")}
+              type="number"
+              min={1}
+              value={draft.estimatedMinutes ?? ""}
+              onChange={(event) =>
+                setDraft((current) => ({
+                  ...current,
+                  estimatedMinutes: event.target.value
+                    ? Number(event.target.value)
+                    : undefined,
+                }))
+              }
+            />
+            <Input
+              label={t("fields.description")}
+              value={draft.description ?? ""}
+              onChange={(event) =>
+                setDraft((current) => ({
+                  ...current,
+                  description: event.target.value,
+                }))
+              }
+            />
+          </div>
+
+          <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900">
+                  {t("targets.title")}
+                </h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  {selectedAllocation
+                    ? t("targets.classroomSummary", {
+                        classroom:
+                          selectedAllocation.classroomLabel ||
+                          selectedAllocation.allocation.classroomId ||
+                          t("targets.unknownClassroom"),
+                        subject:
+                          selectedAllocation.subjectLabel ||
+                          t("targets.unknownSubject"),
+                        teacher:
+                          selectedAllocation.teacherLabel ||
+                          t("targets.unknownTeacher"),
+                      })
+                    : t("targets.selectAllocationFirst")}
+                </p>
+              </div>
+              <div className="rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-700">
+                {isLoadingEligibleStudents
+                  ? t("targets.loading")
+                  : t("targets.eligibleCount", {
+                      count: eligibleStudents.length,
+                    })}
+              </div>
+            </div>
+
+            {selectedAllocation && eligibleStudents.length === 0 && !isLoadingEligibleStudents && (
+              <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                {t("targets.noEligibleStudents")}
+              </div>
+            )}
+
+            {draft.targetMode === "selected_students" && (
+              <div className="mt-4 space-y-3">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <Input
+                    value={studentSearch}
+                    onChange={(event) => setStudentSearch(event.target.value)}
+                    placeholder={t("targets.searchStudents")}
+                    disabled={eligibleStudents.length === 0}
+                  />
+                  <div className="flex shrink-0 gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={selectAllEligibleStudents}
+                      disabled={eligibleStudents.length === 0}
+                    >
+                      {t("targets.selectAll")}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={clearSelectedStudents}
+                      disabled={(draft.studentIds ?? []).length === 0}
+                    >
+                      {t("targets.clear")}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="max-h-64 overflow-y-auto rounded-lg border bg-white">
+                  {filteredEligibleStudents.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-gray-500">
+                      {eligibleStudents.length === 0
+                        ? t("targets.noStudents")
+                        : t("targets.noStudentResults")}
+                    </div>
+                  ) : (
+                    filteredEligibleStudents.map((student) => (
+                      <label
+                        key={student.id}
+                        className="flex cursor-pointer items-center gap-3 border-b px-4 py-3 text-sm last:border-b-0 hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                          checked={(draft.studentIds ?? []).includes(student.id)}
+                          onChange={() => toggleSelectedStudent(student.id)}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium text-gray-900">
+                            {student.name}
+                          </span>
+                          <span className="block text-xs text-gray-500">
+                            {student.studentNumber}
+                          </span>
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </div>
+
+                <p className="text-xs text-gray-500">
+                  {t("targets.selectedCount", {
+                    count: (draft.studentIds ?? []).length,
+                  })}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 flex justify-end gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                const params = searchParams.toString();
+                router.push(
+                  `/${locale}/academics/homework${params ? `?${params}` : ""}`,
+                );
+              }}
+              disabled={isSubmitting}
+            >
+              {t("actions.cancel")}
+            </Button>
+            <Button onClick={() => void handleSubmit()} loading={isSubmitting}>
+              {t("actions.createDraft")}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

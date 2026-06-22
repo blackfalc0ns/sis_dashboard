@@ -59,6 +59,7 @@ export interface Assignment {
 export interface AssignmentAttachment {
   id: string;
   assignmentId: string;
+  fileId?: string;
   type: "FILE" | "LINK";
   title: string;
   url: string;
@@ -105,6 +106,8 @@ export interface AssignmentQuestion {
   correctAnswer?: boolean;
   sampleAnswerAr?: string;
   sampleAnswerEn?: string;
+  instructions?: string;
+  expectedAnswer?: string;
   acceptedAnswersAr?: string[];
   acceptedAnswersEn?: string[];
   matchingPairs?: MatchingPair[];

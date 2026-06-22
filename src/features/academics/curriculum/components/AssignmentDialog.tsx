@@ -7,7 +7,6 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import TextArea from "@/components/ui/input/TextArea";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
-import { validateArEnDifferent } from "@/utils/validation/bilingualValidation";
 import { Assignment } from "@/features/academics/curriculum/services/curriculumService";
 import DatePicker from "@/components/ui/input/DatePicker";
 import { Alert } from "@mui/material";
@@ -73,20 +72,6 @@ export default function AssignmentDialog({
 
     if (!titleAr.trim()) newErrors.ar = tValidation("required_ar");
     if (!titleEn.trim()) newErrors.en = tValidation("required_en");
-
-    if (titleAr.trim() && titleEn.trim()) {
-      const arEnErrors = validateArEnDifferent(titleAr, titleEn);
-      if (arEnErrors.arError) newErrors.ar = tValidation("arEnMustDiffer");
-      if (arEnErrors.enError) newErrors.en = tValidation("arEnMustDiffer");
-    }
-
-    // Description AR != EN only if both provided
-    if (descriptionAr.trim() && descriptionEn.trim()) {
-      const descArEnErrors = validateArEnDifferent(descriptionAr, descriptionEn);
-      if (descArEnErrors.arError || descArEnErrors.enError) {
-        newErrors.ar = newErrors.ar || tValidation("arEnMustDiffer");
-      }
-    }
 
     if (maxScore !== "" && (Number(maxScore) < 0 || isNaN(Number(maxScore)))) {
       newErrors.maxScore = t("max_score_invalid");

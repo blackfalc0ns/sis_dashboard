@@ -14,6 +14,13 @@ import {
 interface GradesAssessmentsSectionProps {
   assessments: Assessment[];
   isReadOnly: boolean;
+  canManageAssessments: boolean;
+  canPublishAssessments: boolean;
+  canApproveAssessments: boolean;
+  canLockAssessments: boolean;
+  canManageGradeItems: boolean;
+  canManageQuestions: boolean;
+  canViewSubmissions: boolean;
   isBulkLoading: boolean;
   assessmentActionId: string | null;
   assessmentActionType: "publish" | "approve" | "lock" | "bulk" | "delete" | null;
@@ -30,6 +37,13 @@ interface GradesAssessmentsSectionProps {
 export default function GradesAssessmentsSection({
   assessments,
   isReadOnly,
+  canManageAssessments,
+  canPublishAssessments,
+  canApproveAssessments,
+  canLockAssessments,
+  canManageGradeItems,
+  canManageQuestions,
+  canViewSubmissions,
   isBulkLoading,
   assessmentActionId,
   assessmentActionType,
@@ -48,7 +62,7 @@ export default function GradesAssessmentsSection({
   const renderWorkflowAction = (assessment: Assessment) => {
     if (isReadOnly || assessment.isLocked) return null;
 
-    if (assessment.approvalStatus === "draft") {
+    if (assessment.approvalStatus === "draft" && canPublishAssessments) {
       return (
         <Button
           variant="secondary"
@@ -61,7 +75,7 @@ export default function GradesAssessmentsSection({
       );
     }
 
-    if (assessment.approvalStatus === "published") {
+    if (assessment.approvalStatus === "published" && canApproveAssessments) {
       return (
         <Button
           variant="secondary"
@@ -73,6 +87,8 @@ export default function GradesAssessmentsSection({
         </Button>
       );
     }
+
+    if (assessment.approvalStatus !== "approved" || !canLockAssessments) return null;
 
     return (
       <Button
@@ -132,27 +148,27 @@ export default function GradesAssessmentsSection({
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
-                {assessment.deliveryMode === "QUESTION_BASED" ? (
+                {assessment.deliveryMode === "QUESTION_BASED" && (canManageQuestions || canViewSubmissions) ? (
                   <>
-                    <Button
+                    {canManageQuestions ? <Button
                       variant="secondary"
                       size="sm"
                       onClick={() => onManageQuestions(assessment)}
                       leftIcon={<FileQuestion className="h-4 w-4" />}
                     >
                       {t("actions.manageQuestions")}
-                    </Button>
-                    <Button
+                    </Button> : null}
+                    {canViewSubmissions ? <Button
                       variant="secondary"
                       size="sm"
                       onClick={() => onViewSubmissions(assessment)}
                       leftIcon={<ListChecks className="h-4 w-4" />}
                     >
                       {t("submissions.title")}
-                    </Button>
+                    </Button> : null}
                   </>
                 ) : null}
-                <Button
+                {canManageAssessments ? <Button
                   variant="secondary"
                   size="sm"
                   disabled={assessment.isLocked || isReadOnly}
@@ -160,8 +176,8 @@ export default function GradesAssessmentsSection({
                   leftIcon={<Pencil className="h-4 w-4" />}
                 >
                   {t("actions.edit")}
-                </Button>
-                <Button
+                </Button> : null}
+                {canManageGradeItems ? <Button
                   variant="secondary"
                   size="sm"
                   disabled={
@@ -174,9 +190,9 @@ export default function GradesAssessmentsSection({
                   onClick={() => onBulkEntry(assessment)}
                 >
                   {t("actions.bulkEntry")}
-                </Button>
+                </Button> : null}
                 {renderWorkflowAction(assessment)}
-                <Button
+                {canManageAssessments ? <Button
                   variant="danger"
                   size="sm"
                   disabled={assessment.isLocked || isReadOnly}
@@ -185,7 +201,7 @@ export default function GradesAssessmentsSection({
                   leftIcon={<Trash2 className="h-4 w-4" />}
                 >
                   {t("actions.delete")}
-                </Button>
+                </Button> : null}
               </div>
             </div>
           );

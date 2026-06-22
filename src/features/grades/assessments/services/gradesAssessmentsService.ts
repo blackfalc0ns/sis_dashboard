@@ -50,7 +50,7 @@ function toBackendAssessmentPayload(
     termId: payload.termId,
     subjectId: payload.subjectId,
     scopeType: payload.scopeType,
-    scopeId: payload.scopeId,
+    scopeId: payload.scopeId || undefined,
     sectionId: payload.sectionId,
     classroomId: payload.classroomId,
     titleEn: payload.title,
@@ -68,7 +68,7 @@ function toBackendAssessmentUpdatePayload(payload: CreateAssessmentPayload): Rec
   return {
     subjectId: payload.subjectId,
     scopeType: payload.scopeType,
-    scopeId: payload.scopeId,
+    scopeId: payload.scopeId || undefined,
     sectionId: payload.sectionId,
     classroomId: payload.classroomId,
     titleEn: payload.title,
@@ -304,14 +304,14 @@ export async function createAssessmentWithQuestions(
 // ── 10. Get assessment type label key (pure) ─────────────────────────
 
 const ASSESSMENT_TYPE_LABEL_KEYS: Record<string, string> = {
-  QUIZ: "assessmentTypes.quiz",
-  MONTH_EXAM: "assessmentTypes.monthExam",
-  MIDTERM: "assessmentTypes.midterm",
-  TERM_EXAM: "assessmentTypes.termExam",
+  QUIZ: "quiz",
+  MONTH_EXAM: "monthExam",
+  MIDTERM: "midterm",
+  TERM_EXAM: "termExam",
 };
 
 export function getAssessmentTypeLabelKey(type: string): string {
-  return ASSESSMENT_TYPE_LABEL_KEYS[type] ?? "assessmentTypes.quiz";
+  return ASSESSMENT_TYPE_LABEL_KEYS[type] ?? "quiz";
 }
 
 // ── 11. Fetch assessment by ID ───────────────────────────────────────

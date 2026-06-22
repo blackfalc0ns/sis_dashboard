@@ -127,7 +127,7 @@ export default function CreateAssessmentPage() {
       params.set("year", academicYearId);
       params.set("term", termId);
       params.set("scopeType", draft.scopeType);
-      params.set("scopeId", draft.scopeId);
+      if (draft.scopeId) params.set("scopeId", draft.scopeId);
       params.set("subjectId", draft.subjectId);
       params.set("type", draft.type);
       params.set("deliveryMode", draft.deliveryMode);

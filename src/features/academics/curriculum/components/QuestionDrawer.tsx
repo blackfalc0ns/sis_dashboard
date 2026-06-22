@@ -183,15 +183,6 @@ export default function QuestionDrawer({
         if (!option.textAr.trim()) optionError.ar = tValidation("required_ar");
         if (!option.textEn.trim()) optionError.en = tValidation("required_en");
 
-        if (
-          option.textAr.trim() &&
-          option.textEn.trim() &&
-          option.textAr.trim().toLowerCase() === option.textEn.trim().toLowerCase()
-        ) {
-          optionError.ar = tValidation("arEnMustDiffer");
-          optionError.en = tValidation("arEnMustDiffer");
-        }
-
         if (option.textAr.trim()) {
           const normalized = normalizeQuestionText(option.textAr);
           if (normalizedAr.has(normalized)) {

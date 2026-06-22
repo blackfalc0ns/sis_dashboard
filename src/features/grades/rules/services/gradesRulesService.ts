@@ -54,7 +54,11 @@ export async function fetchEffectiveGradeRule(
   payload: Omit<SaveGradeRulePayload, "passMark" | "gradingScale" | "rounding">,
 ): Promise<EffectiveGradeRule> {
   const response = await apiGet<BackendGradeRuleResponse>("/grades/rules/effective", {
-    params: payload,
+    params: {
+      ...payload,
+      scopeId: payload.scopeId || undefined,
+      gradeId: payload.gradeId || undefined,
+    },
   });
   const rule = mapGradeRule(response);
   return {
@@ -66,7 +70,11 @@ export async function fetchEffectiveGradeRule(
 }
 
 export async function saveGradeRule(payload: SaveGradeRulePayload): Promise<GradeRuleRecord> {
-  const response = await apiPost<BackendGradeRuleResponse>("/grades/rules", payload);
+  const response = await apiPost<BackendGradeRuleResponse>("/grades/rules", {
+    ...payload,
+    scopeId: payload.scopeId || undefined,
+    gradeId: payload.gradeId || undefined,
+  });
   return mapGradeRule(response);
 }
 

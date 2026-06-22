@@ -75,6 +75,7 @@ export interface Column<T> {
   sortable?: boolean;
   searchable?: boolean; // New: Enable search highlighting for this column
   render?: (value: unknown, row: T) => React.ReactNode;
+  sticky?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -750,7 +751,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
                         : "descending"
                       : "none"
                   }
-                  className={`px-3 text-start sm:px-4 lg:px-6 ${densityClasses.header} text-xs font-bold uppercase tracking-wide text-gray-600 ${
+                  className={`px-3 text-start sm:px-4 lg:px-6 ${densityClasses.header} text-xs font-bold uppercase tracking-wide text-gray-600 ${column.sticky ? "sticky start-0 z-20 bg-gray-50 shadow-[1px_0_0_0_var(--border-color)]" : ""} ${
                     column.sortable !== false
                       ? "cursor-pointer select-none"
                       : ""
@@ -816,7 +817,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
                         {columns.map((column) => (
                           <td
                             key={column.key}
-                            className={`px-3 text-start sm:px-4 lg:px-6 ${densityClasses.cell} text-gray-900`}
+                            className={`px-3 text-start sm:px-4 lg:px-6 ${densityClasses.cell} text-gray-900 ${column.sticky ? "sticky start-0 z-10 bg-[var(--surface-color)] shadow-[1px_0_0_0_var(--border-color)]" : ""}`}
                           >
                             {column.render ? (
                               column.render(row[column.key], row)

@@ -52,11 +52,29 @@ export type PermissionKey =
   | "academics.lesson_plans.view"
   | "academics.lesson_plans.manage"
   | "files.uploads.manage"
+  | "files.downloads.view"
   | "homework.assignments.view"
   | "homework.assignments.manage"
+  | "homework.targets.view"
+  | "homework.targets.manage"
+  | "homework.submissions.view"
   | "grades.submissions.view"
   | "grades.submissions.submit"
   | "grades.submissions.review"
+  | "grades.gradebook.view"
+  | "grades.snapshots.view"
+  | "grades.analytics.view"
+  | "grades.assessments.view"
+  | "grades.assessments.manage"
+  | "grades.assessments.publish"
+  | "grades.assessments.approve"
+  | "grades.assessments.lock"
+  | "grades.items.view"
+  | "grades.items.manage"
+  | "grades.questions.view"
+  | "grades.questions.manage"
+  | "grades.rules.view"
+  | "grades.rules.manage"
   | "reinforcement.overview.view"
   | "reinforcement.templates.view"
   | "reinforcement.templates.manage"
@@ -138,6 +156,7 @@ export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
     "academics-calendar": "academics.calendar.view",
     "academics-curriculum": "academics.curriculum.view",
     "academics-lesson-plans": "academics.lesson_plans.view",
+    "academics-homework": "homework.assignments.view",
   };
 
 export function usePermissions() {

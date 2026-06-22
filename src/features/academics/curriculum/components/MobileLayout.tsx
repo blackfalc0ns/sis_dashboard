@@ -12,6 +12,7 @@ import AssignmentSettingsPanel from "./AssignmentSettingsPanel";
 import AttachmentsPanel from "./AttachmentsPanel";
 import EmptyQuestionState from "./EmptyQuestionState";
 import QuestionEditor from "@/features/academics/curriculum/components/QuestionEditor";
+import type { QuestionType } from "../types/types";
 
 interface MobileLayoutProps {
   questions: AssignmentQuestion[];
@@ -22,8 +23,14 @@ interface MobileLayoutProps {
   isReadOnly: boolean;
   pointsSummary: PointsSummary;
   validationErrors: ValidationErrors;
-  isQuestionDirty: boolean;
-  isQuestionSaving: boolean;
+  isQuestionDirty?: boolean;
+  isQuestionSaving?: boolean;
+  showQuestionSave?: boolean;
+  allowedQuestionTypes?: QuestionType[];
+  requireBothLocalizedTexts?: boolean;
+  showHomeworkFields?: boolean;
+  showAttachmentLinks?: boolean;
+  detailsInputMode?: "bilingual" | "single";
   onSelectQuestion: (questionId: string) => void;
   onAddQuestion: () => void;
   onUpdateQuestion: (questionId: string, updates: Partial<AssignmentQuestion>) => void;
@@ -32,9 +39,9 @@ interface MobileLayoutProps {
   onUpdateAssignment: (updates: Partial<Assignment>) => void;
   onAutoDistributePoints: () => void;
   onUploadFile: (file: File) => Promise<void>;
-  onAddLink: (title: string, url: string) => Promise<void>;
+  onAddLink?: (title: string, url: string) => Promise<void>;
   onDeleteAttachment: (attachmentId: string) => void;
-  onSaveQuestion: () => Promise<void>;
+  onSaveQuestion?: () => Promise<void>;
 }
 
 export default function MobileLayout({
@@ -46,8 +53,14 @@ export default function MobileLayout({
   isReadOnly,
   pointsSummary,
   validationErrors,
-  isQuestionDirty,
-  isQuestionSaving,
+  isQuestionDirty = false,
+  isQuestionSaving = false,
+  showQuestionSave = true,
+  allowedQuestionTypes,
+  requireBothLocalizedTexts = true,
+  showHomeworkFields = false,
+  showAttachmentLinks = true,
+  detailsInputMode = "bilingual",
   onSelectQuestion,
   onAddQuestion,
   onUpdateQuestion,
@@ -84,7 +97,7 @@ export default function MobileLayout({
       <div className="flex-1 overflow-y-auto bg-gray-50">
         {mobileTab === "questions" && (
           <div className="flex flex-col h-full">
-            {/* Questions Header with Save Button */}
+            {/* Questions Header */}
             <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
               <Button
                 onClick={() => setQuestionsDrawerOpen(true)}
@@ -95,7 +108,7 @@ export default function MobileLayout({
                 {t("questionsOutline")} ({questions.length})
               </Button>
 
-              {!isReadOnly && selectedQuestion && (
+              {!isReadOnly && selectedQuestion && showQuestionSave && onSaveQuestion && (
                 <Button
                   onClick={onSaveQuestion}
                   variant="primary"
@@ -117,6 +130,9 @@ export default function MobileLayout({
                   onChange={(updates) => onUpdateQuestion(selectedQuestion.id, updates)}
                   isReadOnly={isReadOnly}
                   validationErrors={validationErrors.questions?.[selectedQuestion.id]}
+                  allowedQuestionTypes={allowedQuestionTypes}
+                  requireBothLocalizedTexts={requireBothLocalizedTexts}
+                  showHomeworkFields={showHomeworkFields}
                 />
               ) : (
                 <EmptyQuestionState isReadOnly={isReadOnly} onAddQuestion={onAddQuestion} />
@@ -132,6 +148,7 @@ export default function MobileLayout({
               pointsSummary={pointsSummary}
               validationErrors={validationErrors}
               isReadOnly={isReadOnly}
+              detailsInputMode={detailsInputMode}
               onUpdate={onUpdateAssignment}
               onAutoDistributePoints={onAutoDistributePoints}
             />
@@ -146,6 +163,7 @@ export default function MobileLayout({
               onAddLink={onAddLink}
               onDeleteAttachment={onDeleteAttachment}
               isReadOnly={isReadOnly}
+              showLinkUpload={showAttachmentLinks}
             />
           </div>
         )}

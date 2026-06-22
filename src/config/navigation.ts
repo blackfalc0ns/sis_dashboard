@@ -352,6 +352,14 @@ export const menuItems: MenuItem[] = [
         href_ar: "/ar/academics/curriculum",
         icon: FileText,
       },
+      {
+        key: "academics-homework",
+        label_en: "Homework",
+        label_ar: "الواجبات",
+        href_en: "/en/academics/homework",
+        href_ar: "/ar/academics/homework",
+        icon: ClipboardList,
+      },
 
       {
         key: "academics-calendar",

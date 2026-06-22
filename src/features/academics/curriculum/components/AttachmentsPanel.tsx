@@ -15,8 +15,9 @@ interface AttachmentsPanelProps {
   attachments: AssignmentAttachment[];
   isReadOnly: boolean;
   onUploadFile: (file: File) => Promise<void>;
-  onAddLink: (title: string, url: string) => Promise<void>;
+  onAddLink?: (title: string, url: string) => Promise<void>;
   onDeleteAttachment: (attachmentId: string) => void;
+  showLinkUpload?: boolean;
 }
 
 export default function AttachmentsPanel({
@@ -25,6 +26,7 @@ export default function AttachmentsPanel({
   onUploadFile,
   onAddLink,
   onDeleteAttachment,
+  showLinkUpload = true,
 }: AttachmentsPanelProps) {
   const t = useTranslations("academics.curriculum.assignmentBuilder");
   const tUpload = useTranslations("upload");
@@ -36,6 +38,7 @@ export default function AttachmentsPanel({
   const [linkError, setLinkError] = useState("");
 
   const handleAddLink = async () => {
+    if (!onAddLink) return;
     if (!linkTitle.trim() || !linkUrl.trim()) {
       setLinkError(tUpload("titleAndUrlRequired"));
       return;
@@ -81,14 +84,16 @@ export default function AttachmentsPanel({
               maxSizeBytes={ATTACHMENT_RESTRICTIONS.MAX_FILE_SIZE}
             />
 
-            <Button
-              onClick={() => setShowLinkDialog(true)}
-              variant="secondary"
-              size="sm"
-              className="w-full mt-2"
-            >
-              {tUpload("addLink")}
-            </Button>
+            {showLinkUpload && onAddLink && (
+              <Button
+                onClick={() => setShowLinkDialog(true)}
+                variant="secondary"
+                size="sm"
+                className="w-full mt-2"
+              >
+                {tUpload("addLink")}
+              </Button>
+            )}
           </div>
         )}
 
@@ -127,7 +132,7 @@ export default function AttachmentsPanel({
       </div>
 
       {/* Add Link Dialog */}
-      {showLinkDialog && (
+      {showLinkUpload && onAddLink && showLinkDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <h3 className="text-lg font-semibold mb-4">{tUpload("addLink")}</h3>

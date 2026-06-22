@@ -129,6 +129,16 @@ function mapNamedEntitiesToScopeOptions(
   });
 }
 
+function wholeSchoolScopeEntity(): ScopeEntityOption {
+  return {
+    id: "",
+    name: "Whole School",
+    nameAr: "المدرسة بالكامل",
+    nameEn: "Whole School",
+    scopeType: "school",
+  };
+}
+
 export function mapBootstrapToFiltersData(
   response: BackendGradesBootstrapResponse,
 ): GradesFiltersData {
@@ -140,7 +150,7 @@ export function mapBootstrapToFiltersData(
   const classrooms = mapNamedEntitiesToScopeEntities(response.classrooms, "classroom");
 
   const scopeEntities: Record<ExamScopeType, ScopeEntityOption[]> = {
-    school: [],
+    school: [wholeSchoolScopeEntity()],
     stage: stages,
     grade: grades,
     section: sections,

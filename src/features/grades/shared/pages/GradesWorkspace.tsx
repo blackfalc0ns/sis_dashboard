@@ -53,6 +53,7 @@ import {
   type GradesExportFormat,
 } from "../utils/gradesExport";
 import { useGradesYearTermLayoutContext } from "@/features/grades/hooks/GradesYearTermLayoutContext";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface GradesWorkspaceProps {
   view: "overview" | "assessments" | "gradebook";
@@ -64,6 +65,7 @@ type GradesOverviewExportDataset =
   | "assessments"
   | "analytics_distribution";
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
+type AssessmentWorkflowAction = "publish" | "approve" | "lock";
 
 export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   const t = useTranslations("academics.grades");
@@ -72,6 +74,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showError, showSuccess } = useToast();
+  const { hasPermission } = usePermissions();
   const {
     academicYearId,
     termId,
@@ -125,6 +128,10 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
 
   const [editingAssessment, setEditingAssessment] = useState<Assessment | null>(null);
   const [assessmentToDelete, setAssessmentToDelete] = useState<Assessment | null>(null);
+  const [assessmentWorkflowConfirmation, setAssessmentWorkflowConfirmation] = useState<{
+    assessment: Assessment;
+    action: AssessmentWorkflowAction;
+  } | null>(null);
   const [editGradeState, setEditGradeState] = useState<{ assessment: Assessment; row: GradebookStudentRow; comment?: string } | null>(null);
   const [submissionReviewState, setSubmissionReviewState] = useState<AssessmentSubmissionReview | null>(null);
   const [assessmentApiError, setAssessmentApiError] = useState<{ field?: string; message: string } | null>(null);
@@ -138,6 +145,13 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   } | null>(null);
 
   const isReadOnly = termStatus === "closed";
+  const canManageAssessments = hasPermission("grades.assessments.manage");
+  const canPublishAssessments = hasPermission("grades.assessments.publish");
+  const canApproveAssessments = hasPermission("grades.assessments.approve");
+  const canLockAssessments = hasPermission("grades.assessments.lock");
+  const canManageGradeItems = hasPermission("grades.items.manage");
+  const canManageQuestions = hasPermission("grades.questions.manage");
+  const canViewSubmissions = hasPermission("grades.submissions.view");
   const filtersHydratedRef = useRef(false);
   const showSubjectFilter = true;
 
@@ -204,7 +218,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   }, [academicYearId, replaceQuery, searchParams, selectedScopeId, selectedScopeType, selectedSubjectId, termId]);
 
   const refreshGradebook = useCallback(async () => {
-    if (!academicYearId || !termId || !selectedScopeId || !selectedSubjectId) {
+    if (!academicYearId || !termId || (selectedScopeType !== "school" && !selectedScopeId) || !selectedSubjectId) {
       setAssessments([]);
       setRows([]);
       setTrend([]);
@@ -414,11 +428,17 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     }
   };
 
+  const requestAssessmentWorkflowConfirmation = (assessmentId: string, action: AssessmentWorkflowAction) => {
+    const assessment = assessments.find((candidate) => candidate.id === assessmentId);
+    if (assessment) setAssessmentWorkflowConfirmation({ assessment, action });
+  };
+
   const gradebookColumns = useMemo<Column<GradebookTableRow>[]>(() => {
     const baseColumns = [
       {
         key: "studentName",
         label: t("table.student"),
+        sticky: true,
         render: (_value: unknown, row: GradebookStudentRow) => (
           <div className="font-medium" style={{ color: "var(--text-primary)" }}>
             {locale === "ar" ? row.studentNameAr : row.studentNameEn}
@@ -440,11 +460,13 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         const score = row.scoresByAssessmentId[assessment.id];
         const status = row.statusByAssessmentId[assessment.id];
         const isQuestionBased = assessment.deliveryMode === "QUESTION_BASED";
-        const isDisabled = assessment.isLocked || isReadOnly;
+        const isDisabled = assessment.isLocked || isReadOnly || !canManageGradeItems;
         const disabledReason = assessment.isLocked
           ? t("workflow.reasons.locked")
           : isReadOnly
             ? t("workflow.reasons.termClosed")
+            : !canManageGradeItems
+              ? t("workflow.reasons.permission")
             : undefined;
         let label = isQuestionBased ? t("table.openReview") : t("table.missing");
         let cellStyle = {
@@ -498,7 +520,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
           row.totalItems > 0 ? `${row.completedItems}/${row.totalItems}` : "-",
       },
     ];
-  }, [assessments, isReadOnly, locale, openEditGradeDialog, t]);
+  }, [assessments, canManageGradeItems, isReadOnly, locale, openEditGradeDialog, t]);
 
   const tableRows: GradebookTableRow[] = rows.map((row) => ({
     ...row,
@@ -1177,15 +1199,16 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
           showSubjectFilter={showSubjectFilter}
           onExport={() => setIsExportModalOpen(true)}
           isExportDisabled={!currentExportPayload.count}
-          onCreateAssessment={() => {
+          onCreateAssessment={canManageAssessments ? () => {
             const params = new URLSearchParams(searchParams.toString());
             params.set("year", academicYearId);
             params.set("term", termId);
             params.set("scopeType", selectedScopeType);
-            params.set("scopeId", selectedScopeId);
+            if (selectedScopeId) params.set("scopeId", selectedScopeId);
+            else params.delete("scopeId");
             params.set("subjectId", selectedSubjectId);
             router.push(`/${locale}/grades/assessments/new?${params.toString()}`);
-          }}
+          } : undefined}
         />
 
         {view === "overview" && (
@@ -1197,13 +1220,19 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
               emptyState={overviewEmptyState}
               assessments={visibleAssessments}
               isReadOnly={isReadOnly}
+              canManageAssessments={canManageAssessments}
+              canPublishAssessments={canPublishAssessments}
+              canApproveAssessments={canApproveAssessments}
+              canLockAssessments={canLockAssessments}
+              canManageGradeItems={canManageGradeItems}
+              canManageQuestions={canManageQuestions}
               isBulkLoading={isBulkLoading}
               assessmentActionId={assessmentActionId}
               assessmentActionType={assessmentActionType}
               onBulkEntry={(assessment) => void openBulkEntryDialog(assessment)}
-              onPublish={(assessmentId) => void handleAssessmentAction(assessmentId, "publish")}
-              onApprove={(assessmentId) => void handleAssessmentAction(assessmentId, "approve")}
-              onLock={(assessmentId) => void handleAssessmentAction(assessmentId, "lock")}
+              onPublish={(assessmentId) => requestAssessmentWorkflowConfirmation(assessmentId, "publish")}
+              onApprove={(assessmentId) => requestAssessmentWorkflowConfirmation(assessmentId, "approve")}
+              onLock={(assessmentId) => requestAssessmentWorkflowConfirmation(assessmentId, "lock")}
               onEdit={(assessment) => {
                 setAssessmentApiError(null);
                 setEditingAssessment(assessment);
@@ -1222,13 +1251,20 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
           <GradesAssessmentsSection
             assessments={visibleAssessments}
             isReadOnly={isReadOnly}
+            canManageAssessments={canManageAssessments}
+            canPublishAssessments={canPublishAssessments}
+            canApproveAssessments={canApproveAssessments}
+            canLockAssessments={canLockAssessments}
+            canManageGradeItems={canManageGradeItems}
+            canManageQuestions={canManageQuestions}
+            canViewSubmissions={canViewSubmissions}
             isBulkLoading={isBulkLoading}
             assessmentActionId={assessmentActionId}
             assessmentActionType={assessmentActionType}
             onBulkEntry={(assessment) => void openBulkEntryDialog(assessment)}
-            onPublish={(assessmentId) => void handleAssessmentAction(assessmentId, "publish")}
-            onApprove={(assessmentId) => void handleAssessmentAction(assessmentId, "approve")}
-            onLock={(assessmentId) => void handleAssessmentAction(assessmentId, "lock")}
+            onPublish={(assessmentId) => requestAssessmentWorkflowConfirmation(assessmentId, "publish")}
+            onApprove={(assessmentId) => requestAssessmentWorkflowConfirmation(assessmentId, "approve")}
+            onLock={(assessmentId) => requestAssessmentWorkflowConfirmation(assessmentId, "lock")}
             onEdit={(assessment) => {
               setAssessmentApiError(null);
               setEditingAssessment(assessment);
@@ -1240,7 +1276,9 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
               router.push(params ? `${path}?${params}` : path);
             }}
             onViewSubmissions={(assessment) => {
-              router.push(`/${locale}/grades/assessments/${assessment.id}/submissions`);
+              const params = searchParams.toString();
+              const path = `/${locale}/grades/assessments/${assessment.id}/submissions`;
+              router.push(params ? `${path}?${params}` : path);
             }}
           />
         )}
@@ -1342,6 +1380,29 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         cancelLabel={t("dialogs.deleteAssessment.cancel")}
         loading={assessmentActionType === "delete" && !!assessmentActionId}
         severity="danger"
+      />
+      <ConfirmDialog
+        isOpen={!!assessmentWorkflowConfirmation}
+        onClose={() => setAssessmentWorkflowConfirmation(null)}
+        onConfirm={() => {
+          if (!assessmentWorkflowConfirmation) return;
+          const { assessment, action } = assessmentWorkflowConfirmation;
+          void handleAssessmentAction(assessment.id, action).finally(() =>
+            setAssessmentWorkflowConfirmation(null),
+          );
+        }}
+        title={t(`dialogs.workflow.${assessmentWorkflowConfirmation?.action || "publish"}.title`)}
+        description={t(`dialogs.workflow.${assessmentWorkflowConfirmation?.action || "publish"}.description`, {
+          assessment: assessmentWorkflowConfirmation
+            ? locale === "ar"
+              ? assessmentWorkflowConfirmation.assessment.titleAr
+              : assessmentWorkflowConfirmation.assessment.title
+            : "",
+        })}
+        confirmLabel={t(`actions.${assessmentWorkflowConfirmation?.action || "publish"}`)}
+        cancelLabel={tCommon("cancel")}
+        loading={!!assessmentActionId}
+        severity={assessmentWorkflowConfirmation?.action === "lock" ? "warning" : "info"}
       />
     </div>
   );

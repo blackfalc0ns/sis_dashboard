@@ -33,6 +33,8 @@ export interface QuestionValidationError {
   matchingPairs?: string;
   media?: string;
   general?: string;
+  instructions?: string;
+  expectedAnswer?: string;
 }
 
 export interface PointsSummary {

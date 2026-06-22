@@ -36,6 +36,16 @@ export default function EditGradeDialog({
   const [score, setScore] = useState(initialScore == null ? "" : String(initialScore));
   const [status, setStatus] = useState<GradeItemStatus>(initialStatus);
   const [comment, setComment] = useState(initialComment || "");
+  const scoreNumber = Number(score);
+  const scoreError = status === "entered" && score === ""
+    ? t("errors.scoreRequired")
+    : status === "entered" && (!Number.isFinite(scoreNumber) || scoreNumber < 0 || scoreNumber > (assessment?.maxScore ?? 0))
+      ? t("errors.scoreRange", { maxScore: assessment?.maxScore ?? 0 })
+      : status === "entered" && !/^\d+(\.\d{1,2})?$/.test(score)
+        ? t("errors.scorePrecision")
+        : undefined;
+  const commentError = comment.length > 500 ? t("errors.commentLength") : undefined;
+  const isInvalid = !!scoreError || !!commentError;
 
   const statusOptions = useMemo(
     () => [
@@ -47,6 +57,7 @@ export default function EditGradeDialog({
   );
 
   const handleSubmit = async () => {
+    if (isInvalid) return;
     await onSubmit({
       score: status === "entered" && score !== "" ? Number(score) : null,
       status,
@@ -69,7 +80,7 @@ export default function EditGradeDialog({
           <Button variant="secondary" onClick={onClose} disabled={isSubmitting}>
             {t("cancel")}
           </Button>
-          <Button variant="primary" onClick={handleSubmit} loading={isSubmitting}>
+          <Button variant="primary" onClick={handleSubmit} loading={isSubmitting} disabled={isInvalid}>
             {t("save")}
           </Button>
         </>
@@ -86,9 +97,9 @@ export default function EditGradeDialog({
           onChange={(event) => setScore(event.target.value)}
           disabled={status !== "entered"}
           helperText={assessment ? t("scoreHelp", { maxScore: assessment.maxScore }) : undefined}
-          error={apiError?.field === "score" ? apiError.message : undefined}
+          error={apiError?.field === "score" ? apiError.message : scoreError}
         />
-        <TextArea label={t("comment")} value={comment} onChange={(event) => setComment(event.target.value)} rows={4} error={apiError?.field === "comment" ? apiError.message : undefined} />
+        <TextArea label={t("comment")} value={comment} onChange={(event) => setComment(event.target.value)} rows={4} maxLength={501} error={apiError?.field === "comment" ? apiError.message : commentError} />
       </div>
     </Modal>
   );

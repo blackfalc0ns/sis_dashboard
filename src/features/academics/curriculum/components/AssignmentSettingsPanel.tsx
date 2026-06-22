@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Settings as SettingsIcon, CheckCircle, AlertCircle } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
+import TextArea from "@/components/ui/input/TextArea";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
 import DatePicker from "@/components/ui/input/DatePicker";
 import { Assignment } from "@/features/academics/curriculum/services/curriculumService";
@@ -17,6 +18,7 @@ interface AssignmentSettingsPanelProps {
   onUpdate: (updates: Partial<Assignment>) => void;
   onAutoDistributePoints: () => void;
   onBlur?: () => void;
+  detailsInputMode?: "bilingual" | "single";
 }
 
 export default function AssignmentSettingsPanel({
@@ -27,6 +29,7 @@ export default function AssignmentSettingsPanel({
   onUpdate,
   onAutoDistributePoints,
   onBlur,
+  detailsInputMode = "bilingual",
 }: AssignmentSettingsPanelProps) {
   const t = useTranslations("academics.curriculum.assignmentBuilder");
   const tQuestions = useTranslations("academics.curriculum.questions");
@@ -50,19 +53,34 @@ export default function AssignmentSettingsPanel({
 
         <div className="space-y-4">
           <div>
-            <BilingualTextField
-              label={tQuestions("assignment_title")}
-              value={{ ar: assignment.titleAr, en: assignment.titleEn }}
-              onChange={handleTitleChange}
-              onBlur={onBlur}
-              requiredAr
-              requiredEn
-              disabled={isReadOnly}
-              placeholder={{
-                ar: tQuestions("assignment_title"),
-                en: tQuestions("assignment_title"),
-              }}
-            />
+            {detailsInputMode === "single" ? (
+              <Input
+                label={tQuestions("assignment_title")}
+                value={assignment.titleEn || assignment.titleAr}
+                onChange={(event) => handleTitleChange({
+                  ar: event.target.value,
+                  en: event.target.value,
+                })}
+                onBlur={onBlur}
+                required
+                disabled={isReadOnly}
+                placeholder={tQuestions("assignment_title")}
+              />
+            ) : (
+              <BilingualTextField
+                label={tQuestions("assignment_title")}
+                value={{ ar: assignment.titleAr, en: assignment.titleEn }}
+                onChange={handleTitleChange}
+                onBlur={onBlur}
+                requiredAr
+                requiredEn
+                disabled={isReadOnly}
+                placeholder={{
+                  ar: tQuestions("assignment_title"),
+                  en: tQuestions("assignment_title"),
+                }}
+              />
+            )}
             {validationErrors?.titleAr && (
               <div className="mt-1 flex items-center gap-1 text-red-600 text-xs" data-error="true">
                 <AlertCircle className="w-3 h-3" />
@@ -78,20 +96,34 @@ export default function AssignmentSettingsPanel({
           </div>
 
           <div>
-            <BilingualTextField
-              label={tQuestions("description")}
-              value={{
-                ar: assignment.descriptionAr || "",
-                en: assignment.descriptionEn || "",
-              }}
-              onChange={handleDescriptionChange}
-              onBlur={onBlur}
-              disabled={isReadOnly}
-              placeholder={{
-                ar: tQuestions("description"),
-                en: tQuestions("description"),
-              }}
-            />
+            {detailsInputMode === "single" ? (
+              <TextArea
+                label={tQuestions("description")}
+                value={assignment.descriptionEn || assignment.descriptionAr || ""}
+                onChange={(event) => handleDescriptionChange({
+                  ar: event.target.value,
+                  en: event.target.value,
+                })}
+                onBlur={onBlur}
+                disabled={isReadOnly}
+                placeholder={tQuestions("description")}
+              />
+            ) : (
+              <BilingualTextField
+                label={tQuestions("description")}
+                value={{
+                  ar: assignment.descriptionAr || "",
+                  en: assignment.descriptionEn || "",
+                }}
+                onChange={handleDescriptionChange}
+                onBlur={onBlur}
+                disabled={isReadOnly}
+                placeholder={{
+                  ar: tQuestions("description"),
+                  en: tQuestions("description"),
+                }}
+              />
+            )}
             {validationErrors?.descriptionAr && (
               <div className="mt-1 flex items-center gap-1 text-red-600 text-xs" data-error="true">
                 <AlertCircle className="w-3 h-3" />

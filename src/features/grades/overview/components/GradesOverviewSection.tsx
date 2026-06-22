@@ -29,6 +29,12 @@ interface GradesOverviewSectionProps {
   emptyState: { reason: string; message: string } | null;
   assessments: Assessment[];
   isReadOnly: boolean;
+  canManageAssessments: boolean;
+  canPublishAssessments: boolean;
+  canApproveAssessments: boolean;
+  canLockAssessments: boolean;
+  canManageGradeItems: boolean;
+  canManageQuestions: boolean;
   isBulkLoading: boolean;
   assessmentActionId: string | null;
   assessmentActionType: "publish" | "approve" | "lock" | "bulk" | "delete" | null;
@@ -47,6 +53,12 @@ export default function GradesOverviewSection({
   emptyState,
   assessments,
   isReadOnly,
+  canManageAssessments,
+  canPublishAssessments,
+  canApproveAssessments,
+  canLockAssessments,
+  canManageGradeItems,
+  canManageQuestions,
   isBulkLoading,
   assessmentActionId,
   assessmentActionType,
@@ -62,7 +74,7 @@ export default function GradesOverviewSection({
   const renderWorkflowAction = (assessment: Assessment) => {
     if (isReadOnly || assessment.isLocked) return null;
 
-    if (assessment.approvalStatus === "draft") {
+    if (assessment.approvalStatus === "draft" && canPublishAssessments) {
       return (
         <Button
           variant="secondary"
@@ -75,7 +87,7 @@ export default function GradesOverviewSection({
       );
     }
 
-    if (assessment.approvalStatus === "published") {
+    if (assessment.approvalStatus === "published" && canApproveAssessments) {
       return (
         <Button
           variant="secondary"
@@ -87,6 +99,8 @@ export default function GradesOverviewSection({
         </Button>
       );
     }
+
+    if (assessment.approvalStatus !== "approved" || !canLockAssessments) return null;
 
     return (
       <Button
@@ -187,7 +201,7 @@ export default function GradesOverviewSection({
                     </div>
                   </div>
                   <div className="mt-2 flex gap-2">
-                    {assessment.deliveryMode === "QUESTION_BASED" ? (
+                    {assessment.deliveryMode === "QUESTION_BASED" && canManageQuestions ? (
                       <Button
                         variant="secondary"
                         size="sm"
@@ -197,7 +211,7 @@ export default function GradesOverviewSection({
                         {t("actions.manageQuestions")}
                       </Button>
                     ) : null}
-                    <Button
+                    {canManageAssessments ? <Button
                       variant="secondary"
                       size="sm"
                       disabled={assessment.isLocked || isReadOnly}
@@ -205,8 +219,8 @@ export default function GradesOverviewSection({
                       leftIcon={<Pencil className="h-4 w-4" />}
                     >
                       {t("actions.edit")}
-                    </Button>
-                    <Button
+                    </Button> : null}
+                    {canManageGradeItems ? <Button
                       variant="secondary"
                       size="sm"
                       disabled={
@@ -219,7 +233,7 @@ export default function GradesOverviewSection({
                       onClick={() => onBulkEntry(assessment)}
                     >
                       {t("actions.bulkEntry")}
-                    </Button>
+                    </Button> : null}
                     {renderWorkflowAction(assessment)}
                   </div>
                 </div>

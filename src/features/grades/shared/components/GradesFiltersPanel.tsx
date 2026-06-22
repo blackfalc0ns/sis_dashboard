@@ -24,7 +24,7 @@ interface GradesFiltersPanelProps {
   onSubjectChange: (value: string) => void;
   selectedContextText?: string | null;
   isReadOnly: boolean;
-  onCreateAssessment: () => void;
+  onCreateAssessment?: () => void;
   onExport: () => void;
   isExportDisabled?: boolean;
   showSubjectFilter?: boolean;
@@ -97,19 +97,21 @@ export default function GradesFiltersPanel({
           {selectedContextText || t("emptyState.selectFilters")}
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button
+          {onCreateAssessment ? <Button
             variant="secondary"
             onClick={onExport}
             disabled={isExportDisabled}
             leftIcon={<Download className="h-4 w-4" />}
           >
             {t("actions.export")}
-          </Button>
+          </Button> : null}
           <Button
             variant="primary"
             onClick={onCreateAssessment}
             disabled={
-              !selectedScopeId || (showSubjectFilter && !selectedSubjectId) || isReadOnly
+              (selectedScopeType !== "school" && !selectedScopeId) ||
+              (showSubjectFilter && !selectedSubjectId) ||
+              isReadOnly
             }
             leftIcon={<ClipboardCheck className="h-4 w-4" />}
           >

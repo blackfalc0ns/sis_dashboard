@@ -4052,6 +4052,10 @@
         "delete_question": "حذف السؤال ",
         "delete_question_confirm": "هل أنت متأكد من حذف هذا السؤال ",
         "question_text": "نص السؤال",
+        "instructions": "التعليمات",
+        "instructions_placeholder": "أضف تعليمات اختيارية لهذا السؤال",
+        "expected_answer": "الإجابة المتوقعة",
+        "expected_answer_placeholder": "أدخل الإجابة المتوقعة",
         "question_type": "نوع السؤال",
         "points": "الدرجات",
         "no_questions": "لا توجد أسئلة بعد.",
@@ -4235,6 +4239,192 @@
         "invalidPayload": "تحقق من عنوان الحدث والحقول المطلوبة.",
         "forbidden": "ليس لديك صلاحية الوصول إلى نطاق التقويم هذا.",
         "unexpected": "حدث خطأ غير متوقع في التقويم."
+      }
+    },
+    "homework": {
+      "list": {
+        "title": "الواجبات",
+        "description": "إدارة مسودات الواجبات والأسئلة والمستهدفين ودورة الحياة.",
+        "empty": "لا توجد واجبات مطابقة.",
+        "untitled": "واجب بدون عنوان",
+        "allAssignedTargets": "كل المستهدفين المعينين",
+        "notSet": "غير محدد",
+        "showing": "يتم عرض {shown} من أصل {total} واجب.",
+        "contentSummary": "{questions, plural, zero {# أسئلة} one {# سؤال} two {# سؤالان} few {# أسئلة} many {# سؤالًا} other {# سؤال}}، {attachments, plural, zero {# مرفقات} one {# مرفق} two {# مرفقان} few {# مرفقات} many {# مرفقًا} other {# مرفق}}",
+        "actions": {
+          "newHomework": "واجب جديد",
+          "apply": "تطبيق",
+          "menu": "إجراءات الواجب",
+          "publish": "نشر",
+          "close": "إغلاق",
+          "cancel": "إلغاء"
+        },
+        "filters": {
+          "searchPlaceholder": "ابحث في الواجبات",
+          "allStatuses": "كل الحالات",
+          "allModes": "كل الأنواع"
+        },
+        "table": {
+          "title": "العنوان",
+          "status": "الحالة",
+          "context": "السياق",
+          "due": "موعد التسليم",
+          "content": "المحتوى"
+        },
+        "statuses": {
+          "draft": "مسودة",
+          "published": "منشور",
+          "closed": "مغلق",
+          "cancelled": "ملغي",
+          "archived": "مؤرشف"
+        },
+        "modes": {
+          "homework": "واجب",
+          "worksheet": "ورقة عمل",
+          "writingTask": "مهمة كتابة",
+          "quiz": "اختبار قصير",
+          "reading": "قراءة",
+          "project": "مشروع"
+        },
+        "confirm": {
+          "title": "تأكيد إجراء الواجب",
+          "description": "هل أنت متأكد أنك تريد {action} هذا الواجب؟",
+          "confirm": "تأكيد",
+          "back": "رجوع"
+        },
+        "errors": {
+          "loadFailed": "فشل تحميل الواجبات ({code})",
+          "lifecycleFailed": "فشل إجراء الواجب ({code})"
+        }
+      },
+      "create": {
+        "title": "إنشاء واجب",
+        "description": "أنشئ مسودة واجب مرتبطة بالخادم قبل فتح أداة البناء.",
+        "fields": {
+          "title": "العنوان",
+          "teacherSubjectAllocation": "توزيع المعلم والمادة",
+          "targetMode": "نطاق الاستهداف",
+          "mode": "النوع",
+          "dueAt": "موعد التسليم",
+          "totalMarks": "الدرجة الكلية",
+          "estimatedMinutes": "الدقائق المقدرة",
+          "description": "الوصف"
+        },
+        "placeholders": {
+          "teacherSubjectAllocation": "اختر المعلم والمادة والفصل",
+          "searchAllocation": "ابحث باسم المعلم أو المادة أو الفصل..."
+        },
+        "helpers": {
+          "teacherSubjectAllocation": "سيستخدم الواجب هذا التوزيع للتحقق من المعلم والمادة والفصل والسنة والترم."
+        },
+        "targetModes": {
+          "classroom": "الفصل",
+          "selectedStudents": "طلاب محددون"
+        },
+        "targets": {
+          "title": "المستهدفون",
+          "selectAllocationFirst": "اختر توزيع المعلم والمادة لتحديد الفصل المستهدف.",
+          "classroomSummary": "{teacher} يدرّس {subject} في {classroom}.",
+          "unknownTeacher": "المعلم المحدد",
+          "unknownSubject": "المادة المحددة",
+          "unknownClassroom": "الفصل المحدد",
+          "loading": "جاري تحميل الطلاب...",
+          "eligibleCount": "{count, plural, zero {# طلاب مؤهلين} one {# طالب مؤهل} two {# طالبان مؤهلان} few {# طلاب مؤهلين} many {# طالبًا مؤهلًا} other {# طالب مؤهل}}",
+          "noEligibleStudents": "لا يوجد طلاب نشطون مسجلون في هذا الفصل للسنة الدراسية المحددة.",
+          "searchStudents": "ابحث عن الطلاب",
+          "selectAll": "تحديد الكل",
+          "clear": "مسح",
+          "noStudents": "لا يوجد طلاب متاحون.",
+          "noStudentResults": "لا توجد نتائج مطابقة.",
+          "selectedCount": "{count, plural, zero {# طلاب محددين} one {# طالب محدد} two {# طالبان محددان} few {# طلاب محددين} many {# طالبًا محددًا} other {# طالب محدد}}"
+        },
+        "modes": {
+          "homework": "واجب",
+          "worksheet": "ورقة عمل",
+          "writingTask": "مهمة كتابة",
+          "quiz": "اختبار قصير",
+          "reading": "قراءة",
+          "project": "مشروع"
+        },
+        "actions": {
+          "cancel": "إلغاء",
+          "createDraft": "إنشاء مسودة"
+        },
+        "messages": {
+          "created": "تم إنشاء مسودة الواجب.",
+          "loadingAllocations": "جاري تحميل توزيعات المعلمين...",
+          "noAllocations": "لا توجد توزيعات معلمين لهذا الترم.",
+          "noAllocationResults": "لا توجد توزيعات معلمين مطابقة."
+        },
+        "errors": {
+          "contextRequired": "اختر السنة الدراسية والترم أولًا.",
+          "allocationRequired": "توزيع المعلم والمادة مطلوب.",
+          "titleRequired": "عنوان الواجب مطلوب.",
+          "dueAtRequired": "موعد التسليم مطلوب.",
+          "allocationsLoadFailed": "فشل تحميل توزيعات المعلمين.",
+          "studentsLoadFailed": "فشل تحميل الطلاب المؤهلين.",
+          "noEligibleStudents": "لا يوجد طلاب مؤهلون في هذا الفصل لاستهداف الواجب.",
+          "selectedStudentsRequired": "اختر طالبًا واحدًا على الأقل.",
+          "createFailed": "فشل إنشاء الواجب ({code})"
+        }
+      },
+      "builder": {
+        "untitled": "واجب بدون عنوان",
+        "actions": {
+          "backToHomework": "العودة إلى الواجبات",
+          "save": "حفظ",
+          "reset": "إعادة تعيين",
+          "publish": "نشر",
+          "close": "إغلاق",
+          "cancel": "إلغاء"
+        },
+        "states": {
+          "saving": "جاري الحفظ",
+          "saved": "تم الحفظ",
+          "saveBeforePublish": "احفظ التغييرات أو أعد تعيينها قبل النشر."
+        },
+        "statuses": {
+          "draft": "مسودة",
+          "published": "منشور",
+          "closed": "مغلق",
+          "cancelled": "ملغي",
+          "archived": "مؤرشف"
+        },
+        "lifecycleActions": {
+          "publish": "نشر",
+          "close": "إغلاق",
+          "cancel": "إلغاء",
+          "continue": "متابعة"
+        },
+        "confirm": {
+          "deleteQuestionTitle": "حذف السؤال",
+          "actionTitle": "تأكيد الإجراء",
+          "deleteQuestionDescription": "هل تريد حذف هذا السؤال من الواجب؟",
+          "resetTitle": "إعادة تعيين التغييرات غير المحفوظة",
+          "resetDescription": "هل تريد تجاهل جميع تغييرات الواجب والأسئلة غير المحفوظة؟",
+          "lifecycleDescription": "هل أنت متأكد أنك تريد {action} هذا الواجب؟",
+          "cancelHomework": "إلغاء الواجب",
+          "confirm": "تأكيد",
+          "back": "رجوع"
+        },
+        "messages": {
+          "homeworkSaved": "تم حفظ الواجب.",
+          "questionSaved": "تم حفظ السؤال.",
+          "questionDeleted": "تم حذف السؤال.",
+          "publishCompleted": "تم تنفيذ إجراء نشر الواجب.",
+          "closeCompleted": "تم تنفيذ إجراء إغلاق الواجب.",
+          "cancelCompleted": "تم تنفيذ إجراء إلغاء الواجب."
+        },
+        "errors": {
+          "loadFailed": "فشل تحميل الواجب ({code})",
+          "homeworkSaveFailed": "فشل حفظ الواجب ({code})",
+          "fixQuestionValidation": "أصلح أخطاء تحقق السؤال قبل الحفظ.",
+          "questionSaveFailed": "فشل حفظ السؤال ({code})",
+          "questionDeleteFailed": "فشل حذف السؤال ({code})",
+          "attachmentUploadFailed": "تعذر رفع المرفق. الخطأ: {code}",
+          "attachmentDeleteFailed": "فشل حذف المرفق ({code})",
+          "lifecycleFailed": "فشل إجراء دورة الحياة ({code})"
+        }
       }
     },
     "timetable": {
@@ -5412,7 +5602,15 @@
       },
       "gradebook": {
         "title": "سجل الدرجات",
-        "subtitle": "متابعة أداء الطلاب في التقييمات المختلفة"
+        "subtitle": "متابعة أداء الطلاب في التقييمات المختلفة",
+        "search": "البحث عن طالب أو فصل",
+        "statusFilter": "تصفية حسب حالة الدرجة",
+        "statuses": {
+          "all": "كل الحالات",
+          "entered": "تم الإدخال",
+          "missing": "مفقود",
+          "absent": "غائب"
+        }
       },
       "table": {
         "student": "الطالب",
@@ -5434,7 +5632,8 @@
       "emptyState": {
         "selectFilters": "اختر نطاقًا ومادة لعرض سجل الدرجات.",
         "noAssessments": "لا توجد اختبارات ضمن المعايير المحددة.",
-        "noStudents": "لا يوجد طلاب ضمن المعايير المحددة."
+        "noStudents": "لا يوجد طلاب ضمن المعايير المحددة.",
+        "noResults": "لا يوجد طلاب يطابقون البحث وتصفية الحالة الحالية."
       },
       "actions": {
         "createAssessment": "إنشاء اختبار",
@@ -5460,7 +5659,8 @@
         },
         "reasons": {
           "termClosed": "هذا الفصل مغلق.",
-          "locked": "هذا التقييم مقفل."
+          "locked": "هذا التقييم مقفل.",
+          "permission": "ليس لديك صلاحية إدارة عناصر الدرجات."
         }
       },
       "export": {
@@ -5640,6 +5840,12 @@
           "comment": "ملاحظة",
           "save": "حفظ",
           "cancel": "إلغاء",
+          "errors": {
+            "scoreRequired": "أدخل درجة عندما تكون الحالة تم الإدخال.",
+            "scoreRange": "يجب أن تكون الدرجة بين 0 و{maxScore}.",
+            "scorePrecision": "يمكن أن تحتوي الدرجة على منزلتين عشريتين كحد أقصى.",
+            "commentLength": "يجب ألا تتجاوز الملاحظة 500 حرف."
+          },
           "statuses": {
             "entered": "تم الإدخال",
             "missing": "مفقود",
@@ -5681,6 +5887,20 @@
           "description": "هل أنت متأكد من حذف {assessment}؟ لا يمكن التراجع عن هذا الإجراء بعد الحذف.",
           "confirm": "حذف",
           "cancel": "إلغاء"
+        },
+        "workflow": {
+          "publish": {
+            "title": "نشر التقييم",
+            "description": "هل تريد نشر {assessment}؟ يجب أن تكون الأسئلة والإعدادات جاهزة للاستخدام."
+          },
+          "approve": {
+            "title": "اعتماد التقييم",
+            "description": "هل تريد اعتماد {assessment}؟ يؤكد ذلك جاهزية التقييم المنشور لرصد الدرجات."
+          },
+          "lock": {
+            "title": "قفل التقييم",
+            "description": "هل تريد قفل {assessment}؟ لن يمكن تعديل عناصر الدرجات أو بيانات التقييم بعد ذلك."
+          }
         },
         "editAssessment": {
           "title": "تعديل الاختبار",
@@ -5726,7 +5946,21 @@
           "scoreHelp": "النطاق المسموح: 0 - {maxScore}",
           "comment": "ملاحظة",
           "save": "حفظ الدرجات",
+          "saveChanged": "حفظ {count} تغييرات",
           "cancel": "إلغاء",
+          "search": "البحث عن طالب أو فصل",
+          "applyStatus": "الحالة المطلوب تطبيقها",
+          "applyToVisible": "تطبيق على {count} ظاهر",
+          "changed": "تم التعديل",
+          "changedCount": "{count} تغييرات من الحد الأقصى {limit}",
+          "batchLimit": "يقبل الخادم {limit} تغييرا للدرجات كحد أقصى في الطلب الواحد.",
+          "unsavedConfirm": "هل تريد تجاهل تغييرات الدرجات غير المحفوظة؟",
+          "errors": {
+            "scoreRequired": "أدخل درجة عندما تكون الحالة تم الإدخال.",
+            "scoreRange": "يجب أن تكون الدرجة بين 0 و{maxScore}.",
+            "scorePrecision": "يمكن أن تحتوي الدرجة على منزلتين عشريتين كحد أقصى.",
+            "commentLength": "يجب ألا تتجاوز الملاحظة 500 حرف."
+          },
           "statuses": {
             "entered": "تم الإدخال",
             "missing": "مفقود",
@@ -5957,6 +6191,14 @@
     "option_ar_en_must_differ": "يجب أن يكون نص الاختيار بالعربي مختلفاً عن الإنجليزي",
     "at_least_one_question": "مطلوب سؤال واحد على الأقل",
     "question_text_required": "نص السؤال مطلوب",
+    "unsupportedQuestionType": "نوع السؤال هذا غير مدعوم في الواجبات.",
+    "trueFalseTwoOptions": "أسئلة الصح والخطأ تتطلب خيارين بالضبط.",
+    "questionTextTooLong": "يجب ألا يتجاوز نص السؤال 8000 حرف.",
+    "optionTextTooLong": "يجب ألا يتجاوز نص الخيار 1000 حرف.",
+    "tooManyOptions": "لا يمكن أن يحتوي السؤال على أكثر من 50 خيارًا.",
+    "textQuestionOptionsForbidden": "لا يمكن أن تحتوي الأسئلة النصية على خيارات.",
+    "instructionsTooLong": "يجب ألا تتجاوز التعليمات 4000 حرف.",
+    "expectedAnswerTooLong": "يجب ألا تتجاوز الإجابة المتوقعة 8000 حرف.",
     "invalid_max_score": "يجب أن تكون الدرجة النهائية أكبر من 0",
     "invalid_points": "يجب أن تكون الدرجات 0 أو أكثر",
     "duplicateAcceptedAnswersAr": "إجابة عربية مقبولة مكررة",

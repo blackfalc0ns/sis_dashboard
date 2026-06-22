@@ -58,22 +58,6 @@ export function validateAssignment(
     errors.titleEn = t("required_en");
   }
 
-  // Check AR != EN for title
-  if (assignment.titleAr?.trim() && assignment.titleEn?.trim()) {
-    if (assignment.titleAr.trim().toLowerCase() === assignment.titleEn.trim().toLowerCase()) {
-      errors.titleAr = t("arEnMustDiffer");
-      errors.titleEn = t("arEnMustDiffer");
-    }
-  }
-
-  // Check AR != EN for description if both filled
-  if (assignment.descriptionAr?.trim() && assignment.descriptionEn?.trim()) {
-    if (assignment.descriptionAr.trim().toLowerCase() === assignment.descriptionEn.trim().toLowerCase()) {
-      errors.descriptionAr = t("arEnMustDiffer");
-      errors.descriptionEn = t("arEnMustDiffer");
-    }
-  }
-
   // Validate max score
   if (!assignment.maxScore || assignment.maxScore <= 0) {
     errors.maxScore = t("invalid_max_score");
@@ -127,11 +111,6 @@ export function validateQuestion(
     errors.textEn = t("required_en");
   }
 
-  if (normalizedTextAr && normalizedTextEn && normalizeQuestionText(normalizedTextAr) === normalizeQuestionText(normalizedTextEn)) {
-    errors.textAr = t("arEnMustDiffer");
-    errors.textEn = t("arEnMustDiffer");
-  }
-
   if (question.points < 0) {
     errors.points = t("invalid_points");
   }
@@ -146,15 +125,6 @@ export function validateQuestion(
       );
       if (emptyOptions.length > 0) {
         errors.options = t("all_options_required");
-      }
-
-      // Validate AR != EN for each option
-      const sameTextOptions = question.options.filter(
-        (o) => o.textAr?.trim() && o.textEn?.trim() && 
-               o.textAr.trim().toLowerCase() === o.textEn.trim().toLowerCase()
-      );
-      if (sameTextOptions.length > 0) {
-        errors.options = t("option_ar_en_must_differ");
       }
 
       // Validate correct answer selection

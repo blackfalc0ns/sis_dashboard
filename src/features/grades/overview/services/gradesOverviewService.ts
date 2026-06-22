@@ -20,6 +20,10 @@ import {
   mapBackendGradeRuleToUi,
 } from "../../gradebook/utils/gradebookMappers";
 
+function scopeIdParam(filters: GradesScopeFilters): string | undefined {
+  return filters.scopeId || undefined;
+}
+
 export interface GradesOverviewReport {
   summary: {
     totalStudents: number;
@@ -44,7 +48,7 @@ export async function fetchGradesOverview(
       academicYearId,
       termId,
       scopeType: filters.scopeType,
-      scopeId: filters.scopeId,
+      scopeId: scopeIdParam(filters),
       subjectId: filters.subjectId,
     },
   });
@@ -84,7 +88,7 @@ export async function fetchOverviewGradebook(
       academicYearId,
       termId,
       scopeType: filters.scopeType,
-      scopeId: filters.scopeId,
+      scopeId: scopeIdParam(filters),
       subjectId: filters.subjectId,
     },
   });
@@ -103,7 +107,7 @@ export async function fetchAssessments(
         academicYearId,
         termId,
         scopeType: filters.scopeType,
-        scopeId: filters.scopeId,
+        scopeId: scopeIdParam(filters),
         subjectId: filters.subjectId,
         approvalStatus: filters.includeDrafts ? undefined : "PUBLISHED",
       },
@@ -126,7 +130,7 @@ export async function fetchScopeGradeRule(
           academicYearId,
           termId,
           scopeType,
-          scopeId,
+          scopeId: scopeId || undefined,
         },
       }
     );

@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Save, ShieldCheck } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
 import MainLoader from "@/components/ui/loaders/MainLoader";
@@ -30,11 +31,19 @@ const EMPTY_SCOPES: Record<ExamScopeType, ScopeEntityOption[]> = {
   section: [],
   classroom: [],
 };
+const RULE_WRITE_SCOPE_TYPES: ExamScopeType[] = ["school", "grade"];
+
+function isSelectedRuleScope(rule: GradeRuleRecord, scopeType: ExamScopeType, scopeId: string): boolean {
+  if (scopeType === "school") return rule.scopeType === "school";
+  return rule.scopeType === scopeType && rule.scopeId === scopeId;
+}
 
 export default function GradesRulesPage() {
   const t = useTranslations("academics.grades.rules");
   const tGrades = useTranslations("academics.grades");
   const locale = useLocale();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { showError, showSuccess } = useToast();
   const { academicYearId, termId, termStatus, isInitializing } =
     useGradesYearTermLayoutContext();
@@ -48,19 +57,22 @@ export default function GradesRulesPage() {
   const [rounding, setRounding] = useState<GradeRoundingMode>("DECIMAL_2");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const filtersHydratedRef = useRef(false);
 
   const availableScopes = scopes[selectedScopeType];
+  const ruleScopeTypes = scopeTypes.filter((scopeType) =>
+    RULE_WRITE_SCOPE_TYPES.includes(scopeType),
+  );
   const explicitRule = useMemo(
     () =>
       rules.find(
-        (rule) =>
-          rule.scopeType === selectedScopeType && rule.scopeId === selectedScopeId,
+        (rule) => isSelectedRuleScope(rule, selectedScopeType, selectedScopeId),
       ) ?? null,
     [rules, selectedScopeId, selectedScopeType],
   );
 
   const loadRules = useCallback(async () => {
-    if (!academicYearId || !termId || !selectedScopeId) return;
+    if (!academicYearId || !termId || (selectedScopeType !== "school" && !selectedScopeId)) return;
     setIsLoading(true);
     try {
       const [ruleList, effective] = await Promise.all([
@@ -77,8 +89,7 @@ export default function GradesRulesPage() {
       setEffectiveRule(effective);
       const selectedRule =
         ruleList.find(
-          (rule) =>
-            rule.scopeType === selectedScopeType && rule.scopeId === selectedScopeId,
+          (rule) => isSelectedRuleScope(rule, selectedScopeType, selectedScopeId),
         ) ?? effective;
       setPassMark(String(selectedRule.passMark));
       setRounding(selectedRule.rounding);
@@ -96,17 +107,33 @@ export default function GradesRulesPage() {
     termId,
   ]);
 
+  const replaceQuery = useCallback((nextParams: URLSearchParams) => {
+    const nextQuery = nextParams.toString();
+    const currentQuery = searchParams.toString();
+    if (nextQuery === currentQuery) return;
+    router.replace(nextQuery ? `/${locale}/grades/rules?${nextQuery}` : `/${locale}/grades/rules`, { scroll: false });
+  }, [locale, router, searchParams]);
+
   useEffect(() => {
     if (!academicYearId || !termId) return;
     const loadFilters = async () => {
       setIsLoading(true);
       try {
         const filters = await fetchGradesFiltersData(academicYearId, termId);
-        const initialType = filters.scopeTypes[0] ?? "school";
+        const availableRuleScopeTypes = filters.scopeTypes.filter((scopeType) =>
+          RULE_WRITE_SCOPE_TYPES.includes(scopeType),
+        );
+        const requestedScopeType = (searchParams.get("scopeType") as ExamScopeType) || availableRuleScopeTypes[0] || "school";
+        const initialType = availableRuleScopeTypes.includes(requestedScopeType) ? requestedScopeType : availableRuleScopeTypes[0] ?? "school";
+        const requestedScopeId = searchParams.get("scopeId") || "";
+        const initialScopeId = filters.scopeEntities[initialType].some((scope) => scope.id === requestedScopeId)
+          ? requestedScopeId
+          : filters.scopeEntities[initialType][0]?.id ?? "";
         setScopeTypes(filters.scopeTypes);
         setScopes(filters.scopeEntities);
         setSelectedScopeType(initialType);
-        setSelectedScopeId(filters.scopeEntities[initialType][0]?.id ?? "");
+        setSelectedScopeId(initialScopeId);
+        filtersHydratedRef.current = true;
       } catch (error) {
         showError(tGrades(`errors.${mapGradesApiError(error)}`));
       } finally {
@@ -114,7 +141,19 @@ export default function GradesRulesPage() {
       }
     };
     void loadFilters();
-  }, [academicYearId, showError, tGrades, termId]);
+  }, [academicYearId, searchParams, showError, tGrades, termId]);
+
+  useEffect(() => {
+    if (!filtersHydratedRef.current || !academicYearId || !termId) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("year", academicYearId);
+    params.set("term", termId);
+    params.set("scopeType", selectedScopeType);
+    if (selectedScopeId) params.set("scopeId", selectedScopeId);
+    else params.delete("scopeId");
+    replaceQuery(params);
+  }, [academicYearId, replaceQuery, searchParams, selectedScopeId, selectedScopeType, termId]);
 
   useEffect(() => {
     void loadRules();
@@ -139,7 +178,7 @@ export default function GradesRulesPage() {
           academicYearId,
           termId,
           scopeType: selectedScopeType,
-          scopeId: selectedScopeId,
+          scopeId: selectedScopeId || undefined,
           gradeId: selectedScopeType === "grade" ? selectedScopeId : undefined,
           passMark: numericPassMark,
           gradingScale: "PERCENTAGE",
@@ -169,7 +208,7 @@ export default function GradesRulesPage() {
           <Select
             label={tGrades("filters.scopeType")}
             value={selectedScopeType}
-            options={scopeTypes.map((scopeType) => ({
+            options={ruleScopeTypes.map((scopeType) => ({
               value: scopeType,
               label: tGrades(`filters.scopeTypes.${scopeType}`),
             }))}
@@ -193,7 +232,7 @@ export default function GradesRulesPage() {
 
       {isLoading ? (
         <div className="flex min-h-[240px] items-center justify-center"><MainLoader /></div>
-      ) : selectedScopeId ? (
+      ) : selectedScopeType === "school" || selectedScopeId ? (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.7fr)]">
           <section className="rounded-lg border p-5" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}>
             <div className="mb-5 flex items-center gap-3">

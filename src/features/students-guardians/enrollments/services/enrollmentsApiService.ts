@@ -27,6 +27,9 @@ export interface FetchCurrentEnrollmentParams {
 
 export interface FetchEnrollmentsParams {
   studentId?: string;
+  academicYearId?: string;
+  academicYear?: string;
+  status?: string;
 }
 
 export async function validateEnrollment(
