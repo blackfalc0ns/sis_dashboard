@@ -3358,7 +3358,6 @@
           "title": "المواد",
           "subtitle": "{active} نشطة من أصل {total}"
         },
-
         "lessonPlans": {
           "title": "خطط الدروس",
           "subtitle": "{plannedItems} عناصر مخططة"
@@ -3387,7 +3386,6 @@
           "subtitle": "{teachers} معلمين، {subjects} مواد"
         }
       },
-
       "quickLinks": {
         "title": "روابط سريعة",
         "structure": "الهيكل",
@@ -5489,83 +5487,83 @@
     "grades": {
       "title": "الدرجات والتقييمات",
       "readOnlyBanner": "أنت في وضع العرض فقط. لا يمكنك إجراء أي تعديلات.",
-    "tabs": {
-      "overview": "نظرة عامة",
-      "assessments": "الاختبارات",
-      "analytics": "التحليلات",
-      "gradebook": "سجل الدرجات",
-      "rules": "القواعد"
-    },
-    "submissions": {
-      "title": "تسليمات التقييم",
-      "subtitle": "متابعة تقدم الإجابات وحالة التسليم وجاهزية التصحيح.",
-      "detailTitle": "التسليم",
-      "search": "البحث عن الطلاب",
-      "allStatuses": "كل الحالات",
-      "loading": "جار تحميل التسليمات...",
-      "empty": "لا توجد تسليمات تطابق عوامل التصفية الحالية.",
-      "student": "الطالب",
-      "class": "الفصل",
-      "status": "الحالة",
-      "progress": "تمت الإجابة",
-      "pending": "بانتظار التصحيح",
-      "open": "فتح",
-      "saveAll": "حفظ كل الإجابات",
-      "saveAnswer": "حفظ الإجابة",
-      "submit": "تسليم",
-      "submitConfirm": "هل تريد تسليم هذا التقييم؟ لن يمكن تعديل الإجابات بعد ذلك.",
-      "finalize": "إنهاء التصحيح",
-      "sync": "مزامنة الدرجة",
-      "points": "درجات",
-      "answerPlaceholder": "أدخل إجابة الطالب",
-      "awardedPoints": "الدرجة الممنوحة",
-      "reviewComment": "تعليق المصحح",
-      "saveReview": "حفظ التصحيح",
-      "statuses": {
-        "IN_PROGRESS": "قيد التنفيذ",
-        "SUBMITTED": "تم التسليم",
-        "CORRECTED": "تم التصحيح"
-      }
-    },
-    "rules": {
-      "title": "قواعد الدرجات",
-      "subtitle": "إعداد درجة النجاح وطريقة التقريب للنطاق المحدد.",
-      "form": {
-        "createTitle": "إنشاء قاعدة للنطاق",
-        "editTitle": "تعديل قاعدة النطاق",
-        "description": "القاعدة الصريحة تتجاوز القاعدة الموروثة لهذا النطاق.",
-        "passMark": "درجة النجاح",
-        "rounding": "التقريب"
+      "tabs": {
+        "overview": "نظرة عامة",
+        "assessments": "الاختبارات",
+        "analytics": "التحليلات",
+        "gradebook": "سجل الدرجات",
+        "rules": "القواعد"
       },
-      "effective": {
-        "title": "القاعدة الفعالة",
-        "description": "القاعدة التي يطبقها الخادم حالياً بعد احتساب وراثة النطاق.",
-        "source": "المصدر",
-        "explicitRules": "قواعد الفصل"
+      "submissions": {
+        "title": "تسليمات التقييم",
+        "subtitle": "متابعة تقدم الإجابات وحالة التسليم وجاهزية التصحيح.",
+        "detailTitle": "التسليم",
+        "search": "البحث عن الطلاب",
+        "allStatuses": "كل الحالات",
+        "loading": "جار تحميل التسليمات...",
+        "empty": "لا توجد تسليمات تطابق عوامل التصفية الحالية.",
+        "student": "الطالب",
+        "class": "الفصل",
+        "status": "الحالة",
+        "progress": "تمت الإجابة",
+        "pending": "بانتظار التصحيح",
+        "open": "فتح",
+        "saveAll": "حفظ كل الإجابات",
+        "saveAnswer": "حفظ الإجابة",
+        "submit": "تسليم",
+        "submitConfirm": "هل تريد تسليم هذا التقييم؟ لن يمكن تعديل الإجابات بعد ذلك.",
+        "finalize": "إنهاء التصحيح",
+        "sync": "مزامنة الدرجة",
+        "points": "درجات",
+        "answerPlaceholder": "أدخل إجابة الطالب",
+        "awardedPoints": "الدرجة الممنوحة",
+        "reviewComment": "تعليق المصحح",
+        "saveReview": "حفظ التصحيح",
+        "statuses": {
+          "IN_PROGRESS": "قيد التنفيذ",
+          "SUBMITTED": "تم التسليم",
+          "CORRECTED": "تم التصحيح"
+        }
       },
-      "rounding": {
-        "NONE": "بدون تقريب",
-        "DECIMAL_0": "عدد صحيح",
-        "DECIMAL_1": "منزلة عشرية واحدة",
-        "DECIMAL_2": "منزلتان عشريتان"
+      "rules": {
+        "title": "قواعد الدرجات",
+        "subtitle": "إعداد درجة النجاح وطريقة التقريب للنطاق المحدد.",
+        "form": {
+          "createTitle": "إنشاء قاعدة للنطاق",
+          "editTitle": "تعديل قاعدة النطاق",
+          "description": "القاعدة الصريحة تتجاوز القاعدة الموروثة لهذا النطاق.",
+          "passMark": "درجة النجاح",
+          "rounding": "التقريب"
+        },
+        "effective": {
+          "title": "القاعدة الفعالة",
+          "description": "القاعدة التي يطبقها الخادم حالياً بعد احتساب وراثة النطاق.",
+          "source": "المصدر",
+          "explicitRules": "قواعد الفصل"
+        },
+        "rounding": {
+          "NONE": "بدون تقريب",
+          "DECIMAL_0": "عدد صحيح",
+          "DECIMAL_1": "منزلة عشرية واحدة",
+          "DECIMAL_2": "منزلتان عشريتان"
+        },
+        "sources": {
+          "DEFAULT": "الإعداد الافتراضي",
+          "SCHOOL": "المدرسة",
+          "STAGE": "المرحلة",
+          "GRADE": "الصف"
+        },
+        "actions": {
+          "save": "حفظ القاعدة"
+        },
+        "messages": {
+          "saved": "تم حفظ قاعدة الدرجات بنجاح"
+        },
+        "validation": {
+          "passMark": "يجب أن تكون درجة النجاح بين 0 و100."
+        },
+        "empty": "اختر نطاقاً لإعداد قاعدة الدرجات."
       },
-      "sources": {
-        "DEFAULT": "الإعداد الافتراضي",
-        "SCHOOL": "المدرسة",
-        "STAGE": "المرحلة",
-        "GRADE": "الصف"
-      },
-      "actions": {
-        "save": "حفظ القاعدة"
-      },
-      "messages": {
-        "saved": "تم حفظ قاعدة الدرجات بنجاح"
-      },
-      "validation": {
-        "passMark": "يجب أن تكون درجة النجاح بين 0 و100."
-      },
-      "empty": "اختر نطاقاً لإعداد قاعدة الدرجات."
-    },
       "filters": {
         "scopeType": "نوع النطاق",
         "scope": "النطاق",
@@ -10166,5 +10164,44 @@
       "notSet": "— غير محدد —",
       "emailPlaceholder": "student@example.com"
     }
+  },
+  "lightModeDropdown": {
+    "collapse": "طي",
+    "low": "الصغرى",
+    "feels": "المحسوسة",
+    "todaysHighlight": "أبرز مؤشرات اليوم",
+    "otherCountries": "دول أخرى",
+    "tenDayForecast": "توقعات 10 أيام",
+    "clock": "الساعة",
+    "calendar": "التقويم",
+    "previousMonth": "الشهر السابق",
+    "nextMonth": "الشهر التالي",
+    "todoTitle": "مهام اليوم",
+    "done": "منجزة",
+    "addTitle": "عنوان المهمة",
+    "addDescription": "وصف المهمة",
+    "add": "إضافة",
+    "inputHint": "اضغط Enter داخل الوصف للإضافة. اضغط Shift+Enter لسطر جديد.",
+    "priority": "الأولوية",
+    "priorities": {
+      "low": "منخفضة",
+      "medium": "متوسطة",
+      "high": "عالية"
+    },
+    "markDone": "تحديد المهمة كمنجزة",
+    "markIncomplete": "تحديد المهمة كغير منجزة",
+    "deleteTask": "حذف المهمة",
+    "todoDetails": "تفاصيل المهمة",
+    "title": "العنوان",
+    "description": "الوصف",
+    "status": "الحالة",
+    "completed": "منجزة",
+    "pending": "قيد التنفيذ",
+    "time": "الوقت",
+    "close": "إغلاق",
+    "edit": "تعديل",
+    "save": "حفظ",
+    "update": "تحديث",
+    "cancel": "إلغاء"
   }
 }

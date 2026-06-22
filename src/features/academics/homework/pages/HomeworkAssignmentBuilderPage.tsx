@@ -5,9 +5,9 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMediaQuery, useTheme } from "@mui/material";
 import {
-  Archive,
   Ban,
   CheckCircle2,
+  CircleStop,
   Loader2,
   RotateCcw,
   Save,
@@ -78,6 +78,7 @@ function statusClass(status: HomeworkAssignmentUiModel["status"]) {
   if (status === "published") return "bg-green-100 text-green-700";
   if (status === "closed") return "bg-gray-200 text-gray-700";
   if (status === "cancelled") return "bg-red-100 text-red-700";
+  if (status === "archived") return "bg-slate-100 text-slate-700";
   return "bg-amber-100 text-amber-700";
 }
 
@@ -134,6 +135,7 @@ export default function HomeworkAssignmentBuilderPage({
   const [tempQuestionCounter, setTempQuestionCounter] = useState(0);
 
   const lifecycle = homework ? homeworkLifecycle(homework.status) : null;
+  const lifecycleActions = lifecycle?.actions ?? [];
   const canRunLifecycleAction = termStatus !== "closed" && canManage;
   const isReadOnly = !canRunLifecycleAction || !lifecycle?.isEditable;
 
@@ -565,10 +567,7 @@ export default function HomeworkAssignmentBuilderPage({
                   {tHomework("states.saving")}
                 </span>
               )}
-              {!isAssignmentSaving &&
-                !isAssignmentDirty &&
-                !isQuestionDirty &&
-                !isQuestionOrderDirty && (
+              {!isAssignmentSaving && !isDirty && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
                     <CheckCircle2 className="h-3 w-3" />
                     {tHomework("states.saved")}
@@ -577,7 +576,7 @@ export default function HomeworkAssignmentBuilderPage({
             </div>
           </div>
           {(lifecycle?.isEditable ||
-            (canRunLifecycleAction && lifecycle?.actions.length > 0)) && (
+            (canRunLifecycleAction && lifecycleActions.length > 0)) && (
             <div className="flex flex-wrap gap-2">
               {lifecycle?.isEditable && (
                 <>
@@ -601,7 +600,7 @@ export default function HomeworkAssignmentBuilderPage({
                   </Button>
                 </>
               )}
-              {lifecycle?.actions.includes("publish") && (
+              {lifecycleActions.includes("publish") && (
                 <Button
                   size="sm"
                   disabled={isDirty || isAssignmentSaving}
@@ -614,17 +613,17 @@ export default function HomeworkAssignmentBuilderPage({
                   {tHomework("actions.publish")}
                 </Button>
               )}
-              {lifecycle?.actions.includes("close") && (
+              {lifecycleActions.includes("close") && (
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={() => setConfirmAction("close")}
-                  leftIcon={<Archive className="h-4 w-4" />}
+                  leftIcon={<CircleStop className="h-4 w-4" />}
                 >
                   {tHomework("actions.close")}
                 </Button>
               )}
-              {lifecycle?.actions.includes("cancel") && (
+              {lifecycleActions.includes("cancel") && (
                 <Button
                   variant="danger"
                   size="sm"

@@ -40,6 +40,7 @@ import type {
   DashboardTopKpi,
   DashboardViewAlert,
 } from "@/features/dashboard/mappers/dashboardViewMapper";
+import { LightModeDropdown } from "@/components/ui";
 
 export type DashboardSectionState<TData> =
   | { status: "loading" }
@@ -165,6 +166,7 @@ export default function SchoolDashboardView({
       className="min-h-screen bg-gray-50 p-4 sm:p-6"
       dir={locale === "ar" ? "rtl" : "ltr"}
     >
+      <LightModeDropdown />
       <DashboardHeader
         activityFeedState={activityFeedState}
         alertsState={alertsState}
@@ -176,11 +178,7 @@ export default function SchoolDashboardView({
         t={t}
       />
 
-      <DashboardActionRow
-        alertsState={alertsState}
-        pathname={pathname}
-        t={t}
-      />
+      <DashboardActionRow alertsState={alertsState} pathname={pathname} t={t} />
 
       <TopKpiGrid locale={locale} summaryState={summaryState} t={t} />
 
@@ -278,7 +276,11 @@ function DashboardHeader({
             {t("dashboard.title")}
           </h1>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-600">
-            <span>{t("dashboard.academic_year", { value: context.academicYearName })}</span>
+            <span>
+              {t("dashboard.academic_year", {
+                value: context.academicYearName,
+              })}
+            </span>
             <span>{t("dashboard.term", { value: context.termName })}</span>
             <span>
               {t("dashboard.last_updated", {
@@ -363,7 +365,10 @@ function ActionRequiredPanel({
   }
 
   const prioritizedAlerts = dashboardAlertsByPriority(alerts);
-  const visibleAlerts = prioritizedAlerts.slice(0, DASHBOARD_ALERT_PREVIEW_LIMIT);
+  const visibleAlerts = prioritizedAlerts.slice(
+    0,
+    DASHBOARD_ALERT_PREVIEW_LIMIT,
+  );
   const actionAlerts = visibleAlerts.filter(hasAlertAction);
   const hasMoreAlerts =
     alertSummary.total > visibleAlerts.length ||
@@ -736,13 +741,7 @@ function DashboardPartialLoading({ label }: { label: string }) {
   );
 }
 
-function SectionError({
-  message,
-  title,
-}: {
-  message: string;
-  title: string;
-}) {
+function SectionError({ message, title }: { message: string; title: string }) {
   return (
     <div>
       <p className="text-sm font-semibold text-red-600">{title}</p>
@@ -1183,7 +1182,9 @@ function moduleHighlightKeys(
 
   if (moduleCard.id === "grades") {
     return [
-      moduleValues.activeAssessments > 0 ? "tracking_active" : "create_assessments",
+      moduleValues.activeAssessments > 0
+        ? "tracking_active"
+        : "create_assessments",
     ];
   }
 
@@ -1305,9 +1306,7 @@ function DeferredFeatureList({
       </h2>
       <div
         className={`space-y-3 ${
-          shouldScrollVersionNotes
-            ? "max-h-[34rem] overflow-y-auto pr-2"
-            : ""
+          shouldScrollVersionNotes ? "max-h-[34rem] overflow-y-auto pr-2" : ""
         }`}
       >
         {deferredFeatures.map((feature) => (

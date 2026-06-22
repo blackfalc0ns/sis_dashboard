@@ -3357,7 +3357,6 @@
           "title": "Subjects",
           "subtitle": "{active} active of {total}"
         },
-
         "lessonPlans": {
           "title": "Lesson plans",
           "subtitle": "{plannedItems} planned items"
@@ -3386,7 +3385,6 @@
           "subtitle": "{teachers} teachers, {subjects} subjects"
         }
       },
-
       "quickLinks": {
         "title": "Quick Links",
         "structure": "Structure",
@@ -5488,83 +5486,83 @@
     "grades": {
       "title": "Assessments & Grades",
       "readOnlyBanner": "This term is closed. Grades are read-only.",
-    "tabs": {
-      "overview": "Overview",
-      "assessments": "Exams",
-      "analytics": "Analytics",
-      "gradebook": "Gradebook",
-      "rules": "Rules"
-    },
-    "submissions": {
-      "title": "Assessment submissions",
-      "subtitle": "Track answer progress, submission state, and correction readiness.",
-      "detailTitle": "Submission",
-      "search": "Search students",
-      "allStatuses": "All statuses",
-      "loading": "Loading submissions...",
-      "empty": "No submissions match the current filters.",
-      "student": "Student",
-      "class": "Class",
-      "status": "Status",
-      "progress": "Answered",
-      "pending": "Pending review",
-      "open": "Open",
-      "saveAll": "Save all answers",
-      "saveAnswer": "Save answer",
-      "submit": "Submit",
-      "submitConfirm": "Submit this assessment? Answers cannot be edited afterward.",
-      "finalize": "Finalize review",
-      "sync": "Sync grade",
-      "points": "points",
-      "answerPlaceholder": "Enter the student's answer",
-      "awardedPoints": "Awarded points",
-      "reviewComment": "Reviewer comment",
-      "saveReview": "Save review",
-      "statuses": {
-        "IN_PROGRESS": "In progress",
-        "SUBMITTED": "Submitted",
-        "CORRECTED": "Corrected"
-      }
-    },
-    "rules": {
-      "title": "Grade Rules",
-      "subtitle": "Configure the pass mark and rounding policy used for the selected scope.",
-      "form": {
-        "createTitle": "Create scope rule",
-        "editTitle": "Edit scope rule",
-        "description": "An explicit rule overrides the inherited rule for this scope.",
-        "passMark": "Pass mark",
-        "rounding": "Rounding"
+      "tabs": {
+        "overview": "Overview",
+        "assessments": "Exams",
+        "analytics": "Analytics",
+        "gradebook": "Gradebook",
+        "rules": "Rules"
       },
-      "effective": {
-        "title": "Effective rule",
-        "description": "The rule currently applied by the backend after scope inheritance.",
-        "source": "Source",
-        "explicitRules": "Rules in term"
+      "submissions": {
+        "title": "Assessment submissions",
+        "subtitle": "Track answer progress, submission state, and correction readiness.",
+        "detailTitle": "Submission",
+        "search": "Search students",
+        "allStatuses": "All statuses",
+        "loading": "Loading submissions...",
+        "empty": "No submissions match the current filters.",
+        "student": "Student",
+        "class": "Class",
+        "status": "Status",
+        "progress": "Answered",
+        "pending": "Pending review",
+        "open": "Open",
+        "saveAll": "Save all answers",
+        "saveAnswer": "Save answer",
+        "submit": "Submit",
+        "submitConfirm": "Submit this assessment? Answers cannot be edited afterward.",
+        "finalize": "Finalize review",
+        "sync": "Sync grade",
+        "points": "points",
+        "answerPlaceholder": "Enter the student's answer",
+        "awardedPoints": "Awarded points",
+        "reviewComment": "Reviewer comment",
+        "saveReview": "Save review",
+        "statuses": {
+          "IN_PROGRESS": "In progress",
+          "SUBMITTED": "Submitted",
+          "CORRECTED": "Corrected"
+        }
       },
-      "rounding": {
-        "NONE": "No rounding",
-        "DECIMAL_0": "Whole number",
-        "DECIMAL_1": "1 decimal place",
-        "DECIMAL_2": "2 decimal places"
+      "rules": {
+        "title": "Grade Rules",
+        "subtitle": "Configure the pass mark and rounding policy used for the selected scope.",
+        "form": {
+          "createTitle": "Create scope rule",
+          "editTitle": "Edit scope rule",
+          "description": "An explicit rule overrides the inherited rule for this scope.",
+          "passMark": "Pass mark",
+          "rounding": "Rounding"
+        },
+        "effective": {
+          "title": "Effective rule",
+          "description": "The rule currently applied by the backend after scope inheritance.",
+          "source": "Source",
+          "explicitRules": "Rules in term"
+        },
+        "rounding": {
+          "NONE": "No rounding",
+          "DECIMAL_0": "Whole number",
+          "DECIMAL_1": "1 decimal place",
+          "DECIMAL_2": "2 decimal places"
+        },
+        "sources": {
+          "DEFAULT": "System default",
+          "SCHOOL": "School",
+          "STAGE": "Stage",
+          "GRADE": "Grade"
+        },
+        "actions": {
+          "save": "Save rule"
+        },
+        "messages": {
+          "saved": "Grade rule saved successfully"
+        },
+        "validation": {
+          "passMark": "Pass mark must be between 0 and 100."
+        },
+        "empty": "Select a scope to configure its grade rule."
       },
-      "sources": {
-        "DEFAULT": "System default",
-        "SCHOOL": "School",
-        "STAGE": "Stage",
-        "GRADE": "Grade"
-      },
-      "actions": {
-        "save": "Save rule"
-      },
-      "messages": {
-        "saved": "Grade rule saved successfully"
-      },
-      "validation": {
-        "passMark": "Pass mark must be between 0 and 100."
-      },
-      "empty": "Select a scope to configure its grade rule."
-    },
       "filters": {
         "scopeType": "Scope Type",
         "scope": "Scope",
@@ -10165,5 +10163,44 @@
       "notSet": "— Not set —",
       "emailPlaceholder": "student@example.com"
     }
+  },
+  "lightModeDropdown": {
+    "collapse": "Collapse",
+    "low": "Low",
+    "feels": "Feels",
+    "todaysHighlight": "Today's Highlight",
+    "otherCountries": "Other Countries",
+    "tenDayForecast": "10-Day Forecast",
+    "clock": "Clock",
+    "calendar": "Calendar",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "todoTitle": "Today's Todo List",
+    "done": "done",
+    "addTitle": "Todo title",
+    "addDescription": "Todo description",
+    "add": "Add",
+    "inputHint": "Press Enter in the description to add. Press Shift+Enter for a new line.",
+    "priority": "Priority",
+    "priorities": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "markDone": "Mark task done",
+    "markIncomplete": "Mark task incomplete",
+    "deleteTask": "Delete task",
+    "todoDetails": "Todo details",
+    "title": "Title",
+    "description": "Description",
+    "status": "Status",
+    "completed": "Completed",
+    "pending": "Pending",
+    "time": "Time",
+    "close": "Close",
+    "edit": "Edit",
+    "save": "Save",
+    "update": "Update",
+    "cancel": "Cancel"
   }
 }

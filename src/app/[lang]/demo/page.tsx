@@ -1,5 +1,4 @@
-import ConversationPage from "@/features/communication/conversations_redesign/pages/ConversationPage";
-
+import LightModeDropdown from "@/components/ui/dropdown/LightModeDropdown";
 export default function Page() {
-  return <ConversationPage />;
+  return <LightModeDropdown />;
 }

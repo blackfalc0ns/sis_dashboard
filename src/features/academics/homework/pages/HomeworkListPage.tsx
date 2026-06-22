@@ -7,7 +7,6 @@ import { ClipboardList, Plus, RefreshCcw, Search } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
-import MainLoader from "@/components/ui/loaders/MainLoader";
 import { AccessDenied } from "@/components/ui";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
@@ -31,11 +30,17 @@ import {
   homeworkLifecycle,
   type HomeworkLifecycleAction,
 } from "@/features/academics/homework/utils/homeworkLifecycle";
+import { DataTable, type Column } from "@/components/ui/data-table";
+
+type HomeworkAssignmentTableRow = HomeworkAssignmentUiModel & {
+  [key: string]: unknown;
+};
 
 function statusClass(status: HomeworkAssignmentUiModel["status"]) {
   if (status === "published") return "bg-green-100 text-green-700";
   if (status === "closed") return "bg-gray-200 text-gray-700";
   if (status === "cancelled") return "bg-red-100 text-red-700";
+  if (status === "archived") return "bg-slate-100 text-slate-700";
   return "bg-amber-100 text-amber-700";
 }
 
@@ -66,6 +71,10 @@ export default function HomeworkListPage() {
     homeworkId: string;
     action: HomeworkLifecycleAction;
   } | null>(null);
+  const tableRows = useMemo<HomeworkAssignmentTableRow[]>(
+    () => items.map((homework) => ({ ...homework })),
+    [items],
+  );
 
   const statusOptions = useMemo(
     () => [
@@ -99,10 +108,102 @@ export default function HomeworkListPage() {
       status: status || undefined,
       mode: mode || undefined,
       page: Number(searchParams.get("page") || "1"),
-      limit: 25,
+      limit: Number(searchParams.get("limit") || "25"),
     }),
     [academicYearId, mode, search, searchParams, status, termId],
   );
+
+  const columns = useMemo<Column<HomeworkAssignmentTableRow>[]>(() => {
+    const cols: Column<HomeworkAssignmentTableRow>[] = [
+      {
+        key: "title",
+        label: t("table.title"),
+        sortable: false,
+        render: (_, item) => (
+          <>
+            <div className="font-medium text-gray-900">
+              {item.title || t("untitled")}
+            </div>
+            <div className="text-xs text-gray-500">
+              {t(`modes.${modeLabelKey(item.mode)}`)}
+            </div>
+          </>
+        ),
+      },
+      {
+        key: "status",
+        label: t("table.status"),
+        sortable: false,
+        render: (_, item) => (
+          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass(item.status)}`}>
+            {t(`statuses.${item.status}`)}
+          </span>
+        ),
+      },
+      {
+        key: "context",
+        label: t("table.context"),
+        sortable: false,
+        render: (_, item) => (
+          <div className="text-gray-600">
+            <div>{item.classroomName || t("allAssignedTargets")}</div>
+            <div className="text-xs">{item.subjectName || item.teacherName || ""}</div>
+          </div>
+        ),
+      },
+      {
+        key: "due",
+        label: t("table.due"),
+        sortable: false,
+        render: (_, item) => (
+          <div className="text-gray-600">
+            {item.dueAt ? new Date(item.dueAt).toLocaleString(locale) : t("notSet")}
+          </div>
+        ),
+      },
+      {
+        key: "content",
+        label: t("table.content"),
+        sortable: false,
+        render: (_, item) => (
+          <div className="text-gray-600">
+            {t("contentSummary", {
+              questions: item.questionCount,
+              attachments: item.attachmentCount,
+            })}
+          </div>
+        ),
+      },
+    ];
+
+    if (canManage && termStatus !== "closed") {
+      cols.push({
+        key: "actions",
+        label: t("actions.menu"),
+        sortable: false,
+        render: (_, item) => (
+          <div onClick={(event) => event.stopPropagation()}>
+            <HomeworkLifecycleMenu
+              actions={homeworkLifecycle(item.status).actions}
+              labels={{
+                menu: t("actions.menu"),
+                publish: t("actions.publish"),
+                close: t("actions.close"),
+                cancel: t("actions.cancel"),
+              }}
+              isPending={pendingHomeworkId === item.id}
+              onAction={(action) => setLifecycleConfirmation({
+                homeworkId: item.id,
+                action,
+              })}
+            />
+          </div>
+        ),
+      });
+    }
+
+    return cols;
+  }, [canManage, termStatus, t, locale, pendingHomeworkId]);
 
   useEffect(() => {
     if (isInitializing || !canView) return;
@@ -212,102 +313,35 @@ export default function HomeworkListPage() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-lg border bg-white">
-          {isLoading ? (
-            <div className="flex min-h-64 items-center justify-center">
-              <MainLoader />
-            </div>
-          ) : items.length === 0 ? (
-            <div className="p-10 text-center text-sm text-gray-500">
-              {t("empty")}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 text-sm">
-                <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  <tr>
-                    <th className="px-4 py-3">{t("table.title")}</th>
-                    <th className="px-4 py-3">{t("table.status")}</th>
-                    <th className="px-4 py-3">{t("table.context")}</th>
-                    <th className="px-4 py-3">{t("table.due")}</th>
-                    <th className="px-4 py-3">{t("table.content")}</th>
-                    {canManage && termStatus !== "closed" && (
-                      <th className="w-12 px-4 py-3"><span className="sr-only">{t("actions.menu")}</span></th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {items.map((item) => (
-                    <tr
-                      key={item.id}
-                      className="cursor-pointer hover:bg-gray-50"
-                      onClick={() => {
-                        const params = searchParams.toString();
-                        router.push(
-                          `/${locale}/academics/homework/${item.id}${params ? `?${params}` : ""}`,
-                        );
-                      }}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">
-                          {item.title || t("untitled")}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {t(`modes.${modeLabelKey(item.mode)}`)}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass(item.status)}`}>
-                          {t(`statuses.${item.status}`)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">
-                        <div>{item.classroomName || t("allAssignedTargets")}</div>
-                        <div className="text-xs">{item.subjectName || item.teacherName || ""}</div>
-                      </td>
-                      {canManage && termStatus !== "closed" && (
-                        <td
-                          className="px-4 py-3"
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <HomeworkLifecycleMenu
-                            actions={homeworkLifecycle(item.status).actions}
-                            labels={{
-                              menu: t("actions.menu"),
-                              publish: t("actions.publish"),
-                              close: t("actions.close"),
-                              cancel: t("actions.cancel"),
-                            }}
-                            isPending={pendingHomeworkId === item.id}
-                            onAction={(action) => setLifecycleConfirmation({
-                              homeworkId: item.id,
-                              action,
-                            })}
-                          />
-                        </td>
-                      )}
-                      <td className="px-4 py-3 text-gray-600">
-                        {item.dueAt
-                          ? new Date(item.dueAt).toLocaleString(locale)
-                          : t("notSet")}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">
-                        {t("contentSummary", {
-                          questions: item.questionCount,
-                          attachments: item.attachmentCount,
-                        })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        <div className="text-xs text-gray-500">
-          {t("showing", { shown: items.length, total: meta.total })}
-        </div>
+        <DataTable
+          columns={columns}
+          data={tableRows}
+          isLoading={isLoading}
+          emptyTitle={t("empty")}
+          onRowClick={(item) => {
+            const params = searchParams.toString();
+            router.push(
+              `/${locale}/academics/homework/${item.id}${params ? `?${params}` : ""}`,
+            );
+          }}
+          serverPagination={{
+            enabled: true,
+            currentPage: meta.page,
+            pageSize: meta.limit,
+            totalItems: meta.total,
+            onPageChange: (page) => {
+              const params = new URLSearchParams(searchParams.toString());
+              params.set("page", page.toString());
+              router.push(`/${locale}/academics/homework?${params.toString()}`);
+            },
+            onPageSizeChange: (pageSize) => {
+              const params = new URLSearchParams(searchParams.toString());
+              params.set("limit", pageSize.toString());
+              params.delete("page");
+              router.push(`/${locale}/academics/homework?${params.toString()}`);
+            },
+          }}
+        />
       </div>
       <ConfirmDialog
         isOpen={!!lifecycleConfirmation}
