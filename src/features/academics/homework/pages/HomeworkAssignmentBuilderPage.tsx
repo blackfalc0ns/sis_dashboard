@@ -4,7 +4,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMediaQuery, useTheme } from "@mui/material";
-import { Archive, Ban, CheckCircle2, Loader2, RotateCcw, Save, Send } from "lucide-react";
+import {
+  Archive,
+  Ban,
+  CheckCircle2,
+  Loader2,
+  RotateCcw,
+  Save,
+  Send,
+} from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import MainLoader from "@/components/ui/loaders/MainLoader";
@@ -92,19 +100,36 @@ export default function HomeworkAssignmentBuilderPage({
   const canView = hasPermission("homework.assignments.view");
   const canManage = hasPermission("homework.assignments.manage");
   const { showError, showSuccess } = useToast();
-  const [homework, setHomework] = useState<HomeworkAssignmentUiModel | null>(null);
-  const [assignmentDraft, setAssignmentDraft] = useState<Assignment | null>(null);
-  const [lastSavedAssignment, setLastSavedAssignment] = useState<Assignment | null>(null);
+  const [homework, setHomework] = useState<HomeworkAssignmentUiModel | null>(
+    null,
+  );
+  const [assignmentDraft, setAssignmentDraft] = useState<Assignment | null>(
+    null,
+  );
+  const [lastSavedAssignment, setLastSavedAssignment] =
+    useState<Assignment | null>(null);
   const [questions, setQuestions] = useState<AssignmentQuestion[]>([]);
   const [attachments, setAttachments] = useState<AssignmentAttachment[]>([]);
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
-  const [questionDraft, setQuestionDraft] = useState<AssignmentQuestion | null>(null);
-  const [lastSavedQuestionsById, setLastSavedQuestionsById] = useState<Record<string, AssignmentQuestion>>({});
-  const [lastSavedQuestionOrder, setLastSavedQuestionOrder] = useState<Record<string, number>>({});
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
+    null,
+  );
+  const [questionDraft, setQuestionDraft] = useState<AssignmentQuestion | null>(
+    null,
+  );
+  const [lastSavedQuestionsById, setLastSavedQuestionsById] = useState<
+    Record<string, AssignmentQuestion>
+  >({});
+  const [lastSavedQuestionOrder, setLastSavedQuestionOrder] = useState<
+    Record<string, number>
+  >({});
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+    {},
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isAssignmentSaving, setIsAssignmentSaving] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<HomeworkLifecycleAction | "reset" | "deleteQuestion" | null>(null);
+  const [confirmAction, setConfirmAction] = useState<
+    HomeworkLifecycleAction | "reset" | "deleteQuestion" | null
+  >(null);
   const [targetQuestionId, setTargetQuestionId] = useState<string | null>(null);
   const [tempQuestionCounter, setTempQuestionCounter] = useState(0);
 
@@ -126,10 +151,14 @@ export default function HomeworkAssignmentBuilderPage({
       setLastSavedAssignment(nextAssignment);
       setQuestions(nextQuestions);
       setLastSavedQuestionsById(
-        Object.fromEntries(nextQuestions.map((question) => [question.id, question])),
+        Object.fromEntries(
+          nextQuestions.map((question) => [question.id, question]),
+        ),
       );
       setLastSavedQuestionOrder(
-        Object.fromEntries(nextQuestions.map((question) => [question.id, question.order])),
+        Object.fromEntries(
+          nextQuestions.map((question) => [question.id, question.order]),
+        ),
       );
       setAttachments(nextAttachments);
       setSelectedQuestionId((current) =>
@@ -156,18 +185,23 @@ export default function HomeworkAssignmentBuilderPage({
       setQuestionDraft(null);
       return;
     }
-    const selected = questions.find((question) => question.id === selectedQuestionId) || null;
+    const selected =
+      questions.find((question) => question.id === selectedQuestionId) || null;
     setQuestionDraft(selected);
   }, [questions, selectedQuestionId]);
 
   useEffect(() => {
     if (!assignmentDraft) return;
-    setValidationErrors(validateHomeworkAssignment(assignmentDraft, questions, tValidation));
+    setValidationErrors(
+      validateHomeworkAssignment(assignmentDraft, questions, tValidation),
+    );
   }, [assignmentDraft, questions, tValidation]);
 
   const isAssignmentDirty = useMemo(() => {
     if (!assignmentDraft || !lastSavedAssignment) return false;
-    return JSON.stringify(assignmentDraft) !== JSON.stringify(lastSavedAssignment);
+    return (
+      JSON.stringify(assignmentDraft) !== JSON.stringify(lastSavedAssignment)
+    );
   }, [assignmentDraft, lastSavedAssignment]);
 
   const dirtyQuestions = useMemo(
@@ -175,7 +209,10 @@ export default function HomeworkAssignmentBuilderPage({
       questions.filter((question) => {
         if (isTemporaryQuestion(question.id)) return true;
         const lastSavedQuestion = lastSavedQuestionsById[question.id];
-        return !lastSavedQuestion || JSON.stringify(question) !== JSON.stringify(lastSavedQuestion);
+        return (
+          !lastSavedQuestion ||
+          JSON.stringify(question) !== JSON.stringify(lastSavedQuestion)
+        );
       }),
     [lastSavedQuestionsById, questions],
   );
@@ -183,9 +220,11 @@ export default function HomeworkAssignmentBuilderPage({
   const isQuestionDirty = dirtyQuestions.length > 0;
 
   const deletedQuestionIds = useMemo(
-    () => Object.keys(lastSavedQuestionsById).filter(
-      (questionId) => !questions.some((question) => question.id === questionId),
-    ),
+    () =>
+      Object.keys(lastSavedQuestionsById).filter(
+        (questionId) =>
+          !questions.some((question) => question.id === questionId),
+      ),
     [lastSavedQuestionsById, questions],
   );
 
@@ -199,8 +238,11 @@ export default function HomeworkAssignmentBuilderPage({
     [lastSavedQuestionOrder, questions],
   );
 
-  const isDirty = isAssignmentDirty || isQuestionDirty ||
-    isQuestionOrderDirty || deletedQuestionIds.length > 0;
+  const isDirty =
+    isAssignmentDirty ||
+    isQuestionDirty ||
+    isQuestionOrderDirty ||
+    deletedQuestionIds.length > 0;
 
   const pointsSummary = useMemo(
     () => calculatePointsSummary(assignmentDraft?.maxScore || 0, questions),
@@ -208,7 +250,8 @@ export default function HomeworkAssignmentBuilderPage({
   );
 
   const selectedQuestion =
-    questionDraft || questions.find((question) => question.id === selectedQuestionId);
+    questionDraft ||
+    questions.find((question) => question.id === selectedQuestionId);
 
   const handleBack = () => {
     const params = searchParams.toString();
@@ -283,18 +326,32 @@ export default function HomeworkAssignmentBuilderPage({
             lastSavedQuestionOrder[question.id] !== question.order,
         );
         for (const question of changedQuestions) {
-          await reorderHomeworkQuestion(homeworkId, question.id, question.order);
+          await reorderHomeworkQuestion(
+            homeworkId,
+            question.id,
+            question.order,
+          );
         }
       }
 
       setQuestions(savedQuestions);
       setLastSavedQuestionsById(
-        Object.fromEntries(savedQuestions.map((question) => [question.id, question])),
+        Object.fromEntries(
+          savedQuestions.map((question) => [question.id, question]),
+        ),
       );
       setLastSavedQuestionOrder(
-        Object.fromEntries(savedQuestions.map((question) => [question.id, question.order])),
+        Object.fromEntries(
+          savedQuestions.map((question) => [question.id, question.order]),
+        ),
       );
-      setValidationErrors(validateHomeworkAssignment(assignmentDraft, savedQuestions, tValidation));
+      setValidationErrors(
+        validateHomeworkAssignment(
+          assignmentDraft,
+          savedQuestions,
+          tValidation,
+        ),
+      );
       showSuccess(tHomework("messages.homeworkSaved"));
     } catch (error) {
       showError(
@@ -342,7 +399,9 @@ export default function HomeworkAssignmentBuilderPage({
 
   const handleDeleteQuestion = (questionId: string) => {
     if (isReadOnly) return;
-    setQuestions((current) => current.filter((question) => question.id !== questionId));
+    setQuestions((current) =>
+      current.filter((question) => question.id !== questionId),
+    );
     setSelectedQuestionId(null);
   };
 
@@ -431,8 +490,14 @@ export default function HomeworkAssignmentBuilderPage({
   };
 
   const runLifecycleAction = async () => {
-    if (!confirmAction || confirmAction === "deleteQuestion" || confirmAction === "reset" ||
-        !canRunLifecycleAction || !lifecycle?.actions.includes(confirmAction)) return;
+    if (
+      !confirmAction ||
+      confirmAction === "deleteQuestion" ||
+      confirmAction === "reset" ||
+      !canRunLifecycleAction ||
+      !lifecycle?.actions.includes(confirmAction)
+    )
+      return;
     try {
       const nextHomework =
         confirmAction === "publish"
@@ -446,7 +511,9 @@ export default function HomeworkAssignmentBuilderPage({
       showSuccess(tHomework(`messages.${confirmAction}Completed`));
     } catch (error) {
       showError(
-        tHomework("errors.lifecycleFailed", { code: mapHomeworkApiError(error) }),
+        tHomework("errors.lifecycleFailed", {
+          code: mapHomeworkApiError(error),
+        }),
       );
     } finally {
       setConfirmAction(null);
@@ -487,7 +554,9 @@ export default function HomeworkAssignmentBuilderPage({
                   assignmentDraft.titleAr ||
                   tHomework("untitled")}
               </h1>
-              <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass(homework.status)}`}>
+              <span
+                className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass(homework.status)}`}
+              >
                 {tHomework(`statuses.${homework.status}`)}
               </span>
               {isAssignmentSaving && (
@@ -496,17 +565,21 @@ export default function HomeworkAssignmentBuilderPage({
                   {tHomework("states.saving")}
                 </span>
               )}
-              {!isAssignmentSaving && !isAssignmentDirty && !isQuestionDirty && !isQuestionOrderDirty && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
-                  <CheckCircle2 className="h-3 w-3" />
-                  {tHomework("states.saved")}
-                </span>
-              )}
+              {!isAssignmentSaving &&
+                !isAssignmentDirty &&
+                !isQuestionDirty &&
+                !isQuestionOrderDirty && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
+                    <CheckCircle2 className="h-3 w-3" />
+                    {tHomework("states.saved")}
+                  </span>
+                )}
             </div>
           </div>
-          {(lifecycle.isEditable || (canRunLifecycleAction && lifecycle.actions.length > 0)) && (
+          {(lifecycle?.isEditable ||
+            (canRunLifecycleAction && lifecycle?.actions.length > 0)) && (
             <div className="flex flex-wrap gap-2">
-              {lifecycle.isEditable && (
+              {lifecycle?.isEditable && (
                 <>
                   <Button
                     variant="secondary"
@@ -528,24 +601,36 @@ export default function HomeworkAssignmentBuilderPage({
                   </Button>
                 </>
               )}
-              {lifecycle.actions.includes("publish") && (
+              {lifecycle?.actions.includes("publish") && (
                 <Button
                   size="sm"
                   disabled={isDirty || isAssignmentSaving}
-                  title={isDirty ? tHomework("states.saveBeforePublish") : undefined}
+                  title={
+                    isDirty ? tHomework("states.saveBeforePublish") : undefined
+                  }
                   onClick={() => setConfirmAction("publish")}
                   leftIcon={<Send className="h-4 w-4" />}
                 >
                   {tHomework("actions.publish")}
                 </Button>
               )}
-              {lifecycle.actions.includes("close") && (
-                <Button variant="secondary" size="sm" onClick={() => setConfirmAction("close")} leftIcon={<Archive className="h-4 w-4" />}>
+              {lifecycle?.actions.includes("close") && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setConfirmAction("close")}
+                  leftIcon={<Archive className="h-4 w-4" />}
+                >
                   {tHomework("actions.close")}
                 </Button>
               )}
-              {lifecycle.actions.includes("cancel") && (
-                <Button variant="danger" size="sm" onClick={() => setConfirmAction("cancel")} leftIcon={<Ban className="h-4 w-4" />}>
+              {lifecycle?.actions.includes("cancel") && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setConfirmAction("cancel")}
+                  leftIcon={<Ban className="h-4 w-4" />}
+                >
                   {tHomework("actions.cancel")}
                 </Button>
               )}
@@ -581,11 +666,15 @@ export default function HomeworkAssignmentBuilderPage({
             void handleMoveQuestion(questionId, direction)
           }
           onUpdateAssignment={(updates) =>
-            setAssignmentDraft((current) => current ? { ...current, ...updates } : current)
+            setAssignmentDraft((current) =>
+              current ? { ...current, ...updates } : current,
+            )
           }
           onAutoDistributePoints={autoDistributeQuestionPoints}
           onUploadFile={handleUploadFile}
-          onDeleteAttachment={(attachmentId) => void handleDeleteAttachment(attachmentId)}
+          onDeleteAttachment={(attachmentId) =>
+            void handleDeleteAttachment(attachmentId)
+          }
         />
       ) : (
         <DesktopLayout
@@ -614,11 +703,15 @@ export default function HomeworkAssignmentBuilderPage({
             void handleMoveQuestion(questionId, direction)
           }
           onUpdateAssignment={(updates) =>
-            setAssignmentDraft((current) => current ? { ...current, ...updates } : current)
+            setAssignmentDraft((current) =>
+              current ? { ...current, ...updates } : current,
+            )
           }
           onAutoDistributePoints={autoDistributeQuestionPoints}
           onUploadFile={handleUploadFile}
-          onDeleteAttachment={(attachmentId) => void handleDeleteAttachment(attachmentId)}
+          onDeleteAttachment={(attachmentId) =>
+            void handleDeleteAttachment(attachmentId)
+          }
         />
       )}
 
@@ -646,18 +739,18 @@ export default function HomeworkAssignmentBuilderPage({
             ? tHomework("confirm.deleteQuestionTitle")
             : confirmAction === "reset"
               ? tHomework("confirm.resetTitle")
-            : tHomework("confirm.actionTitle")
+              : tHomework("confirm.actionTitle")
         }
         description={
           confirmAction === "deleteQuestion"
             ? tHomework("confirm.deleteQuestionDescription")
             : confirmAction === "reset"
               ? tHomework("confirm.resetDescription")
-            : tHomework("confirm.lifecycleDescription", {
-                action: confirmAction
-                  ? tHomework(`lifecycleActions.${confirmAction}`)
-                  : tHomework("lifecycleActions.continue"),
-              })
+              : tHomework("confirm.lifecycleDescription", {
+                  action: confirmAction
+                    ? tHomework(`lifecycleActions.${confirmAction}`)
+                    : tHomework("lifecycleActions.continue"),
+                })
         }
         confirmLabel={
           confirmAction === "cancel"
@@ -665,7 +758,13 @@ export default function HomeworkAssignmentBuilderPage({
             : tHomework("confirm.confirm")
         }
         cancelLabel={tHomework("confirm.back")}
-        severity={confirmAction === "cancel" || confirmAction === "deleteQuestion" || confirmAction === "reset" ? "danger" : "warning"}
+        severity={
+          confirmAction === "cancel" ||
+          confirmAction === "deleteQuestion" ||
+          confirmAction === "reset"
+            ? "danger"
+            : "warning"
+        }
       />
     </div>
   );
