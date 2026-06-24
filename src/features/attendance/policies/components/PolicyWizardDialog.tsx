@@ -99,23 +99,16 @@ export default function PolicyWizardDialog({
   const [availablePeriods, setAvailablePeriods] = useState<TimetablePeriod[]>([]);
   const [isLoadingPeriods, setIsLoadingPeriods] = useState(false);
 
+  const getDefaultPeriodIds = (periods: TimetablePeriod[]) =>
+    periods.length >= 2
+      ? [periods[0].id, periods[1].id]
+      : periods.length === 1
+      ? [periods[0].id]
+      : [];
+
   // Reset form when dialog opens/closes or policy changes
   useEffect(() => {
     if (isOpen && policy) {
-      // Migrate old period IDs to stable IDs
-      const migratedPeriodIds = policy.selectedPeriodIds
-        ? policy.selectedPeriodIds.map((id) => {
-            // If old format "period-N", convert to stable ID
-            const match = id.match(/^period-(\d+)$/);
-            if (match) {
-              const index = parseInt(match[1], 10);
-              const period = availablePeriods.find((p) => p.index === index);
-              return period ? period.id : id;
-            }
-            return id;
-          })
-        : [];
-
       setFormData({
         yearId: policy.yearId,
         termId: policy.termId,
@@ -129,7 +122,7 @@ export default function PolicyWizardDialog({
         scopeIds: policy.scopeIds || {},
         mode: "PERIOD", // Force PERIOD mode
         dailyComputationStrategy: undefined, // Not used anymore
-        selectedPeriodIds: migratedPeriodIds,
+        selectedPeriodIds: policy.selectedPeriodIds || [],
         lateThresholdMinutes: policy.lateThresholdMinutes,
         earlyLeaveThresholdMinutes: policy.earlyLeaveThresholdMinutes,
         autoAbsentAfterMinutes: undefined, // Not used anymore
@@ -151,14 +144,6 @@ export default function PolicyWizardDialog({
       setActiveStep(0);
       setErrors({});
     } else if (isOpen && !policy) {
-      // New policy - use stable period IDs from the start
-      const defaultPeriodIds =
-        availablePeriods.length >= 2
-          ? [availablePeriods[0].id, availablePeriods[1].id]
-          : availablePeriods.length === 1
-          ? [availablePeriods[0].id]
-          : [];
-
       setFormData({
         yearId: term?.yearId || "",
         termId: term?.id || "",
@@ -172,11 +157,11 @@ export default function PolicyWizardDialog({
         scopeIds: {},
         mode: "PERIOD", // Force PERIOD mode
         dailyComputationStrategy: undefined, // Not used anymore
-        selectedPeriodIds: defaultPeriodIds,
+        selectedPeriodIds: [],
         lateThresholdMinutes: 15,
         earlyLeaveThresholdMinutes: 15,
         autoAbsentAfterMinutes: undefined, // Not used anymore
-        absentIfMissedPeriodsCount: defaultPeriodIds.length || 1,
+        absentIfMissedPeriodsCount: 1,
         allowExcuses: true,
         requireExcuseReason: false,
         requireAttachmentForExcuse: false,
@@ -194,7 +179,38 @@ export default function PolicyWizardDialog({
       setActiveStep(0);
       setErrors({});
     }
-  }, [isOpen, policy, term, availablePeriods]);
+  }, [isOpen, policy, term]);
+
+  useEffect(() => {
+    if (!isOpen || availablePeriods.length === 0) return;
+
+    setFormData((prev) => {
+      const selectedPeriodIds = prev.selectedPeriodIds || [];
+      const migratedPeriodIds = selectedPeriodIds.map((id) => {
+        const match = id.match(/^period-(\d+)$/);
+        if (!match) return id;
+
+        const period = availablePeriods.find((item) => item.index === Number(match[1]));
+        return period?.id || id;
+      });
+
+      const nextPeriodIds =
+        migratedPeriodIds.length > 0 ? migratedPeriodIds : policy ? migratedPeriodIds : getDefaultPeriodIds(availablePeriods);
+
+      if (
+        nextPeriodIds.length === selectedPeriodIds.length &&
+        nextPeriodIds.every((id, index) => id === selectedPeriodIds[index])
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        selectedPeriodIds: nextPeriodIds,
+        absentIfMissedPeriodsCount: prev.absentIfMissedPeriodsCount || nextPeriodIds.length || 1,
+      };
+    });
+  }, [isOpen, policy, availablePeriods]);
 
   // Load periods when dialog opens or scope changes (always needed now)
   useEffect(() => {
@@ -209,31 +225,60 @@ export default function PolicyWizardDialog({
 
     setIsLoadingPeriods(true);
     try {
-      const configs = await fetchTimetableConfigs(term.id);
+      const gradeId =
+        formData.scopeType === "GRADE" ||
+        formData.scopeType === "SECTION" ||
+        formData.scopeType === "CLASSROOM"
+          ? formData.scopeIds?.gradeId
+          : undefined;
+      const sectionId =
+        formData.scopeType === "SECTION" || formData.scopeType === "CLASSROOM"
+          ? formData.scopeIds?.sectionId
+          : undefined;
+      const classroomId =
+        formData.scopeType === "CLASSROOM"
+          ? formData.scopeIds?.classroomId
+          : undefined;
+
+      const configs = await fetchTimetableConfigs({
+        academicYearId: formData.yearId || term.yearId,
+        termId: term.id,
+        gradeId,
+        sectionId,
+        classroomId,
+      });
 
       // Resolve config based on scope
       const termConfig = configs.find((c) => c.scopeType === "TERM") || null;
       let gradeConfig = null;
       let sectionConfig = null;
+      let classroomConfig = null;
 
-      if ((formData.scopeType === "SECTION" || formData.scopeType === "CLASSROOM") && formData.scopeIds?.sectionId) {
-        sectionConfig =
+      if (formData.scopeType === "CLASSROOM" && classroomId) {
+        classroomConfig =
           configs.find(
-            (c) =>
-              c.scopeType === "SECTION" && c.scopeId === formData.scopeIds?.sectionId
-          ) || null;
-        gradeConfig =
-          configs.find(
-            (c) => c.scopeType === "GRADE" && c.scopeId === formData.scopeIds?.gradeId
-          ) || null;
-      } else if (formData.scopeType === "GRADE" && formData.scopeIds?.gradeId) {
-        gradeConfig =
-          configs.find(
-            (c) => c.scopeType === "GRADE" && c.scopeId === formData.scopeIds?.gradeId
+            (c) => c.scopeType === "CLASSROOM" && c.scopeId === classroomId
           ) || null;
       }
 
-      const resolved = resolveTimetableConfig(termConfig, gradeConfig, sectionConfig);
+      if ((formData.scopeType === "SECTION" || formData.scopeType === "CLASSROOM") && sectionId) {
+        sectionConfig =
+          configs.find(
+            (c) =>
+              c.scopeType === "SECTION" && c.scopeId === sectionId
+          ) || null;
+        gradeConfig =
+          configs.find(
+            (c) => c.scopeType === "GRADE" && c.scopeId === gradeId
+          ) || null;
+      } else if (formData.scopeType === "GRADE" && gradeId) {
+        gradeConfig =
+          configs.find(
+            (c) => c.scopeType === "GRADE" && c.scopeId === gradeId
+          ) || null;
+      }
+
+      const resolved = resolveTimetableConfig(termConfig, gradeConfig, sectionConfig, classroomConfig);
       setAvailablePeriods(resolved.periods);
     } catch (error) {
       console.error("Failed to load periods:", error);

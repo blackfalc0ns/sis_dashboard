@@ -242,13 +242,17 @@ export default function ExcuseRequestModal({
 
   // Load roster when scope changes
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !yearId || !termId || !form.dateFrom) return;
 
     const loadRoster = async () => {
       setRosterLoading(true);
       setRosterError(false);
       try {
-        const students = await fetchRoster(form.scopeType, form.scopeIds || {});
+        const students = await fetchRoster(form.scopeType, form.scopeIds || {}, {
+          yearId,
+          termId,
+          date: form.dateFrom,
+        });
         setRoster(students);
       } catch (error) {
         console.error("Failed to load roster:", error);
@@ -260,7 +264,7 @@ export default function ExcuseRequestModal({
     };
 
     loadRoster();
-  }, [isOpen, form.scopeType, form.scopeIds]);
+  }, [isOpen, yearId, termId, form.dateFrom, form.scopeType, form.scopeIds]);
 
   // Load timetable periods for scope
   useEffect(() => {
@@ -268,16 +272,30 @@ export default function ExcuseRequestModal({
 
     const loadPeriods = async () => {
       try {
-        const termConfig = await fetchTimetableConfig(termId, "TERM");
+        const termConfig = await fetchTimetableConfig({
+          academicYearId: yearId,
+          termId,
+          scopeType: "TERM",
+        });
         
         let gradeConfig = null;
         if (form.scopeIds?.gradeId) {
-          gradeConfig = await fetchTimetableConfig(termId, "GRADE", form.scopeIds.gradeId);
+          gradeConfig = await fetchTimetableConfig({
+            academicYearId: yearId,
+            termId,
+            scopeType: "GRADE",
+            gradeId: form.scopeIds.gradeId,
+          });
         }
         
         let sectionConfig = null;
         if (form.scopeIds?.sectionId) {
-          sectionConfig = await fetchTimetableConfig(termId, "SECTION", form.scopeIds.sectionId);
+          sectionConfig = await fetchTimetableConfig({
+            academicYearId: yearId,
+            termId,
+            scopeType: "SECTION",
+            sectionId: form.scopeIds.sectionId,
+          });
         }
 
         const resolved = resolveTimetableConfig(termConfig, gradeConfig, sectionConfig);
@@ -289,7 +307,7 @@ export default function ExcuseRequestModal({
     };
 
     loadPeriods();
-  }, [isOpen, termId, form.scopeIds]);
+  }, [isOpen, yearId, termId, form.scopeIds]);
 
   // Student options with locale-aware rendering
   const studentOptions = useMemo(

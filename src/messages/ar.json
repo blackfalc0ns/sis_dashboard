@@ -4368,6 +4368,11 @@
       },
       "builder": {
         "untitled": "واجب بدون عنوان",
+        "tabs": {
+          "builder": "البناء",
+          "submissions": "التسليمات",
+          "gradeSync": "مزامنة الدرجات"
+        },
         "actions": {
           "backToHomework": "العودة إلى الواجبات",
           "save": "حفظ",
@@ -4422,6 +4427,130 @@
           "attachmentUploadFailed": "تعذر رفع المرفق. الخطأ: {code}",
           "attachmentDeleteFailed": "فشل حذف المرفق ({code})",
           "lifecycleFailed": "فشل إجراء دورة الحياة ({code})"
+        }
+      },
+      "review": {
+        "actions": {
+          "refresh": "تحديث",
+          "search": "بحث",
+          "saveAnswer": "حفظ الإجابة",
+          "saveAll": "حفظ كل المراجعات",
+          "saveSubmission": "حفظ مراجعة التسليم",
+          "syncSubmission": "مزامنة التسليم"
+        },
+        "filters": {
+          "status": "الحالة",
+          "search": "بحث",
+          "searchPlaceholder": "اسم الطالب أو رقمه",
+          "statuses": {
+            "all": "كل التسليمات",
+            "pendingReview": "بانتظار المراجعة",
+            "submitted": "تم التسليم",
+            "late": "متأخر",
+            "reviewed": "تمت المراجعة"
+          }
+        },
+        "summary": {
+          "visible": "المعروض",
+          "pending": "بانتظار المراجعة",
+          "late": "متأخر",
+          "reviewed": "تمت المراجعة"
+        },
+        "submissions": {
+          "title": "مراجعة التسليمات",
+          "count": "{count, plural, zero {# تسليمات} one {# تسليم} two {# تسليمان} few {# تسليمات} many {# تسليمًا} other {# تسليم}}",
+          "empty": "لا توجد تسليمات لهذا الواجب.",
+          "late": "متأخر"
+        },
+        "detail": {
+          "selectSubmission": "اختر تسليمًا لمراجعته.",
+          "submittedAt": "تم التسليم {date}",
+          "loading": "جار تحميل التسليم...",
+          "status": "الحالة",
+          "reviewedAt": "تمت المراجعة",
+          "score": "الدرجة",
+          "bodyText": "ملاحظة التسليم"
+        },
+        "submissionReview": {
+          "title": "مراجعة التسليم بالكامل",
+          "description": "احفظ الدرجة الإجمالية وملاحظة المراجع لهذا التسليم.",
+          "awardedMarks": "الدرجة الممنوحة",
+          "reviewNote": "ملاحظة المراجعة"
+        },
+        "answers": {
+          "title": "الإجابات",
+          "empty": "لا توجد إجابات لهذا التسليم.",
+          "noAnswer": "لم يتم إرسال إجابة.",
+          "score": "الدرجة",
+          "feedback": "ملاحظات"
+        },
+        "attachments": {
+          "title": "المرفقات",
+          "empty": "لا توجد مرفقات للتسليم."
+        },
+        "messages": {
+          "answerSaved": "تم حفظ مراجعة الإجابة.",
+          "allSaved": "تم حفظ كل مراجعات الإجابات.",
+          "submissionSaved": "تم حفظ مراجعة التسليم.",
+          "synced": "تمت مزامنة درجة التسليم."
+        },
+        "errors": {
+          "loadSubmissions": "فشل تحميل التسليمات ({code})",
+          "loadDetail": "فشل تحميل تفاصيل التسليم ({code})",
+          "saveAnswer": "فشل حفظ مراجعة الإجابة ({code})",
+          "saveAll": "فشل حفظ مراجعات الإجابات ({code})",
+          "saveSubmission": "فشل حفظ مراجعة التسليم ({code})",
+          "sync": "فشل مزامنة درجة التسليم ({code})"
+        }
+      },
+      "gradeSync": {
+        "title": "مزامنة درجات الواجب",
+        "description": "اربط هذا الواجب بتقييم درجات ثم زامن درجات التسليمات التي تمت مراجعتها.",
+        "notGraded": "هذا الواجب غير محدد كواجب بدرجات. قد يرفض الخادم إجراءات الربط والمزامنة.",
+        "actions": {
+          "refresh": "تحديث",
+          "link": "ربط التقييم",
+          "syncAll": "مزامنة كل المراجَع"
+        },
+        "link": {
+          "title": "التقييم المرتبط",
+          "description": "أدخل معرّف تقييم الدرجات الذي ستتم مزامنة درجات الواجب إليه.",
+          "assessmentId": "تقييم الدرجات",
+          "placeholder": "اختر تقييمًا",
+          "searchPlaceholder": "ابحث في التقييمات",
+          "loading": "جار تحميل التقييمات...",
+          "noAssessments": "لا توجد تقييمات لسياق هذا الواجب.",
+          "noResults": "لا توجد تقييمات مطابقة."
+        },
+        "status": {
+          "title": "الحالة الحالية",
+          "linked": "مرتبط",
+          "assessment": "التقييم",
+          "yes": "نعم",
+          "no": "لا"
+        },
+        "sync": {
+          "title": "مزامنة التسليمات المراجعة",
+          "description": "شغّل المزامنة بعد مراجعة التسليمات. إعادة التشغيل يجب ألا تنشئ عناصر مكررة."
+        },
+        "summary": {
+          "total": "الإجمالي",
+          "synced": "تمت المزامنة",
+          "skipped": "تم التجاوز",
+          "failed": "فشل"
+        },
+        "warnings": {
+          "title": "تحذيرات"
+        },
+        "messages": {
+          "linked": "تم ربط الواجب بتقييم الدرجات.",
+          "synced": "تمت مزامنة درجات الواجب."
+        },
+        "errors": {
+          "load": "فشل تحميل حالة مزامنة الدرجات ({code})",
+          "loadAssessments": "فشل تحميل التقييمات ({code})",
+          "link": "فشل ربط تقييم الدرجات ({code})",
+          "sync": "فشل مزامنة درجات الواجب ({code})"
         }
       }
     },
@@ -5571,6 +5700,12 @@
         "selectScopeType": "اختر نوع النطاق",
         "selectScope": "اختر النطاق",
         "selectSubject": "اختر المادة",
+        "deliveryMode": "طريقة الإدخال",
+        "deliveryModes": {
+          "all": "كل طرق الإدخال",
+          "scoreOnly": "درجة فقط",
+          "questionBased": "بناءً على الأسئلة"
+        },
         "activeContext": "{subject} - {scope}",
         "scopeTypes": {
           "school": "المدرسة كاملة",
@@ -5625,7 +5760,10 @@
         "quiz": "اختبار قصير",
         "monthExam": "اختبار الشهر",
         "midterm": "اختبار منتصف الفصل",
-        "termExam": "اختبار الفصل"
+        "termExam": "اختبار الفصل",
+        "assignment": "واجب",
+        "final": "نهائي",
+        "practical": "عملي"
       },
       "emptyState": {
         "selectFilters": "اختر نطاقًا ومادة لعرض سجل الدرجات.",
@@ -5811,6 +5949,9 @@
             "monthExam": "اختبار الشهر",
             "midterm": "اختبار منتصف الفصل",
             "termExam": "اختبار الفصل",
+            "assignment": "واجب",
+            "final": "نهائي",
+            "practical": "عملي",
             "scopeTypes": {
               "school": "المدرسة كاملة",
               "stage": "المرحلة",
@@ -5919,6 +6060,9 @@
             "monthExam": "اختبار الشهر",
             "midterm": "اختبار منتصف الفصل",
             "termExam": "اختبار الفصل",
+            "assignment": "واجب",
+            "final": "نهائي",
+            "practical": "عملي",
             "scopeTypes": {
               "school": "المدرسة كاملة",
               "stage": "المرحلة",

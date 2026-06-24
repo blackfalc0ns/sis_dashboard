@@ -1,4 +1,5 @@
-import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
+import { isApiError } from "@/lib/api-error";
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import type {
   BackendHomeworkAssignmentDto,
@@ -8,10 +9,23 @@ import type {
   BackendHomeworkQuestionDto,
   BackendHomeworkQuestionDetailResponse,
   BackendHomeworkQuestionsResponse,
+  BackendHomeworkSubmissionAnswerDto,
+  BackendHomeworkSubmissionAnswersResponse,
+  BackendHomeworkSubmissionAttachmentDto,
+  BackendHomeworkSubmissionAttachmentsResponse,
+  BackendHomeworkSubmissionDto,
+  BackendHomeworkSubmissionResponse,
+  BackendHomeworkSubmissionsResponse,
+  BackendHomeworkGradeSyncStatusDto,
   BackendHomeworkTargetsResponse,
   CreateHomeworkAssignmentRequest,
+  HomeworkGradeSyncStatusUiModel,
   HomeworkAdapter,
   HomeworkAssignmentListFilters,
+  HomeworkSubmissionReviewRequest,
+  HomeworkSubmissionAnswerUiModel,
+  HomeworkSubmissionAttachmentUiModel,
+  HomeworkSubmissionUiModel,
   UpdateHomeworkAssignmentRequest,
 } from "./homeworkApi.types";
 import {
@@ -42,8 +56,196 @@ function extractTargetList(response: BackendHomeworkTargetsResponse) {
   return response.items ?? response.targets ?? [];
 }
 
+function extractAnswerList(
+  response:
+    | BackendHomeworkSubmissionAnswersResponse
+    | BackendHomeworkSubmissionAnswerDto[],
+) {
+  if (Array.isArray(response)) return response;
+  return response.items ?? response.answers ?? [];
+}
+
+function extractSubmissionList(response: BackendHomeworkSubmissionsResponse) {
+  return response.items ?? response.submissions ?? [];
+}
+
+function extractSubmissionAttachmentList(
+  response:
+    | BackendHomeworkSubmissionAttachmentsResponse
+    | BackendHomeworkSubmissionAttachmentDto[],
+) {
+  if (Array.isArray(response)) return response;
+  return response.items ?? response.attachments ?? [];
+}
+
 function questionPath(homeworkId: string, questionId: string) {
   return `${BASE_PATH}/${homeworkId}/questions/${questionId}`;
+}
+
+function submissionPath(homeworkId: string, submissionId: string) {
+  return `${BASE_PATH}/${homeworkId}/submissions/${submissionId}`;
+}
+
+function toNumber(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === "") return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function firstText(...values: Array<string | null | undefined>) {
+  return values.find((value) => !!value?.trim())?.trim();
+}
+
+function stringifyAnswerValue(
+  value: BackendHomeworkSubmissionAnswerDto["value"],
+) {
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "boolean") return value ? "True" : "False";
+  if (value === null || value === undefined) return "";
+  return String(value);
+}
+
+function answerPromptText(answer: BackendHomeworkSubmissionAnswerDto) {
+  return typeof answer.prompt === "string"
+    ? answer.prompt
+    : answer.prompt?.prompt;
+}
+
+function answerPromptQuestionId(answer: BackendHomeworkSubmissionAnswerDto) {
+  return typeof answer.prompt === "object" ? answer.prompt?.questionId : undefined;
+}
+
+function answerPromptType(answer: BackendHomeworkSubmissionAnswerDto) {
+  return typeof answer.prompt === "object" ? answer.prompt?.type : undefined;
+}
+
+function answerPromptPoints(answer: BackendHomeworkSubmissionAnswerDto) {
+  return typeof answer.prompt === "object" ? answer.prompt?.points : undefined;
+}
+
+function mapSubmissionAnswerToUi(
+  answer: BackendHomeworkSubmissionAnswerDto,
+): HomeworkSubmissionAnswerUiModel {
+  const id = answer.answerId ?? answer.id ?? "";
+  const question = answer.question;
+  return {
+    id,
+    questionId: answer.questionId ?? answerPromptQuestionId(answer) ?? question?.id,
+    prompt:
+      firstText(answerPromptText(answer), answer.questionPrompt, question?.prompt, question?.text) ??
+      "Question",
+    questionType: answer.questionType ?? answerPromptType(answer) ?? question?.type,
+    answerText:
+      firstText(answer.answerText, answer.textAnswer, answer.text, stringifyAnswerValue(answer.value)) ??
+      "",
+    score: toNumber(answer.score ?? answer.awardedMarks ?? answer.awardedPoints),
+    maxScore: toNumber(
+      answer.maxScore ?? answer.points ?? answerPromptPoints(answer) ?? question?.points,
+    ),
+    feedback: answer.feedback ?? answer.reviewNote ?? answer.teacherComment,
+    isCorrect: answer.isCorrect,
+    reviewedAt: answer.reviewedAt,
+  };
+}
+
+function mapSubmissionAttachmentToUi(
+  attachment: BackendHomeworkSubmissionAttachmentDto,
+): HomeworkSubmissionAttachmentUiModel {
+  const id = attachment.attachmentId ?? attachment.id ?? "";
+  const filename = attachment.file?.filename;
+  return {
+    id,
+    fileId: attachment.fileId,
+    title: firstText(attachment.title, filename) ?? "Attachment",
+    description: attachment.description,
+    filename,
+    mimeType: attachment.file?.mimeType,
+    sizeBytes: attachment.file?.sizeBytes,
+    url: attachment.file?.url,
+    createdAt: attachment.createdAt,
+  };
+}
+
+function mapSubmissionToUi(
+  submission: BackendHomeworkSubmissionDto,
+): HomeworkSubmissionUiModel {
+  const id = submission.submissionId ?? submission.id ?? "";
+  const student = submission.student;
+  return {
+    id,
+    homeworkId: submission.homeworkId,
+    targetId: submission.targetId,
+    studentId: submission.studentId ?? student?.id,
+    studentNumber: student?.studentNumber,
+    enrollmentId: submission.enrollmentId,
+    studentName:
+      firstText(
+        student?.displayName,
+        student?.name,
+        student?.nameEn,
+        student?.nameAr,
+        submission.studentId,
+      ) ?? "Student",
+    status: submission.status ?? "submitted",
+    bodyText: submission.bodyText,
+    submittedAt: submission.submittedAt,
+    reviewedAt: submission.reviewedAt,
+    awardedMarks: toNumber(submission.awardedMarks ?? submission.score),
+    totalMarks: toNumber(submission.totalMarks),
+    reviewNote: submission.reviewNote,
+    isLate: submission.isLate,
+    gradeItemId: submission.gradeItemId,
+    syncedAt: submission.syncedAt,
+    createdAt: submission.createdAt,
+    updatedAt: submission.updatedAt,
+  };
+}
+
+function submissionReviewPayload(payload: HomeworkSubmissionReviewRequest) {
+  const reviewNote = payload.reviewNote?.trim();
+  return {
+    ...(reviewNote ? { reviewNote } : {}),
+    ...(payload.awardedMarks === undefined
+      ? {}
+      : { awardedMarks: payload.awardedMarks }),
+  };
+}
+
+function mapGradeSyncStatus(
+  response: BackendHomeworkGradeSyncStatusDto,
+): HomeworkGradeSyncStatusUiModel {
+  const gradeAssessment = response.gradeAssessment
+    ? {
+        id:
+          response.gradeAssessment.gradeAssessmentId ??
+          response.gradeAssessment.id,
+        title: response.gradeAssessment.title ?? undefined,
+        type: response.gradeAssessment.type,
+        deliveryMode: response.gradeAssessment.deliveryMode,
+        status: response.gradeAssessment.status,
+        maxMarks:
+          response.gradeAssessment.maxMarks ??
+          response.gradeAssessment.maxScore,
+        isLocked: response.gradeAssessment.isLocked,
+      }
+    : undefined;
+  const summary = response.syncSummary;
+  return {
+    homeworkId: response.homeworkId ?? "",
+    linked: Boolean(response.linked),
+    gradeAssessment,
+    syncSummary: summary
+      ? {
+          total: summary.total ?? summary.totalReviewedSubmissions,
+          synced: summary.synced ?? summary.syncedSubmissions,
+          skipped: summary.skipped ?? summary.pendingSyncSubmissions,
+          failed: summary.failed ?? summary.failedSyncSubmissions,
+          lastSyncedAt: summary.lastSyncedAt,
+        }
+      : undefined,
+    warnings: Array.isArray(response.warnings) ? response.warnings : [],
+    submissionSync: response.submissionSync,
+  };
 }
 
 async function reconcileQuestionOptions(
@@ -180,10 +382,15 @@ export const homeworkApiAdapter: HomeworkAdapter = {
   },
 
   async listQuestions(homeworkId: string) {
-    const response = await apiGet<BackendHomeworkQuestionsResponse | BackendHomeworkQuestionDto[]>(
-      `${BASE_PATH}/${homeworkId}/questions`,
-    );
-    return extractQuestionList(response).map(mapBackendHomeworkQuestionToBuilder);
+    try {
+      const response = await apiGet<BackendHomeworkQuestionsResponse | BackendHomeworkQuestionDto[]>(
+        `${BASE_PATH}/${homeworkId}/questions`,
+      );
+      return extractQuestionList(response).map(mapBackendHomeworkQuestionToBuilder);
+    } catch (error) {
+      if (isApiError(error) && error.status === 404) return [];
+      throw error;
+    }
   },
 
   async createQuestion(homeworkId: string, question: AssignmentQuestion) {
@@ -254,10 +461,15 @@ export const homeworkApiAdapter: HomeworkAdapter = {
   },
 
   async listAttachments(homeworkId: string) {
-    const response = await apiGet<BackendHomeworkAttachmentsResponse>(
-      `${BASE_PATH}/${homeworkId}/attachments`,
-    );
-    return extractAttachmentList(response).map(mapBackendHomeworkAttachmentToBuilder);
+    try {
+      const response = await apiGet<BackendHomeworkAttachmentsResponse>(
+        `${BASE_PATH}/${homeworkId}/attachments`,
+      );
+      return extractAttachmentList(response).map(mapBackendHomeworkAttachmentToBuilder);
+    } catch (error) {
+      if (isApiError(error) && error.status === 404) return [];
+      throw error;
+    }
   },
 
   async createAttachment(homeworkId: string, payload) {
@@ -268,7 +480,115 @@ export const homeworkApiAdapter: HomeworkAdapter = {
     return mapBackendHomeworkAttachmentToBuilder(response.attachment);
   },
 
+  async updateAttachment(homeworkId: string, attachmentId: string, payload) {
+    const response = await apiPatch<BackendHomeworkAttachmentDetailResponse>(
+      `${BASE_PATH}/${homeworkId}/attachments/${attachmentId}`,
+      payload,
+    );
+    return mapBackendHomeworkAttachmentToBuilder(response.attachment);
+  },
+
+  async reorderAttachment(homeworkId: string, attachmentId: string, order: number) {
+    const response = await apiPatch<BackendHomeworkAttachmentDetailResponse>(
+      `${BASE_PATH}/${homeworkId}/attachments/${attachmentId}/reorder`,
+      { sortOrder: order },
+    );
+    return mapBackendHomeworkAttachmentToBuilder(response.attachment);
+  },
+
   async deleteAttachment(homeworkId: string, attachmentId: string) {
     await apiDelete(`${BASE_PATH}/${homeworkId}/attachments/${attachmentId}`);
+  },
+
+  async listSubmissions(homeworkId: string, filters) {
+    const path = `${BASE_PATH}/${homeworkId}/submissions`;
+    const response = filters
+      ? await apiGet<BackendHomeworkSubmissionsResponse>(path, {
+          params: filters,
+        })
+      : await apiGet<BackendHomeworkSubmissionsResponse>(path);
+    return extractSubmissionList(response)
+      .map(mapSubmissionToUi)
+      .filter((submission) => submission.id);
+  },
+
+  async getSubmission(homeworkId: string, submissionId: string) {
+    const response = await apiGet<BackendHomeworkSubmissionResponse>(
+      submissionPath(homeworkId, submissionId),
+    );
+    return mapSubmissionToUi(response.submission);
+  },
+
+  async reviewSubmission(homeworkId, submissionId, payload) {
+    const response = await apiPatch<BackendHomeworkSubmissionResponse>(
+      `${submissionPath(homeworkId, submissionId)}/review`,
+      submissionReviewPayload(payload),
+    );
+    return mapSubmissionToUi(response.submission);
+  },
+
+  async listSubmissionAnswers(homeworkId: string, submissionId: string) {
+    const response = await apiGet<
+      BackendHomeworkSubmissionAnswersResponse | BackendHomeworkSubmissionAnswerDto[]
+    >(`${submissionPath(homeworkId, submissionId)}/answers`);
+    return extractAnswerList(response)
+      .map(mapSubmissionAnswerToUi)
+      .filter((answer) => answer.id);
+  },
+
+  async reviewSubmissionAnswer(homeworkId, submissionId, answerId, payload) {
+    const response = await apiPatch<BackendHomeworkSubmissionAnswerDto>(
+      `${submissionPath(homeworkId, submissionId)}/answers/${answerId}/review`,
+      payload,
+    );
+    return mapSubmissionAnswerToUi(response);
+  },
+
+  async bulkReviewSubmissionAnswers(homeworkId, submissionId, payload) {
+    const response = await apiPut<
+      BackendHomeworkSubmissionAnswersResponse | BackendHomeworkSubmissionAnswerDto[]
+    >(`${submissionPath(homeworkId, submissionId)}/answers/review`, payload);
+    return extractAnswerList(response)
+      .map(mapSubmissionAnswerToUi)
+      .filter((answer) => answer.id);
+  },
+
+  async listSubmissionAttachments(homeworkId, submissionId) {
+    const response = await apiGet<
+      | BackendHomeworkSubmissionAttachmentsResponse
+      | BackendHomeworkSubmissionAttachmentDto[]
+    >(`${submissionPath(homeworkId, submissionId)}/attachments`);
+    return extractSubmissionAttachmentList(response)
+      .map(mapSubmissionAttachmentToUi)
+      .filter((attachment) => attachment.id);
+  },
+
+  async getGradeSyncStatus(homeworkId: string) {
+    const response = await apiGet<BackendHomeworkGradeSyncStatusDto>(
+      `${BASE_PATH}/${homeworkId}/grade-sync`,
+    );
+    return mapGradeSyncStatus(response);
+  },
+
+  async linkGradeSync(homeworkId: string, gradeAssessmentId: string) {
+    const response = await apiPost<BackendHomeworkGradeSyncStatusDto>(
+      `${BASE_PATH}/${homeworkId}/grade-sync/link`,
+      { gradeAssessmentId },
+    );
+    return mapGradeSyncStatus(response);
+  },
+
+  async syncHomeworkGrades(homeworkId: string) {
+    const response = await apiPost<BackendHomeworkGradeSyncStatusDto>(
+      `${BASE_PATH}/${homeworkId}/grade-sync`,
+    );
+    return mapGradeSyncStatus(response);
+  },
+
+  async syncSubmissionGrade(homeworkId: string, submissionId: string) {
+    const response = await apiPost<BackendHomeworkGradeSyncStatusDto>(
+      `${submissionPath(homeworkId, submissionId)}/grade-sync`,
+    );
+    return mapGradeSyncStatus(response);
   },
 };

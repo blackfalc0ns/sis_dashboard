@@ -84,7 +84,67 @@ export const createHomeworkAttachment: HomeworkAdapter["createAttachment"] =
   (homeworkId, payload) =>
     homeworkAdapter.createAttachment(homeworkId, payload);
 
+export const updateHomeworkAttachment: HomeworkAdapter["updateAttachment"] =
+  (homeworkId, attachmentId, payload) =>
+    homeworkAdapter.updateAttachment(homeworkId, attachmentId, payload);
+
+export const reorderHomeworkAttachment: HomeworkAdapter["reorderAttachment"] =
+  (homeworkId, attachmentId, order) =>
+    homeworkAdapter.reorderAttachment(homeworkId, attachmentId, order);
+
 export const deleteHomeworkAttachment: HomeworkAdapter["deleteAttachment"] = (
   homeworkId,
   attachmentId,
 ) => homeworkAdapter.deleteAttachment(homeworkId, attachmentId);
+
+export const listHomeworkSubmissions: HomeworkAdapter["listSubmissions"] = (
+  homeworkId,
+) => homeworkAdapter.listSubmissions(homeworkId);
+
+export const fetchHomeworkSubmission: HomeworkAdapter["getSubmission"] = (
+  homeworkId,
+  submissionId,
+) => homeworkAdapter.getSubmission(homeworkId, submissionId);
+
+export const reviewHomeworkSubmission: HomeworkAdapter["reviewSubmission"] = (
+  homeworkId,
+  submissionId,
+  payload,
+) => homeworkAdapter.reviewSubmission(homeworkId, submissionId, payload);
+
+export const listHomeworkSubmissionAnswers: HomeworkAdapter["listSubmissionAnswers"] =
+  (homeworkId, submissionId) =>
+    homeworkAdapter.listSubmissionAnswers(homeworkId, submissionId);
+
+export const reviewHomeworkSubmissionAnswer: HomeworkAdapter["reviewSubmissionAnswer"] =
+  (homeworkId, submissionId, answerId, payload) =>
+    homeworkAdapter.reviewSubmissionAnswer(
+      homeworkId,
+      submissionId,
+      answerId,
+      payload,
+    );
+
+export const bulkReviewHomeworkSubmissionAnswers: HomeworkAdapter["bulkReviewSubmissionAnswers"] =
+  (homeworkId, submissionId, payload) =>
+    homeworkAdapter.bulkReviewSubmissionAnswers(homeworkId, submissionId, payload);
+
+export const listHomeworkSubmissionAttachments: HomeworkAdapter["listSubmissionAttachments"] =
+  (homeworkId, submissionId) =>
+    homeworkAdapter.listSubmissionAttachments(homeworkId, submissionId);
+
+export const getHomeworkGradeSyncStatus: HomeworkAdapter["getGradeSyncStatus"] =
+  (homeworkId) => homeworkAdapter.getGradeSyncStatus(homeworkId);
+
+export const linkHomeworkGradeSync: HomeworkAdapter["linkGradeSync"] = (
+  homeworkId,
+  gradeAssessmentId,
+) => homeworkAdapter.linkGradeSync(homeworkId, gradeAssessmentId);
+
+export const syncHomeworkGrades: HomeworkAdapter["syncHomeworkGrades"] = (
+  homeworkId,
+) => homeworkAdapter.syncHomeworkGrades(homeworkId);
+
+export const syncHomeworkSubmissionGrade: HomeworkAdapter["syncSubmissionGrade"] =
+  (homeworkId, submissionId) =>
+    homeworkAdapter.syncSubmissionGrade(homeworkId, submissionId);

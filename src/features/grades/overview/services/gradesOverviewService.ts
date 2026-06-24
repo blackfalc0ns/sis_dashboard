@@ -110,6 +110,7 @@ export async function fetchAssessments(
         scopeId: scopeIdParam(filters),
         subjectId: filters.subjectId,
         approvalStatus: filters.includeDrafts ? undefined : "PUBLISHED",
+        deliveryMode: filters.deliveryMode,
       },
     }
   );

@@ -4,7 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { ClipboardCheck, Download } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
-import type { ExamScopeType } from "../types";
+import type { AssessmentDeliveryMode, ExamScopeType } from "../types";
 
 interface ScopeEntity {
   id: string;
@@ -19,9 +19,11 @@ interface GradesFiltersPanelProps {
   selectedScopeType: ExamScopeType;
   selectedScopeId: string;
   selectedSubjectId: string;
+  selectedDeliveryMode?: AssessmentDeliveryMode | "";
   onScopeTypeChange: (value: ExamScopeType) => void;
   onScopeIdChange: (value: string) => void;
   onSubjectChange: (value: string) => void;
+  onDeliveryModeChange?: (value: AssessmentDeliveryMode | "") => void;
   selectedContextText?: string | null;
   isReadOnly: boolean;
   onCreateAssessment?: () => void;
@@ -37,9 +39,11 @@ export default function GradesFiltersPanel({
   selectedScopeType,
   selectedScopeId,
   selectedSubjectId,
+  selectedDeliveryMode = "",
   onScopeTypeChange,
   onScopeIdChange,
   onSubjectChange,
+  onDeliveryModeChange,
   selectedContextText,
   isReadOnly,
   onCreateAssessment,
@@ -58,7 +62,7 @@ export default function GradesFiltersPanel({
         backgroundColor: "var(--surface-color)",
       }}
     >
-      <div className={`grid grid-cols-1 gap-4 md:grid-cols-2 ${showSubjectFilter ? "xl:grid-cols-3" : "xl:grid-cols-2"}`}>
+      <div className={`grid grid-cols-1 gap-4 md:grid-cols-2 ${showSubjectFilter || onDeliveryModeChange ? "xl:grid-cols-3" : "xl:grid-cols-2"}`}>
         <Select
           label={t("filters.scopeType")}
           value={selectedScopeType}
@@ -89,6 +93,19 @@ export default function GradesFiltersPanel({
               label: locale === "ar" ? subject.nameAr : subject.nameEn,
             }))}
             placeholder={t("filters.selectSubject")}
+          />
+        ) : null}
+        {onDeliveryModeChange ? (
+          <Select
+            label={t("filters.deliveryMode")}
+            value={selectedDeliveryMode}
+            onChange={(value) => onDeliveryModeChange(value as AssessmentDeliveryMode | "")}
+            options={[
+              { value: "", label: t("filters.deliveryModes.all") },
+              { value: "SCORE_ONLY", label: t("filters.deliveryModes.scoreOnly") },
+              { value: "QUESTION_BASED", label: t("filters.deliveryModes.questionBased") },
+            ]}
+            placeholder={t("filters.deliveryMode")}
           />
         ) : null}
       </div>

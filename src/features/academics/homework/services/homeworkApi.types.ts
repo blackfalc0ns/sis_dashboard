@@ -46,7 +46,9 @@ export interface BackendHomeworkListResponse {
 }
 
 export interface BackendHomeworkAssignmentDto {
-  id: string;
+  id?: string;
+  homeworkId?: string;
+  assignmentId?: string;
   title?: string;
   description?: string | null;
   mode?: HomeworkMode;
@@ -54,6 +56,8 @@ export interface BackendHomeworkAssignmentDto {
   targetMode?: HomeworkTargetMode;
   academicYearId?: string;
   termId?: string;
+  classroomId?: string;
+  subjectId?: string;
   teacherSubjectAllocationId?: string;
   teacherUserId?: string;
   timetableEntryId?: string | null;
@@ -212,6 +216,8 @@ export interface HomeworkAssignmentUiModel {
   id: string;
   academicYearId?: string;
   termId?: string;
+  classroomId?: string;
+  subjectId?: string;
   teacherSubjectAllocationId?: string;
   title: string;
   description?: string;
@@ -248,6 +254,239 @@ export interface HomeworkTargetUiModel {
   submittedAt?: string | null;
   reviewedAt?: string | null;
   excusedAt?: string | null;
+}
+
+export interface BackendHomeworkSubmissionDto {
+  submissionId?: string;
+  id?: string;
+  homeworkId?: string;
+  targetId?: string;
+  studentId?: string;
+  enrollmentId?: string;
+  student?: BackendNamedRef & {
+    id?: string;
+    displayName?: string;
+    studentNumber?: string | null;
+  };
+  status?: string;
+  bodyText?: string | null;
+  submittedAt?: string | null;
+  reviewedAt?: string | null;
+  awardedMarks?: number | string | null;
+  totalMarks?: number | string | null;
+  score?: number | string | null;
+  reviewNote?: string | null;
+  isLate?: boolean;
+  gradeItemId?: string | null;
+  syncedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface BackendHomeworkSubmissionsResponse {
+  items?: BackendHomeworkSubmissionDto[];
+  submissions?: BackendHomeworkSubmissionDto[];
+  meta?: BackendHomeworkListResponse["meta"];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+  };
+}
+
+export interface BackendHomeworkSubmissionResponse {
+  submission: BackendHomeworkSubmissionDto;
+}
+
+export interface HomeworkSubmissionListFilters {
+  status?: "submitted" | "late" | "reviewed" | "pending_review";
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface BackendHomeworkSubmissionAnswerDto {
+  answerId?: string;
+  id?: string;
+  questionId?: string;
+  question?: {
+    id?: string;
+    prompt?: string;
+    text?: string;
+    type?: string;
+    points?: number | string | null;
+  };
+  prompt?: {
+    questionId?: string;
+    type?: string;
+    prompt?: string;
+    points?: number | string | null;
+    isRequired?: boolean;
+  } | string;
+  questionPrompt?: string;
+  questionType?: string;
+  answerText?: string | null;
+  textAnswer?: string | null;
+  text?: string | null;
+  value?: string | number | boolean | string[] | null;
+  selectedOptionIds?: string[];
+  score?: number | string | null;
+  awardedMarks?: number | string | null;
+  awardedPoints?: number | string | null;
+  maxScore?: number | string | null;
+  points?: number | string | null;
+  feedback?: string | null;
+  reviewNote?: string | null;
+  teacherComment?: string | null;
+  isCorrect?: boolean | null;
+  reviewedAt?: string | null;
+}
+
+export interface BackendHomeworkSubmissionAnswersResponse {
+  items?: BackendHomeworkSubmissionAnswerDto[];
+  answers?: BackendHomeworkSubmissionAnswerDto[];
+}
+
+export interface BackendHomeworkSubmissionAttachmentDto {
+  attachmentId?: string;
+  id?: string;
+  fileId?: string;
+  title?: string | null;
+  description?: string | null;
+  file?: {
+    filename?: string;
+    mimeType?: string;
+    sizeBytes?: string | number;
+    url?: string;
+  };
+  createdAt?: string;
+}
+
+export interface BackendHomeworkSubmissionAttachmentsResponse {
+  items?: BackendHomeworkSubmissionAttachmentDto[];
+  attachments?: BackendHomeworkSubmissionAttachmentDto[];
+}
+
+export interface HomeworkSubmissionUiModel {
+  id: string;
+  homeworkId?: string;
+  targetId?: string;
+  studentId?: string;
+  studentNumber?: string | null;
+  enrollmentId?: string;
+  studentName: string;
+  status: string;
+  bodyText?: string | null;
+  submittedAt?: string | null;
+  reviewedAt?: string | null;
+  awardedMarks?: number;
+  totalMarks?: number;
+  reviewNote?: string | null;
+  isLate?: boolean;
+  gradeItemId?: string | null;
+  syncedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface HomeworkSubmissionAnswerUiModel {
+  id: string;
+  questionId?: string;
+  prompt: string;
+  questionType?: string;
+  answerText: string;
+  score?: number;
+  maxScore?: number;
+  feedback?: string | null;
+  isCorrect?: boolean | null;
+  reviewedAt?: string | null;
+}
+
+export interface HomeworkSubmissionAttachmentUiModel {
+  id: string;
+  fileId?: string;
+  title: string;
+  description?: string | null;
+  filename?: string;
+  mimeType?: string;
+  sizeBytes?: string | number;
+  url?: string;
+  createdAt?: string;
+}
+
+export interface HomeworkAnswerReviewRequest {
+  score?: number;
+  feedback?: string;
+  isCorrect?: boolean;
+}
+
+export interface HomeworkBulkAnswerReviewRequest {
+  answers: Array<HomeworkAnswerReviewRequest & { answerId: string }>;
+}
+
+export interface HomeworkSubmissionReviewRequest {
+  reviewNote?: string;
+  awardedMarks?: number;
+}
+
+export interface HomeworkGradeSyncStatusUiModel {
+  homeworkId: string;
+  linked: boolean;
+  gradeAssessment?: {
+    id?: string;
+    title?: string;
+    type?: string;
+    deliveryMode?: string;
+    status?: string;
+    maxMarks?: number;
+    isLocked?: boolean;
+  };
+  syncSummary?: {
+    total?: number;
+    synced?: number;
+    skipped?: number;
+    failed?: number;
+    lastSyncedAt?: string | null;
+  };
+  warnings: string[];
+  submissionSync?: {
+    submissionId?: string;
+    studentId?: string;
+    enrollmentId?: string;
+    score?: number;
+    gradeItemId?: string;
+    synced?: boolean;
+    idempotent?: boolean;
+  };
+}
+
+export interface BackendHomeworkGradeSyncStatusDto {
+  homeworkId?: string;
+  linked?: boolean;
+  gradeAssessment?: {
+    id?: string;
+    gradeAssessmentId?: string;
+    title?: string | null;
+    type?: string;
+    deliveryMode?: string;
+    status?: string;
+    maxMarks?: number;
+    maxScore?: number;
+    isLocked?: boolean;
+  } | null;
+  syncSummary?: {
+    total?: number;
+    synced?: number;
+    skipped?: number;
+    failed?: number;
+    totalReviewedSubmissions?: number;
+    syncedSubmissions?: number;
+    pendingSyncSubmissions?: number;
+    failedSyncSubmissions?: number;
+    lastSyncedAt?: string | null;
+  };
+  warnings?: string[];
+  submissionSync?: HomeworkGradeSyncStatusUiModel["submissionSync"];
 }
 
 export interface HomeworkAdapter {
@@ -308,5 +547,63 @@ export interface HomeworkAdapter {
       sortOrder?: number;
     },
   ): Promise<AssignmentAttachment>;
+  updateAttachment(
+    homeworkId: string,
+    attachmentId: string,
+    payload: {
+      title?: string;
+      description?: string;
+      sortOrder?: number;
+    },
+  ): Promise<AssignmentAttachment>;
+  reorderAttachment(
+    homeworkId: string,
+    attachmentId: string,
+    order: number,
+  ): Promise<AssignmentAttachment>;
   deleteAttachment(homeworkId: string, attachmentId: string): Promise<void>;
+  listSubmissions(
+    homeworkId: string,
+    filters?: HomeworkSubmissionListFilters,
+  ): Promise<HomeworkSubmissionUiModel[]>;
+  getSubmission(
+    homeworkId: string,
+    submissionId: string,
+  ): Promise<HomeworkSubmissionUiModel>;
+  reviewSubmission(
+    homeworkId: string,
+    submissionId: string,
+    payload: HomeworkSubmissionReviewRequest,
+  ): Promise<HomeworkSubmissionUiModel>;
+  listSubmissionAnswers(
+    homeworkId: string,
+    submissionId: string,
+  ): Promise<HomeworkSubmissionAnswerUiModel[]>;
+  reviewSubmissionAnswer(
+    homeworkId: string,
+    submissionId: string,
+    answerId: string,
+    payload: HomeworkAnswerReviewRequest,
+  ): Promise<HomeworkSubmissionAnswerUiModel>;
+  bulkReviewSubmissionAnswers(
+    homeworkId: string,
+    submissionId: string,
+    payload: HomeworkBulkAnswerReviewRequest,
+  ): Promise<HomeworkSubmissionAnswerUiModel[]>;
+  listSubmissionAttachments(
+    homeworkId: string,
+    submissionId: string,
+  ): Promise<HomeworkSubmissionAttachmentUiModel[]>;
+  getGradeSyncStatus(
+    homeworkId: string,
+  ): Promise<HomeworkGradeSyncStatusUiModel>;
+  linkGradeSync(
+    homeworkId: string,
+    gradeAssessmentId: string,
+  ): Promise<HomeworkGradeSyncStatusUiModel>;
+  syncHomeworkGrades(homeworkId: string): Promise<HomeworkGradeSyncStatusUiModel>;
+  syncSubmissionGrade(
+    homeworkId: string,
+    submissionId: string,
+  ): Promise<HomeworkGradeSyncStatusUiModel>;
 }

@@ -6,16 +6,10 @@ import Input from "@/components/ui/input/Input";
 import DatePicker from "@/components/ui/input/DatePicker";
 import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
-import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
-import type { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { ExcuseRequestFilters } from "../types";
 
 interface ExcusesFiltersBarProps {
   filters: ExcuseRequestFilters;
-  stages: Stage[];
-  grades: Grade[];
-  sections: Section[];
-  classrooms: Classroom[];
   onFiltersChange: (patch: Partial<ExcuseRequestFilters>) => void;
   onReset: () => void;
   onOpenExport: () => void;
@@ -23,10 +17,6 @@ interface ExcusesFiltersBarProps {
 
 export default function ExcusesFiltersBar({
   filters,
-  stages,
-  grades,
-  sections,
-  classrooms,
   onFiltersChange,
   onReset,
   onOpenExport,
@@ -88,18 +78,6 @@ export default function ExcusesFiltersBar({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
-        <div className="lg:col-span-8 rounded-lg border p-3" style={{ borderColor: "var(--border-color)" }}>
-          <ScopePicker
-            scopeType={filters.scopeType}
-            scopeIds={filters.scopeIds || {}}
-            stages={stages}
-            grades={grades}
-            sections={sections}
-            classrooms={classrooms}
-            onScopeTypeChange={(scopeType) => onFiltersChange({ scopeType, scopeIds: {} })}
-            onScopeIdsChange={(scopeIds) => onFiltersChange({ scopeIds })}
-          />
-        </div>
         <div className="lg:col-span-4">
           <Select
             value={filters.hasAttachment}

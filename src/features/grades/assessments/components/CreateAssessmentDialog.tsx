@@ -85,6 +85,9 @@ export default function CreateAssessmentDialog({
       { value: "MONTH_EXAM", label: t("types.monthExam") },
       { value: "MIDTERM", label: t("types.midterm") },
       { value: "TERM_EXAM", label: t("types.termExam") },
+      { value: "ASSIGNMENT", label: t("types.assignment") },
+      { value: "FINAL", label: t("types.final") },
+      { value: "PRACTICAL", label: t("types.practical") },
     ],
     [t],
   );

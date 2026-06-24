@@ -336,14 +336,28 @@ export default function AttendanceRollCallPage() {
 
         // Fetch timetable config if PERIOD mode
         if (effectivePolicy?.mode === "PERIOD") {
-          const termConfig = await fetchTimetableConfig(termContext.termId!, "TERM");
+          const termConfig = await fetchTimetableConfig({
+            academicYearId: termContext.yearId!,
+            termId: termContext.termId!,
+            scopeType: "TERM",
+          });
           const gradeConfig =
             scopeIds.gradeId
-              ? await fetchTimetableConfig(termContext.termId!, "GRADE", scopeIds.gradeId)
+              ? await fetchTimetableConfig({
+                  academicYearId: termContext.yearId!,
+                  termId: termContext.termId!,
+                  scopeType: "GRADE",
+                  gradeId: scopeIds.gradeId,
+                })
               : null;
           const sectionConfig =
             scopeIds.sectionId
-              ? await fetchTimetableConfig(termContext.termId!, "SECTION", scopeIds.sectionId)
+              ? await fetchTimetableConfig({
+                  academicYearId: termContext.yearId!,
+                  termId: termContext.termId!,
+                  scopeType: "SECTION",
+                  sectionId: scopeIds.sectionId,
+                })
               : null;
 
           const resolved = resolveTimetableConfig(termConfig, gradeConfig, sectionConfig);
@@ -379,7 +393,13 @@ export default function AttendanceRollCallPage() {
         setIsLoading(true);
 
         // Fetch roster
-        const rosterData = await fetchRoster(scopeType, scopeIds);
+        const rosterData = await fetchRoster(scopeType, scopeIds, {
+          yearId: termContext.yearId!,
+          termId: termContext.termId!,
+          date,
+          mode: policy.mode,
+          periodKey: selectedPeriodId || undefined,
+        });
         setRoster(rosterData);
 
         // Get or create session

@@ -210,6 +210,9 @@ export default function CreateAssessmentPage() {
                 { value: "MONTH_EXAM", label: tDialog("types.monthExam") },
                 { value: "MIDTERM", label: tDialog("types.midterm") },
                 { value: "TERM_EXAM", label: tDialog("types.termExam") },
+                { value: "ASSIGNMENT", label: tDialog("types.assignment") },
+                { value: "FINAL", label: tDialog("types.final") },
+                { value: "PRACTICAL", label: tDialog("types.practical") },
               ]}
             />
             <DatePicker

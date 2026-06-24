@@ -1,21 +1,8 @@
-﻿import { mockStudents } from "@/data/mockStudents";
-import {
-  fetchStructureTree,
-  type Classroom,
-  type Grade,
-  type Section,
-} from "@/features/academics/academic-structure-tree/services/structureService";
-import { fetchPolicies } from "@/features/attendance/policies/services/attendancePolicyService";
-import {
-  fetchEntriesForSessions,
-  fetchRoster,
-  fetchSessions,
-  upsertEntry,
-} from "@/features/attendance/roll-call/services/attendanceRollCallService";
-import { matchesResolvedAttendanceScope } from "@/features/attendance/shared/attendanceScope";
-import type { AttendanceEntry, AttendanceSession } from "@/features/attendance/roll-call/types";
+import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import type { Incident, LateEarlyFilters } from "../types";
-import { deriveIncidentsFromSessions, resolveSessionScope } from "../utils/deriveIncidents";
+import type { AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
+
+type BackendRecord = Record<string, unknown>;
 
 interface FetchIncidentsParams extends Partial<LateEarlyFilters> {
   yearId: string;
@@ -29,188 +16,169 @@ interface UpdateIncidentMinutesParams {
   studentId: string;
   type: "LATE" | "EARLY_LEAVE";
   minutes: number;
+  incidentId?: string;
 }
 
-interface StudentLike {
-  id: string;
-  studentNumber?: string;
-  nameAr?: string;
-  nameEn?: string;
-  full_name_ar?: string;
-  full_name_en?: string;
-  student_id?: string;
+function asRecord(value: unknown): BackendRecord {
+  return value && typeof value === "object" ? (value as BackendRecord) : {};
 }
 
-function buildStudentsMap(roster: Awaited<ReturnType<typeof fetchRoster>>): Map<string, StudentLike> {
-  const map = new Map<string, StudentLike>();
-
-  for (const student of mockStudents as StudentLike[]) {
-    map.set(student.id, student);
+function unwrapArray(response: unknown): unknown[] {
+  if (Array.isArray(response)) return response;
+  const object = asRecord(response);
+  for (const key of ["items", "data", "records", "incidents", "absences"]) {
+    if (Array.isArray(object[key])) return object[key] as unknown[];
   }
+  return [];
+}
 
-  for (const student of roster) {
-    map.set(student.id, {
-      id: student.id,
-      nameAr: student.nameAr,
-      nameEn: student.nameEn,
-      studentNumber: student.studentNumber,
-    });
+function getString(object: BackendRecord, keys: string[], fallback = "") {
+  for (const key of keys) {
+    const value = object[key];
+    if (typeof value === "string" && value.length > 0) return value;
   }
-
-  return map;
+  return fallback;
 }
 
-function applyScopeFilter(
-  sessions: AttendanceSession[],
-  scopeType: LateEarlyFilters["scopeType"],
-  scopeIds: LateEarlyFilters["scopeIds"],
-  grades: Grade[],
-  sections: Section[],
-  classrooms: Classroom[]
-): AttendanceSession[] {
-  const gradesById = new Map(grades.map((grade) => [grade.id, grade]));
-  const sectionsById = new Map(sections.map((section) => [section.id, section]));
-  const classroomsById = new Map(classrooms.map((classroom) => [classroom.id, classroom]));
-
-  return sessions.filter((session) => {
-    const resolved = resolveSessionScope(session, gradesById, sectionsById, classroomsById);
-    return matchesResolvedAttendanceScope(scopeType, scopeIds, resolved);
-  });
+function getNumber(object: BackendRecord, keys: string[], fallback = 0) {
+  for (const key of keys) {
+    const value = object[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return fallback;
 }
 
-function applyIncidentFilters(incidents: Incident[], filters: Partial<LateEarlyFilters>): Incident[] {
-  const {
-    type = "ALL",
-    onlyViolations = false,
-    minutesMin,
-    minutesMax,
-    periodIndex,
-    search = "",
-    sessionStatus = "ALL",
-  } = filters;
+function getOptionalNumber(object: BackendRecord, keys: string[]) {
+  for (const key of keys) {
+    const value = object[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return undefined;
+}
 
+function resolveScopeKey(scopeType: LateEarlyFilters["scopeType"], scopeIds?: AttendanceScopeIds) {
+  if (scopeType === "CLASSROOM") return scopeIds?.classroomId ? `classroom:${scopeIds.classroomId}` : undefined;
+  if (scopeType === "SECTION") return scopeIds?.sectionId ? `section:${scopeIds.sectionId}` : undefined;
+  if (scopeType === "GRADE") return scopeIds?.gradeId ? `grade:${scopeIds.gradeId}` : undefined;
+  if (scopeType === "STAGE") return scopeIds?.stageId ? `stage:${scopeIds.stageId}` : undefined;
+  return "school";
+}
+
+function mapIncident(item: unknown, fallback: { yearId: string; termId: string }): Incident {
+  const object = asRecord(item);
+  const status = String(object.status || object.type || "LATE").toUpperCase();
+  const type = status === "EARLY_LEAVE" ? "EARLY_LEAVE" : "LATE";
+  const minutes = type === "LATE"
+    ? getNumber(object, ["minutesLate", "lateMinutes", "minutes"])
+    : getNumber(object, ["minutesEarlyLeave", "earlyLeaveMinutes", "minutes"]);
+
+  return {
+    id: getString(object, ["id", "incidentId", "entryId"]),
+    yearId: getString(object, ["yearId", "academicYearId"], fallback.yearId),
+    termId: getString(object, ["termId"], fallback.termId),
+    date: getString(object, ["date", "occurredAt"]).slice(0, 10),
+    periodIndex: getNumber(object, ["periodIndex"]),
+    periodNameAr: getString(object, ["periodNameAr"]),
+    periodNameEn: getString(object, ["periodNameEn"]),
+    sessionId: getString(object, ["sourceSessionId", "sessionId"]),
+    studentId: getString(object, ["studentId"]),
+    studentNameAr: getString(object, ["studentNameAr", "nameAr", "studentNameEn"]),
+    studentNameEn: getString(object, ["studentNameEn", "nameEn", "studentNameAr"]),
+    studentNumber: getString(object, ["studentNumber", "admissionNo", "studentCode"]),
+    stageId: getString(object, ["stageId"]),
+    gradeId: getString(object, ["gradeId"]),
+    sectionId: getString(object, ["sectionId"]),
+    classroomId: getString(object, ["classroomId"]),
+    gradeNameAr: getString(object, ["gradeNameAr"]),
+    gradeNameEn: getString(object, ["gradeNameEn"]),
+    sectionNameAr: getString(object, ["sectionNameAr"]),
+    sectionNameEn: getString(object, ["sectionNameEn"]),
+    classroomNameAr: getString(object, ["classroomNameAr"]),
+    classroomNameEn: getString(object, ["classroomNameEn"]),
+    type,
+    minutes,
+    threshold: getOptionalNumber(object, ["threshold"]),
+    isViolation: typeof object.isViolation === "boolean" ? object.isViolation : false,
+    policyScopeSummary: getString(object, ["policyScopeSummary"], ""),
+    sessionStatus: String(object.sessionStatus || "SUBMITTED").toUpperCase() as Incident["sessionStatus"],
+    updatedAt: getString(object, ["updatedAt"], new Date().toISOString()),
+  };
+}
+
+function applyClientFilters(incidents: Incident[], filters: Partial<LateEarlyFilters>) {
   return incidents.filter((incident) => {
-    if (type !== "ALL" && incident.type !== type) return false;
-    if (onlyViolations && !incident.isViolation) return false;
-    if (typeof minutesMin === "number" && incident.minutes < minutesMin) return false;
-    if (typeof minutesMax === "number" && incident.minutes > minutesMax) return false;
-    if (typeof periodIndex === "number" && incident.periodIndex !== periodIndex) return false;
-    if (sessionStatus !== "ALL" && incident.sessionStatus !== sessionStatus) return false;
-
-    if (search.trim()) {
-      const query = search.trim().toLowerCase();
-      const haystack = [incident.studentNameAr, incident.studentNameEn, incident.studentNumber || ""]
-        .join(" ")
-        .toLowerCase();
+    if (filters.type && filters.type !== "ALL" && incident.type !== filters.type) return false;
+    if (filters.onlyViolations && !incident.isViolation) return false;
+    if (typeof filters.minutesMin === "number" && incident.minutes < filters.minutesMin) return false;
+    if (typeof filters.minutesMax === "number" && incident.minutes > filters.minutesMax) return false;
+    if (typeof filters.periodIndex === "number" && incident.periodIndex !== filters.periodIndex) return false;
+    if (filters.sessionStatus && filters.sessionStatus !== "ALL" && incident.sessionStatus !== filters.sessionStatus) return false;
+    if (filters.search?.trim()) {
+      const query = filters.search.trim().toLowerCase();
+      const haystack = [incident.studentNameAr, incident.studentNameEn, incident.studentNumber || ""].join(" ").toLowerCase();
       if (!haystack.includes(query)) return false;
     }
-
     return true;
   });
 }
 
 export async function fetchIncidents(params: FetchIncidentsParams): Promise<Incident[]> {
-  const {
-    yearId,
-    termId,
-    dateFrom,
-    dateTo,
-    scopeType = "SCHOOL",
-    scopeIds,
-    sessionStatus = "ALL",
-  } = params;
-
-  const [structure, policies, allSessions] = await Promise.all([
-    fetchStructureTree(yearId, termId),
-    fetchPolicies(yearId, termId),
-    fetchSessions(yearId, termId, dateFrom, dateTo),
-  ]);
-
-  let sessions = allSessions;
-
-  // Filter by session status
-  if (sessionStatus !== "ALL") {
-    sessions = sessions.filter((session) => session.status === sessionStatus);
-  } else {
-    // By default, only show SUBMITTED sessions to avoid counting DRAFT as incidents
-    sessions = sessions.filter((session) => session.status === "SUBMITTED");
-  }
-
-  sessions = applyScopeFilter(sessions, scopeType, scopeIds, structure.grades, structure.sections, structure.classrooms);
-
-  if (sessions.length === 0) return [];
-
-  const sessionIds = sessions.map((session) => session.id);
-  const [entries, roster] = await Promise.all([
-    fetchEntriesForSessions(yearId, termId, sessionIds),
-    fetchRoster("SCHOOL", {}),
-  ]);
-
-  const incidents = deriveIncidentsFromSessions({
-    yearId,
-    termId,
-    sessions,
-    entries,
-    policies,
-    grades: structure.grades,
-    sections: structure.sections,
-    classrooms: structure.classrooms,
-    studentsById: buildStudentsMap(roster),
+  const requestedStatus = params.type && params.type !== "ALL" ? params.type : undefined;
+  const response = await apiGet<unknown>("/attendance/absences", {
+    params: {
+      academicYearId: params.yearId,
+      termId: params.termId,
+      dateFrom: params.dateFrom,
+      dateTo: params.dateTo,
+      scopeType: params.scopeType,
+      scopeKey: params.scopeType ? resolveScopeKey(params.scopeType, params.scopeIds) : undefined,
+      status: requestedStatus,
+    },
   });
 
-  const filtered = applyIncidentFilters(incidents, params);
-
-  return filtered.sort((a, b) => {
-    if (a.date !== b.date) return b.date.localeCompare(a.date);
-    if (a.minutes !== b.minutes) return b.minutes - a.minutes;
-    return (a.studentNameEn || "").localeCompare(b.studentNameEn || "");
-  });
+  return applyClientFilters(
+    unwrapArray(response)
+      .map((item) => mapIncident(item, params))
+      .filter((incident) => incident.type === "LATE" || incident.type === "EARLY_LEAVE"),
+    params,
+  );
 }
 
 export async function updateIncidentMinutes(params: UpdateIncidentMinutesParams): Promise<Incident> {
-  const { yearId, termId, sessionId, studentId, type, minutes } = params;
-
-  if (!Number.isFinite(minutes) || minutes < 0) {
-    throw new Error("Minutes must be a non-negative number");
+  if (!Number.isFinite(params.minutes) || params.minutes < 1) {
+    throw new Error("Minutes must be at least 1");
   }
 
-  const patch: Partial<AttendanceEntry> =
-    type === "LATE"
-      ? { status: "LATE", minutesLate: minutes }
-      : { status: "EARLY_LEAVE", minutesEarlyLeave: minutes };
+  if (params.type === "EARLY_LEAVE") {
+    if (!params.incidentId) {
+      throw new Error("Early-leave correction requires an incident id");
+    }
 
-  const [updatedEntry, structure, policies, sessions, roster] = await Promise.all([
-    upsertEntry(yearId, termId, sessionId, studentId, patch),
-    fetchStructureTree(yearId, termId),
-    fetchPolicies(yearId, termId),
-    fetchSessions(yearId, termId),
-    fetchRoster("SCHOOL", {}),
-  ]);
-
-  const session = sessions.find((item) => item.id === sessionId);
-  if (!session) {
-    throw new Error("Session not found");
+    const response = await apiPatch<unknown>(`/attendance/absences/${params.incidentId}/early-leave`, {
+      earlyLeaveMinutes: params.minutes,
+      correctionReason: "Corrected early leave minutes",
+      note: "Corrected early leave minutes",
+    });
+    return mapIncident(response, params);
   }
 
-  const incidents = deriveIncidentsFromSessions({
-    yearId,
-    termId,
-    sessions: [session],
-    entries: [updatedEntry],
-    policies,
-    grades: structure.grades,
-    sections: structure.sections,
-    classrooms: structure.classrooms,
-    studentsById: buildStudentsMap(roster),
-  });
-
-  const updatedIncident = incidents.find(
-    (incident) => incident.sessionId === sessionId && incident.studentId === studentId && incident.type === type
+  const response = await apiPost<unknown>(
+    `/attendance/roll-call/sessions/${params.sessionId}/entries/${params.studentId}/correct`,
+    {
+      status: "LATE",
+      lateMinutes: params.minutes,
+      correctionReason: "Corrected late minutes",
+      note: "Corrected late minutes",
+    },
   );
 
-  if (!updatedIncident) {
-    throw new Error("Incident not found after update");
-  }
-
-  return updatedIncident;
+  return mapIncident(response, params);
 }

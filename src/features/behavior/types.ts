@@ -1,7 +1,7 @@
 // ─── Primitive enums (lowercase, matching API values) ──────────────────────
 export type BehaviorType = "positive" | "negative";
-export type BehaviorStatus = "draft" | "submitted" | "approved" | "rejected";
-export type BehaviorSeverity = "low" | "medium" | "high";
+export type BehaviorStatus = "draft" | "submitted" | "approved" | "rejected" | "cancelled";
+export type BehaviorSeverity = "low" | "medium" | "high" | "critical";
 
 // ─── Scope filter types (self-contained, no attendance dependency) ──────────
 export type BehaviorScopeType =
@@ -64,6 +64,7 @@ export interface BehaviorCategoryUpdatePayload {
   nameAr?: string;
   descriptionEn?: string;
   descriptionAr?: string;
+  type?: BehaviorType;
   defaultSeverity?: BehaviorSeverity;
   defaultPoints?: number;
   isActive?: boolean;
@@ -123,24 +124,32 @@ export interface BehaviorRecord {
 
 export interface BehaviorRecordCreatePayload {
   academicYearId: string;
-  termId: string;
+  termId?: string;
   studentId: string;
   enrollmentId?: string;
-  categoryId: string;
+  categoryId?: string;
+  type?: BehaviorType;
+  severity?: BehaviorSeverity;
   titleEn?: string;
   titleAr?: string;
   noteEn?: string;
   noteAr?: string;
+  points?: number;
   occurredAt: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface BehaviorRecordUpdatePayload {
+  categoryId?: string;
+  type?: BehaviorType;
   titleEn?: string;
   titleAr?: string;
   noteEn?: string;
   noteAr?: string;
   points?: number;
   severity?: BehaviorSeverity;
+  occurredAt?: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 /** POST /behavior/records → response */
@@ -188,10 +197,20 @@ export interface BehaviorRecordListFilters {
   academicYearId?: string;
   termId?: string;
   studentId?: string;
+  enrollmentId?: string;
+  categoryId?: string;
   status?: BehaviorStatus;
   type?: BehaviorType;
+  severity?: BehaviorSeverity;
   dateFrom?: string;
   dateTo?: string;
+  occurredFrom?: string;
+  occurredTo?: string;
+  createdById?: string;
+  includeDeleted?: boolean;
+  search?: string;
+  limit?: number;
+  offset?: number;
 }
 
 /** GET /behavior/records → items shape */
@@ -219,6 +238,20 @@ export interface BehaviorReviewQueueFilters {
   academicYearId?: string;
   termId?: string;
   studentId?: string;
+  enrollmentId?: string;
+  categoryId?: string;
+  type?: BehaviorType;
+  severity?: BehaviorSeverity;
+  status?: BehaviorStatus;
+  dateFrom?: string;
+  dateTo?: string;
+  occurredFrom?: string;
+  occurredTo?: string;
+  submittedFrom?: string;
+  submittedTo?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
 }
 
 /** GET /behavior/review-queue → items shape */
@@ -233,6 +266,15 @@ export interface BehaviorOverviewFilters {
   termId?: string;
   classroomId?: string;
   studentId?: string;
+  type?: BehaviorType;
+  severity?: BehaviorSeverity;
+  status?: BehaviorStatus;
+  dateFrom?: string;
+  dateTo?: string;
+  occurredFrom?: string;
+  occurredTo?: string;
+  includeRecentActivity?: boolean;
+  includeTopCategories?: boolean;
 }
 
 /** GET /behavior/overview → response */
@@ -330,6 +372,10 @@ export interface BehaviorOverviewTopStudent {
 export interface BehaviorStudentSummaryFilters {
   academicYearId?: string;
   termId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  occurredFrom?: string;
+  occurredTo?: string;
   includeTimeline?: boolean;
   includeCategoryBreakdown?: boolean;
   includeLedger?: boolean;
@@ -346,6 +392,10 @@ export interface BehaviorStudentSummaryResponse {
 export interface BehaviorClassroomSummaryFilters {
   academicYearId?: string;
   termId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  occurredFrom?: string;
+  occurredTo?: string;
   includeStudents?: boolean;
   includeCategoryBreakdown?: boolean;
   includeRecentActivity?: boolean;

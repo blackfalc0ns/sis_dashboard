@@ -1,0 +1,124 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { apiGet, apiPatch } from "@/lib/api";
+import {
+  fetchAbsenceRecords,
+  updateEarlyLeaveMinutes,
+  updateExcuse,
+} from "@/features/attendance/absences/services/attendanceAbsencesService";
+import type { AbsenceRecord } from "@/features/attendance/absences/types";
+
+vi.mock("@/lib/api", () => ({
+  apiGet: vi.fn(),
+  apiPatch: vi.fn(),
+}));
+
+const mockedApiGet = vi.mocked(apiGet);
+const mockedApiPatch = vi.mocked(apiPatch);
+
+describe("attendanceAbsencesService", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("loads dashboard incidents from the backend absences endpoint", async () => {
+    mockedApiGet.mockResolvedValueOnce({
+      items: [
+        {
+          id: "incident-1",
+          academicYearId: "year-1",
+          termId: "term-1",
+          date: "2026-02-10",
+          studentId: "student-1",
+          studentNameEn: "Sara Ali",
+          studentNameAr: "سارة علي",
+          studentNumber: "S-001",
+          scopeType: "CLASSROOM",
+          scopeKey: "classroom-1",
+          status: "ABSENT",
+          sourceSessionId: "session-1",
+          updatedAt: "2026-02-10T07:30:00.000Z",
+        },
+      ],
+    });
+
+    await expect(
+      fetchAbsenceRecords({
+        yearId: "year-1",
+        termId: "term-1",
+        dateFrom: "2026-02-01",
+        dateTo: "2026-02-28",
+        scopeType: "CLASSROOM",
+        scopeIds: { classroomId: "classroom-1" },
+        status: "ALL",
+        granularities: ["PERIOD"],
+        onlyUnexcused: false,
+        search: "sara",
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        id: "incident-1",
+        yearId: "year-1",
+        termId: "term-1",
+        status: "ABSENT",
+        scopeIds: { classroomId: "classroom-1" },
+      }),
+    ]);
+
+    expect(mockedApiGet).toHaveBeenCalledWith("/attendance/absences", {
+      params: {
+        academicYearId: "year-1",
+        termId: "term-1",
+        dateFrom: "2026-02-01",
+        dateTo: "2026-02-28",
+        scopeType: "CLASSROOM",
+        scopeKey: "classroom:classroom-1",
+        status: undefined,
+      },
+    });
+  });
+
+  it("uses backend correction endpoints for excuse and early leave updates", async () => {
+    const record: AbsenceRecord = {
+      id: "incident-1",
+      yearId: "year-1",
+      termId: "term-1",
+      date: "2026-02-10",
+      studentId: "student-1",
+      studentNumber: "S-001",
+      studentNameAr: "سارة علي",
+      studentNameEn: "Sara Ali",
+      scopeType: "CLASSROOM",
+      scopeIds: { classroomId: "classroom-1" },
+      granularity: "PERIOD",
+      status: "ABSENT",
+      sourceSessionId: "session-1",
+      updatedAt: "2026-02-10T07:30:00.000Z",
+    };
+
+    mockedApiPatch.mockResolvedValue({});
+
+    await updateExcuse(record, "Medical appointment", [
+      { id: "file-1", name: "medical.pdf", size: 1000, type: "application/pdf", uploadedAt: "" },
+    ]);
+    await updateEarlyLeaveMinutes(record, 20);
+
+    expect(mockedApiPatch).toHaveBeenNthCalledWith(
+      1,
+      "/attendance/absences/incident-1/excuse",
+      {
+        correctionReason: "Medical appointment",
+        excuseReason: "Medical appointment",
+        note: "Medical appointment",
+      },
+    );
+    expect(mockedApiPatch).toHaveBeenNthCalledWith(
+      2,
+      "/attendance/absences/incident-1/early-leave",
+      {
+        earlyLeaveMinutes: 20,
+        correctionReason: "Corrected early leave minutes",
+        note: "Corrected early leave minutes",
+      },
+    );
+  });
+});

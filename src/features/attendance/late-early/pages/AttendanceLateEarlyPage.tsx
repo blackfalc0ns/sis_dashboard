@@ -156,7 +156,11 @@ export default function AttendanceLateEarlyPage() {
     const loadStructure = async () => {
       const [structure, termConfig] = await Promise.all([
         fetchStructureTree(termContext.yearId!, termContext.termId!),
-        fetchTimetableConfig(termContext.termId!, "TERM"),
+        fetchTimetableConfig({
+          academicYearId: termContext.yearId!,
+          termId: termContext.termId!,
+          scopeType: "TERM",
+        }),
       ]);
 
       setStages(structure.stages);
@@ -366,6 +370,7 @@ export default function AttendanceLateEarlyPage() {
         studentId: editingIncident.studentId,
         type: editingIncident.type,
         minutes,
+        incidentId: editingIncident.id,
       });
       showSuccess(t("minutesSaved"));
       await reloadIncidents();

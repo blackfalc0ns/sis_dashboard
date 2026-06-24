@@ -1,4 +1,5 @@
 import { mockStudents } from "@/data/mockStudents";
+import { apiGet } from "@/lib/api";
 import {
   fetchStructureTree,
   type Classroom,
@@ -47,6 +48,68 @@ import type {
 } from "../types";
 
 const ATTENDANCE_THRESHOLD = 85;
+
+type BackendReportSummary = {
+  totalEntries?: number;
+  presentCount?: number;
+  absentCount?: number;
+  lateCount?: number;
+  earlyLeaveCount?: number;
+  excusedCount?: number;
+  attendanceRate?: number;
+  affectedStudentsCount?: number;
+};
+
+type BackendTrendRow = {
+  date: string;
+  totalEntries?: number;
+  presentCount?: number;
+  absentCount?: number;
+  lateCount?: number;
+  earlyLeaveCount?: number;
+  excusedCount?: number;
+  attendanceRate?: number;
+};
+
+type BackendScopeBreakdownRow = {
+  scopeId: string;
+  scopeNameAr?: string;
+  scopeNameEn?: string;
+  totalEntries?: number;
+  presentCount?: number;
+  absentCount?: number;
+  lateCount?: number;
+  earlyLeaveCount?: number;
+  excusedCount?: number;
+  attendanceRate?: number;
+};
+
+function resolveReportScopeKey(scopeType: AttendanceReportsFilters["scopeType"], scopeIds?: AttendanceScopeIds) {
+  if (scopeType === "CLASSROOM") return scopeIds?.classroomId ? `classroom:${scopeIds.classroomId}` : undefined;
+  if (scopeType === "SECTION") return scopeIds?.sectionId ? `section:${scopeIds.sectionId}` : undefined;
+  if (scopeType === "GRADE") return scopeIds?.gradeId ? `grade:${scopeIds.gradeId}` : undefined;
+  if (scopeType === "STAGE") return scopeIds?.stageId ? `stage:${scopeIds.stageId}` : undefined;
+  return "school";
+}
+
+function buildReportQueryParams(params: AttendanceReportsFilters & { yearId: string; termId: string }) {
+  return {
+    academicYearId: params.yearId,
+    termId: params.termId,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+    scopeType: params.scopeType,
+    scopeKey: resolveReportScopeKey(params.scopeType, params.scopeIds),
+  };
+}
+
+function unwrapItems<T>(response: unknown): T[] {
+  if (Array.isArray(response)) return response as T[];
+  if (response && typeof response === "object" && Array.isArray((response as { items?: unknown[] }).items)) {
+    return (response as { items: T[] }).items;
+  }
+  return [];
+}
 
 // Attendance policies do not currently define student-risk thresholds,
 // so reports use centralized operational heuristics here.
@@ -236,7 +299,7 @@ async function loadBaseAttendanceData(filters: AttendanceReportsFilters & { year
   const [structure, sessions, schoolRoster] = await Promise.all([
     fetchStructureTree(yearId, termId),
     fetchSessions(yearId, termId, dateFrom, dateTo),
-    fetchRoster("SCHOOL", {}),
+    fetchRoster("SCHOOL", {}, { yearId, termId, date: dateFrom }),
   ]);
 
   const submittedSessions = sessions.filter((session) => session.status === "SUBMITTED");
@@ -282,16 +345,24 @@ async function loadBaseAttendanceData(filters: AttendanceReportsFilters & { year
 async function buildMissingAttendanceCounts(
   sessions: AttendanceSession[],
   attendanceRows: ReportsAttendanceRow[],
+  yearId: string,
+  termId: string,
   studentId?: string
 ) {
   const rosterCache = new Map<string, Awaited<ReturnType<typeof fetchRoster>>>();
   const counts = new Map<string, number>();
 
   for (const session of sessions) {
-    const key = `${session.scopeType}-${JSON.stringify(session.scopeIds || {})}`;
+    const key = `${session.date}-${session.mode}-${session.periodId || ""}-${session.scopeType}-${JSON.stringify(session.scopeIds || {})}`;
     let roster = rosterCache.get(key);
     if (!roster) {
-      roster = await fetchRoster(session.scopeType, session.scopeIds || {});
+      roster = await fetchRoster(session.scopeType, session.scopeIds || {}, {
+        yearId,
+        termId,
+        date: session.date,
+        mode: session.mode,
+        periodKey: session.periodId,
+      });
       rosterCache.set(key, roster);
     }
 
@@ -336,6 +407,22 @@ function buildTrend(pointsSource: ReportsAttendanceRow[], bucket: ReportsTrendBu
         earlyLeaveCount: rows.filter((row) => row.status === "EARLY_LEAVE").length,
       };
     });
+}
+
+function mapBackendTrend(items: BackendTrendRow[]): ReportsTrendPoint[] {
+  return items.map((item) => ({
+    key: item.date,
+    label: item.date,
+    dateFrom: item.date,
+    dateTo: item.date,
+    attendanceRate: item.attendanceRate || 0,
+    markedCount: item.totalEntries || 0,
+    presentCount: item.presentCount || 0,
+    absentCount: item.absentCount || 0,
+    excusedCount: item.excusedCount || 0,
+    lateCount: item.lateCount || 0,
+    earlyLeaveCount: item.earlyLeaveCount || 0,
+  }));
 }
 
 function aggregateScopeBreakdown(
@@ -796,6 +883,26 @@ function buildPerformanceRows(
   return Array.from(grouped.values()).sort((a, b) => a.attendanceRate - b.attendanceRate);
 }
 
+function mapBackendPerformanceRows(
+  level: ReportsPerformanceLevel,
+  items: BackendScopeBreakdownRow[]
+): ReportsPerformanceRow[] {
+  return items.map((item) => ({
+    id: item.scopeId,
+    level,
+    labelAr: item.scopeNameAr || item.scopeNameEn || item.scopeId,
+    labelEn: item.scopeNameEn || item.scopeNameAr || item.scopeId,
+    attendanceRate: item.attendanceRate || 0,
+    markedCount: item.totalEntries || 0,
+    presentCount: item.presentCount || 0,
+    absentCount: item.absentCount || 0,
+    excusedCount: item.excusedCount || 0,
+    lateCount: item.lateCount || 0,
+    earlyLeaveCount: item.earlyLeaveCount || 0,
+    studentCount: 0,
+  }));
+}
+
 function buildOverviewCards(
   attendanceRows: ReportsAttendanceRow[],
   incidents: Incident[],
@@ -860,9 +967,52 @@ function buildOverviewCards(
   };
 }
 
+function applyBackendSummaryToOverview(
+  overview: AttendanceReportsData["overview"],
+  summary: BackendReportSummary | null
+): AttendanceReportsData["overview"] {
+  if (!summary) return overview;
+  const replacements: Partial<Record<ReportsKpiCard["key"], number>> = {
+    attendanceRate: summary.attendanceRate,
+    presentCount: summary.presentCount,
+    absentCount: summary.absentCount,
+    excusedCount: summary.excusedCount,
+    lateCount: summary.lateCount,
+    earlyLeaveCount: summary.earlyLeaveCount,
+  };
+
+  return {
+    ...overview,
+    cards: overview.cards.map((card) => {
+      const value = replacements[card.key];
+      if (typeof value !== "number") return card;
+      return {
+        ...card,
+        value,
+        displayValue: card.key === "attendanceRate" ? `${Math.round(value)}%` : `${value}`,
+      };
+    }),
+  };
+}
+
 export async function fetchAttendanceReportSummary(
   params: AttendanceReportsFilters & { yearId: string; termId: string }
 ): Promise<AttendanceReportsData> {
+  const reportQueryParams = buildReportQueryParams(params);
+  const [backendSummary, backendTrendResponse, backendBreakdownResponse] = await Promise.all([
+    apiGet<BackendReportSummary>("/attendance/reports/summary", {
+      params: reportQueryParams,
+    }),
+    apiGet<unknown>("/attendance/reports/daily-trend", {
+      params: reportQueryParams,
+    }),
+    apiGet<unknown>("/attendance/reports/scope-breakdown", {
+      params: {
+        ...reportQueryParams,
+        groupBy: "classroom",
+      },
+    }),
+  ]);
   const base = await loadBaseAttendanceData(params);
 
   const previousRange = shiftRange(params.dateFrom, params.dateTo);
@@ -912,31 +1062,40 @@ export async function fetchAttendanceReportSummary(
       termId: params.termId,
       dateFrom: params.dateFrom,
       dateTo: params.dateTo,
-      scopeType: params.scopeType,
-      scopeIds: params.scopeIds,
       status: params.excuseStatus,
       type: "ALL",
       search: "",
       hasAttachment: "ALL",
     }).then((rows) => rows.filter((row) => !params.studentId || row.studentId === params.studentId)),
-    buildMissingAttendanceCounts(base.filteredSessions, base.attendanceRows, params.studentId),
+    buildMissingAttendanceCounts(base.filteredSessions, base.attendanceRows, params.yearId, params.termId, params.studentId),
   ]);
 
   const bucket = getTrendBucket(params.dateFrom, params.dateTo);
-  const trend = buildTrend(base.attendanceRows, bucket);
+  const backendTrend = mapBackendTrend(unwrapItems<BackendTrendRow>(backendTrendResponse));
+  const trend = backendTrend.length > 0 ? backendTrend : buildTrend(base.attendanceRows, bucket);
   const absenceAnalysis = buildAbsenceAnalysis(absenceRecords, base.attendanceRows, bucket);
   const lateEarlyAnalysis = buildLateEarlyAnalysis(incidents, base.attendanceRows, bucket);
   const excusesAnalysis = buildExcusesAnalysis(excuseRequests, base.maps);
   const riskStudents = buildRiskStudents(base.attendanceRows, absenceRecords, incidents, excuseRequests, missingCounts);
 
+  const backendClassroomPerformance = mapBackendPerformanceRows(
+    "classroom",
+    unwrapItems<BackendScopeBreakdownRow>(backendBreakdownResponse)
+  );
+
   const performance = {
     stage: buildPerformanceRows("stage", base.attendanceRows, previousBase.attendanceRows || []),
     grade: buildPerformanceRows("grade", base.attendanceRows, previousBase.attendanceRows || []),
     section: buildPerformanceRows("section", base.attendanceRows, previousBase.attendanceRows || []),
-    classroom: buildPerformanceRows("classroom", base.attendanceRows, previousBase.attendanceRows || []),
+    classroom: backendClassroomPerformance.length > 0
+      ? backendClassroomPerformance
+      : buildPerformanceRows("classroom", base.attendanceRows, previousBase.attendanceRows || []),
   } satisfies Record<ReportsPerformanceLevel, ReportsPerformanceRow[]>;
 
-  const overview = buildOverviewCards(base.attendanceRows, incidents, riskStudents, performance, previousBase.attendanceRows || []);
+  const overview = applyBackendSummaryToOverview(
+    buildOverviewCards(base.attendanceRows, incidents, riskStudents, performance, previousBase.attendanceRows || []),
+    backendSummary
+  );
 
   const studentOptions: ReportsStudentOption[] = Array.from(
     new Map(

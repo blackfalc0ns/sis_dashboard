@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const apiMocks = vi.hoisted(() => ({ apiGet: vi.fn() }));
 vi.mock("@/lib/api", () => apiMocks);
 
-import { fetchGradesOverview } from "../gradesOverviewService";
+import { fetchAssessments, fetchGradesOverview } from "../gradesOverviewService";
 
 describe("grades overview endpoint contract", () => {
   beforeEach(() => apiMocks.apiGet.mockReset());
@@ -29,5 +29,52 @@ describe("grades overview endpoint contract", () => {
     });
     expect(report.summary).toEqual({ totalStudents: 2, totalAssessments: 1, classAverage: 75, highestAverage: 90, lowestAverage: 60, completionRate: 50 });
     expect(report.trend).toEqual([{ label: "Quiz", average: 75 }]);
+  });
+
+  it("does not default assessment lists to score-only", async () => {
+    apiMocks.apiGet.mockResolvedValue({ items: [] });
+
+    await fetchAssessments("year-1", "term-1", {
+      scopeType: "stage",
+      scopeId: "stage-1",
+      subjectId: "subject-1",
+      includeDrafts: true,
+    });
+
+    expect(apiMocks.apiGet).toHaveBeenCalledWith("/grades/assessments", {
+      params: {
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "stage",
+        scopeId: "stage-1",
+        subjectId: "subject-1",
+        approvalStatus: undefined,
+        deliveryMode: undefined,
+      },
+    });
+  });
+
+  it("passes the optional delivery mode filter to assessment lists", async () => {
+    apiMocks.apiGet.mockResolvedValue({ items: [] });
+
+    await fetchAssessments("year-1", "term-1", {
+      scopeType: "stage",
+      scopeId: "stage-1",
+      subjectId: "subject-1",
+      includeDrafts: true,
+      deliveryMode: "QUESTION_BASED",
+    });
+
+    expect(apiMocks.apiGet).toHaveBeenCalledWith("/grades/assessments", {
+      params: {
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "stage",
+        scopeId: "stage-1",
+        subjectId: "subject-1",
+        approvalStatus: undefined,
+        deliveryMode: "QUESTION_BASED",
+      },
+    });
   });
 });

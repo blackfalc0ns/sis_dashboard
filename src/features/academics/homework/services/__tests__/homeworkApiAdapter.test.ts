@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
+import { ApiError } from "@/lib/api-error";
 import { homeworkApiAdapter } from "@/features/academics/homework/services/homeworkApiAdapter";
 
 vi.mock("@/lib/api", () => ({
@@ -7,12 +8,14 @@ vi.mock("@/lib/api", () => ({
   apiGet: vi.fn(),
   apiPatch: vi.fn(),
   apiPost: vi.fn(),
+  apiPut: vi.fn(),
 }));
 
 const mockedApiDelete = vi.mocked(apiDelete);
 const mockedApiGet = vi.mocked(apiGet);
 const mockedApiPatch = vi.mocked(apiPatch);
 const mockedApiPost = vi.mocked(apiPost);
+const mockedApiPut = vi.mocked(apiPut);
 
 describe("homeworkApiAdapter", () => {
   beforeEach(() => {
@@ -42,6 +45,33 @@ describe("homeworkApiAdapter", () => {
         termId: "term-1",
         status: "draft",
       },
+    });
+  });
+
+  it("uses backend homework id aliases for list row navigation", async () => {
+    mockedApiGet.mockResolvedValueOnce({
+      items: [
+        {
+          homeworkId: "homework-from-route",
+          assignmentId: "legacy-assignment",
+          title: "HW",
+          status: "draft",
+          classroomId: "classroom-1",
+          subjectId: "subject-1",
+        },
+      ],
+      meta: { page: 1, limit: 25, total: 1, totalPages: 1 },
+    });
+
+    await expect(homeworkApiAdapter.listAssignments({})).resolves.toEqual({
+      items: [
+        expect.objectContaining({
+          id: "homework-from-route",
+          classroomId: "classroom-1",
+          subjectId: "subject-1",
+        }),
+      ],
+      meta: { page: 1, limit: 25, total: 1, totalPages: 1 },
     });
   });
 
@@ -129,6 +159,79 @@ describe("homeworkApiAdapter", () => {
     );
   });
 
+  it("treats missing question and attachment child collections as empty", async () => {
+    mockedApiGet
+      .mockRejectedValueOnce(new ApiError("Questions not found", 404, "not_found"))
+      .mockRejectedValueOnce(new ApiError("Attachments not found", 404, "not_found"));
+
+    await expect(homeworkApiAdapter.listQuestions("homework-1")).resolves.toEqual([]);
+    await expect(homeworkApiAdapter.listAttachments("homework-1")).resolves.toEqual([]);
+
+    expect(mockedApiGet).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/questions",
+    );
+    expect(mockedApiGet).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/attachments",
+    );
+  });
+
+  it("updates and reorders assignment attachments under the homework assignment", async () => {
+    mockedApiPatch
+      .mockResolvedValueOnce({
+        attachment: {
+          attachmentId: "attachment-1",
+          homeworkId: "homework-1",
+          fileId: "file-1",
+          title: "Updated worksheet",
+          description: "Read first",
+          sortOrder: 0,
+          file: {
+            filename: "worksheet.pdf",
+            mimeType: "application/pdf",
+            sizeBytes: "1200",
+          },
+          createdAt: "",
+          updatedAt: "",
+        },
+      })
+      .mockResolvedValueOnce({
+        attachment: {
+          attachmentId: "attachment-1",
+          homeworkId: "homework-1",
+          fileId: "file-1",
+          title: "Updated worksheet",
+          description: "Read first",
+          sortOrder: 2,
+          file: {
+            filename: "worksheet.pdf",
+            mimeType: "application/pdf",
+            sizeBytes: "1200",
+          },
+          createdAt: "",
+          updatedAt: "",
+        },
+      });
+
+    await expect(
+      homeworkApiAdapter.updateAttachment("homework-1", "attachment-1", {
+        title: "Updated worksheet",
+        description: "Read first",
+      }),
+    ).resolves.toEqual(expect.objectContaining({ id: "attachment-1" }));
+    await expect(
+      homeworkApiAdapter.reorderAttachment("homework-1", "attachment-1", 2),
+    ).resolves.toEqual(expect.objectContaining({ id: "attachment-1" }));
+
+    expect(mockedApiPatch).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/attachments/attachment-1",
+      { title: "Updated worksheet", description: "Read first" },
+    );
+    expect(mockedApiPatch).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/attachments/attachment-1/reorder",
+      { sortOrder: 2 },
+    );
+  });
+
   it("unwraps question detail responses", async () => {
     mockedApiPost.mockResolvedValueOnce({
       question: { questionId: "question-1", homeworkId: "homework-1", type: "short_text", prompt: "Explain", points: 2, sortOrder: 0, isRequired: true, options: [], createdAt: "", updatedAt: "" },
@@ -207,5 +310,201 @@ describe("homeworkApiAdapter", () => {
       { text: "False", isCorrect: true },
     );
     expect(mockedApiDelete).not.toHaveBeenCalled();
+  });
+
+  it("lists dashboard submissions from the core homework review surface", async () => {
+    mockedApiGet.mockResolvedValueOnce({
+      submissions: [
+        {
+          id: "submission-1",
+          homeworkId: "homework-1",
+          targetId: "target-1",
+          student: {
+            id: "student-1",
+            displayName: "Student Name",
+            studentNumber: "S-001",
+          },
+          status: "submitted",
+          bodyText: "Submitted body",
+          submittedAt: "2026-06-24T10:00:00.000Z",
+          reviewedAt: null,
+          reviewNote: null,
+          awardedMarks: null,
+          totalMarks: 20,
+          isLate: false,
+        },
+      ],
+      pagination: { page: 1, limit: 25, total: 1 },
+    });
+
+    await expect(homeworkApiAdapter.listSubmissions("homework-1")).resolves.toEqual([
+      expect.objectContaining({
+        id: "submission-1",
+        homeworkId: "homework-1",
+        targetId: "target-1",
+        studentId: "student-1",
+        studentName: "Student Name",
+        studentNumber: "S-001",
+        status: "submitted",
+        bodyText: "Submitted body",
+        totalMarks: 20,
+        isLate: false,
+      }),
+    ]);
+
+    expect(mockedApiGet).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/submissions",
+    );
+  });
+
+  it("wires submission content review and grade sync endpoints under core homework", async () => {
+    mockedApiGet
+      .mockResolvedValueOnce({
+        submission: {
+          id: "submission-1",
+          homeworkId: "homework-1",
+          student: { id: "student-1", displayName: "Student Name" },
+          status: "submitted",
+          awardedMarks: 4,
+          totalMarks: 5,
+          reviewNote: "Good",
+        },
+      })
+      .mockResolvedValueOnce({
+        items: [{
+          answerId: "answer-1",
+          questionId: "question-1",
+          type: "short_text",
+          prompt: {
+            questionId: "question-1",
+            type: "short_text",
+            prompt: "Explain",
+            points: 5,
+          },
+          textAnswer: "Answer",
+          awardedPoints: 4,
+          teacherComment: "Draft feedback",
+        }],
+      })
+      .mockResolvedValueOnce({ items: [] })
+      .mockResolvedValueOnce({
+        homeworkId: "homework-1",
+        linked: true,
+        gradeAssessment: { id: "assessment-1", title: "Assessment" },
+        warnings: [],
+      });
+    mockedApiPatch.mockResolvedValueOnce({
+      answerId: "answer-1",
+      prompt: "Explain",
+      answerText: "Answer",
+      score: 5,
+    }).mockResolvedValueOnce({
+      submission: {
+        id: "submission-1",
+        homeworkId: "homework-1",
+        student: { id: "student-1", displayName: "Student Name" },
+        status: "reviewed",
+        awardedMarks: 5,
+        totalMarks: 5,
+        reviewNote: "Final note",
+      },
+    });
+    mockedApiPut.mockResolvedValueOnce({
+      items: [{
+        answerId: "answer-1",
+        prompt: "Explain",
+        answerText: "Answer",
+        score: 5,
+      }],
+    });
+    mockedApiPost
+      .mockResolvedValueOnce({ homeworkId: "homework-1", linked: true, warnings: [] })
+      .mockResolvedValueOnce({ homeworkId: "homework-1", linked: true, warnings: [] })
+      .mockResolvedValueOnce({ homeworkId: "homework-1", linked: true, warnings: [] });
+
+    await expect(
+      homeworkApiAdapter.getSubmission("homework-1", "submission-1"),
+    ).resolves.toEqual(expect.objectContaining({
+      id: "submission-1",
+      studentName: "Student Name",
+      awardedMarks: 4,
+      totalMarks: 5,
+      reviewNote: "Good",
+    }));
+    await expect(
+      homeworkApiAdapter.listSubmissionAnswers("homework-1", "submission-1"),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        id: "answer-1",
+        questionId: "question-1",
+        prompt: "Explain",
+        answerText: "Answer",
+        score: 4,
+        maxScore: 5,
+        feedback: "Draft feedback",
+      }),
+    ]);
+    await homeworkApiAdapter.listSubmissionAttachments("homework-1", "submission-1");
+    await homeworkApiAdapter.reviewSubmissionAnswer(
+      "homework-1",
+      "submission-1",
+      "answer-1",
+      { score: 5, feedback: "Good answer" },
+    );
+    await expect(
+      homeworkApiAdapter.reviewSubmission("homework-1", "submission-1", {
+        awardedMarks: 5,
+        reviewNote: " Final note ",
+      }),
+    ).resolves.toEqual(expect.objectContaining({
+      id: "submission-1",
+      status: "reviewed",
+      awardedMarks: 5,
+      reviewNote: "Final note",
+    }));
+    await homeworkApiAdapter.bulkReviewSubmissionAnswers(
+      "homework-1",
+      "submission-1",
+      { answers: [{ answerId: "answer-1", score: 5 }] },
+    );
+    await homeworkApiAdapter.getGradeSyncStatus("homework-1");
+    await homeworkApiAdapter.linkGradeSync("homework-1", "assessment-1");
+    await homeworkApiAdapter.syncHomeworkGrades("homework-1");
+    await homeworkApiAdapter.syncSubmissionGrade("homework-1", "submission-1");
+
+    expect(mockedApiGet).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/submissions/submission-1",
+    );
+    expect(mockedApiGet).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/submissions/submission-1/answers",
+    );
+    expect(mockedApiGet).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/submissions/submission-1/attachments",
+    );
+    expect(mockedApiPatch).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/submissions/submission-1/answers/answer-1/review",
+      { score: 5, feedback: "Good answer" },
+    );
+    expect(mockedApiPatch).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/submissions/submission-1/review",
+      { awardedMarks: 5, reviewNote: "Final note" },
+    );
+    expect(mockedApiPut).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/submissions/submission-1/answers/review",
+      { answers: [{ answerId: "answer-1", score: 5 }] },
+    );
+    expect(mockedApiGet).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/grade-sync",
+    );
+    expect(mockedApiPost).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/grade-sync/link",
+      { gradeAssessmentId: "assessment-1" },
+    );
+    expect(mockedApiPost).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/grade-sync",
+    );
+    expect(mockedApiPost).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/submissions/submission-1/grade-sync",
+    );
   });
 });

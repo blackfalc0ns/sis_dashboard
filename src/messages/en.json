@@ -4367,6 +4367,11 @@
       },
       "builder": {
         "untitled": "Untitled homework",
+        "tabs": {
+          "builder": "Builder",
+          "submissions": "Submissions",
+          "gradeSync": "Grade sync"
+        },
         "actions": {
           "backToHomework": "Back to homework",
           "save": "Save",
@@ -4421,6 +4426,130 @@
           "attachmentUploadFailed": "Could not upload the attachment. Error: {code}",
           "attachmentDeleteFailed": "Failed to delete attachment ({code})",
           "lifecycleFailed": "Lifecycle action failed ({code})"
+        }
+      },
+      "review": {
+        "actions": {
+          "refresh": "Refresh",
+          "search": "Search",
+          "saveAnswer": "Save answer",
+          "saveAll": "Save all reviews",
+          "saveSubmission": "Save submission review",
+          "syncSubmission": "Sync submission"
+        },
+        "filters": {
+          "status": "Status",
+          "search": "Search",
+          "searchPlaceholder": "Student name or number",
+          "statuses": {
+            "all": "All submissions",
+            "pendingReview": "Pending review",
+            "submitted": "Submitted",
+            "late": "Late",
+            "reviewed": "Reviewed"
+          }
+        },
+        "summary": {
+          "visible": "Visible",
+          "pending": "Pending",
+          "late": "Late",
+          "reviewed": "Reviewed"
+        },
+        "submissions": {
+          "title": "Submission review",
+          "count": "{count, plural, one {# submission} other {# submissions}}",
+          "empty": "No submissions found for this homework.",
+          "late": "Late"
+        },
+        "detail": {
+          "selectSubmission": "Select a submission to review.",
+          "submittedAt": "Submitted {date}",
+          "loading": "Loading submission...",
+          "status": "Status",
+          "reviewedAt": "Reviewed",
+          "score": "Score",
+          "bodyText": "Submission note"
+        },
+        "submissionReview": {
+          "title": "Whole submission review",
+          "description": "Save the overall score and reviewer note for this submission.",
+          "awardedMarks": "Awarded marks",
+          "reviewNote": "Review note"
+        },
+        "answers": {
+          "title": "Answers",
+          "empty": "No answers found for this submission.",
+          "noAnswer": "No answer submitted.",
+          "score": "Score",
+          "feedback": "Feedback"
+        },
+        "attachments": {
+          "title": "Attachments",
+          "empty": "No submission attachments."
+        },
+        "messages": {
+          "answerSaved": "Answer review saved.",
+          "allSaved": "All answer reviews saved.",
+          "submissionSaved": "Submission review saved.",
+          "synced": "Submission grade synced."
+        },
+        "errors": {
+          "loadSubmissions": "Failed to load submissions ({code})",
+          "loadDetail": "Failed to load submission details ({code})",
+          "saveAnswer": "Failed to save answer review ({code})",
+          "saveAll": "Failed to save answer reviews ({code})",
+          "saveSubmission": "Failed to save submission review ({code})",
+          "sync": "Failed to sync submission grade ({code})"
+        }
+      },
+      "gradeSync": {
+        "title": "Homework grade sync",
+        "description": "Link this homework to a grade assessment and sync reviewed submission scores.",
+        "notGraded": "This homework is not marked as graded. Link and sync actions may be rejected by the backend.",
+        "actions": {
+          "refresh": "Refresh",
+          "link": "Link assessment",
+          "syncAll": "Sync all reviewed"
+        },
+        "link": {
+          "title": "Linked assessment",
+          "description": "Enter the grade assessment id that should receive synced homework scores.",
+          "assessmentId": "Grade assessment",
+          "placeholder": "Select an assessment",
+          "searchPlaceholder": "Search assessments",
+          "loading": "Loading assessments...",
+          "noAssessments": "No assessments found for this homework context.",
+          "noResults": "No matching assessments."
+        },
+        "status": {
+          "title": "Current status",
+          "linked": "Linked",
+          "assessment": "Assessment",
+          "yes": "Yes",
+          "no": "No"
+        },
+        "sync": {
+          "title": "Sync reviewed submissions",
+          "description": "Run sync after submissions have been reviewed. Re-running should be idempotent."
+        },
+        "summary": {
+          "total": "Total",
+          "synced": "Synced",
+          "skipped": "Skipped",
+          "failed": "Failed"
+        },
+        "warnings": {
+          "title": "Warnings"
+        },
+        "messages": {
+          "linked": "Homework linked to grade assessment.",
+          "synced": "Homework grades synced."
+        },
+        "errors": {
+          "load": "Failed to load grade sync status ({code})",
+          "loadAssessments": "Failed to load assessments ({code})",
+          "link": "Failed to link grade assessment ({code})",
+          "sync": "Failed to sync homework grades ({code})"
         }
       }
     },
@@ -5570,6 +5699,12 @@
         "selectScopeType": "Select Scope Type",
         "selectScope": "Select Scope",
         "selectSubject": "Select Subject",
+        "deliveryMode": "Delivery Mode",
+        "deliveryModes": {
+          "all": "All delivery modes",
+          "scoreOnly": "Score only",
+          "questionBased": "Question-based"
+        },
         "activeContext": "{subject} - {scope}",
         "scopeTypes": {
           "school": "Whole School",
@@ -5651,7 +5786,10 @@
         "quiz": "Quiz",
         "monthExam": "Month Exam",
         "midterm": "Midterm",
-        "termExam": "Term Exam"
+        "termExam": "Term Exam",
+        "assignment": "Assignment",
+        "final": "Final",
+        "practical": "Practical"
       },
       "emptyState": {
         "selectFilters": "Select a scope and subject to view the gradebook.",
@@ -5810,6 +5948,9 @@
             "monthExam": "Month Exam",
             "midterm": "Midterm",
             "termExam": "Term Exam",
+            "assignment": "Assignment",
+            "final": "Final",
+            "practical": "Practical",
             "scopeTypes": {
               "school": "Whole School",
               "stage": "Stage",
@@ -5847,6 +5988,9 @@
             "monthExam": "Month Exam",
             "midterm": "Midterm",
             "termExam": "Term Exam",
+            "assignment": "Assignment",
+            "final": "Final",
+            "practical": "Practical",
             "scopeTypes": {
               "school": "Whole School",
               "stage": "Stage",

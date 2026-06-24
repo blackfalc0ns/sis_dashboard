@@ -1,193 +1,259 @@
-// Attendance Roll Call Service
-
+import { apiGet, apiPost, apiPut } from "@/lib/api";
 import type {
-  AttendanceSession,
   AttendanceEntry,
+  AttendanceSession,
   AttendanceSessionMode,
   AttendanceSessionStatus,
-  SessionWithEntries,
+  AttendanceStatus,
   RosterStudent,
+  SessionWithEntries,
 } from "../types";
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
 import { fetchPolicies } from "@/features/attendance/policies/services/attendancePolicyService";
-import { mockStudentEnrollments, mockStudents } from "@/data/mockStudents";
 import {
   ATTENDANCE_SCOPE_PRIORITY,
-  isScopeSelectionComplete,
   matchesDirectAttendanceScope,
   resolveAttendanceHierarchyScope,
   scopeMatchesTarget,
   type AttendanceScopeIds,
 } from "@/features/attendance/shared/attendanceScope";
-import {
-  fetchAcademicYears,
-  fetchTermsByYear,
-  getStructureTreeSnapshot,
-  resolveStructureContextForAcademicYear,
-} from "@/features/academics/academic-structure-tree/services/structureService";
 
-// Term-scoped mock store
-const sessionStore: Record<string, AttendanceSession[]> = {};
-const entryStore: Record<string, AttendanceEntry[]> = {};
+type ScopeType = AttendanceSession["scopeType"];
 
-async function ensureSeededAttendanceData(yearId: string, termId: string) {
-  const storeKey = `${yearId}-${termId}`;
-  if ((sessionStore[storeKey]?.length || 0) > 0) {
-    return;
-  }
+type BackendRecord = Record<string, unknown>;
 
-  const [academicYears, terms] = await Promise.all([
-    fetchAcademicYears(),
-    fetchTermsByYear(yearId),
-  ]);
+const BASE = "/attendance/roll-call";
 
-  const academicYear = academicYears.find((item) => item.id === yearId);
-  const term = terms.find((item) => item.id === termId);
-  if (!academicYear || !term) {
-    return;
-  }
-
-  const structure = getStructureTreeSnapshot(yearId, termId);
-  const classroomsById = new Map(structure.classrooms.map((item) => [item.id, item]));
-  const sectionsById = new Map(structure.sections.map((item) => [item.id, item]));
-  const gradesById = new Map(structure.grades.map((item) => [item.id, item]));
-
-  const activeEnrollments = mockStudentEnrollments.filter(
-    (enrollment) =>
-      enrollment.academicYear === academicYear.name &&
-      enrollment.status === "active" &&
-      enrollment.classroomId &&
-      classroomsById.has(enrollment.classroomId)
-  );
-
-  const enrollmentsByClassroom = new Map<string, typeof activeEnrollments>();
-  for (const enrollment of activeEnrollments) {
-    const classroomId = enrollment.classroomId!;
-    if (!enrollmentsByClassroom.has(classroomId)) {
-      enrollmentsByClassroom.set(classroomId, []);
-    }
-    enrollmentsByClassroom.get(classroomId)!.push(enrollment);
-  }
-
-  const targetClassrooms = Array.from(enrollmentsByClassroom.entries())
-    .filter(([, enrollments]) => enrollments.length > 0)
-    .sort(([leftId], [rightId]) => {
-      const left = classroomsById.get(leftId);
-      const right = classroomsById.get(rightId);
-      return (left?.order || 0) - (right?.order || 0);
-    })
-    .slice(0, 6);
-
-  if (targetClassrooms.length === 0) {
-    return;
-  }
-
-  const seedDates: string[] = [];
-  const startDate = new Date(term.startDate);
-  for (let week = 0; week < 8; week += 1) {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + week * 7);
-    seedDates.push(date.toISOString().slice(0, 10));
-  }
-
-  sessionStore[storeKey] = [];
-  entryStore[storeKey] = [];
-
-  targetClassrooms.forEach(([classroomId, enrollments], classroomIndex) => {
-    const classroom = classroomsById.get(classroomId);
-    const section = classroom ? sectionsById.get(classroom.sectionId) : undefined;
-    const grade = section ? gradesById.get(section.gradeId) : undefined;
-
-    if (!classroom || !section || !grade) {
-      return;
-    }
-
-    seedDates.forEach((date, dateIndex) => {
-      const sessionId = `seed-session-${storeKey}-${classroomId}-${date}`;
-      const now = `${date}T07:00:00.000Z`;
-      const session: AttendanceSession = {
-        id: sessionId,
-        yearId,
-        termId,
-        date,
-        scopeType: "CLASSROOM",
-        scopeIds: {
-          stageId: grade.stageId,
-          gradeId: grade.id,
-          sectionId: section.id,
-          classroomId: classroom.id,
-        },
-        mode: "PERIOD",
-        periodId: `period-1`,
-        periodIndex: 1,
-        periodNameAr: "الحصة الأولى",
-        periodNameEn: "Period 1",
-        status: "SUBMITTED",
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      sessionStore[storeKey].push(session);
-
-      enrollments.forEach((enrollment, studentIndex) => {
-        const selector = (studentIndex + dateIndex + classroomIndex) % 11;
-        const baseEntry: AttendanceEntry = {
-          id: `seed-entry-${sessionId}-${enrollment.studentId}`,
-          sessionId,
-          studentId: enrollment.studentId,
-          status: "PRESENT",
-          updatedAt: `${date}T08:00:00.000Z`,
-        };
-
-        if (selector === 0) {
-          baseEntry.status = "ABSENT";
-          baseEntry.note = "Repeated absence for reports seeding";
-        } else if (selector === 1) {
-          baseEntry.status = "EXCUSED";
-          baseEntry.excuseReason = "Medical appointment";
-          baseEntry.excuseAttachments = [
-            {
-              id: `att-${sessionId}-${enrollment.studentId}`,
-              name: "medical-note.pdf",
-              size: 248000,
-              type: "application/pdf",
-              uploadedAt: `${date}T08:10:00.000Z`,
-            },
-          ];
-        } else if (selector === 2 || selector === 3) {
-          baseEntry.status = "LATE";
-          baseEntry.minutesLate = 7 + ((studentIndex + dateIndex) % 18);
-        } else if (selector === 4) {
-          baseEntry.status = "EARLY_LEAVE";
-          baseEntry.minutesEarlyLeave = 5 + ((studentIndex + classroomIndex) % 15);
-        }
-
-        entryStore[storeKey].push(baseEntry);
-      });
-    });
-  });
+function asRecord(value: unknown): BackendRecord {
+  return value && typeof value === "object" ? (value as BackendRecord) : {};
 }
 
-/**
- * Fetch effective policy for a scope and date
- * Priority: CLASSROOM > SECTION > GRADE > STAGE > SCHOOL
- */
+function unwrapArray<T = unknown>(response: unknown, keys: string[] = ["items", "data", "students", "sessions", "entries"]): T[] {
+  if (Array.isArray(response)) return response as T[];
+  const object = asRecord(response);
+  for (const key of keys) {
+    if (Array.isArray(object[key])) return object[key] as T[];
+  }
+  return [];
+}
+
+function unwrapObject(response: unknown, keys: string[]): BackendRecord {
+  const object = asRecord(response);
+  for (const key of keys) {
+    const nested = object[key];
+    if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+      return nested as BackendRecord;
+    }
+  }
+  return object;
+}
+
+function normalizeStatus<T extends string>(value: unknown, fallback: T): T {
+  return String(value || fallback).toUpperCase() as T;
+}
+
+function normalizeMode(value: unknown): AttendanceSessionMode {
+  return normalizeStatus<AttendanceSessionMode>(value, "DAILY");
+}
+
+function normalizeSessionStatus(value: unknown): AttendanceSessionStatus {
+  return normalizeStatus<AttendanceSessionStatus>(value, "DRAFT");
+}
+
+function normalizeEntryStatus(value: unknown): AttendanceStatus {
+  return normalizeStatus<AttendanceStatus>(value, "UNMARKED");
+}
+
+function getString(object: BackendRecord, keys: string[], fallback = ""): string {
+  for (const key of keys) {
+    const value = object[key];
+    if (typeof value === "string" && value.length > 0) return value;
+  }
+  return fallback;
+}
+
+function getNumber(object: BackendRecord, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = object[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim() !== "") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return undefined;
+}
+
+function getOptionalString(object: BackendRecord, keys: string[]): string | undefined {
+  const value = getString(object, keys);
+  return value || undefined;
+}
+
+function resolveScopeKey(scopeType: ScopeType, scopeIds?: AttendanceScopeIds): string | undefined {
+  if (scopeType === "CLASSROOM") return scopeIds?.classroomId ? `classroom:${scopeIds.classroomId}` : undefined;
+  if (scopeType === "SECTION") return scopeIds?.sectionId ? `section:${scopeIds.sectionId}` : undefined;
+  if (scopeType === "GRADE") return scopeIds?.gradeId ? `grade:${scopeIds.gradeId}` : undefined;
+  if (scopeType === "STAGE") return scopeIds?.stageId ? `stage:${scopeIds.stageId}` : undefined;
+  return "school";
+}
+
+function resolveScopeId(scopeType: ScopeType, scopeIds?: AttendanceScopeIds): string | undefined {
+  if (scopeType === "CLASSROOM") return scopeIds?.classroomId;
+  if (scopeType === "SECTION") return scopeIds?.sectionId;
+  if (scopeType === "GRADE") return scopeIds?.gradeId;
+  if (scopeType === "STAGE") return scopeIds?.stageId;
+  return undefined;
+}
+
+function buildScopeParams(scopeType: ScopeType, scopeIds?: AttendanceScopeIds) {
+  const params: Record<string, string> = {};
+  const scopeId = resolveScopeId(scopeType, scopeIds);
+  if (scopeId) params.scopeId = scopeId;
+  if (scopeIds?.stageId) params.stageId = scopeIds.stageId;
+  if (scopeIds?.gradeId) params.gradeId = scopeIds.gradeId;
+  if (scopeIds?.sectionId) params.sectionId = scopeIds.sectionId;
+  if (scopeIds?.classroomId) params.classroomId = scopeIds.classroomId;
+  return params;
+}
+
+function stripScopeKeyPrefix(scopeKey: string) {
+  const separatorIndex = scopeKey.indexOf(":");
+  return separatorIndex === -1 ? scopeKey : scopeKey.slice(separatorIndex + 1);
+}
+
+function resolveScopeIds(scopeType: ScopeType, item: BackendRecord, fallback?: AttendanceScopeIds): AttendanceScopeIds | undefined {
+  const nested = item.scopeIds && typeof item.scopeIds === "object" ? (item.scopeIds as AttendanceScopeIds) : undefined;
+  if (nested) return nested;
+
+  const scopeKey = getOptionalString(item, ["scopeKey", "scopeId"]);
+  if (!scopeKey || scopeKey === "school") return fallback;
+  const scopeId = stripScopeKeyPrefix(scopeKey);
+
+  if (scopeType === "CLASSROOM") return { ...fallback, classroomId: scopeId };
+  if (scopeType === "SECTION") return { ...fallback, sectionId: scopeId };
+  if (scopeType === "GRADE") return { ...fallback, gradeId: scopeId };
+  if (scopeType === "STAGE") return { ...fallback, stageId: scopeId };
+  return fallback;
+}
+
+function mapRosterStudent(item: unknown): RosterStudent {
+  const object = asRecord(item);
+  const id = getString(object, ["id", "studentId"]);
+  const displayName = getString(object, ["displayName", "name", "fullName", "studentName"], id);
+  const nameEn = getString(object, ["nameEn", "studentNameEn", "displayNameEn", "displayName"], displayName);
+  const nameAr = getString(object, ["nameAr", "studentNameAr", "displayNameAr", "displayName"], nameEn);
+
+  return {
+    id,
+    nameAr,
+    nameEn,
+    studentNumber: getString(object, ["studentNumber", "admissionNo", "studentCode", "code"], id),
+    photoUrl: getOptionalString(object, ["photoUrl", "avatarUrl"]),
+  };
+}
+
+function mapEntry(item: unknown, sessionIdFallback?: string): AttendanceEntry {
+  const object = asRecord(item);
+  const sessionId = getString(object, ["sessionId", "attendanceSessionId"], sessionIdFallback || "");
+  const status = normalizeEntryStatus(object.status);
+
+  return {
+    id: getString(object, ["id", "entryId", "attendanceEntryId"], `${sessionId}-${getString(object, ["studentId"])}`),
+    sessionId,
+    studentId: getString(object, ["studentId"]),
+    status,
+    minutesLate: getNumber(object, ["minutesLate", "lateMinutes"]),
+    minutesEarlyLeave: getNumber(object, ["minutesEarlyLeave", "earlyLeaveMinutes"]),
+    excuseReason: getOptionalString(object, ["excuseReason", "reason"]),
+    excuseAttachments: Array.isArray(object.excuseAttachments)
+      ? (object.excuseAttachments as AttendanceEntry["excuseAttachments"])
+      : Array.isArray(object.attachments)
+        ? (object.attachments as AttendanceEntry["excuseAttachments"])
+        : undefined,
+    note: getOptionalString(object, ["note"]),
+    hasAttachment: typeof object.hasAttachment === "boolean" ? object.hasAttachment : undefined,
+    updatedAt: getString(object, ["updatedAt"], new Date().toISOString()),
+  };
+}
+
+function mapSession(item: unknown, fallback?: Partial<AttendanceSession>): AttendanceSession {
+  const object = asRecord(item);
+  const scopeType = normalizeStatus<ScopeType>(object.scopeType, fallback?.scopeType || "SCHOOL");
+  const id = getString(object, ["id", "sessionId"], fallback?.id || "");
+
+  return {
+    id,
+    yearId: getString(object, ["yearId", "academicYearId"], fallback?.yearId || ""),
+    termId: getString(object, ["termId"], fallback?.termId || ""),
+    date: getString(object, ["date"], fallback?.date || ""),
+    scopeType,
+    scopeIds: resolveScopeIds(scopeType, object, fallback?.scopeIds),
+    mode: normalizeMode(object.mode || fallback?.mode),
+    periodId: getOptionalString(object, ["periodId"]) || fallback?.periodId,
+    periodIndex: getNumber(object, ["periodIndex"]) ?? fallback?.periodIndex,
+    periodNameAr: getOptionalString(object, ["periodNameAr"]) || fallback?.periodNameAr,
+    periodNameEn: getOptionalString(object, ["periodNameEn"]) || fallback?.periodNameEn,
+    status: normalizeSessionStatus(object.status || fallback?.status),
+    createdAt: getString(object, ["createdAt"], fallback?.createdAt || ""),
+    updatedAt: getString(object, ["updatedAt"], fallback?.updatedAt || ""),
+  };
+}
+
+function mapSessionWithEntries(response: unknown, fallback?: Partial<AttendanceSession>): SessionWithEntries {
+  const object = asRecord(response);
+  const sessionSource = object.session || object.data || object;
+  const session = mapSession(sessionSource, fallback);
+  const entries = unwrapArray(object.entries ?? object, ["entries"]).map((entry) => mapEntry(entry, session.id));
+  return { session, entries };
+}
+
+function buildEntryPayload(entry: Partial<AttendanceEntry>) {
+  return {
+    studentId: entry.studentId,
+    status: entry.status,
+    lateMinutes: entry.minutesLate,
+    earlyLeaveMinutes: entry.minutesEarlyLeave,
+    excuseReason: entry.excuseReason,
+    note: entry.note,
+  };
+}
+
+function buildSessionQuery(params: {
+  yearId?: string;
+  termId?: string;
+  startDate?: string;
+  endDate?: string;
+  scopeFilter?: {
+    scopeType: ScopeType;
+    scopeIds?: AttendanceScopeIds;
+  };
+}) {
+  const query: Record<string, string | undefined> = {
+    academicYearId: params.yearId,
+    termId: params.termId,
+    dateFrom: params.startDate,
+    dateTo: params.endDate,
+  };
+
+  if (params.scopeFilter) {
+    query.scopeType = params.scopeFilter.scopeType;
+    query.scopeKey = resolveScopeKey(params.scopeFilter.scopeType, params.scopeFilter.scopeIds);
+  }
+
+  return query;
+}
+
 export async function fetchEffectivePolicy(
   yearId: string,
   termId: string,
-  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSROOM",
+  scopeType: ScopeType,
   scopeIds: AttendanceScopeIds,
   date: string
 ): Promise<AttendancePolicy | null> {
-  await new Promise((resolve) => setTimeout(resolve, 100));
-
   const policies = await fetchPolicies(yearId, termId);
-
-  // Filter active policies that cover the date
-  const activePolicies = policies.filter((p) => {
-    if (!p.isActive) return false;
-    if (date < p.effectiveStartDate || date > p.effectiveEndDate) return false;
-    return true;
+  const activePolicies = policies.filter((policy) => {
+    if (!policy.isActive) return false;
+    return date >= policy.effectiveStartDate && date <= policy.effectiveEndDate;
   });
 
   const resolvedScope = resolveAttendanceHierarchyScope({ scopeType, scopeIds });
@@ -205,360 +271,134 @@ export async function fetchEffectivePolicy(
   return null;
 }
 
-function getEnrollmentScopeMaps() {
-  const gradesById = new Map<string, { stageId: string }>();
-  const sectionsById = new Map<string, { gradeId: string }>();
-  const classroomsById = new Map<string, { sectionId: string }>();
-
-  const seenContexts = new Set<string>();
-  for (const enrollment of mockStudentEnrollments) {
-    const context = resolveStructureContextForAcademicYear(enrollment.academicYear);
-    if (!context) continue;
-
-    const key = `${context.academicYearId}-${context.termId}`;
-    if (seenContexts.has(key)) continue;
-    seenContexts.add(key);
-
-    const structure = getStructureTreeSnapshot(context.academicYearId, context.termId);
-    structure.grades.forEach((grade) => gradesById.set(grade.id, { stageId: grade.stageId }));
-    structure.sections.forEach((section) => sectionsById.set(section.id, { gradeId: section.gradeId }));
-    structure.classrooms.forEach((classroom) =>
-      classroomsById.set(classroom.id, { sectionId: classroom.sectionId })
-    );
-  }
-
-  return { gradesById, sectionsById, classroomsById };
-}
-
-/**
- * Fetch roster (students) for a scope
- */
 export async function fetchRoster(
-  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSROOM",
-  scopeIds: AttendanceScopeIds
-): Promise<RosterStudent[]> {
-  await new Promise((resolve) => setTimeout(resolve, 150));
-
-  if (!isScopeSelectionComplete(scopeType, scopeIds)) {
-    return [];
+  scopeType: ScopeType,
+  scopeIds: AttendanceScopeIds,
+  options?: {
+    yearId?: string;
+    termId?: string;
+    date?: string;
+    mode?: AttendanceSessionMode;
+    periodKey?: string;
   }
+): Promise<RosterStudent[]> {
+  const response = await apiGet<unknown>(`${BASE}/roster`, {
+      params: {
+        academicYearId: options?.yearId,
+        termId: options?.termId,
+        date: options?.date,
+        mode: options?.mode,
+        periodKey: options?.periodKey,
+        scopeType,
+        ...buildScopeParams(scopeType, scopeIds),
+      },
+    });
 
-  const { gradesById, sectionsById, classroomsById } = getEnrollmentScopeMaps();
-  const targetScope = resolveAttendanceHierarchyScope({
-    scopeType,
-    scopeIds,
-    gradesById,
-    sectionsById,
-    classroomsById,
-  });
-
-  const matchedStudentIds = new Set(
-    mockStudentEnrollments
-      .filter((enrollment) => enrollment.status !== "withdrawn")
-      .filter((enrollment) => {
-        const enrollmentScope = resolveAttendanceHierarchyScope({
-          scopeType: enrollment.classroomId
-            ? "CLASSROOM"
-            : enrollment.sectionId
-              ? "SECTION"
-              : enrollment.gradeId
-                ? "GRADE"
-                : "SCHOOL",
-          scopeIds: {
-            stageId: undefined,
-            gradeId: enrollment.gradeId,
-            sectionId: enrollment.sectionId,
-            classroomId: enrollment.classroomId,
-          },
-          gradesById,
-          sectionsById,
-          classroomsById,
-        });
-
-        if (scopeType === "SCHOOL") return true;
-        if (scopeType === "STAGE") return enrollmentScope.stageId === targetScope.stageId;
-        if (scopeType === "GRADE") return enrollmentScope.gradeId === targetScope.gradeId;
-        if (scopeType === "SECTION") return enrollmentScope.sectionId === targetScope.sectionId;
-        return enrollmentScope.classroomId === targetScope.classroomId;
-      })
-      .map((enrollment) => enrollment.studentId)
-  );
-
-  return mockStudents
-    .filter((student) => matchedStudentIds.has(student.id))
-    .map((student) => ({
-      id: student.id,
-      nameAr: student.full_name_ar,
-      nameEn: student.full_name_en,
-      studentNumber: student.student_id || student.id,
-      photoUrl: undefined,
-    }))
-    .sort((a, b) => a.nameEn.localeCompare(b.nameEn));
+  return unwrapArray(response).map(mapRosterStudent);
 }
 
-/**
- * Get or create session
- */
 export async function getOrCreateSession(params: {
   yearId: string;
   termId: string;
   date: string;
-  scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSROOM";
+  scopeType: ScopeType;
   scopeIds?: AttendanceScopeIds;
   mode: AttendanceSessionMode;
-  periodId?: string; // Canonical stable ID from TimetablePeriod.id
-  periodIndex?: number; // Display/order only (derived from timetable)
+  periodId?: string;
+  periodIndex?: number;
   periodNameAr?: string;
   periodNameEn?: string;
 }): Promise<SessionWithEntries> {
-  await new Promise((resolve) => setTimeout(resolve, 100));
-
-  const storeKey = `${params.yearId}-${params.termId}`;
-  if (!sessionStore[storeKey]) {
-    sessionStore[storeKey] = [];
-  }
-  if (!entryStore[storeKey]) {
-    entryStore[storeKey] = [];
-  }
-
-  // Find existing session
-  const existing = sessionStore[storeKey].find((s) => {
-    if (s.date !== params.date) return false;
-    if (s.scopeType !== params.scopeType) return false;
-    if (s.mode !== params.mode) return false;
-    
-    // For PERIOD mode, match by periodId first (canonical), fallback to periodIndex for backward compatibility
-    if (params.mode === "PERIOD") {
-      // If both have periodId, match by periodId
-      if (params.periodId && s.periodId) {
-        if (s.periodId !== params.periodId) return false;
-      } else if (params.periodId && !s.periodId) {
-        // Session lacks periodId but we have it - check periodIndex for backward compat
-        if (s.periodIndex !== params.periodIndex) return false;
-      } else if (!params.periodId && s.periodId) {
-        // We lack periodId but session has it - no match
-        return false;
-      } else {
-        // Neither has periodId - fallback to periodIndex
-        if (s.periodIndex !== params.periodIndex) return false;
-      }
-    }
-
-    // Check scope IDs match
-    return matchesDirectAttendanceScope(params.scopeType, s.scopeIds, params.scopeIds);
+  const response = await apiPost<unknown>(`${BASE}/session/resolve`, {
+    academicYearId: params.yearId,
+    termId: params.termId,
+    date: params.date,
+    scopeType: params.scopeType,
+    ...buildScopeParams(params.scopeType, params.scopeIds),
+    mode: params.mode,
+    periodKey: params.periodId,
+    periodId: params.periodId,
+    periodIndex: params.periodIndex,
+    periodLabelAr: params.periodNameAr,
+    periodLabelEn: params.periodNameEn,
   });
 
-  if (existing) {
-    // Migration: patch periodId on existing session if it lacks one
-    if (params.periodId && !existing.periodId && params.mode === "PERIOD") {
-      existing.periodId = params.periodId;
-      existing.updatedAt = new Date().toISOString();
-    }
-    
-    const entries = entryStore[storeKey].filter((e) => e.sessionId === existing.id);
-    return { session: existing, entries };
-  }
-
-  // Create new session
-  const newSession: AttendanceSession = {
-    id: `session-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+  return mapSessionWithEntries(response, {
     yearId: params.yearId,
     termId: params.termId,
     date: params.date,
     scopeType: params.scopeType,
     scopeIds: params.scopeIds,
     mode: params.mode,
-    periodId: params.periodId, // Store canonical periodId
+    periodId: params.periodId,
     periodIndex: params.periodIndex,
     periodNameAr: params.periodNameAr,
     periodNameEn: params.periodNameEn,
-    status: "DRAFT",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  sessionStore[storeKey].push(newSession);
-
-  return { session: newSession, entries: [] };
+  });
 }
 
-/**
- * Save session entries
- */
 export async function saveSession(
   session: AttendanceSession,
   entries: AttendanceEntry[]
 ): Promise<SessionWithEntries> {
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  const response = await apiPut<unknown>(`${BASE}/sessions/${session.id}/entries`, {
+    entries: entries.map(buildEntryPayload),
+  });
 
-  const storeKey = `${session.yearId}-${session.termId}`;
-  if (!sessionStore[storeKey]) {
-    sessionStore[storeKey] = [];
-  }
-  if (!entryStore[storeKey]) {
-    entryStore[storeKey] = [];
-  }
-
-  // Update session
-  const sessionIndex = sessionStore[storeKey].findIndex((s) => s.id === session.id);
-  const updatedSession = {
-    ...session,
-    updatedAt: new Date().toISOString(),
-  };
-
-  if (sessionIndex >= 0) {
-    sessionStore[storeKey][sessionIndex] = updatedSession;
-  } else {
-    sessionStore[storeKey].push(updatedSession);
-  }
-
-  // Update entries
-  entryStore[storeKey] = entryStore[storeKey].filter((e) => e.sessionId !== session.id);
-  entryStore[storeKey].push(...entries);
-
-  return { session: updatedSession, entries };
+  return mapSessionWithEntries(response, session);
 }
 
-/**
- * Submit session (lock for editing)
- */
 export async function submitSession(sessionId: string, yearId: string, termId: string): Promise<AttendanceSession> {
-  await new Promise((resolve) => setTimeout(resolve, 150));
-
-  const storeKey = `${yearId}-${termId}`;
-  const sessionIndex = sessionStore[storeKey]?.findIndex((s) => s.id === sessionId);
-
-  if (sessionIndex === undefined || sessionIndex < 0) {
-    throw new Error("Session not found");
-  }
-
-  const updatedSession = {
-    ...sessionStore[storeKey][sessionIndex],
-    status: "SUBMITTED" as AttendanceSessionStatus,
-    updatedAt: new Date().toISOString(),
-  };
-
-  sessionStore[storeKey][sessionIndex] = updatedSession;
-
-  return updatedSession;
+  const response = await apiPost<unknown>(`${BASE}/sessions/${sessionId}/submit`);
+  return mapSession(unwrapObject(response, ["session", "data"]), { id: sessionId, yearId, termId, status: "SUBMITTED" });
 }
 
-/**
- * Unsubmit session (reopen for editing)
- */
 export async function unsubmitSession(yearId: string, termId: string, sessionId: string): Promise<AttendanceSession> {
-  await new Promise((resolve) => setTimeout(resolve, 150));
-
-  const storeKey = `${yearId}-${termId}`;
-  const sessionIndex = sessionStore[storeKey]?.findIndex((s) => s.id === sessionId);
-
-  if (sessionIndex === undefined || sessionIndex < 0) {
-    throw new Error("Session not found");
-  }
-
-  const session = sessionStore[storeKey][sessionIndex];
-  
-  // If already DRAFT, return as-is
-  if (session.status === "DRAFT") {
-    return session;
-  }
-
-  const updatedSession = {
-    ...session,
-    status: "DRAFT" as AttendanceSessionStatus,
-    updatedAt: new Date().toISOString(),
-  };
-
-  sessionStore[storeKey][sessionIndex] = updatedSession;
-
-  return updatedSession;
+  const response = await apiPost<unknown>(`${BASE}/sessions/${sessionId}/unsubmit`);
+  return mapSession(unwrapObject(response, ["session", "data"]), { id: sessionId, yearId, termId, status: "DRAFT" });
 }
 
-/**
- * Fetch sessions for a date range
- */
 export async function fetchSessions(
   yearId: string,
   termId: string,
   startDate?: string,
   endDate?: string,
   scopeFilter?: {
-    scopeType: AttendanceSession["scopeType"];
+    scopeType: ScopeType;
     scopeIds?: AttendanceScopeIds;
   }
 ): Promise<AttendanceSession[]> {
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  const response = await apiGet<unknown>(`${BASE}/sessions`, {
+    params: buildSessionQuery({ yearId, termId, startDate, endDate, scopeFilter }),
+  });
 
-  await ensureSeededAttendanceData(yearId, termId);
-
-  const storeKey = `${yearId}-${termId}`;
-  let sessions = sessionStore[storeKey] || [];
-
-  if (startDate) {
-    sessions = sessions.filter((s) => s.date >= startDate);
-  }
-  if (endDate) {
-    sessions = sessions.filter((s) => s.date <= endDate);
-  }
-
-  if (scopeFilter) {
-    sessions = sessions.filter((session) => {
-      if (session.scopeType !== scopeFilter.scopeType) return false;
-      return matchesDirectAttendanceScope(scopeFilter.scopeType, session.scopeIds, scopeFilter.scopeIds);
-    });
-  }
-
-  return sessions;
+  return unwrapArray(response).map((session) => mapSession(session, { yearId, termId }));
 }
 
-/**
- * Delete session
- */
-export async function deleteSession(sessionId: string, yearId: string, termId: string): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 100));
-
-  const storeKey = `${yearId}-${termId}`;
-  
-  if (sessionStore[storeKey]) {
-    sessionStore[storeKey] = sessionStore[storeKey].filter((s) => s.id !== sessionId);
-  }
-  
-  if (entryStore[storeKey]) {
-    entryStore[storeKey] = entryStore[storeKey].filter((e) => e.sessionId !== sessionId);
-  }
+export async function deleteSession(): Promise<void> {
+  throw new Error("Deleting attendance sessions is not supported by the V1 dashboard API contract.");
 }
 
-/**
- * Fetch entries by session ID (for Absences tab)
- */
 export async function fetchEntriesBySessionId(
   yearId: string,
   termId: string,
   sessionId: string
 ): Promise<AttendanceEntry[]> {
-  await new Promise((resolve) => setTimeout(resolve, 50));
-
-  const storeKey = `${yearId}-${termId}`;
-  return entryStore[storeKey]?.filter((e) => e.sessionId === sessionId) || [];
+  const response = await apiGet<unknown>(`${BASE}/sessions/${sessionId}`);
+  return mapSessionWithEntries(response, { id: sessionId, yearId, termId }).entries;
 }
 
-/**
- * Fetch entries for multiple sessions (for Absences tab)
- */
 export async function fetchEntriesForSessions(
   yearId: string,
   termId: string,
   sessionIds: string[]
 ): Promise<AttendanceEntry[]> {
-  await new Promise((resolve) => setTimeout(resolve, 100));
-
-  const storeKey = `${yearId}-${termId}`;
-  return entryStore[storeKey]?.filter((e) => sessionIds.includes(e.sessionId)) || [];
+  const details = await Promise.all(
+    sessionIds.map((sessionId) => fetchEntriesBySessionId(yearId, termId, sessionId))
+  );
+  return details.flat();
 }
 
-/**
- * Upsert entry (create or update) - for Absences tab corrections
- */
 export async function upsertEntry(
   yearId: string,
   termId: string,
@@ -566,57 +406,18 @@ export async function upsertEntry(
   studentId: string,
   patch: Partial<AttendanceEntry>
 ): Promise<AttendanceEntry> {
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  const response = await apiPut<unknown>(`${BASE}/sessions/${sessionId}/entries/${studentId}`, {
+    ...buildEntryPayload(patch),
+    studentId: undefined,
+  });
 
-  const storeKey = `${yearId}-${termId}`;
-  if (!entryStore[storeKey]) {
-    entryStore[storeKey] = [];
-  }
+  return mapEntry(response, sessionId);
+}
 
-  const existingIndex = entryStore[storeKey].findIndex(
-    (e) => e.sessionId === sessionId && e.studentId === studentId
-  );
-
-  const now = new Date().toISOString();
-
-  if (existingIndex >= 0) {
-    // Update existing
-    const updated = {
-      ...entryStore[storeKey][existingIndex],
-      ...patch,
-      updatedAt: now,
-    };
-    entryStore[storeKey][existingIndex] = updated;
-
-    // Update session timestamp
-    if (sessionStore[storeKey]) {
-      const sessionIndex = sessionStore[storeKey].findIndex((s) => s.id === sessionId);
-      if (sessionIndex >= 0) {
-        sessionStore[storeKey][sessionIndex].updatedAt = now;
-      }
-    }
-
-    return updated;
-  } else {
-    // Create new
-    const newEntry: AttendanceEntry = {
-      id: `entry-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      sessionId,
-      studentId,
-      status: "PRESENT",
-      ...patch,
-      updatedAt: now,
-    };
-    entryStore[storeKey].push(newEntry);
-
-    // Update session timestamp
-    if (sessionStore[storeKey]) {
-      const sessionIndex = sessionStore[storeKey].findIndex((s) => s.id === sessionId);
-      if (sessionIndex >= 0) {
-        sessionStore[storeKey][sessionIndex].updatedAt = now;
-      }
-    }
-
-    return newEntry;
-  }
+export function sessionMatchesScope(
+  session: AttendanceSession,
+  scopeType: ScopeType,
+  scopeIds?: AttendanceScopeIds
+) {
+  return matchesDirectAttendanceScope(scopeType, session.scopeIds, scopeIds);
 }

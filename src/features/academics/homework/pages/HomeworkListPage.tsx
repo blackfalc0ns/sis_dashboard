@@ -10,9 +10,7 @@ import Select from "@/components/ui/input/Select";
 import { AccessDenied } from "@/components/ui";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
-import {
-  listHomeworkAssignments,
-} from "@/features/academics/homework/services/homeworkService";
+import { listHomeworkAssignments } from "@/features/academics/homework/services/homeworkService";
 import type {
   HomeworkAssignmentUiModel,
   HomeworkAssignmentListFilters,
@@ -63,10 +61,19 @@ export default function HomeworkListPage() {
   const [items, setItems] = useState<HomeworkAssignmentUiModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get("search") || "");
-  const [status, setStatus] = useState(searchParams.get("homeworkStatus") || "");
+  const [status, setStatus] = useState(
+    searchParams.get("homeworkStatus") || "",
+  );
   const [mode, setMode] = useState(searchParams.get("mode") || "");
-  const [meta, setMeta] = useState({ page: 1, limit: 25, total: 0, totalPages: 0 });
-  const [pendingHomeworkId, setPendingHomeworkId] = useState<string | null>(null);
+  const [meta, setMeta] = useState({
+    page: 1,
+    limit: 25,
+    total: 0,
+    totalPages: 0,
+  });
+  const [pendingHomeworkId, setPendingHomeworkId] = useState<string | null>(
+    null,
+  );
   const [lifecycleConfirmation, setLifecycleConfirmation] = useState<{
     homeworkId: string;
     action: HomeworkLifecycleAction;
@@ -135,7 +142,9 @@ export default function HomeworkListPage() {
         label: t("table.status"),
         sortable: false,
         render: (_, item) => (
-          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass(item.status)}`}>
+          <span
+            className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass(item.status)}`}
+          >
             {t(`statuses.${item.status}`)}
           </span>
         ),
@@ -147,7 +156,9 @@ export default function HomeworkListPage() {
         render: (_, item) => (
           <div className="text-gray-600">
             <div>{item.classroomName || t("allAssignedTargets")}</div>
-            <div className="text-xs">{item.subjectName || item.teacherName || ""}</div>
+            <div className="text-xs">
+              {item.subjectName || item.teacherName || ""}
+            </div>
           </div>
         ),
       },
@@ -157,7 +168,9 @@ export default function HomeworkListPage() {
         sortable: false,
         render: (_, item) => (
           <div className="text-gray-600">
-            {item.dueAt ? new Date(item.dueAt).toLocaleString(locale) : t("notSet")}
+            {item.dueAt
+              ? new Date(item.dueAt).toLocaleString(locale)
+              : t("notSet")}
           </div>
         ),
       },
@@ -192,10 +205,12 @@ export default function HomeworkListPage() {
                 cancel: t("actions.cancel"),
               }}
               isPending={pendingHomeworkId === item.id}
-              onAction={(action) => setLifecycleConfirmation({
-                homeworkId: item.id,
-                action,
-              })}
+              onAction={(action) =>
+                setLifecycleConfirmation({
+                  homeworkId: item.id,
+                  action,
+                })
+              }
             />
           </div>
         ),
@@ -239,16 +254,21 @@ export default function HomeworkListPage() {
     const { homeworkId, action } = lifecycleConfirmation;
     setPendingHomeworkId(homeworkId);
     try {
-      const updated = action === "publish"
-        ? await publishHomeworkAssignment(homeworkId)
-        : action === "close"
-          ? await closeHomeworkAssignment(homeworkId)
-          : await cancelHomeworkAssignment(homeworkId);
-      setItems((current) => current.map((homework) =>
-        homework.id === homeworkId ? updated : homework,
-      ));
+      const updated =
+        action === "publish"
+          ? await publishHomeworkAssignment(homeworkId)
+          : action === "close"
+            ? await closeHomeworkAssignment(homeworkId)
+            : await cancelHomeworkAssignment(homeworkId);
+      setItems((current) =>
+        current.map((homework) =>
+          homework.id === homeworkId ? updated : homework,
+        ),
+      );
     } catch (error) {
-      showError(t("errors.lifecycleFailed", { code: mapHomeworkApiError(error) }));
+      showError(
+        t("errors.lifecycleFailed", { code: mapHomeworkApiError(error) }),
+      );
     } finally {
       setPendingHomeworkId(null);
       setLifecycleConfirmation(null);
@@ -265,23 +285,24 @@ export default function HomeworkListPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
-      <div className="border-b bg-white px-6 py-5">
+      <div className="border-b border-border bg-white px-6 py-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex items-center gap-2">
               <ClipboardList className="h-5 w-5 text-primary" />
-              <h1 className="text-xl font-semibold text-gray-900">{t("title")}</h1>
+              <h1 className="text-xl font-semibold text-gray-900">
+                {t("title")}
+              </h1>
             </div>
-            <p className="mt-1 text-sm text-gray-600">
-              {t("description")}
-            </p>
+            <p className="mt-1 text-sm text-gray-600">{t("description")}</p>
           </div>
           {canManage && (
             <Button
-              onClick={() => {
-                const params = searchParams.toString();
+            onClick={() => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.delete("tab");
                 router.push(
-                  `/${locale}/academics/homework/new${params ? `?${params}` : ""}`,
+                  `/${locale}/academics/homework/new${params.toString() ? `?${params.toString()}` : ""}`,
                 );
               }}
               leftIcon={<Plus className="h-4 w-4" />}
@@ -293,7 +314,7 @@ export default function HomeworkListPage() {
       </div>
 
       <div className="space-y-4 p-6">
-        <div className="rounded-lg border bg-white p-4">
+        <div className="rounded-lg border border-border bg-white p-4">
           <div className="grid gap-3 md:grid-cols-[1fr_180px_180px_auto]">
             <Input
               value={search}
@@ -301,7 +322,11 @@ export default function HomeworkListPage() {
               placeholder={t("filters.searchPlaceholder")}
               leftIcon={<Search className="h-4 w-4" />}
             />
-            <Select value={status} onChange={setStatus} options={statusOptions} />
+            <Select
+              value={status}
+              onChange={setStatus}
+              options={statusOptions}
+            />
             <Select value={mode} onChange={setMode} options={modeOptions} />
             <Button
               variant="secondary"
@@ -319,9 +344,10 @@ export default function HomeworkListPage() {
           isLoading={isLoading}
           emptyTitle={t("empty")}
           onRowClick={(item) => {
-            const params = searchParams.toString();
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete("tab");
             router.push(
-              `/${locale}/academics/homework/${item.id}${params ? `?${params}` : ""}`,
+              `/${locale}/academics/homework/${item.id}${params.toString() ? `?${params.toString()}` : ""}`,
             );
           }}
           serverPagination={{
@@ -356,7 +382,9 @@ export default function HomeworkListPage() {
         confirmLabel={t("confirm.confirm")}
         cancelLabel={t("confirm.back")}
         loading={!!pendingHomeworkId}
-        severity={lifecycleConfirmation?.action === "cancel" ? "danger" : "warning"}
+        severity={
+          lifecycleConfirmation?.action === "cancel" ? "danger" : "warning"
+        }
       />
     </div>
   );

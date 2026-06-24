@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { AlertCircle, ChevronDown, Search } from "lucide-react";
 import { useLocale } from "next-intl";
 
@@ -32,6 +33,9 @@ export interface SelectProps {
   noResultsText?: string;
 }
 
+const MENU_GAP = 8;
+const MENU_MAX_HEIGHT = 240;
+
 export default function Select({
   label,
   error,
@@ -54,10 +58,40 @@ export default function Select({
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [menuPosition, setMenuPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const locale = useLocale();
   const isRTL = locale === "ar";
+  const canUseDOM = typeof document !== "undefined";
+
+  const updateMenuPosition = useCallback(() => {
+    const trigger = dropdownRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const spaceBelow = viewportHeight - rect.bottom - MENU_GAP;
+    const spaceAbove = rect.top - MENU_GAP;
+    const shouldOpenAbove =
+      spaceBelow < MENU_MAX_HEIGHT && spaceAbove > spaceBelow;
+    const availableHeight = Math.max(
+      80,
+      shouldOpenAbove ? spaceAbove : spaceBelow,
+    );
+    setMenuPosition({
+      top: shouldOpenAbove
+        ? Math.max(MENU_GAP, rect.top - Math.min(MENU_MAX_HEIGHT, availableHeight) - MENU_GAP)
+        : rect.bottom + MENU_GAP,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, []);
 
   // Use controlled value if provided, otherwise use internal state
   const selectedValue = value || "";
@@ -67,7 +101,8 @@ export default function Select({
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        !dropdownRef.current.contains(event.target as Node) &&
+        !menuRef.current?.contains(event.target as Node)
       ) {
         setIsOpen(false);
         setSearchQuery("");
@@ -82,6 +117,18 @@ export default function Select({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    window.addEventListener("resize", updateMenuPosition);
+    window.addEventListener("scroll", updateMenuPosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updateMenuPosition);
+      window.removeEventListener("scroll", updateMenuPosition, true);
+    };
+  }, [isOpen, updateMenuPosition]);
 
   useEffect(() => {
     if (isOpen && searchable) {
@@ -114,6 +161,82 @@ export default function Select({
 
   const selectedOption = options.find((opt) => opt.value === selectedValue);
   const displayLabel = selectedOption?.label || placeholder;
+
+  const menu = isOpen ? (
+    <div
+      ref={menuRef}
+      className={`fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200`}
+      dir={isRTL ? "rtl" : "ltr"}
+      style={{
+        top: menuPosition.top,
+        left: menuPosition.left,
+        width: fullWidth ? menuPosition.width : undefined,
+        minWidth: menuPosition.width,
+      }}
+    >
+      {searchable && (
+        <div className="border-b border-gray-200 px-3 py-2">
+          <div className="relative">
+            <Search
+              className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 ${
+                isRTL ? "right-3" : "left-3"
+              }`}
+            />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              onClick={(event) => event.stopPropagation()}
+              placeholder={searchPlaceholder}
+              className={`w-full rounded-md border border-gray-200 bg-white py-2 text-sm text-gray-900 outline-none transition-colors focus:border-primary ${
+                isRTL ? "pr-9 pl-3 text-right" : "pl-9 pr-3 text-left"
+              }`}
+            />
+          </div>
+        </div>
+      )}
+      <ul
+        className="py-1 overflow-y-auto"
+        style={{ maxHeight: MENU_MAX_HEIGHT }}
+      >
+        {options.length === 0 ? (
+          <li className="px-4 py-2.5 text-sm text-gray-400 text-center">
+            {noOptionsText}
+          </li>
+        ) : filteredOptions.length === 0 ? (
+          <li className="px-4 py-2.5 text-sm text-gray-400 text-center">
+            {noResultsText}
+          </li>
+        ) : (
+          filteredOptions.map((option, index) => (
+            <li
+              key={option.value}
+              className="animate-slideIn"
+              style={{
+                animationDelay: `${index * 0.03}s`,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => handleSelect(option)}
+                disabled={option.disabled}
+                className={`group w-full flex items-center px-4 py-2.5 text-sm ${isRTL ? "text-right" : "text-left"} transition-all duration-200 ${
+                  option.disabled
+                    ? "text-gray-400 cursor-not-allowed opacity-50"
+                    : selectedValue === option.value
+                      ? `bg-blue-50 text-primary font-medium ${isRTL ? "border-r-2 border-primary-500" : "border-l-2 border-primary-500"}`
+                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200"
+                }`}
+              >
+                <span>{option.label}</span>
+              </button>
+            </li>
+          ))
+        )}
+      </ul>
+    </div>
+  ) : null;
 
   // Size classes
   const sizeClasses = {
@@ -167,7 +290,11 @@ export default function Select({
         {/* Trigger Button */}
         <button
           type="button"
-          onClick={() => !disabled && setIsOpen(!isOpen)}
+          onClick={() => {
+            if (disabled) return;
+            if (!isOpen) updateMenuPosition();
+            setIsOpen(!isOpen);
+          }}
           disabled={disabled}
           className={`
             ${fullWidth ? "w-full" : ""}
@@ -195,72 +322,7 @@ export default function Select({
           />
         </button>
 
-        {/* Dropdown Menu */}
-        {isOpen && (
-          <div
-            className={`absolute z-50 mt-2 ${fullWidth ? "w-full" : "min-w-full"} bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200`}
-            dir={isRTL ? "rtl" : "ltr"}
-          >
-            {searchable && (
-              <div className="border-b border-gray-200 px-3 py-2">
-                <div className="relative">
-                  <Search
-                    className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 ${
-                      isRTL ? "right-3" : "left-3"
-                    }`}
-                  />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    onClick={(event) => event.stopPropagation()}
-                    placeholder={searchPlaceholder}
-                    className={`w-full rounded-md border border-gray-200 bg-white py-2 text-sm text-gray-900 outline-none transition-colors focus:border-primary ${
-                      isRTL ? "pr-9 pl-3 text-right" : "pl-9 pr-3 text-left"
-                    }`}
-                  />
-                </div>
-              </div>
-            )}
-            <ul className="py-1 max-h-60 overflow-y-auto">
-              {options.length === 0 ? (
-                <li className="px-4 py-2.5 text-sm text-gray-400 text-center">
-                  {noOptionsText}
-                </li>
-              ) : filteredOptions.length === 0 ? (
-                <li className="px-4 py-2.5 text-sm text-gray-400 text-center">
-                  {noResultsText}
-                </li>
-              ) : (
-                filteredOptions.map((option, index) => (
-                  <li
-                    key={option.value}
-                    className="animate-slideIn"
-                    style={{
-                      animationDelay: `${index * 0.03}s`,
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleSelect(option)}
-                      disabled={option.disabled}
-                      className={`group w-full flex items-center px-4 py-2.5 text-sm ${isRTL ? "text-right" : "text-left"} transition-all duration-200 ${
-                        option.disabled
-                          ? "text-gray-400 cursor-not-allowed opacity-50"
-                          : selectedValue === option.value
-                            ? `bg-blue-50 text-primary font-medium ${isRTL ? "border-r-2 border-primary-500" : "border-l-2 border-primary-500"}`
-                            : "text-gray-700 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200"
-                      }`}
-                    >
-                      <span>{option.label}</span>
-                    </button>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-        )}
+        {canUseDOM && menu ? createPortal(menu, document.body) : null}
       </div>
 
       {/* Helper Text or Error Message */}

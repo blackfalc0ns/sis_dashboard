@@ -1,6 +1,6 @@
 // FILE: src/features/behavior/services/behaviorApiService.ts
 
-import { apiGet, apiPatch, apiPost } from "@/lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import { buildQueryString } from "@/features/students-guardians/services/studentsGuardiansApiUtils";
 import type {
   BehaviorApproveResponse,
@@ -33,6 +33,23 @@ import type {
 } from "../types";
 
 const BASE = "/behavior";
+
+type DateRangeFilters = {
+  dateFrom?: string;
+  dateTo?: string;
+  occurredFrom?: string;
+  occurredTo?: string;
+};
+
+function withOccurredRange<T extends DateRangeFilters>(filters?: T): Omit<T, "dateFrom" | "dateTo"> {
+  if (!filters) return {} as Omit<T, "dateFrom" | "dateTo">;
+  const { dateFrom, dateTo, occurredFrom, occurredTo, ...rest } = filters;
+  return {
+    ...rest,
+    occurredFrom: occurredFrom || dateFrom,
+    occurredTo: occurredTo || dateTo,
+  } as Omit<T, "dateFrom" | "dateTo">;
+}
 
 // ─── Re-export legacy types for backward compatibility ─────────────────────
 // (Used by student profile BehaviorTab)
@@ -74,6 +91,8 @@ export interface FetchBehaviorRecordsParams {
   termId?: string;
   studentId?: string;
   status?: string;
+  occurredFrom?: string;
+  occurredTo?: string;
 }
 
 export interface CreateBehaviorRecordPayload {
@@ -174,6 +193,11 @@ export async function updateBehaviorCategory(
   return apiPatch<BehaviorCategoryUpdateResponse>(`${BASE}/categories/${id}`, payload);
 }
 
+/** DELETE /behavior/categories/:id */
+export async function deleteBehaviorCategory(id: string): Promise<void> {
+  await apiDelete(`${BASE}/categories/${id}`);
+}
+
 // ─── Records CRUD ──────────────────────────────────────────────────────────
 
 /** POST /behavior/records */
@@ -201,6 +225,18 @@ export async function submitBehaviorRecord(id: string): Promise<BehaviorSubmitRe
   return apiPost<BehaviorSubmitResponse>(`${BASE}/records/${id}/submit`, {});
 }
 
+/** POST /behavior/records/:id/cancel */
+export async function cancelBehaviorRecord(
+  id: string,
+  payload: {
+    cancellationReasonEn?: string | null;
+    cancellationReasonAr?: string | null;
+    metadata?: Record<string, unknown> | null;
+  } = {},
+): Promise<BehaviorRecord> {
+  return apiPost<BehaviorRecord>(`${BASE}/records/${id}/cancel`, payload);
+}
+
 /** POST /behavior/records/:id/approve */
 export async function approveBehaviorRecord(
   id: string,
@@ -221,7 +257,7 @@ export async function rejectBehaviorRecord(
 export async function listBehaviorRecords(
   filters?: BehaviorRecordListFilters,
 ): Promise<BehaviorRecordListResponse> {
-  const query = buildQueryString(filters);
+  const query = buildQueryString(withOccurredRange(filters));
   return apiGet<BehaviorRecordListResponse>(`${BASE}/records${query}`);
 }
 
@@ -231,7 +267,7 @@ export async function listBehaviorRecords(
 export async function listBehaviorReviewQueue(
   filters?: BehaviorReviewQueueFilters,
 ): Promise<BehaviorReviewQueueResponse> {
-  const query = buildQueryString(filters);
+  const query = buildQueryString(withOccurredRange(filters));
   return apiGet<BehaviorReviewQueueResponse>(`${BASE}/review-queue${query}`);
 }
 
@@ -248,7 +284,7 @@ export async function getBehaviorReviewQueueItem(
 export async function getBehaviorOverview(
   filters?: BehaviorOverviewFilters,
 ): Promise<BehaviorOverviewResponse> {
-  const query = buildQueryString(filters);
+  const query = buildQueryString(withOccurredRange(filters));
   return apiGet<BehaviorOverviewResponse>(`${BASE}/overview${query}`);
 }
 
@@ -257,7 +293,7 @@ export async function getStudentBehaviorSummary(
   studentId: string,
   filters?: BehaviorStudentSummaryFilters,
 ): Promise<BehaviorStudentSummaryResponse> {
-  const query = buildQueryString(filters);
+  const query = buildQueryString(withOccurredRange(filters));
   return apiGet<BehaviorStudentSummaryResponse>(
     `${BASE}/students/${studentId}/summary${query}`,
   );
@@ -268,7 +304,7 @@ export async function getClassroomBehaviorSummary(
   classroomId: string,
   filters?: BehaviorClassroomSummaryFilters,
 ): Promise<BehaviorClassroomSummaryResponse> {
-  const query = buildQueryString(filters);
+  const query = buildQueryString(withOccurredRange(filters));
   return apiGet<BehaviorClassroomSummaryResponse>(
     `${BASE}/classrooms/${classroomId}/summary${query}`,
   );

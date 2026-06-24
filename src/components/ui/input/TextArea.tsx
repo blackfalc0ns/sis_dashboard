@@ -98,6 +98,7 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
             transition-colors
             placeholder:text-gray-400
             ${className}
+            outline-none
           `}
           {...props}
         />

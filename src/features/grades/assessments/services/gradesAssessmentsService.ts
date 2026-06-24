@@ -308,6 +308,9 @@ const ASSESSMENT_TYPE_LABEL_KEYS: Record<string, string> = {
   MONTH_EXAM: "monthExam",
   MIDTERM: "midterm",
   TERM_EXAM: "termExam",
+  ASSIGNMENT: "assignment",
+  FINAL: "final",
+  PRACTICAL: "practical",
 };
 
 export function getAssessmentTypeLabelKey(type: string): string {

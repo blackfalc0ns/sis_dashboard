@@ -27,6 +27,7 @@ import type {
   GradebookResponse,
   ScopeEntityOption,
   ScopeOption,
+  AssessmentDeliveryMode,
 } from "../../shared/types";
 
 // ── Name resolution ──────────────────────────────────────────────────
@@ -94,6 +95,14 @@ function fromBackendQuestionType(
   if (!type) return "SHORT_ANSWER";
   return BACKEND_QUESTION_TYPE_TO_UI[type] ??
     (type.toUpperCase() as AssessmentSubmissionReview["questions"][number]["question"]["questionType"]);
+}
+
+function fromBackendDeliveryMode(
+  deliveryMode: string | null | undefined,
+): AssessmentDeliveryMode {
+  return deliveryMode?.toLowerCase() === "question_based"
+    ? "QUESTION_BASED"
+    : "SCORE_ONLY";
 }
 
 // ── Bootstrap → FiltersData ──────────────────────────────────────────
@@ -189,7 +198,7 @@ export function mapBackendColumnToAssessment(column: BackendGradebookColumn): As
     title: names.nameEn || names.name,
     titleAr: names.nameAr || names.name,
     type: column.type ?? "QUIZ",
-    deliveryMode: column.deliveryMode === "question_based" ? "QUESTION_BASED" : "SCORE_ONLY",
+    deliveryMode: fromBackendDeliveryMode(column.deliveryMode),
     date: column.date ?? "",
     weight: column.weight ?? 0,
     maxScore: column.maxScore ?? 0,
@@ -220,7 +229,7 @@ export function mapBackendAssessmentToAssessment(item: BackendAssessmentResponse
     title: names.nameEn || names.name,
     titleAr: names.nameAr || names.name,
     type: item.type ?? "QUIZ",
-    deliveryMode: item.deliveryMode === "question_based" ? "QUESTION_BASED" : "SCORE_ONLY",
+    deliveryMode: fromBackendDeliveryMode(item.deliveryMode),
     date: item.date ?? "",
     weight: item.weight ?? 0,
     maxScore: item.maxScore ?? 0,

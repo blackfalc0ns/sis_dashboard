@@ -47,13 +47,6 @@ export interface ExcuseRequest {
 export interface ExcuseRequestFilters {
   dateFrom?: string;
   dateTo?: string;
-  scopeType: ExcuseScopeType;
-  scopeIds?: {
-    stageId?: string;
-    gradeId?: string;
-    sectionId?: string;
-    classroomId?: string;
-  };
   status: "ALL" | ExcuseStatus;
   type: "ALL" | ExcuseType;
   search: string;

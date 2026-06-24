@@ -12,6 +12,7 @@ const STATUS_STYLES: Record<BehaviorStatus, { bg: string; fg: string; border: st
   submitted: { bg: "#fef3c7", fg: "#78350f", border: "#fde68a" },
   approved: { bg: "#dcfce7", fg: "#14532d", border: "#bbf7d0" },
   rejected: { bg: "#fef2f2", fg: "#991b1b", border: "#fecaca" },
+  cancelled: { bg: "var(--color-neutral-100)", fg: "var(--color-neutral-500)", border: "var(--color-neutral-200)" },
 };
 
 const TYPE_STYLES: Record<BehaviorType, { bg: string; fg: string; border: string }> = {

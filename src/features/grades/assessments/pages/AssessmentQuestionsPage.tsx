@@ -379,11 +379,7 @@ export default function AssessmentQuestionsPage({
               subjectId: assessmentDraft.subjectId,
               title: assessmentDraft.title,
               titleAr: assessmentDraft.titleAr,
-              type: assessmentDraft.type as
-                | "QUIZ"
-                | "MONTH_EXAM"
-                | "MIDTERM"
-                | "TERM_EXAM",
+                type: assessmentDraft.type,
               deliveryMode: "QUESTION_BASED",
               date: assessmentDraft.date,
               weight: assessmentDraft.weight,
@@ -415,11 +411,7 @@ export default function AssessmentQuestionsPage({
           subjectId: assessment!.subjectId,
           title: assessmentDraft.title,
           titleAr: assessmentDraft.titleAr,
-          type: assessment!.type as
-            | "QUIZ"
-            | "MONTH_EXAM"
-            | "MIDTERM"
-            | "TERM_EXAM",
+            type: assessment!.type,
           deliveryMode: assessment!.deliveryMode,
           date: assessmentDraft.date,
           weight: assessment!.weight,

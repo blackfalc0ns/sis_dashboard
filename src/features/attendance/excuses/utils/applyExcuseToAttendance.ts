@@ -19,19 +19,34 @@ interface ApplyExcuseParams {
 }
 
 async function fetchTimetablePeriodsForScope(
+  yearId: string,
   termId: string,
   scopeIds: ExcuseRequest["scopeIds"]
 ): Promise<TimetablePeriod[]> {
-  const termConfig = await fetchTimetableConfig(termId, "TERM");
+  const termConfig = await fetchTimetableConfig({
+    academicYearId: yearId,
+    termId,
+    scopeType: "TERM",
+  });
 
   let gradeConfig = null;
   if (scopeIds?.gradeId) {
-    gradeConfig = await fetchTimetableConfig(termId, "GRADE", scopeIds.gradeId);
+    gradeConfig = await fetchTimetableConfig({
+      academicYearId: yearId,
+      termId,
+      scopeType: "GRADE",
+      gradeId: scopeIds.gradeId,
+    });
   }
 
   let sectionConfig = null;
   if (scopeIds?.sectionId) {
-    sectionConfig = await fetchTimetableConfig(termId, "SECTION", scopeIds.sectionId);
+    sectionConfig = await fetchTimetableConfig({
+      academicYearId: yearId,
+      termId,
+      scopeType: "SECTION",
+      sectionId: scopeIds.sectionId,
+    });
   }
 
   const resolved = resolveTimetableConfig(termConfig, gradeConfig, sectionConfig);
@@ -85,7 +100,7 @@ export async function applyExcuseToAttendance({ request, decidedBy }: ApplyExcus
 
   const dates = enumerateExcuseDates(request.dateFrom, request.dateTo);
   const linkedSessionIds = new Set<string>();
-  const periods = await fetchTimetablePeriodsForScope(request.termId, request.scopeIds);
+  const periods = await fetchTimetablePeriodsForScope(request.yearId, request.termId, request.scopeIds);
 
   for (const date of dates) {
     const effectivePolicy = resolveEffectiveExcuseAttendancePolicy(

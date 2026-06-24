@@ -1,11 +1,7 @@
+import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
 import { fetchPolicies } from "@/features/attendance/policies/services/attendancePolicyService";
-import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
-import { fetchAcademicYears, fetchTermsByYear } from "@/features/academics/academic-structure-tree/services/structureService";
-import { mockStudentEnrollments, mockStudents } from "@/data/mockStudents";
-import { applyExcuseToAttendance } from "../utils/applyExcuseToAttendance";
 import {
-  assertExcusePolicyAllowed,
   getExcusePolicyIssue,
   resolveEffectiveExcuseAttendancePolicy,
 } from "../utils/excusePolicyValidation";
@@ -16,207 +12,191 @@ import type {
   ExcuseScopeType,
   ExcuseStatus,
 } from "../types";
-import {
-  matchesResolvedAttendanceScope,
-  resolveAttendanceHierarchyScope,
-  type AttendanceScopeIds,
-} from "@/features/attendance/shared/attendanceScope";
+import type { AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
 
-const excusesByTerm: Record<string, ExcuseRequest[]> = {};
+type BackendRecord = Record<string, unknown>;
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const getKey = (yearId: string, termId: string) => `${yearId}-${termId}`;
+const BASE = "/attendance/excuse-requests";
 
-async function ensureSeededExcuseRequests(yearId: string, termId: string) {
-  const key = getKey(yearId, termId);
-  if ((excusesByTerm[key]?.length || 0) > 0) {
-    return;
+function asRecord(value: unknown): BackendRecord {
+  return value && typeof value === "object" ? (value as BackendRecord) : {};
+}
+
+function unwrapArray(response: unknown): unknown[] {
+  if (Array.isArray(response)) return response;
+  const object = asRecord(response);
+  for (const key of ["items", "data", "requests", "excuseRequests"]) {
+    if (Array.isArray(object[key])) return object[key] as unknown[];
   }
+  return [];
+}
 
-  const [academicYears, terms, structure] = await Promise.all([
-    fetchAcademicYears(),
-    fetchTermsByYear(yearId),
-    fetchStructureTree(yearId, termId),
-  ]);
-
-  const academicYear = academicYears.find((item) => item.id === yearId);
-  const term = terms.find((item) => item.id === termId);
-  if (!academicYear || !term) {
-    return;
+function unwrapObject(response: unknown): BackendRecord {
+  const object = asRecord(response);
+  for (const key of ["request", "excuseRequest", "data"]) {
+    const nested = object[key];
+    if (nested && typeof nested === "object" && !Array.isArray(nested)) return nested as BackendRecord;
   }
+  return object;
+}
 
-  const classroomsById = new Map(structure.classrooms.map((item) => [item.id, item]));
-  const sectionsById = new Map(structure.sections.map((item) => [item.id, item]));
-
-  const placements = mockStudentEnrollments
-    .filter(
-      (enrollment) =>
-        enrollment.academicYear === academicYear.name &&
-        enrollment.status === "active" &&
-        enrollment.sectionId
-    )
-    .slice(0, 12);
-
-  if (placements.length === 0) {
-    excusesByTerm[key] = [];
-    return;
+function getString(object: BackendRecord, keys: string[], fallback = "") {
+  for (const key of keys) {
+    const value = object[key];
+    if (typeof value === "string" && value.length > 0) return value;
   }
+  return fallback;
+}
 
-  excusesByTerm[key] = placements.map((enrollment, index) => {
-    const student = mockStudents.find((item) => item.id === enrollment.studentId);
-    const baseDate = new Date(term.startDate);
-    baseDate.setDate(baseDate.getDate() + index * 5);
-    const date = baseDate.toISOString().slice(0, 10);
+function getOptionalString(object: BackendRecord, keys: string[]) {
+  const value = getString(object, keys);
+  return value || undefined;
+}
 
-    const statusCycle: ExcuseStatus[] = ["APPROVED", "PENDING", "REJECTED"];
-    const typeCycle = ["ABSENCE", "LATE", "EARLY_LEAVE"] as const;
-    const status = statusCycle[index % statusCycle.length];
-    const type = typeCycle[index % typeCycle.length];
-    const classroom = enrollment.classroomId ? classroomsById.get(enrollment.classroomId) : undefined;
-    const section = enrollment.sectionId ? sectionsById.get(enrollment.sectionId) : undefined;
+function getNumber(object: BackendRecord, keys: string[]) {
+  for (const key of keys) {
+    const value = object[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return undefined;
+}
 
+function normalizeStatus(value: unknown): ExcuseStatus {
+  return String(value || "PENDING").toUpperCase() as ExcuseStatus;
+}
+
+function resolveScopeIds(scopeType: ExcuseScopeType, object: BackendRecord, fallback?: AttendanceScopeIds): AttendanceScopeIds | undefined {
+  const nested = object.scopeIds && typeof object.scopeIds === "object" ? (object.scopeIds as AttendanceScopeIds) : undefined;
+  if (nested) return nested;
+
+  const scopeKey = getOptionalString(object, ["scopeKey", "scopeId"]);
+  if (!scopeKey || scopeKey === "school") return fallback;
+  if (scopeType === "CLASSROOM") return { ...fallback, classroomId: scopeKey };
+  if (scopeType === "SECTION") return { ...fallback, sectionId: scopeKey };
+  if (scopeType === "GRADE") return { ...fallback, gradeId: scopeKey };
+  if (scopeType === "STAGE") return { ...fallback, stageId: scopeKey };
+  return fallback;
+}
+
+function normalizeDateRange(object: BackendRecord) {
+  const dateFrom = getString(object, ["dateFrom", "fromDate", "date"], "");
+  const dateTo = getString(object, ["dateTo", "toDate", "date"], dateFrom);
+  return { dateFrom: dateFrom.slice(0, 10), dateTo: dateTo.slice(0, 10) };
+}
+
+function mapAttachments(value: unknown): ExcuseRequest["attachments"] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => {
+    const object = asRecord(item);
     return {
-      id: `seed-excuse-${yearId}-${termId}-${index + 1}`,
-      yearId,
-      termId,
-      studentId: enrollment.studentId,
-      studentNameAr: student?.full_name_ar || student?.full_name_en || enrollment.studentId,
-      studentNameEn: student?.full_name_en || student?.full_name_ar || enrollment.studentId,
-      studentNumber: student?.student_id || enrollment.studentId,
-      scopeType: classroom ? "CLASSROOM" : "SECTION",
-      scopeIds: {
-        gradeId: enrollment.gradeId,
-        sectionId: enrollment.sectionId,
-        classroomId: enrollment.classroomId,
-      },
-      type,
-      dateFrom: date,
-      dateTo: date,
-      selectedPeriodIds: type === "ABSENCE" ? undefined : ["period-1"],
-      periodIndexes: type === "ABSENCE" ? undefined : [1],
-      minutesLate: type === "LATE" ? 10 + (index % 9) : undefined,
-      minutesEarlyLeave: type === "EARLY_LEAVE" ? 8 + (index % 7) : undefined,
-      reasonAr:
-        status === "REJECTED"
-          ? "سبب غير مكتمل"
-          : type === "ABSENCE"
-            ? "موعد طبي"
-            : type === "LATE"
-              ? "ازدحام مروري"
-              : "موعد عائلي",
-      reasonEn:
-        status === "REJECTED"
-          ? "Incomplete reason"
-          : type === "ABSENCE"
-            ? "Medical appointment"
-            : type === "LATE"
-              ? "Traffic delay"
-              : "Family appointment",
-      attachments:
-        index % 2 === 0
-          ? [
-              {
-                id: `seed-attachment-${index + 1}`,
-                name: "supporting-document.pdf",
-                size: 182000,
-                type: "application/pdf",
-                url: undefined,
-              },
-            ]
-          : [],
-      status,
-      decisionNote: status === "REJECTED" ? "Needs supporting evidence" : undefined,
-      decidedAt: status === "PENDING" ? undefined : `${date}T12:00:00.000Z`,
-      decidedBy: status === "PENDING" ? undefined : "Attendance Office",
-      createdAt: `${date}T08:30:00.000Z`,
-      updatedAt: `${date}T12:00:00.000Z`,
-      linkedSessionIds: status === "APPROVED" ? [`seed-session-${key}-${classroom?.id || section?.id}-${date}`] : undefined,
+      id: getString(object, ["id", "fileId", "attachmentId"]),
+      name: getString(object, ["name", "filename", "title"]),
+      size: getNumber(object, ["size", "sizeBytes"]) || 0,
+      type: getString(object, ["type", "mimeType"], "application/octet-stream"),
+      url: getOptionalString(object, ["url", "downloadUrl"]),
     };
   });
 }
 
-function overlapsRange(request: ExcuseRequest, dateFrom?: string, dateTo?: string): boolean {
-  if (!dateFrom && !dateTo) return true;
-  const from = dateFrom || request.dateFrom;
-  const to = dateTo || request.dateTo;
+function mapRequest(item: unknown, fallback?: { yearId?: string; termId?: string }): ExcuseRequest {
+  const object = unwrapObject(item);
+  const scopeType = String(object.scopeType || "SCHOOL").toUpperCase() as ExcuseScopeType;
+  const { dateFrom, dateTo } = normalizeDateRange(object);
+  const reason = getString(object, ["reason", "reasonEn", "reasonAr"]);
 
-  return request.dateFrom <= to && request.dateTo >= from;
+  return {
+    id: getString(object, ["id", "requestId", "excuseRequestId"]),
+    yearId: getString(object, ["yearId", "academicYearId"], fallback?.yearId || ""),
+    termId: getString(object, ["termId"], fallback?.termId || ""),
+    studentId: getString(object, ["studentId"]),
+    studentNameAr: getString(object, ["studentNameAr", "nameAr", "displayNameAr", "studentNameEn"]),
+    studentNameEn: getString(object, ["studentNameEn", "nameEn", "displayNameEn", "studentNameAr"]),
+    studentNumber: getOptionalString(object, ["studentNumber", "admissionNo", "studentCode"]),
+    scopeType,
+    scopeIds: resolveScopeIds(scopeType, object),
+    type: String(object.type || "ABSENCE").toUpperCase() as ExcuseRequest["type"],
+    dateFrom,
+    dateTo,
+    selectedPeriodIds: Array.isArray(object.selectedPeriodIds) ? (object.selectedPeriodIds as string[]) : undefined,
+    periodIndexes: Array.isArray(object.periodIndexes) ? (object.periodIndexes as number[]) : undefined,
+    minutesLate: getNumber(object, ["minutesLate", "lateMinutes"]),
+    minutesEarlyLeave: getNumber(object, ["minutesEarlyLeave", "earlyLeaveMinutes"]),
+    reasonAr: getString(object, ["reasonAr", "reason"], reason),
+    reasonEn: getString(object, ["reasonEn", "reason"], reason),
+    attachments: mapAttachments(object.attachments),
+    status: normalizeStatus(object.status),
+    decisionNote: getOptionalString(object, ["decisionNote", "reviewNote"]),
+    decidedAt: getOptionalString(object, ["decidedAt", "reviewedAt"]),
+    decidedBy: getOptionalString(object, ["decidedBy", "reviewedBy"]),
+    createdAt: getString(object, ["createdAt"], new Date().toISOString()),
+    updatedAt: getString(object, ["updatedAt"], new Date().toISOString()),
+    linkedSessionIds: Array.isArray(object.linkedSessionIds) ? (object.linkedSessionIds as string[]) : undefined,
+  };
 }
 
-function resolveScopeFromRequest(
-  request: ExcuseRequest,
-  gradesById: Map<string, { stageId: string }>,
-  sectionsById: Map<string, { gradeId: string }>,
-  classroomsById: Map<string, { sectionId: string }>
-) {
-  return resolveAttendanceHierarchyScope({
-    scopeType: request.scopeType,
-    scopeIds: request.scopeIds,
-    gradesById,
-    sectionsById,
-    classroomsById,
-  });
+function buildRequestPayload(payload: Partial<ExcuseRequest>) {
+  return {
+    academicYearId: payload.yearId,
+    termId: payload.termId,
+    studentId: payload.studentId,
+    type: payload.type,
+    dateFrom: payload.dateFrom,
+    dateTo: payload.dateTo,
+    selectedPeriodIds: payload.selectedPeriodIds,
+    selectedPeriodKeys: payload.selectedPeriodIds,
+    lateMinutes: payload.minutesLate,
+    earlyLeaveMinutes: payload.minutesEarlyLeave,
+    reasonAr: payload.reasonAr,
+    reasonEn: payload.reasonEn,
+  };
 }
 
-function scopeMatches(
-  request: ExcuseRequest,
-  scopeType: ExcuseRequestFilters["scopeType"],
-  scopeIds: AttendanceScopeIds | undefined,
-  gradesById: Map<string, { stageId: string }>,
-  sectionsById: Map<string, { gradeId: string }>,
-  classroomsById: Map<string, { sectionId: string }>
-) {
-  const resolved = resolveScopeFromRequest(request, gradesById, sectionsById, classroomsById);
-  return matchesResolvedAttendanceScope(scopeType, scopeIds, resolved);
+function buildUpdatePayload(payload: Partial<ExcuseRequest>) {
+  return {
+    type: payload.type,
+    dateFrom: payload.dateFrom,
+    dateTo: payload.dateTo,
+    selectedPeriodIds: payload.selectedPeriodIds,
+    selectedPeriodKeys: payload.selectedPeriodIds,
+    lateMinutes: payload.minutesLate,
+    earlyLeaveMinutes: payload.minutesEarlyLeave,
+    reasonAr: payload.reasonAr,
+    reasonEn: payload.reasonEn,
+  };
+}
+
+async function linkAttachments(requestId: string, attachments?: ExcuseRequest["attachments"]) {
+  const fileIds = attachments?.map((attachment) => attachment.id).filter(Boolean) || [];
+  if (fileIds.length === 0) return;
+  await apiPost(`${BASE}/${requestId}/attachments`, { fileIds });
 }
 
 export async function fetchExcuseRequests(
   params: { yearId: string; termId: string } & Partial<ExcuseRequestFilters>
 ): Promise<ExcuseRequest[]> {
-  await delay(80);
-
-  const {
-    yearId,
-    termId,
-    dateFrom,
-    dateTo,
-    scopeType = "SCHOOL",
-    scopeIds,
-    status = "ALL",
-    type = "ALL",
-    search = "",
-    hasAttachment = "ALL",
-  } = params;
-
-  const key = getKey(yearId, termId);
-  await ensureSeededExcuseRequests(yearId, termId);
-  const store = excusesByTerm[key] || [];
-  const structure = await fetchStructureTree(yearId, termId);
-  const gradesById = new Map(structure.grades.map((grade) => [grade.id, { stageId: grade.stageId }]));
-  const sectionsById = new Map(structure.sections.map((section) => [section.id, { gradeId: section.gradeId }]));
-  const classroomsById = new Map(structure.classrooms.map((classroom) => [classroom.id, { sectionId: classroom.sectionId }]));
-
-  const filtered = store.filter((request) => {
-    if (!overlapsRange(request, dateFrom, dateTo)) return false;
-    if (!scopeMatches(request, scopeType, scopeIds, gradesById, sectionsById, classroomsById)) return false;
-    if (status !== "ALL" && request.status !== status) return false;
-    if (type !== "ALL" && request.type !== type) return false;
-
-    if (hasAttachment === "YES" && request.attachments.length === 0) return false;
-    if (hasAttachment === "NO" && request.attachments.length > 0) return false;
-
-    if (search.trim()) {
-      const query = search.trim().toLowerCase();
-      const haystack = [request.studentNameAr, request.studentNameEn, request.studentNumber || ""]
-        .join(" ")
-        .toLowerCase();
-      if (!haystack.includes(query)) return false;
-    }
-
-    return true;
+  const response = await apiGet<unknown>(BASE, {
+    params: {
+      academicYearId: params.yearId,
+      termId: params.termId,
+      dateFrom: params.dateFrom,
+      dateTo: params.dateTo,
+      status: params.status && params.status !== "ALL" ? params.status : undefined,
+      type: params.type && params.type !== "ALL" ? params.type : undefined,
+      search: params.search || undefined,
+    },
   });
 
-  return filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return unwrapArray(response)
+    .map((item) => mapRequest(item, params))
+    .filter((request) => {
+      if (params.hasAttachment === "YES") return (request.attachments?.length || 0) > 0;
+      if (params.hasAttachment === "NO") return (request.attachments?.length || 0) === 0;
+      return true;
+    });
 }
 
 export async function createExcuseRequest(
@@ -225,122 +205,33 @@ export async function createExcuseRequest(
     "id" | "status" | "createdAt" | "updatedAt" | "decidedAt" | "decidedBy" | "decisionNote" | "linkedSessionIds"
   >
 ): Promise<ExcuseRequest> {
-  await delay(120);
-
-  const key = getKey(payload.yearId, payload.termId);
-  if (!excusesByTerm[key]) excusesByTerm[key] = [];
-
-  const now = new Date().toISOString();
-  const newRequest: ExcuseRequest = {
-    ...payload,
-    id: `excuse-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    status: "PENDING",
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  excusesByTerm[key].push(newRequest);
-  return newRequest;
+  const response = await apiPost<unknown>(BASE, buildRequestPayload(payload));
+  const request = mapRequest(response, { yearId: payload.yearId, termId: payload.termId });
+  await linkAttachments(request.id, payload.attachments);
+  return request;
 }
 
 export async function updateExcuseRequest(
   id: string,
-  payload: Partial<Omit<ExcuseRequest, "id" | "yearId" | "termId" | "createdAt" | "status" | "decidedAt" | "decidedBy">>,
-  options?: { allowStatusOverride?: boolean }
+  payload: Partial<Omit<ExcuseRequest, "id" | "yearId" | "termId" | "createdAt" | "status" | "decidedAt" | "decidedBy">>
 ): Promise<ExcuseRequest> {
-  await delay(100);
-
-  for (const key of Object.keys(excusesByTerm)) {
-    const index = excusesByTerm[key].findIndex((request) => request.id === id);
-    if (index === -1) continue;
-
-    const current = excusesByTerm[key][index];
-    if (current.status !== "PENDING" && !options?.allowStatusOverride) {
-      throw new Error("Only pending requests can be edited.");
-    }
-
-    const updated: ExcuseRequest = {
-      ...current,
-      ...payload,
-      updatedAt: new Date().toISOString(),
-    };
-
-    excusesByTerm[key][index] = updated;
-    return updated;
-  }
-
-  throw new Error("Excuse request not found");
+  const response = await apiPatch<unknown>(`${BASE}/${id}`, buildUpdatePayload(payload));
+  await linkAttachments(id, payload.attachments);
+  return mapRequest(response);
 }
 
-export async function deleteExcuseRequest(
-  id: string,
-  options?: { allowStatusOverride?: boolean }
-): Promise<void> {
-  await delay(100);
-
-  for (const key of Object.keys(excusesByTerm)) {
-    const index = excusesByTerm[key].findIndex((request) => request.id === id);
-    if (index === -1) continue;
-
-    const current = excusesByTerm[key][index];
-    if (current.status !== "PENDING" && !options?.allowStatusOverride) {
-      throw new Error("Only pending requests can be deleted.");
-    }
-
-    excusesByTerm[key].splice(index, 1);
-    return;
-  }
-
-  throw new Error("Excuse request not found");
+export async function deleteExcuseRequest(id: string): Promise<void> {
+  await apiDelete(`${BASE}/${id}`);
 }
 
-async function updateDecision(
-  id: string,
-  status: Extract<ExcuseStatus, "APPROVED" | "REJECTED">,
-  decisionNote?: string,
-  decidedBy?: string
-): Promise<ExcuseRequest> {
-  for (const key of Object.keys(excusesByTerm)) {
-    const index = excusesByTerm[key].findIndex((request) => request.id === id);
-    if (index === -1) continue;
-
-    const request = excusesByTerm[key][index];
-    if (request.status !== "PENDING") {
-      throw new Error("Only pending requests can be decided.");
-    }
-
-    let linkedSessionIds = request.linkedSessionIds;
-    if (status === "APPROVED") {
-      const policies = await fetchPolicies(request.yearId, request.termId);
-      assertExcusePolicyAllowed(request, policies);
-      linkedSessionIds = await applyExcuseToAttendance({ request, decidedBy });
-    }
-
-    const updated: ExcuseRequest = {
-      ...request,
-      status,
-      decisionNote,
-      decidedBy,
-      decidedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      linkedSessionIds,
-    };
-
-    excusesByTerm[key][index] = updated;
-    return updated;
-  }
-
-  throw new Error("Excuse request not found");
+export async function approveExcuseRequest(id: string, decisionNote?: string, _decidedBy?: string) {
+  const response = await apiPost<unknown>(`${BASE}/${id}/approve`, { decisionNote });
+  return mapRequest(response);
 }
 
-export async function approveExcuseRequest(id: string, decisionNote?: string, decidedBy?: string) {
-  await delay(120);
-  return updateDecision(id, "APPROVED", decisionNote, decidedBy);
-}
-
-export async function rejectExcuseRequest(id: string, decisionNote?: string, decidedBy?: string) {
-  await delay(120);
-  return updateDecision(id, "REJECTED", decisionNote, decidedBy);
+export async function rejectExcuseRequest(id: string, decisionNote?: string, _decidedBy?: string) {
+  const response = await apiPost<unknown>(`${BASE}/${id}/reject`, { decisionNote });
+  return mapRequest(response);
 }
 
 export async function validateExcuseRequest(
@@ -350,30 +241,16 @@ export async function validateExcuseRequest(
 ): Promise<ExcuseValidationErrors> {
   const errors: ExcuseValidationErrors = {};
 
-  if (!payload.studentId) {
-    errors.studentId = "Student is required";
-  }
-
-  if (!payload.type) {
-    errors.type = "Type is required";
-  }
-
-  if (!payload.dateFrom) {
-    errors.dateFrom = "Start date is required";
-  }
-
-  if (!payload.dateTo) {
-    errors.dateTo = "End date is required";
-  }
-
+  if (!payload.studentId) errors.studentId = "Student is required";
+  if (!payload.type) errors.type = "Type is required";
+  if (!payload.dateFrom) errors.dateFrom = "Start date is required";
+  if (!payload.dateTo) errors.dateTo = "End date is required";
   if (payload.dateFrom && payload.dateTo && payload.dateFrom > payload.dateTo) {
     errors.dateTo = "End date must be after start date";
   }
-
   if (payload.dateFrom && (payload.dateFrom < termRange.startDate || payload.dateFrom > termRange.endDate)) {
     errors.dateFrom = "Date must be within term range";
   }
-
   if (payload.dateTo && (payload.dateTo < termRange.startDate || payload.dateTo > termRange.endDate)) {
     errors.dateTo = "Date must be within term range";
   }
@@ -387,9 +264,7 @@ export async function validateExcuseRequest(
   if (payload.type === "LATE" || payload.type === "EARLY_LEAVE") {
     const hasPeriods = (payload.selectedPeriodIds && payload.selectedPeriodIds.length > 0) ||
       (payload.periodIndexes && payload.periodIndexes.length > 0);
-    if (!hasPeriods) {
-      errors.selectedPeriodIds = "Period selection is required for late/early leave requests";
-    }
+    if (!hasPeriods) errors.selectedPeriodIds = "Period selection is required for late/early leave requests";
   }
 
   if (payload.type === "LATE") {
@@ -411,7 +286,6 @@ export async function validateExcuseRequest(
   if (effectivePolicy && !effectivePolicy.allowExcuses) {
     errors.policy = "Excuses are disabled by policy";
   }
-
   if (effectivePolicy?.requireAttachmentForExcuse && (payload.attachments?.length || 0) === 0) {
     errors.attachments = "Attachment is required by policy";
   }

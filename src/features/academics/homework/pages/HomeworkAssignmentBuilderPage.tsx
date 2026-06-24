@@ -69,10 +69,14 @@ import {
   homeworkLifecycle,
   type HomeworkLifecycleAction,
 } from "@/features/academics/homework/utils/homeworkLifecycle";
+import HomeworkGradeSyncPanel from "@/features/academics/homework/components/HomeworkGradeSyncPanel";
+import HomeworkSubmissionReviewPanel from "@/features/academics/homework/components/HomeworkSubmissionReviewPanel";
 
 interface HomeworkAssignmentBuilderPageProps {
   homeworkId: string;
 }
+
+type HomeworkDetailTab = "builder" | "submissions" | "grade-sync";
 
 function statusClass(status: HomeworkAssignmentUiModel["status"]) {
   if (status === "published") return "bg-green-100 text-green-700";
@@ -133,6 +137,9 @@ export default function HomeworkAssignmentBuilderPage({
   >(null);
   const [targetQuestionId, setTargetQuestionId] = useState<string | null>(null);
   const [tempQuestionCounter, setTempQuestionCounter] = useState(0);
+  const rawTab = searchParams.get("tab");
+  const activeTab: HomeworkDetailTab =
+    rawTab === "submissions" || rawTab === "grade-sync" ? rawTab : "builder";
 
   const lifecycle = homework ? homeworkLifecycle(homework.status) : null;
   const lifecycleActions = lifecycle?.actions ?? [];
@@ -256,8 +263,21 @@ export default function HomeworkAssignmentBuilderPage({
     questions.find((question) => question.id === selectedQuestionId);
 
   const handleBack = () => {
-    const params = searchParams.toString();
-    router.push(`/${locale}/academics/homework${params ? `?${params}` : ""}`);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("tab");
+    router.push(`/${locale}/academics/homework${params.toString() ? `?${params.toString()}` : ""}`);
+  };
+
+  const setActiveTab = (tab: HomeworkDetailTab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "builder") {
+      params.delete("tab");
+    } else {
+      params.set("tab", tab);
+    }
+    router.push(
+      `/${locale}/academics/homework/${homeworkId}${params.toString() ? `?${params.toString()}` : ""}`,
+    );
   };
 
   const handleSaveAssignment = async () => {
@@ -540,7 +560,7 @@ export default function HomeworkAssignmentBuilderPage({
 
   return (
     <div className="flex min-h-screen min-w-0 flex-col bg-gray-50">
-      <header className="sticky top-0 z-20 border-b bg-white px-4 py-4 shadow-sm md:px-6">
+      <header className="sticky top-0 z-20 border-b border-border bg-white px-4 py-4 shadow-sm md:px-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <button
@@ -568,77 +588,113 @@ export default function HomeworkAssignmentBuilderPage({
                 </span>
               )}
               {!isAssignmentSaving && !isDirty && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
-                    <CheckCircle2 className="h-3 w-3" />
-                    {tHomework("states.saved")}
-                  </span>
-                )}
+                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
+                  <CheckCircle2 className="h-3 w-3" />
+                  {tHomework("states.saved")}
+                </span>
+              )}
             </div>
           </div>
-          {(lifecycle?.isEditable ||
-            (canRunLifecycleAction && lifecycleActions.length > 0)) && (
-            <div className="flex flex-wrap gap-2">
-              {lifecycle?.isEditable && (
-                <>
+          {activeTab === "builder" &&
+            (lifecycle?.isEditable ||
+              (canRunLifecycleAction && lifecycleActions.length > 0)) && (
+              <div className="flex flex-wrap gap-2">
+                {lifecycle?.isEditable && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={!isDirty || isAssignmentSaving}
+                      onClick={() => void handleSaveAssignment()}
+                      leftIcon={<Save className="h-4 w-4" />}
+                    >
+                      {tHomework("actions.save")}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={!isDirty || isAssignmentSaving}
+                      onClick={() => setConfirmAction("reset")}
+                      leftIcon={<RotateCcw className="h-4 w-4" />}
+                    >
+                      {tHomework("actions.reset")}
+                    </Button>
+                  </>
+                )}
+                {lifecycleActions.includes("publish") && (
+                  <Button
+                    size="sm"
+                    disabled={isDirty || isAssignmentSaving}
+                    title={
+                      isDirty
+                        ? tHomework("states.saveBeforePublish")
+                        : undefined
+                    }
+                    onClick={() => setConfirmAction("publish")}
+                    leftIcon={<Send className="h-4 w-4" />}
+                  >
+                    {tHomework("actions.publish")}
+                  </Button>
+                )}
+                {lifecycleActions.includes("close") && (
                   <Button
                     variant="secondary"
                     size="sm"
-                    disabled={!isDirty || isAssignmentSaving}
-                    onClick={() => void handleSaveAssignment()}
-                    leftIcon={<Save className="h-4 w-4" />}
+                    onClick={() => setConfirmAction("close")}
+                    leftIcon={<CircleStop className="h-4 w-4" />}
                   >
-                    {tHomework("actions.save")}
+                    {tHomework("actions.close")}
                   </Button>
+                )}
+                {lifecycleActions.includes("cancel") && (
                   <Button
-                    variant="secondary"
+                    variant="danger"
                     size="sm"
-                    disabled={!isDirty || isAssignmentSaving}
-                    onClick={() => setConfirmAction("reset")}
-                    leftIcon={<RotateCcw className="h-4 w-4" />}
+                    onClick={() => setConfirmAction("cancel")}
+                    leftIcon={<Ban className="h-4 w-4" />}
                   >
-                    {tHomework("actions.reset")}
+                    {tHomework("actions.cancel")}
                   </Button>
-                </>
-              )}
-              {lifecycleActions.includes("publish") && (
-                <Button
-                  size="sm"
-                  disabled={isDirty || isAssignmentSaving}
-                  title={
-                    isDirty ? tHomework("states.saveBeforePublish") : undefined
-                  }
-                  onClick={() => setConfirmAction("publish")}
-                  leftIcon={<Send className="h-4 w-4" />}
-                >
-                  {tHomework("actions.publish")}
-                </Button>
-              )}
-              {lifecycleActions.includes("close") && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setConfirmAction("close")}
-                  leftIcon={<CircleStop className="h-4 w-4" />}
-                >
-                  {tHomework("actions.close")}
-                </Button>
-              )}
-              {lifecycleActions.includes("cancel") && (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => setConfirmAction("cancel")}
-                  leftIcon={<Ban className="h-4 w-4" />}
-                >
-                  {tHomework("actions.cancel")}
-                </Button>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            )}
         </div>
+        <nav className="mt-4 flex gap-2 overflow-x-auto">
+          {(
+            [
+              ["builder", tHomework("tabs.builder")],
+              ["submissions", tHomework("tabs.submissions")],
+              ["grade-sync", tHomework("tabs.gradeSync")],
+            ] as Array<[HomeworkDetailTab, string]>
+          ).map(([tab, label]) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                activeTab === tab
+                  ? "bg-primary text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
       </header>
 
-      {isMobile ? (
+      {activeTab === "submissions" ? (
+        <HomeworkSubmissionReviewPanel
+          homeworkId={homeworkId}
+          totalMarks={homework.totalMarks}
+        />
+      ) : activeTab === "grade-sync" ? (
+        <HomeworkGradeSyncPanel
+          homeworkId={homeworkId}
+          homework={homework}
+          isGraded={homework.isGraded}
+        />
+      ) : isMobile ? (
         <MobileLayout
           questions={questions}
           selectedQuestionId={selectedQuestionId}

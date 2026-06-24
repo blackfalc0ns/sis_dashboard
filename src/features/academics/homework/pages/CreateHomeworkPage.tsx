@@ -27,9 +27,7 @@ import {
   type TeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { fetchEnrollments } from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
-import {
-  fetchAllStudents,
-} from "@/features/students-guardians/students/services/studentsService";
+import { fetchAllStudents } from "@/features/students-guardians/students/services/studentsService";
 import type {
   Student,
   StudentEnrollment,
@@ -97,7 +95,10 @@ function allocationOptionSearchText(input: {
 function studentNameForLocale(locale: string, student: Student) {
   return locale === "ar"
     ? student.full_name_ar || student.full_name_en || student.name || student.id
-    : student.full_name_en || student.full_name_ar || student.name || student.id;
+    : student.full_name_en ||
+        student.full_name_ar ||
+        student.name ||
+        student.id;
 }
 
 function buildEligibleStudents(input: {
@@ -110,10 +111,14 @@ function buildEligibleStudents(input: {
     .filter((enrollment) => enrollment.status === "active")
     .filter((enrollment) => enrollment.classroomId === input.classroomId)
     .map((enrollment) => {
-      const student = input.students.find((item) => item.id === enrollment.studentId);
+      const student = input.students.find(
+        (item) => item.id === enrollment.studentId,
+      );
       return {
         id: enrollment.studentId,
-        name: student ? studentNameForLocale(input.locale, student) : enrollment.studentId,
+        name: student
+          ? studentNameForLocale(input.locale, student)
+          : enrollment.studentId,
         studentNumber: student?.student_id || enrollment.studentId,
         enrollmentId: enrollment.enrollmentId || enrollment.id,
       };
@@ -131,8 +136,12 @@ function buildAllocationOptions(input: {
   return input.allocations
     .filter((allocation) => Boolean(allocation.teacherId))
     .map((allocation) => {
-      const teacher = input.teachers.find((item) => item.id === allocation.teacherId);
-      const subject = input.subjects.find((item) => item.id === allocation.subjectId);
+      const teacher = input.teachers.find(
+        (item) => item.id === allocation.teacherId,
+      );
+      const subject = input.subjects.find(
+        (item) => item.id === allocation.subjectId,
+      );
       const classroom = input.structure.classrooms.find(
         (item) => item.id === allocation.classroomId,
       );
@@ -142,12 +151,14 @@ function buildAllocationOptions(input: {
       const labelParts = [
         teacherNameForLocale(input.locale, teacher),
         localizedName(input.locale, subject),
-        localizedName(input.locale, classroom) || localizedName(input.locale, section),
+        localizedName(input.locale, classroom) ||
+          localizedName(input.locale, section),
       ].filter(Boolean);
       const teacherLabel = teacherNameForLocale(input.locale, teacher);
       const subjectLabel = localizedName(input.locale, subject);
       const classroomLabel =
-        localizedName(input.locale, classroom) || localizedName(input.locale, section);
+        localizedName(input.locale, classroom) ||
+        localizedName(input.locale, section);
 
       return {
         value: allocation.id,
@@ -158,7 +169,9 @@ function buildAllocationOptions(input: {
           subject,
           classroom,
           section,
-          grade: input.structure.grades.find((item) => item.id === section?.gradeId),
+          grade: input.structure.grades.find(
+            (item) => item.id === section?.gradeId,
+          ),
         }),
         allocation,
         teacherLabel,
@@ -223,7 +236,9 @@ export default function CreateHomeworkPage() {
     const normalizedSearch = studentSearch.trim().toLowerCase();
     if (!normalizedSearch) return eligibleStudents;
     return eligibleStudents.filter((student) =>
-      `${student.name} ${student.studentNumber}`.toLowerCase().includes(normalizedSearch),
+      `${student.name} ${student.studentNumber}`
+        .toLowerCase()
+        .includes(normalizedSearch),
     );
   }, [eligibleStudents, studentSearch]);
 
@@ -314,13 +329,7 @@ export default function CreateHomeworkPage() {
     return () => {
       isActive = false;
     };
-  }, [
-    effectiveDraft.academicYearId,
-    locale,
-    selectedAllocation,
-    showError,
-    t,
-  ]);
+  }, [effectiveDraft.academicYearId, locale, selectedAllocation, showError, t]);
 
   const toggleSelectedStudent = (studentId: string) => {
     setDraft((current) => {
@@ -415,7 +424,7 @@ export default function CreateHomeworkPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
       <div className="mx-auto w-full max-w-4xl p-6">
-        <div className="rounded-lg border bg-white p-6">
+        <div className="rounded-lg border border-border bg-white p-6">
           <div className="mb-6">
             <h1 className="text-xl font-semibold text-gray-900">
               {t("title")}
@@ -577,11 +586,13 @@ export default function CreateHomeworkPage() {
               </div>
             </div>
 
-            {selectedAllocation && eligibleStudents.length === 0 && !isLoadingEligibleStudents && (
-              <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                {t("targets.noEligibleStudents")}
-              </div>
-            )}
+            {selectedAllocation &&
+              eligibleStudents.length === 0 &&
+              !isLoadingEligibleStudents && (
+                <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                  {t("targets.noEligibleStudents")}
+                </div>
+              )}
 
             {draft.targetMode === "selected_students" && (
               <div className="mt-4 space-y-3">
@@ -612,7 +623,7 @@ export default function CreateHomeworkPage() {
                   </div>
                 </div>
 
-                <div className="max-h-64 overflow-y-auto rounded-lg border bg-white">
+                <div className="max-h-64 overflow-y-auto rounded-lg border border-border bg-white">
                   {filteredEligibleStudents.length === 0 ? (
                     <div className="p-4 text-center text-sm text-gray-500">
                       {eligibleStudents.length === 0
@@ -623,12 +634,14 @@ export default function CreateHomeworkPage() {
                     filteredEligibleStudents.map((student) => (
                       <label
                         key={student.id}
-                        className="flex cursor-pointer items-center gap-3 border-b px-4 py-3 text-sm last:border-b-0 hover:bg-gray-50"
+                        className="flex cursor-pointer items-center gap-3 border-b border-border px-4 py-3 text-sm last:border-b-0 last:border-border hover:bg-gray-50"
                       >
                         <input
                           type="checkbox"
                           className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                          checked={(draft.studentIds ?? []).includes(student.id)}
+                          checked={(draft.studentIds ?? []).includes(
+                            student.id,
+                          )}
                           onChange={() => toggleSelectedStudent(student.id)}
                         />
                         <span className="min-w-0 flex-1">

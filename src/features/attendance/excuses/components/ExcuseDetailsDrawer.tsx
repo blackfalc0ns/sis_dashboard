@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { X, User, CalendarDays, Paperclip, Clock3, Check, Ban, MapPin, AlertTriangle } from "lucide-react";
+import { X, User, CalendarDays, Paperclip, Clock3, Check, Ban, AlertTriangle } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import type { EffectiveExcusePolicy } from "@/features/attendance/policies/services/attendancePolicyService";
 import AttendanceAttachmentPreviewModal from "@/features/attendance/shared/components/AttendanceAttachmentPreviewModal";
@@ -59,14 +59,6 @@ export default function ExcuseDetailsDrawer({ request, effectivePolicy, isReadOn
     }
   };
 
-  const getScopeLabel = () => {
-    if (request.scopeType === "SCHOOL") {
-      return tTable("school");
-    }
-
-    return request.scopeType;
-  };
-
   const handleOpenStudentProfile = () => {
     router.push(`/${locale}/students-guardians/students/${request.studentId}`);
   };
@@ -98,16 +90,6 @@ export default function ExcuseDetailsDrawer({ request, effectivePolicy, isReadOn
                 {locale === "ar" ? request.studentNameAr : request.studentNameEn}
               </button>
               {request.studentNumber && <div style={{ color: "var(--text-secondary)" }}>{request.studentNumber}</div>}
-            </div>
-          </section>
-
-          <section>
-            <div className="flex items-center gap-2 mb-2" style={{ color: "var(--text-secondary)" }}>
-              <MapPin className="w-4 h-4" />
-              <span className="text-sm font-semibold">{t("scope")}</span>
-            </div>
-            <div className="text-sm" style={{ color: "var(--text-primary)" }}>
-              {getScopeLabel()}
             </div>
           </section>
 

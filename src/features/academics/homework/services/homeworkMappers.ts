@@ -55,13 +55,19 @@ function label(ref: BackendHomeworkAssignmentDto["teacher"]): string | undefined
   return ref.displayName || ref.name || ref.nameEn || ref.nameAr || ref.title || ref.titleEn || ref.titleAr;
 }
 
+function homeworkAssignmentId(dto: BackendHomeworkAssignmentDto) {
+  return dto.id ?? dto.homeworkId ?? dto.assignmentId ?? "";
+}
+
 export function mapBackendHomeworkAssignmentToUi(
   dto: BackendHomeworkAssignmentDto,
 ): HomeworkAssignmentUiModel {
   return {
-    id: dto.id,
+    id: homeworkAssignmentId(dto),
     academicYearId: dto.academicYearId ?? dto.academicYear?.id,
     termId: dto.termId ?? dto.term?.id,
+    classroomId: dto.classroomId ?? dto.classroom?.id,
+    subjectId: dto.subjectId ?? dto.subject?.id,
     teacherSubjectAllocationId: dto.teacherSubjectAllocationId,
     title: dto.title ?? "",
     description: dto.description ?? "",

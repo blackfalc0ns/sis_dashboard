@@ -846,7 +846,7 @@ function CollapsedHeader({
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-start gap-3">
             <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50">
-              <MapPin size={15} className="text-blue-500" />
+              <MapPin size={15} className="text-primary-500" />
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-1.5 mb-3">
@@ -861,7 +861,7 @@ function CollapsedHeader({
                 <span className="text-3xl font-bold leading-none text-[#111827]">
                   {weather.temperature}
                 </span>
-                <span className="text-[13px] font-medium text-blue-500">
+                <span className="text-[13px] font-medium text-primary-500">
                   {weather.condition}
                 </span>
               </div>
@@ -965,7 +965,7 @@ function ExpandedContent({
       >
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-50">
-            <MapPin size={13} className="text-blue-500" />
+            <MapPin size={13} className="text-primary-500" />
           </span>
           <div className="flex min-w-0 items-center gap-2">
             <span className="truncate text-[14px] font-semibold text-[#111827]">
@@ -1028,7 +1028,7 @@ function MainWeatherCard({
   text: LocalizedText;
 }) {
   return (
-    <section className="relative flex min-h-[220px] flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] p-5 text-white">
+    <section className="relative flex min-h-[220px] flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-hover)] p-5 text-white">
       <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/5" />
       <div className="absolute -bottom-10 -left-6 h-32 w-32 rounded-full bg-white/5" />
 
@@ -1237,7 +1237,7 @@ function ClockCard({
       <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50">
-            <Clock3 size={16} className="text-blue-500" />
+            <Clock3 size={16} className="text-primary-500" />
           </span>
           <h3 className="text-[14px] font-semibold text-[#111827]">
             {text.clock}
@@ -1253,7 +1253,7 @@ function ClockCard({
             <span className="text-5xl font-bold leading-none text-[#111827]">
               {planner.time}
             </span>
-            <span className="pb-1 text-[13px] font-semibold text-blue-500">
+            <span className="pb-1 text-[13px] font-semibold text-primary-500">
               {planner.period}
             </span>
           </div>
@@ -1268,8 +1268,8 @@ function ClockCard({
           <span className="absolute left-2 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#CBD5E1]" />
           <span className="absolute right-2 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#CBD5E1]" />
           <span className="absolute left-1/2 top-1/2 h-8 w-1 -translate-x-1/2 -translate-y-full origin-bottom rotate-[30deg] rounded-full bg-[#111827]" />
-          <span className="absolute left-1/2 top-1/2 h-10 w-0.5 -translate-x-1/2 -translate-y-full origin-bottom rotate-[130deg] rounded-full bg-blue-500" />
-          <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-blue-500 shadow-sm" />
+          <span className="absolute left-1/2 top-1/2 h-10 w-0.5 -translate-x-1/2 -translate-y-full origin-bottom rotate-[130deg] rounded-full bg-primary-500" />
+          <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-primary-500 shadow-sm" />
         </div>
       </div>
     </section>
@@ -1348,7 +1348,7 @@ function CalendarCard({
             className={cx(
               "relative grid h-8 place-items-center rounded-full text-[12px] font-semibold",
               day.isToday
-                ? "bg-blue-500 text-white shadow-sm"
+                ? "bg-primary-500 text-white shadow-sm"
                 : day.isCurrentMonth
                   ? "text-[#111827] hover:bg-[#F3F4F6]"
                   : "text-[#CBD5E1]",
@@ -1359,7 +1359,7 @@ function CalendarCard({
               <span
                 className={cx(
                   "absolute bottom-1 h-1 w-1 rounded-full",
-                  day.isToday ? "bg-white" : "bg-blue-400",
+                  day.isToday ? "bg-white" : "bg-primary-500",
                 )}
               />
             )}
@@ -1460,7 +1460,7 @@ function TodoListCard({
               type="submit"
               size="sm"
               leftIcon={<Plus size={14} />}
-              className="h-10 rounded-full bg-blue-500 px-3.5 text-[12px] font-semibold hover:bg-blue-600"
+              className="h-10 rounded-full bg-primary-500 px-3.5 text-[12px] font-semibold hover:bg-blue-600"
             >
               {text.add}
             </Button>
@@ -1748,7 +1748,7 @@ function TodoDetailsModalContent({
               size="sm"
               onClick={saveTodoChanges}
               disabled={!draftTitle.trim()}
-              className="rounded-full bg-blue-500 text-white hover:bg-blue-600"
+              className="rounded-full bg-primary-500 text-white hover:bg-blue-600"
             >
               {text.save}
             </Button>
@@ -1768,7 +1768,7 @@ function TodoDetailsModalContent({
               type="button"
               size="sm"
               onClick={onClose}
-              className="rounded-full bg-blue-500 text-white hover:bg-blue-600"
+              className="rounded-full bg-primary-500 text-white hover:bg-blue-600"
             >
               {text.close}
             </Button>

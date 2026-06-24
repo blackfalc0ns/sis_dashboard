@@ -9,13 +9,11 @@ import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
 import AttendanceStatePanel from "@/features/attendance/shared/components/AttendanceStatePanel";
-import AttendanceScopeHeader from "@/features/attendance/shared/components/AttendanceScopeHeader";
 import AttendanceDataPanel from "@/features/attendance/shared/components/AttendanceDataPanel";
 import AttendanceFiltersPanel from "@/features/attendance/shared/components/AttendanceFiltersPanel";
 import AttendanceMobileActions from "@/features/attendance/shared/components/AttendanceMobileActions";
 import AttendanceDetailsCard from "@/features/attendance/shared/components/AttendanceDetailsCard";
 import AttendanceBottomDrawer from "@/features/attendance/shared/components/AttendanceBottomDrawer";
-import { isScopeSelectionComplete } from "@/features/attendance/shared/attendanceScope";
 import {
   fetchStructureTree,
   type Stage,
@@ -56,7 +54,6 @@ import ExcusesTable from "../components/ExcusesTable";
 import ExcuseDetailsDrawer from "../components/ExcuseDetailsDrawer";
 import ExcuseRequestModal from "../components/ExcuseRequestModal";
 import DecisionModal from "../components/DecisionModal";
-import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 
 function computeKpis(requests: ExcuseRequest[]): ExcusesKpis {
@@ -88,8 +85,6 @@ export default function AttendanceExcusesPage() {
   const [loading, setLoading] = useState(false);
 
   const [filters, setFilters] = useState<ExcuseRequestFilters>({
-    scopeType: "SCHOOL",
-    scopeIds: {},
     status: "ALL",
     type: "ALL",
     search: "",
@@ -233,16 +228,7 @@ export default function AttendanceExcusesPage() {
     exportExcuses(requests, locale, format, {
       yearName: selectedYearName,
       termName: selectedTermName || "",
-      scopeName: getAttendanceScopeLabel({
-        scopeType: filters.scopeType,
-        scopeIds: filters.scopeIds,
-        stages,
-        grades,
-        sections,
-        classrooms,
-        locale,
-        schoolLabel: t("scopeSchool"),
-      }),
+      scopeName: locale === "ar" ? "كل الطلاب" : "All students",
       dateRange: filters.dateFrom && filters.dateTo ? `${filters.dateFrom} - ${filters.dateTo}` : t("allDates"),
     });
 
@@ -251,17 +237,6 @@ export default function AttendanceExcusesPage() {
 
   const handleExport = async (format: AttendanceExportFormat) => {
     if (!term) return;
-
-    const scopeName = getAttendanceScopeLabel({
-      scopeType: filters.scopeType,
-      scopeIds: filters.scopeIds,
-      stages,
-      grades,
-      sections,
-      classrooms,
-      locale,
-      schoolLabel: t("scopeSchool"),
-    });
 
     if (format === "excel") {
       handleLegacyExport("excel");
@@ -301,8 +276,6 @@ export default function AttendanceExcusesPage() {
       metadata: {
         yearName: selectedYearName,
         termName: selectedTermName,
-        scopeTypeName: filters.scopeType,
-        scopeName,
         dateLabel:
           filters.dateFrom && filters.dateTo
             ? `${filters.dateFrom} - ${filters.dateTo}`
@@ -313,7 +286,7 @@ export default function AttendanceExcusesPage() {
       filename: generateAttendanceExportFilename(
         "attendance-excuses",
         termContext.termId || undefined,
-        filters.scopeType.toLowerCase(),
+        filters.status.toLowerCase(),
       ),
       format,
       columns,
@@ -325,17 +298,6 @@ export default function AttendanceExcusesPage() {
             termContext.academicYears.find((item) => item.id === termContext.yearId)
               ?.nameEn || termContext.yearId || "",
           termName: term.nameEn || term.name,
-          scopeTypeName: filters.scopeType,
-          scopeName: getAttendanceScopeLabel({
-            scopeType: filters.scopeType,
-            scopeIds: filters.scopeIds,
-            stages,
-            grades,
-            sections,
-            classrooms,
-            locale: "en",
-            schoolLabel: "School",
-          }),
           dateLabel:
             filters.dateFrom && filters.dateTo
               ? `${filters.dateFrom} - ${filters.dateTo}`
@@ -466,8 +428,6 @@ export default function AttendanceExcusesPage() {
     setFilters({
       dateFrom: term?.startDate,
       dateTo: term?.endDate,
-      scopeType: "SCHOOL",
-      scopeIds: {},
       status: "ALL",
       type: "ALL",
       search: "",
@@ -494,20 +454,9 @@ export default function AttendanceExcusesPage() {
     );
   }
 
-  const isScopeSelectionIncomplete = !isScopeSelectionComplete(filters.scopeType, filters.scopeIds);
-
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex-1 p-4 flex flex-col gap-4 min-h-0" style={{ backgroundColor: "var(--background)" }}>
-        <AttendanceScopeHeader
-          isReadOnly={isReadOnly}
-          scopeType={filters.scopeType}
-          scopeIds={filters.scopeIds}
-          stages={stages}
-          grades={grades}
-          sections={sections}
-          classrooms={classrooms}
-        />
           <div>
           <ExcusesKpisBar kpis={kpis} />
           </div>
@@ -531,10 +480,6 @@ export default function AttendanceExcusesPage() {
               <AttendanceFiltersPanel>
                 <ExcusesFiltersBar
                   filters={filters}
-                  stages={stages}
-                  grades={grades}
-                  sections={sections}
-                  classrooms={classrooms}
                   onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
                   onReset={resetFilters}
                   onOpenExport={() => setShowExportModal(true)}
@@ -542,18 +487,13 @@ export default function AttendanceExcusesPage() {
               </AttendanceFiltersPanel>
 
               <AttendanceDataPanel loading={loading}>
-                {isScopeSelectionIncomplete ? (
-                  <AttendanceStatePanel
-                    title={t("emptyStates.selectScope.title")}
-                    description={t("emptyStates.selectScope.description")}
-                  />
-                ) : requests.length === 0 ? (
+                {requests.length === 0 ? (
                   <AttendanceStatePanel
                     title={t("emptyStates.noRecords.title")}
                     description={t("emptyStates.noRecords.description")}
                   />
                 ) : (
-                  <ExcusesTable requests={requests} grades={grades} sections={sections} classrooms={classrooms} isReadOnly={isReadOnly}
+                  <ExcusesTable requests={requests} isReadOnly={isReadOnly}
                     onView={(request) => setSelectedRequest(request)}
                     onApprove={(request) => openDecision(request, "APPROVE")}
                     onReject={(request) => openDecision(request, "REJECT")}
@@ -596,18 +536,13 @@ export default function AttendanceExcusesPage() {
             </AttendanceMobileActions>
 
             <AttendanceDataPanel loading={loading}>
-              {isScopeSelectionIncomplete ? (
-                <AttendanceStatePanel
-                  title={t("emptyStates.selectScope.title")}
-                  description={t("emptyStates.selectScope.description")}
-                />
-              ) : requests.length === 0 ? (
+              {requests.length === 0 ? (
                 <AttendanceStatePanel
                   title={t("emptyStates.noRecords.title")}
                   description={t("emptyStates.noRecords.description")}
                 />
               ) : (
-                <ExcusesTable requests={requests} grades={grades} sections={sections} classrooms={classrooms} isReadOnly={isReadOnly}
+                <ExcusesTable requests={requests} isReadOnly={isReadOnly}
                   onView={(request) => {
                     setSelectedRequest(request);
                     setShowDetailsDrawer(true);
@@ -626,10 +561,6 @@ export default function AttendanceExcusesPage() {
       <ExcusesFiltersDrawer
         isOpen={showFiltersDrawer}
         filters={filters}
-        stages={stages}
-        grades={grades}
-        sections={sections}
-        classrooms={classrooms}
         onClose={() => setShowFiltersDrawer(false)}
         onApply={() => setShowFiltersDrawer(false)}
         onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}

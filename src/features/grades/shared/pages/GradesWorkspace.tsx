@@ -31,7 +31,7 @@ import {
   fetchOverviewGradebook,
 } from "../../overview/services/gradesOverviewService";
 import type { Assessment } from "../../overview/types";
-import type { CreateAssessmentPayload, ExamScopeType, GradeItemStatus, GradebookStudentRow, ScopeEntityOption } from "../../shared/types";
+import type { AssessmentDeliveryMode, CreateAssessmentPayload, ExamScopeType, GradeItemStatus, GradebookStudentRow, ScopeEntityOption } from "../../shared/types";
 import GradesFiltersPanel from "../components/GradesFiltersPanel";
 import GradesAnalyticsSection from "../../analytics/components/GradesAnalyticsSection";
 import GradesOverviewSection from "../../overview/components/GradesOverviewSection";
@@ -104,6 +104,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   const [selectedScopeType, setSelectedScopeType] = useState<ExamScopeType>("school");
   const [selectedScopeId, setSelectedScopeId] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
+  const [selectedDeliveryMode, setSelectedDeliveryMode] = useState<AssessmentDeliveryMode | "">("");
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [rows, setRows] = useState<GradebookStudentRow[]>([]);
@@ -188,10 +189,16 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         const nextSubjectId = data.subjects.some((subject) => subject.id === urlSubjectId)
           ? urlSubjectId
           : data.subjects[0]?.id || "";
+        const urlDeliveryMode = searchParams.get("deliveryMode");
+        const nextDeliveryMode =
+          urlDeliveryMode === "SCORE_ONLY" || urlDeliveryMode === "QUESTION_BASED"
+            ? urlDeliveryMode
+            : "";
 
         setSelectedScopeType(nextScopeType);
         setSelectedScopeId(nextScopeId);
         setSelectedSubjectId(nextSubjectId);
+        setSelectedDeliveryMode(nextDeliveryMode);
         filtersHydratedRef.current = true;
       } catch {
         showError(tCommon("error_loading"));
@@ -214,8 +221,10 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     else params.delete("scopeId");
     if (selectedSubjectId) params.set("subjectId", selectedSubjectId);
     else params.delete("subjectId");
+    if (view === "assessments" && selectedDeliveryMode) params.set("deliveryMode", selectedDeliveryMode);
+    else params.delete("deliveryMode");
     replaceQuery(params);
-  }, [academicYearId, replaceQuery, searchParams, selectedScopeId, selectedScopeType, selectedSubjectId, termId]);
+  }, [academicYearId, replaceQuery, searchParams, selectedDeliveryMode, selectedScopeId, selectedScopeType, selectedSubjectId, termId, view]);
 
   const refreshGradebook = useCallback(async () => {
     if (!academicYearId || !termId || (selectedScopeType !== "school" && !selectedScopeId) || !selectedSubjectId) {
@@ -233,6 +242,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
           scopeId: selectedScopeId,
           subjectId: selectedSubjectId,
           includeDrafts: true,
+          deliveryMode: selectedDeliveryMode || undefined,
         });
         setAssessments(scopedAssessments);
         setRows([]);
@@ -270,7 +280,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     } finally {
       setIsDataLoading(false);
     }
-  }, [academicYearId, selectedScopeId, selectedScopeType, selectedSubjectId, showError, tCommon, termId, view]);
+  }, [academicYearId, selectedDeliveryMode, selectedScopeId, selectedScopeType, selectedSubjectId, showError, tCommon, termId, view]);
 
   useEffect(() => {
     void refreshGradebook();
@@ -1188,12 +1198,14 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
           selectedScopeType={selectedScopeType}
           selectedScopeId={selectedScopeId}
           selectedSubjectId={selectedSubjectId}
+          selectedDeliveryMode={view === "assessments" ? selectedDeliveryMode : undefined}
           onScopeTypeChange={(scopeType) => {
             setSelectedScopeType(scopeType);
             setSelectedScopeId((scopeEntitiesByType[scopeType] || [])[0]?.id || "");
           }}
           onScopeIdChange={setSelectedScopeId}
           onSubjectChange={setSelectedSubjectId}
+          onDeliveryModeChange={view === "assessments" ? setSelectedDeliveryMode : undefined}
           selectedContextText={selectedContextText}
           isReadOnly={isReadOnly}
           showSubjectFilter={showSubjectFilter}

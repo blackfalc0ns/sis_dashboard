@@ -138,6 +138,15 @@ describe("timetableConfigService", () => {
     ).resolves.toEqual([
       expect.objectContaining({ id: "config-1", scopeType: "TERM" }),
     ]);
+
+    expect(mockedApiGet).toHaveBeenCalledWith("/academics/timetable/config", {
+      params: {
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "GRADE",
+        gradeId: "grade-1",
+      },
+    });
   });
 
   it("upserts config through the backend without local ids or default config storage", async () => {

@@ -2,12 +2,12 @@ export type AssessmentType =
   | "QUIZ"
   | "MONTH_EXAM"
   | "MIDTERM"
-  | "TERM_EXAM";
-
-export type LegacyAssessmentType =
+  | "TERM_EXAM"
   | "ASSIGNMENT"
   | "FINAL"
   | "PRACTICAL";
+
+export type LegacyAssessmentType = never;
 
 export type ExamScopeType =
   | "school"
@@ -146,6 +146,7 @@ export interface GradesScopeFilters {
   scopeId?: string;
   subjectId?: string;
   includeDrafts?: boolean;
+  deliveryMode?: AssessmentDeliveryMode;
 }
 
 export interface ScopeOption {
