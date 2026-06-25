@@ -98,7 +98,18 @@ function CategoryModal({
   const { showSuccess, showError } = useToast();
   const isEdit = !!category;
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    code: string;
+    nameEn: string;
+    nameAr: string;
+    descriptionEn: string;
+    descriptionAr: string;
+    type: BehaviorType;
+    defaultSeverity: BehaviorSeverity;
+    defaultPoints: string | number;
+    isActive: boolean;
+    sortOrder: string | number;
+  }>({
     code: category?.code ?? `CAT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
     nameEn: category?.nameEn ?? "",
     nameAr: category?.nameAr ?? "",
@@ -116,17 +127,17 @@ function CategoryModal({
     setForm((p) => ({ ...p, [k]: v }));
 
   const setType = (type: BehaviorType) =>
-    setForm((p) => ({
-      ...p,
-      type,
-      defaultPoints: normalizeBehaviorPointsForType(type, p.defaultPoints),
-    }));
-
-  const setDefaultPoints = (points: number) =>
-    setForm((p) => ({
-      ...p,
-      defaultPoints: normalizeBehaviorPointsForType(p.type, points),
-    }));
+    setForm((p) => {
+      const num = Number(p.defaultPoints);
+      const normalized = Number.isNaN(num)
+        ? (type === "positive" ? 1 : -1)
+        : normalizeBehaviorPointsForType(type, num);
+      return {
+        ...p,
+        type,
+        defaultPoints: normalized,
+      };
+    });
 
   const handleSave = async () => {
     const normalizedCode = normalizeCategoryCode(form.code);
@@ -146,6 +157,10 @@ function CategoryModal({
       return;
     }
 
+    const finalPoints = normalizeBehaviorPointsForType(form.type, Number(form.defaultPoints));
+    const parsedSortOrder = Number(form.sortOrder);
+    const finalSortOrder = Number.isNaN(parsedSortOrder) ? 10 : parsedSortOrder;
+
     set("code", normalizedCode);
 
     setSaving(true);
@@ -154,23 +169,26 @@ function CategoryModal({
         await updateBehaviorCategory(category.id, {
           ...form,
           code: normalizedCode,
-          defaultPoints: normalizeBehaviorPointsForType(form.type, form.defaultPoints),
+          defaultPoints: finalPoints,
+          sortOrder: finalSortOrder,
         });
         showSuccess(t("messages.categoryUpdated"));
       } else {
         await createBehaviorCategory({
           ...form,
           code: normalizedCode,
-          defaultPoints: normalizeBehaviorPointsForType(form.type, form.defaultPoints),
+          defaultPoints: finalPoints,
+          sortOrder: finalSortOrder,
         });
         showSuccess(t("messages.categoryCreated"));
       }
       onSuccess();
     } catch (error) {
+      const errObj = error as Record<string, any>;
       const errorCode =
-        (error as any)?.code ||
-        (error as any)?.response?.data?.code ||
-        (error as any)?.response?.data?.error?.code;
+        errObj?.code ||
+        errObj?.response?.data?.code ||
+        errObj?.response?.data?.error?.code;
 
       if (errorCode === "behavior.category.in_use") {
         showError(t("errors.categoryInUse"));
@@ -220,8 +238,8 @@ function CategoryModal({
           <Input label={t("category.descriptionEn")} value={form.descriptionEn} onChange={(e) => set("descriptionEn", e.target.value)} />
           <Input label={t("category.descriptionAr")} value={form.descriptionAr} onChange={(e) => set("descriptionAr", e.target.value)} dir="rtl" />
           <Select label={t("category.severity")} value={form.defaultSeverity} onChange={(v) => set("defaultSeverity", v as BehaviorSeverity)} options={SEVERITY_OPTIONS} />
-          <Input label={t("category.points")} type="number" value={String(form.defaultPoints)} onChange={(e) => setDefaultPoints(Number(e.target.value))} />
-          <Input label={t("category.sortOrder")} type="number" value={String(form.sortOrder)} onChange={(e) => set("sortOrder", Number(e.target.value))} />
+          <Input label={t("category.points")} type="number" value={String(form.defaultPoints)} onChange={(e) => set("defaultPoints", e.target.value)} />
+          <Input label={t("category.sortOrder")} type="number" value={String(form.sortOrder)} onChange={(e) => set("sortOrder", e.target.value)} />
           <label className="flex items-center gap-2 cursor-pointer pt-6">
             <input
               type="checkbox"
@@ -344,7 +362,7 @@ function RecordModal({
       return;
     }
 
-    if (!validateRecordTermDate(form.occurredAt, currentTerm)) {
+    if (!form.occurredAt || !validateRecordTermDate(form.occurredAt, currentTerm)) {
       showError(t("errors.recordOutsideTerm"));
       return;
     }
@@ -439,7 +457,7 @@ function RecordModal({
           <DatePicker
             label={t("record.occurredAt")}
             value={form.occurredAt}
-            onChange={(d) => d && set("occurredAt", d)}
+            onChange={(d) => set("occurredAt", d as any)}
             minDate={minDate}
             maxDate={maxDate}
           />
@@ -636,13 +654,7 @@ function ApproveModal({
           label={t("modal.approvedPoints")}
           type="number"
           value={pointsOverride}
-          onChange={(e) => {
-            if (e.target.value === "" || !record.type) {
-              setPointsOverride(e.target.value);
-              return;
-            }
-            setPointsOverride(String(normalizeBehaviorPointsForType(record.type, Number(e.target.value))));
-          }}
+          onChange={(e) => setPointsOverride(e.target.value)}
         />
         <Input
           label={t("modal.reviewerNote")}

@@ -128,6 +128,10 @@ export function validatePointsOverride(
   return validateCategoryPoints(type, points);
 }
 
+/**
+ * Helper to determine if a behavior record status should create a point ledger entry.
+ * Reserved for backend synchronization/ledger check integration.
+ */
 export function shouldCreatePointLedger(status: BehaviorStatus): boolean {
   return status === "approved";
 }
