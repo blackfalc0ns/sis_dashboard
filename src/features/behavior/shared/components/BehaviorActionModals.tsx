@@ -39,6 +39,11 @@ import {
   validateCategoryCode,
   validateCategoryName,
   validateCategoryPoints,
+  validateRecordContent,
+  validateRecordPoints,
+  validateRecordCategory,
+  validateRecordTermDate,
+  validatePointsOverride,
 } from "../utils/behaviorUiRules";
 
 // ─── Modal modes ────────────────────────────────────────────────────────────
@@ -301,10 +306,49 @@ function RecordModal({
     setForm((p) => ({ ...p, [k]: v }));
 
   const handleSave = async () => {
-    if (isEdit && record && !canEditBehaviorRecord(record)) {
-      showError(t("messages.loadError"));
+    if (isEdit && record) {
+      if (!canEditBehaviorRecord(record)) {
+        showError(t("errors.recordInvalidStatusTransition"));
+        return;
+      }
+    }
+
+    if (!validateRecordContent({
+      titleEn: form.titleEn,
+      titleAr: form.titleAr,
+      noteEn: form.noteEn,
+      noteAr: form.noteAr,
+    })) {
+      showError(t("messages.submitContentRequired"));
       return;
     }
+
+    const selectedCategory = categories.find((c) => c.id === form.categoryId);
+    if (!selectedCategory) {
+      showError(t("errors.categoryInactive"));
+      return;
+    }
+
+    if (!selectedCategory.isActive) {
+      showError(t("errors.categoryInactive"));
+      return;
+    }
+
+    if (!validateRecordCategory(selectedCategory, selectedCategory.type)) {
+      showError(t("errors.recordTypeMismatch"));
+      return;
+    }
+
+    if (!validateRecordPoints(selectedCategory.type, selectedCategory.defaultPoints)) {
+      showError(t("errors.recordPointsInvalid"));
+      return;
+    }
+
+    if (!validateRecordTermDate(form.occurredAt, currentTerm)) {
+      showError(t("errors.recordOutsideTerm"));
+      return;
+    }
+
     setSaving(true);
     try {
       if (isEdit && record) {
@@ -327,6 +371,9 @@ function RecordModal({
           noteEn: form.noteEn || undefined,
           noteAr: form.noteAr || undefined,
           occurredAt: form.occurredAt.toISOString(),
+          type: selectedCategory.type,
+          severity: selectedCategory.defaultSeverity,
+          points: selectedCategory.defaultPoints,
         });
         showSuccess(t("messages.recordCreated"));
       }
@@ -539,6 +586,13 @@ function ApproveModal({
     if (!canApproveOrRejectBehaviorRecord(record)) {
       showError(t("messages.loadError"));
       return;
+    }
+    if (pointsOverride !== "") {
+      const type = record.type || "positive";
+      if (!validatePointsOverride(type, pointsOverride)) {
+        showError(t("errors.recordPointsInvalid"));
+        return;
+      }
     }
     const overrideValue = pointsOverride !== "" ? Number(pointsOverride) : undefined;
     setSaving(true);

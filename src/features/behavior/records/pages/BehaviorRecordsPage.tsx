@@ -60,12 +60,14 @@ export default function BehaviorRecordsPage() {
       termId,
       status: uiFilters.status,
       type: uiFilters.type,
+      occurredFrom: uiFilters.dateFrom,
+      occurredTo: uiFilters.dateTo,
     };
     setLoading(true);
     setError(null);
     try {
       const res = await listBehaviorRecords(filters);
-      setRecords(res.items);
+      setRecords(res?.items || []);
     } catch (error) {
       const msg = behaviorUiError(error, t("messages.loadError"), t).message;
       setError(msg);
@@ -73,7 +75,7 @@ export default function BehaviorRecordsPage() {
     } finally {
       setLoading(false);
     }
-  }, [yearId, termId, uiFilters.status, uiFilters.type, showError, t]);
+  }, [yearId, termId, uiFilters.status, uiFilters.type, uiFilters.dateFrom, uiFilters.dateTo]);
 
   useEffect(() => {
     void loadRecords();

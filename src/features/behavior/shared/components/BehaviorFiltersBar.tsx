@@ -7,6 +7,8 @@ import DatePicker from "@/components/ui/input/DatePicker";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
 import type { BehaviorFilters, BehaviorStatus, BehaviorType } from "../../types";
+import { useToast } from "@/components/ui/toast/Toast";
+import { validateDateRange } from "../utils/behaviorUiRules";
 
 interface BehaviorFiltersBarProps {
   filters: BehaviorFilters;
@@ -21,6 +23,7 @@ export default function BehaviorFiltersBar({
 }: BehaviorFiltersBarProps) {
   const t = useTranslations("behavior.filters");
   const tCommon = useTranslations("common");
+  const { showError } = useToast();
 
   const typeOptions: { value: "" | BehaviorType; label: string }[] = [
     { value: "", label: t("allTypes") },
@@ -77,7 +80,33 @@ export default function BehaviorFiltersBar({
           selectSize="sm"
         />
 
-     
+        {/* Date From */}
+        <DatePicker
+          label={t("dateFrom")}
+          value={filters.dateFrom ? new Date(filters.dateFrom) : undefined}
+          onChange={(date) => {
+            const dateStr = date ? date.toISOString() : undefined;
+            if (dateStr && filters.dateTo && !validateDateRange(dateStr, filters.dateTo)) {
+              showError("From date cannot be after To date");
+              return;
+            }
+            onChange({ dateFrom: dateStr });
+          }}
+        />
+
+        {/* Date To */}
+        <DatePicker
+          label={t("dateTo")}
+          value={filters.dateTo ? new Date(filters.dateTo) : undefined}
+          onChange={(date) => {
+            const dateStr = date ? date.toISOString() : undefined;
+            if (dateStr && filters.dateFrom && !validateDateRange(filters.dateFrom, dateStr)) {
+              showError("To date cannot be before From date");
+              return;
+            }
+            onChange({ dateTo: dateStr });
+          }}
+        />
       </div>
 
       {/* Actions Row */}
