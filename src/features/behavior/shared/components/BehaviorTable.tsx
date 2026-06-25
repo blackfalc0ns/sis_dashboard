@@ -107,7 +107,7 @@ export default function BehaviorTable({
       searchable: true,
       render: (_: unknown, row: BehaviorRecord) => (
         <div className="text-sm" style={{ color: "var(--color-gray-900)" }}>
-          {row.studentId}
+          {row.student?.displayName || row.studentId}
         </div>
       ),
     },

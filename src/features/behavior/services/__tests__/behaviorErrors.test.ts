@@ -72,7 +72,7 @@ describe("behaviorErrors", () => {
         (key) => `localized:${key}`,
       ),
     ).toEqual({
-      message: "localized:errors.recordPointsInvalid",
+      message: "localized:errors.invalidPoints",
       details: ["Points must be a negative integer."],
       traceId: "trace-1",
     });

@@ -101,7 +101,7 @@ export default function BehaviorDetailDrawer({
             </h2>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-[var(--color-neutral-100)] transition-colors"
+              className="p-1.5 rounded-lg hover:bg-[var(--color-neutral-100)] transition-colors cursor-pointer"
               style={{ color: "var(--text-muted)" }}
               aria-label={isRTL ? "إغلاق" : "Close"}
             >
@@ -138,33 +138,124 @@ export default function BehaviorDetailDrawer({
             </div>
 
             {/* Details */}
-            <dl className="space-y-4">
-              <DetailRow
-                label={t("record.title")}
-                value={isRTL ? record.titleAr : record.titleEn}
-              />
-              <DetailRow label={t("table.occurredAt")} value={fmt(record.occurredAt)} />
-              <DetailRow label={t("table.student")} value={record.studentId} />
-              <DetailRow label={t("table.category")} value={record.categoryName ?? record.categoryId} />
-              <DetailRow
-                label={t("record.note")}
-                value={isRTL ? record.noteAr : record.noteEn}
-              />
-              {record.reviewNoteEn && (
-                <DetailRow label={t("modal.reviewerNote")} value={record.reviewNoteEn} />
-              )}
-              {record.submittedAt && (
+            <dl className="space-y-6">
+              {/* Group 1: Behavior Log Details */}
+              <div className="space-y-4">
                 <DetailRow
-                  label={t("drawer.submittedAt")}
-                  value={fmt(record.submittedAt)}
+                  label={t("record.title")}
+                  value={isRTL ? record.titleAr : record.titleEn}
                 />
-              )}
-              {record.approvedAt && (
+                <DetailRow label={t("table.occurredAt")} value={fmt(record.occurredAt)} />
+                <DetailRow label={t("table.category")} value={(isRTL ? record.category?.nameAr : record.category?.nameEn) || record.categoryName || record.categoryId} />
                 <DetailRow
-                  label={t("drawer.approvedAt")}
-                  value={fmt(record.approvedAt)}
+                  label={t("record.note")}
+                  value={isRTL ? record.noteAr : record.noteEn}
                 />
-              )}
+              </div>
+
+              <hr style={{ borderColor: "var(--border-color)" }} />
+
+              {/* Group 2: Student & Academic Info */}
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
+                  {isRTL ? "معلومات الطالب والدراسة" : "Student & Academic Info"}
+                </h4>
+                <div className="space-y-3">
+                  <DetailRow label={t("table.student")} value={record.student?.displayName || record.studentId} />
+                  <DetailRow 
+                    label={isRTL ? "الصف" : "Grade"} 
+                    value={isRTL ? record.enrollment?.classroom?.section?.grade?.nameAr : record.enrollment?.classroom?.section?.grade?.nameEn} 
+                  />
+                  <DetailRow 
+                    label={isRTL ? "الشعبة" : "Section"} 
+                    value={isRTL ? record.enrollment?.classroom?.section?.nameAr : record.enrollment?.classroom?.section?.nameEn} 
+                  />
+                  <DetailRow 
+                    label={isRTL ? "الفصل" : "Classroom"} 
+                    value={isRTL ? record.enrollment?.classroom?.nameAr : record.enrollment?.classroom?.nameEn} 
+                  />
+                  <DetailRow 
+                    label={isRTL ? "العام الدراسي" : "Academic Year"} 
+                    value={(isRTL ? record.academicYear?.nameAr : record.academicYear?.nameEn) || record.academicYearId} 
+                  />
+                  <DetailRow 
+                    label={isRTL ? "الفصل الدراسي" : "Term"} 
+                    value={(isRTL ? record.term?.nameAr : record.term?.nameEn) || record.termId} 
+                  />
+                </div>
+              </div>
+
+              <hr style={{ borderColor: "var(--border-color)" }} />
+
+              {/* Group 3: History & Audit Information */}
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
+                  {isRTL ? "سجل الأحداث والتدقيق" : "History & Audit Information"}
+                </h4>
+                <div className="space-y-3">
+                  <DetailRow 
+                    label={isRTL ? "أنشئ بواسطة" : "Created By"} 
+                    value={record.createdBy?.displayName || record.createdById} 
+                  />
+                  {record.submittedBy && (
+                    <DetailRow 
+                      label={isRTL ? "قدم بواسطة" : "Submitted By"} 
+                      value={
+                        <div className="flex flex-col">
+                          <span>{record.submittedBy.displayName}</span>
+                          {record.submittedAt && (
+                            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                              {fmt(record.submittedAt)}
+                            </span>
+                          )}
+                        </div>
+                      } 
+                    />
+                  )}
+                  {record.reviewedBy && (
+                    <DetailRow 
+                      label={isRTL ? "تمت المراجعة بواسطة" : "Reviewed By"} 
+                      value={
+                        <div className="flex flex-col">
+                          <span>{record.reviewedBy.displayName}</span>
+                          {record.reviewedAt && (
+                            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                              {fmt(record.reviewedAt)}
+                            </span>
+                          )}
+                        </div>
+                      } 
+                    />
+                  )}
+                  {((isRTL ? record.reviewNoteAr : record.reviewNoteEn) || record.reviewNoteEn) && (
+                    <DetailRow 
+                      label={t("modal.reviewerNote")} 
+                      value={(isRTL ? record.reviewNoteAr : record.reviewNoteEn) || record.reviewNoteEn} 
+                    />
+                  )}
+                  {record.cancelledBy && (
+                    <DetailRow 
+                      label={isRTL ? "ألغي بواسطة" : "Cancelled By"} 
+                      value={
+                        <div className="flex flex-col">
+                          <span>{record.cancelledBy.displayName}</span>
+                          {record.cancelledAt && (
+                            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                              {fmt(record.cancelledAt)}
+                            </span>
+                          )}
+                        </div>
+                      } 
+                    />
+                  )}
+                  {((isRTL ? record.cancellationReasonAr : record.cancellationReasonEn) || record.cancellationReasonEn) && (
+                    <DetailRow 
+                      label={t("modal.cancelReason") || (isRTL ? "سبب الإلغاء" : "Cancellation Reason")} 
+                      value={(isRTL ? record.cancellationReasonAr : record.cancellationReasonEn) || record.cancellationReasonEn} 
+                    />
+                  )}
+                </div>
+              </div>
             </dl>
           </div>
 

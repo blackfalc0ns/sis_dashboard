@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useMediaQuery } from "@mui/material";
-import { Plus } from "lucide-react";
+import { Plus, Award, Sparkles, AlertTriangle, FileText, ClipboardCheck } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useBehaviorYearTermContext } from "@/features/behavior/shared/hooks/useBehaviorYearTermContext";
@@ -16,10 +16,12 @@ import BehaviorActionModals, {
   type BehaviorModalTarget,
 } from "@/features/behavior/shared/components/BehaviorActionModals";
 import BehaviorFiltersBar from "@/features/behavior/shared/components/BehaviorFiltersBar";
+import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import type {
   BehaviorFilters,
   BehaviorRecord,
   BehaviorRecordListFilters,
+  BehaviorRecordSummary,
 } from "@/features/behavior/types";
 
 const DEFAULT_FILTERS: BehaviorFilters = {
@@ -34,6 +36,7 @@ export default function BehaviorRecordsPage() {
   const { showError } = useToast();
 
   const [records, setRecords] = useState<BehaviorRecord[]>([]);
+  const [summary, setSummary] = useState<BehaviorRecordSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uiFilters, setUiFilters] = useState<BehaviorFilters>(DEFAULT_FILTERS);
@@ -65,6 +68,7 @@ export default function BehaviorRecordsPage() {
     try {
       const res = await listBehaviorRecords(filters);
       setRecords(res?.items || []);
+      setSummary(res?.summary || null);
     } catch (error) {
       const msg = behaviorUiError(error, t("messages.loadError"), t).message;
       setError(msg);
@@ -130,7 +134,51 @@ export default function BehaviorRecordsPage() {
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 space-y-6">
+      {/* Summary KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <KPICardV2
+          title={t("overview.totalRecords")}
+          value={loading && !summary ? "—" : (summary?.total ?? 0)}
+          icon={Award}
+          iconColor="#6366f1"
+          iconBgColor="#e0e7ff"
+          showChart={false}
+        />
+        <KPICardV2
+          title={t("type.positive")}
+          value={loading && !summary ? "—" : (summary?.positive ?? 0)}
+          icon={Sparkles}
+          iconColor="#10b981"
+          iconBgColor="#d1fae5"
+          showChart={false}
+        />
+        <KPICardV2
+          title={t("type.negative")}
+          value={loading && !summary ? "—" : (summary?.negative ?? 0)}
+          icon={AlertTriangle}
+          iconColor="#ef4444"
+          iconBgColor="#fee2e2"
+          showChart={false}
+        />
+        <KPICardV2
+          title={t("status.submitted")}
+          value={loading && !summary ? "—" : (summary?.submitted ?? 0)}
+          icon={FileText}
+          iconColor="#f59e0b"
+          iconBgColor="#fef3c7"
+          showChart={false}
+        />
+        <KPICardV2
+          title={t("status.approved")}
+          value={loading && !summary ? "—" : (summary?.approved ?? 0)}
+          icon={ClipboardCheck}
+          iconColor="#10b981"
+          iconBgColor="#d1fae5"
+          showChart={false}
+        />
+      </div>
+
       {/* Filters */}
       {!isMobile && (
         <div className="rounded-xl border p-4" style={{ borderColor: "var(--border-color)" }}>

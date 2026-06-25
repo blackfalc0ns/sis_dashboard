@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Clock3,
   TrendingUp,
+  X,
 } from "lucide-react";
 import {
   Bar,
@@ -29,13 +30,23 @@ import {
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import ChartCard from "@/components/ui/chart-card/ChartCard";
 import GaugeChart from "@/components/ui/chart-card/GaugeChart";
+import Select, { SelectOption } from "@/components/ui/input/Select";
+import DatePicker from "@/components/ui/input/DatePicker";
+import Button from "@/components/ui/button/Button";
+import { useToast } from "@/components/ui/toast/Toast";
 import { useBehaviorYearTermContext } from "@/features/behavior/shared/hooks/useBehaviorYearTermContext";
 import { getBehaviorOverview } from "@/features/behavior/services/behaviorApiService";
 import { behaviorUiError } from "@/features/behavior/services/behaviorErrors";
+import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
+import { fetchAllStudents, getStudentsByClassroomId } from "@/features/students-guardians/students/services/studentsService";
+import { validateDateRange } from "@/features/behavior/shared/utils/behaviorUiRules";
 import type {
   BehaviorOverviewFilters,
   BehaviorOverviewResponse,
   BehaviorOverviewRecentItem,
+  BehaviorType,
+  BehaviorSeverity,
+  BehaviorStatus,
 } from "@/features/behavior/types";
 
 // ─── Loading / Error / Empty states ────────────────────────────────────────
@@ -90,6 +101,17 @@ function CategoryTick({ x = 0, y = 0, payload }: { x?: number; y?: number; paylo
 }
 
 // ─── Main page ─────────────────────────────────────────────────────────────
+interface OverviewFiltersState {
+  classroomId?: string;
+  studentId?: string;
+  type?: "positive" | "negative";
+  severity?: "low" | "medium" | "high" | "critical";
+  status?: "draft" | "submitted" | "approved" | "rejected" | "cancelled";
+  occurredFrom?: string;
+  occurredTo?: string;
+}
+
+// ─── Main page ─────────────────────────────────────────────────────────────
 export default function BehaviorOverviewPage() {
   const t = useTranslations("behavior.overview");
   const tBehavior = useTranslations("behavior");
@@ -98,17 +120,141 @@ export default function BehaviorOverviewPage() {
   const isRTL = locale === "ar";
   const { yearId, termId } = useBehaviorYearTermContext();
 
+  const { showError } = useToast();
+
   const [data, setData] = useState<BehaviorOverviewResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Filters State
+  const [filters, setFilters] = useState<OverviewFiltersState>({
+    classroomId: undefined,
+    studentId: undefined,
+    type: undefined,
+    severity: undefined,
+    status: undefined,
+    occurredFrom: undefined,
+    occurredTo: undefined,
+  });
+
+  // Dropdown options state
+  const [classrooms, setClassrooms] = useState<SelectOption[]>([]);
+  const [allStudents, setAllStudents] = useState<SelectOption[]>([]);
+  const [studentOptions, setStudentOptions] = useState<SelectOption[]>([]);
+  const [fetchingOptions, setFetchingOptions] = useState(false);
+
+  // Load structure tree classrooms and all students
+  useEffect(() => {
+    if (!yearId || !termId) return;
+
+    let cancelled = false;
+    setFetchingOptions(true);
+
+    const loadOptions = async () => {
+      try {
+        const [tree, studentsRes] = await Promise.all([
+          fetchStructureTree(yearId, termId),
+          fetchAllStudents(),
+        ]);
+
+        if (cancelled) return;
+
+        // Flatten/extract classroom nodes from structure tree
+        const classOpts: SelectOption[] = (tree.classrooms || []).map((c) => ({
+          value: c.id,
+          label: isRTL ? (c.nameAr || c.name) : (c.nameEn || c.name),
+        }));
+        setClassrooms(classOpts);
+
+        // Map all loaded students
+        const studOpts: SelectOption[] = studentsRes.map((s) => ({
+          value: s.id,
+          label: isRTL
+            ? (s.full_name_ar || s.full_name_en || s.student_id || s.id)
+            : (s.full_name_en || s.full_name_ar || s.student_id || s.id),
+          searchText: `${s.full_name_en || ""} ${s.full_name_ar || ""} ${s.student_id || ""}`,
+        }));
+        setAllStudents(studOpts);
+
+        // If no classroom is currently selected, display all students
+        if (!filters.classroomId) {
+          setStudentOptions(studOpts);
+        }
+      } catch (err) {
+        console.error("Failed to load behavior overview dropdown options:", err);
+        showError(tBehavior("messages.loadError") || "Failed to load options");
+      } finally {
+        if (!cancelled) setFetchingOptions(false);
+      }
+    };
+
+    void loadOptions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [yearId, termId, isRTL, showError, tBehavior, filters.classroomId]);
+
+  // Update student options when classroomId changes
+  useEffect(() => {
+    if (!yearId || !termId) return;
+
+    let cancelled = false;
+    const selectedClassroom = filters.classroomId;
+
+    if (!selectedClassroom) {
+      setStudentOptions(allStudents);
+      return;
+    }
+
+    setFetchingOptions(true);
+    const updateClassroomStudents = async () => {
+      try {
+        // Fetch/retrieve classroom students asynchronously with stale fetch guard
+        const res = await Promise.resolve(getStudentsByClassroomId(selectedClassroom));
+        
+        if (cancelled) return;
+
+        const filteredStuds: SelectOption[] = res.map((s) => ({
+          value: s.id,
+          label: isRTL
+            ? (s.full_name_ar || s.full_name_en || s.student_id || s.id)
+            : (s.full_name_en || s.full_name_ar || s.student_id || s.id),
+          searchText: `${s.full_name_en || ""} ${s.full_name_ar || ""} ${s.student_id || ""}`,
+        }));
+
+        setStudentOptions(filteredStuds);
+      } catch (err) {
+        console.error("Failed to update students by classroom:", err);
+        setStudentOptions([]);
+      } finally {
+        if (!cancelled) setFetchingOptions(false);
+      }
+    };
+
+    void updateClassroomStudents();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [filters.classroomId, allStudents, yearId, termId, isRTL]);
+
   const load = useCallback(async () => {
     if (!yearId || !termId) return;
-    const filters: BehaviorOverviewFilters = { academicYearId: yearId, termId };
+
+    // Clean payload: do not send empty strings or undefined keys
+    const cleanPayload = Object.fromEntries(
+      Object.entries({
+        academicYearId: yearId,
+        termId,
+        ...filters,
+      }).filter(([, value]) => value !== undefined && value !== "")
+    ) as BehaviorOverviewFilters;
+
     setLoading(true);
     setError(null);
     try {
-      const res = await getBehaviorOverview(filters);
+      const res = await getBehaviorOverview(cleanPayload);
       setData(res);
     } catch (error) {
       setError(
@@ -117,12 +263,67 @@ export default function BehaviorOverviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [yearId, termId]);
+  }, [
+    yearId,
+    termId,
+    filters.classroomId,
+    filters.studentId,
+    filters.type,
+    filters.severity,
+    filters.status,
+    filters.occurredFrom,
+    filters.occurredTo,
+    tBehavior,
+  ]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  if (loading) return <StatePanel title={t("title")} loading />;
-  if (error) return <StatePanel title={error} />;
+  // Reset only filters, preserving academicYearId and termId
+  const handleReset = () => {
+    setFilters({
+      classroomId: undefined,
+      studentId: undefined,
+      type: undefined,
+      severity: undefined,
+      status: undefined,
+      occurredFrom: undefined,
+      occurredTo: undefined,
+    });
+  };
+
+  const handleClassroomChange = (val: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      classroomId: val || undefined,
+      studentId: undefined, // Clear selected student on classroom change
+    }));
+  };
+
+  const handleDateFromChange = (date: Date | null) => {
+    const nextOccurredFrom = date ? date.toISOString() : undefined;
+    if (nextOccurredFrom && filters.occurredTo && !validateDateRange(nextOccurredFrom, filters.occurredTo)) {
+      showError(tBehavior("errors.invalidDateRange") || "From date cannot be after To date");
+      return;
+    }
+    setFilters((prev) => ({ ...prev, occurredFrom: nextOccurredFrom }));
+  };
+
+  const handleDateToChange = (date: Date | null) => {
+    const nextOccurredTo = date ? date.toISOString() : undefined;
+    if (nextOccurredTo && filters.occurredFrom && !validateDateRange(filters.occurredFrom, nextOccurredTo)) {
+      showError(tBehavior("errors.invalidDateRange") || "To date cannot be before From date");
+      return;
+    }
+    setFilters((prev) => ({ ...prev, occurredTo: nextOccurredTo }));
+  };
+
+  // Only show full-screen loading on initial fetch (when data is null)
+  const isInitialLoading = loading && !data;
+
+  if (isInitialLoading) return <StatePanel title={t("title")} loading />;
+  if (error && !data) return <StatePanel title={error} />;
   if (!data) return <StatePanel title={t("noData")} />;
 
   const { records, severity, review, points, categories, recentActivity, topStudents } = data;
@@ -163,8 +364,133 @@ export default function BehaviorOverviewPage() {
 
   const approvalPct = Math.round(review.approvalRate * 100);
 
+  const typeOptions = [
+    { value: "", label: tBehavior("filters.allTypes") || (isRTL ? "جميع الأنواع" : "All Types") },
+    { value: "positive", label: tBehavior("type.positive") || (isRTL ? "إيجابي" : "Positive") },
+    { value: "negative", label: tBehavior("type.negative") || (isRTL ? "سلبي" : "Negative") },
+  ];
+
+  const severityOptions = [
+    { value: "", label: isRTL ? "جميع مستويات الخطورة" : "All Severities" },
+    { value: "low", label: t("low") },
+    { value: "medium", label: t("medium") },
+    { value: "high", label: t("high") },
+    { value: "critical", label: t("critical") },
+  ];
+
+  const statusOptions = [
+    { value: "", label: tBehavior("filters.allStatuses") || (isRTL ? "جميع الحالات" : "All Statuses") },
+    { value: "draft", label: t("draft") },
+    { value: "submitted", label: t("submitted") },
+    { value: "approved", label: t("approved") },
+    { value: "rejected", label: t("rejected") },
+    { value: "cancelled", label: t("cancelled") },
+  ];
+
   return (
     <div className="space-y-6 p-4 sm:p-6">
+
+      {/* ── Row 0: Filters Card ────────────────────────────────────────── */}
+      <div
+        className="rounded-2xl border shadow-sm p-6 space-y-4"
+        style={{ backgroundColor: "var(--card-background)", borderColor: "var(--border-color)" }}
+      >
+        <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--border-color)" }}>
+          <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+            {t("filters.title") || "Filters"}
+          </div>
+          {(filters.classroomId ||
+            filters.studentId ||
+            filters.type ||
+            filters.severity ||
+            filters.status ||
+            filters.occurredFrom ||
+            filters.occurredTo) && (
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<X className="w-4 h-4" />}
+              onClick={handleReset}
+            >
+              {t("filters.clear") || "Clear Filters"}
+            </Button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+          {/* Classroom */}
+          <Select
+            label={t("filters.classroom") || "Classroom"}
+            placeholder={t("filters.allClassrooms") || "All Classrooms"}
+            value={filters.classroomId ?? ""}
+            onChange={handleClassroomChange}
+            options={[
+              { value: "", label: t("filters.allClassrooms") || (isRTL ? "جميع الفصول" : "All Classrooms") },
+              ...classrooms,
+            ]}
+            searchable
+            selectSize="sm"
+          />
+
+          {/* Student */}
+          <Select
+            label={t("filters.student") || "Student"}
+            placeholder={t("filters.allStudents") || "All Students"}
+            value={filters.studentId ?? ""}
+            onChange={(val) => setFilters((prev) => ({ ...prev, studentId: val || undefined }))}
+            options={[
+              { value: "", label: t("filters.allStudents") || (isRTL ? "جميع الطلاب" : "All Students") },
+              ...studentOptions,
+            ]}
+            searchable
+            selectSize="sm"
+            noResultsText={isRTL ? "لم يتم العثور على طلاب" : "No students found"}
+          />
+
+          {/* Type */}
+          <Select
+            label={tBehavior("filters.type") || (isRTL ? "النوع" : "Type")}
+            value={filters.type ?? ""}
+            onChange={(val) => setFilters((prev) => ({ ...prev, type: (val as BehaviorType) || undefined }))}
+            options={typeOptions}
+            selectSize="sm"
+          />
+
+          {/* Severity */}
+          <Select
+            label={tBehavior("record.severity") || (isRTL ? "مستوى الخطورة" : "Severity")}
+            value={filters.severity ?? ""}
+            onChange={(val) => setFilters((prev) => ({ ...prev, severity: (val as BehaviorSeverity) || undefined }))}
+            options={severityOptions}
+            selectSize="sm"
+          />
+
+          {/* Status */}
+          <Select
+            label={tBehavior("filters.status") || (isRTL ? "الحالة" : "Status")}
+            value={filters.status ?? ""}
+            onChange={(val) => setFilters((prev) => ({ ...prev, status: (val as BehaviorStatus) || undefined }))}
+            options={statusOptions}
+            selectSize="sm"
+          />
+
+          {/* Date From */}
+          <DatePicker
+            label={t("filters.dateFrom") || "Date From"}
+            value={filters.occurredFrom ? new Date(filters.occurredFrom) : null}
+            onChange={handleDateFromChange}
+            inputSize="sm"
+          />
+
+          {/* Date To */}
+          <DatePicker
+            label={t("filters.dateTo") || "Date To"}
+            value={filters.occurredTo ? new Date(filters.occurredTo) : null}
+            onChange={handleDateToChange}
+            inputSize="sm"
+          />
+        </div>
+      </div>
 
       {/* ── Row 1: Records KPI bar ──────────────────────────────────────── */}
       <div

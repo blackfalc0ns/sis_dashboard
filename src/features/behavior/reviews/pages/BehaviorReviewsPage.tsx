@@ -83,7 +83,6 @@ export default function BehaviorReviewsPage() {
 
   if (loading) return <StatePanel title={t("states.loading.title")} />;
   if (error) return <StatePanel title={error} />;
-  if (!reviewItems.length) return <StatePanel title={t("states.empty.title")} />;
 
   const fmt = (iso?: string) => (iso ? new Date(iso).toLocaleDateString() : "—");
 
@@ -92,7 +91,7 @@ export default function BehaviorReviewsPage() {
       key: "student",
       label: t("table.student"),
       searchable: true,
-      render: (_: unknown, row: any) => (
+      render: (_: unknown, row: BehaviorReviewQueueItem) => (
         <span style={{ color: "var(--text-primary)" }}>
           {row.studentName ?? row.studentId ?? "—"}
         </span>
@@ -102,7 +101,7 @@ export default function BehaviorReviewsPage() {
       key: "category",
       label: t("table.category"),
       searchable: true,
-      render: (_: unknown, row: any) => (
+      render: (_: unknown, row: BehaviorReviewQueueItem) => (
         <span style={{ color: "var(--text-primary)" }}>
           {row.categoryName ?? row.categoryId ?? "—"}
         </span>
@@ -111,7 +110,7 @@ export default function BehaviorReviewsPage() {
     {
       key: "status",
       label: t("table.status"),
-      render: (_: unknown, row: any) => (
+      render: (_: unknown, row: BehaviorReviewQueueItem) => (
         <span
           className="inline-flex px-2 py-0.5 text-xs rounded-full border"
           style={{ backgroundColor: "#fef3c7", color: "#78350f", borderColor: "#fde68a" }}
@@ -124,7 +123,7 @@ export default function BehaviorReviewsPage() {
       key: "occurredAt",
       label: t("table.occurredAt"),
       sortable: true,
-      render: (_: unknown, row: any) => (
+      render: (_: unknown, row: BehaviorReviewQueueItem) => (
         <span style={{ color: "var(--text-muted)" }}>{fmt(row.occurredAt)}</span>
       ),
     },
@@ -132,7 +131,7 @@ export default function BehaviorReviewsPage() {
       key: "actions",
       label: t("table.actions"),
       sortable: false,
-      render: (_: unknown, row: any) => (
+      render: (_: unknown, row: BehaviorReviewQueueItem) => (
         <div className="flex items-center gap-2">
           {!isReadOnly && row.status === "submitted" && (
             <>
@@ -160,7 +159,18 @@ export default function BehaviorReviewsPage() {
   return (
     <div className="p-4 space-y-4">
       <DataTable
-        columns={columns}
+        columns={
+          columns as unknown as {
+            key: string;
+            label: string;
+            sortable?: boolean;
+            searchable?: boolean;
+            render?: (
+              value: unknown,
+              row: Record<string, unknown>,
+            ) => React.ReactNode;
+          }[]
+        }
         data={reviewItems as unknown as Record<string, unknown>[]}
         showPagination={true}
         itemsPerPage={15}

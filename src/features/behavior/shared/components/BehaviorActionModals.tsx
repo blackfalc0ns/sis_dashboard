@@ -353,17 +353,17 @@ function RecordModal({
     }
 
     if (!validateRecordCategory(selectedCategory, selectedCategory.type)) {
-      showError(t("errors.recordTypeMismatch"));
+      showError(t("errors.categoryTypeMismatch"));
       return;
     }
 
     if (!validateRecordPoints(selectedCategory.type, selectedCategory.defaultPoints)) {
-      showError(t("errors.recordPointsInvalid"));
+      showError(t("errors.invalidPoints"));
       return;
     }
 
     if (!form.occurredAt || !validateRecordTermDate(form.occurredAt, currentTerm)) {
-      showError(t("errors.recordOutsideTerm"));
+      showError(t("errors.occurredAtOutsideTerm"));
       return;
     }
 
@@ -609,7 +609,7 @@ function ApproveModal({
     if (pointsOverride !== "") {
       const type = record.type || "positive";
       if (!validatePointsOverride(type, pointsOverride)) {
-        showError(t("errors.recordPointsInvalid"));
+        showError(t("errors.invalidPoints"));
         return;
       }
     }

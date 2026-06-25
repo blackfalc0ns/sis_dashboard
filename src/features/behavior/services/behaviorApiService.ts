@@ -101,7 +101,7 @@ export interface CreateBehaviorRecordPayload {
   studentId: string;
   enrollmentId?: string;
   categoryId: string;
-  titleEn: string;
+  titleEn?: string;
   titleAr?: string;
   noteEn?: string;
   noteAr?: string;
@@ -143,6 +143,7 @@ export async function fetchBehaviorCategories(
   if (Array.isArray(response)) return response as BehaviorCategory[];
   if (response && typeof response === "object") {
     const obj = response as Record<string, unknown>;
+    if (Array.isArray(obj.items)) return obj.items as BehaviorCategory[];
     if (Array.isArray(obj.data)) return obj.data as BehaviorCategory[];
     if (Array.isArray(obj.categories)) return obj.categories as BehaviorCategory[];
   }
@@ -157,6 +158,7 @@ export async function fetchBehaviorRecords(
   if (Array.isArray(response)) return response as BehaviorRecord[];
   if (response && typeof response === "object") {
     const obj = response as Record<string, unknown>;
+    if (Array.isArray(obj.items)) return obj.items as BehaviorRecord[];
     if (Array.isArray(obj.data)) return obj.data as BehaviorRecord[];
     if (Array.isArray(obj.records)) return obj.records as BehaviorRecord[];
   }

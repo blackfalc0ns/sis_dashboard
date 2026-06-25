@@ -229,7 +229,18 @@ export default function BehaviorCategoriesPage() {
         <StatePanel title={t("states.empty.title")} />
       ) : (
         <DataTable
-          columns={columns}
+          columns={
+            columns as unknown as {
+              key: string;
+              label: string;
+              sortable?: boolean;
+              searchable?: boolean;
+              render?: (
+                value: unknown,
+                row: Record<string, unknown>,
+              ) => React.ReactNode;
+            }[]
+          }
           data={categories as unknown as Record<string, unknown>[]}
           showPagination={true}
           itemsPerPage={15}

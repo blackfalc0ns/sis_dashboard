@@ -118,9 +118,94 @@ export interface BehaviorRecord {
   reviewNoteEn?: string;
   submittedAt?: string;
   approvedAt?: string;
+  reviewedAt?: string;
+  cancelledAt?: string;
   createdById?: string;
   createdAt?: string;
   updatedAt?: string;
+  student?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    displayName: string;
+    status: string;
+  };
+  category?: BehaviorCategory;
+  academicYear?: {
+    id: string;
+    nameEn: string;
+    nameAr: string;
+    startDate: string;
+    endDate: string;
+    isActive: boolean;
+  };
+  term?: {
+    id: string;
+    academicYearId: string;
+    nameEn: string;
+    nameAr: string;
+    startDate: string;
+    endDate: string;
+    isActive: boolean;
+  };
+  enrollment?: {
+    id: string;
+    studentId: string;
+    academicYearId: string;
+    termId: string;
+    classroomId: string;
+    status: string;
+    classroom?: {
+      id: string;
+      nameEn: string;
+      nameAr: string;
+      section?: {
+        id: string;
+        nameEn: string;
+        nameAr: string;
+        grade?: {
+          id: string;
+          nameEn: string;
+          nameAr: string;
+        };
+      };
+    };
+  };
+  createdBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    displayName: string;
+    email: string;
+    userType: string;
+  };
+  submittedBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    displayName: string;
+    email: string;
+    userType: string;
+  };
+  reviewedBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    displayName: string;
+    email: string;
+    userType: string;
+  };
+  cancelledBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    displayName: string;
+    email: string;
+    userType: string;
+  } | null;
+  reviewNoteAr?: string | null;
+  cancellationReasonEn?: string | null;
+  cancellationReasonAr?: string | null;
 }
 
 export interface BehaviorRecordCreatePayload {
@@ -214,10 +299,22 @@ export interface BehaviorRecordListFilters {
   offset?: number;
 }
 
+export interface BehaviorRecordSummary {
+  total: number;
+  draft: number;
+  submitted: number;
+  approved: number;
+  rejected: number;
+  cancelled: number;
+  positive: number;
+  negative: number;
+}
+
 /** GET /behavior/records → items shape */
 export interface BehaviorRecordListResponse {
   items: BehaviorRecord[];
   total?: number;
+  summary?: BehaviorRecordSummary;
 }
 
 // ─── Review Queue ──────────────────────────────────────────────────────────

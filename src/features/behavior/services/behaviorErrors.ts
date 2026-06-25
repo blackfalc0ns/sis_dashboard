@@ -17,9 +17,9 @@ export type BehaviorErrorCode =
 const behaviorErrorMessageKeys: Record<BehaviorErrorCode, string> = {
   "behavior.category.in_use": "errors.categoryInUse",
   "behavior.category.inactive": "errors.categoryInactive",
-  "behavior.record.points_invalid": "errors.recordPointsInvalid",
-  "behavior.record.type_mismatch": "errors.recordTypeMismatch",
-  "behavior.record.outside_term": "errors.recordOutsideTerm",
+  "behavior.record.points_invalid": "errors.invalidPoints",
+  "behavior.record.type_mismatch": "errors.categoryTypeMismatch",
+  "behavior.record.outside_term": "errors.occurredAtOutsideTerm",
   "behavior.scope.invalid": "errors.scopeInvalid",
   "behavior.record.invalid_status_transition":
     "errors.recordInvalidStatusTransition",

@@ -1,13 +1,22 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { Award, AlertTriangle, TrendingUp, Plus, X, AlertCircle } from "lucide-react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { Award, AlertTriangle, TrendingUp, Plus, AlertCircle } from "lucide-react";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { Student } from "@/features/students-guardians/students/types";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { DataTable } from "@/components/ui/data-table";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import * as behaviorApi from "@/features/behavior/services/behaviorApiService";
+import { behaviorUiError } from "@/features/behavior/services/behaviorErrors";
+import { validateRecordContent } from "@/features/behavior/shared/utils/behaviorUiRules";
+import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
+import Modal from "@/components/ui/modal/Modal";
+import Button from "@/components/ui/button/Button";
+import Input from "@/components/ui/input/Input";
+import Select, { type SelectOption } from "@/components/ui/input/Select";
+import DatePicker from "@/components/ui/input/DatePicker";
+import type { BehaviorRecordCreatePayload } from "@/features/behavior/types";
 import type {
   BehaviorSummary,
   BehaviorRecord,
@@ -31,6 +40,10 @@ const EMPTY_SUMMARY: BehaviorSummary = {
 
 export default function BehaviorTab({ student }: BehaviorTabProps) {
   const t = useTranslations("students_guardians.profile.behavior");
+  const tBehavior = useTranslations("behavior");
+  const locale = useLocale();
+  const isRTL = locale === "ar";
+  const { yearId, termId } = useStudentsGuardiansYearTermContext();
 
   // ── Summary state ──────────────────────────────────────────────────────────
   const [summary, setSummary] = useState<BehaviorSummary>(EMPTY_SUMMARY);
@@ -53,9 +66,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
   const [titleAr, setTitleAr] = useState("");
   const [noteEn, setNoteEn] = useState("");
   const [noteAr, setNoteAr] = useState("");
-  const [occurredAt, setOccurredAt] = useState(
-    () => new Date().toISOString().slice(0, 16),
-  );
+  const [occurredAt, setOccurredAt] = useState<Date | null>(() => new Date());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
@@ -118,7 +129,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
     setTitleAr("");
     setNoteEn("");
     setNoteAr("");
-    setOccurredAt(new Date().toISOString().slice(0, 16));
+    setOccurredAt(new Date());
     setSelectedCategoryId("");
     setModalError(null);
     setRecordType("positive");
@@ -129,23 +140,56 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
     setModalError(null);
   };
 
-  const handleSubmitRecord = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedCategoryId || !titleEn) return;
+  const handleSubmitRecord = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setModalError(null);
+
+    const titleEnTrimmed = titleEn.trim() || undefined;
+    const titleArTrimmed = titleAr.trim() || undefined;
+    const noteEnTrimmed = noteEn.trim() || undefined;
+    const noteArTrimmed = noteAr.trim() || undefined;
+
+    // Run frontend validations first
+    if (!validateRecordContent({
+      titleEn: titleEnTrimmed,
+      titleAr: titleArTrimmed,
+      noteEn: noteEnTrimmed,
+      noteAr: noteArTrimmed,
+    })) {
+      setModalError(tBehavior("errors.recordContentRequired"));
+      return;
+    }
+
+    // Category Pre-validation
+    const selectedCat = categories.find((c) => c.id === selectedCategoryId);
+    if (selectedCat) {
+      if (!selectedCat.isActive) {
+        setModalError(tBehavior("errors.categoryInactive"));
+        return;
+      }
+      if (selectedCat.type !== recordType) {
+        setModalError(tBehavior("errors.categoryTypeMismatch"));
+        return;
+      }
+    }
 
     setIsSubmitting(true);
-    setModalError(null);
 
     try {
       const record = await behaviorApi.createBehaviorRecord({
+        academicYearId: yearId || undefined,
+        termId: termId || undefined,
         studentId: student.id,
         categoryId: selectedCategoryId,
-        titleEn: titleEn.trim(),
-        titleAr: titleAr.trim() || undefined,
-        noteEn: noteEn.trim() || undefined,
-        noteAr: noteAr.trim() || undefined,
-        occurredAt: new Date(occurredAt).toISOString(),
-      });
+        titleEn: titleEnTrimmed,
+        titleAr: titleArTrimmed,
+        noteEn: noteEnTrimmed,
+        noteAr: noteArTrimmed,
+        occurredAt: (occurredAt || new Date()).toISOString(),
+        type: selectedCat?.type,
+        severity: selectedCat?.defaultSeverity,
+        points: selectedCat?.defaultPoints,
+      } as unknown as BehaviorRecordCreatePayload);
 
       // Immediately submit the draft
       await behaviorApi.submitBehaviorRecord(record.id);
@@ -154,12 +198,19 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
       await loadSummary();
     } catch (err) {
       setModalError(
-        err instanceof Error ? err.message : "Failed to add behavior record.",
+        behaviorUiError(err, "Failed to add behavior record.", tBehavior).message,
       );
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const categoryOptions = useMemo<SelectOption[]>(() => {
+    return categories.map((cat) => ({
+      value: cat.id,
+      label: `${isRTL ? cat.nameAr : cat.nameEn} ${cat.defaultPoints ? `(${cat.defaultPoints} pts)` : ""}`,
+    }));
+  }, [categories, isRTL]);
 
   // ── Derive records from summary ────────────────────────────────────────────
   const allRecords: BehaviorRecord[] = [
@@ -395,7 +446,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
               className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-hover transition-colors"
             >
               <Plus className="w-4 h-4" />
-              Add Behavior Record
+              {tBehavior("actions.newRecord")}
             </button>
           </div>
         </div>
@@ -432,155 +483,136 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
       </div>
 
       {/* ── Add Behavior Record Modal ────────────────────────────────────── */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <form
-            onSubmit={handleSubmitRecord}
-            className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl"
-          >
-            <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">
-                Add Behavior Record
-              </h3>
-              <button
-                type="button"
-                onClick={closeModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={tBehavior("modal.createRecord")}
+        size="lg"
+        footer={
+          <>
+            <Button
+              variant="outline"
+              onClick={closeModal}
+              disabled={isSubmitting}
+            >
+              {tBehavior("modal.cancel")}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => void handleSubmitRecord()}
+              disabled={!selectedCategoryId || isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  {tBehavior("modal.submitting") || (isRTL ? "جاري التقديم..." : "Submitting…")}
+                </>
+              ) : (
+                tBehavior("modal.submitRecord")
+              )}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4 py-2">
+          {/* Type toggle */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setRecordType("positive")}
+              className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors cursor-pointer ${
+                recordType === "positive"
+                  ? "bg-green-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              ✅ {tBehavior("type.positive")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setRecordType("negative")}
+              className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors cursor-pointer ${
+                recordType === "negative"
+                  ? "bg-red-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              ⚠️ {tBehavior("type.negative")}
+            </button>
+          </div>
 
-            {/* Type toggle */}
-            <div className="mb-4 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setRecordType("positive")}
-                className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-                  recordType === "positive"
-                    ? "bg-green-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                ✅ Positive
-              </button>
-              <button
-                type="button"
-                onClick={() => setRecordType("negative")}
-                className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-                  recordType === "negative"
-                    ? "bg-red-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                ⚠️ Negative
-              </button>
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Category */}
-            <label className="mb-4 block text-sm font-medium text-gray-700">
-              Category *
-              <select
+            <div className="md:col-span-2">
+              <Select
+                label={`${tBehavior("table.category")} *`}
                 value={selectedCategoryId}
-                onChange={(e) => setSelectedCategoryId(e.target.value)}
-                required
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              >
-                <option value="">
-                  {isLoadingCategories ? "Loading…" : "Select a category"}
-                </option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.nameEn}{" "}
-                    {cat.defaultPoints ? `(${cat.defaultPoints} pts)` : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
+                onChange={setSelectedCategoryId}
+                options={categoryOptions}
+                searchable
+                disabled={isLoadingCategories || isSubmitting}
+                placeholder={isLoadingCategories ? (isRTL ? "جاري التحميل..." : "Loading…") : (isRTL ? "اختر فئة" : "Select a category")}
+              />
+            </div>
 
             {/* Title EN */}
-            <label className="mb-4 block text-sm font-medium text-gray-700">
-              Title (English) *
-              <input
-                value={titleEn}
-                onChange={(e) => setTitleEn(e.target.value)}
-                required
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder="e.g. Helped a classmate"
-              />
-            </label>
+            <Input
+              label={tBehavior("record.titleEn")}
+              value={titleEn}
+              onChange={(e) => setTitleEn(e.target.value)}
+              placeholder="e.g. Helped a classmate"
+              disabled={isSubmitting}
+            />
 
             {/* Title AR */}
-            <label className="mb-4 block text-sm font-medium text-gray-700">
-              Title (Arabic)
-              <input
-                value={titleAr}
-                onChange={(e) => setTitleAr(e.target.value)}
-                dir="rtl"
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder={t("optionalPlaceholderAr")}
-              />
-            </label>
+            <Input
+              label={tBehavior("record.titleAr")}
+              value={titleAr}
+              onChange={(e) => setTitleAr(e.target.value)}
+              dir="rtl"
+              placeholder={t("optionalPlaceholderAr")}
+              disabled={isSubmitting}
+            />
 
             {/* Note EN */}
-            <label className="mb-4 block text-sm font-medium text-gray-700">
-              Note (English)
-              <textarea
-                value={noteEn}
-                onChange={(e) => setNoteEn(e.target.value)}
-                rows={2}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder={t("optionalPlaceholderEn")}
-              />
-            </label>
+            <Input
+              label={tBehavior("record.noteEn")}
+              value={noteEn}
+              onChange={(e) => setNoteEn(e.target.value)}
+              placeholder={t("optionalPlaceholderEn")}
+              disabled={isSubmitting}
+            />
+
+            {/* Note AR */}
+            <Input
+              label={tBehavior("record.noteAr")}
+              value={noteAr}
+              onChange={(e) => setNoteAr(e.target.value)}
+              dir="rtl"
+              placeholder={t("optionalPlaceholderAr")}
+              disabled={isSubmitting}
+            />
 
             {/* Occurred at */}
-            <label className="mb-4 block text-sm font-medium text-gray-700">
-              Occurred At *
-              <input
-                type="datetime-local"
+            <div className="md:col-span-2">
+              <DatePicker
+                label={`${tBehavior("record.occurredAt")} *`}
                 value={occurredAt}
-                onChange={(e) => setOccurredAt(e.target.value)}
-                required
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                onChange={setOccurredAt}
+                disabled={isSubmitting}
               />
-            </label>
-
-            {/* Error */}
-            {modalError && (
-              <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                {modalError}
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={!selectedCategoryId || !titleEn || isSubmitting}
-                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-hover disabled:opacity-60 transition-colors"
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Submitting…
-                  </>
-                ) : (
-                  "Submit Record"
-                )}
-              </button>
             </div>
-          </form>
+          </div>
+
+          {/* Error */}
+          {modalError && (
+            <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {modalError}
+            </div>
+          )}
         </div>
-      )}
+      </Modal>
     </div>
   );
 }
