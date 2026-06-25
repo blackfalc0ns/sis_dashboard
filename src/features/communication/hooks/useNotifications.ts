@@ -7,6 +7,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/features/communication/api/communication.service";
+import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
 import type {
   CommunicationList,
   CommunicationRecord,
@@ -19,6 +20,7 @@ import type {
   NotificationSourceModule,
   NotificationType,
 } from "@/features/communication/types/notification.types";
+import { useCommunicationSocket } from "./useCommunicationSocket";
 
 export type NotificationStatusFilter = "all" | "unread" | "read" | "archived";
 
@@ -141,6 +143,7 @@ function paramsFromFilters(filters: NotificationFiltersState): ListNotifications
 }
 
 export function useNotifications() {
+  const { socket } = useCommunicationSocket();
   const mountedRef = useRef(false);
   const [filters, setFilters] =
     useState<NotificationFiltersState>(DEFAULT_FILTERS);
@@ -199,16 +202,32 @@ export function useNotifications() {
   }, [refresh]);
 
   useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState === "visible") {
-        void refresh();
-      }
-    }, 60_000);
+    if (!socket) return;
+
+    const handleNotificationChanged = () => {
+      void refresh();
+    };
+
+    socket.on(
+      COMMUNICATION_SOCKET_EVENTS.notificationCreated,
+      handleNotificationChanged,
+    );
+    socket.on(
+      COMMUNICATION_SOCKET_EVENTS.notificationRead,
+      handleNotificationChanged,
+    );
 
     return () => {
-      window.clearInterval(intervalId);
+      socket.off(
+        COMMUNICATION_SOCKET_EVENTS.notificationCreated,
+        handleNotificationChanged,
+      );
+      socket.off(
+        COMMUNICATION_SOCKET_EVENTS.notificationRead,
+        handleNotificationChanged,
+      );
     };
-  }, [refresh]);
+  }, [refresh, socket]);
 
   const markAllRead = useCallback(async () => {
     setIsMutating(true);

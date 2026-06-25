@@ -50,6 +50,11 @@ function createDefaultHandlers() {
     onMessageUpdated: vi.fn(),
     onMessageDeleted: vi.fn(),
     onMessageRead: vi.fn(),
+    onReactionUpserted: vi.fn(),
+    onReactionDeleted: vi.fn(),
+    onAttachmentLinked: vi.fn(),
+    onAttachmentDeleted: vi.fn(),
+    onAnnouncementPublished: vi.fn(),
     onTypingStarted: vi.fn(),
     onTypingStopped: vi.fn(),
     onPresenceUpdated: vi.fn(),
@@ -126,6 +131,22 @@ describe("useConversationRealtime", () => {
       ).toBe(0);
       expect(
         mockSocket.getListeners(COMMUNICATION_SOCKET_EVENTS.messageRead).size
+      ).toBe(0);
+      expect(
+        mockSocket.getListeners(COMMUNICATION_SOCKET_EVENTS.reactionUpserted).size
+      ).toBe(0);
+      expect(
+        mockSocket.getListeners(COMMUNICATION_SOCKET_EVENTS.reactionDeleted).size
+      ).toBe(0);
+      expect(
+        mockSocket.getListeners(COMMUNICATION_SOCKET_EVENTS.attachmentLinked).size
+      ).toBe(0);
+      expect(
+        mockSocket.getListeners(COMMUNICATION_SOCKET_EVENTS.attachmentDeleted).size
+      ).toBe(0);
+      expect(
+        mockSocket.getListeners(COMMUNICATION_SOCKET_EVENTS.announcementPublished)
+          .size
       ).toBe(0);
       expect(
         mockSocket.getListeners(COMMUNICATION_SOCKET_EVENTS.typingStarted).size
@@ -207,6 +228,74 @@ describe("useConversationRealtime", () => {
         });
       });
       expect(handlers.onMessageDeleted).toHaveBeenCalledTimes(1);
+    });
+
+    it("dispatches reaction events only for matching conversation ID", () => {
+      const handlers = createDefaultHandlers();
+
+      renderHook(() => useConversationRealtime(handlers));
+
+      const matchingPayload = {
+        conversationId: "conv-123",
+        reaction: { id: "reaction-1", messageId: "msg-1" },
+      };
+      act(() => {
+        mockSocket.simulateEvent(
+          COMMUNICATION_SOCKET_EVENTS.reactionUpserted,
+          matchingPayload,
+        );
+      });
+      expect(handlers.onReactionUpserted).toHaveBeenCalledWith(matchingPayload);
+
+      act(() => {
+        mockSocket.simulateEvent(COMMUNICATION_SOCKET_EVENTS.reactionDeleted, {
+          conversationId: "conv-other",
+          reaction: { id: "reaction-2", messageId: "msg-2" },
+        });
+      });
+      expect(handlers.onReactionDeleted).not.toHaveBeenCalled();
+    });
+
+    it("dispatches attachment events only for matching conversation ID", () => {
+      const handlers = createDefaultHandlers();
+
+      renderHook(() => useConversationRealtime(handlers));
+
+      const matchingPayload = {
+        conversationId: "conv-123",
+        attachment: { id: "attachment-1", messageId: "msg-1" },
+      };
+      act(() => {
+        mockSocket.simulateEvent(
+          COMMUNICATION_SOCKET_EVENTS.attachmentLinked,
+          matchingPayload,
+        );
+      });
+      expect(handlers.onAttachmentLinked).toHaveBeenCalledWith(matchingPayload);
+
+      act(() => {
+        mockSocket.simulateEvent(COMMUNICATION_SOCKET_EVENTS.attachmentDeleted, {
+          conversationId: "conv-other",
+          attachment: { id: "attachment-2", messageId: "msg-2" },
+        });
+      });
+      expect(handlers.onAttachmentDeleted).not.toHaveBeenCalled();
+    });
+
+    it("dispatches announcement published events without conversation filtering", () => {
+      const handlers = createDefaultHandlers();
+
+      renderHook(() => useConversationRealtime(handlers));
+
+      const payload = { announcement: { id: "announcement-1" } };
+      act(() => {
+        mockSocket.simulateEvent(
+          COMMUNICATION_SOCKET_EVENTS.announcementPublished,
+          payload,
+        );
+      });
+
+      expect(handlers.onAnnouncementPublished).toHaveBeenCalledWith(payload);
     });
 
     it("dispatches typingStarted only for matching conversation ID", () => {

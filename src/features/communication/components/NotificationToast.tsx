@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { X } from "lucide-react";
 
 export interface MessageNotification {
@@ -54,9 +54,16 @@ function NotificationItem({
   }, []);
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      }}
       className="flex w-full items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-lg transition hover:bg-slate-50 animate-in slide-in-from-top-2"
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
@@ -80,6 +87,6 @@ function NotificationItem({
       >
         <X className="h-3.5 w-3.5" />
       </button>
-    </button>
+    </div>
   );
 }

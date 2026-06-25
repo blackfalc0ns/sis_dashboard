@@ -128,18 +128,6 @@ export function useNotificationDeliveries() {
     };
   }, [refresh]);
 
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState === "visible") {
-        void refresh();
-      }
-    }, 60_000);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [refresh]);
-
   return {
     deliveries,
     total,

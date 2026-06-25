@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
@@ -21,6 +21,15 @@ import type {
 } from "@/features/communication/hooks/useConversations";
 import type { ConversationType } from "@/features/communication/types/conversation.types";
 
+type ConversationSelectorField =
+  | "academicYearId"
+  | "termId"
+  | "stageId"
+  | "gradeId"
+  | "sectionId"
+  | "classroomId"
+  | "subjectId";
+
 export interface CreateConversationDialogLabels {
   createTitle: string;
   editTitle: string;
@@ -40,11 +49,126 @@ export interface CreateConversationDialogLabels {
   group: string;
   classroom: string;
   direct: string;
+  grade?: string;
+  section?: string;
+  stage?: string;
+  schoolWide?: string;
+  support?: string;
+  system?: string;
   cancel: string;
   create: string;
   save: string;
   titleRequired: string;
   classroomRequired?: string;
+}
+
+const CONVERSATION_TYPE_ORDER: ConversationType[] = [
+  "group",
+  "classroom",
+  "direct",
+  "grade",
+  "section",
+  "stage",
+  "school_wide",
+  "support",
+  "system",
+];
+
+const CONVERSATION_TYPES = new Set<string>(CONVERSATION_TYPE_ORDER);
+
+const SELECTORS_BY_TYPE: Record<ConversationType, ConversationSelectorField[]> = {
+  group: [
+    "academicYearId",
+    "termId",
+    "stageId",
+    "gradeId",
+    "sectionId",
+    "classroomId",
+    "subjectId",
+  ],
+  classroom: [
+    "academicYearId",
+    "termId",
+    "stageId",
+    "gradeId",
+    "sectionId",
+    "classroomId",
+    "subjectId",
+  ],
+  direct: [],
+  grade: ["academicYearId", "termId", "stageId", "gradeId", "subjectId"],
+  section: [
+    "academicYearId",
+    "termId",
+    "stageId",
+    "gradeId",
+    "sectionId",
+    "subjectId",
+  ],
+  stage: ["academicYearId", "termId", "stageId"],
+  school_wide: [],
+  support: [],
+  system: [],
+};
+
+export function getConversationTypeOptions(
+  labels: CreateConversationDialogLabels,
+) {
+  const labelByType: Record<ConversationType, string> = {
+    group: labels.group,
+    classroom: labels.classroom,
+    direct: labels.direct,
+    grade: labels.grade ?? "Grade",
+    section: labels.section ?? "Section",
+    stage: labels.stage ?? "Stage",
+    school_wide: labels.schoolWide ?? "School-wide",
+    support: labels.support ?? "Support",
+    system: labels.system ?? "System",
+  };
+
+  return CONVERSATION_TYPE_ORDER.map((type) => ({
+    value: type,
+    label: labelByType[type],
+  }));
+}
+
+export function shouldShowConversationSelector(
+  type: ConversationType,
+  field: ConversationSelectorField,
+) {
+  return SELECTORS_BY_TYPE[type].includes(field);
+}
+
+function isConversationType(value: unknown): value is ConversationType {
+  return typeof value === "string" && CONVERSATION_TYPES.has(value);
+}
+
+function resetHiddenScopeValues(
+  type: ConversationType,
+  current: ConversationFormValues,
+): ConversationFormValues {
+  const visibleFields = new Set<ConversationSelectorField>(
+    SELECTORS_BY_TYPE[type],
+  );
+  const next = { ...current, type };
+
+  (
+    [
+      "academicYearId",
+      "termId",
+      "stageId",
+      "gradeId",
+      "sectionId",
+      "classroomId",
+      "subjectId",
+    ] as const
+  ).forEach((field) => {
+    if (!visibleFields.has(field)) {
+      next[field] = "";
+    }
+  });
+
+  return next;
 }
 
 export interface CreateConversationDialogProps {
@@ -128,16 +252,15 @@ export default function CreateConversationDialog({
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const isEditing = Boolean(conversation);
+  const conversationType = isConversationType(values.type)
+    ? values.type
+    : "group";
   const showAcademicSelectors =
-    values.type === "group" || values.type === "classroom";
+    SELECTORS_BY_TYPE[conversationType]?.length > 0;
 
   const typeOptions = useMemo(
-    () => [
-      { value: "group", label: labels.group },
-      { value: "classroom", label: labels.classroom },
-      { value: "direct", label: labels.direct },
-    ],
-    [labels.classroom, labels.direct, labels.group],
+    () => getConversationTypeOptions(labels),
+    [labels],
   );
 
   const handleSubmit = async () => {
@@ -205,21 +328,9 @@ export default function CreateConversationDialog({
           label={labels.type}
           value={values.type ?? "group"}
           onChange={(value) =>
-            setValues((current) => ({
-              ...current,
-              type: value as ConversationType,
-              ...(value === "direct"
-                ? {
-                    academicYearId: "",
-                    termId: "",
-                    stageId: "",
-                    gradeId: "",
-                    sectionId: "",
-                    classroomId: "",
-                    subjectId: "",
-                  }
-                : {}),
-            }))
+            setValues((current) =>
+              resetHiddenScopeValues(value as ConversationType, current),
+            )
           }
           options={typeOptions}
         />
@@ -237,119 +348,138 @@ export default function CreateConversationDialog({
         {showAcademicSelectors ? (
           <>
             <div className="grid gap-4 md:grid-cols-2">
-              <AcademicYearSelect
-                label={labels.academicYearId}
-                value={values.academicYearId ?? ""}
-                onChange={(academicYearId) =>
-                  setValues((current) => ({
-                    ...current,
-                    academicYearId,
-                    termId: "",
-                    stageId: "",
-                    gradeId: "",
-                    sectionId: "",
-                    classroomId: "",
-                  }))
-                }
-              />
-              <TermSelect
-                label={labels.termId}
-                value={values.termId ?? ""}
-                academicYearId={values.academicYearId}
-                onChange={(termId) =>
-                  setValues((current) => ({
-                    ...current,
-                    termId,
-                    stageId: "",
-                    gradeId: "",
-                    sectionId: "",
-                    classroomId: "",
-                  }))
-                }
-              />
+              {shouldShowConversationSelector(
+                conversationType,
+                "academicYearId",
+              ) ? (
+                <AcademicYearSelect
+                  label={labels.academicYearId}
+                  value={values.academicYearId ?? ""}
+                  onChange={(academicYearId) =>
+                    setValues((current) => ({
+                      ...current,
+                      academicYearId,
+                      termId: "",
+                      stageId: "",
+                      gradeId: "",
+                      sectionId: "",
+                      classroomId: "",
+                    }))
+                  }
+                />
+              ) : null}
+              {shouldShowConversationSelector(conversationType, "termId") ? (
+                <TermSelect
+                  label={labels.termId}
+                  value={values.termId ?? ""}
+                  academicYearId={values.academicYearId}
+                  onChange={(termId) =>
+                    setValues((current) => ({
+                      ...current,
+                      termId,
+                      stageId: "",
+                      gradeId: "",
+                      sectionId: "",
+                      classroomId: "",
+                    }))
+                  }
+                />
+              ) : null}
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <StageSelect
-                label={labels.stageId}
-                value={values.stageId ?? ""}
-                academicYearId={values.academicYearId}
-                termId={values.termId}
-                onChange={(stageId) =>
-                  setValues((current) => ({
-                    ...current,
-                    stageId,
-                    gradeId: "",
-                    sectionId: "",
-                    classroomId: "",
-                  }))
-                }
-              />
-              <GradeSelect
-                label={labels.gradeId}
-                value={values.gradeId ?? ""}
-                academicYearId={values.academicYearId}
-                termId={values.termId}
-                stageId={values.stageId}
-                onChange={(gradeId) =>
-                  setValues((current) => ({
-                    ...current,
-                    gradeId,
-                    sectionId: "",
-                    classroomId: "",
-                  }))
-                }
-              />
-              <SectionSelect
-                label={labels.sectionId}
-                value={values.sectionId ?? ""}
-                academicYearId={values.academicYearId}
-                termId={values.termId}
-                gradeId={values.gradeId}
-                onChange={(sectionId) =>
-                  setValues((current) => ({
-                    ...current,
-                    sectionId,
-                    classroomId: "",
-                  }))
-                }
-              />
-              <ClassroomSelect
-                label={labels.classroomId}
-                value={values.classroomId ?? ""}
-                academicYearId={values.academicYearId}
-                termId={values.termId}
-                sectionId={values.sectionId}
-                error={
-                  values.type === "classroom" &&
-                  error === labels.classroomRequired
-                    ? error
-                    : undefined
-                }
-                onChange={(classroomId) =>
-                  setValues((current) => ({ ...current, classroomId }))
-                }
-              />
-              <SubjectSelect
-                label={labels.subjectId}
-                value={values.subjectId ?? ""}
-                onChange={(subjectId) =>
-                  setValues((current) => ({ ...current, subjectId }))
-                }
-              />
-              <AvatarUploadField
-                label={labels.avatarFileId}
-                preview={avatarPreview}
-                onFileSelect={(file) => {
-                  setAvatarFile(file);
-                  const reader = new FileReader();
-                  reader.onload = () =>
-                    setAvatarPreview(reader.result as string);
-                  reader.readAsDataURL(file);
-                }}
-              />
+              {shouldShowConversationSelector(conversationType, "stageId") ? (
+                <StageSelect
+                  label={labels.stageId}
+                  value={values.stageId ?? ""}
+                  academicYearId={values.academicYearId}
+                  termId={values.termId}
+                  onChange={(stageId) =>
+                    setValues((current) => ({
+                      ...current,
+                      stageId,
+                      gradeId: "",
+                      sectionId: "",
+                      classroomId: "",
+                    }))
+                  }
+                />
+              ) : null}
+              {shouldShowConversationSelector(conversationType, "gradeId") ? (
+                <GradeSelect
+                  label={labels.gradeId}
+                  value={values.gradeId ?? ""}
+                  academicYearId={values.academicYearId}
+                  termId={values.termId}
+                  stageId={values.stageId}
+                  onChange={(gradeId) =>
+                    setValues((current) => ({
+                      ...current,
+                      gradeId,
+                      sectionId: "",
+                      classroomId: "",
+                    }))
+                  }
+                />
+              ) : null}
+              {shouldShowConversationSelector(conversationType, "sectionId") ? (
+                <SectionSelect
+                  label={labels.sectionId}
+                  value={values.sectionId ?? ""}
+                  academicYearId={values.academicYearId}
+                  termId={values.termId}
+                  gradeId={values.gradeId}
+                  onChange={(sectionId) =>
+                    setValues((current) => ({
+                      ...current,
+                      sectionId,
+                      classroomId: "",
+                    }))
+                  }
+                />
+              ) : null}
+              {shouldShowConversationSelector(
+                conversationType,
+                "classroomId",
+              ) ? (
+                <ClassroomSelect
+                  label={labels.classroomId}
+                  value={values.classroomId ?? ""}
+                  academicYearId={values.academicYearId}
+                  termId={values.termId}
+                  sectionId={values.sectionId}
+                  error={
+                    values.type === "classroom" &&
+                    error === labels.classroomRequired
+                      ? error
+                      : undefined
+                  }
+                  onChange={(classroomId) =>
+                    setValues((current) => ({ ...current, classroomId }))
+                  }
+                />
+              ) : null}
+              {shouldShowConversationSelector(conversationType, "subjectId") ? (
+                <SubjectSelect
+                  label={labels.subjectId}
+                  value={values.subjectId ?? ""}
+                  onChange={(subjectId) =>
+                    setValues((current) => ({ ...current, subjectId }))
+                  }
+                />
+              ) : null}
             </div>
           </>
         ) : null}
+        <AvatarUploadField
+          label={labels.avatarFileId}
+          preview={avatarPreview}
+          onFileSelect={(file) => {
+            setAvatarFile(file);
+            const reader = new FileReader();
+            reader.onload = () => setAvatarPreview(reader.result as string);
+            reader.readAsDataURL(file);
+          }}
+        />
         <div className="grid gap-3 md:grid-cols-2">
           <ToggleRow
             label={labels.isReadOnly}
@@ -401,6 +531,8 @@ function AvatarUploadField({
           className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 transition hover:bg-slate-200"
         >
           {preview ? (
+            // FileReader data URLs are local previews, so Next image optimization cannot help here.
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={preview} alt="" className="h-full w-full object-cover" />
           ) : (
             <Camera className="h-5 w-5 text-slate-400" />

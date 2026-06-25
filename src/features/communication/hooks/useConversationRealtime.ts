@@ -11,6 +11,11 @@ interface ConversationRealtimeHandlers {
   onMessageUpdated: (payload: unknown) => void;
   onMessageDeleted: (payload: unknown) => void;
   onMessageRead: (payload: unknown) => void;
+  onReactionUpserted?: (payload: unknown) => void;
+  onReactionDeleted?: (payload: unknown) => void;
+  onAttachmentLinked?: (payload: unknown) => void;
+  onAttachmentDeleted?: (payload: unknown) => void;
+  onAnnouncementPublished?: (payload: unknown) => void;
   onTypingStarted: (payload: unknown) => void;
   onTypingStopped: (payload: unknown) => void;
   onPresenceUpdated: (payload: unknown) => void;
@@ -50,6 +55,11 @@ export function useConversationRealtime({
   onMessageDeleted,
   onMessageRead,
   onMessageUpdated,
+  onReactionDeleted,
+  onReactionUpserted,
+  onAttachmentDeleted,
+  onAttachmentLinked,
+  onAnnouncementPublished,
   onPresenceUpdated,
   onReconnect,
   onTypingStarted,
@@ -62,6 +72,11 @@ export function useConversationRealtime({
     onMessageDeleted,
     onMessageRead,
     onMessageUpdated,
+    onReactionDeleted,
+    onReactionUpserted,
+    onAttachmentDeleted,
+    onAttachmentLinked,
+    onAnnouncementPublished,
     onPresenceUpdated,
     onReconnect,
     onTypingStarted,
@@ -74,6 +89,11 @@ export function useConversationRealtime({
       onMessageDeleted,
       onMessageRead,
       onMessageUpdated,
+      onReactionDeleted,
+      onReactionUpserted,
+      onAttachmentDeleted,
+      onAttachmentLinked,
+      onAnnouncementPublished,
       onPresenceUpdated,
       onReconnect,
       onTypingStarted,
@@ -84,6 +104,11 @@ export function useConversationRealtime({
     onMessageDeleted,
     onMessageRead,
     onMessageUpdated,
+    onReactionDeleted,
+    onReactionUpserted,
+    onAttachmentDeleted,
+    onAttachmentLinked,
+    onAnnouncementPublished,
     onPresenceUpdated,
     onReconnect,
     onTypingStarted,
@@ -124,6 +149,38 @@ export function useConversationRealtime({
         handlersRef.current.onMessageRead(payload);
       }
     };
+    const handleReactionUpserted = (payload: unknown) => {
+      if (isForActiveConversation(payload)) {
+        const handler = handlersRef.current.onReactionUpserted;
+        if (handler) handler(payload);
+        else handlersRef.current.onReconnect();
+      }
+    };
+    const handleReactionDeleted = (payload: unknown) => {
+      if (isForActiveConversation(payload)) {
+        const handler = handlersRef.current.onReactionDeleted;
+        if (handler) handler(payload);
+        else handlersRef.current.onReconnect();
+      }
+    };
+    const handleAttachmentLinked = (payload: unknown) => {
+      if (isForActiveConversation(payload)) {
+        const handler = handlersRef.current.onAttachmentLinked;
+        if (handler) handler(payload);
+        else handlersRef.current.onReconnect();
+      }
+    };
+    const handleAttachmentDeleted = (payload: unknown) => {
+      if (isForActiveConversation(payload)) {
+        const handler = handlersRef.current.onAttachmentDeleted;
+        if (handler) handler(payload);
+        else handlersRef.current.onReconnect();
+      }
+    };
+    const handleAnnouncementPublished = (payload: unknown) => {
+      const handler = handlersRef.current.onAnnouncementPublished;
+      if (handler) handler(payload);
+    };
     const handleTypingStarted = (payload: unknown) => {
       if (isForActiveConversation(payload)) {
         handlersRef.current.onTypingStarted(payload);
@@ -142,6 +199,20 @@ export function useConversationRealtime({
     socket.on(COMMUNICATION_SOCKET_EVENTS.messageUpdated, handleMessageUpdated);
     socket.on(COMMUNICATION_SOCKET_EVENTS.messageDeleted, handleMessageDeleted);
     socket.on(COMMUNICATION_SOCKET_EVENTS.messageRead, handleMessageRead);
+    socket.on(
+      COMMUNICATION_SOCKET_EVENTS.reactionUpserted,
+      handleReactionUpserted,
+    );
+    socket.on(COMMUNICATION_SOCKET_EVENTS.reactionDeleted, handleReactionDeleted);
+    socket.on(COMMUNICATION_SOCKET_EVENTS.attachmentLinked, handleAttachmentLinked);
+    socket.on(
+      COMMUNICATION_SOCKET_EVENTS.attachmentDeleted,
+      handleAttachmentDeleted,
+    );
+    socket.on(
+      COMMUNICATION_SOCKET_EVENTS.announcementPublished,
+      handleAnnouncementPublished,
+    );
     socket.on(COMMUNICATION_SOCKET_EVENTS.typingStarted, handleTypingStarted);
     socket.on(COMMUNICATION_SOCKET_EVENTS.typingStopped, handleTypingStopped);
     socket.on(
@@ -154,6 +225,26 @@ export function useConversationRealtime({
       socket.off(COMMUNICATION_SOCKET_EVENTS.messageUpdated, handleMessageUpdated);
       socket.off(COMMUNICATION_SOCKET_EVENTS.messageDeleted, handleMessageDeleted);
       socket.off(COMMUNICATION_SOCKET_EVENTS.messageRead, handleMessageRead);
+      socket.off(
+        COMMUNICATION_SOCKET_EVENTS.reactionUpserted,
+        handleReactionUpserted,
+      );
+      socket.off(
+        COMMUNICATION_SOCKET_EVENTS.reactionDeleted,
+        handleReactionDeleted,
+      );
+      socket.off(
+        COMMUNICATION_SOCKET_EVENTS.attachmentLinked,
+        handleAttachmentLinked,
+      );
+      socket.off(
+        COMMUNICATION_SOCKET_EVENTS.attachmentDeleted,
+        handleAttachmentDeleted,
+      );
+      socket.off(
+        COMMUNICATION_SOCKET_EVENTS.announcementPublished,
+        handleAnnouncementPublished,
+      );
       socket.off(COMMUNICATION_SOCKET_EVENTS.typingStarted, handleTypingStarted);
       socket.off(COMMUNICATION_SOCKET_EVENTS.typingStopped, handleTypingStopped);
       socket.off(
