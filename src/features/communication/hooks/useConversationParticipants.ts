@@ -151,8 +151,14 @@ function roleChangePayloadFromValues(
 function sortParticipants(participants: ConversationParticipant[]) {
   return [...participants].sort((left, right) => {
     const leftName =
-      left.actor?.name || left.actor?.nameEn || left.actor?.nameAr || left.userId || "";
+      left.user?.displayName ||
+      left.actor?.name ||
+      left.actor?.nameEn ||
+      left.actor?.nameAr ||
+      left.userId ||
+      "";
     const rightName =
+      right.user?.displayName ||
       right.actor?.name ||
       right.actor?.nameEn ||
       right.actor?.nameAr ||

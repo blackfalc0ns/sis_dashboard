@@ -63,6 +63,16 @@ export function createMessage(overrides: Partial<Message> = {}): Message {
 
 export function createParticipant(overrides: Partial<ConversationParticipant> = {}): ConversationParticipant {
   const userId = overrides.userId ?? nextId();
+  const user = overrides.user ? {
+    id: userId,
+    displayName: 'Test User',
+    userType: 'student',
+    ...overrides.user,
+  } : {
+    id: userId,
+    displayName: 'Test User',
+    userType: 'student',
+  };
   return {
     id: nextId(),
     conversationId: nextId(),
@@ -73,6 +83,7 @@ export function createParticipant(overrides: Partial<ConversationParticipant> = 
       id: userId,
       name: 'Test User',
     },
+    user,
     joinedAt: recentTimestamp(7_200_000),
     leftAt: null,
     ...overrides,

@@ -92,6 +92,11 @@ export interface ConversationParticipant extends CommunicationRecord {
   metadata?: CommunicationRecord | null;
   joinedAt?: CommunicationDateTime;
   leftAt?: CommunicationDateTime | null;
+  user?: {
+    id: string;
+    displayName: string;
+    userType: string;
+  };
 }
 
 export interface AddParticipantPayload {
