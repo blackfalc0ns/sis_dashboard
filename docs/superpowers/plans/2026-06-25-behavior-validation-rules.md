@@ -39,9 +39,9 @@
   Add test blocks to `src/features/behavior/shared/utils/__tests__/behaviorUiRules.test.ts` covering:
   - normalization: collapsing repeated underscores, converting hyphens to underscores, stripping leading/trailing underscores, uppercasing, and replacing all non-alphanumeric characters (e.g. `"late/arrival!!!"` => `"LATE_ARRIVAL"`, `"bad.code name"` => `"BAD_CODE_NAME"`).
   - name validation: nameEn or nameAr required.
-  - points sign and integer validation: accept numeric strings, reject decimals/NaN, reject empty strings (`""`) as invalid (using `validateCategoryPoints`, `validateRecordPoints`, and `validatePointsOverride`).
+  - points sign and integer validation: accept numeric strings, reject decimals/NaN, reject empty strings `""` as invalid (using `validateCategoryPoints`, `validateRecordPoints`, and `validatePointsOverride`).
   - record category compatibility: active and type compatibility.
-  - occurredAt term date range validation: inclusive of `startDate` and `endDate`, returns `false` on invalid date parsing.
+  - occurredAt term date range validation: inclusive of `startDate` and `endDate`, returns `false` on invalid date parsing, and returns `true` if `termRange` is missing/undefined.
   - points override check: integer and sign-compatible, rejects decimals/NaN and empty strings.
   - date range validator: From date not after To date.
   - `shouldCreatePointLedger` review status checks: `shouldCreatePointLedger("approved") === true`, `shouldCreatePointLedger("rejected") === false`.
@@ -58,7 +58,7 @@
   const num = Number(raw);
   if (Number.isNaN(num) || !Number.isInteger(num)) return false;
   ```
-  Implement the date parsing checks (returning false on invalid dates) and make term date validation range checking inclusive of startDate and endDate.
+  Implement the date parsing checks (returning false on invalid dates), make term date validation range checking inclusive of startDate and endDate, and return `true` if `termRange` is missing/undefined.
 
 - [ ] **Step 4: Run tests to verify they pass**
   Run: `npm run test:run -- src/features/behavior/shared/utils/__tests__/behaviorUiRules.test.ts`
@@ -146,7 +146,7 @@
 - Consumes: Domain rules from `behaviorUiRules.ts`
 
 - [ ] **Step 1: Hide/disable record edit actions for non-draft records**
-  Update `BehaviorTable.tsx`, `BehaviorDetailDrawer.tsx`, and pages to hide or disable record edit actions for records that are not in `draft` status. Keep the save-handler guard inside `RecordModal` as a backup.
+  Update `BehaviorTable.tsx` and `BehaviorDetailDrawer.tsx` to hide or disable record edit actions for records that are not in `draft` status. Keep the save-handler guard inside `RecordModal` as a backup.
 
 - [ ] **Step 2: Implement Record form validations**
   In `RecordModal` of `BehaviorActionModals.tsx`, validate:
@@ -155,10 +155,10 @@
   - category is active and compatible. If values are missing on the record form, default them from the selected category's `type`, `defaultSeverity`, and `defaultPoints`.
   - occurredAt term limit check.
   Only allow editing if record status is `draft`.
-  In `ApproveModal`, validate that `pointsOverride` is an integer and compatible with type before calling `approveBehaviorRecord`.
+  In `ApproveModal`, if `pointsOverride` is provided and not empty, validate that it is an integer and compatible with type before calling `approveBehaviorRecord`. If empty/undefined, allow submit so backend uses the record/category points.
 
 - [ ] **Step 3: Add Date Range pickers to filters**
-  In `BehaviorFiltersBar.tsx`, add Date From and Date To inputs. Validate that From date is not after To date.
+  In `BehaviorFiltersBar.tsx`, add Date From and Date To inputs. Validate that From date is not after To date. Map Date From to query parameter `occurredFrom` and Date To to `occurredTo` when invoking backend list endpoints.
 
 - [ ] **Step 4: Run Vitest behavior suite to ensure everything compiles and passes**
   Run: `npm run test:run -- src/features/behavior`

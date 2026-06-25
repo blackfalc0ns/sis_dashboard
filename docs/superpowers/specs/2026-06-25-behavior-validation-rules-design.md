@@ -30,7 +30,7 @@ The following functions will be implemented in `src/features/behavior/shared/uti
 - **Record Category Compatibility:**
   - `validateRecordCategory(category: { isActive: boolean; type: BehaviorType }, recordType: BehaviorType): boolean`: Category must be active and type-compatible (matching record type).
 - **Record Term Date Validation:**
-  - `validateRecordTermDate(occurredAt: string | Date, termRange?: { startDate: string; endDate: string }): boolean`: Checks if `occurredAt` date falls inside the selected term's date range (if term data is available, inclusive of startDate and endDate, returns false on invalid date parsing).
+  - `validateRecordTermDate(occurredAt: string | Date, termRange?: { startDate: string; endDate: string }): boolean`: Checks if `occurredAt` date falls inside the selected term's date range. If `termRange` is missing/undefined, returns `true` because the UI cannot validate the term boundary locally. Returns `false` for invalid dates or dates outside the provided term range (inclusive of startDate and endDate).
 - **Record Editable Validation:**
   - `canEditBehaviorRecord(record: { status: BehaviorStatus }): boolean`: Only returns `true` if record status is `draft`.
 
@@ -62,7 +62,7 @@ The following functions will be implemented in `src/features/behavior/shared/uti
   - *Error Extraction:* Safely read backend error codes using standard helpers or check paths: `error.code`, `error.response.data.code`, or `error.response.data.error.code`.
 
 ### Record Creation & Modification (`RecordModal`)
-- **Action Visibility:** Hide/disable record edit actions for non-draft records. Keep the save-handler guard inside `RecordModal` as a backup.
+- **Action Visibility:** Hide/disable record edit actions for non-draft records in `BehaviorTable.tsx` and `BehaviorDetailDrawer.tsx`. Keep the save-handler guard inside `RecordModal` as a backup.
 - **Validation on Save:**
   - Ensure at least one of title/note fields is provided.
   - Validate points are an integer and sign-compatible.
@@ -76,7 +76,7 @@ The following functions will be implemented in `src/features/behavior/shared/uti
 
 ### Review Flow (`BehaviorReviewsPage.tsx` & `ApproveModal`/`RejectModal`)
 - **Actions Visibility:** Show approve/reject action buttons only for records with `submitted` status.
-- **Review Validation:** Verify that `pointsOverride` is an integer and sign-compatible before approving.
+- **Review Validation:** If `pointsOverride` is provided and not empty, verify that it is an integer and sign-compatible before calling API. If empty/undefined, allow submit so backend uses the record/category points.
 
 ---
 
