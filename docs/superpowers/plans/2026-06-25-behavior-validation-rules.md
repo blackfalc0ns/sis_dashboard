@@ -51,7 +51,7 @@
   Expected: FAIL with undefined function errors or missing test coverage.
 
 - [ ] **Step 3: Write minimal implementation in behaviorUiRules.ts**
-  Add the validation and normalization functions to `src/features/behavior/shared/utils/behaviorUiRules.ts`. Ensure points validation trimes string inputs first and rejects empty strings `""` (do not treat as valid 0):
+  Add the validation and normalization functions to `src/features/behavior/shared/utils/behaviorUiRules.ts`. Ensure points validation trims string inputs first and rejects empty strings `""` (do not treat as valid 0):
   ```typescript
   const raw = typeof points === "string" ? points.trim() : points;
   if (raw === "") return false;
@@ -92,6 +92,7 @@
 
 - [ ] **Step 4: Catch backend behavior.category.in_use error**
   Wrap saving inside try-catch, and in catch, map backend code `behavior.category.in_use` to `errors.categoryInUse`.
+  *Note:* Use the existing API error shape/helper if available. If not available, add a small helper to safely read backend error codes from common response shapes such as `error.code`, `error.response.data.code`, or `error.response.data.error.code` to prevent implementation bugs.
 
 - [ ] **Step 5: Commit**
   Run:
@@ -119,6 +120,7 @@
 
 - [ ] **Step 3: Trigger deletion and handle conflict error**
   When Delete is clicked, show a confirm dialog. On confirm, invoke `deleteBehaviorCategory`. Catch any API error, check if error code matches `behavior.category.in_use`, and display `errors.categoryInUse` toast.
+  *Note:* Use the existing API error shape/helper if available. If not available, add a small helper to safely read backend error codes from common response shapes such as `error.code`, `error.response.data.code`, or `error.response.data.error.code` to prevent implementation bugs.
 
 - [ ] **Step 4: Run dev app to manually test**
   Verify clicking Delete on category in use shows the correct toast, and deleting unused category succeeds.
@@ -178,22 +180,28 @@
 - Modify: `src/messages/ar.json`
 
 - [ ] **Step 1: Add missing validation/error keys to en.json**
-  Add keys under `"behavior"."errors"` in `src/messages/en.json`:
+  Add or update keys under `"behavior"."errors"` in `src/messages/en.json`:
+  - `"categoryInUse"`: `"This category is already used by behavior records or point ledger entries and cannot be changed or deleted."`
   - `"invalidCategoryCode"`: `"Category code is required, must contain only uppercase alphanumeric characters and underscores, and be under 100 characters."`
   - `"categoryNameRequired"`: `"At least English Name or Arabic Name is required."`
   - `"invalidPoints"`: `"Points must be a valid integer and sign-compatible with the category type."`
   - `"recordContentRequired"`: `"At least one of Title (English/Arabic) or Note (English/Arabic) is required."`
   - `"invalidDateRange"`: `"From date must not be after To date."`
   - `"occurredAtOutsideTerm"`: `"The record date must be inside the selected term range."`
+  - `"categoryInactive"`: `"Selected category is inactive."`
+  - `"categoryTypeMismatch"`: `"Selected category type does not match the behavior type."`
 
 - [ ] **Step 2: Add Arabic translation keys to ar.json**
-  Add keys under `"behavior"."errors"` in `src/messages/ar.json`:
-  - `"invalidCategoryCode"`: `"رمز الفئة مطلوب، ويجب أن يحتوي فقط على أحرف أرقام شرطات سفلية، وأقل من 100 حرف."`
+  Add or update keys under `"behavior"."errors"` in `src/messages/ar.json`:
+  - `"categoryInUse"`: `"هذه الفئة مستخدمة بالفعل في سجلات السلوك أو سجل النقاط ولا يمكن تعديلها أو حذفها."`
+  - `"invalidCategoryCode"`: `"رمز الفئة مطلوب، ويجب أن يحتوي فقط على أحرف إنجليزية كبيرة وأرقام وشرطات سفلية، وأن يكون أقل من 100 حرف."`
   - `"categoryNameRequired"`: `"الاسم باللغة الإنجليزية أو الاسم باللغة العربية مطلوب على الأقل."`
   - `"invalidPoints"`: `"يجب أن تكون النقاط عدداً صحيحاً ومتوافقة مع إشارة نوع الفئة."`
   - `"recordContentRequired"`: `"يجب إدخال عنوان واحد أو ملاحظة واحدة على الأقل بالإنجليزية أو العربية."`
   - `"invalidDateRange"`: `"يجب ألا يكون تاريخ البدء بعد تاريخ الانتهاء."`
   - `"occurredAtOutsideTerm"`: `"يجب أن يكون تاريخ السجل ضمن نطاق الفصل الدراسي المحدد."`
+  - `"categoryInactive"`: `"الفئة المحددة غير مفعّلة."`
+  - `"categoryTypeMismatch"`: `"نوع الفئة المحددة لا يتطابق مع نوع السلوك."`
 
 - [ ] **Step 3: Commit**
   Run:

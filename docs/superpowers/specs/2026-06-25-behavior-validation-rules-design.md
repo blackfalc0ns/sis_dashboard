@@ -53,11 +53,13 @@ The following functions will be implemented in `src/features/behavior/shared/uti
 - **On Edit Constraint:** Allow Category Code editing on creation. On edit, disable code only when category usage is known and category is in use, unless the product decision is to always lock code after creation.
 - **Disable Fields:** Disable both `code` and `type` if the category is in use.
 - **In-Use Backend Fallback:** If category usage is not known beforehand, allow submitting changes and handle backend `behavior.category.in_use` error, mapping it to `errors.categoryInUse`.
+  - *Error Extraction:* Safely read backend error codes using standard helpers or check paths: `error.code`, `error.response.data.code`, or `error.response.data.error.code`.
 
 ### Category Delete (`BehaviorCategoriesPage.tsx`)
 - **API Existence Check:** If `deleteBehaviorCategory` does not exist in `behaviorApiService.ts`, add it.
 - **Delete Button:** Display a Delete button for each category.
 - **Delete Execution:** Directly trigger the DELETE API endpoint and handle backend conflicts. If the backend returns `behavior.category.in_use`, display toast error `errors.categoryInUse`. Do not rely solely on frontend pre-checks unless usage counts are explicitly provided.
+  - *Error Extraction:* Safely read backend error codes using standard helpers or check paths: `error.code`, `error.response.data.code`, or `error.response.data.error.code`.
 
 ### Record Creation & Modification (`RecordModal`)
 - **Action Visibility:** Hide/disable record edit actions for non-draft records. Keep the save-handler guard inside `RecordModal` as a backup.
