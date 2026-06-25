@@ -357,6 +357,7 @@ function RecordModal({
           titleAr: form.titleAr || undefined,
           noteEn: form.noteEn || undefined,
           noteAr: form.noteAr || undefined,
+          occurredAt: form.occurredAt.toISOString(),
         });
         showSuccess(t("messages.recordUpdated"));
       } else {
