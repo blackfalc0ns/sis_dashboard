@@ -155,7 +155,10 @@ export default function EmailCampaignDetailPage({
                 value={campaign.totalRecipients}
               />
               <SummaryItem label={t("table.sent")} value={campaign.sentCount} />
-              <SummaryItem label={t("table.failed")} value={campaign.failedCount} />
+              <SummaryItem
+                label={t("table.failed")}
+                value={campaign.failedCount}
+              />
               <SummaryItem
                 label={t("table.skipped")}
                 value={campaign.skippedCount}

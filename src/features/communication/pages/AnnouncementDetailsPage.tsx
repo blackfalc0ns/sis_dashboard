@@ -29,7 +29,8 @@ const labels = {
   en: {
     back: "Back to announcements",
     title: "Announcement Details",
-    description: "Review, edit drafts, publish, archive, and inspect read status.",
+    description:
+      "Review, edit drafts, publish, archive, and inspect read status.",
     loading: "Loading announcement...",
     errorTitle: "Unable to load announcement",
     retry: "Retry",
@@ -159,7 +160,10 @@ function statusTone(status?: string) {
   return "info" as const;
 }
 
-function statusLabel(status: string | undefined, t: (typeof labels)[LocaleKey]) {
+function statusLabel(
+  status: string | undefined,
+  t: (typeof labels)[LocaleKey],
+) {
   if (status === "published") return t.published;
   if (status === "archived") return t.archived;
   return t.draft;
@@ -219,7 +223,7 @@ export default function AnnouncementDetailsPage({
     <div className="space-y-6">
       <Link
         href={`/${locale}/communication/announcements`}
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-sky-700"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-primary-700"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         {t.back}
@@ -286,7 +290,11 @@ export default function AnnouncementDetailsPage({
           title={t.errorTitle}
           message={error}
           action={
-            <Button type="button" variant="secondary" onClick={() => void refresh()}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void refresh()}
+            >
               {t.retry}
             </Button>
           }
@@ -300,9 +308,7 @@ export default function AnnouncementDetailsPage({
           readOnly={!canEdit}
           isSubmitting={isMutating}
           submitLabel={t.saveChanges}
-          onSubmit={(values) =>
-            runMutation(() => update(values), t.updated)
-          }
+          onSubmit={(values) => runMutation(() => update(values), t.updated)}
           labels={{
             title: t.formTitle,
             body: t.body,

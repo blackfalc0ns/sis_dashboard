@@ -100,7 +100,9 @@ export default function EmailCampaignsPage() {
           fetchSettingsRoles({ limit: 100 }),
         ]);
         setCampaigns(campaignResult.items);
-        setTotal(campaignResult.pagination?.total || campaignResult.items.length);
+        setTotal(
+          campaignResult.pagination?.total || campaignResult.items.length,
+        );
         setPage(campaignResult.pagination?.page || page);
         setLimit(campaignResult.pagination?.limit || limit);
         setRoles(roleResult.items);
@@ -154,7 +156,9 @@ export default function EmailCampaignsPage() {
     setIsPreviewingCampaign(true);
     setPageError(null);
     try {
-      const result = await previewEmailCampaign(buildPreviewCampaignPayload(values));
+      const result = await previewEmailCampaign(
+        buildPreviewCampaignPayload(values),
+      );
       setRenderedPreview(result);
       showSuccess(t("messages.preview_ready"));
       return result;
@@ -177,14 +181,18 @@ export default function EmailCampaignsPage() {
     setIsCreating(true);
     setPageError(null);
     try {
-      const result = await createEmailCampaign(buildCreateCampaignPayload(values));
+      const result = await createEmailCampaign(
+        buildCreateCampaignPayload(values),
+      );
       setCreatedBatch(result);
       setRecipientPreview(null);
       showSuccess(t("messages.created"));
       await hydrate("refresh");
       return result;
     } catch (error) {
-      const message = isApiError(error) ? error.message : tCommon("save_failed");
+      const message = isApiError(error)
+        ? error.message
+        : tCommon("save_failed");
       setPageError(message);
       showError(message);
       return null;
@@ -311,7 +319,9 @@ export default function EmailCampaignsPage() {
               <Select
                 label={t("filters.status")}
                 value={status}
-                onChange={(value) => setStatus(value as EmailDeliveryStatus | "all")}
+                onChange={(value) =>
+                  setStatus(value as EmailDeliveryStatus | "all")
+                }
                 options={[
                   { value: "all", label: t("filters.all") },
                   ...Object.entries(statusLabels).map(([value, label]) => ({
@@ -343,7 +353,9 @@ export default function EmailCampaignsPage() {
               />
             ) : (
               <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
-                <p className="font-semibold text-gray-900">{t("empty.title")}</p>
+                <p className="font-semibold text-gray-900">
+                  {t("empty.title")}
+                </p>
                 <p className="mt-1 text-sm text-gray-500">
                   {t("empty.description")}
                 </p>

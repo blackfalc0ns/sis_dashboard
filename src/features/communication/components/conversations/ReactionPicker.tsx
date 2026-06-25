@@ -1,6 +1,15 @@
 "use client";
 
-import { Angry, Frown, Heart, Laugh, SmilePlus, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import {
+  Angry,
+  Frown,
+  Heart,
+  Laugh,
+  SmilePlus,
+  ThumbsDown,
+  ThumbsUp,
+  X,
+} from "lucide-react";
 import type { ComponentType } from "react";
 import Button from "@/components/ui/button/Button";
 import type { ReactionType } from "@/features/communication/types/message.types";
@@ -55,7 +64,7 @@ export default function ReactionPicker({
           <button
             key={option.type}
             type="button"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-sky-300 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-primary-300 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
             title={labels[option.labelKey]}
             aria-label={labels[option.labelKey]}
             disabled={disabled}

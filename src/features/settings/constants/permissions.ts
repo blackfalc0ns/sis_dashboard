@@ -27,14 +27,16 @@ export const permissionCatalog: PermissionDefinition[] = [
     module: "admissions_documents",
     action: "manage",
     label: "Manage admissions applicant documents",
-    description: "Upload, remove, accept, reject, and request replacements for applicant documents.",
+    description:
+      "Upload, remove, accept, reject, and request replacements for applicant documents.",
   },
   {
     key: "settings.overview.view",
     module: "overview",
     action: "view",
     label: "Settings overview",
-    description: "View settings health, invites, integrations, and audit summary.",
+    description:
+      "View settings health, invites, integrations, and audit summary.",
   },
   {
     key: "settings.branding.view",
@@ -62,7 +64,8 @@ export const permissionCatalog: PermissionDefinition[] = [
     module: "users",
     action: "manage",
     label: "Manage users",
-    description: "Create users, resend invites, change status, and assign roles.",
+    description:
+      "Create users, resend invites, change status, and assign roles.",
   },
   {
     key: "settings.roles.view",
@@ -104,7 +107,8 @@ export const permissionCatalog: PermissionDefinition[] = [
     module: "admissions_documents",
     action: "manage",
     label: "Manage admissions documents settings",
-    description: "Create, edit, reorder, activate, and remove admissions document requirements.",
+    description:
+      "Create, edit, reorder, activate, and remove admissions document requirements.",
   },
   {
     key: "settings.templates.view",
@@ -146,7 +150,8 @@ export const permissionCatalog: PermissionDefinition[] = [
     module: "security",
     action: "manage",
     label: "Manage security & audit",
-    description: "Update security controls and export or review sensitive logs.",
+    description:
+      "Update security controls and export or review sensitive logs.",
   },
   {
     key: "settings.backup.view",
@@ -167,35 +172,40 @@ export const permissionCatalog: PermissionDefinition[] = [
     module: "nedaa",
     action: "view",
     label: "View Nedaa overview",
-    description: "Access Nedaa overview metrics, gate summaries, and live pickup KPIs.",
+    description:
+      "Access Nedaa overview metrics, gate summaries, and live pickup KPIs.",
   },
   {
     key: "nedaa.requests.view",
     module: "nedaa",
     action: "view",
     label: "View Nedaa requests",
-    description: "Access live pickup requests, gate boards, and request history.",
+    description:
+      "Access live pickup requests, gate boards, and request history.",
   },
   {
     key: "nedaa.requests.manage",
     module: "nedaa",
     action: "manage",
     label: "Manage Nedaa requests",
-    description: "Acknowledge, prepare, complete, and cancel Nedaa pickup requests.",
+    description:
+      "Acknowledge, prepare, complete, and cancel Nedaa pickup requests.",
   },
   {
     key: "nedaa.settings.view",
     module: "nedaa",
     action: "view",
     label: "View Nedaa settings",
-    description: "Access Nedaa operational rules, pickup windows, and gate configuration.",
+    description:
+      "Access Nedaa operational rules, pickup windows, and gate configuration.",
   },
   {
     key: "nedaa.settings.manage",
     module: "nedaa",
     action: "manage",
     label: "Manage Nedaa settings",
-    description: "Update Nedaa operational rules, default gate selection, and gate setup.",
+    description:
+      "Update Nedaa operational rules, default gate selection, and gate setup.",
   },
   {
     key: "academics.structure.view",
@@ -209,6 +219,7 @@ export const permissionCatalog: PermissionDefinition[] = [
     module: "academics",
     action: "manage",
     label: "Manage Academic Structure",
-    description: "Create and edit academic years, terms, and the structure tree.",
+    description:
+      "Create and edit academic years, terms, and the structure tree.",
   },
 ];

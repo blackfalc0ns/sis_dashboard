@@ -75,7 +75,7 @@ function ToggleRow({ checked, label, onChange }: ToggleRowProps) {
       <span>{label}</span>
       <input
         type="checkbox"
-        className="h-4 w-4 rounded border-slate-300 text-sky-600"
+        className="h-4 w-4 rounded border-slate-300 text-primary-600"
         checked={Boolean(checked)}
         onChange={(event) => onChange(event.target.checked)}
       />
@@ -143,7 +143,9 @@ export default function CommunicationPolicyForm({
   return (
     <section className="space-y-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-slate-900">{labels.title}</h2>
+        <h2 className="text-base font-semibold text-slate-900">
+          {labels.title}
+        </h2>
         <Button
           type="button"
           loading={isSaving}
@@ -200,12 +202,16 @@ export default function CommunicationPolicyForm({
         <ToggleRow
           label={labels.teacherCreatedGroups}
           checked={values.allowTeacherCreatedGroups}
-          onChange={(checked) => setBoolean("allowTeacherCreatedGroups", checked)}
+          onChange={(checked) =>
+            setBoolean("allowTeacherCreatedGroups", checked)
+          }
         />
         <ToggleRow
           label={labels.studentCreatedGroups}
           checked={values.allowStudentCreatedGroups}
-          onChange={(checked) => setBoolean("allowStudentCreatedGroups", checked)}
+          onChange={(checked) =>
+            setBoolean("allowStudentCreatedGroups", checked)
+          }
         />
         <ToggleRow
           label={labels.requireApprovalForStudentGroups}
@@ -316,7 +322,8 @@ export default function CommunicationPolicyForm({
           onChange={(value) =>
             setValues((current) => ({
               ...current,
-              moderationMode: value as CommunicationPolicyFormValues["moderationMode"],
+              moderationMode:
+                value as CommunicationPolicyFormValues["moderationMode"],
             }))
           }
         />

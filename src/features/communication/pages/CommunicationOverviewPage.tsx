@@ -102,11 +102,14 @@ function policyFlag(
   return typeof value === "boolean" ? value : null;
 }
 
-function isCommunicationEnabled(policy: CommunicationPolicy | null): boolean | null {
+function isCommunicationEnabled(
+  policy: CommunicationPolicy | null,
+): boolean | null {
   if (!policy) return null;
 
   const record = policy as Record<string, unknown>;
-  const explicit = record.enabled ?? record.isEnabled ?? record.communicationEnabled;
+  const explicit =
+    record.enabled ?? record.isEnabled ?? record.communicationEnabled;
   if (typeof explicit === "boolean") return explicit;
 
   const flags = [
@@ -131,9 +134,12 @@ function localizedText(
   const fallback = fallbackKey ? item[fallbackKey] : undefined;
   const generic = keys.fallback ? item[keys.fallback] : undefined;
 
-  return [preferred, fallback, generic].find(
-    (value): value is string => typeof value === "string" && value.trim() !== "",
-  ) ?? "";
+  return (
+    [preferred, fallback, generic].find(
+      (value): value is string =>
+        typeof value === "string" && value.trim() !== "",
+    ) ?? ""
+  );
 }
 
 function formatDate(value: string | null | undefined, locale: string): string {
@@ -186,9 +192,7 @@ function PolicyLine({
     <div className="flex items-center justify-between gap-4 py-2">
       <span className="text-sm text-slate-600">{label}</span>
       <CommunicationStatusChip
-        label={
-          value === null ? t.unknown : value ? t.enabled : t.disabled
-        }
+        label={value === null ? t.unknown : value ? t.enabled : t.disabled}
         tone={value === null ? "default" : value ? "success" : "warning"}
       />
     </div>
@@ -210,18 +214,22 @@ function ConversationRow({
     }) || conversation.id;
   const href = `/${locale}/communication/conversations/${conversation.id}`;
   const updatedAt = formatDate(
-    conversation.lastMessageAt ?? conversation.updatedAt ?? conversation.createdAt,
+    conversation.lastMessageAt ??
+      conversation.updatedAt ??
+      conversation.createdAt,
     locale,
   );
 
   return (
     <Link
       href={href}
-      className="block rounded-lg border border-slate-100 p-3 transition-colors hover:border-sky-200 hover:bg-sky-50/40"
+      className="block rounded-lg border border-slate-100 p-3 transition-colors hover:border-primary-200 hover:bg-primary-50/40"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-slate-950">{title}</p>
+          <p className="truncate text-sm font-semibold text-slate-950">
+            {title}
+          </p>
           <p className="mt-1 text-xs text-slate-500">
             {conversation.type ?? conversation.status ?? "conversation"}
           </p>
@@ -253,7 +261,8 @@ function NotificationRow({
       ar: "titleAr",
       en: "titleEn",
       fallback: "title",
-    }) || notification.type ||
+    }) ||
+    notification.type ||
     notification.id;
   const body = localizedText(locale, notification, {
     ar: "bodyAr",
@@ -369,7 +378,7 @@ export default function CommunicationOverviewPage() {
           title={t.activeConversations}
           value={activeConversationsCount}
           icon={MessageSquare}
-          tone="bg-sky-100 text-sky-700"
+          tone="bg-primary-100 text-primary-700"
         />
         <SummaryCard
           title={t.openReports}
@@ -394,100 +403,102 @@ export default function CommunicationOverviewPage() {
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-base font-semibold text-slate-950">
-                {t.recentConversations}
-              </h2>
-              <div className="mt-4 space-y-3">
-                {data.conversations.items.length > 0 ? (
-                  data.conversations.items.map((conversation) => (
-                    <ConversationRow
-                      key={conversation.id}
-                      conversation={conversation}
-                      locale={locale}
-                    />
-                  ))
-                ) : (
-                  <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
-                    {t.noConversations}
-                  </p>
-                )}
-              </div>
+            <h2 className="text-base font-semibold text-slate-950">
+              {t.recentConversations}
+            </h2>
+            <div className="mt-4 space-y-3">
+              {data.conversations.items.length > 0 ? (
+                data.conversations.items.map((conversation) => (
+                  <ConversationRow
+                    key={conversation.id}
+                    conversation={conversation}
+                    locale={locale}
+                  />
+                ))
+              ) : (
+                <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
+                  {t.noConversations}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-base font-semibold text-slate-950">
-                {t.recentNotifications}
-              </h2>
-              <div className="mt-4 space-y-3">
-                {data.notifications.items.length > 0 ? (
-                  data.notifications.items.map((notification) => (
-                    <NotificationRow
-                      key={notification.id}
-                      notification={notification}
-                      locale={locale}
-                    />
-                  ))
-                ) : (
-                  <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
-                    {t.noNotifications}
-                  </p>
-                )}
-              </div>
+            <h2 className="text-base font-semibold text-slate-950">
+              {t.recentNotifications}
+            </h2>
+            <div className="mt-4 space-y-3">
+              {data.notifications.items.length > 0 ? (
+                data.notifications.items.map((notification) => (
+                  <NotificationRow
+                    key={notification.id}
+                    notification={notification}
+                    locale={locale}
+                  />
+                ))
+              ) : (
+                <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
+                  {t.noNotifications}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-slate-500">{t.policy}</p>
-                <h2 className="mt-1 text-base font-semibold text-slate-950">
-                  {t.policySummary}
-                </h2>
-              </div>
-              <div className="rounded-lg bg-slate-100 p-2 text-slate-600">
-                <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
-              </div>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-slate-500">{t.policy}</p>
+              <h2 className="mt-1 text-base font-semibold text-slate-950">
+                {t.policySummary}
+              </h2>
             </div>
-
-            <div className="mt-4">
-              <CommunicationStatusChip
-                label={
-                  enabled === null ? t.unknown : enabled ? t.enabled : t.disabled
-                }
-                tone={enabled === null ? "default" : enabled ? "success" : "error"}
-              />
+            <div className="rounded-lg bg-slate-100 p-2 text-slate-600">
+              <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
             </div>
+          </div>
 
-            <div className="my-4 border-t border-slate-200" />
+          <div className="mt-4">
+            <CommunicationStatusChip
+              label={
+                enabled === null ? t.unknown : enabled ? t.enabled : t.disabled
+              }
+              tone={
+                enabled === null ? "default" : enabled ? "success" : "error"
+              }
+            />
+          </div>
 
-            <div className="divide-y divide-slate-100">
-              <PolicyLine
-                label={t.allowAnnouncements}
-                value={policyFlag(data.policy, "allowAnnouncements")}
-              />
-              <PolicyLine
-                label={t.allowConversations}
-                value={policyFlag(data.policy, "allowConversations")}
-              />
-              <PolicyLine
-                label={t.allowAttachments}
-                value={policyFlag(data.policy, "allowAttachments")}
-              />
-              <PolicyLine
-                label={t.allowReactions}
-                value={policyFlag(data.policy, "allowReactions")}
-              />
-              <PolicyLine
-                label={t.moderation}
-                value={policyFlag(data.policy, "moderationEnabled")}
-              />
-            </div>
+          <div className="my-4 border-t border-slate-200" />
 
-            {data.policy?.updatedAt ? (
-              <p className="mt-4 text-xs text-slate-500">
-                {t.updated}: {formatDate(data.policy.updatedAt, locale)}
-              </p>
-            ) : null}
+          <div className="divide-y divide-slate-100">
+            <PolicyLine
+              label={t.allowAnnouncements}
+              value={policyFlag(data.policy, "allowAnnouncements")}
+            />
+            <PolicyLine
+              label={t.allowConversations}
+              value={policyFlag(data.policy, "allowConversations")}
+            />
+            <PolicyLine
+              label={t.allowAttachments}
+              value={policyFlag(data.policy, "allowAttachments")}
+            />
+            <PolicyLine
+              label={t.allowReactions}
+              value={policyFlag(data.policy, "allowReactions")}
+            />
+            <PolicyLine
+              label={t.moderation}
+              value={policyFlag(data.policy, "moderationEnabled")}
+            />
+          </div>
+
+          {data.policy?.updatedAt ? (
+            <p className="mt-4 text-xs text-slate-500">
+              {t.updated}: {formatDate(data.policy.updatedAt, locale)}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

@@ -18,7 +18,7 @@ export default function CommunicationLoadingState({
       aria-busy="true"
     >
       <span
-        className="inline-block animate-spin rounded-full border-2 border-slate-200 border-t-sky-600"
+        className="inline-block animate-spin rounded-full border-2 border-slate-200 border-t-primary-600"
         style={{ width: size, height: size }}
         aria-hidden="true"
       />

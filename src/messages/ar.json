@@ -8110,7 +8110,7 @@
           "title": "تأكيد الإرسال",
           "description": "أنشئ دفعة خلفية في قائمة الانتظار للمستلمين المؤهلين.",
           "preview_required": "عاين المستلمين قبل إنشاء دفعة الإرسال.",
-          "manage_required": "إنشاء دفعة إرسال يتطلب settings.security.manage.",
+          "manage_required": "إنشاء دفعة إرسال يتطلب settings.email.deliveries.manage.",
           "created": "تمت إضافة دفعة الإرسال إلى قائمة الانتظار.",
           "batch_id": "معرّف الدفعة",
           "status": "الحالة",
@@ -8346,7 +8346,7 @@
           "user_type_required": "أدخل نوع المستخدم.",
           "credential_variables_blocked": "متغيرات بيانات الدخول مسموحة فقط في قوالب إرسال بيانات الدخول:",
           "preview_required": "عاين المستلمين قبل إنشاء دفعة الحملة.",
-          "manage_required": "إنشاء حملة يتطلب settings.security.manage."
+          "manage_required": "إنشاء حملة يتطلب settings.email.campaigns.manage."
         },
         "messages": {
           "load_failed": "فشل تحميل حملات البريد.",

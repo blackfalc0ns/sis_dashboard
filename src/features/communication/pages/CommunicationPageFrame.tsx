@@ -12,7 +12,7 @@ export default function CommunicationPageFrame({
   return (
     <section className="space-y-6">
       <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-3 inline-flex rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
+        <div className="mb-3 inline-flex rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700">
           {badge}
         </div>
         <h1 className="text-2xl font-semibold text-slate-950">{title}</h1>

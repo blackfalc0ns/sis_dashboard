@@ -75,7 +75,9 @@ export default function CredentialDeliveriesPage() {
       scope: scopeByMode[values.audienceMode],
       userIds: values.audience.userIds,
       roleKeys: values.audience.roleKey ? [values.audience.roleKey] : undefined,
-      userTypes: values.audience.userType ? [values.audience.userType] : undefined,
+      userTypes: values.audience.userType
+        ? [values.audience.userType]
+        : undefined,
       requireContactEmail: values.requireContactEmail,
     };
   };
@@ -119,7 +121,9 @@ export default function CredentialDeliveriesPage() {
       showSuccess(t("messages.created"));
       return result;
     } catch (error) {
-      const message = isApiError(error) ? error.message : tCommon("save_failed");
+      const message = isApiError(error)
+        ? error.message
+        : tCommon("save_failed");
       setPageError(message);
       showError(message);
       return null;

@@ -170,7 +170,10 @@ export default function Sidebar({
 
   const preserveGradesQuery = (href: string) => {
     const currentGradesPrefix = isArabic ? "/ar/grades" : "/en/grades";
-    if (!pathname.startsWith(currentGradesPrefix) || !href.startsWith(currentGradesPrefix)) {
+    if (
+      !pathname.startsWith(currentGradesPrefix) ||
+      !href.startsWith(currentGradesPrefix)
+    ) {
       return href;
     }
 
@@ -471,8 +474,7 @@ export default function Sidebar({
                       className={`group w-full flex items-center gap-3 ${item.buttonBackgroundImage ? "rounded-none" : "rounded-[6px]"} transition-all duration-200 text-left ${
                         isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
                       } ${
-                        isActive ||
-                        pendingHref === itemNavigationHref
+                        isActive || pendingHref === itemNavigationHref
                           ? item.buttonBackgroundImage
                             ? "text-white shadow-sm"
                             : "bg-white text-primary shadow-sm"
@@ -491,8 +493,7 @@ export default function Sidebar({
                       {!isHeroJourneyItem && (
                         <Icon
                           className={`w-5 h-5 shrink-0 transition-colors ${
-                            isActive ||
-                            pendingHref === itemNavigationHref
+                            isActive || pendingHref === itemNavigationHref
                               ? "text-primary"
                               : item.buttonBackgroundImage
                                 ? "text-white"
@@ -527,7 +528,8 @@ export default function Sidebar({
                         const childHref = isArabic
                           ? child.href_ar
                           : child.href_en;
-                        const childNavigationHref = preserveGradesQuery(childHref);
+                        const childNavigationHref =
+                          preserveGradesQuery(childHref);
                         const isChildActive = pathname === childHref;
                         const hasGrandchildren =
                           child.children && child.children.length > 0;
@@ -572,7 +574,8 @@ export default function Sidebar({
                                 className={`group w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${
                                   isArabic ? "text-right" : "text-left"
                                 } ${
-                                  isChildActive || pendingHref === childNavigationHref
+                                  isChildActive ||
+                                  pendingHref === childNavigationHref
                                     ? "bg-white/20 text-white font-semibold"
                                     : "text-white/80 hover:bg-white/15"
                                 }`}
@@ -594,7 +597,7 @@ export default function Sidebar({
                                     const badgeClass =
                                       child.key === "admissions-decisions"
                                         ? "bg-amber-100 text-amber-700 border border-amber-200"
-                                        : "bg-blue-100 text-blue-700 border border-blue-200";
+                                        : "bg-primary-100 text-primary-700 border border-primary-200";
 
                                     return (
                                       <span
@@ -619,7 +622,8 @@ export default function Sidebar({
                                   const grandchildHref = isArabic
                                     ? grandchild.href_ar
                                     : grandchild.href_en;
-                                  const grandchildNavigationHref = preserveGradesQuery(grandchildHref);
+                                  const grandchildNavigationHref =
+                                    preserveGradesQuery(grandchildHref);
                                   const isGrandchildActive =
                                     pathname === grandchildHref;
 
@@ -631,7 +635,9 @@ export default function Sidebar({
                                         handleItemClick(grandchild.key)
                                       }
                                       onNavigationStart={() =>
-                                        handleNavigationStart(grandchildNavigationHref)
+                                        handleNavigationStart(
+                                          grandchildNavigationHref,
+                                        )
                                       }
                                       prefetch
                                       className={`group w-full flex items-center gap-2 rounded-[6px] transition-all duration-200 px-3 py-2 ${
@@ -651,7 +657,8 @@ export default function Sidebar({
                                           ? grandchild.label_ar
                                           : grandchild.label_en}
                                       </span>
-                                      {pendingHref === grandchildNavigationHref && (
+                                      {pendingHref ===
+                                        grandchildNavigationHref && (
                                         <Loader2 className="w-3 h-3 animate-spin shrink-0" />
                                       )}
                                     </GuardedLink>
@@ -841,7 +848,8 @@ export default function Sidebar({
                           const grandchildHref = isArabic
                             ? grandchild.href_ar
                             : grandchild.href_en;
-                          const grandchildNavigationHref = preserveGradesQuery(grandchildHref);
+                          const grandchildNavigationHref =
+                            preserveGradesQuery(grandchildHref);
                           const isGrandchildActive =
                             pathname === grandchildHref;
 

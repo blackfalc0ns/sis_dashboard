@@ -87,9 +87,7 @@ export default function CreateAnnouncementPage() {
   const { showSuccess, showError } = useToast();
   const { create, isMutating } = useAnnouncements();
 
-  const handleSubmit = async (
-    values: Parameters<typeof create>[0],
-  ) => {
+  const handleSubmit = async (values: Parameters<typeof create>[0]) => {
     try {
       const announcement = (await create(values)) as Announcement | null;
       showSuccess(t.created);
@@ -107,7 +105,7 @@ export default function CreateAnnouncementPage() {
     <div className="space-y-6">
       <Link
         href={`/${locale}/communication/announcements`}
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-sky-700"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-primary-700"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         {t.back}

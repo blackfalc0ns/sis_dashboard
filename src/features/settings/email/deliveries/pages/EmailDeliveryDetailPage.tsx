@@ -102,7 +102,9 @@ export default function EmailDeliveryDetailPage({
         ]);
         setBatch(batchResult);
         setRecipients(recipientsResult.items);
-        setTotal(recipientsResult.pagination?.total || recipientsResult.items.length);
+        setTotal(
+          recipientsResult.pagination?.total || recipientsResult.items.length,
+        );
         setPage(recipientsResult.pagination?.page || page);
         setLimit(recipientsResult.pagination?.limit || limit);
       } catch (error) {
@@ -196,7 +198,9 @@ export default function EmailDeliveryDetailPage({
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
                 <SummaryItem
                   label={t("table.kind")}
-                  value={kindLabels[batch.kind as EmailDeliveryKind] || batch.kind}
+                  value={
+                    kindLabels[batch.kind as EmailDeliveryKind] || batch.kind
+                  }
                 />
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                   <p className="text-xs text-gray-500">{t("table.status")}</p>
@@ -211,7 +215,10 @@ export default function EmailDeliveryDetailPage({
                   label={t("table.total")}
                   value={String(batch.totalRecipients)}
                 />
-                <SummaryItem label={t("table.sent")} value={String(batch.sentCount)} />
+                <SummaryItem
+                  label={t("table.sent")}
+                  value={String(batch.sentCount)}
+                />
                 <SummaryItem
                   label={t("table.failed")}
                   value={String(batch.failedCount)}
@@ -246,7 +253,9 @@ export default function EmailDeliveryDetailPage({
           </div>
         ) : (
           <div className="mb-6 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
-            <p className="font-semibold text-gray-900">{t("detail.not_found")}</p>
+            <p className="font-semibold text-gray-900">
+              {t("detail.not_found")}
+            </p>
           </div>
         )}
 

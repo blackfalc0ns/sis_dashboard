@@ -107,8 +107,8 @@ export default function CommunicationTabs({
             aria-current={isActive ? "page" : undefined}
             className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
               isActive
-                ? "border-sky-600 bg-sky-600 text-white shadow-sm"
-                : "border-slate-200 bg-white text-slate-600 hover:border-sky-200 hover:text-sky-700"
+                ? "border-primary-600 bg-primary-600 text-white shadow-sm"
+                : "border-slate-200 bg-white text-slate-600 hover:border-primary-200 hover:text-primary-700"
             }`}
           >
             <Icon className="h-4 w-4" aria-hidden="true" />

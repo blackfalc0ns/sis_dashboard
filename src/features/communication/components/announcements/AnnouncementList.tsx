@@ -36,8 +36,10 @@ function titleForAnnouncement(
   locale: string,
   fallback: string,
 ) {
-  const preferred = locale === "ar" ? announcement.titleAr : announcement.titleEn;
-  const secondary = locale === "ar" ? announcement.titleEn : announcement.titleAr;
+  const preferred =
+    locale === "ar" ? announcement.titleAr : announcement.titleEn;
+  const secondary =
+    locale === "ar" ? announcement.titleEn : announcement.titleAr;
   return preferred || secondary || announcement.title || fallback;
 }
 
@@ -67,7 +69,10 @@ function statusTone(status?: string) {
   return "info" as const;
 }
 
-function statusLabel(status: string | undefined, labels: AnnouncementListLabels) {
+function statusLabel(
+  status: string | undefined,
+  labels: AnnouncementListLabels,
+) {
   if (status === "published") return labels.published;
   if (status === "archived") return labels.archived;
   return labels.draft;
@@ -103,7 +108,7 @@ export default function AnnouncementList({
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <Megaphone className="h-4 w-4 text-sky-600" aria-hidden />
+                  <Megaphone className="h-4 w-4 text-primary-600" aria-hidden />
                   <CommunicationStatusChip
                     label={statusLabel(status, labels)}
                     tone={statusTone(status)}
@@ -121,7 +126,9 @@ export default function AnnouncementList({
                   {bodyForAnnouncement(announcement, locale, labels.noBody)}
                 </p>
                 <p className="mt-2 text-xs text-slate-500">
-                  {formatDate(announcement.publishedAt ?? announcement.updatedAt)}
+                  {formatDate(
+                    announcement.publishedAt ?? announcement.updatedAt,
+                  )}
                 </p>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
@@ -142,7 +149,9 @@ export default function AnnouncementList({
                         type="button"
                         size="sm"
                         variant="secondary"
-                        leftIcon={<Pencil className="h-4 w-4" aria-hidden="true" />}
+                        leftIcon={
+                          <Pencil className="h-4 w-4" aria-hidden="true" />
+                        }
                       >
                         {labels.edit}
                       </Button>
@@ -164,7 +173,9 @@ export default function AnnouncementList({
                     size="sm"
                     variant="secondary"
                     disabled={disabled}
-                    leftIcon={<Archive className="h-4 w-4" aria-hidden="true" />}
+                    leftIcon={
+                      <Archive className="h-4 w-4" aria-hidden="true" />
+                    }
                     onClick={() => onArchive(announcement)}
                   >
                     {labels.archive}

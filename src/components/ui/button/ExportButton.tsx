@@ -50,10 +50,7 @@ export default function ExportButton({
           />
 
           {/* Dropdown Menu */}
-          <div
-            className="absolute left-0 mt-2 w-48 rounded-lg shadow-lg border py-1 z-20 bg-white border-border"
-           
-          >
+          <div className="absolute left-0 mt-2 w-48 rounded-lg shadow-lg border py-1 z-20 bg-white border-border">
             <button
               onClick={() => handleExport("excel")}
               className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors"
@@ -61,7 +58,8 @@ export default function ExportButton({
                 color: "var(--text-primary)",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "var(--hover-background)";
+                e.currentTarget.style.backgroundColor =
+                  "var(--hover-background)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = "transparent";
@@ -77,13 +75,14 @@ export default function ExportButton({
                 color: "var(--text-primary)",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "var(--hover-background)";
+                e.currentTarget.style.backgroundColor =
+                  "var(--hover-background)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
-              <FileText className="w-4 h-4 text-blue-600" />
+              <FileText className="w-4 h-4 text-primary-600" />
               <span>{t("csv")}</span>
             </button>
           </div>

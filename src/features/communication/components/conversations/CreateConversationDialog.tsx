@@ -63,16 +63,22 @@ function initialValues(
     title: conversation?.title ?? "",
     type: conversation?.type ?? "group",
     description:
-      typeof conversation?.description === "string" ? conversation.description : "",
+      typeof conversation?.description === "string"
+        ? conversation.description
+        : "",
     avatarFileId:
-      typeof conversation?.avatarFileId === "string" ? conversation.avatarFileId : "",
+      typeof conversation?.avatarFileId === "string"
+        ? conversation.avatarFileId
+        : "",
     academicYearId:
       typeof conversation?.academicYearId === "string"
         ? conversation.academicYearId
         : "",
     termId: typeof conversation?.termId === "string" ? conversation.termId : "",
-    stageId: typeof conversation?.stageId === "string" ? conversation.stageId : "",
-    gradeId: typeof conversation?.gradeId === "string" ? conversation.gradeId : "",
+    stageId:
+      typeof conversation?.stageId === "string" ? conversation.stageId : "",
+    gradeId:
+      typeof conversation?.gradeId === "string" ? conversation.gradeId : "",
     sectionId:
       typeof conversation?.sectionId === "string" ? conversation.sectionId : "",
     classroomId:
@@ -98,7 +104,7 @@ function ToggleRow({ checked, label, onChange }: ToggleRowProps) {
       <span>{label}</span>
       <input
         type="checkbox"
-        className="h-4 w-4 rounded border-slate-300 text-sky-600"
+        className="h-4 w-4 rounded border-slate-300 text-primary-600"
         checked={Boolean(checked)}
         onChange={(event) => onChange(event.target.checked)}
       />
@@ -115,14 +121,15 @@ export default function CreateConversationDialog({
   open,
 }: CreateConversationDialogProps) {
   const initialFormValues = initialValues(conversation);
-  const [values, setValues] = useState<ConversationFormValues>(() =>
-    initialFormValues,
+  const [values, setValues] = useState<ConversationFormValues>(
+    () => initialFormValues,
   );
   const [error, setError] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const isEditing = Boolean(conversation);
-  const showAcademicSelectors = values.type === "group" || values.type === "classroom";
+  const showAcademicSelectors =
+    values.type === "group" || values.type === "classroom";
 
   const typeOptions = useMemo(
     () => [
@@ -151,7 +158,10 @@ export default function CreateConversationDialog({
       try {
         const response = await uploadFile(avatarFile);
         const record = response as Record<string, unknown>;
-        const data = (record.data ?? record.item ?? record) as Record<string, unknown>;
+        const data = (record.data ?? record.item ?? record) as Record<
+          string,
+          unknown
+        >;
         avatarFileId = ((data.id ?? data.fileId) as string) || avatarFileId;
       } catch {
         // Continue without avatar if upload fails
@@ -310,7 +320,8 @@ export default function CreateConversationDialog({
                 termId={values.termId}
                 sectionId={values.sectionId}
                 error={
-                  values.type === "classroom" && error === labels.classroomRequired
+                  values.type === "classroom" &&
+                  error === labels.classroomRequired
                     ? error
                     : undefined
                 }
@@ -331,7 +342,8 @@ export default function CreateConversationDialog({
                 onFileSelect={(file) => {
                   setAvatarFile(file);
                   const reader = new FileReader();
-                  reader.onload = () => setAvatarPreview(reader.result as string);
+                  reader.onload = () =>
+                    setAvatarPreview(reader.result as string);
                   reader.readAsDataURL(file);
                 }}
               />

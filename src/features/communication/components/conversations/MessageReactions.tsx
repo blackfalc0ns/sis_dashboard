@@ -50,13 +50,16 @@ const reactionMeta: Record<
 };
 
 function groupReactions(reactions: MessageReaction[]) {
-  return reactions.reduce<Record<string, MessageReaction[]>>((groups, reaction) => {
-    const key = reaction.type || "like";
-    return {
-      ...groups,
-      [key]: [...(groups[key] ?? []), reaction],
-    };
-  }, {});
+  return reactions.reduce<Record<string, MessageReaction[]>>(
+    (groups, reaction) => {
+      const key = reaction.type || "like";
+      return {
+        ...groups,
+        [key]: [...(groups[key] ?? []), reaction],
+      };
+    },
+    {},
+  );
 }
 
 export default function MessageReactions({
@@ -74,13 +77,15 @@ export default function MessageReactions({
       {entries.map(([type, items]) => {
         const meta = reactionMeta[type as ReactionType] ?? reactionMeta.like;
         const Icon = meta.icon;
-        const isOwn = items.some((reaction) => reaction.userId === currentUserId);
+        const isOwn = items.some(
+          (reaction) => reaction.userId === currentUserId,
+        );
         return (
           <span
             key={type}
             className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] ${
               isOwn
-                ? "border-sky-300 bg-sky-50 text-sky-700"
+                ? "border-primary-300 bg-primary-50 text-primary-700"
                 : "border-slate-200 bg-white text-slate-600"
             }`}
             title={labels[meta.labelKey]}

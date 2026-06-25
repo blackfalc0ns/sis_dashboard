@@ -1406,7 +1406,7 @@ export default function HeroJourneyMissionsPage() {
                   <button
                     type="button"
                     onClick={() => void openEditBadge(badge.id)}
-                    className="cursor-pointer rounded p-1.5 text-blue-600 transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    className="cursor-pointer rounded p-1.5 text-primary-600 transition-colors hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
                     title={t("actions.editBadge")}
                     aria-label={t("actions.editBadge")}
                   >

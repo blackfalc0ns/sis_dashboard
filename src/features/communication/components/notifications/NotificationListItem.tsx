@@ -31,8 +31,10 @@ function titleForNotification(
   locale: string,
   fallback: string,
 ) {
-  const preferred = locale === "ar" ? notification.titleAr : notification.titleEn;
-  const secondary = locale === "ar" ? notification.titleEn : notification.titleAr;
+  const preferred =
+    locale === "ar" ? notification.titleAr : notification.titleEn;
+  const secondary =
+    locale === "ar" ? notification.titleEn : notification.titleAr;
   return preferred || secondary || notification.title || fallback;
 }
 
@@ -72,13 +74,15 @@ export default function NotificationListItem({
       className={`rounded-lg border p-4 shadow-sm ${
         isRead
           ? "border-slate-200 bg-white"
-          : "border-sky-200 bg-sky-50/70"
+          : "border-primary-200 bg-primary-50/70"
       }`}
     >
       <div className="flex gap-3">
         <div
           className={`mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-            isRead ? "bg-slate-100 text-slate-500" : "bg-sky-100 text-sky-700"
+            isRead
+              ? "bg-slate-100 text-slate-500"
+              : "bg-primary-100 text-primary-700"
           }`}
         >
           <BellRing className="h-4 w-4" aria-hidden />

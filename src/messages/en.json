@@ -8109,7 +8109,7 @@
           "title": "Confirm delivery",
           "description": "Create a queued backend batch for the eligible recipients.",
           "preview_required": "Preview recipients before creating a delivery batch.",
-          "manage_required": "Creating a delivery batch requires settings.security.manage.",
+          "manage_required": "Creating a delivery batch requires settings.email.deliveries.manage.",
           "created": "Delivery batch queued.",
           "batch_id": "Batch ID",
           "status": "Status",
@@ -8345,7 +8345,7 @@
           "user_type_required": "Enter a user type.",
           "credential_variables_blocked": "Credential variables are only allowed for credential delivery templates:",
           "preview_required": "Preview recipients before creating a campaign batch.",
-          "manage_required": "Creating a campaign requires settings.security.manage."
+          "manage_required": "Creating a campaign requires settings.email.campaigns.manage."
         },
         "messages": {
           "load_failed": "Failed to load email campaigns.",

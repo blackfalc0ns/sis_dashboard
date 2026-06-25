@@ -58,7 +58,7 @@ export default function AttachmentPreview({
           href={url}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-sky-700"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-primary-700"
           title={labels.download}
           aria-label={labels.download}
         >

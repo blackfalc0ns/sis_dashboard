@@ -2,7 +2,10 @@
 
 import { useState, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { AcademicEvent, getEventsForDate } from "@/features/academics/calendar/services/calendarService";
+import {
+  AcademicEvent,
+  getEventsForDate,
+} from "@/features/academics/calendar/services/calendarService";
 import { Term } from "@/features/academics/academic-structure-tree/services/structureService";
 import { useEventDragDrop } from "@/features/academics/calendar/hooks/useEventDragDrop";
 import DayEventsPopover from "./DayEventsPopover";
@@ -14,7 +17,11 @@ interface MonthCalendarProps {
   onEventClick: (event: AcademicEvent) => void;
   isReadOnly: boolean;
   term: Term;
-  onEventMove: (eventId: string, newStartDate: string, newEndDate: string) => Promise<void>;
+  onEventMove: (
+    eventId: string,
+    newStartDate: string,
+    newEndDate: string,
+  ) => Promise<void>;
   onInvalidDrop?: () => void;
   displayMode: "compact" | "comfortable" | "minimal";
 }
@@ -69,7 +76,11 @@ export default function MonthCalendar({
     const prevMonthDays = firstDayOfWeek;
     const prevMonth = month === 0 ? 11 : month - 1;
     const prevMonthYear = month === 0 ? year - 1 : year;
-    const prevMonthLastDay = new Date(prevMonthYear, prevMonth + 1, 0).getDate();
+    const prevMonthLastDay = new Date(
+      prevMonthYear,
+      prevMonth + 1,
+      0,
+    ).getDate();
 
     // Days from next month
     const totalCells = Math.ceil((prevMonthDays + daysInMonth) / 7) * 7;
@@ -131,14 +142,18 @@ export default function MonthCalendar({
       days.push(
         date.toLocaleDateString(locale === "ar" ? "ar-SA" : "en-US", {
           weekday: "short",
-        })
+        }),
       );
     }
 
     return days;
   }, [locale]);
 
-  const handleDayClick = (date: Date, isCurrentMonth: boolean, event: React.MouseEvent<HTMLDivElement>) => {
+  const handleDayClick = (
+    date: Date,
+    isCurrentMonth: boolean,
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => {
     if (!isCurrentMonth) return;
 
     const dayEvents = getEventsForDate(events, date);
@@ -159,7 +174,10 @@ export default function MonthCalendar({
     }
   };
 
-  const handleMoreClick = (date: Date, event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleMoreClick = (
+    date: Date,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => {
     event.stopPropagation();
     setSelectedDate(date);
     setPopoverAnchor(event.currentTarget);
@@ -234,9 +252,10 @@ export default function MonthCalendar({
           <div className="grid grid-cols-7">
             {calendarDays.map((day, index) => {
               const dayEvents = getEventsForDate(events, day.date);
-              const visibleEvents = displayMode === "minimal" ? [] : dayEvents.slice(0, maxEvents);
+              const visibleEvents =
+                displayMode === "minimal" ? [] : dayEvents.slice(0, maxEvents);
               const moreCount = dayEvents.length - visibleEvents.length;
-              
+
               const dropHandlers = getDropHandlers(day.date);
               const dateStr = formatDateToISO(day.date);
               const isDropTarget = hoverDate === dateStr;
@@ -244,13 +263,15 @@ export default function MonthCalendar({
               return (
                 <div
                   key={index}
-                  onClick={(e) => handleDayClick(day.date, day.isCurrentMonth, e)}
+                  onClick={(e) =>
+                    handleDayClick(day.date, day.isCurrentMonth, e)
+                  }
                   {...(day.isCurrentMonth && !isReadOnly ? dropHandlers : {})}
                   className={`
                     ${cellHeight} p-2 border-b border-r border-gray-200
                     ${day.isCurrentMonth ? "bg-white" : "bg-gray-50"}
-                    ${day.isCurrentMonth && !isReadOnly ? "cursor-pointer hover:bg-blue-50/30" : ""}
-                    ${day.isToday ? "bg-blue-50 ring-2 ring-inset ring-primary" : ""}
+                    ${day.isCurrentMonth && !isReadOnly ? "cursor-pointer hover:bg-primary-50/30" : ""}
+                    ${day.isToday ? "bg-primary-50 ring-2 ring-inset ring-primary" : ""}
                     ${isDropTarget ? "calendar-drop-target" : ""}
                     transition-colors
                   `}
@@ -296,8 +317,8 @@ export default function MonthCalendar({
                             className={`
                               w-full text-left px-2 py-1 rounded text-xs truncate border
                               ${getEventColor(event.type)}
-                              ${!isReadOnly ? 'calendar-event-draggable' : ''}
-                              ${dragState.eventId === event.id ? 'calendar-event-dragging' : ''}
+                              ${!isReadOnly ? "calendar-event-draggable" : ""}
+                              ${dragState.eventId === event.id ? "calendar-event-dragging" : ""}
                               hover:opacity-80 transition-opacity
                             `}
                             title={title}

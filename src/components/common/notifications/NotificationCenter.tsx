@@ -129,7 +129,7 @@ export default function NotificationCenter({
                     <div
                       key={notification.id}
                       className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${
-                        !notification.readAt ? "bg-blue-50/50" : ""
+                        !notification.readAt ? "bg-primary-50/50" : ""
                       }`}
                       onClick={() => markAsRead(notification.id)}
                     >

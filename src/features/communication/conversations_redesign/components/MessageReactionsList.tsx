@@ -29,10 +29,7 @@ import { formatTime } from "@/features/communication/conversations_redesign/util
 const reactionMeta: Record<
   string,
   {
-    labelKey: keyof Pick<
-      ConversationRedesignLabels,
-      "like" | "reactionAdded"
-    >;
+    labelKey: keyof Pick<ConversationRedesignLabels, "like" | "reactionAdded">;
     icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
     color: string;
   }
@@ -108,7 +105,9 @@ export default function MessageReactionsList({
       const response = await getReactions(messageId);
       setReactions(unwrapReactionsList(response));
     } catch {
-      setError(locale === "ar" ? "تعذر تحميل التفاعلات." : "Unable to load reactions.");
+      setError(
+        locale === "ar" ? "تعذر تحميل التفاعلات." : "Unable to load reactions.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -177,7 +176,9 @@ export default function MessageReactionsList({
               key={type}
               active={filterType === type}
               count={items.length}
-              icon={<Icon className={`h-3.5 w-3.5 ${meta.color}`} aria-hidden />}
+              icon={
+                <Icon className={`h-3.5 w-3.5 ${meta.color}`} aria-hidden />
+              }
               label={typeLabel}
               onClick={() => setFilterType(type as ReactionType)}
             />
@@ -207,14 +208,11 @@ export default function MessageReactionsList({
             reaction.type;
 
           return (
-            <li
-              key={reaction.id}
-              className="flex items-center gap-3 py-3"
-            >
+            <li key={reaction.id} className="flex items-center gap-3 py-3">
               <span
                 className={`inline-flex h-9 w-9 items-center justify-center rounded-full border ${
                   isOwn
-                    ? "border-sky-200 bg-sky-50"
+                    ? "border-primary-200 bg-primary-50"
                     : "border-slate-200 bg-slate-50"
                 }`}
               >

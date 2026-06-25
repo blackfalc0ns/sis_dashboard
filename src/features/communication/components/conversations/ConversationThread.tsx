@@ -309,8 +309,10 @@ function conversationTitle(
   fallback: string,
 ) {
   if (!conversation) return fallback;
-  const preferred = locale === "ar" ? conversation.titleAr : conversation.titleEn;
-  const secondary = locale === "ar" ? conversation.titleEn : conversation.titleAr;
+  const preferred =
+    locale === "ar" ? conversation.titleAr : conversation.titleEn;
+  const secondary =
+    locale === "ar" ? conversation.titleEn : conversation.titleAr;
   return preferred || secondary || conversation.title || fallback;
 }
 
@@ -448,10 +450,13 @@ export default function ConversationThread({
     }
   }, [messagesState, user?.id]);
 
-  const isLoading =
-    conversationState.isLoading || messagesState.isLoading;
+  const isLoading = conversationState.isLoading || messagesState.isLoading;
   const firstError = conversationState.error || messagesState.error;
-  const title = conversationTitle(locale, conversationState.conversation, t.untitled);
+  const title = conversationTitle(
+    locale,
+    conversationState.conversation,
+    t.untitled,
+  );
   const backHref = `/${locale}/communication/conversations`;
   const isCommunicationEnabled = policy?.isEnabled !== false;
   const allowReactions = policy?.allowReactions !== false;
@@ -479,7 +484,7 @@ export default function ConversationThread({
     <div className="space-y-6">
       <Link
         href={backHref}
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-sky-700"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-primary-700"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         {t.back}
@@ -524,7 +529,7 @@ export default function ConversationThread({
             onClick={() => handleTabChange(tab.value)}
             className={`border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
               activeTab === tab.value
-                ? "border-sky-600 text-sky-700"
+                ? "border-primary-600 text-primary-700"
                 : "border-transparent text-slate-500 hover:text-slate-900"
             }`}
           >
@@ -618,7 +623,10 @@ export default function ConversationThread({
                   <span>{t.communicationDisabled}</span>
                 </div>
               ) : null}
-              <TypingIndicator users={typingState.typingUsers} label={t.typing} />
+              <TypingIndicator
+                users={typingState.typingUsers}
+                label={t.typing}
+              />
               <MessageReadReceipts
                 readSummary={messagesState.readSummary}
                 labels={{ read: t.read, unread: t.unread }}
@@ -634,7 +642,9 @@ export default function ConversationThread({
                 }
                 onTyping={typingState.emitTyping}
                 onStopTyping={typingState.stopOwnTyping}
-                onSend={(body) => { void messagesState.send(body); }}
+                onSend={(body) => {
+                  void messagesState.send(body);
+                }}
               />
             </div>
           </section>

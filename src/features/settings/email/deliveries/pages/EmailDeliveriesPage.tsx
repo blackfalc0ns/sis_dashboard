@@ -39,7 +39,9 @@ export default function EmailDeliveriesPage() {
   const [pageError, setPageError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [cancellingBatchId, setCancellingBatchId] = useState<string | null>(null);
+  const [cancellingBatchId, setCancellingBatchId] = useState<string | null>(
+    null,
+  );
   const [showFilters, setShowFilters] = useState(false);
 
   const kindLabels = useMemo(
@@ -178,7 +180,9 @@ export default function EmailDeliveriesPage() {
                 <Select
                   label={t("filters.kind")}
                   value={kind}
-                  onChange={(value) => setKind(value as EmailDeliveryKind | "all")}
+                  onChange={(value) =>
+                    setKind(value as EmailDeliveryKind | "all")
+                  }
                   options={[
                     { value: "all", label: t("filters.all") },
                     {

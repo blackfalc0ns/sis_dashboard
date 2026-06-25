@@ -14,7 +14,7 @@ export interface CommunicationStatusChipProps {
 
 const toneClasses: Record<CommunicationStatusTone, string> = {
   default: "bg-slate-100 text-slate-700",
-  info: "bg-sky-100 text-sky-700",
+  info: "bg-primary-100 text-primary-700",
   success: "bg-emerald-100 text-emerald-700",
   warning: "bg-amber-100 text-amber-800",
   error: "bg-rose-100 text-rose-700",
@@ -27,9 +27,7 @@ export default function CommunicationStatusChip({
   className = "",
 }: CommunicationStatusChipProps) {
   const sizeClass =
-    size === "medium"
-      ? "px-3 py-1 text-sm"
-      : "px-2 py-0.5 text-xs";
+    size === "medium" ? "px-3 py-1 text-sm" : "px-2 py-0.5 text-xs";
 
   return (
     <span

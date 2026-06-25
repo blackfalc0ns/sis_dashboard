@@ -130,7 +130,7 @@ export default function MessageBubble({
       <div
         className={`max-w-[min(720px,85%)] rounded-2xl px-4 py-3 shadow-sm ${
           isOwn
-            ? "rounded-br-sm bg-sky-600 text-white"
+            ? "rounded-br-sm bg-primary-600 text-white"
             : "rounded-bl-sm border border-slate-200 bg-white text-slate-900"
         }`}
       >
@@ -142,7 +142,10 @@ export default function MessageBubble({
 
         {isEditing ? (
           <div className="min-w-72 space-y-3">
-            <Input value={body} onChange={(event) => setBody(event.target.value)} />
+            <Input
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+            />
             <div className="flex justify-end gap-2">
               <Button
                 type="button"
@@ -158,7 +161,9 @@ export default function MessageBubble({
             </div>
           </div>
         ) : (
-          <p className={`whitespace-pre-wrap text-sm leading-6 ${isDeleted ? "italic opacity-70" : ""}`}>
+          <p
+            className={`whitespace-pre-wrap text-sm leading-6 ${isDeleted ? "italic opacity-70" : ""}`}
+          >
             {isDeleted ? labels.deleted : message.body}
           </p>
         )}
@@ -171,7 +176,9 @@ export default function MessageBubble({
               download: labels.download,
               removeAttachment: labels.removeAttachment,
             }}
-            onRemove={(attachmentId) => onDeleteAttachment?.(message.id, attachmentId)}
+            onRemove={(attachmentId) =>
+              onDeleteAttachment?.(message.id, attachmentId)
+            }
           />
         ) : null}
 
@@ -194,7 +201,9 @@ export default function MessageBubble({
 
         <div
           className={`mt-2 flex items-center gap-2 text-[11px] ${
-            isOwn ? "justify-end text-sky-100" : "justify-start text-slate-500"
+            isOwn
+              ? "justify-end text-primary-100"
+              : "justify-start text-slate-500"
           }`}
         >
           <span>{formatDate(message.createdAt)}</span>
@@ -206,7 +215,7 @@ export default function MessageBubble({
             <CommunicationStatusChip label={labels.failed} tone="error" />
           ) : null}
           {isOwn && !isDeleted && message.deliveryStatus !== "pending" ? (
-            <span className={isOwn ? "text-sky-100" : ""}>
+            <span className={isOwn ? "text-primary-100" : ""}>
               <MessageActionsMenu
                 allowDelete={allowMessageDelete}
                 allowEdit={allowMessageEdit}

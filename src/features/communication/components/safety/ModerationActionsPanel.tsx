@@ -45,15 +45,20 @@ function senderName(message: Message, fallback: string) {
   );
 }
 
-function statusLabel(message: Message | null | undefined, labels: ModerationActionsPanelLabels) {
+function statusLabel(
+  message: Message | null | undefined,
+  labels: ModerationActionsPanelLabels,
+) {
   if (message?.status === "hidden") return labels.hidden;
-  if (message?.status === "deleted" || message?.deletedAt) return labels.deleted;
+  if (message?.status === "deleted" || message?.deletedAt)
+    return labels.deleted;
   return labels.visible;
 }
 
 function statusTone(message?: Message | null) {
   if (message?.status === "hidden") return "warning" as const;
-  if (message?.status === "deleted" || message?.deletedAt) return "error" as const;
+  if (message?.status === "deleted" || message?.deletedAt)
+    return "error" as const;
   return "success" as const;
 }
 
@@ -70,8 +75,10 @@ export default function ModerationActionsPanel({
   return (
     <section className="space-y-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-center gap-2">
-        <ShieldCheck className="h-5 w-5 text-sky-600" aria-hidden />
-        <h2 className="text-base font-semibold text-slate-900">{labels.title}</h2>
+        <ShieldCheck className="h-5 w-5 text-primary-600" aria-hidden />
+        <h2 className="text-base font-semibold text-slate-900">
+          {labels.title}
+        </h2>
       </div>
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
         <ConversationSearchSelect
@@ -86,14 +93,12 @@ export default function ModerationActionsPanel({
           label={labels.messageId}
           conversationId={conversationId}
           value={messageId}
-          helperText={!conversationId ? labels.selectConversationFirst : undefined}
+          helperText={
+            !conversationId ? labels.selectConversationFirst : undefined
+          }
           onChange={onMessageIdChange}
         />
-        <Button
-          type="button"
-          loading={isLoading}
-          onClick={() => void onLoad()}
-        >
+        <Button type="button" loading={isLoading} onClick={() => void onLoad()}>
           {labels.load}
         </Button>
       </div>
@@ -105,7 +110,9 @@ export default function ModerationActionsPanel({
       ) : (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-slate-500">{labels.currentStatus}</span>
+            <span className="text-sm text-slate-500">
+              {labels.currentStatus}
+            </span>
             <CommunicationStatusChip
               label={statusLabel(message, labels)}
               tone={statusTone(message)}

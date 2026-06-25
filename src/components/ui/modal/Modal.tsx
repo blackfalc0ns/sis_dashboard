@@ -4,7 +4,10 @@ import { useEffect, useMemo, useRef } from "react";
 import { X, Info } from "lucide-react";
 import { useLocale } from "next-intl";
 import { createFocusTrap } from "@/lib/accessibility/focusTrap";
-import { generateAriaId, createAriaModal } from "@/lib/accessibility/ariaHelpers";
+import {
+  generateAriaId,
+  createAriaModal,
+} from "@/lib/accessibility/ariaHelpers";
 
 export interface ModalProps {
   isOpen: boolean;
@@ -41,10 +44,7 @@ export default function Modal({
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const titleId = useMemo(() => generateAriaId("modal-title"), []);
-  const descriptionId = useMemo(
-    () => generateAriaId("modal-description"),
-    [],
-  );
+  const descriptionId = useMemo(() => generateAriaId("modal-description"), []);
   const locale = useLocale();
   const isRTL = locale === "ar";
 
@@ -64,7 +64,10 @@ export default function Modal({
     return () => {
       cleanup();
       // Restore focus to the element that opened the modal
-      if (previousFocusRef.current && typeof previousFocusRef.current.focus === 'function') {
+      if (
+        previousFocusRef.current &&
+        typeof previousFocusRef.current.focus === "function"
+      ) {
         previousFocusRef.current.focus();
       }
     };
@@ -120,23 +123,25 @@ export default function Modal({
   const displayIcon = icon || <Info className="w-6 h-6" />;
 
   // Icon background color based on variant
-  const iconBgColor = variant === "danger" 
-    ? "bg-red-100" 
-    : variant === "confirm"
-    ? "bg-blue-100"
-    : "bg-[var(--color-primary-100)]";
-  
-  const iconColor = variant === "danger"
-    ? "text-red-600"
-    : variant === "confirm"
-    ? "text-blue-600"
-    : "text-[var(--primary-color)]";
+  const iconBgColor =
+    variant === "danger"
+      ? "bg-red-100"
+      : variant === "confirm"
+        ? "bg-primary-100"
+        : "bg-[var(--color-primary-100)]";
+
+  const iconColor =
+    variant === "danger"
+      ? "text-red-600"
+      : variant === "confirm"
+        ? "text-primary-600"
+        : "text-[var(--primary-color)]";
 
   // Create ARIA props
   const ariaProps = createAriaModal(
     title ? titleId : undefined,
     description ? descriptionId : undefined,
-    variant === "danger"
+    variant === "danger",
   );
 
   return (
@@ -154,9 +159,9 @@ export default function Modal({
           max-h-[calc(100vh-2rem)]
           flex flex-col overflow-hidden
         `}
-        style={{ 
+        style={{
           animation: "modalFadeIn 0.2s ease-out",
-          fontFamily: "var(--font-somar), sans-serif"
+          fontFamily: "var(--font-somar), sans-serif",
         }}
         {...ariaProps}
       >
@@ -166,7 +171,9 @@ export default function Modal({
             <div className="flex items-start gap-4">
               {/* Icon Circle */}
               {shouldShowIcon && (
-                <div className={`shrink-0 w-12 h-12 rounded-full ${iconBgColor} ${iconColor} flex items-center justify-center`}>
+                <div
+                  className={`shrink-0 w-12 h-12 rounded-full ${iconBgColor} ${iconColor} flex items-center justify-center`}
+                >
                   {displayIcon}
                 </div>
               )}
@@ -174,12 +181,18 @@ export default function Modal({
               {/* Title and Description */}
               <div className="flex-1 min-w-0">
                 {title && (
-                  <h2 id={titleId} className="text-xl font-bold text-gray-900 mb-1">
+                  <h2
+                    id={titleId}
+                    className="text-xl font-bold text-gray-900 mb-1"
+                  >
                     {title}
                   </h2>
                 )}
                 {description && (
-                  <p id={descriptionId} className="text-sm text-gray-600 leading-relaxed">
+                  <p
+                    id={descriptionId}
+                    className="text-sm text-gray-600 leading-relaxed"
+                  >
                     {description}
                   </p>
                 )}
@@ -195,7 +208,8 @@ export default function Modal({
                   style={{
                     position: title || shouldShowIcon ? "relative" : "absolute",
                     top: title || shouldShowIcon ? "0" : "1rem",
-                    [isRTL ? "left" : "right"]: title || shouldShowIcon ? "0" : "1rem",
+                    [isRTL ? "left" : "right"]:
+                      title || shouldShowIcon ? "0" : "1rem",
                   }}
                   aria-label={locale === "ar" ? "إغلاق" : "Close modal"}
                   type="button"
@@ -214,7 +228,7 @@ export default function Modal({
 
         {/* Footer */}
         {footer && (
-          <div 
+          <div
             className={`shrink-0 flex items-center gap-3 px-6 py-4 border-t border-gray-100 bg-white ${
               isRTL ? "justify-start" : "justify-end"
             }`}

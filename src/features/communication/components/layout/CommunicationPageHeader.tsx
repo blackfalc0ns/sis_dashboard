@@ -27,11 +27,14 @@ export default function CommunicationPageHeader({
         >
           {breadcrumbs.map((item, index) =>
             item.href ? (
-              <span key={`${item.href}-${index}`} className="flex items-center gap-2">
+              <span
+                key={`${item.href}-${index}`}
+                className="flex items-center gap-2"
+              >
                 {index > 0 ? <span className="text-slate-300">/</span> : null}
                 <a
                   href={item.href}
-                  className="font-medium text-slate-500 transition-colors hover:text-sky-700"
+                  className="font-medium text-slate-500 transition-colors hover:text-primary-700"
                 >
                   {item.label}
                 </a>

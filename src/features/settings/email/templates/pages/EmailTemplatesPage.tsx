@@ -103,8 +103,9 @@ export default function EmailTemplatesPage() {
   const [templatesByKey, setTemplatesByKey] = useState<
     Map<EmailTemplateKey, EmailTemplate>
   >(new Map());
-  const [selectedKey, setSelectedKey] =
-    useState<EmailTemplateKey>("ACCOUNT_CREDENTIALS");
+  const [selectedKey, setSelectedKey] = useState<EmailTemplateKey>(
+    "ACCOUNT_CREDENTIALS",
+  );
   const [values, setValues] = useState<TemplateEditorValues | null>(null);
   const [errors, setErrors] = useState<TemplateEditorErrors>({});
   const [pageError, setPageError] = useState<string | null>(null);
@@ -140,19 +141,16 @@ export default function EmailTemplatesPage() {
     [t],
   );
 
-  const hydrateTemplate = useCallback(
-    async (key: EmailTemplateKey) => {
-      const template = await fetchEmailTemplate(key);
-      setTemplatesByKey((current) => {
-        const next = new Map(current);
-        next.set(key, template);
-        return next;
-      });
-      setValues(toTemplateEditorValues(template));
-      setErrors({});
-    },
-    [],
-  );
+  const hydrateTemplate = useCallback(async (key: EmailTemplateKey) => {
+    const template = await fetchEmailTemplate(key);
+    setTemplatesByKey((current) => {
+      const next = new Map(current);
+      next.set(key, template);
+      return next;
+    });
+    setValues(toTemplateEditorValues(template));
+    setErrors({});
+  }, []);
 
   const hydrate = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
@@ -165,7 +163,9 @@ export default function EmailTemplatesPage() {
       try {
         const response = await fetchEmailTemplates();
         const nextMap = new Map<EmailTemplateKey, EmailTemplate>();
-        response.items.forEach((template) => nextMap.set(template.key, template));
+        response.items.forEach((template) =>
+          nextMap.set(template.key, template),
+        );
         setTemplatesByKey(nextMap);
         const nextTemplate =
           nextMap.get(selectedKey) ||
@@ -216,7 +216,9 @@ export default function EmailTemplatesPage() {
     field: K,
     value: TemplateEditorValues[K],
   ) => {
-    setValues((current) => (current ? { ...current, [field]: value } : current));
+    setValues((current) =>
+      current ? { ...current, [field]: value } : current,
+    );
     setErrors((current) => ({ ...current, [field]: undefined }));
   };
 
@@ -295,7 +297,9 @@ export default function EmailTemplatesPage() {
       setPreview(result);
       setIsPreviewOpen(true);
     } catch (error) {
-      showError(isApiError(error) ? error.message : t("messages.preview_failed"));
+      showError(
+        isApiError(error) ? error.message : t("messages.preview_failed"),
+      );
     } finally {
       setIsPreviewing(false);
     }
