@@ -15,7 +15,7 @@ The following functions will be implemented in `src/features/behavior/shared/uti
   - `validateCategoryName(nameEn?: string, nameAr?: string): boolean`: Checks that at least one of `nameEn` or `nameAr` is present and contains non-whitespace characters.
 - **Category Points Validation:**
   - `validateCategoryPoints(type: BehaviorType, points: number | string): boolean`:
-    - Points must be an integer (accept numeric strings, reject decimals/NaN).
+    - Points must be an integer (accept numeric strings, reject decimals/NaN, reject empty strings `""`).
     - For `positive` behavior, points must be `>= 0`.
     - For `negative` behavior, points must be `<= 0`.
 
@@ -24,7 +24,7 @@ The following functions will be implemented in `src/features/behavior/shared/uti
   - `validateRecordContent(record: { titleEn?: string; titleAr?: string; noteEn?: string; noteAr?: string }): boolean`: Ensures at least one of `titleEn`, `titleAr`, `noteEn`, or `noteAr` contains non-whitespace characters.
 - **Record Points Validation:**
   - `validateRecordPoints(type: BehaviorType, points: number | string): boolean`:
-    - Points must be an integer (accept numeric strings, reject decimals/NaN).
+    - Points must be an integer (accept numeric strings, reject decimals/NaN, reject empty strings `""`).
     - For `positive` behavior, points must be `>= 0`.
     - For `negative` behavior, points must be `<= 0`.
 - **Record Category Compatibility:**
@@ -38,9 +38,9 @@ The following functions will be implemented in `src/features/behavior/shared/uti
 - **Review Authorization:**
   - `canApproveOrRejectBehaviorRecord(record: { status: BehaviorStatus }): boolean`: Only returns `true` if record status is `submitted`.
 - **Review Points Override Validation:**
-  - `validatePointsOverride(type: BehaviorType, points: number | string): boolean`: Checks that the overridden points are an integer (accept numeric strings, reject decimals/NaN) and sign-compatible with the record type.
+  - `validatePointsOverride(type: BehaviorType, points: number | string): boolean`: Checks that the overridden points are an integer (accept numeric strings, reject decimals/NaN, reject empty strings `""`) and sign-compatible with the record type.
 - **Review Approval Ledger Creation:**
-  - `shouldCreatePointLedger(status: BehaviorStatus): boolean`: Returns `true` only for approved status (which creates a point ledger). Returns `false` for rejected status (which does not create a point ledger).
+  - `shouldCreatePointLedger(status: BehaviorStatus): boolean`: Returns `true` only for approved status (which creates a point ledger, e.g. `shouldCreatePointLedger("approved") === true`). Returns `false` for rejected status (which does not create a point ledger, e.g. `shouldCreatePointLedger("rejected") === false`).
 
 ---
 
@@ -55,7 +55,7 @@ The following functions will be implemented in `src/features/behavior/shared/uti
 - **In-Use Backend Fallback:** If category usage is not known beforehand, allow submitting changes and handle backend `behavior.category.in_use` error, mapping it to `errors.categoryInUse`.
 
 ### Category Delete (`BehaviorCategoriesPage.tsx`)
-- **API Existance Check:** If `deleteBehaviorCategory` does not exist in `behaviorApiService.ts`, add it.
+- **API Existence Check:** If `deleteBehaviorCategory` does not exist in `behaviorApiService.ts`, add it.
 - **Delete Button:** Display a Delete button for each category.
 - **Delete Execution:** Directly trigger the DELETE API endpoint and handle backend conflicts. If the backend returns `behavior.category.in_use`, display toast error `errors.categoryInUse`. Do not rely solely on frontend pre-checks unless usage counts are explicitly provided.
 
@@ -67,7 +67,7 @@ The following functions will be implemented in `src/features/behavior/shared/uti
   - If a category is selected:
     - Validate the category is active.
     - Validate category type matches record type.
-    - Default the type, severity, and points from the category if they are missing on the record.
+    - Default the type, severity, and points from the selected category's type, defaultSeverity, and defaultPoints if they are missing on the record.
   - Check that `occurredAt` is inside the selected term range when term data is available.
 - **Enrollment Matching:** Use frontend enrollment matching only as helper/default logic. The backend remains the source of truth for scope validation.
 - **Status Edit Guard:** Block editing if record status is not `draft`.

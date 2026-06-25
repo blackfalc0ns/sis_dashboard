@@ -26,8 +26,9 @@
   - `normalizeCategoryCode(code: string): string`
   - `validateCategoryCode(code: string): boolean`
   - `validateCategoryName(nameEn?: string, nameAr?: string): boolean`
-  - `validatePoints(type: BehaviorType, points: number | string): boolean`
+  - `validateCategoryPoints(type: BehaviorType, points: number | string): boolean`
   - `validateRecordContent(record: { titleEn?: string; titleAr?: string; noteEn?: string; noteAr?: string }): boolean`
+  - `validateRecordPoints(type: BehaviorType, points: number | string): boolean`
   - `validateRecordCategory(category: { isActive: boolean; type: BehaviorType }, recordType: BehaviorType): boolean`
   - `validateRecordTermDate(occurredAt: string | Date, termRange?: { startDate: string; endDate: string }): boolean`
   - `validatePointsOverride(type: BehaviorType, points: number | string): boolean`
@@ -36,20 +37,28 @@
 
 - [ ] **Step 1: Write the failing tests**
   Add test blocks to `src/features/behavior/shared/utils/__tests__/behaviorUiRules.test.ts` covering:
-  - normalization (collapsing repeated underscores, converting hyphens to underscores, stripping leading/trailing underscores, uppercasing)
-  - name validation (nameEn or nameAr)
-  - points sign and integer validation (accept numeric strings, reject decimals/NaN)
-  - record category active and type compatibility
-  - occurredAt inside term bounds (inclusive of startDate and endDate, returns false on invalid date parsing)
-  - points override check
-  - date range validator.
+  - normalization: collapsing repeated underscores, converting hyphens to underscores, stripping leading/trailing underscores, uppercasing, and replacing all non-alphanumeric characters (e.g. `"late/arrival!!!"` => `"LATE_ARRIVAL"`, `"bad.code name"` => `"BAD_CODE_NAME"`).
+  - name validation: nameEn or nameAr required.
+  - points sign and integer validation: accept numeric strings, reject decimals/NaN, reject empty strings (`""`) as invalid (using `validateCategoryPoints`, `validateRecordPoints`, and `validatePointsOverride`).
+  - record category compatibility: active and type compatibility.
+  - occurredAt term date range validation: inclusive of `startDate` and `endDate`, returns `false` on invalid date parsing.
+  - points override check: integer and sign-compatible, rejects decimals/NaN and empty strings.
+  - date range validator: From date not after To date.
+  - `shouldCreatePointLedger` review status checks: `shouldCreatePointLedger("approved") === true`, `shouldCreatePointLedger("rejected") === false`.
 
 - [ ] **Step 2: Run tests to verify they fail**
   Run: `npm run test:run -- src/features/behavior/shared/utils/__tests__/behaviorUiRules.test.ts`
   Expected: FAIL with undefined function errors or missing test coverage.
 
 - [ ] **Step 3: Write minimal implementation in behaviorUiRules.ts**
-  Add the validation and normalization functions to `src/features/behavior/shared/utils/behaviorUiRules.ts`. Ensure `points` validations parse string inputs, use `Number.isInteger(num)` (rejecting decimals/NaN), check date parsing, and type compatibility.
+  Add the validation and normalization functions to `src/features/behavior/shared/utils/behaviorUiRules.ts`. Ensure points validation trimes string inputs first and rejects empty strings `""` (do not treat as valid 0):
+  ```typescript
+  const raw = typeof points === "string" ? points.trim() : points;
+  if (raw === "") return false;
+  const num = Number(raw);
+  if (Number.isNaN(num) || !Number.isInteger(num)) return false;
+  ```
+  Implement the date parsing checks (returning false on invalid dates) and make term date validation range checking inclusive of startDate and endDate.
 
 - [ ] **Step 4: Run tests to verify they pass**
   Run: `npm run test:run -- src/features/behavior/shared/utils/__tests__/behaviorUiRules.test.ts`
@@ -76,7 +85,7 @@
   In `CategoryModal` within `BehaviorActionModals.tsx`, allow code editing on create. On edit, disable code only when category usage is known and category is in use, unless the product decision is to always lock code after creation.
 
 - [ ] **Step 2: Implement validation & normalization on Save**
-  In `handleSave` of `CategoryModal`, call `normalizeCategoryCode(form.code)` first. Then call `validateCategoryCode`, `validateCategoryName`, and `validatePoints` before calling `createBehaviorCategory` or `updateBehaviorCategory`. Show appropriate validation toasts.
+  In `handleSave` of `CategoryModal`, call `normalizeCategoryCode(form.code)` first. Then call `validateCategoryCode`, `validateCategoryName`, and `validateCategoryPoints` before calling `createBehaviorCategory` or `updateBehaviorCategory`. Show appropriate validation toasts.
 
 - [ ] **Step 3: Enforce edit controls if category in-use is known**
   Disable both `code` and `type` inputs in edit mode if the category usage is known and the category is in use.
@@ -141,7 +150,7 @@
   In `RecordModal` of `BehaviorActionModals.tsx`, validate:
   - at least one title/note is present.
   - points are integer and compatible with type.
-  - category is active and compatible. If values are missing on the record form, default them from category metadata.
+  - category is active and compatible. If values are missing on the record form, default them from the selected category's `type`, `defaultSeverity`, and `defaultPoints`.
   - occurredAt term limit check.
   Only allow editing if record status is `draft`.
   In `ApproveModal`, validate that `pointsOverride` is an integer and compatible with type before calling `approveBehaviorRecord`.
@@ -158,4 +167,37 @@
   ```bash
   git add src/features/behavior/shared/components/BehaviorActionModals.tsx src/features/behavior/shared/components/BehaviorFiltersBar.tsx src/features/behavior/shared/components/BehaviorTable.tsx src/features/behavior/shared/components/BehaviorDetailDrawer.tsx
   git commit -m "feat(behavior): enforce record save constraints, hide edit actions for non-draft, and date filter validations"
+  ```
+
+---
+
+### Task 5: Add Translation Keys for Validation and Errors
+
+**Files:**
+- Modify: `src/messages/en.json`
+- Modify: `src/messages/ar.json`
+
+- [ ] **Step 1: Add missing validation/error keys to en.json**
+  Add keys under `"behavior"."errors"` in `src/messages/en.json`:
+  - `"invalidCategoryCode"`: `"Category code is required, must contain only uppercase alphanumeric characters and underscores, and be under 100 characters."`
+  - `"categoryNameRequired"`: `"At least English Name or Arabic Name is required."`
+  - `"invalidPoints"`: `"Points must be a valid integer and sign-compatible with the category type."`
+  - `"recordContentRequired"`: `"At least one of Title (English/Arabic) or Note (English/Arabic) is required."`
+  - `"invalidDateRange"`: `"From date must not be after To date."`
+  - `"occurredAtOutsideTerm"`: `"The record date must be inside the selected term range."`
+
+- [ ] **Step 2: Add Arabic translation keys to ar.json**
+  Add keys under `"behavior"."errors"` in `src/messages/ar.json`:
+  - `"invalidCategoryCode"`: `"رمز الفئة مطلوب، ويجب أن يحتوي فقط على أحرف أرقام شرطات سفلية، وأقل من 100 حرف."`
+  - `"categoryNameRequired"`: `"الاسم باللغة الإنجليزية أو الاسم باللغة العربية مطلوب على الأقل."`
+  - `"invalidPoints"`: `"يجب أن تكون النقاط عدداً صحيحاً ومتوافقة مع إشارة نوع الفئة."`
+  - `"recordContentRequired"`: `"يجب إدخال عنوان واحد أو ملاحظة واحدة على الأقل بالإنجليزية أو العربية."`
+  - `"invalidDateRange"`: `"يجب ألا يكون تاريخ البدء بعد تاريخ الانتهاء."`
+  - `"occurredAtOutsideTerm"`: `"يجب أن يكون تاريخ السجل ضمن نطاق الفصل الدراسي المحدد."`
+
+- [ ] **Step 3: Commit**
+  Run:
+  ```bash
+  git add src/messages/en.json src/messages/ar.json
+  git commit -m "feat(behavior): add missing validation and error translation keys"
   ```
