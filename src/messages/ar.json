@@ -10412,7 +10412,8 @@
       "approve": "اعتماد",
       "reject": "رفض",
       "edit": "تعديل",
-      "view": "عرض"
+      "view": "عرض",
+      "delete": "حذف"
     },
     "states": {
       "loading": {
@@ -10433,6 +10434,7 @@
     "modal": {
       "createCategory": "فئة جديدة",
       "editCategory": "تعديل الفئة",
+      "deleteCategory": "حذف الفئة",
       "createRecord": "سجل جديد",
       "editRecord": "تعديل السجل",
       "submitRecord": "تقديم السجل",
@@ -10446,11 +10448,13 @@
       "cancel": "إلغاء",
       "save": "حفظ",
       "confirmSubmit": "هل أنت متأكد من تقديم هذا السجل للمراجعة؟",
-      "confirmCancelRecord": "هل أنت متأكد من إلغاء هذا السجل؟"
+      "confirmCancelRecord": "هل أنت متأكد من إلغاء هذا السجل؟",
+      "confirmDeleteCategory": "هل أنت متأكد من حذف هذه الفئة؟"
     },
     "messages": {
       "categoryCreated": "تم إنشاء الفئة بنجاح",
       "categoryUpdated": "تم تحديث الفئة بنجاح",
+      "categoryDeleted": "تم حذف الفئة بنجاح",
       "recordCreated": "تم إنشاء السجل بنجاح",
       "recordUpdated": "تم تحديث السجل بنجاح",
       "recordSubmitted": "تم تقديم السجل للمراجعة",

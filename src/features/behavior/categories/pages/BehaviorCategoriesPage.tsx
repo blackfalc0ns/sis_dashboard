@@ -7,8 +7,12 @@ import Button from "@/components/ui/button/Button";
 import DataTable from "@/components/ui/data-table/DataTable";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useBehaviorYearTermContext } from "@/features/behavior/shared/hooks/useBehaviorYearTermContext";
-import { listBehaviorCategories } from "@/features/behavior/services/behaviorApiService";
+import {
+  listBehaviorCategories,
+  deleteBehaviorCategory,
+} from "@/features/behavior/services/behaviorApiService";
 import { behaviorUiError } from "@/features/behavior/services/behaviorErrors";
+import Modal from "@/components/ui/modal/Modal";
 import BehaviorActionModals, {
   type BehaviorModalMode,
   type BehaviorModalTarget,
@@ -26,7 +30,7 @@ function StatePanel({ title }: { title: string }) {
 export default function BehaviorCategoriesPage() {
   const t = useTranslations("behavior");
   const { isReadOnly } = useBehaviorYearTermContext();
-  const { showError } = useToast();
+  const { showSuccess, showError } = useToast();
 
   const [categories, setCategories] = useState<BehaviorCategory[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,6 +38,9 @@ export default function BehaviorCategoriesPage() {
 
   const [modalMode, setModalMode] = useState<BehaviorModalMode | null>(null);
   const [modalTarget, setModalTarget] = useState<BehaviorModalTarget>({});
+
+  const [deleteTarget, setDeleteTarget] = useState<BehaviorCategory | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadCategories = useCallback(async () => {
     const filters: BehaviorCategoryListFilters = {};
@@ -51,6 +58,35 @@ export default function BehaviorCategoriesPage() {
     }
   }, [showError, t]);
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await deleteBehaviorCategory(deleteTarget.id);
+      showSuccess(t("messages.categoryDeleted"));
+      setDeleteTarget(null);
+      void loadCategories();
+    } catch (error) {
+      let code = "";
+      if (error && typeof error === "object" && error !== null) {
+        const errObj = error as Record<string, unknown>;
+        const response = errObj.response as Record<string, unknown> | undefined;
+        const responseData = response?.data as Record<string, unknown> | undefined;
+        const responseDataError = responseData?.error as Record<string, unknown> | undefined;
+        
+        code = String(errObj.code || responseData?.code || responseDataError?.code || "");
+      }
+      if (code === "behavior.category.in_use") {
+        showError(t("errors.categoryInUse"));
+      } else {
+        const uiError = behaviorUiError(error, t("messages.loadError"), t);
+        showError(uiError.message);
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   useEffect(() => {
     void loadCategories();
   }, [loadCategories]);
@@ -63,7 +99,7 @@ export default function BehaviorCategoriesPage() {
       key: "code",
       label: t("category.code"),
       searchable: true,
-      render: (_: unknown, row: any) => (
+      render: (_: unknown, row: BehaviorCategory) => (
         <span className="font-mono text-xs" style={{ color: "var(--text-muted)" }}>
           {row.code}
         </span>
@@ -73,7 +109,7 @@ export default function BehaviorCategoriesPage() {
       key: "nameEn",
       label: t("category.nameEn"),
       searchable: true,
-      render: (_: unknown, row: any) => (
+      render: (_: unknown, row: BehaviorCategory) => (
         <span style={{ color: "var(--text-primary)" }}>{row.nameEn}</span>
       ),
     },
@@ -81,7 +117,7 @@ export default function BehaviorCategoriesPage() {
       key: "nameAr",
       label: t("category.nameAr"),
       searchable: true,
-      render: (_: unknown, row: any) => (
+      render: (_: unknown, row: BehaviorCategory) => (
         <div dir="rtl" className="text-right" style={{ color: "var(--text-primary)" }}>
           {row.nameAr}
         </div>
@@ -90,7 +126,7 @@ export default function BehaviorCategoriesPage() {
     {
       key: "type",
       label: t("category.type"),
-      render: (_: unknown, row: any) => (
+      render: (_: unknown, row: BehaviorCategory) => (
         <span
           className="inline-flex px-2 py-0.5 text-xs rounded-full border font-medium"
           style={
@@ -106,7 +142,7 @@ export default function BehaviorCategoriesPage() {
     {
       key: "severity",
       label: t("category.severity"),
-      render: (_: unknown, row: any) => (
+      render: (_: unknown, row: BehaviorCategory) => (
         <span className="capitalize" style={{ color: "var(--text-primary)" }}>
           {row.defaultSeverity}
         </span>
@@ -116,7 +152,7 @@ export default function BehaviorCategoriesPage() {
       key: "points",
       label: t("category.points"),
       sortable: true,
-      render: (_: unknown, row: any) => (
+      render: (_: unknown, row: BehaviorCategory) => (
         <span className="font-semibold" style={{ color: row.defaultPoints >= 0 ? "#16a34a" : "#dc2626" }}>
           {row.defaultPoints > 0 ? `+${row.defaultPoints}` : row.defaultPoints}
         </span>
@@ -125,7 +161,7 @@ export default function BehaviorCategoriesPage() {
     {
       key: "active",
       label: t("category.active"),
-      render: (_: unknown, row: any) => (
+      render: (_: unknown, row: BehaviorCategory) => (
         <span className={`text-xs font-medium ${row.isActive ? "text-green-700" : "text-red-700"}`}>
           {row.isActive ? "✓" : "✗"}
         </span>
@@ -135,20 +171,31 @@ export default function BehaviorCategoriesPage() {
       key: "actions",
       label: t("category.actions"),
       sortable: false,
-      render: (_: unknown, row: any) => (
-        <div className="flex items-center justify-end">
+      render: (_: unknown, row: BehaviorCategory) => (
+        <div className="flex items-center justify-end gap-2">
           {!isReadOnly && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setModalTarget({ category: row });
-                setModalMode("edit-category");
-              }}
-              className="text-xs px-2 py-1 rounded border hover:bg-[var(--color-neutral-100)] transition-colors"
-              style={{ borderColor: "var(--border-color)", color: "var(--text-muted)" }}
-            >
-              {t("actions.edit")}
-            </button>
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setModalTarget({ category: row });
+                  setModalMode("edit-category");
+                }}
+                className="text-xs px-2 py-1 rounded border hover:bg-[var(--color-neutral-100)] transition-colors"
+                style={{ borderColor: "var(--border-color)", color: "var(--text-muted)" }}
+              >
+                {t("actions.edit")}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteTarget(row);
+                }}
+                className="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+              >
+                {t("actions.delete")}
+              </button>
+            </>
           )}
         </div>
       ),
@@ -196,6 +243,36 @@ export default function BehaviorCategoriesPage() {
         onClose={() => setModalMode(null)}
         onSuccess={() => void loadCategories()}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title={t("modal.deleteCategory")}
+        size="sm"
+        variant="danger"
+        description={t("modal.confirmDeleteCategory")}
+        footer={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
+            >
+              {t("modal.cancel")}
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "..." : t("actions.delete")}
+            </Button>
+          </>
+        }
+      >
+        <div />
+      </Modal>
     </div>
   );
 }

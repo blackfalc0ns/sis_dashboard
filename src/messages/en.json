@@ -10411,7 +10411,8 @@
       "approve": "Approve",
       "reject": "Reject",
       "edit": "Edit",
-      "view": "View"
+      "view": "View",
+      "delete": "Delete"
     },
     "states": {
       "loading": {
@@ -10432,6 +10433,7 @@
     "modal": {
       "createCategory": "New Category",
       "editCategory": "Edit Category",
+      "deleteCategory": "Delete Category",
       "createRecord": "New Record",
       "editRecord": "Edit Record",
       "submitRecord": "Submit Record",
@@ -10445,11 +10447,13 @@
       "cancel": "Cancel",
       "save": "Save",
       "confirmSubmit": "Are you sure you want to submit this record for review?",
-      "confirmCancelRecord": "Are you sure you want to cancel this record?"
+      "confirmCancelRecord": "Are you sure you want to cancel this record?",
+      "confirmDeleteCategory": "Are you sure you want to delete this category?"
     },
     "messages": {
       "categoryCreated": "Category created successfully",
       "categoryUpdated": "Category updated successfully",
+      "categoryDeleted": "Category deleted successfully",
       "recordCreated": "Record created successfully",
       "recordUpdated": "Record updated successfully",
       "recordSubmitted": "Record submitted for review",
