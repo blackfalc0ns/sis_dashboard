@@ -1,9 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ClipboardList, Plus, RefreshCcw, Search } from "lucide-react";
+import {
+  ClipboardCheck,
+  ClipboardList,
+  GraduationCap,
+  Plus,
+  RefreshCcw,
+  Search,
+} from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
@@ -58,6 +65,10 @@ export default function HomeworkListPage() {
     useAcademicYearTermLayoutContext();
   const canView = hasPermission("homework.assignments.view");
   const canManage = hasPermission("homework.assignments.manage");
+  const canViewSubmissions = hasPermission("homework.submissions.view");
+  const canViewGradeSync =
+    hasPermission("homework.assignments.view") &&
+    hasPermission("grades.items.view");
   const [items, setItems] = useState<HomeworkAssignmentUiModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get("search") || "");
@@ -118,6 +129,17 @@ export default function HomeworkListPage() {
       limit: Number(searchParams.get("limit") || "25"),
     }),
     [academicYearId, mode, search, searchParams, status, termId],
+  );
+
+  const openHomeworkTab = useCallback(
+    (homeworkId: string, tab: "submissions" | "grade-sync") => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("tab", tab);
+      router.push(
+        `/${locale}/academics/homework/${homeworkId}?${params.toString()}`,
+      );
+    },
+    [locale, router, searchParams],
   );
 
   const columns = useMemo<Column<HomeworkAssignmentTableRow>[]>(() => {
@@ -189,36 +211,78 @@ export default function HomeworkListPage() {
       },
     ];
 
-    if (canManage && termStatus !== "closed") {
+    if (
+      canViewSubmissions ||
+      canViewGradeSync ||
+      (canManage && termStatus !== "closed")
+    ) {
       cols.push({
         key: "actions",
         label: t("actions.menu"),
         sortable: false,
         render: (_, item) => (
-          <div onClick={(event) => event.stopPropagation()}>
-            <HomeworkLifecycleMenu
-              actions={homeworkLifecycle(item.status).actions}
-              labels={{
-                menu: t("actions.menu"),
-                publish: t("actions.publish"),
-                close: t("actions.close"),
-                cancel: t("actions.cancel"),
-              }}
-              isPending={pendingHomeworkId === item.id}
-              onAction={(action) =>
-                setLifecycleConfirmation({
-                  homeworkId: item.id,
-                  action,
-                })
-              }
-            />
+          <div
+            className="flex flex-wrap items-center gap-2"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {canViewSubmissions && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                title={t("actions.openSubmissions")}
+                onClick={() => openHomeworkTab(item.id, "submissions")}
+                leftIcon={<ClipboardCheck className="h-4 w-4" />}
+              >
+                {t("actions.submissions")}
+              </Button>
+            )}
+            {canViewGradeSync && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                title={t("actions.openGradeSync")}
+                onClick={() => openHomeworkTab(item.id, "grade-sync")}
+                leftIcon={<GraduationCap className="h-4 w-4" />}
+              >
+                {t("actions.gradeSync")}
+              </Button>
+            )}
+            {canManage && termStatus !== "closed" && (
+              <HomeworkLifecycleMenu
+                actions={homeworkLifecycle(item.status).actions}
+                labels={{
+                  menu: t("actions.menu"),
+                  publish: t("actions.publish"),
+                  close: t("actions.close"),
+                  cancel: t("actions.cancel"),
+                }}
+                isPending={pendingHomeworkId === item.id}
+                onAction={(action) =>
+                  setLifecycleConfirmation({
+                    homeworkId: item.id,
+                    action,
+                  })
+                }
+              />
+            )}
           </div>
         ),
       });
     }
 
     return cols;
-  }, [canManage, termStatus, t, locale, pendingHomeworkId]);
+  }, [
+    canManage,
+    canViewGradeSync,
+    canViewSubmissions,
+    termStatus,
+    t,
+    locale,
+    pendingHomeworkId,
+    openHomeworkTab,
+  ]);
 
   useEffect(() => {
     if (isInitializing || !canView) return;

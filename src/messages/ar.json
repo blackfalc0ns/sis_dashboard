@@ -4253,6 +4253,10 @@
           "newHomework": "واجب جديد",
           "apply": "تطبيق",
           "menu": "إجراءات الواجب",
+          "submissions": "التسليمات",
+          "gradeSync": "مزامنة الدرجات",
+          "openSubmissions": "فتح مراجعة التسليمات",
+          "openGradeSync": "فتح مزامنة الدرجات",
           "publish": "نشر",
           "close": "إغلاق",
           "cancel": "إلغاء"
@@ -4440,8 +4444,10 @@
         },
         "filters": {
           "status": "الحالة",
+          "limit": "عدد الصفوف",
           "search": "بحث",
           "searchPlaceholder": "اسم الطالب أو رقمه",
+          "searchLimit": "{count}/{max} حرف",
           "statuses": {
             "all": "كل التسليمات",
             "pendingReview": "بانتظار المراجعة",
@@ -4459,8 +4465,14 @@
         "submissions": {
           "title": "مراجعة التسليمات",
           "count": "{count, plural, zero {# تسليمات} one {# تسليم} two {# تسليمان} few {# تسليمات} many {# تسليمًا} other {# تسليم}}",
+          "range": "{start}-{end} من {total}",
           "empty": "لا توجد تسليمات لهذا الواجب.",
           "late": "متأخر"
+        },
+        "pagination": {
+          "previous": "السابق",
+          "next": "التالي",
+          "page": "صفحة {page} من {totalPages}"
         },
         "detail": {
           "selectSubmission": "اختر تسليمًا لمراجعته.",
@@ -4475,7 +4487,14 @@
           "title": "مراجعة التسليم بالكامل",
           "description": "احفظ الدرجة الإجمالية وملاحظة المراجع لهذا التسليم.",
           "awardedMarks": "الدرجة الممنوحة",
-          "reviewNote": "ملاحظة المراجعة"
+          "reviewNote": "ملاحظة المراجعة",
+          "reviewNoteLimit": "{count}/{max} حرف"
+        },
+        "validation": {
+          "reviewNoteMax": "يجب ألا تتجاوز ملاحظة المراجعة {max} حرف.",
+          "awardedMarksMin": "يجب أن تكون الدرجة الممنوحة رقمًا غير سالب.",
+          "awardedMarksDecimals": "يمكن أن تحتوي الدرجة الممنوحة على منزلتين عشريتين كحد أقصى.",
+          "awardedMarksMax": "لا يمكن أن تتجاوز الدرجة الممنوحة {max}."
         },
         "answers": {
           "title": "الإجابات",
@@ -8541,10 +8560,8 @@
     "sectionEyebrow": "عالم التحدي",
     "overview": "نظرة عامة",
     "missions": "المهام",
-    "studentsProgress": "تقدم الطلاب",
     "overviewDescription": "راقب التبني العام، وأداء المهام، وزخم XP، ومؤشرات التدخل داخل تجربة رحلة البطل.",
     "missionsDescription": "ابحث وصفِّ وراجع إعدادات المهام، والمحتوى المرتبط، ومعاينات المكافآت، وحالة النشر.",
-    "studentsProgressDescription": "تابع تقدم المهمة الحالية، وزخم XP، والشارات، والسلاسل، والطلاب الذين قد يحتاجون إلى تدخل.",
     "loading": "جارٍ تحميل بيانات رحلة البطل...",
     "status": {
       "draft": "مسودة",
@@ -8564,9 +8581,19 @@
     },
     "actions": {
       "view": "عرض",
-      "edit": "تحرير تجريبي",
-      "togglePublish": "تبديل النشر",
-      "badgesGuide": "دليل أصول الشارات"
+      "edit": "تحرير",
+      "delete": "حذف",
+      "more": "إجراءات إضافية",
+      "publish": "نشر",
+      "archive": "أرشفة",
+      "togglePublish": "نشر / أرشفة",
+      "badgesGuide": "دليل أصول الشارات",
+      "manageBadges": "إدارة الشارات",
+      "createMission": "إنشاء مهمة",
+      "createBadge": "إنشاء شارة",
+      "close": "إغلاق",
+      "editBadge": "تحرير الشارة",
+      "deleteBadge": "حذف الشارة"
     },
     "export": {
       "title": "تصدير بيانات التعزيز",
@@ -8627,9 +8654,150 @@
     },
     "messages": {
       "loadOverviewFailed": "تعذر تحميل نظرة رحلة البطل.",
+      "loadMissionsFailed": "تعذر تحميل مهام رحلة البطل.",
+      "loadStudentsFailed": "تعذر تحميل تقدم طلاب رحلة البطل.",
+      "loadMissionOptionsFailed": "تعذر تحميل بيانات قوائم المهمة.",
+      "selectAcademicContext": "اختر العام الدراسي والفصل لتحميل مهام رحلة البطل.",
+      "selectAcademicContextBeforeCreate": "اختر العام الدراسي والفصل قبل إنشاء مهمة.",
+      "selectAcademicContextBeforeSave": "اختر العام الدراسي والفصل قبل حفظ المهمة.",
+      "confirmDeleteMission": "هل تريد حذف هذه المهمة؟ لا يمكن التراجع عن ذلك.",
+      "confirmDeleteBadge": "هل تريد حذف هذه الشارة؟ قد تمنع المهام المرتبطة بها عملية الحذف.",
       "editPlaceholder": "وضع التحرير الحالي مجرد عنصر تجريبي آمن حتى يتم ربط تعديل المهام بالخلفية.",
-      "publishStateUpdated": "تم تحديث حالة نشر المهمة في وضع البيانات التجريبية.",
+      "publishStateUpdated": "تم تحديث حالة نشر المهمة.",
       "badgesReady": "ضع أرشيف الشارات داخل مساحة العمل ثم شغّل أداة الاستيراد لنسخ الصور إلى المجلد العام."
+    },
+    "badgeManager": {
+      "title": "شارات البطل",
+      "emptyTitle": "لا توجد شارات في الكتالوج بعد",
+      "emptyDescription": "أنشئ شارة قبل تعيينها كمكافأة لمهمة."
+    },
+    "missionForm": {
+      "createTitle": "إنشاء مهمة",
+      "editTitle": "تحرير مهمة",
+      "sections": {
+        "basics": {
+          "title": "أساسيات المهمة",
+          "description": "حدد السياق الدراسي والمرحلة ونص المهمة الذي يظهر للطلاب."
+        },
+        "links": {
+          "title": "روابط المنهج",
+          "description": "اربط المهمة اختياريًا بالمادة أو الدرس أو التقييم."
+        },
+        "rewards": {
+          "title": "المكافآت ومكان الخريطة",
+          "description": "اضبط المستوى المطلوب ونقاط XP والشارة والترتيب وموقع المهمة على الخريطة."
+        },
+        "objectives": {
+          "title": "الأهداف",
+          "description": "أضف هدفًا واحدًا على الأقل حتى يكون للمهمة معيار إكمال واضح."
+        }
+      },
+      "labels": {
+        "academicYear": "العام الدراسي",
+        "term": "الفصل",
+        "stage": "المرحلة",
+        "grade": "الصف",
+        "section": "الشعبة",
+        "classroom": "الفصل",
+        "titleEn": "العنوان (EN)",
+        "titleAr": "العنوان (AR)",
+        "briefEn": "الوصف المختصر (EN)",
+        "briefAr": "الوصف المختصر (AR)",
+        "subject": "المادة",
+        "linkedLesson": "الدرس المرتبط",
+        "linkedAssessment": "التقييم المرتبط",
+        "requiredLevel": "المستوى المطلوب",
+        "rewardXp": "مكافأة XP",
+        "sortOrder": "ترتيب العرض",
+        "mapX": "موضع X على الخريطة",
+        "mapY": "موضع Y على الخريطة",
+        "badgeReward": "شارة المكافأة",
+        "objectiveTitleEn": "عنوان الهدف (EN)",
+        "objectiveTitleAr": "عنوان الهدف (AR)",
+        "objectiveOrder": "الترتيب"
+      },
+      "placeholders": {
+        "loadingStages": "جارٍ تحميل المراحل...",
+        "selectStage": "اختر المرحلة",
+        "loadingGrades": "جارٍ تحميل الصفوف...",
+        "selectGrade": "اختر الصف",
+        "selectedGrade": "الصف المحدد",
+        "noGrade": "بدون صف",
+        "noGradeItems": "لا توجد صفوف متاحة",
+        "loadingSections": "جارٍ تحميل الشعب...",
+        "selectSection": "اختر الشعبة",
+        "selectedSection": "الشعبة المحددة",
+        "noSection": "بدون شعبة",
+        "noSectionItems": "لا توجد شعب متاحة",
+        "loadingClassrooms": "جارٍ تحميل الفصول...",
+        "selectClassroom": "اختر الفصل",
+        "selectedClassroom": "الفصل المحدد",
+        "noClassroom": "بدون فصل",
+        "noClassroomItems": "لا توجد فصول متاحة",
+        "selectStageFirst": "اختر المرحلة أولاً",
+        "selectGradeFirst": "اختر الصف أولاً",
+        "selectSectionFirst": "اختر الشعبة أولاً",
+        "loadingSubjects": "جارٍ تحميل المواد...",
+        "selectSubject": "اختر المادة",
+        "loadingLessons": "جارٍ تحميل الدروس...",
+        "selectLesson": "اختر الدرس",
+        "selectedLesson": "الدرس المحدد",
+        "loadingAssessments": "جارٍ تحميل التقييمات...",
+        "selectAssessment": "اختر التقييم",
+        "selectedAssessment": "التقييم المحدد",
+        "noSubject": "بدون مادة",
+        "noLesson": "بدون درس",
+        "noLessonItems": "لا توجد عناصر دروس متاحة",
+        "noAssessment": "بدون تقييم",
+        "noAssessmentItems": "لا توجد عناصر تقييم متاحة",
+        "selectSubjectFirst": "اختر المادة أولاً",
+        "noBadge": "بدون شارة",
+        "selectedBadge": "الشارة المحددة"
+      },
+      "helper": {
+        "mapCoordinates": "استخدم قيمًا من 0 إلى 100 لتحديد مكان المهمة على خريطة البطل. اتركها فارغة لاستخدام الموضع الافتراضي من الخادم."
+      },
+      "actions": {
+        "addObjective": "إضافة هدف",
+        "removeObjective": "حذف الهدف"
+      },
+      "errors": {
+        "stageRequired": "المرحلة مطلوبة.",
+        "titleRequired": "يجب إدخال عنوان واحد للمهمة على الأقل.",
+        "objectiveRequired": "يجب إدخال عنوان هدف واحد على الأقل.",
+        "loadLessonsFailed": "تعذر تحميل دروس الصف والمادة المحددين."
+      }
+    },
+    "badgeForm": {
+      "createTitle": "إنشاء شارة",
+      "editTitle": "تحرير شارة",
+      "labels": {
+        "slug": "المعرّف",
+        "sortOrder": "ترتيب العرض",
+        "nameEn": "الاسم (EN)",
+        "nameAr": "الاسم (AR)",
+        "descriptionEn": "الوصف (EN)",
+        "descriptionAr": "الوصف (AR)",
+        "assetPath": "مسار الأصل",
+        "assetFile": "ملف الشارة",
+        "activeTitle": "شارة نشطة"
+      },
+      "placeholders": {
+        "slug": "speed-reader",
+        "assetPath": "/assets/hero-journey/badges/speed-reader.svg"
+      },
+      "helper": {
+        "fileUpload": "ارفع ملف SVG أو PNG أو JPG أو WebP. ترسل لوحة التحكم معرّف الملف المرفوع مع الشارة.",
+        "activeDescription": "تبقى الشارات غير النشطة في الكتالوج لكنها لا تظهر ضمن اختيارات المكافآت النشطة."
+      },
+      "selectedFile": "الملف المحدد: {fileName}",
+      "currentFileId": "معرّف الملف الحالي: {fileId}",
+      "errors": {
+        "slugRequired": "معرّف الشارة مطلوب.",
+        "invalidFileType": "يجب أن يكون ملف الشارة بصيغة SVG أو PNG أو JPG أو WebP.",
+        "fileTooLarge": "يجب ألا يتجاوز ملف الشارة 10 ميجابايت.",
+        "saveFailed": "تعذر حفظ أصل الشارة. يرجى المحاولة مرة أخرى."
+      }
     },
     "kpi": {
       "enrolledStudents": "الطلاب المسجلون",
@@ -8672,6 +8840,11 @@
       "searchMissionsPlaceholder": "ابحث في عنوان المهمة أو الدرس أو الاختبار أو رقم المهمة",
       "searchStudentsPlaceholder": "ابحث عن الطالب أو لقب الرتبة أو المهمة الحالية",
       "allStatuses": "كل الحالات",
+      "archivedDefault": "ظهور المؤرشف",
+      "includeArchived": "تضمين المؤرشف",
+      "excludeArchived": "استبعاد المؤرشف",
+      "defaultLimit": "الافتراضي من الخادم",
+      "limitCount": "{count} مهمة",
       "allStages": "كل المراحل",
       "allGrades": "كل الصفوف",
       "allSections": "كل الشعب"
@@ -8725,6 +8898,8 @@
       "requiredLevel": "المستوى المطلوب",
       "lastUpdated": "آخر تحديث",
       "linkedContent": "المحتوى المرتبط",
+      "noLinkedLesson": "لا يوجد درس مرتبط",
+      "noLinkedAssessment": "لا يوجد اختبار مرتبط",
       "rewardPreview": "معاينة المكافأة",
       "engagement": "تفاعل المهمة",
       "currentLevel": "المستوى الحالي",
@@ -8739,6 +8914,92 @@
       "missions": "لا توجد مهام تطابق عوامل التصفية الحالية.",
       "students": "لا يوجد طلاب يطابقون عوامل التصفية الحالية.",
       "badges": "لا توجد شارات حديثة حتى الآن."
+    },
+    "overviewFilters": {
+      "title": "نطاق لوحة التحليلات",
+      "description": "صف تحليلات رحلة البطل حسب السياق الدراسي أو التاريخ أو الفصل أو طالب محدد.",
+      "dateRange": "نطاق التاريخ",
+      "today": "اليوم",
+      "last7Days": "آخر 7 أيام",
+      "last30Days": "آخر 30 يومًا",
+      "custom": "مخصص",
+      "dateFrom": "من",
+      "dateTo": "إلى",
+      "student": "الطالب",
+      "allStages": "كل المراحل",
+      "allGrades": "كل الصفوف",
+      "allSections": "كل الشعب",
+      "allClassrooms": "كل الفصول",
+      "allStudents": "كل الطلاب",
+      "reset": "إعادة ضبط الفلاتر",
+      "allSubjects": "كل المواد"
+    },
+    "overviewKpi": {
+      "totalMissions": "إجمالي المهام",
+      "completionRate": "معدل الإكمال",
+      "totalHeroXp": "إجمالي XP البطل",
+      "badgesAwarded": "الشارات الممنوحة",
+      "requiredObjectives": "الأهداف المطلوبة",
+      "studentsWithBadges": "طلاب لديهم شارات"
+    },
+    "overviewSections": {
+      "missionStatus": "حالة المهام",
+      "missionStatusDescription": "جاهزية النشر وتغطية المكافآت في كتالوج مهام رحلة البطل الحالي.",
+      "studentProgress": "تقدم الطلاب",
+      "studentProgressDescription": "تقدم المهام المتوقع للطلاب داخل النطاق المحدد.",
+      "studentProgressHelper": "يعتمد على تقدم المهام المتوقع للطلاب في النطاق المحدد.",
+      "notStartedWarning": "عدد كبير من الطلاب لم يبدأوا مهام رحلة البطل بعد.",
+      "requiredObjectives": "الأهداف المطلوبة",
+      "requiredObjectivesDescription": "إكمال الأهداف المطلوبة يعطي مؤشرًا أوضح من إكمال المهمة فقط.",
+      "completedRequired": "أهداف مطلوبة مكتملة",
+      "averageProgress": "متوسط التقدم",
+      "rewards": "المكافآت والتحفيز",
+      "rewardsDescription": "نشاط XP والشارات داخل نطاق رحلة البطل المحدد.",
+      "xpImpact": "أثر XP",
+      "badgeImpact": "أثر الشارات",
+      "xpGrantedMissions": "{count} مهام تمنح XP",
+      "studentsWithBadges": "{count} طلاب لديهم شارات",
+      "topStudents": "أفضل الطلاب",
+      "recentActivity": "أحدث نشاطات رحلة البطل",
+      "withXpReward": "مكافأة XP",
+      "withBadgeReward": "مكافأة الشارة",
+      "withoutRewards": "بدون مكافآت"
+    },
+    "overviewProgress": {
+      "notStarted": "لم يبدأ",
+      "inProgress": "قيد التقدم",
+      "completed": "مكتمل",
+      "cancelled": "ملغي"
+    },
+    "overviewState": {
+      "loadFailed": "تعذر تحميل نظرة رحلة البطل. يرجى المحاولة مرة أخرى.",
+      "errorTitle": "تعذر تحميل النظرة العامة",
+      "refresh": "تحديث",
+      "emptyTitle": "لا توجد بيانات رحلة بطل لهذا النطاق.",
+      "emptyDescription": "جرب تغيير الفصل الدراسي أو المرحلة أو الفصل أو نطاق التاريخ.",
+      "noTopStudents": "لا يوجد أفضل طلاب لهذا النطاق بعد.",
+      "noRecentActivity": "لا يوجد نشاط حديث لرحلة البطل في هذا النطاق.",
+      "studentEnrollmentNotFound": "الطالب المحدد غير مسجل في العام الدراسي والفصل الحاليين. اختر طالبًا آخر أو امسح فلتر الطالب."
+    },
+    "overviewLeaderboard": {
+      "rank": "الترتيب",
+      "student": "الطالب",
+      "completed": "المهام المكتملة",
+      "heroXp": "XP البطل",
+      "badges": "الشارات",
+      "avgProgress": "متوسط التقدم"
+    },
+    "overviewActivity": {
+      "noStudentReference": "لا يوجد طالب مرتبط",
+      "missionReference": "المهمة",
+      "noMissionReference": "لا توجد مهمة مرتبطة",
+      "events": {
+        "missionStarted": "بدأت المهمة",
+        "objectiveCompleted": "اكتمل الهدف",
+        "missionCompleted": "اكتملت المهمة",
+        "xpGranted": "تم منح XP",
+        "badgeAwarded": "تم منح شارة"
+      }
     }
   },
   "reinforcement": {

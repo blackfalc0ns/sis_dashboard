@@ -22,6 +22,7 @@ import type {
   HomeworkGradeSyncStatusUiModel,
   HomeworkAdapter,
   HomeworkAssignmentListFilters,
+  HomeworkSubmissionListFilters,
   HomeworkSubmissionReviewRequest,
   HomeworkSubmissionAnswerUiModel,
   HomeworkSubmissionAttachmentUiModel,
@@ -67,6 +68,20 @@ function extractAnswerList(
 
 function extractSubmissionList(response: BackendHomeworkSubmissionsResponse) {
   return response.items ?? response.submissions ?? [];
+}
+
+function extractSubmissionPagination(
+  response: BackendHomeworkSubmissionsResponse,
+  filters?: HomeworkSubmissionListFilters,
+) {
+  return {
+    page: response.pagination?.page ?? response.meta?.page ?? filters?.page ?? 1,
+    limit: response.pagination?.limit ?? response.meta?.limit ?? filters?.limit ?? 25,
+    total:
+      response.pagination?.total ??
+      response.meta?.total ??
+      extractSubmissionList(response).length,
+  };
 }
 
 function extractSubmissionAttachmentList(
@@ -208,6 +223,18 @@ function submissionReviewPayload(payload: HomeworkSubmissionReviewRequest) {
     ...(payload.awardedMarks === undefined
       ? {}
       : { awardedMarks: payload.awardedMarks }),
+  };
+}
+
+function submissionListParams(filters?: HomeworkSubmissionListFilters) {
+  if (!filters) return undefined;
+  return {
+    ...(filters.status ? { status: filters.status } : {}),
+    ...(filters.search?.trim() ? { search: filters.search.trim().slice(0, 200) } : {}),
+    ...(filters.page ? { page: Math.max(1, Math.trunc(filters.page)) } : {}),
+    ...(filters.limit
+      ? { limit: Math.min(100, Math.max(1, Math.trunc(filters.limit))) }
+      : {}),
   };
 }
 
@@ -502,14 +529,18 @@ export const homeworkApiAdapter: HomeworkAdapter = {
 
   async listSubmissions(homeworkId: string, filters) {
     const path = `${BASE_PATH}/${homeworkId}/submissions`;
-    const response = filters
+    const params = submissionListParams(filters);
+    const response = params
       ? await apiGet<BackendHomeworkSubmissionsResponse>(path, {
-          params: filters,
+          params,
         })
       : await apiGet<BackendHomeworkSubmissionsResponse>(path);
-    return extractSubmissionList(response)
-      .map(mapSubmissionToUi)
-      .filter((submission) => submission.id);
+    return {
+      items: extractSubmissionList(response)
+        .map(mapSubmissionToUi)
+        .filter((submission) => submission.id),
+      pagination: extractSubmissionPagination(response, filters),
+    };
   },
 
   async getSubmission(homeworkId: string, submissionId: string) {

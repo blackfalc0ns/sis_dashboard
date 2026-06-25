@@ -337,23 +337,41 @@ describe("homeworkApiAdapter", () => {
       pagination: { page: 1, limit: 25, total: 1 },
     });
 
-    await expect(homeworkApiAdapter.listSubmissions("homework-1")).resolves.toEqual([
-      expect.objectContaining({
-        id: "submission-1",
-        homeworkId: "homework-1",
-        targetId: "target-1",
-        studentId: "student-1",
-        studentName: "Student Name",
-        studentNumber: "S-001",
-        status: "submitted",
-        bodyText: "Submitted body",
-        totalMarks: 20,
-        isLate: false,
+    await expect(
+      homeworkApiAdapter.listSubmissions("homework-1", {
+        status: "pending_review",
+        search: " Student ",
+        page: 1,
+        limit: 25,
       }),
-    ]);
+    ).resolves.toEqual({
+      items: [
+        expect.objectContaining({
+          id: "submission-1",
+          homeworkId: "homework-1",
+          targetId: "target-1",
+          studentId: "student-1",
+          studentName: "Student Name",
+          studentNumber: "S-001",
+          status: "submitted",
+          bodyText: "Submitted body",
+          totalMarks: 20,
+          isLate: false,
+        }),
+      ],
+      pagination: { page: 1, limit: 25, total: 1 },
+    });
 
     expect(mockedApiGet).toHaveBeenCalledWith(
       "/homework/assignments/homework-1/submissions",
+      {
+        params: {
+          status: "pending_review",
+          search: "Student",
+          page: 1,
+          limit: 25,
+        },
+      },
     );
   });
 

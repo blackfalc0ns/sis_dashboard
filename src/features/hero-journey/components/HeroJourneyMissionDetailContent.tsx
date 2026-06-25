@@ -10,6 +10,8 @@ import HeroJourneyStatusPill from "./HeroJourneyStatusPill";
 interface HeroJourneyMissionDetailContentProps {
   mission: HeroJourneyMission | null;
   badgeMap: Map<string, HeroJourneyBadge>;
+  linkedLessonName?: string;
+  linkedAssessmentName?: string;
 }
 
 function getMissionCompletionRate(mission: HeroJourneyMission) {
@@ -20,9 +22,27 @@ function getMissionCompletionRate(mission: HeroJourneyMission) {
   return (mission.studentsCompleted / mission.studentsStarted) * 100;
 }
 
+function hasLinkedValue(value?: string | null) {
+  const normalized = value?.trim().toLowerCase();
+  if (!normalized) return false;
+
+  return ![
+    "linked lesson",
+    "درس مرتبط",
+    "not linked",
+    "غير مرتبط",
+    "linked assessment",
+    "تقييم مرتبط",
+    "no assessment linked",
+    "لا يوجد تقييم مرتبط",
+  ].includes(normalized);
+}
+
 export default function HeroJourneyMissionDetailContent({
   mission,
   badgeMap,
+  linkedLessonName,
+  linkedAssessmentName,
 }: HeroJourneyMissionDetailContentProps) {
   const locale = useLocale();
   const t = useTranslations("heroJourney");
@@ -31,6 +51,23 @@ export default function HeroJourneyMissionDetailContent({
     return <div className="text-sm text-gray-500">{t("empty.missions")}</div>;
   }
 
+  const lessonId = mission.linkedLessonRef || mission.linkedLessonId;
+  const assessmentId = mission.linkedAssessmentId || mission.linkedQuizId;
+  const displayedLessonName =
+    linkedLessonName ||
+    (hasLinkedValue(lessonId) && hasLinkedValue(mission.linkedLessonTitleEn)
+      ? locale === "ar"
+        ? mission.linkedLessonTitleAr
+        : mission.linkedLessonTitleEn
+      : t("detail.noLinkedLesson"));
+  const displayedAssessmentName =
+    linkedAssessmentName ||
+    (hasLinkedValue(assessmentId) && hasLinkedValue(mission.linkedQuizTitleEn)
+      ? locale === "ar"
+        ? mission.linkedQuizTitleAr
+        : mission.linkedQuizTitleEn
+      : t("detail.noLinkedAssessment"));
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
@@ -38,7 +75,11 @@ export default function HeroJourneyMissionDetailContent({
           <h2 className="text-lg font-semibold text-gray-900">
             {locale === "ar" ? mission.titleAr : mission.titleEn}
           </h2>
-          <p className="mt-1 text-sm text-gray-500">{mission.id}</p>
+          <p className="mt-1 text-sm text-gray-500">
+            {locale === "ar"
+              ? mission.briefAr || mission.stageNameAr
+              : mission.briefEn || mission.stageNameEn}
+          </p>
         </div>
         <HeroJourneyStatusPill kind="mission" value={mission.status} />
       </div>
@@ -62,16 +103,22 @@ export default function HeroJourneyMissionDetailContent({
         <p className="text-sm font-medium text-gray-500">
           {t("detail.linkedContent")}
         </p>
-        <p className="mt-2 text-sm text-gray-900">
-          {locale === "ar"
-            ? mission.linkedLessonTitleAr
-            : mission.linkedLessonTitleEn}
-        </p>
-        <p className="mt-1 text-sm text-gray-600">
-          {locale === "ar"
-            ? mission.linkedQuizTitleAr
-            : mission.linkedQuizTitleEn}
-        </p>
+        <div className="mt-3 space-y-3">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+              {t("table.linkedLesson")}
+            </p>
+            <p className="mt-1 text-sm text-gray-900">{displayedLessonName}</p>
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+              {t("table.linkedQuiz")}
+            </p>
+            <p className="mt-1 text-sm text-gray-900">
+              {displayedAssessmentName}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="rounded-lg border border-gray-100 p-4">

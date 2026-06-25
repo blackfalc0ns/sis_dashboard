@@ -99,7 +99,8 @@ export const deleteHomeworkAttachment: HomeworkAdapter["deleteAttachment"] = (
 
 export const listHomeworkSubmissions: HomeworkAdapter["listSubmissions"] = (
   homeworkId,
-) => homeworkAdapter.listSubmissions(homeworkId);
+  filters,
+) => homeworkAdapter.listSubmissions(homeworkId, filters);
 
 export const fetchHomeworkSubmission: HomeworkAdapter["getSubmission"] = (
   homeworkId,

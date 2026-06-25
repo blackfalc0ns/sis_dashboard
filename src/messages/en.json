@@ -4252,6 +4252,10 @@
           "newHomework": "New homework",
           "apply": "Apply",
           "menu": "Homework actions",
+          "submissions": "Submissions",
+          "gradeSync": "Grade sync",
+          "openSubmissions": "Open submissions review",
+          "openGradeSync": "Open grade sync",
           "publish": "Publish",
           "close": "Close",
           "cancel": "Cancel"
@@ -4439,8 +4443,10 @@
         },
         "filters": {
           "status": "Status",
+          "limit": "Rows per page",
           "search": "Search",
           "searchPlaceholder": "Student name or number",
+          "searchLimit": "{count}/{max} characters",
           "statuses": {
             "all": "All submissions",
             "pendingReview": "Pending review",
@@ -4458,8 +4464,14 @@
         "submissions": {
           "title": "Submission review",
           "count": "{count, plural, one {# submission} other {# submissions}}",
+          "range": "{start}-{end} of {total}",
           "empty": "No submissions found for this homework.",
           "late": "Late"
+        },
+        "pagination": {
+          "previous": "Previous",
+          "next": "Next",
+          "page": "Page {page} of {totalPages}"
         },
         "detail": {
           "selectSubmission": "Select a submission to review.",
@@ -4474,7 +4486,14 @@
           "title": "Whole submission review",
           "description": "Save the overall score and reviewer note for this submission.",
           "awardedMarks": "Awarded marks",
-          "reviewNote": "Review note"
+          "reviewNote": "Review note",
+          "reviewNoteLimit": "{count}/{max} characters"
+        },
+        "validation": {
+          "reviewNoteMax": "Review note must be {max} characters or fewer.",
+          "awardedMarksMin": "Awarded marks must be a non-negative number.",
+          "awardedMarksDecimals": "Awarded marks can use at most 2 decimal places.",
+          "awardedMarksMax": "Awarded marks cannot exceed {max}."
         },
         "answers": {
           "title": "Answers",
@@ -8540,10 +8559,8 @@
     "sectionEyebrow": "Game World",
     "overview": "Overview",
     "missions": "Missions",
-    "studentsProgress": "Students Progress",
     "overviewDescription": "Monitor adoption, mission performance, XP momentum, and intervention signals across the Hero Journey experience.",
     "missionsDescription": "Search, filter, and review mission configuration, linked content, reward previews, and publishing readiness.",
-    "studentsProgressDescription": "Track current mission progress, XP momentum, badges, streaks, and students who may need intervention.",
     "loading": "Loading Hero Journey data...",
     "status": {
       "draft": "Draft",
@@ -8563,9 +8580,19 @@
     },
     "actions": {
       "view": "View",
-      "edit": "Edit placeholder",
-      "togglePublish": "Toggle publish",
-      "badgesGuide": "Badge assets guide"
+      "edit": "Edit",
+      "delete": "Delete",
+      "more": "More actions",
+      "publish": "Publish",
+      "archive": "Archive",
+      "togglePublish": "Publish / archive",
+      "badgesGuide": "Badge assets guide",
+      "manageBadges": "Manage badges",
+      "createMission": "Create mission",
+      "createBadge": "Create badge",
+      "close": "Close",
+      "editBadge": "Edit badge",
+      "deleteBadge": "Delete badge"
     },
     "export": {
       "title": "Export Nedaa data",
@@ -8626,9 +8653,150 @@
     },
     "messages": {
       "loadOverviewFailed": "Unable to load Hero Journey overview.",
+      "loadMissionsFailed": "Unable to load Hero Journey missions.",
+      "loadStudentsFailed": "Unable to load Hero Journey student progress.",
+      "loadMissionOptionsFailed": "Unable to load mission dropdown data.",
+      "selectAcademicContext": "Select an academic year and term to load Hero missions.",
+      "selectAcademicContextBeforeCreate": "Select an academic year and term before creating a mission.",
+      "selectAcademicContextBeforeSave": "Select an academic year and term before saving a mission.",
+      "confirmDeleteMission": "Delete this mission? This cannot be undone.",
+      "confirmDeleteBadge": "Delete this badge? Missions using it may block deletion.",
       "editPlaceholder": "Edit mode is a safe placeholder until backend mission editing is connected.",
-      "publishStateUpdated": "Mission publish state updated in mock mode.",
+      "publishStateUpdated": "Mission publish state updated.",
       "badgesReady": "Drop your badge archive into the workspace, then run the import helper to populate the public badge folder."
+    },
+    "badgeManager": {
+      "title": "Hero badges",
+      "emptyTitle": "No badges in the catalog yet",
+      "emptyDescription": "Create a badge before assigning it as a mission reward."
+    },
+    "missionForm": {
+      "createTitle": "Create mission",
+      "editTitle": "Edit mission",
+      "sections": {
+        "basics": {
+          "title": "Mission basics",
+          "description": "Set the academic context, stage, and learner-facing mission copy."
+        },
+        "links": {
+          "title": "Curriculum links",
+          "description": "Connect the mission to optional subject, lesson, and assessment data."
+        },
+        "rewards": {
+          "title": "Rewards and map placement",
+          "description": "Configure level gating, XP, badge reward, ordering, and map position."
+        },
+        "objectives": {
+          "title": "Objectives",
+          "description": "Add at least one objective so the mission has a measurable completion target."
+        }
+      },
+      "labels": {
+        "academicYear": "Academic year",
+        "term": "Term",
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
+        "classroom": "Classroom",
+        "titleEn": "Title (EN)",
+        "titleAr": "Title (AR)",
+        "briefEn": "Brief (EN)",
+        "briefAr": "Brief (AR)",
+        "subject": "Subject",
+        "linkedLesson": "Linked lesson",
+        "linkedAssessment": "Linked assessment",
+        "requiredLevel": "Required level",
+        "rewardXp": "Reward XP",
+        "sortOrder": "Sort order",
+        "mapX": "Map X position",
+        "mapY": "Map Y position",
+        "badgeReward": "Badge reward",
+        "objectiveTitleEn": "Objective title (EN)",
+        "objectiveTitleAr": "Objective title (AR)",
+        "objectiveOrder": "Order"
+      },
+      "placeholders": {
+        "loadingStages": "Loading stages...",
+        "selectStage": "Select stage",
+        "loadingGrades": "Loading grades...",
+        "selectGrade": "Select grade",
+        "selectedGrade": "Selected grade",
+        "noGrade": "No grade",
+        "noGradeItems": "No grades available",
+        "loadingSections": "Loading sections...",
+        "selectSection": "Select section",
+        "selectedSection": "Selected section",
+        "noSection": "No section",
+        "noSectionItems": "No sections available",
+        "loadingClassrooms": "Loading classrooms...",
+        "selectClassroom": "Select classroom",
+        "selectedClassroom": "Selected classroom",
+        "noClassroom": "No classroom",
+        "noClassroomItems": "No classrooms available",
+        "selectStageFirst": "Select a stage first",
+        "selectGradeFirst": "Select a grade first",
+        "selectSectionFirst": "Select a section first",
+        "loadingSubjects": "Loading subjects...",
+        "selectSubject": "Select subject",
+        "loadingLessons": "Loading lessons...",
+        "selectLesson": "Select lesson",
+        "selectedLesson": "Selected lesson",
+        "loadingAssessments": "Loading assessments...",
+        "selectAssessment": "Select assessment",
+        "selectedAssessment": "Selected assessment",
+        "noSubject": "No subject",
+        "noLesson": "No lesson",
+        "noLessonItems": "No lesson items available",
+        "noAssessment": "No assessment",
+        "noAssessmentItems": "No assessment items available",
+        "selectSubjectFirst": "Select a subject first",
+        "noBadge": "No badge",
+        "selectedBadge": "Selected badge"
+      },
+      "helper": {
+        "mapCoordinates": "Use 0-100 values to place the mission on the Hero map. Leave blank when the backend should use its default position."
+      },
+      "actions": {
+        "addObjective": "Add objective",
+        "removeObjective": "Remove objective"
+      },
+      "errors": {
+        "stageRequired": "Stage is required.",
+        "titleRequired": "At least one mission title is required.",
+        "objectiveRequired": "At least one objective title is required.",
+        "loadLessonsFailed": "Unable to load lessons for the selected grade and subject."
+      }
+    },
+    "badgeForm": {
+      "createTitle": "Create badge",
+      "editTitle": "Edit badge",
+      "labels": {
+        "slug": "Slug",
+        "sortOrder": "Sort order",
+        "nameEn": "Name (EN)",
+        "nameAr": "Name (AR)",
+        "descriptionEn": "Description (EN)",
+        "descriptionAr": "Description (AR)",
+        "assetPath": "Asset path",
+        "assetFile": "Badge asset file",
+        "activeTitle": "Active badge"
+      },
+      "placeholders": {
+        "slug": "speed-reader",
+        "assetPath": "/assets/hero-journey/badges/speed-reader.svg"
+      },
+      "helper": {
+        "fileUpload": "Upload SVG, PNG, JPG, or WebP. The dashboard sends the uploaded file ID with the badge.",
+        "activeDescription": "Inactive badges stay in the catalog but are hidden from active reward selections."
+      },
+      "selectedFile": "Selected: {fileName}",
+      "currentFileId": "Current file ID: {fileId}",
+      "errors": {
+        "slugRequired": "Badge slug is required.",
+        "invalidFileType": "Badge asset must be an SVG, PNG, JPG, or WebP image.",
+        "fileTooLarge": "Badge asset must be 10 MB or smaller.",
+        "saveFailed": "Unable to save the badge asset. Please try again."
+      }
     },
     "kpi": {
       "enrolledStudents": "Enrolled Students",
@@ -8637,6 +8805,72 @@
       "totalXpEarned": "Total XP Earned",
       "averageStreak": "Average Streak",
       "badgesAwarded": "Badges Awarded"
+    },
+    "overviewFilters": {
+      "title": "Dashboard scope",
+      "description": "Filter Hero Journey analytics by academic context, dates, classroom, or a specific student.",
+      "dateRange": "Date range",
+      "today": "Today",
+      "last7Days": "Last 7 days",
+      "last30Days": "Last 30 days",
+      "custom": "Custom",
+      "dateFrom": "From",
+      "dateTo": "To",
+      "student": "Student",
+      "allStages": "All stages",
+      "allGrades": "All grades",
+      "allSections": "All sections",
+      "allClassrooms": "All classrooms",
+      "allStudents": "All students",
+      "reset": "Reset filters",
+      "allSubjects": "All subjects"
+    },
+    "overviewKpi": {
+      "totalMissions": "Total Missions",
+      "completionRate": "Completion Rate",
+      "totalHeroXp": "Total Hero XP",
+      "badgesAwarded": "Badges Awarded",
+      "requiredObjectives": "Required Objectives",
+      "studentsWithBadges": "Students With Badges"
+    },
+    "overviewSections": {
+      "missionStatus": "Mission Status",
+      "missionStatusDescription": "Publishing readiness and reward coverage for the current Hero mission catalog.",
+      "studentProgress": "Student Progress",
+      "studentProgressDescription": "Expected mission progress for students in the selected scope.",
+      "studentProgressHelper": "Based on expected mission progress for students in the selected scope.",
+      "notStartedWarning": "Many students have not started Hero missions yet.",
+      "requiredObjectives": "Required Objectives",
+      "requiredObjectivesDescription": "Required objective completion gives a clearer signal than mission completion alone.",
+      "completedRequired": "completed required objectives",
+      "averageProgress": "Average progress",
+      "rewards": "Rewards & Motivation",
+      "rewardsDescription": "XP and badge activity across the selected Hero Journey scope.",
+      "xpImpact": "XP Impact",
+      "badgeImpact": "Badge Impact",
+      "xpGrantedMissions": "{count} XP-granted missions",
+      "studentsWithBadges": "{count} students with badges",
+      "topStudents": "Top Students",
+      "recentActivity": "Recent Hero Activity",
+      "withXpReward": "XP reward",
+      "withBadgeReward": "Badge reward",
+      "withoutRewards": "No rewards"
+    },
+    "overviewProgress": {
+      "notStarted": "Not started",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "overviewState": {
+      "loadFailed": "We couldn't load the Hero Journey overview. Please try again.",
+      "errorTitle": "Unable to load overview",
+      "refresh": "Refresh",
+      "emptyTitle": "No Hero Journey data found for this scope.",
+      "emptyDescription": "Try changing the term, stage, classroom, or date range.",
+      "noTopStudents": "No top students found for this scope yet.",
+      "noRecentActivity": "No recent hero activity found for this scope.",
+      "studentEnrollmentNotFound": "The selected student is not enrolled in the current academic year and term. Choose another student or reset the student filter."
     },
     "summary": {
       "nearLevelUp": {
@@ -8671,6 +8905,11 @@
       "searchMissionsPlaceholder": "Search mission title, lesson, quiz, or mission ID",
       "searchStudentsPlaceholder": "Search student, rank title, or current mission",
       "allStatuses": "All statuses",
+      "archivedDefault": "Archive visibility",
+      "includeArchived": "Include archived",
+      "excludeArchived": "Exclude archived",
+      "defaultLimit": "Backend default",
+      "limitCount": "{count} missions",
       "allStages": "All stages",
       "allGrades": "All grades",
       "allSections": "All sections"
@@ -8724,6 +8963,8 @@
       "requiredLevel": "Required Level",
       "lastUpdated": "Last Updated",
       "linkedContent": "Linked Content",
+      "noLinkedLesson": "No linked lesson",
+      "noLinkedAssessment": "No linked assessment",
       "rewardPreview": "Reward Preview",
       "engagement": "Mission Engagement",
       "currentLevel": "Current Level",
@@ -8738,6 +8979,26 @@
       "missions": "No missions matched the current filters.",
       "students": "No students matched the current filters.",
       "badges": "No recent badge unlocks yet."
+    },
+    "overviewLeaderboard": {
+      "rank": "Rank",
+      "student": "Student",
+      "completed": "Completed",
+      "heroXp": "Hero XP",
+      "badges": "Badges",
+      "avgProgress": "Avg Progress"
+    },
+    "overviewActivity": {
+      "noStudentReference": "No student reference",
+      "missionReference": "Mission",
+      "noMissionReference": "No mission reference",
+      "events": {
+        "missionStarted": "Mission started",
+        "objectiveCompleted": "Objective completed",
+        "missionCompleted": "Mission completed",
+        "xpGranted": "XP granted",
+        "badgeAwarded": "Badge awarded"
+      }
     }
   },
   "reinforcement": {

@@ -32,8 +32,13 @@ import type {
   HomeworkSubmissionAnswerUiModel,
   HomeworkSubmissionAttachmentUiModel,
   HomeworkSubmissionListFilters,
+  HomeworkSubmissionsPaginationUiModel,
   HomeworkSubmissionUiModel,
 } from "@/features/academics/homework/services/homeworkApi.types";
+
+const REVIEW_NOTE_MAX_LENGTH = 2000;
+const SEARCH_MAX_LENGTH = 200;
+const DEFAULT_PAGE_SIZE = 25;
 
 interface HomeworkSubmissionReviewPanelProps {
   homeworkId: string;
@@ -113,6 +118,14 @@ export default function HomeworkSubmissionReviewPanel({
     useState<SubmissionStatusFilter>("pending_review");
   const [searchDraft, setSearchDraft] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE);
+  const [pagination, setPagination] =
+    useState<HomeworkSubmissionsPaginationUiModel>({
+      page: 1,
+      limit: DEFAULT_PAGE_SIZE,
+      total: 0,
+    });
 
   const selectedSubmission = useMemo(
     () =>
@@ -132,6 +145,55 @@ export default function HomeworkSubmissionReviewPanel({
     ],
     [t],
   );
+
+  const pageSizeOptions = useMemo(
+    () => [
+      { value: "10", label: "10" },
+      { value: "25", label: "25" },
+      { value: "50", label: "50" },
+      { value: "100", label: "100" },
+    ],
+    [],
+  );
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(pagination.total / Math.max(1, pagination.limit)),
+  );
+
+  const rangeStart =
+    pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1;
+  const rangeEnd = Math.min(
+    pagination.total,
+    pagination.page * pagination.limit,
+  );
+
+  const reviewNoteLength = submissionReviewDraft.reviewNote.length;
+
+  const reviewNoteError =
+    reviewNoteLength > REVIEW_NOTE_MAX_LENGTH
+      ? t("validation.reviewNoteMax", { max: REVIEW_NOTE_MAX_LENGTH })
+      : undefined;
+
+  const awardedMarksError = useMemo(() => {
+    const raw = submissionReviewDraft.awardedMarks.trim();
+    if (!raw) return undefined;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return t("validation.awardedMarksMin");
+    }
+    if (!/^\d+(\.\d{1,2})?$/.test(raw)) {
+      return t("validation.awardedMarksDecimals");
+    }
+    const maxMarks = selectedSubmission?.totalMarks ?? totalMarks;
+    if (maxMarks !== undefined && parsed > maxMarks) {
+      return t("validation.awardedMarksMax", { max: maxMarks });
+    }
+    return undefined;
+  }, [selectedSubmission?.totalMarks, submissionReviewDraft.awardedMarks, t, totalMarks]);
+
+  const canSaveSubmissionReview =
+    canManage && !reviewNoteError && !awardedMarksError;
 
   const submissionSummary = useMemo(() => {
     return submissions.reduce(
@@ -168,12 +230,15 @@ export default function HomeworkSubmissionReviewPanel({
     setIsLoadingSubmissions(true);
     try {
       const filters: HomeworkSubmissionListFilters = {
-        limit: 100,
+        page,
+        limit,
         ...(statusFilter === "all" ? {} : { status: statusFilter }),
         ...(appliedSearch.trim() ? { search: appliedSearch.trim() } : {}),
       };
-      const nextSubmissions = await listHomeworkSubmissions(homeworkId, filters);
+      const result = await listHomeworkSubmissions(homeworkId, filters);
+      const nextSubmissions = result.items;
       setSubmissions(nextSubmissions);
+      setPagination(result.pagination);
       setSelectedSubmissionId((current) =>
         current &&
         nextSubmissions.some((submission) => submission.id === current)
@@ -184,10 +249,11 @@ export default function HomeworkSubmissionReviewPanel({
       showError(
         t("errors.loadSubmissions", { code: mapHomeworkApiError(error) }),
       );
+      setPagination({ page, limit, total: 0 });
     } finally {
       setIsLoadingSubmissions(false);
     }
-  }, [appliedSearch, canView, homeworkId, showError, statusFilter, t]);
+  }, [appliedSearch, canView, homeworkId, limit, page, showError, statusFilter, t]);
 
   const loadSubmissionDetail = useCallback(
     async (submissionId: string) => {
@@ -243,7 +309,8 @@ export default function HomeworkSubmissionReviewPanel({
   };
 
   const applySearch = () => {
-    setAppliedSearch(searchDraft.trim());
+    setPage(1);
+    setAppliedSearch(searchDraft.trim().slice(0, SEARCH_MAX_LENGTH));
   };
 
   const saveAnswerReview = async (answerId: string) => {
@@ -300,7 +367,7 @@ export default function HomeworkSubmissionReviewPanel({
   };
 
   const saveSubmissionReview = async () => {
-    if (!selectedSubmissionId || !canManage) return;
+    if (!selectedSubmissionId || !canSaveSubmissionReview) return;
     const parsedMarks = submissionReviewDraft.awardedMarks.trim()
       ? Number(submissionReviewDraft.awardedMarks)
       : undefined;
@@ -311,7 +378,7 @@ export default function HomeworkSubmissionReviewPanel({
         selectedSubmissionId,
         {
           awardedMarks: Number.isFinite(parsedMarks) ? parsedMarks : undefined,
-          reviewNote: submissionReviewDraft.reviewNote,
+          reviewNote: submissionReviewDraft.reviewNote.trim(),
         },
       );
       updateSelectedSubmission(updated);
@@ -365,7 +432,11 @@ export default function HomeworkSubmissionReviewPanel({
                   {t("submissions.title")}
                 </h2>
                 <p className="text-xs text-gray-500">
-                  {t("submissions.count", { count: submissions.length })}
+                  {t("submissions.range", {
+                    start: rangeStart,
+                    end: rangeEnd,
+                    total: pagination.total,
+                  })}
                 </p>
               </div>
               <Button
@@ -383,18 +454,38 @@ export default function HomeworkSubmissionReviewPanel({
                 label={t("filters.status")}
                 value={statusFilter}
                 options={statusOptions}
-                onChange={(value) => setStatusFilter(value as SubmissionStatusFilter)}
+                onChange={(value) => {
+                  setPage(1);
+                  setStatusFilter(value as SubmissionStatusFilter);
+                }}
+                selectSize="sm"
+              />
+              <Select
+                label={t("filters.limit")}
+                value={String(limit)}
+                options={pageSizeOptions}
+                onChange={(value) => {
+                  setPage(1);
+                  setLimit(Number(value));
+                }}
                 selectSize="sm"
               />
               <div className="flex gap-2">
                 <Input
                   label={t("filters.search")}
                   value={searchDraft}
-                  onChange={(event) => setSearchDraft(event.target.value)}
+                  maxLength={SEARCH_MAX_LENGTH}
+                  onChange={(event) =>
+                    setSearchDraft(event.target.value.slice(0, SEARCH_MAX_LENGTH))
+                  }
                   onKeyDown={(event) => {
                     if (event.key === "Enter") applySearch();
                   }}
                   placeholder={t("filters.searchPlaceholder")}
+                  helperText={t("filters.searchLimit", {
+                    count: searchDraft.length,
+                    max: SEARCH_MAX_LENGTH,
+                  })}
                   inputSize="sm"
                   leftIcon={<Search className="h-4 w-4" />}
                 />
@@ -465,6 +556,34 @@ export default function HomeworkSubmissionReviewPanel({
             </button>
           ))}
         </div>
+          <div className="flex items-center justify-between gap-2 border-t border-border p-3">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={pagination.page <= 1 || isLoadingSubmissions}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              {t("pagination.previous")}
+            </Button>
+            <span className="text-xs font-medium text-gray-500">
+              {t("pagination.page", {
+                page: pagination.page,
+                totalPages,
+              })}
+            </span>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={pagination.page >= totalPages || isLoadingSubmissions}
+              onClick={() =>
+                setPage((current) => Math.min(totalPages, current + 1))
+              }
+            >
+              {t("pagination.next")}
+            </Button>
+          </div>
       </aside>
 
       <section className="min-w-0 rounded-lg border border-border bg-white">
@@ -576,6 +695,7 @@ export default function HomeworkSubmissionReviewPanel({
                         max={selectedSubmission.totalMarks ?? totalMarks}
                         step="0.01"
                         value={submissionReviewDraft.awardedMarks}
+                        error={awardedMarksError}
                         onChange={(event) =>
                           setSubmissionReviewDraft((current) => ({
                             ...current,
@@ -588,7 +708,13 @@ export default function HomeworkSubmissionReviewPanel({
                         label={t("submissionReview.reviewNote")}
                         value={submissionReviewDraft.reviewNote}
                         rows={2}
+                        maxLength={REVIEW_NOTE_MAX_LENGTH + 1}
                         resize="vertical"
+                        error={reviewNoteError}
+                        helperText={t("submissionReview.reviewNoteLimit", {
+                          count: reviewNoteLength,
+                          max: REVIEW_NOTE_MAX_LENGTH,
+                        })}
                         onChange={(event) =>
                           setSubmissionReviewDraft((current) => ({
                             ...current,
@@ -601,6 +727,7 @@ export default function HomeworkSubmissionReviewPanel({
                         <Button
                           onClick={() => void saveSubmissionReview()}
                           loading={isSavingSubmissionReview}
+                          disabled={!canSaveSubmissionReview}
                           leftIcon={<Save className="h-4 w-4" />}
                         >
                           {t("actions.saveSubmission")}

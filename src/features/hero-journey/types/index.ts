@@ -14,6 +14,9 @@ export interface HeroJourneyBadge {
   descriptionEn: string;
   descriptionAr: string;
   assetPath?: string;
+  fileId?: string;
+  sortOrder?: number;
+  isActive?: boolean;
 }
 
 export interface HeroJourneyChartDatum {
@@ -57,7 +60,96 @@ export interface HeroJourneySummaryWidget {
   tone: "teal" | "sky" | "amber";
 }
 
+export interface HeroJourneyOverviewScope {
+  academicYearId: string;
+  yearId: string;
+  termId: string;
+  stageId: string | null;
+  gradeId: string | null;
+  sectionId: string | null;
+  classroomId: string | null;
+  studentId: string | null;
+  subjectId: string | null;
+}
+
+export interface HeroJourneyOverviewMissions {
+  total: number;
+  draft: number;
+  published: number;
+  archived: number;
+  withBadgeReward: number;
+  withXpReward: number;
+}
+
+export interface HeroJourneyOverviewProgress {
+  totalProgress: number;
+  notStarted: number;
+  inProgress: number;
+  completed: number;
+  cancelled: number;
+  completionRate: number;
+}
+
+export interface HeroJourneyOverviewObjectives {
+  totalRequired: number;
+  completedRequired: number;
+  averageProgressPercent: number;
+}
+
+export interface HeroJourneyOverviewRewards {
+  totalHeroXp: number;
+  xpGrantedMissions: number;
+  badgesAwarded: number;
+  studentsWithBadges: number;
+}
+
+export interface HeroJourneyOverviewEvents {
+  missionStarted: number;
+  objectiveCompleted: number;
+  missionCompleted: number;
+  xpGranted: number;
+  badgeAwarded: number;
+}
+
+export interface HeroJourneyOverviewTopStudent {
+  studentId: string;
+  student: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    name: string;
+    nameAr: string | null;
+    code: string | null;
+    admissionNo: string | null;
+  };
+  completedMissions: number;
+  totalHeroXp: number;
+  badgesCount: number;
+  averageProgressPercent: number;
+}
+
+export interface HeroJourneyOverviewActivity {
+  id: string;
+  type: string;
+  missionId: string | null;
+  progressId: string | null;
+  objectiveId: string | null;
+  studentId: string | null;
+  xpLedgerId: string | null;
+  badgeId: string | null;
+  occurredAt: string;
+  actorUserId: string | null;
+}
+
 export interface HeroJourneyOverviewMetrics {
+  scope: HeroJourneyOverviewScope;
+  missions: HeroJourneyOverviewMissions;
+  progress: HeroJourneyOverviewProgress;
+  objectives: HeroJourneyOverviewObjectives;
+  rewards: HeroJourneyOverviewRewards;
+  events: HeroJourneyOverviewEvents;
+  topStudents: HeroJourneyOverviewTopStudent[];
+  recentActivity: HeroJourneyOverviewActivity[];
   enrolledStudents: number;
   activeStudentsThisWeek: number;
   missionCompletionRate: number;
@@ -76,8 +168,19 @@ export interface HeroJourneyOverviewMetrics {
 
 export interface HeroJourneyMission {
   id: string;
+  academicYearId?: string;
+  termId?: string;
+  stageId?: string;
+  gradeId?: string;
+  sectionId?: string;
+  classroomId?: string;
+  subjectId?: string;
+  linkedAssessmentId?: string;
+  linkedLessonRef?: string;
   titleEn: string;
   titleAr: string;
+  briefEn?: string;
+  briefAr?: string;
   stageNameEn: string;
   stageNameAr: string;
   requiredLevel: number;
@@ -89,7 +192,15 @@ export interface HeroJourneyMission {
   linkedQuizTitleAr: string;
   status: HeroJourneyMissionStatus;
   rewardXp: number;
+  badgeRewardId?: string;
   badgeRewardSlug?: string;
+  badgeRewardNameEn?: string;
+  badgeRewardNameAr?: string;
+  positionX?: number;
+  positionY?: number;
+  sortOrder?: number;
+  metadata?: Record<string, unknown> | null;
+  objectives?: HeroJourneyMissionObjective[];
   studentsStarted: number;
   studentsCompleted: number;
   updatedAt: string;
@@ -97,9 +208,17 @@ export interface HeroJourneyMission {
 
 export interface HeroJourneyMissionObjective {
   id: string;
-  titleEn: string;
-  titleAr: string;
-  isCompleted: boolean;
+  type?: string;
+  titleEn?: string;
+  titleAr?: string;
+  subtitleEn?: string;
+  subtitleAr?: string;
+  linkedAssessmentId?: string;
+  linkedLessonRef?: string;
+  sortOrder?: number;
+  isRequired?: boolean;
+  isCompleted?: boolean;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface HeroJourneyStudentProgress {
@@ -135,9 +254,28 @@ export interface HeroJourneyMissionFilters {
   search?: string;
   status?: HeroJourneyMissionStatus | "all";
   stage?: string | "all";
+  academicYearId?: string;
+  yearId?: string;
+  termId?: string;
+  stageId?: string;
+  subjectId?: string;
+  includeArchived?: boolean;
+  includeDeleted?: boolean;
+  limit?: number;
+  offset?: number;
 }
 
 export interface HeroJourneyStudentProgressFilters {
+  academicYearId?: string;
+  yearId?: string;
+  termId?: string;
+  stageId?: string;
+  gradeId?: string;
+  sectionId?: string;
+  classroomId?: string;
+  studentId?: string;
+  dateFrom?: string;
+  dateTo?: string;
   search?: string;
   grade?: string | "all";
   section?: string | "all";

@@ -305,6 +305,17 @@ export interface HomeworkSubmissionListFilters {
   limit?: number;
 }
 
+export interface HomeworkSubmissionsPaginationUiModel {
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export interface HomeworkSubmissionsListResult {
+  items: HomeworkSubmissionUiModel[];
+  pagination: HomeworkSubmissionsPaginationUiModel;
+}
+
 export interface BackendHomeworkSubmissionAnswerDto {
   answerId?: string;
   id?: string;
@@ -565,7 +576,7 @@ export interface HomeworkAdapter {
   listSubmissions(
     homeworkId: string,
     filters?: HomeworkSubmissionListFilters,
-  ): Promise<HomeworkSubmissionUiModel[]>;
+  ): Promise<HomeworkSubmissionsListResult>;
   getSubmission(
     homeworkId: string,
     submissionId: string,

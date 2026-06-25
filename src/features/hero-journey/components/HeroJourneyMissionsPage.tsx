@@ -1,31 +1,74 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Eye, ListChecks, PencilLine, Power, Search, Target } from "lucide-react";
+import {
+  Award,
+  Archive,
+  Eye,
+  ListChecks,
+  MoreVertical,
+  PencilLine,
+  Plus,
+  Power,
+  RefreshCw,
+  Search,
+  Target,
+  Trash2,
+} from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { Button, DataTable, FilterPanel, Input, KPICardV2, Modal, Select } from "@/components/ui";
+import {
+  Button,
+  DataTable,
+  FilterPanel,
+  Input,
+  KPICardV2,
+  Modal,
+  Select,
+} from "@/components/ui";
 import type { Column } from "@/components/ui/data-table";
+import { DropdownMenu } from "@/components/ui/dropdown";
+import type { SelectOption } from "@/components/ui/input/Select";
 import { useToast } from "@/components/ui/toast/Toast";
+import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
+import { fetchCurriculumForScope } from "@/features/academics/curriculum/services/curriculumService";
+import { useAcademicYearTermContext } from "@/features/academics/hooks/useAcademicYearTermContext";
+import {
+  fetchSubjectAllocations,
+  fetchSubjects,
+} from "@/features/academics/subjects/services/subjectsService";
+import { fetchAssessments } from "@/features/grades/overview/services/gradesOverviewService";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import { heroJourneySectionBanners } from "../config/heroJourneySectionBanners";
 import useHeroJourneyOverlayMode from "../hooks/useHeroJourneyOverlayMode";
 import {
+  createHeroJourneyBadge,
+  createHeroJourneyMission,
+  deleteHeroJourneyBadge,
+  deleteHeroJourneyMission,
+  getHeroJourneyBadge,
   getHeroJourneyBadgeCatalog,
+  getHeroJourneyMission,
   getHeroJourneyMissions,
-  toggleHeroJourneyMissionPublishState,
+  archiveHeroJourneyMission,
+  publishHeroJourneyMission,
+  updateHeroJourneyBadge,
+  updateHeroJourneyMission,
+} from "../services/heroJourneyService";
+import type {
+  HeroJourneyBadgePayload,
+  HeroJourneyMissionPayload,
 } from "../services/heroJourneyService";
 import type {
   HeroJourneyBadge,
   HeroJourneyMission,
   HeroJourneyMissionFilters,
 } from "../types";
-import {
-  canToggleHeroJourneyMissionPublishStatus,
-  formatHeroJourneyPercent,
-} from "../utils/heroJourneyPresentation";
+import { formatHeroJourneyPercent } from "../utils/heroJourneyPresentation";
 import HeroJourneyBadgeThumb from "./HeroJourneyBadgeThumb";
+import HeroJourneyBadgeFormModal from "./HeroJourneyBadgeFormModal";
 import HeroJourneyMobilePagination from "./HeroJourneyMobilePagination";
 import HeroJourneyMissionDetailContent from "./HeroJourneyMissionDetailContent";
+import HeroJourneyMissionFormModal from "./HeroJourneyMissionFormModal";
 import HeroJourneyPageHeader from "./HeroJourneyPageHeader";
 import HeroJourneyStatusPill from "./HeroJourneyStatusPill";
 
@@ -37,50 +80,158 @@ function getMissionCompletionRate(mission: HeroJourneyMission) {
   return (mission.studentsCompleted / mission.studentsStarted) * 100;
 }
 
+function localizedOptionLabel(
+  locale: string,
+  nameEn?: string | null,
+  nameAr?: string | null,
+  fallback = "",
+) {
+  return locale === "ar"
+    ? nameAr || nameEn || fallback
+    : nameEn || nameAr || fallback;
+}
+
+function hasLinkedValue(value?: string | null) {
+  const normalized = value?.trim().toLowerCase();
+  if (!normalized) return false;
+
+  return ![
+    "linked lesson",
+    "درس مرتبط",
+    "not linked",
+    "غير مرتبط",
+    "linked assessment",
+    "تقييم مرتبط",
+    "no assessment linked",
+    "لا يوجد تقييم مرتبط",
+  ].includes(normalized);
+}
+
+type RelatedSelectOption = SelectOption & {
+  stageId?: string;
+  gradeId?: string;
+  gradeIds?: string[];
+  sectionId?: string;
+  classroomId?: string;
+  subjectId?: string;
+  scopeType?: string;
+  scopeId?: string;
+};
+
 export default function HeroJourneyMissionsPage() {
   const mobilePageSize = 5;
   const locale = useLocale();
   const t = useTranslations("heroJourney");
-  const { showInfo, showSuccess } = useToast();
+  const { showError, showSuccess } = useToast();
+  const {
+    academicYearId,
+    termId,
+    selectedAcademicYear,
+    selectedTerm,
+    isInitializing: isAcademicContextInitializing,
+  } = useAcademicYearTermContext();
   const [showFilters, setShowFilters] = useState(true);
   const [missions, setMissions] = useState<HeroJourneyMission[]>([]);
   const [badges, setBadges] = useState<HeroJourneyBadge[]>([]);
-  const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [selectedMissionId, setSelectedMissionId] = useState<string | null>(
+    null,
+  );
   const [isPublishing, setIsPublishing] = useState<string | null>(null);
   const [isMissionModalOpen, setIsMissionModalOpen] = useState(false);
+  const [isMissionFormOpen, setIsMissionFormOpen] = useState(false);
+  const [editingMission, setEditingMission] =
+    useState<HeroJourneyMission | null>(null);
+  const [isMissionSaving, setIsMissionSaving] = useState(false);
+  const [isMissionOptionsLoading, setIsMissionOptionsLoading] = useState(false);
+  const [missionOptionsReloadKey, setMissionOptionsReloadKey] = useState(0);
+  const [missionOptionsError, setMissionOptionsError] = useState<string | null>(
+    null,
+  );
+  const [stageOptions, setStageOptions] = useState<RelatedSelectOption[]>([]);
+  const [gradeOptions, setGradeOptions] = useState<RelatedSelectOption[]>([]);
+  const [sectionOptions, setSectionOptions] = useState<RelatedSelectOption[]>(
+    [],
+  );
+  const [classroomOptions, setClassroomOptions] = useState<
+    RelatedSelectOption[]
+  >([]);
+  const [subjectOptions, setSubjectOptions] = useState<RelatedSelectOption[]>(
+    [],
+  );
+  const [assessmentOptions, setAssessmentOptions] = useState<
+    RelatedSelectOption[]
+  >([]);
+  const [lessonNameById, setLessonNameById] = useState<Record<string, string>>(
+    {},
+  );
+  const [deletingMissionId, setDeletingMissionId] = useState<string | null>(
+    null,
+  );
+  const [isBadgeManagerOpen, setIsBadgeManagerOpen] = useState(false);
+  const [isBadgeFormOpen, setIsBadgeFormOpen] = useState(false);
+  const [editingBadge, setEditingBadge] = useState<HeroJourneyBadge | null>(
+    null,
+  );
+  const [isBadgeSaving, setIsBadgeSaving] = useState(false);
+  const [deletingBadgeId, setDeletingBadgeId] = useState<string | null>(null);
+  const [missionTablePage, setMissionTablePage] = useState(1);
+  const [missionTablePageSize, setMissionTablePageSize] = useState(8);
   const isOverlayMode = useHeroJourneyOverlayMode();
   const queryState = useUrlQueryState({
     defaults: {
       q: "",
       status: "all",
-      stage: "all",
-      heroJourneyMissionsPage: "1",
+      includeArchived: "all",
+      heroJourneyMissionsMobilePage: "1",
     },
     debouncedKeys: ["q"],
     modeByKey: {
       q: "replace",
       status: "replace",
-      stage: "replace",
     },
   });
-
-  const filters = useMemo<HeroJourneyMissionFilters>(
+  const missionFilters: HeroJourneyMissionFilters = useMemo(
     () => ({
+      academicYearId: academicYearId || undefined,
+      termId: termId || undefined,
       search: queryState.values.q || undefined,
       status: queryState.values.status as HeroJourneyMissionFilters["status"],
-      stage: queryState.values.stage as HeroJourneyMissionFilters["stage"],
+      includeArchived:
+        queryState.values.includeArchived === "true"
+          ? true
+          : queryState.values.includeArchived === "false"
+            ? false
+            : undefined,
+      limit: missionTablePageSize,
+      offset: (missionTablePage - 1) * missionTablePageSize,
     }),
-    [queryState.values.q, queryState.values.stage, queryState.values.status],
+    [
+      academicYearId,
+      missionTablePage,
+      missionTablePageSize,
+      queryState.values.includeArchived,
+      queryState.values.q,
+      queryState.values.status,
+      termId,
+    ],
   );
 
   useEffect(() => {
     let cancelled = false;
 
-    void getHeroJourneyBadgeCatalog().then((result) => {
-      if (!cancelled) {
-        setBadges(result);
-      }
-    });
+    void getHeroJourneyBadgeCatalog({})
+      .then((result) => {
+        if (!cancelled) {
+          setBadges(result);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBadges([]);
+        }
+      });
 
     return () => {
       cancelled = true;
@@ -88,18 +239,272 @@ export default function HeroJourneyMissionsPage() {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    if (!academicYearId || !termId) {
+      return;
+    }
 
-    void getHeroJourneyMissions(filters).then((result) => {
+    let cancelled = false;
+    setIsMissionOptionsLoading(true);
+    setMissionOptionsError(null);
+
+    void Promise.all([
+      fetchStructureTree(academicYearId, termId),
+      fetchSubjects(termId),
+      fetchSubjectAllocations(termId),
+      fetchAssessments(academicYearId, termId, { includeDrafts: true }),
+    ])
+      .then(([structure, subjects, allocations, assessments]) => {
+        if (cancelled) return;
+
+        const nextStageOptions = structure.stages.map((stage) => ({
+          value: stage.id,
+          label: localizedOptionLabel(
+            locale,
+            stage.nameEn,
+            stage.nameAr,
+            stage.name,
+          ),
+          searchText: `${stage.nameEn} ${stage.nameAr} ${stage.name}`,
+        }));
+        const nextGradeOptions = structure.grades.map((grade) => ({
+          value: grade.id,
+          label: localizedOptionLabel(
+            locale,
+            grade.nameEn,
+            grade.nameAr,
+            grade.name,
+          ),
+          searchText: `${grade.nameEn} ${grade.nameAr} ${grade.name}`,
+          stageId: grade.stageId,
+        }));
+        const nextSectionOptions = structure.sections.map((section) => ({
+          value: section.id,
+          label: localizedOptionLabel(
+            locale,
+            section.nameEn,
+            section.nameAr,
+            section.name,
+          ),
+          searchText: `${section.nameEn} ${section.nameAr} ${section.name}`,
+          gradeId: section.gradeId,
+        }));
+        const nextClassroomOptions = structure.classrooms.map((classroom) => ({
+          value: classroom.id,
+          label: localizedOptionLabel(
+            locale,
+            classroom.nameEn,
+            classroom.nameAr,
+            classroom.name,
+          ),
+          searchText: `${classroom.nameEn} ${classroom.nameAr} ${classroom.name}`,
+          sectionId: classroom.sectionId,
+        }));
+        const gradeIdsBySubject = new Map<string, string[]>();
+        allocations.forEach((allocation) => {
+          const current = gradeIdsBySubject.get(allocation.subjectId) || [];
+          if (allocation.gradeId && !current.includes(allocation.gradeId)) {
+            gradeIdsBySubject.set(allocation.subjectId, [
+              ...current,
+              allocation.gradeId,
+            ]);
+          }
+        });
+        const nextSubjectOptions = subjects.map((subject) => ({
+          value: subject.id,
+          label: localizedOptionLabel(
+            locale,
+            subject.nameEn,
+            subject.nameAr,
+            subject.name,
+          ),
+          searchText: `${subject.nameEn} ${subject.nameAr} ${subject.code || ""} ${subject.stage || ""}`,
+          stageId: subject.stage,
+          gradeIds: gradeIdsBySubject.get(subject.id) || [],
+        }));
+        const nextAssessmentOptions = assessments.map((assessment) => ({
+          value: assessment.id,
+          label: localizedOptionLabel(
+            locale,
+            assessment.title,
+            assessment.titleAr,
+            assessment.id,
+          ),
+          searchText: `${assessment.title} ${assessment.titleAr} ${assessment.type}`,
+          subjectId: assessment.subjectId,
+          scopeType: assessment.scopeType,
+          scopeId: assessment.scopeId,
+          sectionId: assessment.sectionId,
+          classroomId: assessment.classroomId,
+        }));
+
+        setStageOptions(nextStageOptions);
+        setGradeOptions(nextGradeOptions);
+        setSectionOptions(nextSectionOptions);
+        setClassroomOptions(nextClassroomOptions);
+        setSubjectOptions(nextSubjectOptions);
+        setAssessmentOptions(nextAssessmentOptions);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStageOptions([]);
+          setGradeOptions([]);
+          setSectionOptions([]);
+          setClassroomOptions([]);
+          setSubjectOptions([]);
+          setAssessmentOptions([]);
+          setMissionOptionsError(t("messages.loadMissionOptionsFailed"));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsMissionOptionsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [academicYearId, locale, missionOptionsReloadKey, t, termId]);
+
+  const assessmentNameById = useMemo(
+    () =>
+      new Map(assessmentOptions.map((option) => [option.value, option.label])),
+    [assessmentOptions],
+  );
+
+  useEffect(() => {
+    if (!academicYearId || !termId || missions.length === 0) {
+      setLessonNameById({});
+      return;
+    }
+
+    let cancelled = false;
+    const curriculumCache = new Map<
+      string,
+      ReturnType<typeof fetchCurriculumForScope>
+    >();
+
+    const getCurriculum = (gradeId: string, subjectId: string) => {
+      const cacheKey = `${gradeId}:${subjectId}`;
+      const cached = curriculumCache.get(cacheKey);
+      if (cached) {
+        return cached;
+      }
+
+      const request = fetchCurriculumForScope({
+        academicYearId,
+        termId,
+        gradeId,
+        subjectId,
+      });
+      curriculumCache.set(cacheKey, request);
+      return request;
+    };
+
+    void (async () => {
+      const nextLessonNames: Record<string, string> = {};
+
+      for (const mission of missions) {
+        const lessonId = mission.linkedLessonRef || mission.linkedLessonId;
+        if (!lessonId || !mission.subjectId) {
+          continue;
+        }
+
+        const subjectOption = subjectOptions.find(
+          (option) => option.value === mission.subjectId,
+        );
+        const subjectGradeIds = subjectOption?.gradeIds || [];
+        const candidateGrades = gradeOptions.filter((option) => {
+          if (
+            mission.stageId &&
+            option.stageId &&
+            option.stageId !== mission.stageId
+          ) {
+            return false;
+          }
+
+          return (
+            subjectGradeIds.length === 0 ||
+            subjectGradeIds.includes(option.value)
+          );
+        });
+
+        for (const gradeOption of candidateGrades) {
+          const curriculum = await getCurriculum(
+            gradeOption.value,
+            mission.subjectId,
+          );
+          if (cancelled) return;
+
+          const lesson = curriculum?.units
+            .flatMap((unit) => unit.lessons)
+            .find((item) => item.id === lessonId);
+
+          if (lesson) {
+            nextLessonNames[lessonId] = lesson.title;
+            break;
+          }
+        }
+      }
+
       if (!cancelled) {
-        setMissions(result);
+        setLessonNameById(nextLessonNames);
+      }
+    })().catch(() => {
+      if (!cancelled) {
+        setLessonNameById({});
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [filters]);
+  }, [academicYearId, gradeOptions, missions, subjectOptions, termId]);
+
+  useEffect(() => {
+    if (isAcademicContextInitializing) {
+      return;
+    }
+
+    if (!academicYearId || !termId) {
+      setMissions([]);
+      setLoadError(t("messages.selectAcademicContext"));
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+
+    void getHeroJourneyMissions(missionFilters)
+      .then((result) => {
+        if (!cancelled) {
+          setMissions(result);
+          setLoadError(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMissions([]);
+          setLoadError(t("messages.loadMissionsFailed"));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    academicYearId,
+    isAcademicContextInitializing,
+    missionFilters,
+    t,
+    termId,
+  ]);
 
   const badgeMap = useMemo(
     () => new Map(badges.map((badge) => [badge.slug, badge])),
@@ -111,11 +516,38 @@ export default function HeroJourneyMissionsPage() {
     [missions, selectedMissionId],
   );
   const detailMission = selectedMission || missions[0] || null;
+  const getResolvedLinkedLessonName = (mission: HeroJourneyMission | null) => {
+    if (!mission) return undefined;
+    const lessonId = mission.linkedLessonRef || mission.linkedLessonId;
+    return lessonNameById[lessonId];
+  };
+  const getResolvedLinkedAssessmentName = (
+    mission: HeroJourneyMission | null,
+  ) => {
+    if (!mission) return undefined;
+    return assessmentNameById.get(
+      mission.linkedAssessmentId || mission.linkedQuizId,
+    );
+  };
+  const getResolvedStageName = (mission: HeroJourneyMission | null) => {
+    if (!mission) return "";
+
+    return (
+      stageOptions.find((option) => option.value === mission.stageId)?.label ||
+      (locale === "ar" ? mission.stageNameAr : mission.stageNameEn)
+    );
+  };
   const mobileCurrentPage = Math.max(
     1,
-    Number.parseInt(queryState.values.heroJourneyMissionsPage || "1", 10) || 1,
+    Number.parseInt(
+      queryState.values.heroJourneyMissionsMobilePage || "1",
+      10,
+    ) || 1,
   );
-  const mobileTotalPages = Math.max(1, Math.ceil(missions.length / mobilePageSize));
+  const mobileTotalPages = Math.max(
+    1,
+    Math.ceil(missions.length / mobilePageSize),
+  );
   const safeMobilePage = Math.min(mobileCurrentPage, mobileTotalPages);
   const mobileVisibleMissions = useMemo(() => {
     const startIndex = (safeMobilePage - 1) * mobilePageSize;
@@ -148,7 +580,8 @@ export default function HeroJourneyMissionsPage() {
       {
         key: "published",
         title: t("missionsSummary.publishedMissions"),
-        value: missions.filter((mission) => mission.status === "published").length,
+        value: missions.filter((mission) => mission.status === "published")
+          .length,
         icon: Power,
         iconColor: "#047857",
         iconBgColor: "#ecfdf5",
@@ -174,8 +607,215 @@ export default function HeroJourneyMissionsPage() {
     }
   };
 
+  const refreshBadges = async () => {
+    const refreshed = await getHeroJourneyBadgeCatalog({});
+    setBadges(refreshed);
+  };
+
+  const refreshMissions = async () => {
+    const refreshed = await getHeroJourneyMissions(missionFilters);
+    setMissions(refreshed);
+  };
+
+  const refreshMissionList = async () => {
+    if (!academicYearId || !termId) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await Promise.all([refreshMissions(), refreshBadges()]);
+      setLoadError(null);
+    } catch {
+      setLoadError(t("messages.loadMissionsFailed"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshMissionFormOptions = () => {
+    setMissionOptionsReloadKey((value) => value + 1);
+    void refreshBadges();
+  };
+
+  const loadCurriculumLessonOptions = async (
+    gradeId: string,
+    subjectId: string,
+  ): Promise<RelatedSelectOption[]> => {
+    if (!academicYearId || !termId || !gradeId || !subjectId) {
+      return [];
+    }
+
+    const curriculum = await fetchCurriculumForScope({
+      academicYearId,
+      termId,
+      gradeId,
+      subjectId,
+    });
+
+    return (
+      curriculum?.units.flatMap((unit) =>
+        unit.lessons.map((lesson) => ({
+          value: lesson.id,
+          label: lesson.title,
+          searchText: `${lesson.title} ${unit.title} ${curriculum.title}`,
+          subjectId,
+          gradeId: curriculum.gradeId || gradeId,
+        })),
+      ) || []
+    );
+  };
+
+  const openCreateMission = () => {
+    if (!academicYearId || !termId) {
+      showError(t("messages.selectAcademicContextBeforeCreate"));
+      return;
+    }
+
+    setEditingMission(null);
+    setIsMissionFormOpen(true);
+  };
+
+  const openEditMission = async (missionId: string) => {
+    try {
+      setEditingMission(await getHeroJourneyMission(missionId));
+      setIsMissionModalOpen(false);
+      setIsMissionFormOpen(true);
+    } catch {
+      showError("Unable to load mission detail.");
+    }
+  };
+
+  const saveMission = async (
+    payload: Omit<
+      HeroJourneyMissionPayload,
+      "academicYearId" | "yearId" | "termId"
+    >,
+  ) => {
+    if (!academicYearId || !termId) {
+      showError(t("messages.selectAcademicContextBeforeSave"));
+      return;
+    }
+
+    const scopedPayload: HeroJourneyMissionPayload = {
+      ...payload,
+      academicYearId,
+      termId,
+    };
+
+    setIsMissionSaving(true);
+    try {
+      if (editingMission) {
+        await updateHeroJourneyMission(editingMission.id, scopedPayload);
+        showSuccess("Mission updated.");
+      } else {
+        await createHeroJourneyMission(scopedPayload);
+        showSuccess("Mission created.");
+      }
+      setIsMissionFormOpen(false);
+      setEditingMission(null);
+      await refreshMissions();
+    } catch {
+      showError("Unable to save mission.");
+    } finally {
+      setIsMissionSaving(false);
+    }
+  };
+
+  const removeMission = async (missionId: string) => {
+    if (!window.confirm(t("messages.confirmDeleteMission"))) {
+      return;
+    }
+
+    setDeletingMissionId(missionId);
+    try {
+      await deleteHeroJourneyMission(missionId);
+      showSuccess("Mission deleted.");
+      if (selectedMissionId === missionId) {
+        setSelectedMissionId(null);
+      }
+      await refreshMissions();
+    } catch {
+      showError("Unable to delete mission.");
+    } finally {
+      setDeletingMissionId(null);
+    }
+  };
+
+  const publishMission = async (missionId: string) => {
+    setIsPublishing(missionId);
+    try {
+      await publishHeroJourneyMission(missionId);
+      await refreshMissions();
+      showSuccess(t("messages.publishStateUpdated"));
+    } finally {
+      setIsPublishing(null);
+    }
+  };
+
+  const archiveMission = async (missionId: string) => {
+    setIsPublishing(missionId);
+    try {
+      await archiveHeroJourneyMission(missionId);
+      await refreshMissions();
+      showSuccess(t("messages.publishStateUpdated"));
+    } finally {
+      setIsPublishing(null);
+    }
+  };
+
+  const openCreateBadge = () => {
+    setEditingBadge(null);
+    setIsBadgeFormOpen(true);
+  };
+
+  const openEditBadge = async (badgeId: string) => {
+    try {
+      setEditingBadge(await getHeroJourneyBadge(badgeId));
+      setIsBadgeFormOpen(true);
+    } catch {
+      showError("Unable to load badge detail.");
+    }
+  };
+
+  const saveBadge = async (payload: HeroJourneyBadgePayload) => {
+    setIsBadgeSaving(true);
+    try {
+      if (editingBadge) {
+        await updateHeroJourneyBadge(editingBadge.id, payload);
+        showSuccess("Badge updated.");
+      } else {
+        await createHeroJourneyBadge(payload);
+        showSuccess("Badge created.");
+      }
+      setIsBadgeFormOpen(false);
+      setEditingBadge(null);
+      await refreshBadges();
+    } catch {
+      showError("Unable to save badge.");
+    } finally {
+      setIsBadgeSaving(false);
+    }
+  };
+
+  const removeBadge = async (badgeId: string) => {
+    if (!window.confirm(t("messages.confirmDeleteBadge"))) {
+      return;
+    }
+
+    setDeletingBadgeId(badgeId);
+    try {
+      await deleteHeroJourneyBadge(badgeId);
+      showSuccess("Badge deleted.");
+      await refreshBadges();
+    } catch {
+      showError("Unable to delete badge.");
+    } finally {
+      setDeletingBadgeId(null);
+    }
+  };
+
   const columns: Column<HeroJourneyMission>[] = [
-    { key: "id", label: t("table.missionId"), searchable: true },
     {
       key: "titleEn",
       label: t("table.title"),
@@ -186,7 +826,7 @@ export default function HeroJourneyMissionsPage() {
             {locale === "ar" ? row.titleAr : row.titleEn}
           </div>
           <div className="truncate text-xs text-gray-500">
-            {locale === "ar" ? row.stageNameAr : row.stageNameEn}
+            {getResolvedStageName(row)}
           </div>
         </div>
       ),
@@ -196,15 +836,41 @@ export default function HeroJourneyMissionsPage() {
       key: "linkedLessonTitleEn",
       label: t("table.linkedLesson"),
       searchable: true,
-      render: (_value, row) =>
-        locale === "ar" ? row.linkedLessonTitleAr : row.linkedLessonTitleEn,
+      render: (_value, row) => {
+        const lessonId = row.linkedLessonRef || row.linkedLessonId;
+        if (!hasLinkedValue(lessonId)) {
+          return t("detail.noLinkedLesson");
+        }
+
+        const fallbackLessonName =
+          locale === "ar" ? row.linkedLessonTitleAr : row.linkedLessonTitleEn;
+        return (
+          lessonNameById[lessonId] ||
+          (hasLinkedValue(fallbackLessonName)
+            ? fallbackLessonName
+            : t("detail.noLinkedLesson"))
+        );
+      },
     },
     {
       key: "linkedQuizTitleEn",
       label: t("table.linkedQuiz"),
       searchable: true,
-      render: (_value, row) =>
-        locale === "ar" ? row.linkedQuizTitleAr : row.linkedQuizTitleEn,
+      render: (_value, row) => {
+        const assessmentId = row.linkedAssessmentId || row.linkedQuizId;
+        if (!hasLinkedValue(assessmentId)) {
+          return t("detail.noLinkedAssessment");
+        }
+
+        const fallbackAssessmentName =
+          locale === "ar" ? row.linkedQuizTitleAr : row.linkedQuizTitleEn;
+        return (
+          assessmentNameById.get(assessmentId) ||
+          (hasLinkedValue(fallbackAssessmentName)
+            ? fallbackAssessmentName
+            : t("detail.noLinkedAssessment"))
+        );
+      },
     },
     {
       key: "status",
@@ -252,41 +918,60 @@ export default function HeroJourneyMissionsPage() {
       sortable: false,
       render: (_value, row) => (
         <div
-          className="flex items-center gap-1"
+          className="flex items-center justify-end"
           onClick={(event) => event.stopPropagation()}
         >
-          <button
-            onClick={() => openMissionDetail(row.id)}
-            className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-primary"
-            title={t("actions.view")}
-          >
-            <Eye className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => showInfo(t("messages.editPlaceholder"))}
-            className="rounded p-1.5 text-blue-600 hover:bg-blue-50"
-            title={t("actions.edit")}
-          >
-            <PencilLine className="h-4 w-4" />
-          </button>
-          <button
-            onClick={async () => {
-              setIsPublishing(row.id);
-              await toggleHeroJourneyMissionPublishState(row.id);
-              const refreshed = await getHeroJourneyMissions(filters);
-              setMissions(refreshed);
-              setIsPublishing(null);
-              showSuccess(t("messages.publishStateUpdated"));
-            }}
-            disabled={
-              isPublishing === row.id ||
-              !canToggleHeroJourneyMissionPublishStatus(row.status)
+          <DropdownMenu
+            width="w-52"
+            trigger={
+              <button
+                type="button"
+                className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:border-primary/30 hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                title={t("actions.more")}
+                aria-label={t("actions.more")}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
             }
-            className="rounded p-1.5 text-emerald-600 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
-            title={t("actions.togglePublish")}
-          >
-            <Power className="h-4 w-4" />
-          </button>
+            items={[
+              {
+                value: "view",
+                label: t("actions.view"),
+                icon: <Eye className="h-4 w-4" />,
+                onClick: () => openMissionDetail(row.id),
+              },
+              {
+                value: "edit",
+                label: t("actions.edit"),
+                icon: <PencilLine className="h-4 w-4" />,
+                onClick: () => void openEditMission(row.id),
+              },
+              {
+                value: "publish",
+                label: t("actions.publish"),
+                icon: <Power className="h-4 w-4" />,
+                disabled:
+                  row.status === "published" ||
+                  row.status === "archived" ||
+                  isPublishing === row.id,
+                onClick: () => void publishMission(row.id),
+              },
+              {
+                value: "archive",
+                label: t("actions.archive"),
+                icon: <Archive className="h-4 w-4" />,
+                disabled: isPublishing === row.id || row.status === "archived",
+                onClick: () => void archiveMission(row.id),
+              },
+              {
+                value: "delete",
+                label: t("actions.delete"),
+                icon: <Trash2 className="h-4 w-4" />,
+                disabled: deletingMissionId === row.id,
+                onClick: () => void removeMission(row.id),
+              },
+            ]}
+          />
         </div>
       ),
     },
@@ -298,6 +983,31 @@ export default function HeroJourneyMissionsPage() {
         title={t("missions")}
         description={t("missionsDescription")}
         bannerImageSrc={heroJourneySectionBanners.missions}
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              leftIcon={<RefreshCw className="h-4 w-4" />}
+              onClick={() => void refreshMissionList()}
+              loading={isLoading}
+            >
+              {t("overviewState.refresh")}
+            </Button>
+            <Button
+              variant="secondary"
+              leftIcon={<Award className="h-4 w-4" />}
+              onClick={() => setIsBadgeManagerOpen(true)}
+            >
+              {t("actions.manageBadges")}
+            </Button>
+            <Button
+              leftIcon={<Plus className="h-4 w-4" />}
+              onClick={openCreateMission}
+            >
+              {t("actions.createMission")}
+            </Button>
+          </>
+        }
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -329,7 +1039,7 @@ export default function HeroJourneyMissionsPage() {
               onChange={(event) =>
                 queryState.setValues({
                   q: event.target.value,
-                  heroJourneyMissionsPage: "1",
+                  heroJourneyMissionsMobilePage: "1",
                 })
               }
               className="pl-10"
@@ -345,28 +1055,26 @@ export default function HeroJourneyMissionsPage() {
                 { value: "all", label: t("filters.allStatuses") },
                 { value: "draft", label: t("status.draft") },
                 { value: "published", label: t("status.published") },
-                { value: "scheduled", label: t("status.scheduled") },
                 { value: "archived", label: t("status.archived") },
               ]}
               onChange={(value) =>
                 queryState.setValues({
                   status: value,
-                  heroJourneyMissionsPage: "1",
+                  heroJourneyMissionsMobilePage: "1",
                 })
               }
             />
             <Select
-              value={queryState.values.stage}
+              value={queryState.values.includeArchived}
               options={[
-                { value: "all", label: t("filters.allStages") },
-                { value: "Primary", label: t("stages.primary") },
-                { value: "Middle", label: t("stages.middle") },
-                { value: "Secondary", label: t("stages.secondary") },
+                { value: "all", label: t("filters.archivedDefault") },
+                { value: "true", label: t("filters.includeArchived") },
+                { value: "false", label: t("filters.excludeArchived") },
               ]}
               onChange={(value) =>
                 queryState.setValues({
-                  stage: value,
-                  heroJourneyMissionsPage: "1",
+                  includeArchived: value,
+                  heroJourneyMissionsMobilePage: "1",
                 })
               }
             />
@@ -374,87 +1082,163 @@ export default function HeroJourneyMissionsPage() {
         }
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_360px]">
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 md:hidden">
-            {mobileVisibleMissions.map((mission) => (
-              <button
-                key={mission.id}
-                type="button"
-                onClick={() => openMissionDetail(mission.id)}
-                className="rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-primary/30"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-base font-semibold text-gray-900">
-                      {locale === "ar" ? mission.titleAr : mission.titleEn}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">{mission.id}</p>
-                  </div>
-                  <HeroJourneyStatusPill kind="mission" value={mission.status} />
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-xl bg-slate-50 p-3">
-                    <p className="text-xs text-gray-500">{t("table.rewardXp")}</p>
-                    <p className="mt-1 font-semibold text-gray-900">
-                      {mission.rewardXp} XP
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-slate-50 p-3">
-                    <p className="text-xs text-gray-500">{t("table.completionRate")}</p>
-                    <p className="mt-1 font-semibold text-gray-900">
-                      {formatHeroJourneyPercent(getMissionCompletionRate(mission))}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center justify-between gap-3">
-                  <p className="truncate text-sm text-gray-600">
-                    {locale === "ar" ? mission.stageNameAr : mission.stageNameEn}
-                  </p>
-                  <HeroJourneyBadgeThumb
-                    badge={badgeMap.get(mission.badgeRewardSlug || "")}
-                    showLabel
-                  />
-                </div>
-              </button>
-            ))}
+      {loadError ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+          {loadError}
+        </div>
+      ) : (
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_360px]">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 md:hidden">
+              {isLoading
+                ? Array.from({ length: 3 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <div className="h-4 w-2/3 animate-pulse rounded bg-slate-200" />
+                          <div className="h-3 w-1/3 animate-pulse rounded bg-slate-100" />
+                        </div>
+                        <div className="h-6 w-20 animate-pulse rounded-full bg-slate-100" />
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        <div className="h-16 animate-pulse rounded-xl bg-slate-50" />
+                        <div className="h-16 animate-pulse rounded-xl bg-slate-50" />
+                      </div>
+                    </div>
+                  ))
+                : mobileVisibleMissions.map((mission) => (
+                    <button
+                      key={mission.id}
+                      type="button"
+                      onClick={() => void openEditMission(mission.id)}
+                      className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-base font-semibold text-gray-900">
+                            {locale === "ar"
+                              ? mission.titleAr
+                              : mission.titleEn}
+                          </p>
+                          <p className="mt-1 truncate text-xs text-gray-500">
+                            {getResolvedStageName(mission)}
+                          </p>
+                        </div>
+                        <HeroJourneyStatusPill
+                          kind="mission"
+                          value={mission.status}
+                        />
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                        <div className="rounded-xl bg-slate-50 p-3">
+                          <p className="text-xs text-gray-500">
+                            {t("table.rewardXp")}
+                          </p>
+                          <p className="mt-1 font-semibold text-gray-900">
+                            {mission.rewardXp} XP
+                          </p>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 p-3">
+                          <p className="text-xs text-gray-500">
+                            {t("table.completionRate")}
+                          </p>
+                          <p className="mt-1 font-semibold text-gray-900">
+                            {formatHeroJourneyPercent(
+                              getMissionCompletionRate(mission),
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center justify-between gap-3">
+                        <p className="truncate text-sm text-gray-600">
+                          {getResolvedStageName(mission)}
+                        </p>
+                        <HeroJourneyBadgeThumb
+                          badge={badgeMap.get(mission.badgeRewardSlug || "")}
+                          showLabel
+                        />
+                      </div>
+                    </button>
+                  ))}
+            </div>
+
+            {!isLoading ? (
+              <HeroJourneyMobilePagination
+                currentPage={safeMobilePage}
+                totalItems={missions.length}
+                pageSize={mobilePageSize}
+                onPageChange={(page) =>
+                  queryState.setValue(
+                    "heroJourneyMissionsMobilePage",
+                    String(page),
+                    "replace",
+                  )
+                }
+              />
+            ) : null}
+
+            <div className="hidden md:block">
+              <DataTable
+                columns={
+                  columns as unknown as Column<{ [key: string]: unknown }>[]
+                }
+                data={missions as unknown as Array<{ [key: string]: unknown }>}
+                onRowClick={(row) =>
+                  void openEditMission(
+                    (row as unknown as HeroJourneyMission).id,
+                  )
+                }
+                searchQuery={queryState.values.q}
+                itemsPerPage={8}
+                showPagination={true}
+                isLoading={isLoading}
+                skeletonRows={missionTablePageSize}
+                serverPagination={{
+                  enabled: true,
+                  currentPage: missionTablePage,
+                  pageSize: missionTablePageSize,
+                  totalItems: missions.length,
+                  onPageChange: setMissionTablePage,
+                  onPageSizeChange: (pageSize) => {
+                    setMissionTablePage(1);
+                    setMissionTablePageSize(Math.min(pageSize, 100));
+                  },
+                }}
+                urlState={{
+                  keyPrefix: "heroJourneyMissionsTable",
+                  syncSorting: true,
+                }}
+              />
+            </div>
           </div>
 
-          <HeroJourneyMobilePagination
-            currentPage={safeMobilePage}
-            totalItems={missions.length}
-            pageSize={mobilePageSize}
-            onPageChange={(page) =>
-              queryState.setValue("heroJourneyMissionsPage", String(page), "replace")
-            }
-          />
-
-          <div className="hidden md:block">
-            <DataTable
-              columns={columns as unknown as Column<{ [key: string]: unknown }>[]}
-              data={missions as unknown as Array<{ [key: string]: unknown }>}
-              onRowClick={(row) =>
-                openMissionDetail((row as unknown as HeroJourneyMission).id)
-              }
-              searchQuery={queryState.values.q}
-              itemsPerPage={8}
-              showPagination={true}
-              urlState={{
-                keyPrefix: "heroJourneyMissions",
-                syncPagination: true,
-                syncSorting: true,
-              }}
-            />
+          <div className="hidden rounded-xl bg-white p-5 shadow-sm xl:block">
+            {isLoading ? (
+              <div className="space-y-4">
+                <div className="h-5 w-2/3 animate-pulse rounded bg-slate-200" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="h-20 animate-pulse rounded-lg bg-slate-100" />
+                  <div className="h-20 animate-pulse rounded-lg bg-slate-100" />
+                </div>
+                <div className="h-28 animate-pulse rounded-lg bg-slate-100" />
+                <div className="h-24 animate-pulse rounded-lg bg-slate-100" />
+              </div>
+            ) : (
+              <HeroJourneyMissionDetailContent
+                mission={detailMission}
+                badgeMap={badgeMap}
+                linkedLessonName={getResolvedLinkedLessonName(detailMission)}
+                linkedAssessmentName={getResolvedLinkedAssessmentName(
+                  detailMission,
+                )}
+              />
+            )}
           </div>
         </div>
-
-        <div className="hidden rounded-xl bg-white p-5 shadow-sm xl:block">
-          <HeroJourneyMissionDetailContent
-            mission={detailMission}
-            badgeMap={badgeMap}
-          />
-        </div>
-      </div>
+      )}
 
       <Modal
         isOpen={isOverlayMode && isMissionModalOpen && Boolean(selectedMission)}
@@ -467,35 +1251,51 @@ export default function HeroJourneyMissionsPage() {
               : selectedMission.titleEn
             : ""
         }
-        description={selectedMission ? selectedMission.id : undefined}
+        description={
+          selectedMission ? getResolvedStageName(selectedMission) : undefined
+        }
         footer={
           selectedMission ? (
             <>
               <Button
                 variant="secondary"
-                onClick={() => showInfo(t("messages.editPlaceholder"))}
+                onClick={() =>
+                  selectedMission && void openEditMission(selectedMission.id)
+                }
               >
                 {t("actions.edit")}
               </Button>
               <Button
-                onClick={async () => {
-                  if (!selectedMission) {
-                    return;
-                  }
-
-                  setIsPublishing(selectedMission.id);
-                  await toggleHeroJourneyMissionPublishState(selectedMission.id);
-                  const refreshed = await getHeroJourneyMissions(filters);
-                  setMissions(refreshed);
-                  setIsPublishing(null);
-                  showSuccess(t("messages.publishStateUpdated"));
-                }}
+                variant="danger"
+                onClick={() =>
+                  selectedMission && void removeMission(selectedMission.id)
+                }
+                disabled={deletingMissionId === selectedMission.id}
+              >
+                {t("actions.delete")}
+              </Button>
+              <Button
+                onClick={() =>
+                  selectedMission && void publishMission(selectedMission.id)
+                }
                 disabled={
                   isPublishing === selectedMission.id ||
-                  !canToggleHeroJourneyMissionPublishStatus(selectedMission.status)
+                  selectedMission.status === "published" ||
+                  selectedMission.status === "archived"
                 }
               >
-                {t("actions.togglePublish")}
+                {t("actions.publish")}
+              </Button>
+              <Button
+                onClick={() =>
+                  selectedMission && void archiveMission(selectedMission.id)
+                }
+                disabled={
+                  isPublishing === selectedMission.id ||
+                  selectedMission.status !== "published"
+                }
+              >
+                {t("actions.archive")}
               </Button>
             </>
           ) : undefined
@@ -504,8 +1304,143 @@ export default function HeroJourneyMissionsPage() {
         <HeroJourneyMissionDetailContent
           mission={selectedMission}
           badgeMap={badgeMap}
+          linkedLessonName={getResolvedLinkedLessonName(selectedMission)}
+          linkedAssessmentName={getResolvedLinkedAssessmentName(
+            selectedMission,
+          )}
         />
       </Modal>
+
+      {isMissionFormOpen ? (
+        <HeroJourneyMissionFormModal
+          isOpen={isMissionFormOpen}
+          mission={editingMission}
+          badges={badges}
+          academicYearLabel={localizedOptionLabel(
+            locale,
+            selectedAcademicYear?.nameEn,
+            selectedAcademicYear?.nameAr,
+            selectedAcademicYear?.name || academicYearId,
+          )}
+          termLabel={localizedOptionLabel(
+            locale,
+            selectedTerm?.nameEn,
+            selectedTerm?.nameAr,
+            selectedTerm?.name || termId,
+          )}
+          stageOptions={stageOptions}
+          gradeOptions={gradeOptions}
+          sectionOptions={sectionOptions}
+          classroomOptions={classroomOptions}
+          subjectOptions={subjectOptions}
+          assessmentOptions={assessmentOptions}
+          optionsLoading={isMissionOptionsLoading}
+          optionsError={missionOptionsError}
+          onLoadLessons={loadCurriculumLessonOptions}
+          onRefreshOptions={refreshMissionFormOptions}
+          loading={isMissionSaving}
+          onClose={() => {
+            setIsMissionFormOpen(false);
+            setEditingMission(null);
+          }}
+          onSubmit={saveMission}
+        />
+      ) : null}
+
+      <Modal
+        isOpen={isBadgeManagerOpen}
+        onClose={() => setIsBadgeManagerOpen(false)}
+        title={t("badgeManager.title")}
+        size="xl"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setIsBadgeManagerOpen(false)}
+            >
+              {t("actions.close")}
+            </Button>
+            <Button
+              leftIcon={<Plus className="h-4 w-4" />}
+              onClick={openCreateBadge}
+            >
+              {t("actions.createBadge")}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          {badges.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {t("badgeManager.emptyTitle")}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {t("badgeManager.emptyDescription")}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  leftIcon={<Plus className="h-4 w-4" />}
+                  onClick={openCreateBadge}
+                >
+                  {t("actions.createBadge")}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            badges.map((badge) => (
+              <div
+                key={badge.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-3"
+              >
+                <div className="min-w-0">
+                  <HeroJourneyBadgeThumb badge={badge} showLabel />
+                  <p className="mt-1 truncate text-xs text-gray-500">
+                    {badge.slug}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => void openEditBadge(badge.id)}
+                    className="cursor-pointer rounded p-1.5 text-blue-600 transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    title={t("actions.editBadge")}
+                    aria-label={t("actions.editBadge")}
+                  >
+                    <PencilLine className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void removeBadge(badge.id)}
+                    disabled={deletingBadgeId === badge.id}
+                    className="cursor-pointer rounded p-1.5 text-red-600 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
+                    title={t("actions.deleteBadge")}
+                    aria-label={t("actions.deleteBadge")}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </Modal>
+
+      {isBadgeFormOpen ? (
+        <HeroJourneyBadgeFormModal
+          isOpen={isBadgeFormOpen}
+          badge={editingBadge}
+          loading={isBadgeSaving}
+          onClose={() => {
+            setIsBadgeFormOpen(false);
+            setEditingBadge(null);
+          }}
+          onSubmit={saveBadge}
+        />
+      ) : null}
     </div>
   );
 }
