@@ -193,6 +193,7 @@ function ParticipantRow({
 }) {
   const userId = participantUserId(participant);
   const name =
+    participant.user?.displayName ||
     actorName(participant.actor) ||
     displayNameForUserId(userId, userDisplayNames, labels.participant);
   const isCurrentUser = currentUserId && userId === currentUserId;
@@ -241,6 +242,12 @@ function ParticipantRow({
             ) : null}
             {isCurrentUser ? (
               <StatusPill tone="green">{labels.you}</StatusPill>
+            ) : null}
+            {participant.user?.userType ? (
+              <StatusPill tone="gray">
+                {labels[`userType_${participant.user.userType.toLowerCase()}` as keyof typeof labels] ||
+                  participant.user.userType}
+              </StatusPill>
             ) : null}
           </div>
           <p className="text-xs text-slate-600">
