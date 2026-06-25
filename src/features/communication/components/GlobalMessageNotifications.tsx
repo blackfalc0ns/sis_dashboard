@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { useAuth } from "@/hooks/use-auth";
 import { useCommunicationSocket } from "@/features/communication/hooks/useCommunicationSocket";
 import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
-import { getConversations } from "@/features/communication/api/communication.service";
 import { useMessageNotifications } from "@/features/communication/hooks/useMessageNotifications";
 import { NotificationToastContainer } from "@/features/communication/components/NotificationToast";
 
@@ -43,76 +42,20 @@ function notificationMessageId(notification: Record<string, unknown>) {
  * Global message notification listener.
  * Renders floating toasts + plays sound for new messages across the dashboard.
  * Mount this once at the layout level.
+ *
+ * The backend broadcasts message and announcement events at the user level via
+ * `notification.created` and `announcement.published`, so no conversation room
+ * joining or HTTP prefetch is required.
  */
 export default function GlobalMessageNotifications() {
-  const { socket, joinConversation } = useCommunicationSocket();
+  const { socket } = useCommunicationSocket();
   const { user } = useAuth();
   const router = useRouter();
   const locale = useLocale();
   const { notifications, notify, dismiss } = useMessageNotifications(null);
-  const joinedRef = useRef(false);
-  const notifiedMessageIdsRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (!user?.id || joinedRef.current) return;
-    joinedRef.current = true;
-
-    void getConversations({ limit: 50 })
-      .then((response) => {
-        const record = response as Record<string, unknown>;
-        const items =
-          (record.items as Array<{ id?: string }>) ??
-          (record.data as Record<string, unknown>)?.items ??
-          (Array.isArray(response) ? response : []);
-
-        if (Array.isArray(items)) {
-          items.forEach((item) => {
-            if (item?.id) joinConversation(item.id);
-          });
-        }
-      })
-      .catch(() => {
-        // Socket notifications still work for rooms already joined elsewhere.
-      });
-  }, [user?.id, joinConversation]);
 
   useEffect(() => {
     if (!socket) return;
-
-    const handleNewMessage = (payload: unknown) => {
-      if (!payload || typeof payload !== "object") return;
-      const record = payload as Record<string, unknown>;
-      const message = (record.message ?? record.data ?? record) as Record<
-        string,
-        unknown
-      >;
-      const messageId = stringValue(message.id) ?? stringValue(message.messageId);
-      if (messageId && notifiedMessageIdsRef.current.has(messageId)) return;
-
-      const senderUserId =
-        (message.senderUserId as string) ??
-        (message.senderId as string) ??
-        (message.userId as string);
-      const senderName =
-        (message.senderName as string) ??
-        ((message.sender as Record<string, unknown>)?.name as string) ??
-        "New message";
-      const body =
-        (message.body as string) ?? (message.content as string) ?? "";
-      const conversationId =
-        (message.conversationId as string) ?? (record.conversationId as string);
-
-      if (!conversationId) return;
-      if (messageId) notifiedMessageIdsRef.current.add(messageId);
-
-      notify({
-        conversationId,
-        senderName,
-        senderUserId,
-        body,
-        currentUserId: user?.id,
-      });
-    };
 
     const handleNotification = (payload: unknown) => {
       if (!payload || typeof payload !== "object") return;
@@ -121,8 +64,6 @@ export default function GlobalMessageNotifications() {
         string,
         unknown
       >;
-      const messageId = notificationMessageId(notification);
-      if (messageId && notifiedMessageIdsRef.current.has(messageId)) return;
 
       const title =
         (notification.title as string) ??
@@ -138,10 +79,18 @@ export default function GlobalMessageNotifications() {
         stringValue(notification.id) ??
         `notif-${Date.now()}`;
 
-      if (messageId) notifiedMessageIdsRef.current.add(messageId);
+      // Resolve conversationId for message-type notifications so the toast
+      // navigates directly to the conversation instead of the notifications page.
+      const deepLink = recordValue(notification.deepLink);
+      const conversationId =
+        (deepLink?.type === "conversation_message"
+          ? stringValue(deepLink.conversationId as string)
+          : undefined) ??
+        stringValue(notification.conversationId as string) ??
+        notificationId;
 
       notify({
-        conversationId: notificationId,
+        conversationId,
         senderName: title,
         body,
         currentUserId: user?.id,
@@ -170,26 +119,12 @@ export default function GlobalMessageNotifications() {
       });
     };
 
-    socket.on(COMMUNICATION_SOCKET_EVENTS.messageCreated, handleNewMessage);
-    socket.on(
-      COMMUNICATION_SOCKET_EVENTS.notificationCreated,
-      handleNotification,
-    );
-    socket.on(
-      COMMUNICATION_SOCKET_EVENTS.announcementPublished,
-      handleAnnouncement,
-    );
+    socket.on(COMMUNICATION_SOCKET_EVENTS.notificationCreated, handleNotification);
+    socket.on(COMMUNICATION_SOCKET_EVENTS.announcementPublished, handleAnnouncement);
 
     return () => {
-      socket.off(COMMUNICATION_SOCKET_EVENTS.messageCreated, handleNewMessage);
-      socket.off(
-        COMMUNICATION_SOCKET_EVENTS.notificationCreated,
-        handleNotification,
-      );
-      socket.off(
-        COMMUNICATION_SOCKET_EVENTS.announcementPublished,
-        handleAnnouncement,
-      );
+      socket.off(COMMUNICATION_SOCKET_EVENTS.notificationCreated, handleNotification);
+      socket.off(COMMUNICATION_SOCKET_EVENTS.announcementPublished, handleAnnouncement);
     };
   }, [socket, notify, user?.id]);
 
@@ -199,7 +134,11 @@ export default function GlobalMessageNotifications() {
       onDismiss={dismiss}
       onClick={(conversationId) => {
         dismiss(conversationId);
-        if (conversationId.includes("-") && !conversationId.startsWith("notif-")) {
+        if (
+          conversationId.includes("-") &&
+          !conversationId.startsWith("notif-") &&
+          !conversationId.startsWith("announcement-")
+        ) {
           router.push(
             `/${locale}/communication/conversations?conversationId=${conversationId}`,
           );
