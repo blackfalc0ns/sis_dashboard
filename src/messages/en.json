@@ -10380,7 +10380,9 @@
       "rejected": "Rejected",
       "dateFrom": "Date from",
       "dateTo": "Date to",
-      "reset": "Reset"
+      "reset": "Reset",
+      "invalidDateRangeFrom": "From date cannot be after To date",
+      "invalidDateRangeTo": "To date cannot be before From date"
     },
     "table": {
       "occurredAt": "Date",

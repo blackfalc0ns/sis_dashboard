@@ -87,7 +87,7 @@ export default function BehaviorFiltersBar({
           onChange={(date) => {
             const dateStr = date ? date.toISOString() : undefined;
             if (dateStr && filters.dateTo && !validateDateRange(dateStr, filters.dateTo)) {
-              showError("From date cannot be after To date");
+              showError(t("invalidDateRangeFrom"));
               return;
             }
             onChange({ dateFrom: dateStr });
@@ -101,7 +101,7 @@ export default function BehaviorFiltersBar({
           onChange={(date) => {
             const dateStr = date ? date.toISOString() : undefined;
             if (dateStr && filters.dateFrom && !validateDateRange(filters.dateFrom, dateStr)) {
-              showError("To date cannot be before From date");
+              showError(t("invalidDateRangeTo"));
               return;
             }
             onChange({ dateTo: dateStr });

@@ -7,9 +7,18 @@ import {
 import type { BehaviorRecordListResponse } from "@/features/behavior/types";
 
 // Mock next-intl
+const tCache = new Map<string, (key: string) => string>();
+const getT = (namespace?: string) => {
+  const ns = namespace || "";
+  if (!tCache.has(ns)) {
+    tCache.set(ns, (key: string) => ns ? `${ns}.${key}` : key);
+  }
+  return tCache.get(ns)!;
+};
+
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
-  useTranslations: (namespace?: string) => (key: string) => namespace ? `${namespace}.${key}` : key,
+  useTranslations: (namespace?: string) => getT(namespace),
 }));
 
 // Mock next/navigation

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useMediaQuery } from "@mui/material";
-import { Filter, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useBehaviorYearTermContext } from "@/features/behavior/shared/hooks/useBehaviorYearTermContext";
@@ -31,7 +31,7 @@ export default function BehaviorRecordsPage() {
   const t = useTranslations("behavior");
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { yearId, termId, terms, isReadOnly } = useBehaviorYearTermContext();
-  const { showSuccess, showError } = useToast();
+  const { showError } = useToast();
 
   const [records, setRecords] = useState<BehaviorRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -44,9 +44,6 @@ export default function BehaviorRecordsPage() {
   // Modals
   const [modalMode, setModalMode] = useState<BehaviorModalMode | null>(null);
   const [modalTarget, setModalTarget] = useState<BehaviorModalTarget>({});
-
-  // Filters drawer (mobile)
-  const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
 
   const term = useMemo(
     () => terms.find((item) => item.id === termId) || null,
@@ -75,7 +72,16 @@ export default function BehaviorRecordsPage() {
     } finally {
       setLoading(false);
     }
-  }, [yearId, termId, uiFilters.status, uiFilters.type, uiFilters.dateFrom, uiFilters.dateTo]);
+  }, [
+    yearId,
+    termId,
+    uiFilters.status,
+    uiFilters.type,
+    uiFilters.dateFrom,
+    uiFilters.dateTo,
+    showError,
+    t,
+  ]);
 
   useEffect(() => {
     void loadRecords();
