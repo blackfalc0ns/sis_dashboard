@@ -2,9 +2,15 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import { Tooltip } from "@mui/material";
-import { Eye, Send, CheckCircle, XCircle, Pencil } from "lucide-react";
+import { Ban, Eye, Send, CheckCircle, XCircle, Pencil } from "lucide-react";
 import DataTable from "@/components/ui/data-table/DataTable";
 import type { BehaviorRecord, BehaviorStatus, BehaviorType } from "../../types";
+import {
+  canApproveOrRejectBehaviorRecord,
+  canCancelBehaviorRecord,
+  canEditBehaviorRecord,
+  canSubmitBehaviorRecord,
+} from "../utils/behaviorUiRules";
 
 // ─── Status badge ──────────────────────────────────────────────────────────
 const STATUS_STYLES: Record<BehaviorStatus, { bg: string; fg: string; border: string }> = {
@@ -54,7 +60,7 @@ function StatePanel({ title, compact }: { title: string; compact?: boolean }) {
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────
-export type BehaviorTableAction = "view" | "edit" | "submit" | "approve" | "reject";
+export type BehaviorTableAction = "view" | "edit" | "submit" | "cancel" | "approve" | "reject";
 
 interface BehaviorTableProps {
   records: BehaviorRecord[];
@@ -168,7 +174,7 @@ export default function BehaviorTable({
           </Tooltip>
 
           {/* Edit — only draft */}
-          {row.status === "draft" && !isReadOnly && (
+          {canEditBehaviorRecord(row) && !isReadOnly && (
             <Tooltip title={t("actions.edit")} arrow>
               <button
                 onClick={(e) => { e.stopPropagation(); onAction?.("edit", row); }}
@@ -181,7 +187,7 @@ export default function BehaviorTable({
           )}
 
           {/* Submit — only draft */}
-          {row.status === "draft" && !isReadOnly && (
+          {canSubmitBehaviorRecord(row) && !isReadOnly && (
             <Tooltip title={t("actions.submit")} arrow>
               <button
                 onClick={(e) => { e.stopPropagation(); onAction?.("submit", row); }}
@@ -194,7 +200,19 @@ export default function BehaviorTable({
           )}
 
           {/* Approve — only submitted */}
-          {row.status === "submitted" && !isReadOnly && (
+          {canCancelBehaviorRecord(row) && !isReadOnly && (
+            <Tooltip title={t("actions.cancel")} arrow>
+              <button
+                onClick={(e) => { e.stopPropagation(); onAction?.("cancel", row); }}
+                className="p-1.5 rounded hover:bg-[var(--color-neutral-100)] transition-colors"
+                style={{ color: "var(--color-gray-600)" }}
+              >
+                <Ban className="w-4 h-4" />
+              </button>
+            </Tooltip>
+          )}
+
+          {canApproveOrRejectBehaviorRecord(row) && !isReadOnly && (
             <Tooltip title={t("actions.approve")} arrow>
               <button
                 onClick={(e) => { e.stopPropagation(); onAction?.("approve", row); }}
@@ -207,7 +225,7 @@ export default function BehaviorTable({
           )}
 
           {/* Reject — only submitted */}
-          {row.status === "submitted" && !isReadOnly && (
+          {canApproveOrRejectBehaviorRecord(row) && !isReadOnly && (
             <Tooltip title={t("actions.reject")} arrow>
               <button
                 onClick={(e) => { e.stopPropagation(); onAction?.("reject", row); }}

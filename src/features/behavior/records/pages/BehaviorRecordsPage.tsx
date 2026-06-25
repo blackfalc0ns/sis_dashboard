@@ -8,6 +8,7 @@ import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useBehaviorYearTermContext } from "@/features/behavior/shared/hooks/useBehaviorYearTermContext";
 import { listBehaviorRecords } from "@/features/behavior/services/behaviorApiService";
+import { behaviorUiError } from "@/features/behavior/services/behaviorErrors";
 import BehaviorTable, { type BehaviorTableAction } from "@/features/behavior/shared/components/BehaviorTable";
 import BehaviorDetailDrawer from "@/features/behavior/shared/components/BehaviorDetailDrawer";
 import BehaviorActionModals, {
@@ -65,8 +66,8 @@ export default function BehaviorRecordsPage() {
     try {
       const res = await listBehaviorRecords(filters);
       setRecords(res.items);
-    } catch {
-      const msg = t("messages.loadError");
+    } catch (error) {
+      const msg = behaviorUiError(error, t("messages.loadError"), t).message;
       setError(msg);
       showError(msg);
     } finally {
@@ -86,6 +87,7 @@ export default function BehaviorRecordsPage() {
     const modeMap: Record<string, BehaviorModalMode> = {
       edit: "edit-record",
       submit: "submit-record",
+      cancel: "cancel-record",
       approve: "approve-record",
       reject: "reject-record",
     };

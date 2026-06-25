@@ -31,6 +31,7 @@ import ChartCard from "@/components/ui/chart-card/ChartCard";
 import GaugeChart from "@/components/ui/chart-card/GaugeChart";
 import { useBehaviorYearTermContext } from "@/features/behavior/shared/hooks/useBehaviorYearTermContext";
 import { getBehaviorOverview } from "@/features/behavior/services/behaviorApiService";
+import { behaviorUiError } from "@/features/behavior/services/behaviorErrors";
 import type {
   BehaviorOverviewFilters,
   BehaviorOverviewResponse,
@@ -91,6 +92,7 @@ function CategoryTick({ x = 0, y = 0, payload }: { x?: number; y?: number; paylo
 // ─── Main page ─────────────────────────────────────────────────────────────
 export default function BehaviorOverviewPage() {
   const t = useTranslations("behavior.overview");
+  const tBehavior = useTranslations("behavior");
   const tStatus = useTranslations("behavior.status");
   const locale = useLocale();
   const isRTL = locale === "ar";
@@ -108,8 +110,10 @@ export default function BehaviorOverviewPage() {
     try {
       const res = await getBehaviorOverview(filters);
       setData(res);
-    } catch {
-      setError("Failed to load overview data");
+    } catch (error) {
+      setError(
+        behaviorUiError(error, "Failed to load overview data", tBehavior).message,
+      );
     } finally {
       setLoading(false);
     }

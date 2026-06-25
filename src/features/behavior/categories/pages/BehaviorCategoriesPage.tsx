@@ -8,6 +8,7 @@ import DataTable from "@/components/ui/data-table/DataTable";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useBehaviorYearTermContext } from "@/features/behavior/shared/hooks/useBehaviorYearTermContext";
 import { listBehaviorCategories } from "@/features/behavior/services/behaviorApiService";
+import { behaviorUiError } from "@/features/behavior/services/behaviorErrors";
 import BehaviorActionModals, {
   type BehaviorModalMode,
   type BehaviorModalTarget,
@@ -41,8 +42,8 @@ export default function BehaviorCategoriesPage() {
     try {
       const res = await listBehaviorCategories(filters);
       setCategories(res.items);
-    } catch {
-      const msg = t("messages.loadError");
+    } catch (error) {
+      const msg = behaviorUiError(error, t("messages.loadError"), t).message;
       setError(msg);
       showError(msg);
     } finally {

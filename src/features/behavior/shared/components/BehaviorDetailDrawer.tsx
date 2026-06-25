@@ -2,10 +2,15 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import { Drawer } from "@mui/material";
-import { X, Send, CheckCircle, XCircle } from "lucide-react";
+import { Ban, X, Send, CheckCircle, XCircle } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import type { BehaviorRecord, BehaviorStatus, BehaviorType } from "../../types";
 import type { BehaviorTableAction } from "./BehaviorTable";
+import {
+  canApproveOrRejectBehaviorRecord,
+  canCancelBehaviorRecord,
+  canSubmitBehaviorRecord,
+} from "../utils/behaviorUiRules";
 
 // ─── Status / Type badge helpers ───────────────────────────────────────────
 const STATUS_STYLES: Record<BehaviorStatus, { bg: string; fg: string; border: string }> = {
@@ -168,7 +173,7 @@ export default function BehaviorDetailDrawer({
               className="flex items-center gap-2 px-6 py-4 border-t"
               style={{ borderColor: "var(--border-color)" }}
             >
-              {record.status === "draft" && (
+              {canSubmitBehaviorRecord(record) && (
                 <Button
                   variant="primary"
                   size="sm"
@@ -178,7 +183,17 @@ export default function BehaviorDetailDrawer({
                   {t("actions.submit")}
                 </Button>
               )}
-              {record.status === "submitted" && (
+              {canCancelBehaviorRecord(record) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<Ban className="w-4 h-4" />}
+                  onClick={() => onAction?.("cancel", record)}
+                >
+                  {t("actions.cancel")}
+                </Button>
+              )}
+              {canApproveOrRejectBehaviorRecord(record) && (
                 <>
                   <Button
                     variant="primary"

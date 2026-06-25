@@ -10397,7 +10397,8 @@
       "draft": "مسودة",
       "submitted": "مقدّم",
       "approved": "معتمد",
-      "rejected": "مرفوض"
+      "rejected": "مرفوض",
+      "cancelled": "ملغي"
     },
     "type": {
       "positive": "إيجابي",
@@ -10407,6 +10408,7 @@
       "newCategory": "فئة جديدة",
       "newRecord": "سجل جديد",
       "submit": "تقديم",
+      "cancel": "إلغاء",
       "approve": "اعتماد",
       "reject": "رفض",
       "edit": "تعديل",
@@ -10434,13 +10436,17 @@
       "createRecord": "سجل جديد",
       "editRecord": "تعديل السجل",
       "submitRecord": "تقديم السجل",
+      "cancelRecord": "إلغاء السجل",
       "approveRecord": "اعتماد السجل",
       "rejectRecord": "رفض السجل",
       "reviewerNote": "ملاحظة المراجع",
       "approvedPoints": "النقاط المعتمدة",
+      "pointsPreview": "معاينة النقاط الافتراضية",
+      "cancelReason": "سبب الإلغاء",
       "cancel": "إلغاء",
       "save": "حفظ",
-      "confirmSubmit": "هل أنت متأكد من تقديم هذا السجل للمراجعة؟"
+      "confirmSubmit": "هل أنت متأكد من تقديم هذا السجل للمراجعة؟",
+      "confirmCancelRecord": "هل أنت متأكد من إلغاء هذا السجل؟"
     },
     "messages": {
       "categoryCreated": "تم إنشاء الفئة بنجاح",
@@ -10448,10 +10454,26 @@
       "recordCreated": "تم إنشاء السجل بنجاح",
       "recordUpdated": "تم تحديث السجل بنجاح",
       "recordSubmitted": "تم تقديم السجل للمراجعة",
+      "recordCancelled": "تم إلغاء السجل",
       "recordApproved": "تم اعتماد السجل",
       "recordRejected": "تم رفض السجل",
+      "submitContentRequired": "أضف عنوانا أو ملاحظة واحدة على الأقل قبل التقديم.",
       "loadError": "تعذّر تحميل بيانات السلوك",
       "exportQueued": "جارٍ تجهيز التصدير"
+    },
+    "errors": {
+      "categoryInUse": "لا يمكن تغيير هذه الفئة أو حذفها لأنها مستخدمة في سجلات أو قيود نقاط.",
+      "categoryInactive": "هذه الفئة غير نشطة. اختر فئة سلوك نشطة.",
+      "recordPointsInvalid": "يجب أن تكون النقاط رقما صحيحا وبالإشارة المناسبة لنوع السلوك المحدد.",
+      "recordTypeMismatch": "نوع السجل لا يطابق نوع الفئة المحددة.",
+      "recordOutsideTerm": "يجب أن يكون تاريخ السجل داخل الفصل الدراسي المحدد.",
+      "scopeInvalid": "العلاقة بين الفصل أو القيد أو النطاق المحدد غير صحيحة.",
+      "recordInvalidStatusTransition": "لا يمكن تنفيذ هذا الإجراء من حالة السجل الحالية.",
+      "recordAlreadySubmitted": "تم تقديم هذا السجل مسبقا.",
+      "recordAlreadyReviewed": "تم اعتماد هذا السجل أو رفضه مسبقا.",
+      "recordCancelled": "تم إلغاء هذا السجل مسبقا.",
+      "recordNotSubmitted": "يمكن اعتماد أو رفض السجلات المقدمة فقط.",
+      "pointsDuplicateSource": "يوجد قيد نقاط مسبق لهذا السجل المعتمد."
     },
     "category": {
       "code": "الرمز",

@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import DataTable from "@/components/ui/data-table/DataTable";
 import { useBehaviorYearTermContext } from "@/features/behavior/shared/hooks/useBehaviorYearTermContext";
-import { listBehaviorReviewQueue, approveBehaviorRecord, rejectBehaviorRecord } from "@/features/behavior/services/behaviorApiService";
+import { listBehaviorReviewQueue } from "@/features/behavior/services/behaviorApiService";
+import { behaviorUiError } from "@/features/behavior/services/behaviorErrors";
 import BehaviorActionModals, {
   type BehaviorModalMode,
   type BehaviorModalTarget,
@@ -42,8 +43,8 @@ export default function BehaviorReviewsPage() {
     try {
       const res = await listBehaviorReviewQueue(filters);
       setReviewItems(res.items);
-    } catch {
-      setError(t("messages.loadError"));
+    } catch (error) {
+      setError(behaviorUiError(error, t("messages.loadError"), t).message);
     } finally {
       setLoading(false);
     }
@@ -133,7 +134,7 @@ export default function BehaviorReviewsPage() {
       sortable: false,
       render: (_: unknown, row: any) => (
         <div className="flex items-center gap-2">
-          {!isReadOnly && (
+          {!isReadOnly && row.status === "submitted" && (
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); handleApprove(row); }}

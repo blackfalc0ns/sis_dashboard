@@ -10396,7 +10396,8 @@
       "draft": "Draft",
       "submitted": "Submitted",
       "approved": "Approved",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
     },
     "type": {
       "positive": "Positive",
@@ -10406,6 +10407,7 @@
       "newCategory": "New Category",
       "newRecord": "New Record",
       "submit": "Submit",
+      "cancel": "Cancel",
       "approve": "Approve",
       "reject": "Reject",
       "edit": "Edit",
@@ -10433,13 +10435,17 @@
       "createRecord": "New Record",
       "editRecord": "Edit Record",
       "submitRecord": "Submit Record",
+      "cancelRecord": "Cancel Record",
       "approveRecord": "Approve Record",
       "rejectRecord": "Reject Record",
       "reviewerNote": "Reviewer Note",
       "approvedPoints": "Approved Points",
+      "pointsPreview": "Default points preview",
+      "cancelReason": "Cancellation reason",
       "cancel": "Cancel",
       "save": "Save",
-      "confirmSubmit": "Are you sure you want to submit this record for review?"
+      "confirmSubmit": "Are you sure you want to submit this record for review?",
+      "confirmCancelRecord": "Are you sure you want to cancel this record?"
     },
     "messages": {
       "categoryCreated": "Category created successfully",
@@ -10447,10 +10453,26 @@
       "recordCreated": "Record created successfully",
       "recordUpdated": "Record updated successfully",
       "recordSubmitted": "Record submitted for review",
+      "recordCancelled": "Record cancelled",
       "recordApproved": "Record approved",
       "recordRejected": "Record rejected",
+      "submitContentRequired": "Add at least one title or note before submitting.",
       "loadError": "Failed to load behavior data",
       "exportQueued": "Export is being prepared"
+    },
+    "errors": {
+      "categoryInUse": "This category is already used by records or point ledger entries and cannot be changed or deleted.",
+      "categoryInactive": "This category is inactive. Choose an active behavior category.",
+      "recordPointsInvalid": "Points must be a whole number with the correct sign for the selected behavior type.",
+      "recordTypeMismatch": "The record type does not match the selected category type.",
+      "recordOutsideTerm": "The record date must be inside the selected term.",
+      "scopeInvalid": "The selected term, enrollment, or scope relation is invalid.",
+      "recordInvalidStatusTransition": "This action is not allowed from the current record status.",
+      "recordAlreadySubmitted": "This record has already been submitted.",
+      "recordAlreadyReviewed": "This record has already been approved or rejected.",
+      "recordCancelled": "This record has already been cancelled.",
+      "recordNotSubmitted": "Only submitted records can be approved or rejected.",
+      "pointsDuplicateSource": "A point ledger entry already exists for this approved record."
     },
     "category": {
       "code": "Code",

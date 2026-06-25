@@ -17,15 +17,25 @@ import {
   createBehaviorRecord,
   updateBehaviorRecord,
   submitBehaviorRecord,
+  cancelBehaviorRecord,
   approveBehaviorRecord,
   rejectBehaviorRecord,
 } from "../../services/behaviorApiService";
+import { behaviorUiError } from "../../services/behaviorErrors";
 import type {
   BehaviorCategory,
   BehaviorRecord,
   BehaviorSeverity,
   BehaviorType,
 } from "../../types";
+import {
+  canApproveOrRejectBehaviorRecord,
+  canCancelBehaviorRecord,
+  canEditBehaviorRecord,
+  canSubmitBehaviorRecord,
+  getBehaviorCategoryPointsPreview,
+  normalizeBehaviorPointsForType,
+} from "../utils/behaviorUiRules";
 
 // ─── Modal modes ────────────────────────────────────────────────────────────
 export type BehaviorModalMode =
@@ -34,6 +44,7 @@ export type BehaviorModalMode =
   | "create-record"
   | "edit-record"
   | "submit-record"
+  | "cancel-record"
   | "approve-record"
   | "reject-record";
 
@@ -95,6 +106,19 @@ function CategoryModal({
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
+  const setType = (type: BehaviorType) =>
+    setForm((p) => ({
+      ...p,
+      type,
+      defaultPoints: normalizeBehaviorPointsForType(type, p.defaultPoints),
+    }));
+
+  const setDefaultPoints = (points: number) =>
+    setForm((p) => ({
+      ...p,
+      defaultPoints: normalizeBehaviorPointsForType(p.type, points),
+    }));
+
   const handleSave = async () => {
     if (!form.nameEn || !form.nameAr || !form.code) {
       showError(isEdit ? t("messages.categoryUpdated") : t("messages.categoryCreated"));
@@ -103,15 +127,21 @@ function CategoryModal({
     setSaving(true);
     try {
       if (isEdit && category) {
-        await updateBehaviorCategory(category.id, form);
+        await updateBehaviorCategory(category.id, {
+          ...form,
+          defaultPoints: normalizeBehaviorPointsForType(form.type, form.defaultPoints),
+        });
         showSuccess(t("messages.categoryUpdated"));
       } else {
-        await createBehaviorCategory(form);
+        await createBehaviorCategory({
+          ...form,
+          defaultPoints: normalizeBehaviorPointsForType(form.type, form.defaultPoints),
+        });
         showSuccess(t("messages.categoryCreated"));
       }
       onSuccess();
-    } catch {
-      showError(t("messages.loadError"));
+    } catch (error) {
+      showError(behaviorUiError(error, t("messages.loadError"), t).message);
     } finally {
       setSaving(false);
     }
@@ -129,7 +159,7 @@ function CategoryModal({
             {t("modal.cancel")}
           </Button>
           <Button variant="primary" onClick={handleSave} disabled={saving}>
-            {saving ? "…" : t("modal.save")}
+            {saving ? "..." : t("modal.save")}
           </Button>
         </>
       }
@@ -137,13 +167,13 @@ function CategoryModal({
       <div className="space-y-4 py-2">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input label={t("category.code")} value={form.code} onChange={(e) => set("code", e.target.value)} disabled required />
-          <Select label={t("category.type")} value={form.type} onChange={(v) => set("type", v as BehaviorType)} options={TYPE_OPTIONS} />
+          <Select label={t("category.type")} value={form.type} onChange={(v) => setType(v as BehaviorType)} options={TYPE_OPTIONS} />
           <Input label={t("category.nameEn")} value={form.nameEn} onChange={(e) => set("nameEn", e.target.value)} required />
           <Input label={t("category.nameAr")} value={form.nameAr} onChange={(e) => set("nameAr", e.target.value)} required dir="rtl" />
           <Input label={t("category.descriptionEn")} value={form.descriptionEn} onChange={(e) => set("descriptionEn", e.target.value)} />
           <Input label={t("category.descriptionAr")} value={form.descriptionAr} onChange={(e) => set("descriptionAr", e.target.value)} dir="rtl" />
           <Select label={t("category.severity")} value={form.defaultSeverity} onChange={(v) => set("defaultSeverity", v as BehaviorSeverity)} options={SEVERITY_OPTIONS} />
-          <Input label={t("category.points")} type="number" value={String(form.defaultPoints)} onChange={(e) => set("defaultPoints", Number(e.target.value))} />
+          <Input label={t("category.points")} type="number" value={String(form.defaultPoints)} onChange={(e) => setDefaultPoints(Number(e.target.value))} />
           <Input label={t("category.sortOrder")} type="number" value={String(form.sortOrder)} onChange={(e) => set("sortOrder", Number(e.target.value))} />
           <label className="flex items-center gap-2 cursor-pointer pt-6">
             <input
@@ -197,6 +227,7 @@ function RecordModal({
 
   const [studentOptions, setStudentOptions] = useState<SelectOption[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<SelectOption[]>([]);
+  const [categories, setCategories] = useState<BehaviorCategory[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -219,6 +250,7 @@ function RecordModal({
           searchText: `${c.code} ${c.nameEn} ${c.nameAr}`,
         }))
       );
+      setCategories(categoriesRes.items);
     }).catch(console.error);
     return () => { active = false; };
   }, []);
@@ -227,6 +259,10 @@ function RecordModal({
     setForm((p) => ({ ...p, [k]: v }));
 
   const handleSave = async () => {
+    if (isEdit && record && !canEditBehaviorRecord(record)) {
+      showError(t("messages.loadError"));
+      return;
+    }
     setSaving(true);
     try {
       if (isEdit && record) {
@@ -253,12 +289,14 @@ function RecordModal({
         showSuccess(t("messages.recordCreated"));
       }
       onSuccess();
-    } catch {
-      showError(t("messages.loadError"));
+    } catch (error) {
+      showError(behaviorUiError(error, t("messages.loadError"), t).message);
     } finally {
       setSaving(false);
     }
   };
+
+  const pointsPreview = getBehaviorCategoryPointsPreview(categories, form.categoryId);
 
   return (
     <Modal
@@ -272,7 +310,7 @@ function RecordModal({
             {t("modal.cancel")}
           </Button>
           <Button variant="primary" onClick={handleSave} disabled={saving}>
-            {saving ? "…" : t("modal.save")}
+            {saving ? "..." : t("modal.save")}
           </Button>
         </>
       }
@@ -303,6 +341,11 @@ function RecordModal({
           <Input label={t("record.titleAr")} value={form.titleAr} onChange={(e) => set("titleAr", e.target.value)} dir="rtl" />
           <Input label={t("record.noteEn")} value={form.noteEn} onChange={(e) => set("noteEn", e.target.value)} />
           <Input label={t("record.noteAr")} value={form.noteAr} onChange={(e) => set("noteAr", e.target.value)} dir="rtl" />
+          {pointsPreview && (
+            <div className="md:col-span-2 rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "var(--border-color)", color: "var(--text-primary)" }}>
+              {t("modal.pointsPreview")}: {pointsPreview.points > 0 ? `+${pointsPreview.points}` : pointsPreview.points} ({t(`type.${pointsPreview.type}`)})
+            </div>
+          )}
           <DatePicker
             label={t("record.occurredAt")}
             value={form.occurredAt}
@@ -331,13 +374,17 @@ function SubmitModal({
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async () => {
+    if (!canSubmitBehaviorRecord(record)) {
+      showError(t("messages.submitContentRequired"));
+      return;
+    }
     setSaving(true);
     try {
       await submitBehaviorRecord(record.id);
       showSuccess(t("messages.recordSubmitted"));
       onSuccess();
-    } catch {
-      showError(t("messages.loadError"));
+    } catch (error) {
+      showError(behaviorUiError(error, t("messages.loadError"), t).message);
     } finally {
       setSaving(false);
     }
@@ -357,7 +404,7 @@ function SubmitModal({
             {t("modal.cancel")}
           </Button>
           <Button variant="primary" onClick={handleSubmit} disabled={saving}>
-            {saving ? "…" : t("actions.submit")}
+            {saving ? "..." : t("actions.submit")}
           </Button>
         </>
       }
@@ -368,6 +415,69 @@ function SubmitModal({
 }
 
 // ─── Approve modal ───────────────────────────────────────────────────────────
+function CancelModal({
+  record,
+  onClose,
+  onSuccess,
+}: {
+  record: BehaviorRecord;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const t = useTranslations("behavior");
+  const { showSuccess, showError } = useToast();
+  const [reasonEn, setReasonEn] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleCancel = async () => {
+    if (!canCancelBehaviorRecord(record)) {
+      showError(t("messages.loadError"));
+      return;
+    }
+    setSaving(true);
+    try {
+      await cancelBehaviorRecord(record.id, {
+        cancellationReasonEn: reasonEn || undefined,
+      });
+      showSuccess(t("messages.recordCancelled"));
+      onSuccess();
+    } catch (error) {
+      showError(behaviorUiError(error, t("messages.loadError"), t).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={t("modal.cancelRecord")}
+      size="sm"
+      variant="danger"
+      description={t("modal.confirmCancelRecord")}
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            {t("modal.cancel")}
+          </Button>
+          <Button variant="primary" onClick={handleCancel} disabled={saving}>
+            {saving ? "..." : t("actions.cancel")}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4 py-2">
+        <Input
+          label={t("modal.cancelReason")}
+          value={reasonEn}
+          onChange={(e) => setReasonEn(e.target.value)}
+        />
+      </div>
+    </Modal>
+  );
+}
+
 function ApproveModal({
   record,
   onClose,
@@ -384,16 +494,24 @@ function ApproveModal({
   const [saving, setSaving] = useState(false);
 
   const handleApprove = async () => {
+    if (!canApproveOrRejectBehaviorRecord(record)) {
+      showError(t("messages.loadError"));
+      return;
+    }
+    const overrideValue = pointsOverride !== "" ? Number(pointsOverride) : undefined;
     setSaving(true);
     try {
       await approveBehaviorRecord(record.id, {
         reviewNoteEn: reviewNoteEn || undefined,
-        pointsOverride: pointsOverride !== "" ? Number(pointsOverride) : undefined,
+        pointsOverride:
+          overrideValue !== undefined && record.type
+            ? normalizeBehaviorPointsForType(record.type, overrideValue)
+            : overrideValue,
       });
       showSuccess(t("messages.recordApproved"));
       onSuccess();
-    } catch {
-      showError(t("messages.loadError"));
+    } catch (error) {
+      showError(behaviorUiError(error, t("messages.loadError"), t).message);
     } finally {
       setSaving(false);
     }
@@ -411,7 +529,7 @@ function ApproveModal({
             {t("modal.cancel")}
           </Button>
           <Button variant="primary" onClick={handleApprove} disabled={saving}>
-            {saving ? "…" : t("actions.approve")}
+            {saving ? "..." : t("actions.approve")}
           </Button>
         </>
       }
@@ -421,7 +539,13 @@ function ApproveModal({
           label={t("modal.approvedPoints")}
           type="number"
           value={pointsOverride}
-          onChange={(e) => setPointsOverride(e.target.value)}
+          onChange={(e) => {
+            if (e.target.value === "" || !record.type) {
+              setPointsOverride(e.target.value);
+              return;
+            }
+            setPointsOverride(String(normalizeBehaviorPointsForType(record.type, Number(e.target.value))));
+          }}
         />
         <Input
           label={t("modal.reviewerNote")}
@@ -449,6 +573,10 @@ function RejectModal({
   const [saving, setSaving] = useState(false);
 
   const handleReject = async () => {
+    if (!canApproveOrRejectBehaviorRecord(record)) {
+      showError(t("messages.loadError"));
+      return;
+    }
     setSaving(true);
     try {
       await rejectBehaviorRecord(record.id, {
@@ -456,8 +584,8 @@ function RejectModal({
       });
       showSuccess(t("messages.recordRejected"));
       onSuccess();
-    } catch {
-      showError(t("messages.loadError"));
+    } catch (error) {
+      showError(behaviorUiError(error, t("messages.loadError"), t).message);
     } finally {
       setSaving(false);
     }
@@ -476,7 +604,7 @@ function RejectModal({
             {t("modal.cancel")}
           </Button>
           <Button variant="primary" onClick={handleReject} disabled={saving}>
-            {saving ? "…" : t("actions.reject")}
+            {saving ? "..." : t("actions.reject")}
           </Button>
         </>
       }
@@ -516,7 +644,7 @@ export default function BehaviorActionModals({
     );
   }
 
-  if (mode === "create-record" || mode === "edit-record") {
+  if (mode === "create-record" || (mode === "edit-record" && target.record && canEditBehaviorRecord(target.record))) {
     return (
       <RecordModal
         record={target.record}
@@ -528,19 +656,25 @@ export default function BehaviorActionModals({
     );
   }
 
-  if (mode === "submit-record" && target.record) {
+  if (mode === "submit-record" && target.record && canSubmitBehaviorRecord(target.record)) {
     return (
       <SubmitModal record={target.record} onClose={onClose} onSuccess={handleSuccess} />
     );
   }
 
-  if (mode === "approve-record" && target.record) {
+  if (mode === "cancel-record" && target.record && canCancelBehaviorRecord(target.record)) {
+    return (
+      <CancelModal record={target.record} onClose={onClose} onSuccess={handleSuccess} />
+    );
+  }
+
+  if (mode === "approve-record" && target.record && canApproveOrRejectBehaviorRecord(target.record)) {
     return (
       <ApproveModal record={target.record} onClose={onClose} onSuccess={handleSuccess} />
     );
   }
 
-  if (mode === "reject-record" && target.record) {
+  if (mode === "reject-record" && target.record && canApproveOrRejectBehaviorRecord(target.record)) {
     return (
       <RejectModal record={target.record} onClose={onClose} onSuccess={handleSuccess} />
     );
