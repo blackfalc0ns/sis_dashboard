@@ -10462,6 +10462,9 @@
     },
     "errors": {
       "categoryInUse": "This category is already used by records or point ledger entries and cannot be changed or deleted.",
+      "invalidCategoryCode": "Category code is required, must contain only uppercase alphanumeric characters and underscores, and be under 100 characters.",
+      "categoryNameRequired": "At least English Name or Arabic Name is required.",
+      "invalidPoints": "Points must be a valid integer and sign-compatible with the category type.",
       "categoryInactive": "This category is inactive. Choose an active behavior category.",
       "recordPointsInvalid": "Points must be a whole number with the correct sign for the selected behavior type.",
       "recordTypeMismatch": "The record type does not match the selected category type.",

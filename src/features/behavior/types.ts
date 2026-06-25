@@ -43,6 +43,7 @@ export interface BehaviorCategory {
   sortOrder: number;
   createdAt?: string;
   updatedAt?: string;
+  inUse?: boolean;
 }
 
 export interface BehaviorCategoryCreatePayload {

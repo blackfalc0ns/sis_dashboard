@@ -35,6 +35,10 @@ import {
   canSubmitBehaviorRecord,
   getBehaviorCategoryPointsPreview,
   normalizeBehaviorPointsForType,
+  normalizeCategoryCode,
+  validateCategoryCode,
+  validateCategoryName,
+  validateCategoryPoints,
 } from "../utils/behaviorUiRules";
 
 // ─── Modal modes ────────────────────────────────────────────────────────────
@@ -120,28 +124,54 @@ function CategoryModal({
     }));
 
   const handleSave = async () => {
-    if (!form.nameEn || !form.nameAr || !form.code) {
-      showError(isEdit ? t("messages.categoryUpdated") : t("messages.categoryCreated"));
+    const normalizedCode = normalizeCategoryCode(form.code);
+
+    if (!validateCategoryCode(normalizedCode)) {
+      showError(t("errors.invalidCategoryCode"));
       return;
     }
+
+    if (!validateCategoryName(form.nameEn, form.nameAr)) {
+      showError(t("errors.categoryNameRequired"));
+      return;
+    }
+
+    if (!validateCategoryPoints(form.type, form.defaultPoints)) {
+      showError(t("errors.invalidPoints"));
+      return;
+    }
+
+    set("code", normalizedCode);
+
     setSaving(true);
     try {
       if (isEdit && category) {
         await updateBehaviorCategory(category.id, {
           ...form,
+          code: normalizedCode,
           defaultPoints: normalizeBehaviorPointsForType(form.type, form.defaultPoints),
         });
         showSuccess(t("messages.categoryUpdated"));
       } else {
         await createBehaviorCategory({
           ...form,
+          code: normalizedCode,
           defaultPoints: normalizeBehaviorPointsForType(form.type, form.defaultPoints),
         });
         showSuccess(t("messages.categoryCreated"));
       }
       onSuccess();
     } catch (error) {
-      showError(behaviorUiError(error, t("messages.loadError"), t).message);
+      const errorCode =
+        (error as any)?.code ||
+        (error as any)?.response?.data?.code ||
+        (error as any)?.response?.data?.error?.code;
+
+      if (errorCode === "behavior.category.in_use") {
+        showError(t("errors.categoryInUse"));
+      } else {
+        showError(behaviorUiError(error, t("messages.loadError"), t).message);
+      }
     } finally {
       setSaving(false);
     }
@@ -166,8 +196,20 @@ function CategoryModal({
     >
       <div className="space-y-4 py-2">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input label={t("category.code")} value={form.code} onChange={(e) => set("code", e.target.value)} disabled required />
-          <Select label={t("category.type")} value={form.type} onChange={(v) => setType(v as BehaviorType)} options={TYPE_OPTIONS} />
+          <Input
+            label={t("category.code")}
+            value={form.code}
+            onChange={(e) => set("code", e.target.value)}
+            disabled={isEdit && category?.inUse === true}
+            required
+          />
+          <Select
+            label={t("category.type")}
+            value={form.type}
+            onChange={(v) => setType(v as BehaviorType)}
+            options={TYPE_OPTIONS}
+            disabled={isEdit && category?.inUse === true}
+          />
           <Input label={t("category.nameEn")} value={form.nameEn} onChange={(e) => set("nameEn", e.target.value)} required />
           <Input label={t("category.nameAr")} value={form.nameAr} onChange={(e) => set("nameAr", e.target.value)} required dir="rtl" />
           <Input label={t("category.descriptionEn")} value={form.descriptionEn} onChange={(e) => set("descriptionEn", e.target.value)} />
