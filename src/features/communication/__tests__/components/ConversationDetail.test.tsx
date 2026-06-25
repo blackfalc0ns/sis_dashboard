@@ -118,14 +118,16 @@ vi.mock("@/features/communication/conversations_redesign/components/MessagesPane
 }));
 
 vi.mock("@/features/communication/conversations_redesign/components/ParticipantsPanel", () => ({
-  default: ({ canManage, canLeaveConversation, onAddParticipant, onPromoteParticipant, onDemoteParticipant, onRemoveParticipant, onLeaveConversation }: {
+  default: ({ canManage, canLeaveConversation, onAddParticipant, onPromoteParticipant, onDemoteParticipant, onRemoveParticipant, onLeaveConversation, participants, userDisplayNames }: {
     canManage: boolean;
     canLeaveConversation: boolean;
     onAddParticipant: () => void;
-    onPromoteParticipant: (p: unknown) => void;
-    onDemoteParticipant: (p: unknown) => void;
-    onRemoveParticipant: (p: unknown) => void;
+    onPromoteParticipant: (p: any) => void;
+    onDemoteParticipant: (p: any) => void;
+    onRemoveParticipant: (p: any) => void;
     onLeaveConversation: () => void;
+    participants?: any[];
+    userDisplayNames?: Record<string, string>;
   }) => (
     <div data-testid="participants-panel">
       {canManage && <button data-testid="add-participant-btn">Add</button>}
@@ -133,6 +135,17 @@ vi.mock("@/features/communication/conversations_redesign/components/Participants
       {canManage && <button data-testid="demote-btn">Demote</button>}
       {canManage && <button data-testid="remove-btn">Remove</button>}
       {canLeaveConversation && <button data-testid="leave-btn">Leave</button>}
+      <ul data-testid="participants-list">
+        {participants?.map((p) => {
+          const userId = p.userId ?? p.actor?.userId ?? p.actor?.id;
+          const displayName = userDisplayNames?.[userId] || "Unknown";
+          return (
+            <li key={p.id} data-testid={`participant-${p.id}`}>
+              {displayName}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   ),
 }));
@@ -779,4 +792,49 @@ describe("ConversationDetail", () => {
       expect(screen.getByTestId("remove-btn")).toBeInTheDocument();
     });
   });
+
+  // ─── Task 2: Localization and Cache Mapping ──────────────────────────────
+  describe("Task 2: Localization and Cache Mapping in ConversationDetail", () => {
+    it("prioritizes participant.user.displayName over actorName(participant.actor) in userDisplayNames mapping", async () => {
+      const targetUserId = "user-priority-001";
+      const targetParticipantId = "part-priority-001";
+
+      useConversationParticipantsMock.mockReturnValue({
+        participants: [
+          createParticipant({
+            id: targetParticipantId,
+            userId: targetUserId,
+            role: "member",
+            status: "active",
+            actor: { id: targetUserId, name: "Actor Name" },
+            user: {
+              id: targetUserId,
+              displayName: "User Display Name Priority",
+              userType: "student",
+            },
+          }),
+        ],
+        isLoading: false,
+        isMutating: false,
+        total: 1,
+        error: null,
+        refresh: vi.fn(),
+        add: vi.fn(),
+        update: vi.fn(),
+        promote: vi.fn(),
+        demote: vi.fn(),
+        remove: vi.fn(),
+        leave: vi.fn(),
+      });
+
+      renderConversationDetail();
+
+      // Switch to participants tab to render the participants panel
+      fireEvent.click(screen.getByTestId("tab-participants"));
+
+      // Verify that the rendered name is "User Display Name Priority" and NOT "Actor Name"
+      expect(screen.getByTestId(`participant-${targetParticipantId}`)).toHaveTextContent("User Display Name Priority");
+    });
+  });
 });
+

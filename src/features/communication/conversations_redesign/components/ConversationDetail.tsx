@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "next-intl";
@@ -183,7 +183,7 @@ export default function ConversationDetail({
       addDisplayName(
         names,
         [participant.userId, participant.actor?.userId, participant.actor?.id],
-        actorName(participant.actor),
+        participant.user?.displayName || actorName(participant.actor),
       );
     });
 
