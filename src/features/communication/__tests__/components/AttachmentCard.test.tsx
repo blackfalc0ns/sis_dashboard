@@ -397,3 +397,45 @@ describe("AttachmentCard Voice Waveform", () => {
     expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
   });
 });
+
+describe("AttachmentCard Document Redesign", () => {
+  it("renders document card with correct extension styling and badge colors", async () => {
+    const attachment: MessageAttachment = {
+      id: "doc-1",
+      fileId: "file-doc-1",
+      mimeType: "application/pdf",
+      name: "report.pdf",
+      file: {
+        id: "file-doc-1",
+        originalName: "report.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 2048000,
+        filename: "report.pdf",
+        bucket: "moazez-dev",
+        objectKey: "report.pdf",
+        schoolId: "school-1",
+        createdAt: "2026-06-26T00:00:00Z",
+        updatedAt: "2026-06-26T00:00:00Z",
+      },
+    };
+
+    render(
+      <AttachmentCard
+        attachment={attachment}
+        canDelete={true}
+        isOwn={false}
+        labels={labels}
+        onDelete={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    // Assert file name is displayed
+    expect(screen.getByText("report.pdf")).toBeInTheDocument();
+    // Assert formatted size and type details are shown
+    expect(screen.getByText(/2.0 MB • PDF/)).toBeInTheDocument();
+    // Assert badge is colored red for PDF
+    const badge = screen.getByText("PDF").parentElement;
+    expect(badge).toHaveClass("bg-red-500");
+  });
+});
+

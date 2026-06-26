@@ -344,56 +344,113 @@ export function AttachmentCard({
     );
   }
 
+  // Extension badge background color helper
+  const getBadgeConfig = (filename: string) => {
+    const ext = filename.split(".").pop()?.toLowerCase() || "";
+    const nameUpper = ext.toUpperCase();
+    if (ext === "pdf") {
+      return { bg: "bg-red-500", text: "PDF" };
+    }
+    if (["doc", "docx", "txt", "rtf"].includes(ext)) {
+      return { bg: "bg-blue-500", text: nameUpper };
+    }
+    if (["xls", "xlsx", "csv"].includes(ext)) {
+      return { bg: "bg-emerald-500", text: nameUpper };
+    }
+    if (["ppt", "pptx"].includes(ext)) {
+      return { bg: "bg-amber-600", text: nameUpper };
+    }
+    if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) {
+      return { bg: "bg-orange-500", text: nameUpper };
+    }
+    if (["png", "jpg", "jpeg", "gif", "webp", "svg", "mp4", "mov"].includes(ext)) {
+      return { bg: "bg-indigo-500", text: nameUpper };
+    }
+    return { bg: "bg-slate-500", text: nameUpper || "FILE" };
+  };
+
+  const badgeConfig = getBadgeConfig(name);
+  const extLabel = badgeConfig.text;
+  const docDetails = `${size}${extLabel ? ` • ${extLabel}` : ""}`;
+
   return (
     <div
-      className={`flex items-center gap-3 rounded-lg p-3 mb-2 ${
-        isOwn ? "bg-primary-700/50" : "bg-slate-100"
+      className={`flex items-center gap-3 p-3 rounded-xl border w-full max-w-[280px] sm:max-w-[320px] mb-1.5 transition-all shadow-sm ${
+        isOwn
+          ? "bg-white/10 border-white/10 text-white"
+          : "bg-white border-slate-100 text-slate-800"
       }`}
     >
-      <span
-        className={`inline-flex h-10 w-10 items-center justify-center rounded-md ${isOwn ? "bg-primary-400" : "bg-white"}`}
+      <div
+        className={`h-10 w-9 rounded shrink-0 flex flex-col items-center justify-between py-1 relative select-none shadow-sm ${badgeConfig.bg}`}
       >
-        <FileText
-          className={`h-5 w-5 ${isOwn ? "text-white" : "text-primary"}`}
-        />
-      </span>
-      <span className="max-w-[150px]">
-        <span className="block truncate text-sm font-bold">{name}</span>
-        {size ? <span className="block text-xs opacity-85">{size}</span> : null}
-      </span>
-      {fileId ? (
-        <button
-          type="button"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            void handleDownload();
-          }}
-          className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition ${
-            isOwn
-              ? "text-white/80 hover:bg-white/10"
-              : "text-primary hover:bg-primary/10"
-          }`}
-          aria-label="Download"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        </button>
-      ) : null}
-      {canDelete ? (
-        <button
-          type="button"
-          onClick={(event) => void handleDelete(event)}
-          disabled={isDeleting}
-          className={`ms-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition disabled:opacity-60 ${
-            isOwn
-              ? "text-white/80 hover:bg-white/10"
-              : "text-rose-700 hover:bg-rose-50"
-          }`}
-          aria-label={labels.deleteAttachmentConfirm}
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      ) : null}
+        <FileText className="h-4 w-4 text-white mt-0.5" />
+        <span className="text-[8px] uppercase font-extrabold tracking-wider text-white mt-auto leading-none mb-0.5">
+          {extLabel}
+        </span>
+      </div>
+
+      <div className="flex-1 min-w-0 flex flex-col">
+        <span className="block truncate text-[13px] font-semibold">{name}</span>
+        {size ? (
+          <span
+            className={`block text-[10.5px] font-medium mt-0.5 ${
+              isOwn ? "text-white/70" : "text-slate-500"
+            }`}
+          >
+            {docDetails}
+          </span>
+        ) : null}
+      </div>
+
+      <div className="flex items-center gap-1.5 shrink-0">
+        {fileId ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              void handleDownload();
+            }}
+            className={`h-8 w-8 rounded-full flex items-center justify-center transition active:scale-90 ${
+              isOwn
+                ? "text-white/80 hover:bg-white/10"
+                : "text-primary hover:bg-slate-100"
+            }`}
+            aria-label="Download"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
+        ) : null}
+        {canDelete ? (
+          <button
+            type="button"
+            onClick={(event) => void handleDelete(event)}
+            disabled={isDeleting}
+            className={`h-8 w-8 rounded-full flex items-center justify-center transition active:scale-90 ${
+              isOwn
+                ? "text-white/75 hover:bg-white/10"
+                : "text-rose-600 hover:bg-rose-50"
+            }`}
+            aria-label={labels.deleteAttachmentConfirm}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
