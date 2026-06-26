@@ -72,6 +72,7 @@ export const conversationRedesignLabels = {
     addCaption: "Add a caption...",
     voiceNote: "Voice note",
     recording: "Recording...",
+    voiceRecordingUnavailable: "Voice recording is not available in this browser.",
     tapToRecord: "Tap to record",
     attachFile: "Attach file",
     attachFileToMessage: "Attach file to message",

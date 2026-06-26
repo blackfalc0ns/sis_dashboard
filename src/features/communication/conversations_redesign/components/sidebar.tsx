@@ -246,8 +246,6 @@ function TypeFilterTab({
   );
 }
 
-
-
 export default function ConversationSidebar({
   className = "",
   conversations,
@@ -269,13 +267,21 @@ export default function ConversationSidebar({
   const labels = labelsForLocale(locale);
 
   const typeTabs = [
-    { value: "", icon: <MessageCircle className="h-3.5 w-3.5" />, label: labels.all },
+    {
+      value: "",
+      icon: <MessageCircle className="h-3.5 w-3.5" />,
+      label: labels.all,
+    },
     {
       value: "direct",
       icon: <MessageCircle className="h-3.5 w-3.5" />,
       label: labels.direct,
     },
-    { value: "group", icon: <Users className="h-3.5 w-3.5" />, label: labels.group },
+    {
+      value: "group",
+      icon: <Users className="h-3.5 w-3.5" />,
+      label: labels.group,
+    },
     {
       value: "classroom",
       icon: <BookOpen className="h-3.5 w-3.5" />,
@@ -303,7 +309,10 @@ export default function ConversationSidebar({
             </h1>
             <p className="mt-0.5 text-[11px] text-black-500">
               {visibleConversations.length > 0
-                ? labels.nConversations.replace("{n}", String(visibleConversations.length))
+                ? labels.nConversations.replace(
+                    "{n}",
+                    String(visibleConversations.length),
+                  )
                 : labels.manageSchoolCommunication}
             </p>
           </div>
@@ -405,7 +414,7 @@ export default function ConversationSidebar({
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.04]">
               <MessageCircle className="h-5 w-5 text-slate-600" />
             </div>
-            <p className="text-sm font-medium text-slate-400">
+            <p className="text-sm font-medium text-slate-300">
               {labels.noConversationsFound}
             </p>
           </div>
@@ -544,10 +553,10 @@ function ConversationRow({
         </div>
 
         {/* Row 2: last message preview + participant count + unread badge */}
-        <div className="mt-1 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <p
             className={`flex-1 truncate text-[11px] leading-4 ${
-              unread > 0 ? "font-medium text-slate-300" : "text-slate-500"
+              unread > 0 ? "font-medium text-slate" : "text-slate-500"
             }`}
           >
             {preview}

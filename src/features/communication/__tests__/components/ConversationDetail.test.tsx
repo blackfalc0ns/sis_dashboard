@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { createConversation, createParticipant } from "../utils/test-data-generators";
 
 // ─── Hoisted Mocks ──────────────────────────────────────────────────────────
@@ -27,6 +27,8 @@ const useMessageAttachmentsMock = vi.hoisted(() => vi.fn());
 const useCommunicationPolicyMock = vi.hoisted(() => vi.fn());
 const useAuthMock = vi.hoisted(() => vi.fn());
 const markConversationReadMock = vi.hoisted(() => vi.fn());
+const refreshReactionsMock = vi.hoisted(() => vi.fn());
+const refreshAttachmentsMock = vi.hoisted(() => vi.fn());
 
 // ─── Module Mocks ───────────────────────────────────────────────────────────
 
@@ -93,13 +95,13 @@ vi.mock("@/features/communication/api/communication.service", () => ({
 
 // Mock child components to isolate ConversationDetail logic
 vi.mock("@/features/communication/conversations_redesign/components/ConversationHeader", () => ({
-  default: ({ conversation }: { conversation: unknown }) => (
+  default: () => (
     <div data-testid="conversation-header">Header</div>
   ),
 }));
 
 vi.mock("@/features/communication/conversations_redesign/components/ConversationTabs", () => ({
-  default: ({ activeTab, onTabChange }: { activeTab: string; onTabChange: (tab: string) => void }) => (
+  default: ({ onTabChange }: { onTabChange: (tab: string) => void }) => (
     <div data-testid="conversation-tabs">
       <button data-testid="tab-messages" onClick={() => onTabChange("messages")}>Messages</button>
       <button data-testid="tab-participants" onClick={() => onTabChange("participants")}>Participants</button>
@@ -118,15 +120,17 @@ vi.mock("@/features/communication/conversations_redesign/components/MessagesPane
 }));
 
 vi.mock("@/features/communication/conversations_redesign/components/ParticipantsPanel", () => ({
-  default: ({ canManage, canLeaveConversation, onAddParticipant, onPromoteParticipant, onDemoteParticipant, onRemoveParticipant, onLeaveConversation, participants, userDisplayNames }: {
+  default: ({ canManage, canLeaveConversation, participants, userDisplayNames }: {
     canManage: boolean;
     canLeaveConversation: boolean;
-    onAddParticipant: () => void;
-    onPromoteParticipant: (p: any) => void;
-    onDemoteParticipant: (p: any) => void;
-    onRemoveParticipant: (p: any) => void;
-    onLeaveConversation: () => void;
-    participants?: any[];
+    participants?: Array<{
+      id: string;
+      userId?: string;
+      actor?: {
+        id?: string;
+        userId?: string;
+      };
+    }>;
     userDisplayNames?: Record<string, string>;
   }) => (
     <div data-testid="participants-panel">
@@ -306,14 +310,14 @@ function setupDefaultMocks() {
     reactionsByMessageId: {},
     addReaction: vi.fn(),
     removeMyReaction: vi.fn(),
-    refreshAll: vi.fn(),
+    refreshAll: refreshReactionsMock,
   });
 
   useMessageAttachmentsMock.mockReturnValue({
     attachmentsByMessageId: {},
     attachFile: vi.fn(),
     removeAttachment: vi.fn(),
-    refreshAll: vi.fn(),
+    refreshAll: refreshAttachmentsMock,
     uploadingMessageId: null,
   });
 
@@ -377,6 +381,32 @@ describe("ConversationDetail", () => {
       expect(useConversationMock).toHaveBeenCalledWith(TEST_CONVERSATION_ID);
       expect(useConversationMessagesMock).toHaveBeenCalledWith(TEST_CONVERSATION_ID);
       expect(useTypingIndicatorMock).toHaveBeenCalledWith(TEST_CONVERSATION_ID);
+    });
+
+    it("handles reaction realtime events without refreshing reactions or attachments", () => {
+      renderConversationDetail();
+
+      const realtimeOptions = useConversationRealtimeMock.mock.calls.at(-1)?.[0];
+      expect(realtimeOptions?.onReactionUpserted).toEqual(expect.any(Function));
+      expect(realtimeOptions?.onReactionDeleted).toEqual(expect.any(Function));
+
+      realtimeOptions.onReactionUpserted({ conversationId: TEST_CONVERSATION_ID });
+      realtimeOptions.onReactionDeleted({ conversationId: TEST_CONVERSATION_ID });
+
+      expect(refreshReactionsMock).not.toHaveBeenCalled();
+      expect(refreshAttachmentsMock).not.toHaveBeenCalled();
+    });
+
+    it("refreshes reactions but not attachments during realtime resync", () => {
+      renderConversationDetail();
+
+      const realtimeOptions = useConversationRealtimeMock.mock.calls.at(-1)?.[0];
+      expect(realtimeOptions?.onReconnect).toEqual(expect.any(Function));
+
+      realtimeOptions.onReconnect();
+
+      expect(refreshReactionsMock).toHaveBeenCalledTimes(1);
+      expect(refreshAttachmentsMock).not.toHaveBeenCalled();
     });
 
     it("does not throw when conversation is null (loading state)", () => {

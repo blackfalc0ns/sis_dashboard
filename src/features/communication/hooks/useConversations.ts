@@ -6,7 +6,6 @@ import {
   closeConversation,
   createConversation,
   getConversations,
-  getMessages,
   reopenConversation,
   updateConversation,
 } from "@/features/communication/api/communication.service";
@@ -136,7 +135,44 @@ function unwrapList<T>(response: unknown): CommunicationList<T> {
   return { items: [], total: 0 };
 }
 
-function toConversationListItem(conversation: Conversation): ConversationListItemModel {
+function senderUserIdFromMessage(
+  message: CommunicationRecord | undefined,
+): string | undefined {
+  if (!message) return undefined;
+  const sender = isRecord(message.sender) ? message.sender : undefined;
+  return (
+    stringFromUnknown(message.senderUserId) ??
+    stringFromUnknown(message.senderId) ??
+    stringFromUnknown(message.userId) ??
+    stringFromUnknown(sender?.userId) ??
+    stringFromUnknown(sender?.id)
+  );
+}
+
+function unreadCountFromRecord(
+  record: CommunicationRecord,
+  lastMessageRecord: CommunicationRecord | undefined,
+  currentUserId?: string,
+): number | undefined {
+  const explicitUnreadCount = numberFromUnknown(record.unreadCount);
+  if (explicitUnreadCount !== undefined) return explicitUnreadCount;
+
+  if (!lastMessageRecord || !currentUserId) return 0;
+
+  const senderUserId = senderUserIdFromMessage(lastMessageRecord);
+  if (!senderUserId || senderUserId === currentUserId) return 0;
+
+  const readCount =
+    numberFromUnknown(record.lastMessageReadCount) ??
+    numberFromUnknown(lastMessageRecord.readCount);
+
+  return readCount === 0 ? 1 : 0;
+}
+
+function toConversationListItem(
+  conversation: Conversation,
+  currentUserId?: string,
+): ConversationListItemModel {
   const record = conversation as CommunicationRecord;
   const lastMessageRecord = [
     record.lastMessage,
@@ -150,9 +186,12 @@ function toConversationListItem(conversation: Conversation): ConversationListIte
 
   return {
     ...conversation,
+    unreadCount: unreadCountFromRecord(record, lastMessageRecord, currentUserId),
     lastMessage: lastMessageRecord
       ? {
-          id: stringFromUnknown(lastMessageRecord.id),
+          id:
+            stringFromUnknown(lastMessageRecord.id) ??
+            stringFromUnknown(lastMessageRecord.messageId),
           body:
             stringFromUnknown(lastMessageRecord.body) ??
             stringFromUnknown(lastMessageRecord.content) ??
@@ -361,22 +400,12 @@ export function useConversations() {
       });
       const list = unwrapList<Conversation>(response);
 
-      // Debug: log what the API returns for unreadCount and lastMessage
-      if (list.items.length > 0) {
-        console.debug(
-          "[useConversations] API response sample (first item):",
-          JSON.stringify({
-            id: (list.items[0] as CommunicationRecord).id,
-            unreadCount: (list.items[0] as CommunicationRecord).unreadCount,
-            lastMessage: (list.items[0] as CommunicationRecord).lastMessage,
-            latestMessage: (list.items[0] as CommunicationRecord).latestMessage,
-            message: (list.items[0] as CommunicationRecord).message,
-          }, null, 2),
-        );
-      }
-
       const normalized = sortConversations(
-        dedupeConversations(list.items.map(toConversationListItem)),
+        dedupeConversations(
+          list.items.map((conversation) =>
+            toConversationListItem(conversation, userIdRef.current),
+          ),
+        ),
       );
 
       if (!mountedRef.current) return;
@@ -398,17 +427,6 @@ export function useConversations() {
       });
       setTotal(list.total ?? normalized.length);
 
-      // Enrich conversations that don't have a meaningful lastMessage
-      // Check the freshly-fetched normalized data (not stale state) to determine
-      // which conversations need enrichment. A lastMessage is "meaningful" only if
-      // it has at least a body or an id.
-      const toEnrich = normalized.filter((c) => {
-        const lm = c.lastMessage;
-        return !lm || (!lm.body && !lm.id);
-      });
-      if (toEnrich.length > 0) {
-        void enrichConversations(toEnrich);
-      }
     } catch (nextError) {
       if (!mountedRef.current) return;
       setError(errorMessageFromUnknown(nextError));
@@ -421,73 +439,6 @@ export function useConversations() {
       }
     }
   }, [filters.search, filters.status]);
-
-  const enrichConversations = useCallback(
-    async (conversations: ConversationListItemModel[]) => {
-      // Fetch last message for each conversation (limit=1, most recent)
-      const enrichments = await Promise.allSettled(
-        conversations.map(async (conversation) => {
-          const messagesResponse = await getMessages(conversation.id, { limit: 1 }).catch(() => null);
-
-          let lastMessage: ConversationLastMessage | null = null;
-
-          if (messagesResponse) {
-            const messagesList = unwrapList<CommunicationRecord>(messagesResponse);
-            const msg = messagesList.items[0];
-            if (msg) {
-              const sender = isRecord(msg.sender) ? msg.sender : undefined;
-              lastMessage = {
-                id: stringFromUnknown(msg.id),
-                body:
-                  stringFromUnknown(msg.body) ??
-                  stringFromUnknown(msg.content),
-                status: stringFromUnknown(msg.status),
-                createdAt:
-                  stringFromUnknown(msg.createdAt) ??
-                  stringFromUnknown(msg.sentAt),
-                updatedAt: stringFromUnknown(msg.updatedAt),
-                senderName:
-                  stringFromUnknown(msg.senderName) ??
-                  stringFromUnknown(sender?.name) ??
-                  stringFromUnknown(sender?.nameEn),
-              };
-            }
-          }
-
-          return { conversationId: conversation.id, lastMessage };
-        }),
-      );
-
-      if (!mountedRef.current) return;
-
-      setConversations((current) =>
-        current.map((conversation) => {
-          const enrichment = enrichments.find(
-            (e) =>
-              e.status === "fulfilled" &&
-              e.value.conversationId === conversation.id,
-          );
-          if (enrichment?.status !== "fulfilled") return conversation;
-          const { lastMessage } = enrichment.value;
-          if (!lastMessage) return conversation;
-          // Don't overwrite if we already have a newer lastMessage from realtime
-          if (
-            conversation.lastMessage?.createdAt &&
-            lastMessage.createdAt &&
-            new Date(conversation.lastMessage.createdAt) >= new Date(lastMessage.createdAt)
-          ) {
-            return conversation;
-          }
-          return {
-            ...conversation,
-            lastMessage,
-            lastMessageAt: lastMessage.createdAt ?? conversation.lastMessageAt,
-          };
-        }),
-      );
-    },
-    [],
-  );
 
   const debouncedRefresh = useCallback(() => {
     if (refreshTimerRef.current) {
@@ -529,25 +480,17 @@ export function useConversations() {
 
   useEffect(() => {
     if (!socket) {
-      console.debug("[useConversations] socket is null, skipping listener setup");
       return;
     }
 
-    console.debug("[useConversations] registering socket listeners, socket connected:", socket.connected);
-
     const handleCreated = (payload: unknown) => {
-      console.debug("[useConversations] messageCreated event received:", JSON.stringify(payload, null, 2));
       const { conversationId, senderUserId, message } = lastMessageFromPayload(payload);
-      console.debug("[useConversations] extracted:", { conversationId, senderUserId, messageBody: message?.body });
       if (!conversationId || !message) {
-        console.debug("[useConversations] missing conversationId or message, triggering debouncedRefresh");
         debouncedRefresh();
         return;
       }
 
-      // Don't increment unread for messages sent by the current user
       const isOwnMessage = Boolean(userIdRef.current && senderUserId === userIdRef.current);
-      console.debug("[useConversations] isOwnMessage:", isOwnMessage, "currentUserId:", userIdRef.current, "senderUserId:", senderUserId);
 
       setConversations((current) => {
         let found = false;
@@ -568,12 +511,10 @@ export function useConversations() {
         });
 
         if (!found) {
-          console.debug("[useConversations] conversation NOT found in list, conversationId:", conversationId, "list has:", current.map(c => c.id));
           debouncedRefresh();
           return current;
         }
 
-        console.debug("[useConversations] conversation found and updated, unread incremented:", !isOwnMessage);
         return sortConversations(next);
       });
     };
@@ -639,14 +580,7 @@ export function useConversations() {
     socket.on(COMMUNICATION_SOCKET_EVENTS.messageUpdated, handleUpdated);
     socket.on(COMMUNICATION_SOCKET_EVENTS.messageDeleted, handleDeleted);
 
-    console.debug("[useConversations] socket listeners registered for events:", {
-      messageCreated: COMMUNICATION_SOCKET_EVENTS.messageCreated,
-      messageUpdated: COMMUNICATION_SOCKET_EVENTS.messageUpdated,
-      messageDeleted: COMMUNICATION_SOCKET_EVENTS.messageDeleted,
-    });
-
     return () => {
-      console.debug("[useConversations] cleaning up socket listeners");
       socket.off(COMMUNICATION_SOCKET_EVENTS.messageCreated, handleCreated);
       socket.off(COMMUNICATION_SOCKET_EVENTS.messageUpdated, handleUpdated);
       socket.off(COMMUNICATION_SOCKET_EVENTS.messageDeleted, handleDeleted);

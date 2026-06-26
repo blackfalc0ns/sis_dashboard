@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   deleteAttachment,
   getAttachments,
@@ -14,6 +14,14 @@ import type {
 } from "@/features/communication/types/communication.types";
 import type { MessageAttachment } from "@/features/communication/types/message.types";
 import { useCommunicationSocket } from "./useCommunicationSocket";
+
+type MessageAttachmentInput =
+  | string
+  | {
+      id?: string;
+      attachments?: MessageAttachment[];
+      deliveryStatus?: string;
+    };
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -77,17 +85,55 @@ function mergeAttachment(
   return [...next, incoming];
 }
 
+function normalizeAttachment(
+  attachment: MessageAttachment,
+  messageId: string,
+): MessageAttachment | null {
+  const record = attachment as Record<string, unknown>;
+  const id = stringValue(attachment.id) ?? stringValue(record.attachmentId);
+  if (!id) return null;
+
+  const sizeBytes = record.sizeBytes;
+  const parsedSize =
+    typeof sizeBytes === "string" ? Number.parseInt(sizeBytes, 10) : undefined;
+
+  return {
+    ...attachment,
+    id,
+    messageId: stringValue(attachment.messageId) ?? messageId,
+    fileId: stringValue(attachment.fileId),
+    name:
+      stringValue(attachment.name) ??
+      stringValue(record.displayName) ??
+      stringValue(record.fileName),
+    size:
+      typeof attachment.size === "number"
+        ? attachment.size
+        : Number.isFinite(parsedSize)
+          ? parsedSize
+          : undefined,
+    url: stringValue(attachment.url) ?? stringValue(record.downloadPath),
+  };
+}
+
 function fileIdFromUpload(response: unknown): string | null {
   const file = unwrapItem<CommunicationFile>(response);
   return file?.fileId ?? file?.id ?? null;
 }
 
 export function useMessageAttachments(
-  messageIds: string[],
+  messageInputs: MessageAttachmentInput[],
   maxAttachmentSizeMb?: number,
 ) {
   const { socket } = useCommunicationSocket();
   const mountedRef = useRef(false);
+  const messageIds = useMemo(
+    () =>
+      messageInputs
+        .map((message) => (typeof message === "string" ? message : message.id))
+        .filter((id): id is string => Boolean(id)),
+    [messageInputs],
+  );
   const messageIdsRef = useRef<Set<string>>(new Set(messageIds));
   const [attachmentsByMessageId, setAttachmentsByMessageId] = useState<
     Record<string, MessageAttachment[]>
@@ -97,6 +143,50 @@ export function useMessageAttachments(
   useEffect(() => {
     messageIdsRef.current = new Set(messageIds);
   }, [messageIds]);
+
+  const fetchedIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const inlineAttachmentsByMessageId: Record<string, MessageAttachment[]> = {};
+
+    messageInputs.forEach((message) => {
+      if (typeof message === "string") return;
+      const messageId = message.id;
+      if (!messageId) return;
+      if (!Array.isArray(message.attachments)) {
+        return;
+      }
+
+      fetchedIdsRef.current.add(messageId);
+
+      const attachments = message.attachments.reduce<MessageAttachment[]>(
+        (next, attachment) => {
+          const normalized = normalizeAttachment(attachment, messageId);
+          return normalized ? mergeAttachment(next, normalized) : next;
+        },
+        [],
+      );
+
+      if (attachments.length > 0) {
+        inlineAttachmentsByMessageId[messageId] = attachments;
+      }
+    });
+
+    if (Object.keys(inlineAttachmentsByMessageId).length === 0) return;
+
+    setAttachmentsByMessageId((current) => {
+      const next = { ...current };
+      Object.entries(inlineAttachmentsByMessageId).forEach(
+        ([messageId, attachments]) => {
+          next[messageId] = attachments.reduce<MessageAttachment[]>(
+            (merged, attachment) => mergeAttachment(merged, attachment),
+            next[messageId] ?? [],
+          );
+        },
+      );
+      return next;
+    });
+  }, [messageInputs]);
 
   const refreshMessage = useCallback(async (messageId: string) => {
     const response = await getAttachments(messageId);
@@ -115,8 +205,6 @@ export function useMessageAttachments(
       return { ...current, [messageId]: merged };
     });
   }, []);
-
-  const fetchedIdsRef = useRef<Set<string>>(new Set());
 
   const refreshAll = useCallback(async () => {
     fetchedIdsRef.current = new Set(messageIds);

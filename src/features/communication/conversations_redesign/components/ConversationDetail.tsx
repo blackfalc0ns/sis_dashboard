@@ -154,7 +154,6 @@ export default function ConversationDetail({
       .filter((message) => message.id && message.deliveryStatus !== "pending")
       .map((message) => message.id);
     return ids;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messagesState.messages]);
 
   // Stabilize the messageIds array reference — only change when IDs actually differ
@@ -172,8 +171,15 @@ export default function ConversationDetail({
   }, [messageIds]);
 
   const reactionsState = useMessageReactions(stableMessageIds);
+  const attachmentMessages = useMemo(
+    () =>
+      messagesState.messages.filter(
+        (message) => message.id && message.deliveryStatus !== "pending",
+      ),
+    [messagesState.messages],
+  );
   const attachmentsState = useMessageAttachments(
-    stableMessageIds,
+    attachmentMessages,
     policy?.maxAttachmentSizeMb,
   );
   const userDisplayNames = useMemo<UserDisplayNameMap>(() => {
@@ -251,9 +257,7 @@ export default function ConversationDetail({
     if (loadedTabs.invites) void invitesState.refresh();
     if (loadedTabs.joinRequests) void joinRequestsState.refresh();
     void reactionsState.refreshAll();
-    void attachmentsState.refreshAll();
   }, [
-    attachmentsState,
     conversationState,
     invitesState,
     joinRequestsState,
@@ -265,12 +269,16 @@ export default function ConversationDetail({
     shouldLoadParticipants,
   ]);
 
+  const ignoreReactionRealtimeRefresh = useCallback(() => undefined, []);
+
   useConversationRealtime({
     conversationId,
     onMessageCreated: messagesState.upsertFromRealtime,
     onMessageDeleted: messagesState.deleteFromRealtime,
     onMessageRead: messagesState.patchReadFromRealtime,
     onMessageUpdated: messagesState.patchFromRealtime,
+    onReactionDeleted: ignoreReactionRealtimeRefresh,
+    onReactionUpserted: ignoreReactionRealtimeRefresh,
     onPresenceUpdated: presenceState.handlePresenceUpdated,
     onReconnect: refreshAll,
     onTypingStarted: typingState.handleTypingStarted,
@@ -290,7 +298,6 @@ export default function ConversationDetail({
       lastMarkedReadRef.current = latestFromOther.id;
       void markConversationRead(conversationId).catch(() => undefined);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messagesState.messages, user?.id, conversationId]);
 
   const handleTabChange = (tab: DetailTab) => {
@@ -326,7 +333,6 @@ export default function ConversationDetail({
   const readOnly = conversationIsReadOnly(conversation);
   const isCommunicationEnabled = policy?.isEnabled !== false;
   const allowReactions = policy?.allowReactions !== false;
-  const allowAttachments = policy?.allowAttachments !== false;
 
   // Determine current user's participant status
   const currentUserParticipant = participantsState.participants.find(
@@ -673,6 +679,21 @@ export default function ConversationDetail({
             onSend={async (body) => {
               const result = await runMutation(
                 () => messagesState.send(body, replyTo ? { replyToMessageId: replyTo.id } : undefined),
+                labels.messageSent,
+                labels.unableToSendMessage,
+              );
+              setReplyTo(null);
+              return result;
+            }}
+            onSendVoice={async (file) => {
+              const result = await runMutation(
+                () =>
+                  messagesState.sendMedia({
+                    type: "voice",
+                    files: [file],
+                    caption: labels.voiceNote,
+                    ...(replyTo ? { replyToMessageId: replyTo.id } : {}),
+                  }),
                 labels.messageSent,
                 labels.unableToSendMessage,
               );

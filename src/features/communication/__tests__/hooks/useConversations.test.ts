@@ -6,9 +6,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { createMockSocket } from "../utils/mock-socket";
-import { createConversation, createMessage } from "../utils/test-data-generators";
+import { createConversation } from "../utils/test-data-generators";
 import type { MockSocket } from "../utils/mock-socket";
 
 // ─── Module Mocks ────────────────────────────────────────────────────────────
@@ -105,6 +105,147 @@ describe("useConversations", () => {
         status: "active",
         limit: 50,
       });
+    });
+
+    it("does not fetch each conversation's messages when the conversations response includes lastMessage", async () => {
+      mockGetConversations.mockResolvedValue({
+        data: {
+          items: [
+            {
+              id: "conv-with-last-message",
+              type: "direct",
+              status: "active",
+              title: "Conversation with last message",
+              lastMessageAt: "2026-05-17T13:08:13.502Z",
+              lastMessage: {
+                id: "msg-last",
+                messageId: "msg-last",
+                conversationId: "conv-with-last-message",
+                senderUserId: "sender-1",
+                type: "text",
+                status: "sent",
+                body: "trsddsa",
+                content: "trsddsa",
+                sentAt: "2026-05-17T13:08:13.502Z",
+                createdAt: "2026-05-17T13:08:13.502Z",
+                updatedAt: "2026-05-17T13:08:13.502Z",
+              },
+            },
+          ],
+          total: 1,
+        },
+      });
+
+      const useConversations = await importHook();
+      const { result } = renderHook(() => useConversations());
+
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      expect(result.current.conversations[0]?.lastMessage?.body).toBe("trsddsa");
+      expect(mockGetMessages).not.toHaveBeenCalled();
+    });
+
+    it("derives one unread item from unreadCount null when the last message from another user has no reads", async () => {
+      mockGetConversations.mockResolvedValue({
+        data: {
+          items: [
+            {
+              id: "conv-unread-null",
+              type: "direct",
+              status: "active",
+              title: "Conversation with nullable unread count",
+              unreadCount: null,
+              lastMessageReadCount: 0,
+              lastMessage: {
+                id: "msg-unread",
+                messageId: "msg-unread",
+                conversationId: "conv-unread-null",
+                senderUserId: "other-user-1",
+                status: "sent",
+                body: "test",
+                content: "test",
+                readCount: 0,
+                createdAt: "2026-05-21T15:08:20.571Z",
+                updatedAt: "2026-05-21T15:08:20.571Z",
+              },
+            },
+          ],
+          total: 1,
+        },
+      });
+
+      const useConversations = await importHook();
+      const { result } = renderHook(() => useConversations());
+
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      expect(result.current.conversations[0]?.unreadCount).toBe(1);
+    });
+
+    it("does not derive unread from unreadCount null when the current user sent the last message", async () => {
+      mockGetConversations.mockResolvedValue({
+        data: {
+          items: [
+            {
+              id: "conv-own-last-message",
+              type: "direct",
+              status: "active",
+              title: "Conversation with own last message",
+              unreadCount: null,
+              lastMessageReadCount: 0,
+              lastMessage: {
+                id: "msg-own",
+                messageId: "msg-own",
+                conversationId: "conv-own-last-message",
+                senderUserId: TEST_USER_ID,
+                status: "sent",
+                body: "mine",
+                content: "mine",
+                readCount: 0,
+                createdAt: "2026-05-21T15:08:20.571Z",
+                updatedAt: "2026-05-21T15:08:20.571Z",
+              },
+            },
+          ],
+          total: 1,
+        },
+      });
+
+      const useConversations = await importHook();
+      const { result } = renderHook(() => useConversations());
+
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      expect(result.current.conversations[0]?.unreadCount).toBe(0);
+    });
+
+    it("does not fetch each conversation's messages when lastMessage is missing from the conversations response", async () => {
+      mockGetConversations.mockResolvedValue({
+        data: {
+          items: [
+            createConversation({
+              id: "conv-without-last-message",
+              title: "Conversation without last message",
+            }),
+          ],
+          total: 1,
+        },
+      });
+
+      const useConversations = await importHook();
+      renderHook(() => useConversations());
+
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      expect(mockGetMessages).not.toHaveBeenCalled();
     });
 
     it("triggers new API call with updated params when filters change", async () => {
@@ -265,11 +406,9 @@ describe("useConversations", () => {
 
   // ─── Property 6: Enrichment Preserves Newer Real-Time Data ───────────────
 
-  describe("Property 6: Enrichment Preserves Newer Real-Time Data", () => {
-    it("does not overwrite newer real-time lastMessage with older enrichment data", async () => {
+  describe("Property 6: Real-time Last Message Preservation", () => {
+    it("preserves newer real-time lastMessage when a refresh response has no lastMessage", async () => {
       const newerTimestamp = "2025-06-01T12:00:00.000Z";
-      const olderTimestamp = "2025-05-01T10:00:00.000Z";
-
       const conv = createConversation({
         id: "conv-400",
         unreadCount: 0,
@@ -278,22 +417,6 @@ describe("useConversations", () => {
       // First call returns the conversation without lastMessage
       mockGetConversations.mockResolvedValue({
         data: { items: [conv], total: 1 },
-      });
-
-      // Enrichment will return an older message
-      mockGetMessages.mockResolvedValue({
-        data: {
-          items: [
-            {
-              id: "msg-old",
-              body: "Old enrichment message",
-              status: "sent",
-              createdAt: olderTimestamp,
-              sender: { name: "Old Sender" },
-            },
-          ],
-          total: 1,
-        },
       });
 
       const useConversations = await importHook();
@@ -344,6 +467,7 @@ describe("useConversations", () => {
       const afterRefresh = result.current.conversations[0];
       expect(afterRefresh?.lastMessage?.body).toBe("Newer real-time message");
       expect(afterRefresh?.lastMessage?.createdAt).toBe(newerTimestamp);
+      expect(mockGetMessages).not.toHaveBeenCalled();
     });
   });
 });

@@ -355,9 +355,16 @@ export default function ConversationThread({
         .map((message) => message.id),
     [messagesState.messages],
   );
+  const attachmentMessages = useMemo(
+    () =>
+      messagesState.messages.filter(
+        (message) => message.id && message.deliveryStatus !== "pending",
+      ),
+    [messagesState.messages],
+  );
   const reactionsState = useMessageReactions(messageIds);
   const attachmentsState = useMessageAttachments(
-    messageIds,
+    attachmentMessages,
     policy?.maxAttachmentSizeMb,
   );
   const refreshConversation = conversationState.refresh;
@@ -366,7 +373,6 @@ export default function ConversationThread({
   const refreshInvites = invitesState.refresh;
   const refreshJoinRequests = joinRequestsState.refresh;
   const refreshReactions = reactionsState.refreshAll;
-  const refreshAttachments = attachmentsState.refreshAll;
 
   const permissions = useMemo(
     () =>
@@ -401,11 +407,9 @@ export default function ConversationThread({
     if (loadedTabs.invites) void refreshInvites();
     if (loadedTabs.joinRequests) void refreshJoinRequests();
     void refreshReactions();
-    void refreshAttachments();
   }, [
     loadedTabs.invites,
     loadedTabs.joinRequests,
-    refreshAttachments,
     refreshConversation,
     refreshInvites,
     refreshJoinRequests,
@@ -437,8 +441,6 @@ export default function ConversationThread({
     onMessageRead: messagesState.patchReadFromRealtime,
     onReactionUpserted: refreshReactions,
     onReactionDeleted: refreshReactions,
-    onAttachmentLinked: refreshAttachments,
-    onAttachmentDeleted: refreshAttachments,
     onTypingStarted: typingState.handleTypingStarted,
     onTypingStopped: typingState.handleTypingStopped,
     onPresenceUpdated: presenceState.handlePresenceUpdated,

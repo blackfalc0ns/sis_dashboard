@@ -8,6 +8,7 @@ import type {
 
 export type MessageStatus = "sent" | "hidden" | "deleted";
 export type MessageType = "text" | "image" | "file" | "audio" | "video" | "system";
+export type SendableMessageType = Exclude<MessageType, "system"> | "voice";
 export type MessageKind = MessageType;
 export type ReactionType =
   | "like"
@@ -37,12 +38,21 @@ export interface Message extends CommunicationRecord {
 }
 
 export interface SendMessagePayload {
-  type?: "text";
+  type?: SendableMessageType;
   body?: string;
   content?: string;
+  caption?: string;
   clientMessageId?: string;
   replyToMessageId?: CommunicationId;
+  attachments?: SendMessageAttachmentPayload[];
   metadata?: CommunicationRecord | null;
+}
+
+export interface SendMessageAttachmentPayload {
+  fileId: CommunicationId;
+  mediaKind?: "image" | "file" | "audio" | "video";
+  caption?: string;
+  sortOrder?: number;
 }
 
 export interface UpdateMessagePayload {

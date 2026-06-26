@@ -128,8 +128,10 @@ export interface BackendSendMessagePayload extends BackendPayload {
   type?: BackendPayloadValue;
   body?: BackendPayloadValue;
   content?: BackendPayloadValue;
+  caption?: BackendPayloadValue;
   clientMessageId?: BackendPayloadValue;
   replyToMessageId?: BackendPayloadValue;
+  attachments?: BackendPayloadValue;
   metadata?: BackendPayloadValue;
 }
 
@@ -430,8 +432,10 @@ export function toBackendSendMessagePayload(
       type: input.type ?? "text",
       body: input.body,
       content: input.content,
+      caption: input.caption,
       clientMessageId: input.clientMessageId,
       replyToMessageId,
+      attachments: input.attachments,
       metadata: input.metadata,
     },
     ["metadata"],

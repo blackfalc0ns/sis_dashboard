@@ -25,11 +25,16 @@ const apiMocks = vi.hoisted(() => ({
   getConversationReadSummary: vi.fn(),
 }));
 
+const filesApiMocks = vi.hoisted(() => ({
+  uploadFile: vi.fn(),
+}));
+
 const authMock = vi.hoisted(() => ({
   useAuth: vi.fn(),
 }));
 
 vi.mock("@/features/communication/api/communication.service", () => apiMocks);
+vi.mock("@/features/communication/api/files.service", () => filesApiMocks);
 vi.mock("@/hooks/use-auth", () => authMock);
 
 // ─── Import Hook Under Test ─────────────────────────────────────────────────
@@ -69,6 +74,9 @@ function setupDefaultMocks() {
   apiMocks.markMessageRead.mockResolvedValue({});
   apiMocks.getConversationReadSummary.mockResolvedValue({
     data: { readCount: 0, unreadCount: 0 },
+  });
+  filesApiMocks.uploadFile.mockResolvedValue({
+    data: { id: "file-voice-001" },
   });
 }
 
@@ -520,6 +528,76 @@ describe("useConversationMessages", () => {
           body: "Test message",
           type: "text",
           clientMessageId: expect.any(String),
+        }),
+      );
+    });
+
+    it("uploads a recorded voice file and sends it as one backend media message", async () => {
+      const voiceFile = new File(["voice"], "voice-note.webm", {
+        type: "audio/webm",
+      });
+      apiMocks.sendMessage.mockResolvedValue({
+        data: {
+          id: "msg-voice-001",
+          conversationId: TEST_CONVERSATION_ID,
+          senderId: TEST_USER_ID,
+          body: "Voice message",
+          type: "audio",
+          status: "sent",
+          createdAt: new Date().toISOString(),
+          attachments: [
+            {
+              attachmentId: "attachment-voice-001",
+              fileId: "file-voice-001",
+              displayName: "voice-note.webm",
+              mimeType: "audio/webm",
+              mediaKind: "audio",
+              downloadPath: "/api/v1/files/file-voice-001/download",
+            },
+          ],
+        },
+      });
+
+      const { result } = renderHook(() =>
+        useConversationMessages(TEST_CONVERSATION_ID),
+      );
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.sendMedia({
+          type: "voice",
+          files: [voiceFile],
+          caption: "Voice message",
+        });
+      });
+
+      expect(filesApiMocks.uploadFile).toHaveBeenCalledTimes(1);
+      expect(filesApiMocks.uploadFile).toHaveBeenCalledWith(voiceFile);
+      expect(apiMocks.sendMessage).toHaveBeenCalledWith(
+        TEST_CONVERSATION_ID,
+        expect.objectContaining({
+          type: "voice",
+          caption: "Voice message",
+          body: "Voice message",
+          attachments: [
+            {
+              fileId: "file-voice-001",
+              mediaKind: "audio",
+              caption: "Voice message",
+              sortOrder: 0,
+            },
+          ],
+          clientMessageId: expect.any(String),
+        }),
+      );
+      expect(result.current.messages[0]).toEqual(
+        expect.objectContaining({
+          id: "msg-voice-001",
+          deliveryStatus: "sent",
+          type: "audio",
         }),
       );
     });

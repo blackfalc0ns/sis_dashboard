@@ -1,5 +1,5 @@
-import { type MouseEvent, useEffect, useState } from "react";
-import { FileText, Trash2 } from "lucide-react";
+import { type MouseEvent, useEffect, useRef, useState } from "react";
+import { FileText, Play, Pause, Trash2 } from "lucide-react";
 import { formatFileSize } from "@/features/communication/conversations_redesign/utils/formatters";
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import type { MessageAttachment } from "@/features/communication/types/message.types";
@@ -32,8 +32,6 @@ export function AttachmentCard({
   );
   const fileId = attachment.fileId || file?.id;
   const href = attachment.url || file?.url || (fileId ? `${process.env.NEXT_PUBLIC_API_URL || "https://api.moazez.sa/api/v1"}/files/${fileId}/download` : undefined);
-  const [isDeleting, setIsDeleting] = useState(false);
-
   const mimeType = attachment.mimeType || file?.mimeType || (file as any)?.mimetype;
   const isAudio = Boolean(
     mimeType?.startsWith("audio/") ||
@@ -45,9 +43,19 @@ export function AttachmentCard({
     name.toLowerCase().endsWith(".aac")
   );
 
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Audio states
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(isAudio && !!fileId);
   const [error, setError] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playbackSpeed, setPlaybackSpeed] = useState<1 | 1.5 | 2>(1);
+  const [peaks, setPeaks] = useState<number[]>([]);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (!isAudio || !fileId) return;
@@ -62,9 +70,43 @@ export function AttachmentCard({
         const response = await apiClient.get(`/files/${fileId}/download`, {
           responseType: "blob",
         });
-        const blob = new Blob([response.data as BlobPart], { type: response.headers["content-type"] as string });
+        const blob = response.data instanceof Blob ? response.data : new Blob([response.data as BlobPart], { type: response.headers["content-type"] as string });
         objectUrl = URL.createObjectURL(blob);
         setAudioUrl(objectUrl);
+
+        // Web Audio API Peak analysis
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (typeof AudioContextClass !== "undefined") {
+          const arrayBuffer = await blob.arrayBuffer();
+          const audioCtx = new AudioContextClass();
+          try {
+            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            const channelData = audioBuffer.getChannelData(0);
+            const barCount = 28;
+            const chunkSize = Math.floor(channelData.length / barCount);
+            const calculatedPeaks: number[] = [];
+
+            for (let i = 0; i < barCount; i++) {
+              const start = i * chunkSize;
+              const end = start + chunkSize;
+              let max = 0;
+              for (let j = start; j < end; j++) {
+                const val = Math.abs(channelData[j]);
+                if (val > max) max = val;
+              }
+              const heightPercent = Math.round(15 + max * 85);
+              calculatedPeaks.push(heightPercent);
+            }
+            setPeaks(calculatedPeaks);
+          } catch (decodeErr) {
+            console.error("decodeAudioData failed, using fallback peaks:", decodeErr);
+            setPeaks([25, 40, 15, 60, 80, 45, 30, 70, 90, 50, 20, 35, 65, 85, 40, 30, 55, 75, 45, 25, 60, 80, 50, 30, 45, 65, 20, 15]);
+          } finally {
+            await audioCtx.close();
+          }
+        } else {
+          setPeaks([25, 40, 15, 60, 80, 45, 30, 70, 90, 50, 20, 35, 65, 85, 40, 30, 55, 75, 45, 25, 60, 80, 50, 30, 45, 65, 20, 15]);
+        }
       } catch (err) {
         console.error("Failed to load audio attachment:", err);
         setError(true);
@@ -81,6 +123,72 @@ export function AttachmentCard({
       }
     };
   }, [fileId, isAudio]);
+
+  useEffect(() => {
+    const handleOtherPlay = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.fileId !== fileId && audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+
+    window.addEventListener("voice-play", handleOtherPlay);
+    return () => {
+      window.removeEventListener("voice-play", handleOtherPlay);
+    };
+  }, [fileId]);
+
+  const onPlay = () => setIsPlaying(true);
+  const onPause = () => setIsPlaying(false);
+  const onTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+  const onLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+    }
+  };
+  const onEnded = () => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+  };
+
+  const toggleSpeed = () => {
+    let nextSpeed: 1 | 1.5 | 2 = 1;
+    if (playbackSpeed === 1) nextSpeed = 1.5;
+    else if (playbackSpeed === 1.5) nextSpeed = 2;
+    setPlaybackSpeed(nextSpeed);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = nextSpeed;
+    }
+  };
+
+  const handleWaveformClick = (e: MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percentage = clickX / rect.width;
+    audioRef.current.currentTime = percentage * duration;
+  };
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      window.dispatchEvent(new CustomEvent("voice-play", { detail: { fileId } }));
+      void audioRef.current.play();
+    }
+  };
+
+  const formatAudioTime = (time: number) => {
+    if (isNaN(time)) return "0:00";
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+  };
 
   const handleDelete = async (event: MouseEvent) => {
     event.preventDefault();
@@ -123,53 +231,115 @@ export function AttachmentCard({
   };
 
   if (isAudio && fileId) {
+    const progress = duration > 0 ? currentTime / duration : 0;
     return (
       <div
-        className={`flex flex-col gap-2 rounded-xl p-3 mb-2 w-full max-w-[280px] sm:max-w-[320px] ${
-          isOwn ? "bg-primary-700/50 text-white" : "bg-slate-100 text-slate-800"
+        className={`flex flex-col gap-2 rounded-2xl p-3 mb-2 w-full max-w-[280px] sm:max-w-[320px] ${
+          isOwn ? "bg-primary-700/40 text-white" : "bg-slate-100 text-slate-800"
         }`}
       >
-        <div className="flex items-center gap-2">
-          <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${isOwn ? "bg-primary-400" : "bg-primary/10"}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${isOwn ? "text-white" : "text-primary"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-              <line x1="12" y1="19" x2="12" y2="22"/>
-            </svg>
-          </span>
-          <span className="block truncate text-xs font-semibold flex-1">{name || labels.voiceNote || "Voice Note"}</span>
+        {/* Header Row: Play/Pause button + Waveform */}
+        <div className="flex items-center gap-3">
+          {/* Play/Pause Circle */}
+          <button
+            type="button"
+            onClick={togglePlay}
+            disabled={loading || error}
+            className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 ${
+              isOwn ? "bg-white text-primary" : "bg-primary text-white"
+            }`}
+            aria-label={isPlaying ? "Pause" : "Play"}
+          >
+            {isPlaying ? (
+              <Pause className="h-4.5 w-4.5 fill-current" />
+            ) : (
+              <Play className="h-4.5 w-4.5 fill-current ml-0.5" />
+            )}
+          </button>
+
+          {/* Waveform Visualization */}
+          {loading ? (
+            <div className="flex items-center gap-1.5 h-6 flex-1 px-2">
+              <div className="h-2 w-2 animate-bounce rounded-full bg-current [animation-delay:-0.3s]"></div>
+              <div className="h-2 w-2 animate-bounce rounded-full bg-current [animation-delay:-0.15s]"></div>
+              <div className="h-2 w-2 animate-bounce rounded-full bg-current"></div>
+            </div>
+          ) : error ? (
+            <span className="text-[11px] text-rose-500 font-medium flex-1">Failed to load audio</span>
+          ) : (
+            <div
+              data-testid="waveform-container"
+              onClick={handleWaveformClick}
+              className="flex items-end gap-[2px] h-7 flex-1 cursor-pointer select-none group/wave relative"
+            >
+              {peaks.map((heightPercent, index) => {
+                const isPlayed = (index / peaks.length) <= progress;
+                return (
+                  <div
+                    key={index}
+                    style={{ height: `${heightPercent}%` }}
+                    className={`w-[3px] rounded-full transition-colors duration-100 ${
+                      isPlayed
+                        ? isOwn ? "bg-white" : "bg-primary"
+                        : isOwn ? "bg-white/30" : "bg-slate-300"
+                    }`}
+                  />
+                );
+              })}
+            </div>
+          )}
+
+          {/* Delete button (if allowed) */}
           {canDelete ? (
             <button
               type="button"
               onClick={(event) => void handleDelete(event)}
               disabled={isDeleting}
-              className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded transition disabled:opacity-60 ${
+              className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition ${
                 isOwn
-                  ? "text-white/80 hover:bg-white/10"
+                  ? "text-white/70 hover:bg-white/10"
                   : "text-rose-700 hover:bg-rose-50"
               }`}
               aria-label={labels.deleteAttachmentConfirm}
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-4 w-4" />
             </button>
           ) : null}
         </div>
-        {loading ? (
-          <div className="flex items-center gap-2 py-1 px-1">
-            <div className="h-2 w-2 animate-bounce rounded-full bg-current [animation-delay:-0.3s]"></div>
-            <div className="h-2 w-2 animate-bounce rounded-full bg-current [animation-delay:-0.15s]"></div>
-            <div className="h-2 w-2 animate-bounce rounded-full bg-current"></div>
-            <span className="text-[10px] opacity-70">Loading audio...</span>
+
+        {/* Footer Row: Time info + Speed controller */}
+        <div className="flex items-center justify-between text-[11px] font-medium px-1">
+          <span className="opacity-80">
+            {formatAudioTime(currentTime)} / {formatAudioTime(duration || 0)}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={toggleSpeed}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition active:scale-95 ${
+                isOwn
+                  ? "border-white/30 hover:bg-white/10 text-white"
+                  : "border-slate-300 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              {playbackSpeed}x
+            </button>
           </div>
-        ) : error ? (
-          <span className="text-[10px] text-rose-500 font-medium">Failed to load voice note</span>
-        ) : audioUrl ? (
+        </div>
+
+        {/* Hidden HTML5 Audio element */}
+        {audioUrl && (
           <audio
+            ref={audioRef}
             src={audioUrl}
-            controls
-            className="w-full h-8 mt-1 rounded-lg focus:outline-none"
+            onPlay={onPlay}
+            onPause={onPause}
+            onTimeUpdate={onTimeUpdate}
+            onLoadedMetadata={onLoadedMetadata}
+            onEnded={onEnded}
+            className="hidden"
           />
-        ) : null}
+        )}
       </div>
     );
   }

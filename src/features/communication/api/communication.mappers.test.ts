@@ -71,6 +71,38 @@ describe("communication backend request mappers", () => {
     expect(output).not.toHaveProperty("attachmentIds");
   });
 
+  it("maps voice message attachments to the backend media message contract", () => {
+    const output = toBackendSendMessagePayload({
+      type: "voice",
+      caption: "Voice message",
+      clientMessageId: "client-voice-1",
+      replyToMessageId: "parent-1",
+      attachments: [
+        {
+          fileId: "550e8400-e29b-41d4-a716-446655440000",
+          mediaKind: "audio",
+          caption: "Voice message",
+          sortOrder: 0,
+        },
+      ],
+    } as unknown as SendMessagePayload);
+
+    expect(output).toEqual({
+      type: "voice",
+      caption: "Voice message",
+      clientMessageId: "client-voice-1",
+      replyToMessageId: "parent-1",
+      attachments: [
+        {
+          fileId: "550e8400-e29b-41d4-a716-446655440000",
+          mediaKind: "audio",
+          caption: "Voice message",
+          sortOrder: 0,
+        },
+      ],
+    });
+  });
+
   it("keeps announcement audience fields and removes frontend-only targets", () => {
     const output = toBackendAnnouncementCreatePayload({
       title: "Announcement",

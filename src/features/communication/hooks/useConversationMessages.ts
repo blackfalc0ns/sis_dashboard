@@ -10,11 +10,17 @@ import {
   sendMessage,
   updateMessage,
 } from "@/features/communication/api/communication.service";
+import { uploadFile } from "@/features/communication/api/files.service";
 import { createCommunicationMetadata } from "@/features/communication/utils/communication-metadata";
-import type { CommunicationRecord } from "@/features/communication/types/communication.types";
+import type {
+  CommunicationFile,
+  CommunicationRecord,
+} from "@/features/communication/types/communication.types";
 import type {
   Message,
   MessageStatus,
+  SendableMessageType,
+  SendMessageAttachmentPayload,
   SendMessagePayload,
 } from "@/features/communication/types/message.types";
 import { useAuth } from "@/hooks/use-auth";
@@ -26,6 +32,13 @@ export interface ConversationMessage extends Message {
   deliveryStatus?: LocalMessageDeliveryStatus;
   readByUserIds?: string[];
   readCount?: number;
+}
+
+export interface SendMediaMessageInput {
+  type: SendableMessageType;
+  files: File[];
+  caption?: string;
+  replyToMessageId?: string;
 }
 
 export interface ReadSummaryState {
@@ -71,6 +84,62 @@ function unwrapList<T>(response: unknown): T[] {
     response.payload,
   ].find(Array.isArray);
   return arraySource ? (arraySource as T[]) : [];
+}
+
+function fileIdFromUpload(response: unknown): string | null {
+  const file = unwrapItem<CommunicationFile>(response);
+  return file?.fileId ?? file?.id ?? null;
+}
+
+function mediaKindFromFile(
+  file: File,
+): NonNullable<SendMessageAttachmentPayload["mediaKind"]> {
+  if (file.type.startsWith("image/")) return "image";
+  if (file.type.startsWith("video/")) return "video";
+  if (file.type.startsWith("audio/")) return "audio";
+  return "file";
+}
+
+function responseMessageType(type: SendableMessageType): Message["type"] {
+  return type === "voice" ? "audio" : type;
+}
+
+function mediaMessageBody(type: SendableMessageType, caption?: string): string {
+  return caption || (type === "voice" ? "Voice message" : "");
+}
+
+function optimisticMediaAttachments(
+  clientMessageId: string,
+  files: File[],
+): Message["attachments"] {
+  return files.map((file, index) => ({
+    id: `${clientMessageId}-attachment-${index}`,
+    messageId: clientMessageId,
+    name: file.name,
+    mimeType: file.type,
+    size: file.size,
+  }));
+}
+
+async function uploadMessageAttachments(
+  files: File[],
+  caption?: string,
+): Promise<SendMessageAttachmentPayload[]> {
+  return Promise.all(
+    files.map(async (file, index) => {
+      const uploadResponse = await uploadFile(file);
+      const fileId = fileIdFromUpload(uploadResponse);
+      if (!fileId) {
+        throw new Error("Upload response did not include a file id.");
+      }
+      return {
+        fileId,
+        mediaKind: mediaKindFromFile(file),
+        caption,
+        sortOrder: index,
+      };
+    }),
+  );
 }
 
 function messageFromPayload(payload: unknown): ConversationMessage | null {
@@ -413,6 +482,82 @@ export function useConversationMessages(conversationId: string) {
     [conversationId, user],
   );
 
+  const sendMedia = useCallback(
+    async ({
+      type,
+      files,
+      caption,
+      replyToMessageId,
+    }: SendMediaMessageInput): Promise<string | undefined> => {
+      if (files.length === 0) return undefined;
+
+      const trimmedCaption = caption?.trim();
+      const body = mediaMessageBody(type, trimmedCaption);
+      const clientMessageId = createClientMessageId();
+      const createdAt = new Date().toISOString();
+      const pendingMessage: ConversationMessage = {
+        id: clientMessageId,
+        clientMessageId,
+        conversationId,
+        senderId: user?.id,
+        sender: user
+          ? {
+              id: user.id,
+              userId: user.id,
+              name: `${user.firstName} ${user.lastName}`.trim(),
+            }
+          : undefined,
+        body,
+        type: responseMessageType(type),
+        status: "sent",
+        deliveryStatus: "pending",
+        createdAt,
+        replyToMessageId,
+        attachments: optimisticMediaAttachments(clientMessageId, files),
+      };
+
+      setMessages((current) => upsertMessage(current, pendingMessage));
+
+      try {
+        const attachments = await uploadMessageAttachments(files, trimmedCaption);
+        const payload: SendMessagePayload = {
+          type,
+          body,
+          caption: trimmedCaption,
+          clientMessageId,
+          attachments,
+          ...(replyToMessageId ? { replyToMessageId } : {}),
+          metadata: createCommunicationMetadata("message_send", {
+            composer: "conversation_thread",
+          }),
+        };
+        const response = await sendMessage(conversationId, payload);
+        const serverMessage = messageFromPayload(response);
+        if (!serverMessage) return clientMessageId;
+        setMessages((current) =>
+          upsertMessage(current, {
+            ...serverMessage,
+            clientMessageId:
+              serverMessage.clientMessageId ?? pendingMessage.clientMessageId,
+            deliveryStatus: "sent",
+          }),
+        );
+        return serverMessage.id ?? clientMessageId;
+      } catch (nextError) {
+        setError(errorMessage(nextError));
+        setMessages((current) =>
+          current.map((message) =>
+            message.clientMessageId === clientMessageId
+              ? { ...message, deliveryStatus: "failed" }
+              : message,
+          ),
+        );
+        throw nextError;
+      }
+    },
+    [conversationId, user],
+  );
+
   const edit = useCallback(async (messageId: string, body: string) => {
     const trimmed = body.trim();
     if (!trimmed) return;
@@ -556,6 +701,7 @@ export function useConversationMessages(conversationId: string) {
     refresh,
     loadOlderMessages,
     send,
+    sendMedia,
     edit,
     remove,
     markRead,
