@@ -24,6 +24,7 @@ import { BubbleContextMenu } from "./BubbleContextMenu";
 import { FloatingReactionBar } from "./FloatingReactionBar";
 import { AttachmentCard } from "./AttachmentCard";
 import { MessageStatusIcon } from "./MessageStatusIcon";
+import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 
 export function MessageBubble({
   allowReactions,
@@ -74,6 +75,7 @@ export function MessageBubble({
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [draftBody, setDraftBody] = useState(message.body ?? "");
   const [isActionPending, setIsActionPending] = useState(false);
   const senderName = isOwn
@@ -122,12 +124,12 @@ export function MessageBubble({
     await onAttachFile(file);
   };
 
-  const handleDelete = async () => {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(labels.deleteMessageConfirm)
-    )
-      return;
+  const handleDelete = () => {
+    setIsConfirmOpen(true);
+  };
+
+  const executeDelete = async () => {
+    setIsConfirmOpen(false);
     setIsActionPending(true);
     try {
       await onDeleteMessage();
@@ -135,6 +137,20 @@ export function MessageBubble({
       setIsActionPending(false);
     }
   };
+
+  const confirmDialogElement = (
+    <ConfirmDialog
+      isOpen={isConfirmOpen}
+      onClose={() => setIsConfirmOpen(false)}
+      onConfirm={executeDelete}
+      title={labels.deleteMessage || "Delete"}
+      description={labels.deleteMessageConfirm}
+      confirmLabel={labels.deleteMessage || "Delete"}
+      cancelLabel={labels.cancel}
+      loading={isActionPending}
+      severity="danger"
+    />
+  );
 
   const handleReaction = async (type: ReactionType) => {
     if (!allowReactions) return;
@@ -495,6 +511,7 @@ export function MessageBubble({
         </div>
       </div>
     ) : null}
+    {confirmDialogElement}
     </>
   );
 }

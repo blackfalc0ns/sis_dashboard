@@ -525,6 +525,55 @@ describe("AttachmentCard Image and Video Previews", () => {
     expect(videoElement).toBeInTheDocument();
     expect(videoElement).toHaveAttribute("controls");
   });
+
+  it("shows confirmation dialog when delete is clicked and calls onDelete when confirmed", async () => {
+    const attachment: MessageAttachment = {
+      id: "doc-1",
+      fileId: "file-doc-1",
+      mimeType: "application/pdf",
+      name: "report.pdf",
+      file: {
+        id: "file-doc-1",
+        originalName: "report.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 2048000,
+        filename: "report.pdf",
+        bucket: "moazez-dev",
+        objectKey: "report.pdf",
+        schoolId: "school-1",
+        createdAt: "2026-06-26T00:00:00Z",
+        updatedAt: "2026-06-26T00:00:00Z",
+      },
+    };
+
+    const onDeleteMock = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <AttachmentCard
+        attachment={attachment}
+        canDelete={true}
+        isOwn={false}
+        labels={labels}
+        onDelete={onDeleteMock}
+      />
+    );
+
+    // Click delete button
+    const deleteButton = screen.getByRole("button", { name: labels.deleteAttachmentConfirm });
+    fireEvent.click(deleteButton);
+
+    // Verify confirmation modal is open by searching for description or title
+    expect(screen.getByText(labels.deleteAttachmentConfirm)).toBeInTheDocument();
+
+    // Click confirm/Delete button inside the modal
+    const confirmButton = screen.getByRole("button", { name: labels.deleteMessage });
+    fireEvent.click(confirmButton);
+
+    // Verify onDelete is called
+    await waitFor(() => {
+      expect(onDeleteMock).toHaveBeenCalled();
+    });
+  });
 });
 
 

@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createConversation, createParticipant } from "../utils/test-data-generators";
 
 // ─── Hoisted Mocks ──────────────────────────────────────────────────────────
@@ -27,8 +27,60 @@ const useMessageAttachmentsMock = vi.hoisted(() => vi.fn());
 const useCommunicationPolicyMock = vi.hoisted(() => vi.fn());
 const useAuthMock = vi.hoisted(() => vi.fn());
 const markConversationReadMock = vi.hoisted(() => vi.fn());
+const archiveConversationMock = vi.hoisted(() => vi.fn());
+const closeConversationMock = vi.hoisted(() => vi.fn());
 const refreshReactionsMock = vi.hoisted(() => vi.fn());
 const refreshAttachmentsMock = vi.hoisted(() => vi.fn());
+
+// ─── Module Mocks ───────────────────────────────────────────────────────────
+
+vi.mock("@/features/communication/hooks/useConversation", () => ({
+  useConversation: useConversationMock,
+}));
+
+vi.mock("@/features/communication/hooks/useConversationMessages", () => ({
+  useConversationMessages: useConversationMessagesMock,
+}));
+
+vi.mock("@/features/communication/hooks/useConversationParticipants", () => ({
+  useConversationParticipants: useConversationParticipantsMock,
+}));
+
+vi.mock("@/features/communication/hooks/useConversationInvites", () => ({
+  useConversationInvites: useConversationInvitesMock,
+}));
+
+vi.mock("@/features/communication/hooks/useConversationJoinRequests", () => ({
+  useConversationJoinRequests: useConversationJoinRequestsMock,
+}));
+
+vi.mock("@/features/communication/hooks/useConversationRealtime", () => ({
+  useConversationRealtime: useConversationRealtimeMock,
+}));
+
+vi.mock("@/features/communication/hooks/usePresence", () => ({
+  usePresence: usePresenceMock,
+}));
+
+vi.mock("@/features/communication/hooks/useTypingIndicator", () => ({
+  useTypingIndicator: useTypingIndicatorMock,
+}));
+
+vi.mock("@/features/communication/hooks/useMessageReactions", () => ({
+  useMessageReactions: useMessageReactionsMock,
+}));
+
+vi.mock("@/features/communication/hooks/useMessageAttachments", () => ({
+  useMessageAttachments: useMessageAttachmentsMock,
+}));
+
+vi.mock("@/features/communication/hooks/useCommunicationPolicy", () => ({
+  useCommunicationPolicy: useCommunicationPolicyMock,
+}));
+
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: useAuthMock,
+}));
 
 // ─── Module Mocks ───────────────────────────────────────────────────────────
 
@@ -87,16 +139,20 @@ vi.mock("next-intl", () => ({
 
 vi.mock("@/features/communication/api/communication.service", () => ({
   markConversationRead: markConversationReadMock,
-  archiveConversation: vi.fn(),
-  closeConversation: vi.fn(),
+  archiveConversation: archiveConversationMock,
+  closeConversation: closeConversationMock,
   reopenConversation: vi.fn(),
   updateConversation: vi.fn(),
 }));
 
 // Mock child components to isolate ConversationDetail logic
 vi.mock("@/features/communication/conversations_redesign/components/ConversationHeader", () => ({
-  default: () => (
-    <div data-testid="conversation-header">Header</div>
+  default: ({ onArchive, onClose }: any) => (
+    <div data-testid="conversation-header">
+      Header
+      {onArchive && <button data-testid="header-archive-btn" onClick={onArchive}>Archive</button>}
+      {onClose && <button data-testid="header-close-btn" onClick={onClose}>Close</button>}
+    </div>
   ),
 }));
 
@@ -866,5 +922,47 @@ describe("ConversationDetail", () => {
       expect(screen.getByTestId(`participant-${targetParticipantId}`)).toHaveTextContent("User Display Name Priority");
     });
   });
-});
 
+  // ─── Task 10: Modal Archive/Close Confirmation ───────────────────────────
+  describe("Task 10: Modal Archive/Close Confirmation", () => {
+    it("shows confirmation dialog when archive is triggered and calls archiveConversation when confirmed", async () => {
+      archiveConversationMock.mockResolvedValue(undefined);
+      renderConversationDetail();
+
+      // Trigger archive via the mock header button
+      fireEvent.click(screen.getByTestId("header-archive-btn"));
+
+      // Verify the confirmation dialog description is in the document
+      expect(screen.getByText("Archive this conversation? It can be reopened later.")).toBeInTheDocument();
+
+      // Click the confirm/Archive button inside the modal
+      const confirmButtons = screen.getAllByRole("button", { name: "Archive" });
+      const modalConfirmBtn = confirmButtons[confirmButtons.length - 1];
+      fireEvent.click(modalConfirmBtn);
+
+      await waitFor(() => {
+        expect(archiveConversationMock).toHaveBeenCalledWith(TEST_CONVERSATION_ID);
+      });
+    });
+
+    it("shows confirmation dialog when close is triggered and calls closeConversation when confirmed", async () => {
+      closeConversationMock.mockResolvedValue(undefined);
+      renderConversationDetail();
+
+      // Trigger close via the mock header button
+      fireEvent.click(screen.getByTestId("header-close-btn"));
+
+      // Verify the confirmation dialog description is in the document
+      expect(screen.getByText("Close this conversation? It can be reopened later.")).toBeInTheDocument();
+
+      // Click the confirm/Close button inside the modal
+      const confirmButtons = screen.getAllByRole("button", { name: "Close" });
+      const modalConfirmBtn = confirmButtons[confirmButtons.length - 1];
+      fireEvent.click(modalConfirmBtn);
+
+      await waitFor(() => {
+        expect(closeConversationMock).toHaveBeenCalledWith(TEST_CONVERSATION_ID);
+      });
+    });
+  });
+});

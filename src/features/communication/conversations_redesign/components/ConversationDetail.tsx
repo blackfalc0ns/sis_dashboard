@@ -82,6 +82,7 @@ import {
   updateConversation,
 } from "@/features/communication/api/communication.service";
 import type { UpdateConversationPayload } from "@/features/communication/types/conversation.types";
+import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 
 export default function ConversationDetail({
   conversationId,
@@ -124,6 +125,8 @@ export default function ConversationDetail({
   } | null>(null);
   const [isEditConversationOpen, setIsEditConversationOpen] = useState(false);
   const [isMutatingConversation, setIsMutatingConversation] = useState(false);
+  const [isConfirmArchiveOpen, setIsConfirmArchiveOpen] = useState(false);
+  const [isConfirmCloseOpen, setIsConfirmCloseOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<{
     id: string;
     senderName: string;
@@ -349,12 +352,12 @@ export default function ConversationDetail({
   const isRemovedOrLeft = currentUserStatus === "left" || currentUserStatus === "removed";
   const canSendMessages = !readOnly && !isMuted && !isBlocked && !isRemovedOrLeft && isCommunicationEnabled;
 
-  const handleArchiveConversation = async () => {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(labels.archiveConversationConfirm)
-    )
-      return;
+  const handleArchiveConversation = () => {
+    setIsConfirmArchiveOpen(true);
+  };
+
+  const executeArchiveConversation = async () => {
+    setIsConfirmArchiveOpen(false);
     setIsMutatingConversation(true);
     try {
       await archiveConversation(conversationId);
@@ -370,12 +373,12 @@ export default function ConversationDetail({
     }
   };
 
-  const handleCloseConversation = async () => {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(labels.closeConversationConfirm)
-    )
-      return;
+  const handleCloseConversation = () => {
+    setIsConfirmCloseOpen(true);
+  };
+
+  const executeCloseConversation = async () => {
+    setIsConfirmCloseOpen(false);
     setIsMutatingConversation(true);
     try {
       await closeConversation(conversationId);
@@ -913,6 +916,30 @@ export default function ConversationDetail({
           onSubmit={handleEditConversation}
         />
       ) : null}
+
+      <ConfirmDialog
+        isOpen={isConfirmArchiveOpen}
+        onClose={() => setIsConfirmArchiveOpen(false)}
+        onConfirm={executeArchiveConversation}
+        title={labels.archiveConversation || "Archive"}
+        description={labels.archiveConversationConfirm}
+        confirmLabel={labels.archiveConversation || "Archive"}
+        cancelLabel={labels.cancel}
+        loading={isMutatingConversation}
+        severity="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={isConfirmCloseOpen}
+        onClose={() => setIsConfirmCloseOpen(false)}
+        onConfirm={executeCloseConversation}
+        title={labels.closeConversation || "Close"}
+        description={labels.closeConversationConfirm}
+        confirmLabel={labels.closeConversation || "Close"}
+        cancelLabel={labels.cancel}
+        loading={isMutatingConversation}
+        severity="danger"
+      />
     </div>
   );
 }
