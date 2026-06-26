@@ -33,21 +33,43 @@ export function AttachmentCard({
   const fileId = attachment.fileId || file?.id;
   const href = attachment.url || file?.url || (fileId ? `${process.env.NEXT_PUBLIC_API_URL || "https://api.moazez.sa/api/v1"}/files/${fileId}/download` : undefined);
   const mimeType = attachment.mimeType || file?.mimeType || (file as any)?.mimetype;
+  const isImage = Boolean(
+    mimeType?.startsWith("image/") ||
+    name.toLowerCase().endsWith(".png") ||
+    name.toLowerCase().endsWith(".jpg") ||
+    name.toLowerCase().endsWith(".jpeg") ||
+    name.toLowerCase().endsWith(".gif") ||
+    name.toLowerCase().endsWith(".webp") ||
+    name.toLowerCase().endsWith(".svg")
+  );
+
   const isAudio = Boolean(
     mimeType?.startsWith("audio/") ||
-    name.toLowerCase().endsWith(".webm") ||
+    (name.toLowerCase().endsWith(".webm") && !mimeType?.startsWith("video/")) ||
     name.toLowerCase().endsWith(".mp3") ||
     name.toLowerCase().endsWith(".wav") ||
     name.toLowerCase().endsWith(".m4a") ||
-    name.toLowerCase().endsWith(".ogg") ||
+    (name.toLowerCase().endsWith(".ogg") && !mimeType?.startsWith("video/")) ||
     name.toLowerCase().endsWith(".aac")
   );
 
+  const isVideo = Boolean(
+    !isAudio && (
+      mimeType?.startsWith("video/") ||
+      name.toLowerCase().endsWith(".mp4") ||
+      name.toLowerCase().endsWith(".mov") ||
+      name.toLowerCase().endsWith(".webm") ||
+      name.toLowerCase().endsWith(".ogg")
+    )
+  );
+
+  const isMedia = isAudio || isImage || isVideo;
+
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Audio states
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(isAudio && !!fileId);
+  // Media states
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(isMedia && !!fileId);
   const [error, setError] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -58,11 +80,11 @@ export function AttachmentCard({
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (!isAudio || !fileId) return;
+    if (!isMedia || !fileId) return;
 
     let objectUrl: string | null = null;
     
-    async function loadAudio() {
+    async function loadMedia() {
       setLoading(true);
       setError(false);
       try {
@@ -72,57 +94,59 @@ export function AttachmentCard({
         });
         const blob = response.data instanceof Blob ? response.data : new Blob([response.data as BlobPart], { type: response.headers["content-type"] as string });
         objectUrl = URL.createObjectURL(blob);
-        setAudioUrl(objectUrl);
+        setMediaUrl(objectUrl);
 
-        // Web Audio API Peak analysis
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        if (typeof AudioContextClass !== "undefined") {
-          const arrayBuffer = await blob.arrayBuffer();
-          const audioCtx = new AudioContextClass();
-          try {
-            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-            const channelData = audioBuffer.getChannelData(0);
-            const barCount = 28;
-            const chunkSize = Math.floor(channelData.length / barCount);
-            const calculatedPeaks: number[] = [];
+        if (isAudio) {
+          // Web Audio API Peak analysis
+          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+          if (typeof AudioContextClass !== "undefined") {
+            const arrayBuffer = await blob.arrayBuffer();
+            const audioCtx = new AudioContextClass();
+            try {
+              const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+              const channelData = audioBuffer.getChannelData(0);
+              const barCount = 28;
+              const chunkSize = Math.floor(channelData.length / barCount);
+              const calculatedPeaks: number[] = [];
 
-            for (let i = 0; i < barCount; i++) {
-              const start = i * chunkSize;
-              const end = start + chunkSize;
-              let max = 0;
-              for (let j = start; j < end; j++) {
-                const val = Math.abs(channelData[j]);
-                if (val > max) max = val;
+              for (let i = 0; i < barCount; i++) {
+                const start = i * chunkSize;
+                const end = start + chunkSize;
+                let max = 0;
+                for (let j = start; j < end; j++) {
+                  const val = Math.abs(channelData[j]);
+                  if (val > max) max = val;
+                }
+                const heightPercent = Math.round(15 + max * 85);
+                calculatedPeaks.push(heightPercent);
               }
-              const heightPercent = Math.round(15 + max * 85);
-              calculatedPeaks.push(heightPercent);
+              setPeaks(calculatedPeaks);
+            } catch (decodeErr) {
+              console.error("decodeAudioData failed, using fallback peaks:", decodeErr);
+              setPeaks([25, 40, 15, 60, 80, 45, 30, 70, 90, 50, 20, 35, 65, 85, 40, 30, 55, 75, 45, 25, 60, 80, 50, 30, 45, 65, 20, 15]);
+            } finally {
+              await audioCtx.close();
             }
-            setPeaks(calculatedPeaks);
-          } catch (decodeErr) {
-            console.error("decodeAudioData failed, using fallback peaks:", decodeErr);
+          } else {
             setPeaks([25, 40, 15, 60, 80, 45, 30, 70, 90, 50, 20, 35, 65, 85, 40, 30, 55, 75, 45, 25, 60, 80, 50, 30, 45, 65, 20, 15]);
-          } finally {
-            await audioCtx.close();
           }
-        } else {
-          setPeaks([25, 40, 15, 60, 80, 45, 30, 70, 90, 50, 20, 35, 65, 85, 40, 30, 55, 75, 45, 25, 60, 80, 50, 30, 45, 65, 20, 15]);
         }
       } catch (err) {
-        console.error("Failed to load audio attachment:", err);
+        console.error("Failed to load media attachment:", err);
         setError(true);
       } finally {
         setLoading(false);
       }
     }
 
-    void loadAudio();
+    void loadMedia();
 
     return () => {
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [fileId, isAudio]);
+  }, [fileId, isMedia, isAudio]);
 
   useEffect(() => {
     const handleOtherPlay = (e: Event) => {
@@ -230,6 +254,105 @@ export function AttachmentCard({
     }
   };
 
+  if (isImage && fileId) {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center bg-slate-50 border border-slate-100 rounded-2xl w-[240px] sm:w-[280px] h-[200px] animate-pulse">
+          <div className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.3s]"></div>
+          <div className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.15s]"></div>
+          <div className="h-2 w-2 animate-bounce rounded-full bg-slate-400"></div>
+        </div>
+      );
+    }
+    if (error) {
+      return (
+        <div className="flex flex-col gap-1 items-center justify-center bg-rose-50/50 border border-rose-100 rounded-2xl w-[240px] sm:w-[280px] h-[160px] text-rose-600 text-xs">
+          <span>Failed to load image</span>
+        </div>
+      );
+    }
+    return (
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200/50 bg-slate-50/50 max-w-[240px] sm:max-w-[280px] max-h-[240px] sm:max-h-[280px] flex items-center justify-center group cursor-pointer">
+        <img
+          src={mediaUrl || href}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          alt={name}
+          onClick={() => window.open(mediaUrl || href, "_blank")}
+        />
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              void handleDownload();
+            }}
+            className="h-9 w-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center backdrop-blur-sm transition-all duration-200 active:scale-90"
+            aria-label="Download"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+          {canDelete && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleDelete(e);
+              }}
+              className="h-9 w-9 rounded-full bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center backdrop-blur-sm transition-all duration-200 active:scale-90"
+              aria-label={labels.deleteAttachmentConfirm}
+            >
+              <Trash2 className="h-4.5 w-4.5" />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (isVideo && fileId) {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center bg-slate-50 border border-slate-100 rounded-2xl w-[240px] sm:w-[280px] h-[200px] animate-pulse">
+          <div className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.3s]"></div>
+          <div className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.15s]"></div>
+          <div className="h-2 w-2 animate-bounce rounded-full bg-slate-400"></div>
+        </div>
+      );
+    }
+    if (error) {
+      return (
+        <div className="flex flex-col gap-1 items-center justify-center bg-rose-50/50 border border-rose-100 rounded-2xl w-[240px] sm:w-[280px] h-[160px] text-rose-600 text-xs">
+          <span>Failed to load video</span>
+        </div>
+      );
+    }
+    return (
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200/50 bg-slate-50/50 max-w-[240px] sm:max-w-[280px] max-h-[240px] sm:max-h-[280px] flex items-center justify-center group">
+        <video
+          data-testid="video-element"
+          src={mediaUrl || href}
+          controls
+          className="w-full h-full object-cover rounded-2xl"
+        />
+        {canDelete && (
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleDelete(e);
+              }}
+              className="h-8 w-8 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-md active:scale-90"
+              aria-label={labels.deleteAttachmentConfirm}
+            >
+              <Trash2 className="h-4.5 w-4.5" />
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (isAudio && fileId) {
     const progress = duration > 0 ? currentTime / duration : 0;
     return (
@@ -328,10 +451,10 @@ export function AttachmentCard({
         </div>
 
         {/* Hidden HTML5 Audio element */}
-        {audioUrl && (
+        {mediaUrl && (
           <audio
             ref={audioRef}
-            src={audioUrl}
+            src={mediaUrl}
             onPlay={onPlay}
             onPause={onPause}
             onTimeUpdate={onTimeUpdate}
@@ -343,7 +466,6 @@ export function AttachmentCard({
       </div>
     );
   }
-
   // Extension badge background color helper
   const getBadgeConfig = (filename: string) => {
     const ext = filename.split(".").pop()?.toLowerCase() || "";

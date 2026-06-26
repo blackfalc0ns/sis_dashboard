@@ -439,3 +439,92 @@ describe("AttachmentCard Document Redesign", () => {
   });
 });
 
+describe("AttachmentCard Image and Video Previews", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("renders image preview and loads Object URL securely", async () => {
+    const attachment: MessageAttachment = {
+      id: "img-1",
+      fileId: "file-img-1",
+      mimeType: "image/png",
+      name: "avatar.png",
+      file: {
+        id: "file-img-1",
+        originalName: "avatar.png",
+        mimeType: "image/png",
+        sizeBytes: 102400,
+        filename: "avatar.png",
+        bucket: "moazez-dev",
+        objectKey: "avatar.png",
+        schoolId: "school-1",
+        createdAt: "2026-06-26T00:00:00Z",
+        updatedAt: "2026-06-26T00:00:00Z",
+      },
+    };
+
+    const { apiClient } = await import("@/lib/api");
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: new Blob([new Uint8Array(100)]),
+      headers: { "content-type": "image/png" },
+    });
+
+    render(
+      <AttachmentCard
+        attachment={attachment}
+        canDelete={true}
+        isOwn={false}
+        labels={labels}
+        onDelete={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    const imageElement = await screen.findByRole("img", { name: "avatar.png" });
+    expect(imageElement).toBeInTheDocument();
+    expect(imageElement).toHaveAttribute("src", "blob:mock-url");
+  });
+
+  it("renders video preview with playback controls", async () => {
+    const attachment: MessageAttachment = {
+      id: "vid-1",
+      fileId: "file-vid-1",
+      mimeType: "video/mp4",
+      name: "demo.mp4",
+      file: {
+        id: "file-vid-1",
+        originalName: "demo.mp4",
+        mimeType: "video/mp4",
+        sizeBytes: 10240000,
+        filename: "demo.mp4",
+        bucket: "moazez-dev",
+        objectKey: "demo.mp4",
+        schoolId: "school-1",
+        createdAt: "2026-06-26T00:00:00Z",
+        updatedAt: "2026-06-26T00:00:00Z",
+      },
+    };
+
+    const { apiClient } = await import("@/lib/api");
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: new Blob([new Uint8Array(100)]),
+      headers: { "content-type": "video/mp4" },
+    });
+
+    render(
+      <AttachmentCard
+        attachment={attachment}
+        canDelete={true}
+        isOwn={false}
+        labels={labels}
+        onDelete={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    const videoElement = await screen.findByTestId("video-element");
+    expect(videoElement).toBeInTheDocument();
+    expect(videoElement).toHaveAttribute("controls");
+  });
+});
+
+
