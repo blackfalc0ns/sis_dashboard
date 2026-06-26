@@ -1,35 +1,50 @@
-# Attachment Card Redesign Specification (WhatsApp Web-Style)
+# Attachment Card Redesign Specification (WhatsApp/Telegram-Style)
 
-We are redesigning the default file attachment card layout in the redesigned conversations panel to match a premium WhatsApp Web-style rectangular layout. This document details the visual components, file extension color mapping, metadata presentation, and verification strategies.
+We are redesigning the default file attachment card layout in the redesigned conversations panel to match a premium WhatsApp/Telegram-style interface. This includes a WhatsApp Web-style rectangular layout for general documents, and a Large Rich Media Preview block for images and videos.
 
 ---
 
 ## 1. User Interface & Layout Design
 
-The redesigned file attachment card will render as a neat, responsive rectangular block inside message bubbles.
+The redesigned file attachment card will render differently depending on the type of attachment (Audio, Rich Media, or General Document).
 
-### 1.1 Background & Border Styling
-- **Sent by Current User (`isOwn = true`):**
-  - **Background:** Semi-transparent white overlay (`bg-white/10` or `bg-primary-950/20`).
-  - **Border:** Subtle white border (`border border-white/10`).
-  - **Text Color:** Clean white (`text-white`) for file name; semi-transparent white (`text-white/70`) for metadata.
-- **Received from Others (`isOwn = false`):**
-  - **Background:** Solid white or extremely soft light-gray card (`bg-white` or `bg-slate-50`).
-  - **Border:** Soft gray border (`border border-slate-100` or `border-slate-200/60`).
-  - **Text Color:** Muted slate (`text-slate-800`) for file name; slate gray (`text-slate-500`) for metadata.
+### 1.1 Audio Attachments (Waveform Player)
+- Already implemented as a WhatsApp/Telegram waveform player with peak downsampling, timeline seeking, playback speed control, and auto-pause synchronization.
 
-### 1.2 Layout Structure
-- **Container:** `flex items-center gap-3 p-3 rounded-xl border w-full max-w-[280px] sm:max-w-[320px] mb-1.5 transition-all shadow-sm`
-- **Left Side:** Colored file type badge (`h-10 w-9 rounded shrink-0`) containing a sheet icon at the top and the capitalized file extension overlay text at the bottom.
-- **Center:** Flex column containing the truncated file name and the metadata row.
-- **Right Side:** A row of circular action buttons (download, delete) with hover micro-interactions.
+### 1.2 Rich Media Attachments (Images & Videos)
+If the file is an image or video, it will render as a large, beautiful media block with rounded corners:
+- **Natural bounding:** Constrained to `max-w-[240px] sm:max-w-[280px]` and `max-h-[240px] sm:max-h-[280px]`.
+- **Aesthetic wrapper:** Features soft borders (`border border-slate-200/50`) and background placeholders.
+- **Images:**
+  - Shows the image using `object-cover w-full h-full rounded-2xl`.
+  - On hover, shows a dark semi-transparent overlay containing circular action buttons (download, delete) with smooth fade-in and scale transitions.
+  - Clicking the image opens the media in a new tab.
+- **Videos:**
+  - Renders an HTML5 `<video>` player with inline playback controls (`controls`).
+  - If `canDelete` is true, displays a floating circular delete button in the top-right corner on hover.
+
+### 1.3 General Document Attachments (WhatsApp Web-Style Card)
+For all other non-media attachments (PDFs, spreadsheets, text files, compressed archives, etc.):
+- **Container:** `flex items-center gap-3 p-3 rounded-xl border w-full max-w-[280px] sm:max-w-[320px] mb-1.5 transition-all shadow-sm`.
+- **Backgrounds:**
+  - *Own Bubble (`isOwn = true`):* Semi-transparent white (`bg-white/10 border-white/10`).
+  - *Other's Bubble (`isOwn = false`):* Light slate card (`bg-white border-slate-100` or `bg-slate-50 border-slate-200/60`).
+- **Left Side (File Type Badge):**
+  - A compact file-type container (`h-10 w-9 rounded shrink-0 flex flex-col items-center justify-between py-1 relative select-none shadow-sm`).
+  - Background color is mapped based on the file extension (red for PDF, green for Excel, blue for Word, orange for PowerPoint, yellow for ZIP, neutral slate for others).
+  - Shows a document lines icon at the top and the capitalized extension name (e.g., `PDF`, `ZIP`) in tiny bold letters at the bottom.
+- **Center (Metadata):**
+  - File name: Truncated bold text (`text-[13px] font-semibold truncate`).
+  - Sub-details: File size and capitalized type, e.g., `1.4 MB • PDF` (`text-[10.5px] font-medium opacity-80 mt-0.5`).
+- **Right Side (Actions):**
+  - A clean circular download button (`h-8 w-8 rounded-full flex items-center justify-center hover:bg-slate-200/60 transition active:scale-90`).
+  - A circular trash/delete button if `canDelete` is true.
 
 ---
 
 ## 2. Component Specifications
 
 ### 2.1 File Type Badge Color Mapping
-The rectangular file type badge on the left will change its background color and styling depending on the file's extension (extracted from the file name or MIME type):
 - **PDF (`.pdf`):** Crimson/Red theme (`bg-red-500` / own bubble: `bg-red-600/30 text-red-200`)
 - **Word/Text (`.doc`, `.docx`, `.txt`, `.rtf`):** Blue theme (`bg-blue-500` / own bubble: `bg-blue-600/30 text-blue-200`)
 - **Excel/Sheets (`.xls`, `.xlsx`, `.csv`):** Green theme (`bg-emerald-500` / own bubble: `bg-emerald-600/30 text-emerald-200`)
@@ -37,14 +52,6 @@ The rectangular file type badge on the left will change its background color and
 - **Compressed (`.zip`, `.rar`, `.7z`, `.tar`, `.gz`):** Amber/Yellow theme (`bg-orange-500` / own bubble: `bg-orange-600/30 text-orange-200`)
 - **Images/Videos (`.png`, `.jpg`, `.jpeg`, `.gif`, `.mp4`, `.mov`, `.avi`):** Violet/Indigo theme (`bg-indigo-500` / own bubble: `bg-indigo-600/30 text-indigo-200`)
 - **Generic/Other:** Neutral Slate theme (`bg-slate-500` / own bubble: `bg-slate-600/30 text-slate-300`)
-
-### 2.2 Text Metadata
-- **File Name:** Bold, truncated (`text-[13px] font-semibold truncate`).
-- **File Size and Extension:** Formatted as `Size • Extension`, e.g., `1.4 MB • PDF Document` (`text-[10.5px] font-medium opacity-80 mt-0.5`).
-
-### 2.3 Interactive Action Buttons
-- **Download Button:** A clean, modern circular button (`h-8 w-8 rounded-full flex items-center justify-center transition hover:bg-slate-100 active:scale-90`) containing a download SVG icon.
-- **Delete Button:** Appears only if `canDelete` is true. Styled as a circular button with a trash icon (`text-rose-600 hover:bg-rose-50` / own bubble: `text-white/70 hover:bg-white/10`).
 
 ---
 
@@ -57,6 +64,8 @@ We will add new unit tests to assert the following behaviors:
 3. Renders the uppercase file extension text in the badge overlay (e.g. `PDF` for PDF files).
 4. Verifies clicking the download button calls the download handler.
 5. Verifies clicking the delete button opens the confirmation prompt and triggers deletion.
+6. Renders `<img>` element for image attachments and verifies local Object URL loading.
+7. Renders `<video>` element for video attachments and verifies controls are present.
 
 ### 3.2 Regression Testing
 - Run all communication feature tests (`npx vitest run src/features/communication`) to ensure zero regressions.
