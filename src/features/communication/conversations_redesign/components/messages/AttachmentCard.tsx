@@ -82,9 +82,11 @@ export function AttachmentCard({
   useEffect(() => {
     if (!isMedia || !fileId) return;
 
+    let active = true;
     let objectUrl: string | null = null;
     
     async function loadMedia() {
+      if (!active) return;
       setLoading(true);
       setError(false);
       try {
@@ -93,7 +95,11 @@ export function AttachmentCard({
           responseType: "blob",
         });
         const blob = response.data instanceof Blob ? response.data : new Blob([response.data as BlobPart], { type: response.headers["content-type"] as string });
+        
+        if (!active) return;
         objectUrl = URL.createObjectURL(blob);
+        
+        if (!active) return;
         setMediaUrl(objectUrl);
 
         if (isAudio) {
@@ -101,9 +107,12 @@ export function AttachmentCard({
           const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
           if (typeof AudioContextClass !== "undefined") {
             const arrayBuffer = await blob.arrayBuffer();
+            
+            if (!active) return;
             const audioCtx = new AudioContextClass();
             try {
               const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+              if (!active) return;
               const channelData = audioBuffer.getChannelData(0);
               const barCount = 28;
               const chunkSize = Math.floor(channelData.length / barCount);
@@ -120,28 +129,35 @@ export function AttachmentCard({
                 const heightPercent = Math.round(15 + max * 85);
                 calculatedPeaks.push(heightPercent);
               }
+              if (!active) return;
               setPeaks(calculatedPeaks);
             } catch (decodeErr) {
               console.error("decodeAudioData failed, using fallback peaks:", decodeErr);
+              if (!active) return;
               setPeaks([25, 40, 15, 60, 80, 45, 30, 70, 90, 50, 20, 35, 65, 85, 40, 30, 55, 75, 45, 25, 60, 80, 50, 30, 45, 65, 20, 15]);
             } finally {
               await audioCtx.close();
             }
           } else {
+            if (!active) return;
             setPeaks([25, 40, 15, 60, 80, 45, 30, 70, 90, 50, 20, 35, 65, 85, 40, 30, 55, 75, 45, 25, 60, 80, 50, 30, 45, 65, 20, 15]);
           }
         }
       } catch (err) {
         console.error("Failed to load media attachment:", err);
+        if (!active) return;
         setError(true);
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     }
 
     void loadMedia();
 
     return () => {
+      active = false;
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl);
       }
@@ -272,12 +288,14 @@ export function AttachmentCard({
       );
     }
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200/50 bg-slate-50/50 max-w-[240px] sm:max-w-[280px] max-h-[240px] sm:max-h-[280px] flex items-center justify-center group cursor-pointer">
+      <div
+        className="relative overflow-hidden rounded-2xl border border-slate-200/50 bg-slate-50/50 max-w-[240px] sm:max-w-[280px] max-h-[240px] sm:max-h-[280px] flex items-center justify-center group cursor-pointer"
+        onClick={() => window.open(mediaUrl || href, "_blank")}
+      >
         <img
           src={mediaUrl || href}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           alt={name}
-          onClick={() => window.open(mediaUrl || href, "_blank")}
         />
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3">
           <button
@@ -294,6 +312,7 @@ export function AttachmentCard({
           {canDelete && (
             <button
               type="button"
+              disabled={isDeleting}
               onClick={(e) => {
                 e.stopPropagation();
                 void handleDelete(e);
@@ -338,6 +357,7 @@ export function AttachmentCard({
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <button
               type="button"
+              disabled={isDeleting}
               onClick={(e) => {
                 e.stopPropagation();
                 void handleDelete(e);
