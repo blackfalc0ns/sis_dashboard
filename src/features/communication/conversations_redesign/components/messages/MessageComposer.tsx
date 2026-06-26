@@ -1,9 +1,44 @@
-import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  type FormEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Edit3, FileText, Mic, Paperclip, Send, Trash2 } from "lucide-react";
 
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 
 import { EmojiPickerButton } from "./EmojiPickerButton";
+
+const DEFAULT_VOICE_RECORDING_UNAVAILABLE =
+  "Voice recording is not available in this browser.";
+const AUDIO_MIME_TYPE_CANDIDATES = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/mp4",
+  "audio/mpeg",
+] as const;
+
+function voiceRecordingUnavailableMessage(labels: ConversationRedesignLabels) {
+  const labelRecord = labels as Record<string, string | undefined>;
+  return (
+    labelRecord.voiceRecordingUnavailable ?? DEFAULT_VOICE_RECORDING_UNAVAILABLE
+  );
+}
+
+function supportedAudioMimeType(): string | undefined {
+  if (
+    typeof MediaRecorder === "undefined" ||
+    typeof MediaRecorder.isTypeSupported !== "function"
+  ) {
+    return undefined;
+  }
+
+  return AUDIO_MIME_TYPE_CANDIDATES.find((mimeType) =>
+    MediaRecorder.isTypeSupported(mimeType),
+  );
+}
 
 export function MessageComposer({
   disabled,
@@ -14,6 +49,7 @@ export function MessageComposer({
   onCancelReply,
   onEditMessage,
   onSend,
+  onSendVoice,
   onSendWithAttachment,
   onStopTyping,
   onTyping,
@@ -27,6 +63,7 @@ export function MessageComposer({
   onCancelReply: () => void;
   onEditMessage: (messageId: string, body: string) => Promise<unknown>;
   onSend: (body: string) => Promise<unknown>;
+  onSendVoice: (file: File) => Promise<unknown>;
   onSendWithAttachment: (files: File[], caption: string) => Promise<unknown>;
   onStopTyping: () => void;
   onTyping: () => void;
@@ -37,6 +74,7 @@ export function MessageComposer({
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [recordingError, setRecordingError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -112,13 +150,25 @@ export function MessageComposer({
   };
 
   const startRecording = async () => {
+    setRecordingError(null);
+
+    if (
+      !navigator.mediaDevices?.getUserMedia ||
+      typeof MediaRecorder === "undefined"
+    ) {
+      setRecordingError(voiceRecordingUnavailableMessage(labels));
+      return;
+    }
+
+    let stream: MediaStream | null = null;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-          ? "audio/webm;codecs=opus"
-          : "audio/webm",
-      });
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = supportedAudioMimeType();
+      const mediaRecorder = new MediaRecorder(
+        stream,
+        mimeType ? { mimeType } : undefined,
+      );
+      const activeStream = stream;
       audioChunksRef.current = [];
       mediaRecorderRef.current = mediaRecorder;
 
@@ -129,7 +179,7 @@ export function MessageComposer({
       };
 
       mediaRecorder.onstop = () => {
-        stream.getTracks().forEach((track) => track.stop());
+        activeStream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();
@@ -138,8 +188,10 @@ export function MessageComposer({
       recordingTimerRef.current = setInterval(() => {
         setRecordingDuration((d) => d + 1);
       }, 1000);
-    } catch {
-      // Microphone permission denied or not available
+    } catch (err) {
+      console.error("[VoiceRecording] Failed to start recording:", err);
+      stream?.getTracks().forEach((track) => track.stop());
+      setRecordingError(voiceRecordingUnavailableMessage(labels));
     }
   };
 
@@ -151,7 +203,9 @@ export function MessageComposer({
     const audioBlob = await new Promise<Blob>((resolve) => {
       mediaRecorder.onstop = () => {
         mediaRecorder.stream.getTracks().forEach((track) => track.stop());
-        const blob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
+        const blob = new Blob(audioChunksRef.current, {
+          type: mediaRecorder.mimeType,
+        });
         resolve(blob);
       };
       mediaRecorder.stop();
@@ -165,7 +219,6 @@ export function MessageComposer({
 
     if (audioBlob.size === 0) return;
 
-    // Create a File from the blob and send as attachment
     const extension = mediaRecorder.mimeType.includes("webm") ? "webm" : "ogg";
     const audioFile = new File(
       [audioBlob],
@@ -175,7 +228,7 @@ export function MessageComposer({
 
     setIsSubmitting(true);
     try {
-      await onSendWithAttachment([audioFile], "🎤");
+      await onSendVoice(audioFile);
     } finally {
       setIsSubmitting(false);
     }
@@ -204,8 +257,10 @@ export function MessageComposer({
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  const canSend = pendingFiles.length > 0 || Boolean(body.trim()) || Boolean(editingMessage);
-  const showMicButton = !canSend && pendingFiles.length === 0 && !isRecording && !editingMessage;
+  const canSend =
+    pendingFiles.length > 0 || Boolean(body.trim()) || Boolean(editingMessage);
+  const showMicButton =
+    !canSend && pendingFiles.length === 0 && !isRecording && !editingMessage;
 
   // Recording UI
   if (isRecording) {
@@ -251,8 +306,12 @@ export function MessageComposer({
         <div className="mb-2 flex items-center gap-2 rounded-lg border-s-4 border-s-amber-500 border border-slate-200 bg-amber-50 px-3 py-2">
           <Edit3 className="h-4 w-4 shrink-0 text-amber-600" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-amber-700">{labels.editMessage}</p>
-            <p className="truncate text-xs text-slate-600">{editingMessage.body}</p>
+            <p className="text-xs font-semibold text-amber-700">
+              {labels.editMessage}
+            </p>
+            <p className="truncate text-xs text-slate-600">
+              {editingMessage.body}
+            </p>
           </div>
           <button
             type="button"
@@ -272,7 +331,9 @@ export function MessageComposer({
       {replyTo ? (
         <div className="mb-2 flex items-center gap-2 rounded-lg border-s-4 border-s-primary border border-slate-200 bg-slate-50 px-3 py-2">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-semibold text-primary">{replyTo.senderName}</p>
+            <p className="truncate text-xs font-semibold text-primary">
+              {replyTo.senderName}
+            </p>
             <p className="truncate text-xs text-slate-600">{replyTo.body}</p>
           </div>
           <button
@@ -290,7 +351,10 @@ export function MessageComposer({
       {pendingFiles.length > 0 ? (
         <div className="mb-2 space-y-1">
           {pendingFiles.map((file, index) => (
-            <div key={`${file.name}-${index}`} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <div
+              key={`${file.name}-${index}`}
+              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+            >
               <FileText className="h-4 w-4 shrink-0 text-primary" />
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">
                 {file.name}
@@ -302,7 +366,9 @@ export function MessageComposer({
               </span>
               <button
                 type="button"
-                onClick={() => setPendingFiles((prev) => prev.filter((_, i) => i !== index))}
+                onClick={() =>
+                  setPendingFiles((prev) => prev.filter((_, i) => i !== index))
+                }
                 className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-200 hover:text-slate-600"
                 aria-label={labels.cancel}
               >
@@ -311,6 +377,12 @@ export function MessageComposer({
             </div>
           ))}
         </div>
+      ) : null}
+
+      {recordingError ? (
+        <p role="alert" className="mb-2 text-xs font-medium text-red-600">
+          {recordingError}
+        </p>
       ) : null}
 
       <div className="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3">
@@ -346,7 +418,9 @@ export function MessageComposer({
                 }
               }
             }}
-            placeholder={pendingFiles.length > 0 ? labels.addCaption : labels.writeMessage}
+            placeholder={
+              pendingFiles.length > 0 ? labels.addCaption : labels.writeMessage
+            }
             maxLength={maxLength}
             disabled={disabled || isSubmitting}
             rows={1}
@@ -361,7 +435,8 @@ export function MessageComposer({
             }}
           />
           <p className="text-[10px] text-slate-400 leading-none pb-1">
-            Shift + Enter {labels.send === "إرسال" ? "لسطر جديد" : "for new line"}
+            Shift + Enter{" "}
+            {labels.send === "إرسال" ? "لسطر جديد" : "for new line"}
           </p>
         </div>
         <EmojiPickerButton
