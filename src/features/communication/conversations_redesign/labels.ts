@@ -222,6 +222,11 @@ export const conversationRedesignLabels = {
     userType_applicant: "Applicant",
     userType_pickup_delegate: "Pickup Delegate",
     userType_service_account: "Service Account",
+    recent: "Recent",
+    official: "Official",
+    classType: "Class",
+    readOnlyBadge: "Read-only",
+    nConversations: "{n} conversations",
   },
   ar: {
     conversations: "المحادثات",
@@ -444,6 +449,11 @@ export const conversationRedesignLabels = {
     userType_applicant: "متقدم",
     userType_pickup_delegate: "مفوض استلام",
     userType_service_account: "حساب خدمة",
+    recent: "الأحدث",
+    official: "رسمي",
+    classType: "فصل",
+    readOnlyBadge: "للقراءة فقط",
+    nConversations: "{n} محادثة",
   },
 } as const;
 

@@ -180,7 +180,7 @@ function clickFilterButton(filterText: string) {
  * Conversation titles are rendered in a div with class "truncate text-sm font-bold text-slate-950".
  */
 function getVisibleConversationTitles(): string[] {
-  const titleElements = document.querySelectorAll(".truncate.text-sm.font-bold.text-slate-950");
+  const titleElements = document.querySelectorAll("[data-testid='conversation-title']");
   return Array.from(titleElements).map((el) => el.textContent ?? "");
 }
 
