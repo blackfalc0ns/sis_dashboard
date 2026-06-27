@@ -51,7 +51,11 @@ import ReviewJoinRequestDialog, {
   type ReviewJoinRequestMode,
 } from "@/features/communication/components/conversations/ReviewJoinRequestDialog";
 import { getConversationPermissionFlags } from "@/features/communication/utils/conversation-permissions";
-import { communicationErrorMessage } from "@/features/communication/utils/communication-errors";
+import {
+  communicationErrorMessage,
+  normalizeRole,
+  normalizeStatus,
+} from "@/features/communication/utils/communication-errors";
 import { useAuth } from "@/hooks/use-auth";
 import {
   actorName,
@@ -381,9 +385,39 @@ export default function ConversationDetail({
   const mutedUntil = currentUserParticipant?.mutedUntil;
   const isMuted = currentUserStatus === "muted" ||
     (mutedUntil != null && new Date(mutedUntil) > new Date());
-  const isBlocked = currentUserStatus === "blocked";
+  const isBlocked = currentUserStatus === "blocked" || (currentUserParticipant as any)?.isBlocked === true;
+  const isRestricted = (currentUserParticipant as any)?.isRestricted === true;
   const isRemovedOrLeft = currentUserStatus === "left" || currentUserStatus === "removed";
-  const canSendMessages = !readOnly && !isMuted && !isBlocked && !isRemovedOrLeft && isCommunicationEnabled;
+  const canSendMessages = !readOnly && !isMuted && !isBlocked && !isRestricted && !isRemovedOrLeft && isCommunicationEnabled;
+
+  const restrictionBanner = (() => {
+    const normStatus = normalizeStatus(conversation?.status);
+    if (normStatus === "archived") {
+      return labels.bannerArchived;
+    }
+    if (normStatus === "closed") {
+      return labels.bannerClosed;
+    }
+    if (policy?.isEnabled === false) {
+      return labels.errorPolicyDisabled;
+    }
+    if (isBlocked) {
+      return labels.errorUserBlocked;
+    }
+    if (isRestricted) {
+      return labels.errorUserRestricted;
+    }
+    if (conversation?.isReadOnly || (conversation as any)?.readOnly) {
+      return labels.bannerReadOnly;
+    }
+    if (normalizeStatus(currentUserParticipant?.status) === "muted" || isMuted) {
+      return labels.bannerMuted;
+    }
+    if (normalizeRole(currentUserParticipant?.role) === "READ_ONLY") {
+      return labels.bannerReadOnlyParticipant;
+    }
+    return null;
+  })();
 
   const handleArchiveConversation = () => {
     setIsConfirmArchiveOpen(true);
@@ -695,7 +729,13 @@ export default function ConversationDetail({
       </div>
 
       {activeTab === "messages" ? (
-        !canSendMessages ? (
+        restrictionBanner ? (
+          <div className="shrink-0 border-t border-slate-200 bg-white p-4">
+            <div className="flex h-14 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-sm font-medium text-slate-500 px-4 text-center">
+              {restrictionBanner}
+            </div>
+          </div>
+        ) : !canSendMessages ? (
           <ReadOnlyComposer labels={labels} />
         ) : (
           <MessageComposer

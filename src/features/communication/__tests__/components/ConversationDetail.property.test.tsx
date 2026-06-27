@@ -410,6 +410,7 @@ describe("ConversationDetail - Property 17: ReadOnly Composer for Restricted Use
   )(
     "ReadOnlyComposer is rendered for any restricted state",
     (restrictedState) => {
+      setupDefaultMocks();
       // Configure the appropriate mock based on the restricted state
       switch (restrictedState) {
         case "closed":
@@ -511,8 +512,21 @@ describe("ConversationDetail - Property 17: ReadOnly Composer for Restricted Use
 
       const { unmount } = renderConversationDetail();
 
-      // Assert ReadOnlyComposer is rendered
-      expect(screen.getByTestId("read-only-composer")).toBeInTheDocument();
+      if (restrictedState === "removed") {
+        // Assert ReadOnlyComposer is rendered
+        expect(screen.getByTestId("read-only-composer")).toBeInTheDocument();
+      } else {
+        // Assert the correct banner is in the document
+        let expectedText = "";
+        if (restrictedState === "closed") expectedText = labels.bannerClosed;
+        else if (restrictedState === "muted") expectedText = labels.bannerMuted;
+        else if (restrictedState === "blocked") expectedText = labels.errorUserBlocked;
+        else if (restrictedState === "disabled_policy") expectedText = labels.errorPolicyDisabled;
+
+        expect(screen.getByText(expectedText)).toBeInTheDocument();
+        expect(screen.queryByTestId("read-only-composer")).not.toBeInTheDocument();
+      }
+
       // Assert MessageComposer is NOT rendered
       expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
 

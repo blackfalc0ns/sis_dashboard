@@ -570,7 +570,7 @@ describe("ConversationDetail", () => {
      * user's participant status is muted, blocked, or removed, the ReadOnlyComposer
      * SHALL be rendered instead of the MessageComposer.
      */
-    it("shows ReadOnlyComposer when conversation status is closed (read-only)", () => {
+    it("shows restriction banner when conversation status is closed (read-only)", () => {
       useConversationMock.mockReturnValue({
         conversation: createConversation({
           id: TEST_CONVERSATION_ID,
@@ -582,11 +582,12 @@ describe("ConversationDetail", () => {
       });
 
       renderConversationDetail();
-      expect(screen.getByTestId("read-only-composer")).toBeInTheDocument();
+      expect(screen.getByText(labels.bannerClosed)).toBeInTheDocument();
+      expect(screen.queryByTestId("read-only-composer")).not.toBeInTheDocument();
       expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
     });
 
-    it("shows ReadOnlyComposer when conversation has isReadOnly flag", () => {
+    it("shows restriction banner when conversation has isReadOnly flag", () => {
       const readOnlyConversation = createConversation({
         id: TEST_CONVERSATION_ID,
         status: "active",
@@ -602,11 +603,12 @@ describe("ConversationDetail", () => {
       });
 
       renderConversationDetail();
-      expect(screen.getByTestId("read-only-composer")).toBeInTheDocument();
+      expect(screen.getByText(labels.bannerReadOnly)).toBeInTheDocument();
+      expect(screen.queryByTestId("read-only-composer")).not.toBeInTheDocument();
       expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
     });
 
-    it("shows ReadOnlyComposer when current user is muted", () => {
+    it("shows restriction banner when current user is muted", () => {
       useConversationParticipantsMock.mockReturnValue({
         participants: [
           createParticipant({
@@ -630,11 +632,12 @@ describe("ConversationDetail", () => {
       });
 
       renderConversationDetail();
-      expect(screen.getByTestId("read-only-composer")).toBeInTheDocument();
+      expect(screen.getByText(labels.bannerMuted)).toBeInTheDocument();
+      expect(screen.queryByTestId("read-only-composer")).not.toBeInTheDocument();
       expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
     });
 
-    it("shows ReadOnlyComposer when current user is blocked", () => {
+    it("shows restriction banner when current user is blocked", () => {
       useConversationParticipantsMock.mockReturnValue({
         participants: [
           createParticipant({
@@ -658,7 +661,8 @@ describe("ConversationDetail", () => {
       });
 
       renderConversationDetail();
-      expect(screen.getByTestId("read-only-composer")).toBeInTheDocument();
+      expect(screen.getByText(labels.errorUserBlocked)).toBeInTheDocument();
+      expect(screen.queryByTestId("read-only-composer")).not.toBeInTheDocument();
       expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
     });
 
@@ -696,7 +700,7 @@ describe("ConversationDetail", () => {
       expect(screen.queryByTestId("read-only-composer")).not.toBeInTheDocument();
     });
 
-    it("shows ReadOnlyComposer when communication policy is disabled", () => {
+    it("shows restriction banner when communication policy is disabled", () => {
       useCommunicationPolicyMock.mockReturnValue({
         policy: {
           isEnabled: false,
@@ -708,7 +712,8 @@ describe("ConversationDetail", () => {
       });
 
       renderConversationDetail();
-      expect(screen.getByTestId("read-only-composer")).toBeInTheDocument();
+      expect(screen.getByText(labels.errorPolicyDisabled)).toBeInTheDocument();
+      expect(screen.queryByTestId("read-only-composer")).not.toBeInTheDocument();
       expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
     });
   });
@@ -1048,6 +1053,250 @@ describe("ConversationDetail", () => {
 
       // Verify no inline error panel state is displayed
       expect(screen.queryByText("Failed to load participants test error")).not.toBeInTheDocument();
+    });
+  });
+
+  // ─── Task 3: Bottom Banners ──────────────────────────────────────────────
+  describe("Task 3: Bottom Banners in ConversationDetail", () => {
+    it("renders archived banner and hides composer when conversation status is archived", () => {
+      useConversationMock.mockReturnValue({
+        conversation: createConversation({
+          id: TEST_CONVERSATION_ID,
+          status: "archived",
+        }),
+        isLoading: false,
+        error: null,
+        refresh: vi.fn(),
+      });
+
+      renderConversationDetail();
+
+      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
+      expect(screen.getByText(labels.bannerArchived)).toBeInTheDocument();
+    });
+
+    it("renders closed banner and hides composer when conversation status is closed", () => {
+      useConversationMock.mockReturnValue({
+        conversation: createConversation({
+          id: TEST_CONVERSATION_ID,
+          status: "closed",
+        }),
+        isLoading: false,
+        error: null,
+        refresh: vi.fn(),
+      });
+
+      renderConversationDetail();
+
+      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
+      expect(screen.getByText(labels.bannerClosed)).toBeInTheDocument();
+    });
+
+    it("renders policy disabled banner when school policy is disabled", () => {
+      useCommunicationPolicyMock.mockReturnValue({
+        policy: {
+          isEnabled: false,
+        },
+      });
+
+      renderConversationDetail();
+
+      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
+      expect(screen.getByText(labels.errorPolicyDisabled)).toBeInTheDocument();
+    });
+
+    it("renders blocked banner when current participant status is blocked", () => {
+      useConversationParticipantsMock.mockReturnValue({
+        participants: [
+          createParticipant({
+            userId: TEST_USER_ID,
+            role: "member",
+            status: "blocked",
+            actor: { id: TEST_USER_ID, name: "Test User" },
+          }),
+        ],
+        isLoading: false,
+        isMutating: false,
+        total: 1,
+        error: null,
+        refresh: vi.fn(),
+      });
+
+      renderConversationDetail();
+
+      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
+      expect(screen.getByText(labels.errorUserBlocked)).toBeInTheDocument();
+    });
+
+    it("renders blocked banner when current participant has isBlocked flag", () => {
+      const participant = createParticipant({
+        userId: TEST_USER_ID,
+        role: "member",
+        status: "active",
+        actor: { id: TEST_USER_ID, name: "Test User" },
+      });
+      (participant as any).isBlocked = true;
+
+      useConversationParticipantsMock.mockReturnValue({
+        participants: [participant],
+        isLoading: false,
+        isMutating: false,
+        total: 1,
+        error: null,
+        refresh: vi.fn(),
+      });
+
+      renderConversationDetail();
+
+      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
+      expect(screen.getByText(labels.errorUserBlocked)).toBeInTheDocument();
+    });
+
+    it("renders restricted banner when current participant has isRestricted flag", () => {
+      const participant = createParticipant({
+        userId: TEST_USER_ID,
+        role: "member",
+        status: "active",
+        actor: { id: TEST_USER_ID, name: "Test User" },
+      });
+      (participant as any).isRestricted = true;
+
+      useConversationParticipantsMock.mockReturnValue({
+        participants: [participant],
+        isLoading: false,
+        isMutating: false,
+        total: 1,
+        error: null,
+        refresh: vi.fn(),
+      });
+
+      renderConversationDetail();
+
+      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
+      expect(screen.getByText(labels.errorUserRestricted)).toBeInTheDocument();
+    });
+
+    it("renders read-only banner when conversation is read-only", () => {
+      const conv = createConversation({
+        id: TEST_CONVERSATION_ID,
+        status: "active",
+      });
+      (conv as any).isReadOnly = true;
+
+      useConversationMock.mockReturnValue({
+        conversation: conv,
+        isLoading: false,
+        error: null,
+        refresh: vi.fn(),
+      });
+
+      renderConversationDetail();
+
+      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
+      expect(screen.getByText(labels.bannerReadOnly)).toBeInTheDocument();
+    });
+
+    it("renders muted banner when current participant is muted", () => {
+      useConversationParticipantsMock.mockReturnValue({
+        participants: [
+          createParticipant({
+            userId: TEST_USER_ID,
+            role: "member",
+            status: "muted",
+            actor: { id: TEST_USER_ID, name: "Test User" },
+          }),
+        ],
+        isLoading: false,
+        isMutating: false,
+        total: 1,
+        error: null,
+        refresh: vi.fn(),
+      });
+
+      renderConversationDetail();
+
+      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
+      expect(screen.getByText(labels.bannerMuted)).toBeInTheDocument();
+    });
+
+    it("renders read-only participant banner when current participant has READ_ONLY role", () => {
+      useConversationParticipantsMock.mockReturnValue({
+        participants: [
+          createParticipant({
+            userId: TEST_USER_ID,
+            role: "read_only" as any,
+            status: "active",
+            actor: { id: TEST_USER_ID, name: "Test User" },
+          }),
+        ],
+        isLoading: false,
+        isMutating: false,
+        total: 1,
+        error: null,
+        refresh: vi.fn(),
+      });
+
+      renderConversationDetail();
+
+      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
+      expect(screen.getByText(labels.bannerReadOnlyParticipant)).toBeInTheDocument();
+    });
+
+    it("respects priority order (Archived > Closed > Policy disabled > Blocked/Restricted > Read-only > Muted > Read-only participant)", () => {
+      // 1. Archived takes precedence over Closed & Muted
+      useConversationMock.mockReturnValue({
+        conversation: createConversation({
+          id: TEST_CONVERSATION_ID,
+          status: "archived",
+        }),
+        isLoading: false,
+        error: null,
+        refresh: vi.fn(),
+      });
+      useConversationParticipantsMock.mockReturnValue({
+        participants: [
+          createParticipant({
+            userId: TEST_USER_ID,
+            role: "read_only" as any,
+            status: "muted",
+            actor: { id: TEST_USER_ID, name: "Test User" },
+          }),
+        ],
+        isLoading: false,
+        isMutating: false,
+        total: 1,
+        error: null,
+        refresh: vi.fn(),
+      });
+
+      const { unmount } = renderConversationDetail();
+      expect(screen.getByText(labels.bannerArchived)).toBeInTheDocument();
+      expect(screen.queryByText(labels.bannerClosed)).not.toBeInTheDocument();
+      unmount();
+
+      // 2. Closed takes precedence over Policy disabled & Muted
+      useConversationMock.mockReturnValue({
+        conversation: createConversation({
+          id: TEST_CONVERSATION_ID,
+          status: "closed",
+        }),
+        isLoading: false,
+        error: null,
+        refresh: vi.fn(),
+      });
+      useCommunicationPolicyMock.mockReturnValue({
+        policy: { isEnabled: false },
+      });
+
+      const { unmount: unmount2 } = renderConversationDetail();
+      expect(screen.getByText(labels.bannerClosed)).toBeInTheDocument();
+      expect(screen.queryByText(labels.errorPolicyDisabled)).not.toBeInTheDocument();
+      unmount2();
+
+      // Reset policy mock
+      useCommunicationPolicyMock.mockReturnValue({
+        policy: { isEnabled: true },
+      });
     });
   });
 });
