@@ -31,7 +31,10 @@ export default function Avatar({
 
     let revoked = false;
     void apiClient
-      .get(`/files/${fileId}/download`, { responseType: "blob" })
+      .get(`/api/files/${fileId}/download`, {
+        baseURL: "",
+        responseType: "blob",
+      })
       .then((response) => {
         if (revoked) return;
         const blob = new Blob([response.data as BlobPart]);

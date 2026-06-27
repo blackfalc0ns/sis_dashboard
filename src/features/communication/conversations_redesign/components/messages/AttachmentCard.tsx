@@ -93,7 +93,8 @@ export function AttachmentCard({
       setError(false);
       try {
         const { apiClient } = await import("@/lib/api");
-        const response = await apiClient.get(`/files/${fileId}/download`, {
+        const response = await apiClient.get(`/api/files/${fileId}/download`, {
+          baseURL: "",
           responseType: "blob",
         });
         const blob = response.data instanceof Blob ? response.data : new Blob([response.data as BlobPart], { type: response.headers["content-type"] as string });
@@ -267,7 +268,8 @@ export function AttachmentCard({
     try {
       const { apiClient } = await import("@/lib/api");
       // Fetch the file as a blob (axios follows the 307 redirect to S3)
-      const response = await apiClient.get(`/files/${fileId}/download`, {
+      const response = await apiClient.get(`/api/files/${fileId}/download`, {
+        baseURL: "",
         responseType: "blob",
       });
       // Create a download link from the blob
