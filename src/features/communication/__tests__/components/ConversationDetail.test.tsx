@@ -1134,8 +1134,8 @@ describe("ConversationDetail", () => {
         role: "member",
         status: "active",
         actor: { id: TEST_USER_ID, name: "Test User" },
+        isBlocked: true,
       });
-      (participant as any).isBlocked = true;
 
       useConversationParticipantsMock.mockReturnValue({
         participants: [participant],
@@ -1158,8 +1158,8 @@ describe("ConversationDetail", () => {
         role: "member",
         status: "active",
         actor: { id: TEST_USER_ID, name: "Test User" },
+        isRestricted: true,
       });
-      (participant as any).isRestricted = true;
 
       useConversationParticipantsMock.mockReturnValue({
         participants: [participant],
@@ -1180,8 +1180,8 @@ describe("ConversationDetail", () => {
       const conv = createConversation({
         id: TEST_CONVERSATION_ID,
         status: "active",
+        isReadOnly: true,
       });
-      (conv as any).isReadOnly = true;
 
       useConversationMock.mockReturnValue({
         conversation: conv,
@@ -1224,7 +1224,7 @@ describe("ConversationDetail", () => {
         participants: [
           createParticipant({
             userId: TEST_USER_ID,
-            role: "read_only" as any,
+            role: "read_only",
             status: "active",
             actor: { id: TEST_USER_ID, name: "Test User" },
           }),
@@ -1257,7 +1257,7 @@ describe("ConversationDetail", () => {
         participants: [
           createParticipant({
             userId: TEST_USER_ID,
-            role: "read_only" as any,
+            role: "read_only",
             status: "muted",
             actor: { id: TEST_USER_ID, name: "Test User" },
           }),

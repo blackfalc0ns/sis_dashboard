@@ -45,6 +45,8 @@ export interface Conversation extends CommunicationRecord {
   createdById?: CommunicationId;
   createdAt?: CommunicationDateTime;
   updatedAt?: CommunicationDateTime;
+  isReadOnly?: boolean;
+  readOnly?: boolean;
 }
 
 export interface CreateConversationPayload {
@@ -97,6 +99,8 @@ export interface ConversationParticipant extends CommunicationRecord {
     displayName: string;
     userType: string;
   };
+  isBlocked?: boolean;
+  isRestricted?: boolean;
 }
 
 export interface AddParticipantPayload {

@@ -383,10 +383,10 @@ export default function ConversationDetail({
   );
   const currentUserStatus = currentUserParticipant?.status;
   const mutedUntil = currentUserParticipant?.mutedUntil;
-  const isMuted = currentUserStatus === "muted" ||
-    (mutedUntil != null && new Date(mutedUntil) > new Date());
-  const isBlocked = currentUserStatus === "blocked" || (currentUserParticipant as any)?.isBlocked === true;
-  const isRestricted = (currentUserParticipant as any)?.isRestricted === true;
+  const normUserStatus = normalizeStatus(currentUserStatus);
+  const isMuted = normUserStatus === "muted" || (mutedUntil != null && new Date(mutedUntil) > new Date());
+  const isBlocked = normUserStatus === "blocked" || currentUserParticipant?.isBlocked === true;
+  const isRestricted = currentUserParticipant?.isRestricted === true;
   const isRemovedOrLeft = currentUserStatus === "left" || currentUserStatus === "removed";
   const canSendMessages = !readOnly && !isMuted && !isBlocked && !isRestricted && !isRemovedOrLeft && isCommunicationEnabled;
 
@@ -407,7 +407,7 @@ export default function ConversationDetail({
     if (isRestricted) {
       return labels.errorUserRestricted;
     }
-    if (conversation?.isReadOnly || (conversation as any)?.readOnly) {
+    if (conversation?.isReadOnly || conversation?.readOnly) {
       return labels.bannerReadOnly;
     }
     if (normalizeStatus(currentUserParticipant?.status) === "muted" || isMuted) {
