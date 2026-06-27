@@ -423,11 +423,11 @@ export function MessageComposer({
         </p>
       ) : null}
 
-      <div className="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3">
+      <div className="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent transition-all duration-200">
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-primary"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus:outline-none hover:scale-105 active:scale-95 duration-200"
           aria-label={labels.attachFile}
           disabled={disabled || isSubmitting}
         >
@@ -478,7 +478,7 @@ export function MessageComposer({
               {labels.send === "إرسال" ? "لسطر جديد" : "for new line"}
             </p>
             {body.length > 0 && (
-              <p className={`text-[10px] leading-none ${body.length > maxMessageLength ? "text-red-600 font-semibold" : "text-slate-400"}`}>
+              <p className={`text-[10px] leading-none transition-all duration-200 ${body.length > maxMessageLength ? "text-red-600 font-bold scale-105" : "text-slate-400"}`}>
                 {body.length} / {maxMessageLength}
               </p>
             )}
@@ -494,7 +494,7 @@ export function MessageComposer({
             type="button"
             onClick={() => void startRecording()}
             disabled={disabled || isSubmitting}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-red-500"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-red-500 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus:outline-none hover:scale-105 active:scale-95 duration-200"
             aria-label={labels.voiceNote}
           >
             <Mic className="h-5 w-5" />
@@ -503,7 +503,7 @@ export function MessageComposer({
           <button
             type="submit"
             disabled={disabled || isSubmitting || !canSend}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-200 text-slate-500 transition enabled:bg-primary enabled:text-white enabled:hover:bg-hover"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-200 text-slate-500 transition enabled:bg-primary enabled:text-white enabled:hover:bg-hover cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus:outline-none hover:scale-105 active:scale-95 duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label={labels.send}
           >
             <Send className="h-5 w-5" />

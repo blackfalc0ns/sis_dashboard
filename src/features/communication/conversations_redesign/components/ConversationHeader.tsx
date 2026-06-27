@@ -75,7 +75,7 @@ export default function ConversationHeader({
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 md:hidden"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 md:hidden cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus:outline-none"
           aria-label={labels.backToConversations}
         >
           <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
@@ -125,7 +125,7 @@ export default function ConversationHeader({
         <button
           type="button"
           onClick={onRefresh}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-slate-100 hover:text-primary"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-slate-100 hover:text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus:outline-none"
           aria-label={labels.refreshConversation}
         >
           <RefreshCw className="h-5 w-5" />
@@ -145,7 +145,7 @@ export default function ConversationHeader({
         <button
           type="button"
           onClick={onBack}
-          className="hidden h-9 w-9 items-center justify-center rounded-full transition hover:bg-slate-100 hover:text-slate-700 md:inline-flex"
+          className="hidden h-9 w-9 items-center justify-center rounded-full transition hover:bg-slate-100 hover:text-slate-700 md:inline-flex cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus:outline-none"
           aria-label={labels.backToConversations}
         >
           <X className="h-5 w-5" />
@@ -197,7 +197,7 @@ function HeaderActionsMenu({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-slate-100 hover:text-primary"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-slate-100 hover:text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus:outline-none"
         aria-label={labels.moreActions}
       >
         <MoreVertical className="h-5 w-5" />
@@ -280,7 +280,7 @@ function MenuButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition ${colorClass}`}
+      className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus:outline-none ${colorClass}`}
     >
       {icon}
       {label}

@@ -71,7 +71,10 @@ export default function Avatar({
     >
       {!resolvedUrl ? initials(name) : null}
       {online ? (
-        <span className="absolute bottom-0 end-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
+        <span className="absolute bottom-0 end-0 flex h-3 w-3">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
+        </span>
       ) : null}
     </div>
   );

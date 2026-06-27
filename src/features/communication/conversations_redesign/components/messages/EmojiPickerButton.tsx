@@ -36,7 +36,7 @@ export function EmojiPickerButton({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-primary"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus:outline-none hover:scale-105 active:scale-95 duration-200"
         aria-label={labels.emoji}
         disabled={disabled}
       >
