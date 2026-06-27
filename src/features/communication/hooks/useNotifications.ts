@@ -198,6 +198,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   const { socket } = useCommunicationSocket();
   const { recipientUserId } = options;
   const mountedRef = useRef(false);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [filters, setFilters] =
     useState<NotificationFiltersState>(DEFAULT_FILTERS);
   const [notifications, setNotifications] = useState<
@@ -236,12 +237,25 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     }
   }, [filters, recipientUserId]);
 
+  const debouncedRefresh = useCallback(() => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+    }
+    refreshTimerRef.current = setTimeout(() => {
+      refreshTimerRef.current = null;
+      void refresh();
+    }, 100);
+  }, [refresh]);
+
   useEffect(() => {
     mountedRef.current = true;
     void refresh();
 
     return () => {
       mountedRef.current = false;
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
     };
   }, [refresh]);
 
@@ -259,64 +273,92 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   useEffect(() => {
     if (!socket) return;
 
-    const handleNotificationChanged = () => {
-      void refresh();
-    };
-
     socket.on(
       COMMUNICATION_SOCKET_EVENTS.notificationCreated,
-      handleNotificationChanged,
+      debouncedRefresh,
     );
     socket.on(
       COMMUNICATION_SOCKET_EVENTS.notificationRead,
-      handleNotificationChanged,
+      debouncedRefresh,
     );
 
     return () => {
       socket.off(
         COMMUNICATION_SOCKET_EVENTS.notificationCreated,
-        handleNotificationChanged,
+        debouncedRefresh,
       );
       socket.off(
         COMMUNICATION_SOCKET_EVENTS.notificationRead,
-        handleNotificationChanged,
+        debouncedRefresh,
       );
     };
-  }, [refresh, socket]);
+  }, [debouncedRefresh, socket]);
 
   const markAllRead = useCallback(async () => {
     setIsMutating(true);
     setError(null);
+
+    const backupNotifications = notifications;
+    const backupTotal = total;
+
+    setNotifications((prev) =>
+      prev.map((n) => ({
+        ...n,
+        status: "read" as const,
+        readAt: n.readAt ?? new Date().toISOString(),
+      }))
+    );
 
     try {
       const response = await markAllNotificationsRead();
       await refresh();
       return response;
     } catch (nextError) {
-      setError(errorMessageFromUnknown(nextError));
+      if (mountedRef.current) {
+        setNotifications(backupNotifications);
+        setTotal(backupTotal);
+        setError(errorMessageFromUnknown(nextError));
+      }
+      console.warn("Failed to mark all notifications read:", nextError);
       throw nextError;
     } finally {
       if (mountedRef.current) setIsMutating(false);
     }
-  }, [refresh]);
+  }, [notifications, total, refresh]);
 
   const markRead = useCallback(
     async (notificationId: string) => {
       setIsMutating(true);
       setError(null);
 
+      const backupNotifications = notifications;
+      const backupTotal = total;
+
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notificationId
+            ? { ...n, status: "read" as const, readAt: new Date().toISOString() }
+            : n
+        )
+      );
+
       try {
         const response = await markNotificationRead(notificationId);
         await refresh();
         return response;
       } catch (nextError) {
-        setError(errorMessageFromUnknown(nextError));
+        if (mountedRef.current) {
+          setNotifications(backupNotifications);
+          setTotal(backupTotal);
+          setError(errorMessageFromUnknown(nextError));
+        }
+        console.warn(`Failed to mark notification ${notificationId} read:`, nextError);
         throw nextError;
       } finally {
         if (mountedRef.current) setIsMutating(false);
       }
     },
-    [refresh],
+    [notifications, total, refresh],
   );
 
   const archive = useCallback(
@@ -324,18 +366,34 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       setIsMutating(true);
       setError(null);
 
+      const backupNotifications = notifications;
+      const backupTotal = total;
+
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notificationId
+            ? { ...n, status: "archived" as const, archivedAt: new Date().toISOString() }
+            : n
+        )
+      );
+
       try {
         const response = await archiveNotification(notificationId);
         await refresh();
         return response;
       } catch (nextError) {
-        setError(errorMessageFromUnknown(nextError));
+        if (mountedRef.current) {
+          setNotifications(backupNotifications);
+          setTotal(backupTotal);
+          setError(errorMessageFromUnknown(nextError));
+        }
+        console.warn(`Failed to archive notification ${notificationId}:`, nextError);
         throw nextError;
       } finally {
         if (mountedRef.current) setIsMutating(false);
       }
     },
-    [refresh],
+    [notifications, total, refresh],
   );
 
   const unreadCount = useMemo(
