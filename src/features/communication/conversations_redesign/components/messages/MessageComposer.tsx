@@ -78,7 +78,7 @@ export function MessageComposer({
   const [recordingError, setRecordingError] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const { policy } = useCommunicationPolicy();
-  const maxMessageLength = policy?.maxMessageLength ?? 4000;
+  const maxMessageLength = policy?.maxMessageLength ?? maxLength ?? 4000;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);

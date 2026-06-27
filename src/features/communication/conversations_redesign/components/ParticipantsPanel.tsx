@@ -24,7 +24,6 @@ export default function ParticipantsPanel({
   onRemoveParticipant,
   participants,
   presenceByUserId,
-  total,
   userDisplayNames,
 }: {
   canLeaveConversation: boolean;
@@ -228,16 +227,6 @@ function ParticipantRow({
     normalizedRole === "OWNER" &&
     ["active", "muted"].includes(normalizedStatus) &&
     activeOwnerCount === 1;
-
-  const statusTone = {
-    active: undefined,
-    muted: "orange" as const,
-    invited: "yellow" as const,
-    left: "gray" as const,
-    removed: "gray" as const,
-    blocked: "red" as const,
-  };
-
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 last:border-b-0">
       <div className="flex min-w-0 items-center gap-3">
