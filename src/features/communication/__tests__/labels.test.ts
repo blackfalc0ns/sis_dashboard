@@ -29,3 +29,66 @@ describe("conversationRedesignLabels", () => {
     });
   });
 });
+
+describe("New translation labels", () => {
+  it("has all new error and banner keys in both English and Arabic with non-empty strings", () => {
+    const keys: (keyof typeof conversationRedesignLabels.en)[] = [
+      "errorPolicyDisabled",
+      "errorPolicyNotConfigured",
+      "errorPolicyInvalid",
+      "errorScopeInvalid",
+      "errorConversationNotMember",
+      "errorConversationArchived",
+      "errorConversationClosed",
+      "errorConversationInvalidType",
+      "errorConversationDirectDuplicate",
+      "errorConversationGroupLimitExceeded",
+      "errorParticipantAlreadyExists",
+      "errorParticipantNotFound",
+      "errorParticipantLimitExceeded",
+      "errorParticipantRoleForbidden",
+      "errorParticipantCannotRemoveOwner",
+      "errorParticipantNotActive",
+      "errorInviteInvalidStatus",
+      "errorInviteDuplicatePending",
+      "errorJoinRequestInvalidStatus",
+      "errorJoinRequestDuplicatePending",
+      "errorMessageEmpty",
+      "errorMessageTooLong",
+      "errorMessageHidden",
+      "errorMessageDeleted",
+      "errorMessageNotEditable",
+      "errorMessageNotSender",
+      "errorMessageSendForbidden",
+      "errorMessageKindInvalid",
+      "errorAttachmentNotAllowed",
+      "errorAttachmentInvalidFile",
+      "errorFileUploadSizeExceeded",
+      "errorFileUploadMimeNotAllowed",
+      "errorFilesNotFound",
+      "errorValidationFailed",
+      "errorNotFound",
+      "errorGeneric",
+      "errorReceiptInvalidRecipient",
+      "errorReactionDuplicate",
+      "errorReportDuplicate",
+      "errorReportInvalidStatus",
+      "errorModerationForbidden",
+      "errorUserBlocked",
+      "errorUserRestricted",
+      "errorUserRestrictionConflict",
+      "bannerArchived",
+      "bannerClosed",
+      "bannerReadOnly",
+      "bannerMuted",
+      "bannerReadOnlyParticipant"
+    ];
+    for (const key of keys) {
+      expect(typeof conversationRedesignLabels.en[key]).toBe("string");
+      expect(conversationRedesignLabels.en[key].trim().length).toBeGreaterThan(0);
+      expect(typeof conversationRedesignLabels.ar[key]).toBe("string");
+      expect(conversationRedesignLabels.ar[key].trim().length).toBeGreaterThan(0);
+    }
+  });
+});
+
