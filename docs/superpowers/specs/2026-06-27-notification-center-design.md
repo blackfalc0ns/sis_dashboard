@@ -8,34 +8,26 @@ Implement a live, real-time Notification Center inside the main navbar (`TopNav.
 ## 1. Type Synchronization (Backend Alignment)
 We align frontend notification types with backend NestJS Prisma model `CommunicationNotificationType`.
 
-### Notification Types:
-- `announcement_published`
-- `message_received`
-- `message_mention`
-- `attendance_absence`
-- `attendance_late`
-- `attendance_early_leave` (added to align with backend Prisma enum)
-- `grade_posted`
-- `behavior_record_created`
-- `reinforcement_reward_granted`
-- `system_alert`
+### Files to Update:
+- `src/features/communication/types/notification.types.ts`: Add `"attendance_early_leave"` to the `NotificationType` union.
+- `src/features/communication/components/notifications/NotificationFilters.tsx`: Add `"attendance_early_leave"` to the `notificationTypes` static array.
 
 ---
 
 ## 2. Component Design: `TopNavNotificationDropdown.tsx`
 We implement a new, modular component inside `src/components/layout/TopNavNotificationDropdown.tsx`.
 
-### UI Features:
-- **Responsive Dropdown Drawer**: Standard popover aligning under the TopNav bell icon.
-- **Sound Control**: Speaker toggle icon (`Volume2` / `VolumeX`) in the header right next to the "Mark all read" button. Clicking it toggles the mute state via `setNotificationMuted`.
+### UI & Configuration Features:
+- **Labels Prop**: Explicitly pass a labels translation dictionary to `TopNavNotificationDropdown` from the parent context, avoiding hardcoded text.
+- **Sound Control**: Speaker toggle icon (`Volume2` / `VolumeX`) in the header right next to the "Mark all read" button. Toggles the mute state using `getNotificationMuted()` and `setNotificationMuted()`.
 - **Live Icons by Type**:
-  - `message_received` / `message_mention` $\rightarrow$ `MessageSquare`
-  - `announcement_published` $\rightarrow$ `Megaphone`
-  - `attendance_absence` / `attendance_late` / `attendance_early_leave` $\rightarrow$ `Calendar`
-  - `grade_posted` $\rightarrow$ `Award`
-  - `behavior_record_created` $\rightarrow$ `ShieldAlert`
-  - `reinforcement_reward_granted` $\rightarrow$ `Gift`
-  - `system_alert` $\rightarrow$ `AlertTriangle`
+  - `message_received` / `message_mention` $\rightarrow$ `MessageSquare` (chat bubble icon)
+  - `announcement_published` $\rightarrow$ `Megaphone` (megaphone icon)
+  - `attendance_absence` / `attendance_late` / `attendance_early_leave` $\rightarrow$ `Calendar` (calendar icon)
+  - `grade_posted` $\rightarrow$ `Award` (award badge icon)
+  - `behavior_record_created` $\rightarrow$ `ShieldAlert` (shield warning icon)
+  - `reinforcement_reward_granted` $\rightarrow$ `Gift` (gift box icon)
+  - `system_alert` $\rightarrow$ `AlertTriangle` (alert triangle icon)
 - **Priority Badging**: Show a visual pill badge for high/urgent priority alerts.
 
 ---
@@ -44,11 +36,12 @@ We implement a new, modular component inside `src/components/layout/TopNavNotifi
 
 ### Click Behavior:
 - **Card Click**: Clicking anywhere on the card marks it as read immediately and redirects to the deep link destination.
-- **Hover Actions**: Render small action buttons (like archive trash icon) on the side.
+- **Hover Actions**: Render a clean `Archive` icon button (Lucide Archive, NOT a trash icon) on the side to archive the item.
 
 ### Optimistic UI:
-- Revert local list and decrement unread count immediately upon action click.
-- Roll back to the original values and show a Toast warning only if the background API request fails.
+- When marking an item read or archiving it, **update the local notifications list array immediately** (changing the read status inline).
+- The `unreadCount` is derived from the notifications array and will automatically recalculate.
+- Roll back to the original local state and display a Toast warning (*"Action failed. Please try again."*) only if the background API request fails.
 
 ---
 
