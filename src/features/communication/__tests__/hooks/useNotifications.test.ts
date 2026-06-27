@@ -82,4 +82,15 @@ describe("useNotifications", () => {
       setIntervalSpy.mock.calls.some(([, delay]) => delay === 60_000),
     ).toBe(false);
   });
+
+  it("requests notifications for the provided recipient user", async () => {
+    renderHook(() => useNotifications({ recipientUserId: "user-1" }));
+
+    await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(1));
+    expect(getNotificationsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientUserId: "user-1",
+      }),
+    );
+  });
 });

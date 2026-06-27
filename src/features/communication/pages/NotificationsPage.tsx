@@ -17,6 +17,7 @@ import { useNotificationDeliveries } from "@/features/communication/hooks/useNot
 import { useNotificationDeliveryDetails } from "@/features/communication/hooks/useNotificationDeliveryDetails";
 import { useNotificationDetails } from "@/features/communication/hooks/useNotificationDetails";
 import { useNotifications } from "@/features/communication/hooks/useNotifications";
+import { useAuth } from "@/hooks/use-auth";
 
 const labels = {
   en: {
@@ -167,7 +168,8 @@ export default function NotificationsPage() {
   const locale = useLocale() as LocaleKey;
   const t = labels[locale] ?? labels.en;
   const { showSuccess, showError } = useToast();
-  const notificationsState = useNotifications();
+  const { user } = useAuth();
+  const notificationsState = useNotifications({ recipientUserId: user?.id });
   const deliveriesState = useNotificationDeliveries();
   const notificationDetailsState = useNotificationDetails();
   const deliveryDetailsState = useNotificationDeliveryDetails();

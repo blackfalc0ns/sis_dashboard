@@ -51,6 +51,10 @@ import {
   buildPreviewCampaignPayload,
   type CampaignComposerValues,
 } from "@/features/settings/email/campaigns/components/CampaignComposer";
+import {
+  fetchHealthReport,
+  normalizeHealthReport,
+} from "@/features/settings/health/services/healthService";
 
 describe("Sprint 11 endpoint contracts", () => {
   beforeEach(() => {
@@ -376,6 +380,70 @@ describe("Sprint 11 endpoint contracts", () => {
         customEmails: ["extra@example.com"],
       }),
     );
+  });
+
+  it("loads the public health readiness endpoint", async () => {
+    apiMocks.apiGet.mockResolvedValue({
+      status: "ok",
+      timestamp: "2026-06-25T10:00:00.000Z",
+      version: "0.1.0",
+      checks: {
+        db: { status: "ok", durationMs: 12 },
+        redis: { status: "ok", durationMs: 5 },
+        storage: { status: "ok", durationMs: 18 },
+        queues: {
+          status: "ok",
+          durationMs: 20,
+          details: {
+            queues: [
+              {
+                name: "school-email-delivery",
+                status: "ok",
+                counts: { waiting: 0, active: 0, delayed: 0, failed: 0 },
+              },
+            ],
+          },
+        },
+        email: {
+          status: "skipped",
+          durationMs: 3,
+          message: "no_active_email_connections",
+          details: { activeConnections: 0 },
+        },
+        push: {
+          status: "skipped",
+          durationMs: 1,
+          message: "push_disabled",
+          details: { mode: "disabled" },
+        },
+      },
+    });
+
+    const report = await fetchHealthReport();
+
+    expect(apiMocks.apiGet).toHaveBeenCalledWith("/health");
+    expect(report.checks.queues.details?.queues).toHaveLength(1);
+  });
+
+  it("normalizes omitted health dependency checks to visible error checks", () => {
+    const report = normalizeHealthReport({
+      status: "ok",
+      timestamp: "2026-06-25T10:00:00.000Z",
+      version: "0.1.0",
+      checks: {
+        db: { status: "ok", durationMs: 12 },
+        redis: { status: "ok", durationMs: 5 },
+        storage: { status: "ok", durationMs: 18 },
+        email: { status: "skipped", durationMs: 3 },
+        push: { status: "skipped", durationMs: 1 },
+      } as never,
+    });
+
+    expect(report.checks.queues).toEqual({
+      status: "error",
+      durationMs: 0,
+      message: "health_check_missing",
+    });
   });
 
   it("maps delivery backend fields to UI fields", () => {

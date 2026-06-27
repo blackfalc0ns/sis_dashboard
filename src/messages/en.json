@@ -7651,9 +7651,12 @@
         "coordinates": "Lat {lat}, Lng {lng}",
         "errors": {
           "search_failed": "Failed to search for locations.",
-          "resolve_failed": "Failed to resolve the selected map position."
+          "resolve_failed": "Failed to resolve the selected map position.",
+          "api_key_missing": "Google Maps API key is missing. Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to use the map picker.",
+          "maps_load_failed": "Failed to load Google Maps. Check the API key, billing, and enabled Maps JavaScript/Places APIs."
         },
-        "dropzone_title": "Click anywhere inside this area to place the school pin"
+        "dropzone_title": "Click anywhere inside this area to place the school pin",
+        "loading_maps": "Loading Google Maps..."
       },
       "upload_preview_hint": "A saved logo is already available. Drop a new file here to replace it.",
       "upload_drop_hint": "Drag and drop a logo file here, or click to browse."
@@ -8551,6 +8554,45 @@
         "saved": "Admissions document requirements saved successfully.",
         "validation_blank": "Each document needs both Arabic and English names before saving.",
         "validation_duplicate": "Active document names must be unique in both Arabic and English."
+      }
+    },
+    "health": {
+      "title": "System Health",
+      "subtitle": "Public readiness snapshot for core backend dependencies.",
+      "refresh": "Refresh",
+      "duration": "{ms} ms",
+      "status": {
+        "ok": "OK",
+        "degraded": "Degraded",
+        "error": "Error",
+        "skipped": "Skipped"
+      },
+      "summary": {
+        "title": "Readiness summary",
+        "description": "Current liveness and dependency state reported by the backend health endpoint.",
+        "version": "Backend version",
+        "timestamp": "Last checked"
+      },
+      "checks": {
+        "db": "Database",
+        "redis": "Redis",
+        "storage": "Storage",
+        "queues": "Queues",
+        "email": "Email",
+        "push": "Push notifications"
+      },
+      "queues": {
+        "title": "Queue readiness",
+        "description": "BullMQ queue counts returned by the health endpoint.",
+        "name": "Queue",
+        "status": "Status",
+        "waiting": "Waiting",
+        "active": "Active",
+        "delayed": "Delayed",
+        "failed": "Failed"
+      },
+      "messages": {
+        "load_failed": "Failed to load system health. Please try again."
       }
     }
   },

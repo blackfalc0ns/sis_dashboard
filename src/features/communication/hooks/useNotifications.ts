@@ -87,6 +87,34 @@ function unwrapList<T>(response: unknown): CommunicationList<T> {
     };
   }
 
+  const notificationSource = sources.find((source) =>
+    Array.isArray(source.notifications),
+  );
+
+  if (notificationSource) {
+    const items = notificationSource.notifications as T[];
+    const pagination = isRecord(notificationSource.pagination)
+      ? notificationSource.pagination
+      : undefined;
+
+    return {
+      ...notificationSource,
+      items,
+      total:
+        numberFromUnknown(pagination?.total) ??
+        numberFromUnknown(notificationSource.total) ??
+        numberFromUnknown(notificationSource.count) ??
+        items.length,
+      page:
+        numberFromUnknown(pagination?.page) ??
+        numberFromUnknown(notificationSource.page),
+      limit:
+        numberFromUnknown(pagination?.limit) ??
+        numberFromUnknown(notificationSource.limit),
+      totalPages: numberFromUnknown(notificationSource.totalPages),
+    };
+  }
+
   const arraySource = [
     response.data,
     response.result,
@@ -113,13 +141,35 @@ function sortNotifications(notifications: CommunicationNotification[]) {
   });
 }
 
+function normalizeNotification(
+  notification: CommunicationNotification,
+): CommunicationNotification {
+  const notificationId =
+    notification.id ??
+    (typeof notification.notificationId === "string"
+      ? notification.notificationId
+      : undefined) ??
+    (typeof notification.notification_id === "string"
+      ? notification.notification_id
+      : undefined);
+
+  return notificationId ? { ...notification, id: notificationId } : notification;
+}
+
 function isoFromInput(value: string) {
   if (!value.trim()) return undefined;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
-function paramsFromFilters(filters: NotificationFiltersState): ListNotificationsParams {
+export interface UseNotificationsOptions {
+  recipientUserId?: string;
+}
+
+function paramsFromFilters(
+  filters: NotificationFiltersState,
+  options: UseNotificationsOptions = {},
+): ListNotificationsParams {
   return {
     ...(filters.status !== "all"
       ? { status: filters.status as CommunicationNotificationStatus }
@@ -129,9 +179,11 @@ function paramsFromFilters(filters: NotificationFiltersState): ListNotifications
     ...(filters.sourceModule ? { sourceModule: filters.sourceModule } : {}),
     ...(filters.sourceType.trim() ? { sourceType: filters.sourceType.trim() } : {}),
     ...(filters.sourceId.trim() ? { sourceId: filters.sourceId.trim() } : {}),
-    ...(filters.recipientUserId.trim()
-      ? { recipientUserId: filters.recipientUserId.trim() }
-      : {}),
+    ...(options.recipientUserId
+      ? { recipientUserId: options.recipientUserId }
+      : filters.recipientUserId.trim()
+        ? { recipientUserId: filters.recipientUserId.trim() }
+        : {}),
     ...(isoFromInput(filters.createdFrom)
       ? { createdFrom: isoFromInput(filters.createdFrom) }
       : {}),
@@ -142,8 +194,9 @@ function paramsFromFilters(filters: NotificationFiltersState): ListNotifications
   };
 }
 
-export function useNotifications() {
+export function useNotifications(options: UseNotificationsOptions = {}) {
   const { socket } = useCommunicationSocket();
+  const { recipientUserId } = options;
   const mountedRef = useRef(false);
   const [filters, setFilters] =
     useState<NotificationFiltersState>(DEFAULT_FILTERS);
@@ -161,9 +214,11 @@ export function useNotifications() {
     setError(null);
 
     try {
-      const response = await getNotifications(paramsFromFilters(filters));
+      const response = await getNotifications(
+        paramsFromFilters(filters, { recipientUserId }),
+      );
       const list = unwrapList<CommunicationNotification>(response);
-      const normalized = sortNotifications(list.items);
+      const normalized = sortNotifications(list.items.map(normalizeNotification));
 
       if (!mountedRef.current) return;
       setNotifications(normalized);
@@ -179,7 +234,7 @@ export function useNotifications() {
         setIsRefreshing(false);
       }
     }
-  }, [filters]);
+  }, [filters, recipientUserId]);
 
   useEffect(() => {
     mountedRef.current = true;

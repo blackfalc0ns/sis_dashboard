@@ -686,11 +686,14 @@ export default function Sidebar({
             const Icon = item.icon;
             const itemHref = isArabic ? item.href_ar : item.href_en;
             const isPendingItem = pendingHref === itemHref;
+            const isActiveItem = pathname === itemHref;
             const itemVariantClasses = getVariantClasses(item.buttonVariant, {
+              active: isActiveItem,
               pending: isPendingItem,
               backgroundImage: item.buttonBackgroundImage,
             });
             const itemVariantStyle = getVariantStyle({
+              active: isActiveItem,
               pending: isPendingItem,
               backgroundImage: item.buttonBackgroundImage,
             });
@@ -712,7 +715,7 @@ export default function Sidebar({
                 className={`group w-full flex items-center gap-3 rounded-xl transition-all duration-200 text-left ${
                   isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
                 } ${
-                  isPendingItem
+                  isActiveItem || isPendingItem
                     ? item.buttonBackgroundImage
                       ? "text-white shadow-sm"
                       : "bg-white/20 text-white"
@@ -722,9 +725,11 @@ export default function Sidebar({
               >
                 <Icon
                   className={`w-5 h-5 shrink-0 transition-colors ${
-                    item.buttonBackgroundImage && !isPendingItem
+                    item.buttonBackgroundImage && !isActiveItem && !isPendingItem
                       ? "text-white"
-                      : item.buttonVariant === "highlight" && !isPendingItem
+                      : item.buttonVariant === "highlight" &&
+                          !isActiveItem &&
+                          !isPendingItem
                         ? "text-primary"
                         : "text-white group-hover:text-white"
                   }`}

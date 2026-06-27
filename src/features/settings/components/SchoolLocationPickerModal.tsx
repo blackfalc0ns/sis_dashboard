@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, MapPin, Search } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useDebouncedCallback } from "use-debounce";
@@ -11,13 +11,111 @@ import type {
   LocationSuggestion,
   ResolvedSchoolLocation,
 } from "@/features/settings/types";
-import {
-  buildSchoolLocationPreviewUrl,
-  projectCanvasPointToCoordinates,
-  projectCoordinatesToCanvas,
-  reverseGeocodeSchoolLocation,
-  searchSchoolLocations,
-} from "@/features/settings/services/schoolLocationService";
+
+type GoogleLatLngLiteral = { lat: number; lng: number };
+
+type GooglePlacePrediction = {
+  place_id: string;
+  description: string;
+  structured_formatting?: {
+    main_text?: string;
+    secondary_text?: string;
+  };
+};
+
+type GooglePlaceResult = {
+  name?: string;
+  formatted_address?: string;
+  geometry?: {
+    location?: {
+      lat: () => number;
+      lng: () => number;
+    };
+  };
+  address_components?: Array<{
+    long_name: string;
+    short_name: string;
+    types: string[];
+  }>;
+};
+
+type GoogleGeocoderResult = GooglePlaceResult;
+type GoogleMapsStatus = "OK" | "ZERO_RESULTS" | string;
+
+type GoogleMapInstance = {
+  setCenter: (position: GoogleLatLngLiteral) => void;
+  setZoom: (zoom: number) => void;
+  addListener: (
+    eventName: "click",
+    callback: (event: { latLng?: { lat: () => number; lng: () => number } }) => void,
+  ) => void;
+};
+
+type GoogleMarkerInstance = {
+  setPosition: (position: GoogleLatLngLiteral) => void;
+  addListener: (
+    eventName: "dragend",
+    callback: (event: { latLng?: { lat: () => number; lng: () => number } }) => void,
+  ) => void;
+};
+
+type GoogleAutocompleteService = {
+  getPlacePredictions: (
+    request: { input: string; language?: string },
+    callback: (
+      predictions: GooglePlacePrediction[] | null,
+      status: GoogleMapsStatus,
+    ) => void,
+  ) => void;
+};
+
+type GooglePlacesService = {
+  getDetails: (
+    request: { placeId: string; fields: string[]; language?: string },
+    callback: (place: GooglePlaceResult | null, status: GoogleMapsStatus) => void,
+  ) => void;
+};
+
+type GoogleGeocoder = {
+  geocode: (
+    request: { location: GoogleLatLngLiteral; language?: string },
+    callback: (
+      results: GoogleGeocoderResult[] | null,
+      status: GoogleMapsStatus,
+    ) => void,
+  ) => void;
+};
+
+type GoogleMapsApi = {
+  maps: {
+    Map: new (
+      element: HTMLElement,
+      options: {
+        center: GoogleLatLngLiteral;
+        zoom: number;
+        mapTypeControl?: boolean;
+        fullscreenControl?: boolean;
+        streetViewControl?: boolean;
+      },
+    ) => GoogleMapInstance;
+    Marker: new (options: {
+      map: GoogleMapInstance;
+      position: GoogleLatLngLiteral;
+      draggable: boolean;
+    }) => GoogleMarkerInstance;
+    places: {
+      AutocompleteService: new () => GoogleAutocompleteService;
+      PlacesService: new (element: HTMLDivElement) => GooglePlacesService;
+    };
+    Geocoder: new () => GoogleGeocoder;
+  };
+};
+
+declare global {
+  interface Window {
+    __moazezGoogleMapsPromise?: Promise<GoogleMapsApi>;
+  }
+}
 
 interface SchoolLocationPickerModalProps {
   isOpen: boolean;
@@ -25,6 +123,117 @@ interface SchoolLocationPickerModalProps {
   initialLocation: ResolvedSchoolLocation | null;
   onClose: () => void;
   onConfirm: (location: ResolvedSchoolLocation) => void;
+}
+
+const DEFAULT_CENTER = { lat: 24.7136, lng: 46.6753 };
+const GOOGLE_MAPS_SCRIPT_ID = "google-maps-js-api";
+
+function getGoogleMapsApi() {
+  return window.google as unknown as GoogleMapsApi | undefined;
+}
+
+function loadGoogleMapsApi(apiKey: string, language: string) {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("maps_unavailable"));
+  }
+
+  const loadedGoogleApi = getGoogleMapsApi();
+  if (loadedGoogleApi?.maps?.places) {
+    return Promise.resolve(loadedGoogleApi);
+  }
+
+  if (window.__moazezGoogleMapsPromise) {
+    return window.__moazezGoogleMapsPromise;
+  }
+
+  window.__moazezGoogleMapsPromise = new Promise<GoogleMapsApi>(
+    (resolve, reject) => {
+      const existingScript = document.getElementById(GOOGLE_MAPS_SCRIPT_ID);
+      if (existingScript) {
+        existingScript.addEventListener("load", () => {
+          const googleApi = getGoogleMapsApi();
+          if (googleApi) {
+            resolve(googleApi);
+            return;
+          }
+          reject(new Error("maps_load_failed"));
+        });
+        existingScript.addEventListener("error", () =>
+          reject(new Error("maps_load_failed")),
+        );
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.id = GOOGLE_MAPS_SCRIPT_ID;
+      script.async = true;
+      script.defer = true;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&language=${encodeURIComponent(language)}`;
+      script.onload = () => {
+        const googleApi = getGoogleMapsApi();
+        if (googleApi) {
+          resolve(googleApi);
+          return;
+        }
+        reject(new Error("maps_load_failed"));
+      };
+      script.onerror = () => reject(new Error("maps_load_failed"));
+      document.head.appendChild(script);
+    },
+  );
+
+  return window.__moazezGoogleMapsPromise;
+}
+
+function getComponent(
+  components: GooglePlaceResult["address_components"],
+  types: string[],
+) {
+  return (
+    components?.find((component) =>
+      types.some((type) => component.types.includes(type)),
+    )?.long_name ?? ""
+  );
+}
+
+function placeToResolvedLocation(
+  place: GooglePlaceResult,
+): ResolvedSchoolLocation | null {
+  const location = place.geometry?.location;
+  if (!location) {
+    return null;
+  }
+
+  const formattedAddress = place.formatted_address ?? "";
+  const city = getComponent(place.address_components, [
+    "locality",
+    "administrative_area_level_2",
+    "administrative_area_level_1",
+  ]);
+  const country = getComponent(place.address_components, ["country"]);
+
+  return {
+    label: place.name || formattedAddress,
+    formattedAddress,
+    addressLine: formattedAddress.split(",").slice(0, 2).join(",").trim(),
+    city,
+    country,
+    latitude: Number(location.lat().toFixed(6)),
+    longitude: Number(location.lng().toFixed(6)),
+  };
+}
+
+function predictionToSuggestion(prediction: GooglePlacePrediction): LocationSuggestion {
+  return {
+    id: prediction.place_id,
+    label: prediction.structured_formatting?.main_text || prediction.description,
+    formattedAddress:
+      prediction.structured_formatting?.secondary_text || prediction.description,
+    city: "",
+    country: "",
+    latitude: 0,
+    longitude: 0,
+  };
 }
 
 export default function SchoolLocationPickerModal({
@@ -38,103 +247,229 @@ export default function SchoolLocationPickerModal({
   const tCommon = useTranslations("common");
   const locale = useLocale();
   const isRTL = locale === "ar";
-  const canvasRef = useRef<HTMLButtonElement | null>(null);
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const placesHostRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<GoogleMapInstance | null>(null);
+  const markerRef = useRef<GoogleMarkerInstance | null>(null);
+  const autocompleteRef = useRef<GoogleAutocompleteService | null>(null);
+  const placesRef = useRef<GooglePlacesService | null>(null);
+  const geocoderRef = useRef<GoogleGeocoder | null>(null);
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<LocationSuggestion[]>([]);
   const [selectedLocation, setSelectedLocation] =
     useState<ResolvedSchoolLocation | null>(initialLocation);
+  const [isMapsLoading, setIsMapsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isResolving, setIsResolving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const selectedPosition = useMemo<GoogleLatLngLiteral>(
+    () =>
+      selectedLocation
+        ? { lat: selectedLocation.latitude, lng: selectedLocation.longitude }
+        : DEFAULT_CENTER,
+    [selectedLocation],
+  );
+
+  const updateMarker = useCallback((position: GoogleLatLngLiteral) => {
+    markerRef.current?.setPosition(position);
+    mapRef.current?.setCenter(position);
+  }, []);
+
+  const resolveCoordinates = useCallback(
+    async (position: GoogleLatLngLiteral) => {
+      if (!geocoderRef.current) {
+        return;
+      }
+
+      setIsResolving(true);
+      setError(null);
+      geocoderRef.current.geocode(
+        { location: position, language: locale },
+        (geocoderResults, status) => {
+          setIsResolving(false);
+          if (status !== "OK" || !geocoderResults?.[0]) {
+            setError(t("errors.resolve_failed"));
+            return;
+          }
+
+          const resolved = placeToResolvedLocation({
+            ...geocoderResults[0],
+            name: geocoderResults[0].formatted_address,
+          });
+          if (!resolved) {
+            setError(t("errors.resolve_failed"));
+            return;
+          }
+
+          setSelectedLocation(resolved);
+          updateMarker({ lat: resolved.latitude, lng: resolved.longitude });
+        },
+      );
+    },
+    [locale, t, updateMarker],
+  );
+
   useEffect(() => {
     if (!isOpen) {
       return;
     }
-    setQuery(initialQuery);
-    setSelectedLocation(initialLocation);
-    setError(null);
+
+    queueMicrotask(() => {
+      setQuery(initialQuery);
+      setSelectedLocation(initialLocation);
+      setResults([]);
+      setError(null);
+    });
   }, [initialLocation, initialQuery, isOpen]);
 
-  const runSearch = useDebouncedCallback(async (nextQuery: string) => {
-    setIsSearching(true);
-    setError(null);
-    try {
-      const suggestions = await searchSchoolLocations(nextQuery);
-      setResults(suggestions);
-    } catch {
-      setError(t("errors.search_failed"));
-      setResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, 250);
-
   useEffect(() => {
     if (!isOpen) {
       return;
     }
-    void runSearch(query);
-  }, [isOpen, query, runSearch]);
 
-  const pinPosition = useMemo(() => {
-    if (!selectedLocation) {
-      return { x: 50, y: 45 };
-    }
-    return projectCoordinatesToCanvas(
-      selectedLocation.latitude,
-      selectedLocation.longitude,
-    );
-  }, [selectedLocation]);
-
-  const handleSuggestionSelect = async (suggestion: LocationSuggestion) => {
-    setIsResolving(true);
-    setError(null);
-    try {
-      const resolved = await reverseGeocodeSchoolLocation(
-        suggestion.latitude,
-        suggestion.longitude,
-      );
-      setSelectedLocation({
-        ...resolved,
-        label: suggestion.label,
-        formattedAddress: suggestion.formattedAddress,
-        addressLine: suggestion.formattedAddress
-          .split(",")
-          .slice(0, 2)
-          .join(",")
-          .trim(),
-      });
-    } catch {
-      setError(t("errors.resolve_failed"));
-    } finally {
-      setIsResolving(false);
-    }
-  };
-
-  const handleCanvasPick = async (clientX: number, clientY: number) => {
-    if (!canvasRef.current) {
+    if (!apiKey) {
+      queueMicrotask(() => setError(t("errors.api_key_missing")));
       return;
     }
 
-    const rect = canvasRef.current.getBoundingClientRect();
-    const xPercent = ((clientX - rect.left) / rect.width) * 100;
-    const yPercent = ((clientY - rect.top) / rect.height) * 100;
-    const coordinates = projectCanvasPointToCoordinates(xPercent, yPercent);
+    if (!mapContainerRef.current || !placesHostRef.current) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      setIsMapsLoading(true);
+      setError(null);
+    });
+
+    void loadGoogleMapsApi(apiKey, locale)
+      .then((googleApi) => {
+        if (!mapContainerRef.current || !placesHostRef.current) {
+          return;
+        }
+
+        const map = new googleApi.maps.Map(mapContainerRef.current, {
+          center: selectedPosition,
+          zoom: selectedLocation ? 16 : 12,
+          mapTypeControl: false,
+          fullscreenControl: true,
+          streetViewControl: false,
+        });
+        const marker = new googleApi.maps.Marker({
+          map,
+          position: selectedPosition,
+          draggable: true,
+        });
+
+        map.addListener("click", (event) => {
+          if (!event.latLng) return;
+          const nextPosition = {
+            lat: event.latLng.lat(),
+            lng: event.latLng.lng(),
+          };
+          marker.setPosition(nextPosition);
+          void resolveCoordinates(nextPosition);
+        });
+        marker.addListener("dragend", (event) => {
+          if (!event.latLng) return;
+          void resolveCoordinates({
+            lat: event.latLng.lat(),
+            lng: event.latLng.lng(),
+          });
+        });
+
+        mapRef.current = map;
+        markerRef.current = marker;
+        autocompleteRef.current = new googleApi.maps.places.AutocompleteService();
+        placesRef.current = new googleApi.maps.places.PlacesService(
+          placesHostRef.current,
+        );
+        geocoderRef.current = new googleApi.maps.Geocoder();
+      })
+      .catch(() => setError(t("errors.maps_load_failed")))
+      .finally(() => setIsMapsLoading(false));
+  }, [
+    apiKey,
+    isOpen,
+    locale,
+    resolveCoordinates,
+    selectedLocation,
+    selectedPosition,
+    t,
+  ]);
+
+  useEffect(() => {
+    if (mapRef.current && markerRef.current) {
+      updateMarker(selectedPosition);
+      mapRef.current.setZoom(selectedLocation ? 16 : 12);
+    }
+  }, [selectedLocation, selectedPosition, updateMarker]);
+
+  const runSearch = useDebouncedCallback((nextQuery: string) => {
+    if (!nextQuery.trim() || !autocompleteRef.current) {
+      setResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    setError(null);
+    autocompleteRef.current.getPlacePredictions(
+      { input: nextQuery, language: locale },
+      (predictions, status) => {
+        setIsSearching(false);
+        if (status === "ZERO_RESULTS") {
+          setResults([]);
+          return;
+        }
+        if (status !== "OK" || !predictions) {
+          setError(t("errors.search_failed"));
+          setResults([]);
+          return;
+        }
+        setResults(predictions.map(predictionToSuggestion));
+      },
+    );
+  }, 300);
+
+  useEffect(() => {
+    if (!isOpen || isMapsLoading) {
+      return;
+    }
+    runSearch(query);
+  }, [isMapsLoading, isOpen, query, runSearch]);
+
+  const handleSuggestionSelect = (suggestion: LocationSuggestion) => {
+    if (!placesRef.current) {
+      return;
+    }
 
     setIsResolving(true);
     setError(null);
-    try {
-      const resolved = await reverseGeocodeSchoolLocation(
-        coordinates.latitude,
-        coordinates.longitude,
-      );
-      setSelectedLocation(resolved);
-    } catch {
-      setError(t("errors.resolve_failed"));
-    } finally {
-      setIsResolving(false);
-    }
+    placesRef.current.getDetails(
+      {
+        placeId: suggestion.id,
+        language: locale,
+        fields: ["name", "formatted_address", "geometry", "address_components"],
+      },
+      (place, status) => {
+        setIsResolving(false);
+        if (status !== "OK" || !place) {
+          setError(t("errors.resolve_failed"));
+          return;
+        }
+
+        const resolved = placeToResolvedLocation(place);
+        if (!resolved) {
+          setError(t("errors.resolve_failed"));
+          return;
+        }
+
+        setSelectedLocation(resolved);
+        setQuery(resolved.formattedAddress);
+        updateMarker({ lat: resolved.latitude, lng: resolved.longitude });
+      },
+    );
   };
 
   const footer = (
@@ -144,7 +479,7 @@ export default function SchoolLocationPickerModal({
       </Button>
       <Button
         variant="primary"
-        disabled={!selectedLocation || isResolving}
+        disabled={!selectedLocation || isResolving || isMapsLoading}
         onClick={() => selectedLocation && onConfirm(selectedLocation)}
       >
         {t("confirm")}
@@ -171,6 +506,7 @@ export default function SchoolLocationPickerModal({
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t("search_placeholder")}
             leftIcon={<Search className="h-4 w-4" />}
+            disabled={isMapsLoading || !apiKey}
             dir="ltr"
             className="text-left"
           />
@@ -180,10 +516,10 @@ export default function SchoolLocationPickerModal({
               {t("results")}
             </div>
             <div className="max-h-72 overflow-y-auto p-2">
-              {isSearching ? (
+              {isMapsLoading || isSearching ? (
                 <div className="flex items-center justify-center gap-2 px-4 py-8 text-sm text-gray-500">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {t("searching")}
+                  {isMapsLoading ? t("loading_maps") : t("searching")}
                 </div>
               ) : results.length === 0 ? (
                 <div className="px-4 py-8 text-sm text-gray-500">
@@ -198,7 +534,7 @@ export default function SchoolLocationPickerModal({
                     <button
                       key={result.id}
                       type="button"
-                      onClick={() => void handleSuggestionSelect(result)}
+                      onClick={() => handleSuggestionSelect(result)}
                       className={`w-full rounded-xl px-3 py-3 text-start transition-colors ${
                         isSelected
                           ? "bg-primary/10 text-primary"
@@ -239,48 +575,16 @@ export default function SchoolLocationPickerModal({
               {t("map_title")}
             </div>
             <div className="p-4">
-              <button
-                ref={canvasRef}
-                type="button"
-                onClick={(event) =>
-                  void handleCanvasPick(event.clientX, event.clientY)
-                }
-                className="relative h-64 w-full overflow-hidden rounded-2xl border border-dashed border-primary/40 bg-[linear-gradient(180deg,#dff5f3_0%,#eef8ff_100%)] text-start"
-              >
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(19,179,176,0.18),transparent_20%),radial-gradient(circle_at_70%_40%,rgba(3,108,128,0.12),transparent_24%),linear-gradient(to_right,rgba(255,255,255,0.35)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.35)_1px,transparent_1px)] bg-[size:auto,auto,32px_32px,32px_32px]" />
-                <div className="absolute left-4 top-4 max-w-[calc(100%-2rem)] rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-gray-600 shadow-sm whitespace-normal">
-                  {t("move_hint")}
-                </div>
-                <div className="absolute bottom-4 left-4 max-w-[calc(100%-2rem)] rounded-full bg-white/90 px-3 py-1 text-xs text-gray-500 shadow-sm whitespace-normal">
-                  {t("preview_note")}
-                </div>
-                <div
-                  className="absolute -translate-x-1/2 -translate-y-full"
-                  style={{
-                    left: `${pinPosition.x}%`,
-                    top: `${pinPosition.y}%`,
-                  }}
-                >
-                  <div className="rounded-full bg-primary p-2 text-white shadow-lg shadow-primary/30">
-                    <MapPin className="h-4 w-4" />
+              <div className="relative h-80 overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
+                {isMapsLoading ? (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-white/80 text-sm text-gray-600">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {t("loading_maps")}
                   </div>
-                </div>
-              </button>
-
-              {selectedLocation ? (
-                <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200">
-                  <iframe
-                    title={t("iframe_title")}
-                    src={buildSchoolLocationPreviewUrl(
-                      selectedLocation.latitude,
-                      selectedLocation.longitude,
-                    )}
-                    className="h-48 w-full border-0"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                </div>
-              ) : null}
+                ) : null}
+                <div ref={mapContainerRef} className="h-full w-full" />
+              </div>
+              <div ref={placesHostRef} className="hidden" />
             </div>
           </div>
 
