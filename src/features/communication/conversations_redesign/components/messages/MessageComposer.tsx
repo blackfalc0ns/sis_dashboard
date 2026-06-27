@@ -5,28 +5,27 @@ import {
   useRef,
   useState,
 } from "react";
-import { Edit3, FileText, Mic, Paperclip, Send, Trash2 } from "lucide-react";
+import {
+  Edit3,
+  FileText,
+  LoaderCircle,
+  Mic,
+  Paperclip,
+  Send,
+  Trash2,
+} from "lucide-react";
 
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import { useCommunicationPolicy } from "@/features/communication/hooks/useCommunicationPolicy";
 
 import { EmojiPickerButton } from "./EmojiPickerButton";
 
-const DEFAULT_VOICE_RECORDING_UNAVAILABLE =
-  "Voice recording is not available in this browser.";
 const AUDIO_MIME_TYPE_CANDIDATES = [
   "audio/webm;codecs=opus",
   "audio/webm",
   "audio/mp4",
   "audio/mpeg",
 ] as const;
-
-function voiceRecordingUnavailableMessage(labels: ConversationRedesignLabels) {
-  const labelRecord = labels as Record<string, string | undefined>;
-  return (
-    labelRecord.voiceRecordingUnavailable ?? DEFAULT_VOICE_RECORDING_UNAVAILABLE
-  );
-}
 
 function supportedAudioMimeType(): string | undefined {
   if (
@@ -39,6 +38,13 @@ function supportedAudioMimeType(): string | undefined {
   return AUDIO_MIME_TYPE_CANDIDATES.find((mimeType) =>
     MediaRecorder.isTypeSupported(mimeType),
   );
+}
+
+function audioExtension(mimeType: string) {
+  if (mimeType.includes("webm")) return "webm";
+  if (mimeType.includes("mp4")) return "m4a";
+  if (mimeType.includes("mpeg")) return "mp3";
+  return "ogg";
 }
 
 export function MessageComposer({
@@ -121,16 +127,22 @@ export function MessageComposer({
       return;
     }
 
-    // If there's pending files, send message + attachments together (non-blocking)
     if (pendingFiles.length > 0) {
       const filesToSend = [...pendingFiles];
       const captionToSend = body.trim();
-      setBody("");
-      setPendingFiles([]);
       setFileError(null);
-      onStopTyping();
-      textareaRef.current?.focus();
-      void onSendWithAttachment(filesToSend, captionToSend).catch(() => {});
+      setIsSubmitting(true);
+      try {
+        await onSendWithAttachment(filesToSend, captionToSend);
+        setBody("");
+        setPendingFiles([]);
+        onStopTyping();
+      } catch {
+        setFileError(labels.unableToUploadAttachment);
+      } finally {
+        setIsSubmitting(false);
+        textareaRef.current?.focus();
+      }
       return;
     }
 
@@ -191,7 +203,7 @@ export function MessageComposer({
       !navigator.mediaDevices?.getUserMedia ||
       typeof MediaRecorder === "undefined"
     ) {
-      setRecordingError(voiceRecordingUnavailableMessage(labels));
+      setRecordingError(labels.voiceRecordingUnavailable);
       return;
     }
 
@@ -226,7 +238,7 @@ export function MessageComposer({
     } catch (err) {
       console.error("[VoiceRecording] Failed to start recording:", err);
       stream?.getTracks().forEach((track) => track.stop());
-      setRecordingError(voiceRecordingUnavailableMessage(labels));
+      setRecordingError(labels.voiceRecordingUnavailable);
     }
   };
 
@@ -254,15 +266,22 @@ export function MessageComposer({
 
     if (audioBlob.size === 0) return;
 
-    const extension = mediaRecorder.mimeType.includes("webm") ? "webm" : "ogg";
+    const extension = audioExtension(mediaRecorder.mimeType);
     const audioFile = new File(
       [audioBlob],
       `voice-note-${Date.now()}.${extension}`,
       { type: mediaRecorder.mimeType },
     );
 
-    textareaRef.current?.focus();
-    void onSendVoice(audioFile).catch(() => {});
+    setIsSubmitting(true);
+    try {
+      await onSendVoice(audioFile);
+    } catch {
+      setRecordingError(labels.unableToSendMessage);
+    } finally {
+      setIsSubmitting(false);
+      textareaRef.current?.focus();
+    }
   };
 
   const cancelRecording = () => {
@@ -398,10 +417,11 @@ export function MessageComposer({
               </span>
               <button
                 type="button"
+                disabled={isSubmitting}
                 onClick={() =>
                   setPendingFiles((prev) => prev.filter((_, i) => i !== index))
                 }
-                className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-200 hover:text-slate-600"
+                className="inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-600 disabled:cursor-wait disabled:opacity-50"
                 aria-label={labels.cancel}
               >
                 <span className="text-sm leading-none">&times;</span>
@@ -427,7 +447,7 @@ export function MessageComposer({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus:outline-none hover:scale-105 active:scale-95 duration-200"
+          className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label={labels.attachFile}
           disabled={disabled || isSubmitting}
         >
@@ -472,13 +492,9 @@ export function MessageComposer({
               }
             }}
           />
-          <div className="flex justify-between items-center pb-1">
-            <p className="text-[10px] text-slate-400 leading-none">
-              Shift + Enter{" "}
-              {labels.send === "إرسال" ? "لسطر جديد" : "for new line"}
-            </p>
+          <div className="flex justify-end pb-1">
             {body.length > 0 && (
-              <p className={`text-[10px] leading-none transition-all duration-200 ${body.length > maxMessageLength ? "text-red-600 font-bold scale-105" : "text-slate-400"}`}>
+              <p className={`text-[10px] leading-none ${body.length > maxMessageLength ? "font-bold text-red-600" : "text-slate-500"}`}>
                 {body.length} / {maxMessageLength}
               </p>
             )}
@@ -494,7 +510,7 @@ export function MessageComposer({
             type="button"
             onClick={() => void startRecording()}
             disabled={disabled || isSubmitting}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-red-500 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus:outline-none hover:scale-105 active:scale-95 duration-200"
+            className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             aria-label={labels.voiceNote}
           >
             <Mic className="h-5 w-5" />
@@ -503,10 +519,14 @@ export function MessageComposer({
           <button
             type="submit"
             disabled={disabled || isSubmitting || !canSend}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-200 text-slate-500 transition enabled:bg-primary enabled:text-white enabled:hover:bg-hover cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus:outline-none hover:scale-105 active:scale-95 duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-slate-200 text-slate-500 transition-colors enabled:bg-primary enabled:text-white enabled:hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={labels.send}
           >
-            <Send className="h-5 w-5" />
+            {isSubmitting ? (
+              <LoaderCircle className="h-5 w-5 animate-spin" />
+            ) : (
+              <Send className="h-5 w-5" />
+            )}
           </button>
         )}
       </div>

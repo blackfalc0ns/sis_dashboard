@@ -14,17 +14,16 @@ import type { ToastState } from "@/features/communication/conversations_redesign
 import { createConversationDialogLabels } from "@/features/communication/conversations_redesign/utils/dialogLabels";
 import { useConversations } from "@/features/communication/hooks/useConversations";
 import type {
+  ConversationFiltersState,
   ConversationFormValues,
   ConversationListItemModel,
 } from "@/features/communication/hooks/useConversations";
 import CreateConversationDialog from "@/features/communication/components/conversations/CreateConversationDialog";
-import { useAuth } from "@/hooks/use-auth";
 import { communicationErrorMessage } from "@/features/communication/utils/communication-errors";
 
 function filterConversations(
   conversations: ConversationListItemModel[],
   filter: ConversationRedesignFilter,
-  currentUserId?: string | null,
   typeFilter?: string,
 ) {
   let result = conversations;
@@ -32,13 +31,6 @@ function filterConversations(
   // Type filter
   if (typeFilter) {
     result = result.filter((c) => c.type === typeFilter);
-  }
-
-  // Status/ownership filter
-  if (filter === "mine") {
-    return result.filter(
-      (conversation) => conversation.createdById === currentUserId,
-    );
   }
 
   if (filter === "unread") {
@@ -49,6 +41,10 @@ function filterConversations(
 
   if (filter === "pinned") {
     return result.filter((conversation) => conversation.isPinned);
+  }
+
+  if (filter === "archived" || filter === "closed") {
+    return result.filter((conversation) => conversation.status === filter);
   }
 
   return result;
@@ -63,12 +59,10 @@ export default function ConversationPage({
 }: ConversationPageProps) {
   const locale = useLocale();
   const labels = labelsForLocale(locale);
-  const { user } = useAuth();
   const conversationsState = useConversations();
   const initialConversationIdRef = useRef(initialConversationId);
   const userClosedRef = useRef(false);
   const [filter, setFilter] = useState<ConversationRedesignFilter>("all");
-  const [typeFilter, setTypeFilter] = useState("");
   const [search, setSearch] = useState("");
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
@@ -83,13 +77,14 @@ export default function ConversationPage({
     conversationsState.setFilters({
       search: "",
       status: "all",
+      type: "all",
     });
     // The hook owns its initial fetch; this aligns it with the redesign default.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Refresh is handled by the 15s polling interval in useConversations
-  // and by the back-navigation handler — no need for aggressive focus refresh
+  const selectedTypeFilter = conversationsState.filters.type ?? "all";
+  const typeFilter = selectedTypeFilter === "all" ? "" : selectedTypeFilter;
 
   const handleBackToList = useCallback(() => {
     setShowMobileThread(false);
@@ -101,8 +96,9 @@ export default function ConversationPage({
   }, []);
 
   const visibleConversations = useMemo(
-    () => filterConversations(conversationsState.conversations, filter, user?.id, typeFilter),
-    [conversationsState.conversations, filter, user?.id, typeFilter],
+    () =>
+      filterConversations(conversationsState.conversations, filter, typeFilter),
+    [conversationsState.conversations, filter, typeFilter],
   );
 
   useEffect(() => {
@@ -156,7 +152,10 @@ export default function ConversationPage({
   };
 
   const handleTypeFilterChange = (type: string) => {
-    setTypeFilter(type);
+    conversationsState.setFilters((current) => ({
+      ...current,
+      type: (type || "all") as ConversationFiltersState["type"],
+    }));
   };
 
   const handleCreateConversation = async (values: ConversationFormValues) => {
@@ -185,7 +184,6 @@ export default function ConversationPage({
         <ConversationSidebar
           className={`${showMobileThread ? "hidden" : "flex"} w-full md:flex md:w-[360px] md:shrink-0`}
           conversations={conversationsState.conversations}
-          currentUserId={user?.id}
           filter={filter}
           typeFilter={typeFilter}
           isLoading={conversationsState.isLoading}
@@ -254,4 +252,3 @@ export default function ConversationPage({
     </main>
   );
 }
-

@@ -100,14 +100,11 @@ describe("useConversationMessages", () => {
       });
     });
 
-    it("calls markConversationRead with the provided conversation ID on mount", async () => {
+    it("does not mark the conversation read merely because messages were loaded", async () => {
       renderHook(() => useConversationMessages(TEST_CONVERSATION_ID));
 
-      await waitFor(() => {
-        expect(apiMocks.markConversationRead).toHaveBeenCalledWith(
-          TEST_CONVERSATION_ID,
-        );
-      });
+      await waitFor(() => expect(apiMocks.getMessages).toHaveBeenCalled());
+      expect(apiMocks.markConversationRead).not.toHaveBeenCalled();
     });
 
     it("populates messages state from API response", async () => {

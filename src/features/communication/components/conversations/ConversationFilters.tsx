@@ -58,7 +58,7 @@ export default function ConversationFilters({
       <Button
         type="button"
         variant="secondary"
-        onClick={() => onChange({ search: "", status: "active" })}
+        onClick={() => onChange({ search: "", status: "active", type: "all" })}
         leftIcon={<X className="h-4 w-4" aria-hidden="true" />}
       >
         {labels.clear}

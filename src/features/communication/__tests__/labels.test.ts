@@ -31,6 +31,22 @@ describe("conversationRedesignLabels", () => {
 });
 
 describe("New translation labels", () => {
+  it("keeps interaction labels available in both locales", () => {
+    const keys = [
+      "voiceRecordingUnavailable",
+      "filters",
+      "clearFilters",
+      "newMessage",
+      "newMessages",
+      "endOfConversation",
+    ] as const;
+
+    for (const key of keys) {
+      expect(conversationRedesignLabels.en[key]).toBeTruthy();
+      expect(conversationRedesignLabels.ar[key]).toBeTruthy();
+    }
+  });
+
   it("has all new error and banner keys in both English and Arabic with non-empty strings", () => {
     const keys: (keyof typeof conversationRedesignLabels.en)[] = [
       "errorPolicyDisabled",
@@ -91,4 +107,3 @@ describe("New translation labels", () => {
     }
   });
 });
-

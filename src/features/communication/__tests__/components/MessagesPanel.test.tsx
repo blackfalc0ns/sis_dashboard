@@ -7,27 +7,16 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import { createMessage } from "../utils/test-data-generators";
-import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
+import { conversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 
 // ─── Mock scrollTo for jsdom ─────────────────────────────────────────────────
 
 beforeEach(() => {
   Element.prototype.scrollTo = vi.fn();
 });
-
-// ─── Minimal Labels ──────────────────────────────────────────────────────────
-
-const mockLabels: ConversationRedesignLabels = {
-  loadingMessages: "Loading messages...",
-  noMessagesYet: "No messages yet.",
-  noMessagesYetFull: "No messages yet. Start the conversation.",
-  typing: "is typing...",
-  someone: "Someone",
-  loading: "Loading...",
-} as unknown as ConversationRedesignLabels;
 
 // ─── Mock MessageBubble to avoid deep rendering ─────────────────────────────
 
@@ -65,7 +54,7 @@ function createDefaultProps(overrides: Record<string, unknown> = {}) {
     hasOlderMessages: false,
     isLoading: false,
     isLoadingOlder: false,
-    labels: mockLabels,
+    labels: conversationRedesignLabels.en,
     locale: "en",
     messages: [] as ReturnType<typeof createMessage>[],
     onAddReaction: vi.fn().mockResolvedValue(undefined),
@@ -92,6 +81,78 @@ function createDefaultProps(overrides: Record<string, unknown> = {}) {
 describe("MessagesPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("shows a jump control when messages arrive while scrolled away from the bottom", async () => {
+    const initialMessages = [createMessage({ id: "msg-1", body: "First" })];
+    const props = createDefaultProps({ messages: initialMessages });
+    const { rerender } = render(<MessagesPanel {...props} />);
+    const scroller = screen.getByRole("log", { name: "Messages" });
+
+    Object.defineProperties(scroller, {
+      clientHeight: { configurable: true, value: 400 },
+      scrollHeight: { configurable: true, value: 1200 },
+    });
+    scroller.scrollTop = 200;
+    fireEvent.scroll(scroller);
+
+    rerender(
+      <MessagesPanel
+        {...createDefaultProps({
+          messages: [
+            ...initialMessages,
+            createMessage({ id: "msg-2", body: "Second" }),
+          ],
+        })}
+      />,
+    );
+
+    expect(await screen.findByRole("button", { name: "1 new message" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "1 new message" }));
+    expect(Element.prototype.scrollTo).toHaveBeenCalledWith({
+      behavior: "smooth",
+      top: 1200,
+    });
+  });
+
+  it("preserves the visible position when older messages are prepended", async () => {
+    const onLoadOlder = vi.fn();
+    const initialMessages = [
+      createMessage({ id: "msg-2", body: "Second" }),
+      createMessage({ id: "msg-3", body: "Third" }),
+    ];
+    const props = createDefaultProps({
+      hasOlderMessages: true,
+      messages: initialMessages,
+      onLoadOlder,
+    });
+    const { rerender } = render(<MessagesPanel {...props} />);
+    const scroller = screen.getByRole("log", { name: "Messages" });
+    let scrollHeight = 1000;
+
+    Object.defineProperties(scroller, {
+      clientHeight: { configurable: true, value: 400 },
+      scrollHeight: { configurable: true, get: () => scrollHeight },
+    });
+    scroller.scrollTop = 40;
+    fireEvent.scroll(scroller);
+    expect(onLoadOlder).toHaveBeenCalledTimes(1);
+
+    scrollHeight = 1600;
+    rerender(
+      <MessagesPanel
+        {...createDefaultProps({
+          hasOlderMessages: false,
+          messages: [
+            createMessage({ id: "msg-1", body: "First" }),
+            ...initialMessages,
+          ],
+          onLoadOlder,
+        })}
+      />,
+    );
+
+    await waitFor(() => expect(scroller.scrollTop).toBe(640));
   });
 
   // ─── Property 2: Render Isolation — new message only re-renders MessagesPanel ─

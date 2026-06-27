@@ -5,7 +5,6 @@ import {
   deleteMessage,
   getConversationReadSummary,
   getMessages,
-  markConversationRead,
   markMessageRead,
   sendMessage,
   updateMessage,
@@ -416,8 +415,6 @@ export function useConversationMessages(conversationId: string) {
     setReadSummary({});
     setHasOlderMessages(true);
     void refresh();
-    void markConversationRead(conversationId).catch(() => undefined);
-
     return () => {
       mountedRef.current = false;
     };

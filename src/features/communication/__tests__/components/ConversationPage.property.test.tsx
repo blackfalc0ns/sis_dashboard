@@ -3,12 +3,11 @@
  *
  * **Validates: Requirements 7.2, 7.3**
  *
- * Property 19: For any conversation list, "mine" returns only user's conversations,
- * "unread" returns only unread, "pinned" returns only pinned.
+ * Property 19: For any conversation list, "unread" returns only unread and
+ * "pinned" returns only pinned.
  *
- * This test generates random lists of conversations with varying createdById,
- * unreadCount, and isPinned values, then verifies that each filter correctly
- * narrows the visible list.
+ * This test generates random lists of conversations with varying unreadCount
+ * and isPinned values, then verifies that each filter narrows the visible list.
  */
 
 import { expect, vi, beforeEach, afterEach } from "vitest";
@@ -194,7 +193,11 @@ beforeEach(() => {
   mockConversationsState.isRefreshing = false;
   mockConversationsState.isMutating = false;
   mockConversationsState.error = null;
-  mockConversationsState.filters = { search: "", status: "all" };
+  mockConversationsState.filters = {
+    search: "",
+    status: "all",
+    type: "all",
+  };
   mockConversationsState.hasFilters = false;
 });
 
@@ -206,32 +209,7 @@ afterEach(() => {
 // ─── Property-Based Tests ───────────────────────────────────────────────────
 
 fcTest.prop([conversationListArb], { numRuns: 50 })(
-  "Property 19a: 'mine' filter shows only conversations where createdById === currentUserId",
-  (conversations) => {
-    mockConversationsState.conversations = conversations as ConversationListItemModel[];
-
-    const { unmount } = render(<ConversationPage />);
-
-    // Click the "Mine" filter button
-    clickFilterButton("Mine");
-
-    // Get visible titles
-    const visibleTitles = getVisibleConversationTitles();
-
-    // Expected: only conversations created by the current user
-    const expectedTitles = conversations
-      .filter((c) => c.createdById === TEST_USER_ID)
-      .map((c) => c.title);
-
-    // All visible titles should be from "mine" conversations
-    expect(visibleTitles.sort()).toEqual(expectedTitles.sort());
-
-    unmount();
-  },
-);
-
-fcTest.prop([conversationListArb], { numRuns: 50 })(
-  "Property 19b: 'unread' filter shows only conversations where unreadCount > 0",
+  "Property 19a: 'unread' filter shows only conversations where unreadCount > 0",
   (conversations) => {
     mockConversationsState.conversations = conversations as ConversationListItemModel[];
 
@@ -256,7 +234,7 @@ fcTest.prop([conversationListArb], { numRuns: 50 })(
 );
 
 fcTest.prop([conversationListArb], { numRuns: 50 })(
-  "Property 19c: 'pinned' filter shows only conversations where isPinned === true",
+  "Property 19b: 'pinned' filter shows only conversations where isPinned === true",
   (conversations) => {
     mockConversationsState.conversations = conversations as ConversationListItemModel[];
 

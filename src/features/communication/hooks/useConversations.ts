@@ -26,6 +26,7 @@ import { useCommunicationSocket } from "./useCommunicationSocket";
 import { useAuth } from "@/hooks/use-auth";
 
 export type ConversationStatusFilter = "all" | "active" | "closed" | "archived";
+export type ConversationTypeFilter = "all" | ConversationType;
 
 export interface ConversationLastMessage {
   id?: string;
@@ -45,6 +46,7 @@ export interface ConversationListItemModel extends Conversation {
 export interface ConversationFiltersState {
   search: string;
   status: ConversationStatusFilter;
+  type: ConversationTypeFilter;
 }
 
 export interface ConversationFormValues {
@@ -66,6 +68,7 @@ export interface ConversationFormValues {
 const DEFAULT_FILTERS: ConversationFiltersState = {
   search: "",
   status: "active",
+  type: "all",
 };
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
@@ -395,6 +398,7 @@ export function useConversations() {
         ...(filters.status !== "all"
           ? { status: filters.status as ConversationStatus }
           : {}),
+        ...(filters.type !== "all" ? { type: filters.type } : {}),
         ...(filters.search.trim() ? { search: filters.search.trim() } : {}),
         limit: 50,
       });
@@ -438,7 +442,7 @@ export function useConversations() {
         setIsRefreshing(false);
       }
     }
-  }, [filters.search, filters.status]);
+  }, [filters.search, filters.status, filters.type]);
 
   const debouncedRefresh = useCallback(() => {
     if (refreshTimerRef.current) {
@@ -646,8 +650,11 @@ export function useConversations() {
   );
 
   const hasFilters = useMemo(
-    () => filters.search.trim() !== "" || filters.status !== "active",
-    [filters.search, filters.status],
+    () =>
+      filters.search.trim() !== "" ||
+      filters.status !== "active" ||
+      filters.type !== "all",
+    [filters.search, filters.status, filters.type],
   );
 
   const markAsRead = useCallback((conversationId: string) => {

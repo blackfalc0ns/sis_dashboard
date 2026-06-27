@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Profiler } from "react";
-import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { createConversation } from "../utils/test-data-generators";
 import type { ConversationListItemModel } from "../../hooks/useConversations";
 
@@ -34,7 +34,7 @@ vi.mock("next-intl", () => ({
 const mockConversationsState = {
   conversations: [] as ConversationListItemModel[],
   total: 0,
-  filters: { search: "", status: "all" as string },
+  filters: { search: "", status: "all" as string, type: "all" as string },
   setFilters: vi.fn(),
   isLoading: false,
   isRefreshing: false,
@@ -124,7 +124,11 @@ describe("ConversationPage", () => {
     mockConversationsState.isRefreshing = false;
     mockConversationsState.isMutating = false;
     mockConversationsState.error = null;
-    mockConversationsState.filters = { search: "", status: "all" };
+    mockConversationsState.filters = {
+      search: "",
+      status: "all",
+      type: "all",
+    };
     mockConversationsState.hasFilters = false;
   });
 
@@ -164,7 +168,6 @@ describe("ConversationPage", () => {
   describe("Property 19: Filter Correctness", () => {
     /**
      * Validates: Requirements 7.2, 7.3
-     * - "mine" filter returns only conversations where createdById === current user ID
      * - "unread" filter returns only conversations where unreadCount > 0
      * - "pinned" filter returns only conversations where isPinned is true
      */
@@ -219,18 +222,29 @@ describe("ConversationPage", () => {
       expect(screen.getByText("Other Conversation")).toBeInTheDocument();
     });
 
-    it("'mine' filter shows only conversations created by current user", () => {
+    it("does not offer the removed 'mine' filter", () => {
       render(<ConversationPage />);
 
-      // Click the "mine" filter button
-      const mineButton = screen.getByRole("button", { name: /mine/i });
-      fireEvent.click(mineButton);
+      fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+      expect(
+        screen.queryByRole("menuitemradio", { name: /mine/i }),
+      ).not.toBeInTheDocument();
+    });
 
-      // Only the user's conversation should be visible
-      expect(screen.getByText("My Conversation")).toBeInTheDocument();
-      expect(screen.queryByText("Unread Conversation")).not.toBeInTheDocument();
-      expect(screen.queryByText("Pinned Conversation")).not.toBeInTheDocument();
-      expect(screen.queryByText("Other Conversation")).not.toBeInTheDocument();
+    it("maps the classroom type filter into conversation filter state", () => {
+      render(<ConversationPage />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+      fireEvent.click(
+        screen.getByRole("menuitemradio", { name: "Class" }),
+      );
+
+      const updateFilters =
+        mockConversationsState.setFilters.mock.calls.at(-1)?.[0];
+      expect(updateFilters).toEqual(expect.any(Function));
+      expect(
+        updateFilters({ search: "", status: "all", type: "all" }),
+      ).toEqual({ search: "", status: "all", type: "classroom" });
     });
 
     it("'unread' filter shows only conversations with unreadCount > 0", () => {

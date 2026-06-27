@@ -265,7 +265,11 @@ describe("useConversations", () => {
 
       // Change filters
       act(() => {
-        result.current.setFilters({ search: "hello", status: "closed" });
+        result.current.setFilters({
+          search: "hello",
+          status: "closed",
+          type: "classroom",
+        });
       });
 
       await act(async () => {
@@ -276,9 +280,32 @@ describe("useConversations", () => {
         expect.objectContaining({
           search: "hello",
           status: "closed",
+          type: "classroom",
           limit: 50,
         }),
       );
+    });
+
+    it("omits type and status when all filters are cleared", async () => {
+      mockGetConversations.mockResolvedValue({
+        data: { items: [], total: 0 },
+      });
+
+      const useConversations = await importHook();
+      const { result } = renderHook(() => useConversations());
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+      mockGetConversations.mockClear();
+
+      act(() => {
+        result.current.setFilters({ search: "", status: "all", type: "all" });
+      });
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      expect(mockGetConversations).toHaveBeenCalledWith({ limit: 50 });
     });
   });
 

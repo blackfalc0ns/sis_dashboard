@@ -90,9 +90,20 @@ export interface CommunicationPolicy extends CommunicationRecord {
   maxAttachmentSizeMb?: number;
   retentionDays?: number;
   allowedAttachmentMimeTypes?: string[];
-  metadata?: CommunicationRecord;
+  metadata?: CommunicationPolicyMetadata;
   createdAt?: CommunicationDateTime;
   updatedAt?: CommunicationDateTime;
+}
+
+export interface CommunicationNotificationChannelSettings
+  extends CommunicationRecord {
+  inAppEnabled?: boolean;
+  pushEnabled?: boolean;
+  firebaseProviderEnabled?: boolean;
+}
+
+export interface CommunicationPolicyMetadata extends CommunicationRecord {
+  notificationChannels?: CommunicationNotificationChannelSettings;
 }
 
 export type StudentDirectMode =

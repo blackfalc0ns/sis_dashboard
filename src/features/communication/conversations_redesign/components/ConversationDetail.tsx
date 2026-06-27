@@ -325,18 +325,48 @@ export default function ConversationDetail({
 
   const lastMarkedReadRef = useRef<string | null>(null);
 
-  // WhatsApp-style: mark conversation as read when new messages from others appear
   useEffect(() => {
-    const latestFromOther = [...messagesState.messages]
-      .reverse()
-      .find((message) => message.senderId !== user?.id && message.id);
-    if (!latestFromOther) return;
-    // Only call markConversationRead if there's a new unread message we haven't marked yet
-    if (latestFromOther.id !== lastMarkedReadRef.current) {
+    const markLatestVisibleMessageRead = () => {
+      if (
+        activeTab !== "messages" ||
+        document.visibilityState !== "visible" ||
+        !document.hasFocus()
+      ) {
+        return;
+      }
+
+      const latestFromOther = [...messagesState.messages]
+        .reverse()
+        .find((message) => message.senderId !== user?.id && message.id);
+      if (
+        !latestFromOther ||
+        latestFromOther.id === lastMarkedReadRef.current
+      ) {
+        return;
+      }
+
       lastMarkedReadRef.current = latestFromOther.id;
-      void markConversationRead(conversationId).catch(() => undefined);
-    }
-  }, [messagesState.messages, user?.id, conversationId]);
+      void markConversationRead(conversationId).catch(() => {
+        if (lastMarkedReadRef.current === latestFromOther.id) {
+          lastMarkedReadRef.current = null;
+        }
+      });
+    };
+
+    markLatestVisibleMessageRead();
+    window.addEventListener("focus", markLatestVisibleMessageRead);
+    document.addEventListener(
+      "visibilitychange",
+      markLatestVisibleMessageRead,
+    );
+    return () => {
+      window.removeEventListener("focus", markLatestVisibleMessageRead);
+      document.removeEventListener(
+        "visibilitychange",
+        markLatestVisibleMessageRead,
+      );
+    };
+  }, [activeTab, conversationId, messagesState.messages, user?.id]);
 
   const handleTabChange = (tab: DetailTab) => {
     setActiveTab(tab);
@@ -581,13 +611,6 @@ export default function ConversationDetail({
                 () => messagesState.remove(messageId),
                 labels.messageDeleted,
                 labels.unableToDeleteMessage,
-              )
-            }
-            onEditMessage={(messageId, body) =>
-              runMutation(
-                () => messagesState.edit(messageId, body),
-                labels.messageUpdated,
-                labels.unableToUpdateMessage,
               )
             }
             onStartEdit={(messageId, body) => {

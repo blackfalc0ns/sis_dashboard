@@ -14,24 +14,13 @@ import { render, screen } from "@testing-library/react";
 import { test as fcTest, fc } from "@fast-check/vitest";
 import React from "react";
 import { messageArb } from "../utils/test-data-generators";
-import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
+import { conversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 
 // ─── Mock scrollTo for jsdom ─────────────────────────────────────────────────
 
 beforeEach(() => {
   Element.prototype.scrollTo = vi.fn();
 });
-
-// ─── Minimal Labels ──────────────────────────────────────────────────────────
-
-const mockLabels: ConversationRedesignLabels = {
-  loadingMessages: "Loading messages...",
-  noMessagesYet: "No messages yet.",
-  noMessagesYetFull: "No messages yet. Start the conversation.",
-  typing: "is typing...",
-  someone: "Someone",
-  loading: "Loading...",
-} as unknown as ConversationRedesignLabels;
 
 // ─── Mock MessageBubble to avoid deep rendering ─────────────────────────────
 
@@ -69,7 +58,7 @@ function createDefaultProps(overrides: Record<string, unknown> = {}) {
     hasOlderMessages: false,
     isLoading: false,
     isLoadingOlder: false,
-    labels: mockLabels,
+    labels: conversationRedesignLabels.en,
     locale: "en",
     messages: [] as Array<{ id: string; conversationId: string; senderId: string; body: string; type: string; status: string; createdAt: string; updatedAt?: string }>,
     onAddReaction: vi.fn().mockResolvedValue(undefined),

@@ -1,4 +1,5 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ArrowDown } from "lucide-react";
 import { CenteredState } from "@/features/communication/conversations_redesign/components/PanelLayout";
 import { displayNameForUserId } from "@/features/communication/conversations_redesign/utils/displayNames";
 import {
@@ -33,7 +34,6 @@ export function MessagesPanel({
   onAttachFile,
   onDeleteAttachment,
   onDeleteMessage,
-  onEditMessage,
   onStartEdit,
   onLoadOlder,
   onInfo,
@@ -63,7 +63,6 @@ export function MessagesPanel({
     attachmentId: string,
   ) => Promise<unknown>;
   onDeleteMessage: (messageId: string) => Promise<unknown>;
-  onEditMessage: (messageId: string, body: string) => Promise<unknown>;
   onStartEdit: (messageId: string, body: string) => void;
   onLoadOlder: () => void;
   onInfo: (messageId: string) => void;
@@ -76,35 +75,78 @@ export function MessagesPanel({
   uploadingMessageId: string | null;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const prevMessageCountRef = useRef(messages.length);
   const isInitialLoadRef = useRef(true);
-  const [isScrollReady, setIsScrollReady] = useState(false);
+  const isNearBottomRef = useRef(true);
+  const messageSnapshotRef = useRef({
+    count: messages.length,
+    firstId: messages[0]?.id,
+    lastId: messages.at(-1)?.id,
+  });
+  const loadOlderSnapshotRef = useRef<{
+    scrollHeight: number;
+    scrollTop: number;
+  } | null>(null);
+  const wasLoadingOlderRef = useRef(isLoadingOlder);
+  const [newMessageCount, setNewMessageCount] = useState(0);
 
   // Scroll to bottom on initial load and when new messages arrive at the bottom
-  useEffect(() => {
+  // The unread jump control depends on measured scroll position, which is not
+  // available during render.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useLayoutEffect(() => {
     if (!scrollRef.current) return;
     const container = scrollRef.current;
+    const previous = messageSnapshotRef.current;
+    const current = {
+      count: messages.length,
+      firstId: messages[0]?.id,
+      lastId: messages.at(-1)?.id,
+    };
 
     if (isInitialLoadRef.current) {
-      // Initial load — scroll to bottom immediately
       container.scrollTop = container.scrollHeight;
       isInitialLoadRef.current = false;
-      prevMessageCountRef.current = messages.length;
-      // Show content after scroll is positioned
-      setIsScrollReady(true);
-      return;
-    }
+    } else {
+      const wasPrepended =
+        Boolean(previous.firstId) &&
+        current.firstId !== previous.firstId &&
+        current.lastId === previous.lastId;
+      const appendedCount =
+        current.lastId !== previous.lastId && current.count > previous.count
+          ? current.count - previous.count
+          : 0;
+      const ownMessageWasAppended =
+        appendedCount > 0 &&
+        messages
+          .slice(-appendedCount)
+          .some((message) => isOwnMessage(message, currentUserId));
 
-    // If messages were added at the bottom (new message), scroll to bottom
-    if (messages.length > prevMessageCountRef.current) {
-      const wasNearBottom =
-        container.scrollHeight - container.scrollTop - container.clientHeight < 150;
-      if (wasNearBottom) {
+      if (wasPrepended && loadOlderSnapshotRef.current) {
+        const snapshot = loadOlderSnapshotRef.current;
+        container.scrollTop =
+          snapshot.scrollTop + container.scrollHeight - snapshot.scrollHeight;
+        loadOlderSnapshotRef.current = null;
+      } else if (
+        appendedCount > 0 &&
+        (isNearBottomRef.current || ownMessageWasAppended)
+      ) {
         container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+        setNewMessageCount(0);
+      } else if (appendedCount > 0) {
+        setNewMessageCount((count) => count + appendedCount);
       }
     }
-    prevMessageCountRef.current = messages.length;
-  }, [messages.length]);
+
+    messageSnapshotRef.current = current;
+  }, [currentUserId, messages]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  useEffect(() => {
+    if (wasLoadingOlderRef.current && !isLoadingOlder) {
+      loadOlderSnapshotRef.current = null;
+    }
+    wasLoadingOlderRef.current = isLoadingOlder;
+  }, [isLoadingOlder]);
 
   // Detect scroll to top for loading older messages
   useEffect(() => {
@@ -112,7 +154,23 @@ export function MessagesPanel({
     if (!container) return;
 
     const handleScroll = () => {
-      if (container.scrollTop < 100 && hasOlderMessages && !isLoadingOlder) {
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      isNearBottomRef.current = distanceFromBottom < 120;
+      if (isNearBottomRef.current) {
+        setNewMessageCount(0);
+      }
+
+      if (
+        container.scrollTop < 100 &&
+        hasOlderMessages &&
+        !isLoadingOlder &&
+        !loadOlderSnapshotRef.current
+      ) {
+        loadOlderSnapshotRef.current = {
+          scrollHeight: container.scrollHeight,
+          scrollTop: container.scrollTop,
+        };
         onLoadOlder();
       }
     };
@@ -121,15 +179,13 @@ export function MessagesPanel({
     return () => container.removeEventListener("scroll", handleScroll);
   }, [hasOlderMessages, isLoadingOlder, onLoadOlder]);
 
-  // Preserve scroll position when older messages are prepended
-  useEffect(() => {
-    if (!scrollRef.current) return;
+  const scrollToLatest = () => {
     const container = scrollRef.current;
-    // If scroll is at the very top after prepend, nudge it down to show new content
-    if (container.scrollTop === 0 && messages.length > 0 && !isInitialLoadRef.current) {
-      // The browser will have already adjusted; we just need to not auto-scroll to bottom
-    }
-  }, [messages]);
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    isNearBottomRef.current = true;
+    setNewMessageCount(0);
+  };
 
   if (isLoading) {
     return <CenteredState label={labels.loadingMessages} />;
@@ -139,109 +195,146 @@ export function MessagesPanel({
     return <CenteredState label={error} />;
   }
 
+  const newMessagesLabel =
+    newMessageCount === 1
+      ? labels.newMessage
+      : labels.newMessages.replace("{count}", String(newMessageCount));
+
   return (
-    <div ref={scrollRef} dir="ltr" className={`h-full overflow-y-auto px-4 py-8 ${isScrollReady ? "opacity-100" : "opacity-0"}`}>
-      <div className="mx-auto flex min-h-full max-w-[1500px] flex-col gap-0.5">
-        {/* Loading older messages indicator */}
-        {isLoadingOlder ? (
-          <div className="flex justify-center py-3">
-            <span className="text-xs text-slate-500">{labels.loading}</span>
-          </div>
-        ) : null}
+    <div className="relative h-full">
+      <div
+        ref={scrollRef}
+        role="log"
+        aria-label={labels.messages}
+        aria-live="polite"
+        aria-relevant="additions"
+        dir="ltr"
+        className="h-full overflow-y-auto px-4 py-8"
+      >
+        <div className="flex min-h-full flex-col gap-0.5">
+          {/* Loading older messages indicator */}
+          {isLoadingOlder ? (
+            <div className="flex justify-center py-3">
+              <span className="text-xs text-slate-500">{labels.loading}</span>
+            </div>
+          ) : null}
 
-        {!hasOlderMessages && messages.length > 0 ? (
-          <div className="flex justify-center py-2">
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] text-slate-500">
-              {labels.noMessagesYet}
-            </span>
-          </div>
-        ) : null}
+          {!hasOlderMessages && messages.length > 0 ? (
+            <div className="flex justify-center py-2">
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] text-slate-500">
+                {labels.endOfConversation}
+              </span>
+            </div>
+          ) : null}
 
-        {messages.length === 0 ? (
-          <CenteredState label={labels.noMessagesYetFull} />
-        ) : null}
+          {messages.length === 0 ? (
+            <CenteredState label={labels.noMessagesYetFull} />
+          ) : null}
 
-        {messages.map((message, index) => {
-          const own = isOwnMessage(message, currentUserId);
-          const messageDateKey = localDateKey(message.createdAt);
-          const previousMessageDateKey = localDateKey(
-            messages[index - 1]?.createdAt,
-          );
-          const shouldShowDateSeparator =
-            Boolean(messageDateKey) && messageDateKey !== previousMessageDateKey;
+          {messages.map((message, index) => {
+            const own = isOwnMessage(message, currentUserId);
+            const messageDateKey = localDateKey(message.createdAt);
+            const previousMessageDateKey = localDateKey(
+              messages[index - 1]?.createdAt,
+            );
+            const shouldShowDateSeparator =
+              Boolean(messageDateKey) &&
+              messageDateKey !== previousMessageDateKey;
 
-          // Group consecutive messages from the same sender
-          const prevMessage = messages[index - 1];
-          const prevSenderId = prevMessage
-            ? messageSenderUserId(prevMessage)
-            : null;
-          const currentSenderId = messageSenderUserId(message);
-          const isFirstInGroup =
-            !prevMessage ||
-            prevSenderId !== currentSenderId ||
-            shouldShowDateSeparator;
+            // Group consecutive messages from the same sender
+            const prevMessage = messages[index - 1];
+            const prevSenderId = prevMessage
+              ? messageSenderUserId(prevMessage)
+              : null;
+            const currentSenderId = messageSenderUserId(message);
+            const isFirstInGroup =
+              !prevMessage ||
+              prevSenderId !== currentSenderId ||
+              shouldShowDateSeparator;
 
-          return (
-            <Fragment key={message.clientMessageId ?? message.id}>
-              {shouldShowDateSeparator ? (
-                <div className="self-center rounded-full bg-slate-200 px-4 py-1 text-xs font-medium text-slate-700">
-                  {formatMessageDateSeparator(message.createdAt, locale, labels)}
-                </div>
-              ) : null}
-              <MessageBubble
-                allowReactions={allowReactions}
-                attachments={
-                  attachmentsByMessageId[message.id] ?? message.attachments ?? []
-                }
-                currentUserId={currentUserId}
-                currentUserName={currentUserName}
-                isFirstInGroup={isFirstInGroup}
-                isOwn={own}
-                isUploadingAttachment={uploadingMessageId === message.id}
-                labels={labels}
-                locale={locale}
-                message={message}
-                onAddReaction={(type: ReactionType) => onAddReaction(message.id, type)}
-                onAttachFile={(file) => onAttachFile(message.id, file)}
-                onDeleteAttachment={(attachmentId) =>
-                  onDeleteAttachment(message.id, attachmentId)
-                }
-                onDeleteMessage={() => onDeleteMessage(message.id)}
-                onStartEdit={() => onStartEdit(message.id, message.body ?? "")}
-                onInfo={(msgId) => onInfo(msgId)}
-                onRemoveReaction={() => onRemoveReaction(message.id)}
-                onReply={(msg) => onReply(msg)}
-                onReport={(msgId) => onReport(msgId)}
-                allMessages={messages}
-                reactions={reactionsByMessageId[message.id] ?? []}
-                userDisplayNames={userDisplayNames}
-              />
-            </Fragment>
-          );
-        })}
+            return (
+              <Fragment key={message.clientMessageId ?? message.id}>
+                {shouldShowDateSeparator ? (
+                  <div className="self-center rounded-full bg-slate-200 px-4 py-1 text-xs font-medium text-slate-700">
+                    {formatMessageDateSeparator(
+                      message.createdAt,
+                      locale,
+                      labels,
+                    )}
+                  </div>
+                ) : null}
+                <MessageBubble
+                  allowReactions={allowReactions}
+                  attachments={
+                    attachmentsByMessageId[message.id] ??
+                    message.attachments ??
+                    []
+                  }
+                  currentUserId={currentUserId}
+                  currentUserName={currentUserName}
+                  isFirstInGroup={isFirstInGroup}
+                  isOwn={own}
+                  isUploadingAttachment={uploadingMessageId === message.id}
+                  labels={labels}
+                  locale={locale}
+                  message={message}
+                  onAddReaction={(type: ReactionType) =>
+                    onAddReaction(message.id, type)
+                  }
+                  onAttachFile={(file) => onAttachFile(message.id, file)}
+                  onDeleteAttachment={(attachmentId) =>
+                    onDeleteAttachment(message.id, attachmentId)
+                  }
+                  onDeleteMessage={() => onDeleteMessage(message.id)}
+                  onStartEdit={() =>
+                    onStartEdit(message.id, message.body ?? "")
+                  }
+                  onInfo={(msgId) => onInfo(msgId)}
+                  onRemoveReaction={() => onRemoveReaction(message.id)}
+                  onReply={(msg) => onReply(msg)}
+                  onReport={(msgId) => onReport(msgId)}
+                  allMessages={messages}
+                  reactions={reactionsByMessageId[message.id] ?? []}
+                  userDisplayNames={userDisplayNames}
+                />
+              </Fragment>
+            );
+          })}
 
-        {typingUsers.length > 0 ? (
-          <div className="flex items-center gap-2 text-xs italic text-slate-500">
-            <span className="flex gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-              <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-              <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-            </span>
-            {typingUsers
-              .map(
-                (user) =>
-                  user.name ||
-                  displayNameForUserId(
-                    user.userId,
-                    userDisplayNames,
-                    labels.someone,
-                  ),
-              )
-              .join(", ")}{" "}
-            {labels.typing}
-          </div>
-        ) : null}
+          {typingUsers.length > 0 ? (
+            <div className="flex items-center gap-2 text-xs italic text-slate-500">
+              <span className="flex gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+              </span>
+              {typingUsers
+                .map(
+                  (user) =>
+                    user.name ||
+                    displayNameForUserId(
+                      user.userId,
+                      userDisplayNames,
+                      labels.someone,
+                    ),
+                )
+                .join(", ")}{" "}
+              {labels.typing}
+            </div>
+          ) : null}
+        </div>
       </div>
+      {newMessageCount > 0 ? (
+        <button
+          type="button"
+          onClick={scrollToLatest}
+          aria-label={newMessagesLabel}
+          className="absolute bottom-4 left-1/2 inline-flex -translate-x-1/2 cursor-pointer items-center gap-1.5 rounded-full border border-primary-200 bg-white px-3 py-2 text-xs font-semibold text-primary-700 shadow-md transition-colors hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <ArrowDown className="h-3.5 w-3.5" />
+          {newMessagesLabel}
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   BellRing,
   LayoutDashboard,
+  Megaphone,
   MessageSquare,
   Settings,
   ShieldCheck,
@@ -53,7 +54,7 @@ export const communicationTabs: CommunicationTabItem[] = [
     labelEn: "Announcements",
     labelAr: "الإعلانات",
     href: "/communication/announcements",
-    icon: BellRing,
+    icon: Megaphone,
   },
   {
     key: "notifications",
@@ -91,8 +92,8 @@ export default function CommunicationTabs({
 
   return (
     <nav
-      aria-label="Communication sections"
-      className={`flex flex-wrap gap-2 ${className}`}
+      aria-label={locale === "ar" ? "أقسام التواصل" : "Communication sections"}
+      className={`flex flex-nowrap gap-2 overflow-x-auto ${className}`}
     >
       {tabs.map((tab) => {
         const Icon = tab.icon;
@@ -105,7 +106,7 @@ export default function CommunicationTabs({
             key={tab.key}
             href={localizedHref}
             aria-current={isActive ? "page" : undefined}
-            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+            className={`inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               isActive
                 ? "border-primary-600 bg-primary-600 text-white shadow-sm"
                 : "border-slate-200 bg-white text-slate-600 hover:border-primary-200 hover:text-primary-700"

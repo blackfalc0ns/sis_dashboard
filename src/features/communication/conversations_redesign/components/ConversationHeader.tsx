@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   Archive,
   ArrowLeft,
@@ -11,7 +11,6 @@ import {
   MoreVertical,
   RefreshCw,
   RotateCcw,
-  Search,
   X,
   XCircle,
 } from "lucide-react";
@@ -115,15 +114,6 @@ export default function ConversationHeader({
       <div className="flex items-center gap-1 text-slate-500">
         <button
           type="button"
-          disabled
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-slate-100 hover:text-primary"
-          aria-label={labels.searchMessages}
-          title={labels.messageSearchUnavailable}
-        >
-          <Search className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
           onClick={onRefresh}
           className="inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-slate-100 hover:text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus:outline-none"
           aria-label={labels.refreshConversation}
@@ -180,6 +170,8 @@ function HeaderActionsMenu({
 }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const menuId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -188,22 +180,42 @@ function HeaderActionsMenu({
         setOpen(false);
       }
     };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    menuRef.current
+      ?.querySelector<HTMLButtonElement>('[role="menuitem"]')
+      ?.focus();
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [open]);
 
   return (
     <div className="relative" ref={menuRef}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className="inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-slate-100 hover:text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus:outline-none"
         aria-label={labels.moreActions}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
       >
         <MoreVertical className="h-5 w-5" />
       </button>
       {open ? (
-        <div className="absolute end-0 top-full z-50 mt-1 min-w-[180px] rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+        <div
+          id={menuId}
+          role="menu"
+          className="absolute end-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+        >
           <MenuButton
             icon={<Edit3 className="h-4 w-4" />}
             label={labels.editConversation}
@@ -279,6 +291,7 @@ function MenuButton({
   return (
     <button
       type="button"
+      role="menuitem"
       onClick={onClick}
       className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus:outline-none ${colorClass}`}
     >

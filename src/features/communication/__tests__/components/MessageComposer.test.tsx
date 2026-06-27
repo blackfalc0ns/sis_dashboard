@@ -157,4 +157,40 @@ describe("MessageComposer", () => {
     // Verify file is not in preview
     expect(screen.queryByText("readme.txt")).not.toBeInTheDocument();
   });
+
+  it("keeps selected files available for retry when attachment sending fails", async () => {
+    const onSendWithAttachment = vi
+      .fn()
+      .mockRejectedValue(new Error("Upload failed"));
+    const { container } = render(
+      <MessageComposer
+        disabled={false}
+        editingMessage={null}
+        labels={labels}
+        onCancelEdit={vi.fn()}
+        onCancelReply={vi.fn()}
+        onEditMessage={vi.fn().mockResolvedValue(undefined)}
+        onSend={vi.fn().mockResolvedValue(undefined)}
+        onSendVoice={vi.fn().mockResolvedValue(undefined)}
+        onSendWithAttachment={onSendWithAttachment}
+        onStopTyping={vi.fn()}
+        onTyping={vi.fn()}
+        replyTo={null}
+      />,
+    );
+    const fileInput = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    const file = new File(["content"], "lesson.pdf", {
+      type: "application/pdf",
+    });
+
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole("button", { name: labels.send }));
+
+    await waitFor(() => {
+      expect(screen.getByText(labels.unableToUploadAttachment)).toBeInTheDocument();
+    });
+    expect(screen.getByText("lesson.pdf")).toBeInTheDocument();
+  });
 });

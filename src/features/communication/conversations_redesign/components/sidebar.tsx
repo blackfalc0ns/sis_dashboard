@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
+  Check,
+  ChevronDown,
   Lock,
   Pin,
   Plus,
@@ -10,6 +13,7 @@ import {
   Users,
   MessageCircle,
   BookOpen,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 import { useLocale } from "next-intl";
@@ -27,7 +31,6 @@ import type { ConversationStatus } from "@/features/communication/types/conversa
 
 export type ConversationRedesignFilter =
   | "all"
-  | "mine"
   | "unread"
   | "pinned"
   | "archived"
@@ -35,7 +38,6 @@ export type ConversationRedesignFilter =
 
 export interface ConversationSidebarProps {
   conversations: ConversationListItemModel[];
-  currentUserId?: string | null;
   selectedConversationId?: string | null;
   filter: ConversationRedesignFilter;
   typeFilter: string;
@@ -51,14 +53,16 @@ export interface ConversationSidebarProps {
   className?: string;
 }
 
-const filters: Array<{
+const primaryFilters: Array<{
   value: ConversationRedesignFilter;
-  labelKey: "all" | "mine" | "unread" | "pinned" | "archived" | "closed";
+  labelKey: "all" | "unread" | "pinned" | "archived" | "closed";
 }> = [
   { value: "all", labelKey: "all" },
-  { value: "mine", labelKey: "mine" },
   { value: "unread", labelKey: "unread" },
   { value: "pinned", labelKey: "pinned" },
+];
+
+const secondaryFilters: typeof primaryFilters = [
   { value: "archived", labelKey: "archived" },
   { value: "closed", labelKey: "closed" },
 ];
@@ -82,10 +86,6 @@ function stringValue(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
 function conversationTitle(
   conversation: ConversationListItemModel,
   labels: ConversationRedesignLabels,
@@ -105,16 +105,6 @@ function conversationAvatar(conversation: ConversationListItemModel) {
     stringValue(record.avatar) ||
     stringValue(record.imageUrl)
   );
-}
-
-function initials(value: string) {
-  return value
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
 }
 
 function formatConversationTime(
@@ -165,13 +155,14 @@ function lastMessagePreview(
 function rowMatchesFilter(
   conversation: ConversationListItemModel,
   filter: ConversationRedesignFilter,
-  currentUserId?: string | null,
   typeFilter?: string,
 ) {
   if (typeFilter && conversation.type !== typeFilter) return false;
-  if (filter === "mine") return conversation.createdById === currentUserId;
   if (filter === "unread") return (conversation.unreadCount ?? 0) > 0;
   if (filter === "pinned") return Boolean(conversation.isPinned);
+  if (filter === "archived" || filter === "closed") {
+    return conversation.status === filter;
+  }
   return true;
 }
 
@@ -189,24 +180,24 @@ function ConversationTypeBadge({
     direct: {
       icon: <MessageCircle className="h-2.5 w-2.5" />,
       label: labels.direct,
-      color: "text-sky-400",
+      color: "text-sky-700",
     },
     group: {
       icon: <Users className="h-2.5 w-2.5" />,
       label: labels.group,
-      color: " text-violet-400",
+      color: "text-violet-700",
     },
     classroom: {
       icon: <BookOpen className="h-2.5 w-2.5" />,
       label: labels.classType,
-      color: "text-amber-400",
+      color: "text-amber-700",
     },
   };
 
   const entry = config[type ?? ""] ?? {
     icon: <MessageCircle className="h-2.5 w-2.5" />,
     label: type ?? labels.direct,
-    color: "text-black-400",
+    color: "text-slate-600",
   };
 
   return (
@@ -219,37 +210,9 @@ function ConversationTypeBadge({
   );
 }
 
-function TypeFilterTab({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
-        active
-          ? "bg-primary text-white shadow-sm shadow-primary/30"
-          : "text-black-400 hover:bg-white/5 hover:text-black-200"
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
-
 export default function ConversationSidebar({
   className = "",
   conversations,
-  currentUserId,
   filter,
   typeFilter,
   isLoading,
@@ -265,32 +228,41 @@ export default function ConversationSidebar({
 }: ConversationSidebarProps) {
   const locale = useLocale();
   const labels = labelsForLocale(locale);
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  const filterMenuRef = useRef<HTMLDivElement | null>(null);
+  const filterTriggerRef = useRef<HTMLButtonElement | null>(null);
 
-  const typeTabs = [
-    {
-      value: "",
-      icon: <MessageCircle className="h-3.5 w-3.5" />,
-      label: labels.all,
-    },
-    {
-      value: "direct",
-      icon: <MessageCircle className="h-3.5 w-3.5" />,
-      label: labels.direct,
-    },
-    {
-      value: "group",
-      icon: <Users className="h-3.5 w-3.5" />,
-      label: labels.group,
-    },
-    {
-      value: "classroom",
-      icon: <BookOpen className="h-3.5 w-3.5" />,
-      label: labels.classType,
-    },
-  ];
+  useEffect(() => {
+    if (!isFilterMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!filterMenuRef.current?.contains(event.target as Node)) {
+        setIsFilterMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setIsFilterMenuOpen(false);
+      filterTriggerRef.current?.focus();
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    filterMenuRef.current
+      ?.querySelector<HTMLButtonElement>('[role^="menuitem"]')
+      ?.focus();
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isFilterMenuOpen]);
+
+  const activeAdditionalFilterCount =
+    (secondaryFilters.some((item) => item.value === filter) ? 1 : 0) +
+    (typeFilter ? 1 : 0);
 
   const visibleConversations = conversations.filter((c) =>
-    rowMatchesFilter(c, filter, currentUserId, typeFilter),
+    rowMatchesFilter(c, filter, typeFilter),
   );
 
   const pinnedConversations = visibleConversations.filter((c) => c.isPinned);
@@ -298,16 +270,16 @@ export default function ConversationSidebar({
 
   return (
     <aside
-      className={`flex h-full min-h-0 flex-col border-e border-white/[0.06] bg-white ${className}`}
+      className={`flex h-full min-h-0 flex-col border-e border-slate-200 bg-white ${className}`}
     >
       {/* ── Header ── */}
-      <div className="shrink-0 border-b border-white/[0.06] px-4 pb-4 pt-5">
+      <div className="shrink-0 border-b border-slate-200 px-4 pb-3 pt-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-lg font-bold tracking-tight text-black">
               {labels.conversations}
             </h1>
-            <p className="mt-0.5 text-[11px] text-black-500">
+            <p className="mt-0.5 text-xs text-slate-500">
               {visibleConversations.length > 0
                 ? labels.nConversations.replace(
                     "{n}",
@@ -320,8 +292,10 @@ export default function ConversationSidebar({
             <button
               type="button"
               onClick={onRefresh}
+              disabled={isRefreshing}
+              aria-busy={isRefreshing}
               aria-label={labels.refreshConversations}
-              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-black-500 transition-all duration-200 hover:bg-white/[0.06] hover:text-black-300"
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-wait disabled:opacity-60"
             >
               <RefreshCw
                 className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
@@ -340,55 +314,118 @@ export default function ConversationSidebar({
 
         {/* Search */}
         <div className="relative mt-4">
-          <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-black-500" />
+          <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
           <Input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={labels.searchConversations}
             type="search"
             variant="default"
-            className="h-9 w-full rounded-lg border border-primary bg-white/[0.04] ps-9 pe-4 text-sm text-black-200 placeholder:text-black-600 focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all duration-200"
+            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 ps-9 pe-9 text-sm text-slate-900 placeholder:text-slate-500 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           {search && (
             <button
               type="button"
               onClick={() => onSearchChange("")}
-              className="absolute end-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-500 transition hover:text-slate-300"
+              aria-label={labels.clearSearch}
+              className="absolute end-2.5 top-1/2 -translate-y-1/2 cursor-pointer rounded p-0.5 text-slate-500 transition-colors hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <X className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
 
-        {/* Type tabs */}
-        <div className="mt-3 flex gap-1 overflow-x-auto pb-0.5">
-          {typeTabs.map((tab) => (
-            <TypeFilterTab
-              key={tab.value}
-              active={typeFilter === tab.value}
-              onClick={() => onTypeFilterChange(tab.value)}
-              icon={tab.icon}
-              label={tab.label}
-            />
-          ))}
-        </div>
-
-        {/* Status filter pills */}
-        <div className="mt-3 flex gap-1.5 overflow-x-auto pb-0.5">
-          {filters.map((item) => (
+        <div className="mt-3 flex items-center gap-1.5">
+          <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
+            {primaryFilters.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                aria-pressed={filter === item.value}
+                onClick={() => onFilterChange(item.value)}
+                className={`h-8 shrink-0 cursor-pointer rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                  filter === item.value
+                    ? "bg-primary-50 text-primary-700"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+              >
+                {labels[item.labelKey]}
+              </button>
+            ))}
+          </div>
+          <div className="relative" ref={filterMenuRef}>
             <button
-              key={item.value}
+              ref={filterTriggerRef}
               type="button"
-              onClick={() => onFilterChange(item.value)}
-              className={`h-8 shrink-0 cursor-pointer rounded-full px-2.5 text-[11px] font-medium tracking-wide transition-all duration-200 ${
-                filter === item.value
-                  ? "bg-primary/20 text-primary ring-1 ring-primary/40"
-                  : "text-slate-500 hover:bg-white/[0.04] hover:text-slate-300"
+              aria-label={labels.filters}
+              aria-haspopup="menu"
+              aria-expanded={isFilterMenuOpen}
+              onClick={() => setIsFilterMenuOpen((current) => !current)}
+              className={`inline-flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                activeAdditionalFilterCount > 0
+                  ? "bg-primary-50 text-primary-700"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
               }`}
             >
-              {labels[item.labelKey]}
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              {activeAdditionalFilterCount > 0 ? (
+                <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+                  {activeAdditionalFilterCount}
+                </span>
+              ) : null}
+              <ChevronDown className="h-3 w-3" />
             </button>
-          ))}
+            {isFilterMenuOpen ? (
+              <div
+                role="menu"
+                className="absolute end-0 top-full z-30 mt-2 w-52 rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg"
+              >
+                <FilterMenuLabel>{labels.type}</FilterMenuLabel>
+                <FilterMenuItem
+                  checked={!typeFilter}
+                  label={labels.allTypes}
+                  onClick={() => onTypeFilterChange("")}
+                />
+                <FilterMenuItem
+                  checked={typeFilter === "direct"}
+                  label={labels.direct}
+                  onClick={() => onTypeFilterChange("direct")}
+                />
+                <FilterMenuItem
+                  checked={typeFilter === "group"}
+                  label={labels.group}
+                  onClick={() => onTypeFilterChange("group")}
+                />
+                <FilterMenuItem
+                  checked={typeFilter === "classroom"}
+                  label={labels.classType}
+                  onClick={() => onTypeFilterChange("classroom")}
+                />
+                <div className="my-1 border-t border-slate-100" />
+                <FilterMenuLabel>{labels.filters}</FilterMenuLabel>
+                {secondaryFilters.map((item) => (
+                  <FilterMenuItem
+                    key={item.value}
+                    checked={filter === item.value}
+                    label={labels[item.labelKey]}
+                    onClick={() => onFilterChange(item.value)}
+                  />
+                ))}
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    onFilterChange("all");
+                    onTypeFilterChange("");
+                    setIsFilterMenuOpen(false);
+                  }}
+                  className="mt-1 flex w-full cursor-pointer items-center rounded-md border-t border-slate-100 px-2 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  {labels.clearFilters}
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -399,24 +436,37 @@ export default function ConversationSidebar({
             {Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
-                className="flex items-start gap-3 border-b border-white/[0.04] px-4 py-3"
+                className="flex items-start gap-3 border-b border-slate-100 px-4 py-3"
               >
-                <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-white/[0.06]" />
+                <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-slate-200" />
                 <div className="flex-1 space-y-2 pt-1">
-                  <div className="h-3 w-3/4 animate-pulse rounded bg-white/[0.06]" />
-                  <div className="h-2.5 w-1/2 animate-pulse rounded bg-white/[0.04]" />
+                  <div className="h-3 w-3/4 animate-pulse rounded bg-slate-200" />
+                  <div className="h-2.5 w-1/2 animate-pulse rounded bg-slate-100" />
                 </div>
               </div>
             ))}
           </div>
         ) : visibleConversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.04]">
-              <MessageCircle className="h-5 w-5 text-slate-600" />
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+              <MessageCircle className="h-5 w-5 text-slate-500" />
             </div>
-            <p className="text-sm font-medium text-slate-300">
+            <p className="text-sm font-medium text-slate-700">
               {labels.noConversationsFound}
             </p>
+            {filter !== "all" || typeFilter || search ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onFilterChange("all");
+                  onTypeFilterChange("");
+                  onSearchChange("");
+                }}
+                className="mt-3 cursor-pointer text-xs font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                {labels.clearFilters}
+              </button>
+            ) : null}
           </div>
         ) : (
           <>
@@ -471,6 +521,39 @@ export default function ConversationSidebar({
   );
 }
 
+function FilterMenuLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="px-2 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+      {children}
+    </p>
+  );
+}
+
+function FilterMenuItem({
+  checked,
+  label,
+  onClick,
+}: {
+  checked: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitemradio"
+      aria-checked={checked}
+      onClick={onClick}
+      className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-start text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
+      <span className="inline-flex h-4 w-4 items-center justify-center">
+        {checked ? <Check className="h-3.5 w-3.5 text-primary" /> : null}
+      </span>
+      {label}
+    </button>
+  );
+}
+
 function ConversationRow({
   conversation,
   selected,
@@ -507,8 +590,8 @@ function ConversationRow({
       onClick={() => onSelect(conversation.id)}
       className={`group relative flex w-full cursor-pointer items-start gap-3 border-b px-4 py-3 text-start transition-all duration-150 ${
         selected
-          ? "border-b-white/[0.06] border-s-2 border-s-primary bg-primary/[0.08] ps-[14px]"
-          : "border-b-white/[0.04] border-s-2 border-s-transparent hover:bg-white/[0.03]"
+          ? "border-b-slate-100 border-s-2 border-s-primary bg-primary-50 ps-[14px]"
+          : "border-b-slate-100 border-s-2 border-s-transparent hover:bg-slate-50"
       }`}
     >
       {/* Avatar */}
@@ -529,22 +612,28 @@ function ConversationRow({
           <span
             data-testid="conversation-title"
             className={`truncate text-sm font-semibold leading-5 ${
-              selected ? "text-primary" : "text-black-200"
+              selected ? "text-primary-700" : "text-slate-900"
             } ${unread > 0 ? "text-primary" : ""}`}
           >
             {title}
           </span>
           <ConversationTypeBadge type={conversation.type} labels={labels} />
           {isOfficial && (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400 ring-1 ring-emerald-500/20">
-              <Shield className="h-2.5 w-2.5" />
-              {labels.official}
+            <span
+              className="inline-flex shrink-0 text-emerald-600"
+              title={labels.official}
+            >
+              <Shield className="h-3 w-3" aria-hidden="true" />
+              <span className="sr-only">{labels.official}</span>
             </span>
           )}
           {isReadOnly && (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-500/20">
-              <Lock className="h-2.5 w-2.5" />
-              {labels.readOnlyBadge}
+            <span
+              className="inline-flex shrink-0 text-slate-500"
+              title={labels.readOnlyBadge}
+            >
+              <Lock className="h-3 w-3" aria-hidden="true" />
+              <span className="sr-only">{labels.readOnlyBadge}</span>
             </span>
           )}
           <span className="ms-auto shrink-0 text-[11px] text-slate-600">
@@ -556,7 +645,7 @@ function ConversationRow({
         <div className="flex items-center gap-2">
           <p
             className={`flex-1 truncate text-[11px] leading-4 ${
-              unread > 0 ? "font-medium text-slate" : "text-slate-500"
+              unread > 0 ? "font-medium text-slate-800" : "text-slate-500"
             }`}
           >
             {preview}

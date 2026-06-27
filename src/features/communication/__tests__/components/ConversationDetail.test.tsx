@@ -147,7 +147,7 @@ vi.mock("@/features/communication/api/communication.service", () => ({
 
 // Mock child components to isolate ConversationDetail logic
 vi.mock("@/features/communication/conversations_redesign/components/ConversationHeader", () => ({
-  default: ({ onArchive, onClose }: any) => (
+  default: ({ onArchive, onClose }: { onArchive?: () => void; onClose?: () => void }) => (
     <div data-testid="conversation-header">
       Header
       {onArchive && <button data-testid="header-archive-btn" onClick={onArchive}>Archive</button>}
@@ -473,6 +473,34 @@ describe("ConversationDetail", () => {
         refresh: vi.fn(),
       });
       expect(() => renderConversationDetail()).not.toThrow();
+    });
+
+    it("waits for window focus before marking an incoming message as read", async () => {
+      const hasFocus = vi.spyOn(document, "hasFocus").mockReturnValue(false);
+      useConversationMessagesMock.mockReturnValue({
+        ...useConversationMessagesMock(),
+        messages: [
+          {
+            id: "incoming-message",
+            senderId: "another-user",
+            body: "Hello",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      });
+
+      renderConversationDetail();
+      expect(markConversationReadMock).not.toHaveBeenCalled();
+
+      hasFocus.mockReturnValue(true);
+      fireEvent.focus(window);
+
+      await waitFor(() => {
+        expect(markConversationReadMock).toHaveBeenCalledWith(
+          TEST_CONVERSATION_ID,
+        );
+      });
+      hasFocus.mockRestore();
     });
   });
 
