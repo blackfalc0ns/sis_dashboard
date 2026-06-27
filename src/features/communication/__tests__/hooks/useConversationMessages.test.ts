@@ -625,5 +625,50 @@ describe("useConversationMessages", () => {
       expect(result.current.messages[0].deliveryStatus).toBe("failed");
       expect(result.current.error).toBe("Network error");
     });
+
+    it("always sorts pending messages after non-pending messages even if pending message has an older client timestamp", async () => {
+      // Mock API to return one successfully sent message with a server timestamp
+      const serverMessage = createMessage({
+        id: "msg-server-old",
+        conversationId: TEST_CONVERSATION_ID,
+        senderId: TEST_USER_ID,
+        body: "Message 1 (already sent)",
+        createdAt: "2026-06-27T12:00:00.300Z", // Server timestamp (newer)
+        deliveryStatus: "sent",
+      });
+
+      apiMocks.getMessages.mockResolvedValue({
+        data: { items: [serverMessage], total: 1 },
+      });
+
+      const { result } = renderHook(() =>
+        useConversationMessages(TEST_CONVERSATION_ID),
+      );
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.messages).toHaveLength(1);
+
+      // Mock Date to return an older client timestamp when the pending message is created
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-06-27T12:00:00.100Z")); // Older time
+
+      // Mock sendMessage to not resolve so it stays in "pending" status
+      apiMocks.sendMessage.mockReturnValue(new Promise(() => {}));
+
+      // Send a new message — this creates a pending message
+      act(() => {
+        void result.current.send("Message 2 (pending)");
+      });
+
+      // The pending message (Message 2) should be sorted after the sent message (Message 1)
+      expect(result.current.messages).toHaveLength(2);
+      expect(result.current.messages[0].id).toBe("msg-server-old");
+      expect(result.current.messages[1].deliveryStatus).toBe("pending");
+
+      vi.useRealTimers();
+    });
   });
 });

@@ -181,6 +181,12 @@ function messageFromPayload(payload: unknown): ConversationMessage | null {
 
 function sortMessages(messages: ConversationMessage[]): ConversationMessage[] {
   return [...messages].sort((left, right) => {
+    const leftPending = left.deliveryStatus === "pending";
+    const rightPending = right.deliveryStatus === "pending";
+
+    if (leftPending && !rightPending) return 1;
+    if (!leftPending && rightPending) return -1;
+
     const leftTime = new Date(left.createdAt ?? "").getTime();
     const rightTime = new Date(right.createdAt ?? "").getTime();
     return leftTime - rightTime;
