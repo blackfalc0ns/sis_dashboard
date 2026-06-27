@@ -79,6 +79,7 @@ export function MessageComposer({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // When editingMessage changes, populate the composer with the message body
   const prevEditIdRef = useRef<string | null>(null);
@@ -96,7 +97,7 @@ export function MessageComposer({
     event.preventDefault();
     if (isSubmitting || disabled) return;
 
-    // Edit mode — save the edited message
+    // Edit mode — save the edited message (keep this synchronous/blocking)
     if (editingMessage) {
       const trimmed = body.trim();
       if (!trimmed || trimmed === editingMessage.body.trim()) {
@@ -110,35 +111,30 @@ export function MessageComposer({
         onCancelEdit();
       } finally {
         setIsSubmitting(false);
+        textareaRef.current?.focus();
       }
       return;
     }
 
-    // If there's pending files, send message + attachments together
+    // If there's pending files, send message + attachments together (non-blocking)
     if (pendingFiles.length > 0) {
-      setIsSubmitting(true);
-      try {
-        await onSendWithAttachment(pendingFiles, body.trim());
-        setBody("");
-        setPendingFiles([]);
-        onStopTyping();
-      } finally {
-        setIsSubmitting(false);
-      }
+      const filesToSend = [...pendingFiles];
+      const captionToSend = body.trim();
+      setBody("");
+      setPendingFiles([]);
+      onStopTyping();
+      textareaRef.current?.focus();
+      void onSendWithAttachment(filesToSend, captionToSend).catch(() => {});
       return;
     }
 
-    // Normal text-only send
+    // Normal text-only send (non-blocking)
     const trimmed = body.trim();
     if (!trimmed) return;
-    setIsSubmitting(true);
-    try {
-      await onSend(trimmed);
-      setBody("");
-      onStopTyping();
-    } finally {
-      setIsSubmitting(false);
-    }
+    setBody("");
+    onStopTyping();
+    textareaRef.current?.focus();
+    void onSend(trimmed).catch(() => {});
   };
 
   const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
@@ -226,12 +222,8 @@ export function MessageComposer({
       { type: mediaRecorder.mimeType },
     );
 
-    setIsSubmitting(true);
-    try {
-      await onSendVoice(audioFile);
-    } finally {
-      setIsSubmitting(false);
-    }
+    textareaRef.current?.focus();
+    void onSendVoice(audioFile).catch(() => {});
   };
 
   const cancelRecording = () => {
@@ -427,6 +419,7 @@ export function MessageComposer({
             className="max-h-32 min-h-[48px] w-full resize-none border-0 bg-transparent px-0 pt-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0"
             style={{ height: "auto", overflow: "hidden" }}
             ref={(el) => {
+              textareaRef.current = el;
               if (el) {
                 el.style.height = "auto";
                 el.style.height = `${Math.min(el.scrollHeight, 128)}px`;

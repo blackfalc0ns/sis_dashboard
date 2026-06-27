@@ -347,12 +347,14 @@ export default function ConversationDetail({
 
   const runMutation = async <T,>(
     operation: () => Promise<T>,
-    successMessage: string,
+    successMessage: string | null | undefined,
     fallbackError: string,
   ) => {
     try {
       const result = await operation();
-      onToast({ tone: "success", message: successMessage });
+      if (successMessage) {
+        onToast({ tone: "success", message: successMessage });
+      }
       return result;
     } catch (error) {
       onToast({
@@ -521,7 +523,7 @@ export default function ConversationDetail({
             onAddReaction={(messageId, type) =>
               runMutation(
                 () => reactionsState.addReaction(messageId, type),
-                labels.reactionAdded,
+                null,
                 labels.unableToAddReaction,
               )
             }
@@ -562,7 +564,7 @@ export default function ConversationDetail({
             onRemoveReaction={(messageId) =>
               runMutation(
                 () => reactionsState.removeMyReaction(messageId),
-                labels.reactionRemoved,
+                null,
                 labels.unableToRemoveReaction,
               )
             }
@@ -697,7 +699,7 @@ export default function ConversationDetail({
           <ReadOnlyComposer labels={labels} />
         ) : (
           <MessageComposer
-            disabled={messagesState.isMutating}
+            disabled={false}
             editingMessage={editingMessage}
             labels={labels}
             maxLength={policy?.maxMessageLength}
@@ -713,7 +715,7 @@ export default function ConversationDetail({
             onSend={async (body) => {
               const result = await runMutation(
                 () => messagesState.send(body, replyTo ? { replyToMessageId: replyTo.id } : undefined),
-                labels.messageSent,
+                null,
                 labels.unableToSendMessage,
               );
               setReplyTo(null);
@@ -728,7 +730,7 @@ export default function ConversationDetail({
                     caption: labels.voiceNote,
                     ...(replyTo ? { replyToMessageId: replyTo.id } : {}),
                   }),
-                labels.messageSent,
+                null,
                 labels.unableToSendMessage,
               );
               setReplyTo(null);

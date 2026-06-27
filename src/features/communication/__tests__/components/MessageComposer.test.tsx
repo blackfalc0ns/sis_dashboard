@@ -49,4 +49,43 @@ describe("MessageComposer", () => {
       ).toBeInTheDocument();
     });
   });
+
+  it("clears the input immediately, focuses the input, and calls onSend asynchronously", async () => {
+    const mockOnSend = vi.fn().mockResolvedValue(undefined);
+    const mockOnStopTyping = vi.fn();
+    
+    render(
+      <MessageComposer
+        disabled={false}
+        editingMessage={null}
+        labels={labels}
+        onCancelEdit={vi.fn()}
+        onCancelReply={vi.fn()}
+        onEditMessage={vi.fn().mockResolvedValue(undefined)}
+        onSend={mockOnSend}
+        onSendVoice={vi.fn().mockResolvedValue(undefined)}
+        onSendWithAttachment={vi.fn().mockResolvedValue(undefined)}
+        onStopTyping={mockOnStopTyping}
+        onTyping={vi.fn()}
+        replyTo={null}
+      />,
+    );
+
+    const input = screen.getByPlaceholderText(labels.writeMessage);
+    fireEvent.change(input, { target: { value: "Hello world" } });
+    expect(input).toHaveValue("Hello world");
+
+    // Click the submit button
+    const sendBtn = screen.getByRole("button", { name: labels.send });
+    fireEvent.click(sendBtn);
+
+    // Input should clear immediately (synchronously)
+    expect(input).toHaveValue("");
+
+    // Input should be focused
+    expect(document.activeElement).toBe(input);
+
+    // onSend should have been called in the background
+    expect(mockOnSend).toHaveBeenCalledWith("Hello world");
+  });
 });
