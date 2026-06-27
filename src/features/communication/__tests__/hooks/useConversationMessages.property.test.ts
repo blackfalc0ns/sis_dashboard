@@ -77,6 +77,7 @@ const sortedMessagesArb = fc
     const baseTime = new Date("2024-01-01T00:00:00.000Z").getTime();
     return messages.map((msg, index) => ({
       ...msg,
+      id: `msg-prop-test-${index}`,
       conversationId: TEST_CONVERSATION_ID,
       status: "sent" as const,
       createdAt: new Date(baseTime + index * 60_000).toISOString(),
