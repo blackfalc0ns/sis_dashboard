@@ -50,6 +50,7 @@ const notificationTypes: NotificationType[] = [
   "message_mention",
   "attendance_absence",
   "attendance_late",
+  "attendance_early_leave",
   "grade_posted",
   "behavior_record_created",
   "reinforcement_reward_granted",
