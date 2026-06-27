@@ -6,6 +6,7 @@ import type { UserDisplayNameMap } from "@/features/communication/conversations_
 import type { ConversationParticipant } from "@/features/communication/types/conversation.types";
 import { actorName, displayNameForUserId, getAvatarUrl } from "@/features/communication/conversations_redesign/utils/displayNames";
 import { formatRelativeDate, participantUserId } from "@/features/communication/conversations_redesign/utils/formatters";
+import { normalizeRole, normalizeStatus } from "@/features/communication/utils/communication-errors";
 
 export default function ParticipantsPanel({
   canLeaveConversation,
@@ -44,16 +45,31 @@ export default function ParticipantsPanel({
   total: number;
   userDisplayNames: UserDisplayNameMap;
 }) {
+  // Filter out SYSTEM role participants
+  const visibleParticipants = participants.filter(
+    (p) => normalizeRole(p.role) !== "SYSTEM",
+  );
+
   // Separate active members from former members
-  const activeParticipants = participants.filter(
-    (p) => p.status === "active" || p.status === "muted",
+  const activeParticipants = visibleParticipants.filter(
+    (p) => normalizeStatus(p.status) === "active" || normalizeStatus(p.status) === "muted",
   );
-  const formerParticipants = participants.filter(
-    (p) => p.status === "left" || p.status === "removed" || p.status === "blocked",
+  const formerParticipants = visibleParticipants.filter(
+    (p) =>
+      normalizeStatus(p.status) === "left" ||
+      normalizeStatus(p.status) === "removed" ||
+      normalizeStatus(p.status) === "blocked",
   );
-  const invitedParticipants = participants.filter(
-    (p) => p.status === "invited",
+  const invitedParticipants = visibleParticipants.filter(
+    (p) => normalizeStatus(p.status) === "invited",
   );
+
+  // Count active owners
+  const activeOwnerCount = visibleParticipants.filter(
+    (p) =>
+      normalizeRole(p.role) === "OWNER" &&
+      ["active", "muted"].includes(normalizeStatus(p.status)),
+  ).length;
 
   return (
     <PanelLayout
@@ -99,6 +115,7 @@ export default function ParticipantsPanel({
                 locale={locale}
                 presenceByUserId={presenceByUserId}
                 userDisplayNames={userDisplayNames}
+                activeOwnerCount={activeOwnerCount}
                 onDemoteParticipant={onDemoteParticipant}
                 onEditParticipant={onEditParticipant}
                 onPromoteParticipant={onPromoteParticipant}
@@ -124,6 +141,7 @@ export default function ParticipantsPanel({
                     locale={locale}
                     presenceByUserId={presenceByUserId}
                     userDisplayNames={userDisplayNames}
+                    activeOwnerCount={activeOwnerCount}
                     onDemoteParticipant={onDemoteParticipant}
                     onEditParticipant={onEditParticipant}
                     onPromoteParticipant={onPromoteParticipant}
@@ -151,6 +169,7 @@ export default function ParticipantsPanel({
                     locale={locale}
                     presenceByUserId={presenceByUserId}
                     userDisplayNames={userDisplayNames}
+                    activeOwnerCount={activeOwnerCount}
                     onDemoteParticipant={onDemoteParticipant}
                     onEditParticipant={onEditParticipant}
                     onPromoteParticipant={onPromoteParticipant}
@@ -174,6 +193,7 @@ function ParticipantRow({
   locale,
   presenceByUserId,
   userDisplayNames,
+  activeOwnerCount,
   onDemoteParticipant,
   onEditParticipant,
   onPromoteParticipant,
@@ -186,6 +206,7 @@ function ParticipantRow({
   locale: string;
   presenceByUserId: Record<string, { isOnline?: boolean }>;
   userDisplayNames: UserDisplayNameMap;
+  activeOwnerCount: number;
   onDemoteParticipant: (participant: ConversationParticipant) => void;
   onEditParticipant: (participant: ConversationParticipant) => void;
   onPromoteParticipant: (participant: ConversationParticipant) => void;
@@ -199,6 +220,14 @@ function ParticipantRow({
   const isCurrentUser = currentUserId && userId === currentUserId;
   const isOnline = Boolean(presenceByUserId[userId]?.isOnline);
   const canManageThisParticipant = canManage && !isCurrentUser;
+
+  const normalizedRole = normalizeRole(participant.role);
+  const normalizedStatus = normalizeStatus(participant.status);
+
+  const isLastOwner =
+    normalizedRole === "OWNER" &&
+    ["active", "muted"].includes(normalizedStatus) &&
+    activeOwnerCount === 1;
 
   const statusTone = {
     active: undefined,
@@ -222,22 +251,34 @@ function ParticipantRow({
             <p className="truncate text-sm font-bold text-slate-950">
               {name}
             </p>
-            {participant.role === "owner" ? (
+            {normalizedRole === "OWNER" ? (
               <StatusPill tone="blue">{labels.owner}</StatusPill>
             ) : null}
-            {participant.status === "muted" ? (
+            {normalizedRole === "ADMIN" ? (
+              <StatusPill tone="blue">{labels.admin}</StatusPill>
+            ) : null}
+            {normalizedRole === "MODERATOR" ? (
+              <StatusPill tone="blue">{labels.moderator}</StatusPill>
+            ) : null}
+            {normalizedRole === "MEMBER" ? (
+              <StatusPill tone="gray">{labels.member}</StatusPill>
+            ) : null}
+            {normalizedRole === "READ_ONLY" ? (
+              <StatusPill tone="gray">{labels.readOnlyRole}</StatusPill>
+            ) : null}
+            {normalizedStatus === "muted" ? (
               <StatusPill tone="orange">{labels.muted}</StatusPill>
             ) : null}
-            {participant.status === "invited" ? (
+            {normalizedStatus === "invited" ? (
               <StatusPill tone="yellow">{labels.pending}</StatusPill>
             ) : null}
-            {participant.status === "left" ? (
+            {normalizedStatus === "left" ? (
               <StatusPill tone="gray">{labels.left}</StatusPill>
             ) : null}
-            {participant.status === "removed" ? (
+            {normalizedStatus === "removed" ? (
               <StatusPill tone="gray">{labels.removed}</StatusPill>
             ) : null}
-            {participant.status === "blocked" ? (
+            {normalizedStatus === "blocked" ? (
               <StatusPill tone="red">{labels.blocked}</StatusPill>
             ) : null}
             {isCurrentUser ? (
@@ -258,30 +299,38 @@ function ParticipantRow({
         </div>
       </div>
       {canManageThisParticipant ? (
-        <div className="flex flex-wrap justify-end gap-2">
-          <ParticipantActionButton
-            onClick={() => onEditParticipant(participant)}
-          >
-            {labels.editParticipant}
-          </ParticipantActionButton>
-          <ParticipantActionButton
-            onClick={() => onPromoteParticipant(participant)}
-          >
-            {labels.promote}
-          </ParticipantActionButton>
-          <ParticipantActionButton
-            onClick={() => onDemoteParticipant(participant)}
-          >
-            {labels.demote}
-          </ParticipantActionButton>
-          <button
-            type="button"
-            onClick={() => onRemoveParticipant(participant)}
-            className="h-8 rounded-md border border-rose-200 px-2.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50"
-          >
-            {labels.removeParticipant}
-          </button>
-        </div>
+        normalizedStatus === "invited" ? (
+          <div className="flex h-8 items-center text-xs font-bold text-slate-400">
+            {labels.pending}
+          </div>
+        ) : (
+          <div className="flex flex-wrap justify-end gap-2">
+            <ParticipantActionButton
+              onClick={() => onEditParticipant(participant)}
+            >
+              {labels.editParticipant}
+            </ParticipantActionButton>
+            <ParticipantActionButton
+              onClick={() => onPromoteParticipant(participant)}
+            >
+              {labels.promote}
+            </ParticipantActionButton>
+            <ParticipantActionButton
+              onClick={() => onDemoteParticipant(participant)}
+              disabled={isLastOwner}
+            >
+              {labels.demote}
+            </ParticipantActionButton>
+            <button
+              type="button"
+              onClick={() => onRemoveParticipant(participant)}
+              disabled={isLastOwner}
+              className="h-8 rounded-md border border-rose-200 px-2.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-rose-700"
+            >
+              {labels.removeParticipant}
+            </button>
+          </div>
+        )
       ) : null}
     </div>
   );

@@ -46,15 +46,18 @@ export function ActionButton({
 export function ParticipantActionButton({
   children,
   onClick,
+  disabled,
 }: {
   children: ReactNode;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="h-8 rounded-md border border-slate-200 px-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50 hover:text-primary"
+      disabled={disabled}
+      className="h-8 rounded-md border border-slate-200 px-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-slate-600"
     >
       {children}
     </button>
