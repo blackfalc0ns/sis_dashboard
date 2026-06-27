@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Camera } from "lucide-react";
+import { useLocale } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import TextArea from "@/components/ui/input/TextArea";
 import Modal from "@/components/ui/modal/Modal";
 import { uploadFile } from "@/features/communication/api/files.service";
+import { handleConversationError } from "@/features/communication/utils/communication-errors";
 import type { Conversation } from "@/features/communication/types/conversation.types";
 import type { UpdateConversationPayload } from "@/features/communication/types/conversation.types";
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
@@ -35,6 +37,8 @@ export default function EditConversationDialog({
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -53,6 +57,8 @@ export default function EditConversationDialog({
       setIsPinned(Boolean(record.isPinned));
       setAvatarPreview(null);
       setAvatarFile(null);
+      setFormError(null);
+      setFieldErrors({});
     }
   }, [open, conversation]);
 
@@ -66,7 +72,31 @@ export default function EditConversationDialog({
     reader.readAsDataURL(file);
   };
 
+  const locale = useLocale();
+  const isArabic = locale === "ar";
+  const titleTooLongMsg = isArabic ? "يجب أن يكون العنوان 255 حرفًا أو أقل." : "Title must be 255 characters or less.";
+  const descriptionTooLongMsg = isArabic ? "يجب أن يكون الوصف 4000 حرفًا أو أقل." : "Description must be 4000 characters or less.";
+
   const handleSubmit = async () => {
+    setFormError(null);
+    setFieldErrors({});
+
+    const newFieldErrors: Record<string, string> = {};
+    if (!title.trim()) {
+      newFieldErrors.title = labels.titleRequired || (isArabic ? "أدخل عنوان المحادثة." : "Enter a conversation title.");
+    } else if (title.length > 255) {
+      newFieldErrors.title = titleTooLongMsg;
+    }
+
+    if (description && description.length > 4000) {
+      newFieldErrors.description = descriptionTooLongMsg;
+    }
+
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
+      return;
+    }
+
     let avatarFileId: string | undefined;
 
     // Upload avatar if selected
@@ -91,7 +121,21 @@ export default function EditConversationDialog({
       isPinned,
       ...(avatarFileId ? { avatarFileId } : {}),
     };
-    await onSubmit(payload);
+
+    try {
+      await onSubmit(payload);
+    } catch (err) {
+      const errObj = handleConversationError(err, labels);
+      if (errObj.action === "SHOW_FORM_ERROR") {
+        setFormError(errObj.message);
+        if (errObj.field) {
+          setFieldErrors((prev) => ({ ...prev, [errObj.field!]: errObj.message }));
+        }
+        if (errObj.fieldErrors) {
+          setFieldErrors((prev) => ({ ...prev, ...errObj.fieldErrors }));
+        }
+      }
+    }
   };
 
   return (
@@ -116,6 +160,11 @@ export default function EditConversationDialog({
       }
     >
       <div className="space-y-4 pb-4">
+        {formError ? (
+          <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+            {formError}
+          </div>
+        ) : null}
         {/* Avatar upload */}
         <div className="flex items-center gap-4">
           <button
@@ -150,9 +199,13 @@ export default function EditConversationDialog({
           </label>
           <Input
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              setFieldErrors((prev) => ({ ...prev, title: "" }));
+            }}
             placeholder={labels.title}
             maxLength={255}
+            error={fieldErrors.title}
           />
         </div>
         <div>
@@ -161,10 +214,14 @@ export default function EditConversationDialog({
           </label>
           <TextArea
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              setFieldErrors((prev) => ({ ...prev, description: "" }));
+            }}
             placeholder={labels.description}
             rows={3}
             resize="none"
+            error={fieldErrors.description}
           />
         </div>
         <div className="flex items-center gap-4">

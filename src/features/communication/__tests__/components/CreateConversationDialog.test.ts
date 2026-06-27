@@ -1,9 +1,14 @@
-import { describe, expect, it } from "vitest";
-import {
+import { describe, expect, it, vi, afterEach } from "vitest";
+import { fireEvent, render, screen, waitFor, cleanup } from "@testing-library/react";
+import React from "react";
+import CreateConversationDialog, {
   getConversationTypeOptions,
   shouldShowConversationSelector,
 } from "@/features/communication/components/conversations/CreateConversationDialog";
-import type { CreateConversationDialogLabels } from "@/features/communication/components/conversations/CreateConversationDialog";
+import type {
+  CreateConversationDialogLabels,
+  CreateConversationDialogProps,
+} from "@/features/communication/components/conversations/CreateConversationDialog";
 
 const labels: CreateConversationDialogLabels = {
   createTitle: "Create Conversation",
@@ -21,19 +26,22 @@ const labels: CreateConversationDialogLabels = {
   avatarFileId: "Avatar",
   isReadOnly: "Read only",
   isPinned: "Pinned",
-  group: "Group",
-  classroom: "Classroom",
-  direct: "Direct",
-  grade: "Grade",
-  section: "Section",
-  stage: "Stage",
-  schoolWide: "School-wide",
-  support: "Support",
-  system: "System",
+  group: "Group Option",
+  classroom: "Classroom Option",
+  direct: "Direct Option",
+  grade: "Grade Option",
+  section: "Section Option",
+  stage: "Stage Option",
+  schoolWide: "School-wide Option",
+  support: "Support Option",
+  system: "System Option",
   cancel: "Cancel",
   create: "Create",
   save: "Save",
   titleRequired: "Enter a title.",
+  errorScopeInvalid: "Communication scope is invalid.",
+  errorValidationFailed: "Request validation failed.",
+  errorGeneric: "Something went wrong. Please try again.",
 };
 
 describe("CreateConversationDialog helpers", () => {
@@ -61,3 +69,206 @@ describe("CreateConversationDialog helpers", () => {
     );
   });
 });
+
+describe("CreateConversationDialog component validation", () => {
+  afterEach(() => {
+    cleanup();
+    document.body.innerHTML = "";
+    vi.clearAllMocks();
+  });
+
+  const defaultProps: CreateConversationDialogProps = {
+    open: true,
+    labels: {
+      ...labels,
+      classroomRequired: "Select a classroom.",
+    },
+    isSubmitting: false,
+    onClose: vi.fn(),
+    onSubmit: vi.fn(),
+  };
+
+  it("shows validation error when title exceeds 255 characters", async () => {
+    const onSubmit = vi.fn();
+    render(React.createElement(CreateConversationDialog, { ...defaultProps, onSubmit }));
+
+    const inputs = screen.getAllByRole("textbox");
+    const titleInput = inputs[0];
+    fireEvent.change(titleInput, { target: { value: "a".repeat(256) } });
+
+    const submitBtn = screen.getByRole("button", { name: labels.create });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Title must be 255 characters or less.")).toBeInTheDocument();
+    });
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("shows validation error when description exceeds 4000 characters", async () => {
+    const onSubmit = vi.fn();
+    render(React.createElement(CreateConversationDialog, { ...defaultProps, onSubmit }));
+
+    const inputs = screen.getAllByRole("textbox");
+    const descInput = inputs[1];
+    fireEvent.change(descInput, { target: { value: "a".repeat(4001) } });
+
+    const submitBtn = screen.getByRole("button", { name: labels.create });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Description must be 4000 characters or less.")).toBeInTheDocument();
+    });
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("shows validation error when classroom type is selected but classroomId is missing", async () => {
+    const onSubmit = vi.fn();
+    render(React.createElement(CreateConversationDialog, { ...defaultProps, onSubmit }));
+
+    const typeSelect = screen.getByRole("button", { name: labels.group });
+    fireEvent.click(typeSelect);
+    const classroomOption = await screen.findByText("Classroom Option");
+    fireEvent.click(classroomOption);
+
+    const inputs = screen.getAllByRole("textbox");
+    fireEvent.change(inputs[0], { target: { value: "Test Title" } });
+
+    const submitBtn = screen.getByRole("button", { name: labels.create });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Select a classroom.")).toBeInTheDocument();
+    });
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("shows validation error when stage type is selected but stageId is missing", async () => {
+    const onSubmit = vi.fn();
+    render(React.createElement(CreateConversationDialog, { ...defaultProps, onSubmit }));
+
+    const typeSelect = screen.getByRole("button", { name: labels.group });
+    fireEvent.click(typeSelect);
+    const stageOption = await screen.findByText("Stage Option");
+    fireEvent.click(stageOption);
+
+    const inputs = screen.getAllByRole("textbox");
+    fireEvent.change(inputs[0], { target: { value: "Test Title" } });
+
+    const submitBtn = screen.getByRole("button", { name: labels.create });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Communication scope is invalid.")).toBeInTheDocument();
+    });
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("shows validation error when grade type is selected but gradeId is missing", async () => {
+    const onSubmit = vi.fn();
+    render(React.createElement(CreateConversationDialog, { ...defaultProps, onSubmit }));
+
+    const typeSelect = screen.getByRole("button", { name: labels.group });
+    fireEvent.click(typeSelect);
+    const gradeOption = await screen.findByText("Grade Option");
+    fireEvent.click(gradeOption);
+
+    const inputs = screen.getAllByRole("textbox");
+    fireEvent.change(inputs[0], { target: { value: "Test Title" } });
+
+    const submitBtn = screen.getByRole("button", { name: labels.create });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Communication scope is invalid.")).toBeInTheDocument();
+    });
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("shows validation error when section type is selected but sectionId is missing", async () => {
+    const onSubmit = vi.fn();
+    render(React.createElement(CreateConversationDialog, { ...defaultProps, onSubmit }));
+
+    const typeSelect = screen.getByRole("button", { name: labels.group });
+    fireEvent.click(typeSelect);
+    const sectionOption = await screen.findByText("Section Option");
+    fireEvent.click(sectionOption);
+
+    const inputs = screen.getAllByRole("textbox");
+    fireEvent.change(inputs[0], { target: { value: "Test Title" } });
+
+    const submitBtn = screen.getByRole("button", { name: labels.create });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Communication scope is invalid.")).toBeInTheDocument();
+    });
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("displays backend validation errors inline", async () => {
+    const mockBackendError = {
+      response: {
+        status: 422,
+        data: {
+          error: {
+            code: "validation.failed",
+            message: "Request validation failed.",
+            details: {
+              fields: {
+                title: ["Title has invalid format"],
+                description: ["Description contains bad words"],
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const onSubmit = vi.fn().mockRejectedValue(mockBackendError);
+    render(React.createElement(CreateConversationDialog, { ...defaultProps, onSubmit }));
+
+    const inputs = screen.getAllByRole("textbox");
+    fireEvent.change(inputs[0], { target: { value: "Test Title" } });
+
+    const submitBtn = screen.getByRole("button", { name: labels.create });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Title has invalid format/i)).toBeInTheDocument();
+      expect(screen.getByText(/Description contains bad words/i)).toBeInTheDocument();
+      expect(screen.getByText(/Request validation failed/i)).toBeInTheDocument();
+    });
+  });
+
+  it("displays backend scope errors inline", async () => {
+    const mockBackendError = {
+      response: {
+        status: 422,
+        data: {
+          error: {
+            code: "communication.scope.invalid",
+            message: "Communication scope is invalid.",
+            details: {
+              field: "classroomId",
+            },
+          },
+        },
+      },
+    };
+
+    const onSubmit = vi.fn().mockRejectedValue(mockBackendError);
+    render(React.createElement(CreateConversationDialog, { ...defaultProps, onSubmit }));
+
+    const inputs = screen.getAllByRole("textbox");
+    fireEvent.change(inputs[0], { target: { value: "Test Title" } });
+
+    const submitBtn = screen.getByRole("button", { name: labels.create });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Communication scope is invalid/i).length).toBeGreaterThan(0);
+    });
+  });
+});
+

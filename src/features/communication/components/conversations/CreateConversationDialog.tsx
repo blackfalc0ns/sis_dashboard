@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { Camera } from "lucide-react";
+import { useLocale } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
@@ -15,6 +16,8 @@ import StageSelect from "@/features/communication/components/selectors/StageSele
 import SubjectSelect from "@/features/communication/components/selectors/SubjectSelect";
 import TermSelect from "@/features/communication/components/selectors/TermSelect";
 import { uploadFile } from "@/features/communication/api/files.service";
+import { handleConversationError } from "@/features/communication/utils/communication-errors";
+import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import type {
   ConversationFormValues,
   ConversationListItemModel,
@@ -60,6 +63,11 @@ export interface CreateConversationDialogLabels {
   save: string;
   titleRequired: string;
   classroomRequired?: string;
+  errorScopeInvalid?: string;
+  errorValidationFailed?: string;
+  errorTitleTooLong?: string;
+  errorDescriptionTooLong?: string;
+  errorGeneric?: string;
 }
 
 const CONVERSATION_TYPE_ORDER: ConversationType[] = [
@@ -248,7 +256,8 @@ export default function CreateConversationDialog({
   const [values, setValues] = useState<ConversationFormValues>(
     () => initialFormValues,
   );
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const isEditing = Boolean(conversation);
@@ -263,17 +272,41 @@ export default function CreateConversationDialog({
     [labels],
   );
 
+  const locale = useLocale();
+  const isArabic = locale === "ar";
+  const scopeInvalidMsg = labels.errorScopeInvalid || (isArabic ? "نطاق الاتصالات غير صالح." : "Communication scope is invalid.");
+  const titleTooLongMsg = labels.errorTitleTooLong || (isArabic ? "يجب أن يكون العنوان 255 حرفًا أو أقل." : "Title must be 255 characters or less.");
+  const descriptionTooLongMsg = labels.errorDescriptionTooLong || (isArabic ? "يجب أن يكون الوصف 4000 حرفًا أو أقل." : "Description must be 4000 characters or less.");
+
   const handleSubmit = async () => {
+    setFormError(null);
+    setFieldErrors({});
+
+    const newFieldErrors: Record<string, string> = {};
     if (!values.title?.trim()) {
-      setError(labels.titleRequired);
-      return;
-    }
-    if (values.type === "classroom" && !values.classroomId?.trim()) {
-      setError(labels.classroomRequired ?? labels.classroomId);
-      return;
+      newFieldErrors.title = labels.titleRequired;
+    } else if (values.title.length > 255) {
+      newFieldErrors.title = titleTooLongMsg;
     }
 
-    setError(null);
+    if (values.description && values.description.length > 4000) {
+      newFieldErrors.description = descriptionTooLongMsg;
+    }
+
+    if (values.type === "classroom" && !values.classroomId?.trim()) {
+      newFieldErrors.classroomId = labels.classroomRequired || scopeInvalidMsg;
+    } else if (values.type === "stage" && !values.stageId?.trim()) {
+      newFieldErrors.stageId = scopeInvalidMsg;
+    } else if (values.type === "grade" && !values.gradeId?.trim()) {
+      newFieldErrors.gradeId = scopeInvalidMsg;
+    } else if (values.type === "section" && !values.sectionId?.trim()) {
+      newFieldErrors.sectionId = scopeInvalidMsg;
+    }
+
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
+      return;
+    }
 
     // Upload avatar if a file was selected
     let avatarFileId = values.avatarFileId;
@@ -291,7 +324,20 @@ export default function CreateConversationDialog({
       }
     }
 
-    await onSubmit({ ...values, avatarFileId });
+    try {
+      await onSubmit({ ...values, avatarFileId });
+    } catch (err) {
+      const errObj = handleConversationError(err, labels as unknown as ConversationRedesignLabels);
+      if (errObj.action === "SHOW_FORM_ERROR") {
+        setFormError(errObj.message);
+        if (errObj.field) {
+          setFieldErrors((prev) => ({ ...prev, [errObj.field!]: errObj.message }));
+        }
+        if (errObj.fieldErrors) {
+          setFieldErrors((prev) => ({ ...prev, ...errObj.fieldErrors }));
+        }
+      }
+    }
   };
 
   return (
@@ -316,34 +362,44 @@ export default function CreateConversationDialog({
       }
     >
       <div className="space-y-4 pb-4">
+        {formError ? (
+          <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+            {formError}
+          </div>
+        ) : null}
         <Input
           label={labels.title}
           value={values.title ?? ""}
-          onChange={(event) =>
-            setValues((current) => ({ ...current, title: event.target.value }))
-          }
-          error={error === labels.titleRequired ? error : undefined}
+          onChange={(event) => {
+            setValues((current) => ({ ...current, title: event.target.value }));
+            setFieldErrors((prev) => ({ ...prev, title: "" }));
+          }}
+          error={fieldErrors.title}
         />
         <Select
           label={labels.type}
           value={values.type ?? "group"}
-          onChange={(value) =>
+          onChange={(value) => {
             setValues((current) =>
               resetHiddenScopeValues(value as ConversationType, current),
-            )
-          }
+            );
+            setFieldErrors({});
+            setFormError(null);
+          }}
           options={typeOptions}
         />
         <TextArea
           label={labels.description}
           rows={3}
           value={values.description ?? ""}
-          onChange={(event) =>
+          onChange={(event) => {
             setValues((current) => ({
               ...current,
               description: event.target.value,
-            }))
-          }
+            }));
+            setFieldErrors((prev) => ({ ...prev, description: "" }));
+          }}
+          error={fieldErrors.description}
         />
         {showAcademicSelectors ? (
           <>
@@ -355,7 +411,8 @@ export default function CreateConversationDialog({
                 <AcademicYearSelect
                   label={labels.academicYearId}
                   value={values.academicYearId ?? ""}
-                  onChange={(academicYearId) =>
+                  error={fieldErrors.academicYearId}
+                  onChange={(academicYearId) => {
                     setValues((current) => ({
                       ...current,
                       academicYearId,
@@ -364,8 +421,17 @@ export default function CreateConversationDialog({
                       gradeId: "",
                       sectionId: "",
                       classroomId: "",
-                    }))
-                  }
+                    }));
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      academicYearId: "",
+                      termId: "",
+                      stageId: "",
+                      gradeId: "",
+                      sectionId: "",
+                      classroomId: "",
+                    }));
+                  }}
                 />
               ) : null}
               {shouldShowConversationSelector(conversationType, "termId") ? (
@@ -373,7 +439,8 @@ export default function CreateConversationDialog({
                   label={labels.termId}
                   value={values.termId ?? ""}
                   academicYearId={values.academicYearId}
-                  onChange={(termId) =>
+                  error={fieldErrors.termId}
+                  onChange={(termId) => {
                     setValues((current) => ({
                       ...current,
                       termId,
@@ -381,8 +448,16 @@ export default function CreateConversationDialog({
                       gradeId: "",
                       sectionId: "",
                       classroomId: "",
-                    }))
-                  }
+                    }));
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      termId: "",
+                      stageId: "",
+                      gradeId: "",
+                      sectionId: "",
+                      classroomId: "",
+                    }));
+                  }}
                 />
               ) : null}
             </div>
@@ -393,15 +468,23 @@ export default function CreateConversationDialog({
                   value={values.stageId ?? ""}
                   academicYearId={values.academicYearId}
                   termId={values.termId}
-                  onChange={(stageId) =>
+                  error={fieldErrors.stageId}
+                  onChange={(stageId) => {
                     setValues((current) => ({
                       ...current,
                       stageId,
                       gradeId: "",
                       sectionId: "",
                       classroomId: "",
-                    }))
-                  }
+                    }));
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      stageId: "",
+                      gradeId: "",
+                      sectionId: "",
+                      classroomId: "",
+                    }));
+                  }}
                 />
               ) : null}
               {shouldShowConversationSelector(conversationType, "gradeId") ? (
@@ -411,14 +494,21 @@ export default function CreateConversationDialog({
                   academicYearId={values.academicYearId}
                   termId={values.termId}
                   stageId={values.stageId}
-                  onChange={(gradeId) =>
+                  error={fieldErrors.gradeId}
+                  onChange={(gradeId) => {
                     setValues((current) => ({
                       ...current,
                       gradeId,
                       sectionId: "",
                       classroomId: "",
-                    }))
-                  }
+                    }));
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      gradeId: "",
+                      sectionId: "",
+                      classroomId: "",
+                    }));
+                  }}
                 />
               ) : null}
               {shouldShowConversationSelector(conversationType, "sectionId") ? (
@@ -428,13 +518,19 @@ export default function CreateConversationDialog({
                   academicYearId={values.academicYearId}
                   termId={values.termId}
                   gradeId={values.gradeId}
-                  onChange={(sectionId) =>
+                  error={fieldErrors.sectionId}
+                  onChange={(sectionId) => {
                     setValues((current) => ({
                       ...current,
                       sectionId,
                       classroomId: "",
-                    }))
-                  }
+                    }));
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      sectionId: "",
+                      classroomId: "",
+                    }));
+                  }}
                 />
               ) : null}
               {shouldShowConversationSelector(
@@ -447,24 +543,22 @@ export default function CreateConversationDialog({
                   academicYearId={values.academicYearId}
                   termId={values.termId}
                   sectionId={values.sectionId}
-                  error={
-                    values.type === "classroom" &&
-                    error === labels.classroomRequired
-                      ? error
-                      : undefined
-                  }
-                  onChange={(classroomId) =>
-                    setValues((current) => ({ ...current, classroomId }))
-                  }
+                  error={fieldErrors.classroomId}
+                  onChange={(classroomId) => {
+                    setValues((current) => ({ ...current, classroomId }));
+                    setFieldErrors((prev) => ({ ...prev, classroomId: "" }));
+                  }}
                 />
               ) : null}
               {shouldShowConversationSelector(conversationType, "subjectId") ? (
                 <SubjectSelect
                   label={labels.subjectId}
                   value={values.subjectId ?? ""}
-                  onChange={(subjectId) =>
-                    setValues((current) => ({ ...current, subjectId }))
-                  }
+                  error={fieldErrors.subjectId}
+                  onChange={(subjectId) => {
+                    setValues((current) => ({ ...current, subjectId }));
+                    setFieldErrors((prev) => ({ ...prev, subjectId: "" }));
+                  }}
                 />
               ) : null}
             </div>
