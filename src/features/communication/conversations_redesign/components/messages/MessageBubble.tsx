@@ -14,6 +14,7 @@ import {
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import type { UserDisplayNameMap } from "@/features/communication/conversations_redesign/types";
 import type { ConversationMessage } from "@/features/communication/hooks/useConversationMessages";
+import { normalizeStatus } from "@/features/communication/utils/communication-errors";
 import type {
   MessageAttachment,
   MessageReaction,
@@ -97,7 +98,8 @@ export function MessageBubble({
   const edited = Boolean(
     message.updatedAt && message.updatedAt !== message.createdAt,
   );
-  const deleted = message.status === "deleted";
+  const normStatus = normalizeStatus(message.status);
+  const deleted = normStatus === "deleted" || normStatus === "hidden";
   const canMutateMessage =
     isOwn &&
     !deleted &&
@@ -312,7 +314,11 @@ export function MessageBubble({
           })() : null}
 
           <p dir="auto" className="overflow-hidden whitespace-pre-wrap break-all text-sm leading-6">
-            {deleted ? labels.messageDeleted : message.body}
+            {normStatus === "deleted"
+              ? labels.errorMessageDeleted
+              : normStatus === "hidden"
+              ? labels.errorMessageHidden
+              : message.body}
           </p>
 
           {attachments.length > 0 ? (

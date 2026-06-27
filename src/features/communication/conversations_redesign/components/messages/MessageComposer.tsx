@@ -8,6 +8,7 @@ import {
 import { Edit3, FileText, Mic, Paperclip, Send, Trash2 } from "lucide-react";
 
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
+import { useCommunicationPolicy } from "@/features/communication/hooks/useCommunicationPolicy";
 
 import { EmojiPickerButton } from "./EmojiPickerButton";
 
@@ -75,6 +76,9 @@ export function MessageComposer({
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingError, setRecordingError] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const { policy } = useCommunicationPolicy();
+  const maxMessageLength = policy?.maxMessageLength ?? 4000;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -108,6 +112,7 @@ export function MessageComposer({
       try {
         await onEditMessage(editingMessage.id, trimmed);
         setBody("");
+        setFileError(null);
         onCancelEdit();
       } finally {
         setIsSubmitting(false);
@@ -122,6 +127,7 @@ export function MessageComposer({
       const captionToSend = body.trim();
       setBody("");
       setPendingFiles([]);
+      setFileError(null);
       onStopTyping();
       textareaRef.current?.focus();
       void onSendWithAttachment(filesToSend, captionToSend).catch(() => {});
@@ -132,17 +138,50 @@ export function MessageComposer({
     const trimmed = body.trim();
     if (!trimmed) return;
     setBody("");
+    setFileError(null);
     onStopTyping();
     textareaRef.current?.focus();
     void onSend(trimmed).catch(() => {});
   };
 
   const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
+    setFileError(null);
     const files = event.target.files;
     if (!files || files.length === 0 || disabled) return;
-    const selected = Array.from(files);
+
+    const maxAttachmentSizeMb = policy?.maxAttachmentSizeMb ?? 10;
+    const allowedMimes = policy?.allowedAttachmentMimeTypes;
+
+    const validFiles: File[] = [];
+
+    for (const file of Array.from(files)) {
+      if (file.size > maxAttachmentSizeMb * 1024 * 1024) {
+        setFileError(labels.errorFileUploadSizeExceeded || "File size exceeds allowed limit.");
+        event.target.value = "";
+        return;
+      }
+
+      if (allowedMimes && allowedMimes.length > 0) {
+        const isMimeAllowed = allowedMimes.some((pattern) => {
+          if (pattern.endsWith("/*")) {
+            const prefix = pattern.slice(0, -2);
+            return file.type.startsWith(prefix + "/");
+          }
+          return pattern === file.type;
+        });
+
+        if (!isMimeAllowed) {
+          setFileError(labels.errorFileUploadMimeNotAllowed || "File type is not allowed.");
+          event.target.value = "";
+          return;
+        }
+      }
+
+      validFiles.push(file);
+    }
+
     event.target.value = "";
-    setPendingFiles((prev) => [...prev, ...selected]);
+    setPendingFiles((prev) => [...prev, ...validFiles]);
   };
 
   const startRecording = async () => {
@@ -250,9 +289,10 @@ export function MessageComposer({
   };
 
   const canSend =
-    pendingFiles.length > 0 || Boolean(body.trim()) || Boolean(editingMessage);
+    (pendingFiles.length > 0 || Boolean(body.trim()) || Boolean(editingMessage)) &&
+    body.length <= maxMessageLength;
   const showMicButton =
-    !canSend && pendingFiles.length === 0 && !isRecording && !editingMessage;
+    !body.trim() && pendingFiles.length === 0 && !isRecording && !editingMessage;
 
   // Recording UI
   if (isRecording) {
@@ -377,6 +417,12 @@ export function MessageComposer({
         </p>
       ) : null}
 
+      {fileError ? (
+        <p role="alert" className="mb-2 text-xs font-medium text-red-600">
+          {fileError}
+        </p>
+      ) : null}
+
       <div className="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3">
         <button
           type="button"
@@ -405,7 +451,7 @@ export function MessageComposer({
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
-                if (canSend || pendingFiles.length > 0) {
+                if (canSend) {
                   void handleSubmit(event as unknown as FormEvent);
                 }
               }
@@ -413,7 +459,6 @@ export function MessageComposer({
             placeholder={
               pendingFiles.length > 0 ? labels.addCaption : labels.writeMessage
             }
-            maxLength={maxLength}
             disabled={disabled || isSubmitting}
             rows={1}
             className="max-h-32 min-h-[48px] w-full resize-none border-0 bg-transparent px-0 pt-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0"
@@ -427,10 +472,17 @@ export function MessageComposer({
               }
             }}
           />
-          <p className="text-[10px] text-slate-400 leading-none pb-1">
-            Shift + Enter{" "}
-            {labels.send === "إرسال" ? "لسطر جديد" : "for new line"}
-          </p>
+          <div className="flex justify-between items-center pb-1">
+            <p className="text-[10px] text-slate-400 leading-none">
+              Shift + Enter{" "}
+              {labels.send === "إرسال" ? "لسطر جديد" : "for new line"}
+            </p>
+            {body.length > 0 && (
+              <p className={`text-[10px] leading-none ${body.length > maxMessageLength ? "text-red-600 font-semibold" : "text-slate-400"}`}>
+                {body.length} / {maxMessageLength}
+              </p>
+            )}
+          </div>
         </div>
         <EmojiPickerButton
           disabled={disabled || isSubmitting}

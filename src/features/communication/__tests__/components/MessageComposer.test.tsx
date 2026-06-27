@@ -4,6 +4,18 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { conversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import { MessageComposer } from "@/features/communication/conversations_redesign/components/messages/MessageComposer";
 
+const mockPolicy = {
+  maxMessageLength: 20,
+  maxAttachmentSizeMb: 5,
+  allowedAttachmentMimeTypes: ["image/png", "application/pdf"],
+};
+
+vi.mock("@/features/communication/hooks/useCommunicationPolicy", () => ({
+  useCommunicationPolicy: vi.fn(() => ({
+    policy: mockPolicy,
+  })),
+}));
+
 const labels = conversationRedesignLabels.en;
 const voiceUnavailableMessage =
   "Voice recording is not available in this browser.";
@@ -87,5 +99,62 @@ describe("MessageComposer", () => {
 
     // onSend should have been called in the background
     expect(mockOnSend).toHaveBeenCalledWith("Hello world");
+  });
+
+  it("shows a character counter based on policy configuration", async () => {
+    renderComposer();
+    const input = screen.getByPlaceholderText(labels.writeMessage);
+    
+    // Counter should not render when empty
+    expect(screen.queryByText(/0 \/ 20/)).not.toBeInTheDocument();
+
+    // Counter should render when not empty
+    fireEvent.change(input, { target: { value: "Hello" } });
+    expect(screen.getByText("5 / 20")).toBeInTheDocument();
+  });
+
+  it("disables send button when body exceeds maxMessageLength", async () => {
+    renderComposer();
+    const input = screen.getByPlaceholderText(labels.writeMessage);
+    
+    // Type 21 characters (limit is 20)
+    fireEvent.change(input, { target: { value: "123456789012345678901" } });
+    
+    const sendBtn = screen.getByRole("button", { name: labels.send });
+    expect(sendBtn).toBeDisabled();
+  });
+
+  it("shows an inline error and does not add attachment when file size is exceeded", async () => {
+    const { container } = renderComposer();
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+
+    // mockPolicy has maxAttachmentSizeMb: 5
+    // Create an oversized file: 6 MB = 6 * 1024 * 1024 bytes
+    const oversizedFile = new File(["x".repeat(6 * 1024 * 1024)], "oversized.png", {
+      type: "image/png",
+    });
+
+    fireEvent.change(input, { target: { files: [oversizedFile] } });
+
+    expect(screen.getByText(labels.errorFileUploadSizeExceeded)).toBeInTheDocument();
+    // Verify file is not in preview
+    expect(screen.queryByText("oversized.png")).not.toBeInTheDocument();
+  });
+
+  it("shows an inline error and does not add attachment when MIME type is not allowed", async () => {
+    const { container } = renderComposer();
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+
+    // mockPolicy has allowedAttachmentMimeTypes: ["image/png", "application/pdf"]
+    // Create an unsupported file: text/plain
+    const unsupportedFile = new File(["content"], "readme.txt", {
+      type: "text/plain",
+    });
+
+    fireEvent.change(input, { target: { files: [unsupportedFile] } });
+
+    expect(screen.getByText(labels.errorFileUploadMimeNotAllowed)).toBeInTheDocument();
+    // Verify file is not in preview
+    expect(screen.queryByText("readme.txt")).not.toBeInTheDocument();
   });
 });

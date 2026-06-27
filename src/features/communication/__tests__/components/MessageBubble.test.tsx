@@ -78,4 +78,54 @@ describe("MessageBubble Delete Confirmation", () => {
       expect(onDeleteMessageMock).toHaveBeenCalled();
     });
   });
+
+  it("renders localized placeholder when normalized message status is 'deleted'", () => {
+    const message = createMessage({
+      id: "msg-deleted",
+      body: "Original message content",
+      senderId: "user-1",
+      status: "deleted",
+    });
+    render(
+      <MessageBubble
+        {...mockProps}
+        message={message}
+      />
+    );
+    expect(screen.getByText(labels.errorMessageDeleted)).toBeInTheDocument();
+    expect(screen.queryByText("Original message content")).not.toBeInTheDocument();
+  });
+
+  it("renders localized placeholder when normalized message status is 'DELETED' (case insensitivity)", () => {
+    const message = createMessage({
+      id: "msg-deleted-upper",
+      body: "Original message content",
+      senderId: "user-1",
+      status: "DELETED",
+    });
+    render(
+      <MessageBubble
+        {...mockProps}
+        message={message}
+      />
+    );
+    expect(screen.getByText(labels.errorMessageDeleted)).toBeInTheDocument();
+  });
+
+  it("renders localized placeholder when normalized message status is 'hidden'", () => {
+    const message = createMessage({
+      id: "msg-hidden",
+      body: "Original message content",
+      senderId: "user-1",
+      status: "hidden",
+    });
+    render(
+      <MessageBubble
+        {...mockProps}
+        message={message}
+      />
+    );
+    expect(screen.getByText(labels.errorMessageHidden)).toBeInTheDocument();
+    expect(screen.queryByText("Original message content")).not.toBeInTheDocument();
+  });
 });
