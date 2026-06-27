@@ -965,4 +965,89 @@ describe("ConversationDetail", () => {
       });
     });
   });
+
+  // ─── Error Toast Handling ───────────────────────────────────────────
+  describe("Error Toast Handling", () => {
+    it("toasts error when messagesState has an error and renders MessagesPanel without inline error", async () => {
+      setupDefaultMocks();
+      useConversationMessagesMock.mockReturnValue({
+        messages: [],
+        isLoading: false,
+        isLoadingOlder: false,
+        isMutating: false,
+        hasOlderMessages: false,
+        error: "Failed to load messages test error",
+        send: vi.fn(),
+        edit: vi.fn(),
+        remove: vi.fn(),
+        loadOlderMessages: vi.fn(),
+        refresh: vi.fn(),
+        upsertFromRealtime: vi.fn(),
+        deleteFromRealtime: vi.fn(),
+        patchFromRealtime: vi.fn(),
+        patchReadFromRealtime: vi.fn(),
+      });
+
+      const mockOnToast = vi.fn();
+      render(
+        <ConversationDetail
+          conversationId={TEST_CONVERSATION_ID}
+          labels={labels}
+          onBack={vi.fn()}
+          onToast={mockOnToast}
+        />
+      );
+
+      await waitFor(() => {
+        expect(mockOnToast).toHaveBeenCalledWith({
+          tone: "error",
+          message: "Failed to load messages test error",
+        });
+      });
+
+      // Verify no inline CenteredState error is displayed
+      expect(screen.queryByText("Failed to load messages test error")).not.toBeInTheDocument();
+    });
+
+    it("toasts error when participantsState has an error and renders ParticipantsPanel without inline error", async () => {
+      setupDefaultMocks();
+      useConversationParticipantsMock.mockReturnValue({
+        participants: [],
+        isLoading: false,
+        isMutating: false,
+        total: 0,
+        error: "Failed to load participants test error",
+        refresh: vi.fn(),
+        add: vi.fn(),
+        update: vi.fn(),
+        promote: vi.fn(),
+        demote: vi.fn(),
+        remove: vi.fn(),
+        leave: vi.fn(),
+      });
+
+      const mockOnToast = vi.fn();
+      render(
+        <ConversationDetail
+          conversationId={TEST_CONVERSATION_ID}
+          labels={labels}
+          onBack={vi.fn()}
+          onToast={mockOnToast}
+        />
+      );
+
+      // Switch to participants tab
+      fireEvent.click(screen.getByTestId("tab-participants"));
+
+      await waitFor(() => {
+        expect(mockOnToast).toHaveBeenCalledWith({
+          tone: "error",
+          message: "Failed to load participants test error",
+        });
+      });
+
+      // Verify no inline error panel state is displayed
+      expect(screen.queryByText("Failed to load participants test error")).not.toBeInTheDocument();
+    });
+  });
 });

@@ -253,6 +253,37 @@ export default function ConversationDetail({
     [conversationState.conversation, participantsState.participants, user?.id],
   );
 
+  // Toast error handlers for details loading hooks
+  useEffect(() => {
+    if (conversationState.error) {
+      onToast({ tone: "error", message: conversationState.error });
+    }
+  }, [conversationState.error, onToast]);
+
+  useEffect(() => {
+    if (messagesState.error) {
+      onToast({ tone: "error", message: messagesState.error });
+    }
+  }, [messagesState.error, onToast]);
+
+  useEffect(() => {
+    if (participantsState.error) {
+      onToast({ tone: "error", message: participantsState.error });
+    }
+  }, [participantsState.error, onToast]);
+
+  useEffect(() => {
+    if (invitesState.error) {
+      onToast({ tone: "error", message: invitesState.error });
+    }
+  }, [invitesState.error, onToast]);
+
+  useEffect(() => {
+    if (joinRequestsState.error) {
+      onToast({ tone: "error", message: joinRequestsState.error });
+    }
+  }, [joinRequestsState.error, onToast]);
+
   const refreshAll = useCallback(() => {
     void conversationState.refresh();
     void messagesState.refresh();
@@ -480,7 +511,7 @@ export default function ConversationDetail({
             attachmentsByMessageId={attachmentsState.attachmentsByMessageId}
             currentUserId={user?.id}
             currentUserName={currentUserName(user, labels)}
-            error={messagesState.error}
+            error={null}
             hasOlderMessages={messagesState.hasOlderMessages}
             isLoading={messagesState.isLoading}
             isLoadingOlder={messagesState.isLoadingOlder}
@@ -591,7 +622,7 @@ export default function ConversationDetail({
             canLeaveConversation={permissions.canLeaveConversation}
             canManage={permissions.canManageParticipants}
             currentUserId={user?.id}
-            error={participantsState.error}
+            error={null}
             isLoading={participantsState.isLoading}
             labels={labels}
             locale={locale}
@@ -619,7 +650,7 @@ export default function ConversationDetail({
             canCreate={permissions.canManageInvites}
             canManage={permissions.canManageInvites}
             currentUserId={user?.id}
-            error={invitesState.error}
+            error={null}
             invites={invitesState.invites}
             isLoading={invitesState.isLoading}
             isMutating={invitesState.isMutating}
@@ -643,7 +674,7 @@ export default function ConversationDetail({
           <JoinRequestsPanel
             canCreate={permissions.canCreateJoinRequest}
             canReview={permissions.canReviewJoinRequests}
-            error={joinRequestsState.error}
+            error={null}
             isLoading={joinRequestsState.isLoading}
             joinRequests={joinRequestsState.joinRequests}
             labels={labels}
