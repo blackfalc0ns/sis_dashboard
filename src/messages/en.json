@@ -10641,7 +10641,10 @@
     "view_all": "View all notifications",
     "untitled": "Untitled update",
     "no_preview": "No preview available.",
-    "system": "System"
+    "system": "System",
+    "unread": "Unread",
+    "read": "Read",
+    "archived": "Archived"
   },
   "saving": "Saving...",
   "save": "Save",

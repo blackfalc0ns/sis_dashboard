@@ -100,6 +100,9 @@ export default function TopNav({
     untitled: t("top_nav_notifications.untitled"),
     noPreview: t("top_nav_notifications.no_preview"),
     system: t("top_nav_notifications.system"),
+    unread: t("top_nav_notifications.unread"),
+    read: t("top_nav_notifications.read"),
+    archived: t("top_nav_notifications.archived"),
   };
 
   useEffect(() => {
