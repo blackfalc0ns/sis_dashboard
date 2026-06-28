@@ -128,4 +128,59 @@ describe("MessageBubble Delete Confirmation", () => {
     expect(screen.getByText(labels.errorMessageHidden)).toBeInTheDocument();
     expect(screen.queryByText("Original message content")).not.toBeInTheDocument();
   });
+
+  it("calls onReply with the message when the message bubble container is double-clicked and message is not deleted", () => {
+    const message = createMessage({
+      id: "msg-reply",
+      body: "Reply to this message!",
+      senderId: "user-1",
+      status: "sent",
+    });
+
+    const onReplyMock = vi.fn();
+
+    render(
+      <MessageBubble
+        {...mockProps}
+        message={message}
+        onReply={onReplyMock}
+      />
+    );
+
+    const messageText = screen.getByText("Reply to this message!");
+    const bubbleContainer = messageText.closest("div");
+    expect(bubbleContainer).toBeInTheDocument();
+
+    fireEvent.doubleClick(bubbleContainer!);
+
+    expect(onReplyMock).toHaveBeenCalledWith(message);
+  });
+
+  it("does not call onReply when the message bubble container is double-clicked and message is deleted", () => {
+    const message = createMessage({
+      id: "msg-reply-deleted",
+      body: "Reply to this message!",
+      senderId: "user-1",
+      status: "deleted",
+    });
+
+    const onReplyMock = vi.fn();
+
+    render(
+      <MessageBubble
+        {...mockProps}
+        message={message}
+        onReply={onReplyMock}
+      />
+    );
+
+    const placeholderText = screen.getByText(labels.errorMessageDeleted);
+    const bubbleContainer = placeholderText.closest("div");
+    expect(bubbleContainer).toBeInTheDocument();
+
+    fireEvent.doubleClick(bubbleContainer!);
+
+    expect(onReplyMock).not.toHaveBeenCalled();
+  });
 });
+

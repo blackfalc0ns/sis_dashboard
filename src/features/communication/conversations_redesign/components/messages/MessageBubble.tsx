@@ -233,6 +233,11 @@ export function MessageBubble({
 
         {/* Bubble */}
         <div
+          onDoubleClick={() => {
+            if (!deleted) {
+              onReply(message);
+            }
+          }}
           className={`relative min-w-0 max-w-full rounded-2xl px-2.5 py-1.5 shadow-sm ${
             isOwn
               ? `${isFirstInGroup? "rounded-ee-md": "" } bg-primary text-white`
