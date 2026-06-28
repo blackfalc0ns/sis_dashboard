@@ -641,4 +641,66 @@ describe("TopNavNotificationDropdown", () => {
     expect(onCloseMock).toHaveBeenCalled();
     expect(mockPush).toHaveBeenCalledWith("/en/communication/notifications");
   });
+
+  describe("status badges rendering", () => {
+    it("renders both Read and Archived status badges next to the title when notification is read and archived", () => {
+      const archivedNotification = {
+        ...mockNotifications[0],
+        status: "archived" as any,
+        readAt: "2026-06-27T20:00:00.000Z",
+      };
+
+      render(
+        <TopNavNotificationDropdown
+          notifications={[archivedNotification]}
+          unreadCount={0}
+          onMarkRead={onMarkReadMock}
+          onMarkAllRead={onMarkAllReadMock}
+          onArchive={onArchiveMock}
+          isOpen={true}
+          onClose={onCloseMock}
+          labels={{
+            read: "Read",
+            archived: "Archived",
+          } as any}
+        />
+      );
+
+      const readBadge = screen.getByText("Read");
+      const archivedBadge = screen.getByText("Archived");
+
+      expect(readBadge).toBeInTheDocument();
+      expect(archivedBadge).toBeInTheDocument();
+
+      expect(readBadge).toHaveClass("bg-slate-100", "text-slate-700");
+      expect(archivedBadge).toHaveClass("bg-amber-50", "text-amber-700");
+    });
+
+    it("renders a neutral badge showing the unknown status text formatted when an unknown status is passed", () => {
+      const snoozedNotification = {
+        ...mockNotifications[0],
+        status: "snoozed_again" as any,
+        readAt: "2026-06-27T20:00:00.000Z",
+      };
+
+      render(
+        <TopNavNotificationDropdown
+          notifications={[snoozedNotification]}
+          unreadCount={0}
+          onMarkRead={onMarkReadMock}
+          onMarkAllRead={onMarkAllReadMock}
+          onArchive={onArchiveMock}
+          isOpen={true}
+          onClose={onCloseMock}
+        />
+      );
+
+      const readBadge = screen.getByText("Read");
+      const snoozedBadge = screen.getByText("snoozed again");
+
+      expect(readBadge).toBeInTheDocument();
+      expect(snoozedBadge).toBeInTheDocument();
+      expect(snoozedBadge).toHaveClass("bg-slate-50", "text-slate-600");
+    });
+  });
 });

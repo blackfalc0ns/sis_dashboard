@@ -150,6 +150,9 @@ interface TopNavNotificationDropdownProps {
     all?: string;
     chat?: string;
     announcements?: string;
+    unread?: string;
+    read?: string;
+    archived?: string;
   };
 }
 
@@ -238,6 +241,9 @@ export default function TopNavNotificationDropdown({
     all: labels?.all ?? "All",
     chat: labels?.chat ?? "Chat",
     announcements: labels?.announcements ?? "Announcements",
+    unread: labels?.unread ?? "Unread",
+    read: labels?.read ?? "Read",
+    archived: labels?.archived ?? "Archived",
   };
 
   // Resolve route target using the same conversation target as message toasts.
@@ -493,6 +499,40 @@ export default function TopNavNotificationDropdown({
                         <span className="line-clamp-1 text-sm font-bold text-slate-950">
                           {title}
                         </span>
+                        {(() => {
+                          const isRead = Boolean(notification.readAt);
+                          return (
+                            <>
+                              <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium mt-0.5 ${
+                                isRead ? "bg-slate-100 text-slate-700" : "bg-blue-50 text-blue-700"
+                              }`}>
+                                {isRead ? mergedLabels.read : mergedLabels.unread}
+                              </span>
+                              {notification.status && notification.status !== (isRead ? "read" : "unread") ? (() => {
+                                let badgeClass = "bg-slate-50 text-slate-600";
+                                let badgeLabel = "";
+                                const statusStr = notification.status as string;
+                                if (statusStr === "archived") {
+                                  badgeClass = "bg-amber-50 text-amber-700";
+                                  badgeLabel = mergedLabels.archived;
+                                } else if (statusStr === "read") {
+                                  badgeClass = "bg-slate-100 text-slate-700";
+                                  badgeLabel = mergedLabels.read;
+                                } else if (statusStr === "unread") {
+                                  badgeClass = "bg-blue-50 text-blue-700";
+                                  badgeLabel = mergedLabels.unread;
+                                } else {
+                                  badgeLabel = statusStr.replace(/_/g, " ");
+                                }
+                                return (
+                                  <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium mt-0.5 ${badgeClass}`}>
+                                    {badgeLabel}
+                                  </span>
+                                );
+                              })() : null}
+                            </>
+                          );
+                        })()}
                         {notification.priority &&
                         (notification.priority === "urgent" ||
                           notification.priority === "high") ? (

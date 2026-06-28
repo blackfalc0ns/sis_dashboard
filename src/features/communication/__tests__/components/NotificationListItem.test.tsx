@@ -172,4 +172,68 @@ describe("NotificationListItem", () => {
       expect(screen.queryByRole("button", { name: "Archive" })).not.toBeInTheDocument();
     });
   });
+
+  describe("status badges rendering", () => {
+    it("renders both Read and Archived status badges side-by-side when notification is read and archived", () => {
+      const archivedNotification = {
+        ...mockNotification,
+        status: "archived" as any,
+        readAt: "2026-06-27T20:00:00.000Z",
+      };
+
+      const labelsWithArchived = {
+        ...labels,
+        archived: "Archived",
+      };
+
+      render(
+        <NotificationListItem
+          notification={archivedNotification}
+          locale="en"
+          labels={labelsWithArchived}
+        />
+      );
+
+      expect(screen.getByText("Read")).toBeInTheDocument();
+      expect(screen.getByText("Archived")).toBeInTheDocument();
+    });
+
+    it("renders both Read and Archived (fallback) status badges when labels.archived is undefined", () => {
+      const archivedNotification = {
+        ...mockNotification,
+        status: "archived" as any,
+        readAt: "2026-06-27T20:00:00.000Z",
+      };
+
+      render(
+        <NotificationListItem
+          notification={archivedNotification}
+          locale="en"
+          labels={labels}
+        />
+      );
+
+      expect(screen.getByText("Read")).toBeInTheDocument();
+      expect(screen.getByText("Archived")).toBeInTheDocument();
+    });
+
+    it("renders a neutral badge with formatted text when an unknown status is passed", () => {
+      const snoozedNotification = {
+        ...mockNotification,
+        status: "snoozed_again" as any,
+        readAt: "2026-06-27T20:00:00.000Z",
+      };
+
+      render(
+        <NotificationListItem
+          notification={snoozedNotification}
+          locale="en"
+          labels={labels}
+        />
+      );
+
+      expect(screen.getByText("Read")).toBeInTheDocument();
+      expect(screen.getByText("snoozed again")).toBeInTheDocument();
+    });
+  });
 });

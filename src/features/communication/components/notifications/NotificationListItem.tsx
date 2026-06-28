@@ -14,6 +14,7 @@ export interface NotificationListItemLabels {
   markRead: string;
   archive: string;
   viewDetails: string;
+  archived?: string;
 }
 
 export interface NotificationListItemProps {
@@ -69,7 +70,7 @@ export default function NotificationListItem({
   onMarkRead,
   onViewDetails,
 }: NotificationListItemProps) {
-  const isRead = notification.status === "read" || Boolean(notification.readAt);
+  const isRead = Boolean(notification.readAt);
   const isOwned = Boolean(currentUserId) && (notification.recipientUserId === currentUserId || notification.userId === currentUserId);
 
   const handleCardClick = () => {
@@ -115,6 +116,30 @@ export default function NotificationListItem({
               label={isRead ? labels.read : labels.unread}
               tone={isRead ? "success" : "info"}
             />
+            {notification.status && notification.status !== (isRead ? "read" : "unread") ? (() => {
+              let secondaryTone: "success" | "info" | "warning" | "neutral" = "neutral";
+              let secondaryLabel = "";
+              const statusStr = notification.status as string;
+              if (statusStr === "archived") {
+                secondaryTone = "warning";
+                secondaryLabel = labels.archived ?? "Archived";
+              } else if (statusStr === "read") {
+                secondaryTone = "success";
+                secondaryLabel = labels.read;
+              } else if (statusStr === "unread") {
+                secondaryTone = "info";
+                secondaryLabel = labels.unread;
+              } else {
+                secondaryTone = "neutral";
+                secondaryLabel = statusStr.replace(/_/g, " ");
+              }
+              return (
+                <CommunicationStatusChip
+                  label={secondaryLabel}
+                  tone={secondaryTone}
+                />
+              );
+            })() : null}
             {notification.type ? (
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
                 {labels.type}: {notification.type}
