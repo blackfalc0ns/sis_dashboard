@@ -69,9 +69,25 @@ export default function NotificationListItem({
 }: NotificationListItemProps) {
   const isRead = notification.status === "read" || Boolean(notification.readAt);
 
+  const handleCardClick = () => {
+    if (onViewDetails) {
+      onViewDetails(notification.id);
+    }
+  };
+
   return (
     <article
-      className={`rounded-lg border p-4 shadow-sm ${
+      role="button"
+      tabIndex={0}
+      data-testid="notification-card"
+      onClick={handleCardClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
+      className={`rounded-lg border p-4 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
         isRead
           ? "border-slate-200 bg-white"
           : "border-primary-200 bg-primary-50/70"
@@ -115,7 +131,10 @@ export default function NotificationListItem({
                 size="sm"
                 variant="secondary"
                 disabled={isMutating}
-                onClick={() => onViewDetails(notification.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewDetails(notification.id);
+                }}
                 leftIcon={<Eye className="h-3.5 w-3.5" aria-hidden="true" />}
               >
                 {labels.viewDetails}
@@ -127,7 +146,10 @@ export default function NotificationListItem({
                 size="sm"
                 variant="secondary"
                 disabled={isMutating}
-                onClick={() => onMarkRead(notification.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMarkRead(notification.id);
+                }}
                 leftIcon={<Check className="h-3.5 w-3.5" aria-hidden="true" />}
               >
                 {labels.markRead}
@@ -139,7 +161,10 @@ export default function NotificationListItem({
                 size="sm"
                 variant="ghost"
                 disabled={isMutating}
-                onClick={() => onArchive(notification.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onArchive(notification.id);
+                }}
                 leftIcon={
                   <Archive className="h-3.5 w-3.5" aria-hidden="true" />
                 }

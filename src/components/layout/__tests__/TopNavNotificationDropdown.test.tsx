@@ -326,6 +326,46 @@ describe("TopNavNotificationDropdown", () => {
     );
   });
 
+  it("redirects to the dedicated announcement details page when clicking an announcement notification", () => {
+    render(
+      <TopNavNotificationDropdown
+        notifications={[
+          {
+            id: "notif-announcement",
+            type: "announcement_published",
+            sourceModule: "announcements",
+            title: "New Announcement Title",
+            body: "Announcement details body",
+            status: "unread",
+            priority: "normal",
+            deepLink: {
+              type: "announcement",
+              announcementId: "ann-12345",
+            },
+            createdAt: "2026-06-27T19:00:00.000Z",
+          },
+        ]}
+        unreadCount={1}
+        onMarkRead={onMarkReadMock}
+        onMarkAllRead={onMarkAllReadMock}
+        onArchive={onArchiveMock}
+        isOpen={true}
+        onClose={onCloseMock}
+      />
+    );
+
+    const card = screen.getByText("New Announcement Title").closest('[role="button"]');
+    expect(card).toBeInTheDocument();
+
+    if (card) {
+      fireEvent.click(card);
+    }
+
+    expect(mockPush).toHaveBeenCalledWith(
+      "/en/communication/announcements/ann-12345",
+    );
+  });
+
   it("renders and handles sound control speaker toggle", () => {
     // Reset mocked functions
     vi.mocked(getNotificationMuted).mockReturnValue(false);

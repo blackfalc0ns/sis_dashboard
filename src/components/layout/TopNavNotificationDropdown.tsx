@@ -216,7 +216,7 @@ export default function TopNavNotificationDropdown({
         stringValue(deepLink.announcementId) ??
         stringValue(deepLink.announcement_id);
       return announcementId
-        ? `/${locale}/communication?announcementId=${encodeURIComponent(announcementId)}`
+        ? `/${locale}/communication/announcements/${encodeURIComponent(announcementId)}`
         : null;
     }
     return null;
