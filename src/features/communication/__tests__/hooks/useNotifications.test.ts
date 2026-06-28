@@ -40,20 +40,6 @@ describe("useNotifications", () => {
     vi.restoreAllMocks();
   });
 
-  it("refreshes when a notification is created over the socket", async () => {
-    renderHook(() => useNotifications());
-
-    await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(1));
-
-    await act(async () => {
-      mockSocket.simulateEvent(COMMUNICATION_SOCKET_EVENTS.notificationCreated, {
-        notification: { id: "notification-1" },
-      });
-    });
-
-    await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(2));
-  });
-
   it("cleans up notification socket listeners on unmount", async () => {
     const { unmount } = renderHook(() => useNotifications());
 
@@ -166,6 +152,30 @@ describe("useNotifications", () => {
 
     afterEach(() => {
       vi.useRealTimers();
+    });
+
+    it("refreshes when a notification is created over the socket", async () => {
+      renderHook(() => useNotifications());
+
+      await act(async () => {
+        vi.advanceTimersByTime(0);
+      });
+      expect(getNotificationsMock).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        mockSocket.simulateEvent(COMMUNICATION_SOCKET_EVENTS.notificationCreated, {
+          notification: { id: "notification-1" },
+        });
+      });
+
+      // It should NOT call refresh immediately
+      expect(getNotificationsMock).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        vi.advanceTimersByTime(100);
+      });
+
+      expect(getNotificationsMock).toHaveBeenCalledTimes(2);
     });
 
     it("debounces multiple socket events to a single refresh after 100ms", async () => {
