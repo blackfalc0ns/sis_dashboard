@@ -1,7 +1,8 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TopNavNotificationDropdown from "../TopNavNotificationDropdown";
 import { getNotificationMuted, setNotificationMuted } from "@/features/communication/hooks/useNotificationSound";
+import { getMessage } from "@/features/communication/api/communication.service";
 
 // Mock next/navigation
 const mockPush = vi.fn();
@@ -9,6 +10,10 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: mockPush,
   }),
+}));
+
+vi.mock("next-intl", () => ({
+  useLocale: () => "en",
 }));
 
 // Mock useNotificationSound hook functions
@@ -24,6 +29,10 @@ vi.mock("@/features/communication/hooks/useNotificationSound", () => {
     })),
   };
 });
+
+vi.mock("@/features/communication/api/communication.service", () => ({
+  getMessage: vi.fn(),
+}));
 
 describe("TopNavNotificationDropdown", () => {
   const onMarkReadMock = vi.fn();
@@ -73,6 +82,7 @@ describe("TopNavNotificationDropdown", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getMessage).mockResolvedValue({});
   });
 
   it("renders nothing when isOpen is false", () => {
@@ -145,8 +155,175 @@ describe("TopNavNotificationDropdown", () => {
     // Verify onMarkRead triggered
     expect(onMarkReadMock).toHaveBeenCalledWith("notif-2");
 
-    // Verify router push was called with the deepLink route for conversation_message
-    expect(mockPush).toHaveBeenCalledWith("/communication?conversationId=conv-456");
+    // Verify router push was called with the same conversations route as the toast
+    expect(mockPush).toHaveBeenCalledWith(
+      "/en/communication/conversations?conversationId=conv-456",
+    );
+  });
+
+  it("opens a communication conversation when the notification has a top-level conversationId", () => {
+    render(
+      <TopNavNotificationDropdown
+        notifications={[
+          {
+            id: "notif-conversation",
+            type: "message_received",
+            sourceModule: "communication",
+            title: "New Message",
+            body: "Open the conversation",
+            status: "unread",
+            priority: "normal",
+            conversationId: "conv-from-notification",
+            createdAt: "2026-06-27T19:00:00.000Z",
+          },
+        ]}
+        unreadCount={1}
+        onMarkRead={onMarkReadMock}
+        onMarkAllRead={onMarkAllReadMock}
+        onArchive={onArchiveMock}
+        isOpen={true}
+        onClose={onCloseMock}
+      />
+    );
+
+    const messageCard = screen.getByText("New Message").closest('[role="button"]');
+    expect(messageCard).toBeInTheDocument();
+
+    if (messageCard) {
+      fireEvent.click(messageCard);
+    }
+
+    expect(onMarkReadMock).toHaveBeenCalledWith("notif-conversation");
+    expect(mockPush).toHaveBeenCalledWith(
+      "/en/communication/conversations?conversationId=conv-from-notification",
+    );
+  });
+
+  it("opens a communication conversation from persisted snake-case notification fields", () => {
+    render(
+      <TopNavNotificationDropdown
+        notifications={[
+          {
+            id: "notif-snake-case",
+            type: "message_received",
+            sourceModule: "communication",
+            title: "Stored Message",
+            body: "Open stored conversation",
+            status: "unread",
+            priority: "normal",
+            deep_link: {
+              type: "conversation_message",
+              conversation_id: "conv-from-deep-link",
+              message_id: "msg-from-deep-link",
+            },
+            createdAt: "2026-06-27T19:00:00.000Z",
+          },
+        ]}
+        unreadCount={1}
+        onMarkRead={onMarkReadMock}
+        onMarkAllRead={onMarkAllReadMock}
+        onArchive={onArchiveMock}
+        isOpen={true}
+        onClose={onCloseMock}
+      />
+    );
+
+    const messageCard = screen.getByText("Stored Message").closest('[role="button"]');
+    expect(messageCard).toBeInTheDocument();
+
+    if (messageCard) {
+      fireEvent.click(messageCard);
+    }
+
+    expect(mockPush).toHaveBeenCalledWith(
+      "/en/communication/conversations?conversationId=conv-from-deep-link",
+    );
+  });
+
+  it("opens a conversation when the persisted notification source is a conversation", () => {
+    render(
+      <TopNavNotificationDropdown
+        notifications={[
+          {
+            id: "notif-source-conversation",
+            type: "message_received",
+            sourceModule: "communication",
+            title: "Source Conversation",
+            body: "Open source conversation",
+            status: "unread",
+            priority: "normal",
+            source_type: "conversation",
+            source_id: "conv-from-source",
+            createdAt: "2026-06-27T19:00:00.000Z",
+          },
+        ]}
+        unreadCount={1}
+        onMarkRead={onMarkReadMock}
+        onMarkAllRead={onMarkAllReadMock}
+        onArchive={onArchiveMock}
+        isOpen={true}
+        onClose={onCloseMock}
+      />
+    );
+
+    const messageCard = screen
+      .getByText("Source Conversation")
+      .closest('[role="button"]');
+    expect(messageCard).toBeInTheDocument();
+
+    if (messageCard) {
+      fireEvent.click(messageCard);
+    }
+
+    expect(mockPush).toHaveBeenCalledWith(
+      "/en/communication/conversations?conversationId=conv-from-source",
+    );
+  });
+
+  it("opens a conversation by resolving the source message notification", async () => {
+    vi.mocked(getMessage).mockResolvedValueOnce({
+      id: "msg-source",
+      conversationId: "conv-from-message",
+    });
+
+    render(
+      <TopNavNotificationDropdown
+        notifications={[
+          {
+            id: "notif-message-source",
+            type: "message_received",
+            sourceModule: "communication",
+            title: "Message Source",
+            body: "Open message conversation",
+            status: "unread",
+            priority: "normal",
+            sourceType: "message",
+            sourceId: "msg-source",
+            createdAt: "2026-06-27T19:00:00.000Z",
+          },
+        ]}
+        unreadCount={1}
+        onMarkRead={onMarkReadMock}
+        onMarkAllRead={onMarkAllReadMock}
+        onArchive={onArchiveMock}
+        isOpen={true}
+        onClose={onCloseMock}
+      />
+    );
+
+    const messageCard = screen
+      .getByText("Message Source")
+      .closest('[role="button"]');
+    expect(messageCard).toBeInTheDocument();
+
+    if (messageCard) {
+      fireEvent.click(messageCard);
+    }
+
+    await waitFor(() => expect(getMessage).toHaveBeenCalledWith("msg-source"));
+    expect(mockPush).toHaveBeenCalledWith(
+      "/en/communication/conversations?conversationId=conv-from-message",
+    );
   });
 
   it("renders and handles sound control speaker toggle", () => {
@@ -220,5 +397,124 @@ describe("TopNavNotificationDropdown", () => {
 
     // Verify onArchive triggered
     expect(onArchiveMock).toHaveBeenCalledWith("notif-1");
+  });
+
+  it("renders four filter tabs: All, Chat, Announcements, and Academics", () => {
+    const onTabChangeMock = vi.fn();
+    render(
+      <TopNavNotificationDropdown
+        notifications={mockNotifications}
+        unreadCount={2}
+        onMarkRead={onMarkReadMock}
+        onMarkAllRead={onMarkAllReadMock}
+        onArchive={onArchiveMock}
+        isOpen={true}
+        onClose={onCloseMock}
+        activeTab="all"
+        onTabChange={onTabChangeMock}
+      />
+    );
+
+    expect(screen.getByRole("tab", { name: /All/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Chat/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Announcements/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Academics/i })).toBeInTheDocument();
+  });
+
+  it("calls onTabChange callback when a tab is clicked", () => {
+    const onTabChangeMock = vi.fn();
+    render(
+      <TopNavNotificationDropdown
+        notifications={mockNotifications}
+        unreadCount={2}
+        onMarkRead={onMarkReadMock}
+        onMarkAllRead={onMarkAllReadMock}
+        onArchive={onArchiveMock}
+        isOpen={true}
+        onClose={onCloseMock}
+        activeTab="all"
+        onTabChange={onTabChangeMock}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: /Chat/i }));
+    expect(onTabChangeMock).toHaveBeenCalledWith("chat");
+
+    fireEvent.click(screen.getByRole("tab", { name: /Announcements/i }));
+    expect(onTabChangeMock).toHaveBeenCalledWith("announcements");
+
+    fireEvent.click(screen.getByRole("tab", { name: /Academics/i }));
+    expect(onTabChangeMock).toHaveBeenCalledWith("academics");
+  });
+
+  it("filters notifications to show only academics modules when activeTab is academics", () => {
+    const academicNotifications = [
+      {
+        id: "academic-1",
+        type: "attendance_absence" as const,
+        sourceModule: "attendance" as const,
+        title: "Attendance Notification",
+        body: "Absent",
+        status: "unread" as const,
+        createdAt: "2026-06-27T20:00:00.000Z",
+      },
+      {
+        id: "academic-2",
+        type: "grade_posted" as const,
+        sourceModule: "grades" as const,
+        title: "Grade Notification",
+        body: "A Grade",
+        status: "unread" as const,
+        createdAt: "2026-06-27T19:00:00.000Z",
+      },
+      {
+        id: "chat-1",
+        type: "message_received" as const,
+        sourceModule: "communication" as const,
+        title: "Chat Notification",
+        body: "Hello",
+        status: "unread" as const,
+        createdAt: "2026-06-27T18:00:00.000Z",
+      },
+    ];
+
+    const { rerender } = render(
+      <TopNavNotificationDropdown
+        notifications={academicNotifications}
+        unreadCount={3}
+        onMarkRead={onMarkReadMock}
+        onMarkAllRead={onMarkAllReadMock}
+        onArchive={onArchiveMock}
+        isOpen={true}
+        onClose={onCloseMock}
+        activeTab="all"
+        onTabChange={vi.fn()}
+      />
+    );
+
+    // Verify all 3 are shown
+    expect(screen.getByText("Attendance Notification")).toBeInTheDocument();
+    expect(screen.getByText("Grade Notification")).toBeInTheDocument();
+    expect(screen.getByText("Chat Notification")).toBeInTheDocument();
+
+    // Rerender with activeTab="academics"
+    rerender(
+      <TopNavNotificationDropdown
+        notifications={academicNotifications}
+        unreadCount={3}
+        onMarkRead={onMarkReadMock}
+        onMarkAllRead={onMarkAllReadMock}
+        onArchive={onArchiveMock}
+        isOpen={true}
+        onClose={onCloseMock}
+        activeTab="academics"
+        onTabChange={vi.fn()}
+      />
+    );
+
+    // Verify chat notification is NOT shown, but academic ones are
+    expect(screen.getByText("Attendance Notification")).toBeInTheDocument();
+    expect(screen.getByText("Grade Notification")).toBeInTheDocument();
+    expect(screen.queryByText("Chat Notification")).not.toBeInTheDocument();
   });
 });

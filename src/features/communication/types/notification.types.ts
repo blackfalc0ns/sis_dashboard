@@ -49,13 +49,21 @@ export interface CommunicationNotification extends CommunicationRecord {
   type?: NotificationType;
   sourceModule?: NotificationSourceModule;
   sourceType?: string;
+  source_type?: string;
   sourceId?: CommunicationId;
+  source_id?: CommunicationId;
   entityType?: string;
+  entity_type?: string;
   entityId?: CommunicationId;
+  entity_id?: CommunicationId;
+  conversationId?: CommunicationId;
+  conversation_id?: CommunicationId;
   recipientUserId?: CommunicationId;
   readAt?: CommunicationDateTime | null;
   archivedAt?: CommunicationDateTime | null;
   metadata?: CommunicationRecord | null;
+  deepLink?: CommunicationRecord | null;
+  deep_link?: CommunicationRecord | null;
   createdAt?: CommunicationDateTime;
   updatedAt?: CommunicationDateTime;
 }

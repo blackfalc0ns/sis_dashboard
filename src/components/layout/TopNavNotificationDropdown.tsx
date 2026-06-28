@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import {
   Bell,
   Megaphone,
@@ -20,7 +21,76 @@ import {
   getNotificationMuted,
   setNotificationMuted,
 } from "@/features/communication/hooks/useNotificationSound";
+import { getMessage } from "@/features/communication/api/communication.service";
 import type { CommunicationNotification } from "@/features/communication/types/notification.types";
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function recordValue(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function getCommunicationConversationId(
+  notification: CommunicationNotification,
+): string | undefined {
+  const deepLink =
+    recordValue(notification.deepLink) ?? recordValue(notification.deep_link);
+  const metadata = recordValue(notification.metadata);
+  const sourceType =
+    stringValue(notification.sourceType) ?? stringValue(notification.source_type);
+  const entityType =
+    stringValue(notification.entityType) ?? stringValue(notification.entity_type);
+
+  return (
+    (deepLink?.type === "conversation_message"
+      ? stringValue(deepLink.conversationId) ??
+        stringValue(deepLink.conversation_id)
+      : undefined) ??
+    stringValue(notification.conversationId) ??
+    stringValue(notification.conversation_id) ??
+    stringValue(metadata?.conversationId) ??
+    stringValue(metadata?.conversation_id) ??
+    (sourceType === "conversation"
+      ? stringValue(notification.sourceId) ??
+        stringValue(notification.source_id)
+      : undefined) ??
+    (entityType === "conversation"
+      ? stringValue(notification.entityId) ??
+        stringValue(notification.entity_id)
+      : undefined)
+  );
+}
+
+function getNotificationSourceType(notification: CommunicationNotification) {
+  return (
+    stringValue(notification.sourceType) ??
+    stringValue(notification.source_type)
+  );
+}
+
+function getNotificationSourceId(notification: CommunicationNotification) {
+  return stringValue(notification.sourceId) ?? stringValue(notification.source_id);
+}
+
+function getNotificationMessageId(
+  notification: CommunicationNotification,
+): string | undefined {
+  const sourceType = getNotificationSourceType(notification);
+
+  if (sourceType === "message") {
+    return getNotificationSourceId(notification);
+  }
+
+  if (notification.type?.startsWith("message_")) {
+    return getNotificationSourceId(notification);
+  }
+
+  return undefined;
+}
 
 interface TopNavNotificationDropdownProps {
   notifications: CommunicationNotification[];
@@ -30,6 +100,8 @@ interface TopNavNotificationDropdownProps {
   onArchive: (notificationId: string) => Promise<unknown> | void;
   isOpen: boolean;
   onClose: () => void;
+  activeTab: "all" | "chat" | "announcements" | "academics";
+  onTabChange: (tab: "all" | "chat" | "announcements" | "academics") => void;
   labels?: {
     title?: string;
     unreadCount?: string;
@@ -41,6 +113,10 @@ interface TopNavNotificationDropdownProps {
     high?: string;
     mute?: string;
     unmute?: string;
+    all?: string;
+    chat?: string;
+    announcements?: string;
+    academics?: string;
   };
 }
 
@@ -52,9 +128,12 @@ export default function TopNavNotificationDropdown({
   onArchive,
   isOpen,
   onClose,
+  activeTab,
+  onTabChange,
   labels,
 }: TopNavNotificationDropdownProps) {
   const router = useRouter();
+  const locale = useLocale();
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   // Track mute state locally to handle state update correctly
@@ -109,18 +188,58 @@ export default function TopNavNotificationDropdown({
     high: labels?.high ?? "High",
     mute: labels?.mute ?? "Mute notifications",
     unmute: labels?.unmute ?? "Unmute notifications",
+    all: labels?.all ?? "All",
+    chat: labels?.chat ?? "Chat",
+    announcements: labels?.announcements ?? "Announcements",
+    academics: labels?.academics ?? "Academics",
   };
 
-  // Helper to resolve route target based on deepLink object
-  const getDeepLinkUrl = (deepLink: any) => {
-    if (!deepLink) return null;
-    if (deepLink.type === "conversation_message") {
-      return `/communication?conversationId=${deepLink.conversationId}`;
+  const displayedNotifications = activeTab === "academics"
+    ? notifications.filter((n) =>
+        ["attendance", "grades", "behavior", "reinforcement"].includes(
+          n.sourceModule || "",
+        ),
+      )
+    : notifications;
+
+  // Resolve route target using the same conversation target as message toasts.
+  const getNotificationUrl = (notification: CommunicationNotification) => {
+    const conversationId = getCommunicationConversationId(notification);
+    if (conversationId) {
+      return `/${locale}/communication/conversations?conversationId=${encodeURIComponent(conversationId)}`;
     }
-    if (deepLink.type === "announcement") {
-      return `/communication?announcementId=${deepLink.announcementId}`;
+
+    const deepLink =
+      recordValue(notification.deepLink) ?? recordValue(notification.deep_link);
+    if (deepLink?.type === "announcement") {
+      const announcementId =
+        stringValue(deepLink.announcementId) ??
+        stringValue(deepLink.announcement_id);
+      return announcementId
+        ? `/${locale}/communication?announcementId=${encodeURIComponent(announcementId)}`
+        : null;
     }
     return null;
+  };
+
+  const getAsyncNotificationUrl = async (
+    notification: CommunicationNotification,
+  ) => {
+    const messageId = getNotificationMessageId(notification);
+    if (!messageId) return null;
+
+    const response = await getMessage(messageId);
+    const message = recordValue(response);
+    const payload = recordValue(message?.data) ?? recordValue(message?.item);
+    const conversationId =
+      stringValue(message?.conversationId) ??
+      stringValue(message?.conversation_id) ??
+      stringValue(payload?.conversationId) ??
+      stringValue(payload?.conversation_id);
+
+    return conversationId
+      ? `/${locale}/communication/conversations?conversationId=${encodeURIComponent(conversationId)}`
+      : null;
   };
 
   // Helper to map notification type to Lucide icons
@@ -212,15 +331,39 @@ export default function TopNavNotificationDropdown({
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="flex border-b border-slate-100 bg-white px-2" role="tablist" aria-label="Notification filters">
+        {(["all", "chat", "announcements", "academics"] as const).map((tab) => {
+          const isActive = activeTab === tab;
+          const label = mergedLabels[tab];
+          return (
+            <button
+              key={tab}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => onTabChange(tab)}
+              className={`flex-1 py-2.5 text-center text-xs font-semibold border-b-2 transition-all duration-200 focus:outline-none capitalize ${
+                isActive
+                  ? "border-primary-600 text-primary-600 dark:border-primary-500 dark:text-primary-500"
+                  : "border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-200"
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Notifications List */}
       <div
         className="relative max-h-[22rem] overflow-y-auto px-2 py-2"
         role="listbox"
         aria-label="Notification list"
       >
-        {notifications.length > 0 ? (
+        {displayedNotifications.length > 0 ? (
           <div className="space-y-1.5">
-            {notifications.map((notification) => {
+            {displayedNotifications.map((notification) => {
               const isUnread =
                 notification.status === "unread" ||
                 (notification.status !== "read" && !notification.readAt);
@@ -229,15 +372,22 @@ export default function TopNavNotificationDropdown({
               const title = notification.title || notification.titleEn || "Untitled update";
               const body = notification.body || notification.bodyEn || "No preview available.";
 
-              const handleCardClick = () => {
+              const handleCardClick = async () => {
                 if (isUnread) {
-                  onMarkRead(notification.id);
+                  void onMarkRead(notification.id);
                 }
-                const target = getDeepLinkUrl(notification.deepLink);
-                if (target) {
-                  router.push(target);
+                try {
+                  const target =
+                    getNotificationUrl(notification) ??
+                    (await getAsyncNotificationUrl(notification));
+                  if (target) {
+                    router.push(target);
+                  }
+                } catch (error) {
+                  console.warn("Failed to resolve notification target:", error);
+                } finally {
+                  onClose();
                 }
-                onClose();
               };
 
               return (
@@ -249,7 +399,7 @@ export default function TopNavNotificationDropdown({
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      handleCardClick();
+                      void handleCardClick();
                     }
                   }}
                   className="group grid w-full cursor-pointer grid-cols-[2.25rem_1fr_2rem] gap-3 rounded-xl border border-transparent bg-white px-3 py-3 text-start transition-colors duration-200 hover:border-slate-100 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500"

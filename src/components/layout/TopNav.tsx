@@ -47,6 +47,7 @@ export default function TopNav({
 }: TopNavProps) {
   const t = useTranslations();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"all" | "chat" | "announcements" | "academics">("all");
   const notificationsRef = useRef<HTMLDivElement | null>(null);
 
   const { user } = useAuth();
@@ -56,7 +57,30 @@ export default function TopNav({
     markRead: liveMarkRead,
     markAllRead: liveMarkAllRead,
     archive: liveArchive,
+    setFilters: setLiveFilters,
   } = useNotifications({ recipientUserId: user?.id });
+
+  const handleTabChange = (tab: "all" | "chat" | "announcements" | "academics") => {
+    setActiveTab(tab);
+    let sourceModuleVal: "" | "communication" | "announcements" = "";
+    if (tab === "chat") {
+      sourceModuleVal = "communication";
+    } else if (tab === "announcements") {
+      sourceModuleVal = "announcements";
+    }
+    setLiveFilters((prev) => ({
+      ...prev,
+      sourceModule: sourceModuleVal,
+    }));
+  };
+
+  const notificationLabels = {
+    title: t("notifications") === "notifications" ? "Notifications" : t("notifications"),
+    all: t("all") === "all" ? "All" : t("all"),
+    chat: t("chat") === "chat" ? "Chat" : t("chat"),
+    announcements: t("announcements") === "announcements" ? "Announcements" : t("announcements"),
+    academics: t("academics") === "academics" ? "Academics" : t("academics"),
+  };
 
   useEffect(() => {
     if (!notificationsOpen) return;
@@ -154,6 +178,9 @@ export default function TopNav({
                 onArchive={liveArchive}
                 isOpen={notificationsOpen}
                 onClose={() => setNotificationsOpen(false)}
+                activeTab={activeTab}
+                onTabChange={handleTabChange}
+                labels={notificationLabels}
               />
             </div>
 
