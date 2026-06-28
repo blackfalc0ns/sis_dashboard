@@ -13,11 +13,19 @@ The page will support the delivery endpoint's canonical filters:
 - `channel`: select with `in_app`, `email`, `sms`, and `push`
 - `status`: select with `pending`, `sent`, `delivered`, `failed`, and `skipped`
 - `provider`: exact-match text input unless the backend later supports partial search
-- `createdFrom` and `createdTo`: date-time inputs
+- `createdFrom` and `createdTo`: shared `DateTimePicker` controls
 
 The UI will send only `status`, not the duplicate `deliveryStatus` alias. Changing or clearing any filter resets delivery pagination to page 1.
 
 The date-time inputs are converted to ISO 8601 strings before they are sent, for example `2026-06-01T00:00:00.000Z`. The backend treats `createdTo` as an inclusive upper bound.
+
+## Date-Time Picker
+
+Add a separate shared `DateTimePicker` wrapper under the existing input components. It uses MUI X `DateTimePicker`, the existing Day.js adapter, locale-aware formatting, RTL direction, validation text, and the same visual input props as the current shared `DatePicker` where applicable.
+
+The existing `DatePicker` remains unchanged, so its date-only behavior and current callers are unaffected. Only notification and notification-delivery filters use the new wrapper.
+
+The wrapper accepts and returns `Date | null`. Each filter converts a selected date-time to an ISO 8601 string for its existing filter state and converts the stored string back to a `Date` for rendering. The From picker uses the To value as its maximum, and the To picker uses the From value as its minimum. Clearing either picker removes that query parameter.
 
 ## Notification Selector
 
@@ -56,6 +64,8 @@ Focused tests will cover:
 - Notification option labels are human-readable and do not contain IDs.
 - Local search filters loaded notification options.
 - Date-time filters are sent as ISO 8601 strings and preserve the inclusive `createdTo` contract.
+- Existing date-only picker behavior remains unchanged.
+- Notification filter date-time controls preserve the selected time and enforce the From/To range.
 - A notification-selector permission failure does not prevent the delivery table from loading.
 - Arabic and English filter labels render correctly.
 - The table renders only the approved summary columns.
