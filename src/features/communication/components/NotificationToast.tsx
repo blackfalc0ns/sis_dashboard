@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 export interface MessageNotification {
   id: string;
   conversationId: string;
+  targetUrl?: string;
   senderName: string;
   body: string;
   timestamp: number;
@@ -14,7 +15,7 @@ export interface MessageNotification {
 interface NotificationToastProps {
   notifications: MessageNotification[];
   onDismiss: (id: string) => void;
-  onClick: (conversationId: string) => void;
+  onClick: (notification: MessageNotification) => void;
 }
 
 export function NotificationToastContainer({
@@ -31,7 +32,7 @@ export function NotificationToastContainer({
           key={notification.id}
           notification={notification}
           onDismiss={() => onDismiss(notification.id)}
-          onClick={() => onClick(notification.conversationId)}
+          onClick={() => onClick(notification)}
         />
       ))}
     </div>

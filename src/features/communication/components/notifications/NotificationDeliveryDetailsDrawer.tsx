@@ -5,7 +5,6 @@ import Button from "@/components/ui/button/Button";
 import Modal from "@/components/ui/modal/Modal";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
 import CommunicationLoadingState from "@/features/communication/components/layout/CommunicationLoadingState";
-import type { CommunicationRecord } from "@/features/communication/types/communication.types";
 import type { NotificationDelivery } from "@/features/communication/types/notification.types";
 
 export interface NotificationDeliveryDetailsDrawerLabels {
@@ -15,18 +14,18 @@ export interface NotificationDeliveryDetailsDrawerLabels {
   errorTitle: string;
   id: string;
   notificationId: string;
-  recipientUserId: string;
   channel: string;
   status: string;
-  deliveryStatus: string;
   provider: string;
+  providerMessageId: string;
+  errorCode: string;
+  errorMessage: string;
+  attemptedAt: string;
   sentAt: string;
   deliveredAt: string;
-  readAt: string;
   failedAt: string;
-  errorMessage: string;
-  advanced: string;
-  metadata: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface NotificationDeliveryDetailsDrawerProps {
@@ -46,11 +45,6 @@ function formatDate(value?: string | null) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
-}
-
-function metadataJson(metadata?: CommunicationRecord | null) {
-  if (!metadata || Object.keys(metadata).length === 0) return null;
-  return JSON.stringify(metadata, null, 2);
 }
 
 function DetailRow({ label, value }: { label: string; value?: unknown }) {
@@ -75,8 +69,6 @@ export default function NotificationDeliveryDetailsDrawer({
   onClose,
   open,
 }: NotificationDeliveryDetailsDrawerProps) {
-  const metadata = metadataJson(delivery?.metadata);
-
   return (
     <Modal
       isOpen={open}
@@ -101,55 +93,31 @@ export default function NotificationDeliveryDetailsDrawer({
         {isLoading ? (
           <CommunicationLoadingState label={labels.loading} />
         ) : delivery ? (
-          <>
-            <dl className="grid gap-3">
-              <DetailRow label={labels.id} value={delivery.id} />
-              <DetailRow
-                label={labels.notificationId}
-                value={delivery.notificationId}
-              />
-              <DetailRow
-                label={labels.recipientUserId}
-                value={delivery.recipientUserId ?? delivery.userId}
-              />
-              <DetailRow label={labels.channel} value={delivery.channel} />
-              <DetailRow label={labels.status} value={delivery.status} />
-              <DetailRow
-                label={labels.deliveryStatus}
-                value={delivery.deliveryStatus}
-              />
-              <DetailRow label={labels.provider} value={delivery.provider} />
-              <DetailRow label={labels.sentAt} value={formatDate(delivery.sentAt)} />
-              <DetailRow
-                label={labels.deliveredAt}
-                value={formatDate(delivery.deliveredAt)}
-              />
-              <DetailRow label={labels.readAt} value={formatDate(delivery.readAt)} />
-              <DetailRow
-                label={labels.failedAt}
-                value={formatDate(delivery.failedAt)}
-              />
-              <DetailRow
-                label={labels.errorMessage}
-                value={delivery.errorMessage}
-              />
-            </dl>
-            {metadata ? (
-              <details className="rounded-lg border border-slate-200 bg-white p-4">
-                <summary className="cursor-pointer text-sm font-semibold text-slate-900">
-                  {labels.advanced}
-                </summary>
-                <div className="mt-3">
-                  <p className="mb-2 text-xs font-semibold uppercase text-slate-500">
-                    {labels.metadata}
-                  </p>
-                  <pre className="max-h-72 overflow-auto rounded-lg bg-slate-950 p-3 text-xs text-slate-50">
-                    {metadata}
-                  </pre>
-                </div>
-              </details>
-            ) : null}
-          </>
+          <dl className="grid gap-3">
+            <DetailRow label={labels.id} value={delivery.id} />
+            <DetailRow label={labels.notificationId} value={delivery.notificationId} />
+            <DetailRow label={labels.channel} value={delivery.channel} />
+            <DetailRow label={labels.status} value={delivery.status} />
+            <DetailRow label={labels.provider} value={delivery.provider} />
+            <DetailRow
+              label={labels.providerMessageId}
+              value={delivery.providerMessageId}
+            />
+            <DetailRow label={labels.errorCode} value={delivery.errorCode} />
+            <DetailRow label={labels.errorMessage} value={delivery.errorMessage} />
+            <DetailRow
+              label={labels.attemptedAt}
+              value={formatDate(delivery.attemptedAt)}
+            />
+            <DetailRow label={labels.sentAt} value={formatDate(delivery.sentAt)} />
+            <DetailRow
+              label={labels.deliveredAt}
+              value={formatDate(delivery.deliveredAt)}
+            />
+            <DetailRow label={labels.failedAt} value={formatDate(delivery.failedAt)} />
+            <DetailRow label={labels.createdAt} value={formatDate(delivery.createdAt)} />
+            <DetailRow label={labels.updatedAt} value={formatDate(delivery.updatedAt)} />
+          </dl>
         ) : null}
       </div>
     </Modal>

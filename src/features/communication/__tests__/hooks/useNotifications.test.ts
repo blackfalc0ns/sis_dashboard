@@ -99,6 +99,66 @@ describe("useNotifications", () => {
     );
   });
 
+  it("does not send a limit parameter by default", async () => {
+    renderHook(() => useNotifications());
+
+    await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(1));
+    expect(getNotificationsMock).toHaveBeenCalledWith({});
+  });
+
+  it("sends pagination parameters only after pagination changes", async () => {
+    getNotificationsMock.mockResolvedValueOnce({
+      items: [],
+      total: 125,
+      page: 1,
+      limit: 25,
+    });
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(1));
+    expect(result.current.pagination).toEqual(
+      expect.objectContaining({
+        total: 125,
+        page: 1,
+        limit: 25,
+      }),
+    );
+
+    getNotificationsMock.mockResolvedValueOnce({
+      items: [],
+      total: 125,
+      page: 2,
+      limit: 25,
+    });
+
+    act(() => {
+      result.current.setPage(2);
+    });
+
+    await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(2));
+    expect(getNotificationsMock).toHaveBeenLastCalledWith({
+      page: 2,
+    });
+
+    getNotificationsMock.mockResolvedValueOnce({
+      items: [],
+      total: 125,
+      page: 1,
+      limit: 50,
+    });
+
+    act(() => {
+      result.current.setLimit(50);
+    });
+
+    await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(3));
+    expect(getNotificationsMock).toHaveBeenLastCalledWith({
+      page: 1,
+      limit: 50,
+    });
+  });
+
   describe("socket throttling", () => {
     beforeEach(() => {
       vi.useFakeTimers();

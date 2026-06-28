@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
 import {
@@ -117,5 +117,35 @@ describe("GlobalMessageNotifications", () => {
 
     expect(screen.getAllByText("Teacher")).toHaveLength(1);
     expect(screen.getAllByText("Please check this")).toHaveLength(1);
+  });
+
+  it("opens notification details when clicking a backend announcement notification toast", () => {
+    render(<GlobalMessageNotifications />);
+
+    act(() => {
+      mockSocket.simulateEvent(COMMUNICATION_SOCKET_EVENTS.notificationCreated, {
+        notification: {
+          id: "notif-announcement-1",
+          type: "announcement_published",
+          sourceModule: "announcements",
+          sourceType: "communication_announcement",
+          sourceId: "announcement-1",
+          title: "New Announcement",
+          body: "Please read this announcement",
+        },
+      });
+    });
+
+    const toast = screen.getByText("New Announcement").closest('[role="button"]');
+    expect(toast).toBeInTheDocument();
+
+    if (toast) {
+      fireEvent.click(toast);
+    }
+
+    expect(pushMock).toHaveBeenCalledWith(
+      "/en/communication/notifications?notificationId=notif-announcement-1",
+    );
+    expect(screen.queryByText("New Announcement")).not.toBeInTheDocument();
   });
 });

@@ -92,6 +92,21 @@ function getNotificationMessageId(
   return undefined;
 }
 
+function isAnnouncementNotification(notification: CommunicationNotification) {
+  const deepLink =
+    recordValue(notification.deepLink) ?? recordValue(notification.deep_link);
+  const sourceType = getNotificationSourceType(notification)?.toLowerCase();
+  const sourceModule = notification.sourceModule?.toLowerCase();
+  const type = notification.type?.toLowerCase();
+
+  return (
+    deepLink?.type === "announcement" ||
+    type === "announcement_published" ||
+    sourceModule === "announcements" ||
+    Boolean(sourceType?.includes("announcement"))
+  );
+}
+
 interface TopNavNotificationDropdownProps {
   notifications: CommunicationNotification[];
   unreadCount: number;
@@ -209,15 +224,8 @@ export default function TopNavNotificationDropdown({
       return `/${locale}/communication/conversations?conversationId=${encodeURIComponent(conversationId)}`;
     }
 
-    const deepLink =
-      recordValue(notification.deepLink) ?? recordValue(notification.deep_link);
-    if (deepLink?.type === "announcement") {
-      const announcementId =
-        stringValue(deepLink.announcementId) ??
-        stringValue(deepLink.announcement_id);
-      return announcementId
-        ? `/${locale}/communication/announcements/${encodeURIComponent(announcementId)}`
-        : null;
+    if (isAnnouncementNotification(notification)) {
+      return `/${locale}/communication/notifications?notificationId=${encodeURIComponent(notification.id)}`;
     }
     return null;
   };

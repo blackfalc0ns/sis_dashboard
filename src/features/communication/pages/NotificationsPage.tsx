@@ -1,11 +1,12 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
-import { CheckCheck, RefreshCw } from "lucide-react";
+import { CheckCheck, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import Select from "@/components/ui/input/Select";
 import { useToast } from "@/components/ui/toast/Toast";
-import NotificationDeliveryDetailsDrawer from "@/features/communication/components/notifications/NotificationDeliveryDetailsDrawer";
-import NotificationDeliveryTable from "@/features/communication/components/notifications/NotificationDeliveryTable";
 import NotificationDetailsDrawer from "@/features/communication/components/notifications/NotificationDetailsDrawer";
 import NotificationFilters from "@/features/communication/components/notifications/NotificationFilters";
 import NotificationList from "@/features/communication/components/notifications/NotificationList";
@@ -13,22 +14,18 @@ import CommunicationErrorState from "@/features/communication/components/layout/
 import CommunicationLoadingState from "@/features/communication/components/layout/CommunicationLoadingState";
 import CommunicationPageHeader from "@/features/communication/components/layout/CommunicationPageHeader";
 import CommunicationTabs from "@/features/communication/components/layout/CommunicationTabs";
-import { useNotificationDeliveries } from "@/features/communication/hooks/useNotificationDeliveries";
-import { useNotificationDeliveryDetails } from "@/features/communication/hooks/useNotificationDeliveryDetails";
 import { useNotificationDetails } from "@/features/communication/hooks/useNotificationDetails";
 import { useNotifications } from "@/features/communication/hooks/useNotifications";
-import { useAuth } from "@/hooks/use-auth";
 
 const labels = {
   en: {
     title: "Notifications",
     description:
-      "Review notification inbox items and delivery records across communication channels.",
+      "Review notification inbox items across communication channels.",
     refresh: "Refresh",
     markAllRead: "Mark All Read",
     loading: "Loading notifications...",
     errorTitle: "Unable to load notifications",
-    deliveriesErrorTitle: "Unable to load delivery records",
     retry: "Retry",
     status: "Status",
     all: "All",
@@ -56,7 +53,6 @@ const labels = {
     type: "Type",
     viewDetails: "View details",
     notificationDetails: "Notification details",
-    deliveryDetails: "Delivery details",
     close: "Close",
     advanced: "Advanced",
     metadata: "Metadata",
@@ -66,6 +62,7 @@ const labels = {
     errorMessage: "Error message",
     id: "ID",
     createdAt: "Created at",
+    readAt: "Read at",
     notificationTitle: "Title",
     body: "Body",
     deliveryStatus: "Delivery status",
@@ -76,16 +73,11 @@ const labels = {
     countLabel: "notification",
     countLabelPlural: "notifications",
     unreadLabel: "unread",
-    deliveriesTitle: "Delivery Records",
-    notificationId: "Notification",
-    userId: "User",
-    channel: "Channel",
-    sentAt: "Sent",
-    deliveredAt: "Delivered",
-    readAt: "Read at",
-    deliveriesEmptyTitle: "No delivery records",
-    deliveriesEmptyDescription:
-      "Delivery records will appear when notifications are dispatched.",
+    pageLabel: "Page",
+    previousPage: "Previous",
+    nextPage: "Next",
+    rowsPerPage: "Rows per page",
+    defaultLimit: "Default",
     markedAllRead: "All notifications marked read.",
     markedRead: "Notification marked read.",
     archivedNotification: "Notification archived.",
@@ -93,12 +85,11 @@ const labels = {
   },
   ar: {
     title: "الإشعارات",
-    description: "راجع إشعارات التواصل وسجلات التسليم عبر القنوات.",
+    description: "راجع إشعارات التواصل عبر القنوات.",
     refresh: "تحديث",
     markAllRead: "تعليم الكل كمقروء",
     loading: "جار تحميل الإشعارات...",
     errorTitle: "تعذر تحميل الإشعارات",
-    deliveriesErrorTitle: "تعذر تحميل سجلات التسليم",
     retry: "إعادة المحاولة",
     status: "الحالة",
     all: "الكل",
@@ -126,7 +117,6 @@ const labels = {
     type: "النوع",
     viewDetails: "عرض التفاصيل",
     notificationDetails: "تفاصيل الإشعار",
-    deliveryDetails: "تفاصيل التسليم",
     close: "إغلاق",
     advanced: "متقدم",
     metadata: "البيانات الإضافية",
@@ -136,6 +126,7 @@ const labels = {
     errorMessage: "رسالة الخطأ",
     id: "المعرف",
     createdAt: "تم الإنشاء في",
+    readAt: "تمت القراءة في",
     notificationTitle: "العنوان",
     body: "المحتوى",
     deliveryStatus: "حالة التسليم",
@@ -146,15 +137,11 @@ const labels = {
     countLabel: "إشعار",
     countLabelPlural: "إشعارات",
     unreadLabel: "غير مقروء",
-    deliveriesTitle: "سجلات التسليم",
-    notificationId: "الإشعار",
-    userId: "المستخدم",
-    channel: "القناة",
-    sentAt: "تم الإرسال",
-    deliveredAt: "تم التسليم",
-    readAt: "تمت القراءة في",
-    deliveriesEmptyTitle: "لا توجد سجلات تسليم",
-    deliveriesEmptyDescription: "ستظهر سجلات التسليم عند إرسال الإشعارات.",
+    pageLabel: "الصفحة",
+    previousPage: "السابق",
+    nextPage: "التالي",
+    rowsPerPage: "عدد الصفوف لكل صفحة",
+    defaultLimit: "الافتراضي",
     markedAllRead: "تم تعليم كل الإشعارات كمقروءة.",
     markedRead: "تم تعليم الإشعار كمقروء.",
     archivedNotification: "تمت أرشفة الإشعار.",
@@ -166,23 +153,42 @@ type LocaleKey = keyof typeof labels;
 
 export default function NotificationsPage() {
   const locale = useLocale() as LocaleKey;
+  const searchParams = useSearchParams();
   const t = labels[locale] ?? labels.en;
   const { showSuccess, showError } = useToast();
-  const { user } = useAuth();
-  const notificationsState = useNotifications({ recipientUserId: user?.id });
-  const deliveriesState = useNotificationDeliveries();
+  const notificationsState = useNotifications();
   const notificationDetailsState = useNotificationDetails();
-  const deliveryDetailsState = useNotificationDeliveryDetails();
+  const { open: openNotificationDetails } = notificationDetailsState;
+  const openedRouteNotificationIdRef = useRef<string | null>(null);
+  const routeNotificationId = searchParams.get("notificationId");
+  const notificationPage = notificationsState.pagination.page;
+  const notificationLimit = notificationsState.pagination.limit;
+  const notificationTotalPages = notificationsState.pagination.totalPages;
+  const canGoPrevious = notificationPage > 1;
+  const canGoNext =
+    typeof notificationTotalPages === "number"
+      ? notificationPage < notificationTotalPages
+      : notificationsState.notifications.length > 0;
+
+  useEffect(() => {
+    if (
+      !routeNotificationId ||
+      openedRouteNotificationIdRef.current === routeNotificationId
+    ) {
+      return;
+    }
+
+    openedRouteNotificationIdRef.current = routeNotificationId;
+    openNotificationDetails(routeNotificationId);
+  }, [openNotificationDetails, routeNotificationId]);
 
   const refreshAll = () => {
     void notificationsState.refresh();
-    void deliveriesState.refresh();
   };
 
   const handleMarkAllRead = async () => {
     try {
       await notificationsState.markAllRead();
-      void deliveriesState.refresh();
       showSuccess(t.markedAllRead);
     } catch {
       showError(t.mutationFailed);
@@ -192,7 +198,6 @@ export default function NotificationsPage() {
   const handleMarkRead = async (notificationId: string) => {
     try {
       await notificationsState.markRead(notificationId);
-      void deliveriesState.refresh();
       showSuccess(t.markedRead);
     } catch {
       showError(t.mutationFailed);
@@ -202,7 +207,6 @@ export default function NotificationsPage() {
   const handleArchive = async (notificationId: string) => {
     try {
       await notificationsState.archive(notificationId);
-      void deliveriesState.refresh();
       showSuccess(t.archivedNotification);
     } catch {
       showError(t.mutationFailed);
@@ -219,7 +223,7 @@ export default function NotificationsPage() {
     await notificationDetailsState.refresh().catch(() => undefined);
   };
 
-  if (notificationsState.isLoading && deliveriesState.isLoading) {
+  if (notificationsState.isLoading) {
     return <CommunicationLoadingState label={t.loading} />;
   }
 
@@ -233,9 +237,7 @@ export default function NotificationsPage() {
             <Button
               type="button"
               variant="secondary"
-              loading={
-                notificationsState.isRefreshing || deliveriesState.isRefreshing
-              }
+              loading={notificationsState.isRefreshing}
               onClick={refreshAll}
               leftIcon={<RefreshCw className="h-4 w-4" aria-hidden="true" />}
             >
@@ -307,6 +309,49 @@ export default function NotificationsPage() {
         </span>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="text-sm font-medium text-slate-600">
+          {t.pageLabel} {notificationPage}
+          {notificationTotalPages ? ` / ${notificationTotalPages}` : ""}
+        </div>
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="w-44">
+            <Select
+              label={t.rowsPerPage}
+              selectSize="sm"
+              value={notificationLimit ? String(notificationLimit) : ""}
+              onChange={(value) =>
+                notificationsState.setLimit(value ? Number(value) : undefined)
+              }
+              options={[
+                { value: "", label: t.defaultLimit },
+                { value: "25", label: "25" },
+                { value: "50", label: "50" },
+                { value: "100", label: "100" },
+              ]}
+            />
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={!canGoPrevious || notificationsState.isRefreshing}
+            onClick={() => notificationsState.setPage(notificationPage - 1)}
+            leftIcon={<ChevronLeft className="h-4 w-4" aria-hidden="true" />}
+          >
+            {t.previousPage}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={!canGoNext || notificationsState.isRefreshing}
+            onClick={() => notificationsState.setPage(notificationPage + 1)}
+            rightIcon={<ChevronRight className="h-4 w-4" aria-hidden="true" />}
+          >
+            {t.nextPage}
+          </Button>
+        </div>
+      </div>
+
       <NotificationList
         notifications={notificationsState.notifications}
         locale={locale}
@@ -328,39 +373,6 @@ export default function NotificationsPage() {
         onViewDetails={notificationDetailsState.open}
       />
 
-      {deliveriesState.error ? (
-        <CommunicationErrorState
-          title={t.deliveriesErrorTitle}
-          message={deliveriesState.error}
-          action={
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => void deliveriesState.refresh()}
-            >
-              {t.retry}
-            </Button>
-          }
-        />
-      ) : null}
-
-      <NotificationDeliveryTable
-        deliveries={deliveriesState.deliveries}
-        labels={{
-          title: t.deliveriesTitle,
-          notificationId: t.notificationId,
-          userId: t.userId,
-          channel: t.channel,
-          status: t.status,
-          sentAt: t.sentAt,
-          deliveredAt: t.deliveredAt,
-          readAt: t.readAt,
-          viewDetails: t.viewDetails,
-          emptyTitle: t.deliveriesEmptyTitle,
-          emptyDescription: t.deliveriesEmptyDescription,
-        }}
-        onViewDetails={deliveryDetailsState.open}
-      />
       <NotificationDetailsDrawer
         open={Boolean(notificationDetailsState.selectedNotificationId)}
         notification={notificationDetailsState.notification}
@@ -368,7 +380,9 @@ export default function NotificationsPage() {
         isMutating={notificationsState.isMutating}
         error={notificationDetailsState.error}
         onClose={notificationDetailsState.close}
-        onMarkRead={(notificationId) => void handleDrawerMarkRead(notificationId)}
+        onMarkRead={(notificationId) =>
+          void handleDrawerMarkRead(notificationId)
+        }
         onArchive={(notificationId) => void handleDrawerArchive(notificationId)}
         labels={{
           title: t.notificationDetails,
@@ -390,33 +404,6 @@ export default function NotificationsPage() {
           createdAt: t.createdAt,
           readAt: t.readAt,
           archivedAt: t.archivedAt,
-          advanced: t.advanced,
-          metadata: t.metadata,
-        }}
-      />
-      <NotificationDeliveryDetailsDrawer
-        open={Boolean(deliveryDetailsState.selectedDeliveryId)}
-        delivery={deliveryDetailsState.delivery}
-        isLoading={deliveryDetailsState.isLoading}
-        error={deliveryDetailsState.error}
-        onClose={deliveryDetailsState.close}
-        labels={{
-          title: t.deliveryDetails,
-          close: t.close,
-          loading: t.loading,
-          errorTitle: t.deliveriesErrorTitle,
-          id: t.id,
-          notificationId: t.notificationId,
-          recipientUserId: t.recipientUserId,
-          channel: t.channel,
-          status: t.status,
-          deliveryStatus: t.deliveryStatus,
-          provider: t.provider,
-          sentAt: t.sentAt,
-          deliveredAt: t.deliveredAt,
-          readAt: t.readAt,
-          failedAt: t.failedAt,
-          errorMessage: t.errorMessage,
           advanced: t.advanced,
           metadata: t.metadata,
         }}

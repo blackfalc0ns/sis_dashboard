@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Megaphone,
   MessageSquare,
+  Send,
   Settings,
   ShieldCheck,
   type LucideIcon,
@@ -18,6 +19,7 @@ export type CommunicationTabKey =
   | "conversations"
   | "announcements"
   | "notifications"
+  | "deliveries"
   | "safety"
   | "settings";
 
@@ -62,6 +64,13 @@ export const communicationTabs: CommunicationTabItem[] = [
     labelAr: "الإشعارات",
     href: "/communication/notifications",
     icon: BellRing,
+  },
+  {
+    key: "deliveries",
+    labelEn: "Deliveries",
+    labelAr: "التسليم",
+    href: "/communication/notification-deliveries",
+    icon: Send,
   },
   {
     key: "safety",

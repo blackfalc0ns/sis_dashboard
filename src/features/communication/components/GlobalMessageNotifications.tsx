@@ -38,6 +38,22 @@ function notificationMessageId(notification: Record<string, unknown>) {
   return undefined;
 }
 
+function isAnnouncementNotification(notification: Record<string, unknown>) {
+  const deepLink = recordValue(notification.deepLink) ?? recordValue(notification.deep_link);
+  const sourceType =
+    stringValue(notification.sourceType) ?? stringValue(notification.source_type);
+  const sourceModule =
+    stringValue(notification.sourceModule) ?? stringValue(notification.source_module);
+  const type = stringValue(notification.type);
+
+  return (
+    deepLink?.type === "announcement" ||
+    type?.toLowerCase() === "announcement_published" ||
+    sourceModule?.toLowerCase() === "announcements" ||
+    Boolean(sourceType?.toLowerCase().includes("announcement"))
+  );
+}
+
 /**
  * Global message notification listener.
  * Renders floating toasts + plays sound for new messages across the dashboard.
@@ -88,9 +104,13 @@ export default function GlobalMessageNotifications() {
           : undefined) ??
         stringValue(notification.conversationId as string) ??
         notificationId;
+      const targetUrl = isAnnouncementNotification(notification)
+        ? `/${locale}/communication/notifications?notificationId=${encodeURIComponent(notificationId)}`
+        : undefined;
 
       notify({
         conversationId,
+        targetUrl,
         senderName: title,
         body,
         currentUserId: user?.id,
@@ -132,15 +152,22 @@ export default function GlobalMessageNotifications() {
     <NotificationToastContainer
       notifications={notifications}
       onDismiss={dismiss}
-      onClick={(conversationId) => {
-        dismiss(conversationId);
+      onClick={(notification) => {
+        dismiss(notification.id);
+        const target = notification.targetUrl ?? notification.conversationId;
+
+        if (target.startsWith(`/${locale}/`)) {
+          router.push(target);
+          return;
+        }
+
         if (
-          conversationId.includes("-") &&
-          !conversationId.startsWith("notif-") &&
-          !conversationId.startsWith("announcement-")
+          target.includes("-") &&
+          !target.startsWith("notif-") &&
+          !target.startsWith("announcement-")
         ) {
           router.push(
-            `/${locale}/communication/conversations?conversationId=${conversationId}`,
+            `/${locale}/communication/conversations?conversationId=${target}`,
           );
         } else {
           router.push(`/${locale}/communication/notifications`);

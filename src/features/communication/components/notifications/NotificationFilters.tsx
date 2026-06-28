@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 import Button from "@/components/ui/button/Button";
-import Input from "@/components/ui/input/Input";
+import DateTimePicker from "@/components/ui/input/DateTimePicker";
 import Select from "@/components/ui/input/Select";
 import AnnouncementSearchSelect from "@/features/communication/components/selectors/AnnouncementSearchSelect";
 import ConversationSearchSelect from "@/features/communication/components/selectors/ConversationSearchSelect";
@@ -17,6 +17,10 @@ import type {
   NotificationSourceModule,
   NotificationType,
 } from "@/features/communication/types/notification.types";
+import {
+  filterDate,
+  filterIsoValue,
+} from "@/features/communication/utils/notification-filter-dates";
 
 export interface NotificationFiltersProps {
   filters: NotificationFiltersState;
@@ -208,20 +212,20 @@ export default function NotificationFilters({
         value={filters.recipientUserId}
         onChange={(recipientUserId) => onChange({ ...filters, recipientUserId })}
       />
-      <Input
+      <DateTimePicker
         label={labels.createdFrom}
-        type="datetime-local"
-        value={filters.createdFrom}
-        onChange={(event) =>
-          onChange({ ...filters, createdFrom: event.target.value })
+        value={filterDate(filters.createdFrom)}
+        maxDateTime={filterDate(filters.createdTo) ?? undefined}
+        onChange={(date) =>
+          onChange({ ...filters, createdFrom: filterIsoValue(date) })
         }
       />
-      <Input
+      <DateTimePicker
         label={labels.createdTo}
-        type="datetime-local"
-        value={filters.createdTo}
-        onChange={(event) =>
-          onChange({ ...filters, createdTo: event.target.value })
+        value={filterDate(filters.createdTo)}
+        minDateTime={filterDate(filters.createdFrom) ?? undefined}
+        onChange={(date) =>
+          onChange({ ...filters, createdTo: filterIsoValue(date) })
         }
       />
       <Button

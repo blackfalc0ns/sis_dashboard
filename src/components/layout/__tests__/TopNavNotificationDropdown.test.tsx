@@ -326,7 +326,7 @@ describe("TopNavNotificationDropdown", () => {
     );
   });
 
-  it("redirects to the dedicated announcement details page when clicking an announcement notification", () => {
+  it("opens notification details when clicking an announcement notification", () => {
     render(
       <TopNavNotificationDropdown
         notifications={[
@@ -362,7 +362,45 @@ describe("TopNavNotificationDropdown", () => {
     }
 
     expect(mockPush).toHaveBeenCalledWith(
-      "/en/communication/announcements/ann-12345",
+      "/en/communication/notifications?notificationId=notif-announcement",
+    );
+  });
+
+  it("opens notification details for backend announcement notifications without a deep link", () => {
+    render(
+      <TopNavNotificationDropdown
+        notifications={[
+          {
+            id: "notif-backend-announcement",
+            type: "announcement_published",
+            sourceModule: "announcements",
+            sourceType: "communication_announcement",
+            sourceId: "ann-12345",
+            title: "Backend Announcement",
+            body: "Announcement details body",
+            status: "unread",
+            priority: "normal",
+            createdAt: "2026-06-27T19:00:00.000Z",
+          },
+        ]}
+        unreadCount={1}
+        onMarkRead={onMarkReadMock}
+        onMarkAllRead={onMarkAllReadMock}
+        onArchive={onArchiveMock}
+        isOpen={true}
+        onClose={onCloseMock}
+      />
+    );
+
+    const card = screen.getByText("Backend Announcement").closest('[role="button"]');
+    expect(card).toBeInTheDocument();
+
+    if (card) {
+      fireEvent.click(card);
+    }
+
+    expect(mockPush).toHaveBeenCalledWith(
+      "/en/communication/notifications?notificationId=notif-backend-announcement",
     );
   });
 

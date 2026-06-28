@@ -44,6 +44,7 @@ export interface CommunicationNotification extends CommunicationRecord {
   body?: string;
   bodyAr?: string;
   bodyEn?: string;
+  message?: string;
   status?: CommunicationNotificationStatus;
   priority?: NotificationPriority;
   type?: NotificationType;
@@ -85,18 +86,16 @@ export type ListNotificationsParams = {
 export interface NotificationDelivery extends CommunicationRecord {
   id: CommunicationId;
   notificationId?: CommunicationId;
-  userId?: CommunicationId;
-  recipientUserId?: CommunicationId;
   channel?: string;
   status?: NotificationDeliveryStatus;
-  deliveryStatus?: NotificationDeliveryStatus;
   provider?: string;
+  providerMessageId?: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  attemptedAt?: CommunicationDateTime | null;
   sentAt?: CommunicationDateTime | null;
   deliveredAt?: CommunicationDateTime | null;
-  readAt?: CommunicationDateTime | null;
   failedAt?: CommunicationDateTime | null;
-  errorMessage?: string | null;
-  metadata?: CommunicationRecord | null;
   createdAt?: CommunicationDateTime;
   updatedAt?: CommunicationDateTime;
 }

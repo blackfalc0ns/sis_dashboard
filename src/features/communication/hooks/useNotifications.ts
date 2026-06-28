@@ -169,6 +169,7 @@ export interface UseNotificationsOptions {
 function paramsFromFilters(
   filters: NotificationFiltersState,
   options: UseNotificationsOptions = {},
+  pagination?: { page: number; limit?: number },
 ): ListNotificationsParams {
   return {
     ...(filters.status !== "all"
@@ -190,7 +191,10 @@ function paramsFromFilters(
     ...(isoFromInput(filters.createdTo)
       ? { createdTo: isoFromInput(filters.createdTo) }
       : {}),
-    limit: 50,
+    ...(pagination?.page && (pagination.page > 1 || pagination.limit)
+      ? { page: pagination.page }
+      : {}),
+    ...(pagination?.limit ? { limit: pagination.limit } : {}),
   };
 }
 
@@ -205,6 +209,12 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     CommunicationNotification[]
   >([]);
   const [total, setTotal] = useState(0);
+  const [page, setPageState] = useState(1);
+  const [limit, setLimitState] = useState<number | undefined>(undefined);
+  const [requestedLimit, setRequestedLimit] = useState<number | undefined>(
+    undefined,
+  );
+  const [totalPages, setTotalPages] = useState<number | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
@@ -216,7 +226,10 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
 
     try {
       const response = await getNotifications(
-        paramsFromFilters(filters, { recipientUserId }),
+        paramsFromFilters(filters, { recipientUserId }, {
+          page,
+          limit: requestedLimit,
+        }),
       );
       const list = unwrapList<CommunicationNotification>(response);
       const normalized = sortNotifications(list.items.map(normalizeNotification));
@@ -224,6 +237,9 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       if (!mountedRef.current) return;
       setNotifications(normalized);
       setTotal(list.total ?? normalized.length);
+      setPageState(list.page ?? page);
+      setLimitState(list.limit ?? requestedLimit);
+      setTotalPages(list.totalPages);
     } catch (nextError) {
       if (!mountedRef.current) return;
       setError(errorMessageFromUnknown(nextError));
@@ -235,7 +251,33 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
         setIsRefreshing(false);
       }
     }
-  }, [filters, recipientUserId]);
+  }, [filters, page, recipientUserId, requestedLimit]);
+
+  const setFiltersAndResetPage = useCallback(
+    (
+      nextFilters:
+        | NotificationFiltersState
+        | ((current: NotificationFiltersState) => NotificationFiltersState),
+    ) => {
+      setPageState(1);
+      setFilters(nextFilters);
+    },
+    [],
+  );
+
+  const setPage = useCallback((nextPage: number) => {
+    setPageState(Math.max(1, Math.trunc(nextPage)));
+  }, []);
+
+  const setLimit = useCallback((nextLimit?: number) => {
+    const normalizedLimit =
+      typeof nextLimit === "number" && Number.isFinite(nextLimit) && nextLimit > 0
+        ? Math.trunc(nextLimit)
+        : undefined;
+    setPageState(1);
+    setRequestedLimit(normalizedLimit);
+    setLimitState(normalizedLimit);
+  }, []);
 
   const debouncedRefresh = useCallback(() => {
     if (refreshTimerRef.current) {
@@ -410,7 +452,17 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     total,
     unreadCount,
     filters,
-    setFilters,
+    setFilters: setFiltersAndResetPage,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages:
+        totalPages ??
+        (limit && limit > 0 ? Math.max(1, Math.ceil(total / limit)) : undefined),
+    },
+    setPage,
+    setLimit,
     isLoading,
     isRefreshing,
     isMutating,

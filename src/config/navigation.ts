@@ -112,6 +112,14 @@ export const menuItems: MenuItem[] = [
         icon: BellRing,
       },
       {
+        key: "communication-notification-deliveries",
+        label_en: "Notification Deliveries",
+        label_ar: "تسليم الإشعارات",
+        href_en: "/en/communication/notification-deliveries",
+        href_ar: "/ar/communication/notification-deliveries",
+        icon: Send,
+      },
+      {
         key: "communication-safety",
         label_en: "Safety & Moderation",
         label_ar: "الأمان والإشراف",

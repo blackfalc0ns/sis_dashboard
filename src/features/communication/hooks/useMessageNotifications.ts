@@ -15,6 +15,7 @@ export function useMessageNotifications(currentConversationId?: string | null) {
       senderName: string;
       senderUserId?: string;
       body: string;
+      targetUrl?: string;
       currentUserId?: string;
     }) => {
       // Don't notify for own messages
@@ -26,6 +27,7 @@ export function useMessageNotifications(currentConversationId?: string | null) {
       const notification: MessageNotification = {
         id,
         conversationId: params.conversationId,
+        targetUrl: params.targetUrl,
         senderName: params.senderName,
         body: params.body.slice(0, 100),
         timestamp: Date.now(),

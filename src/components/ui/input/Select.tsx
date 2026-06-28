@@ -31,6 +31,8 @@ export interface SelectProps {
   searchPlaceholder?: string;
   noOptionsText?: string;
   noResultsText?: string;
+  onOpen?: () => void;
+  onEndReached?: () => void;
 }
 
 const MENU_GAP = 8;
@@ -55,6 +57,8 @@ export default function Select({
   searchPlaceholder = "Search...",
   noOptionsText = "No options available",
   noResultsText = "No matching results",
+  onOpen,
+  onEndReached,
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -199,6 +203,12 @@ export default function Select({
       <ul
         className="py-1 overflow-y-auto"
         style={{ maxHeight: MENU_MAX_HEIGHT }}
+        onScroll={(event) => {
+          const list = event.currentTarget;
+          if (list.scrollHeight - list.scrollTop - list.clientHeight <= 40) {
+            onEndReached?.();
+          }
+        }}
       >
         {options.length === 0 ? (
           <li className="px-4 py-2.5 text-sm text-gray-400 text-center">
@@ -292,7 +302,10 @@ export default function Select({
           type="button"
           onClick={() => {
             if (disabled) return;
-            if (!isOpen) updateMenuPosition();
+            if (!isOpen) {
+              updateMenuPosition();
+              onOpen?.();
+            }
             setIsOpen(!isOpen);
           }}
           disabled={disabled}
