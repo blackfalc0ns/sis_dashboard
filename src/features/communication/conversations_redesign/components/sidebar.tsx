@@ -15,6 +15,7 @@ import {
   BookOpen,
   SlidersHorizontal,
   X,
+  Menu,
 } from "lucide-react";
 import { useLocale } from "next-intl";
 import Input from "@/components/ui/input/Input";
@@ -285,18 +286,28 @@ export default function ConversationSidebar({
       {/* ── Header ── */}
       <div className="shrink-0 border-b border-slate-200 px-4 pb-3 pt-4">
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-black">
-              {labels.conversations}
-            </h1>
-            <p className="mt-0.5 text-xs text-slate-500">
-              {visibleConversations.length > 0
-                ? labels.nConversations.replace(
-                    "{n}",
-                    String(visibleConversations.length),
-                  )
-                : labels.manageSchoolCommunication}
-            </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent("toggle-sidebar"))}
+              className="lg:hidden inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label="Toggle navigation menu"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-lg font-bold tracking-tight text-black">
+                {labels.conversations}
+              </h1>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {visibleConversations.length > 0
+                  ? labels.nConversations.replace(
+                      "{n}",
+                      String(visibleConversations.length),
+                    )
+                  : labels.manageSchoolCommunication}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-1.5">
             <button

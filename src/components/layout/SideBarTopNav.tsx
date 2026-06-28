@@ -54,6 +54,14 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    const handleToggle = () => {
+      setIsSidebarOpen((prev) => !prev);
+    };
+    window.addEventListener("toggle-sidebar", handleToggle);
+    return () => window.removeEventListener("toggle-sidebar", handleToggle);
+  }, []);
+
   // Full-screen mode for conversations — collapse sidebar (expandable) and hide topnav
   if (isFullScreenChat) {
     return (
