@@ -102,14 +102,16 @@ describe("useNotifications", () => {
 
     const { result } = renderHook(() => useNotifications());
 
-    await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(1));
-    expect(result.current.pagination).toEqual(
-      expect.objectContaining({
-        total: 125,
-        page: 1,
-        limit: 25,
-      }),
-    );
+    await waitFor(() => {
+      expect(getNotificationsMock).toHaveBeenCalledTimes(1);
+      expect(result.current.pagination).toEqual(
+        expect.objectContaining({
+          total: 125,
+          page: 1,
+          limit: 25,
+        }),
+      );
+    });
 
     getNotificationsMock.mockResolvedValueOnce({
       items: [],
