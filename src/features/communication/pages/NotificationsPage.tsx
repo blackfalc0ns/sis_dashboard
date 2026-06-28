@@ -379,6 +379,7 @@ export default function NotificationsPage() {
           viewDetails: t.viewDetails,
           archive: t.archive,
           markRead: t.markRead,
+          archived: t.archived,
         }}
         isMutating={notificationsState.isMutating}
         onArchive={(notificationId) => void handleArchive(notificationId)}

@@ -26,6 +26,7 @@ describe("NotificationListItem", () => {
     markRead: "Mark read",
     archive: "Archive",
     viewDetails: "View details",
+    archived: "Archived",
   };
 
   it("renders notification details correctly", () => {
