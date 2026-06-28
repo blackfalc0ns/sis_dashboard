@@ -20,6 +20,7 @@ export interface NotificationListItemProps {
   notification: CommunicationNotification;
   locale: string;
   labels: NotificationListItemLabels;
+  currentUserId?: string;
   isMutating?: boolean;
   onArchive?: (notificationId: string) => void;
   onMarkRead?: (notificationId: string) => void;
@@ -62,12 +63,14 @@ export default function NotificationListItem({
   labels,
   locale,
   notification,
+  currentUserId,
   isMutating,
   onArchive,
   onMarkRead,
   onViewDetails,
 }: NotificationListItemProps) {
   const isRead = notification.status === "read" || Boolean(notification.readAt);
+  const isOwned = Boolean(currentUserId) && (notification.recipientUserId === currentUserId || notification.userId === currentUserId);
 
   const handleCardClick = () => {
     if (onViewDetails) {
@@ -140,7 +143,7 @@ export default function NotificationListItem({
                 {labels.viewDetails}
               </Button>
             ) : null}
-            {!isRead && onMarkRead ? (
+            {isOwned && !isRead && onMarkRead ? (
               <Button
                 type="button"
                 size="sm"
@@ -155,7 +158,7 @@ export default function NotificationListItem({
                 {labels.markRead}
               </Button>
             ) : null}
-            {notification.status !== "archived" && onArchive ? (
+            {isOwned && notification.status !== "archived" && onArchive ? (
               <Button
                 type="button"
                 size="sm"

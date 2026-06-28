@@ -61,7 +61,11 @@ describe("NotificationListItem", () => {
   it("stops propagation when clicking on action buttons", () => {
     render(
       <NotificationListItem
-        notification={mockNotification}
+        notification={{
+          ...mockNotification,
+          recipientUserId: "user-123",
+        }}
+        currentUserId="user-123"
         locale="en"
         labels={labels}
         onViewDetails={onViewDetailsMock}
@@ -85,5 +89,87 @@ describe("NotificationListItem", () => {
 
     expect(onArchiveMock).toHaveBeenCalledWith("notif-1");
     expect(onViewDetailsMock).not.toHaveBeenCalled(); // No double trigger
+  });
+
+  describe("ownership checks", () => {
+    it("displays Mark read and Archive actions for owned notifications (recipientUserId === currentUserId)", () => {
+      render(
+        <NotificationListItem
+          notification={{
+            ...mockNotification,
+            recipientUserId: "user-123",
+          }}
+          currentUserId="user-123"
+          locale="en"
+          labels={labels}
+          onMarkRead={onMarkReadMock}
+          onArchive={onArchiveMock}
+        />
+      );
+
+      expect(screen.getByRole("button", { name: "Mark read" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Archive" })).toBeInTheDocument();
+    });
+
+    it("displays Mark read and Archive actions for owned notifications (userId === currentUserId)", () => {
+      render(
+        <NotificationListItem
+          notification={{
+            ...mockNotification,
+            userId: "user-123",
+          }}
+          currentUserId="user-123"
+          locale="en"
+          labels={labels}
+          onMarkRead={onMarkReadMock}
+          onArchive={onArchiveMock}
+        />
+      );
+
+      expect(screen.getByRole("button", { name: "Mark read" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Archive" })).toBeInTheDocument();
+    });
+
+    it("shows only View details for non-owned notifications (different currentUserId)", () => {
+      render(
+        <NotificationListItem
+          notification={{
+            ...mockNotification,
+            recipientUserId: "user-456",
+            userId: "user-789",
+          }}
+          currentUserId="user-123"
+          locale="en"
+          labels={labels}
+          onViewDetails={onViewDetailsMock}
+          onMarkRead={onMarkReadMock}
+          onArchive={onArchiveMock}
+        />
+      );
+
+      expect(screen.getByRole("button", { name: "View details" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Mark read" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Archive" })).not.toBeInTheDocument();
+    });
+
+    it("shows only View details for missing-owner notifications (no currentUserId)", () => {
+      render(
+        <NotificationListItem
+          notification={{
+            ...mockNotification,
+            recipientUserId: "user-123",
+          }}
+          locale="en"
+          labels={labels}
+          onViewDetails={onViewDetailsMock}
+          onMarkRead={onMarkReadMock}
+          onArchive={onArchiveMock}
+        />
+      );
+
+      expect(screen.getByRole("button", { name: "View details" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Mark read" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Archive" })).not.toBeInTheDocument();
+    });
   });
 });

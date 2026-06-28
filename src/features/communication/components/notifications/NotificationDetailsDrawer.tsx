@@ -35,6 +35,7 @@ export interface NotificationDetailsDrawerLabels {
 export interface NotificationDetailsDrawerProps {
   open: boolean;
   notification?: CommunicationNotification | null;
+  currentUserId?: string;
   isLoading?: boolean;
   isMutating?: boolean;
   error?: string | null;
@@ -79,6 +80,7 @@ export default function NotificationDetailsDrawer({
   isMutating,
   labels,
   notification,
+  currentUserId,
   onArchive,
   onClose,
   onMarkRead,
@@ -86,6 +88,7 @@ export default function NotificationDetailsDrawer({
 }: NotificationDetailsDrawerProps) {
   const isRead = notification?.status === "read" || Boolean(notification?.readAt);
   const isArchived = notification?.status === "archived";
+  const isOwned = Boolean(currentUserId) && (notification?.recipientUserId === currentUserId || notification?.userId === currentUserId);
   const metadata = metadataJson(notification?.metadata);
 
   return (
@@ -104,7 +107,7 @@ export default function NotificationDetailsDrawer({
           >
             {labels.close}
           </Button>
-          {notification && !isRead ? (
+          {isOwned && notification && !isRead ? (
             <Button
               type="button"
               variant="secondary"
@@ -115,7 +118,7 @@ export default function NotificationDetailsDrawer({
               {labels.markRead}
             </Button>
           ) : null}
-          {notification && !isArchived ? (
+          {isOwned && notification && !isArchived ? (
             <Button
               type="button"
               variant="ghost"
