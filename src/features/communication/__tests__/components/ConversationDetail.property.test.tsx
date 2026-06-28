@@ -294,6 +294,7 @@ function setupDefaultMocks() {
       maxMessageLength: 2000,
       maxAttachmentSizeMb: 10,
     },
+    isLoading: false,
   });
 
   markConversationReadMock.mockResolvedValue({});

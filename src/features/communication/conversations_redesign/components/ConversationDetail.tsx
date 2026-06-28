@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { useLocale } from "next-intl";
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import type {
@@ -152,7 +153,7 @@ export default function ConversationDetail({
   });
   const presenceState = usePresence();
   const typingState = useTypingIndicator(conversationId);
-  const { policy } = useCommunicationPolicy();
+  const { policy, isLoading: isPolicyLoading } = useCommunicationPolicy();
 
   const messageIds = useMemo(() => {
     const ids = messagesState.messages
@@ -550,6 +551,19 @@ export default function ConversationDetail({
       });
     }
   };
+
+  if (
+    conversationState.isLoading ||
+    participantsState.isLoading ||
+    messagesState.isLoading ||
+    isPolicyLoading
+  ) {
+    return (
+      <div data-testid="conversation-loading-spinner" className="flex h-full items-center justify-center bg-slate-50">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-50">

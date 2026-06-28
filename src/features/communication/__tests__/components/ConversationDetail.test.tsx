@@ -385,6 +385,7 @@ function setupDefaultMocks() {
       maxMessageLength: 2000,
       maxAttachmentSizeMb: 10,
     },
+    isLoading: false,
   });
 
   markConversationReadMock.mockResolvedValue({});
@@ -465,14 +466,61 @@ describe("ConversationDetail", () => {
       expect(refreshAttachmentsMock).not.toHaveBeenCalled();
     });
 
-    it("does not throw when conversation is null (loading state)", () => {
+    it("renders full-component loading spinner and blocks rendering of other elements when conversation loading is true", () => {
       useConversationMock.mockReturnValue({
         conversation: null,
         isLoading: true,
         error: null,
         refresh: vi.fn(),
       });
-      expect(() => renderConversationDetail()).not.toThrow();
+      renderConversationDetail();
+      expect(screen.getByTestId("conversation-loading-spinner")).toBeInTheDocument();
+      expect(screen.queryByTestId("conversation-header")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("conversation-tabs")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("messages-panel")).not.toBeInTheDocument();
+    });
+
+    it("renders full-component loading spinner and blocks rendering of other elements when participants loading is true", () => {
+      useConversationParticipantsMock.mockReturnValue({
+        participants: [],
+        isLoading: true,
+        isMutating: false,
+        total: 0,
+        error: null,
+        refresh: vi.fn(),
+      });
+      renderConversationDetail();
+      expect(screen.getByTestId("conversation-loading-spinner")).toBeInTheDocument();
+      expect(screen.queryByTestId("conversation-header")).not.toBeInTheDocument();
+    });
+
+    it("renders full-component loading spinner and blocks rendering of other elements when messages loading is true", () => {
+      useConversationMessagesMock.mockReturnValue({
+        messages: [],
+        isLoading: true,
+        isLoadingOlder: false,
+        isMutating: false,
+        hasOlderMessages: false,
+        error: null,
+        send: vi.fn(),
+        edit: vi.fn(),
+        remove: vi.fn(),
+        loadOlderMessages: vi.fn(),
+        refresh: vi.fn(),
+      });
+      renderConversationDetail();
+      expect(screen.getByTestId("conversation-loading-spinner")).toBeInTheDocument();
+      expect(screen.queryByTestId("conversation-header")).not.toBeInTheDocument();
+    });
+
+    it("renders full-component loading spinner and blocks rendering of other elements when policy loading is true", () => {
+      useCommunicationPolicyMock.mockReturnValue({
+        policy: null,
+        isLoading: true,
+      });
+      renderConversationDetail();
+      expect(screen.getByTestId("conversation-loading-spinner")).toBeInTheDocument();
+      expect(screen.queryByTestId("conversation-header")).not.toBeInTheDocument();
     });
 
     it("waits for window focus before marking an incoming message as read", async () => {
