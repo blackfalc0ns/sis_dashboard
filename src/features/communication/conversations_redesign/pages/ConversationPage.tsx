@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "next-intl";
@@ -45,6 +45,10 @@ function filterConversations(
 
   if (filter === "archived" || filter === "closed") {
     return result.filter((conversation) => conversation.status === filter);
+  }
+
+  if (filter === "active") {
+    return result.filter((conversation) => conversation.status === "active");
   }
 
   return result;
@@ -201,6 +205,8 @@ export default function ConversationPage({
           }}
           search={search}
           selectedConversationId={selectedConversationId}
+          loadMore={conversationsState.loadMore}
+          hasMore={conversationsState.hasMore}
         />
 
         <section

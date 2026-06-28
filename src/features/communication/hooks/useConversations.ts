@@ -384,13 +384,24 @@ export function useConversations() {
     [],
   );
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    setIsRefreshing(true);
+  useEffect(() => {
+    setPage(1);
+    setHasMore(true);
+  }, [filters.search, filters.status, filters.type]);
+
+  const refresh = useCallback(async (pageToFetch: number = 1) => {
+    if (pageToFetch === 1) {
+      setIsLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
     setError(null);
 
     try {
@@ -400,7 +411,8 @@ export function useConversations() {
           : {}),
         ...(filters.type !== "all" ? { type: filters.type } : {}),
         ...(filters.search.trim() ? { search: filters.search.trim() } : {}),
-        limit: 50,
+        limit: 20,
+        page: pageToFetch,
       });
       const list = unwrapList<Conversation>(response);
 
@@ -427,15 +439,24 @@ export function useConversations() {
             unreadCount: conversation.unreadCount ?? existing.unreadCount,
           };
         });
-        return sortConversations(merged);
+
+        const baseList = pageToFetch === 1 ? merged : [...merged, ...current];
+        return sortConversations(dedupeConversations(baseList));
       });
-      setTotal(list.total ?? normalized.length);
+      const totalItems = list.total ?? normalized.length;
+      setTotal(totalItems);
+
+      const fetchedCount = list.items.length;
+      setHasMore(fetchedCount > 0 && pageToFetch * 20 < totalItems);
 
     } catch (nextError) {
       if (!mountedRef.current) return;
       setError(errorMessageFromUnknown(nextError));
-      setConversations([]);
-      setTotal(0);
+      if (pageToFetch === 1) {
+        setConversations([]);
+        setTotal(0);
+      }
+      setHasMore(false);
     } finally {
       if (mountedRef.current) {
         setIsLoading(false);
@@ -667,6 +688,13 @@ export function useConversations() {
     );
   }, []);
 
+  const loadMore = useCallback(() => {
+    if (isLoading || isRefreshing || !hasMore) return;
+    const nextPage = page + 1;
+    setPage(nextPage);
+    void refresh(nextPage);
+  }, [isLoading, isRefreshing, hasMore, page, refresh]);
+
   return {
     conversations,
     total,
@@ -684,5 +712,7 @@ export function useConversations() {
     close,
     reopen,
     archive,
+    loadMore,
+    hasMore,
   };
 }

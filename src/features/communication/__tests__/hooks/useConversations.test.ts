@@ -103,7 +103,8 @@ describe("useConversations", () => {
 
       expect(mockGetConversations).toHaveBeenCalledWith({
         status: "active",
-        limit: 50,
+        limit: 20,
+        page: 1,
       });
     });
 
@@ -281,7 +282,8 @@ describe("useConversations", () => {
           search: "hello",
           status: "closed",
           type: "classroom",
-          limit: 50,
+          limit: 20,
+          page: 1,
         }),
       );
     });
@@ -305,7 +307,7 @@ describe("useConversations", () => {
         await vi.runAllTimersAsync();
       });
 
-      expect(mockGetConversations).toHaveBeenCalledWith({ limit: 50 });
+      expect(mockGetConversations).toHaveBeenCalledWith({ limit: 20, page: 1 });
     });
   });
 

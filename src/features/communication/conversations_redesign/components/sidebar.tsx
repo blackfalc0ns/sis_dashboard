@@ -31,6 +31,7 @@ import type { ConversationStatus } from "@/features/communication/types/conversa
 
 export type ConversationRedesignFilter =
   | "all"
+  | "active"
   | "unread"
   | "pinned"
   | "archived"
@@ -51,13 +52,16 @@ export interface ConversationSidebarProps {
   onRefresh: () => void;
   onCreateConversation: () => void;
   className?: string;
+  loadMore?: () => void;
+  hasMore?: boolean;
 }
 
 const primaryFilters: Array<{
   value: ConversationRedesignFilter;
-  labelKey: "all" | "unread" | "pinned" | "archived" | "closed";
+  labelKey: "all" | "active" | "unread" | "pinned" | "archived" | "closed";
 }> = [
   { value: "all", labelKey: "all" },
+  { value: "active", labelKey: "active" },
   { value: "unread", labelKey: "unread" },
   { value: "pinned", labelKey: "pinned" },
 ];
@@ -71,6 +75,9 @@ const statusByRedesignFilter: Partial<
   Record<ConversationRedesignFilter, ConversationStatus | "all">
 > = {
   all: "all",
+  unread: "all",
+  pinned: "all",
+  active: "active",
   archived: "archived",
   closed: "closed",
 };
@@ -163,6 +170,7 @@ function rowMatchesFilter(
   if (filter === "archived" || filter === "closed") {
     return conversation.status === filter;
   }
+  if (filter === "active") return conversation.status === "active";
   return true;
 }
 
@@ -225,6 +233,8 @@ export default function ConversationSidebar({
   onSelect,
   search,
   selectedConversationId,
+  loadMore,
+  hasMore,
 }: ConversationSidebarProps) {
   const locale = useLocale();
   const labels = labelsForLocale(locale);
@@ -430,7 +440,13 @@ export default function ConversationSidebar({
       </div>
 
       {/* ── List ── */}
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto" onScroll={(event) => {
+        if (isLoading || isRefreshing || !hasMore || !loadMore) return;
+        const target = event.currentTarget;
+        if (target.scrollHeight - target.scrollTop - target.clientHeight < 100) {
+          loadMore();
+        }
+      }}>
         {isLoading ? (
           <div className="space-y-0">
             {Array.from({ length: 5 }).map((_, i) => (
