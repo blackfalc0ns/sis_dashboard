@@ -3,6 +3,7 @@
 import {
   Angry,
   Frown,
+  HandHeart,
   Heart,
   Laugh,
   SmilePlus,
@@ -39,7 +40,7 @@ const reactionMeta: Record<
     icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   }
 > = {
-  like: { labelKey: "like", icon: ThumbsUp },
+  like: { labelKey: "like", icon: HandHeart },
   love: { labelKey: "love", icon: Heart },
   laugh: { labelKey: "laugh", icon: Laugh },
   wow: { labelKey: "wow", icon: SmilePlus },

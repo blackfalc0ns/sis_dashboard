@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Angry,
   Frown,
+  HandHeart,
   Heart,
   Laugh,
   Loader2,
@@ -34,7 +35,7 @@ const reactionMeta: Record<
     color: string;
   }
 > = {
-  like: { labelKey: "like", icon: ThumbsUp, color: "text-blue-600" },
+  like: { labelKey: "like", icon: HandHeart, color: "text-blue-600" },
   love: { labelKey: "like", icon: Heart, color: "text-rose-500" },
   laugh: { labelKey: "like", icon: Laugh, color: "text-amber-500" },
   wow: { labelKey: "like", icon: SmilePlus, color: "text-amber-600" },
@@ -45,7 +46,7 @@ const reactionMeta: Record<
 };
 
 const reactionLabel: Record<string, { en: string; ar: string }> = {
-  like: { en: "Like", ar: "إعجاب" },
+  like: { en: "Thanks / Like", ar: "شكراً / إعجاب" },
   love: { en: "Love", ar: "حب" },
   laugh: { en: "Laugh", ar: "ضحك" },
   wow: { en: "Wow", ar: "مندهش" },

@@ -417,10 +417,12 @@ export function MessageBubble({
           <div className="relative z-10 mx-auto mb-2 flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1.5 shadow-lg">
             {[
               { emoji: "👍", type: "thumbs_up" as ReactionType },
+              { emoji: "👎", type: "thumbs_down" as ReactionType },
               { emoji: "❤️", type: "love" as ReactionType },
               { emoji: "😂", type: "laugh" as ReactionType },
               { emoji: "😮", type: "wow" as ReactionType },
               { emoji: "😢", type: "sad" as ReactionType },
+              { emoji: "😡", type: "angry" as ReactionType },
               { emoji: "🙏", type: "like" as ReactionType },
             ].map((item) => (
               <button

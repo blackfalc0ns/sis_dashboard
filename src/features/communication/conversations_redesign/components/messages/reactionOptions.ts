@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { Angry, Frown, Heart, Laugh, SmilePlus, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Angry, Frown, HandHeart, Heart, Laugh, SmilePlus, ThumbsDown, ThumbsUp } from "lucide-react";
 
 import type { ReactionType } from "@/features/communication/types/message.types";
 
@@ -16,5 +16,5 @@ export const REACTION_OPTIONS: {
   { type: "sad", icon: Frown, label: "😢 Sad", color: "text-indigo-500" },
   { type: "angry", icon: Angry, label: "😡 Angry", color: "text-red-600" },
   { type: "thumbs_down", icon: ThumbsDown, label: "👎 Thumbs Down", color: "text-slate-600" },
-  { type: "like", icon: ThumbsUp, label: "👍 Like", color: "text-blue-500" },
+  { type: "like", icon: HandHeart, label: "🙏 Like", color: "text-blue-500" },
 ];

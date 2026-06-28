@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { Smile } from "lucide-react";
-import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import {
   useFloating,
   offset,
@@ -21,7 +20,6 @@ export function FloatingReactionBar({
   onReact: (type: ReactionType) => Promise<unknown>;
 }) {
   const [showBar, setShowBar] = useState(false);
-  const [showFullPicker, setShowFullPicker] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const { refs, floatingStyles } = useFloating({
@@ -37,23 +35,24 @@ export function FloatingReactionBar({
   const { setReference, setFloating } = refs;
 
   useEffect(() => {
-    if (!showBar && !showFullPicker) return;
+    if (!showBar) return;
     const handleClickOutside = (event: Event) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setShowBar(false);
-        setShowFullPicker(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showBar, showFullPicker]);
+  }, [showBar]);
 
   const quickReactions: { emoji: string; type: ReactionType }[] = [
     { emoji: "👍", type: "thumbs_up" },
+    { emoji: "👎", type: "thumbs_down" },
     { emoji: "❤️", type: "love" },
     { emoji: "😂", type: "laugh" },
     { emoji: "😮", type: "wow" },
     { emoji: "😢", type: "sad" },
+    { emoji: "😡", type: "angry" },
     { emoji: "🙏", type: "like" },
   ];
 
@@ -91,31 +90,7 @@ export function FloatingReactionBar({
                 {item.emoji}
               </button>
             ))}
-            <button
-              type="button"
-              onClick={() => setShowFullPicker((prev) => !prev)}
-              disabled={isActionPending}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-lg font-bold text-slate-500 transition hover:scale-110 hover:bg-slate-100"
-            >
-              +
-            </button>
           </div>
-          {showFullPicker ? (
-            <div className="absolute top-full z-50 mt-1 end-0">
-              <EmojiPicker
-                onEmojiClick={() => {
-                  setShowFullPicker(false);
-                  setShowBar(false);
-                  void onReact("thumbs_up");
-                }}
-                emojiStyle={EmojiStyle.NATIVE}
-                theme={Theme.LIGHT}
-                width={320}
-                height={350}
-                lazyLoadEmojis
-              />
-            </div>
-          ) : null}
         </div>
       ) : null}
     </div>
