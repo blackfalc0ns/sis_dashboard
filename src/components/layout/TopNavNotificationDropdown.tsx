@@ -326,7 +326,7 @@ export default function TopNavNotificationDropdown({
   return (
     <div
       ref={dropdownRef}
-      className="absolute end-0 top-full z-50 mt-3 w-[min(calc(100vw-2rem),24rem)] overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]"
+      className="fixed left-4 right-4 top-[72px] z-50 w-auto overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-3 sm:w-96 sm:max-w-none"
       role="dialog"
       aria-label={mergedLabels.title}
     >

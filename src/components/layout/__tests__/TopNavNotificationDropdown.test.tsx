@@ -131,6 +131,24 @@ describe("TopNavNotificationDropdown", () => {
     expect(unreadDots.length).toBe(2);
   });
 
+  it("has the approved responsive layout classes on the wrapper dialog container", () => {
+    render(
+      <TopNavNotificationDropdown
+        notifications={mockNotifications}
+        unreadCount={2}
+        onMarkRead={onMarkReadMock}
+        onMarkAllRead={onMarkAllReadMock}
+        onArchive={onArchiveMock}
+        isOpen={true}
+        onClose={onCloseMock}
+      />
+    );
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveClass("fixed", "left-4", "right-4", "top-[72px]");
+    expect(dialog).toHaveClass("sm:absolute", "sm:right-0", "sm:w-96");
+  });
+
   it("triggers onMarkRead and redirects to deepLink on item card click", () => {
     render(
       <TopNavNotificationDropdown
