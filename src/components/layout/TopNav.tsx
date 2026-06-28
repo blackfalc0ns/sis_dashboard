@@ -7,8 +7,6 @@ import {
   LogOut,
   Menu,
   Search,
-  Volume2,
-  VolumeX,
   X,
 } from "lucide-react";
 import Image from "next/image";
@@ -16,12 +14,10 @@ import { useRouter } from "next/navigation";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/use-auth";
-import {
-  getNotificationMuted,
-  setNotificationMuted,
-} from "@/features/communication/hooks/useNotificationSound";
 import { useNotifications } from "@/features/communication/hooks/useNotifications";
 import TopNavNotificationDropdown from "./TopNavNotificationDropdown";
+
+type NotificationTab = "all" | "chat" | "announcements";
 
 interface TopNavProps {
   userName?: string;
@@ -47,7 +43,7 @@ export default function TopNav({
 }: TopNavProps) {
   const t = useTranslations();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "chat" | "announcements" | "academics">("all");
+  const [activeTab, setActiveTab] = useState<NotificationTab>("all");
   const notificationsRef = useRef<HTMLDivElement | null>(null);
 
   const { user } = useAuth();
@@ -58,9 +54,13 @@ export default function TopNav({
     markAllRead: liveMarkAllRead,
     archive: liveArchive,
     setFilters: setLiveFilters,
+    isLoading: notificationsLoading,
+    isRefreshing: notificationsRefreshing,
+    error: notificationsError,
+    refresh: refreshNotifications,
   } = useNotifications({ recipientUserId: user?.id });
 
-  const handleTabChange = (tab: "all" | "chat" | "announcements" | "academics") => {
+  const handleTabChange = (tab: NotificationTab) => {
     setActiveTab(tab);
     let sourceModuleVal: "" | "communication" | "announcements" = "";
     if (tab === "chat") {
@@ -75,11 +75,31 @@ export default function TopNav({
   };
 
   const notificationLabels = {
-    title: t("notifications") === "notifications" ? "Notifications" : t("notifications"),
-    all: t("all") === "all" ? "All" : t("all"),
-    chat: t("chat") === "chat" ? "Chat" : t("chat"),
-    announcements: t("announcements") === "announcements" ? "Announcements" : t("announcements"),
-    academics: t("academics") === "academics" ? "Academics" : t("academics"),
+    title: t("top_nav_notifications.title"),
+    unreadCount: t("top_nav_notifications.unread_count", {
+      count: liveUnreadCount,
+    }),
+    markAllRead: t("top_nav_notifications.mark_all_read"),
+    all: t("top_nav_notifications.all"),
+    chat: t("top_nav_notifications.chat"),
+    announcements: t("top_nav_notifications.announcements"),
+    emptyStateTitle: t("top_nav_notifications.empty_title"),
+    emptyStateDesc: t("top_nav_notifications.empty_description"),
+    loading: t("top_nav_notifications.loading"),
+    errorTitle: t("top_nav_notifications.error_title"),
+    retry: t("top_nav_notifications.retry"),
+    refresh: t("top_nav_notifications.refresh"),
+    archive: t("top_nav_notifications.archive"),
+    urgent: t("top_nav_notifications.urgent"),
+    high: t("top_nav_notifications.high"),
+    mute: t("mute_notifications"),
+    unmute: t("unmute_notifications"),
+    listLabel: t("top_nav_notifications.list_label"),
+    tabsLabel: t("top_nav_notifications.tabs_label"),
+    viewAll: t("top_nav_notifications.view_all"),
+    untitled: t("top_nav_notifications.untitled"),
+    noPreview: t("top_nav_notifications.no_preview"),
+    system: t("top_nav_notifications.system"),
   };
 
   useEffect(() => {
@@ -176,6 +196,10 @@ export default function TopNav({
                 onMarkRead={liveMarkRead}
                 onMarkAllRead={liveMarkAllRead}
                 onArchive={liveArchive}
+                isLoading={notificationsLoading}
+                isRefreshing={notificationsRefreshing}
+                error={notificationsError}
+                onRefresh={refreshNotifications}
                 isOpen={notificationsOpen}
                 onClose={() => setNotificationsOpen(false)}
                 activeTab={activeTab}
@@ -231,7 +255,6 @@ function ProfileDropdown({
   t: (key: string) => string;
 }) {
   const [open, setOpen] = useState(false);
-  const [muted, setMuted] = useState(getNotificationMuted());
   const [showChangePassword, setShowChangePassword] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
@@ -247,12 +270,6 @@ function ProfileDropdown({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
-
-  const toggleMute = () => {
-    const next = !muted;
-    setMuted(next);
-    setNotificationMuted(next);
-  };
 
   const handleLogout = async () => {
     setOpen(false);
@@ -324,22 +341,6 @@ function ProfileDropdown({
           >
             <KeyRound className="h-4 w-4 text-gray-500" />
             {t("change_password") || "Change Password"}
-          </button>
-
-          {/* Notification Sound Toggle */}
-          <button
-            type="button"
-            onClick={toggleMute}
-            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-          >
-            {muted ? (
-              <VolumeX className="h-4 w-4 text-gray-500" />
-            ) : (
-              <Volume2 className="h-4 w-4 text-gray-500" />
-            )}
-            {muted
-              ? (t("unmute_notifications") || "Unmute notifications")
-              : (t("mute_notifications") || "Mute notifications")}
           </button>
 
           {/* Divider */}

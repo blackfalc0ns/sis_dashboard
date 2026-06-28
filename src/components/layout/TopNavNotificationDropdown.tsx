@@ -16,6 +16,9 @@ import {
   Volume2,
   VolumeX,
   CheckCheck,
+  RefreshCw,
+  AlertCircle,
+  ArrowRight,
 } from "lucide-react";
 import {
   getNotificationMuted,
@@ -107,16 +110,22 @@ function isAnnouncementNotification(notification: CommunicationNotification) {
   );
 }
 
+type NotificationTab = "all" | "chat" | "announcements";
+
 interface TopNavNotificationDropdownProps {
   notifications: CommunicationNotification[];
   unreadCount: number;
   onMarkRead: (notificationId: string) => Promise<unknown> | void;
   onMarkAllRead: () => Promise<unknown> | void;
   onArchive: (notificationId: string) => Promise<unknown> | void;
+  isLoading?: boolean;
+  isRefreshing?: boolean;
+  error?: string | null;
+  onRefresh?: () => Promise<unknown> | void;
   isOpen: boolean;
   onClose: () => void;
-  activeTab: "all" | "chat" | "announcements" | "academics";
-  onTabChange: (tab: "all" | "chat" | "announcements" | "academics") => void;
+  activeTab?: NotificationTab;
+  onTabChange?: (tab: NotificationTab) => void;
   labels?: {
     title?: string;
     unreadCount?: string;
@@ -128,10 +137,19 @@ interface TopNavNotificationDropdownProps {
     high?: string;
     mute?: string;
     unmute?: string;
+    loading?: string;
+    errorTitle?: string;
+    retry?: string;
+    refresh?: string;
+    listLabel?: string;
+    tabsLabel?: string;
+    viewAll?: string;
+    untitled?: string;
+    noPreview?: string;
+    system?: string;
     all?: string;
     chat?: string;
     announcements?: string;
-    academics?: string;
   };
 }
 
@@ -141,9 +159,13 @@ export default function TopNavNotificationDropdown({
   onMarkRead,
   onMarkAllRead,
   onArchive,
+  isLoading = false,
+  isRefreshing = false,
+  error,
+  onRefresh,
   isOpen,
   onClose,
-  activeTab,
+  activeTab = "all",
   onTabChange,
   labels,
 }: TopNavNotificationDropdownProps) {
@@ -203,19 +225,20 @@ export default function TopNavNotificationDropdown({
     high: labels?.high ?? "High",
     mute: labels?.mute ?? "Mute notifications",
     unmute: labels?.unmute ?? "Unmute notifications",
+    loading: labels?.loading ?? "Loading notifications",
+    errorTitle: labels?.errorTitle ?? "Unable to load notifications",
+    retry: labels?.retry ?? "Retry",
+    refresh: labels?.refresh ?? "Refresh notifications",
+    listLabel: labels?.listLabel ?? "Notification list",
+    tabsLabel: labels?.tabsLabel ?? "Notification filters",
+    viewAll: labels?.viewAll ?? "View all notifications",
+    untitled: labels?.untitled ?? "Untitled update",
+    noPreview: labels?.noPreview ?? "No preview available.",
+    system: labels?.system ?? "System",
     all: labels?.all ?? "All",
     chat: labels?.chat ?? "Chat",
     announcements: labels?.announcements ?? "Announcements",
-    academics: labels?.academics ?? "Academics",
   };
-
-  const displayedNotifications = activeTab === "academics"
-    ? notifications.filter((n) =>
-        ["attendance", "grades", "behavior", "reinforcement"].includes(
-          n.sourceModule || "",
-        ),
-      )
-    : notifications;
 
   // Resolve route target using the same conversation target as message toasts.
   const getNotificationUrl = (notification: CommunicationNotification) => {
@@ -311,6 +334,18 @@ export default function TopNavNotificationDropdown({
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void onRefresh?.()}
+              disabled={isRefreshing || !onRefresh}
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors duration-200 hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label={mergedLabels.refresh}
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+              />
+            </button>
+
             {/* Sound Toggle Button */}
             <button
               type="button"
@@ -340,8 +375,8 @@ export default function TopNavNotificationDropdown({
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-100 bg-white px-2" role="tablist" aria-label="Notification filters">
-        {(["all", "chat", "announcements", "academics"] as const).map((tab) => {
+      <div className="flex border-b border-slate-100 bg-white px-2" role="tablist" aria-label={mergedLabels.tabsLabel}>
+        {(["all", "chat", "announcements"] as const).map((tab) => {
           const isActive = activeTab === tab;
           const label = mergedLabels[tab];
           return (
@@ -350,7 +385,7 @@ export default function TopNavNotificationDropdown({
               type="button"
               role="tab"
               aria-selected={isActive}
-              onClick={() => onTabChange(tab)}
+              onClick={() => onTabChange?.(tab)}
               className={`flex-1 py-2.5 text-center text-xs font-semibold border-b-2 transition-all duration-200 focus:outline-none capitalize ${
                 isActive
                   ? "border-primary-600 text-primary-600 dark:border-primary-500 dark:text-primary-500"
@@ -366,19 +401,54 @@ export default function TopNavNotificationDropdown({
       {/* Notifications List */}
       <div
         className="relative max-h-[22rem] overflow-y-auto px-2 py-2"
-        role="listbox"
-        aria-label="Notification list"
+        role="list"
+        aria-label={mergedLabels.listLabel}
       >
-        {displayedNotifications.length > 0 ? (
+        {isLoading ? (
+          <div className="space-y-2 p-1" aria-label={mergedLabels.loading}>
+            {[0, 1, 2].map((skeleton) => (
+              <div
+                key={skeleton}
+                className="grid animate-pulse grid-cols-[2.25rem_1fr] gap-3 rounded-xl px-3 py-3"
+              >
+                <span className="h-9 w-9 rounded-xl bg-slate-200" />
+                <span className="space-y-2">
+                  <span className="block h-3 w-2/3 rounded bg-slate-200" />
+                  <span className="block h-3 w-full rounded bg-slate-100" />
+                  <span className="block h-2 w-1/3 rounded bg-slate-100" />
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : error ? (
+          <div className="flex min-h-56 flex-col items-center justify-center px-6 py-8 text-center">
+            <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+              <AlertCircle className="h-6 w-6" />
+            </span>
+            <p className="text-sm font-bold text-slate-950">
+              {mergedLabels.errorTitle}
+            </p>
+            <button
+              type="button"
+              onClick={() => void onRefresh?.()}
+              disabled={isRefreshing || !onRefresh}
+              className="mt-4 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+            >
+              {mergedLabels.retry}
+            </button>
+          </div>
+        ) : notifications.length > 0 ? (
           <div className="space-y-1.5">
-            {displayedNotifications.map((notification) => {
+            {notifications.map((notification) => {
               const isUnread =
                 notification.status === "unread" ||
                 (notification.status !== "read" && !notification.readAt);
               const Icon = getNotificationIcon(notification.type, notification.sourceModule);
 
-              const title = notification.title || notification.titleEn || "Untitled update";
-              const body = notification.body || notification.bodyEn || "No preview available.";
+              const title =
+                notification.title || notification.titleEn || mergedLabels.untitled;
+              const body =
+                notification.body || notification.bodyEn || mergedLabels.noPreview;
 
               const handleCardClick = async () => {
                 if (isUnread) {
@@ -401,55 +471,53 @@ export default function TopNavNotificationDropdown({
               return (
                 <div
                   key={notification.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={handleCardClick}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      void handleCardClick();
-                    }
-                  }}
-                  className="group grid w-full cursor-pointer grid-cols-[2.25rem_1fr_2rem] gap-3 rounded-xl border border-transparent bg-white px-3 py-3 text-start transition-colors duration-200 hover:border-slate-100 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  role="listitem"
+                  className="group grid w-full grid-cols-[1fr_2rem] rounded-xl border border-transparent bg-white transition-colors duration-200 hover:border-slate-100 hover:bg-slate-50"
                 >
-                  {/* Left Icon Area */}
-                  <span
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                      isUnread
-                        ? "bg-primary-600 text-white"
-                        : "bg-slate-100 text-slate-500"
-                    }`}
+                  <button
+                    type="button"
+                    onClick={() => void handleCardClick()}
+                    className="grid min-w-0 grid-cols-[2.25rem_1fr] gap-3 rounded-s-xl px-3 py-3 text-start focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
-                    <Icon className="h-4 w-4" />
-                  </span>
-
-                  {/* Middle Content Area */}
-                  <span className="min-w-0">
-                    <span className="flex items-start gap-1.5 flex-wrap">
-                      <span className="line-clamp-1 text-sm font-bold text-slate-950">
-                        {title}
-                      </span>
-                      {notification.priority && (notification.priority === "urgent" || notification.priority === "high") ? (
-                        <span className="inline-block shrink-0 mt-0.5">
-                          {getPriorityBadge(notification.priority, mergedLabels)}
+                    <span
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                        isUnread
+                          ? "bg-primary-600 text-white"
+                          : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="flex flex-wrap items-start gap-1.5">
+                        <span className="line-clamp-1 text-sm font-bold text-slate-950">
+                          {title}
                         </span>
-                      ) : null}
-                    </span>
-                    <span className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-600">
-                      {body}
-                    </span>
-                    <span className="mt-2 flex items-center justify-between gap-2 text-[10px] font-semibold text-slate-400">
-                      <span className="capitalize">
-                        {(notification.sourceModule || notification.type || "system").replace(/_/g, " ")}
+                        {notification.priority &&
+                        (notification.priority === "urgent" ||
+                          notification.priority === "high") ? (
+                          <span className="mt-0.5 inline-block shrink-0">
+                            {getPriorityBadge(notification.priority, mergedLabels)}
+                          </span>
+                        ) : null}
                       </span>
-                      <span>{formatNotificationTime(notification.createdAt)}</span>
+                      <span className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-600">
+                        {body}
+                      </span>
+                      <span className="mt-2 flex items-center justify-between gap-2 text-[10px] font-semibold text-slate-400">
+                        <span className="capitalize">
+                          {(notification.sourceModule ||
+                            notification.type ||
+                            mergedLabels.system
+                          ).replace(/_/g, " ")}
+                        </span>
+                        <span>{formatNotificationTime(notification.createdAt)}</span>
+                      </span>
                     </span>
-                  </span>
+                  </button>
 
-                  {/* Right Action/Indicator Area */}
-                  <span className="flex flex-col items-center justify-between h-full shrink-0">
-                    {/* Unread dot */}
-                    <span className="h-4 flex items-center justify-center">
+                  <span className="flex h-full shrink-0 flex-col items-center justify-between py-3 pe-2">
+                    <span className="flex h-4 items-center justify-center">
                       {isUnread ? (
                         <span
                           data-testid="unread-indicator"
@@ -459,17 +527,12 @@ export default function TopNavNotificationDropdown({
                         <span className="h-2 w-2" />
                       )}
                     </span>
-
-                    {/* Archive button */}
-                    <span className="h-7 flex items-center justify-center">
+                    <span className="flex h-7 items-center justify-center">
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onArchive(notification.id);
-                        }}
-                        aria-label="Archive notification"
-                        className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-700 transition-colors"
+                        onClick={() => void onArchive(notification.id)}
+                        aria-label={`${mergedLabels.archive}: ${title}`}
+                        className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-700"
                       >
                         <Archive className="h-4 w-4" />
                       </button>
@@ -490,6 +553,21 @@ export default function TopNavNotificationDropdown({
             </p>
           </div>
         )}
+      </div>
+      <div className="border-t border-slate-100 bg-white p-2">
+        <button
+          type="button"
+          onClick={() => {
+            onClose();
+            router.push(`/${locale}/communication/notifications`);
+          }}
+          className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-bold text-primary-700 transition-colors hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+        >
+          {mergedLabels.viewAll}
+          <ArrowRight
+            className={`h-4 w-4 ${locale === "ar" ? "rotate-180" : ""}`}
+          />
+        </button>
       </div>
     </div>
   );

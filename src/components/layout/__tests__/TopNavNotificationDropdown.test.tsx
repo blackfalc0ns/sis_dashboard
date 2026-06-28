@@ -145,7 +145,7 @@ describe("TopNavNotificationDropdown", () => {
     );
 
     // Click on the second notification (unread message)
-    const messageCard = screen.getByText("New Message").closest('[role="button"]');
+    const messageCard = screen.getByText("New Message").closest("button");
     expect(messageCard).toBeInTheDocument();
 
     if (messageCard) {
@@ -186,7 +186,7 @@ describe("TopNavNotificationDropdown", () => {
       />
     );
 
-    const messageCard = screen.getByText("New Message").closest('[role="button"]');
+    const messageCard = screen.getByText("New Message").closest("button");
     expect(messageCard).toBeInTheDocument();
 
     if (messageCard) {
@@ -228,7 +228,7 @@ describe("TopNavNotificationDropdown", () => {
       />
     );
 
-    const messageCard = screen.getByText("Stored Message").closest('[role="button"]');
+    const messageCard = screen.getByText("Stored Message").closest("button");
     expect(messageCard).toBeInTheDocument();
 
     if (messageCard) {
@@ -268,7 +268,7 @@ describe("TopNavNotificationDropdown", () => {
 
     const messageCard = screen
       .getByText("Source Conversation")
-      .closest('[role="button"]');
+      .closest("button");
     expect(messageCard).toBeInTheDocument();
 
     if (messageCard) {
@@ -313,7 +313,7 @@ describe("TopNavNotificationDropdown", () => {
 
     const messageCard = screen
       .getByText("Message Source")
-      .closest('[role="button"]');
+      .closest("button");
     expect(messageCard).toBeInTheDocument();
 
     if (messageCard) {
@@ -354,7 +354,7 @@ describe("TopNavNotificationDropdown", () => {
       />
     );
 
-    const card = screen.getByText("New Announcement Title").closest('[role="button"]');
+    const card = screen.getByText("New Announcement Title").closest("button");
     expect(card).toBeInTheDocument();
 
     if (card) {
@@ -392,7 +392,7 @@ describe("TopNavNotificationDropdown", () => {
       />
     );
 
-    const card = screen.getByText("Backend Announcement").closest('[role="button"]');
+    const card = screen.getByText("Backend Announcement").closest("button");
     expect(card).toBeInTheDocument();
 
     if (card) {
@@ -467,7 +467,7 @@ describe("TopNavNotificationDropdown", () => {
     );
 
     // Find Archive buttons
-    const archiveButtons = screen.getAllByRole("button", { name: /archive notification/i });
+    const archiveButtons = screen.getAllByRole("button", { name: /^archive:/i });
     expect(archiveButtons.length).toBe(3);
 
     // Click the first one
@@ -477,7 +477,7 @@ describe("TopNavNotificationDropdown", () => {
     expect(onArchiveMock).toHaveBeenCalledWith("notif-1");
   });
 
-  it("renders four filter tabs: All, Chat, Announcements, and Academics", () => {
+  it("renders only backend-complete filter tabs", () => {
     const onTabChangeMock = vi.fn();
     render(
       <TopNavNotificationDropdown
@@ -496,7 +496,7 @@ describe("TopNavNotificationDropdown", () => {
     expect(screen.getByRole("tab", { name: /All/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Chat/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Announcements/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Academics/i })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /Academics/i })).not.toBeInTheDocument();
   });
 
   it("calls onTabChange callback when a tab is clicked", () => {
@@ -521,11 +521,9 @@ describe("TopNavNotificationDropdown", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Announcements/i }));
     expect(onTabChangeMock).toHaveBeenCalledWith("announcements");
 
-    fireEvent.click(screen.getByRole("tab", { name: /Academics/i }));
-    expect(onTabChangeMock).toHaveBeenCalledWith("academics");
   });
 
-  it("filters notifications to show only academics modules when activeTab is academics", () => {
+  it("uses list semantics with separate notification actions", () => {
     const academicNotifications = [
       {
         id: "academic-1",
@@ -556,7 +554,7 @@ describe("TopNavNotificationDropdown", () => {
       },
     ];
 
-    const { rerender } = render(
+    render(
       <TopNavNotificationDropdown
         notifications={academicNotifications}
         unreadCount={3}
@@ -570,29 +568,77 @@ describe("TopNavNotificationDropdown", () => {
       />
     );
 
-    // Verify all 3 are shown
     expect(screen.getByText("Attendance Notification")).toBeInTheDocument();
     expect(screen.getByText("Grade Notification")).toBeInTheDocument();
     expect(screen.getByText("Chat Notification")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Notification list" })).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+    expect(screen.getByRole("button", { name: /^archive: chat notification$/i })).toBeInTheDocument();
+  });
 
-    // Rerender with activeTab="academics"
-    rerender(
+  it("shows loading and retry states without using the empty state", () => {
+    const onRefresh = vi.fn();
+    const { rerender } = render(
       <TopNavNotificationDropdown
-        notifications={academicNotifications}
-        unreadCount={3}
+        notifications={[]}
+        unreadCount={0}
         onMarkRead={onMarkReadMock}
         onMarkAllRead={onMarkAllReadMock}
         onArchive={onArchiveMock}
-        isOpen={true}
+        isLoading
+        onRefresh={onRefresh}
+        isOpen
         onClose={onCloseMock}
-        activeTab="academics"
-        onTabChange={vi.fn()}
       />
     );
 
-    // Verify chat notification is NOT shown, but academic ones are
-    expect(screen.getByText("Attendance Notification")).toBeInTheDocument();
-    expect(screen.getByText("Grade Notification")).toBeInTheDocument();
-    expect(screen.queryByText("Chat Notification")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Loading notifications")).toBeInTheDocument();
+    expect(screen.queryByText("No notifications yet")).not.toBeInTheDocument();
+
+    rerender(
+      <TopNavNotificationDropdown
+        notifications={[]}
+        unreadCount={0}
+        onMarkRead={onMarkReadMock}
+        onMarkAllRead={onMarkAllReadMock}
+        onArchive={onArchiveMock}
+        error="Request failed"
+        onRefresh={onRefresh}
+        isOpen
+        onClose={onCloseMock}
+      />
+    );
+
+    expect(screen.getByText("Unable to load notifications")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses localized actions and routes to the full notification center", () => {
+    render(
+      <TopNavNotificationDropdown
+        notifications={mockNotifications.slice(0, 1)}
+        unreadCount={1}
+        onMarkRead={onMarkReadMock}
+        onMarkAllRead={onMarkAllReadMock}
+        onArchive={onArchiveMock}
+        isOpen
+        onClose={onCloseMock}
+        labels={{
+          archive: "أرشفة",
+          viewAll: "عرض كل الإشعارات",
+          listLabel: "قائمة الإشعارات",
+        }}
+      />
+    );
+
+    expect(
+      screen.getByRole("button", { name: "أرشفة: New Announcement" }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "عرض كل الإشعارات" }),
+    );
+    expect(onCloseMock).toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith("/en/communication/notifications");
   });
 });

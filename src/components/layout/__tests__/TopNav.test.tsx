@@ -1,4 +1,4 @@
-import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { act, render, screen, fireEvent } from "@testing-library/react";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
 import { createMockSocket, type MockSocket } from "@/features/communication/__tests__/utils/mock-socket";
@@ -16,7 +16,37 @@ vi.mock("next/navigation", () => ({
 // Mock next-intl
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
-  useTranslations: () => (key: string) => key,
+  useTranslations: () =>
+    (key: string, values?: { count?: number }) => {
+      const translations: Record<string, string> = {
+        "top_nav_notifications.title": "Notifications",
+        "top_nav_notifications.mark_all_read": "Mark all",
+        "top_nav_notifications.all": "All",
+        "top_nav_notifications.chat": "Chat",
+        "top_nav_notifications.announcements": "Announcements",
+        "top_nav_notifications.empty_title": "No notifications yet",
+        "top_nav_notifications.empty_description": "No notifications",
+        "top_nav_notifications.loading": "Loading notifications",
+        "top_nav_notifications.error_title": "Unable to load notifications",
+        "top_nav_notifications.retry": "Retry",
+        "top_nav_notifications.refresh": "Refresh notifications",
+        "top_nav_notifications.archive": "Archive",
+        "top_nav_notifications.urgent": "Urgent",
+        "top_nav_notifications.high": "High",
+        "top_nav_notifications.list_label": "Notification list",
+        "top_nav_notifications.tabs_label": "Notification filters",
+        "top_nav_notifications.view_all": "View all notifications",
+        "top_nav_notifications.untitled": "Untitled update",
+        "top_nav_notifications.no_preview": "No preview available.",
+        "top_nav_notifications.system": "System",
+        mute_notifications: "Mute notifications",
+        unmute_notifications: "Unmute notifications",
+      };
+      if (key === "top_nav_notifications.unread_count") {
+        return `${values?.count ?? 0} unread updates`;
+      }
+      return translations[key] ?? key;
+    },
 }));
 
 // Mock useAuth
@@ -142,5 +172,24 @@ describe("TopNav Notification Integration", () => {
     });
     expect(screen.getByRole("dialog", { name: "Notifications" })).toBeInTheDocument();
     expect(screen.getByText("Incoming Alert")).toBeInTheDocument();
+  });
+
+  it("keeps notification sound control out of the profile menu", async () => {
+    render(
+      <TopNav
+        userName="Test User"
+        userRole="Admin"
+        schoolName="Test School"
+      />
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(150);
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Test User Admin TU/i }));
+
+    expect(
+      screen.queryByRole("button", { name: "Mute notifications" }),
+    ).not.toBeInTheDocument();
   });
 });
