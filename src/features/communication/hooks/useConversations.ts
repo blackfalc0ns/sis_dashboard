@@ -399,6 +399,8 @@ export function useConversations() {
   const refresh = useCallback(async (pageToFetch: number = 1) => {
     if (pageToFetch === 1) {
       setIsLoading(true);
+      setPage(1);
+      setHasMore(true);
     } else {
       setIsRefreshing(true);
     }
