@@ -145,8 +145,8 @@ describe("TopNavNotificationDropdown", () => {
     );
 
     const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveClass("fixed", "left-4", "right-4", "top-[72px]");
-    expect(dialog).toHaveClass("sm:absolute", "sm:right-0", "sm:w-96");
+    expect(dialog).toHaveClass("fixed", "start-4", "end-4", "top-[72px]");
+    expect(dialog).toHaveClass("sm:absolute", "sm:start-auto", "sm:end-0", "sm:w-96");
   });
 
   it("triggers onMarkRead and redirects to deepLink on item card click", () => {
