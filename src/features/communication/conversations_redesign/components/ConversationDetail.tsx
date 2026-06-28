@@ -141,10 +141,8 @@ export default function ConversationDetail({
     body: string;
   } | null>(null);
 
-  const shouldLoadParticipants =
-    loadedTabs.participants || loadedTabs.invites || loadedTabs.joinRequests;
   const participantsState = useConversationParticipants(conversationId, {
-    enabled: shouldLoadParticipants,
+    enabled: true,
   });
   const invitesState = useConversationInvites(conversationId, {
     enabled: loadedTabs.invites,
@@ -291,7 +289,7 @@ export default function ConversationDetail({
   const refreshAll = useCallback(() => {
     void conversationState.refresh();
     void messagesState.refresh();
-    if (shouldLoadParticipants) void participantsState.refresh();
+    void participantsState.refresh();
     if (loadedTabs.invites) void invitesState.refresh();
     if (loadedTabs.joinRequests) void joinRequestsState.refresh();
     void reactionsState.refreshAll();
@@ -304,7 +302,6 @@ export default function ConversationDetail({
     messagesState,
     participantsState,
     reactionsState,
-    shouldLoadParticipants,
   ]);
 
   const ignoreReactionRealtimeRefresh = useCallback(() => undefined, []);
@@ -446,7 +443,11 @@ export default function ConversationDetail({
     if (normalizeRole(currentUserParticipant?.role) === "READ_ONLY") {
       return labels.bannerReadOnlyParticipant;
     }
-    if (!conversationState.isLoading && !permissions.isActiveParticipant) {
+    if (
+      !conversationState.isLoading &&
+      !participantsState.isLoading &&
+      !permissions.isActiveParticipant
+    ) {
       return labels.errorConversationNotMember;
     }
     return null;
