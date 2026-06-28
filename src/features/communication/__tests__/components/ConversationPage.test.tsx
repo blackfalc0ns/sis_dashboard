@@ -449,7 +449,7 @@ describe("ConversationPage", () => {
       expect(screen.getByTestId("detail-conversation-id")).toHaveTextContent("conv-y");
     });
 
-    it("calls refresh when navigating back", () => {
+    it("does not call refresh when navigating back", () => {
       mockConversationsState.conversations = [
         createConversationListItem({ id: "conv-refresh", title: "Conv Refresh" }),
       ];
@@ -460,14 +460,14 @@ describe("ConversationPage", () => {
       const convButton = screen.getByText("Conv Refresh").closest("button");
       fireEvent.click(convButton!);
 
-      // Clear mock to track only the back-navigation refresh
+      // Clear mock
       mockConversationsState.refresh.mockClear();
 
       // Navigate back
       fireEvent.click(screen.getByTestId("back-button"));
 
-      // refresh should be called on back navigation
-      expect(mockConversationsState.refresh).toHaveBeenCalledTimes(1);
+      // refresh should not be called on back navigation
+      expect(mockConversationsState.refresh).not.toHaveBeenCalled();
     });
   });
 });

@@ -94,9 +94,6 @@ export default function ConversationPage({
     setShowMobileThread(false);
     setSelectedConversationId(null);
     userClosedRef.current = true;
-    // Refresh list when navigating back from a conversation
-    void conversationsState.refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const visibleConversations = useMemo(
