@@ -379,7 +379,7 @@ export function MessageBubble({
                   }`}
                   title={meta?.label ?? type}
                 >
-                  <Icon className="h-2.5 w-2.5" aria-hidden />
+                  <span>{meta?.emoji ?? "👍"}</span>
                   <span>{items.length}</span>
                 </button>
               );

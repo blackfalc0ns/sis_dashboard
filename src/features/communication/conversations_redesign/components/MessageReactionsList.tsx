@@ -56,6 +56,17 @@ const reactionLabel: Record<string, { en: string; ar: string }> = {
   thumbs_down: { en: "Thumbs Down", ar: "عدم إعجاب" },
 };
 
+const reactionEmojiMap: Record<string, string> = {
+  thumbs_up: "👍",
+  love: "❤️",
+  laugh: "😂",
+  wow: "😮",
+  sad: "😢",
+  angry: "😡",
+  thumbs_down: "👎",
+  like: "🙏",
+};
+
 /* ------------------------------------------------------------------ */
 /* Helper: unwrap API response                                         */
 /* ------------------------------------------------------------------ */
@@ -168,8 +179,6 @@ export default function MessageReactionsList({
           onClick={() => setFilterType("all")}
         />
         {Object.entries(grouped).map(([type, items]) => {
-          const meta = reactionMeta[type] ?? reactionMeta.like;
-          const Icon = meta.icon;
           const typeLabel =
             reactionLabel[type]?.[locale === "ar" ? "ar" : "en"] ?? type;
           return (
@@ -178,7 +187,7 @@ export default function MessageReactionsList({
               active={filterType === type}
               count={items.length}
               icon={
-                <Icon className={`h-3.5 w-3.5 ${meta.color}`} aria-hidden />
+                <span>{reactionEmojiMap[type] ?? "👍"}</span>
               }
               label={typeLabel}
               onClick={() => setFilterType(type as ReactionType)}
@@ -190,8 +199,6 @@ export default function MessageReactionsList({
       {/* Reactions list */}
       <ul className="divide-y divide-slate-100" role="list">
         {filteredReactions.map((reaction) => {
-          const meta = reactionMeta[reaction.type] ?? reactionMeta.like;
-          const Icon = meta.icon;
           const userName =
             reaction.actor?.name ??
             displayNameForUserId(
@@ -211,13 +218,13 @@ export default function MessageReactionsList({
           return (
             <li key={reaction.id} className="flex items-center gap-3 py-3">
               <span
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border ${
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-base ${
                   isOwn
                     ? "border-primary-200 bg-primary-50"
                     : "border-slate-200 bg-slate-50"
                 }`}
               >
-                <Icon className={`h-4 w-4 ${meta.color}`} aria-hidden />
+                <span>{reactionEmojiMap[reaction.type] ?? "👍"}</span>
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-slate-900">

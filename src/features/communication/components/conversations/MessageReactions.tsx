@@ -63,6 +63,17 @@ function groupReactions(reactions: MessageReaction[]) {
   );
 }
 
+const reactionEmojiMap: Record<string, string> = {
+  thumbs_up: "👍",
+  love: "❤️",
+  laugh: "😂",
+  wow: "😮",
+  sad: "😢",
+  angry: "😡",
+  thumbs_down: "👎",
+  like: "🙏",
+};
+
 export default function MessageReactions({
   currentUserId,
   labels,
@@ -77,7 +88,6 @@ export default function MessageReactions({
     <div className="mt-2 flex flex-wrap items-center gap-1">
       {entries.map(([type, items]) => {
         const meta = reactionMeta[type as ReactionType] ?? reactionMeta.like;
-        const Icon = meta.icon;
         const isOwn = items.some(
           (reaction) => reaction.userId === currentUserId,
         );
@@ -91,7 +101,7 @@ export default function MessageReactions({
             }`}
             title={labels[meta.labelKey]}
           >
-            <Icon className="h-3 w-3" aria-hidden />
+            <span>{reactionEmojiMap[type] ?? "👍"}</span>
             <span>{items.length}</span>
           </span>
         );
