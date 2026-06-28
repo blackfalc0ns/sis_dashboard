@@ -418,7 +418,7 @@ export default function ConversationDetail({
   const isBlocked = normUserStatus === "blocked" || currentUserParticipant?.isBlocked === true;
   const isRestricted = currentUserParticipant?.isRestricted === true;
   const isRemovedOrLeft = currentUserStatus === "left" || currentUserStatus === "removed";
-  const canSendMessages = !readOnly && !isMuted && !isBlocked && !isRestricted && !isRemovedOrLeft && isCommunicationEnabled;
+  const canSendMessages = !readOnly && !isMuted && !isBlocked && !isRestricted && !isRemovedOrLeft && isCommunicationEnabled && permissions.isActiveParticipant;
 
   const restrictionBanner = (() => {
     const normStatus = normalizeStatus(conversation?.status);
@@ -445,6 +445,9 @@ export default function ConversationDetail({
     }
     if (normalizeRole(currentUserParticipant?.role) === "READ_ONLY") {
       return labels.bannerReadOnlyParticipant;
+    }
+    if (!conversationState.isLoading && !permissions.isActiveParticipant) {
+      return labels.errorConversationNotMember;
     }
     return null;
   })();

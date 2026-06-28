@@ -694,7 +694,7 @@ describe("ConversationDetail", () => {
       expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
     });
 
-    it("shows ReadOnlyComposer when current user is removed", () => {
+    it("shows non-participant banner when current user is removed", () => {
       useConversationParticipantsMock.mockReturnValue({
         participants: [
           createParticipant({
@@ -718,7 +718,8 @@ describe("ConversationDetail", () => {
       });
 
       renderConversationDetail();
-      expect(screen.getByTestId("read-only-composer")).toBeInTheDocument();
+      expect(screen.getByText(labels.errorConversationNotMember)).toBeInTheDocument();
+      expect(screen.queryByTestId("read-only-composer")).not.toBeInTheDocument();
       expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
     });
 
@@ -741,6 +742,28 @@ describe("ConversationDetail", () => {
 
       renderConversationDetail();
       expect(screen.getByText(labels.errorPolicyDisabled)).toBeInTheDocument();
+      expect(screen.queryByTestId("read-only-composer")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
+    });
+
+    it("shows restriction banner when user is not a participant", () => {
+      useConversationParticipantsMock.mockReturnValue({
+        participants: [],
+        isLoading: false,
+        isMutating: false,
+        total: 0,
+        error: null,
+        refresh: vi.fn(),
+        add: vi.fn(),
+        update: vi.fn(),
+        promote: vi.fn(),
+        demote: vi.fn(),
+        remove: vi.fn(),
+        leave: vi.fn(),
+      });
+
+      renderConversationDetail();
+      expect(screen.getByText(labels.errorConversationNotMember)).toBeInTheDocument();
       expect(screen.queryByTestId("read-only-composer")).not.toBeInTheDocument();
       expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
     });
