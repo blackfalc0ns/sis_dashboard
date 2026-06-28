@@ -726,6 +726,7 @@ export default function ConversationDetail({
             onRejectInvite={setRejectInvite}
             total={invitesState.total}
             userDisplayNames={userDisplayNames}
+            isActiveParticipant={permissions.isActiveParticipant}
           />
         ) : null}
 

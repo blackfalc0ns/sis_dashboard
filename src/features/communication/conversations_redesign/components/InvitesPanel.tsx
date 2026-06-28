@@ -22,6 +22,7 @@ export default function InvitesPanel({
   onRejectInvite,
   total,
   userDisplayNames,
+  isActiveParticipant,
 }: {
   canCreate: boolean;
   canManage: boolean;
@@ -37,6 +38,7 @@ export default function InvitesPanel({
   onRejectInvite: (invite: ConversationInvite) => void;
   total: number;
   userDisplayNames: UserDisplayNameMap;
+  isActiveParticipant?: boolean;
 }) {
   return (
     <PanelLayout
@@ -76,7 +78,7 @@ export default function InvitesPanel({
             );
             const canRespondToInvite = isPending && isCurrentUserInvite;
             const canRejectInvite =
-              isPending && (canManage || isCurrentUserInvite);
+              isPending && ((canManage && isActiveParticipant) || isCurrentUserInvite);
             return (
               <div
                 key={invite.id}
