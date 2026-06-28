@@ -37,6 +37,14 @@ The notification selector owns its incremental notification-page state. The reci
 
 The page requires `communication.notifications.manage` to load deliveries and `communication.notifications.view` to populate the notification selector. The implementation must not assume that manage implies view. If the user can manage deliveries but cannot view notifications, the delivery table remains usable while the notification selector shows a permission error.
 
+## Delivery Display Contract
+
+The data table shows the operational summary fields `notificationId`, `channel`, `status`, `provider`, `attemptedAt`, `sentAt`, `deliveredAt`, `failedAt`, and `createdAt`, followed by the details action.
+
+The details modal shows all fields in the delivery response contract: `id`, `notificationId`, `channel`, `status`, `provider`, `providerMessageId`, `errorCode`, `errorMessage`, `attemptedAt`, `sentAt`, `deliveredAt`, `failedAt`, `createdAt`, and `updatedAt`.
+
+The table and modal do not render fields outside this contract, including `recipientUserId`, `userId`, `deliveryStatus`, `readAt`, or `metadata`. Nullable values render as `-`, and all date-time values use the same localized date and time formatter.
+
 ## Verification
 
 Focused tests will cover:
@@ -50,3 +58,5 @@ Focused tests will cover:
 - Date-time filters are sent as ISO 8601 strings and preserve the inclusive `createdTo` contract.
 - A notification-selector permission failure does not prevent the delivery table from loading.
 - Arabic and English filter labels render correctly.
+- The table renders only the approved summary columns.
+- The details modal renders all 14 delivery contract fields and no legacy fields.
