@@ -14,6 +14,7 @@ import CommunicationErrorState from "@/features/communication/components/layout/
 import CommunicationLoadingState from "@/features/communication/components/layout/CommunicationLoadingState";
 import CommunicationPageHeader from "@/features/communication/components/layout/CommunicationPageHeader";
 import CommunicationTabs from "@/features/communication/components/layout/CommunicationTabs";
+import { useAuth } from "@/hooks/use-auth";
 import { useNotificationDetails } from "@/features/communication/hooks/useNotificationDetails";
 import { useNotifications } from "@/features/communication/hooks/useNotifications";
 
@@ -156,8 +157,17 @@ export default function NotificationsPage() {
   const searchParams = useSearchParams();
   const t = labels[locale] ?? labels.en;
   const { showSuccess, showError } = useToast();
+  const { user } = useAuth();
   const notificationsState = useNotifications();
   const notificationDetailsState = useNotificationDetails();
+
+  const allLoadedNotificationsOwned =
+    notificationsState.notifications.length > 0 &&
+    notificationsState.notifications.every(
+      (n) =>
+        user?.id &&
+        (n.recipientUserId === user.id || n.userId === user.id)
+    );
   const { open: openNotificationDetails } = notificationDetailsState;
   const openedRouteNotificationIdRef = useRef<string | null>(null);
   const routeNotificationId = searchParams.get("notificationId");
@@ -243,15 +253,17 @@ export default function NotificationsPage() {
             >
               {t.refresh}
             </Button>
-            <Button
-              type="button"
-              disabled={notificationsState.unreadCount === 0}
-              loading={notificationsState.isMutating}
-              onClick={() => void handleMarkAllRead()}
-              leftIcon={<CheckCheck className="h-4 w-4" aria-hidden="true" />}
-            >
-              {t.markAllRead}
-            </Button>
+            {allLoadedNotificationsOwned && (
+              <Button
+                type="button"
+                disabled={notificationsState.unreadCount === 0}
+                loading={notificationsState.isMutating}
+                onClick={() => void handleMarkAllRead()}
+                leftIcon={<CheckCheck className="h-4 w-4" aria-hidden="true" />}
+              >
+                {t.markAllRead}
+              </Button>
+            )}
           </>
         }
       />
@@ -355,6 +367,7 @@ export default function NotificationsPage() {
       <NotificationList
         notifications={notificationsState.notifications}
         locale={locale}
+        currentUserId={user?.id}
         labels={{
           emptyTitle: t.emptyTitle,
           emptyDescription: t.emptyDescription,
@@ -376,6 +389,7 @@ export default function NotificationsPage() {
       <NotificationDetailsDrawer
         open={Boolean(notificationDetailsState.selectedNotificationId)}
         notification={notificationDetailsState.notification}
+        currentUserId={user?.id}
         isLoading={notificationDetailsState.isLoading}
         isMutating={notificationsState.isMutating}
         error={notificationDetailsState.error}

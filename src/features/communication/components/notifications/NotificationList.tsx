@@ -15,6 +15,7 @@ export interface NotificationListProps {
   notifications: CommunicationNotification[];
   locale: string;
   labels: NotificationListLabels;
+  currentUserId?: string;
   isMutating?: boolean;
   onArchive?: (notificationId: string) => void;
   onMarkRead?: (notificationId: string) => void;
@@ -25,6 +26,7 @@ export default function NotificationList({
   labels,
   locale,
   notifications,
+  currentUserId,
   isMutating,
   onArchive,
   onMarkRead,
@@ -47,6 +49,7 @@ export default function NotificationList({
           notification={notification}
           locale={locale}
           labels={labels}
+          currentUserId={currentUserId}
           isMutating={isMutating}
           onArchive={onArchive}
           onMarkRead={onMarkRead}
