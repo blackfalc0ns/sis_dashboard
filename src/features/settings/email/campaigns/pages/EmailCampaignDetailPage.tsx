@@ -99,7 +99,7 @@ export default function EmailCampaignDetailPage({
   }
 
   return (
-    <SettingsAccessGuard permission="settings.security.view">
+    <SettingsAccessGuard permission="settings.email.campaigns.view">
       <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
         <SettingsPageHeader
           title={campaign?.subject || campaign?.title || t("detail.title")}

@@ -1,23 +1,41 @@
-import type {
-  SettingsPaginationApiDto,
-  UserAdminStatus,
-} from "@/features/settings/types";
+import type { SettingsPaginationApiDto } from "@/features/settings/types";
 
 export interface CredentialStatusRecord {
   userId: string;
   fullName: string;
   username?: string | null;
-  email: string;
-  loginEmail?: string | null;
+  loginEmail: string;
   contactEmail?: string | null;
+  userType: string;
   roleId: string;
-  roleName?: string | null;
-  status: UserAdminStatus;
+  roleKey: string;
+  roleName: string;
+  status: CredentialStatusFilter;
   hasPassword: boolean;
   mustChangePassword: boolean;
   passwordProvisionedAt?: string | null;
   passwordChangedAt?: string | null;
   credentialVersion?: number | null;
+}
+
+export interface CredentialUserSummaryDto {
+  userId: string;
+  fullName: string;
+  username: string | null;
+  loginEmail: string;
+  contactEmail: string | null;
+  userType: string;
+  roleId: string;
+  roleKey: string;
+  roleName: string;
+  status: CredentialStatusFilter;
+  hasPassword: boolean;
+  mustChangePassword: boolean;
+  passwordChangedAt: string | null;
+  passwordProvisionedAt: string | null;
+  credentialVersion: number;
+  lastLoginAt: string | null;
+  createdAt: string;
 }
 
 export interface CredentialStatusListResponse {
@@ -97,7 +115,7 @@ export interface BulkCredentialPreviewRecipient {
   userId: string;
   fullName: string;
   username?: string | null;
-  email: string;
+  loginEmail: string;
   contactEmail?: string | null;
   eligible: boolean;
   skipReason?: string | null;
@@ -106,22 +124,27 @@ export interface BulkCredentialPreviewRecipient {
 export interface BulkCredentialPreviewResponse {
   eligibleCount: number;
   skippedCount: number;
-  totalMatched?: number;
-  skippedReasons?: Record<string, number>;
+  totalMatched: number;
+  skippedReasons: Record<string, number>;
   recipients: BulkCredentialPreviewRecipient[];
 }
 
 export type BulkGenerateCredentialsRequest = BulkCredentialPreviewRequest;
 
+export interface BulkCredentialPreviewSkippedItemDto {
+  user: CredentialUserSummaryDto;
+  reason: string;
+}
+
 export interface BulkCredentialPreviewResponseDto {
   totalMatched: number;
   eligible: number;
   skipped: number;
-  skippedReasons?: Record<string, number> | null;
-  sample?: {
-    eligible?: BulkCredentialPreviewRecipient[];
-    skipped?: BulkCredentialPreviewRecipient[];
-  } | null;
+  skippedReasons: Record<string, number>;
+  sample: {
+    eligible: CredentialUserSummaryDto[];
+    skipped: BulkCredentialPreviewSkippedItemDto[];
+  };
 }
 
 export interface BulkGenerateCredentialsResponseDto {

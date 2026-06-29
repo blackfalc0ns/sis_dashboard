@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, RefreshCcw } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import Modal from "@/components/ui/modal/Modal";
 import { useToast } from "@/components/ui/toast/Toast";
 import { getValidationFieldErrors } from "@/lib/validation-errors";
 import { isApiError } from "@/lib/api-error";
@@ -19,6 +20,7 @@ import LoginIdentityForm, {
   type LoginIdentityFormValues,
 } from "@/features/settings/login-identity/components/LoginIdentityForm";
 import UsernamePreviewCard from "@/features/settings/login-identity/components/UsernamePreviewCard";
+import LoginIdentitySummary from "@/features/settings/login-identity/components/LoginIdentitySummary";
 import {
   checkUsernameAvailability,
   fetchLoginIdentitySettings,
@@ -31,13 +33,14 @@ import type {
   UsernamePreviewResponse,
 } from "@/features/settings/login-identity/types";
 import { useTranslations } from "next-intl";
+import { useDirtyKey } from "@/hooks/useDirtyKey";
 
 const fallbackValues: LoginIdentityFormValues = {
   loginDomain: "",
   usernameMinLength: "3",
   usernameMaxLength: "64",
   allowedCharacters: "letters, numbers, dots, underscores, and hyphens",
-  reservedUsernames: "admin, support, root",
+  reservedUsernames: ["admin", "support", "root"],
   status: "disabled",
 };
 
@@ -46,6 +49,7 @@ export default function LoginIdentityPage() {
   const tCommon = useTranslations("common");
   const { hasPermission } = usePermissions();
   const { showSuccess, showError } = useToast();
+  const { markDirty, clearDirty } = useDirtyKey("settings-login-identity");
   const canManage = hasPermission("settings.users.manage");
   const [settings, setSettings] = useState<LoginIdentitySettings | null>(null);
   const [values, setValues] =
@@ -60,8 +64,11 @@ export default function LoginIdentityPage() {
   const [availability, setAvailability] =
     useState<UsernameAvailabilityResponse | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
-  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [isTestingUsername, setIsTestingUsername] = useState(false);
+  const [isConfirmingSensitiveChange, setIsConfirmingSensitiveChange] =
+    useState(false);
+  const testRequestIdRef = useRef(0);
 
   const validationMessages = useMemo(
     () => ({
@@ -72,6 +79,28 @@ export default function LoginIdentityPage() {
     }),
     [t],
   );
+
+  const currentValidationErrors = useMemo(
+    () => validateLoginIdentityForm(values, validationMessages),
+    [validationMessages, values],
+  );
+  const hasUnsavedChanges = useMemo(() => {
+    if (!settings) return false;
+    const persistedValues = toLoginIdentityFormValues(settings);
+    return (
+      JSON.stringify(toUpdateLoginIdentityRequest(values)) !==
+      JSON.stringify(toUpdateLoginIdentityRequest(persistedValues))
+    );
+  }, [settings, values]);
+  const isFormValid = Object.keys(currentValidationErrors).length === 0;
+
+  useEffect(() => {
+    if (hasUnsavedChanges) {
+      markDirty();
+    } else {
+      clearDirty();
+    }
+  }, [clearDirty, hasUnsavedChanges, markDirty]);
 
   const hydrate = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
@@ -87,6 +116,8 @@ export default function LoginIdentityPage() {
         setSettings(nextSettings);
         setValues(toLoginIdentityFormValues(nextSettings));
         setErrors({});
+        setIsConfirmingSensitiveChange(false);
+        clearDirty();
       } catch (error) {
         const message = isApiError(error)
           ? error.message
@@ -98,7 +129,7 @@ export default function LoginIdentityPage() {
         setIsRefreshing(false);
       }
     },
-    [showError, t],
+    [clearDirty, showError, t],
   );
 
   useEffect(() => {
@@ -113,13 +144,23 @@ export default function LoginIdentityPage() {
     setErrors((current) => ({ ...current, [field]: undefined }));
   };
 
-  const handleSave = async () => {
-    const nextErrors = validateLoginIdentityForm(values, validationMessages);
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
-      return;
-    }
+  const handleReservedUsernamesChange = (reservedUsernames: string[]) => {
+    setValues((current) => ({ ...current, reservedUsernames }));
+    setErrors((current) => ({ ...current, reservedUsernames: undefined }));
+  };
 
+  const handleFieldBlur = (field: keyof LoginIdentityFormValues) => {
+    const nextErrors = validateLoginIdentityForm(values, validationMessages);
+    setErrors((current) => ({
+      ...current,
+      [field]: nextErrors[field],
+      ...(field === "usernameMinLength" || field === "usernameMaxLength"
+        ? { usernameMaxLength: nextErrors.usernameMaxLength }
+        : {}),
+    }));
+  };
+
+  const persistSettings = async () => {
     setIsSaving(true);
     try {
       const saved = await updateLoginIdentitySettings(
@@ -128,6 +169,7 @@ export default function LoginIdentityPage() {
       setSettings(saved);
       setValues(toLoginIdentityFormValues(saved));
       setErrors({});
+      clearDirty();
       showSuccess(t("messages.saved"));
     } catch (error) {
       const fieldErrors = getValidationFieldErrors(error);
@@ -140,11 +182,39 @@ export default function LoginIdentityPage() {
         status: fieldErrors.status,
       });
       showError(
-        isApiError(error) ? error.message || tCommon("save_failed") : tCommon("save_failed"),
+        isApiError(error)
+          ? error.message || tCommon("save_failed")
+          : tCommon("save_failed"),
       );
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSave = async () => {
+    const nextErrors = currentValidationErrors;
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    if (!settings || !hasUnsavedChanges) return;
+    const persistedValues = toLoginIdentityFormValues(settings);
+    const changesSensitiveIdentity =
+      values.loginDomain.trim() !== persistedValues.loginDomain.trim() ||
+      values.status !== persistedValues.status;
+    if (changesSensitiveIdentity) {
+      setIsConfirmingSensitiveChange(true);
+      return;
+    }
+    await persistSettings();
+  };
+
+  const handleDiscard = () => {
+    if (!settings) return;
+    setValues(toLoginIdentityFormValues(settings));
+    setErrors({});
+    clearDirty();
   };
 
   const handlePreviewUsernameChange = (username: string) => {
@@ -152,48 +222,50 @@ export default function LoginIdentityPage() {
     setPreview(null);
     setAvailability(null);
     setPreviewError(null);
+    setAvailabilityError(null);
+    setIsTestingUsername(false);
+    testRequestIdRef.current += 1;
   };
 
-  const handlePreview = async () => {
+  const handleTestUsername = async () => {
+    if (isTestingUsername) return;
     const username = previewUsername.trim();
     if (!username) {
       setPreviewError(t("preview.errors.username_required"));
       return;
     }
-    setIsLoadingPreview(true);
+    const requestId = ++testRequestIdRef.current;
+    setIsTestingUsername(true);
     setPreviewError(null);
-    try {
-      const response = await previewLoginIdentityUsername(username);
-      setPreview(response);
-    } catch (error) {
+    setAvailabilityError(null);
+    setPreview(null);
+    setAvailability(null);
+
+    const [previewResult, availabilityResult] = await Promise.allSettled([
+      previewLoginIdentityUsername(username),
+      checkUsernameAvailability(username),
+    ]);
+    if (requestId !== testRequestIdRef.current) return;
+
+    if (previewResult.status === "fulfilled") {
+      setPreview(previewResult.value);
+    } else {
       setPreviewError(
-        isApiError(error) ? error.message : t("preview.errors.preview_failed"),
+        isApiError(previewResult.reason)
+          ? previewResult.reason.message
+          : t("preview.errors.preview_failed"),
       );
-    } finally {
-      setIsLoadingPreview(false);
     }
-  };
-
-  const handleCheckAvailability = async () => {
-    const username = previewUsername.trim();
-    if (!username) {
-      setPreviewError(t("preview.errors.username_required"));
-      return;
-    }
-    setIsCheckingAvailability(true);
-    setPreviewError(null);
-    try {
-      const response = await checkUsernameAvailability(username);
-      setAvailability(response);
-    } catch (error) {
-      setPreviewError(
-        isApiError(error)
-          ? error.message
+    if (availabilityResult.status === "fulfilled") {
+      setAvailability(availabilityResult.value);
+    } else {
+      setAvailabilityError(
+        isApiError(availabilityResult.reason)
+          ? availabilityResult.reason.message
           : t("preview.errors.availability_failed"),
       );
-    } finally {
-      setIsCheckingAvailability(false);
     }
+    setIsTestingUsername(false);
   };
 
   if (isLoading) {
@@ -211,6 +283,7 @@ export default function LoginIdentityPage() {
               variant="secondary"
               leftIcon={<RefreshCcw className="h-4 w-4" />}
               loading={isRefreshing}
+              disabled={hasUnsavedChanges}
               onClick={() => void hydrate("refresh")}
             >
               {t("refresh")}
@@ -242,7 +315,9 @@ export default function LoginIdentityPage() {
             </Button>
           </SettingsSectionCard>
         ) : (
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+          <>
+            <LoginIdentitySummary settings={settings} />
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
             <SettingsSectionCard
               title={t("form_title")}
               description={t("form_description")}
@@ -253,30 +328,68 @@ export default function LoginIdentityPage() {
                 errors={errors}
                 canManage={canManage}
                 isSaving={isSaving}
+                isDirty={hasUnsavedChanges}
+                isValid={isFormValid}
                 onChange={handleFieldChange}
+                onReservedUsernamesChange={handleReservedUsernamesChange}
+                onBlur={handleFieldBlur}
+                onDiscard={handleDiscard}
                 onSubmit={() => void handleSave()}
               />
             </SettingsSectionCard>
 
-            <SettingsSectionCard
-              title={t("preview.section_title")}
-              description={t("preview.section_description")}
-            >
-              <UsernamePreviewCard
-                username={previewUsername}
-                onUsernameChange={handlePreviewUsernameChange}
-                preview={preview}
-                availability={availability}
-                error={previewError}
-                isLoadingPreview={isLoadingPreview}
-                isCheckingAvailability={isCheckingAvailability}
-                canUseActions={canManage}
-                onPreview={() => void handlePreview()}
-                onCheckAvailability={() => void handleCheckAvailability()}
-              />
-            </SettingsSectionCard>
-          </div>
+              <div className="self-start xl:sticky xl:top-6">
+                <SettingsSectionCard
+                  title={t("preview.section_title")}
+                  description={t("preview.section_description")}
+                >
+                  <UsernamePreviewCard
+                    username={previewUsername}
+                    onUsernameChange={handlePreviewUsernameChange}
+                    preview={preview}
+                    availability={availability}
+                    previewError={previewError}
+                    availabilityError={availabilityError}
+                    isTesting={isTestingUsername}
+                    onTest={() => void handleTestUsername()}
+                  />
+                </SettingsSectionCard>
+              </div>
+            </div>
+          </>
         )}
+
+        <Modal
+          isOpen={isConfirmingSensitiveChange}
+          onClose={() => setIsConfirmingSensitiveChange(false)}
+          title={t("confirmation.title")}
+          size="sm"
+          closeOnOverlayClick={false}
+          footer={
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => setIsConfirmingSensitiveChange(false)}
+              >
+                {tCommon("cancel")}
+              </Button>
+              <Button
+                variant="primary"
+                loading={isSaving}
+                onClick={() => {
+                  setIsConfirmingSensitiveChange(false);
+                  void persistSettings();
+                }}
+              >
+                {t("confirmation.confirm")}
+              </Button>
+            </>
+          }
+        >
+          <p className="text-sm leading-6 text-gray-700">
+            {t("confirmation.description")}
+          </p>
+        </Modal>
       </main>
     </SettingsAccessGuard>
   );

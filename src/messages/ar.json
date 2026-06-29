@@ -7736,6 +7736,8 @@
       "refresh": "تحديث",
       "save": "حفظ التغييرات",
       "saving": "جارٍ الحفظ...",
+      "discard": "تجاهل التغييرات",
+      "remove_reserved_username": "إزالة {username}",
       "identity_rule": "البريد الإلكتروني المولّد هو هوية تسجيل الدخول. البريد الشخصي يجب حفظه في contactEmail وليس email.",
       "current_domain": "نطاق الدخول الحالي: {domain}",
       "empty_domain_hint": "لم يتم إعداد نطاق دخول بعد.",
@@ -7754,7 +7756,30 @@
       },
       "helpers": {
         "allowed_characters": "استخدم النص أو النمط المدعوم من الخلفية لقواعد أسماء المستخدمين.",
-        "reserved_usernames": "أسماء مستخدمين مفصولة بفواصل لا يمكن إسنادها."
+        "reserved_usernames": "اضغط Enter أو الفاصلة لإضافة اسم مستخدم لا يمكن إسناده.",
+        "username_range": "يمكن أن يتكون اسم المستخدم من {min} إلى {max} حرفاً."
+      },
+      "groups": {
+        "domain": "نطاق الدخول والتفعيل",
+        "username_policy": "سياسة اسم المستخدم",
+        "reserved_usernames": "أسماء المستخدمين المحجوزة"
+      },
+      "summary": {
+        "aria_label": "ملخص إعدادات هوية الدخول المحفوظة",
+        "status": "الحالة",
+        "active": "نشط",
+        "disabled": "معطل",
+        "domain": "نطاق الدخول",
+        "not_configured": "غير مُعدّ",
+        "username_length": "طول اسم المستخدم",
+        "reserved_count": "الأسماء المحجوزة",
+        "updated_at": "آخر تحديث",
+        "not_available": "غير متاح"
+      },
+      "confirmation": {
+        "title": "تأكيد تغيير حساس في هوية الدخول",
+        "description": "لقد غيّرت نطاق الدخول أو حالة التفعيل. راجع القيم بعناية قبل الحفظ.",
+        "confirm": "تأكيد وحفظ"
       },
       "status": {
         "active": "نشط",
@@ -7782,12 +7807,19 @@
         "description": "أدخل اسم مستخدم لعرض بريد الدخول المولّد. هذا ليس البريد الشخصي للتواصل.",
         "username_label": "اسم المستخدم",
         "username_placeholder": "مثال: sara.ali",
-        "preview_button": "معاينة البريد",
-        "availability_button": "تحقق من التوفر",
+        "test_button": "اختبار اسم المستخدم",
+        "testing": "جارٍ الاختبار...",
         "generated_email_label": "بريد الدخول المولّد",
         "login_identity_note": "يسجل المستخدمون الدخول بهذا البريد المولّد. البريد الشخصي مكانه contactEmail.",
         "available": "اسم المستخدم متاح.",
         "unavailable": "اسم المستخدم غير متاح.",
+        "reasons": {
+          "username_invalid": "اسم المستخدم لا يطابق السياسة المحددة.",
+          "login_domain_missing": "أعدّ نطاق الدخول وفعّله أولاً.",
+          "login_email_taken": "بريد الدخول المولّد مُسند بالفعل.",
+          "reserved_username": "اسم المستخدم هذا محجوز.",
+          "unknown": "غير متاح: {reason}"
+        },
         "errors": {
           "username_required": "أدخل اسم مستخدم أولاً.",
           "preview_failed": "فشلت معاينة اسم المستخدم.",
@@ -7807,11 +7839,22 @@
         "invited": "مدعو",
         "inactive": "غير نشط"
       },
+      "credential_statuses": {
+        "missing": "غير مُعيّنة",
+        "set": "مُعيّنة",
+        "temporary_or_must_change": "مؤقتة أو يجب تغييرها",
+        "must_change": "يجب تغييرها"
+      },
       "filters": {
         "button": "تصفية",
         "search": "البحث عن مستخدم",
         "clear": "مسح التصفية",
         "role": "الدور",
+        "role_search": "البحث في الأدوار",
+        "roles_loading": "جارٍ تحميل الأدوار...",
+        "roles_error": "تعذر تحميل الأدوار. أعد فتح القائمة للمحاولة.",
+        "roles_empty": "لا توجد أدوار متاحة",
+        "roles_no_results": "لا توجد أدوار مطابقة",
         "status": "الحالة",
         "has_password": "لديه كلمة مرور",
         "must_change": "يجب تغيير كلمة المرور"
@@ -7872,8 +7915,15 @@
         "previewing": "جارٍ المعاينة...",
         "generate": "توليد",
         "generating": "جارٍ التوليد...",
+        "total_matched": "إجمالي المطابقين",
         "eligible": "مؤهل",
-        "skipped": "متخطى"
+        "skipped": "متخطى",
+        "skipped_reasons": {
+          "title": "أسباب تخطي المستخدمين",
+          "already_has_password": "لديه كلمة مرور بالفعل",
+          "disabled_user": "مستخدم معطّل",
+          "unknown": "تم التخطي: {reason}"
+        }
       },
       "reveal": {
         "title": "كلمات المرور المؤقتة",
@@ -8378,6 +8428,9 @@
       "permission_matrix_title": "مصفوفة الصلاحيات",
       "permission_matrix_description": "تعديل نطاق صلاحيات الدور {role}.",
       "permission_matrix_empty": "اختر دوراً لمراجعة صلاحياته.",
+      "permission_matrix_loading": "جارٍ تحميل دليل الصلاحيات...",
+      "permission_matrix_access_required": "يلزم امتلاك صلاحية عرض دليل الصلاحيات لعرض مصفوفة الصلاحيات أو تعديلها.",
+      "permission_matrix_load_failed": "تعذر تحميل دليل الصلاحيات. ما زالت قائمة الأدوار متاحة.",
       "save_permissions": "حفظ الصلاحيات",
       "table": {
         "role": "الدور",
@@ -8387,7 +8440,7 @@
         "actions": "الإجراءات"
       },
       "messages": {
-        "load_failed": "فشل تحميل الأدوار والصلاحيات.",
+        "load_failed": "فشل تحميل الأدوار.",
         "role_created": "تم إنشاء الدور بنجاح.",
         "role_updated": "تم تحديث الدور بنجاح.",
         "role_deleted": "تم حذف الدور بنجاح.",
@@ -9778,6 +9831,16 @@
         "stock": {
           "unlimited": "غير محدود"
         },
+        "form": {
+          "stockRemaining": "المخزون المتبقي",
+          "stockRemainingHelp": "الكمية المتاحة حاليًا. اتركها فارغة ليستخدم الخادم كمية المخزون."
+        },
+        "archive": {
+          "title": "أرشفة المكافأة",
+          "description": "أرشف هذه المكافأة حتى لا تظهر كخيار نشط في الكتالوج. ستظل السجلات التاريخية متاحة.",
+          "reason": "سبب الأرشفة",
+          "reasonPlaceholder": "سبب اختياري لأرشفة هذه المكافأة"
+        },
         "availability": {
           "available": "متاح",
           "lowStock": "مخزون منخفض",
@@ -9797,6 +9860,29 @@
       "redemptions": {
         "title": "الاستبدالات",
         "description": "عرض وإدارة طلبات استبدال المكافآت للطلاب.",
+        "create": {
+          "button": "إنشاء طلب",
+          "title": "إنشاء طلب استبدال",
+          "description": "أنشئ طلب استبدال مكافأة لطالب محدد من لوحة التحكم.",
+          "studentSearch": "بحث الطالب",
+          "studentSearchPlaceholder": "ابحث عن الطلاب بالاسم أو المعرّف",
+          "student": "الطالب",
+          "studentPlaceholder": "اختر طالبًا",
+          "reward": "المكافأة",
+          "rewardPlaceholder": "اختر مكافأة",
+          "requestNoteEn": "ملاحظة الطلب (بالإنجليزية)",
+          "requestNoteAr": "ملاحظة الطلب (بالعربية)",
+          "submit": "إنشاء الطلب",
+          "searchPlaceholder": "بحث...",
+          "loadingLookups": "جارٍ تحميل الطلاب والمكافآت...",
+          "lookupFailed": "تعذر تحميل الطلاب أو المكافآت.",
+          "submitFailed": "تعذر إنشاء طلب الاستبدال.",
+          "studentRequired": "اختر طالبًا.",
+          "rewardRequired": "اختر مكافأة.",
+          "noStudents": "لا يوجد طلاب متاحون.",
+          "noRewards": "لا توجد مكافآت متاحة.",
+          "noResults": "لا توجد خيارات مطابقة."
+        },
         "filters": {
           "requestedFrom": "من تاريخ",
           "requestedTo": "إلى تاريخ"
@@ -9862,6 +9948,7 @@
         "updated": "تم تحديث المكافأة بنجاح.",
         "published": "تم نشر المكافأة بنجاح.",
         "archived": "تم أرشفة المكافأة بنجاح.",
+        "redemptionCreated": "تم إنشاء طلب الاستبدال بنجاح.",
         "approved": "تمت الموافقة على طلب الاستبدال بنجاح.",
         "rejected": "تم رفض طلب الاستبدال بنجاح.",
         "fulfilled": "تم تنفيذ طلب الاستبدال بنجاح.",

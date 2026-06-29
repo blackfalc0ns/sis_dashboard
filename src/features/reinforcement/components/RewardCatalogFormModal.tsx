@@ -51,6 +51,7 @@ export default function RewardCatalogFormModal({
   const [type, setType] = useState<RewardItemType>("physical");
   const [minTotalXp, setMinTotalXp] = useState<string>("");
   const [stockQuantity, setStockQuantity] = useState<string>("");
+  const [stockRemaining, setStockRemaining] = useState<string>("");
   const [isUnlimited, setIsUnlimited] = useState(false);
   const [sortOrder, setSortOrder] = useState<string>("");
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -73,6 +74,11 @@ export default function RewardCatalogFormModal({
           ? String(initialData.stockQuantity)
           : "",
       );
+      setStockRemaining(
+        initialData.stockRemaining != null
+          ? String(initialData.stockRemaining)
+          : "",
+      );
       setIsUnlimited(initialData.isUnlimited ?? false);
       setSortOrder(
         initialData.sortOrder != null ? String(initialData.sortOrder) : "",
@@ -85,6 +91,7 @@ export default function RewardCatalogFormModal({
       setType("physical");
       setMinTotalXp("");
       setStockQuantity("");
+      setStockRemaining("");
       setIsUnlimited(false);
       setSortOrder("");
     }
@@ -117,20 +124,26 @@ export default function RewardCatalogFormModal({
         descriptionAr: descriptionAr.trim() || undefined,
         type,
         minTotalXp: minTotalXp ? Number(minTotalXp) : undefined,
-        stockQuantity: stockQuantity ? Number(stockQuantity) : undefined,
+        stockQuantity:
+          !isUnlimited && stockQuantity ? Number(stockQuantity) : undefined,
+        stockRemaining:
+          !isUnlimited && stockRemaining ? Number(stockRemaining) : undefined,
         isUnlimited,
         sortOrder: sortOrder ? Number(sortOrder) : undefined,
       };
       onSubmit(payload);
     } else {
       const payload: CreateRewardCatalogItemPayload = {
-        titleEn: titleEn.trim(),
+        titleEn: titleEn.trim() || undefined,
         titleAr: titleAr.trim() || undefined,
         descriptionEn: descriptionEn.trim() || undefined,
         descriptionAr: descriptionAr.trim() || undefined,
         type,
         minTotalXp: minTotalXp ? Number(minTotalXp) : undefined,
-        stockQuantity: stockQuantity ? Number(stockQuantity) : undefined,
+        stockQuantity:
+          !isUnlimited && stockQuantity ? Number(stockQuantity) : undefined,
+        stockRemaining:
+          !isUnlimited && stockRemaining ? Number(stockRemaining) : undefined,
         isUnlimited,
         sortOrder: sortOrder ? Number(sortOrder) : undefined,
       };
@@ -217,7 +230,7 @@ export default function RewardCatalogFormModal({
         />
 
         {/* Numeric fields */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <Input
             label={t("rewardsModule.catalog.table.xpCost")}
             type="number"
@@ -232,6 +245,15 @@ export default function RewardCatalogFormModal({
             onChange={(e) => setStockQuantity(e.target.value)}
             placeholder="0"
             disabled={isUnlimited}
+          />
+          <Input
+            label={t("rewardsModule.catalog.form.stockRemaining")}
+            type="number"
+            value={stockRemaining}
+            onChange={(e) => setStockRemaining(e.target.value)}
+            placeholder="0"
+            disabled={isUnlimited}
+            helperText={t("rewardsModule.catalog.form.stockRemainingHelp")}
           />
           <Input
             label="Sort Order"

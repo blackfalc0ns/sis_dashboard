@@ -7,12 +7,23 @@ import type {
   BulkGenerateCredentialsResponse,
   BulkGenerateCredentialsResponseDto,
   CredentialStatusListResponse,
+  CredentialUserSummaryDto,
   FetchCredentialStatusParams,
   GenerateCredentialRequest,
   GeneratedCredentialResponseDto,
   OneTimeCredentialResponse,
   SetCredentialPasswordRequest,
 } from "@/features/settings/credentials/types";
+
+function mapCredentialPreviewUser(user: CredentialUserSummaryDto) {
+  return {
+    userId: user.userId,
+    fullName: user.fullName,
+    username: user.username,
+    loginEmail: user.loginEmail,
+    contactEmail: user.contactEmail,
+  };
+}
 
 function toCredentialStatusQuery(params: FetchCredentialStatusParams): string {
   const query = new URLSearchParams();
@@ -50,18 +61,32 @@ export function mapBulkCredentialPreviewResponse(
     eligibleCount: response.eligible,
     skippedCount: response.skipped,
     totalMatched: response.totalMatched,
-    skippedReasons: response.skippedReasons ?? undefined,
+    skippedReasons: response.skippedReasons,
     recipients: [
-      ...(response.sample?.eligible ?? []).map((recipient) => ({
-        ...recipient,
+      ...response.sample.eligible.map((user) => ({
+        ...mapCredentialPreviewUser(user),
         eligible: true,
       })),
-      ...(response.sample?.skipped ?? []).map((recipient) => ({
-        ...recipient,
+      ...response.sample.skipped.map(({ user, reason }) => ({
+        ...mapCredentialPreviewUser(user),
         eligible: false,
+        skipReason: reason,
       })),
     ],
   };
+}
+
+export function getBulkCredentialPreviewPayloadKey(
+  payload: BulkCredentialPreviewRequest,
+): string {
+  return JSON.stringify({
+    scope: payload.scope,
+    userIds: [...(payload.userIds ?? [])].sort(),
+    roleKeys: [...(payload.roleKeys ?? [])].sort(),
+    userTypes: [...(payload.userTypes ?? [])].sort(),
+    includeUsersWithPassword: Boolean(payload.includeUsersWithPassword),
+    includeDisabledUsers: Boolean(payload.includeDisabledUsers),
+  });
 }
 
 export function mapBulkGenerateCredentialsResponse(

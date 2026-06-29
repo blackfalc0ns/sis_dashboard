@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { KeyRound, RefreshCcw, X } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
-import Select from "@/components/ui/input/Select";
+import Select, { type SelectOption } from "@/components/ui/input/Select";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { FilterPanel } from "@/components/ui";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -18,6 +18,7 @@ import {
   fetchCredentialStatuses,
   generateBulkCredentials,
   generateUserCredential,
+  getBulkCredentialPreviewPayloadKey,
   previewBulkCredentials,
   regenerateUserCredential,
   setUserCredentialPassword,
@@ -38,9 +39,13 @@ import type {
   CredentialStatusRecord,
   FetchCredentialStatusParams,
 } from "@/features/settings/credentials/types";
-import type { RoleDefinition, UserAdminStatus } from "@/features/settings/types";
+import type { RoleDefinition } from "@/features/settings/types";
 
 type GenerateModalMode = "generate" | "regenerate";
+
+const ROLE_LOADING_VALUE = "__roles_loading";
+const ROLE_ERROR_VALUE = "__roles_error";
+const ROLE_EMPTY_VALUE = "__roles_empty";
 
 export default function CredentialsPage() {
   const t = useTranslations("settings.credentials");
@@ -50,11 +55,11 @@ export default function CredentialsPage() {
   const canManage = hasPermission("settings.users.manage");
   const [records, setRecords] = useState<CredentialStatusRecord[]>([]);
   const [roles, setRoles] = useState<RoleDefinition[]>([]);
+  const [isRolesLoading, setIsRolesLoading] = useState(false);
+  const [hasLoadedRoles, setHasLoadedRoles] = useState(false);
+  const [rolesLoadFailed, setRolesLoadFailed] = useState(false);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<UserAdminStatus | "all">(
-    "all",
-  );
   const [hasPasswordFilter, setHasPasswordFilter] = useState("all");
   const [mustChangePasswordFilter, setMustChangePasswordFilter] =
     useState("all");
@@ -76,6 +81,9 @@ export default function CredentialsPage() {
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [bulkPreview, setBulkPreview] =
     useState<BulkCredentialPreviewResponse | null>(null);
+  const [bulkPreviewPayloadKey, setBulkPreviewPayloadKey] = useState<
+    string | null
+  >(null);
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [isBulkPreviewing, setIsBulkPreviewing] = useState(false);
   const [isBulkGenerating, setIsBulkGenerating] = useState(false);
@@ -87,7 +95,6 @@ export default function CredentialsPage() {
     () =>
       search.trim() ||
       roleFilter !== "all" ||
-      statusFilter !== "all" ||
       hasPasswordFilter !== "all" ||
       mustChangePasswordFilter !== "all",
     [
@@ -95,9 +102,60 @@ export default function CredentialsPage() {
       mustChangePasswordFilter,
       roleFilter,
       search,
-      statusFilter,
     ],
   );
+
+  const roleStateOption = useMemo<SelectOption | null>(() => {
+    if (isRolesLoading) {
+      return {
+        value: ROLE_LOADING_VALUE,
+        label: t("filters.roles_loading"),
+        disabled: true,
+      };
+    }
+    if (rolesLoadFailed) {
+      return {
+        value: ROLE_ERROR_VALUE,
+        label: t("filters.roles_error"),
+        disabled: true,
+      };
+    }
+    if (hasLoadedRoles && roles.length === 0) {
+      return {
+        value: ROLE_EMPTY_VALUE,
+        label: t("filters.roles_empty"),
+        disabled: true,
+      };
+    }
+    return null;
+  }, [hasLoadedRoles, isRolesLoading, roles.length, rolesLoadFailed, t]);
+
+  const roleOptions = useMemo<SelectOption[]>(
+    () => [
+      { value: "all", label: tCommon("all") },
+      ...roles.filter((role) => role.key).map((role) => ({
+        value: role.key as string,
+        label: role.name,
+        searchText: `${role.name} ${role.key}`,
+      })),
+      ...(roleStateOption ? [roleStateOption] : []),
+    ],
+    [roleStateOption, roles, tCommon],
+  );
+
+  const loadRoles = useCallback(async () => {
+    setIsRolesLoading(true);
+    setRolesLoadFailed(false);
+    try {
+      const response = await fetchSettingsRoles({ limit: 100 });
+      setRoles(response.items);
+      setHasLoadedRoles(true);
+    } catch {
+      setRolesLoadFailed(true);
+    } finally {
+      setIsRolesLoading(false);
+    }
+  }, []);
 
   const buildFetchParams = useCallback(
     (): FetchCredentialStatusParams => {
@@ -137,15 +195,11 @@ export default function CredentialsPage() {
       }
       setPageError(null);
       try {
-        const [statusResult, rolesResult] = await Promise.all([
-          fetchCredentialStatuses(buildFetchParams()),
-          fetchSettingsRoles(),
-        ]);
+        const statusResult = await fetchCredentialStatuses(buildFetchParams());
         setRecords(statusResult.items);
         setTotal(statusResult.pagination?.total || statusResult.items.length);
         setPage(statusResult.pagination?.page || page);
         setLimit(statusResult.pagination?.limit || limit);
-        setRoles(rolesResult.items);
       } catch (error) {
         const message = isApiError(error)
           ? error.message
@@ -165,8 +219,12 @@ export default function CredentialsPage() {
   }, [hydrate]);
 
   useEffect(() => {
+    void loadRoles();
+  }, [loadRoles]);
+
+  useEffect(() => {
     setPage(1);
-  }, [hasPasswordFilter, mustChangePasswordFilter, roleFilter, search, statusFilter]);
+  }, [hasPasswordFilter, mustChangePasswordFilter, roleFilter, search]);
 
   useEffect(() => {
     if (hasActiveFilters && !showFilters) {
@@ -182,7 +240,7 @@ export default function CredentialsPage() {
       ...credential,
       fullName: record?.fullName,
       username: record?.username ?? credential.username,
-      loginEmail: record?.loginEmail || record?.email || credential.loginEmail,
+      loginEmail: record?.loginEmail || credential.loginEmail,
     };
   };
 
@@ -244,7 +302,10 @@ export default function CredentialsPage() {
     try {
       const response = await previewBulkCredentials(payload);
       setBulkPreview(response);
+      setBulkPreviewPayloadKey(getBulkCredentialPreviewPayloadKey(payload));
     } catch (error) {
+      setBulkPreview(null);
+      setBulkPreviewPayloadKey(null);
       setBulkError(isApiError(error) ? error.message : t("messages.preview_failed"));
     } finally {
       setIsBulkPreviewing(false);
@@ -258,6 +319,7 @@ export default function CredentialsPage() {
       const response = await generateBulkCredentials(payload);
       setRevealedCredentials(response.credentials.map(enrichCredential));
       setBulkPreview(null);
+      setBulkPreviewPayloadKey(null);
       setIsBulkOpen(false);
       await hydrate("refresh");
       showSuccess(t("messages.bulk_generated"));
@@ -271,7 +333,6 @@ export default function CredentialsPage() {
   const resetFilters = () => {
     setSearch("");
     setRoleFilter("all");
-    setStatusFilter("all");
     setHasPasswordFilter("all");
     setMustChangePasswordFilter("all");
   };
@@ -302,6 +363,7 @@ export default function CredentialsPage() {
                   leftIcon={<KeyRound className="h-4 w-4" />}
                   onClick={() => {
                     setBulkPreview(null);
+                    setBulkPreviewPayloadKey(null);
                     setBulkError(null);
                     setIsBulkOpen(true);
                   }}
@@ -352,31 +414,21 @@ export default function CredentialsPage() {
                 </div>
               }
               filtersSlot={
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <Select
                     label={t("filters.role")}
                     value={roleFilter}
                     onChange={setRoleFilter}
-                    options={[
-                      { value: "all", label: tCommon("all") },
-                      ...roles.filter((role) => role.key).map((role) => ({
-                        value: role.key as string,
-                        label: role.name,
-                      })),
-                    ]}
-                  />
-                  <Select
-                    label={t("filters.status")}
-                    value={statusFilter}
-                    onChange={(value) =>
-                      setStatusFilter(value as UserAdminStatus | "all")
-                    }
-                    options={[
-                      { value: "all", label: tCommon("all") },
-                      { value: "active", label: t("statuses.active") },
-                      { value: "invited", label: t("statuses.invited") },
-                      { value: "inactive", label: t("statuses.inactive") },
-                    ]}
+                    searchable
+                    searchPlaceholder={t("filters.role_search")}
+                    noResultsText={t("filters.roles_no_results")}
+                    helperText={roleStateOption?.label}
+                    options={roleOptions}
+                    onOpen={() => {
+                      if (roles.length === 0 && !isRolesLoading) {
+                        void loadRoles();
+                      }
+                    }}
                   />
                   <Select
                     label={t("filters.has_password")}
@@ -454,6 +506,14 @@ export default function CredentialsPage() {
                 generate: t("actions.generate"),
                 setPassword: t("actions.set_password"),
                 regenerate: t("actions.regenerate"),
+                credentialStatuses: {
+                  missing: t("credential_statuses.missing"),
+                  set: t("credential_statuses.set"),
+                  temporary_or_must_change: t(
+                    "credential_statuses.temporary_or_must_change",
+                  ),
+                  must_change: t("credential_statuses.must_change"),
+                },
               }}
             />
           )}
@@ -516,12 +576,14 @@ export default function CredentialsPage() {
             isOpen
             roles={roles}
             preview={bulkPreview}
+            previewPayloadKey={bulkPreviewPayloadKey}
             isPreviewing={isBulkPreviewing}
             isGenerating={isBulkGenerating}
             error={bulkError}
             onClose={() => {
               setIsBulkOpen(false);
               setBulkPreview(null);
+              setBulkPreviewPayloadKey(null);
               setBulkError(null);
             }}
             onPreview={handleBulkPreview}
@@ -543,8 +605,20 @@ export default function CredentialsPage() {
               generate: t("bulk.generate"),
               generating: t("bulk.generating"),
               cancel: tCommon("cancel"),
+              totalMatched: t("bulk.total_matched"),
               eligible: t("bulk.eligible"),
               skipped: t("bulk.skipped"),
+              skippedReasons: t("bulk.skipped_reasons.title"),
+              skipReasonLabels: {
+                already_has_password: t(
+                  "bulk.skipped_reasons.already_has_password",
+                ),
+                disabled_user: t("bulk.skipped_reasons.disabled_user"),
+              },
+              unknownSkipReason: (reason) =>
+                t("bulk.skipped_reasons.unknown", {
+                  reason: reason.replaceAll("_", " "),
+                }),
             }}
           />
         ) : null}

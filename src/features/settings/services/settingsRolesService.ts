@@ -8,6 +8,7 @@ import type {
   SettingsRolesListApiDto,
   SettingsRolePayloadDto,
   SettingsRolePermissionsPayloadDto,
+  SettingsRolePermissionsResponseDto,
 } from "@/features/settings/types";
 
 function mapRole(payload: SettingsRoleApiDto): RoleDefinition {
@@ -112,13 +113,12 @@ export async function updateSettingsRole(
 export async function replaceSettingsRolePermissions(
   roleId: string,
   permissions: string[],
-): Promise<RoleDefinition> {
+): Promise<SettingsRolePermissionsResponseDto> {
   const payload: SettingsRolePermissionsPayloadDto = { permissions };
-  const response = await apiPut<SettingsRoleApiDto>(
+  return apiPut<SettingsRolePermissionsResponseDto>(
     `/settings/roles/${roleId}/permissions`,
     payload,
   );
-  return mapRole(response);
 }
 
 export async function cloneSettingsRole(

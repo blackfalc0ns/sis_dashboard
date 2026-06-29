@@ -30,7 +30,9 @@ export default function CredentialDeliveriesPage() {
   const tCommon = useTranslations("common");
   const { showSuccess, showError } = useToast();
   const { hasPermission } = usePermissions();
-  const canManage = hasPermission("settings.security.manage");
+  const canManage = hasPermission(
+    "settings.email.credential_deliveries.manage",
+  );
   const [preview, setPreview] =
     useState<CredentialDeliveryPreviewResponse | null>(null);
   const [createdBatch, setCreatedBatch] =
@@ -133,7 +135,7 @@ export default function CredentialDeliveriesPage() {
   };
 
   return (
-    <SettingsAccessGuard permission="settings.security.view">
+    <SettingsAccessGuard permission="settings.email.credential_deliveries.view">
       <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
         <SettingsPageHeader
           title={t("title")}

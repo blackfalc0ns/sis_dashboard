@@ -144,6 +144,11 @@ export interface SettingsRolePermissionsPayloadDto {
   permissions: string[];
 }
 
+export interface SettingsRolePermissionsResponseDto {
+  id: string;
+  permissions: string[];
+}
+
 export interface AttendancePolicySettings {
   absenceThreshold: number;
   lateThresholdMinutes: number;

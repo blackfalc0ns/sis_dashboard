@@ -68,4 +68,41 @@ describe("Select", () => {
     vi.unstubAllGlobals();
     container.remove();
   });
+
+  it("searches options by visible label and supplemental search text", async () => {
+    const user = userEvent.setup();
+    render(
+      <Select
+        value="all"
+        onChange={vi.fn()}
+        searchable
+        searchPlaceholder="Search roles"
+        options={[
+          { value: "all", label: "All roles" },
+          {
+            value: "teacher",
+            label: "Educators",
+            searchText: "Educators teacher",
+          },
+          {
+            value: "finance",
+            label: "Finance Team",
+            searchText: "Finance Team finance",
+          },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "All roles" }));
+    const searchInput = screen.getByPlaceholderText("Search roles");
+
+    await user.type(searchInput, "teacher");
+    expect(screen.getByText("Educators")).toBeInTheDocument();
+    expect(screen.queryByText("Finance Team")).not.toBeInTheDocument();
+
+    await user.clear(searchInput);
+    await user.type(searchInput, "Finance Team");
+    expect(screen.getByText("Finance Team")).toBeInTheDocument();
+    expect(screen.queryByText("Educators")).not.toBeInTheDocument();
+  });
 });

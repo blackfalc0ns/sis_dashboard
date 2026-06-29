@@ -19,6 +19,19 @@ export const timezones = [
   "UTC",
 ];
 
+const defaultEmailPermissions = [
+  "settings.email.connection.view",
+  "settings.email.connection.manage",
+  "settings.email.templates.view",
+  "settings.email.templates.manage",
+  "settings.email.credential_deliveries.view",
+  "settings.email.credential_deliveries.manage",
+  "settings.email.deliveries.view",
+  "settings.email.deliveries.manage",
+  "settings.email.campaigns.view",
+  "settings.email.campaigns.manage",
+];
+
 export const defaultRoles: RoleDefinition[] = [
   {
     id: "role-admin",
@@ -33,6 +46,7 @@ export const defaultRoles: RoleDefinition[] = [
       "settings.users.manage",
       "settings.roles.view",
       "settings.roles.manage",
+      "settings.permissions.view",
       "settings.policies.view",
       "settings.policies.manage",
       "settings.admissionsDocuments.view",
@@ -43,6 +57,7 @@ export const defaultRoles: RoleDefinition[] = [
       "settings.integrations.configure",
       "settings.security.view",
       "settings.security.manage",
+      ...defaultEmailPermissions,
       "settings.backup.view",
       "settings.backup.manage",
       "settings.overview.view",
@@ -89,6 +104,7 @@ export const defaultRoles: RoleDefinition[] = [
       "settings.integrations.configure",
       "settings.security.view",
       "settings.security.manage",
+      ...defaultEmailPermissions,
       "settings.backup.view",
       "settings.backup.manage",
       "settings.users.view",

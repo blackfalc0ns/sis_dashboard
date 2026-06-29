@@ -42,7 +42,7 @@ export default function EmailDeliveryDetailPage({
   const locale = useLocale();
   const { showSuccess, showError } = useToast();
   const { hasPermission } = usePermissions();
-  const canManage = hasPermission("settings.security.manage");
+  const canManage = hasPermission("settings.email.deliveries.manage");
   const [batch, setBatch] = useState<EmailDeliveryBatch | null>(null);
   const [recipients, setRecipients] = useState<EmailDeliveryRecipient[]>([]);
   const [page, setPage] = useState(1);
@@ -146,7 +146,7 @@ export default function EmailDeliveryDetailPage({
   }
 
   return (
-    <SettingsAccessGuard permission="settings.security.view">
+    <SettingsAccessGuard permission="settings.email.deliveries.view">
       <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
         <SettingsPageHeader
           title={batch?.subject || batch?.title || t("detail.title")}

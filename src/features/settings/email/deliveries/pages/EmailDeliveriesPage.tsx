@@ -29,7 +29,7 @@ export default function EmailDeliveriesPage() {
   const tCommon = useTranslations("common");
   const { showSuccess, showError } = useToast();
   const { hasPermission } = usePermissions();
-  const canManage = hasPermission("settings.security.manage");
+  const canManage = hasPermission("settings.email.deliveries.manage");
   const [batches, setBatches] = useState<EmailDeliveryBatch[]>([]);
   const [kind, setKind] = useState<EmailDeliveryKind | "all">("all");
   const [status, setStatus] = useState<EmailDeliveryStatus | "all">("all");
@@ -138,7 +138,7 @@ export default function EmailDeliveriesPage() {
   }
 
   return (
-    <SettingsAccessGuard permission="settings.security.view">
+    <SettingsAccessGuard permission="settings.email.deliveries.view">
       <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
         <SettingsPageHeader
           title={t("title")}

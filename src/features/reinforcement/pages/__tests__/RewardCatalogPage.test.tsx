@@ -1,0 +1,230 @@
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ToastProvider } from "@/components/ui/toast/Toast";
+import RewardCatalogPage from "../RewardCatalogPage";
+
+const permissionState = vi.hoisted(() => ({
+  permissions: [
+    "reinforcement.rewards.view",
+    "reinforcement.rewards.manage",
+  ] as string[],
+}));
+
+const catalogMocks = vi.hoisted(() => ({
+  listRewardCatalog: vi.fn(),
+  createRewardCatalogItem: vi.fn(),
+  updateRewardCatalogItem: vi.fn(),
+  publishRewardCatalogItem: vi.fn(),
+  archiveRewardCatalogItem: vi.fn(),
+}));
+
+const dashboardMocks = vi.hoisted(() => ({
+  getRewardCatalogSummary: vi.fn(),
+}));
+
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({ isLoading: false }),
+}));
+
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    hasPermission: (permission: string) =>
+      permissionState.permissions.includes(permission),
+  }),
+}));
+
+vi.mock("@/features/reinforcement/services/rewardCatalogService", () => catalogMocks);
+
+vi.mock(
+  "@/features/reinforcement/services/rewardDashboardService",
+  () => dashboardMocks,
+);
+
+function renderPage() {
+  return render(
+    <ToastProvider>
+      <RewardCatalogPage />
+    </ToastProvider>,
+  );
+}
+
+describe("RewardCatalogPage", () => {
+  beforeEach(() => {
+    permissionState.permissions = [
+      "reinforcement.rewards.view",
+      "reinforcement.rewards.manage",
+    ];
+    catalogMocks.listRewardCatalog.mockReset().mockResolvedValue({
+      items: [
+        {
+          id: "catalog-item-1",
+          titleEn: "Backend Catalog Item",
+          type: "physical",
+          status: "published",
+          minTotalXp: 25,
+          stockQuantity: 10,
+          stockRemaining: 8,
+          isUnlimited: false,
+          isAvailable: true,
+        },
+      ],
+      total: 1,
+      limit: 50,
+      offset: 0,
+    });
+    catalogMocks.createRewardCatalogItem.mockReset();
+    catalogMocks.updateRewardCatalogItem.mockReset();
+    catalogMocks.publishRewardCatalogItem.mockReset();
+    catalogMocks.archiveRewardCatalogItem.mockReset();
+    dashboardMocks.getRewardCatalogSummary.mockReset().mockResolvedValue({
+      summary: {
+        total: 9,
+        published: 5,
+        available: 4,
+        lowStock: 1,
+        outOfStock: 2,
+        limited: 3,
+      },
+      items: [
+        {
+          id: "summary-only-item",
+          titleEn: "Summary Item",
+          status: "published",
+        },
+      ],
+    });
+  });
+
+  it("loads catalog rows from the catalog endpoint and summary cards from catalog-summary", async () => {
+    renderPage();
+
+    expect(await screen.findByText("Backend Catalog Item")).toBeInTheDocument();
+    expect(screen.queryByText("Summary Item")).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(catalogMocks.listRewardCatalog).toHaveBeenCalledWith({
+        academicYearId: undefined,
+        termId: undefined,
+        status: undefined,
+        type: undefined,
+        search: undefined,
+        limit: 50,
+        offset: 0,
+      });
+      expect(dashboardMocks.getRewardCatalogSummary).toHaveBeenCalledWith({
+        academicYearId: undefined,
+        termId: undefined,
+        status: undefined,
+        type: undefined,
+      });
+    });
+
+    expect(screen.getByText("9")).toBeInTheDocument();
+  });
+
+  it("uses backend pagination for catalog rows", async () => {
+    const user = userEvent.setup();
+    catalogMocks.listRewardCatalog.mockResolvedValue({
+      items: [
+        {
+          id: "catalog-item-1",
+          titleEn: "Backend Catalog Item",
+          type: "physical",
+          status: "published",
+        },
+      ],
+      total: 75,
+      limit: 50,
+      offset: 0,
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("Backend Catalog Item")).toBeInTheDocument();
+
+    await user.click(screen.getByTitle("next_page"));
+
+    await waitFor(() => {
+      expect(catalogMocks.listRewardCatalog).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          limit: 50,
+          offset: 50,
+        }),
+      );
+    });
+  });
+
+  it("sends an archive reason through the catalog archive endpoint", async () => {
+    const user = userEvent.setup();
+    catalogMocks.archiveRewardCatalogItem.mockResolvedValue({
+      id: "catalog-item-1",
+      titleEn: "Backend Catalog Item",
+      status: "archived",
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("Backend Catalog Item")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "rewardsModule.actions.archive" }),
+    );
+    await user.type(
+      screen.getByLabelText("rewardsModule.catalog.archive.reason"),
+      "No longer offered",
+    );
+    const archiveDialog = screen
+      .getByText("rewardsModule.catalog.archive.title")
+      .closest("[role='dialog']");
+    expect(archiveDialog).not.toBeNull();
+    await user.click(
+      within(archiveDialog as HTMLElement).getByRole("button", {
+        name: "rewardsModule.actions.archive",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(catalogMocks.archiveRewardCatalogItem).toHaveBeenCalledWith(
+        "catalog-item-1",
+        { reason: "No longer offered" },
+      );
+    });
+  });
+
+  it("does not send an empty titleEn when creating an Arabic-only reward", async () => {
+    const user = userEvent.setup();
+    catalogMocks.createRewardCatalogItem.mockResolvedValue({
+      id: "catalog-item-2",
+      titleAr: "جائزة عربية",
+      status: "draft",
+    });
+
+    renderPage();
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "rewardsModule.catalog.addReward",
+      }),
+    );
+    await user.type(
+      screen.getByPlaceholderText("rewards.titlePlaceholderAr"),
+      "جائزة عربية",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "rewardsModule.actions.create" }),
+    );
+
+    await waitFor(() => {
+      expect(catalogMocks.createRewardCatalogItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          titleAr: "جائزة عربية",
+        }),
+      );
+      expect(catalogMocks.createRewardCatalogItem).toHaveBeenCalledWith(
+        expect.not.objectContaining({
+          titleEn: "",
+        }),
+      );
+    });
+  });
+});

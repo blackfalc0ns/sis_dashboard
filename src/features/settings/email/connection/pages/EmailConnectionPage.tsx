@@ -34,7 +34,7 @@ export default function EmailConnectionPage() {
   const tCommon = useTranslations("common");
   const { showSuccess, showError } = useToast();
   const { hasPermission } = usePermissions();
-  const canManage = hasPermission("settings.security.manage");
+  const canManage = hasPermission("settings.email.connection.manage");
   const [connection, setConnection] = useState<EmailConnection | null>(null);
   const [values, setValues] = useState<EmailConnectionFormValues>(
     toEmailConnectionFormValues(null),
@@ -206,7 +206,7 @@ export default function EmailConnectionPage() {
   }
 
   return (
-    <SettingsAccessGuard permission="settings.security.view">
+    <SettingsAccessGuard permission="settings.email.connection.view">
       <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
         <SettingsPageHeader
           title={t("title")}

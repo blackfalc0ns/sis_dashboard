@@ -48,7 +48,7 @@ export default function EmailCampaignsPage() {
   const locale = useLocale();
   const { showSuccess, showError } = useToast();
   const { hasPermission } = usePermissions();
-  const canManage = hasPermission("settings.security.manage");
+  const canManage = hasPermission("settings.email.campaigns.manage");
   const [campaigns, setCampaigns] = useState<EmailCampaignBatch[]>([]);
   const [roles, setRoles] = useState<RoleDefinition[]>([]);
   const [status, setStatus] = useState<EmailDeliveryStatus | "all">("all");
@@ -274,7 +274,7 @@ export default function EmailCampaignsPage() {
   }
 
   return (
-    <SettingsAccessGuard permission="settings.security.view">
+    <SettingsAccessGuard permission="settings.email.campaigns.view">
       <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
         <SettingsPageHeader
           title={t("title")}

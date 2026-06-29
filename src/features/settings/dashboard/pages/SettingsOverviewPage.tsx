@@ -140,31 +140,31 @@ export default function SettingsOverviewPage() {
       key: "email_connection",
       href: `/${locale}/settings/email/connection`,
       icon: Mail,
-      permission: "settings.security.view",
+      permission: "settings.email.connection.view",
     },
     {
       key: "email_templates",
       href: `/${locale}/settings/email/templates`,
       icon: FileText,
-      permission: "settings.security.view",
+      permission: "settings.email.templates.view",
     },
     {
       key: "credential_delivery",
       href: `/${locale}/settings/email/credential-deliveries`,
       icon: Send,
-      permission: "settings.security.view",
+      permission: "settings.email.credential_deliveries.view",
     },
     {
       key: "email_deliveries",
       href: `/${locale}/settings/email/deliveries`,
       icon: ClipboardList,
-      permission: "settings.security.view",
+      permission: "settings.email.deliveries.view",
     },
     {
       key: "email_campaigns",
       href: `/${locale}/settings/email/campaigns`,
       icon: MessageSquare,
-      permission: "settings.security.view",
+      permission: "settings.email.campaigns.view",
     },
   ];
 

@@ -39,5 +39,11 @@ export interface UsernameAvailabilityResponse {
   username: string;
   loginEmail: string | null;
   available: boolean;
-  reason?: string | null;
+  reason?: UsernameAvailabilityReason | string | null;
 }
+
+export type UsernameAvailabilityReason =
+  | "username_invalid"
+  | "login_domain_missing"
+  | "login_email_taken"
+  | "reserved_username";

@@ -66,7 +66,7 @@ export default function GenerateCredentialModal({
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
             <p className="font-semibold text-gray-900">{user.fullName}</p>
             <p className="break-all text-gray-500">
-              {user.username || user.loginEmail || user.email}
+              {user.username || user.loginEmail}
             </p>
           </div>
         ) : null}

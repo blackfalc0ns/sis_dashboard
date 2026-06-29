@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import Modal from "@/components/ui/modal/Modal";
 import Select from "@/components/ui/input/Select";
@@ -9,12 +9,14 @@ import type {
   BulkCredentialPreviewResponse,
   CredentialBulkScope,
 } from "@/features/settings/credentials/types";
+import { getBulkCredentialPreviewPayloadKey } from "@/features/settings/credentials/services/credentialsService";
 import type { RoleDefinition } from "@/features/settings/types";
 
 interface BulkGenerateCredentialsModalProps {
   isOpen: boolean;
   roles: RoleDefinition[];
   preview: BulkCredentialPreviewResponse | null;
+  previewPayloadKey: string | null;
   isPreviewing: boolean;
   isGenerating: boolean;
   error?: string | null;
@@ -38,8 +40,12 @@ interface BulkGenerateCredentialsModalProps {
     generate: string;
     generating: string;
     cancel: string;
+    totalMatched: string;
     eligible: string;
     skipped: string;
+    skippedReasons: string;
+    skipReasonLabels: Record<string, string>;
+    unknownSkipReason: (reason: string) => string;
   };
 }
 
@@ -47,6 +53,7 @@ export default function BulkGenerateCredentialsModal({
   isOpen,
   roles,
   preview,
+  previewPayloadKey,
   isPreviewing,
   isGenerating,
   error,
@@ -60,7 +67,7 @@ export default function BulkGenerateCredentialsModal({
   const [includeUsersWithPassword, setIncludeUsersWithPassword] = useState(false);
   const [includeDisabledUsers, setIncludeDisabledUsers] = useState(false);
 
-  const buildPayload = (): BulkCredentialPreviewRequest => {
+  const payload = useMemo<BulkCredentialPreviewRequest>(() => {
     if (scope === "role" && roleKey) {
       return {
         scope,
@@ -74,7 +81,12 @@ export default function BulkGenerateCredentialsModal({
       includeUsersWithPassword,
       includeDisabledUsers,
     };
-  };
+  }, [includeDisabledUsers, includeUsersWithPassword, roleKey, scope]);
+
+  const payloadKey = getBulkCredentialPreviewPayloadKey(payload);
+  const isPreviewCurrent = Boolean(preview && previewPayloadKey === payloadKey);
+  const getSkipReasonLabel = (reason: string): string =>
+    labels.skipReasonLabels[reason] ?? labels.unknownSkipReason(reason);
 
   return (
     <Modal
@@ -90,15 +102,21 @@ export default function BulkGenerateCredentialsModal({
           <Button
             variant="secondary"
             loading={isPreviewing}
-            onClick={() => void onPreview(buildPayload())}
+            onClick={() => void onPreview(payload)}
           >
             {isPreviewing ? labels.previewing : labels.preview}
           </Button>
           <Button
             variant="primary"
             loading={isGenerating}
-            disabled={!preview || preview.eligibleCount < 1 || isGenerating}
-            onClick={() => void onGenerate(buildPayload())}
+            disabled={
+              !isPreviewCurrent ||
+              !preview ||
+              preview.eligibleCount < 1 ||
+              isPreviewing ||
+              isGenerating
+            }
+            onClick={() => void onGenerate(payload)}
           >
             {isGenerating ? labels.generating : labels.generate}
           </Button>
@@ -163,9 +181,13 @@ export default function BulkGenerateCredentialsModal({
             </label>
           ))}
         </div>
-        {preview ? (
+        {preview && isPreviewCurrent ? (
           <div className="rounded-lg border border-gray-200 bg-white p-3">
             <div className="flex flex-wrap gap-4 text-sm">
+              <span>
+                {labels.totalMatched}:{" "}
+                <strong className="text-gray-900">{preview.totalMatched}</strong>
+              </span>
               <span>
                 {labels.eligible}:{" "}
                 <strong className="text-gray-900">{preview.eligibleCount}</strong>
@@ -175,6 +197,20 @@ export default function BulkGenerateCredentialsModal({
                 <strong className="text-gray-900">{preview.skippedCount}</strong>
               </span>
             </div>
+            {Object.keys(preview.skippedReasons).length > 0 ? (
+              <div className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                <p className="font-medium">{labels.skippedReasons}</p>
+                <ul className="mt-1 space-y-1">
+                  {Object.entries(preview.skippedReasons).map(
+                    ([reason, count]) => (
+                      <li key={reason}>
+                        {getSkipReasonLabel(reason)}: {count}
+                      </li>
+                    ),
+                  )}
+                </ul>
+              </div>
+            ) : null}
             <div className="mt-3 max-h-48 space-y-2 overflow-y-auto">
               {preview.recipients.map((recipient) => (
                 <div
@@ -186,7 +222,7 @@ export default function BulkGenerateCredentialsModal({
                       {recipient.fullName}
                     </span>
                     <span className="block truncate text-xs text-gray-500">
-                      {recipient.username || recipient.email}
+                      {recipient.username || recipient.loginEmail}
                     </span>
                   </span>
                   <span
@@ -196,7 +232,9 @@ export default function BulkGenerateCredentialsModal({
                   >
                     {recipient.eligible
                       ? labels.eligible
-                      : recipient.skipReason || labels.skipped}
+                      : recipient.skipReason
+                        ? getSkipReasonLabel(recipient.skipReason)
+                        : labels.skipped}
                   </span>
                 </div>
               ))}

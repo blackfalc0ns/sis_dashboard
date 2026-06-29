@@ -7735,6 +7735,8 @@
       "refresh": "Refresh",
       "save": "Save changes",
       "saving": "Saving...",
+      "discard": "Discard changes",
+      "remove_reserved_username": "Remove {username}",
       "identity_rule": "The generated login email is the login identity. Personal inboxes must be stored as contactEmail, not email.",
       "current_domain": "Current login domain: {domain}",
       "empty_domain_hint": "No login domain is configured yet.",
@@ -7753,7 +7755,30 @@
       },
       "helpers": {
         "allowed_characters": "Use backend-supported text or pattern guidance for usernames.",
-        "reserved_usernames": "Comma-separated usernames that cannot be assigned."
+        "reserved_usernames": "Press Enter or comma to add a username that cannot be assigned.",
+        "username_range": "Usernames may contain {min} to {max} characters."
+      },
+      "groups": {
+        "domain": "Login domain and activation",
+        "username_policy": "Username policy",
+        "reserved_usernames": "Reserved usernames"
+      },
+      "summary": {
+        "aria_label": "Saved login identity summary",
+        "status": "Status",
+        "active": "Active",
+        "disabled": "Disabled",
+        "domain": "Login domain",
+        "not_configured": "Not configured",
+        "username_length": "Username length",
+        "reserved_count": "Reserved usernames",
+        "updated_at": "Last updated",
+        "not_available": "Not available"
+      },
+      "confirmation": {
+        "title": "Confirm sensitive identity change",
+        "description": "You changed the login domain or activation status. Review the values carefully before saving.",
+        "confirm": "Confirm and save"
       },
       "status": {
         "active": "Active",
@@ -7781,12 +7806,19 @@
         "description": "Enter a username to see the generated login email. This is not a personal contact inbox.",
         "username_label": "Username",
         "username_placeholder": "e.g. sara.ali",
-        "preview_button": "Preview email",
-        "availability_button": "Check availability",
+        "test_button": "Test username",
+        "testing": "Testing...",
         "generated_email_label": "Generated login email",
         "login_identity_note": "Users sign in with this generated login email. Their personal inbox belongs in contactEmail.",
         "available": "Username is available.",
         "unavailable": "Username is not available.",
+        "reasons": {
+          "username_invalid": "The username does not match the configured policy.",
+          "login_domain_missing": "Configure and activate a login domain first.",
+          "login_email_taken": "The generated login email is already assigned.",
+          "reserved_username": "This username is reserved.",
+          "unknown": "Unavailable: {reason}"
+        },
         "errors": {
           "username_required": "Enter a username first.",
           "preview_failed": "Failed to preview username.",
@@ -7806,11 +7838,22 @@
         "invited": "Invited",
         "inactive": "Inactive"
       },
+      "credential_statuses": {
+        "missing": "Missing",
+        "set": "Set",
+        "temporary_or_must_change": "Temporary or must change",
+        "must_change": "Must change"
+      },
       "filters": {
         "button": "Filters",
         "search": "Search users",
         "clear": "Clear filters",
         "role": "Role",
+        "role_search": "Search roles",
+        "roles_loading": "Loading roles...",
+        "roles_error": "Unable to load roles. Reopen to retry.",
+        "roles_empty": "No roles available",
+        "roles_no_results": "No matching roles",
         "status": "Status",
         "has_password": "Has password",
         "must_change": "Must change password"
@@ -7871,8 +7914,15 @@
         "previewing": "Previewing...",
         "generate": "Generate",
         "generating": "Generating...",
+        "total_matched": "Total matched",
         "eligible": "Eligible",
-        "skipped": "Skipped"
+        "skipped": "Skipped",
+        "skipped_reasons": {
+          "title": "Why users were skipped",
+          "already_has_password": "Already has a password",
+          "disabled_user": "Disabled user",
+          "unknown": "Skipped: {reason}"
+        }
       },
       "reveal": {
         "title": "Temporary passwords",
@@ -8377,6 +8427,9 @@
       "permission_matrix_title": "Permission matrix",
       "permission_matrix_description": "Edit permission coverage for {role}.",
       "permission_matrix_empty": "Select a role to review its permissions.",
+      "permission_matrix_loading": "Loading the permission catalog...",
+      "permission_matrix_access_required": "Permission catalog access is required to view or edit the permission matrix.",
+      "permission_matrix_load_failed": "The permission catalog could not be loaded. The role list remains available.",
       "save_permissions": "Save permissions",
       "table": {
         "role": "Role",
@@ -8386,7 +8439,7 @@
         "actions": "Actions"
       },
       "messages": {
-        "load_failed": "Failed to load roles and permissions.",
+        "load_failed": "Failed to load roles.",
         "role_created": "Role created successfully.",
         "role_updated": "Role updated successfully.",
         "role_deleted": "Role deleted successfully.",
@@ -9777,6 +9830,16 @@
         "stock": {
           "unlimited": "Unlimited"
         },
+        "form": {
+          "stockRemaining": "Stock remaining",
+          "stockRemainingHelp": "Current available quantity. Leave empty to let the backend use the stock quantity."
+        },
+        "archive": {
+          "title": "Archive reward",
+          "description": "Archive this reward so it no longer appears as an active catalog option. Existing historical records remain available.",
+          "reason": "Archive reason",
+          "reasonPlaceholder": "Optional reason for archiving this reward"
+        },
         "availability": {
           "available": "Available",
           "lowStock": "Low Stock",
@@ -9796,6 +9859,29 @@
       "redemptions": {
         "title": "Redemptions",
         "description": "View and manage student reward redemption requests.",
+        "create": {
+          "button": "Create request",
+          "title": "Create Redemption Request",
+          "description": "Create a reward redemption request for a selected student from the dashboard.",
+          "studentSearch": "Student search",
+          "studentSearchPlaceholder": "Search students by name or ID",
+          "student": "Student",
+          "studentPlaceholder": "Select a student",
+          "reward": "Reward",
+          "rewardPlaceholder": "Select a reward",
+          "requestNoteEn": "Request Note (English)",
+          "requestNoteAr": "Request Note (Arabic)",
+          "submit": "Create request",
+          "searchPlaceholder": "Search...",
+          "loadingLookups": "Loading students and rewards...",
+          "lookupFailed": "Unable to load students or rewards.",
+          "submitFailed": "Unable to create redemption request.",
+          "studentRequired": "Select a student.",
+          "rewardRequired": "Select a reward.",
+          "noStudents": "No students available.",
+          "noRewards": "No available rewards.",
+          "noResults": "No matching options."
+        },
         "filters": {
           "requestedFrom": "From Date",
           "requestedTo": "To Date"
@@ -9861,6 +9947,7 @@
         "updated": "Reward updated successfully.",
         "published": "Reward published successfully.",
         "archived": "Reward archived successfully.",
+        "redemptionCreated": "Redemption request created successfully.",
         "approved": "Redemption approved successfully.",
         "rejected": "Redemption rejected successfully.",
         "fulfilled": "Redemption fulfilled successfully.",

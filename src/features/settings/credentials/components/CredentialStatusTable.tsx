@@ -3,8 +3,11 @@
 import { KeyRound, Pencil, RefreshCcw } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { DataTable } from "@/components/ui";
-import SettingsStatusBadge from "@/features/settings/components/SettingsStatusBadge";
-import type { CredentialStatusRecord } from "@/features/settings/credentials/types";
+import CredentialStatusBadge from "@/features/settings/credentials/components/CredentialStatusBadge";
+import type {
+  CredentialStatusFilter,
+  CredentialStatusRecord,
+} from "@/features/settings/credentials/types";
 
 interface CredentialStatusTableProps {
   records: CredentialStatusRecord[];
@@ -36,6 +39,7 @@ interface CredentialStatusTableProps {
     generate: string;
     setPassword: string;
     regenerate: string;
+    credentialStatuses: Record<CredentialStatusFilter, string>;
   };
 }
 
@@ -75,7 +79,7 @@ export default function CredentialStatusTable({
       },
     },
     {
-      key: "email",
+      key: "loginEmail",
       label: labels.usernameLogin,
       searchable: true,
       render: (value: unknown, row: Record<string, unknown>) => {
@@ -86,7 +90,7 @@ export default function CredentialStatusTable({
               {record.username || labels.notAvailable}
             </p>
             <p className="mt-1 break-all text-xs text-gray-500">
-              {record.loginEmail || String(value || labels.notAvailable)}
+              {record.loginEmail}
             </p>
           </div>
         );
@@ -114,7 +118,10 @@ export default function CredentialStatusTable({
       key: "status",
       label: labels.status,
       render: (value: unknown) => (
-        <SettingsStatusBadge status={value as CredentialStatusRecord["status"]} />
+        <CredentialStatusBadge
+          status={value as CredentialStatusFilter}
+          label={labels.credentialStatuses[value as CredentialStatusFilter]}
+        />
       ),
     },
     {

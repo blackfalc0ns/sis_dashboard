@@ -6,6 +6,8 @@ import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import DataTable, { type Column } from "@/components/ui/data-table/DataTable";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import Modal from "@/components/ui/modal/Modal";
+import TextArea from "@/components/ui/input/TextArea";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -19,12 +21,14 @@ import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters"
 import {
   archiveRewardCatalogItem,
   createRewardCatalogItem,
+  listRewardCatalog,
   publishRewardCatalogItem,
   updateRewardCatalogItem,
 } from "../services/rewardCatalogService";
 import { getRewardCatalogSummary } from "../services/rewardDashboardService";
 import type {
   CreateRewardCatalogItemPayload,
+  ListRewardCatalogParams,
   RewardCatalogItem,
   RewardCatalogSummaryParams,
   RewardCatalogStatus,
@@ -77,6 +81,8 @@ type CatalogSummaryCounts = {
   limited?: number;
 };
 
+const CATALOG_PAGE_LIMIT = 50;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -104,21 +110,6 @@ function asCatalogSummary(value: unknown): CatalogSummaryCounts {
   };
 }
 
-function matchesCatalogSearch(item: RewardCatalogItem, search?: string): boolean {
-  const query = search?.trim().toLowerCase();
-  if (!query) return true;
-
-  return [
-    item.id,
-    item.titleEn,
-    item.titleAr,
-    item.type,
-    item.status,
-  ]
-    .filter(Boolean)
-    .some((value) => String(value).toLowerCase().includes(query));
-}
-
 export default function RewardCatalogPage() {
   const locale = useLocale();
   const t = useTranslations("reinforcement");
@@ -139,6 +130,9 @@ export default function RewardCatalogPage() {
   });
 
   const [items, setItems] = useState<RewardCatalogItem[]>([]);
+  const [catalogTotal, setCatalogTotal] = useState(0);
+  const [catalogPage, setCatalogPage] = useState(1);
+  const [catalogPageSize, setCatalogPageSize] = useState(CATALOG_PAGE_LIMIT);
   const [summary, setSummary] = useState<CatalogSummaryCounts>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -146,6 +140,9 @@ export default function RewardCatalogPage() {
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<RewardCatalogItem | undefined>(undefined);
   const [formLoading, setFormLoading] = useState(false);
+  const [archiveTarget, setArchiveTarget] = useState<RewardCatalogItem | null>(null);
+  const [archiveReason, setArchiveReason] = useState("");
+  const [archiveLoading, setArchiveLoading] = useState(false);
 
   const canView = hasPermission("reinforcement.rewards.view");
   const canManage = hasPermission("reinforcement.rewards.manage");
@@ -218,23 +215,47 @@ export default function RewardCatalogPage() {
 
   const handleFilterChange = useCallback(
     (key: string, value: string) => {
+      setCatalogPage(1);
       setValue(key, value);
     },
     [setValue],
   );
 
   const handleClearAllFilters = useCallback(() => {
+    setCatalogPage(1);
     clearAll();
   }, [clearAll]);
 
   const handleRemoveFilter = useCallback(
     (key: string) => {
+      setCatalogPage(1);
       setValue(key, "");
     },
     [setValue],
   );
 
-  const params = useMemo<RewardCatalogSummaryParams>(
+  const catalogParams = useMemo<ListRewardCatalogParams>(
+    () => ({
+      status: (values.status || undefined) as RewardCatalogStatus | undefined,
+      type: (values.type || undefined) as RewardItemType | undefined,
+      academicYearId: values.academicYearId || undefined,
+      termId: values.termId || undefined,
+      search: values.search || undefined,
+      limit: catalogPageSize,
+      offset: (catalogPage - 1) * catalogPageSize,
+    }),
+    [
+      values.status,
+      values.type,
+      values.academicYearId,
+      values.termId,
+      values.search,
+      catalogPage,
+      catalogPageSize,
+    ],
+  );
+
+  const summaryParams = useMemo<RewardCatalogSummaryParams>(
     () => ({
       status: (values.status || undefined) as RewardCatalogStatus | undefined,
       type: (values.type || undefined) as RewardItemType | undefined,
@@ -249,23 +270,37 @@ export default function RewardCatalogPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await getRewardCatalogSummary(params);
-      const nextItems = asCatalogItems(response.items).filter((item) =>
-        matchesCatalogSearch(item, values.search),
+      const catalogResponse = await listRewardCatalog(catalogParams);
+      setItems(asCatalogItems(catalogResponse.items));
+      setCatalogTotal(
+        typeof catalogResponse.total === "number"
+          ? catalogResponse.total
+          : asCatalogItems(catalogResponse.items).length,
       );
-      setSummary(asCatalogSummary(response.summary));
-      setItems(nextItems);
+
+      try {
+        const summaryResponse = await getRewardCatalogSummary(summaryParams);
+        setSummary(asCatalogSummary(summaryResponse.summary));
+      } catch (summaryError) {
+        setSummary({});
+        const message =
+          summaryError instanceof Error
+            ? summaryError.message
+            : t("common.error");
+        showError(message);
+      }
     } catch (nextError) {
       const message =
         nextError instanceof Error ? nextError.message : t("common.error");
       setError(message);
       setItems([]);
+      setCatalogTotal(0);
       setSummary({});
       showError(message);
     } finally {
       setLoading(false);
     }
-  }, [canView, params, showError, t, values.search]);
+  }, [canView, catalogParams, summaryParams, showError, t]);
 
   useEffect(() => {
     void Promise.resolve().then(refreshCatalog);
@@ -286,19 +321,45 @@ export default function RewardCatalogPage() {
     [refreshCatalog, showSuccess, showError, t],
   );
 
-  const handleArchive = useCallback(
-    async (item: RewardCatalogItem) => {
+  const handleOpenArchive = useCallback((item: RewardCatalogItem) => {
+    setArchiveTarget(item);
+    setArchiveReason("");
+  }, []);
+
+  const handleCloseArchive = useCallback(() => {
+    if (archiveLoading) return;
+    setArchiveTarget(null);
+    setArchiveReason("");
+  }, [archiveLoading]);
+
+  const handleConfirmArchive = useCallback(
+    async () => {
+      if (!archiveTarget) return;
+      setArchiveLoading(true);
       try {
-        await archiveRewardCatalogItem(item.id, {});
+        await archiveRewardCatalogItem(archiveTarget.id, {
+          reason: archiveReason.trim() || undefined,
+        });
         showSuccess(t("rewardsModule.messages.archived"));
+        setArchiveTarget(null);
+        setArchiveReason("");
         await refreshCatalog();
       } catch (nextError) {
         const message =
           nextError instanceof Error ? nextError.message : t("common.error");
         showError(message);
+      } finally {
+        setArchiveLoading(false);
       }
     },
-    [refreshCatalog, showSuccess, showError, t],
+    [
+      archiveReason,
+      archiveTarget,
+      refreshCatalog,
+      showError,
+      showSuccess,
+      t,
+    ],
   );
 
   const handleOpenCreate = () => {
@@ -480,7 +541,7 @@ export default function RewardCatalogPage() {
                   variant="secondary"
                   size="sm"
                   leftIcon={<Archive className="h-3.5 w-3.5" />}
-                  onClick={() => handleArchive(row)}
+                  onClick={() => handleOpenArchive(row)}
                 >
                   {t("rewardsModule.actions.archive")}
                 </Button>
@@ -490,7 +551,7 @@ export default function RewardCatalogPage() {
         },
       },
     ],
-    [locale, t, canManage, handlePublish, handleArchive],
+    [locale, t, canManage, handlePublish, handleOpenArchive],
   );
 
   if (authLoading) return <MainLoader />;
@@ -589,10 +650,62 @@ export default function RewardCatalogPage() {
               columns={columns}
               data={items}
               searchQuery={values.search}
+              itemsPerPage={catalogPageSize}
+              serverPagination={{
+                enabled: true,
+                currentPage: catalogPage,
+                pageSize: catalogPageSize,
+                totalItems: catalogTotal,
+                onPageChange: setCatalogPage,
+                onPageSizeChange: (nextPageSize) => {
+                  setCatalogPageSize(nextPageSize);
+                  setCatalogPage(1);
+                },
+              }}
             />
           </section>
         </>
       )}
+
+      <Modal
+        isOpen={Boolean(archiveTarget)}
+        onClose={handleCloseArchive}
+        title={t("rewardsModule.catalog.archive.title")}
+        size="md"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={handleCloseArchive}
+              disabled={archiveLoading}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleConfirmArchive}
+              loading={archiveLoading}
+              disabled={archiveLoading}
+              leftIcon={<Archive className="h-4 w-4" />}
+            >
+              {t("rewardsModule.actions.archive")}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="rounded-lg border border-amber-100 bg-amber-50 p-4 text-sm text-amber-800">
+            {t("rewardsModule.catalog.archive.description")}
+          </div>
+          <TextArea
+            label={t("rewardsModule.catalog.archive.reason")}
+            value={archiveReason}
+            onChange={(event) => setArchiveReason(event.target.value)}
+            placeholder={t("rewardsModule.catalog.archive.reasonPlaceholder")}
+            rows={4}
+          />
+        </div>
+      </Modal>
 
       <RewardCatalogFormModal
         isOpen={formModalOpen}

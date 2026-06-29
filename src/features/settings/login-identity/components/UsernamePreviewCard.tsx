@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Loader2, Mail, Search, XCircle } from "lucide-react";
+import { CheckCircle2, Search, XCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
@@ -14,28 +14,38 @@ interface UsernamePreviewCardProps {
   onUsernameChange: (value: string) => void;
   preview: UsernamePreviewResponse | null;
   availability: UsernameAvailabilityResponse | null;
-  error: string | null;
-  isLoadingPreview: boolean;
-  isCheckingAvailability: boolean;
-  canUseActions: boolean;
-  onPreview: () => void;
-  onCheckAvailability: () => void;
+  previewError: string | null;
+  availabilityError: string | null;
+  isTesting: boolean;
+  onTest: () => void;
 }
+
+const KNOWN_REASONS = new Set([
+  "username_invalid",
+  "login_domain_missing",
+  "login_email_taken",
+  "reserved_username",
+]);
 
 export default function UsernamePreviewCard({
   username,
   onUsernameChange,
   preview,
   availability,
-  error,
-  isLoadingPreview,
-  isCheckingAvailability,
-  canUseActions,
-  onPreview,
-  onCheckAvailability,
+  previewError,
+  availabilityError,
+  isTesting,
+  onTest,
 }: UsernamePreviewCardProps) {
   const t = useTranslations("settings.loginIdentity.preview");
-  const generatedLoginEmail = preview?.loginEmail;
+  const generatedLoginEmail = preview?.loginEmail || availability?.loginEmail;
+  const availabilityReason = availability?.reason
+    ? KNOWN_REASONS.has(availability.reason)
+      ? t(`reasons.${availability.reason}`)
+      : t("reasons.unknown", {
+          reason: availability.reason.replaceAll("_", " "),
+        })
+    : null;
 
   return (
     <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
@@ -52,73 +62,75 @@ export default function UsernamePreviewCard({
           value={username}
           onChange={(event) => onUsernameChange(event.target.value)}
           placeholder={t("username_placeholder")}
-          disabled={!canUseActions}
-          error={error || undefined}
         />
 
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="secondary"
-            leftIcon={
-              isLoadingPreview ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+        <Button
+          variant="secondary"
+          leftIcon={<Search className="h-4 w-4" />}
+          loading={isTesting}
+          disabled={!username.trim() || isTesting}
+          onClick={onTest}
+        >
+          {isTesting ? t("testing") : t("test_button")}
+        </Button>
+
+        <div aria-live="polite" className="space-y-3">
+          {generatedLoginEmail ? (
+            <div className="rounded-lg border border-emerald-100 bg-white p-3">
+              <p className="text-xs font-semibold uppercase text-gray-600">
+                {t("generated_email_label")}
+              </p>
+              <p className="mt-1 break-all text-sm font-semibold text-gray-900">
+                {generatedLoginEmail}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-gray-600">
+                {t("login_identity_note")}
+              </p>
+            </div>
+          ) : null}
+
+          {availability ? (
+            <div
+              className={`flex items-start gap-2 rounded-lg border p-3 text-sm ${
+                availability.available
+                  ? "border-emerald-100 bg-emerald-50 text-emerald-800"
+                  : "border-red-100 bg-red-50 text-red-700"
+              }`}
+            >
+              {availability.available ? (
+                <CheckCircle2
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                  aria-hidden="true"
+                />
               ) : (
-                <Mail className="h-4 w-4" />
-              )
-            }
-            disabled={!canUseActions || !username.trim()}
-            onClick={onPreview}
-          >
-            {t("preview_button")}
-          </Button>
-          <Button
-            variant="secondary"
-            leftIcon={
-              isCheckingAvailability ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Search className="h-4 w-4" />
-              )
-            }
-            disabled={!canUseActions || !username.trim()}
-            onClick={onCheckAvailability}
-          >
-            {t("availability_button")}
-          </Button>
+                <XCircle
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                  aria-hidden="true"
+                />
+              )}
+              <span>
+                {availability.available
+                  ? t("available")
+                  : availabilityReason || t("unavailable")}
+              </span>
+            </div>
+          ) : null}
         </div>
 
-        {generatedLoginEmail ? (
-          <div className="rounded-lg border border-emerald-100 bg-white p-3">
-            <p className="text-xs font-semibold uppercase text-gray-500">
-              {t("generated_email_label")}
-            </p>
-            <p className="mt-1 break-all text-sm font-semibold text-gray-900">
-              {generatedLoginEmail}
-            </p>
-            <p className="mt-2 text-xs leading-5 text-gray-500">
-              {t("login_identity_note")}
-            </p>
+        {previewError ? (
+          <div
+            role="alert"
+            className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700"
+          >
+            {previewError}
           </div>
         ) : null}
-
-        {availability ? (
+        {availabilityError ? (
           <div
-            className={`flex items-start gap-2 rounded-lg border p-3 text-sm ${
-              availability.available
-                ? "border-emerald-100 bg-emerald-50 text-emerald-800"
-                : "border-red-100 bg-red-50 text-red-700"
-            }`}
+            role="alert"
+            className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700"
           >
-            {availability.available ? (
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-            ) : (
-              <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            )}
-            <span>
-              {availability.available
-                ? t("available")
-                : availability.reason || t("unavailable")}
-            </span>
+            {availabilityError}
           </div>
         ) : null}
       </div>

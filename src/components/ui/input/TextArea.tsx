@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, TextareaHTMLAttributes } from "react";
+import { forwardRef, TextareaHTMLAttributes, useId } from "react";
 import { AlertCircle } from "lucide-react";
 import { useLocale } from "next-intl";
 
@@ -26,13 +26,26 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
       disabled,
       required,
       dir,
+      id,
       rows = 3,
+      "aria-describedby": ariaDescribedBy,
+      "aria-invalid": ariaInvalid,
       ...props
     },
     ref,
   ) => {
     const locale = useLocale();
     const isRTL = locale === "ar";
+    const generatedId = useId();
+    const textareaId = id || generatedId;
+    const descriptionId = `${textareaId}-description`;
+    const describedBy =
+      [
+        ariaDescribedBy,
+        helperText || error ? descriptionId : undefined,
+      ]
+        .filter(Boolean)
+        .join(" ") || undefined;
 
     // Variant classes
     const variantClasses = {
@@ -70,6 +83,7 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
         {/* Label */}
         {label && (
           <label
+            htmlFor={textareaId}
             className={`block text-sm font-medium text-gray-700 mb-1 ${
               isRTL ? "text-right" : "text-left"
             }`}
@@ -80,13 +94,16 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
         )}
 
         {/* TextArea */}
-        <textarea
-          ref={ref}
-          dir={dir || (isRTL ? "rtl" : "ltr")}
-          disabled={disabled}
-          required={required}
-          rows={rows}
-          className={`
+          <textarea
+            ref={ref}
+            id={textareaId}
+            dir={dir || (isRTL ? "rtl" : "ltr")}
+            disabled={disabled}
+            required={required}
+            aria-describedby={describedBy}
+            aria-invalid={ariaInvalid ?? Boolean(error)}
+            rows={rows}
+            className={`
             ${fullWidth ? "w-full" : ""}
             px-4 py-2.5 text-sm
             ${variantClasses[variant]}
@@ -106,6 +123,8 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
         {/* Helper Text or Error Message */}
         {(helperText || error) && (
           <div
+            id={descriptionId}
+            role={error ? "alert" : undefined}
             className={`flex items-start gap-1 mt-1 text-xs ${
               error ? "text-red-600" : "text-gray-500"
             } ${isRTL ? "text-right" : "text-left"}`}

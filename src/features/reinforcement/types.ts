@@ -605,19 +605,26 @@ export interface RewardCatalogItem {
   updatedAt?: string;
   publishedAt?: string | null;
   archivedAt?: string | null;
+  publishedById?: string | null;
+  archivedById?: string | null;
+  createdById?: string | null;
+  academicYear?: Record<string, unknown> | null;
+  term?: Record<string, unknown> | null;
+  imageFile?: Record<string, unknown> | null;
   [key: string]: unknown;
 }
 
 export interface CreateRewardCatalogItemPayload {
   academicYearId?: string;
   termId?: string;
-  titleEn: string;
+  titleEn?: string;
   titleAr?: string;
   descriptionEn?: string;
   descriptionAr?: string;
   type: RewardItemType;
   minTotalXp?: number;
   stockQuantity?: number;
+  stockRemaining?: number;
   isUnlimited?: boolean;
   imageFileId?: string;
   sortOrder?: number;
@@ -625,6 +632,8 @@ export interface CreateRewardCatalogItemPayload {
 }
 
 export interface UpdateRewardCatalogItemPayload {
+  academicYearId?: string;
+  termId?: string;
   titleEn?: string;
   titleAr?: string;
   descriptionEn?: string;
@@ -632,6 +641,7 @@ export interface UpdateRewardCatalogItemPayload {
   type?: RewardItemType;
   minTotalXp?: number;
   stockQuantity?: number;
+  stockRemaining?: number;
   isUnlimited?: boolean;
   imageFileId?: string;
   sortOrder?: number;
@@ -640,13 +650,16 @@ export interface UpdateRewardCatalogItemPayload {
 
 export interface ArchiveRewardCatalogItemPayload {
   reason?: string;
-  reasonAr?: string;
 }
 
 export interface ListRewardCatalogParams {
+  academicYearId?: string;
+  termId?: string;
   status?: RewardCatalogStatus;
   type?: RewardItemType;
   search?: string;
+  includeArchived?: boolean;
+  includeDeleted?: boolean;
   onlyAvailable?: boolean;
   limit?: number;
   offset?: number;

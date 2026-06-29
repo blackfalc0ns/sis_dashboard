@@ -23,8 +23,19 @@ export type PermissionKey =
   | "settings.users.manage"
   | "settings.roles.view"
   | "settings.roles.manage"
+  | "settings.permissions.view"
   | "settings.policies.view"
   | "settings.policies.manage"
+  | "settings.email.connection.view"
+  | "settings.email.connection.manage"
+  | "settings.email.templates.view"
+  | "settings.email.templates.manage"
+  | "settings.email.deliveries.view"
+  | "settings.email.deliveries.manage"
+  | "settings.email.campaigns.view"
+  | "settings.email.campaigns.manage"
+  | "settings.email.credential_deliveries.view"
+  | "settings.email.credential_deliveries.manage"
   | "settings.admissionsDocuments.view"
   | "settings.admissionsDocuments.manage"
   | "settings.templates.view"
@@ -87,7 +98,9 @@ export type PermissionKey =
   | "reinforcement.rewards.view"
   | "reinforcement.rewards.manage"
   | "reinforcement.rewards.redemptions.view"
-  | "reinforcement.rewards.redemptions.review";
+  | "reinforcement.rewards.redemptions.request"
+  | "reinforcement.rewards.redemptions.review"
+  | "reinforcement.rewards.fulfill";
 
 const legacyAdminPermissions: PermissionKey[] = [
   "attendance.rollcall.submit",
@@ -121,11 +134,12 @@ export const settingsNavigationPermissionByKey: Partial<
   "settings-admissions-documents": "settings.admissionsDocuments.view",
   "settings-templates": "settings.templates.view",
   "settings-integrations": "settings.integrations.view",
-  "settings-email-connection": "settings.security.view",
-  "settings-email-templates": "settings.security.view",
-  "settings-email-credential-deliveries": "settings.security.view",
-  "settings-email-deliveries": "settings.security.view",
-  "settings-email-campaigns": "settings.security.view",
+  "settings-email-connection": "settings.email.connection.view",
+  "settings-email-templates": "settings.email.templates.view",
+  "settings-email-credential-deliveries":
+    "settings.email.credential_deliveries.view",
+  "settings-email-deliveries": "settings.email.deliveries.view",
+  "settings-email-campaigns": "settings.email.campaigns.view",
   "settings-security": "settings.security.view",
   "settings-backup": "settings.backup.view",
 };

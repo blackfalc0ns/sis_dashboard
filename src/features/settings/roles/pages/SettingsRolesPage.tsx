@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Check,
@@ -46,6 +46,12 @@ import type {
 import { usePermissions } from "@/hooks/usePermissions";
 import { isApiError } from "@/lib/api-error";
 import { getValidationFieldErrors } from "@/lib/validation-errors";
+import {
+  assertRolePermissionsResponseMatchesRole,
+  mergeRolePermissions,
+} from "@/features/settings/roles/utils/mergeRolePermissions";
+
+type PermissionCatalogState = "loading" | "ready" | "forbidden" | "failed";
 
 export default function SettingsRolesPage() {
   const locale = useLocale();
@@ -54,8 +60,14 @@ export default function SettingsRolesPage() {
   const tCommon = useTranslations("common");
   const { hasPermission } = usePermissions();
   const { showSuccess, showError } = useToast();
+  const canManageRoles = hasPermission("settings.roles.manage");
+  const canViewPermissionCatalog = hasPermission("settings.permissions.view");
   const [roles, setRoles] = useState<RoleDefinition[]>([]);
   const [permissions, setPermissions] = useState<PermissionDefinition[]>([]);
+  const [permissionCatalogState, setPermissionCatalogState] =
+    useState<PermissionCatalogState>(
+      canViewPermissionCatalog ? "loading" : "forbidden",
+    );
   const [selectedRoleId, setSelectedRoleId] = useState<string>("");
   const [modalMode, setModalMode] = useState<
     "create" | "clone" | "edit" | null
@@ -85,10 +97,7 @@ export default function SettingsRolesPage() {
           page,
           limit,
         };
-        const [rolesResult, nextPermissions] = await Promise.all([
-          fetchSettingsRoles(rolesParams),
-          fetchSettingsPermissions(),
-        ]);
+        const rolesResult = await fetchSettingsRoles(rolesParams);
 
         if (isCancelled) {
           return;
@@ -98,7 +107,6 @@ export default function SettingsRolesPage() {
         setPage(rolesResult.pagination.page);
         setLimit(rolesResult.pagination.limit);
         setTotalRoles(rolesResult.pagination.total);
-        setPermissions(nextPermissions);
         setSelectedRoleId(
           (current) => current || rolesResult.items[0]?.id || "",
         );
@@ -117,6 +125,35 @@ export default function SettingsRolesPage() {
       isCancelled = true;
     };
   }, [limit, page, showError, t]);
+
+  useEffect(() => {
+    if (!canViewPermissionCatalog) {
+      setPermissions([]);
+      setPermissionCatalogState("forbidden");
+      return;
+    }
+
+    let isCancelled = false;
+    setPermissionCatalogState("loading");
+
+    void fetchSettingsPermissions()
+      .then((nextPermissions) => {
+        if (!isCancelled) {
+          setPermissions(nextPermissions);
+          setPermissionCatalogState("ready");
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setPermissions([]);
+          setPermissionCatalogState("failed");
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [canViewPermissionCatalog]);
 
   const selectedRole =
     roles.find((role) => role.id === selectedRoleId) || roles[0] || null;
@@ -321,11 +358,8 @@ export default function SettingsRolesPage() {
         selectedRole.id,
         selectedRole.permissions,
       );
-      setRoles((current) =>
-        current.map((role) =>
-          role.id === updatedRole.id ? updatedRole : role,
-        ),
-      );
+      assertRolePermissionsResponseMatchesRole(selectedRole.id, updatedRole);
+      setRoles((current) => mergeRolePermissions(current, updatedRole));
       showSuccess(t("messages.permissions_saved"));
     } catch {
       showError(tCommon("save_failed"));
@@ -542,7 +576,7 @@ export default function SettingsRolesPage() {
       sortable: false,
       render: (_value: unknown, row: Record<string, unknown>) => {
         const role = row as unknown as RoleDefinition;
-        return hasPermission("settings.roles.manage") ? (
+        return canManageRoles ? (
           <div className="flex gap-2">
             <Button
               variant="ghost"
@@ -592,7 +626,7 @@ export default function SettingsRolesPage() {
           title={t("title")}
           subtitle={t("subtitle")}
           actions={
-            hasPermission("settings.roles.manage") ? (
+            canManageRoles ? (
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="secondary"
@@ -649,21 +683,33 @@ export default function SettingsRolesPage() {
                 : t("permission_matrix_empty")
             }
             actions={
-              <Button
-                variant="primary"
-                loading={isSavingPermissions}
-                disabled={
-                  !selectedRole || !hasPermission("settings.roles.manage")
-                }
-                onClick={handleSavePermissions}
-              >
-                {isSavingPermissions
-                  ? tCommon("saving")
-                  : t("save_permissions")}
-              </Button>
+              permissionCatalogState === "ready" ? (
+                <Button
+                  variant="primary"
+                  loading={isSavingPermissions}
+                  disabled={!selectedRole || !canManageRoles}
+                  onClick={handleSavePermissions}
+                >
+                  {isSavingPermissions
+                    ? tCommon("saving")
+                    : t("save_permissions")}
+                </Button>
+              ) : null
             }
           >
-            {selectedRole ? (
+            {permissionCatalogState === "forbidden" ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+                {t("permission_matrix_access_required")}
+              </div>
+            ) : permissionCatalogState === "failed" ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+                {t("permission_matrix_load_failed")}
+              </div>
+            ) : permissionCatalogState === "loading" ? (
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-sm text-gray-600">
+                {t("permission_matrix_loading")}
+              </div>
+            ) : selectedRole ? (
               <div className="overflow-x-auto rounded-xl border border-gray-200">
                 <table className="min-w-[760px] w-full">
                   <thead className="bg-gray-50">
@@ -685,8 +731,8 @@ export default function SettingsRolesPage() {
                     {permissionMatrix.map(({ module, rows }) => {
                       const isExpanded = expandedModules[module] ?? true;
                       return (
-                        <>
-                          <tr key={`${module}-module`} className="bg-gray-50">
+                        <Fragment key={`${module}-module`}>
+                          <tr className="bg-gray-50">
                             <td className="px-4 py-3">
                               <button
                                 type="button"
@@ -716,7 +762,7 @@ export default function SettingsRolesPage() {
                                   {renderMatrixToggle(
                                     state,
                                     () => toggleModuleAction(rows, action),
-                                    !hasPermission("settings.roles.manage"),
+                                    !canManageRoles,
                                   )}
                                 </td>
                               );
@@ -748,9 +794,7 @@ export default function SettingsRolesPage() {
                                               handleTogglePermission(
                                                 permission.key,
                                               ),
-                                            !hasPermission(
-                                              "settings.roles.manage",
-                                            ),
+                                            !canManageRoles,
                                           )
                                         ) : (
                                           <span className="inline-block h-5 w-5 rounded border border-gray-200 bg-gray-50" />
@@ -761,7 +805,7 @@ export default function SettingsRolesPage() {
                                 </tr>
                               ))
                             : null}
-                        </>
+                        </Fragment>
                       );
                     })}
                   </tbody>

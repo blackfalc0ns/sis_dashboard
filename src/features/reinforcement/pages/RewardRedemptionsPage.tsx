@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, CheckCircle, Gift, RefreshCw, ShieldAlert, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Gift, Plus, RefreshCw, ShieldAlert, XCircle } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import DataTable, { type Column } from "@/components/ui/data-table/DataTable";
@@ -17,10 +17,12 @@ import ReinforcementFilterToolbar, {
 import RewardRedemptionActionModal, {
   type RedemptionActionPayload,
 } from "../components/RewardRedemptionActionModal";
+import RewardRedemptionCreateModal from "../components/RewardRedemptionCreateModal";
 import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
 import {
   approveRewardRedemption,
   cancelRewardRedemption,
+  createRewardRedemption,
   fulfillRewardRedemption,
   listRewardRedemptions,
   rejectRewardRedemption,
@@ -92,9 +94,13 @@ export default function RewardRedemptionsPage() {
   const [modalAction, setModalAction] = useState<RedemptionActionType>("approve");
   const [modalItem, setModalItem] = useState<RewardRedemption | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
 
   const canView = hasPermission("reinforcement.rewards.redemptions.view");
+  const canRequest = hasPermission("reinforcement.rewards.redemptions.request");
   const canReview = hasPermission("reinforcement.rewards.redemptions.review");
+  const canFulfill = hasPermission("reinforcement.rewards.fulfill");
 
   // ─── Filter toolbar config ───────────────────────────────────────────────
   const redemptionFilters: FilterConfig[] = useMemo(
@@ -261,6 +267,25 @@ export default function RewardRedemptionsPage() {
     }
   };
 
+  const handleCreateSubmit = async (
+    payload: Parameters<typeof createRewardRedemption>[0],
+  ) => {
+    setCreateLoading(true);
+    try {
+      await createRewardRedemption(payload);
+      showSuccess(t("rewardsModule.messages.redemptionCreated"));
+      setCreateModalOpen(false);
+      await refreshList();
+    } catch (nextError) {
+      const message =
+        nextError instanceof Error ? nextError.message : t("common.error");
+      showError(message);
+      throw nextError;
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   const columns: Column<RewardRedemption>[] = useMemo(
     () => [
       {
@@ -334,29 +359,37 @@ export default function RewardRedemptionsPage() {
       {
         key: "actions",
         label: t("rewardsModule.redemptions.table.actions"),
-        render: (_value: unknown, row: RewardRedemption) => (
-          <div className="flex items-center gap-2">
-            {canReview && row.status === "requested" ? (
-              <>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  leftIcon={<CheckCircle className="h-3.5 w-3.5" />}
-                  onClick={() => openActionModal(row, "approve")}
-                >
-                  {t("rewardsModule.actions.approve")}
-                </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  leftIcon={<XCircle className="h-3.5 w-3.5" />}
-                  onClick={() => openActionModal(row, "reject")}
-                >
-                  {t("rewardsModule.actions.reject")}
-                </Button>
-              </>
-            ) : canReview && row.status === "approved" ? (
-              <>
+        render: (_value: unknown, row: RewardRedemption) => {
+          const canCancelRow =
+            canRequest && ["requested", "approved"].includes(row.status);
+          const hasVisibleAction =
+            (canReview && row.status === "requested") ||
+            (canFulfill && row.status === "approved") ||
+            canCancelRow;
+
+          return (
+            <div className="flex items-center gap-2">
+              {canReview && row.status === "requested" ? (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    leftIcon={<CheckCircle className="h-3.5 w-3.5" />}
+                    onClick={() => openActionModal(row, "approve")}
+                  >
+                    {t("rewardsModule.actions.approve")}
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    leftIcon={<XCircle className="h-3.5 w-3.5" />}
+                    onClick={() => openActionModal(row, "reject")}
+                  >
+                    {t("rewardsModule.actions.reject")}
+                  </Button>
+                </>
+              ) : null}
+              {canFulfill && row.status === "approved" ? (
                 <Button
                   variant="secondary"
                   size="sm"
@@ -365,6 +398,8 @@ export default function RewardRedemptionsPage() {
                 >
                   {t("rewardsModule.actions.fulfill")}
                 </Button>
+              ) : null}
+              {canCancelRow ? (
                 <Button
                   variant="danger"
                   size="sm"
@@ -373,17 +408,18 @@ export default function RewardRedemptionsPage() {
                 >
                   {t("rewardsModule.actions.cancel")}
                 </Button>
-              </>
-            ) : (
-              <span className="text-xs text-gray-500">
-                {t(`rewardsModule.status.${row.status}`)}
-              </span>
-            )}
-          </div>
-        ),
+              ) : null}
+              {!hasVisibleAction ? (
+                <span className="text-xs text-gray-500">
+                  {t(`rewardsModule.status.${row.status}`)}
+                </span>
+              ) : null}
+            </div>
+          );
+        },
       },
     ],
-    [locale, t, canReview],
+    [locale, t, canFulfill, canRequest, canReview],
   );
 
   if (authLoading) return <MainLoader />;
@@ -398,14 +434,25 @@ export default function RewardRedemptionsPage() {
         title={t("rewardsModule.redemptions.title")}
         description={t("rewardsModule.redemptions.description")}
         actions={
-          <Button
-            variant="secondary"
-            leftIcon={<RefreshCw className="h-4 w-4" />}
-            loading={loading}
-            onClick={refreshList}
-          >
-            {t("actions.refresh")}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {canRequest ? (
+              <Button
+                variant="primary"
+                leftIcon={<Plus className="h-4 w-4" />}
+                onClick={() => setCreateModalOpen(true)}
+              >
+                {t("rewardsModule.redemptions.create.button")}
+              </Button>
+            ) : null}
+            <Button
+              variant="secondary"
+              leftIcon={<RefreshCw className="h-4 w-4" />}
+              loading={loading}
+              onClick={refreshList}
+            >
+              {t("actions.refresh")}
+            </Button>
+          </div>
         }
       />
 
@@ -452,6 +499,16 @@ export default function RewardRedemptionsPage() {
         actionType={modalAction}
         loading={modalLoading}
       />
+      {createModalOpen ? (
+        <RewardRedemptionCreateModal
+          isOpen
+          academicYearId={values.academicYearId || undefined}
+          termId={values.termId || undefined}
+          loading={createLoading}
+          onClose={() => setCreateModalOpen(false)}
+          onSubmit={handleCreateSubmit}
+        />
+      ) : null}
     </div>
   );
 }

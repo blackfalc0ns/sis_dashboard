@@ -20,6 +20,7 @@ import {
 } from "@/features/settings/services/settingsUsersService";
 import { fetchAdmissionRequiredDocumentsForSchool } from "@/features/settings/services/settingsService";
 import {
+  fetchCredentialStatuses,
   generateBulkCredentials,
   mapBulkGenerateCredentialsResponse,
   mapGeneratedCredentialResponse,
@@ -265,6 +266,25 @@ describe("Sprint 11 endpoint contracts", () => {
         items: [{ user: { userId: "u1" }, temporaryPassword: "one-time" }],
       }).credentials[0],
     ).toMatchObject({ userId: "u1", temporaryPassword: "one-time" });
+  });
+
+  it("uses only supported credential status query fields", async () => {
+    apiMocks.apiGet.mockResolvedValue({ items: [] });
+
+    await fetchCredentialStatuses({
+      search: " Sara ",
+      page: 2,
+      limit: 25,
+      roleKey: "teacher",
+      userType: "staff",
+      credentialStatus: "must_change",
+    });
+
+    const requestedPath = apiMocks.apiGet.mock.calls[0]?.[0] as string;
+    expect(requestedPath).toBe(
+      "/settings/users/credentials/status?search=Sara&page=2&limit=25&roleKey=teacher&userType=staff&credentialStatus=must_change",
+    );
+    expect(requestedPath).not.toMatch(/[?&](?:status|userStatus)=/);
   });
 
   it("uses corrected email connection contract", async () => {

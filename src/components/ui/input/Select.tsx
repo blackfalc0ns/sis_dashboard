@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+  useId,
+} from "react";
 import { createPortal } from "react-dom";
 import { AlertCircle, ChevronDown, Search } from "lucide-react";
 import { useLocale } from "next-intl";
@@ -13,6 +20,7 @@ export interface SelectOption {
 }
 
 export interface SelectProps {
+  id?: string;
   label?: string;
   error?: string;
   helperText?: string;
@@ -39,6 +47,7 @@ const MENU_GAP = 8;
 const MENU_MAX_HEIGHT = 240;
 
 export default function Select({
+  id,
   label,
   error,
   helperText,
@@ -60,6 +69,10 @@ export default function Select({
   onOpen,
   onEndReached,
 }: SelectProps) {
+  const generatedId = useId();
+  const triggerId = id || generatedId;
+  const messageId = `${triggerId}-message`;
+  const menuId = `${triggerId}-menu`;
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [menuPosition, setMenuPosition] = useState({
@@ -168,6 +181,7 @@ export default function Select({
 
   const menu = isOpen ? (
     <div
+      id={menuId}
       ref={menuRef}
       className={`fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200`}
       dir={isRTL ? "rtl" : "ltr"}
@@ -283,6 +297,7 @@ export default function Select({
       {/* Label */}
       {label && (
         <label
+          htmlFor={triggerId}
           className={`block text-sm font-medium text-gray-700 mb-1 ${
             isRTL ? "text-right" : "text-left"
           }`}
@@ -299,7 +314,11 @@ export default function Select({
 
         {/* Trigger Button */}
         <button
+          id={triggerId}
           type="button"
+          aria-controls={isOpen ? menuId : undefined}
+          aria-describedby={helperText || error ? messageId : undefined}
+          aria-expanded={isOpen}
           onClick={() => {
             if (disabled) return;
             if (!isOpen) {
@@ -341,6 +360,8 @@ export default function Select({
       {/* Helper Text or Error Message */}
       {(helperText || error) && (
         <div
+          id={messageId}
+          role={error ? "alert" : undefined}
           className={`flex items-start gap-1 mt-1 text-xs ${
             error ? "text-red-600" : "text-gray-500"
           } ${isRTL ? "text-right" : "text-left"}`}

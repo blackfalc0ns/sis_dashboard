@@ -56,8 +56,14 @@ const localizedStudentName = (
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
 
   return locale === "ar"
-    ? stringValue(student?.nameAr) || stringValue(student?.name) || fullName || "-"
-    : stringValue(student?.name) || fullName || stringValue(student?.nameEn) || "-";
+    ? stringValue(student?.nameAr) ||
+        stringValue(student?.name) ||
+        fullName ||
+        "-"
+    : stringValue(student?.name) ||
+        fullName ||
+        stringValue(student?.nameEn) ||
+        "-";
 };
 
 const formatDate = (value: unknown, locale: string): string => {
@@ -119,8 +125,13 @@ export default function RewardsOverviewPage() {
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
 
-  const [overview, setOverview] = useState<Record<string, unknown> | null>(null);
-  const [catalogSummary, setCatalogSummary] = useState<Record<string, unknown> | null>(null);
+  const [overview, setOverview] = useState<Record<string, unknown> | null>(
+    null,
+  );
+  const [catalogSummary, setCatalogSummary] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -198,6 +209,22 @@ export default function RewardsOverviewPage() {
         <MainLoader />
       ) : (
         <>
+          {/* Navigation Buttons */}
+          <section className="flex flex-wrap gap-4">
+            <Link href={`/${locale}/reinforcement/rewards/catalog`}>
+              <Button leftIcon={<Package className="h-4 w-4" />}>
+                {t("rewardsModule.catalog.title")}
+              </Button>
+            </Link>
+            <Link href={`/${locale}/reinforcement/rewards/redemptions`}>
+              <Button
+                variant="secondary"
+                leftIcon={<Gift className="h-4 w-4" />}
+              >
+                {t("rewardsModule.redemptions.title")}
+              </Button>
+            </Link>
+          </section>
           {/* KPI Cards */}
           <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <KPICardV2
@@ -310,15 +337,19 @@ export default function RewardsOverviewPage() {
                 {t("rewardsModule.overview.redemptionSummary")}
               </h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {["requested", "approved", "rejected", "fulfilled", "cancelled"].map(
-                  (status) => (
-                    <MiniMetric
-                      key={status}
-                      label={t(`rewardsModule.status.${status}`)}
-                      value={numberValue(redemptions[status])}
-                    />
-                  ),
-                )}
+                {[
+                  "requested",
+                  "approved",
+                  "rejected",
+                  "fulfilled",
+                  "cancelled",
+                ].map((status) => (
+                  <MiniMetric
+                    key={status}
+                    label={t(`rewardsModule.status.${status}`)}
+                    value={numberValue(redemptions[status])}
+                  />
+                ))}
                 <MiniMetric
                   label={t("rewardsModule.overview.open")}
                   value={numberValue(redemptions.open)}
@@ -397,7 +428,10 @@ export default function RewardsOverviewPage() {
 
                     return (
                       <div
-                        key={stringValue(reward.catalogItemId) || localizedTitle(reward, locale)}
+                        key={
+                          stringValue(reward.catalogItemId) ||
+                          localizedTitle(reward, locale)
+                        }
                         className="rounded-lg bg-gray-50 px-3 py-3"
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -428,23 +462,28 @@ export default function RewardsOverviewPage() {
                           </div>
                         </div>
                         <div className="mt-3 grid grid-cols-4 gap-2 text-xs text-gray-500">
-                          {["approved", "fulfilled", "rejected", "cancelled"].map(
-                            (statusKey) => (
-                              <div key={statusKey}>
-                                <span className="font-semibold text-gray-700">
-                                  {numberValue(reward[statusKey])}
-                                </span>{" "}
-                                {t(`rewardsModule.status.${statusKey}`)}
-                              </div>
-                            ),
-                          )}
+                          {[
+                            "approved",
+                            "fulfilled",
+                            "rejected",
+                            "cancelled",
+                          ].map((statusKey) => (
+                            <div key={statusKey}>
+                              <span className="font-semibold text-gray-700">
+                                {numberValue(reward[statusKey])}
+                              </span>{" "}
+                              {t(`rewardsModule.status.${statusKey}`)}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <EmptyBlock message={t("rewardsModule.emptyStates.topRequestedRewards")} />
+                <EmptyBlock
+                  message={t("rewardsModule.emptyStates.topRequestedRewards")}
+                />
               )}
             </section>
 
@@ -457,11 +496,15 @@ export default function RewardsOverviewPage() {
                   {recentRedemptions.slice(0, 10).map((redemption) => {
                     const catalogItem = asRecord(redemption.catalogItem);
                     const student = asRecord(redemption.student);
-                    const status = stringValue(redemption.status) || "requested";
+                    const status =
+                      stringValue(redemption.status) || "requested";
 
                     return (
                       <div
-                        key={stringValue(redemption.id) || `${stringValue(redemption.catalogItemId)}-${stringValue(redemption.studentId)}`}
+                        key={
+                          stringValue(redemption.id) ||
+                          `${stringValue(redemption.catalogItemId)}-${stringValue(redemption.studentId)}`
+                        }
                         className="flex flex-col gap-3 rounded-lg border border-gray-50 px-3 py-3 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
                       >
                         <div className="min-w-0">
@@ -487,7 +530,9 @@ export default function RewardsOverviewPage() {
                   })}
                 </div>
               ) : (
-                <EmptyBlock message={t("rewardsModule.emptyStates.recentRedemptions")} />
+                <EmptyBlock
+                  message={t("rewardsModule.emptyStates.recentRedemptions")}
+                />
               )}
             </section>
           </div>
@@ -506,7 +551,9 @@ export default function RewardsOverviewPage() {
 
                   return (
                     <div
-                      key={stringValue(reward.id) || localizedTitle(reward, locale)}
+                      key={
+                        stringValue(reward.id) || localizedTitle(reward, locale)
+                      }
                       className="rounded-lg bg-amber-50 px-3 py-3"
                     >
                       <p className="truncate text-sm font-semibold text-gray-900">
@@ -529,25 +576,10 @@ export default function RewardsOverviewPage() {
                 })}
               </div>
             ) : (
-              <EmptyBlock message={t("rewardsModule.emptyStates.lowStockRewards")} />
+              <EmptyBlock
+                message={t("rewardsModule.emptyStates.lowStockRewards")}
+              />
             )}
-          </section>
-
-          {/* Navigation Buttons */}
-          <section className="flex flex-wrap gap-4">
-            <Link href={`/${locale}/reinforcement/rewards/catalog`}>
-              <Button leftIcon={<Package className="h-4 w-4" />}>
-                {t("rewardsModule.catalog.title")}
-              </Button>
-            </Link>
-            <Link href={`/${locale}/reinforcement/rewards/redemptions`}>
-              <Button
-                variant="secondary"
-                leftIcon={<Gift className="h-4 w-4" />}
-              >
-                {t("rewardsModule.redemptions.title")}
-              </Button>
-            </Link>
           </section>
         </>
       )}

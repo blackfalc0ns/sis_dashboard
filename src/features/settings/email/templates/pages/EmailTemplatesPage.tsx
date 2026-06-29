@@ -99,7 +99,7 @@ export default function EmailTemplatesPage() {
   const tCommon = useTranslations("common");
   const { showSuccess, showError } = useToast();
   const { hasPermission } = usePermissions();
-  const canManage = hasPermission("settings.security.manage");
+  const canManage = hasPermission("settings.email.templates.manage");
   const [templatesByKey, setTemplatesByKey] = useState<
     Map<EmailTemplateKey, EmailTemplate>
   >(new Map());
@@ -329,7 +329,7 @@ export default function EmailTemplatesPage() {
   }
 
   return (
-    <SettingsAccessGuard permission="settings.security.view">
+    <SettingsAccessGuard permission="settings.email.templates.view">
       <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
         <SettingsPageHeader
           title={t("title")}

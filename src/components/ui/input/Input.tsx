@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, InputHTMLAttributes } from "react";
+import { forwardRef, InputHTMLAttributes, useId } from "react";
 import { AlertCircle } from "lucide-react";
 import { useLocale } from "next-intl";
 
@@ -30,12 +30,24 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       disabled,
       required,
       dir,
+      id,
+      "aria-describedby": ariaDescribedBy,
+      "aria-invalid": ariaInvalid,
       ...props
     },
     ref,
   ) => {
     const locale = useLocale();
     const isRTL = locale === "ar";
+    const generatedId = useId();
+    const inputId = id || generatedId;
+    const descriptionId = `${inputId}-description`;
+    const describedBy = [
+      ariaDescribedBy,
+      helperText || error ? descriptionId : undefined,
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined;
 
     // Size classes
     const sizeClasses = {
@@ -76,6 +88,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {/* Label */}
         {label && (
           <label
+            htmlFor={inputId}
             className={`block text-sm font-medium text-gray-700 mb-1 ${
               isRTL ? "text-right" : "text-left"
             }`}
@@ -101,9 +114,12 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           {/* Input */}
           <input
             ref={ref}
+            id={inputId}
             dir={dir || (isRTL ? "rtl" : "ltr")}
             disabled={disabled}
             required={required}
+            aria-describedby={describedBy}
+            aria-invalid={ariaInvalid ?? Boolean(error)}
             className={`
               ${fullWidth ? "w-full" : ""}
               ${sizeClasses[inputSize]}
@@ -136,6 +152,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {/* Helper Text or Error Message */}
         {(helperText || error) && (
           <div
+            id={descriptionId}
+            role={error ? "alert" : undefined}
             className={`flex items-start gap-1 mt-1 text-xs ${
               error ? "text-red-600" : "text-gray-500"
             } ${isRTL ? "text-right" : "text-left"}`}
