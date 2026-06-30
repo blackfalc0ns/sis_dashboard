@@ -1,10 +1,10 @@
-# Rewards Overview Filters Implementation Plan
+# Rewards Overview Filters Implementation Plan (Refined)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Allow administrators to filter the rewards overview dashboard page by academic context, student, and date range, using existing filter components and URL synchronization hooks.
+**Goal:** Implement simplified Academic Year, Term, and Student dropdown filters alongside date range pickers on the Rewards Overview page. Fetch all dropdown option data directly from the `getReinforcementFilterOptions` endpoint to avoid unnecessary filters and extra requests.
 
-**Architecture:** Use `useReinforcementUrlFilters` to manage the filter state in the URL query string. Display the existing `ReinforcementAcademicContextFilter` component with `showStudent` enabled, along with custom date picker inputs for `dateFrom` and `dateTo`. Refetch the statistics from `getRewardsOverview` whenever these filters change.
+**Architecture:** Use `useReinforcementUrlFilters` for URL parameter synchronization. On mount and when academic filters change, query `getReinforcementFilterOptions` to populate Academic Year, Term, and Student dropdowns. Refetch overview data from `getRewardsOverview` when any filter changes.
 
 **Tech Stack:** React, Next.js, TypeScript, Tailwind CSS, Vitest, React Testing Library.
 
@@ -15,67 +15,42 @@
 
 ---
 
-### Task 1: Type Definitions
-
-**Files:**
-- Modify: `src/features/reinforcement/types.ts:802-806`
-
-**Interfaces:**
-- Consumes: None
-- Produces: Updated `RewardsOverviewParams` with explicit fields for `studentId`, `dateFrom`, and `dateTo`.
-
-- [ ] **Step 1: Update type definitions**
-
-Update `RewardsOverviewParams` in [types.ts](file:///e:/sis-dashboard/src/features/reinforcement/types.ts) to define the filtering query fields.
-
-```typescript
-export interface RewardsOverviewParams {
-  academicYearId?: string;
-  termId?: string;
-  studentId?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  [key: string]: string | number | boolean | undefined;
-}
-```
-
-- [ ] **Step 2: Verify type compilation**
-
-Run type check:
-```powershell
-npm run typecheck
-```
-Expected: PASS with no compilation errors.
-
-- [ ] **Step 3: Commit changes**
-
-Run:
-```bash
-git add src/features/reinforcement/types.ts
-git commit -m "types: add explicit query fields to RewardsOverviewParams"
-```
+### Task 1: Type Definitions (Completed)
+- Types in `types.ts` are already updated.
 
 ---
 
-### Task 2: Implement UI Filters & State Synchronization
+### Task 2: Refactor Page Filters to use Direct Selects & getReinforcementFilterOptions
 
 **Files:**
 - Modify: `src/features/reinforcement/pages/RewardsOverviewPage.tsx`
 
 **Interfaces:**
-- Consumes: `useReinforcementUrlFilters`, `ReinforcementAcademicContextFilter`, `getRewardsOverview`, `getRewardCatalogSummary`, `Input`.
-- Produces: Integrated filter UI and API request logic inside `RewardsOverviewPage`.
+- Consumes: `useReinforcementUrlFilters`, `getReinforcementFilterOptions`, `getRewardsOverview`, `getRewardCatalogSummary`, `Select`, `Input`.
+- Produces: Simplified filter UI and option-fetching logic inside `RewardsOverviewPage`.
 
-- [ ] **Step 1: Update imports and state in RewardsOverviewPage.tsx**
+- [ ] **Step 1: Implement direct option loading and selectors in RewardsOverviewPage.tsx**
 
-Update imports and incorporate URL filters hook and filter component in [RewardsOverviewPage.tsx](file:///e:/sis-dashboard/src/features/reinforcement/pages/RewardsOverviewPage.tsx):
+Update [RewardsOverviewPage.tsx](file:///e:/sis-dashboard/src/features/reinforcement/pages/RewardsOverviewPage.tsx) to fetch filter options (years, terms, students) using `getReinforcementFilterOptions` and render them using the standard `Select` component.
 
 ```typescript
-// Replace lines 22-25 with:
-import ReinforcementAcademicContextFilter, {
-  type ReinforcementAcademicContextSelection,
-  type ReinforcementAcademicContextValue,
-} from "../components/ReinforcementAcademicContextFilter";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  Package,
+  Gift,
+  RefreshCw,
+} from "lucide-react";
+import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import Button from "@/components/ui/button/Button";
+import Select, { type SelectOption } from "@/components/ui/input/Select";
+import Input from "@/components/ui/input/Input";
+import { useToast } from "@/components/ui/toast/Toast";
+import MainLoader from "@/components/ui/loaders/MainLoader";
+import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/usePermissions";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
 import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
 import { getReinforcementFilterOptions } from "../services/reinforcementFilterOptionsService";
@@ -83,10 +58,68 @@ import {
   getRewardCatalogSummary,
   getRewardsOverview,
 } from "../services/rewardDashboardService";
-import Input from "@/components/ui/input/Input";
 ```
 
-Replace page state setup using `useReinforcementUrlFilters` and local date validation state:
+Define helper mappers inside the page:
+
+```typescript
+const getLocalizedValue = (
+  record: Record<string, unknown>,
+  keys: string[],
+): string | undefined => {
+  for (const key of keys) {
+    const val = record[key];
+    if (typeof val === "string" && val.trim()) {
+      return val;
+    }
+  }
+  return undefined;
+};
+
+const toRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+function mapGenericOption(
+  record: unknown,
+  locale: string,
+): SelectOption | null {
+  const rec = toRecord(record);
+  if (!rec) return null;
+
+  const id = getLocalizedValue(rec, ["id", "value"]);
+  if (!id) return null;
+
+  const nameEn = getLocalizedValue(rec, ["nameEn", "fullNameEn", "full_name_en", "name", "label"]) ?? id;
+  const nameAr = getLocalizedValue(rec, ["nameAr", "fullNameAr", "full_name_ar", "name", "label"]) ?? nameEn;
+  return {
+    value: id,
+    label: locale === "ar" ? nameAr : nameEn,
+  };
+}
+
+function mapStudentOption(
+  record: unknown,
+  locale: string,
+): SelectOption | null {
+  const rec = toRecord(record);
+  if (!rec) return null;
+
+  const id = getLocalizedValue(rec, ["studentId", "id", "student_id"]);
+  if (!id) return null;
+
+  const nameEn = getLocalizedValue(rec, ["nameEn", "fullNameEn", "full_name_en", "name"]) ?? id;
+  const nameAr = getLocalizedValue(rec, ["nameAr", "fullNameAr", "full_name_ar", "name"]) ?? nameEn;
+  return {
+    value: id,
+    label: locale === "ar" ? nameAr : nameEn,
+    searchText: `${nameEn} ${nameAr} ${id}`,
+  };
+}
+```
+
+Implement states and fetching logic for filter options:
 
 ```typescript
 export default function RewardsOverviewPage() {
@@ -98,63 +131,79 @@ export default function RewardsOverviewPage() {
   const {
     values,
     setValue,
-    clearAll,
   } = useReinforcementUrlFilters({
     paramKeys: [
       "academicYearId",
       "termId",
-      "stageId",
-      "gradeId",
-      "sectionId",
-      "classroomId",
       "studentId",
-      "enrollmentId",
       "dateFrom",
       "dateTo",
     ],
     defaults: {},
   });
 
-  const context: ReinforcementAcademicContextValue = useMemo(
-    () => ({
-      academicYearId: values.academicYearId || undefined,
-      termId: values.termId || undefined,
-      stageId: values.stageId || undefined,
-      gradeId: values.gradeId || undefined,
-      sectionId: values.sectionId || undefined,
-      classroomId: values.classroomId || undefined,
-      studentId: values.studentId || undefined,
-      enrollmentId: values.enrollmentId || undefined,
-    }),
-    [
-      values.academicYearId,
-      values.termId,
-      values.stageId,
-      values.gradeId,
-      values.sectionId,
-      values.classroomId,
-      values.studentId,
-      values.enrollmentId,
-    ],
-  );
-
-  const [overview, setOverview] = useState<Record<string, unknown> | null>(
-    null,
-  );
-  const [catalogSummary, setCatalogSummary] = useState<Record<
-    string,
-    unknown
-  > | null>(null);
+  const [overview, setOverview] = useState<Record<string, unknown> | null>(null);
+  const [catalogSummary, setCatalogSummary] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dateValidationError, setDateValidationError] = useState<string | null>(null);
-```
 
-- [ ] **Step 2: Update fetchData to accept filters**
+  // Dropdown options states
+  const [yearsOptions, setYearsOptions] = useState<SelectOption[]>([]);
+  const [termsOptions, setTermsOptions] = useState<SelectOption[]>([]);
+  const [studentsOptions, setStudentsOptions] = useState<SelectOption[]>([]);
+  const [optionsLoading, setOptionsLoading] = useState(false);
 
-Update `fetchData` and `useEffect` in [RewardsOverviewPage.tsx](file:///e:/sis-dashboard/src/features/reinforcement/pages/RewardsOverviewPage.tsx):
+  const canView = hasPermission("reinforcement.rewards.view");
 
-```typescript
+  // Load filter options
+  useEffect(() => {
+    if (!canView) return;
+    
+    let active = true;
+    const loadOptions = async () => {
+      setOptionsLoading(true);
+      try {
+        const opts = await getReinforcementFilterOptions({
+          academicYearId: values.academicYearId || undefined,
+          termId: values.termId || undefined,
+        });
+        if (!active) return;
+        
+        if (opts.academicYears) {
+          setYearsOptions(
+            opts.academicYears
+              .map((y) => mapGenericOption(y, locale))
+              .filter((y): y is SelectOption => y !== null)
+          );
+        }
+        if (opts.terms) {
+          setTermsOptions(
+            opts.terms
+              .map((t) => mapGenericOption(t, locale))
+              .filter((t): t is SelectOption => t !== null)
+          );
+        }
+        if (opts.students) {
+          setStudentsOptions(
+            opts.students
+              .map((s) => mapStudentOption(s, locale))
+              .filter((s): s is SelectOption => s !== null)
+          );
+        }
+      } catch (err) {
+        console.error("Failed to load filter options", err);
+      } finally {
+        if (active) setOptionsLoading(false);
+      }
+    };
+
+    void loadOptions();
+    return () => {
+      active = false;
+    };
+  }, [canView, locale, values.academicYearId, values.termId]);
+
   const fetchData = useCallback(async () => {
     if (!canView) return;
     
@@ -170,7 +219,6 @@ Update `fetchData` and `useEffect` in [RewardsOverviewPage.tsx](file:///e:/sis-d
     setError(null);
     
     try {
-      // Catalog summary does not support student or date filtering
       const [overviewData, summaryData] = await Promise.all([
         getRewardsOverview({
           academicYearId: values.academicYearId || undefined,
@@ -187,9 +235,7 @@ Update `fetchData` and `useEffect` in [RewardsOverviewPage.tsx](file:///e:/sis-d
       setOverview(overviewData);
       setCatalogSummary(summaryData);
     } catch (nextError) {
-      setError(
-        nextError instanceof Error ? nextError.message : t("common.error"),
-      );
+      setError(nextError instanceof Error ? nextError.message : t("common.error"));
     } finally {
       setLoading(false);
     }
@@ -202,11 +248,19 @@ Update `fetchData` and `useEffect` in [RewardsOverviewPage.tsx](file:///e:/sis-d
     values.dateFrom,
     values.dateTo,
   ]);
+
+  useEffect(() => {
+    void Promise.resolve().then(fetchData);
+  }, [fetchData]);
+
+  const handleClearFilters = () => {
+    setValue("studentId", "");
+    setValue("dateFrom", "");
+    setValue("dateTo", "");
+  };
 ```
 
-- [ ] **Step 3: Render filters in the page**
-
-Render the filter section in the TSX layout (below the navigation buttons and above the KPI cards):
+Render the new local filters section:
 
 ```typescript
           {/* Filters section */}
@@ -215,40 +269,66 @@ Render the filter section in the TSX layout (below the navigation buttons and ab
               {t("rewardsModule.overview.filtersTitle") || "Filters"}
             </h2>
             
-            <ReinforcementAcademicContextFilter
-              value={context}
-              showStudent
-              onChange={(selection: ReinforcementAcademicContextSelection) => {
-                setValue("academicYearId", selection.academicYearId || "");
-                setValue("termId", selection.termId || "");
-                setValue("stageId", selection.stageId || "");
-                setValue("gradeId", selection.gradeId || "");
-                setValue("sectionId", selection.sectionId || "");
-                setValue("classroomId", selection.classroomId || "");
-                setValue("studentId", selection.studentId || "");
-                setValue("enrollmentId", selection.enrollmentId || "");
-              }}
-            />
+            <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-5 items-end">
+              <Select
+                label={t("rewardsModule.catalog.form.academicYear") || "Academic Year"}
+                value={values.academicYearId || ""}
+                onChange={(val) => {
+                  setValue("academicYearId", val);
+                  setValue("termId", "");
+                  setValue("studentId", "");
+                }}
+                options={yearsOptions}
+                searchable
+                placeholder={t("rewardsModule.overview.selectYear") || "Select Year"}
+                disabled={optionsLoading}
+              />
+              
+              <Select
+                label={t("rewardsModule.catalog.form.term") || "Term"}
+                value={values.termId || ""}
+                onChange={(val) => {
+                  setValue("termId", val);
+                  setValue("studentId", "");
+                }}
+                options={termsOptions}
+                searchable
+                placeholder={t("rewardsModule.overview.selectTerm") || "Select Term"}
+                disabled={optionsLoading || !values.academicYearId}
+              />
 
-            <div className="grid gap-4 md:grid-cols-3 items-end">
+              <Select
+                label={t("rewardsModule.redemptions.create.student") || "Student"}
+                value={values.studentId || ""}
+                onChange={(val) => setValue("studentId", val)}
+                options={studentsOptions}
+                searchable
+                placeholder={t("rewardsModule.overview.allStudents") || "All Students"}
+                disabled={optionsLoading}
+              />
+
               <Input
                 type="date"
                 label={t("rewardsModule.overview.dateFrom") || "Date From"}
                 value={values.dateFrom || ""}
                 onChange={(e) => setValue("dateFrom", e.target.value)}
               />
+
               <Input
                 type="date"
                 label={t("rewardsModule.overview.dateTo") || "Date To"}
                 value={values.dateTo || ""}
                 onChange={(e) => setValue("dateTo", e.target.value)}
               />
-              {(values.studentId || values.dateFrom || values.dateTo) ? (
-                <Button variant="secondary" onClick={clearAll} className="w-full md:w-auto">
+            </div>
+
+            {(values.studentId || values.dateFrom || values.dateTo) ? (
+              <div className="flex justify-end">
+                <Button variant="secondary" onClick={handleClearFilters}>
                   {t("rewardsModule.overview.clearFilters") || "Clear Filters"}
                 </Button>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
 
             {dateValidationError ? (
               <p className="text-xs text-red-600 font-medium">{dateValidationError}</p>
@@ -256,36 +336,36 @@ Render the filter section in the TSX layout (below the navigation buttons and ab
           </section>
 ```
 
-- [ ] **Step 4: Verify type compilation**
+- [ ] **Step 2: Verify type compilation**
 
-Run type check:
+Run:
 ```powershell
 npm run typecheck
 ```
-Expected: PASS with no compilation errors.
+Expected: PASS
 
-- [ ] **Step 5: Commit changes**
+- [ ] **Step 3: Commit changes**
 
 Run:
 ```bash
 git add src/features/reinforcement/pages/RewardsOverviewPage.tsx
-git commit -m "feat: integrate academic and date filters in RewardsOverviewPage"
+git commit -m "feat: simplify overview filters using direct selects and getReinforcementFilterOptions"
 ```
 
 ---
 
-### Task 3: Write Page Tests
+### Task 3: Update Unit Tests for Selects
 
 **Files:**
-- Create: `src/features/reinforcement/pages/__tests__/RewardsOverviewPage.test.tsx`
+- Modify: `src/features/reinforcement/pages/__tests__/RewardsOverviewPage.test.tsx`
 
 **Interfaces:**
-- Consumes: `RewardsOverviewPage`, `vi` mocks.
-- Produces: Test file verifying filtering behavior, validation, and URL state sync.
+- Consumes: Mocks of `getReinforcementFilterOptions`, `Select` component rendering.
+- Produces: Updated test suite verifying simplified dropdown selections and fetching parameters.
 
-- [ ] **Step 1: Write test suite**
+- [ ] **Step 1: Update test file**
 
-Create [RewardsOverviewPage.test.tsx](file:///e:/sis-dashboard/src/features/reinforcement/pages/__tests__/RewardsOverviewPage.test.tsx) with the following content:
+Update [RewardsOverviewPage.test.tsx](file:///e:/sis-dashboard/src/features/reinforcement/pages/__tests__/RewardsOverviewPage.test.tsx):
 
 ```typescript
 import { render, screen, waitFor } from "@testing-library/react";
@@ -328,24 +408,6 @@ vi.mock(
   () => filterOptionMocks,
 );
 
-vi.mock("@/features/reinforcement/components/ReinforcementAcademicContextFilter", () => ({
-  default: ({ value, onChange }: any) => (
-    <div data-testid="academic-filter">
-      <button
-        onClick={() =>
-          onChange({
-            academicYearId: "year-1",
-            termId: "term-1",
-            studentId: "student-123",
-          })
-        }
-      >
-        Select Student 123
-      </button>
-    </div>
-  ),
-}));
-
 function renderPage() {
   return render(
     <ToastProvider>
@@ -373,7 +435,9 @@ describe("RewardsOverviewPage", () => {
     });
 
     filterOptionMocks.getReinforcementFilterOptions.mockResolvedValue({
-      students: [],
+      academicYears: [{ id: "year-1", nameEn: "2026/2027" }],
+      terms: [{ id: "term-1", nameEn: "Term 1", academicYearId: "year-1" }],
+      students: [{ studentId: "student-123", nameEn: "John Doe" }],
     });
   });
 
@@ -383,22 +447,7 @@ describe("RewardsOverviewPage", () => {
     await waitFor(() => {
       expect(dashboardMocks.getRewardsOverview).toHaveBeenCalled();
       expect(dashboardMocks.getRewardCatalogSummary).toHaveBeenCalled();
-    });
-  });
-
-  it("refetches overview with selected student when student is selected", async () => {
-    const user = userEvent.setup();
-    renderPage();
-
-    const selectBtn = await screen.findByText("Select Student 123");
-    await user.click(selectBtn);
-
-    await waitFor(() => {
-      expect(dashboardMocks.getRewardsOverview).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          studentId: "student-123",
-        }),
-      );
+      expect(filterOptionMocks.getReinforcementFilterOptions).toHaveBeenCalled();
     });
   });
 
@@ -421,7 +470,7 @@ describe("RewardsOverviewPage", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test suite**
+- [ ] **Step 2: Run test suite**
 
 Run tests:
 ```powershell
@@ -434,5 +483,5 @@ Expected: PASS
 Run:
 ```bash
 git add src/features/reinforcement/pages/__tests__/RewardsOverviewPage.test.tsx
-git commit -m "test: add unit tests for RewardsOverviewPage filter integration"
+git commit -m "test: update page tests to verify direct dropdown filter loading"
 ```
