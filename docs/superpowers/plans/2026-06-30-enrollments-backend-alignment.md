@@ -153,3 +153,9 @@ git diff --check
 ```
 
 Apply `clean-code-guard` to production changes, `test-guard` to test changes, and `docs-guard` to any changed documentation. Preserve unrelated worktree changes and do not commit implementation unless requested.
+
+## 13. Localize Enrollment UI
+
+Update `src/messages/en.json` and `src/messages/ar.json` with matching keys under `admissions.enrollment` for list states, statuses, details, placement, lifecycle workflows, common actions, and errors.
+
+Update Enrollment components and mappers so every user-facing label, action, empty state, loading message, fallback, and error uses `next-intl`. Translate status labels only at rendering boundaries; preserve backend enum values. Add a focused key-parity test and scan Enrollment TSX files for remaining English UI literals.
