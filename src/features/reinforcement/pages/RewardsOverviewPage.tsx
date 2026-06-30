@@ -24,7 +24,6 @@ import ReinforcementAcademicContextFilter, {
 } from "../components/ReinforcementAcademicContextFilter";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
 import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
-import { getReinforcementFilterOptions } from "../services/reinforcementFilterOptionsService";
 import {
   getRewardCatalogSummary,
   getRewardsOverview,
@@ -135,7 +134,6 @@ export default function RewardsOverviewPage() {
   const {
     values,
     setValue,
-    clearAll,
   } = useReinforcementUrlFilters({
     paramKeys: [
       "academicYearId",
@@ -185,6 +183,13 @@ export default function RewardsOverviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dateValidationError, setDateValidationError] = useState<string | null>(null);
+
+  const handleClearFilters = () => {
+    setValue("studentId", "");
+    setValue("enrollmentId", "");
+    setValue("dateFrom", "");
+    setValue("dateTo", "");
+  };
 
   const canView = hasPermission("reinforcement.rewards.view");
 
@@ -340,7 +345,7 @@ export default function RewardsOverviewPage() {
                 onChange={(e) => setValue("dateTo", e.target.value)}
               />
               {(values.studentId || values.dateFrom || values.dateTo) ? (
-                <Button variant="secondary" onClick={clearAll} className="w-full md:w-auto">
+                <Button variant="secondary" onClick={handleClearFilters} className="w-full md:w-auto">
                   {t("rewardsModule.overview.clearFilters") || "Clear Filters"}
                 </Button>
               ) : null}

@@ -9265,12 +9265,18 @@
       "manualGrantTitle": "Manual XP Grant",
       "manualGrantDescription": "Select a student and enrollment before granting manual XP.",
       "effectivePolicy": "Effective policy",
+      "effectivePolicyFilterTitle": "Effective policy result",
+      "effectivePolicyFilterDescription": "Showing the effective policy for {student}.",
+      "clearEffectivePolicyFilter": "Clear effective filter",
       "createPolicy": "Create policy",
       "createPolicyDescription": "Create an XP policy for the selected academic context and scope.",
+      "updatePolicy": "Update policy",
+      "updatePolicyDescription": "Update the XP policy academic context, scope, limits, reasons, dates, and active state.",
       "policyFilters": "Policy filters",
       "ledgerFilters": "Ledger filters",
       "policyScope": "Policy scope",
       "policyCaps": "Caps and reasons",
+      "includeDeleted": "Include deleted policies",
       "scopeType": "Scope type",
       "allScopes": "All scopes",
       "activeStatus": "Active status",
@@ -9285,6 +9291,10 @@
       "startsAt": "Starts at",
       "endsAt": "Ends at",
       "isActive": "Active policy",
+      "defaultPolicy": "Default policy",
+      "customPolicy": "Custom policy",
+      "notSet": "Not set",
+      "invalidDateRange": "The start date must be on or before the end date.",
       "amount": "Amount",
       "reason": "Reason",
       "reasonAr": "Reason (Arabic)",
@@ -9293,13 +9303,22 @@
       "noTasksAvailable": "No tasks available. Select a year and term first.",
       "dedupeKey": "Dedupe key",
       "dedupeKeyHelp": "Leave blank to generate a unique key on submit.",
+      "effectivePolicyStudentModal": {
+        "title": "Choose student",
+        "description": "Select a student in the current academic year and term to lookup their effective XP policy.",
+        "student": "Student",
+        "noStudents": "No students are available for this academic context."
+      },
       "messages": {
         "policyCreated": "XP policy created successfully.",
-        "policyPatched": "XP policy caps updated successfully.",
+        "policyPatched": "XP policy updated successfully.",
         "effectiveLoaded": "Effective policy loaded.",
         "granted": "Manual XP grant recorded successfully."
       },
       "validation": {
+        "academicYearRequired": "Select an academic year first.",
+        "termRequired": "Select a term first.",
+        "studentRequired": "Select a student before continuing.",
         "studentEnrollmentRequired": "Select a student with an enrollment before continuing.",
         "missingEffectivePolicy": "No effective XP policy was found for the selected student.",
         "disallowedReason": "The selected reason is not allowed by the effective policy.",
@@ -9364,6 +9383,8 @@
       "subject": "Subject",
       "yes": "Yes",
       "no": "No",
+      "retry": "Retry",
+      "close": "Close",
       "search": "Search..."
     },
     "validation": {
@@ -9433,6 +9454,8 @@
       "newTask": "New task",
       "refresh": "Refresh",
       "create": "Create",
+      "edit": "Edit",
+      "update": "Update",
       "save": "Save",
       "cancel": "Cancel",
       "duplicate": "Duplicate",
@@ -9809,7 +9832,7 @@
         "available": "Available",
         "limited": "Limited",
         "lowStock": "Low Stock",
-        "outOfStock": "Out of Stock",
+        "outOfStock": "Unavailable",
         "fulfillment": "Fulfillment",
         "fulfillmentRate": "Fulfillment Rate",
         "pendingReview": "Pending Review",
@@ -9822,7 +9845,14 @@
         "topRequestedRewards": "Top Requested Rewards",
         "recentRedemptions": "Recent Redemptions",
         "lowStockRewards": "Low Stock Rewards",
-        "requests": "Requests"
+        "requests": "Requests",
+        "filtersTitle": "Filters",
+        "dateFrom": "Date From",
+        "dateTo": "Date To",
+        "clearFilters": "Clear Filters",
+        "errors": {
+          "invalidDates": "Start date cannot be after end date"
+        }
       },
       "catalog": {
         "title": "Reward Catalog",
@@ -9832,7 +9862,25 @@
         },
         "form": {
           "stockRemaining": "Stock remaining",
-          "stockRemainingHelp": "Current available quantity. Leave empty to let the backend use the stock quantity."
+          "stockRemainingHelp": "Current available quantity. Leave empty to let the backend use the stock quantity.",
+          "academicScope": "Academic scope",
+          "academicYear": "Academic year",
+          "term": "Term",
+          "globalReward": "Global reward",
+          "globalRewardHelp": "Make this reward available across all academic years and terms.",
+          "image": "Reward image",
+          "uploadImage": "Upload image",
+          "replaceImage": "Replace image",
+          "removeImage": "Remove image",
+          "imageHelp": "PNG or JPEG, up to 10 MB.",
+          "imageTypeInvalid": "Choose a PNG or JPEG image.",
+          "imageTooLarge": "The image must not exceed 10 MB.",
+          "uploadingImage": "Uploading image...",
+          "imageUploadFailed": "Unable to upload the image. Try again.",
+          "imageUnavailable": "Image unavailable.",
+          "retryImage": "Retry",
+          "termsLoadFailed": "Unable to load terms for this academic year.",
+          "contextUnavailable": "Select an academic year and term to view the reward catalog."
         },
         "archive": {
           "title": "Archive reward",
@@ -9843,7 +9891,7 @@
         "availability": {
           "available": "Available",
           "lowStock": "Low Stock",
-          "outOfStock": "Out of Stock"
+          "outOfStock": "Unavailable"
         },
         "table": {
           "title": "Title",
@@ -9894,6 +9942,34 @@
           "requestedAt": "Requested at",
           "actions": "Actions"
         },
+        "details": {
+          "title": "Redemption details",
+          "notAvailable": "Not available",
+          "academicContext": "Academic context",
+          "academicYear": "Academic year",
+          "term": "Term",
+          "stageId": "Stage ID",
+          "gradeId": "Grade ID",
+          "sectionId": "Section ID",
+          "classroomId": "Classroom ID",
+          "eligibility": "Eligibility snapshot",
+          "eligible": "Eligible",
+          "minTotalXp": "Minimum total XP",
+          "totalEarnedXp": "Total earned XP",
+          "stockRemaining": "Stock remaining",
+          "notes": "Notes",
+          "requestNote": "Request note",
+          "reviewNote": "Review note",
+          "fulfillmentNote": "Fulfillment note",
+          "cancellationReason": "Cancellation reason",
+          "timeline": "Timeline",
+          "requested": "Requested",
+          "reviewed": "Reviewed",
+          "fulfilled": "Fulfilled",
+          "cancelled": "Cancelled",
+          "createdAt": "Created at",
+          "updatedAt": "Updated at"
+        },
         "modal": {
           "approveTitle": "Approve Redemption",
           "approveDescription": "Are you sure you want to approve this redemption request? The student will be notified.",
@@ -9933,6 +10009,7 @@
         "other": "Other"
       },
       "actions": {
+        "view": "View",
         "publish": "Publish",
         "archive": "Archive",
         "approve": "Approve",

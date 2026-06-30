@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast/Toast";
+import type { ReinforcementAcademicContextFilterProps } from "@/features/reinforcement/components/ReinforcementAcademicContextFilter";
 import RewardsOverviewPage from "../RewardsOverviewPage";
 
 const permissionState = vi.hoisted(() => ({
@@ -39,7 +40,7 @@ vi.mock(
 );
 
 vi.mock("@/features/reinforcement/components/ReinforcementAcademicContextFilter", () => ({
-  default: ({ value, onChange }: any) => (
+  default: ({ value, onChange }: ReinforcementAcademicContextFilterProps) => (
     <div data-testid="academic-filter">
       <button
         onClick={() =>
@@ -107,6 +108,43 @@ describe("RewardsOverviewPage", () => {
       expect(dashboardMocks.getRewardsOverview).toHaveBeenLastCalledWith(
         expect.objectContaining({
           studentId: "student-123",
+        }),
+      );
+    });
+  });
+
+  it("clears local filters but preserves academic context when Clear Filters is clicked", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    // Select student first to make the button appear and set academic context
+    const selectBtn = await screen.findByText("Select Student 123");
+    await user.click(selectBtn);
+
+    // Verify it was called with academic context + student
+    await waitFor(() => {
+      expect(dashboardMocks.getRewardsOverview).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          academicYearId: "year-1",
+          termId: "term-1",
+          studentId: "student-123",
+        }),
+      );
+    });
+
+    // Now find and click the Clear Filters button
+    const clearBtn = await screen.findByText("rewardsModule.overview.clearFilters");
+    await user.click(clearBtn);
+
+    // Verify that local filters are cleared, but academic context is preserved
+    await waitFor(() => {
+      expect(dashboardMocks.getRewardsOverview).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          academicYearId: "year-1",
+          termId: "term-1",
+          studentId: undefined,
+          dateFrom: undefined,
+          dateTo: undefined,
         }),
       );
     });

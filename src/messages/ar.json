@@ -9266,12 +9266,18 @@
       "manualGrantTitle": "منح نقاط يدوي",
       "manualGrantDescription": "اختر الطالب والتسجيل قبل منح النقاط يدوياً.",
       "effectivePolicy": "السياسة الفعالة",
+      "effectivePolicyFilterTitle": "نتيجة السياسة الفعالة",
+      "effectivePolicyFilterDescription": "يتم عرض السياسة الفعالة للطالب {student}.",
+      "clearEffectivePolicyFilter": "مسح فلتر السياسة الفعالة",
       "createPolicy": "إنشاء سياسة",
       "createPolicyDescription": "أنشئ سياسة نقاط للسياق الدراسي والنطاق المحددين.",
+      "updatePolicy": "تحديث السياسة",
+      "updatePolicyDescription": "حدّث السياق الدراسي والنطاق والحدود والأسباب والتواريخ وحالة التفعيل لسياسة النقاط.",
       "policyFilters": "فلاتر السياسات",
       "ledgerFilters": "فلاتر السجل",
       "policyScope": "نطاق السياسة",
       "policyCaps": "الحدود والأسباب",
+      "includeDeleted": "تضمين السياسات المحذوفة",
       "scopeType": "نوع النطاق",
       "allScopes": "كل النطاقات",
       "activeStatus": "حالة التفعيل",
@@ -9286,6 +9292,10 @@
       "startsAt": "تبدأ في",
       "endsAt": "تنتهي في",
       "isActive": "سياسة مفعلة",
+      "defaultPolicy": "السياسة الافتراضية",
+      "customPolicy": "سياسة مخصصة",
+      "notSet": "غير محدد",
+      "invalidDateRange": "يجب أن يكون تاريخ البدء قبل تاريخ الانتهاء أو مساويًا له.",
       "amount": "الكمية",
       "reason": "السبب",
       "reasonAr": "السبب (عربي)",
@@ -9294,13 +9304,22 @@
       "noTasksAvailable": "لا توجد مهام متاحة. اختر العام والفصل أولاً.",
       "dedupeKey": "مفتاح منع التكرار",
       "dedupeKeyHelp": "اتركه فارغاً لإنشاء مفتاح فريد عند الإرسال.",
+      "effectivePolicyStudentModal": {
+        "title": "اختيار طالب",
+        "description": "اختر طالباً في العام والفصل الحاليين للبحث عن سياسة النقاط الفعالة له.",
+        "student": "الطالب",
+        "noStudents": "لا يوجد طلاب متاحون لهذا السياق الأكاديمي."
+      },
       "messages": {
         "policyCreated": "تم إنشاء سياسة النقاط بنجاح.",
-        "policyPatched": "تم تحديث حدود سياسة النقاط بنجاح.",
+        "policyPatched": "تم تحديث سياسة النقاط بنجاح.",
         "effectiveLoaded": "تم تحميل السياسة الفعالة.",
         "granted": "تم تسجيل منح النقاط اليدوي بنجاح."
       },
       "validation": {
+        "academicYearRequired": "اختر العام الأكاديمي أولاً.",
+        "termRequired": "اختر الفصل الدراسي أولاً.",
+        "studentRequired": "اختر طالباً قبل المتابعة.",
         "studentEnrollmentRequired": "اختر طالباً لديه تسجيل قبل المتابعة.",
         "missingEffectivePolicy": "لم يتم العثور على سياسة نقاط فعالة للطالب المحدد.",
         "disallowedReason": "السبب المحدد غير مسموح به في السياسة الفعالة.",
@@ -9365,6 +9384,8 @@
       "subject": "المادة",
       "yes": "نعم",
       "no": "لا",
+      "retry": "إعادة المحاولة",
+      "close": "إغلاق",
       "search": "بحث..."
     },
     "validation": {
@@ -9434,6 +9455,8 @@
       "newTask": "مهمة جديدة",
       "refresh": "تحديث",
       "create": "إنشاء",
+      "edit": "تعديل",
+      "update": "تحديث",
       "save": "حفظ",
       "cancel": "إلغاء",
       "duplicate": "نسخ",
@@ -9810,7 +9833,7 @@
         "available": "متاح",
         "limited": "محدود",
         "lowStock": "مخزون منخفض",
-        "outOfStock": "نفد المخزون",
+        "outOfStock": "غير متاح",
         "fulfillment": "التنفيذ",
         "fulfillmentRate": "نسبة التنفيذ",
         "pendingReview": "قيد المراجعة",
@@ -9823,7 +9846,14 @@
         "topRequestedRewards": "أكثر المكافآت طلباً",
         "recentRedemptions": "أحدث الاستبدالات",
         "lowStockRewards": "مكافآت منخفضة المخزون",
-        "requests": "طلبات"
+        "requests": "طلبات",
+        "filtersTitle": "الفلاتر",
+        "dateFrom": "تاريخ البدء",
+        "dateTo": "تاريخ الانتهاء",
+        "clearFilters": "مسح الفلاتر",
+        "errors": {
+          "invalidDates": "لا يمكن أن يكون تاريخ البدء بعد تاريخ الانتهاء"
+        }
       },
       "catalog": {
         "title": "كتالوج المكافآت",
@@ -9833,7 +9863,25 @@
         },
         "form": {
           "stockRemaining": "المخزون المتبقي",
-          "stockRemainingHelp": "الكمية المتاحة حاليًا. اتركها فارغة ليستخدم الخادم كمية المخزون."
+          "stockRemainingHelp": "الكمية المتاحة حاليًا. اتركها فارغة ليستخدم الخادم كمية المخزون.",
+          "academicScope": "النطاق الأكاديمي",
+          "academicYear": "العام الأكاديمي",
+          "term": "الفصل الدراسي",
+          "globalReward": "مكافأة عامة",
+          "globalRewardHelp": "إتاحة هذه المكافأة في جميع الأعوام والفصول الدراسية.",
+          "image": "صورة المكافأة",
+          "uploadImage": "رفع صورة",
+          "replaceImage": "استبدال الصورة",
+          "removeImage": "إزالة الصورة",
+          "imageHelp": "PNG أو JPEG، بحد أقصى 10 ميجابايت.",
+          "imageTypeInvalid": "اختر صورة بصيغة PNG أو JPEG.",
+          "imageTooLarge": "يجب ألا يتجاوز حجم الصورة 10 ميجابايت.",
+          "uploadingImage": "جارٍ رفع الصورة...",
+          "imageUploadFailed": "تعذر رفع الصورة. حاول مرة أخرى.",
+          "imageUnavailable": "الصورة غير متاحة.",
+          "retryImage": "إعادة المحاولة",
+          "termsLoadFailed": "تعذر تحميل الفصول الدراسية لهذا العام.",
+          "contextUnavailable": "اختر عامًا أكاديميًا وفصلًا دراسيًا لعرض كتالوج المكافآت."
         },
         "archive": {
           "title": "أرشفة المكافأة",
@@ -9844,7 +9892,7 @@
         "availability": {
           "available": "متاح",
           "lowStock": "مخزون منخفض",
-          "outOfStock": "نفد المخزون"
+          "outOfStock": "غير متاح"
         },
         "table": {
           "title": "العنوان",
@@ -9895,6 +9943,34 @@
           "requestedAt": "تاريخ الطلب",
           "actions": "الإجراءات"
         },
+        "details": {
+          "title": "تفاصيل الاستبدال",
+          "notAvailable": "غير متاح",
+          "academicContext": "السياق الأكاديمي",
+          "academicYear": "العام الأكاديمي",
+          "term": "الفصل الدراسي",
+          "stageId": "معرّف المرحلة",
+          "gradeId": "معرّف الصف",
+          "sectionId": "معرّف الشعبة",
+          "classroomId": "معرّف الفصل",
+          "eligibility": "لقطة الأهلية",
+          "eligible": "مؤهل",
+          "minTotalXp": "الحد الأدنى لإجمالي النقاط",
+          "totalEarnedXp": "إجمالي النقاط المكتسبة",
+          "stockRemaining": "المخزون المتبقي",
+          "notes": "الملاحظات",
+          "requestNote": "ملاحظة الطلب",
+          "reviewNote": "ملاحظة المراجعة",
+          "fulfillmentNote": "ملاحظة التنفيذ",
+          "cancellationReason": "سبب الإلغاء",
+          "timeline": "الخط الزمني",
+          "requested": "تم الطلب",
+          "reviewed": "تمت المراجعة",
+          "fulfilled": "تم التنفيذ",
+          "cancelled": "تم الإلغاء",
+          "createdAt": "تاريخ الإنشاء",
+          "updatedAt": "تاريخ التحديث"
+        },
         "modal": {
           "approveTitle": "الموافقة على الاستبدال",
           "approveDescription": "هل أنت متأكد من الموافقة على طلب الاستبدال هذا؟ سيتم إخطار الطالب.",
@@ -9934,6 +10010,7 @@
         "other": "أخرى"
       },
       "actions": {
+        "view": "عرض",
         "publish": "نشر",
         "archive": "أرشفة",
         "approve": "موافقة",
