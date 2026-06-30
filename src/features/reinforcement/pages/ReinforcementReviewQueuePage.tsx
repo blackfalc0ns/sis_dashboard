@@ -247,6 +247,7 @@ export default function ReinforcementReviewQueuePage() {
       const message = nextError instanceof Error ? nextError.message : t("common.error");
       setError(message);
       setItems([]);
+      setTotal(0);
       showError(message);
     } finally {
       setLoading(false);
