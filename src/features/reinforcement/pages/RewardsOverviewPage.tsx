@@ -14,21 +14,19 @@ import {
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
+import Select, { type SelectOption } from "@/components/ui/input/Select";
+import Input from "@/components/ui/input/Input";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
-import ReinforcementAcademicContextFilter, {
-  type ReinforcementAcademicContextSelection,
-  type ReinforcementAcademicContextValue,
-} from "../components/ReinforcementAcademicContextFilter";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
 import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
+import { getReinforcementFilterOptions } from "../services/reinforcementFilterOptionsService";
 import {
   getRewardCatalogSummary,
   getRewardsOverview,
 } from "../services/rewardDashboardService";
-import Input from "@/components/ui/input/Input";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -80,6 +78,61 @@ const formatDate = (value: unknown, locale: string): string => {
     dateStyle: "medium",
   }).format(new Date(dateValue));
 };
+
+const getLocalizedValue = (
+  record: Record<string, unknown>,
+  keys: string[],
+): string | undefined => {
+  for (const key of keys) {
+    const val = record[key];
+    if (typeof val === "string" && val.trim()) {
+      return val;
+    }
+  }
+  return undefined;
+};
+
+const toRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+function mapGenericOption(
+  record: unknown,
+  locale: string,
+): SelectOption | null {
+  const rec = toRecord(record);
+  if (!rec) return null;
+
+  const id = getLocalizedValue(rec, ["id", "value"]);
+  if (!id) return null;
+
+  const nameEn = getLocalizedValue(rec, ["nameEn", "fullNameEn", "full_name_en", "name", "label"]) ?? id;
+  const nameAr = getLocalizedValue(rec, ["nameAr", "fullNameAr", "full_name_ar", "name", "label"]) ?? nameEn;
+  return {
+    value: id,
+    label: locale === "ar" ? nameAr : nameEn,
+  };
+}
+
+function mapStudentOption(
+  record: unknown,
+  locale: string,
+): SelectOption | null {
+  const rec = toRecord(record);
+  if (!rec) return null;
+
+  const id = getLocalizedValue(rec, ["studentId", "id", "student_id"]);
+  if (!id) return null;
+
+  const nameEn = getLocalizedValue(rec, ["nameEn", "fullNameEn", "full_name_en", "name"]) ?? id;
+  const nameAr = getLocalizedValue(rec, ["nameAr", "fullNameAr", "full_name_ar", "name"]) ?? nameEn;
+  return {
+    value: id,
+    label: locale === "ar" ? nameAr : nameEn,
+    searchText: `${nameEn} ${nameAr} ${id}`,
+  };
+}
 
 function MiniMetric({
   label,
@@ -138,69 +191,74 @@ export default function RewardsOverviewPage() {
     paramKeys: [
       "academicYearId",
       "termId",
-      "stageId",
-      "gradeId",
-      "sectionId",
-      "classroomId",
       "studentId",
-      "enrollmentId",
       "dateFrom",
       "dateTo",
     ],
     defaults: {},
   });
 
-  const context: ReinforcementAcademicContextValue = useMemo(
-    () => ({
-      academicYearId: values.academicYearId || undefined,
-      termId: values.termId || undefined,
-      stageId: values.stageId || undefined,
-      gradeId: values.gradeId || undefined,
-      sectionId: values.sectionId || undefined,
-      classroomId: values.classroomId || undefined,
-      studentId: values.studentId || undefined,
-      enrollmentId: values.enrollmentId || undefined,
-    }),
-    [
-      values.academicYearId,
-      values.termId,
-      values.stageId,
-      values.gradeId,
-      values.sectionId,
-      values.classroomId,
-      values.studentId,
-      values.enrollmentId,
-    ],
-  );
-
-  const [overview, setOverview] = useState<Record<string, unknown> | null>(
-    null,
-  );
-  const [catalogSummary, setCatalogSummary] = useState<Record<
-    string,
-    unknown
-  > | null>(null);
+  const [overview, setOverview] = useState<Record<string, unknown> | null>(null);
+  const [catalogSummary, setCatalogSummary] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dateValidationError, setDateValidationError] = useState<string | null>(null);
 
-  const handleClearFilters = () => {
-    setValue("studentId", "");
-    setValue("enrollmentId", "");
-    setValue("dateFrom", "");
-    setValue("dateTo", "");
-  };
+  // Dropdown options states
+  const [yearsOptions, setYearsOptions] = useState<SelectOption[]>([]);
+  const [termsOptions, setTermsOptions] = useState<SelectOption[]>([]);
+  const [studentsOptions, setStudentsOptions] = useState<SelectOption[]>([]);
+  const [optionsLoading, setOptionsLoading] = useState(false);
 
   const canView = hasPermission("reinforcement.rewards.view");
 
-  const catalog = asRecord(overview?.catalog);
-  const redemptions = asRecord(overview?.redemptions);
-  const fulfillment = asRecord(overview?.fulfillment);
-  const xp = asRecord(overview?.xp);
-  const topRequestedRewards = asRecordArray(overview?.topRequestedRewards);
-  const recentRedemptions = asRecordArray(overview?.recentRedemptions);
-  const lowStockRewards = asRecordArray(overview?.lowStockRewards);
-  const catalogSummaryValues = asRecord(catalogSummary?.summary);
+  // Load filter options
+  useEffect(() => {
+    if (!canView) return;
+    
+    let active = true;
+    const loadOptions = async () => {
+      setOptionsLoading(true);
+      try {
+        const opts = await getReinforcementFilterOptions({
+          academicYearId: values.academicYearId || undefined,
+          termId: values.termId || undefined,
+        });
+        if (!active) return;
+        
+        if (opts.academicYears) {
+          setYearsOptions(
+            opts.academicYears
+              .map((y) => mapGenericOption(y, locale))
+              .filter((y): y is SelectOption => y !== null)
+          );
+        }
+        if (opts.terms) {
+          setTermsOptions(
+            opts.terms
+              .map((t) => mapGenericOption(t, locale))
+              .filter((t): t is SelectOption => t !== null)
+          );
+        }
+        if (opts.students) {
+          setStudentsOptions(
+            opts.students
+              .map((s) => mapStudentOption(s, locale))
+              .filter((s): s is SelectOption => s !== null)
+          );
+        }
+      } catch (err) {
+        console.error("Failed to load filter options", err);
+      } finally {
+        if (active) setOptionsLoading(false);
+      }
+    };
+
+    void loadOptions();
+    return () => {
+      active = false;
+    };
+  }, [canView, locale, values.academicYearId, values.termId]);
 
   const fetchData = useCallback(async () => {
     if (!canView) return;
@@ -217,7 +275,6 @@ export default function RewardsOverviewPage() {
     setError(null);
     
     try {
-      // Catalog summary does not support student or date filtering
       const [overviewData, summaryData] = await Promise.all([
         getRewardsOverview({
           academicYearId: values.academicYearId || undefined,
@@ -234,9 +291,7 @@ export default function RewardsOverviewPage() {
       setOverview(overviewData);
       setCatalogSummary(summaryData);
     } catch (nextError) {
-      setError(
-        nextError instanceof Error ? nextError.message : t("common.error"),
-      );
+      setError(nextError instanceof Error ? nextError.message : t("common.error"));
     } finally {
       setLoading(false);
     }
@@ -253,6 +308,21 @@ export default function RewardsOverviewPage() {
   useEffect(() => {
     void Promise.resolve().then(fetchData);
   }, [fetchData]);
+
+  const handleClearFilters = () => {
+    setValue("studentId", "");
+    setValue("dateFrom", "");
+    setValue("dateTo", "");
+  };
+
+  const catalog = asRecord(overview?.catalog);
+  const redemptions = asRecord(overview?.redemptions);
+  const fulfillment = asRecord(overview?.fulfillment);
+  const xp = asRecord(overview?.xp);
+  const topRequestedRewards = asRecordArray(overview?.topRequestedRewards);
+  const recentRedemptions = asRecordArray(overview?.recentRedemptions);
+  const lowStockRewards = asRecordArray(overview?.lowStockRewards);
+  const catalogSummaryValues = asRecord(catalogSummary?.summary);
 
   if (authLoading) return <MainLoader />;
   if (!canView) return <AccessNotice />;
@@ -316,40 +386,66 @@ export default function RewardsOverviewPage() {
               {t("rewardsModule.overview.filtersTitle") || "Filters"}
             </h2>
             
-            <ReinforcementAcademicContextFilter
-              value={context}
-              showStudent
-              onChange={(selection: ReinforcementAcademicContextSelection) => {
-                setValue("academicYearId", selection.academicYearId || "");
-                setValue("termId", selection.termId || "");
-                setValue("stageId", selection.stageId || "");
-                setValue("gradeId", selection.gradeId || "");
-                setValue("sectionId", selection.sectionId || "");
-                setValue("classroomId", selection.classroomId || "");
-                setValue("studentId", selection.studentId || "");
-                setValue("enrollmentId", selection.enrollmentId || "");
-              }}
-            />
+            <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-5 items-end">
+              <Select
+                label={t("rewardsModule.catalog.form.academicYear") || "Academic Year"}
+                value={values.academicYearId || ""}
+                onChange={(val) => {
+                  setValue("academicYearId", val);
+                  setValue("termId", "");
+                  setValue("studentId", "");
+                }}
+                options={yearsOptions}
+                searchable
+                placeholder={t("rewardsModule.overview.selectYear") || "Select Year"}
+                disabled={optionsLoading}
+              />
+              
+              <Select
+                label={t("rewardsModule.catalog.form.term") || "Term"}
+                value={values.termId || ""}
+                onChange={(val) => {
+                  setValue("termId", val);
+                  setValue("studentId", "");
+                }}
+                options={termsOptions}
+                searchable
+                placeholder={t("rewardsModule.overview.selectTerm") || "Select Term"}
+                disabled={optionsLoading || !values.academicYearId}
+              />
 
-            <div className="grid gap-4 md:grid-cols-3 items-end">
+              <Select
+                label={t("rewardsModule.redemptions.create.student") || "Student"}
+                value={values.studentId || ""}
+                onChange={(val) => setValue("studentId", val)}
+                options={studentsOptions}
+                searchable
+                placeholder={t("rewardsModule.overview.allStudents") || "All Students"}
+                disabled={optionsLoading}
+              />
+
               <Input
                 type="date"
                 label={t("rewardsModule.overview.dateFrom") || "Date From"}
                 value={values.dateFrom || ""}
                 onChange={(e) => setValue("dateFrom", e.target.value)}
               />
+
               <Input
                 type="date"
                 label={t("rewardsModule.overview.dateTo") || "Date To"}
                 value={values.dateTo || ""}
                 onChange={(e) => setValue("dateTo", e.target.value)}
               />
-              {(values.studentId || values.dateFrom || values.dateTo) ? (
-                <Button variant="secondary" onClick={handleClearFilters} className="w-full md:w-auto">
+            </div>
+
+            {(values.studentId || values.dateFrom || values.dateTo) ? (
+              <div className="flex justify-end">
+                <Button variant="secondary" onClick={handleClearFilters}>
                   {t("rewardsModule.overview.clearFilters") || "Clear Filters"}
                 </Button>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
 
             {dateValidationError ? (
               <p className="text-xs text-red-600 font-medium">{dateValidationError}</p>
