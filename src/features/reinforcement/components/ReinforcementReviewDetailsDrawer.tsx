@@ -2,6 +2,7 @@
 
 import { CheckCircle, Clock, FileText, RefreshCw, X, XCircle } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 import Button from "@/components/ui/button/Button";
 import type { ReinforcementReviewItem, ReinforcementReviewStatus } from "../types";
@@ -44,6 +45,21 @@ export default function ReinforcementReviewDetailsDrawer({
 }: ReinforcementReviewDetailsDrawerProps) {
   const locale = useLocale();
   const t = useTranslations("reinforcement");
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 

@@ -431,5 +431,72 @@ describe("ReinforcementReviewQueuePage", () => {
       expect(newDrawerQueries.getAllByText("Second Student").length).toBe(2);
     });
   });
+
+  it("closes details drawer when pressing the Escape key", async () => {
+    const user = userEvent.setup();
+    
+    reviewsMocks.getReinforcementReviewItem.mockResolvedValueOnce({
+      id: "submission-1",
+      studentId: "student-123",
+      status: "submitted",
+      submittedAt: "2026-06-30T00:00:00Z",
+      task: { titleEn: "Read Book" },
+      stage: { titleEn: "Page 10" },
+      student: { nameEn: "First Student" },
+    });
+    
+    renderPage();
+
+    const row = await screen.findByText("John Doe");
+    await user.click(row);
+
+    const drawer = await screen.findByRole("dialog", { name: "reviews.detail.title" });
+    expect(drawer).toBeInTheDocument();
+
+    // Press Escape key
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "reviews.detail.title" })).not.toBeInTheDocument();
+    });
+  });
+
+  it("handles missing or invalid submittedAt values in the queue table safely", async () => {
+    reviewsMocks.listReinforcementReviewQueue.mockResolvedValue({
+      items: [
+        {
+          id: "submission-invalid-date",
+          studentId: "student-123",
+          status: "submitted",
+          submittedAt: "invalid-date-string",
+          task: { titleEn: "Read Book" },
+          stage: { titleEn: "Page 10" },
+          student: { nameEn: "Invalid Date Student" },
+        },
+        {
+          id: "submission-missing-date",
+          studentId: "student-123",
+          status: "submitted",
+          submittedAt: "",
+          task: { titleEn: "Read Book" },
+          stage: { titleEn: "Page 10" },
+          student: { nameEn: "Missing Date Student" },
+        },
+      ],
+      total: 2,
+    });
+
+    renderPage();
+
+    const invalidRow = await screen.findByText("Invalid Date Student");
+    expect(invalidRow).toBeInTheDocument();
+
+    const missingRow = await screen.findByText("Missing Date Student");
+    expect(missingRow).toBeInTheDocument();
+
+    // The date cells should render "-"
+    const dashes = screen.getAllByText("-");
+    expect(dashes.length).toBeGreaterThanOrEqual(2);
+  });
 });
 

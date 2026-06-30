@@ -457,11 +457,13 @@ export default function ReinforcementReviewQueuePage() {
         label: t("reviews.table.submittedAt"),
         render: (_value: unknown, row: ReinforcementReviewItem) => {
           if (!row.submittedAt) return <span className="text-gray-400">-</span>;
+          const parsed = new Date(row.submittedAt);
+          if (isNaN(parsed.getTime())) return <span className="text-gray-400">-</span>;
           return (
             <span className="text-gray-700">
               {new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", {
                 dateStyle: "medium",
-              }).format(new Date(row.submittedAt))}
+              }).format(parsed)}
             </span>
           );
         },
