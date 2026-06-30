@@ -11,7 +11,6 @@ import {
   ThumbsDown,
   Star,
   Users,
-  Award,
   AlertTriangle,
   TrendingUp,
   X,
