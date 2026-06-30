@@ -18,6 +18,7 @@ Allow staff to view and download protected application documents without exposin
 
 ## View Action
 
+- Preview is available for `pending_review`, `complete`, and `missing` documents whenever a `fileId` exists. Review status does not restrict staff from inspecting the linked file.
 - The View button enters a loading state and ignores duplicate clicks.
 - After loading, the existing `DocumentViewerModal` receives the temporary object URL.
 - PDFs and supported images remain viewable through the existing modal presentation.
