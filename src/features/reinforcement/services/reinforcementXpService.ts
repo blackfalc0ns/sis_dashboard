@@ -27,12 +27,41 @@ const REINFORCEMENT_REVIEW_GRANT_ENDPOINT = "/reinforcement/xp/grants/reinforcem
 const XP_LEDGER_ENDPOINT = "/reinforcement/xp/ledger";
 const XP_SUMMARY_ENDPOINT = "/reinforcement/xp/summary";
 
-const optionalText = (value: string | undefined): string | undefined => {
+export interface XpPolicyResponseDto {
+  id: string | null;
+  academicYearId: string;
+  termId: string;
+  scopeType: XpPolicy["scopeType"];
+  scopeKey: string;
+  dailyCap: number | null;
+  weeklyCap: number | null;
+  cooldownMinutes: number | null;
+  allowedReasons: unknown;
+  startsAt: string | null;
+  endsAt: string | null;
+  isActive: boolean;
+  isDefault: boolean;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export function mapXpPolicyResponse(dto: XpPolicyResponseDto): XpPolicy {
+  const allowedReasons = Array.isArray(dto.allowedReasons)
+    ? dto.allowedReasons
+        .filter((reason): reason is string => typeof reason === "string")
+        .map((reason) => reason.trim())
+        .filter(Boolean)
+    : [];
+
+  return { ...dto, allowedReasons };
+}
+
+const optionalText = (value: string | null | undefined): string | undefined => {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
 };
 
-const optionalNumber = (value: number | undefined): number | undefined =>
+const optionalNumber = (value: number | null | undefined): number | undefined =>
   typeof value === "number" && Number.isFinite(value) ? value : undefined;
 
 const optionalStringList = (values: string[] | undefined): string[] | undefined => {
@@ -71,6 +100,41 @@ export function serializeCreateXpPolicyPayload(
   };
 }
 
+export function serializePatchXpPolicyPayload(
+  payload: PatchXpPolicyPayload,
+): PatchXpPolicyPayload {
+  const serializedPayload: PatchXpPolicyPayload = {};
+  const numberKeys: (keyof PatchXpPolicyPayload)[] = [
+    "dailyCap",
+    "weeklyCap",
+    "cooldownMinutes",
+  ];
+  for (const key of numberKeys) {
+    const value = payload[key];
+    if (value === null || optionalNumber(value as number | null | undefined) !== undefined) {
+      Object.assign(serializedPayload, { [key]: value });
+    }
+  }
+
+  const allowedReasons = optionalStringList(payload.allowedReasons);
+  if (allowedReasons) serializedPayload.allowedReasons = allowedReasons;
+
+  for (const key of ["startsAt", "endsAt"] as const) {
+    const value = payload[key];
+    if (value === null) {
+      serializedPayload[key] = null;
+    } else if (typeof value === "string") {
+      const trimmed = optionalText(value);
+      if (trimmed) serializedPayload[key] = trimmed;
+    }
+  }
+
+  if (typeof payload.isActive === "boolean") {
+    serializedPayload.isActive = payload.isActive;
+  }
+  return serializedPayload;
+}
+
 export function serializeManualXpGrantPayload(
   payload: ManualXpGrantPayload,
 ): ManualXpGrantPayload {
@@ -96,7 +160,8 @@ export async function listXpPolicies(
 ): Promise<ListXpPoliciesResponse> {
   const query = buildReinforcementQueryString(params);
   const response = await apiGet<unknown>(`${XP_POLICIES_ENDPOINT}${query}`);
-  return unwrapReinforcementListResponse<XpPolicy>(response);
+  const policyPage = unwrapReinforcementListResponse<XpPolicyResponseDto>(response);
+  return { ...policyPage, items: policyPage.items.map(mapXpPolicyResponse) };
 }
 
 export async function getEffectiveXpPolicy(
@@ -106,7 +171,9 @@ export async function getEffectiveXpPolicy(
   const response = await apiGet<unknown>(
     `${XP_POLICIES_ENDPOINT}/effective${query}`,
   );
-  return unwrapReinforcementItemResponse<XpPolicy>(response);
+  return mapXpPolicyResponse(
+    unwrapReinforcementItemResponse<XpPolicyResponseDto>(response),
+  );
 }
 
 export async function createXpPolicy(
@@ -116,7 +183,9 @@ export async function createXpPolicy(
     XP_POLICIES_ENDPOINT,
     serializeCreateXpPolicyPayload(payload),
   );
-  return unwrapReinforcementItemResponse<XpPolicy>(response);
+  return mapXpPolicyResponse(
+    unwrapReinforcementItemResponse<XpPolicyResponseDto>(response),
+  );
 }
 
 export async function patchXpPolicy(
@@ -125,9 +194,11 @@ export async function patchXpPolicy(
 ): Promise<XpPolicy> {
   const response = await apiPatch<unknown>(
     `${XP_POLICIES_ENDPOINT}/${policyId}`,
-    payload,
+    serializePatchXpPolicyPayload(payload),
   );
-  return unwrapReinforcementItemResponse<XpPolicy>(response);
+  return mapXpPolicyResponse(
+    unwrapReinforcementItemResponse<XpPolicyResponseDto>(response),
+  );
 }
 
 export async function grantManualXp(

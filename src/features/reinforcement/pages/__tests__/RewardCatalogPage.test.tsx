@@ -8,7 +8,44 @@ const permissionState = vi.hoisted(() => ({
   permissions: [
     "reinforcement.rewards.view",
     "reinforcement.rewards.manage",
+    "files.uploads.manage",
+    "files.downloads.view",
   ] as string[],
+}));
+
+const academicContextState = vi.hoisted(() => ({
+  academicYearId: "year-1",
+  termId: "term-1",
+  academicYears: [
+    {
+      id: "year-1",
+      name: "2026/2027",
+      nameEn: "2026/2027",
+      startDate: "2026-09-01",
+      endDate: "2027-06-30",
+    },
+    {
+      id: "year-2",
+      name: "2027/2028",
+      nameEn: "2027/2028",
+      startDate: "2027-09-01",
+      endDate: "2028-06-30",
+    },
+  ],
+  terms: [
+    {
+      id: "term-1",
+      name: "Term 1",
+      nameEn: "Term 1",
+      yearId: "year-1",
+      status: "open",
+      startDate: "2026-09-01",
+      endDate: "2027-01-01",
+    },
+  ],
+  isInitializing: false,
+  requestAcademicYearChange: vi.fn(),
+  requestTermChange: vi.fn(),
 }));
 
 const catalogMocks = vi.hoisted(() => ({
@@ -23,6 +60,15 @@ const dashboardMocks = vi.hoisted(() => ({
   getRewardCatalogSummary: vi.fn(),
 }));
 
+const structureMocks = vi.hoisted(() => ({
+  fetchTermsByYear: vi.fn(),
+}));
+
+const sharedFileMocks = vi.hoisted(() => ({
+  downloadFileBlob: vi.fn(),
+  uploadFile: vi.fn(),
+}));
+
 vi.mock("@/hooks/use-auth", () => ({
   useAuth: () => ({ isLoading: false }),
 }));
@@ -35,6 +81,20 @@ vi.mock("@/hooks/usePermissions", () => ({
 }));
 
 vi.mock("@/features/reinforcement/services/rewardCatalogService", () => catalogMocks);
+
+vi.mock(
+  "@/features/academics/academic-structure-tree/services/structureService",
+  async (importOriginal) => ({
+    ...(await importOriginal<object>()),
+    fetchTermsByYear: structureMocks.fetchTermsByYear,
+  }),
+);
+
+vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({
+  useAcademicYearTermLayoutContext: () => academicContextState,
+}));
+
+vi.mock("@/services/filesService", () => sharedFileMocks);
 
 vi.mock(
   "@/features/reinforcement/services/rewardDashboardService",
@@ -54,7 +114,25 @@ describe("RewardCatalogPage", () => {
     permissionState.permissions = [
       "reinforcement.rewards.view",
       "reinforcement.rewards.manage",
+      "files.uploads.manage",
+      "files.downloads.view",
     ];
+    academicContextState.requestAcademicYearChange.mockReset();
+    academicContextState.requestTermChange.mockReset();
+    structureMocks.fetchTermsByYear
+      .mockReset()
+      .mockResolvedValue(academicContextState.terms);
+    const imageBlob = new Blob(["image"], { type: "image/png" });
+    sharedFileMocks.downloadFileBlob.mockReset().mockResolvedValue(imageBlob);
+    sharedFileMocks.uploadFile.mockReset();
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: vi.fn(() => "blob:reward-image"),
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: vi.fn(),
+    });
     catalogMocks.listRewardCatalog.mockReset().mockResolvedValue({
       items: [
         {
@@ -67,6 +145,7 @@ describe("RewardCatalogPage", () => {
           stockRemaining: 8,
           isUnlimited: false,
           isAvailable: true,
+          imageFileId: "file-1",
         },
       ],
       total: 1,
@@ -104,8 +183,8 @@ describe("RewardCatalogPage", () => {
 
     await waitFor(() => {
       expect(catalogMocks.listRewardCatalog).toHaveBeenCalledWith({
-        academicYearId: undefined,
-        termId: undefined,
+        academicYearId: "year-1",
+        termId: "term-1",
         status: undefined,
         type: undefined,
         search: undefined,
@@ -113,14 +192,34 @@ describe("RewardCatalogPage", () => {
         offset: 0,
       });
       expect(dashboardMocks.getRewardCatalogSummary).toHaveBeenCalledWith({
-        academicYearId: undefined,
-        termId: undefined,
+        academicYearId: "year-1",
+        termId: "term-1",
         status: undefined,
         type: undefined,
       });
     });
 
     expect(screen.getByText("9")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("img", { name: "Backend Catalog Item" }),
+    ).toHaveAttribute("src", "blob:reward-image");
+  });
+
+  it("routes academic filter changes through the shared context", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByText("Backend Catalog Item")).toBeInTheDocument();
+    await user.click(
+      screen.getAllByRole("button", {
+        name: "rewardsModule.catalog.form.academicYear",
+      })[0],
+    );
+    await user.click(screen.getByRole("button", { name: "2027/2028" }));
+
+    expect(academicContextState.requestAcademicYearChange).toHaveBeenCalledWith(
+      "year-2",
+    );
   });
 
   it("uses backend pagination for catalog rows", async () => {

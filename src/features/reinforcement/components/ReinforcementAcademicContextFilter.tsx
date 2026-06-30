@@ -49,8 +49,7 @@ export interface ReinforcementAcademicContextValue {
   enrollmentId?: string;
 }
 
-export interface ReinforcementAcademicContextSelection
-  extends ReinforcementAcademicContextValue {
+export interface ReinforcementAcademicContextSelection extends ReinforcementAcademicContextValue {
   academicYear?: NamedRecord;
   term?: NamedRecord;
   stage?: AcademicStructureStage;
@@ -68,6 +67,7 @@ export interface ReinforcementAcademicContextFilterProps {
   disabled?: boolean;
   showSubject?: boolean;
   showStudent?: boolean;
+  showStructure?: boolean;
 }
 
 interface LoadState<T> {
@@ -274,6 +274,7 @@ export default function ReinforcementAcademicContextFilter({
   disabled = false,
   showSubject = true,
   showStudent = true,
+  showStructure = true,
 }: ReinforcementAcademicContextFilterProps) {
   const locale = (useLocale() === "ar" ? "ar" : "en") as Locale;
   const copy = labels[locale];
@@ -310,19 +311,25 @@ export default function ReinforcementAcademicContextFilter({
 
   /* ─── Build the selection object ─── */
   const buildSelection = useCallback(
-    (next: ReinforcementAcademicContextValue): ReinforcementAcademicContextSelection => {
+    (
+      next: ReinforcementAcademicContextValue,
+    ): ReinforcementAcademicContextSelection => {
       const nextStudent = students.data.find(
         (item) => studentIdFor(item) === next.studentId,
       );
       return {
         ...next,
         enrollmentId: next.enrollmentId || enrollmentIdFor(nextStudent),
-        academicYear: years.data.find((item) => getId(item) === next.academicYearId),
+        academicYear: years.data.find(
+          (item) => getId(item) === next.academicYearId,
+        ),
         term: terms.data.find((item) => getId(item) === next.termId),
         stage: tree.data.stages.find((item) => item.id === next.stageId),
         grade: tree.data.grades.find((item) => item.id === next.gradeId),
         section: tree.data.sections.find((item) => item.id === next.sectionId),
-        classroom: tree.data.classrooms.find((item) => item.id === next.classroomId),
+        classroom: tree.data.classrooms.find(
+          (item) => item.id === next.classroomId,
+        ),
         subject: subjects.data.find((item) => item.id === next.subjectId),
         student: nextStudent,
       };
@@ -418,57 +425,69 @@ export default function ReinforcementAcademicContextFilter({
       return;
     }
     let cancelled = false;
-    setTree((current) => ({ ...current, loading: true, error: null }));
-    setSubjects((current) => ({ ...current, loading: true, error: null }));
-    setStudents((current) => ({ ...current, loading: true, error: null }));
+    setTree((current) => ({ ...current, loading: showStructure, error: null }));
+    setSubjects((current) => ({ ...current, loading: showSubject, error: null }));
+    setStudents((current) => ({ ...current, loading: showStudent, error: null }));
 
-    void fetchAcademicStructureTree({
-      yearId: value.academicYearId,
-      termId: value.termId,
-    })
-      .then((nextTree) => {
-        if (!cancelled) setTree({ data: nextTree, loading: false, error: null });
+    if (showStructure) {
+      void fetchAcademicStructureTree({
+        yearId: value.academicYearId,
+        termId: value.termId,
       })
-      .catch((error) => {
-        if (!cancelled)
-          setTree({
-            data: emptyTree,
-            loading: false,
-            error: error instanceof Error ? error.message : copy.error,
-          });
-      });
+        .then((nextTree) => {
+          if (!cancelled) setTree({ data: nextTree, loading: false, error: null });
+        })
+        .catch((error) => {
+          if (!cancelled)
+            setTree({
+              data: emptyTree,
+              loading: false,
+              error: error instanceof Error ? error.message : copy.error,
+            });
+        });
+    } else {
+      setTree({ data: emptyTree, loading: false, error: null });
+    }
 
-    void fetchSubjects(value.termId)
-      .then((items) => {
-        if (!cancelled) setSubjects({ data: items, loading: false, error: null });
-      })
-      .catch((error) => {
-        if (!cancelled)
-          setSubjects({
-            data: [],
-            loading: false,
-            error: error instanceof Error ? error.message : copy.error,
-          });
-      });
+    if (showSubject) {
+      void fetchSubjects(value.termId)
+        .then((items) => {
+          if (!cancelled) setSubjects({ data: items, loading: false, error: null });
+        })
+        .catch((error) => {
+          if (!cancelled)
+            setSubjects({
+              data: [],
+              loading: false,
+              error: error instanceof Error ? error.message : copy.error,
+            });
+        });
+    } else {
+      setSubjects({ data: [], loading: false, error: null });
+    }
 
-    void fetchStudentsWithEnrollmentForContext(
-      value.academicYearId,
-      value.termId,
-    )
-      .then((items) => {
-        if (!cancelled) setStudents({ data: items, loading: false, error: null });
-      })
-      .catch((error) => {
-        if (!cancelled)
-          setStudents({
-            data: [],
-            loading: false,
-            error: error instanceof Error ? error.message : copy.error,
-          });
-      });
+    if (showStudent) {
+      void fetchStudentsWithEnrollmentForContext(
+        value.academicYearId,
+        value.termId,
+      )
+        .then((items) => {
+          if (!cancelled) setStudents({ data: items, loading: false, error: null });
+        })
+        .catch((error) => {
+          if (!cancelled)
+            setStudents({
+              data: [],
+              loading: false,
+              error: error instanceof Error ? error.message : copy.error,
+            });
+        });
+    } else {
+      setStudents({ data: [], loading: false, error: null });
+    }
 
     return () => { cancelled = true; };
-  }, [copy.error, value.academicYearId, value.termId]);
+  }, [copy.error, showStructure, showStudent, showSubject, value.academicYearId, value.termId]);
 
   /* ─── Auto-select when only one option (terms) ─── */
   useEffect(() => {
@@ -585,16 +604,18 @@ export default function ReinforcementAcademicContextFilter({
 
   const hasAnySelection = Boolean(
     value.academicYearId ||
-      value.termId ||
-      value.stageId ||
-      value.gradeId ||
-      value.sectionId ||
-      value.classroomId ||
-      value.subjectId ||
-      value.studentId,
+    value.termId ||
+    value.stageId ||
+    value.gradeId ||
+    value.sectionId ||
+    value.classroomId ||
+    value.subjectId ||
+    value.studentId,
   );
 
-  const showSecondarySelects = Boolean(value.academicYearId && value.termId);
+  const showSecondarySelects = Boolean(
+    showStructure && value.academicYearId && value.termId,
+  );
 
   const loading =
     years.loading ||
@@ -603,7 +624,11 @@ export default function ReinforcementAcademicContextFilter({
     subjects.loading ||
     students.loading;
   const error =
-    years.error || terms.error || tree.error || subjects.error || students.error;
+    years.error ||
+    terms.error ||
+    tree.error ||
+    subjects.error ||
+    students.error;
   const isEmpty = !loading && !error && years.data.length === 0;
 
   /* ─── Breadcrumb items ─── */
@@ -717,7 +742,7 @@ export default function ReinforcementAcademicContextFilter({
       )}
 
       {/* Primary selects: Year + Term (always shown) */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2">
         {years.loading ? (
           <SelectSkeleton label={copy.academicYear} />
         ) : (
@@ -725,7 +750,9 @@ export default function ReinforcementAcademicContextFilter({
             label={copy.academicYear}
             value={value.academicYearId || ""}
             disabled={disabled || years.loading}
-            options={compactOptions(years.data.map((item) => toOption(item, locale)))}
+            options={compactOptions(
+              years.data.map((item) => toOption(item, locale)),
+            )}
             placeholder={`${copy.select} ${copy.academicYear}`}
             searchable
             searchPlaceholder={copy.search}
@@ -753,7 +780,9 @@ export default function ReinforcementAcademicContextFilter({
             label={copy.term}
             value={value.termId || ""}
             disabled={disabled || !value.academicYearId || terms.loading}
-            options={compactOptions(terms.data.map((item) => toOption(item, locale)))}
+            options={compactOptions(
+              terms.data.map((item) => toOption(item, locale)),
+            )}
             placeholder={`${copy.select} ${copy.term}`}
             searchable
             searchPlaceholder={copy.search}
@@ -867,8 +896,8 @@ export default function ReinforcementAcademicContextFilter({
           )}
 
           {/* Subject + Student (after Term selected, if props allow) */}
-          {showSubject && (
-            subjects.loading ? (
+          {showSubject &&
+            (subjects.loading ? (
               <SelectSkeleton label={copy.subject} />
             ) : (
               <Select
@@ -884,10 +913,9 @@ export default function ReinforcementAcademicContextFilter({
                 noOptionsText={copy.noOptions}
                 onChange={(subjectId) => emit({ subjectId })}
               />
-            )
-          )}
-          {showStudent && (
-            students.loading ? (
+            ))}
+          {showStudent &&
+            (students.loading ? (
               <SelectSkeleton label={copy.student} />
             ) : (
               <Select
@@ -908,8 +936,7 @@ export default function ReinforcementAcademicContextFilter({
                   emit({ studentId, enrollmentId: enrollmentIdFor(student) });
                 }}
               />
-            )
-          )}
+            ))}
         </div>
       )}
     </section>

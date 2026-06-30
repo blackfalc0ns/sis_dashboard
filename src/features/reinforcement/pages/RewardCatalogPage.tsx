@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertCircle, Archive, Edit, Plus, Rocket, ShieldAlert } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
+import AuthenticatedFileImage from "@/components/ui/authenticated-file-image/AuthenticatedFileImage";
 import DataTable, { type Column } from "@/components/ui/data-table/DataTable";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import Modal from "@/components/ui/modal/Modal";
@@ -11,6 +12,7 @@ import TextArea from "@/components/ui/input/TextArea";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
 import ReinforcementFilterToolbar, {
   type ActiveFilter,
@@ -116,6 +118,15 @@ export default function RewardCatalogPage() {
   const { showSuccess, showError } = useToast();
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
+  const {
+    academicYearId,
+    termId,
+    academicYears,
+    terms,
+    isInitializing: contextInitializing,
+    requestAcademicYearChange,
+    requestTermChange,
+  } = useAcademicYearTermLayoutContext();
 
   // ─── URL-synced filters ──────────────────────────────────────────────────
   // Note: debounceKey is not used here because ReinforcementFilterToolbar
@@ -125,7 +136,7 @@ export default function RewardCatalogPage() {
     setValue,
     clearAll,
   } = useReinforcementUrlFilters({
-    paramKeys: ["status", "type", "search", "academicYearId", "termId"],
+    paramKeys: ["status", "type", "search"],
     defaults: {},
   });
 
@@ -146,10 +157,33 @@ export default function RewardCatalogPage() {
 
   const canView = hasPermission("reinforcement.rewards.view");
   const canManage = hasPermission("reinforcement.rewards.manage");
+  const canUploadFiles = hasPermission("files.uploads.manage");
+  const canDownloadFiles = hasPermission("files.downloads.view");
+  const hasAcademicContext = Boolean(academicYearId && termId);
 
   // ─── Filter toolbar config ───────────────────────────────────────────────
   const catalogFilters: FilterConfig[] = useMemo(
     () => [
+      {
+        key: "academicYearId",
+        label: t("rewardsModule.catalog.form.academicYear"),
+        type: "select",
+        options: academicYears.map((year) => ({
+          value: year.id,
+          label:
+            (locale === "ar" ? year.nameAr : year.nameEn) || year.name,
+        })),
+      },
+      {
+        key: "termId",
+        label: t("rewardsModule.catalog.form.term"),
+        type: "select",
+        options: terms.map((term) => ({
+          value: term.id,
+          label:
+            (locale === "ar" ? term.nameAr : term.nameEn) || term.name,
+        })),
+      },
       {
         key: "status",
         label: t("rewardsModule.catalog.table.status"),
@@ -181,7 +215,7 @@ export default function RewardCatalogPage() {
         placeholder: t("filters.searchPlaceholder"),
       },
     ],
-    [t],
+    [academicYears, locale, t, terms],
   );
 
   const activeFilters: ActiveFilter[] = useMemo(() => {
@@ -216,9 +250,17 @@ export default function RewardCatalogPage() {
   const handleFilterChange = useCallback(
     (key: string, value: string) => {
       setCatalogPage(1);
+      if (key === "academicYearId") {
+        void requestAcademicYearChange(value);
+        return;
+      }
+      if (key === "termId") {
+        requestTermChange(value);
+        return;
+      }
       setValue(key, value);
     },
-    [setValue],
+    [requestAcademicYearChange, requestTermChange, setValue],
   );
 
   const handleClearAllFilters = useCallback(() => {
@@ -238,8 +280,8 @@ export default function RewardCatalogPage() {
     () => ({
       status: (values.status || undefined) as RewardCatalogStatus | undefined,
       type: (values.type || undefined) as RewardItemType | undefined,
-      academicYearId: values.academicYearId || undefined,
-      termId: values.termId || undefined,
+      academicYearId: academicYearId || undefined,
+      termId: termId || undefined,
       search: values.search || undefined,
       limit: catalogPageSize,
       offset: (catalogPage - 1) * catalogPageSize,
@@ -247,8 +289,8 @@ export default function RewardCatalogPage() {
     [
       values.status,
       values.type,
-      values.academicYearId,
-      values.termId,
+      academicYearId,
+      termId,
       values.search,
       catalogPage,
       catalogPageSize,
@@ -259,14 +301,17 @@ export default function RewardCatalogPage() {
     () => ({
       status: (values.status || undefined) as RewardCatalogStatus | undefined,
       type: (values.type || undefined) as RewardItemType | undefined,
-      academicYearId: values.academicYearId || undefined,
-      termId: values.termId || undefined,
+      academicYearId: academicYearId || undefined,
+      termId: termId || undefined,
     }),
-    [values.status, values.type, values.academicYearId, values.termId],
+    [academicYearId, termId, values.status, values.type],
   );
 
   const refreshCatalog = useCallback(async () => {
-    if (!canView) return;
+    if (!canView || contextInitializing || !hasAcademicContext) {
+      if (!contextInitializing) setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -300,7 +345,19 @@ export default function RewardCatalogPage() {
     } finally {
       setLoading(false);
     }
-  }, [canView, catalogParams, summaryParams, showError, t]);
+  }, [
+    canView,
+    catalogParams,
+    contextInitializing,
+    hasAcademicContext,
+    summaryParams,
+    showError,
+    t,
+  ]);
+
+  useEffect(() => {
+    setCatalogPage(1);
+  }, [academicYearId, termId]);
 
   useEffect(() => {
     void Promise.resolve().then(refreshCatalog);
@@ -412,7 +469,20 @@ export default function RewardCatalogPage() {
             locale === "ar"
               ? row.titleAr || row.titleEn || "-"
               : row.titleEn || row.titleAr || "-";
-          return <span className="font-medium text-gray-900">{title}</span>;
+          return (
+            <div className="flex min-w-0 items-center gap-3">
+              <AuthenticatedFileImage
+                fileId={row.imageFileId}
+                alt={title}
+                canDownload={canDownloadFiles}
+                unavailableLabel={t(
+                  "rewardsModule.catalog.form.imageUnavailable",
+                )}
+                retryLabel={t("rewardsModule.catalog.form.retryImage")}
+              />
+              <span className="font-medium text-gray-900">{title}</span>
+            </div>
+          );
         },
       },
       {
@@ -551,7 +621,14 @@ export default function RewardCatalogPage() {
         },
       },
     ],
-    [locale, t, canManage, handlePublish, handleOpenArchive],
+    [
+      canDownloadFiles,
+      locale,
+      t,
+      canManage,
+      handlePublish,
+      handleOpenArchive,
+    ],
   );
 
   if (authLoading) return <MainLoader />;
@@ -593,7 +670,7 @@ export default function RewardCatalogPage() {
         title={t("rewardsModule.catalog.title")}
         description={t("rewardsModule.description")}
         actions={
-          canManage ? (
+          canManage && hasAcademicContext ? (
             <Button
               variant="primary"
               leftIcon={<Plus className="h-4 w-4" />}
@@ -607,7 +684,13 @@ export default function RewardCatalogPage() {
 
       <ReinforcementFilterToolbar
         filters={catalogFilters}
-        values={{ status: values.status, type: values.type, search: values.search }}
+        values={{
+          academicYearId,
+          termId,
+          status: values.status,
+          type: values.type,
+          search: values.search,
+        }}
         onChange={handleFilterChange}
         onClearAll={handleClearAllFilters}
         activeFilters={activeFilters}
@@ -615,6 +698,12 @@ export default function RewardCatalogPage() {
         searchKey="search"
         debounceMs={350}
       />
+
+      {!contextInitializing && !hasAcademicContext ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
+          {t("rewardsModule.catalog.form.contextUnavailable")}
+        </div>
+      ) : null}
 
       {error ? (
         <div className="rounded-lg border border-red-100 bg-red-50 p-5">
@@ -713,6 +802,11 @@ export default function RewardCatalogPage() {
         onSubmit={handleFormSubmit}
         initialData={editingItem}
         loading={formLoading}
+        academicYears={academicYears}
+        defaultAcademicYearId={academicYearId}
+        defaultTermId={termId}
+        canUploadFiles={canUploadFiles}
+        canDownloadFiles={canDownloadFiles}
       />
     </div>
   );

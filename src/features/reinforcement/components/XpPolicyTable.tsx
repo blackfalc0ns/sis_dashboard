@@ -1,90 +1,22 @@
 "use client";
 
+import { Edit } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
-import Input from "@/components/ui/input/Input";
-import type { PatchXpPolicyPayload, XpPolicy } from "../types";
-import { useState } from "react";
+import type { XpPolicy } from "../types";
 
 interface XpPolicyTableProps {
   policies: XpPolicy[];
   loading?: boolean;
   canManage?: boolean;
-  onPatchCaps: (policyId: string, payload: PatchXpPolicyPayload) => Promise<void>;
-}
-
-function numberValue(value?: number): string {
-  return typeof value === "number" ? String(value) : "";
-}
-
-function PatchCapsRow({
-  policy,
-  onPatchCaps,
-}: {
-  policy: XpPolicy;
-  onPatchCaps: (policyId: string, payload: PatchXpPolicyPayload) => Promise<void>;
-}) {
-  const t = useTranslations("reinforcement");
-  const [dailyCap, setDailyCap] = useState(numberValue(policy.dailyCap));
-  const [weeklyCap, setWeeklyCap] = useState(numberValue(policy.weeklyCap));
-  const [cooldownMinutes, setCooldownMinutes] = useState(
-    numberValue(policy.cooldownMinutes),
-  );
-  const [saving, setSaving] = useState(false);
-
-  const parseOptionalNumber = (value: string): number | undefined => {
-    if (!value.trim()) return undefined;
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  };
-
-  const handlePatch = async () => {
-    setSaving(true);
-    try {
-      await onPatchCaps(policy.id, {
-        dailyCap: parseOptionalNumber(dailyCap),
-        weeklyCap: parseOptionalNumber(weeklyCap),
-        cooldownMinutes: parseOptionalNumber(cooldownMinutes),
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto]">
-      <Input
-        type="number"
-        label={t("xp.dailyCap")}
-        value={dailyCap}
-        onChange={(event) => setDailyCap(event.target.value)}
-      />
-      <Input
-        type="number"
-        label={t("xp.weeklyCap")}
-        value={weeklyCap}
-        onChange={(event) => setWeeklyCap(event.target.value)}
-      />
-      <Input
-        type="number"
-        label={t("xp.cooldownMinutes")}
-        value={cooldownMinutes}
-        onChange={(event) => setCooldownMinutes(event.target.value)}
-      />
-      <div className="flex items-end">
-        <Button type="button" size="sm" loading={saving} onClick={handlePatch}>
-          {t("xp.patchCaps")}
-        </Button>
-      </div>
-    </div>
-  );
+  onEdit: (policy: XpPolicy) => void;
 }
 
 export default function XpPolicyTable({
   policies,
   loading = false,
   canManage = false,
-  onPatchCaps,
+  onEdit,
 }: XpPolicyTableProps) {
   const locale = useLocale();
   const t = useTranslations("reinforcement");
@@ -109,27 +41,30 @@ export default function XpPolicyTable({
     <div className="space-y-4">
       {policies.map((policy) => (
         <article
-          key={policy.id}
+          key={policy.id ?? `default-${policy.academicYearId}-${policy.termId}`}
           className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm"
         >
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h3 className="text-base font-semibold text-gray-900">
                 {t(`assignmentScope.${policy.scopeType}`)}
-                {policy.scopeId ? ` / ${policy.scopeId}` : ""}
+                {policy.scopeKey ? ` / ${policy.scopeKey}` : ""}
               </h3>
               <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-600">
                 <span className="rounded-full bg-gray-100 px-2.5 py-1">
                   {policy.isActive ? t("activeState.active") : t("activeState.inactive")}
                 </span>
                 <span className="rounded-full bg-gray-100 px-2.5 py-1">
-                  {t("xp.dailyCap")}: {policy.dailyCap ?? "-"}
+                  {policy.isDefault ? t("xp.defaultPolicy") : t("xp.customPolicy")}
                 </span>
                 <span className="rounded-full bg-gray-100 px-2.5 py-1">
-                  {t("xp.weeklyCap")}: {policy.weeklyCap ?? "-"}
+                  {t("xp.dailyCap")}: {policy.dailyCap ?? t("xp.notSet")}
                 </span>
                 <span className="rounded-full bg-gray-100 px-2.5 py-1">
-                  {t("xp.cooldownMinutes")}: {policy.cooldownMinutes ?? "-"}
+                  {t("xp.weeklyCap")}: {policy.weeklyCap ?? t("xp.notSet")}
+                </span>
+                <span className="rounded-full bg-gray-100 px-2.5 py-1">
+                  {t("xp.cooldownMinutes")}: {policy.cooldownMinutes ?? t("xp.notSet")}
                 </span>
               </div>
               {policy.allowedReasons?.length ? (
@@ -153,12 +88,18 @@ export default function XpPolicyTable({
                 </p>
               )}
             </div>
+            {canManage && !policy.isDefault && policy.id ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                leftIcon={<Edit className="h-4 w-4" />}
+                onClick={() => onEdit(policy)}
+              >
+                {t("actions.edit")}
+              </Button>
+            ) : null}
           </div>
-          {canManage ? (
-            <div className="mt-4 border-t border-gray-100 pt-4">
-              <PatchCapsRow policy={policy} onPatchCaps={onPatchCaps} />
-            </div>
-          ) : null}
         </article>
       ))}
     </div>

@@ -14,6 +14,7 @@ export interface FileUploadButtonProps {
   buttonProps?: Partial<ButtonProps>;
   helperText?: string;
   onError?: (error: string) => void;
+  formatSizeError?: (fileName: string, maxSizeMb: number) => string;
 }
 
 export default function FileUploadButton({
@@ -26,6 +27,7 @@ export default function FileUploadButton({
   buttonProps = {},
   helperText,
   onError,
+  formatSizeError,
 }: FileUploadButtonProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string>("");
@@ -42,8 +44,10 @@ export default function FileUploadButton({
     for (const file of filesArray) {
       // Validate file size
       if (maxSizeBytes && file.size > maxSizeBytes) {
-        const maxSizeMB = (maxSizeBytes / (1024 * 1024)).toFixed(0);
-        const errorMsg = `File "${file.name}" exceeds ${maxSizeMB}MB limit`;
+        const maxSizeMB = maxSizeBytes / (1024 * 1024);
+        const errorMsg = formatSizeError
+          ? formatSizeError(file.name, maxSizeMB)
+          : `File "${file.name}" exceeds ${maxSizeMB.toFixed(0)}MB limit`;
         setError(errorMsg);
         if (onError) onError(errorMsg);
         continue;

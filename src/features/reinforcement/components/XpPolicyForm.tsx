@@ -8,6 +8,7 @@ import TextArea from "@/components/ui/input/TextArea";
 import type {
   CreateXpPolicyPayload,
   ReinforcementTargetScope,
+  XpPolicy,
   XpPolicyScopeType,
 } from "../types";
 import ReinforcementAcademicContextFilter, {
@@ -21,6 +22,8 @@ import ReinforcementTaskTargetSelector, {
 interface XpPolicyFormProps {
   onSubmit: (payload: CreateXpPolicyPayload) => Promise<void>;
   onCancel: () => void;
+  mode?: "create" | "edit";
+  initialPolicy?: XpPolicy | null;
 }
 
 const parseOptionalNumber = (value: string): number | undefined => {
@@ -37,18 +40,63 @@ const reasonsFromText = (value: string): string[] | undefined => {
   return reasons.length ? reasons : undefined;
 };
 
-export default function XpPolicyForm({ onSubmit, onCancel }: XpPolicyFormProps) {
+export const isXpPolicyDateRangeValid = (
+  startsAt: string,
+  endsAt: string,
+): boolean => !startsAt || !endsAt || startsAt <= endsAt;
+
+const dateInputValue = (value: string | null | undefined): string =>
+  value ? value.slice(0, 10) : "";
+
+const initialTargetFor = (
+  policy: XpPolicy | null | undefined,
+): ReinforcementTaskTargetSelection[] =>
+  policy
+    ? [
+        {
+          scopeType: policy.scopeType,
+          scopeId: policy.scopeKey,
+          label: policy.scopeKey,
+        },
+      ]
+    : [];
+
+export default function XpPolicyForm({
+  onSubmit,
+  onCancel,
+  mode = "create",
+  initialPolicy = null,
+}: XpPolicyFormProps) {
   const locale = useLocale();
   const t = useTranslations("reinforcement");
-  const [context, setContext] = useState<ReinforcementAcademicContextValue>({});
-  const [targets, setTargets] = useState<ReinforcementTaskTargetSelection[]>([]);
-  const [dailyCap, setDailyCap] = useState("");
-  const [weeklyCap, setWeeklyCap] = useState("");
-  const [cooldownMinutes, setCooldownMinutes] = useState("");
-  const [allowedReasons, setAllowedReasons] = useState("");
-  const [startsAt, setStartsAt] = useState("");
-  const [endsAt, setEndsAt] = useState("");
-  const [isActive, setIsActive] = useState(true);
+  const [context, setContext] = useState<ReinforcementAcademicContextValue>({
+    academicYearId: initialPolicy?.academicYearId,
+    termId: initialPolicy?.termId,
+  });
+  const [targets, setTargets] =
+    useState<ReinforcementTaskTargetSelection[]>(initialTargetFor(initialPolicy));
+  const [dailyCap, setDailyCap] = useState(
+    initialPolicy?.dailyCap === null || initialPolicy?.dailyCap === undefined
+      ? ""
+      : String(initialPolicy.dailyCap),
+  );
+  const [weeklyCap, setWeeklyCap] = useState(
+    initialPolicy?.weeklyCap === null || initialPolicy?.weeklyCap === undefined
+      ? ""
+      : String(initialPolicy.weeklyCap),
+  );
+  const [cooldownMinutes, setCooldownMinutes] = useState(
+    initialPolicy?.cooldownMinutes === null ||
+      initialPolicy?.cooldownMinutes === undefined
+      ? ""
+      : String(initialPolicy.cooldownMinutes),
+  );
+  const [allowedReasons, setAllowedReasons] = useState(
+    initialPolicy?.allowedReasons.join("\n") ?? "",
+  );
+  const [startsAt, setStartsAt] = useState(dateInputValue(initialPolicy?.startsAt));
+  const [endsAt, setEndsAt] = useState(dateInputValue(initialPolicy?.endsAt));
+  const [isActive, setIsActive] = useState(initialPolicy?.isActive ?? true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -60,6 +108,10 @@ export default function XpPolicyForm({ onSubmit, onCancel }: XpPolicyFormProps) 
     }
     if (!selectedTarget) {
       setError(t("validation.targetRequired"));
+      return;
+    }
+    if (!isXpPolicyDateRangeValid(startsAt, endsAt)) {
+      setError(t("xp.invalidDateRange"));
       return;
     }
     setSaving(true);
@@ -95,6 +147,7 @@ export default function XpPolicyForm({ onSubmit, onCancel }: XpPolicyFormProps) 
         value={context}
         showSubject={false}
         showStudent={false}
+        showStructure={false}
         onChange={(selection: ReinforcementAcademicContextSelection) =>
           setContext({
             academicYearId: selection.academicYearId,
@@ -111,7 +164,9 @@ export default function XpPolicyForm({ onSubmit, onCancel }: XpPolicyFormProps) 
           <ReinforcementTaskTargetSelector
             academicYearId={context.academicYearId}
             termId={context.termId}
-            defaultScope={"student" as ReinforcementTargetScope}
+            defaultScope={
+              (initialPolicy?.scopeType || "student") as ReinforcementTargetScope
+            }
             value={targets}
             onChange={(nextTargets) => setTargets(nextTargets.slice(-1))}
           />
@@ -178,7 +233,7 @@ export default function XpPolicyForm({ onSubmit, onCancel }: XpPolicyFormProps) 
           {t("actions.cancel")}
         </Button>
         <Button type="button" loading={saving} onClick={handleSubmit}>
-          {t("actions.create")}
+          {mode === "edit" ? t("actions.update") : t("actions.create")}
         </Button>
       </div>
     </div>

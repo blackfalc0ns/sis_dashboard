@@ -2,6 +2,7 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast/Toast";
+import type { RewardRedemption } from "../../types";
 import RewardRedemptionsPage from "../RewardRedemptionsPage";
 
 const authState = vi.hoisted(() => ({
@@ -10,6 +11,7 @@ const authState = vi.hoisted(() => ({
 
 const redemptionMocks = vi.hoisted(() => ({
   listRewardRedemptions: vi.fn(),
+  getRewardRedemption: vi.fn(),
   createRewardRedemption: vi.fn(),
   approveRewardRedemption: vi.fn(),
   rejectRewardRedemption: vi.fn(),
@@ -71,6 +73,96 @@ const approvedRedemption = {
   student: { name: "Student Two", nameAr: "الطالب الثاني" },
   catalogItem: { id: "reward-2", titleEn: "Book Voucher", titleAr: "قسيمة كتاب" },
 };
+
+function makeCompleteRedemption(
+  base: {
+    id: string;
+    catalogItemId: string;
+    studentId: string;
+    status: RewardRedemption["status"];
+    requestSource: RewardRedemption["requestSource"];
+    requestedAt: string;
+    student: { nameAr: string };
+    catalogItem: { id: string; titleEn: string; titleAr: string };
+  },
+  overrides: Partial<RewardRedemption> = {},
+): RewardRedemption {
+  return {
+    ...base,
+    enrollmentId: `${base.id}-enrollment`,
+    academicYearId: "year-1",
+    termId: "term-1",
+    requestedById: "admin-1",
+    reviewedById: null,
+    fulfilledById: null,
+    cancelledById: null,
+    reviewedAt: null,
+    fulfilledAt: null,
+    cancelledAt: null,
+    requestNoteEn: "Please prepare it today.",
+    requestNoteAr: null,
+    reviewNoteEn: null,
+    reviewNoteAr: null,
+    fulfillmentNoteEn: null,
+    fulfillmentNoteAr: null,
+    cancellationReasonEn: null,
+    cancellationReasonAr: null,
+    eligibilitySnapshot: {
+      eligible: true,
+      minTotalXp: 50,
+      isUnlimited: false,
+      totalEarnedXp: 80,
+      stockAvailable: true,
+      stockRemaining: 10,
+      catalogItemStatus: "published",
+    },
+    catalogItem: {
+      ...base.catalogItem,
+      type: "physical",
+      status: "published",
+      minTotalXp: 50,
+      isUnlimited: false,
+      stockRemaining: 10,
+      imageFileId: null,
+    },
+    student: {
+      id: base.studentId,
+      firstName: "Student",
+      lastName: base.id === "redemption-approved" ? "Two" : "One",
+      nameAr: base.student.nameAr,
+      code: null,
+      admissionNo: null,
+    },
+    enrollment: {
+      id: `${base.id}-enrollment`,
+      academicYearId: "year-1",
+      termId: "term-1",
+      classroomId: "classroom-1",
+      sectionId: "section-1",
+      gradeId: "grade-1",
+      stageId: "stage-1",
+    },
+    academicYear: {
+      id: "year-1",
+      nameEn: "Academic Year 2026",
+      nameAr: "العام الدراسي 2026",
+      isActive: true,
+    },
+    term: {
+      id: "term-1",
+      academicYearId: "year-1",
+      nameEn: "Term 1",
+      nameAr: "الفصل الأول",
+      isActive: true,
+    },
+    createdAt: base.requestedAt,
+    updatedAt: base.requestedAt,
+    ...overrides,
+  };
+}
+
+const requestedRedemptionDetail = makeCompleteRedemption(requestedRedemption);
+const approvedRedemptionDetail = makeCompleteRedemption(approvedRedemption);
 
 function renderPage() {
   render(
@@ -147,11 +239,14 @@ describe("RewardRedemptionsPage", () => {
       "reinforcement.rewards.fulfill",
     ];
     redemptionMocks.listRewardRedemptions.mockReset().mockResolvedValue({
-      items: [requestedRedemption, approvedRedemption],
+      items: [requestedRedemptionDetail, approvedRedemptionDetail],
       total: 2,
     });
+    redemptionMocks.getRewardRedemption
+      .mockReset()
+      .mockResolvedValue(requestedRedemptionDetail);
     redemptionMocks.createRewardRedemption.mockReset().mockResolvedValue({
-      ...requestedRedemption,
+      ...requestedRedemptionDetail,
       id: "created-redemption",
     });
     redemptionMocks.approveRewardRedemption.mockReset();
@@ -234,6 +329,54 @@ describe("RewardRedemptionsPage", () => {
     expect(
       screen.queryByRole("button", { name: "rewardsModule.actions.approve" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("opens the details drawer from the view button", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const viewButtons = await screen.findAllByRole("button", {
+      name: "rewardsModule.actions.view",
+    });
+    await user.click(viewButtons[0]);
+
+    await waitFor(() =>
+      expect(redemptionMocks.getRewardRedemption).toHaveBeenCalledWith(
+        "redemption-requested",
+      ),
+    );
+    expect(await screen.findByText("Please prepare it today.")).toBeInTheDocument();
+    expect(screen.getByText("Academic Year 2026")).toBeInTheDocument();
+  });
+
+  it("opens the details drawer from a row click", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByText("Student One"));
+
+    await waitFor(() =>
+      expect(redemptionMocks.getRewardRedemption).toHaveBeenCalledWith(
+        "redemption-requested",
+      ),
+    );
+    expect(await screen.findByText("Please prepare it today.")).toBeInTheDocument();
+  });
+
+  it("does not open the details drawer when a workflow action is clicked", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "rewardsModule.actions.approve",
+      }),
+    );
+
+    expect(redemptionMocks.getRewardRedemption).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("redemptions.modal.approveTitle"),
+    ).toBeInTheDocument();
   });
 
   it("creates a dashboard redemption request and refreshes the list", async () => {

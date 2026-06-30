@@ -5,7 +5,7 @@ import { AlertCircle, Plus, RefreshCw, ShieldAlert } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import Modal from "@/components/ui/modal/Modal";
-import Select from "@/components/ui/input/Select";
+import Select, { type SelectOption } from "@/components/ui/input/Select";
 import { useToast } from "@/components/ui/toast/Toast";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,6 +15,9 @@ import ReinforcementAcademicContextFilter, {
   type ReinforcementAcademicContextValue,
 } from "../components/ReinforcementAcademicContextFilter";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
+import ReinforcementTaskTargetSelector, {
+  type ReinforcementTaskTargetSelection,
+} from "../components/ReinforcementTaskTargetSelector";
 import XpPolicyForm from "../components/XpPolicyForm";
 import XpPolicyTable from "../components/XpPolicyTable";
 import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
@@ -24,12 +27,80 @@ import {
   listXpPolicies,
   patchXpPolicy,
 } from "../services/reinforcementXpService";
+import { getReinforcementFilterOptions } from "../services/reinforcementFilterOptionsService";
 import type {
   CreateXpPolicyPayload,
-  PatchXpPolicyPayload,
+  ReinforcementFilterOptions,
   XpPolicy,
-  XpPolicyScopeType,
 } from "../types";
+
+interface EffectiveStudentOption extends SelectOption {
+  enrollmentId?: string;
+}
+
+const stringFrom = (
+  record: unknown,
+  keys: string[],
+): string | undefined => {
+  if (!record || typeof record !== "object") return undefined;
+  const source = record as Record<string, unknown>;
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "string" && value.trim()) return value;
+    if (typeof value === "number") return String(value);
+  }
+  return undefined;
+};
+
+const enrollmentIdFrom = (record: unknown): string | undefined => {
+  if (!record || typeof record !== "object") return undefined;
+  const source = record as Record<string, unknown>;
+  return (
+    stringFrom(source, ["enrollmentId"]) ||
+    stringFrom(source.enrollment, ["id", "enrollmentId"])
+  );
+};
+
+const studentIdFrom = (record: unknown): string | undefined =>
+  stringFrom(record, ["value", "studentId", "id", "student_id"]);
+
+const studentNameFrom = (record: unknown, locale: string): string => {
+  const primaryKeys =
+    locale === "ar"
+      ? ["nameAr", "full_name_ar", "fullNameAr", "name", "nameEn"]
+      : ["nameEn", "full_name_en", "fullNameEn", "name", "nameAr"];
+  return (
+    stringFrom(record, primaryKeys) ||
+    stringFrom(record, ["code", "admissionNo", "student_id", "value", "id"]) ||
+    ""
+  );
+};
+
+const buildEffectiveStudentOptions = (
+  options: ReinforcementFilterOptions,
+  locale: string,
+): EffectiveStudentOption[] => {
+  const source =
+    options.scopeTargets?.student?.length
+      ? options.scopeTargets.student
+      : Array.isArray(options.students)
+        ? options.students
+        : [];
+  const seen = new Set<string>();
+  return source.reduce<EffectiveStudentOption[]>((items, item) => {
+    const value = studentIdFrom(item);
+    if (!value || seen.has(value)) return items;
+    seen.add(value);
+    const label = studentNameFrom(item, locale) || value;
+    items.push({
+      value,
+      label,
+      enrollmentId: enrollmentIdFrom(item),
+      searchText: `${label} ${stringFrom(item, ["student_id", "code", "admissionNo"]) || ""}`,
+    });
+    return items;
+  }, []);
+};
 
 function AccessNotice() {
   const t = useTranslations("reinforcement.common");
@@ -81,36 +152,72 @@ export default function ReinforcementXpPoliciesPage() {
     [values.academicYearId, values.termId, values.stageId, values.gradeId, values.sectionId, values.classroomId, values.studentId, values.enrollmentId],
   );
 
-  const [scopeType, setScopeType] = useState<XpPolicyScopeType | "">("");
+  const [policyTargets, setPolicyTargets] = useState<
+    ReinforcementTaskTargetSelection[]
+  >([]);
   const [activeFilter, setActiveFilter] = useState<"all" | "active" | "inactive">(
     "all",
   );
+  const [includeDeleted, setIncludeDeleted] = useState(false);
   const [policies, setPolicies] = useState<XpPolicy[]>([]);
   const [effectivePolicy, setEffectivePolicy] = useState<XpPolicy | null>(null);
+  const [effectivePolicyStudentLabel, setEffectivePolicyStudentLabel] =
+    useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingPolicy, setEditingPolicy] = useState<XpPolicy | null>(null);
+  const [isEffectiveStudentPickerOpen, setIsEffectiveStudentPickerOpen] =
+    useState(false);
+  const [effectiveStudentOptions, setEffectiveStudentOptions] = useState<
+    EffectiveStudentOption[]
+  >([]);
+  const [effectiveStudentId, setEffectiveStudentId] = useState("");
+  const [effectiveStudentsLoading, setEffectiveStudentsLoading] =
+    useState(false);
+  const [effectiveStudentsError, setEffectiveStudentsError] = useState<
+    string | null
+  >(null);
 
   const canView = hasPermission("reinforcement.xp.view");
   const canManage = hasPermission("reinforcement.xp.manage");
+  const selectedPolicyTarget = policyTargets[0];
 
   const params = useMemo(
     () => ({
       academicYearId: context.academicYearId,
       termId: context.termId,
-      scopeType: scopeType || undefined,
-      scopeKey: context.studentId,
+      scopeType: selectedPolicyTarget?.scopeType,
+      scopeKey: selectedPolicyTarget?.scopeId,
       isActive:
         activeFilter === "all" ? undefined : activeFilter === "active",
+      includeDeleted: includeDeleted || undefined,
     }),
     [
       activeFilter,
       context.academicYearId,
-      context.studentId,
       context.termId,
-      scopeType,
+      includeDeleted,
+      selectedPolicyTarget?.scopeId,
+      selectedPolicyTarget?.scopeType,
     ],
   );
+
+  useEffect(() => {
+    setPolicyTargets([]);
+  }, [context.academicYearId, context.termId]);
+
+  useEffect(() => {
+    setEffectivePolicy(null);
+    setEffectivePolicyStudentLabel(null);
+  }, [
+    activeFilter,
+    context.academicYearId,
+    context.termId,
+    includeDeleted,
+    selectedPolicyTarget?.scopeId,
+    selectedPolicyTarget?.scopeType,
+  ]);
 
   const refreshPolicies = useCallback(async () => {
     if (!canView) return;
@@ -147,13 +254,12 @@ export default function ReinforcementXpPoliciesPage() {
     }
   };
 
-  const handlePatchCaps = async (
-    policyId: string,
-    payload: PatchXpPolicyPayload,
-  ) => {
+  const handleEdit = async (payload: CreateXpPolicyPayload) => {
+    if (!editingPolicy?.id) return;
     try {
-      await patchXpPolicy(policyId, payload);
+      await patchXpPolicy(editingPolicy.id, payload);
       showSuccess(t("xp.messages.policyPatched"));
+      setEditingPolicy(null);
       await refreshPolicies();
     } catch (nextError) {
       const message =
@@ -163,8 +269,56 @@ export default function ReinforcementXpPoliciesPage() {
     }
   };
 
+  const loadEffectiveStudents = useCallback(async () => {
+    if (!context.academicYearId || !context.termId) return;
+    setEffectiveStudentsLoading(true);
+    setEffectiveStudentsError(null);
+    try {
+      const filterOptions = await getReinforcementFilterOptions({
+        academicYearId: context.academicYearId,
+        termId: context.termId,
+      });
+      setEffectiveStudentOptions(
+        buildEffectiveStudentOptions(filterOptions, locale),
+      );
+    } catch (nextError) {
+      const message =
+        nextError instanceof Error ? nextError.message : t("common.error");
+      setEffectiveStudentsError(message);
+      showError(message);
+    } finally {
+      setEffectiveStudentsLoading(false);
+    }
+  }, [context.academicYearId, context.termId, locale, showError, t]);
+
+  useEffect(() => {
+    if (!isEffectiveStudentPickerOpen) return;
+    setEffectiveStudentId("");
+    void loadEffectiveStudents();
+  }, [isEffectiveStudentPickerOpen, loadEffectiveStudents]);
+
+  const openEffectiveStudentPicker = () => {
+    if (!context.academicYearId) {
+      showError(t("xp.validation.academicYearRequired"));
+      return;
+    }
+    if (!context.termId) {
+      showError(t("xp.validation.termRequired"));
+      return;
+    }
+    setEffectiveStudentsError(null);
+    setIsEffectiveStudentPickerOpen(true);
+  };
+
   const lookupEffectivePolicy = async () => {
-    if (!context.studentId || !context.enrollmentId) {
+    const selectedStudent = effectiveStudentOptions.find(
+      (item) => item.value === effectiveStudentId,
+    );
+    if (!selectedStudent) {
+      showError(t("xp.validation.studentRequired"));
+      return;
+    }
+    if (!selectedStudent.enrollmentId) {
       showError(t("xp.validation.studentEnrollmentRequired"));
       return;
     }
@@ -173,9 +327,11 @@ export default function ReinforcementXpPoliciesPage() {
         await getEffectiveXpPolicy({
           academicYearId: context.academicYearId,
           termId: context.termId,
-          studentId: context.studentId,
+          studentId: selectedStudent.value,
         }),
       );
+      setEffectivePolicyStudentLabel(selectedStudent.label);
+      setIsEffectiveStudentPickerOpen(false);
       showSuccess(t("xp.messages.effectiveLoaded"));
     } catch (nextError) {
       const message =
@@ -186,6 +342,8 @@ export default function ReinforcementXpPoliciesPage() {
 
   if (authLoading) return <MainLoader />;
   if (!canView) return <AccessNotice />;
+
+  const displayedPolicies = effectivePolicy ? [effectivePolicy] : policies;
 
   return (
     <div className="min-h-screen space-y-6 bg-gray-50" dir={locale === "ar" ? "rtl" : "ltr"}>
@@ -222,7 +380,8 @@ export default function ReinforcementXpPoliciesPage() {
           <ReinforcementAcademicContextFilter
             value={context}
             showSubject={false}
-            showStudent
+            showStudent={false}
+            showStructure={false}
             onChange={(selection: ReinforcementAcademicContextSelection) => {
               setValue("academicYearId", selection.academicYearId || "");
               setValue("termId", selection.termId || "");
@@ -235,21 +394,21 @@ export default function ReinforcementXpPoliciesPage() {
             }}
           />
         </div>
+        {context.academicYearId && context.termId ? (
+          <div className="mt-4">
+            <ReinforcementTaskTargetSelector
+              academicYearId={context.academicYearId}
+              termId={context.termId}
+              value={policyTargets}
+              onChange={(targets) => {
+                const latestTarget = targets.at(-1);
+                setPolicyTargets(latestTarget ? [latestTarget] : []);
+              }}
+              defaultScope={selectedPolicyTarget?.scopeType || "section"}
+            />
+          </div>
+        ) : null}
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <Select
-            label={t("xp.scopeType")}
-            value={scopeType}
-            onChange={(value) => setScopeType(value as XpPolicyScopeType | "")}
-            options={[
-              { value: "", label: t("xp.allScopes") },
-              { value: "school", label: t("assignmentScope.school") },
-              { value: "stage", label: t("assignmentScope.stage") },
-              { value: "grade", label: t("assignmentScope.grade") },
-              { value: "section", label: t("assignmentScope.section") },
-              { value: "classroom", label: t("assignmentScope.classroom") },
-              { value: "student", label: t("assignmentScope.student") },
-            ]}
-          />
           <Select
             label={t("xp.activeStatus")}
             value={activeFilter}
@@ -262,12 +421,21 @@ export default function ReinforcementXpPoliciesPage() {
               { value: "inactive", label: t("activeState.inactive") },
             ]}
           />
+          <label className="flex min-h-[44px] items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700">
+            <input
+              type="checkbox"
+              checked={includeDeleted}
+              onChange={(event) => setIncludeDeleted(event.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+            />
+            <span>{t("xp.includeDeleted")}</span>
+          </label>
           <div className="flex items-end">
             <Button
               type="button"
               variant="secondary"
               fullWidth
-              onClick={lookupEffectivePolicy}
+              onClick={openEffectiveStudentPicker}
             >
               {t("xp.lookupEffectivePolicy")}
             </Button>
@@ -286,17 +454,45 @@ export default function ReinforcementXpPoliciesPage() {
 
       {effectivePolicy ? (
         <section className="rounded-lg border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800">
-          <strong>{t("xp.effectivePolicy")}:</strong>{" "}
-          {t(`assignmentScope.${effectivePolicy.scopeType}`)}
-          {effectivePolicy.scopeId ? ` / ${effectivePolicy.scopeId}` : ""}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <strong>{t("xp.effectivePolicyFilterTitle")}</strong>
+              <span className="ms-1">
+                {t("xp.effectivePolicyFilterDescription", {
+                  student:
+                    effectivePolicyStudentLabel || t("common.student"),
+                })}
+              </span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setEffectivePolicy(null);
+                setEffectivePolicyStudentLabel(null);
+              }}
+            >
+              {t("xp.clearEffectivePolicyFilter")}
+            </Button>
+          </div>
         </section>
       ) : null}
 
+      {/*
+        <section className="rounded-lg border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800">
+          <strong>{t("xp.effectivePolicy")}:</strong>{" "}
+          {t(`assignmentScope.${effectivePolicy.scopeType}`)}
+          {effectivePolicy.scopeKey ? ` / ${effectivePolicy.scopeKey}` : ""}
+          {` · ${effectivePolicy.isDefault ? t("xp.defaultPolicy") : t("xp.customPolicy")}`}
+        </section>
+      */}
+
       <XpPolicyTable
-        policies={policies}
-        loading={loading}
-        canManage={canManage}
-        onPatchCaps={handlePatchCaps}
+        policies={displayedPolicies}
+        loading={effectivePolicy ? false : loading}
+        canManage={effectivePolicy ? false : canManage}
+        onEdit={setEditingPolicy}
       />
 
       <Modal
@@ -310,6 +506,76 @@ export default function ReinforcementXpPoliciesPage() {
           onSubmit={handleCreate}
           onCancel={() => setIsCreateOpen(false)}
         />
+      </Modal>
+      <Modal
+        isOpen={Boolean(editingPolicy)}
+        onClose={() => setEditingPolicy(null)}
+        title={t("xp.updatePolicy")}
+        description={t("xp.updatePolicyDescription")}
+        size="xl"
+      >
+        {editingPolicy ? (
+          <XpPolicyForm
+            key={editingPolicy.id}
+            mode="edit"
+            initialPolicy={editingPolicy}
+            onSubmit={handleEdit}
+            onCancel={() => setEditingPolicy(null)}
+          />
+        ) : null}
+      </Modal>
+      <Modal
+        isOpen={isEffectiveStudentPickerOpen}
+        onClose={() => setIsEffectiveStudentPickerOpen(false)}
+        title={t("xp.effectivePolicyStudentModal.title")}
+        description={t("xp.effectivePolicyStudentModal.description")}
+        size="md"
+      >
+        <div className="space-y-4">
+          {effectiveStudentsError ? (
+            <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+              {effectiveStudentsError}
+            </div>
+          ) : null}
+          <Select
+            label={t("xp.effectivePolicyStudentModal.student")}
+            value={effectiveStudentId}
+            onChange={setEffectiveStudentId}
+            options={effectiveStudentOptions}
+            disabled={effectiveStudentsLoading}
+            searchable
+            searchPlaceholder={t("common.search")}
+            noOptionsText={
+              effectiveStudentsLoading
+                ? t("common.loading")
+                : t("xp.effectivePolicyStudentModal.noStudents")
+            }
+          />
+          <div className="flex flex-wrap justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsEffectiveStudentPickerOpen(false)}
+            >
+              {t("actions.cancel")}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={loadEffectiveStudents}
+              loading={effectiveStudentsLoading}
+            >
+              {t("common.retry")}
+            </Button>
+            <Button
+              type="button"
+              onClick={lookupEffectivePolicy}
+              disabled={effectiveStudentsLoading}
+            >
+              {t("xp.lookupEffectivePolicy")}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, CheckCircle, Gift, Plus, RefreshCw, ShieldAlert, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Eye, Gift, Plus, RefreshCw, ShieldAlert, XCircle } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import DataTable, { type Column } from "@/components/ui/data-table/DataTable";
@@ -18,12 +18,16 @@ import RewardRedemptionActionModal, {
   type RedemptionActionPayload,
 } from "../components/RewardRedemptionActionModal";
 import RewardRedemptionCreateModal from "../components/RewardRedemptionCreateModal";
+import RewardRedemptionDetailsDrawer, {
+  type RewardRedemptionDrawerAction,
+} from "../components/RewardRedemptionDetailsDrawer";
 import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
 import {
   approveRewardRedemption,
   cancelRewardRedemption,
   createRewardRedemption,
   fulfillRewardRedemption,
+  getRewardRedemption,
   listRewardRedemptions,
   rejectRewardRedemption,
 } from "../services/rewardRedemptionsService";
@@ -96,11 +100,17 @@ export default function RewardRedemptionsPage() {
   const [modalLoading, setModalLoading] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
+  const [detailsItem, setDetailsItem] = useState<RewardRedemption | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
 
   const canView = hasPermission("reinforcement.rewards.redemptions.view");
   const canRequest = hasPermission("reinforcement.rewards.redemptions.request");
   const canReview = hasPermission("reinforcement.rewards.redemptions.review");
   const canFulfill = hasPermission("reinforcement.rewards.fulfill");
+  const canDownloadFiles = hasPermission("files.downloads.view");
 
   // ─── Filter toolbar config ───────────────────────────────────────────────
   const redemptionFilters: FilterConfig[] = useMemo(
@@ -228,14 +238,63 @@ export default function RewardRedemptionsPage() {
     void Promise.resolve().then(refreshList);
   }, [refreshList]);
 
-  const openActionModal = (item: RewardRedemption, action: RedemptionActionType) => {
+  const openActionModal = useCallback((item: RewardRedemption, action: RedemptionActionType) => {
     setModalItem(item);
     setModalAction(action);
     setModalOpen(true);
-  };
+  }, []);
+
+  const loadDetails = useCallback(
+    async (redemptionId: string) => {
+      setDetailsLoading(true);
+      setDetailsError(null);
+      try {
+        const response = await getRewardRedemption(redemptionId);
+        setDetailsItem(response);
+      } catch (nextError) {
+        const message =
+          nextError instanceof Error ? nextError.message : t("common.error");
+        setDetailsError(message);
+        setDetailsItem(null);
+      } finally {
+        setDetailsLoading(false);
+      }
+    },
+    [t],
+  );
+
+  const openDetails = useCallback(
+    (item: RewardRedemption) => {
+      setDetailsId(item.id);
+      setDetailsOpen(true);
+      setDetailsItem(null);
+      void loadDetails(item.id);
+    },
+    [loadDetails],
+  );
+
+  const closeDetails = useCallback(() => {
+    setDetailsOpen(false);
+    setDetailsId(null);
+    setDetailsItem(null);
+    setDetailsError(null);
+  }, []);
+
+  const retryDetails = useCallback(() => {
+    if (detailsId) void loadDetails(detailsId);
+  }, [detailsId, loadDetails]);
+
+  const openDrawerAction = useCallback(
+    (action: RewardRedemptionDrawerAction) => {
+      if (!detailsItem) return;
+      openActionModal(detailsItem, action);
+    },
+    [detailsItem, openActionModal],
+  );
 
   const handleModalSubmit = async (payload: RedemptionActionPayload) => {
     if (!modalItem) return;
+    const updatedRedemptionId = modalItem.id;
     setModalLoading(true);
     try {
       switch (modalAction) {
@@ -258,6 +317,9 @@ export default function RewardRedemptionsPage() {
       }
       setModalOpen(false);
       await refreshList();
+      if (detailsOpen && detailsId === updatedRedemptionId) {
+        await loadDetails(updatedRedemptionId);
+      }
     } catch (nextError) {
       const message =
         nextError instanceof Error ? nextError.message : t("common.error");
@@ -293,11 +355,11 @@ export default function RewardRedemptionsPage() {
         label: t("rewardsModule.redemptions.table.student"),
         searchable: true,
         render: (_value: unknown, row: RewardRedemption) => {
-          const student = row.student as Record<string, unknown> | undefined;
+          const fullName = `${row.student.firstName ?? ""} ${row.student.lastName ?? ""}`.trim();
           const name =
             locale === "ar"
-              ? (student?.nameAr as string) || (student?.name as string) || "-"
-              : (student?.name as string) || (student?.nameEn as string) || "-";
+              ? row.student.nameAr || fullName || "-"
+              : fullName || row.student.nameAr || "-";
           return <span className="font-medium text-gray-900">{name}</span>;
         },
       },
@@ -369,6 +431,14 @@ export default function RewardRedemptionsPage() {
 
           return (
             <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                leftIcon={<Eye className="h-3.5 w-3.5" />}
+                onClick={() => openDetails(row)}
+              >
+                {t("rewardsModule.actions.view")}
+              </Button>
               {canReview && row.status === "requested" ? (
                 <>
                   <Button
@@ -419,7 +489,7 @@ export default function RewardRedemptionsPage() {
         },
       },
     ],
-    [locale, t, canFulfill, canRequest, canReview],
+    [locale, t, canFulfill, canRequest, canReview, openActionModal, openDetails],
   );
 
   if (authLoading) return <MainLoader />;
@@ -489,6 +559,7 @@ export default function RewardRedemptionsPage() {
             onPageChange: setPage,
             onPageSizeChange: setPageSize,
           }}
+          onRowClick={openDetails}
         />
       </section>
 
@@ -509,6 +580,19 @@ export default function RewardRedemptionsPage() {
           onSubmit={handleCreateSubmit}
         />
       ) : null}
+      <RewardRedemptionDetailsDrawer
+        isOpen={detailsOpen}
+        redemption={detailsItem}
+        loading={detailsLoading}
+        error={detailsError}
+        canRequest={canRequest}
+        canReview={canReview}
+        canFulfill={canFulfill}
+        canDownloadFiles={canDownloadFiles}
+        onClose={closeDetails}
+        onRetry={retryDetails}
+        onAction={openDrawerAction}
+      />
     </div>
   );
 }

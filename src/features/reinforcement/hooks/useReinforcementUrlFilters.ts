@@ -42,10 +42,13 @@ export interface UseReinforcementUrlFiltersReturn {
 
 function buildUrlFromValues(
   values: Record<string, string>,
+  ownedKeys: string[],
   page: number,
   pageSize: number,
 ): string {
-  const params = new URLSearchParams();
+  const params = new URLSearchParams(window.location.search);
+
+  [...ownedKeys, "page", "pageSize"].forEach((key) => params.delete(key));
 
   for (const [key, value] of Object.entries(values)) {
     if (value) {
@@ -67,10 +70,11 @@ function buildUrlFromValues(
 
 function updateUrl(
   values: Record<string, string>,
+  ownedKeys: string[],
   page: number,
   pageSize: number,
 ): void {
-  const url = buildUrlFromValues(values, page, pageSize);
+  const url = buildUrlFromValues(values, ownedKeys, page, pageSize);
   window.history.replaceState(null, "", url);
 }
 
@@ -88,11 +92,16 @@ export function useReinforcementUrlFilters(
 
   const searchParams = useSearchParams();
   const initializedRef = useRef(false);
+  const paramKeySignature = paramKeys.join("\u0000");
+  const ownedKeys = useMemo(
+    () => (paramKeySignature ? paramKeySignature.split("\u0000") : []),
+    [paramKeySignature],
+  );
 
   // ─── Read initial values from URL on mount ───────────────────────────────
   const initialValues = useMemo(() => {
     const vals: Record<string, string> = {};
-    for (const key of paramKeys) {
+    for (const key of ownedKeys) {
       vals[key] = searchParams.get(key) || defaults[key] || "";
     }
     return vals;
@@ -139,8 +148,8 @@ export function useReinforcementUrlFilters(
       initializedRef.current = true;
       return;
     }
-    updateUrl(values, page, pageSize);
-  }, [values, page, pageSize]);
+    updateUrl(values, ownedKeys, page, pageSize);
+  }, [values, page, pageSize, ownedKeys]);
 
   // ─── Actions ─────────────────────────────────────────────────────────────
   const setValue = useCallback(
@@ -168,17 +177,22 @@ export function useReinforcementUrlFilters(
 
   const clearAll = useCallback(() => {
     const cleared: Record<string, string> = {};
-    for (const key of paramKeys) {
+    for (const key of ownedKeys) {
       cleared[key] = defaults[key] || "";
     }
     setValues(cleared);
     setRawSearchValue("");
     setPageState(1);
     setPageSizeState(10);
-    // Clear URL immediately
-    const basePath = window.location.pathname;
-    window.history.replaceState(null, "", basePath);
-  }, [paramKeys, defaults]);
+    const params = new URLSearchParams(window.location.search);
+    [...ownedKeys, "page", "pageSize"].forEach((key) => params.delete(key));
+    const query = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      query ? `${window.location.pathname}?${query}` : window.location.pathname,
+    );
+  }, [ownedKeys, defaults]);
 
   const setPage = useCallback((newPage: number) => {
     setPageState(newPage);

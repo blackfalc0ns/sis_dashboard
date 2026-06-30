@@ -7,6 +7,11 @@ import Input from "@/components/ui/input/Input";
 import TextArea from "@/components/ui/input/TextArea";
 import Select from "@/components/ui/input/Select";
 import Modal from "@/components/ui/modal/Modal";
+import type { AcademicYear } from "@/features/academics/academic-structure-tree/services/structureService";
+import RewardCatalogImageField from "./RewardCatalogImageField";
+import RewardCatalogScopeFields, {
+  type RewardCatalogScopeValue,
+} from "./RewardCatalogScopeFields";
 import type {
   RewardCatalogItem,
   RewardItemType,
@@ -22,6 +27,11 @@ interface RewardCatalogFormModalProps {
   ) => Promise<void> | void;
   initialData?: RewardCatalogItem | null;
   loading?: boolean;
+  academicYears: AcademicYear[];
+  defaultAcademicYearId: string;
+  defaultTermId: string;
+  canUploadFiles: boolean;
+  canDownloadFiles: boolean;
 }
 
 const REWARD_TYPE_OPTIONS: { value: RewardItemType; label: string }[] = [
@@ -38,6 +48,11 @@ export default function RewardCatalogFormModal({
   onSubmit,
   initialData,
   loading = false,
+  academicYears,
+  defaultAcademicYearId,
+  defaultTermId,
+  canUploadFiles,
+  canDownloadFiles,
 }: RewardCatalogFormModalProps) {
   const t = useTranslations("reinforcement");
   const tCommon = useTranslations("common");
@@ -55,6 +70,13 @@ export default function RewardCatalogFormModal({
   const [isUnlimited, setIsUnlimited] = useState(false);
   const [sortOrder, setSortOrder] = useState<string>("");
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [scope, setScope] = useState<RewardCatalogScopeValue>({
+    isGlobal: false,
+    academicYearId: defaultAcademicYearId || null,
+    termId: defaultTermId || null,
+  });
+  const [imageFileId, setImageFileId] = useState<string | null | undefined>();
+  const [imageUploading, setImageUploading] = useState(false);
 
   // Reset form when modal opens or initialData changes
   useEffect(() => {
@@ -83,6 +105,12 @@ export default function RewardCatalogFormModal({
       setSortOrder(
         initialData.sortOrder != null ? String(initialData.sortOrder) : "",
       );
+      setScope({
+        isGlobal: !initialData.academicYearId,
+        academicYearId: initialData.academicYearId || null,
+        termId: initialData.termId || null,
+      });
+      setImageFileId(initialData.imageFileId);
     } else {
       setTitleEn("");
       setTitleAr("");
@@ -94,9 +122,16 @@ export default function RewardCatalogFormModal({
       setStockRemaining("");
       setIsUnlimited(false);
       setSortOrder("");
+      setScope({
+        isGlobal: false,
+        academicYearId: defaultAcademicYearId || null,
+        termId: defaultTermId || null,
+      });
+      setImageFileId(undefined);
     }
+    setImageUploading(false);
     setValidationError(null);
-  }, [isOpen, initialData]);
+  }, [defaultAcademicYearId, defaultTermId, isOpen, initialData]);
 
   const typeOptions = REWARD_TYPE_OPTIONS.map((opt) => ({
     value: opt.value,
@@ -116,36 +151,39 @@ export default function RewardCatalogFormModal({
 
     setValidationError(null);
 
+    const scopedFields = scope.isGlobal
+      ? { academicYearId: null, termId: null }
+      : {
+          academicYearId: scope.academicYearId,
+          termId: scope.termId,
+        };
+
+    const commonPayload = {
+      ...scopedFields,
+      imageFileId,
+      titleEn: titleEn.trim() || undefined,
+      titleAr: titleAr.trim() || undefined,
+      descriptionEn: descriptionEn.trim() || undefined,
+      descriptionAr: descriptionAr.trim() || undefined,
+      type,
+      minTotalXp: minTotalXp ? Number(minTotalXp) : undefined,
+      stockQuantity:
+        !isUnlimited && stockQuantity ? Number(stockQuantity) : undefined,
+      stockRemaining:
+        !isUnlimited && stockRemaining ? Number(stockRemaining) : undefined,
+      isUnlimited,
+      sortOrder: sortOrder ? Number(sortOrder) : undefined,
+    };
+
     if (isEditMode) {
       const payload: UpdateRewardCatalogItemPayload = {
-        titleEn: titleEn.trim() || undefined,
-        titleAr: titleAr.trim() || undefined,
-        descriptionEn: descriptionEn.trim() || undefined,
-        descriptionAr: descriptionAr.trim() || undefined,
-        type,
-        minTotalXp: minTotalXp ? Number(minTotalXp) : undefined,
-        stockQuantity:
-          !isUnlimited && stockQuantity ? Number(stockQuantity) : undefined,
-        stockRemaining:
-          !isUnlimited && stockRemaining ? Number(stockRemaining) : undefined,
-        isUnlimited,
-        sortOrder: sortOrder ? Number(sortOrder) : undefined,
+        ...commonPayload,
       };
       onSubmit(payload);
     } else {
       const payload: CreateRewardCatalogItemPayload = {
-        titleEn: titleEn.trim() || undefined,
-        titleAr: titleAr.trim() || undefined,
-        descriptionEn: descriptionEn.trim() || undefined,
-        descriptionAr: descriptionAr.trim() || undefined,
+        ...commonPayload,
         type,
-        minTotalXp: minTotalXp ? Number(minTotalXp) : undefined,
-        stockQuantity:
-          !isUnlimited && stockQuantity ? Number(stockQuantity) : undefined,
-        stockRemaining:
-          !isUnlimited && stockRemaining ? Number(stockRemaining) : undefined,
-        isUnlimited,
-        sortOrder: sortOrder ? Number(sortOrder) : undefined,
       };
       onSubmit(payload);
     }
@@ -156,6 +194,8 @@ export default function RewardCatalogFormModal({
     : t("rewardsModule.actions.create") +
       " " +
       t("rewardsModule.catalog.title");
+  const scopeIncomplete =
+    !scope.isGlobal && (!scope.academicYearId || !scope.termId);
 
   return (
     <Modal
@@ -172,7 +212,7 @@ export default function RewardCatalogFormModal({
             variant="primary"
             onClick={handleSubmit}
             loading={loading}
-            disabled={loading}
+            disabled={loading || imageUploading || scopeIncomplete}
           >
             {isEditMode
               ? tCommon("save", { defaultMessage: "Save" })
@@ -182,6 +222,15 @@ export default function RewardCatalogFormModal({
       }
     >
       <div className="space-y-4">
+        <RewardCatalogScopeFields
+          academicYears={academicYears}
+          defaultAcademicYearId={defaultAcademicYearId}
+          defaultTermId={defaultTermId}
+          value={scope}
+          onChange={setScope}
+          disabled={loading}
+        />
+
         {/* Title fields */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Input
@@ -219,6 +268,16 @@ export default function RewardCatalogFormModal({
             rows={3}
           />
         </div>
+
+        <RewardCatalogImageField
+          value={imageFileId}
+          existingFile={initialData?.imageFile}
+          canUpload={canUploadFiles}
+          canDownload={canDownloadFiles}
+          disabled={loading}
+          onChange={setImageFileId}
+          onUploadingChange={setImageUploading}
+        />
 
         {/* Type select */}
         <Select

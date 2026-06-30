@@ -251,6 +251,7 @@ describe("Sprint 5A reinforcement service endpoint contracts", () => {
       yearId: "legacy-year-1",
       termId: "term-1",
       isActive: true,
+      includeDeleted: true,
     });
     await getEffectiveXpPolicy({
       yearId: "legacy-year-1",
@@ -283,7 +284,7 @@ describe("Sprint 5A reinforcement service endpoint contracts", () => {
 
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       1,
-      "/reinforcement/xp/policies?academicYearId=year-1&termId=term-1&isActive=true",
+      "/reinforcement/xp/policies?academicYearId=year-1&termId=term-1&isActive=true&includeDeleted=true",
     );
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       2,

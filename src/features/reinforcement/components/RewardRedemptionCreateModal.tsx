@@ -99,7 +99,10 @@ function mapStudentOption(
   };
 }
 
-function mapRewardOption(item: RewardCatalogItem, locale: string): SelectOption {
+function mapRewardOption(
+  item: RewardCatalogItem,
+  locale: string,
+): SelectOption {
   const title =
     locale === "ar"
       ? item.titleAr || item.titleEn || item.id
@@ -126,52 +129,53 @@ export default function RewardRedemptionCreateModal({
   const t = useTranslations("reinforcement");
   const [form, setForm] = useState<CreateFormState>(emptyFormState);
   const [errors, setErrors] = useState<CreateFormErrors>({});
-  const [studentSearch, setStudentSearch] = useState("");
   const [students, setStudents] = useState<StudentRedemptionOption[]>([]);
   const [catalogItems, setCatalogItems] = useState<RewardCatalogItem[]>([]);
   const [lookupsLoading, setLookupsLoading] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const loadLookups = useCallback(async (active: { current: boolean }) => {
-    setLookupsLoading(true);
-    setLookupError(null);
+  const loadLookups = useCallback(
+    async (active: { current: boolean }) => {
+      setLookupsLoading(true);
+      setLookupError(null);
 
-    try {
-      const [filterOptions, catalogResponse] = await Promise.all([
-        getReinforcementFilterOptions({
-          academicYearId,
-          termId,
-          search: studentSearch || undefined,
-        }),
-        listRewardCatalog({
-          status: "published",
-          onlyAvailable: true,
-          limit: 100,
-        }),
-      ]);
-      if (!active.current) return;
-      setStudents(
-        (filterOptions.students ?? [])
-          .map((student) => mapStudentOption(student, locale))
-          .filter((student): student is StudentRedemptionOption =>
-            Boolean(student),
-          ),
-      );
-      setCatalogItems(catalogResponse.items);
-    } catch (error) {
-      if (!active.current) return;
-      setLookupError(
-        error instanceof Error
-          ? error.message
-          : t("rewardsModule.redemptions.create.lookupFailed"),
-      );
-    } finally {
-      if (active.current) {
-        setLookupsLoading(false);
+      try {
+        const [filterOptions, catalogResponse] = await Promise.all([
+          getReinforcementFilterOptions({
+            academicYearId,
+            termId,
+          }),
+          listRewardCatalog({
+            status: "published",
+            onlyAvailable: true,
+            limit: 100,
+          }),
+        ]);
+        if (!active.current) return;
+        setStudents(
+          (filterOptions.students ?? [])
+            .map((student) => mapStudentOption(student, locale))
+            .filter((student): student is StudentRedemptionOption =>
+              Boolean(student),
+            ),
+        );
+        setCatalogItems(catalogResponse.items);
+      } catch (error) {
+        if (!active.current) return;
+        setLookupError(
+          error instanceof Error
+            ? error.message
+            : t("rewardsModule.redemptions.create.lookupFailed"),
+        );
+      } finally {
+        if (active.current) {
+          setLookupsLoading(false);
+        }
       }
-    }
-  }, [academicYearId, locale, studentSearch, t, termId]);
+    },
+    [academicYearId, locale, t, termId],
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -208,10 +212,14 @@ export default function RewardRedemptionCreateModal({
   const submit = async () => {
     const nextErrors: CreateFormErrors = {};
     if (!form.studentId) {
-      nextErrors.studentId = t("rewardsModule.redemptions.create.studentRequired");
+      nextErrors.studentId = t(
+        "rewardsModule.redemptions.create.studentRequired",
+      );
     }
     if (!form.catalogItemId) {
-      nextErrors.catalogItemId = t("rewardsModule.redemptions.create.rewardRequired");
+      nextErrors.catalogItemId = t(
+        "rewardsModule.redemptions.create.rewardRequired",
+      );
     }
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -259,7 +267,11 @@ export default function RewardRedemptionCreateModal({
           <Button variant="secondary" disabled={loading} onClick={onClose}>
             {t("actions.cancel")}
           </Button>
-          <Button variant="primary" loading={loading} onClick={() => void submit()}>
+          <Button
+            variant="primary"
+            loading={loading}
+            onClick={() => void submit()}
+          >
             {t("rewardsModule.redemptions.create.submit")}
           </Button>
         </>
@@ -271,28 +283,21 @@ export default function RewardRedemptionCreateModal({
         </p>
 
         {lookupError ? (
-          <div role="alert" className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+          <div
+            role="alert"
+            className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700"
+          >
             {lookupError}
           </div>
         ) : null}
         {submitError ? (
-          <div role="alert" className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+          <div
+            role="alert"
+            className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700"
+          >
             {submitError}
           </div>
         ) : null}
-
-        <Input
-          label={t("rewardsModule.redemptions.create.studentSearch")}
-          value={studentSearch}
-          onChange={(event) => setStudentSearch(event.target.value)}
-          placeholder={t("rewardsModule.redemptions.create.studentSearchPlaceholder")}
-          disabled={loading}
-          helperText={
-            lookupsLoading
-              ? t("rewardsModule.redemptions.create.loadingLookups")
-              : undefined
-          }
-        />
         <Select
           label={t("rewardsModule.redemptions.create.student")}
           value={form.studentId}
@@ -302,7 +307,9 @@ export default function RewardRedemptionCreateModal({
           disabled={loading || lookupsLoading}
           error={errors.studentId}
           placeholder={t("rewardsModule.redemptions.create.studentPlaceholder")}
-          searchPlaceholder={t("rewardsModule.redemptions.create.searchPlaceholder")}
+          searchPlaceholder={t(
+            "rewardsModule.redemptions.create.searchPlaceholder",
+          )}
           noOptionsText={t("rewardsModule.redemptions.create.noStudents")}
           noResultsText={t("rewardsModule.redemptions.create.noResults")}
         />
@@ -315,7 +322,9 @@ export default function RewardRedemptionCreateModal({
           disabled={loading || lookupsLoading}
           error={errors.catalogItemId}
           placeholder={t("rewardsModule.redemptions.create.rewardPlaceholder")}
-          searchPlaceholder={t("rewardsModule.redemptions.create.searchPlaceholder")}
+          searchPlaceholder={t(
+            "rewardsModule.redemptions.create.searchPlaceholder",
+          )}
           noOptionsText={t("rewardsModule.redemptions.create.noRewards")}
           noResultsText={t("rewardsModule.redemptions.create.noResults")}
         />
@@ -323,14 +332,18 @@ export default function RewardRedemptionCreateModal({
           <TextArea
             label={t("rewardsModule.redemptions.create.requestNoteEn")}
             value={form.requestNoteEn}
-            onChange={(event) => updateForm("requestNoteEn", event.target.value)}
+            onChange={(event) =>
+              updateForm("requestNoteEn", event.target.value)
+            }
             disabled={loading}
             rows={3}
           />
           <TextArea
             label={t("rewardsModule.redemptions.create.requestNoteAr")}
             value={form.requestNoteAr}
-            onChange={(event) => updateForm("requestNoteAr", event.target.value)}
+            onChange={(event) =>
+              updateForm("requestNoteAr", event.target.value)
+            }
             disabled={loading}
             rows={3}
           />

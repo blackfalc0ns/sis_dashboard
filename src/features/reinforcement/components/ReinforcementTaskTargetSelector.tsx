@@ -5,16 +5,11 @@ import { AlertCircle, Loader2, Plus, X } from "lucide-react";
 import { useLocale } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
-import {
-  fetchAcademicStructureTree,
-  type AcademicStructureTree,
-} from "@/features/academics/services/academicStructureApiService";
-import {
-  fetchStudentsWithEnrollmentForContext,
-  type StudentWithEnrollmentContext,
-} from "@/features/students-guardians/students/services/studentsService";
 import { useAuth } from "@/hooks/use-auth";
+import { getReinforcementFilterOptions } from "../services/reinforcementFilterOptionsService";
 import type {
+  ReinforcementFilterOptions,
+  ReinforcementScopeOption,
   ReinforcementTargetPayload,
   ReinforcementTargetScope,
 } from "@/features/reinforcement/types";
@@ -27,6 +22,20 @@ interface TargetOption {
   scopeType: ReinforcementTargetScope;
   searchText?: string;
   enrollmentId?: string;
+}
+
+interface NamedOptionRecord {
+  id?: string;
+  value?: string;
+  name?: string;
+  nameAr?: string;
+  nameEn?: string;
+  full_name_ar?: string;
+  full_name_en?: string;
+  student_id?: string;
+  enrollmentId?: string;
+  enrollment?: { id?: string; enrollmentId?: string };
+  [key: string]: unknown;
 }
 
 export interface ReinforcementTaskTargetSelection
@@ -46,8 +55,7 @@ export interface ReinforcementTaskTargetSelectorProps {
 }
 
 interface LoadState {
-  tree: AcademicStructureTree;
-  students: StudentWithEnrollmentContext[];
+  options: ReinforcementFilterOptions;
   loading: boolean;
   error: string | null;
 }
@@ -102,15 +110,8 @@ const scopeOrder: ReinforcementTargetScope[] = [
   "school",
 ];
 
-const emptyTree: AcademicStructureTree = {
-  stages: [],
-  grades: [],
-  sections: [],
-  classrooms: [],
-};
-
 const localized = (
-  item: { id: string; name?: string; nameAr?: string; nameEn?: string },
+  item: NamedOptionRecord,
   locale: Locale,
 ) =>
   (locale === "ar" ? item.nameAr || item.nameEn : item.nameEn || item.name) ||
@@ -118,24 +119,22 @@ const localized = (
   item.id ||
   "";
 
-const studentIdFor = (student: StudentWithEnrollmentContext): string =>
-  student.id || student.student_id || "";
+const optionValueFor = (item: NamedOptionRecord): string =>
+  item.value || item.id || item.student_id || "";
+
+const studentIdFor = (student: NamedOptionRecord): string =>
+  student.value || student.id || student.student_id || "";
 
 const studentLabel = (
-  student: StudentWithEnrollmentContext,
+  student: NamedOptionRecord,
   locale: Locale,
 ): string =>
   locale === "ar"
     ? student.full_name_ar || student.full_name_en || student.name || studentIdFor(student)
     : student.full_name_en || student.name || student.full_name_ar || studentIdFor(student);
 
-const enrollmentIdFor = (
-  student?: StudentWithEnrollmentContext,
-): string | undefined => {
-  const enrollment = student?.enrollment as
-    | (StudentWithEnrollmentContext["enrollment"] & { id?: string })
-    | undefined;
-  return enrollment?.id || enrollment?.enrollmentId;
+const enrollmentIdFor = (student?: NamedOptionRecord): string | undefined => {
+  return student?.enrollmentId || student?.enrollment?.id || student?.enrollment?.enrollmentId;
 };
 
 const toSelectOption = (option: TargetOption): SelectOption => ({
@@ -143,6 +142,67 @@ const toSelectOption = (option: TargetOption): SelectOption => ({
   label: option.label,
   searchText: option.searchText,
 });
+
+const arrayOptionRecords = (
+  options: ReinforcementFilterOptions,
+  key: keyof ReinforcementFilterOptions,
+): NamedOptionRecord[] => {
+  const value = options[key];
+  return Array.isArray(value) ? (value as NamedOptionRecord[]) : [];
+};
+
+const scopeTargetOption = (
+  item: ReinforcementScopeOption,
+  locale: Locale,
+  fallbackLabel?: string,
+): TargetOption => {
+  const label =
+    (locale === "ar" ? item.nameAr || item.nameEn : item.nameEn || item.nameAr) ||
+    fallbackLabel ||
+    item.value;
+  return {
+    value: item.value,
+    label,
+    scopeType: item.scopeType,
+    enrollmentId:
+      typeof item.enrollmentId === "string" ? item.enrollmentId : undefined,
+    searchText: `${label} ${item.value}`,
+  };
+};
+
+const fallbackOption = (
+  item: NamedOptionRecord,
+  scopeType: ReinforcementTargetScope,
+  locale: Locale,
+): TargetOption | null => {
+  const value =
+    scopeType === "student" ? studentIdFor(item) : optionValueFor(item);
+  if (!value) return null;
+  const label =
+    scopeType === "student" ? studentLabel(item, locale) : localized(item, locale);
+  return {
+    value,
+    label,
+    scopeType,
+    enrollmentId: scopeType === "student" ? enrollmentIdFor(item) : undefined,
+    searchText: `${label} ${item.student_id || ""}`,
+  };
+};
+
+const scopeOptionsFor = (
+  options: ReinforcementFilterOptions,
+  scopeType: ReinforcementTargetScope,
+  locale: Locale,
+): TargetOption[] => {
+  const scoped = options.scopeTargets?.[scopeType];
+  if (scoped?.length) {
+    return scoped.map((item) => scopeTargetOption(item, locale));
+  }
+  const fallbackKey = `${scopeType}s` as keyof ReinforcementFilterOptions;
+  return arrayOptionRecords(options, fallbackKey)
+    .map((item) => fallbackOption(item, scopeType, locale))
+    .filter((item): item is TargetOption => Boolean(item));
+};
 
 export default function ReinforcementTaskTargetSelector({
   academicYearId,
@@ -162,8 +222,7 @@ export default function ReinforcementTaskTargetSelector({
   const [targetId, setTargetId] = useState("");
   const [duplicateError, setDuplicateError] = useState("");
   const [state, setState] = useState<LoadState>({
-    tree: emptyTree,
-    students: [],
+    options: {},
     loading: false,
     error: null,
   });
@@ -171,7 +230,7 @@ export default function ReinforcementTaskTargetSelector({
   useEffect(() => {
     if (!academicYearId || !termId) {
       Promise.resolve().then(() => {
-        setState({ tree: emptyTree, students: [], loading: false, error: null });
+        setState({ options: {}, loading: false, error: null });
       });
       return;
     }
@@ -183,20 +242,16 @@ export default function ReinforcementTaskTargetSelector({
       }
     });
 
-    Promise.all([
-      fetchAcademicStructureTree({ yearId: academicYearId, termId }),
-      fetchStudentsWithEnrollmentForContext(academicYearId, termId),
-    ])
-      .then(([tree, students]) => {
+    getReinforcementFilterOptions({ academicYearId, termId })
+      .then((options) => {
         if (!cancelled) {
-          setState({ tree, students, loading: false, error: null });
+          setState({ options, loading: false, error: null });
         }
       })
       .catch((error) => {
         if (!cancelled) {
           setState({
-            tree: emptyTree,
-            students: [],
+            options: {},
             loading: false,
             error: error instanceof Error ? error.message : copy.error,
           });
@@ -210,7 +265,11 @@ export default function ReinforcementTaskTargetSelector({
 
   const optionsByScope = useMemo<Record<ReinforcementTargetScope, TargetOption[]>>(
     () => ({
-      school: schoolId
+      school: state.options.scopeTargets?.school?.length
+        ? state.options.scopeTargets.school.map((item) =>
+            scopeTargetOption(item, locale, copy.wholeSchool),
+          )
+        : schoolId
         ? [
             {
               value: schoolId,
@@ -218,42 +277,14 @@ export default function ReinforcementTaskTargetSelector({
               scopeType: "school" as const,
             },
           ]
-        : [],
-      stage: state.tree.stages.map((item) => ({
-        value: item.id,
-        label: localized(item, locale),
-        scopeType: "stage",
-        searchText: `${item.nameEn || ""} ${item.nameAr || ""}`,
-      })),
-      grade: state.tree.grades.map((item) => ({
-        value: item.id,
-        label: localized(item, locale),
-        scopeType: "grade",
-        searchText: `${item.nameEn || ""} ${item.nameAr || ""}`,
-      })),
-      section: state.tree.sections.map((item) => ({
-        value: item.id,
-        label: localized(item, locale),
-        scopeType: "section",
-        searchText: `${item.nameEn || ""} ${item.nameAr || ""}`,
-      })),
-      classroom: state.tree.classrooms.map((item) => ({
-        value: item.id,
-        label: localized(item, locale),
-        scopeType: "classroom",
-        searchText: `${item.nameEn || ""} ${item.nameAr || ""}`,
-      })),
-      student: state.students
-        .map((student) => ({
-          value: studentIdFor(student),
-          label: studentLabel(student, locale),
-          scopeType: "student" as const,
-          enrollmentId: enrollmentIdFor(student),
-          searchText: `${student.full_name_en || ""} ${student.full_name_ar || ""} ${student.student_id || ""}`,
-        }))
-        .filter((option) => option.value),
+          : [],
+      stage: scopeOptionsFor(state.options, "stage", locale),
+      grade: scopeOptionsFor(state.options, "grade", locale),
+      section: scopeOptionsFor(state.options, "section", locale),
+      classroom: scopeOptionsFor(state.options, "classroom", locale),
+      student: scopeOptionsFor(state.options, "student", locale),
     }),
-    [copy.wholeSchool, locale, schoolId, state.students, state.tree],
+    [copy.wholeSchool, locale, schoolId, state.options],
   );
 
   const currentOptions = optionsByScope[scope] || [];
