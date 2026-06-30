@@ -166,3 +166,11 @@ No backend change is required for functional integration. Current limitations ar
 - Regression tests prove unsupported endpoints and mock enrollment sources are no longer referenced by the Enrollment page.
 
 Run focused Enrollment tests, full TypeScript checking, targeted ESLint, and `git diff --check` before handoff.
+
+## Localization
+
+All user-facing Enrollment copy is stored under `admissions.enrollment` in both `src/messages/en.json` and `src/messages/ar.json`. Dedicated nested groups cover statuses, details drawer content, placement forms, lifecycle workflows, common actions, loading/empty states, and errors.
+
+Components use `next-intl` lookups instead of English literals. Backend enum values remain unchanged in requests and state, but their displayed labels use localized status keys. Student lookup failures display a localized fallback supplied by the caller; domain mappers do not contain presentation text.
+
+English and Arabic Enrollment translation trees must have matching leaf-key paths. Focused verification checks key parity and scans Enrollment TSX files for remaining user-facing literals.
