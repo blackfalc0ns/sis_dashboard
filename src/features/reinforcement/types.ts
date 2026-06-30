@@ -230,22 +230,21 @@ export interface ReinforcementFilterOptions {
 export type XpPolicyScopeType = ReinforcementTargetScope;
 
 export interface XpPolicy {
-  id: string;
-  academicYearId?: string;
-  yearId?: string;
-  termId?: string;
+  id: string | null;
+  academicYearId: string;
+  termId: string;
   scopeType: XpPolicyScopeType;
-  scopeId?: string;
-  dailyCap?: number;
-  weeklyCap?: number;
-  cooldownMinutes?: number;
-  allowedReasons?: string[];
-  startsAt?: string;
-  endsAt?: string;
-  isActive?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  [key: string]: unknown;
+  scopeKey: string;
+  dailyCap: number | null;
+  weeklyCap: number | null;
+  cooldownMinutes: number | null;
+  allowedReasons: string[];
+  startsAt: string | null;
+  endsAt: string | null;
+  isActive: boolean;
+  isDefault: boolean;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 export interface ListXpPoliciesParams {
@@ -254,6 +253,7 @@ export interface ListXpPoliciesParams {
   scopeType?: XpPolicyScopeType;
   scopeKey?: string;
   isActive?: boolean;
+  includeDeleted?: boolean;
   page?: number;
   [key: string]: string | number | boolean | undefined;
 }
@@ -272,27 +272,16 @@ export interface CreateXpPolicyPayload {
   termId?: string;
   scopeType: XpPolicyScopeType;
   scopeId?: string;
-  dailyCap?: number;
-  weeklyCap?: number;
-  cooldownMinutes?: number;
+  dailyCap?: number | null;
+  weeklyCap?: number | null;
+  cooldownMinutes?: number | null;
   allowedReasons?: string[];
-  startsAt?: string;
-  endsAt?: string;
+  startsAt?: string | null;
+  endsAt?: string | null;
   isActive?: boolean;
 }
 
-export type PatchXpPolicyPayload = Partial<
-  Pick<
-    CreateXpPolicyPayload,
-    | "dailyCap"
-    | "weeklyCap"
-    | "cooldownMinutes"
-    | "allowedReasons"
-    | "startsAt"
-    | "endsAt"
-    | "isActive"
-  >
->;
+export type PatchXpPolicyPayload = Partial<CreateXpPolicyPayload>;
 
 export type ListXpPoliciesResponse = ReinforcementListResponse<XpPolicy>;
 
@@ -581,10 +570,34 @@ export type RedemptionRequestSource =
   | "parent_app"
   | "system";
 
+export interface RewardCatalogAcademicYearSummary {
+  id: string;
+  nameEn?: string | null;
+  nameAr?: string | null;
+  isActive?: boolean;
+}
+
+export interface RewardCatalogTermSummary {
+  id: string;
+  academicYearId: string;
+  nameEn?: string | null;
+  nameAr?: string | null;
+  isActive?: boolean;
+}
+
+export interface RewardCatalogImageFile {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: string;
+  visibility: string;
+  createdAt: string;
+}
+
 export interface RewardCatalogItem {
   id: string;
-  academicYearId?: string;
-  termId?: string;
+  academicYearId?: string | null;
+  termId?: string | null;
   titleEn?: string;
   titleAr?: string;
   descriptionEn?: string;
@@ -598,7 +611,7 @@ export interface RewardCatalogItem {
   isAvailable?: boolean;
   isLowStock?: boolean;
   redemptions?: Partial<Record<RedemptionStatus | "open" | "terminal" | "total", number>>;
-  imageFileId?: string;
+  imageFileId?: string | null;
   sortOrder?: number;
   metadata?: Record<string, unknown>;
   createdAt?: string;
@@ -608,15 +621,15 @@ export interface RewardCatalogItem {
   publishedById?: string | null;
   archivedById?: string | null;
   createdById?: string | null;
-  academicYear?: Record<string, unknown> | null;
-  term?: Record<string, unknown> | null;
-  imageFile?: Record<string, unknown> | null;
+  academicYear?: RewardCatalogAcademicYearSummary | null;
+  term?: RewardCatalogTermSummary | null;
+  imageFile?: RewardCatalogImageFile | null;
   [key: string]: unknown;
 }
 
 export interface CreateRewardCatalogItemPayload {
-  academicYearId?: string;
-  termId?: string;
+  academicYearId?: string | null;
+  termId?: string | null;
   titleEn?: string;
   titleAr?: string;
   descriptionEn?: string;
@@ -626,14 +639,14 @@ export interface CreateRewardCatalogItemPayload {
   stockQuantity?: number;
   stockRemaining?: number;
   isUnlimited?: boolean;
-  imageFileId?: string;
+  imageFileId?: string | null;
   sortOrder?: number;
   metadata?: Record<string, unknown>;
 }
 
 export interface UpdateRewardCatalogItemPayload {
-  academicYearId?: string;
-  termId?: string;
+  academicYearId?: string | null;
+  termId?: string | null;
   titleEn?: string;
   titleAr?: string;
   descriptionEn?: string;
@@ -643,7 +656,7 @@ export interface UpdateRewardCatalogItemPayload {
   stockQuantity?: number;
   stockRemaining?: number;
   isUnlimited?: boolean;
-  imageFileId?: string;
+  imageFileId?: string | null;
   sortOrder?: number;
   metadata?: Record<string, unknown>;
 }
@@ -667,31 +680,80 @@ export interface ListRewardCatalogParams {
 }
 
 export interface RewardRedemption {
+  [key: string]: unknown;
   id: string;
   catalogItemId: string;
   studentId: string;
-  enrollmentId?: string;
-  academicYearId?: string;
-  termId?: string;
+  enrollmentId: string;
+  academicYearId: string;
+  termId: string;
   status: RedemptionStatus;
-  requestSource?: RedemptionRequestSource;
-  requestNoteEn?: string;
-  requestNoteAr?: string;
-  reviewNoteEn?: string;
-  reviewNoteAr?: string;
-  fulfillmentNoteEn?: string;
-  fulfillmentNoteAr?: string;
-  cancellationReasonEn?: string;
-  cancellationReasonAr?: string;
-  requestedAt?: string;
-  reviewedAt?: string;
-  fulfilledAt?: string;
-  cancelledAt?: string;
-  catalogItem?: RewardCatalogItem;
-  student?: Record<string, unknown>;
-  createdAt?: string;
-  updatedAt?: string;
-  [key: string]: unknown;
+  requestSource: RedemptionRequestSource;
+  requestedById: string;
+  reviewedById: string | null;
+  fulfilledById: string | null;
+  cancelledById: string | null;
+  requestedAt: string;
+  reviewedAt: string | null;
+  fulfilledAt: string | null;
+  cancelledAt: string | null;
+  requestNoteEn: string | null;
+  requestNoteAr: string | null;
+  reviewNoteEn: string | null;
+  reviewNoteAr: string | null;
+  fulfillmentNoteEn: string | null;
+  fulfillmentNoteAr: string | null;
+  cancellationReasonEn: string | null;
+  cancellationReasonAr: string | null;
+  eligibilitySnapshot: RewardRedemptionEligibilitySnapshot;
+  catalogItem: RewardRedemptionCatalogItem;
+  student: RewardRedemptionStudent;
+  enrollment: RewardRedemptionEnrollment;
+  academicYear: RewardCatalogAcademicYearSummary;
+  term: RewardCatalogTermSummary;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RewardRedemptionEligibilitySnapshot {
+  eligible: boolean;
+  minTotalXp: number;
+  isUnlimited: boolean;
+  totalEarnedXp: number;
+  stockAvailable: boolean;
+  stockRemaining: number | null;
+  catalogItemStatus: RewardCatalogStatus;
+}
+
+export interface RewardRedemptionCatalogItem {
+  id: string;
+  titleEn: string | null;
+  titleAr: string | null;
+  type: RewardItemType;
+  status: RewardCatalogStatus;
+  minTotalXp: number;
+  isUnlimited: boolean;
+  stockRemaining: number | null;
+  imageFileId: string | null;
+}
+
+export interface RewardRedemptionStudent {
+  id: string;
+  firstName: string;
+  lastName: string;
+  nameAr: string | null;
+  code: string | null;
+  admissionNo: string | null;
+}
+
+export interface RewardRedemptionEnrollment {
+  id: string;
+  academicYearId: string;
+  termId: string;
+  classroomId: string | null;
+  sectionId: string | null;
+  gradeId: string | null;
+  stageId: string | null;
 }
 
 export interface CreateRewardRedemptionPayload {
@@ -740,6 +802,9 @@ export interface ListRewardRedemptionsParams {
 export interface RewardsOverviewParams {
   academicYearId?: string;
   termId?: string;
+  studentId?: string;
+  dateFrom?: string;
+  dateTo?: string;
   [key: string]: string | number | boolean | undefined;
 }
 
