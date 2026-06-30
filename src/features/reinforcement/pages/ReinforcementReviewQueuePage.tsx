@@ -112,6 +112,9 @@ export default function ReinforcementReviewQueuePage() {
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
 
+  const canView = hasPermission("reinforcement.reviews.view");
+  const canManage = hasPermission("reinforcement.reviews.manage");
+
   const {
     values,
     setValue,
@@ -119,6 +122,8 @@ export default function ReinforcementReviewQueuePage() {
     pageSize,
     setPage,
     setPageSize,
+    rawSearchValue,
+    setRawSearch,
   } = useReinforcementUrlFilters({
     paramKeys: [
       "academicYearId",
@@ -130,6 +135,7 @@ export default function ReinforcementReviewQueuePage() {
       "submittedTo",
     ],
     defaults: {},
+    debounceKey: "search",
   });
 
   const [items, setItems] = useState<ReinforcementReviewItem[]>([]);
@@ -142,10 +148,7 @@ export default function ReinforcementReviewQueuePage() {
   const [yearsOptions, setYearsOptions] = useState<SelectOption[]>([]);
   const [termsOptions, setTermsOptions] = useState<SelectOption[]>([]);
   const [studentsOptions, setStudentsOptions] = useState<SelectOption[]>([]);
-  const [optionsLoading, setOptionsLoading] = useState(false);
-
-  const canView = hasPermission("reinforcement.reviews.view");
-  const canManage = hasPermission("reinforcement.reviews.manage");
+  const [optionsLoading, setOptionsLoading] = useState(canView);
 
   // Load filter options
   useEffect(() => {
@@ -223,6 +226,8 @@ export default function ReinforcementReviewQueuePage() {
   const refreshQueue = useCallback(async () => {
     if (!canView) return;
 
+    setError(null);
+
     // Date validation
     if (values.submittedFrom && values.submittedTo && values.submittedFrom > values.submittedTo) {
       setDateValidationError(t("rewardsModule.overview.errors.invalidDates") || "Start date cannot be after end date");
@@ -233,7 +238,6 @@ export default function ReinforcementReviewQueuePage() {
     }
     setDateValidationError(null);
     setLoading(true);
-    setError(null);
     
     try {
       const response = await listReinforcementReviewQueue(params);
@@ -256,7 +260,7 @@ export default function ReinforcementReviewQueuePage() {
   const handleClearFilters = () => {
     setValue("studentId", "");
     setValue("status", "");
-    setValue("search", "");
+    setRawSearch("");
     setValue("submittedFrom", "");
     setValue("submittedTo", "");
   };
@@ -497,8 +501,8 @@ export default function ReinforcementReviewQueuePage() {
             type="text"
             label={t("filters.search") || "Search"}
             placeholder={t("filters.searchPlaceholder") || "Search..."}
-            value={values.search || ""}
-            onChange={(e) => setValue("search", e.target.value)}
+            value={rawSearchValue}
+            onChange={(e) => setRawSearch(e.target.value)}
           />
           
           {(values.studentId || values.status || values.search || values.submittedFrom || values.submittedTo) ? (
