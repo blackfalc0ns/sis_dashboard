@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast/Toast";
@@ -263,4 +263,114 @@ describe("ReinforcementReviewQueuePage", () => {
       amount: 15,
     });
   });
+
+  it("opens the details drawer when clicking a row or the View Details button", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    // 1. Click on the row to open the drawer
+    const row = await screen.findByText("John Doe");
+    await user.click(row);
+
+    expect(reviewsMocks.getReinforcementReviewItem).toHaveBeenLastCalledWith("submission-1");
+    expect(await screen.findByRole("dialog", { name: "reviews.detail.title" })).toBeInTheDocument();
+
+    // Close the drawer
+    const closeBtn = screen.getByRole("button", { name: "common.close" });
+    await user.click(closeBtn);
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "reviews.detail.title" })).not.toBeInTheDocument();
+    });
+
+    // 2. Click the View Details button to open the drawer
+    const viewDetailBtn = await screen.findByRole("button", { name: "reviews.actions.viewDetail" });
+    await user.click(viewDetailBtn);
+
+    expect(reviewsMocks.getReinforcementReviewItem).toHaveBeenLastCalledWith("submission-1");
+    expect(await screen.findByRole("dialog", { name: "reviews.detail.title" })).toBeInTheDocument();
+  });
+
+  it("renders task details and review history in the drawer", async () => {
+    const detailedReview = {
+      id: "submission-1",
+      studentId: "student-123",
+      status: "submitted" as const,
+      submittedAt: "2026-06-30T00:00:00Z",
+      task: { titleEn: "Read Book", source: "System", dueDate: "2026-07-15T00:00:00Z" },
+      stage: { titleEn: "Page 10", proofType: "text", requiresApproval: true },
+      student: { name: "John Doe", nameEn: "John Doe", code: "STUD-456" },
+      proof: { proofText: "Completed reading challenge." },
+      reviewHistory: [
+        {
+          status: "rejected",
+          reviewedAt: "2026-06-29T12:00:00Z",
+          note: "Incorrect page numbers provided",
+          reviewerName: "Reviewer Alice",
+        },
+      ],
+    };
+
+    reviewsMocks.getReinforcementReviewItem.mockResolvedValueOnce(detailedReview);
+
+    const user = userEvent.setup();
+    renderPage();
+
+    const row = await screen.findByText("John Doe");
+    await user.click(row);
+
+    // Verify task details are rendered in the drawer specifically
+    const drawer = await screen.findByRole("dialog", { name: "reviews.detail.title" });
+    const drawerQueries = within(drawer);
+
+    expect(drawerQueries.getAllByText("Read Book").length).toBe(2);
+    expect(drawerQueries.getByText("System")).toBeInTheDocument();
+    expect(drawerQueries.getByText("Page 10")).toBeInTheDocument();
+    expect(drawerQueries.getByText("STUD-456")).toBeInTheDocument();
+    expect(drawerQueries.getByText("Completed reading challenge.")).toBeInTheDocument();
+
+    // Verify student name is rendered inside the drawer
+    expect(drawerQueries.getAllByText("John Doe").length).toBe(2); // header and details section
+
+    // Verify history section details
+    expect(drawerQueries.getByText("reviews.status.rejected")).toBeInTheDocument();
+    expect(drawerQueries.getByText("Incorrect page numbers provided")).toBeInTheDocument();
+    expect(drawerQueries.getByText("Reviewer Alice")).toBeInTheDocument();
+  });
+
+  it("triggers approval action modal and subsequent XP grant modal when clicking Approve", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    // Open details drawer
+    const row = await screen.findByText("John Doe");
+    await user.click(row);
+
+    // Find and click Approve inside drawer footer
+    const drawer = await screen.findByRole("dialog", { name: "reviews.detail.title" });
+    const approveBtn = drawer.querySelector("footer button") as HTMLButtonElement;
+    await user.click(approveBtn);
+
+    // Approve Action Modal opens
+    const approveModal = await screen.findByRole("dialog", { name: "reviews.detail.approveTitle" });
+    const submitApproveBtn = approveModal.querySelector("button.from-primary") as HTMLButtonElement;
+
+    reviewsMocks.approveReinforcementSubmission.mockResolvedValue({
+      id: "submission-1",
+      status: "approved",
+      task: { titleEn: "Read Book" },
+      stage: { titleEn: "Page 10" },
+      student: { nameEn: "John Doe" },
+    });
+
+    await user.click(submitApproveBtn);
+
+    expect(reviewsMocks.approveReinforcementSubmission).toHaveBeenCalledWith("submission-1", {
+      note: undefined,
+      noteAr: undefined,
+    });
+
+    // XP grant modal should open
+    expect(await screen.findByText("reviews.detail.grantXp")).toBeInTheDocument();
+  });
 });
+
