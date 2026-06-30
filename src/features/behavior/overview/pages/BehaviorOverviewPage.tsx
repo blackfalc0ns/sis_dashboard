@@ -13,7 +13,6 @@ import {
   Users,
   Award,
   AlertTriangle,
-  Clock3,
   TrendingUp,
   X,
 } from "lucide-react";
@@ -22,6 +21,8 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -29,7 +30,6 @@ import {
 } from "recharts";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import ChartCard from "@/components/ui/chart-card/ChartCard";
-import GaugeChart from "@/components/ui/chart-card/GaugeChart";
 import Select, { SelectOption } from "@/components/ui/input/Select";
 import DatePicker from "@/components/ui/input/DatePicker";
 import Button from "@/components/ui/button/Button";
@@ -362,7 +362,17 @@ export default function BehaviorOverviewPage() {
     negativePoints: s.negativePoints,
   }));
 
-  const approvalPct = Math.round(review.approvalRate * 100);
+  const approvedCount = Math.round(review.reviewed * review.approvalRate);
+  const rejectedCount = Math.round(review.reviewed * review.rejectionRate);
+  const pendingCount = review.pendingReview;
+
+  const reviewPieData = [
+    { name: t("approved") || "Approved", value: approvedCount, color: "#16a34a" },
+    { name: t("rejected") || "Rejected", value: rejectedCount, color: "#ef4444" },
+    { name: t("pendingReview") || "Pending", value: pendingCount, color: "#f59e0b" },
+  ].filter((item) => item.value > 0); // Only render slices for non-zero counts
+
+  const totalReviewsCount = approvedCount + rejectedCount + pendingCount;
 
   const typeOptions = [
     { value: "", label: tBehavior("filters.allTypes") || (isRTL ? "جميع الأنواع" : "All Types") },
@@ -561,39 +571,78 @@ export default function BehaviorOverviewPage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {/* Review Status */}
         <div
-          className="rounded-2xl border shadow-sm p-6"
-          style={{ borderColor: "var(--border-color)" }}
+          className="rounded-2xl border shadow-sm p-6 flex flex-col justify-between"
+          style={{ borderColor: "var(--border-color)", minHeight: "360px" }}
         >
-          <div className="text-sm font-semibold mb-4" style={{ color: "var(--text-primary)" }}>{t("reviewStatus")}</div>
-          <div className="flex flex-col items-center gap-4">
-            <GaugeChart
-              value={approvalPct}
-              presentLabel={t("approved")}
-              absentLabel={t("rejected")}
-              presentColor="#16a34a"
-              absentColor="#ef4444"
-              size={180}
-              thickness={32}
-            />
-            <div className="grid grid-cols-2 gap-6 w-full max-w-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#fef3c7" }}>
-                  <Clock3 className="w-4 h-4" style={{ color: "#d97706" }} />
+          <div>
+            <div className="text-sm font-semibold mb-4" style={{ color: "var(--text-primary)" }}>{t("reviewStatus")}</div>
+            <div className="h-48 relative">
+              {totalReviewsCount === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-sm" style={{ color: "var(--text-muted)" }}>{t("noData")}</p>
                 </div>
-                <div>
-                  <div className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>{review.pendingReview}</div>
-                  <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{t("pendingReview")}</div>
-                </div>
+              ) : (
+                <>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={reviewPieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={70}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {reviewPieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "var(--surface-color)",
+                          borderColor: "var(--border-color)",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
+                    <span className="text-2xl font-bold text-gray-800">
+                      {totalReviewsCount}
+                    </span>
+                    <span className="text-[10px] text-gray-500 uppercase tracking-wider">
+                      {t("totalRecords") || "Total"}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Clean Legend */}
+          <div className="grid grid-cols-3 gap-2 w-full mt-4 pt-4 border-t border-gray-100">
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-600" />
+                <span className="text-xs text-gray-500">{t("approved")}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#dcfce7" }}>
-                  <CheckCircle2 className="w-4 h-4" style={{ color: "#16a34a" }} />
-                </div>
-                <div>
-                  <div className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>{review.reviewed}</div>
-                  <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{t("reviewed")}</div>
-                </div>
+              <span className="text-sm font-bold text-gray-800 mt-1">{approvedCount}</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-red-500" />
+                <span className="text-xs text-gray-500">{t("rejected")}</span>
               </div>
+              <span className="text-sm font-bold text-gray-800 mt-1">{rejectedCount}</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-amber-500" />
+                <span className="text-xs text-gray-500">{t("pendingReview")}</span>
+              </div>
+              <span className="text-sm font-bold text-gray-800 mt-1">{pendingCount}</span>
             </div>
           </div>
         </div>
