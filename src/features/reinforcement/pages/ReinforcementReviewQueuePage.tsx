@@ -5,21 +5,16 @@ import { AlertCircle, CheckCircle, RefreshCw, ShieldAlert, XCircle } from "lucid
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
+import Select, { type SelectOption } from "@/components/ui/input/Select";
+import Input from "@/components/ui/input/Input";
 import DataTable, { type Column } from "@/components/ui/data-table/DataTable";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
-import ReinforcementAcademicContextFilter, {
-  type ReinforcementAcademicContextSelection,
-  type ReinforcementAcademicContextValue,
-} from "../components/ReinforcementAcademicContextFilter";
-import ReinforcementFilterToolbar, {
-  type ActiveFilter,
-  type FilterConfig,
-} from "../components/shared/ReinforcementFilterToolbar";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
 import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
+import { getReinforcementFilterOptions } from "../services/reinforcementFilterOptionsService";
 import {
   approveReinforcementSubmission,
   listReinforcementReviewQueue,
@@ -29,6 +24,61 @@ import type {
   ReinforcementReviewItem,
   ReinforcementReviewStatus,
 } from "../types";
+
+const getLocalizedValue = (
+  record: Record<string, unknown>,
+  keys: string[],
+): string | undefined => {
+  for (const key of keys) {
+    const val = record[key];
+    if (typeof val === "string" && val.trim()) {
+      return val;
+    }
+  }
+  return undefined;
+};
+
+const toRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+function mapGenericOption(
+  record: unknown,
+  locale: string,
+): SelectOption | null {
+  const rec = toRecord(record);
+  if (!rec) return null;
+
+  const id = getLocalizedValue(rec, ["id", "value"]);
+  if (!id) return null;
+
+  const nameEn = getLocalizedValue(rec, ["nameEn", "fullNameEn", "full_name_en", "name", "label"]) ?? id;
+  const nameAr = getLocalizedValue(rec, ["nameAr", "fullNameAr", "full_name_ar", "name", "label"]) ?? nameEn;
+  return {
+    value: id,
+    label: locale === "ar" ? nameAr : nameEn,
+  };
+}
+
+function mapStudentOption(
+  record: unknown,
+  locale: string,
+): SelectOption | null {
+  const rec = toRecord(record);
+  if (!rec) return null;
+
+  const id = getLocalizedValue(rec, ["studentId", "id", "student_id"]);
+  if (!id) return null;
+
+  const nameEn = getLocalizedValue(rec, ["nameEn", "fullNameEn", "full_name_en", "name"]) ?? id;
+  const nameAr = getLocalizedValue(rec, ["nameAr", "fullNameAr", "full_name_ar", "name"]) ?? nameEn;
+  return {
+    value: id,
+    label: locale === "ar" ? nameAr : nameEn,
+    searchText: `${nameEn} ${nameAr} ${id}`,
+  };
+}
 
 function AccessNotice() {
   const t = useTranslations("reinforcement.common");
@@ -62,141 +112,154 @@ export default function ReinforcementReviewQueuePage() {
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
 
-  // ─── URL-synced filters ──────────────────────────────────────────────────
-  // Note: debounceKey is not used here because ReinforcementFilterToolbar
-  // handles search debounce internally before calling onChange
   const {
     values,
     setValue,
-    clearAll,
     page,
     pageSize,
     setPage,
     setPageSize,
   } = useReinforcementUrlFilters({
-    paramKeys: ["status", "search", "academicYearId", "termId", "stageId", "gradeId", "sectionId", "classroomId"],
+    paramKeys: [
+      "academicYearId",
+      "termId",
+      "studentId",
+      "status",
+      "search",
+      "submittedFrom",
+      "submittedTo",
+    ],
     defaults: {},
   });
-
-  // ─── Academic context derived from URL params ────────────────────────────
-  const context: ReinforcementAcademicContextValue = useMemo(
-    () => ({
-      academicYearId: values.academicYearId || undefined,
-      termId: values.termId || undefined,
-      stageId: values.stageId || undefined,
-      gradeId: values.gradeId || undefined,
-      sectionId: values.sectionId || undefined,
-      classroomId: values.classroomId || undefined,
-    }),
-    [values.academicYearId, values.termId, values.stageId, values.gradeId, values.sectionId, values.classroomId],
-  );
 
   const [items, setItems] = useState<ReinforcementReviewItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dateValidationError, setDateValidationError] = useState<string | null>(null);
+
+  // Dropdown options states
+  const [yearsOptions, setYearsOptions] = useState<SelectOption[]>([]);
+  const [termsOptions, setTermsOptions] = useState<SelectOption[]>([]);
+  const [studentsOptions, setStudentsOptions] = useState<SelectOption[]>([]);
+  const [optionsLoading, setOptionsLoading] = useState(false);
 
   const canView = hasPermission("reinforcement.reviews.view");
   const canManage = hasPermission("reinforcement.reviews.manage");
 
-  // ─── Filter toolbar config ───────────────────────────────────────────────
-  const reviewQueueFilters: FilterConfig[] = useMemo(
-    () => [
-      {
-        key: "status",
-        label: t("reviews.table.status"),
-        type: "select",
-        options: [
-          { value: "", label: t("filters.allStatuses") },
-          { value: "submitted", label: t("reviews.status.submitted") },
-          { value: "approved", label: t("reviews.status.approved") },
-          { value: "rejected", label: t("reviews.status.rejected") },
-        ],
-      },
-      {
-        key: "search",
-        label: t("filters.search"),
-        type: "search",
-        placeholder: t("filters.searchPlaceholder"),
-      },
-    ],
-    [t],
-  );
+  // Load filter options
+  useEffect(() => {
+    if (!canView) return;
+    
+    let active = true;
+    const loadOptions = async () => {
+      setOptionsLoading(true);
+      try {
+        const opts = await getReinforcementFilterOptions({
+          academicYearId: values.academicYearId || undefined,
+          termId: values.termId || undefined,
+        });
+        if (!active) return;
+        
+        if (opts.academicYears) {
+          setYearsOptions(
+            opts.academicYears
+              .map((y) => mapGenericOption(y, locale))
+              .filter((y): y is SelectOption => y !== null)
+          );
+        }
+        if (opts.terms) {
+          setTermsOptions(
+            opts.terms
+              .map((t) => mapGenericOption(t, locale))
+              .filter((t): t is SelectOption => t !== null)
+          );
+        }
+        if (opts.students) {
+          setStudentsOptions(
+            opts.students
+              .map((s) => mapStudentOption(s, locale))
+              .filter((s): s is SelectOption => s !== null)
+          );
+        }
+      } catch (err) {
+        console.error("Failed to load filter options", err);
+      } finally {
+        if (active) setOptionsLoading(false);
+      }
+    };
 
-  const activeFilters: ActiveFilter[] = useMemo(() => {
-    const filters: ActiveFilter[] = [];
-    if (values.status) {
-      filters.push({
-        key: "status",
-        label: t("reviews.table.status"),
-        value: values.status,
-        displayValue: t(`reviews.status.${values.status}`),
-      });
-    }
-    if (values.search) {
-      filters.push({
-        key: "search",
-        label: t("filters.search"),
-        value: values.search,
-        displayValue: values.search,
-      });
-    }
-    return filters;
-  }, [values.status, values.search, t]);
-
-  const handleFilterChange = useCallback(
-    (key: string, value: string) => {
-      setValue(key, value);
-    },
-    [setValue],
-  );
-
-  const handleClearAllFilters = useCallback(() => {
-    clearAll();
-  }, [clearAll]);
-
-  const handleRemoveFilter = useCallback(
-    (key: string) => {
-      setValue(key, "");
-    },
-    [setValue],
-  );
+    void loadOptions();
+    return () => {
+      active = false;
+    };
+  }, [canView, locale, values.academicYearId, values.termId]);
 
   const params = useMemo(
     () => ({
       academicYearId: values.academicYearId || undefined,
       termId: values.termId || undefined,
-      classroomId: values.classroomId || undefined,
+      studentId: values.studentId || undefined,
       status: values.status || undefined,
       search: values.search || undefined,
+      submittedFrom: values.submittedFrom || undefined,
+      submittedTo: values.submittedTo || undefined,
       limit: pageSize,
       offset: (page - 1) * pageSize,
     }),
-    [values.academicYearId, values.termId, values.classroomId, values.status, values.search, page, pageSize],
+    [
+      values.academicYearId,
+      values.termId,
+      values.studentId,
+      values.status,
+      values.search,
+      values.submittedFrom,
+      values.submittedTo,
+      page,
+      pageSize,
+    ],
   );
 
   const refreshQueue = useCallback(async () => {
     if (!canView) return;
+
+    // Date validation
+    if (values.submittedFrom && values.submittedTo && values.submittedFrom > values.submittedTo) {
+      setDateValidationError(t("rewardsModule.overview.errors.invalidDates") || "Start date cannot be after end date");
+      setItems([]);
+      setTotal(0);
+      setLoading(false);
+      return;
+    }
+    setDateValidationError(null);
     setLoading(true);
     setError(null);
+    
     try {
       const response = await listReinforcementReviewQueue(params);
       setItems(response.items);
       setTotal(response.total ?? response.items.length);
     } catch (nextError) {
-      const message =
-        nextError instanceof Error ? nextError.message : t("common.error");
+      const message = nextError instanceof Error ? nextError.message : t("common.error");
       setError(message);
       setItems([]);
       showError(message);
     } finally {
       setLoading(false);
     }
-  }, [canView, params, showError, t]);
+  }, [canView, params, showError, t, values.submittedFrom, values.submittedTo]);
 
   useEffect(() => {
     void Promise.resolve().then(refreshQueue);
   }, [refreshQueue]);
+
+  const handleClearFilters = () => {
+    setValue("studentId", "");
+    setValue("status", "");
+    setValue("search", "");
+    setValue("submittedFrom", "");
+    setValue("submittedTo", "");
+  };
 
   const handleApprove = useCallback(
     async (item: ReinforcementReviewItem) => {
@@ -358,37 +421,99 @@ export default function ReinforcementReviewQueuePage() {
         }
       />
 
-      <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">
-          {t("filters.title")}
+      {/* Filters section */}
+      <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm space-y-4">
+        <h2 className="text-sm font-semibold text-gray-900">
+          {t("rewardsModule.overview.filtersTitle") || "Filters"}
         </h2>
-        <div className="mt-4">
-          <ReinforcementAcademicContextFilter
-            value={context}
-            showSubject={false}
-            showStudent={false}
-            onChange={(selection: ReinforcementAcademicContextSelection) => {
-              setValue("academicYearId", selection.academicYearId || "");
-              setValue("termId", selection.termId || "");
-              setValue("stageId", selection.stageId || "");
-              setValue("gradeId", selection.gradeId || "");
-              setValue("sectionId", selection.sectionId || "");
-              setValue("classroomId", selection.classroomId || "");
+        
+        <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6 items-end">
+          <Select
+            label={t("rewardsModule.catalog.form.academicYear") || "Academic Year"}
+            value={values.academicYearId || ""}
+            onChange={(val) => {
+              setValue("academicYearId", val);
+              setValue("termId", "");
+              setValue("studentId", "");
             }}
+            options={yearsOptions}
+            searchable
+            placeholder={t("rewardsModule.overview.selectYear") || "Select Year"}
+            disabled={optionsLoading}
+          />
+          
+          <Select
+            label={t("rewardsModule.catalog.form.term") || "Term"}
+            value={values.termId || ""}
+            onChange={(val) => {
+              setValue("termId", val);
+              setValue("studentId", "");
+            }}
+            options={termsOptions}
+            searchable
+            placeholder={t("rewardsModule.overview.selectTerm") || "Select Term"}
+            disabled={optionsLoading || !values.academicYearId}
+          />
+
+          <Select
+            label={t("rewardsModule.redemptions.create.student") || "Student"}
+            value={values.studentId || ""}
+            onChange={(val) => setValue("studentId", val)}
+            options={studentsOptions}
+            searchable
+            placeholder={t("rewardsModule.overview.allStudents") || "All Students"}
+            disabled={optionsLoading}
+          />
+
+          <Select
+            label={t("reviews.table.status") || "Status"}
+            value={values.status || ""}
+            onChange={(val) => setValue("status", val)}
+            options={[
+              { value: "", label: t("filters.allStatuses") || "All" },
+              { value: "submitted", label: t("reviews.status.submitted") || "Submitted" },
+              { value: "approved", label: t("reviews.status.approved") || "Approved" },
+              { value: "rejected", label: t("reviews.status.rejected") || "Rejected" },
+            ]}
+          />
+
+          <Input
+            type="date"
+            label={t("rewardsModule.overview.dateFrom") || "Date From"}
+            value={values.submittedFrom || ""}
+            onChange={(e) => setValue("submittedFrom", e.target.value)}
+          />
+
+          <Input
+            type="date"
+            label={t("rewardsModule.overview.dateTo") || "Date To"}
+            value={values.submittedTo || ""}
+            onChange={(e) => setValue("submittedTo", e.target.value)}
           />
         </div>
-      </section>
 
-      <ReinforcementFilterToolbar
-        filters={reviewQueueFilters}
-        values={{ status: values.status, search: values.search }}
-        onChange={handleFilterChange}
-        onClearAll={handleClearAllFilters}
-        activeFilters={activeFilters}
-        onRemoveFilter={handleRemoveFilter}
-        searchKey="search"
-        debounceMs={350}
-      />
+        <div className="grid gap-4 md:grid-cols-2 items-center">
+          <Input
+            type="text"
+            label={t("filters.search") || "Search"}
+            placeholder={t("filters.searchPlaceholder") || "Search..."}
+            value={values.search || ""}
+            onChange={(e) => setValue("search", e.target.value)}
+          />
+          
+          {(values.studentId || values.status || values.search || values.submittedFrom || values.submittedTo) ? (
+            <div className="flex justify-end h-10 items-end">
+              <Button variant="secondary" onClick={handleClearFilters}>
+                {t("rewardsModule.overview.clearFilters") || "Clear Filters"}
+              </Button>
+            </div>
+          ) : null}
+        </div>
+
+        {dateValidationError ? (
+          <p className="text-xs text-red-600 font-medium">{dateValidationError}</p>
+        ) : null}
+      </section>
 
       {error ? (
         <div className="rounded-lg border border-red-100 bg-red-50 p-5">
