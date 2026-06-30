@@ -404,10 +404,13 @@ export default function ReinforcementReviewQueuePage() {
         searchable: true,
         render: (_value: unknown, row: ReinforcementReviewItem) => {
           const student = row.student as Record<string, unknown>;
+          const fullName = student
+            ? (student.name as string) || (student.nameEn as string) || `${(student.firstName as string) || ""} ${(student.lastName as string) || ""}`.trim()
+            : "";
           const name =
             locale === "ar"
-              ? (student?.nameAr as string) || (student?.name as string) || "-"
-              : (student?.name as string) || (student?.nameEn as string) || "-";
+              ? (student?.nameAr as string) || fullName || "-"
+              : fullName || (student?.nameAr as string) || "-";
           return <span className="font-medium text-gray-900">{name}</span>;
         },
       },

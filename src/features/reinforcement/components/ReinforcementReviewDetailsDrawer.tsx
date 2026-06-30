@@ -257,7 +257,7 @@ export default function ReinforcementReviewDetailsDrawer({
                       return (
                         <div
                           key={index}
-                          className="flex items-start gap-3 border-l-2 border-gray-200 pl-4"
+                          className="flex items-start gap-3 border-s-2 border-gray-200 ps-4"
                         >
                           <div
                             className={`mt-0.5 rounded-full p-1 ${
