@@ -572,7 +572,7 @@ export default function BehaviorOverviewPage() {
         {/* Review Status */}
         <div
           className="rounded-2xl border shadow-sm p-6 flex flex-col justify-between"
-          style={{ borderColor: "var(--border-color)", minHeight: "360px" }}
+          style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)", minHeight: "360px" }}
         >
           <div>
             <div className="text-sm font-semibold mb-4" style={{ color: "var(--text-primary)" }}>{t("reviewStatus")}</div>
@@ -609,10 +609,10 @@ export default function BehaviorOverviewPage() {
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
-                    <span className="text-2xl font-bold text-gray-800">
+                    <span className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
                       {totalReviewsCount}
                     </span>
-                    <span className="text-[10px] text-gray-500 uppercase tracking-wider">
+                    <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
                       {t("totalRecords") || "Total"}
                     </span>
                   </div>
@@ -622,27 +622,27 @@ export default function BehaviorOverviewPage() {
           </div>
 
           {/* Clean Legend */}
-          <div className="grid grid-cols-3 gap-2 w-full mt-4 pt-4 border-t border-gray-100">
+          <div className="grid grid-cols-3 gap-2 w-full mt-4 pt-4 border-t" style={{ borderColor: "var(--border-color)" }}>
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-600" />
-                <span className="text-xs text-gray-500">{t("approved")}</span>
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#16a34a" }} />
+                <span className="text-xs" style={{ color: "var(--text-secondary)" }}>{t("approved")}</span>
               </div>
-              <span className="text-sm font-bold text-gray-800 mt-1">{approvedCount}</span>
+              <span className="text-sm font-bold mt-1" style={{ color: "var(--text-primary)" }}>{approvedCount}</span>
             </div>
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-red-500" />
-                <span className="text-xs text-gray-500">{t("rejected")}</span>
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#ef4444" }} />
+                <span className="text-xs" style={{ color: "var(--text-secondary)" }}>{t("rejected")}</span>
               </div>
-              <span className="text-sm font-bold text-gray-800 mt-1">{rejectedCount}</span>
+              <span className="text-sm font-bold mt-1" style={{ color: "var(--text-primary)" }}>{rejectedCount}</span>
             </div>
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-amber-500" />
-                <span className="text-xs text-gray-500">{t("pendingReview")}</span>
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#f59e0b" }} />
+                <span className="text-xs" style={{ color: "var(--text-secondary)" }}>{t("pendingReview")}</span>
               </div>
-              <span className="text-sm font-bold text-gray-800 mt-1">{pendingCount}</span>
+              <span className="text-sm font-bold mt-1" style={{ color: "var(--text-primary)" }}>{pendingCount}</span>
             </div>
           </div>
         </div>
