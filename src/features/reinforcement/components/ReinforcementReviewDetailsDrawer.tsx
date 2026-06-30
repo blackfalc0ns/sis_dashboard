@@ -51,13 +51,16 @@ export default function ReinforcementReviewDetailsDrawer({
   const localized = (en?: string | null, ar?: string | null) =>
     (locale === "ar" ? ar || en : en || ar) || missing;
 
-  const formatDate = (date: string | null | undefined) =>
-    date
+  const formatDate = (date: string | null | undefined) => {
+    if (!date) return missing;
+    const parsed = new Date(date);
+    return !isNaN(parsed.getTime())
       ? new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", {
           dateStyle: "medium",
           timeStyle: "short",
-        }).format(new Date(date))
+        }).format(parsed)
       : missing;
+  };
 
   const task = review?.task as any;
   const stage = review?.stage as any;
@@ -66,7 +69,7 @@ export default function ReinforcementReviewDetailsDrawer({
 
   const studentName = student
     ? localized(
-        student.name || `${student.firstName || ""} ${student.lastName || ""}`.trim(),
+        student.name || student.nameEn || `${student.firstName || ""} ${student.lastName || ""}`.trim(),
         student.nameAr
       )
     : missing;

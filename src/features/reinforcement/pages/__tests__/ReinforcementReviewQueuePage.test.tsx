@@ -372,5 +372,64 @@ describe("ReinforcementReviewQueuePage", () => {
     // XP grant modal should open
     expect(await screen.findByText("reviews.detail.grantXp")).toBeInTheDocument();
   });
+
+  it("clears stale state when drawer is closed and when a new details fetch starts", async () => {
+    const user = userEvent.setup();
+    
+    reviewsMocks.getReinforcementReviewItem.mockResolvedValueOnce({
+      id: "submission-1",
+      studentId: "student-123",
+      status: "submitted",
+      submittedAt: "2026-06-30T00:00:00Z",
+      task: { titleEn: "Read Book" },
+      stage: { titleEn: "Page 10" },
+      student: { nameEn: "First Student" },
+    });
+    
+    renderPage();
+
+    const row = await screen.findByText("John Doe");
+    await user.click(row);
+
+    const drawer = await screen.findByRole("dialog", { name: "reviews.detail.title" });
+    const drawerQueries = within(drawer);
+    await waitFor(() => {
+      expect(drawerQueries.getAllByText("First Student").length).toBe(2);
+    });
+
+    const closeBtn = screen.getByRole("button", { name: "common.close" });
+    await user.click(closeBtn);
+    
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "reviews.detail.title" })).not.toBeInTheDocument();
+    });
+
+    let resolveSecondFetch: (val: any) => void = () => {};
+    const secondFetchPromise = new Promise((resolve) => {
+      resolveSecondFetch = resolve;
+    });
+    reviewsMocks.getReinforcementReviewItem.mockReturnValueOnce(secondFetchPromise);
+
+    await user.click(row);
+
+    const newDrawer = await screen.findByRole("dialog", { name: "reviews.detail.title" });
+    const newDrawerQueries = within(newDrawer);
+    
+    expect(newDrawerQueries.queryByText("First Student")).not.toBeInTheDocument();
+
+    resolveSecondFetch({
+      id: "submission-1",
+      studentId: "student-123",
+      status: "submitted",
+      submittedAt: "2026-06-30T00:00:00Z",
+      task: { titleEn: "Read Book" },
+      stage: { titleEn: "Page 10" },
+      student: { nameEn: "Second Student" },
+    });
+
+    await waitFor(() => {
+      expect(newDrawerQueries.getAllByText("Second Student").length).toBe(2);
+    });
+  });
 });
 

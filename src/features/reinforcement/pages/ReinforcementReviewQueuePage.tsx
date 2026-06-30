@@ -281,6 +281,7 @@ export default function ReinforcementReviewQueuePage() {
     if (!selectedSubmissionId || !canView) return;
     let active = true;
     const fetchDetails = async () => {
+      setSelectedReview(null);
       setDrawerLoading(true);
       setDrawerError(null);
       try {
@@ -667,7 +668,11 @@ export default function ReinforcementReviewQueuePage() {
         loading={drawerLoading}
         error={drawerError}
         canManage={canManage}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => {
+          setDrawerOpen(false);
+          setSelectedSubmissionId(null);
+          setSelectedReview(null);
+        }}
         onRetry={() => setDrawerRefreshTrigger((prev) => prev + 1)}
         onAction={(action) => {
           setActionType(action);

@@ -139,4 +139,52 @@ describe("ReinforcementReviewDetailsDrawer", () => {
     await user.click(closeBtn);
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  it("falls back to student nameEn when student name is not present", () => {
+    const reviewWithFallback: ReinforcementReviewItem = {
+      ...mockReview,
+      student: {
+        name: undefined as any,
+        nameEn: "Fallback NameEn",
+        code: "STD123",
+      },
+    };
+    render(
+      <ReinforcementReviewDetailsDrawer
+        isOpen={true}
+        review={reviewWithFallback}
+        loading={false}
+        error={null}
+        canManage={true}
+        onClose={vi.fn()}
+        onRetry={vi.fn()}
+        onAction={vi.fn()}
+      />
+    );
+    expect(screen.getAllByText("Fallback NameEn")).toHaveLength(2);
+  });
+
+  it("handles invalid dates robustly without throwing RangeError", () => {
+    const reviewWithInvalidDate: ReinforcementReviewItem = {
+      ...mockReview,
+      submittedAt: "invalid-date-string",
+    };
+    expect(() => {
+      render(
+        <ReinforcementReviewDetailsDrawer
+          isOpen={true}
+          review={reviewWithInvalidDate}
+          loading={false}
+          error={null}
+          canManage={true}
+          onClose={vi.fn()}
+          onRetry={vi.fn()}
+          onAction={vi.fn()}
+        />
+      );
+    }).not.toThrow();
+
+    expect(screen.getByText("reviews.detail.submittedAt")).toBeInTheDocument();
+    expect(screen.getAllByText("—")).not.toHaveLength(0);
+  });
 });
