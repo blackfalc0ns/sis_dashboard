@@ -2,24 +2,28 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertCircle, CheckCircle, RefreshCw, ShieldAlert, XCircle } from "lucide-react";
-import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
 import Input from "@/components/ui/input/Input";
 import DataTable, { type Column } from "@/components/ui/data-table/DataTable";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import Modal from "@/components/ui/modal/Modal";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
+import ReinforcementReviewDetailsDrawer from "../components/ReinforcementReviewDetailsDrawer";
+import ReinforcementReviewActionModal from "../components/ReinforcementReviewActionModal";
 import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
 import { getReinforcementFilterOptions } from "../services/reinforcementFilterOptionsService";
 import {
   approveReinforcementSubmission,
+  getReinforcementReviewItem,
   listReinforcementReviewQueue,
   rejectReinforcementSubmission,
 } from "../services/reinforcementReviewsService";
+import { grantXpForReinforcementReview } from "../services/reinforcementXpService";
 import type {
   ReinforcementReviewItem,
   ReinforcementReviewStatus,
@@ -144,6 +148,20 @@ export default function ReinforcementReviewQueuePage() {
   const [error, setError] = useState<string | null>(null);
   const [dateValidationError, setDateValidationError] = useState<string | null>(null);
 
+  // Drawer and action states
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerLoading, setDrawerLoading] = useState(false);
+  const [drawerError, setDrawerError] = useState<string | null>(null);
+  const [selectedReview, setSelectedReview] = useState<ReinforcementReviewItem | null>(null);
+  const [actionModalOpen, setActionModalOpen] = useState(false);
+  const [actionType, setActionType] = useState<"approve" | "reject">("approve");
+  const [actionLoading, setActionLoading] = useState(false);
+  const [xpModalOpen, setXpModalOpen] = useState(false);
+  const [xpAmount, setXpAmount] = useState("");
+  const [xpGranting, setXpGranting] = useState(false);
+  const [drawerRefreshTrigger, setDrawerRefreshTrigger] = useState(0);
+
   // Dropdown options states
   const [yearsOptions, setYearsOptions] = useState<SelectOption[]>([]);
   const [termsOptions, setTermsOptions] = useState<SelectOption[]>([]);
@@ -258,6 +276,87 @@ export default function ReinforcementReviewQueuePage() {
     void Promise.resolve().then(refreshQueue);
   }, [refreshQueue]);
 
+  // Drawer details fetch effect
+  useEffect(() => {
+    if (!selectedSubmissionId || !canView) return;
+    let active = true;
+    const fetchDetails = async () => {
+      setDrawerLoading(true);
+      setDrawerError(null);
+      try {
+        const details = await getReinforcementReviewItem(selectedSubmissionId);
+        if (active) {
+          setSelectedReview(details);
+        }
+      } catch (err) {
+        if (active) {
+          setDrawerError(err instanceof Error ? err.message : "Failed to load details");
+        }
+      } finally {
+        if (active) setDrawerLoading(false);
+      }
+    };
+    void fetchDetails();
+    return () => {
+      active = false;
+    };
+  }, [selectedSubmissionId, canView, drawerRefreshTrigger]);
+
+  const handleActionSubmit = async (payload: { note?: string; noteAr?: string }) => {
+    if (!selectedSubmissionId) return;
+    setActionLoading(true);
+    try {
+      if (actionType === "approve") {
+        const updated = await approveReinforcementSubmission(selectedSubmissionId, payload);
+        setSelectedReview(updated);
+        showSuccess(t("reviews.messages.approved"));
+        setActionModalOpen(false);
+        // Show XP grant prompt after successful approval
+        setXpModalOpen(true);
+      } else {
+        const updated = await rejectReinforcementSubmission(selectedSubmissionId, payload);
+        setSelectedReview(updated);
+        showSuccess(t("reviews.messages.rejected"));
+        setActionModalOpen(false);
+      }
+      await refreshQueue();
+    } catch (nextError) {
+      const message =
+        nextError instanceof Error ? nextError.message : t("reviews.messages.error");
+      showError(message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleXpGrant = async () => {
+    if (!selectedSubmissionId) return;
+    const parsedAmount = Number(xpAmount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      showError(t("validation.xpAmountRequired"));
+      return;
+    }
+    setXpGranting(true);
+    try {
+      const payload = { amount: parsedAmount };
+      await grantXpForReinforcementReview(selectedSubmissionId, payload);
+      showSuccess(t("reviews.detail.xpGranted"));
+      setXpModalOpen(false);
+      setXpAmount("");
+    } catch (nextError) {
+      const message =
+        nextError instanceof Error ? nextError.message : t("common.error");
+      showError(message);
+    } finally {
+      setXpGranting(false);
+    }
+  };
+
+  const handleXpSkip = () => {
+    setXpModalOpen(false);
+    setXpAmount("");
+  };
+
   const handleClearFilters = () => {
     setValue("studentId", "");
     setValue("status", "");
@@ -371,18 +470,27 @@ export default function ReinforcementReviewQueuePage() {
         label: t("reviews.table.actions"),
         render: (_value: unknown, row: ReinforcementReviewItem) => (
           <div className="flex items-center gap-2">
-            <Link href={`/${locale}/reinforcement/reviews/${row.id}`}>
-              <Button variant="secondary" size="sm">
-                {t("reviews.actions.viewDetail")}
-              </Button>
-            </Link>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedSubmissionId(row.id);
+                setDrawerOpen(true);
+              }}
+            >
+              {t("reviews.actions.viewDetail")}
+            </Button>
             {canManage && row.status === "submitted" ? (
               <>
                 <Button
                   variant="secondary"
                   size="sm"
                   leftIcon={<CheckCircle className="h-3.5 w-3.5" />}
-                  onClick={() => handleApprove(row)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleApprove(row);
+                  }}
                 >
                   {t("reviews.actions.approve")}
                 </Button>
@@ -390,7 +498,10 @@ export default function ReinforcementReviewQueuePage() {
                   variant="danger"
                   size="sm"
                   leftIcon={<XCircle className="h-3.5 w-3.5" />}
-                  onClick={() => handleReject(row)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleReject(row);
+                  }}
                 >
                   {t("reviews.actions.reject")}
                 </Button>
@@ -534,6 +645,10 @@ export default function ReinforcementReviewQueuePage() {
           columns={columns}
           data={items}
           searchQuery={values.search}
+          onRowClick={(row) => {
+            setSelectedSubmissionId(row.id);
+            setDrawerOpen(true);
+          }}
           serverPagination={{
             enabled: true,
             currentPage: page,
@@ -544,6 +659,60 @@ export default function ReinforcementReviewQueuePage() {
           }}
         />
       </section>
+
+      {/* Details Drawer */}
+      <ReinforcementReviewDetailsDrawer
+        isOpen={drawerOpen}
+        review={selectedReview}
+        loading={drawerLoading}
+        error={drawerError}
+        canManage={canManage}
+        onClose={() => setDrawerOpen(false)}
+        onRetry={() => setDrawerRefreshTrigger((prev) => prev + 1)}
+        onAction={(action) => {
+          setActionType(action);
+          setActionModalOpen(true);
+        }}
+      />
+
+      {/* Action Modal */}
+      <ReinforcementReviewActionModal
+        isOpen={actionModalOpen}
+        onClose={() => setActionModalOpen(false)}
+        onSubmit={handleActionSubmit}
+        actionType={actionType}
+        loading={actionLoading}
+      />
+
+      {/* XP Grant Modal */}
+      <Modal
+        isOpen={xpModalOpen}
+        onClose={handleXpSkip}
+        title={t("reviews.detail.grantXp")}
+        description={t("reviews.detail.grantXpDescription")}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={handleXpSkip}>
+              {t("actions.skip")}
+            </Button>
+            <Button loading={xpGranting} onClick={handleXpGrant}>
+              {t("actions.grantXp")}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4 py-2" dir={locale === "ar" ? "rtl" : "ltr"}>
+          <Input
+            type="number"
+            label={t("xp.amount")}
+            placeholder="10"
+            value={xpAmount}
+            onChange={(e) => setXpAmount(e.target.value)}
+            min={1}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

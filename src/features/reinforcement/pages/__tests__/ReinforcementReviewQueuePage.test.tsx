@@ -15,6 +15,11 @@ const reviewsMocks = vi.hoisted(() => ({
   listReinforcementReviewQueue: vi.fn(),
   approveReinforcementSubmission: vi.fn(),
   rejectReinforcementSubmission: vi.fn(),
+  getReinforcementReviewItem: vi.fn(),
+}));
+
+const xpMocks = vi.hoisted(() => ({
+  grantXpForReinforcementReview: vi.fn(),
 }));
 
 const filterOptionMocks = vi.hoisted(() => ({
@@ -40,6 +45,11 @@ vi.mock(
 vi.mock(
   "@/features/reinforcement/services/reinforcementFilterOptionsService",
   () => filterOptionMocks,
+);
+
+vi.mock(
+  "@/features/reinforcement/services/reinforcementXpService",
+  () => xpMocks,
 );
 
 function renderPage() {
@@ -78,6 +88,16 @@ describe("ReinforcementReviewQueuePage", () => {
         },
       ],
       total: 1,
+    });
+
+    reviewsMocks.getReinforcementReviewItem.mockResolvedValue({
+      id: "submission-1",
+      studentId: "student-123",
+      status: "submitted",
+      submittedAt: "2026-06-30T00:00:00Z",
+      task: { titleEn: "Read Book" },
+      stage: { titleEn: "Page 10" },
+      student: { nameEn: "John Doe" },
     });
 
     filterOptionMocks.getReinforcementFilterOptions.mockResolvedValue({
@@ -190,6 +210,57 @@ describe("ReinforcementReviewQueuePage", () => {
           submittedTo: "2026-07-03",
         }),
       );
+    });
+  });
+
+  it("opens details drawer on row click and allows approval with note and XP grant", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    // Click on the row
+    const row = await screen.findByText("John Doe");
+    await user.click(row);
+
+    // Verify it fetches details
+    expect(reviewsMocks.getReinforcementReviewItem).toHaveBeenCalledWith("submission-1");
+
+    // Drawer should show up and display details
+    expect(await screen.findByRole("dialog", { name: "reviews.detail.title" })).toBeInTheDocument();
+
+    // Click Approve button in drawer footer
+    const drawer = screen.getByRole("dialog", { name: "reviews.detail.title" });
+    const approveBtn = drawer.querySelector("footer button") as HTMLButtonElement;
+    await user.click(approveBtn);
+
+    // Modal opens. Submit modal
+    const approveModal = await screen.findByRole("dialog", { name: "reviews.detail.approveTitle" });
+    const submitApproveBtn = approveModal.querySelector("button.from-primary") as HTMLButtonElement;
+    reviewsMocks.approveReinforcementSubmission.mockResolvedValue({
+      id: "submission-1",
+      status: "approved",
+      task: { titleEn: "Read Book" },
+      stage: { titleEn: "Page 10" },
+      student: { nameEn: "John Doe" },
+    });
+    await user.click(submitApproveBtn);
+
+    expect(reviewsMocks.approveReinforcementSubmission).toHaveBeenCalledWith("submission-1", {
+      note: undefined,
+      noteAr: undefined,
+    });
+
+    // XP modal should open
+    expect(await screen.findByText("reviews.detail.grantXp")).toBeInTheDocument();
+
+    // Fill XP amount and submit
+    const xpInput = screen.getByLabelText("xp.amount");
+    fireEvent.change(xpInput, { target: { value: "15" } });
+
+    const grantBtn = screen.getByRole("button", { name: "actions.grantXp" });
+    await user.click(grantBtn);
+
+    expect(xpMocks.grantXpForReinforcementReview).toHaveBeenCalledWith("submission-1", {
+      amount: 15,
     });
   });
 });
