@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   AlertTriangle,
@@ -18,11 +18,18 @@ import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
+import ReinforcementAcademicContextFilter, {
+  type ReinforcementAcademicContextSelection,
+  type ReinforcementAcademicContextValue,
+} from "../components/ReinforcementAcademicContextFilter";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
+import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
+import { getReinforcementFilterOptions } from "../services/reinforcementFilterOptionsService";
 import {
   getRewardCatalogSummary,
   getRewardsOverview,
 } from "../services/rewardDashboardService";
+import Input from "@/components/ui/input/Input";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -125,6 +132,49 @@ export default function RewardsOverviewPage() {
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
 
+  const {
+    values,
+    setValue,
+    clearAll,
+  } = useReinforcementUrlFilters({
+    paramKeys: [
+      "academicYearId",
+      "termId",
+      "stageId",
+      "gradeId",
+      "sectionId",
+      "classroomId",
+      "studentId",
+      "enrollmentId",
+      "dateFrom",
+      "dateTo",
+    ],
+    defaults: {},
+  });
+
+  const context: ReinforcementAcademicContextValue = useMemo(
+    () => ({
+      academicYearId: values.academicYearId || undefined,
+      termId: values.termId || undefined,
+      stageId: values.stageId || undefined,
+      gradeId: values.gradeId || undefined,
+      sectionId: values.sectionId || undefined,
+      classroomId: values.classroomId || undefined,
+      studentId: values.studentId || undefined,
+      enrollmentId: values.enrollmentId || undefined,
+    }),
+    [
+      values.academicYearId,
+      values.termId,
+      values.stageId,
+      values.gradeId,
+      values.sectionId,
+      values.classroomId,
+      values.studentId,
+      values.enrollmentId,
+    ],
+  );
+
   const [overview, setOverview] = useState<Record<string, unknown> | null>(
     null,
   );
@@ -134,6 +184,7 @@ export default function RewardsOverviewPage() {
   > | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dateValidationError, setDateValidationError] = useState<string | null>(null);
 
   const canView = hasPermission("reinforcement.rewards.view");
 
@@ -148,12 +199,32 @@ export default function RewardsOverviewPage() {
 
   const fetchData = useCallback(async () => {
     if (!canView) return;
+    
+    // Date validation
+    if (values.dateFrom && values.dateTo && values.dateFrom > values.dateTo) {
+      setDateValidationError(t("rewardsModule.overview.errors.invalidDates") || "Start date cannot be after end date");
+      setOverview(null);
+      setLoading(false);
+      return;
+    }
+    setDateValidationError(null);
     setLoading(true);
     setError(null);
+    
     try {
+      // Catalog summary does not support student or date filtering
       const [overviewData, summaryData] = await Promise.all([
-        getRewardsOverview(),
-        getRewardCatalogSummary(),
+        getRewardsOverview({
+          academicYearId: values.academicYearId || undefined,
+          termId: values.termId || undefined,
+          studentId: values.studentId || undefined,
+          dateFrom: values.dateFrom || undefined,
+          dateTo: values.dateTo || undefined,
+        }),
+        getRewardCatalogSummary({
+          academicYearId: values.academicYearId || undefined,
+          termId: values.termId || undefined,
+        }),
       ]);
       setOverview(overviewData);
       setCatalogSummary(summaryData);
@@ -164,7 +235,15 @@ export default function RewardsOverviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [canView, t]);
+  }, [
+    canView,
+    t,
+    values.academicYearId,
+    values.termId,
+    values.studentId,
+    values.dateFrom,
+    values.dateTo,
+  ]);
 
   useEffect(() => {
     void Promise.resolve().then(fetchData);
@@ -225,6 +304,53 @@ export default function RewardsOverviewPage() {
               </Button>
             </Link>
           </section>
+
+          {/* Filters section */}
+          <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm space-y-4">
+            <h2 className="text-sm font-semibold text-gray-900">
+              {t("rewardsModule.overview.filtersTitle") || "Filters"}
+            </h2>
+            
+            <ReinforcementAcademicContextFilter
+              value={context}
+              showStudent
+              onChange={(selection: ReinforcementAcademicContextSelection) => {
+                setValue("academicYearId", selection.academicYearId || "");
+                setValue("termId", selection.termId || "");
+                setValue("stageId", selection.stageId || "");
+                setValue("gradeId", selection.gradeId || "");
+                setValue("sectionId", selection.sectionId || "");
+                setValue("classroomId", selection.classroomId || "");
+                setValue("studentId", selection.studentId || "");
+                setValue("enrollmentId", selection.enrollmentId || "");
+              }}
+            />
+
+            <div className="grid gap-4 md:grid-cols-3 items-end">
+              <Input
+                type="date"
+                label={t("rewardsModule.overview.dateFrom") || "Date From"}
+                value={values.dateFrom || ""}
+                onChange={(e) => setValue("dateFrom", e.target.value)}
+              />
+              <Input
+                type="date"
+                label={t("rewardsModule.overview.dateTo") || "Date To"}
+                value={values.dateTo || ""}
+                onChange={(e) => setValue("dateTo", e.target.value)}
+              />
+              {(values.studentId || values.dateFrom || values.dateTo) ? (
+                <Button variant="secondary" onClick={clearAll} className="w-full md:w-auto">
+                  {t("rewardsModule.overview.clearFilters") || "Clear Filters"}
+                </Button>
+              ) : null}
+            </div>
+
+            {dateValidationError ? (
+              <p className="text-xs text-red-600 font-medium">{dateValidationError}</p>
+            ) : null}
+          </section>
+
           {/* KPI Cards */}
           <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <KPICardV2
