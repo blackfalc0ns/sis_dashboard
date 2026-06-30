@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast/Toast";
@@ -142,6 +142,52 @@ describe("ReinforcementReviewQueuePage", () => {
           academicYearId: "year-1",
           termId: "term-1",
           studentId: undefined,
+        }),
+      );
+    });
+  });
+
+  it("displays validation error and blocks queue list API call when dates are invalid", async () => {
+    renderPage();
+
+    await waitFor(() => {
+      expect(reviewsMocks.listReinforcementReviewQueue).toHaveBeenCalled();
+    });
+
+    const dateFromInput = screen.getByLabelText("rewardsModule.overview.dateFrom");
+    const dateToInput = screen.getByLabelText("rewardsModule.overview.dateTo");
+
+    reviewsMocks.listReinforcementReviewQueue.mockClear();
+
+    // Set invalid date range: from > to
+    fireEvent.change(dateFromInput, { target: { value: "2026-07-02" } });
+    fireEvent.change(dateToInput, { target: { value: "2026-07-01" } });
+
+    // Should display validation error
+    expect(await screen.findByText("rewardsModule.overview.errors.invalidDates")).toBeInTheDocument();
+
+    // Verify the list API call was blocked for this invalid combination
+    expect(reviewsMocks.listReinforcementReviewQueue).not.toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        submittedFrom: "2026-07-02",
+        submittedTo: "2026-07-01",
+      }),
+    );
+
+    // Change to valid date range
+    fireEvent.change(dateToInput, { target: { value: "2026-07-03" } });
+
+    // The validation error should disappear
+    await waitFor(() => {
+      expect(screen.queryByText("rewardsModule.overview.errors.invalidDates")).not.toBeInTheDocument();
+    });
+
+    // The API call should have been made with the valid dates
+    await waitFor(() => {
+      expect(reviewsMocks.listReinforcementReviewQueue).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          submittedFrom: "2026-07-02",
+          submittedTo: "2026-07-03",
         }),
       );
     });
