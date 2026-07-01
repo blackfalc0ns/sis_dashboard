@@ -1,13 +1,17 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Save } from "lucide-react";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import WizardStepper from "@/features/academics/timetable/components/WizardStepper";
-import { isPolicyNameUnique } from "../services/attendancePolicyService";
+import {
+  validatePolicyName,
+  isAttendancePolicyConflict,
+  type PolicyNameValidationResult,
+} from "../services/attendancePolicyService";
 import { getScopeSelectionMissingFields } from "@/features/attendance/shared/attendanceScope";
 import { fetchTimetableConfigs } from "@/features/academics/timetable/services/timetableConfigService";
 import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
@@ -25,6 +29,8 @@ import type {
   Term,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
+
+type NameValidationStatus = "idle" | "checking" | "success" | "error";
 
 interface PolicyWizardDialogProps {
   isOpen: boolean;
@@ -61,6 +67,8 @@ export default function PolicyWizardDialog({
   const [isDirty, setIsDirty] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [nameValidationStatus, setNameValidationStatus] = useState<NameValidationStatus>("idle");
+  const nameValidationRequestId = useRef(0);
 
   // Form data
   const [formData, setFormData] = useState<PolicyFormData>({
@@ -143,6 +151,8 @@ export default function PolicyWizardDialog({
       setIsDirty(false);
       setActiveStep(0);
       setErrors({});
+      setNameValidationStatus("idle");
+      nameValidationRequestId.current += 1;
     } else if (isOpen && !policy) {
       setFormData({
         yearId: term?.yearId || "",
@@ -178,6 +188,8 @@ export default function PolicyWizardDialog({
       setIsDirty(false);
       setActiveStep(0);
       setErrors({});
+      setNameValidationStatus("idle");
+      nameValidationRequestId.current += 1;
     }
   }, [isOpen, policy, term]);
 
@@ -294,6 +306,17 @@ export default function PolicyWizardDialog({
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setIsDirty(true);
+    if (["yearId", "termId", "nameAr", "nameEn", "scopeType", "scopeIds"].includes(field)) {
+      nameValidationRequestId.current += 1;
+      setNameValidationStatus("idle");
+    }
+    if (["scopeType", "scopeIds", "isActive"].includes(field)) {
+      setErrors((current) => {
+        const next = { ...current };
+        delete next.scopeConflict;
+        return next;
+      });
+    }
     // Clear error for this field
     if (errors[field]) {
       setErrors((prev) => {
@@ -301,6 +324,56 @@ export default function PolicyWizardDialog({
         delete newErrors[field];
         return newErrors;
       });
+    }
+  };
+
+  const applyNameValidationResponse = (validationResponse: PolicyNameValidationResult) => {
+    setErrors((current) => {
+      const next = { ...current };
+      delete next.nameAr;
+      delete next.nameEn;
+      delete next.nameValidation;
+      if (!validationResponse.uniqueAr) next.nameAr = tValidation("uniqueNameAr");
+      if (!validationResponse.uniqueEn) next.nameEn = tValidation("uniqueNameEn");
+      return next;
+    });
+    setNameValidationStatus("success");
+    return validationResponse.available && validationResponse.uniqueAr && validationResponse.uniqueEn;
+  };
+
+  const runNameValidation = async (): Promise<boolean> => {
+    if (!formData.nameAr.trim() || !formData.nameEn.trim()) return false;
+
+    const requestId = nameValidationRequestId.current + 1;
+    nameValidationRequestId.current = requestId;
+    setNameValidationStatus("checking");
+    setErrors((current) => {
+      const next = { ...current };
+      delete next.nameValidation;
+      return next;
+    });
+
+    try {
+      const validationResponse = await validatePolicyName({
+        academicYearId: formData.yearId,
+        termId: formData.termId,
+        scopeType: formData.scopeType,
+        scopeIds: formData.scopeIds,
+        nameAr: formData.nameAr.trim(),
+        nameEn: formData.nameEn.trim(),
+        excludeId: policy?.id,
+      });
+      if (nameValidationRequestId.current !== requestId) return false;
+      return applyNameValidationResponse(validationResponse);
+    } catch (error) {
+      if (nameValidationRequestId.current !== requestId) return false;
+      console.error("Failed to validate attendance policy name:", error);
+      setNameValidationStatus("error");
+      setErrors((current) => ({
+        ...current,
+        nameValidation: tValidation("nameValidationUnavailable"),
+      }));
+      return false;
     }
   };
 
@@ -316,24 +389,6 @@ export default function PolicyWizardDialog({
         newErrors.nameEn = tValidation("nameEnRequired");
       }
 
-      // Check uniqueness
-      if (formData.nameAr && formData.nameEn) {
-        const { uniqueAr, uniqueEn } = isPolicyNameUnique(
-          formData.yearId,
-          formData.termId,
-          formData.scopeType,
-          formData.scopeIds,
-          formData.nameAr,
-          formData.nameEn,
-          policy?.id
-        );
-        if (!uniqueAr) {
-          newErrors.nameAr = tValidation("uniqueNameAr");
-        }
-        if (!uniqueEn) {
-          newErrors.nameEn = tValidation("uniqueNameEn");
-        }
-      }
     } else if (step === 1) {
       // Step 2: Scope
       for (const field of getScopeSelectionMissingFields(formData.scopeType, formData.scopeIds)) {
@@ -403,8 +458,9 @@ export default function PolicyWizardDialog({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!validateStep(activeStep)) return;
+    if (activeStep === 0 && !(await runNameValidation())) return;
     setActiveStep((prev) => prev + 1);
   };
 
@@ -415,6 +471,10 @@ export default function PolicyWizardDialog({
 
   const handleSave = async () => {
     if (!validateStep(activeStep)) return;
+    if (!(await runNameValidation())) {
+      setActiveStep(0);
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -423,6 +483,17 @@ export default function PolicyWizardDialog({
       onClose();
     } catch (error) {
       console.error("Failed to save policy:", error);
+      if (isAttendancePolicyConflict(error)) {
+        setErrors((current) => ({
+          ...current,
+          scopeConflict: t(
+            formData.scopeType === "CLASSROOM"
+              ? "scopeConflict.classroom"
+              : "scopeConflict.generic",
+          ),
+        }));
+        setActiveStep(1);
+      }
     } finally {
       setIsSaving(false);
     }
@@ -487,7 +558,12 @@ export default function PolicyWizardDialog({
                 </Button>
               )}
               {activeStep < steps.length - 1 ? (
-                <Button onClick={handleNext} variant="primary">
+                <Button
+                  onClick={handleNext}
+                  variant="primary"
+                  disabled={nameValidationStatus === "checking"}
+                  loading={activeStep === 0 && nameValidationStatus === "checking"}
+                >
                   {t("next")}
                 </Button>
               ) : (
@@ -517,6 +593,10 @@ export default function PolicyWizardDialog({
                 errors={errors}
                 isReadOnly={isReadOnly}
                 onFieldChange={handleFieldChange}
+                onNameBlur={() => void runNameValidation()}
+                onRetryNameValidation={() => void runNameValidation()}
+                nameValidationStatus={nameValidationStatus}
+                nameValidationError={errors.nameValidation}
               />
             )}
 
@@ -530,6 +610,7 @@ export default function PolicyWizardDialog({
                 filteredSections={filteredSections}
                 filteredClassrooms={filteredClassrooms}
                 onFieldChange={handleFieldChange}
+                conflictError={errors.scopeConflict}
               />
             )}
 

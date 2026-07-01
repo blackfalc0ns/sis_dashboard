@@ -24,7 +24,10 @@ export default function DocumentViewerModal({
 
   const handleDownload = () => {
     if (document.url) {
-      window.open(document.url, "_blank");
+      const link = window.document.createElement("a");
+      link.href = document.url;
+      link.download = document.name;
+      link.click();
     }
   };
 

@@ -3,20 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Modal } from "@/components/ui/modal";
-import Stepper from "@/features/admissions/shared/Stepper";
-import StudentInfoStep from "./steps/StudentInfoStep";
-import GuardianInfoStep from "./steps/GuardianInfoStep";
-import DocumentsStep from "./steps/DocumentsStep";
-import { Lead } from "@/features/admissions/leads/types/lead";
+import Select from "@/components/ui/input/Select";
 import { fetchAdmissionsDocumentRequirements } from "@/features/settings/services/settingsService";
 import {
   fetchAcademicStructureTree,
-  type AcademicStructureStage as Stage,
   type AcademicStructureGrade as Grade,
-  type AcademicStructureSection as Section,
 } from "@/features/academics/services/academicStructureApiService";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import type { AdmissionsRequiredDocumentConfig } from "@/features/settings/types";
+import type { Lead } from "@/features/admissions/leads/types/lead";
 import {
   mapLeadChannelToApplicationSource,
   type ApplicationCreationPayload,
@@ -29,42 +24,11 @@ interface ApplicationCreateStepperProps {
   onSubmit: (data: ApplicationCreationPayload) => void;
 }
 
-interface Guardian {
-  full_name: string;
-  relation: string;
-  phone_primary: string;
-  phone_secondary: string;
-  email: string;
-  national_id: string;
-  job_title: string;
-  workplace: string;
-  is_primary: boolean;
-  can_pickup: boolean;
-  can_receive_notifications: boolean;
+interface IntakeFormState {
+  studentName: string;
+  gradeId: string;
+  documents: Record<string, File | null>;
 }
-
-interface ValidationErrors {
-  [key: string]: string;
-}
-
-interface DocumentData {
-  uploaded: boolean;
-  file: File | null;
-}
-
-type DocumentsState = Record<string, DocumentData>;
-
-const createEmptyDocumentState = (
-  requirements: AdmissionsRequiredDocumentConfig[],
-  currentDocuments: DocumentsState = {},
-): DocumentsState =>
-  requirements.reduce<DocumentsState>((accumulator, requirement) => {
-    accumulator[requirement.id] = currentDocuments[requirement.id] || {
-      uploaded: false,
-      file: null,
-    };
-    return accumulator;
-  }, {});
 
 export default function ApplicationCreateStepper({
   lead,
@@ -73,66 +37,18 @@ export default function ApplicationCreateStepper({
   onSubmit,
 }: ApplicationCreateStepperProps) {
   const t = useTranslations("admissions.create_application");
-  const composeFullName = (...parts: string[]) =>
-    parts
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .join(" ");
-
-  const [currentStep, setCurrentStep] = useState(0);
-  const [errors, setErrors] = useState<ValidationErrors>({});
-  const [guardianErrors, setGuardianErrors] = useState<ValidationErrors[]>([
-    {},
-  ]);
-  const [guardians, setGuardians] = useState<Guardian[]>([
-    {
-      full_name: "",
-      relation: "father",
-      phone_primary: lead?.phone || "",
-      phone_secondary: "",
-      email: lead?.email || "",
-      national_id: "",
-      job_title: "",
-      workplace: "",
-      is_primary: true,
-      can_pickup: true,
-      can_receive_notifications: true,
-    },
-  ]);
+  const { yearId, termId } = useAdmissionsYearTermContext();
+  const [form, setForm] = useState<IntakeFormState>({
+    studentName: lead?.studentName || "",
+    gradeId: "",
+    documents: {},
+  });
+  const [grades, setGrades] = useState<Grade[]>([]);
   const [documentRequirements, setDocumentRequirements] = useState<
     AdmissionsRequiredDocumentConfig[]
   >([]);
-  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
-  const [stages, setStages] = useState<Stage[]>([]);
-  const [grades, setGrades] = useState<Grade[]>([]);
-  const [sections, setSections] = useState<Section[]>([]);
-  const [isLoadingStructure, setIsLoadingStructure] = useState(false);
-  const { yearId, termId } = useAdmissionsYearTermContext();
-  const [formData, setFormData] = useState({
-    first_name_ar: "",
-    father_name_ar: "",
-    grandfather_name_ar: "",
-    family_name_ar: "",
-    first_name_en: lead?.studentName || "",
-    father_name_en: "",
-    grandfather_name_en: "",
-    family_name_en: "",
-    gender: "",
-    date_of_birth: "",
-    nationality: "",
-    stage: "",
-    grade_requested: "",
-    section: "",
-    address_line: "",
-    city: "",
-    district: "",
-    previous_school: "",
-    medical_conditions: "",
-    notes: "",
-    join_date: new Date().toISOString().split("T")[0],
-    status: "pending",
-    documents: {} as DocumentsState,
-  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const activeDocumentRequirements = useMemo(
     () =>
@@ -142,296 +58,58 @@ export default function ApplicationCreateStepper({
     [documentRequirements],
   );
 
-  const missingRequiredDocuments = useMemo(
-    () =>
-      activeDocumentRequirements.filter(
-        (requirement) =>
-          requirement.required && !formData.documents[requirement.id]?.uploaded,
-      ),
-    [activeDocumentRequirements, formData.documents],
-  );
-
-  const steps = [
-    {
-      label: t("steps.student_info"),
-      description: t("steps.student_info_desc"),
-    },
-    {
-      label: t("steps.guardian_info"),
-      description: t("steps.guardian_info_desc"),
-    },
-    { label: t("steps.documents"), description: t("steps.documents_desc") },
-  ];
-
   useEffect(() => {
     if (!isOpen) return;
-
     let cancelled = false;
-    setIsLoadingDocuments(true);
-    void fetchAdmissionsDocumentRequirements()
-      .then((requirements) => {
+    void Promise.resolve()
+      .then(async () => {
+        setIsLoading(true);
+        const [requirements, structure] = await Promise.all([
+          fetchAdmissionsDocumentRequirements(),
+          yearId && termId
+            ? fetchAcademicStructureTree({ yearId, termId })
+            : Promise.resolve({ grades: [] }),
+        ]);
+        return { requirements, grades: structure.grades };
+      })
+      .then(({ requirements, grades: nextGrades }) => {
         if (cancelled) return;
         setDocumentRequirements(requirements);
-        setFormData((current) => ({
+        setGrades(nextGrades);
+        setForm((current) => ({
           ...current,
-          documents: createEmptyDocumentState(
-            requirements.filter((requirement) => requirement.active),
-            current.documents,
-          ),
+          studentName: current.studentName || lead?.studentName || "",
+          gradeId: current.gradeId || findLeadGradeId(nextGrades, lead?.gradeInterest),
         }));
       })
-      .finally(() => {
+      .catch((loadError) => {
         if (!cancelled) {
-          setIsLoadingDocuments(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen || !yearId || !termId) return;
-
-    let cancelled = false;
-    setIsLoadingStructure(true);
-    void fetchAcademicStructureTree({ yearId, termId })
-      .then((data) => {
-        if (cancelled) return;
-        setStages(data.stages);
-        setGrades(data.grades);
-        setSections(data.sections);
-        if (lead?.gradeInterest) {
-          const matchingGrade = data.grades.find((grade) => {
-            const labels = [grade.id, grade.name, grade.nameEn, grade.nameAr]
-              .filter(Boolean)
-              .map((label) => String(label).toLowerCase());
-            return labels.includes(lead.gradeInterest!.toLowerCase());
-          });
-          if (matchingGrade) {
-            setFormData((current) => ({
-              ...current,
-              stage: matchingGrade.stageId,
-              grade_requested: matchingGrade.id,
-            }));
-          }
-        }
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          console.error("Failed to load structure tree:", error);
+          console.error("Failed to load application intake data:", loadError);
+          setError("Failed to load application form data.");
         }
       })
       .finally(() => {
-        if (!cancelled) {
-          setIsLoadingStructure(false);
-        }
+        if (!cancelled) setIsLoading(false);
       });
-
     return () => {
       cancelled = true;
     };
-  }, [isOpen, lead?.gradeInterest, yearId, termId]);
+  }, [isOpen, lead?.gradeInterest, lead?.studentName, termId, yearId]);
 
   if (!isOpen) return null;
 
-  const validateEmail = (email: string): boolean => {
-    if (!email) return true;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validatePhone = (phone: string): boolean => {
-    if (!phone) return true;
-    const phoneRegex = /^[\d\s+()-]+$/;
-    return phoneRegex.test(phone) && phone.replace(/\D/g, "").length >= 10;
-  };
-
-  const validateStep1 = (): boolean => {
-    const newErrors: ValidationErrors = {};
-
-    if (!formData.first_name_ar.trim())
-      newErrors.first_name_ar = t("errors.first_name_ar_required");
-    if (!formData.father_name_ar.trim())
-      newErrors.father_name_ar = t("errors.father_name_ar_required");
-    if (!formData.grandfather_name_ar.trim())
-      newErrors.grandfather_name_ar = t("errors.grandfather_name_ar_required");
-    if (!formData.family_name_ar.trim())
-      newErrors.family_name_ar = t("errors.family_name_ar_required");
-    if (!formData.first_name_en.trim())
-      newErrors.first_name_en = t("errors.first_name_en_required");
-    if (!formData.father_name_en.trim())
-      newErrors.father_name_en = t("errors.father_name_en_required");
-    if (!formData.grandfather_name_en.trim())
-      newErrors.grandfather_name_en = t("errors.grandfather_name_en_required");
-    if (!formData.family_name_en.trim())
-      newErrors.family_name_en = t("errors.family_name_en_required");
-    if (!formData.gender) newErrors.gender = t("errors.gender_required");
-    if (!formData.date_of_birth) {
-      newErrors.date_of_birth = t("errors.date_of_birth_required");
-    } else {
-      const birthDate = new Date(formData.date_of_birth);
-      const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
-      if (age < 3 || age > 20) newErrors.date_of_birth = t("errors.age_range");
-    }
-    if (!formData.nationality)
-      newErrors.nationality = t("errors.nationality_required");
-    if (!formData.grade_requested)
-      newErrors.grade_requested = t("errors.grade_required");
-    if (
-      formData.grade_requested &&
-      !grades.some((grade) => grade.id === formData.grade_requested)
-    ) {
-      newErrors.grade_requested =
-        "Please select a valid grade from the academic structure.";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const validateStep2 = (): boolean => {
-    const newGuardianErrors: ValidationErrors[] = [];
-    let isValid = true;
-
-    guardians.forEach((guardian, index) => {
-      const guardianError: ValidationErrors = {};
-
-      if (!guardian.full_name.trim()) {
-        guardianError.full_name = t("errors.guardian_name_required");
-        isValid = false;
-      }
-      if (!guardian.phone_primary.trim()) {
-        guardianError.phone_primary = t("errors.phone_primary_required");
-        isValid = false;
-      } else if (!validatePhone(guardian.phone_primary)) {
-        guardianError.phone_primary = t("errors.invalid_phone");
-        isValid = false;
-      }
-      if (!guardian.email.trim()) {
-        guardianError.email = t("errors.email_required");
-        isValid = false;
-      } else if (!validateEmail(guardian.email)) {
-        guardianError.email = t("errors.invalid_email");
-        isValid = false;
-      }
-      if (
-        guardian.phone_secondary &&
-        !validatePhone(guardian.phone_secondary)
-      ) {
-        guardianError.phone_secondary = t("errors.invalid_phone");
-        isValid = false;
-      }
-
-      newGuardianErrors[index] = guardianError;
-    });
-
-    if (!guardians.some((guardian) => guardian.is_primary)) {
-      newGuardianErrors[0] = {
-        ...newGuardianErrors[0],
-        is_primary: t("errors.primary_guardian_required"),
-      };
-      isValid = false;
-    }
-
-    setGuardianErrors(newGuardianErrors);
-    return isValid;
-  };
-
-  const validateStep3 = (): boolean => {
-    setErrors((current) => {
-      const nextErrors = { ...current };
-      delete nextErrors.documents;
-      return nextErrors;
-    });
-    return true;
-  };
-
-  const handleFileUpload = (docKey: string, file: File | null) => {
-    if (!file) return;
-
-    const allowedTypes = [
-      "application/pdf",
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-    ];
-    if (!allowedTypes.includes(file.type)) {
-      setErrors((current) => ({
-        ...current,
-        [docKey]: t("errors.file_type_error"),
-      }));
+  const submit = () => {
+    const studentName = form.studentName.trim();
+    if (!studentName) {
+      setError(t("errors.full_name_en_required"));
       return;
     }
-
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      setErrors((current) => ({
-        ...current,
-        [docKey]: t("errors.file_size_error"),
-      }));
+    if (studentName.length > 200) {
+      setError(t("errors.student_name_max_length"));
       return;
     }
-
-    setErrors((current) => {
-      const nextErrors = { ...current };
-      delete nextErrors[docKey];
-      delete nextErrors.documents;
-      return nextErrors;
-    });
-
-    updateFormData("documents", {
-      ...formData.documents,
-      [docKey]: { uploaded: true, file },
-    });
-  };
-
-  const handleFileRemove = (docKey: string) => {
-    updateFormData("documents", {
-      ...formData.documents,
-      [docKey]: { uploaded: false, file: null },
-    });
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDragEnter = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.currentTarget.classList.add("border-primary", "bg-blue-50");
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.currentTarget.classList.remove("border-primary", "bg-blue-50");
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLLabelElement>, docKey: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.currentTarget.classList.remove("border-primary", "bg-blue-50");
-
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      handleFileUpload(docKey, files[0]);
-    }
-  };
-
-  const handleNext = () => {
-    if (currentStep === 0 && !validateStep1()) return;
-    if (currentStep === 1 && !validateStep2()) return;
-    if (currentStep === 2 && !validateStep3()) return;
-
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-      setErrors({});
-      setGuardianErrors([{}]);
+    if (!form.gradeId) {
+      setError(t("errors.grade_required"));
       return;
     }
 
@@ -439,111 +117,21 @@ export default function ApplicationCreateStepper({
       leadId: lead?.id,
       source: mapLeadChannelToApplicationSource(lead?.channel),
       requestedAcademicYearId: yearId || undefined,
-      student: {
-        first_name_ar: formData.first_name_ar,
-        father_name_ar: formData.father_name_ar,
-        grandfather_name_ar: formData.grandfather_name_ar,
-        family_name_ar: formData.family_name_ar,
-        first_name_en: formData.first_name_en,
-        father_name_en: formData.father_name_en,
-        grandfather_name_en: formData.grandfather_name_en,
-        family_name_en: formData.family_name_en,
-        full_name_ar: composeFullName(
-          formData.first_name_ar,
-          formData.father_name_ar,
-          formData.grandfather_name_ar,
-          formData.family_name_ar,
-        ),
-        full_name_en: composeFullName(
-          formData.first_name_en,
-          formData.father_name_en,
-          formData.grandfather_name_en,
-          formData.family_name_en,
-        ),
-        gender: formData.gender,
-        date_of_birth: formData.date_of_birth,
-        nationality: formData.nationality,
-        stage: formData.stage,
-        grade_requested: formData.grade_requested,
-        section: formData.section,
-        address_line: formData.address_line,
-        city: formData.city,
-        district: formData.district,
-        status: formData.status,
-        join_date: formData.join_date,
-        notes: formData.notes,
-        previous_school: formData.previous_school,
-        medical_conditions: formData.medical_conditions,
-      },
-      guardians,
+      student: createStudentPayload(studentName, form.gradeId),
+      guardians: [],
       documents: activeDocumentRequirements.map((requirement) => {
-        const documentState = formData.documents[requirement.id];
+        const file = form.documents[requirement.id];
         return {
           configId: requirement.id,
           labelEn: requirement.nameEn,
           labelAr: requirement.nameAr,
           required: requirement.required,
-          uploaded: Boolean(documentState?.uploaded),
-          fileName: documentState?.file?.name,
-          file: documentState?.file || undefined,
+          uploaded: Boolean(file),
+          fileName: file?.name,
+          file: file || undefined,
         };
       }),
     });
-  };
-
-  const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-      setErrors({});
-      setGuardianErrors([{}]);
-    }
-  };
-
-  const updateFormData = (field: string, value: unknown) => {
-    setFormData((current) => ({ ...current, [field]: value }));
-    if (errors[field]) {
-      const newErrors = { ...errors };
-      delete newErrors[field];
-      setErrors(newErrors);
-    }
-  };
-
-  const updateGuardian = (index: number, field: string, value: unknown) => {
-    const updatedGuardians = [...guardians];
-    updatedGuardians[index] = { ...updatedGuardians[index], [field]: value };
-    setGuardians(updatedGuardians);
-    if (guardianErrors[index]?.[field]) {
-      const newErrors = [...guardianErrors];
-      delete newErrors[index][field];
-      setGuardianErrors(newErrors);
-    }
-  };
-
-  const addGuardian = () => {
-    setGuardians([
-      ...guardians,
-      {
-        full_name: "",
-        relation: "mother",
-        phone_primary: "",
-        phone_secondary: "",
-        email: "",
-        national_id: "",
-        job_title: "",
-        workplace: "",
-        is_primary: false,
-        can_pickup: true,
-        can_receive_notifications: true,
-      },
-    ]);
-    setGuardianErrors([...guardianErrors, {}]);
-  };
-
-  const removeGuardian = (index: number) => {
-    if (guardians.length > 1) {
-      setGuardians(guardians.filter((_, i) => i !== index));
-      setGuardianErrors(guardianErrors.filter((_, i) => i !== index));
-    }
   };
 
   return (
@@ -551,91 +139,179 @@ export default function ApplicationCreateStepper({
       isOpen={isOpen}
       onClose={onClose}
       title={t("title")}
-      size="xl"
+      size="lg"
       closeOnOverlayClick={false}
       closeOnEscape={false}
-      className="max-h-[90vh]"
     >
-      <p className="mb-6 text-sm text-gray-500">{t("subtitle")}</p>
-
-      <div className="mb-6">
-        <Stepper steps={steps} currentStep={currentStep} />
-      </div>
-
-      {currentStep === 0 && (
-        <StudentInfoStep
-          formData={formData}
-          errors={errors}
-          updateFormData={updateFormData}
-          stages={stages}
-          grades={grades}
-          sections={sections}
-          isLoadingStructure={isLoadingStructure}
+      <div className="space-y-5">
+        <p className="text-sm text-gray-600">{t("intake_note")}</p>
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            {error}
+          </div>
+        )}
+        <TextField
+          label={t("student.full_name_en")}
+          value={form.studentName}
+          onChange={(studentName) => setForm((current) => ({ ...current, studentName }))}
         />
-      )}
-
-      {currentStep === 1 && (
-        <GuardianInfoStep
-          guardians={guardians}
-          guardianErrors={guardianErrors}
-          updateGuardian={updateGuardian}
-          addGuardian={addGuardian}
-          removeGuardian={removeGuardian}
-          setGuardians={setGuardians}
-          setGuardianErrors={setGuardianErrors}
+        <Select
+          label={t("student.grade_requested")}
+          required
+          value={form.gradeId}
+          options={grades.map(namedOption)}
+          onChange={(gradeId) => setForm((current) => ({ ...current, gradeId }))}
         />
-      )}
-
-      {currentStep === 2 && (
-        <DocumentsStep
+        <DocumentInputs
           requirements={activeDocumentRequirements}
-          documents={formData.documents}
-          errors={errors}
-          isLoading={isLoadingDocuments}
-          missingRequiredDocuments={missingRequiredDocuments}
-          handleFileUpload={handleFileUpload}
-          handleFileRemove={handleFileRemove}
-          handleDragOver={handleDragOver}
-          handleDragEnter={handleDragEnter}
-          handleDragLeave={handleDragLeave}
-          handleDrop={handleDrop}
-          onAddCustomDocument={(id, nameEn) => {
-            const newReq = {
-              id,
-              nameEn,
-              nameAr: nameEn,
-              required: false,
-              active: true,
-              sortOrder: documentRequirements.length + 1,
-            } as AdmissionsRequiredDocumentConfig;
-            setDocumentRequirements((prev) => [...prev, newReq]);
-            setFormData((current) => ({
+          documents={form.documents}
+          isLoading={isLoading}
+          setDocument={(requirementId, file) =>
+            setForm((current) => ({
               ...current,
-              documents: {
-                ...current.documents,
-                [id]: { uploaded: false, file: null },
-              },
-            }));
-          }}
+              documents: { ...current.documents, [requirementId]: file },
+            }))
+          }
         />
-      )}
-
-      <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-6">
-        <button
-          onClick={currentStep === 0 ? onClose : handleBack}
-          className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-        >
-          {currentStep === 0 ? t("buttons.cancel") : t("buttons.previous")}
-        </button>
-        <button
-          onClick={handleNext}
-          className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-hover"
-        >
-          {currentStep === steps.length - 1
-            ? t("buttons.submit")
-            : t("buttons.next")}
-        </button>
+        <div className="flex items-center justify-end gap-3 border-t border-gray-200 pt-5">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            {t("buttons.cancel")}
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={isLoading}
+            className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-hover disabled:opacity-60"
+          >
+            {t("buttons.submit")}
+          </button>
+        </div>
       </div>
     </Modal>
   );
+}
+
+function DocumentInputs({
+  requirements,
+  documents,
+  isLoading,
+  setDocument,
+}: {
+  requirements: AdmissionsRequiredDocumentConfig[];
+  documents: Record<string, File | null>;
+  isLoading: boolean;
+  setDocument: (requirementId: string, file: File | null) => void;
+}) {
+  const t = useTranslations("admissions.create_application.documents");
+  if (isLoading) {
+    return <p className="text-sm text-gray-500">{t("loading")}</p>;
+  }
+  if (requirements.length === 0) {
+    return <p className="text-sm text-gray-500">{t("configured_empty")}</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-gray-900">{t("title")}</h3>
+      {requirements.map((requirement) => (
+        <label
+          key={requirement.id}
+          className="block rounded-lg border border-gray-200 p-3 text-sm"
+        >
+          <span className="mb-2 block font-medium text-gray-800">
+            {requirement.nameEn}
+            {requirement.required && <span className="text-red-500"> *</span>}
+          </span>
+          <input
+            type="file"
+            accept=".pdf,image/jpeg,image/png"
+            onChange={(event) =>
+              setDocument(requirement.id, event.target.files?.[0] ?? null)
+            }
+          />
+          {documents[requirement.id] && (
+            <button
+              type="button"
+              onClick={() => setDocument(requirement.id, null)}
+              className="ms-3 text-sm font-medium text-red-600"
+            >
+              {t("remove")}
+            </button>
+          )}
+        </label>
+      ))}
+    </div>
+  );
+}
+
+function TextField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block text-sm font-medium text-gray-700">
+      {label}<span className="text-red-500"> *</span>
+      <input
+        type="text"
+        value={value}
+        required
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-primary"
+      />
+    </label>
+  );
+}
+
+function createStudentPayload(studentName: string, gradeId: string) {
+  return {
+    first_name_ar: "",
+    father_name_ar: "",
+    grandfather_name_ar: "",
+    family_name_ar: "",
+    first_name_en: studentName,
+    father_name_en: "",
+    grandfather_name_en: "",
+    family_name_en: "",
+    full_name_ar: "",
+    full_name_en: studentName,
+    gender: "",
+    date_of_birth: "",
+    nationality: "",
+    stage: "",
+    grade_requested: gradeId,
+    section: "",
+    address_line: "",
+    city: "",
+    district: "",
+    status: "pending",
+    join_date: new Date().toISOString().slice(0, 10),
+    notes: "",
+    previous_school: "",
+    medical_conditions: "",
+  };
+}
+
+function findLeadGradeId(grades: Grade[], gradeInterest?: string): string {
+  if (!gradeInterest) return "";
+  const normalizedGradeInterest = gradeInterest.toLowerCase();
+  return (
+    grades.find((grade) =>
+      [grade.id, grade.name, grade.nameEn, grade.nameAr]
+        .filter(Boolean)
+        .some((label) => String(label).toLowerCase() === normalizedGradeInterest),
+    )?.id ?? ""
+  );
+}
+
+function namedOption(namedEntity: { id: string; nameEn?: string; nameAr?: string; name: string }) {
+  return { value: namedEntity.id, label: namedEntity.nameEn || namedEntity.nameAr || namedEntity.name };
 }

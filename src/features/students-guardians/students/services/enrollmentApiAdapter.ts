@@ -1,15 +1,11 @@
 import { apiWithToken } from "@/lib/api";
 import type { EnrollmentAdapter } from "@/features/students-guardians/students/services/enrollmentAdapter";
 import type {
-  BulkAssignStudentsPayload,
-  BulkAssignStudentsResult,
-  EnrollmentPlacementValidationResult,
   PromoteStudentEnrollmentPayload,
   TransferStudentPayload,
   WithdrawStudentPayload,
 } from "@/features/students-guardians/students/services/enrollmentService";
 import type {
-  EnrollmentMovement,
   StudentEnrollment,
 } from "@/features/students-guardians/students/types";
 
@@ -40,11 +36,6 @@ const unwrap = async <T>(request: Promise<ApiEnvelope<T> | T>): Promise<T> => {
   return response as T;
 };
 
-const buildQuery = (params: Record<string, string>) => {
-  const search = new URLSearchParams(params);
-  return `?${search.toString()}`;
-};
-
 export const createEnrollmentApiAdapter = (
   basePath: string = "/students-guardians/enrollments",
 ): EnrollmentAdapter => ({
@@ -61,16 +52,9 @@ export const createEnrollmentApiAdapter = (
         body: JSON.stringify(payload),
       }),
     ),
-  updateEnrollment: (enrollmentId, payload) =>
-    unwrap<StudentEnrollment>(
-      apiWithToken(`${basePath}/${enrollmentId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }),
-    ),
+  updateEnrollment: () => {
+    throw new Error("Use the asynchronous enrollment upsert workflow.");
+  },
   upsertEnrollment: (payload) =>
     unwrap<StudentEnrollment>(
       apiWithToken(`${basePath}/upsert`, {
@@ -120,26 +104,12 @@ export const createEnrollmentApiAdapter = (
         body: JSON.stringify(payload),
       }),
     ),
-  bulkAssignStudentsToClassrooms: (payload: BulkAssignStudentsPayload) =>
-    unwrap<BulkAssignStudentsResult>(
-      apiWithToken(`${basePath}/bulk-assign`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }),
-    ),
-  promoteActiveStudentsToAcademicYear: (targetAcademicYear, effectiveDate) =>
-    unwrap<StudentEnrollment[]>(
-      apiWithToken(`${basePath}/promote-active`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ targetAcademicYear, effectiveDate }),
-      }),
-    ),
+  bulkAssignStudentsToClassrooms: () => {
+    throw new Error("Bulk classroom assignment is not supported by the backend.");
+  },
+  promoteActiveStudentsToAcademicYear: () => {
+    throw new Error("Bulk enrollment promotion is not supported by the backend.");
+  },
   getAcademicYearOptions: () =>
     unwrap<string[]>(
       apiWithToken(`${basePath}/academic-years`, {

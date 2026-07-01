@@ -31,11 +31,6 @@ const decisionServiceMocks = vi.hoisted(() => ({
   getDecisionFriendlyErrorMessage: vi.fn(),
 }));
 
-const enrollmentServiceMocks = vi.hoisted(() => ({
-  createEnrollmentHandoffPreview: vi.fn(),
-  getEnrollmentFriendlyErrorMessage: vi.fn(),
-}));
-
 const toastMocks = vi.hoisted(() => ({
   showToast: vi.fn(),
 }));
@@ -47,6 +42,13 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/components/ui/toast/Toast", () => ({
   useToast: () => ({
     showToast: toastMocks.showToast,
+  }),
+}));
+
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    hasPermission: () => true,
+    hasAllPermissions: () => true,
   }),
 }));
 
@@ -68,7 +70,6 @@ vi.mock("next-intl", () => ({
       "tabs.documents": "Documents",
       "tabs.tests": "Tests",
       "tabs.interviews": "Interviews",
-      "tabs.timeline": "Timeline",
     })[key] ?? key,
 }));
 
@@ -102,8 +103,19 @@ vi.mock("@/features/admissions/decisions/components/DecisionModal", () => ({
   default: () => null,
 }));
 
-vi.mock("@/features/admissions/enrollment/components/EnrollmentForm", () => ({
+vi.mock("@/features/admissions/applications/components/registration/ApplicationRegistrationWizard", () => ({
   default: () => null,
+}));
+
+vi.mock("@/features/admissions/applications/hooks/useApplicationRelatedData", () => ({
+  useApplicationRelatedData: () => ({
+    handoff: null,
+    guardians: [],
+    gradeLabel: "Grade 1",
+    isLoadingHandoff: false,
+    handoffError: null,
+    reloadHandoff: vi.fn(),
+  }),
 }));
 
 vi.mock(
@@ -139,13 +151,6 @@ vi.mock(
 );
 
 vi.mock(
-  "@/features/admissions/applications/components/tabs/TimelineTab",
-  () => ({
-    default: () => null,
-  }),
-);
-
-vi.mock(
   "@/features/admissions/applications/services/applicationsApiService",
   () => applicationServiceMocks,
 );
@@ -168,11 +173,6 @@ vi.mock(
 vi.mock(
   "@/features/admissions/decisions/services/decisionsApiService",
   () => decisionServiceMocks,
-);
-
-vi.mock(
-  "@/features/admissions/enrollment/services/admissionsEnrollmentApiService",
-  () => enrollmentServiceMocks,
 );
 
 function applicationWithStatus(status: ApplicationStatus): Application {
@@ -218,8 +218,6 @@ describe("ApplicationDetailsPage action bar", () => {
     decisionServiceMocks.createDecision.mockReset();
     decisionServiceMocks.fetchDecisions.mockReset().mockResolvedValue([]);
     decisionServiceMocks.getDecisionFriendlyErrorMessage.mockReset();
-    enrollmentServiceMocks.createEnrollmentHandoffPreview.mockReset();
-    enrollmentServiceMocks.getEnrollmentFriendlyErrorMessage.mockReset();
     toastMocks.showToast.mockReset();
   });
 

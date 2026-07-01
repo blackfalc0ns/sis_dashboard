@@ -14,6 +14,7 @@ import NotesTab from "@/features/students-guardians/students/components/tabs/Not
 import TimelineTab from "@/features/students-guardians/students/components/tabs/TimelineTab";
 import BehaviorTab from "@/features/students-guardians/students/components/tabs/BehaviorTab";
 import { Clock } from "lucide-react";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 export type StudentTabKey =
   | "overview"
@@ -133,7 +134,7 @@ export default function StudentTabLoader({
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-16">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#036b80]" />
+        <PartialLoader size={32} />
       </div>
     );
   }

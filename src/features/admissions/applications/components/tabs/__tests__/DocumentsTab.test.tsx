@@ -19,6 +19,12 @@ const toastMocks = vi.hoisted(() => ({
   showToast: vi.fn(),
 }));
 
+const fileServiceMocks = vi.hoisted(() => ({
+  downloadFileBlob: vi.fn(),
+}));
+
+vi.mock("@/services/filesService", () => fileServiceMocks);
+
 const permissionMocks = vi.hoisted(() => ({
   permissions: new Set<string>(),
 }));
@@ -48,6 +54,8 @@ const applicationDocuments: Document[] = [
     name: "passport.pdf",
     labelEn: "Pending document",
     status: "pending_review",
+    fileId: "file-pending",
+    fileType: "pdf",
   },
   {
     id: "doc-complete",
@@ -55,6 +63,8 @@ const applicationDocuments: Document[] = [
     name: "birth.pdf",
     labelEn: "Complete document",
     status: "complete",
+    fileId: "file-complete",
+    fileType: "pdf",
   },
   {
     id: "doc-missing",
@@ -62,6 +72,8 @@ const applicationDocuments: Document[] = [
     name: "medical.pdf",
     labelEn: "Missing document",
     status: "missing",
+    fileId: "file-missing",
+    fileType: "pdf",
   },
 ];
 
@@ -111,6 +123,52 @@ describe("DocumentsTab review actions", () => {
       "admissions.documents.view",
       "admissions.documents.manage",
     ]);
+    fileServiceMocks.downloadFileBlob.mockReset();
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => "blob:authenticated-document"),
+      revokeObjectURL: vi.fn(),
+    });
+  });
+
+  it("opens a protected document through an authenticated blob", async () => {
+    const user = userEvent.setup();
+    fileServiceMocks.downloadFileBlob.mockResolvedValue(
+      new Blob(["pdf"], { type: "application/pdf" }),
+    );
+    renderDocumentsTab();
+
+    await user.click((await screen.findAllByTitle("View document"))[0]);
+
+    expect(await screen.findByTitle("passport.pdf")).toHaveAttribute(
+      "src",
+      "blob:authenticated-document",
+    );
+    expect(fileServiceMocks.downloadFileBlob).toHaveBeenCalledWith(
+      "file-pending",
+    );
+  });
+
+  it("downloads a protected document without navigating to its API URL", async () => {
+    const user = userEvent.setup();
+    const anchorClick = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
+    fileServiceMocks.downloadFileBlob.mockResolvedValue(
+      new Blob(["pdf"], { type: "application/pdf" }),
+    );
+    renderDocumentsTab();
+
+    await user.click((await screen.findAllByTitle("Download document"))[0]);
+
+    await waitFor(() => expect(anchorClick).toHaveBeenCalledOnce());
+    expect(fileServiceMocks.downloadFileBlob).toHaveBeenCalledWith(
+      "file-pending",
+    );
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith(
+      "blob:authenticated-document",
+    );
+    anchorClick.mockRestore();
   });
 
   it("shows review actions only for pending review documents", async () => {
@@ -125,9 +183,7 @@ describe("DocumentsTab review actions", () => {
     expect(
       screen.getAllByRole("button", { name: "Request replacement" }),
     ).toHaveLength(1);
-    expect(
-      screen.getByRole("button", { name: "View document" }),
-    ).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "View document" })).toHaveLength(3);
     expect(
       screen.getByText(
         "This document was submitted by the applicant and is waiting for school review.",

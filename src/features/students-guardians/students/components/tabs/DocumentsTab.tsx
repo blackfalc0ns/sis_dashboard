@@ -16,7 +16,8 @@ import {
   Student,
   StudentDocument,
 } from "@/features/students-guardians/students/types";
-import { DataTable } from "@/components/ui/data-table";
+import { Button, DataTable } from "@/components/ui";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import UploadDocumentModal, {
   DocumentUploadData,
@@ -191,37 +192,49 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
         <div className="flex items-center gap-1">
           {row.status !== "missing" && (
             <>
-              <button
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => handleViewDocument(row)}
-                className="p-1.5 text-primary hover:bg-primary hover:text-white rounded transition-colors"
+                className="p-1.5 text-primary"
                 title={t("view")}
               >
                 <Eye className="w-4 h-4" />
-              </button>
-              <button
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => handleDownloadDocument(row)}
-                className="p-1.5 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                className="p-1.5 text-gray-600"
                 title={t("download")}
               >
                 <Download className="w-4 h-4" />
-              </button>
+              </Button>
             </>
           )}
           {row.status === "missing" && (
-            <button
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => handleUploadClick()}
-              className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+              className="p-1.5 text-green-600"
               title={t("upload")}
             >
               <Upload className="w-4 h-4" />
-            </button>
+            </Button>
           )}
-          <button
-            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="p-1.5 text-red-600"
             title={t("delete")}
           >
             <Trash2 className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       ),
     },
@@ -233,8 +246,8 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
   return (
     <div className="space-y-6">
       {isLoading ? (
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
-          Loading documents...
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+          <PartialLoader size={24} />
         </div>
       ) : null}
       {error ? (
@@ -294,13 +307,13 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
             </h3>
             <p className="text-sm text-gray-500 mt-1">{t("manage_track")}</p>
           </div>
-          <button
+          <Button
+            type="button"
             onClick={() => handleUploadClick()}
-            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+            leftIcon={<Upload className="w-4 h-4" />}
           >
-            <Upload className="w-4 h-4" />
             {t("upload_document")}
-          </button>
+          </Button>
         </div>
         <div className="p-6">
           <DataTable

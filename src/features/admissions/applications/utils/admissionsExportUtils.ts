@@ -19,7 +19,7 @@ type ExportableTestRow = {
   location: string;
   proctor?: string;
   status: string;
-  score?: number;
+  score?: number | null;
   maxScore?: number;
   notes?: string;
   gradeRequested?: string;
@@ -627,10 +627,10 @@ export function formatTestsForExport(
             Location: test.location,
             Proctor: test.proctor || "",
             Status: test.status,
-            Score: test.score !== undefined ? test.score : "",
+            Score: test.score != null ? test.score : "",
             "Max Score": test.maxScore !== undefined ? test.maxScore : "",
             Percentage:
-              test.score !== undefined && test.maxScore
+              test.score != null && test.maxScore
                 ? `${((test.score / test.maxScore) * 100).toFixed(1)}%`
                 : "",
             Notes: test.notes || "",
@@ -733,10 +733,10 @@ export function formatVisibleTestsForExport(
         Location: test.location,
         Proctor: test.proctor || "",
         Status: test.status,
-        Score: test.score !== undefined ? test.score : "",
+        Score: test.score != null ? test.score : "",
         "Max Score": test.maxScore !== undefined ? test.maxScore : "",
         Percentage:
-          test.score !== undefined && test.maxScore
+          test.score != null && test.maxScore
             ? `${((test.score / test.maxScore) * 100).toFixed(1)}%`
             : "",
         Notes: test.notes || "",

@@ -17,7 +17,8 @@ import type {
 } from "@/features/students-guardians/students/types";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { useTranslations } from "next-intl";
-import { FilterPanel } from "@/components/ui";
+import { EmptyState, FilterPanel, Select } from "@/components/ui";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 interface TimelineTabProps {
   student: Student;
@@ -115,8 +116,8 @@ export default function TimelineTab({ student }: TimelineTabProps) {
         </div>
       </div>
       {isLoading ? (
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
-          Loading timeline...
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+          <PartialLoader size={24} />
         </div>
       ) : null}
       {error ? (
@@ -133,21 +134,21 @@ export default function TimelineTab({ student }: TimelineTabProps) {
         className="px-0 py-0 bg-transparent shadow-none"
         filtersSlot={
           <div className="rounded-xl bg-white p-6 shadow-sm">
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              {t("event_type")}
-            </label>
-            <select
+            <Select
+              label={t("event_type")}
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-transparent focus:ring-2 focus:ring-primary md:w-64"
-            >
-              <option value="all">{t("all_events")}</option>
-              <option value="application_submitted">{t("application")}</option>
-              <option value="document_uploaded">{t("documents")}</option>
-              <option value="test_completed">{t("tests")}</option>
-              <option value="interview_completed">{t("interviews")}</option>
-              <option value="decision_made">{t("decisions")}</option>
-            </select>
+              onChange={setTypeFilter}
+              fullWidth={false}
+              className="md:w-64"
+              options={[
+                { value: "all", label: t("all_events") },
+                { value: "application_submitted", label: t("application") },
+                { value: "document_uploaded", label: t("documents") },
+                { value: "test_completed", label: t("tests") },
+                { value: "interview_completed", label: t("interviews") },
+                { value: "decision_made", label: t("decisions") },
+              ]}
+            />
           </div>
         }
       />
@@ -155,9 +156,7 @@ export default function TimelineTab({ student }: TimelineTabProps) {
       {/* Timeline */}
       <div className="bg-white rounded-xl p-6 shadow-sm">
         {filteredEvents.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">{t("no_match")}</p>
-          </div>
+          <EmptyState message={t("no_match")} />
         ) : (
           <div className="relative">
             {/* Timeline Line */}

@@ -6,6 +6,8 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { MessageSquare, Plus } from "lucide-react";
 import type { StudentGuardian } from "@/features/students-guardians/students/types";
+import Button from "@/components/ui/button/Button";
+import EmptyState from "@/components/ui/empty-state/EmptyState";
 
 interface NotesTabProps {
   guardian: StudentGuardian;
@@ -23,20 +25,13 @@ export default function NotesTab({}: NotesTabProps) {
             <MessageSquare className="w-5 h-5 text-primary" />
             {t("sections.notes")}
           </h2>
-          <button className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors">
-            <Plus className="w-4 h-4" />
+          <Button type="button" leftIcon={<Plus className="w-4 h-4" />}>
             Add Note
-          </button>
+          </Button>
         </div>
 
         {notes.length === 0 ? (
-          <div className="text-center py-12">
-            <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No notes available</p>
-            <p className="text-sm text-gray-400 mt-2">
-              Add notes about this guardian
-            </p>
-          </div>
+          <EmptyState icon={<MessageSquare className="w-12 h-12" />} title="No notes available" message="Add notes about this guardian" />
         ) : (
           <div className="space-y-4">
             {/* Notes list will be rendered here */}

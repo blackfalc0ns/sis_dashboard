@@ -3,20 +3,49 @@
 import { useTranslations } from "next-intl";
 import { User, Phone, Mail, Briefcase } from "lucide-react";
 import { Application } from "@/features/admissions/types/admissions";
+import type { Guardian } from "@/features/admissions/applications/types/guardian";
 
 interface GuardiansTabProps {
   application: Application;
+  guardians?: Guardian[];
+  isLoading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
-export default function GuardiansTab({ application }: GuardiansTabProps) {
+export default function GuardiansTab({
+  application,
+  guardians,
+  isLoading = false,
+  error = null,
+  onRetry,
+}: GuardiansTabProps) {
   const t = useTranslations("admissions.application360");
+  const displayGuardians = guardians ?? application.guardians ?? [];
 
   return (
     <div className="space-y-4">
       <h3 className="font-semibold text-gray-900">{t("guardians.title")}</h3>
-      {application.guardians && application.guardians.length > 0 ? (
+      {isLoading ? (
+        <div className="rounded-lg bg-gray-50 p-6 text-center text-sm text-gray-500">
+          Loading guardian data...
+        </div>
+      ) : error ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-700">{error}</p>
+          {onRetry ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-3 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-red-700 ring-1 ring-red-200 hover:bg-red-100"
+            >
+              Retry
+            </button>
+          ) : null}
+        </div>
+      ) : displayGuardians.length > 0 ? (
         <div className="space-y-4">
-          {application.guardians.map((guardian, index) => (
+          {displayGuardians.map((guardian, index) => (
             <div
               key={guardian.id || index}
               className="bg-gray-50 rounded-lg p-4 border-l-4 border-primary"
@@ -119,16 +148,9 @@ export default function GuardiansTab({ application }: GuardiansTabProps) {
           ))}
         </div>
       ) : (
-        <div className="bg-gray-50 rounded-lg p-4">
+        <div className="bg-gray-50 rounded-lg p-6 text-center">
           <p className="text-sm text-gray-600">
-            <strong>{t("guardians.primary_guardian")}:</strong>{" "}
-            {application.guardianName}
-          </p>
-          <p className="text-sm text-gray-600 mt-1">
-            <strong>{t("guardians.phone")}:</strong> {application.guardianPhone}
-          </p>
-          <p className="text-sm text-gray-600 mt-1">
-            <strong>{t("guardians.email")}:</strong> {application.guardianEmail}
+            No guardian data has been entered for this application yet.
           </p>
         </div>
       )}

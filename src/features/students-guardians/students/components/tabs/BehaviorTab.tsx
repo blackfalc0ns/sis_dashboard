@@ -16,6 +16,8 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
 import DatePicker from "@/components/ui/input/DatePicker";
+import EmptyState from "@/components/ui/empty-state/EmptyState";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import type { BehaviorRecordCreatePayload } from "@/features/behavior/types";
 import type {
   BehaviorSummary,
@@ -419,42 +421,36 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
         <div className="border-b border-gray-200">
           <div className="flex items-center justify-between p-6 flex-wrap gap-3">
             <div className="flex gap-2">
-              <button
+              <Button
+                type="button"
+                variant={activeView === "reinforcement" ? "primary" : "secondary"}
                 onClick={() => setActiveView("reinforcement")}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                  activeView === "reinforcement"
-                    ? "bg-primary text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
               >
                 {t("positive_reinforcement")}
-              </button>
-              <button
+              </Button>
+              <Button
+                type="button"
+                variant={activeView === "incidents" ? "primary" : "secondary"}
                 onClick={() => setActiveView("incidents")}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                  activeView === "incidents"
-                    ? "bg-primary text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
               >
                 {t("incidents")}
-              </button>
+              </Button>
             </div>
 
-            <button
+            <Button
+              type="button"
               onClick={openModal}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-hover transition-colors"
+              leftIcon={<Plus className="w-4 h-4" />}
             >
-              <Plus className="w-4 h-4" />
               {tBehavior("actions.newRecord")}
-            </button>
+            </Button>
           </div>
         </div>
 
         <div className="p-6">
           {isLoadingSummary ? (
             <div className="flex justify-center py-10">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <PartialLoader size={24} />
             </div>
           ) : activeView === "reinforcement" ? (
             reinforcementRecords.length > 0 ? (
@@ -464,9 +460,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
                 showPagination={false}
               />
             ) : (
-              <div className="py-10 text-center text-sm text-gray-500">
-                {t("no_reinforcement")}
-              </div>
+              <EmptyState message={t("no_reinforcement")} />
             )
           ) : incidentRecords.length > 0 ? (
             <DataTable
@@ -475,9 +469,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
               showPagination={false}
             />
           ) : (
-            <div className="py-10 text-center text-sm text-gray-500">
-              {t("no_incidents")}
-            </div>
+            <EmptyState message={t("no_incidents")} />
           )}
         </div>
       </div>
@@ -517,28 +509,22 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
         <div className="space-y-4 py-2">
           {/* Type toggle */}
           <div className="flex gap-2">
-            <button
+            <Button
               type="button"
+              variant={recordType === "positive" ? "success" : "secondary"}
+              fullWidth
               onClick={() => setRecordType("positive")}
-              className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors cursor-pointer ${
-                recordType === "positive"
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
             >
               ✅ {tBehavior("type.positive")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant={recordType === "negative" ? "danger" : "secondary"}
+              fullWidth
               onClick={() => setRecordType("negative")}
-              className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors cursor-pointer ${
-                recordType === "negative"
-                  ? "bg-red-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
             >
               ⚠️ {tBehavior("type.negative")}
-            </button>
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

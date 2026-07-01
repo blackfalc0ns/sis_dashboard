@@ -920,9 +920,15 @@
       "gender": "الجنس",
       "nationality": "الجنسية",
       "grade": "الصف",
+      "grade_requested": "الصف المطلوب",
       "status": "الحالة",
       "guardian": "ولي الأمر",
+      "source": "المصدر",
       "submitted": "تاريخ التقديم",
+      "created": "تاريخ الإنشاء",
+      "registered": "مسجل",
+      "yes": "نعم",
+      "no": "لا",
       "actions": "الإجراءات",
       "export": "تصدير",
       "found": "تم العثور عليها",
@@ -1166,6 +1172,7 @@
     "create_application": {
       "title": "إنشاء طلب جديد",
       "subtitle": "املأ المعلومات المطلوبة",
+      "intake_note": "أنشئ سجل طلب القبول أولاً. يتم إدخال بيانات الطالب وولي الأمر كاملة بعد القبول أثناء التسجيل.",
       "steps": {
         "student_info": "معلومات الطالب",
         "student_info_desc": "المعلومات الأساسية",
@@ -1291,6 +1298,7 @@
       "errors": {
         "full_name_ar_required": "الاسم بالعربية مطلوب",
         "full_name_en_required": "الاسم بالإنجليزية مطلوب",
+        "student_name_max_length": "يجب ألا يتجاوز اسم الطالب 200 حرف",
         "first_name_ar_required": "الاسم الأول بالعربية مطلوب",
         "father_name_ar_required": "اسم الأب بالعربية مطلوب",
         "grandfather_name_ar_required": "اسم الجد بالعربية مطلوب",
@@ -1417,6 +1425,86 @@
         "enrolled_status": "تم تسجيل الطالب بنجاح",
         "waitlisted_no_transition": "هذا الطلب في قائمة الانتظار ولا توجد إجراءات انتقال متاحة حالياً.",
         "rejected_no_actions": "تم رفض هذا الطلب ولا توجد إجراءات إضافية."
+      },
+      "registration": {
+        "title": "تسجيل طلب القبول المقبول",
+        "register": "تسجيل الطالب",
+        "cancel": "إلغاء",
+        "loading": "جارٍ التحقق من الجاهزية وتحميل مسودة التسجيل...",
+        "permission_required": "يتطلب التسجيل صلاحيات إدارة الطلبات وسجلات الطلاب وأولياء الأمور والتسجيلات.",
+        "already_registered": "تم تسجيل هذا الطلب مسبقًا. لن يؤدي الإرسال إلى إنشاء سجلات مكررة.",
+        "readiness_passed": "تم اجتياز فحص جاهزية التسجيل.",
+        "registered": "اكتمل تسجيل الطالب.",
+        "registered_existing": "تم تسجيل هذا الطلب مسبقًا وتم تحميل السجلات الحالية.",
+        "student_section": "بيانات الطالب",
+        "contact_section": "بيانات التواصل",
+        "guardians_section": "أولياء الأمور",
+        "enrollment_section": "بيانات التسجيل",
+        "full_name_en": "الاسم الكامل بالإنجليزية",
+        "full_name_ar": "الاسم الكامل بالعربية",
+        "first_name_en": "الاسم الأول بالإنجليزية",
+        "father_name_en": "اسم الأب بالإنجليزية",
+        "grandfather_name_en": "اسم الجد بالإنجليزية",
+        "family_name_en": "اسم العائلة بالإنجليزية",
+        "first_name_ar": "الاسم الأول بالعربية",
+        "father_name_ar": "اسم الأب بالعربية",
+        "grandfather_name_ar": "اسم الجد بالعربية",
+        "family_name_ar": "اسم العائلة بالعربية",
+        "date_of_birth": "تاريخ الميلاد",
+        "gender": "الجنس",
+        "male": "ذكر",
+        "female": "أنثى",
+        "nationality": "الجنسية",
+        "address_line": "العنوان",
+        "city": "المدينة",
+        "district": "الحي",
+        "student_phone": "هاتف الطالب",
+        "student_email": "بريد الطالب",
+        "guardian": "ولي أمر",
+        "guardian_name": "الاسم الكامل لولي الأمر",
+        "guardian_relation": "صلة القرابة",
+        "guardian_first_name": "الاسم الأول لولي الأمر",
+        "guardian_last_name": "اسم العائلة لولي الأمر",
+        "guardian_phone": "هاتف ولي الأمر",
+        "guardian_secondary_phone": "هاتف إضافي",
+        "guardian_email": "بريد ولي الأمر (اختياري)",
+        "guardian_national_id": "رقم الهوية لولي الأمر",
+        "guardian_job_title": "المسمى الوظيفي",
+        "guardian_workplace": "جهة العمل",
+        "primary_guardian": "ولي الأمر الأساسي",
+        "can_pickup": "مسموح له باستلام الطالب",
+        "can_receive_notifications": "يتلقى الإشعارات",
+        "add_guardian": "إضافة ولي أمر",
+        "remove_guardian": "حذف",
+        "grade": "الصف",
+        "section": "الشعبة",
+        "classroom": "الفصل",
+        "enrollment_date": "تاريخ التسجيل",
+        "validation": {
+          "student_name_required": "اسم الطالب مطلوب.",
+          "student_name_two_parts": "يجب أن يتكون اسم الطالب من الاسم الأول واسم العائلة على الأقل، أو إدخال حقول الاسم الأول والعائلة.",
+          "date_of_birth_required": "تاريخ الميلاد مطلوب.",
+          "date_of_birth_invalid": "يجب أن يكون تاريخ الميلاد بصيغة YYYY-MM-DD صحيحة.",
+          "gender_required": "الجنس مطلوب.",
+          "nationality_required": "الجنسية مطلوبة.",
+          "guardian_required": "يجب إدخال ولي أمر واحد على الأقل.",
+          "guardian_name_required": "اسم ولي الأمر مطلوب.",
+          "guardian_name_two_parts": "يجب أن يتكون اسم ولي الأمر من الاسم الأول واسم العائلة على الأقل، أو إدخال حقول الاسم الأول والعائلة.",
+          "guardian_relation_required": "صلة القرابة مطلوبة.",
+          "guardian_phone_required": "هاتف ولي الأمر الأساسي مطلوب.",
+          "guardian_phone_invalid": "يجب أن يتضمن هاتف ولي الأمر رمز الدولة، مثال +201001112233.",
+          "guardian_secondary_phone_invalid": "يجب أن يتضمن الهاتف الإضافي رمز الدولة.",
+          "guardian_email_invalid": "بريد ولي الأمر غير صحيح.",
+          "student_phone_invalid": "يجب أن يتضمن هاتف الطالب رمز الدولة.",
+          "student_email_invalid": "بريد الطالب غير صحيح.",
+          "academic_year_required": "السنة الدراسية مطلوبة.",
+          "term_required": "الفصل الدراسي مطلوب في سياق لوحة التحكم.",
+          "grade_required": "الصف مطلوب.",
+          "section_required": "الشعبة مطلوبة.",
+          "classroom_required": "الفصل مطلوب.",
+          "enrollment_date_required": "تاريخ التسجيل مطلوب.",
+          "enrollment_date_invalid": "يجب أن يكون تاريخ التسجيل بصيغة YYYY-MM-DD صحيحة."
+        }
       }
     },
     "schedule_test": {
@@ -1507,7 +1595,8 @@
       "decision_date": "تاريخ القرار",
       "email_parents": "إرسال بريد إلكتروني لأولياء الأمور فورًا",
       "cancel": "إلغاء",
-      "submit": "تقديم القرار"
+      "submit": "تقديم القرار",
+      "submitting": "جارٍ التقديم..."
     },
     "enrollment_form": {
       "title": "إعداد التسجيل",
@@ -1787,6 +1876,31 @@
       "found": "تم العثور عليها",
       "messages": {
         "decision_recorded": "تم تسجيل القرار بنجاح."
+      },
+      "details": {
+        "title": "تفاصيل القرار",
+        "close": "إغلاق تفاصيل القرار",
+        "loading": "جارٍ تحميل تفاصيل القرار...",
+        "student_name": "اسم الطالب",
+        "decision": "القرار",
+        "application_status": "حالة الطلب",
+        "reason": "السبب",
+        "decided_by": "صاحب القرار",
+        "decision_date": "تاريخ القرار",
+        "no_reason": "لم يتم إضافة سبب.",
+        "not_available": "غير متاح",
+        "retry": "إعادة المحاولة",
+        "open_application": "فتح الطلب",
+        "statuses": {
+          "accept": "مقبول",
+          "waitlist": "قائمة الانتظار",
+          "reject": "مرفوض"
+        },
+        "errors": {
+          "forbidden": "ليس لديك صلاحية لعرض هذا القرار.",
+          "not_found": "هذا القرار لم يعد متاحًا.",
+          "generic": "تعذر تحميل تفاصيل القرار."
+        }
       }
     },
     "enrollment": {
@@ -7041,6 +7155,7 @@
         "nameEnRequired": "الاسم الإنجليزي مطلوب",
         "uniqueNameAr": "يجب أن يكون الاسم العربي فريداً ضمن هذا النطاق",
         "uniqueNameEn": "يجب أن يكون الاسم الإنجليزي فريداً ضمن هذا النطاق",
+        "nameValidationUnavailable": "تعذر التحقق من اسم السياسة. أعد المحاولة قبل المتابعة.",
         "required": "هذا الحقل مطلوب",
         "nonNegative": "يجب أن تكون القيمة 0 أو أكبر",
         "startBeforeEnd": "يجب أن يكون تاريخ البدء قبل تاريخ الانتهاء",
@@ -7100,6 +7215,15 @@
         "stay": "متابعة التعديل",
         "unsavedChangesTitle": "تغييرات غير محفوظة",
         "unsavedChangesDesc": "لديك تغييرات غير محفوظة. هل أنت متأكد من تجاهلها؟",
+        "nameValidation": {
+          "checking": "جارٍ التحقق من توفر الاسم...",
+          "available": "اسما السياسة متاحان.",
+          "retry": "إعادة المحاولة"
+        },
+        "scopeConflict": {
+          "classroom": "توجد بالفعل سياسة نشطة لهذا الفصل. عدّل السياسة الحالية أو عطّلها قبل إنشاء سياسة نشطة أخرى.",
+          "generic": "توجد بالفعل سياسة نشطة لهذا النطاق. عدّل السياسة الحالية أو عطّلها قبل إنشاء سياسة نشطة أخرى."
+        },
         "steps": {
           "basicInfo": {
             "title": "المعلومات الأساسية",

@@ -15,12 +15,13 @@ import {
   requestApplicationDocumentReplacement,
   uploadAdmissionsFile,
   createApplicationDocument,
+  deleteApplicationDocument,
 } from "@/features/admissions/applications/services/applicationDocumentsApiService";
-import { apiDelete } from "@/lib/api";
 import { isApiError } from "@/lib/api-error";
 import { useToast } from "@/components/ui/toast/Toast";
 import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
 import { usePermissions } from "@/hooks/usePermissions";
+import { downloadFileBlob } from "@/services/filesService";
 
 const DOCUMENT_TYPES = [
   "Birth Certificate",
@@ -35,6 +36,8 @@ const DOCUMENT_TYPES = [
 
 interface DocumentsTabProps {
   application: Application;
+  initialDocuments?: Document[];
+  preferInitialDocuments?: boolean;
 }
 
 type ReviewAction = "accept" | "reject" | "request_replacement";
@@ -106,14 +109,20 @@ function documentMutationErrorMessage(error: unknown, fallback: string): string 
   return error.message || fallback;
 }
 
-export default function DocumentsTab({ application }: DocumentsTabProps) {
+export default function DocumentsTab({
+  application,
+  initialDocuments,
+  preferInitialDocuments = false,
+}: DocumentsTabProps) {
   const t = useTranslations("admissions.application360");
   const locale = useLocale();
   const { showToast } = useToast();
   const { hasPermission } = usePermissions();
   const canViewDocuments = hasPermission("admissions.documents.view");
   const canManageDocuments = hasPermission("admissions.documents.manage");
-  const [documents, setDocuments] = useState<Document[]>(application.documents);
+  const [documents, setDocuments] = useState<Document[]>(
+    initialDocuments ?? application.documents,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -132,10 +141,21 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
   const [reviewAction, setReviewAction] = useState<ReviewAction | null>(null);
   const [reviewNote, setReviewNote] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
+  const [viewingDocumentId, setViewingDocumentId] = useState<string | null>(null);
+  const [downloadingDocumentId, setDownloadingDocumentId] = useState<string | null>(null);
+  const viewerUrlRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isEditable =
-    canManageDocuments && application.status === "documents_pending";
+    canManageDocuments &&
+    ["documents_pending", "submitted", "under_review"].includes(application.status);
+
+  useEffect(() => {
+    if (preferInitialDocuments && initialDocuments) {
+      setDocuments(initialDocuments);
+    }
+  }, [initialDocuments, preferInitialDocuments]);
 
   const loadDocuments = useCallback(async () => {
     if (!canViewDocuments) return;
@@ -153,8 +173,59 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
   }, [application.id, canViewDocuments]);
 
   useEffect(() => {
+    if (preferInitialDocuments) return;
     void loadDocuments();
-  }, [loadDocuments]);
+  }, [loadDocuments, preferInitialDocuments]);
+
+  useEffect(() => {
+    return () => {
+      if (viewerUrlRef.current) URL.revokeObjectURL(viewerUrlRef.current);
+    };
+  }, []);
+
+  const closeDocumentViewer = () => {
+    setSelectedDocument(null);
+    if (viewerUrlRef.current) {
+      URL.revokeObjectURL(viewerUrlRef.current);
+      viewerUrlRef.current = null;
+    }
+  };
+
+  const viewDocument = async (document: Document) => {
+    if (!document.fileId || viewingDocumentId) return;
+    setViewingDocumentId(document.id);
+    try {
+      const blob = await downloadFileBlob(document.fileId);
+      const blobUrl = URL.createObjectURL(blob);
+      if (viewerUrlRef.current) URL.revokeObjectURL(viewerUrlRef.current);
+      viewerUrlRef.current = blobUrl;
+      setSelectedDocument({ ...document, url: blobUrl });
+    } catch (viewError) {
+      console.error("Failed to load document preview:", viewError);
+      showToast("Failed to open document.", "error");
+    } finally {
+      setViewingDocumentId(null);
+    }
+  };
+
+  const downloadDocument = async (document: Document) => {
+    if (!document.fileId || downloadingDocumentId) return;
+    setDownloadingDocumentId(document.id);
+    try {
+      const blob = await downloadFileBlob(document.fileId);
+      const blobUrl = URL.createObjectURL(blob);
+      const link = window.document.createElement("a");
+      link.href = blobUrl;
+      link.download = document.name || document.type;
+      link.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch (downloadError) {
+      console.error("Failed to download document:", downloadError);
+      showToast("Failed to download document.", "error");
+    } finally {
+      setDownloadingDocumentId(null);
+    }
+  };
 
   const handleAddClick = () => {
     if (!canManageDocuments) {
@@ -217,7 +288,7 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
       await createApplicationDocument(application.id, {
         fileId,
         documentType: docType,
-        status: "complete",
+        status: "pending_review",
       });
       showToast("Document uploaded successfully.", "success");
       await loadDocuments();
@@ -241,10 +312,13 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
       return;
     }
 
+    if (!window.confirm("Remove this document link? This action cannot be undone.")) {
+      return;
+    }
+
+    setDeletingDocumentId(documentId);
     try {
-      await apiDelete(
-        `/admissions/applications/${application.id}/documents/${documentId}`,
-      );
+      await deleteApplicationDocument(application.id, documentId);
       showToast("Document removed.", "success");
       await loadDocuments();
     } catch (deleteError) {
@@ -253,6 +327,8 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
         documentMutationErrorMessage(deleteError, "Failed to remove document."),
         "error",
       );
+    } finally {
+      setDeletingDocumentId(null);
     }
   };
 
@@ -330,6 +406,10 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
     const trimmedNote = reviewNote.trim();
     if (reviewActionRequiresNote && !trimmedNote) {
       showToast("Please enter a note before submitting.", "error");
+      return;
+    }
+    if (trimmedNote.length > 2000) {
+      showToast("The review note must be 2,000 characters or fewer.", "error");
       return;
     }
 
@@ -442,12 +522,13 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   <StatusBadge status={doc.status} />
-                  {canManageDocuments && doc.status === "pending_review" && (
+                  {isEditable && doc.status === "pending_review" && (
                     <div className="flex flex-wrap items-center justify-end gap-2">
                       <Button
                         size="sm"
                         variant="success"
                         onClick={() => openReviewModal(doc.id, "accept")}
+                        disabled={isSubmittingReview}
                       >
                         Accept
                       </Button>
@@ -455,6 +536,7 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
                         size="sm"
                         variant="outline"
                         onClick={() => openReviewModal(doc.id, "reject")}
+                        disabled={isSubmittingReview}
                       >
                         Reject
                       </Button>
@@ -464,26 +546,29 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
                         onClick={() =>
                           openReviewModal(doc.id, "request_replacement")
                         }
+                        disabled={isSubmittingReview}
                       >
                         Request replacement
                       </Button>
                     </div>
                   )}
-                  {doc.status === "complete" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSelectedDocument(doc)}
-                      title="View document"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  )}
-                  {canViewDocuments && doc.url && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void viewDocument(doc)}
+                    disabled={!doc.fileId || viewingDocumentId !== null}
+                    loading={viewingDocumentId === doc.id}
+                    title="View document"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  {canViewDocuments && doc.fileId && (
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => window.open(doc.url, "_blank")}
+                      onClick={() => void downloadDocument(doc)}
+                      disabled={downloadingDocumentId !== null}
+                      loading={downloadingDocumentId === doc.id}
                       title="Download document"
                     >
                       <Download className="h-4 w-4" />
@@ -494,6 +579,7 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
                       size="sm"
                       variant="ghost"
                       onClick={() => handleDeleteDocument(doc.id)}
+                      disabled={deletingDocumentId === doc.id}
                       title="Remove document"
                       className="text-red-500 hover:text-red-700 hover:bg-red-50"
                     >
@@ -641,13 +727,14 @@ export default function DocumentsTab({ application }: DocumentsTabProps) {
                 : "Add a note"
             }
             disabled={isSubmittingReview}
+            maxLength={2000}
           />
         </div>
       </Modal>
 
       <DocumentViewerModal
         isOpen={!!selectedDocument}
-        onClose={() => setSelectedDocument(null)}
+        onClose={closeDocumentViewer}
         document={selectedDocument}
       />
     </>

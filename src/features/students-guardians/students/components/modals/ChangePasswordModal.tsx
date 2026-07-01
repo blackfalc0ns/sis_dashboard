@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { Lock, Eye, EyeOff } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
+import { Button, Input, Modal } from "@/components/ui";
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -60,110 +60,85 @@ export default function ChangePasswordModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50 p-4"
-      onClick={handleClose}
-    >
-      <div
-        className="bg-white rounded-xl shadow-xl max-w-md w-full"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary bg-opacity-10 flex items-center justify-center">
-              <Lock className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
-              <p className="text-sm text-gray-500">
-                {userType === "student" ? t("for_student") : t("for_guardian")}:{" "}
-                {userName}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={t("title")}
+      description={`${userType === "student" ? t("for_student") : t("for_guardian")}: ${userName}`}
+      icon={<Lock className="w-5 h-5" />}
+      size="sm"
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={handleClose}>
+            {t("cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="change-password-form"
+            leftIcon={<Lock className="w-4 h-4" />}
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            {t("change_password")}
+          </Button>
+        </>
+      }
+    >
+        <form id="change-password-form" onSubmit={handleSubmit} className="space-y-4 pb-4">
           {/* Info Message */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-sm text-blue-800">{t("info_message")}</p>
           </div>
 
           {/* New Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t("new_password")}
-            </label>
-            <div className="relative">
-              <input
+          <div className="relative">
+              <Input
+                label={t("new_password")}
                 type={showNewPassword ? "text" : "password"}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="pr-10"
                 placeholder={t("enter_new_password")}
                 required
+                helperText={t("min_length")}
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-2 top-8 p-1 text-gray-400"
                 onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showNewPassword ? (
                   <EyeOff className="w-5 h-5" />
                 ) : (
                   <Eye className="w-5 h-5" />
                 )}
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">{t("min_length")}</p>
+              </Button>
           </div>
 
           {/* Confirm Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t("confirm_password")}
-            </label>
-            <div className="relative">
-              <input
+          <div className="relative">
+              <Input
+                label={t("confirm_password")}
                 type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="pr-10"
                 placeholder={t("enter_confirm_password")}
                 required
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-2 top-8 p-1 text-gray-400"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showConfirmPassword ? (
                   <EyeOff className="w-5 h-5" />
                 ) : (
                   <Eye className="w-5 h-5" />
                 )}
-              </button>
-            </div>
+              </Button>
           </div>
 
           {/* Error Message */}
@@ -173,17 +148,7 @@ export default function ChangePasswordModal({
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4">
-            <Button type="button" variant="secondary" onClick={handleClose}>
-              {t("cancel")}
-            </Button>
-            <Button type="submit" leftIcon={<Lock className="w-4 h-4" />}>
-              {t("change_password")}
-            </Button>
-          </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

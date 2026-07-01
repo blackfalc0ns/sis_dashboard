@@ -30,7 +30,6 @@ export * from './applications/components/tabs';
 export * from './applications/components/modals';
 export * from './applications/pages/ApplicationsList';
 export * from './applications/pages/ApplicationDetailsPage';
-export * from './applications/container/ApplicationsListContainer';
 export * from './applications/utils/applicationsFilters';
 
 // ============================================================================

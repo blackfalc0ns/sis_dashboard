@@ -5,6 +5,8 @@
 import { useTranslations } from "next-intl";
 import { FileText, Upload } from "lucide-react";
 import type { StudentGuardian } from "@/features/students-guardians/students/types";
+import Button from "@/components/ui/button/Button";
+import EmptyState from "@/components/ui/empty-state/EmptyState";
 
 interface DocumentsTabProps {
   guardian: StudentGuardian;
@@ -24,20 +26,13 @@ export default function DocumentsTab({}: DocumentsTabProps) {
             <FileText className="w-5 h-5 text-primary" />
             {t("sections.documents")}
           </h2>
-          <button className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors">
-            <Upload className="w-4 h-4" />
+          <Button type="button" leftIcon={<Upload className="w-4 h-4" />}>
             Upload Document
-          </button>
+          </Button>
         </div>
 
         {documents.length === 0 ? (
-          <div className="text-center py-12">
-            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No documents available</p>
-            <p className="text-sm text-gray-400 mt-2">
-              Upload documents related to this guardian
-            </p>
-          </div>
+          <EmptyState icon={<FileText className="w-12 h-12" />} title="No documents available" message="Upload documents related to this guardian" />
         ) : (
           <div className="space-y-3">
             {/* Document list will be rendered here */}

@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { X, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import {
   fetchAllStudents,
   getStudentEnrollment,
 } from "@/features/students-guardians/students/services/studentsService";
 import type { Student } from "@/features/students-guardians/students/types";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import { Button, Input, Modal, Select, TextArea } from "@/components/ui";
 
 interface CreateTransferWithdrawalModalProps {
   isOpen: boolean;
@@ -161,25 +162,23 @@ export default function CreateTransferWithdrawalModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-          onClick={onClose}
-        />
-
-        <div className="relative bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("title")}
+      size="lg"
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            {t("cancel")}
+          </Button>
+          <Button type="submit" form="create-transfer-withdrawal-form">
+            {t("submit")}
+          </Button>
+        </>
+      }
+    >
+          <form id="create-transfer-withdrawal-form" onSubmit={handleSubmit} className="space-y-6 pb-4">
             {isLoadingStudents ? <PartialLoader /> : null}
 
             <div>
@@ -188,7 +187,7 @@ export default function CreateTransferWithdrawalModal({
               </label>
               <div className="relative">
                 <div className="flex gap-2">
-                  <input
+                  <Input
                     type="text"
                     value={formData.studentName || searchQuery}
                     onChange={(e) => {
@@ -201,15 +200,15 @@ export default function CreateTransferWithdrawalModal({
                     }}
                     onFocus={() => setShowStudentSearch(true)}
                     placeholder={t("fields.search_student")}
-                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    error={errors.studentId}
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
                     onClick={() => setShowStudentSearch(!showStudentSearch)}
-                    className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
                   >
                     <Search className="w-5 h-5" />
-                  </button>
+                  </Button>
                 </div>
 
                 {showStudentSearch && searchQuery && (
@@ -226,11 +225,13 @@ export default function CreateTransferWithdrawalModal({
                           .join(" • ");
 
                         return (
-                          <button
+                          <Button
                             key={student.id}
                             type="button"
+                            variant="ghost"
+                            fullWidth
                             onClick={() => handleStudentSelect(student)}
-                            className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0"
+                            className="justify-start rounded-none border-b border-gray-100 px-4 py-3 text-left last:border-0"
                           >
                             <div className="font-medium text-gray-900">
                               {student.full_name_en}
@@ -238,7 +239,7 @@ export default function CreateTransferWithdrawalModal({
                             <div className="text-sm text-gray-500">
                               {student.student_id || student.id} • {student.stage || getStageFromGrade(student.gradeRequested)} • {placement}
                             </div>
-                          </button>
+                          </Button>
                         );
                       })
                     ) : (
@@ -286,97 +287,58 @@ export default function CreateTransferWithdrawalModal({
                 {t("fields.type")} <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-2 gap-4">
-                <button
+                <Button
                   type="button"
+                  variant={formData.type === "transfer" ? "primary" : "secondary"}
                   onClick={() => setFormData((prev) => ({ ...prev, type: "transfer" }))}
-                  className={`px-4 py-3 border-2 rounded-lg font-medium transition-colors ${
-                    formData.type === "transfer"
-                      ? "border-primary bg-primary text-white"
-                      : "border-gray-300 text-gray-700 hover:border-gray-400"
-                  }`}
+                  className="py-3"
                 >
                   {t("types.transfer")}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant={formData.type === "withdrawal" ? "primary" : "secondary"}
                   onClick={() => setFormData((prev) => ({ ...prev, type: "withdrawal" }))}
-                  className={`px-4 py-3 border-2 rounded-lg font-medium transition-colors ${
-                    formData.type === "withdrawal"
-                      ? "border-primary bg-primary text-white"
-                      : "border-gray-300 text-gray-700 hover:border-gray-400"
-                  }`}
+                  className="py-3"
                 >
                   {t("types.withdrawal")}
-                </button>
+                </Button>
               </div>
               {errors.type && <p className="mt-1 text-sm text-red-600">{errors.type}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t("fields.reason")} <span className="text-red-500">*</span>
-              </label>
-              <select
+              <Select
+                label={t("fields.reason")}
                 value={formData.reason}
-                onChange={(e) => setFormData((prev) => ({ ...prev, reason: e.target.value }))}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="">{t("fields.select_reason")}</option>
-                <option value="relocation">{t("reasons.relocation")}</option>
-                <option value="financial">{t("reasons.financial")}</option>
-                <option value="academic">{t("reasons.academic")}</option>
-                <option value="behavior">{t("reasons.behavior")}</option>
-                <option value="other">{t("reasons.other")}</option>
-              </select>
-              {errors.reason && <p className="mt-1 text-sm text-red-600">{errors.reason}</p>}
-            </div>
+                onChange={(value) => setFormData((prev) => ({ ...prev, reason: value }))}
+                placeholder={t("fields.select_reason")}
+                error={errors.reason}
+                options={[
+                  { value: "relocation", label: t("reasons.relocation") },
+                  { value: "financial", label: t("reasons.financial") },
+                  { value: "academic", label: t("reasons.academic") },
+                  { value: "behavior", label: t("reasons.behavior") },
+                  { value: "other", label: t("reasons.other") },
+                ]}
+              />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t("fields.effective_date")} <span className="text-red-500">*</span>
-              </label>
-              <input
+              <Input
+                label={t("fields.effective_date")}
                 type="date"
                 value={formData.effectiveDate}
                 onChange={(e) => setFormData((prev) => ({ ...prev, effectiveDate: e.target.value }))}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                error={errors.effectiveDate}
               />
-              {errors.effectiveDate && (
-                <p className="mt-1 text-sm text-red-600">{errors.effectiveDate}</p>
-              )}
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t("fields.notes")}
-              </label>
-              <textarea
+              <TextArea
+                label={t("fields.notes")}
                 value={formData.notes}
                 onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
                 rows={4}
                 placeholder={t("fields.notes_placeholder")}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                resize="none"
               />
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors"
-              >
-                {t("cancel")}
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-2.5 bg-primary hover:bg-hover text-white rounded-lg font-medium transition-colors"
-              >
-                {t("submit")}
-              </button>
-            </div>
           </form>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

@@ -9,7 +9,6 @@ import {
   FileText,
   ClipboardCheck,
   MessageSquare,
-  Calendar,
   User,
   FileCheck,
 } from "lucide-react";
@@ -17,7 +16,7 @@ import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTestModal";
 import ScheduleInterviewModal from "@/features/admissions/interviews/components/ScheduleInterviewModal";
 import DecisionModal from "@/features/admissions/decisions/components/DecisionModal";
-import EnrollmentForm from "@/features/admissions/enrollment/components/EnrollmentForm";
+import ApplicationRegistrationWizard from "@/features/admissions/applications/components/registration/ApplicationRegistrationWizard";
 import { useSectionTabs } from "@/hooks/useSectionTabs";
 import { buildLocalePath } from "@/lib/routing/localePath";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
@@ -33,14 +32,11 @@ import type {
 import { fetchApplicationById, submitApplication } from "@/features/admissions/applications/services/applicationsApiService";
 import { createPlacementTest } from "@/features/admissions/tests/services/testsApiService";
 import { createInterview } from "@/features/admissions/interviews/services/interviewsApiService";
+import { useApplicationRelatedData } from "@/features/admissions/applications/hooks/useApplicationRelatedData";
 import {
   createDecision,
   getDecisionFriendlyErrorMessage,
 } from "@/features/admissions/decisions/services/decisionsApiService";
-import {
-  executeFullEnrollment,
-  getEnrollmentFriendlyErrorMessage,
-} from "@/features/admissions/enrollment/services/admissionsEnrollmentApiService";
 
 const tabs = [
   { key: "details", labelKey: "tabs.details", icon: FileText },
@@ -48,7 +44,6 @@ const tabs = [
   { key: "documents", labelKey: "tabs.documents", icon: FileCheck },
   { key: "tests", labelKey: "tabs.tests", icon: ClipboardCheck },
   { key: "interviews", labelKey: "tabs.interviews", icon: MessageSquare },
-  { key: "timeline", labelKey: "tabs.timeline", icon: Calendar },
 ];
 
 export default function ApplicationProfileLayout({
@@ -63,10 +58,17 @@ export default function ApplicationProfileLayout({
   const lang = (params.lang as string) || "en";
   const { showToast } = useToast();
   const { isReadOnly } = useAdmissionsYearTermContext();
-  const { hasPermission } = usePermissions();
+  const { hasPermission, hasAllPermissions } = usePermissions();
   const canViewApplications = hasPermission("admissions.applications.view");
   const canViewDocuments = hasPermission("admissions.documents.view");
   const canManageApplications = hasPermission("admissions.applications.manage");
+  const canManageDecisions = hasPermission("admissions.decisions.manage");
+  const canRegisterApplication = hasAllPermissions([
+    "admissions.applications.manage",
+    "students.records.manage",
+    "students.guardians.manage",
+    "students.enrollments.manage",
+  ]);
   const visibleTabs = canViewDocuments
     ? tabs
     : tabs.filter((tab) => tab.key !== "documents");
@@ -74,8 +76,8 @@ export default function ApplicationProfileLayout({
   const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false);
   const [isScheduleInterviewOpen, setIsScheduleInterviewOpen] = useState(false);
   const [isDecisionOpen, setIsDecisionOpen] = useState(false);
+  const [isSubmittingDecision, setIsSubmittingDecision] = useState(false);
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
-  const [isEnrolled, setIsEnrolled] = useState(false);
 
   const { activeTab, entityId: applicationId, handleTabClick } = useSectionTabs({
     basePath: ["admissions", "applications"],
@@ -112,6 +114,12 @@ export default function ApplicationProfileLayout({
     if (!applicationId) return;
     setApplication(await fetchApplicationById(applicationId));
   };
+
+  const relatedData = useApplicationRelatedData(
+    applicationId,
+    application?.requestedGradeId,
+  );
+  const displayGrade = relatedData.gradeLabel;
 
   if (!canViewApplications) {
     return (
@@ -189,10 +197,10 @@ export default function ApplicationProfileLayout({
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {t("header.title")} {application.id}
+                  {t("header.title")}
                 </h1>
                 <p className="text-sm text-gray-500 mt-1">
-                  {application.studentName} - {application.gradeRequested}
+                  {[application.studentName, displayGrade].filter(Boolean).join(" - ")}
                 </p>
               </div>
               <StatusBadge status={application.status} size="md" />
@@ -225,13 +233,15 @@ export default function ApplicationProfileLayout({
         </div>
 
         {/* Content */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">{children}</div>
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+          {children}
+        </div>
 
         {isReadOnly && <AdmissionsReadOnlyBanner />}
 
         {/* Sticky Action Bar */}
         <div className="bg-white rounded-xl shadow-sm p-6 sticky bottom-4">
-          {isEnrolled ? (
+          {application.registrationState?.registered ? (
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-sm font-medium">
                 <div className="w-2 h-2 rounded-full bg-emerald-600" />
@@ -257,7 +267,7 @@ export default function ApplicationProfileLayout({
                   {t("actions.submit_application")}
                 </button>
               )}
-              {canScheduleAdmissionsStep && (
+              {canManageApplications && canScheduleAdmissionsStep && (
                 <>
                   <button
                     disabled={isReadOnly}
@@ -275,7 +285,7 @@ export default function ApplicationProfileLayout({
                   </button>
                 </>
               )}
-              {canMakeDecision && (
+              {canManageDecisions && canMakeDecision && (
                 <button
                   disabled={isReadOnly}
                   onClick={() => setIsDecisionOpen(true)}
@@ -286,7 +296,12 @@ export default function ApplicationProfileLayout({
               )}
               {application.status === "accepted" && (
                 <button
-                  disabled={isReadOnly}
+                  disabled={isReadOnly || !canRegisterApplication}
+                  title={
+                    canRegisterApplication
+                      ? undefined
+                      : t("registration.permission_required")
+                  }
                   onClick={() => setIsEnrollmentOpen(true)}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
                 >
@@ -310,7 +325,8 @@ export default function ApplicationProfileLayout({
         onSubmit={async (data) => {
           await createPlacementTest({
             applicationId: application.id,
-            studentName: application.studentName,
+            subjectId: data.subjectId,
+            type: data.type,
             date: data.date,
             time: data.time,
           });
@@ -318,6 +334,7 @@ export default function ApplicationProfileLayout({
           setIsScheduleTestOpen(false);
         }}
         studentName={application.studentName}
+        applicationId={application.id}
       />
 
       <ScheduleInterviewModal
@@ -326,7 +343,6 @@ export default function ApplicationProfileLayout({
         onSubmit={async (data) => {
           await createInterview({
             applicationId: application.id,
-            studentName: application.studentName,
             date: data.date,
             time: data.time,
             interviewerUserId: data.interviewerUserId,
@@ -341,9 +357,12 @@ export default function ApplicationProfileLayout({
 
       <DecisionModal
         isOpen={isDecisionOpen}
-        onClose={() => setIsDecisionOpen(false)}
+        onClose={() => {
+          if (!isSubmittingDecision) setIsDecisionOpen(false);
+        }}
         onSubmit={async (decision: DecisionType, reason: string) => {
           try {
+            setIsSubmittingDecision(true);
             await createDecision({
               applicationId: application.id,
               decision,
@@ -357,40 +376,20 @@ export default function ApplicationProfileLayout({
                 "Failed to create decision. Please try again.",
               "error",
             );
+          } finally {
+            setIsSubmittingDecision(false);
           }
         }}
         application={application}
+        isSubmitting={isSubmittingDecision}
       />
 
-      <EnrollmentForm
+      <ApplicationRegistrationWizard
+        applicationId={application.id}
+        studentName={application.studentName}
         isOpen={isEnrollmentOpen}
         onClose={() => setIsEnrollmentOpen(false)}
-        onSubmit={async (data) => {
-          try {
-            // Directly create student + guardian + enrollment (skip handoff preview)
-            await executeFullEnrollment({
-              applicationId: application.id,
-              studentName: application.studentName,
-              classroomId: data.classroomId!,
-              enrollmentDate: data.startDate,
-              gradeId: data.gradeId,
-              sectionId: data.sectionId,
-            });
-
-            setIsEnrolled(true);
-            showToast("Student enrolled successfully!", "success");
-            setIsEnrollmentOpen(false);
-            await refreshApplication();
-          } catch (error) {
-            console.error("Failed to enroll:", error);
-            showToast(
-              getEnrollmentFriendlyErrorMessage(error) ||
-                "Failed to enroll student. Please try again.",
-              "error",
-            );
-          }
-        }}
-        application={application}
+        onRegistered={refreshApplication}
       />
     </div>
   );

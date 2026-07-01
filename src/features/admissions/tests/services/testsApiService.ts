@@ -22,7 +22,7 @@ export interface FetchPlacementTestsParams {
 
 export interface CreatePlacementTestPayload {
   applicationId: string;
-  studentName: string;
+  subjectId: string;
   type?: string;
   scheduledAt?: string;
   date?: string;
@@ -32,16 +32,18 @@ export interface CreatePlacementTestPayload {
 export interface CompletePlacementTestPayload {
   status?: string;
   score?: number;
-  maxScore?: number;
   result?: string;
-  notes?: string;
 }
 
-export type UpdatePlacementTestPayload =
-  Partial<CreatePlacementTestPayload & CompletePlacementTestPayload>;
+export interface UpdatePlacementTestPayload extends CompletePlacementTestPayload {
+  scheduledAt?: string;
+  date?: string;
+  time?: string;
+}
 
 const toCreateBody = (payload: CreatePlacementTestPayload) => ({
   applicationId: payload.applicationId,
+  subjectId: payload.subjectId,
   type: payload.type || "Placement Test",
   scheduledAt:
     payload.scheduledAt || toIsoFromDateAndTime(payload.date || "", payload.time || ""),
@@ -94,7 +96,7 @@ export async function completePlacementTest(
   const response = await apiPatch<unknown>(`${TESTS_ENDPOINT}/${id}`, {
     status: "completed",
     score: payload.score,
-    result: payload.result || payload.notes,
+    result: payload.result,
   });
   return normalizeTest(unwrapItemResponse(response, "completed placement test"));
 }

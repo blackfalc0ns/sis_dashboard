@@ -20,6 +20,7 @@ import type { StudentGuardian } from "@/features/students-guardians/students/typ
 import OverviewTab from "@/features/students-guardians/guardians/components/tabs/OverviewTab";
 import StudentsTab from "@/features/students-guardians/guardians/components/tabs/StudentsTab";
 import Button from "@/components/ui/button/Button";
+import EmptyState from "@/components/ui/empty-state/EmptyState";
 import GuardianAccountLinkModal from "@/features/students-guardians/guardians/components/GuardianAccountLinkModal";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -97,17 +98,11 @@ export default function GuardianProfilePage({
   if (!guardian) {
     return (
       <div className="p-6">
-        <div className="bg-white rounded-xl p-12 text-center">
-          <p className="text-gray-500 mb-4">
-            {loadError || t("guardian_not_found")}
-          </p>
-          <button
-            onClick={() => router.push(`/${lang}/students-guardians/guardians`)}
-            className="text-primary hover:text-hover font-medium"
-          >
-            {t("back_to_guardians")}
-          </button>
-        </div>
+        <EmptyState
+          message={loadError || t("guardian_not_found")}
+          action={<Button type="button" onClick={() => router.push(`/${lang}/students-guardians/guardians`)}>{t("back_to_guardians")}</Button>}
+          className="bg-white rounded-xl"
+        />
       </div>
     );
   }
@@ -118,7 +113,7 @@ export default function GuardianProfilePage({
       <div className="bg-white border-b border-gray-200">
         <div className="p-4 sm:p-6">
           {/* Back Button */}
-          <button
+          <Button type="button" variant="ghost"
             onClick={() => router.push(`/${lang}/students-guardians/guardians`)}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
           >
@@ -130,7 +125,7 @@ export default function GuardianProfilePage({
             <span className="text-sm font-medium">
               {t("back_to_guardians")}
             </span>
-          </button>
+          </Button>
 
           {/* Guardian Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -200,7 +195,7 @@ export default function GuardianProfilePage({
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
-                <button
+                <Button type="button" variant="ghost"
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
                   className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
@@ -211,7 +206,7 @@ export default function GuardianProfilePage({
                 >
                   <Icon className="w-4 h-4" />
                   {t(tab.labelKey)}
-                </button>
+                </Button>
               );
             })}
           </div>

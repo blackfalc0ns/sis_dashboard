@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
+import { ApiError } from "@/lib/api-error";
 import {
   createPolicy,
   deletePolicy,
   fetchPolicies,
   resolveEffectiveExcusePolicy,
   updatePolicy,
+  validatePolicyName,
+  isAttendancePolicyConflict,
 } from "@/features/attendance/policies/services/attendancePolicyService";
 
 vi.mock("@/lib/api", () => ({
@@ -79,7 +82,7 @@ describe("attendancePolicyService", () => {
     });
   });
 
-  it("uses backend policy create, update, delete, and effective endpoints", async () => {
+  it("uses the documented create, update, delete, and effective policy contracts", async () => {
     const payload = {
       yearId: "year-1",
       termId: "term-1",
@@ -131,29 +134,34 @@ describe("attendancePolicyService", () => {
       nameEn: "Class policy",
       descriptionAr: undefined,
       descriptionEn: undefined,
+      notes: null,
       notesAr: undefined,
       notesEn: undefined,
       scopeType: "CLASSROOM",
-      scopeKey: "classroom:classroom-1",
       scopeIds: { classroomId: "classroom-1" },
       classroomId: "classroom-1",
       mode: "PERIOD",
-      dailyComputationStrategy: undefined,
+      dailyComputationStrategy: "DERIVED_FROM_PERIODS",
       selectedPeriodIds: ["period-1"],
       lateThresholdMinutes: 10,
       earlyLeaveThresholdMinutes: 10,
-      autoAbsentAfterMinutes: undefined,
+      autoAbsentAfterMinutes: null,
       absentIfMissedPeriodsCount: 1,
+      allowParentExcuseRequests: true,
       allowExcuses: true,
       requireExcuseReason: false,
+      requireExcuseAttachment: false,
       requireAttachmentForExcuse: false,
+      notifyGuardiansOnAbsence: true,
       notifyTeachers: true,
       notifyStudents: false,
       notifyGuardians: true,
       notifyOnAbsent: true,
       notifyOnLate: true,
       notifyOnEarlyLeave: false,
+      effectiveFrom: "2026-02-01",
       effectiveStartDate: "2026-02-01",
+      effectiveTo: "2026-02-28",
       effectiveEndDate: "2026-02-28",
       isActive: true,
     });
@@ -168,5 +176,95 @@ describe("attendancePolicyService", () => {
         date: "2026-02-10",
       },
     });
+  });
+
+  it("sends optional list filters without adding undefined query values", async () => {
+    mockedApiGet.mockResolvedValueOnce({ items: [] });
+
+    await fetchPolicies("year-1", "term-1", {
+      scopeType: "CLASSROOM",
+      classroomId: "classroom-1",
+      isActive: false,
+    });
+
+    expect(mockedApiGet).toHaveBeenCalledWith("/attendance/policies", {
+      params: {
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "CLASSROOM",
+        classroomId: "classroom-1",
+        isActive: false,
+      },
+    });
+  });
+
+  it("validates both policy names for a scope and includes the edited policy id", async () => {
+    mockedApiGet.mockResolvedValueOnce({
+      uniqueAr: false,
+      uniqueEn: true,
+      available: false,
+    });
+
+    await expect(
+      validatePolicyName({
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "CLASSROOM",
+        scopeIds: { classroomId: "classroom-1" },
+        nameAr: "سياسة الفصل",
+        nameEn: "Class policy",
+        excludeId: "policy-1",
+      }),
+    ).resolves.toEqual({ uniqueAr: false, uniqueEn: true, available: false });
+
+    expect(mockedApiGet).toHaveBeenCalledWith("/attendance/policies/validate-name", {
+      params: {
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "CLASSROOM",
+        classroomId: "classroom-1",
+        nameAr: "سياسة الفصل",
+        nameEn: "Class policy",
+        excludeId: "policy-1",
+      },
+    });
+  });
+
+  it("rejects malformed name-validation responses", async () => {
+    mockedApiGet.mockResolvedValueOnce({ available: true });
+
+    await expect(
+      validatePolicyName({
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "SCHOOL",
+        nameAr: "سياسة",
+        nameEn: "Policy",
+      }),
+    ).rejects.toThrow("Invalid attendance policy name validation response");
+  });
+
+  it("rejects list items without a policy identity", async () => {
+    mockedApiGet.mockResolvedValueOnce({
+      items: [{ academicYearId: "year-1", termId: "term-1", nameEn: "Policy" }],
+    });
+
+    await expect(fetchPolicies("year-1", "term-1")).rejects.toThrow(
+      "Invalid attendance policy response",
+    );
+  });
+
+  it("recognizes only the attendance policy scope conflict code", () => {
+    expect(
+      isAttendancePolicyConflict(
+        new ApiError(
+          "An active policy already exists for this scope",
+          409,
+          "attendance.policy.conflict",
+        ),
+      ),
+    ).toBe(true);
+    expect(isAttendancePolicyConflict(new ApiError("Other", 409, "other.conflict"))).toBe(false);
+    expect(isAttendancePolicyConflict(new Error("attendance.policy.conflict"))).toBe(false);
   });
 });

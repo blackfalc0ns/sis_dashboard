@@ -1,293 +1,210 @@
-// FILE: src/components/admissions/ScheduleTestModal.tsx
-
 "use client";
 
-import React, { useState } from "react";
-import { useTranslations } from "next-intl";
-import { X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { Button, Input, Modal, Select } from "@/components/ui";
+import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import {
+  fetchSubjects,
+  type Subject,
+} from "@/features/academics/subjects/services/subjectsService";
+import { fetchApplications } from "@/features/admissions/applications/services/applicationsApiService";
+import type { Application } from "@/features/admissions/types/admissions";
+
+export interface ScheduleTestFormData {
+  applicationId: string;
+  studentName: string;
+  type: string;
+  subjectId: string;
+  subjectName: string;
+  date: string;
+  time: string;
+}
 
 interface ScheduleTestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: {
-    studentName: string;
-    guardianName: string;
-    guardianPhone: string;
-    type: string;
-    subject: string;
-    date: string;
-    time: string;
-    duration: string;
-    location: string;
-    proctor: string;
-    proctorPhone: string;
-    notes: string;
-  }) => void;
+  onSubmit: (form: ScheduleTestFormData) => Promise<void> | void;
   studentName: string;
-  guardianName?: string;
-  guardianPhone?: string;
+  applicationId?: string;
 }
+
+const FORM_ID = "schedule-test-form";
+const initialForm: ScheduleTestFormData = {
+  applicationId: "",
+  studentName: "",
+  type: "Placement Test",
+  subjectId: "",
+  subjectName: "",
+  date: "",
+  time: "",
+};
 
 export default function ScheduleTestModal({
   isOpen,
   onClose,
   onSubmit,
   studentName,
-  guardianName = "",
-  guardianPhone = "",
+  applicationId = "",
 }: ScheduleTestModalProps) {
   const t = useTranslations("admissions.schedule_test");
-  const [formData, setFormData] = useState({
-    studentName: studentName,
-    guardianName: guardianName,
-    guardianPhone: guardianPhone,
-    type: "Placement Test",
-    subject: "",
-    date: "",
-    time: "",
-    duration: "60",
-    location: "",
-    proctor: "",
-    proctorPhone: "",
-    notes: "",
-  });
+  const locale = useLocale();
+  const { termId } = useAdmissionsYearTermContext();
+  const [form, setForm] = useState(initialForm);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [subjectsError, setSubjectsError] = useState<string | null>(null);
+  const [applicationsError, setApplicationsError] = useState<string | null>(null);
+  const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
+  const [isLoadingApplications, setIsLoadingApplications] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    setForm({ ...initialForm, applicationId, studentName });
+    setSubjectsError(null);
+    setApplicationsError(null);
+  }, [applicationId, isOpen, studentName]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
-    onClose();
+  useEffect(() => {
+    if (!isOpen || applicationId) return;
+    let cancelled = false;
+    setIsLoadingApplications(true);
+    void fetchApplications()
+      .then((items) => {
+        if (!cancelled) setApplications(items);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setApplications([]);
+          setApplicationsError("Failed to load applications.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingApplications(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [applicationId, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !termId) return;
+    let cancelled = false;
+    setIsLoadingSubjects(true);
+    void fetchSubjects(termId)
+      .then((items) => {
+        if (!cancelled) setSubjects(items.filter((subject) => subject.isActive));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSubjects([]);
+          setSubjectsError("Failed to load subjects.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingSubjects(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, t, termId]);
+
+  const subjectOptions = useMemo(
+    () =>
+      subjects.map((subject) => ({
+        value: subject.id,
+        label: locale === "ar" ? subject.nameAr : subject.nameEn,
+      })),
+    [locale, subjects],
+  );
+
+  const applicationOptions = useMemo(
+    () =>
+      applications.map((application) => ({
+        value: application.id,
+        label: application.studentName,
+        searchText: `${application.studentName} ${application.id}`,
+      })),
+    [applications],
+  );
+
+  const selectApplication = (selectedApplicationId: string) => {
+    const selectedApplication = applications.find(
+      (candidate) => candidate.id === selectedApplicationId,
+    );
+    setForm((current) => ({
+      ...current,
+      applicationId: selectedApplicationId,
+      studentName: selectedApplication?.studentName || "",
+    }));
+  };
+
+  const selectSubject = (subjectId: string) => {
+    const subject = subjects.find((candidate) => candidate.id === subjectId);
+    setForm((current) => ({
+      ...current,
+      subjectId,
+      subjectName: subject ? (locale === "ar" ? subject.nameAr : subject.nameEn) : "",
+    }));
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onSubmit(form);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full">
-        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
-            <p className="text-sm text-gray-500">
-              {t("student")}: {studentName}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Student and Guardian Information */}
-          <div className="bg-gray-50 rounded-lg space-y-3">
-            <h3 className="text-sm font-semibold text-gray-900">
-              {t("student_guardian_info")}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("student_name")} *
-                </label>
-                <input
-                  type="text"
-                  value={formData.studentName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, studentName: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  required
-                  readOnly
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("guardian_name")}
-                </label>
-                <input
-                  type="text"
-                  value={formData.guardianName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, guardianName: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  placeholder={t("guardian_name_placeholder")}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("guardian_phone")}
-                </label>
-                <input
-                  type="tel"
-                  value={formData.guardianPhone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, guardianPhone: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  placeholder={t("guardian_phone_placeholder")}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Test Details */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900">
-              {t("test_details")}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("subject")} *
-                </label>
-                <select
-                  value={formData.subject}
-                  onChange={(e) =>
-                    setFormData({ ...formData, subject: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  required
-                >
-                  <option value="">{t("select_subject")}</option>
-                  <option value="General">{t("general")}</option>
-                  <option value="Mathematics">{t("mathematics")}</option>
-                  <option value="English">{t("english")}</option>
-                  <option value="Arabic">{t("arabic")}</option>
-                  <option value="Science">{t("science")}</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("date")} *
-                </label>
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, date: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("time")} *
-                </label>
-                <input
-                  type="time"
-                  value={formData.time}
-                  onChange={(e) =>
-                    setFormData({ ...formData, time: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("duration")}
-                </label>
-                <select
-                  value={formData.duration}
-                  onChange={(e) =>
-                    setFormData({ ...formData, duration: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                >
-                  <option value="30">{t("minutes", { count: 30 })}</option>
-                  <option value="60">{t("minutes", { count: 60 })}</option>
-                  <option value="90">{t("minutes", { count: 90 })}</option>
-                  <option value="120">{t("minutes", { count: 120 })}</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("location")} *
-                </label>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) =>
-                    setFormData({ ...formData, location: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  placeholder={t("location_placeholder")}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("proctor")}
-                </label>
-                <input
-                  type="text"
-                  value={formData.proctor}
-                  onChange={(e) =>
-                    setFormData({ ...formData, proctor: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  placeholder={t("proctor_placeholder")}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("proctor_phone")}
-                </label>
-                <input
-                  type="tel"
-                  value={formData.proctorPhone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, proctorPhone: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                  placeholder={t("proctor_phone_placeholder")}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("notes")}
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) =>
-                setFormData({ ...formData, notes: e.target.value })
-              }
-              rows={3}
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm resize-none"
-              placeholder={t("notes_placeholder")}
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
-            >
-              {t("cancel")}
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2.5 bg-primary hover:bg-hover text-white rounded-lg font-medium text-sm transition-colors"
-            >
-              {t("submit")}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("title")}
+      description={`${t("student")}: ${studentName}`}
+      size="lg"
+      footer={
+        <>
+          <Button type="button" onClick={onClose} variant="secondary" disabled={isSubmitting}>{t("cancel")}</Button>
+          <Button type="submit" form={FORM_ID} loading={isSubmitting} disabled={isLoadingSubjects || isLoadingApplications || !termId || !form.applicationId || !form.subjectId}>{t("submit")}</Button>
+        </>
+      }
+    >
+      <form id={FORM_ID} onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
+        {applicationId ? (
+          <Input label={t("student_name")} value={form.studentName} readOnly />
+        ) : (
+          <Select
+            label={t("student_name")}
+            value={form.applicationId}
+            onChange={selectApplication}
+            options={applicationOptions}
+            placeholder={t("student_name")}
+            disabled={isLoadingApplications}
+            error={applicationsError || undefined}
+            required
+            searchable
+          />
+        )}
+        <Input label={t("test_details")} value={form.type} readOnly />
+        <Select
+          label={t("subject")}
+          value={form.subjectId}
+          onChange={selectSubject}
+          options={subjectOptions}
+          placeholder={t("select_subject")}
+          disabled={isLoadingSubjects || !termId}
+          error={subjectsError || undefined}
+          required
+          searchable
+        />
+        <Input label={t("date")} type="date" value={form.date} onChange={(event) => setForm((current) => ({ ...current, date: event.target.value }))} required />
+        <Input label={t("time")} type="time" value={form.time} onChange={(event) => setForm((current) => ({ ...current, time: event.target.value }))} required />
+      </form>
+    </Modal>
   );
 }

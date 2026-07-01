@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
-import { DataTable, FilterPanel } from "@/components/ui";
+import { Button, DataTable, EmptyState, FilterPanel, Input, Select } from "@/components/ui";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import StatusTagsBar from "@/features/admissions/shared/StatusTagsBar";
 import { KPICardV2 } from "@/components/ui/kpi-card";
@@ -42,17 +42,28 @@ import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/components/ui/toast/Toast";
+import {
+  fetchStructureTree,
+  type Grade,
+} from "@/features/academics/academic-structure-tree/services/structureService";
 
 export default function ApplicationsList() {
   const t = useTranslations("admissions.applications");
   const tFilters = useTranslations("admissions.filters");
   const tStatus = useTranslations("admissions.status");
+  const tSource = useTranslations("admissions.source");
   const locale = useLocale();
   const router = useRouter();
-  const { yearId, isReadOnly } = useAdmissionsYearTermContext();
+  const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
   const { hasPermission } = usePermissions();
   const { showToast } = useToast();
   const canManageApplications = hasPermission("admissions.applications.manage");
+  const sourceLabels: Record<string, string> = {
+    in_app: tSource("in_app"),
+    referral: tSource("referral"),
+    walk_in: tSource("walk_in"),
+    other: tSource("other"),
+  };
 
   const [isCreateAppOpen, setIsCreateAppOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -61,26 +72,9 @@ export default function ApplicationsList() {
   const [applicationsError, setApplicationsError] = useState<string | null>(
     null,
   );
+  const [grades, setGrades] = useState<Grade[]>([]);
 
   const [showFilters, setShowFilters] = useState(false);
-  const loadApplications = useCallback(async () => {
-    setIsLoadingApplications(true);
-    setApplicationsError(null);
-    try {
-      const nextApplications = await fetchApplications();
-      setApplications(nextApplications);
-    } catch (error) {
-      console.error("Failed to load applications:", error);
-      setApplications([]);
-      setApplicationsError("Failed to load applications.");
-    } finally {
-      setIsLoadingApplications(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadApplications();
-  }, [loadApplications]);
 
   const scopedApplications = applications;
 
@@ -128,16 +122,76 @@ export default function ApplicationsList() {
 
   const searchQuery = values.search;
   const statusFilter = values.status as ApplicationStatus | "all";
+  const loadApplications = useCallback(async () => {
+    setIsLoadingApplications(true);
+    setApplicationsError(null);
+    try {
+      const nextApplications = await fetchApplications({
+        status: statusFilter === "all" ? undefined : statusFilter,
+      });
+      setApplications(nextApplications);
+    } catch (error) {
+      console.error("Failed to load applications:", error);
+      setApplications([]);
+      setApplicationsError("Failed to load applications.");
+    } finally {
+      setIsLoadingApplications(false);
+    }
+  }, [statusFilter]);
 
-  // Filter and search applications
+  useEffect(() => {
+    void loadApplications();
+  }, [loadApplications]);
+
+  useEffect(() => {
+    if (!yearId || !termId) {
+      setGrades([]);
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadGrades() {
+      try {
+        const tree = await fetchStructureTree(yearId as string, termId as string);
+        if (isMounted) {
+          setGrades(tree.grades);
+        }
+      } catch (error) {
+        console.error("Failed to load application grade labels:", error);
+        if (isMounted) {
+          setGrades([]);
+        }
+      }
+    }
+
+    void loadGrades();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [termId, yearId]);
+
+  const gradeLabels = useMemo(() => {
+    return new Map(
+      grades.map((grade) => [
+        grade.id,
+        locale === "ar"
+          ? grade.nameAr || grade.name
+          : grade.nameEn || grade.name,
+      ]),
+    );
+  }, [grades, locale]);
+
   const filteredApplications = useMemo(() => {
+    const normalizedSearchQuery = searchQuery.trim().toLowerCase();
     return scopedApplications.filter((app) => {
       const matchesSearch =
-        searchQuery === "" ||
-        app.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.guardianName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.guardianEmail.toLowerCase().includes(searchQuery.toLowerCase());
+        normalizedSearchQuery === "" ||
+        app.studentName.toLowerCase().includes(normalizedSearchQuery) ||
+        app.id.toLowerCase().includes(normalizedSearchQuery) ||
+        (app.source ?? "").toLowerCase().includes(normalizedSearchQuery) ||
+        (app.requestedGradeId ?? "").toLowerCase().includes(normalizedSearchQuery);
 
       const matchesStatus =
         statusFilter === "all" || app.status === statusFilter;
@@ -248,17 +302,25 @@ export default function ApplicationsList() {
 
   const columns = [
     {
-      key: "id",
-      label: t("application_id"),
-      searchable: true,
-    },
-    {
       key: "studentName",
       label: t("student_name"),
       searchable: true,
-      render: (_: unknown, row: Application) => {
-        return locale === "ar" ? row.full_name_ar : row.full_name_en;
-      },
+      render: (_: unknown, row: Application) =>
+        locale === "ar"
+          ? row.full_name_ar || row.studentName
+          : row.full_name_en || row.studentName,
+    },
+    {
+      key: "requestedGradeId",
+      label: t("grade_requested"),
+      render: (value: unknown) =>
+        typeof value === "string" ? gradeLabels.get(value) ?? "—" : "—",
+    },
+    {
+      key: "source",
+      label: t("source"),
+      render: (value: unknown) =>
+        typeof value === "string" ? sourceLabels[value] ?? value : "—",
     },
     {
       key: "status",
@@ -268,25 +330,36 @@ export default function ApplicationsList() {
       ),
     },
     {
-      key: "submittedDate",
+      key: "submittedAt",
       label: t("submitted"),
-      render: (value: unknown) =>
-        new Date(value as string).toLocaleDateString(),
+      render: (value: unknown) => formatDate(value),
+    },
+    {
+      key: "createdAt",
+      label: t("created"),
+      render: (value: unknown) => formatDate(value),
+    },
+    {
+      key: "registrationState",
+      label: t("registered"),
+      render: (_: unknown, row: Application) =>
+        row.registrationState?.registered ? t("yes") : t("no"),
     },
     {
       key: "actions",
       label: "",
       sortable: false,
       render: (_: unknown, row: Application) =>
-        row.status === "documents_pending" ? (
-          <button
+        row.status === "documents_pending" && row.submittedAt === null ? (
+          <Button
             type="button"
             onClick={(e) => handleSubmitApp(row.id, e)}
             disabled={isReadOnly || !canManageApplications}
-            className="px-3 py-1 bg-primary hover:bg-hover text-white rounded text-xs font-medium transition-colors disabled:opacity-60"
+            size="sm"
+            className="px-3 py-1"
           >
             {t("submit")}
-          </button>
+          </Button>
         ) : null,
     },
   ];
@@ -320,7 +393,7 @@ export default function ApplicationsList() {
           await createApplicationDocument(createdApplication.id, {
             fileId,
             documentType: doc.labelEn,
-            status: "complete",
+            status: "pending_review",
           });
         } catch (docError) {
           console.error(`Failed to upload document ${doc.labelEn}:`, docError);
@@ -451,22 +524,23 @@ export default function ApplicationsList() {
           <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <button
+          <Button
+            type="button"
             onClick={() => setIsExportModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+            variant="secondary"
+            leftIcon={<Download className="w-4 h-4" />}
           >
-            <Download className="w-4 h-4" />
             {t("export")}
-          </button>
+          </Button>
           {canManageApplications && (
-            <button
+            <Button
+              type="button"
               onClick={() => setIsCreateAppOpen(true)}
               disabled={isReadOnly}
-              className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg font-medium text-sm transition-colors"
+              leftIcon={<Plus className="w-4 h-4" />}
             >
-              <Plus className="w-4 h-4" />
               {t("new_application")}
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -477,58 +551,55 @@ export default function ApplicationsList() {
       <FilterPanel
         searchSlot={
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="relative flex-1 min-w-[200px] max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
+            <div className="flex-1 min-w-[200px] max-w-md">
+              <Input
                 type="text"
                 placeholder={t("search_placeholder")}
                 value={searchQuery}
                 onChange={(e) => setValue("search", e.target.value, "replace")}
-                className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
+                leftIcon={<Search className="w-4 h-4" />}
+                className={`placeholder:text-black/60 ${
                   searchQuery
                     ? "border-primary ring-2 ring-primary/20"
-                    : "border-gray-200"
+                    : ""
                 }`}
               />
             </div>
             {hasActiveFilters && (
-              <button
+              <Button
+                type="button"
                 onClick={clearFilters}
-                className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 hover:bg-red-100 text-red-700 rounded-lg font-medium text-sm transition-colors"
+                variant="danger"
+                leftIcon={<X className="w-4 h-4" />}
               >
-                <X className="w-4 h-4" />
                 {t("clear_filters")}
-              </button>
+              </Button>
             )}
           </div>
         }
         filtersSlot={
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {tFilters("status")}
-              </label>
-              <select
+              <Select
+                label={tFilters("status")}
                 value={statusFilter}
-                onChange={(e) =>
+                onChange={(value) =>
                   setValue(
                     "status",
-                    e.target.value as ApplicationStatus | "all",
+                    value as ApplicationStatus | "all",
                     "push",
                   )
                 }
-                className="w-full px-3 py-2 text-black bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">{tFilters("all")}</option>
-                <option value="submitted">{tStatus("pending")}</option>
-                <option value="documents_pending">
-                  {t("documents_pending")}
-                </option>
-                <option value="under_review">{tStatus("under_review")}</option>
-                <option value="accepted">{tStatus("accepted")}</option>
-                <option value="waitlisted">{t("waitlisted")}</option>
-                <option value="rejected">{tStatus("rejected")}</option>
-              </select>
+                options={[
+                  { value: "all", label: tFilters("all") },
+                  { value: "submitted", label: tStatus("pending") },
+                  { value: "documents_pending", label: t("documents_pending") },
+                  { value: "under_review", label: tStatus("under_review") },
+                  { value: "accepted", label: tStatus("accepted") },
+                  { value: "waitlisted", label: t("waitlisted") },
+                  { value: "rejected", label: tStatus("rejected") },
+                ]}
+              />
             </div>
           </div>
         }
@@ -548,29 +619,28 @@ export default function ApplicationsList() {
       />
 
       {applicationsError ? (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700">
-          {applicationsError}
+        <div className="rounded-xl border border-red-200 bg-red-50">
+          <EmptyState message={applicationsError} className="text-red-700" />
         </div>
       ) : null}
 
       {/* Table */}
       {isLoadingApplications ? (
-        <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-          <p className="text-gray-500">Loading applications...</p>
+        <div className="rounded-xl bg-white shadow-sm">
+          <EmptyState message="Loading applications..." />
         </div>
       ) : filteredApplications.length === 0 ? (
-        <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-          <p className="text-gray-500">
-            {hasActiveFilters ? t("no_match") : t("no_applications")}
-          </p>
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="mt-4 text-primary hover:text-hover font-medium text-sm"
-            >
-              {t("clear_filters")}
-            </button>
-          )}
+        <div className="rounded-xl bg-white shadow-sm">
+          <EmptyState
+            message={hasActiveFilters ? t("no_match") : t("no_applications")}
+            action={
+              hasActiveFilters ? (
+                <Button type="button" variant="ghost" onClick={clearFilters}>
+                  {t("clear_filters")}
+                </Button>
+              ) : undefined
+            }
+          />
         </div>
       ) : (
         <DataTable<Application>
@@ -605,4 +675,18 @@ export default function ApplicationsList() {
       />
     </div>
   );
+}
+
+function formatDate(value: unknown): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "—";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return date.toLocaleDateString();
 }

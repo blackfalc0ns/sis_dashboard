@@ -1,7 +1,10 @@
-// FILE: src/app/[lang]/admissions/page.tsx
+import { redirect } from "next/navigation";
 
-import AdmissionsDashboardShell from "@/features/admissions/dashboard/pages/AdmissionsDashboardShell";
+interface AdmissionsPageProps {
+  params: Promise<{ lang: string }>;
+}
 
-export default function AdmissionsPage() {
-  return <AdmissionsDashboardShell />;
+export default async function AdmissionsPage({ params }: AdmissionsPageProps) {
+  const { lang } = await params;
+  redirect(`/${lang}/admissions/applications`);
 }

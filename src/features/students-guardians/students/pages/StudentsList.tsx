@@ -20,7 +20,14 @@ import {
   Upload,
   Lock,
 } from "lucide-react";
-import { DataTable, FilterPanel } from "@/components/ui";
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  FilterPanel,
+  Input,
+  Select,
+} from "@/components/ui";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import DateRangeFilter, {
   DateRangeValue,
@@ -569,49 +576,57 @@ export default function StudentsList() {
       sortable: false,
       render: (_: unknown, row: { [key: string]: unknown }) => (
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
             onClick={(e) => {
               e.stopPropagation();
               router.push(
                 `/${lang}/students-guardians/students/${(row as unknown as Student).id}`,
               );
             }}
-            className="p-1.5 text-primary hover:bg-primary hover:text-white rounded transition-colors"
+            className="p-1.5 text-primary"
             title={t("actions.view_profile")}
           >
             <Eye className="w-4 h-4" />
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
             onClick={(e) => {
               e.stopPropagation();
               // Handle edit
             }}
-            className="p-1.5 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+            className="p-1.5 text-gray-600"
             title={t("actions.edit")}
           >
             <Edit className="w-4 h-4" />
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
             onClick={(e) =>
               handleAccountLinkClick(e, row as unknown as Student)
             }
-            className={`p-1.5 rounded transition-colors ${
-              canManageAccounts
-                ? "text-gray-600 hover:bg-gray-100"
-                : "text-gray-400 cursor-not-allowed"
-            }`}
+            className={`p-1.5 ${canManageAccounts ? "text-gray-600" : "text-gray-400"}`}
             title={t("actions.link_account")}
             disabled={!canManageAccounts}
           >
             <Lock className="w-4 h-4" />
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
             onClick={(e) => handleAddNoteClick(e, row as unknown as Student)}
-            className="p-1.5 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+            className="p-1.5 text-gray-600"
             title={t("actions.add_note")}
           >
             <MessageSquare className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       ),
     },
@@ -750,30 +765,33 @@ export default function StudentsList() {
           <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <button
+          <Button
+            type="button"
+            variant="secondary"
             onClick={() => setShowExportModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+            leftIcon={<Download className="w-4 h-4" />}
           >
-            <Download className="w-4 h-4" />
             {t("export")}
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
             onClick={handleBulkUploadClick}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-400 rounded-lg font-medium text-sm cursor-not-allowed"
             disabled
             title="Not available yet"
+            leftIcon={<Upload className="w-4 h-4" />}
           >
-            <Upload className="w-4 h-4" />
             {t("bulk_upload_button")}
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
             disabled
             title="Coming soon"
-            className="flex items-center gap-2 px-4 py-2.5 bg-gray-200 text-gray-500 rounded-lg font-medium text-sm cursor-not-allowed"
+            leftIcon={<Plus className="w-4 h-4" />}
           >
-            <Plus className="w-4 h-4" />
             {t("add_student")}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -787,43 +805,36 @@ export default function StudentsList() {
         clearAction={null}
         searchSlot={
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="relative flex-1 min-w-[200px] max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
+            <div className="min-w-[200px] max-w-md flex-1">
+              <Input
                 type="text"
                 placeholder={t("search_placeholder")}
                 value={searchQuery}
                 onChange={(e) => {
                   setValue("search", e.target.value, "replace");
                 }}
-                className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
-                  searchQuery
-                    ? "border-primary ring-2 ring-primary/20"
-                    : "border-gray-200"
-                }`}
+                leftIcon={<Search className="w-4 h-4" />}
+                className={searchQuery ? "border-primary ring-2 ring-primary/20" : ""}
               />
             </div>
             {hasActiveFilters && (
-              <button
+              <Button
+                type="button"
+                variant="danger"
                 onClick={clearFilters}
-                className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 hover:bg-red-100 text-red-700 rounded-lg font-medium text-sm transition-colors"
+                leftIcon={<X className="w-4 h-4" />}
               >
-                <X className="w-4 h-4" />
                 {t("clear")}
-              </button>
+              </Button>
             )}
           </div>
         }
         filtersSlot={
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {t("filter_labels.grade")}
-              </label>
-              <select
-                value={gradeFilter}
-                onChange={(e) => {
-                  const nextGrade = e.target.value;
+            <Select
+              label={t("filter_labels.grade")}
+              value={gradeFilter}
+              onChange={(nextGrade) => {
                   setValues(
                     {
                       grade: nextGrade,
@@ -833,24 +844,15 @@ export default function StudentsList() {
                     "push",
                   );
                 }}
-                className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">{t("filter_options.all_grades")}</option>
-                {uniqueGrades.map((grade) => (
-                  <option key={grade} value={grade}>
-                    {grade}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {t("filter_labels.section")}
-              </label>
-              <select
-                value={sectionFilter}
-                onChange={(e) => {
-                  const nextSection = e.target.value;
+              options={[
+                { value: "all", label: t("filter_options.all_grades") },
+                ...uniqueGrades.map((grade) => ({ value: grade, label: grade })),
+              ]}
+            />
+            <Select
+              label={t("filter_labels.section")}
+              value={sectionFilter}
+              onChange={(nextSection) => {
                   setValues(
                     {
                       section: nextSection,
@@ -859,76 +861,54 @@ export default function StudentsList() {
                     "push",
                   );
                 }}
-                className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">{t("filter_options.all_sections")}</option>
-                {uniqueSections.map((section) => (
-                  <option key={section} value={section}>
-                    {section}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {t("filter_labels.classroom")}
-              </label>
-              <select
-                value={classroomFilter}
-                onChange={(e) => {
-                  setValue("classroom", e.target.value, "push");
+              options={[
+                { value: "all", label: t("filter_options.all_sections") },
+                ...uniqueSections.map((section) => ({ value: section, label: section })),
+              ]}
+            />
+            <Select
+              label={t("filter_labels.classroom")}
+              value={classroomFilter}
+              onChange={(value) => {
+                  setValue("classroom", value, "push");
                 }}
-                className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">
-                  {t("filter_options.all_classrooms")}
-                </option>
-                {uniqueClassrooms.map((classroom) => (
-                  <option key={classroom} value={classroom}>
-                    {classroom}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {t("filter_labels.status")}
-              </label>
-              <select
-                value={statusFilter}
-                onChange={(e) => {
+              options={[
+                { value: "all", label: t("filter_options.all_classrooms") },
+                ...uniqueClassrooms.map((classroom) => ({ value: classroom, label: classroom })),
+              ]}
+            />
+            <Select
+              label={t("filter_labels.status")}
+              value={statusFilter}
+              onChange={(value) => {
                   setValue(
                     "status",
-                    e.target.value as StudentStatus | "all",
+                    value as StudentStatus | "all",
                     "push",
                   );
                 }}
-                className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">{t("filter_options.all_statuses")}</option>
-                <option value="Active">{t("status.active")}</option>
-                <option value="Withdrawn">{t("status.withdrawn")}</option>
-                <option value="Suspended">{t("status.suspended")}</option>
-              </select>
-            </div>
+              options={[
+                { value: "all", label: t("filter_options.all_statuses") },
+                { value: "Active", label: t("status.active") },
+                { value: "Withdrawn", label: t("status.withdrawn") },
+                { value: "Suspended", label: t("status.suspended") },
+              ]}
+            />
           </div>
         }
       />
 
       {/* Table */}
       {filteredStudents.length === 0 ? (
-        <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-          <p className="text-gray-500">
-            {hasActiveFilters ? t("no_match") : t("no_students")}
-          </p>
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="mt-4 text-primary hover:text-hover font-medium text-sm"
-            >
-              {t("clear_filters")}
-            </button>
-          )}
+        <div className="bg-white rounded-xl shadow-sm">
+          <EmptyState
+            message={hasActiveFilters ? t("no_match") : t("no_students")}
+            action={hasActiveFilters ? (
+              <Button type="button" variant="ghost" onClick={clearFilters}>
+                {t("clear_filters")}
+              </Button>
+            ) : undefined}
+          />
         </div>
       ) : (
         <DataTable

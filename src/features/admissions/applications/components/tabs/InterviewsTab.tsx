@@ -45,12 +45,11 @@ export default function InterviewsTab({
   }, [application.id]);
 
   useEffect(() => {
-    void loadInterviews();
+    void Promise.resolve().then(loadInterviews);
   }, [loadInterviews]);
 
   const handleCompleteInterview = async (
     interviewId: string,
-    _rating: number,
     notes?: string,
   ) => {
     try {

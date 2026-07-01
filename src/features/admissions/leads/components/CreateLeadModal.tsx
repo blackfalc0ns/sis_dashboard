@@ -4,8 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { X } from "lucide-react";
-import { Button, Input, Select, TextArea } from "@/components/ui";
+import { Button, Input, Modal, Select, TextArea } from "@/components/ui";
 import type { LeadChannel, LeadStatus } from "@/features/admissions/types/enums";
 import type {
   CreateLeadPayload,
@@ -122,30 +121,45 @@ export default function CreateLeadModal({
     }
   };
 
+  const handleClose = () => {
+    if (isSubmitting) return;
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">
-            {isUpdateMode ? t("edit_lead") : t("create_new_lead")}
-          </h2>
-          <button
-            onClick={onClose}
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={isUpdateMode ? t("edit_lead") : t("create_new_lead")}
+      size="lg"
+      closeOnOverlayClick={!isSubmitting}
+      closeOnEscape={!isSubmitting}
+      footer={
+        <>
+          <Button
+            type="button"
+            onClick={handleClose}
             disabled={isSubmitting}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            variant="secondary"
           >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Form */}
+            {t("cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="lead-editor-form"
+            loading={isSubmitting}
+          >
+            {isUpdateMode ? t("update_lead") : t("create_lead")}
+          </Button>
+        </>
+      }
+    >
         <form
           id="lead-editor-form"
           onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto px-6 py-6"
+          className="py-4"
         >
           <div className="space-y-4">
             <Input
@@ -239,26 +253,6 @@ export default function CreateLeadModal({
             />
           </div>
         </form>
-
-        {/* Footer */}
-        <div className="border-t border-gray-200 px-6 py-4 flex items-center justify-end gap-3">
-          <Button
-            type="button"
-            onClick={onClose}
-            disabled={isSubmitting}
-            variant="secondary"
-          >
-            {t("cancel")}
-          </Button>
-          <Button
-            type="submit"
-            form="lead-editor-form"
-            loading={isSubmitting}
-          >
-            {isUpdateMode ? t("update_lead") : t("create_lead")}
-          </Button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

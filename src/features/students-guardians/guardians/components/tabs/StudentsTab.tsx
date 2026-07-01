@@ -11,7 +11,6 @@ import {
   ArrowRight,
   UserPlus,
   Search,
-  X,
   AlertCircle,
 } from "lucide-react";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
@@ -20,6 +19,10 @@ import type {
   StudentGuardian,
 } from "@/features/students-guardians/students/types";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import Button from "@/components/ui/button/Button";
+import Input from "@/components/ui/input/Input";
+import Modal from "@/components/ui/modal/Modal";
+import EmptyState from "@/components/ui/empty-state/EmptyState";
 
 interface StudentsTabProps {
   guardian: StudentGuardian;
@@ -162,20 +165,15 @@ export default function StudentsTab({ guardian }: StudentsTabProps) {
             {t("sections.linked_students")} ({linkedStudents.length})
           </h2>
 
-          <button
+          <Button type="button" leftIcon={<UserPlus className="w-4 h-4" />}
             onClick={() => setIsLinkModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
           >
-            <UserPlus className="w-4 h-4" />
             Link Student
-          </button>
+          </Button>
         </div>
 
         {linkedStudents.length === 0 ? (
-          <div className="text-center py-12">
-            <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">{t("no_linked_students")}</p>
-          </div>
+          <EmptyState icon={<Users className="w-12 h-12" />} message={t("no_linked_students")} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {linkedStudents.map((student) => (
@@ -241,40 +239,23 @@ export default function StudentsTab({ guardian }: StudentsTabProps) {
       </div>
 
       {/* ── Link Student Modal ──────────────────────────────────────────────── */}
-      {isLinkModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <Modal isOpen={isLinkModalOpen} onClose={closeLinkModal} title="Link Student" size="lg">
+        {isLinkModalOpen && (
           <form
             onSubmit={handleLinkStudent}
-            className="w-full max-w-xl rounded-xl bg-white p-6 shadow-xl"
+            className="space-y-4"
           >
-            {/* Modal header */}
-            <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">Link Student</h3>
-              <button
-                type="button"
-                onClick={closeLinkModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
             {/* Search input */}
-            <label className="block text-sm font-medium text-gray-700">
-              Search students
-              <div className="relative mt-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
+                <Input
+                  label="Search students"
+                  leftIcon={<Search className="w-4 h-4" />}
                   value={studentSearch}
                   onChange={(e) => {
                     setStudentSearch(e.target.value);
                     setSelectedStudentId("");
                   }}
-                  className="w-full rounded-lg border border-gray-300 pl-9 pr-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   placeholder={t("searchPlaceholder")}
                 />
-              </div>
-            </label>
 
             {/* Results list */}
             <div className="mt-4 max-h-64 space-y-2 overflow-y-auto">
@@ -292,20 +273,13 @@ export default function StudentsTab({ guardian }: StudentsTabProps) {
                 studentSearchResults.map((student) => (
                   <label
                     key={student.id}
+                    onClick={() => setSelectedStudentId(student.id)}
                     className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
                       selectedStudentId === student.id
                         ? "border-primary bg-primary/5"
                         : "border-gray-200 hover:border-primary"
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="studentId"
-                      value={student.id}
-                      checked={selectedStudentId === student.id}
-                      onChange={() => setSelectedStudentId(student.id)}
-                      className="mt-1 accent-primary"
-                    />
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-full bg-linear-to-br from-primary to-hover flex items-center justify-center text-white text-xs font-bold shrink-0">
                         {student.full_name_en
@@ -333,12 +307,7 @@ export default function StudentsTab({ guardian }: StudentsTabProps) {
 
             {/* Primary checkbox */}
             <label className="mt-5 flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={linkAsPrimary}
-                onChange={(e) => setLinkAsPrimary(e.target.checked)}
-                className="accent-primary"
-              />
+              <Button type="button" size="sm" variant={linkAsPrimary ? "primary" : "secondary"} onClick={() => setLinkAsPrimary((current) => !current)}>{linkAsPrimary ? "✓" : "○"}</Button>
               Set as primary guardian for this student
             </label>
 
@@ -352,31 +321,22 @@ export default function StudentsTab({ guardian }: StudentsTabProps) {
 
             {/* Actions */}
             <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
+              <Button type="button" variant="secondary"
                 onClick={closeLinkModal}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 disabled={!selectedStudentId || isLinkingStudent}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-hover disabled:opacity-60 transition-colors flex items-center gap-2"
+                loading={isLinkingStudent}
               >
-                {isLinkingStudent ? (
-                  <>
-                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Linking…
-                  </>
-                ) : (
-                  "Link Student"
-                )}
-              </button>
+                Link Student
+              </Button>
             </div>
           </form>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

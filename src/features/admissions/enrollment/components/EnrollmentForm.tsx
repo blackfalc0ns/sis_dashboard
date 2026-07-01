@@ -11,6 +11,7 @@ import {
 } from "@/features/academics/services/academicStructureApiService";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import { Modal } from "@/components/ui/modal";
+import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import { Button } from "@/components/ui/button";
 
@@ -242,21 +243,16 @@ export default function EnrollmentForm({
         />
 
         {/* Start Date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t("start_date")} <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="date"
-            value={formData.startDate}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, startDate: e.target.value }))
-            }
-            className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-            required
-            disabled={isReadOnly}
-          />
-        </div>
+        <Input
+          label={t("start_date")}
+          type="date"
+          value={formData.startDate}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, startDate: e.target.value }))
+          }
+          required
+          disabled={isReadOnly}
+        />
       </form>
     </Modal>
   );

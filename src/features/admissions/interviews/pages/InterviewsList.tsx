@@ -14,7 +14,8 @@ import {
   Edit,
   Download,
 } from "lucide-react";
-import { DataTable, FilterPanel } from "@/components/ui";
+import { Button, DataTable, EmptyState, FilterPanel, Input, Select } from "@/components/ui";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import { KPICardV2 } from "@/components/ui/kpi-card";
 import InterviewRatingModal from "@/features/admissions/interviews/components/InterviewRatingModal";
@@ -130,7 +131,6 @@ export default function InterviewsList() {
   }, [interviews]);
 
   const columns = [
-    { key: "applicationId", label: t("application_id"), searchable: true },
     { key: "studentName", label: t("student_name"), searchable: true },
     {
       key: "scheduledAt",
@@ -151,19 +151,22 @@ export default function InterviewsList() {
       label: t("actions_col"),
       render: (_value: unknown, row: Interview & { studentName: string }) =>
         row.status === "cancelled" ? null : (
-          <button
+          <Button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               if (isReadOnly) return;
               setSelectedInterview(row);
               setIsRatingModalOpen(true);
             }}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary hover:text-white border border-primary rounded-lg transition-colors"
+            variant="outline"
+            size="sm"
+            leftIcon={<Edit className="w-3 h-3" />}
+            className="px-3 py-1.5"
             title="Complete Interview"
           >
-            <Edit className="w-3 h-3" />
             {t("complete")}
-          </button>
+          </Button>
         ),
     },
   ];
@@ -182,7 +185,6 @@ export default function InterviewsList() {
 
   const handleRatingSubmit = async (
     interviewId: string,
-    _rating: number,
     notes?: string,
   ) => {
     try {
@@ -268,13 +270,14 @@ export default function InterviewsList() {
           <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            type="button"
             onClick={() => setIsExportModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+            variant="secondary"
+            leftIcon={<Download className="w-4 h-4" />}
           >
-            <Download className="w-4 h-4" />
             {t("export")}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -284,51 +287,51 @@ export default function InterviewsList() {
       <FilterPanel
         searchSlot={
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="relative flex-1 min-w-[200px] max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
+            <div className="flex-1 min-w-[200px] max-w-md">
+              <Input
                 type="text"
                 placeholder={t("search_placeholder")}
                 value={searchQuery}
                 onChange={(e) => setValue("search", e.target.value, "replace")}
-                className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
+                leftIcon={<Search className="w-4 h-4" />}
+                className={`placeholder:text-black/60 ${
                   searchQuery
                     ? "border-primary ring-2 ring-primary/20"
-                    : "border-gray-200"
+                    : ""
                 }`}
               />
             </div>
             {hasActiveFilters && (
-              <button
+              <Button
+                type="button"
                 onClick={clearFilters}
-                className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 hover:bg-red-100 text-red-700 rounded-lg font-medium text-sm transition-colors"
+                variant="danger"
+                leftIcon={<X className="w-4 h-4" />}
               >
-                <X className="w-4 h-4" />
                 {t("clear_filters")}
-              </button>
+              </Button>
             )}
           </div>
         }
         filtersSlot={
           <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              {t("status")}
-            </label>
-            <select
+            <Select
+              label={t("status")}
               value={statusFilter}
-              onChange={(e) =>
+              onChange={(value) =>
                 setValue(
                   "status",
-                  e.target.value as InterviewStatus | "all",
+                  value as InterviewStatus | "all",
                   "push",
                 )
               }
-              className="w-full text-black max-w-xs px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="all">{t("all_statuses")}</option>
-              <option value="scheduled">{t("scheduled")}</option>
-              <option value="completed">{t("completed")}</option>
-            </select>
+              className="max-w-xs"
+              options={[
+                { value: "all", label: t("all_statuses") },
+                { value: "scheduled", label: t("scheduled") },
+                { value: "completed", label: t("completed") },
+              ]}
+            />
           </div>
         }
         showFilters={showFilters}
@@ -342,22 +345,21 @@ export default function InterviewsList() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-          <p className="text-gray-500">Loading interviews...</p>
+        <div className="rounded-xl bg-white p-12 shadow-sm">
+          <PartialLoader />
         </div>
       ) : filteredInterviews.length === 0 ? (
-        <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-          <p className="text-gray-500">
-            {hasActiveFilters ? t("no_match") : t("no_interviews")}
-          </p>
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="mt-4 text-primary hover:text-hover font-medium text-sm"
-            >
-              {t("clear_filters")}
-            </button>
-          )}
+        <div className="rounded-xl bg-white shadow-sm">
+          <EmptyState
+            message={hasActiveFilters ? t("no_match") : t("no_interviews")}
+            action={
+              hasActiveFilters ? (
+                <Button type="button" variant="ghost" onClick={clearFilters}>
+                  {t("clear_filters")}
+                </Button>
+              ) : undefined
+            }
+          />
         </div>
       ) : (
         <DataTable

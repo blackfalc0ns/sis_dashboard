@@ -14,6 +14,7 @@ import {
 } from "@/features/students-guardians/students/utils/studentUtils";
 import { useTranslations } from "next-intl";
 import { updateStudent } from "@/features/students-guardians/students/services/studentsService";
+import { Button, Input, Select } from "@/components/ui";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -198,18 +199,14 @@ export default function PersonalInfoTab({
     key: keyof PersonalInfoFormData,
     extra?: Partial<React.InputHTMLAttributes<HTMLInputElement>>,
   ) => (
-    <input
+    <Input
       type="text"
       value={formData[key] as string}
       onChange={(e) =>
         setFormData((prev) => ({ ...prev, [key]: e.target.value }))
       }
       disabled={!isEditing}
-      className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
-        isEditing
-          ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
-          : "bg-gray-50 border-gray-200 text-gray-700"
-      }`}
+      variant={isEditing ? "default" : "filled"}
       {...extra}
     />
   );
@@ -235,34 +232,35 @@ export default function PersonalInfoTab({
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
         {!isEditing ? (
-          <button
+          <Button
+            type="button"
             onClick={() => {
               setSaveError(null);
               setSaveSuccess(null);
               setIsEditing(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+            leftIcon={<Edit2 className="w-4 h-4" />}
           >
-            <Edit2 className="w-4 h-4" />
             {t("edit")}
-          </button>
+          </Button>
         ) : (
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              type="button"
+              variant="secondary"
               onClick={handleCancel}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+              leftIcon={<X className="w-4 h-4" />}
             >
-              <X className="w-4 h-4" />
               {t("cancel")}
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
               onClick={handleSave}
-              disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
+              loading={isSaving}
+              leftIcon={<Save className="w-4 h-4" />}
             >
-              <Save className="w-4 h-4" />
               {isSaving ? t("saving") : t("save")}
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -314,11 +312,11 @@ export default function PersonalInfoTab({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("student_id")}
             </label>
-            <input
+            <Input
               type="text"
               value={displayId}
               disabled
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500 cursor-not-allowed"
+              variant="filled"
             />
             <p className="text-xs text-gray-500 mt-1">
               {t("cannot_be_changed")}
@@ -330,7 +328,7 @@ export default function PersonalInfoTab({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("full_name")}
             </label>
-            <input
+            <Input
               type="text"
               value={
                 composeNameParts(
@@ -343,7 +341,7 @@ export default function PersonalInfoTab({
                 str(student.name)
               }
               disabled
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500 cursor-not-allowed"
+              variant="filled"
             />
             <p className="text-xs text-gray-500 mt-1">{t("auto_generated")}</p>
           </div>
@@ -406,22 +404,19 @@ export default function PersonalInfoTab({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("gender")}
             </label>
-            <select
+            <Select
               value={formData.gender}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, gender: e.target.value }))
+              onChange={(value) =>
+                setFormData((prev) => ({ ...prev, gender: value }))
               }
               disabled={!isEditing}
-              className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
-                isEditing
-                  ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
-                  : "bg-gray-50 border-gray-200 text-gray-700"
-              }`}
-            >
-              <option value="">{t("notSet")}</option>
-              <option value="male">{t("male")}</option>
-              <option value="female">{t("female")}</option>
-            </select>
+              variant={isEditing ? "default" : "filled"}
+              options={[
+                { value: "", label: t("notSet") },
+                { value: "male", label: t("male") },
+                { value: "female", label: t("female") },
+              ]}
+            />
           </div>
 
           {/* Date of birth */}
@@ -429,7 +424,7 @@ export default function PersonalInfoTab({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("date_of_birth")}
             </label>
-            <input
+            <Input
               type="date"
               value={formData.date_of_birth}
               onChange={(e) =>
@@ -439,11 +434,7 @@ export default function PersonalInfoTab({
                 }))
               }
               disabled={!isEditing}
-              className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
-                isEditing
-                  ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
-                  : "bg-gray-50 border-gray-200 text-gray-700"
-              }`}
+              variant={isEditing ? "default" : "filled"}
             />
           </div>
 
@@ -460,25 +451,22 @@ export default function PersonalInfoTab({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("status")}
             </label>
-            <select
+            <Select
               value={formData.status}
-              onChange={(e) =>
+              onChange={(value) =>
                 setFormData((prev) => ({
                   ...prev,
-                  status: e.target.value as Student["status"],
+                  status: value as Student["status"],
                 }))
               }
               disabled={!isEditing}
-              className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
-                isEditing
-                  ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
-                  : "bg-gray-50 border-gray-200 text-gray-700"
-              }`}
-            >
-              <option value="Active">Active</option>
-              <option value="Suspended">Suspended</option>
-              <option value="Withdrawn">Withdrawn</option>
-            </select>
+              variant={isEditing ? "default" : "filled"}
+              options={[
+                { value: "Active", label: "Active" },
+                { value: "Suspended", label: "Suspended" },
+                { value: "Withdrawn", label: "Withdrawn" },
+              ]}
+            />
           </div>
 
           {/* Created at */}
@@ -486,11 +474,11 @@ export default function PersonalInfoTab({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("created_at")}
             </label>
-            <input
+            <Input
               type="text"
               value={displayCreatedAt}
               disabled
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500 cursor-not-allowed"
+              variant="filled"
             />
           </div>
         </div>
@@ -506,7 +494,7 @@ export default function PersonalInfoTab({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("address")}
               </label>
-              <input
+              <Input
                 type="text"
                 value={formData.address_line}
                 onChange={(e) =>
@@ -517,11 +505,7 @@ export default function PersonalInfoTab({
                 }
                 disabled={!isEditing}
                 placeholder={t("address_placeholder")}
-                className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
-                  isEditing
-                    ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
-                    : "bg-gray-50 border-gray-200 text-gray-700"
-                }`}
+                variant={isEditing ? "default" : "filled"}
               />
             </div>
 
@@ -544,7 +528,7 @@ export default function PersonalInfoTab({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Phone
               </label>
-              <input
+              <Input
                 type="tel"
                 value={formData.student_phone}
                 onChange={(e) =>
@@ -555,11 +539,7 @@ export default function PersonalInfoTab({
                 }
                 disabled={!isEditing}
                 placeholder="+201100000000"
-                className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
-                  isEditing
-                    ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
-                    : "bg-gray-50 border-gray-200 text-gray-700"
-                }`}
+                variant={isEditing ? "default" : "filled"}
               />
             </div>
 
@@ -568,7 +548,7 @@ export default function PersonalInfoTab({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email
               </label>
-              <input
+              <Input
                 type="email"
                 value={formData.student_email}
                 onChange={(e) =>
@@ -579,11 +559,7 @@ export default function PersonalInfoTab({
                 }
                 disabled={!isEditing}
                 placeholder={t("emailPlaceholder")}
-                className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
-                  isEditing
-                    ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
-                    : "bg-gray-50 border-gray-200 text-gray-700"
-                }`}
+                variant={isEditing ? "default" : "filled"}
               />
             </div>
           </div>

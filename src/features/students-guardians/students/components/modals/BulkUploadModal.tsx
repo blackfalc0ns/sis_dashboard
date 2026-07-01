@@ -4,7 +4,6 @@
 
 import { useState, useRef } from "react";
 import {
-  X,
   Upload,
   Download,
   FileSpreadsheet,
@@ -12,6 +11,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Button, Modal } from "@/components/ui";
 
 interface BulkUploadModalProps {
   isOpen: boolean;
@@ -129,30 +129,39 @@ export default function BulkUploadModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary bg-opacity-10 flex items-center justify-center">
-              <Upload className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
-              <p className="text-sm text-gray-500">{t("subtitle")}</p>
-            </div>
-          </div>
-          <button
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={t("title")}
+      description={t("subtitle")}
+      icon={<Upload className="w-5 h-5" />}
+      size="lg"
+      showCloseButton={!uploading}
+      closeOnOverlayClick={!uploading}
+      closeOnEscape={!uploading}
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="secondary"
             onClick={handleClose}
             disabled={uploading}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
           >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-6">
+            {t("cancel")}
+          </Button>
+          <Button
+            type="button"
+            onClick={handleUpload}
+            disabled={!selectedFile}
+            loading={uploading}
+            leftIcon={<Upload className="w-4 h-4" />}
+          >
+            {uploading ? t("uploading") : t("upload")}
+          </Button>
+        </>
+      }
+    >
+        <div className="space-y-6 pb-4">
           {/* Instructions */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h3 className="text-sm font-semibold text-blue-900 mb-2">
@@ -167,13 +176,15 @@ export default function BulkUploadModal({
 
           {/* Download Template */}
           <div>
-            <button
+            <Button
+              type="button"
+              variant="secondary"
+              fullWidth
               onClick={handleDownloadTemplate}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors w-full justify-center"
+              leftIcon={<Download className="w-4 h-4" />}
             >
-              <Download className="w-4 h-4" />
               {t("download_template")}
-            </button>
+            </Button>
           </div>
 
           {/* File Upload */}
@@ -217,35 +228,6 @@ export default function BulkUploadModal({
             </div>
           )}
         </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
-          <button
-            onClick={handleClose}
-            disabled={uploading}
-            className="px-4 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg font-medium text-sm transition-colors disabled:opacity-50"
-          >
-            {t("cancel")}
-          </button>
-          <button
-            onClick={handleUpload}
-            disabled={!selectedFile || uploading}
-            className="px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {uploading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                {t("uploading")}
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4" />
-                {t("upload")}
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

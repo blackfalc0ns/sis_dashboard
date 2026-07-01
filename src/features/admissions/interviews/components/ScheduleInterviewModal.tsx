@@ -6,23 +6,17 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Calendar } from "lucide-react";
 import Modal from "@/components/ui/modal/Modal";
+import { Button } from "@/components/ui";
 import { Input, Select, TextArea, type SelectOption } from "@/components/ui/input";
 import { fetchSettingsRoles } from "@/features/settings/services/settingsRolesService";
 import { fetchSettingsUsers } from "@/features/settings/services/settingsUsersService";
 import type { RoleDefinition, SettingsUserRecord } from "@/features/settings/types";
 
 export interface ScheduleInterviewFormData {
-  studentName: string;
-  guardianName: string;
-  guardianPhone: string;
   date: string;
   time: string;
   interviewerUserId: string;
   interviewerName: string;
-  interviewer: string;
-  interviewerPhone: string;
-  location: string;
-  duration: string;
   notes: string;
 }
 
@@ -31,8 +25,6 @@ interface ScheduleInterviewModalProps {
   onClose: () => void;
   onSubmit: (data: ScheduleInterviewFormData) => Promise<void> | void;
   studentName: string;
-  guardianName?: string;
-  guardianPhone?: string;
 }
 
 const FORM_ID = "schedule-interview-form";
@@ -46,23 +38,12 @@ function isTeacherRole(role: RoleDefinition) {
   return roleKey === "teacher" || roleName === "teacher";
 }
 
-function createInitialFormData(
-  studentName: string,
-  guardianName: string,
-  guardianPhone: string,
-): ScheduleInterviewFormData {
+function createInitialFormData(): ScheduleInterviewFormData {
   return {
-    studentName,
-    guardianName,
-    guardianPhone,
     date: "",
     time: "",
     interviewerUserId: "",
     interviewerName: "",
-    interviewer: "",
-    interviewerPhone: "",
-    location: "",
-    duration: "30",
     notes: "",
   };
 }
@@ -72,8 +53,6 @@ export default function ScheduleInterviewModal({
   onClose,
   onSubmit,
   studentName,
-  guardianName = "",
-  guardianPhone = "",
 }: ScheduleInterviewModalProps) {
   const t = useTranslations("admissions.schedule_interview");
   const [teacherUsers, setTeacherUsers] = useState<SettingsUserRecord[]>([]);
@@ -82,7 +61,7 @@ export default function ScheduleInterviewModal({
   const [teachersError, setTeachersError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [formData, setFormData] = useState<ScheduleInterviewFormData>(() =>
-    createInitialFormData(studentName, guardianName, guardianPhone),
+    createInitialFormData(),
   );
 
   const activeTeacherUsers = useMemo(
@@ -101,22 +80,13 @@ export default function ScheduleInterviewModal({
       })),
     [activeTeacherUsers],
   );
-  const durationOptions = useMemo<SelectOption[]>(
-    () =>
-      [15, 30, 45, 60, 90, 120, 150, 180].map((minutes) => ({
-        value: String(minutes),
-        label: t("minutes", { count: minutes }),
-      })),
-    [t],
-  );
-
   useEffect(() => {
     if (!isOpen) return;
 
-    setFormData(createInitialFormData(studentName, guardianName, guardianPhone));
+    setFormData(createInitialFormData());
     setValidationError(null);
     setIsSubmitting(false);
-  }, [guardianName, guardianPhone, isOpen, studentName]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -192,30 +162,28 @@ export default function ScheduleInterviewModal({
     updateFormData({
       interviewerUserId: teacherUser?.id || "",
       interviewerName: teacherUser?.fullName || "",
-      interviewer: teacherUser?.fullName || "",
-      interviewerPhone: teacherUser?.email || "",
     });
     setValidationError(null);
   };
 
   const footer = (
     <>
-      <button
+      <Button
         type="button"
         onClick={onClose}
         disabled={isSubmitting}
-        className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+        variant="secondary"
       >
         {t("cancel")}
-      </button>
-      <button
+      </Button>
+      <Button
         type="submit"
         form={FORM_ID}
         disabled={isSubmitting || isLoadingTeachers}
-        className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-hover disabled:opacity-50"
+        loading={isSubmitting}
       >
         {isSubmitting ? t("submitting") : t("submit")}
-      </button>
+      </Button>
     </>
   );
 
@@ -231,41 +199,6 @@ export default function ScheduleInterviewModal({
       variant="confirm"
     >
       <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4 py-2">
-        <div className="rounded-lg bg-gray-50 p-4">
-          <h3 className="text-sm font-semibold text-gray-900">
-            {t("student_guardian_info")}
-          </h3>
-          <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input
-              label={t("student_name")}
-              type="text"
-              value={formData.studentName}
-              required
-              readOnly
-            />
-
-            <Input
-              label={t("guardian_name")}
-              type="text"
-              value={formData.guardianName}
-              onChange={(event) =>
-                updateFormData({ guardianName: event.target.value })
-              }
-              placeholder={t("guardian_name_placeholder")}
-            />
-
-            <Input
-              label={t("guardian_phone")}
-              type="tel"
-              value={formData.guardianPhone}
-              onChange={(event) =>
-                updateFormData({ guardianPhone: event.target.value })
-              }
-              placeholder={t("guardian_phone_placeholder")}
-            />
-          </div>
-        </div>
-
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-gray-900">
             {t("interview_details")}
@@ -306,31 +239,6 @@ export default function ScheduleInterviewModal({
               noOptionsText={t("no_active_teachers")}
             />
 
-            <Input
-              label={t("interviewer_phone")}
-              type="email"
-              value={formData.interviewerPhone}
-              placeholder={t("interviewer_email_placeholder")}
-              readOnly
-            />
-
-            <Input
-              label={t("location")}
-              type="text"
-              value={formData.location}
-              onChange={(event) =>
-                updateFormData({ location: event.target.value })
-              }
-              placeholder={t("location_placeholder")}
-              required
-            />
-
-            <Select
-              label={t("duration")}
-              value={formData.duration}
-              onChange={(duration) => updateFormData({ duration })}
-              options={durationOptions}
-            />
           </div>
         </div>
 

@@ -14,7 +14,7 @@ import {
   Download,
   Edit,
 } from "lucide-react";
-import { DataTable, FilterPanel } from "@/components/ui";
+import { Button, DataTable, EmptyState, FilterPanel, Input, Select } from "@/components/ui";
 import { KPICardV2 } from "@/components/ui/kpi-card";
 import LeadStatusBadge from "@/features/admissions/leads/components/LeadStatusBadge";
 import CreateLeadModal from "@/features/admissions/leads/components/CreateLeadModal";
@@ -37,7 +37,7 @@ import {
   mapLeadChannelToApplicationSource,
   type ApplicationCreationPayload,
 } from "@/features/admissions/applications/services/applicationCreationService";
-import { createApplication, submitApplication } from "@/features/admissions/applications/services/applicationsApiService";
+import { createApplication } from "@/features/admissions/applications/services/applicationsApiService";
 import {
   uploadAdmissionsFile,
   createApplicationDocument,
@@ -144,7 +144,7 @@ export default function LeadsList() {
     [],
   );
 
-  const { values, setValue, setValues, reset } = useAdmissionsUrlQueryState<{
+  const { values, setValue, reset } = useAdmissionsUrlQueryState<{
     search: string;
     status: string;
     channel: string;
@@ -350,11 +350,6 @@ export default function LeadsList() {
 
   const columns = [
     {
-      key: "id",
-      label: t("lead_id"),
-      searchable: true,
-    },
-    {
       key: "studentName",
       label: t("name"),
       searchable: true,
@@ -413,23 +408,26 @@ export default function LeadsList() {
       sortable: false,
       render: (_: unknown, row: Lead) => (
         <div className="flex items-center gap-2">
-          <button
+          <Button
             type="button"
             onClick={(e) => handleEditLead(row, e)}
             disabled={isReadOnly}
-            className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            variant="secondary"
+            size="sm"
+            leftIcon={<Edit className="h-3.5 w-3.5" />}
+            className="px-3 py-1"
           >
-            <Edit className="h-3.5 w-3.5" />
             {t("edit")}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={(e) => handleConvertToApplication(row, e)}
             disabled={isReadOnly}
-            className="px-3 py-1 bg-primary hover:bg-hover text-white rounded text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            size="sm"
+            className="px-3 py-1"
           >
             {t("mark_converted")}
-          </button>
+          </Button>
         </div>
       ),
     },
@@ -443,8 +441,8 @@ export default function LeadsList() {
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-        <p className="text-sm text-red-600">{error}</p>
+      <div className="rounded-xl bg-white shadow-sm">
+        <EmptyState message={error} className="text-red-600" />
       </div>
     );
   }
@@ -503,21 +501,22 @@ export default function LeadsList() {
           <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            type="button"
             onClick={() => setIsExportModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+            variant="secondary"
+            leftIcon={<Download className="w-4 h-4" />}
           >
-            <Download className="w-4 h-4" />
             {t("export")}
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
             onClick={() => setIsCreateModalOpen(true)}
             disabled={isReadOnly}
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg font-medium text-sm transition-colors"
+            leftIcon={<Plus className="w-4 h-4" />}
           >
-            <Plus className="w-4 h-4" />
             {t("new_lead")}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -527,76 +526,73 @@ export default function LeadsList() {
       <FilterPanel
         searchSlot={
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="relative flex-1 min-w-[200px] max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
+            <div className="flex-1 min-w-[200px] max-w-md">
+              <Input
                 type="text"
                 placeholder={t("search_placeholder")}
                 value={searchQuery}
                 onChange={(e) => setValue("search", e.target.value, "replace")}
-                className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
+                leftIcon={<Search className="w-4 h-4" />}
+                className={`placeholder:text-black/60 ${
                   searchQuery
                     ? "border-primary ring-2 ring-primary/20"
-                    : "border-gray-200"
+                    : ""
                 }`}
               />
             </div>
             {hasActiveFilters && (
-              <button
+              <Button
+                type="button"
                 onClick={clearFilters}
-                className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 hover:bg-red-100 text-red-700 rounded-lg font-medium text-sm transition-colors"
+                variant="danger"
+                leftIcon={<X className="w-4 h-4" />}
               >
-                <X className="w-4 h-4" />
                 {t("clear")}
-              </button>
+              </Button>
             )}
           </div>
         }
         filtersSlot={
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {t("status")}
-              </label>
-              <select
+              <Select
+                label={t("status")}
                 value={statusFilter}
-                onChange={(e) =>
+                onChange={(value) =>
                   setValue(
                     "status",
-                    e.target.value as LeadStatus | "all",
+                    value as LeadStatus | "all",
                     "push",
                   )
                 }
-                className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">{t("all_statuses")}</option>
-                <option value="New">{t("new")}</option>
-                <option value="Contacted">{t("contacted")}</option>
-                <option value="Converted">{t("converted")}</option>
-                <option value="Closed">{t("closed")}</option>
-              </select>
+                options={[
+                  { value: "all", label: t("all_statuses") },
+                  { value: "New", label: t("new") },
+                  { value: "Contacted", label: t("contacted") },
+                  { value: "Converted", label: t("converted") },
+                  { value: "Closed", label: t("closed") },
+                ]}
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {t("channel")}
-              </label>
-              <select
+              <Select
+                label={t("channel")}
                 value={channelFilter}
-                onChange={(e) =>
+                onChange={(value) =>
                   setValue(
                     "channel",
-                    e.target.value as LeadChannel | "all",
+                    value as LeadChannel | "all",
                     "push",
                   )
                 }
-                className="w-full text-black px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">{t("all_channels")}</option>
-                <option value="In-app">{t("in_app")}</option>
-                <option value="Referral">{t("referral")}</option>
-                <option value="Walk-in">{t("walk_in")}</option>
-                <option value="Other">{t("other")}</option>
-              </select>
+                options={[
+                  { value: "all", label: t("all_channels") },
+                  { value: "In-app", label: t("in_app") },
+                  { value: "Referral", label: t("referral") },
+                  { value: "Walk-in", label: t("walk_in") },
+                  { value: "Other", label: t("other") },
+                ]}
+              />
             </div>
           </div>
         }
@@ -611,18 +607,17 @@ export default function LeadsList() {
 
       {/* Table */}
       {filteredLeads.length === 0 ? (
-        <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-          <p className="text-gray-500">
-            {hasActiveFilters ? t("no_match") : t("no_leads")}
-          </p>
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="mt-4 text-primary hover:text-hover font-medium text-sm"
-            >
-              {t("clear_filters")}
-            </button>
-          )}
+        <div className="rounded-xl bg-white shadow-sm">
+          <EmptyState
+            message={hasActiveFilters ? t("no_match") : t("no_leads")}
+            action={
+              hasActiveFilters ? (
+                <Button type="button" variant="ghost" onClick={clearFilters}>
+                  {t("clear_filters")}
+                </Button>
+              ) : undefined
+            }
+          />
         </div>
       ) : (
         <DataTable

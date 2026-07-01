@@ -10,15 +10,14 @@ import GuardiansTab from "@/features/admissions/applications/components/tabs/Gua
 import DocumentsTab from "@/features/admissions/applications/components/tabs/DocumentsTab";
 import TestsTab from "@/features/admissions/applications/components/tabs/TestsTab";
 import InterviewsTab from "@/features/admissions/applications/components/tabs/InterviewsTab";
-import TimelineTab from "@/features/admissions/applications/components/tabs/TimelineTab";
+import { useApplicationRelatedData } from "@/features/admissions/applications/hooks/useApplicationRelatedData";
 
 type ApplicationTab =
   | "details"
   | "guardians"
   | "documents"
   | "tests"
-  | "interviews"
-  | "timeline";
+  | "interviews";
 
 interface ApplicationTabContentProps {
   applicationId: string;
@@ -33,6 +32,10 @@ export default function ApplicationTabContent({
   const canViewApplications = hasPermission("admissions.applications.view");
   const [application, setApplication] = useState<Application | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const relatedData = useApplicationRelatedData(
+    applicationId,
+    application?.requestedGradeId,
+  );
 
   useEffect(() => {
     if (!canViewApplications) return;
@@ -66,14 +69,42 @@ export default function ApplicationTabContent({
     return <p className="text-sm text-gray-500">Application not found</p>;
   }
 
-  if (tab === "details") return <DetailsTab application={application} />;
-  if (tab === "guardians") return <GuardiansTab application={application} />;
-  if (tab === "documents") return <DocumentsTab application={application} />;
+  if (tab === "details") {
+    return (
+      <DetailsTab
+        application={application}
+        studentDraft={relatedData.studentDraft}
+        gradeLabel={relatedData.gradeLabel}
+        academicYearLabel={relatedData.academicYearLabel}
+        previousSchool={relatedData.previousSchool}
+      />
+    );
+  }
+  if (tab === "guardians") {
+    return (
+      <GuardiansTab
+        application={application}
+        guardians={relatedData.guardians}
+        isLoading={relatedData.isLoadingHandoff}
+        error={relatedData.handoffError}
+        onRetry={relatedData.reloadHandoff}
+      />
+    );
+  }
+  if (tab === "documents") {
+    return (
+      <DocumentsTab
+        application={application}
+        initialDocuments={relatedData.documents}
+        preferInitialDocuments
+      />
+    );
+  }
   if (tab === "tests") {
     return <TestsTab application={application} />;
   }
   if (tab === "interviews") {
     return <InterviewsTab application={application} />;
   }
-  return <TimelineTab application={application} />;
+  return null;
 }

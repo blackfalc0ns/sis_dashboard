@@ -920,9 +920,15 @@
       "gender": "Gender",
       "nationality": "Nationality",
       "grade": "Grade",
+      "grade_requested": "Requested Grade",
       "status": "Status",
       "guardian": "Guardian",
+      "source": "Source",
       "submitted": "Submitted",
+      "created": "Created",
+      "registered": "Registered",
+      "yes": "Yes",
+      "no": "No",
       "actions": "Actions",
       "export": "Export",
       "found": "found",
@@ -1166,6 +1172,7 @@
     "create_application": {
       "title": "Create New Application",
       "subtitle": "Fill in the required information",
+      "intake_note": "Create the admission application record first. Full student and guardian data is entered after acceptance during registration.",
       "steps": {
         "student_info": "Student Info",
         "student_info_desc": "Basic information",
@@ -1291,6 +1298,7 @@
       "errors": {
         "full_name_ar_required": "Arabic full name is required",
         "full_name_en_required": "English full name is required",
+        "student_name_max_length": "Student name must be 200 characters or fewer",
         "first_name_ar_required": "Arabic first name is required",
         "father_name_ar_required": "Arabic father name is required",
         "grandfather_name_ar_required": "Arabic grandfather name is required",
@@ -1417,6 +1425,86 @@
         "enrolled_status": "Student Enrolled Successfully",
         "waitlisted_no_transition": "This application is waitlisted. No transition action is available yet.",
         "rejected_no_actions": "This application has been rejected. No further actions are available."
+      },
+      "registration": {
+        "title": "Register accepted application",
+        "register": "Register student",
+        "cancel": "Cancel",
+        "loading": "Checking readiness and loading registration draft...",
+        "permission_required": "Registration requires application, student record, guardian, and enrollment management permissions.",
+        "already_registered": "This application is already registered. Submitting is idempotent.",
+        "readiness_passed": "Enrollment readiness check passed.",
+        "registered": "Student registration completed.",
+        "registered_existing": "This application was already registered. Existing records were loaded.",
+        "student_section": "Student identity",
+        "contact_section": "Student contact",
+        "guardians_section": "Guardians",
+        "enrollment_section": "Enrollment",
+        "full_name_en": "Full name (English)",
+        "full_name_ar": "Full name (Arabic)",
+        "first_name_en": "First name (English)",
+        "father_name_en": "Father name (English)",
+        "grandfather_name_en": "Grandfather name (English)",
+        "family_name_en": "Family name (English)",
+        "first_name_ar": "First name (Arabic)",
+        "father_name_ar": "Father name (Arabic)",
+        "grandfather_name_ar": "Grandfather name (Arabic)",
+        "family_name_ar": "Family name (Arabic)",
+        "date_of_birth": "Date of birth",
+        "gender": "Gender",
+        "male": "Male",
+        "female": "Female",
+        "nationality": "Nationality",
+        "address_line": "Address",
+        "city": "City",
+        "district": "District",
+        "student_phone": "Student phone",
+        "student_email": "Student email",
+        "guardian": "Guardian",
+        "guardian_name": "Guardian full name",
+        "guardian_relation": "Relation",
+        "guardian_first_name": "Guardian first name",
+        "guardian_last_name": "Guardian last name",
+        "guardian_phone": "Guardian phone",
+        "guardian_secondary_phone": "Secondary phone",
+        "guardian_email": "Guardian email (optional)",
+        "guardian_national_id": "Guardian national ID",
+        "guardian_job_title": "Job title",
+        "guardian_workplace": "Workplace",
+        "primary_guardian": "Primary guardian",
+        "can_pickup": "Can pick up student",
+        "can_receive_notifications": "Receives notifications",
+        "add_guardian": "Add guardian",
+        "remove_guardian": "Remove",
+        "grade": "Grade",
+        "section": "Section",
+        "classroom": "Classroom",
+        "enrollment_date": "Enrollment date",
+        "validation": {
+          "student_name_required": "Student name is required.",
+          "student_name_two_parts": "Student name must include at least first and last name, or first/family name parts.",
+          "date_of_birth_required": "Date of birth is required.",
+          "date_of_birth_invalid": "Date of birth must be a valid YYYY-MM-DD date.",
+          "gender_required": "Gender is required.",
+          "nationality_required": "Nationality is required.",
+          "guardian_required": "At least one guardian is required.",
+          "guardian_name_required": "Guardian name is required.",
+          "guardian_name_two_parts": "Guardian name must include at least first and last name, or first/last name fields.",
+          "guardian_relation_required": "Guardian relation is required.",
+          "guardian_phone_required": "Guardian primary phone is required.",
+          "guardian_phone_invalid": "Guardian primary phone must include country code, for example +201001112233.",
+          "guardian_secondary_phone_invalid": "Guardian secondary phone must include country code.",
+          "guardian_email_invalid": "Guardian email must be valid.",
+          "student_phone_invalid": "Student phone must include country code.",
+          "student_email_invalid": "Student email must be valid.",
+          "academic_year_required": "Academic year is required.",
+          "term_required": "Term is required in this dashboard context.",
+          "grade_required": "Grade is required.",
+          "section_required": "Section is required.",
+          "classroom_required": "Classroom is required.",
+          "enrollment_date_required": "Enrollment date is required.",
+          "enrollment_date_invalid": "Enrollment date must be a valid YYYY-MM-DD date."
+        }
       }
     },
     "schedule_test": {
@@ -1507,7 +1595,8 @@
       "decision_date": "Decision Date",
       "email_parents": "Email parents immediately",
       "cancel": "Cancel",
-      "submit": "Submit Decision"
+      "submit": "Submit Decision",
+      "submitting": "Submitting..."
     },
     "enrollment_form": {
       "title": "Enrollment Setup",
@@ -1787,6 +1876,31 @@
       "found": "found",
       "messages": {
         "decision_recorded": "Decision recorded successfully."
+      },
+      "details": {
+        "title": "Decision Details",
+        "close": "Close decision details",
+        "loading": "Loading decision details...",
+        "student_name": "Student Name",
+        "decision": "Decision",
+        "application_status": "Application Status",
+        "reason": "Reason",
+        "decided_by": "Decided By",
+        "decision_date": "Decision Date",
+        "no_reason": "No reason was provided.",
+        "not_available": "Not available",
+        "retry": "Try again",
+        "open_application": "Open Application",
+        "statuses": {
+          "accept": "Accepted",
+          "waitlist": "Waitlisted",
+          "reject": "Rejected"
+        },
+        "errors": {
+          "forbidden": "You do not have permission to view this decision.",
+          "not_found": "This decision is no longer available.",
+          "generic": "Decision details could not be loaded."
+        }
       }
     },
     "enrollment": {
@@ -7040,6 +7154,7 @@
         "nameEnRequired": "English name is required",
         "uniqueNameAr": "Arabic name must be unique within this scope",
         "uniqueNameEn": "English name must be unique within this scope",
+        "nameValidationUnavailable": "We could not validate this policy name. Retry before continuing.",
         "required": "This field is required",
         "nonNegative": "Value must be 0 or greater",
         "startBeforeEnd": "Start date must be before end date",
@@ -7099,6 +7214,15 @@
         "stay": "Keep Editing",
         "unsavedChangesTitle": "Unsaved Changes",
         "unsavedChangesDesc": "You have unsaved changes. Are you sure you want to discard them?",
+        "nameValidation": {
+          "checking": "Checking name availability...",
+          "available": "Both policy names are available.",
+          "retry": "Retry"
+        },
+        "scopeConflict": {
+          "classroom": "An active policy already exists for this classroom. Edit or deactivate the existing policy before creating another active policy.",
+          "generic": "An active policy already exists for this scope. Edit or deactivate the existing policy before creating another active policy."
+        },
         "steps": {
           "basicInfo": {
             "title": "Basic Info",

@@ -213,28 +213,31 @@ export function normalizeTest(input: unknown): Test {
   const scheduledAt = readString(input, ["scheduledAt", "scheduled_at"]);
   const scheduled = splitIsoDateTime(scheduledAt);
   const status = readString(input, ["status"], "scheduled").toLowerCase() as TestStatus;
-  const subjectName = readString(input, ["subjectName", "subject_name", "subject", "type"], "Placement");
+  const subjectName = readString(input, ["subjectName", "subject_name"]);
+  const type = readString(input, ["type"], "Placement Test");
+  const result = readString(input, ["result", "notes"]);
 
   return {
     id,
     applicationId: readString(input, ["applicationId", "application_id"]),
     studentName: readString(input, ["studentName", "student_name"]) || undefined,
     subjectId: readString(input, ["subjectId", "subject_id"]) || null,
-    subjectName,
+    subjectName: subjectName || null,
     scheduledAt: scheduledAt || undefined,
     createdAt: readString(input, ["createdAt", "created_at"]) || undefined,
     updatedAt: readString(input, ["updatedAt", "updated_at"]) || undefined,
-    type: readString(input, ["type"], subjectName),
-    subject: subjectName,
+    type,
+    subject: subjectName || type,
     date: scheduled.date,
     time: scheduled.time,
     duration: readString(input, ["duration"], "60"),
     location: readString(input, ["location"], "Admissions office"),
     proctor: readString(input, ["proctor", "proctorName", "proctor_name"]) || undefined,
     status,
-    score: typeof input.score === "number" ? input.score : undefined,
+    score: typeof input.score === "number" ? input.score : null,
     maxScore: typeof input.maxScore === "number" ? input.maxScore : 100,
-    notes: readString(input, ["result", "notes"]) || undefined,
+    result: result || null,
+    notes: result || undefined,
   };
 }
 
@@ -280,10 +283,30 @@ export function normalizeDecision(input: unknown): Decision {
   return {
     id,
     applicationId: readString(input, ["applicationId", "application_id"]),
+    studentName: readString(input, ["studentName", "student_name"]),
     decision: readString(input, ["decision"], "accept") as DecisionType,
     reason: readString(input, ["reason"]),
-    decisionDate: readString(input, ["decisionDate", "decision_date", "createdAt", "created_at"], new Date().toISOString()),
-    decidedBy: readString(input, ["decidedBy", "decided_by", "createdBy", "created_by"], "Admissions"),
+    decisionDate: readString(
+      input,
+      ["decisionDate", "decision_date", "decidedAt", "decided_at", "createdAt", "created_at"],
+      new Date().toISOString(),
+    ),
+    decidedBy: readString(
+      input,
+      [
+        "decidedByName",
+        "decided_by_name",
+        "decidedBy",
+        "decided_by",
+        "decidedByUserId",
+        "decided_by_user_id",
+        "createdByName",
+        "created_by_name",
+      ],
+      "Admissions",
+    ),
+    applicationStatus:
+      readString(input, ["applicationStatus", "application_status"]) || undefined,
   };
 }
 

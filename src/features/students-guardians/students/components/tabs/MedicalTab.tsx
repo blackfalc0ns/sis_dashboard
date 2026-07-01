@@ -10,6 +10,8 @@ import type {
 } from "@/features/students-guardians/students/types";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { useTranslations } from "next-intl";
+import { Button, TextArea } from "@/components/ui";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 interface MedicalTabProps {
   student: Student;
@@ -83,36 +85,37 @@ export default function MedicalTab({ student }: MedicalTabProps) {
           <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
         </div>
         {!isEditing ? (
-          <button
+          <Button
+            type="button"
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+            leftIcon={<Edit2 className="w-4 h-4" />}
           >
-            <Edit2 className="w-4 h-4" />
             {t("edit")}
-          </button>
+          </Button>
         ) : (
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              type="button"
+              variant="secondary"
               onClick={handleCancel}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+              leftIcon={<X className="w-4 h-4" />}
             >
-              <X className="w-4 h-4" />
               {t("cancel")}
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
               onClick={handleSave}
-              disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+              loading={isSaving}
+              leftIcon={<Save className="w-4 h-4" />}
             >
-              <Save className="w-4 h-4" />
               {t("save")}
-            </button>
+            </Button>
           </div>
         )}
       </div>
       {isLoading ? (
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
-          Loading medical profile...
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+          <PartialLoader size={24} />
         </div>
       ) : null}
       {error ? (
@@ -127,7 +130,7 @@ export default function MedicalTab({ student }: MedicalTabProps) {
           <FileText className="w-5 h-5 text-gray-600" />
           {t("medical_notes")}
         </h3>
-        <textarea
+        <TextArea
           value={medicalData.notes || ""}
           onChange={(e) =>
             setMedicalData({ ...medicalData, notes: e.target.value })
@@ -135,11 +138,7 @@ export default function MedicalTab({ student }: MedicalTabProps) {
           disabled={!isEditing}
           rows={4}
           placeholder={t("enter_notes")}
-          className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
-            isEditing
-              ? "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
-              : "bg-gray-50 border-gray-200 text-gray-700"
-          }`}
+          variant={isEditing ? "default" : "filled"}
         />
       </div>
     </div>

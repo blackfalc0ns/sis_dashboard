@@ -25,6 +25,7 @@ import {
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { Student } from "@/features/students-guardians/students/types";
 import Button from "@/components/ui/button/Button";
+import EmptyState from "@/components/ui/empty-state/EmptyState";
 import StudentAccountLinkModal from "@/features/students-guardians/students/components/StudentAccountLinkModal";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
@@ -180,15 +181,18 @@ export default function StudentProfilePage({
     return (
       <div className="p-6">
         <div className="bg-white rounded-xl p-12 text-center">
-          <p className="text-gray-500 mb-4">
-            {loadError || t("student_not_found")}
-          </p>
-          <button
-            onClick={() => router.push(`/${lang}/students-guardians/students`)}
-            className="text-primary hover:text-hover font-medium"
-          >
-            {t("back_to_students")}
-          </button>
+          <EmptyState
+            message={loadError || t("student_not_found")}
+            action={
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => router.push(`/${lang}/students-guardians/students`)}
+              >
+                {t("back_to_students")}
+              </Button>
+            }
+          />
         </div>
       </div>
     );
@@ -263,17 +267,21 @@ export default function StudentProfilePage({
       <div className="bg-white border-b border-gray-200">
         <div className="p-4 sm:p-6">
           {/* Back Button */}
-          <button
+          <Button
+            type="button"
+            variant="ghost"
             onClick={() => router.push(`/${lang}/students-guardians/students`)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+            className="mb-4 px-0 text-gray-600"
+            leftIcon={
+              locale === "ar" ? (
+                <ArrowRight className="w-4 h-4" />
+              ) : (
+                <ArrowLeft className="w-4 h-4" />
+              )
+            }
           >
-            {locale === "ar" ? (
-              <ArrowRight className="w-4 h-4" />
-            ) : (
-              <ArrowLeft className="w-4 h-4" />
-            )}
-            <span className="text-sm font-medium">{t("back_to_students")}</span>
-          </button>
+            {t("back_to_students")}
+          </Button>
 
           {/* Student Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -343,18 +351,20 @@ export default function StudentProfilePage({
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
-                <button
+                <Button
                   key={tab.key}
+                  type="button"
+                  variant="ghost"
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  className={`rounded-none border-b-2 px-4 py-3 whitespace-nowrap ${
                     activeTab === tab.key
                       ? "border-primary text-primary"
                       : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
                   }`}
+                  leftIcon={<Icon className="w-4 h-4" />}
                 >
-                  <Icon className="w-4 h-4" />
                   {t(tab.labelKey)}
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -363,8 +373,8 @@ export default function StudentProfilePage({
 
       <div className="p-4 sm:p-6">
         {tabContent[activeTab] || (
-          <div className="bg-white rounded-xl border border-gray-200 p-10 text-center text-gray-500">
-            {t("no_data")}
+          <div className="bg-white rounded-xl border border-gray-200">
+            <EmptyState message={t("no_data")} />
           </div>
         )}
       </div>

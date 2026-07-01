@@ -22,6 +22,7 @@ import CreateLeadModal from "@/features/admissions/leads/components/CreateLeadMo
 import ApplicationCreateStepper from "@/features/admissions/applications/components/ApplicationCreateStepper";
 import LeadChatPanel from "@/features/admissions/leads/components/LeadChatPanel";
 import TabNavigation from "@/features/admissions/shared/TabNavigation";
+import { Button } from "@/components/ui";
 import {
   fetchLeadById,
   updateLead,
@@ -132,22 +133,23 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-4">
-        <button
+        <Button
+          type="button"
           onClick={() => router.push(`/${locale}/admissions/leads`)}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          variant="ghost"
+          size="sm"
+          className="p-2"
           title={t("back_to_leads")}
+          aria-label={t("back_to_leads")}
         >
           {locale === "ar" ? (
             <ArrowRight className="w-5 h-5 text-gray-600" />
           ) : (
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           )}
-        </button>
+        </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">{displayName}</h1>
-          <p className="text-sm text-gray-500">
-            {t("lead_id")}: {lead.id}
-          </p>
         </div>
         <LeadStatusBadge status={lead.status} size="md" />
       </div>
@@ -161,19 +163,22 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
             onChange={setActiveTab}
           />
           <div className="flex items-center gap-3 flex-wrap">
-            <button
+            <Button
+              type="button"
               onClick={() => setIsEditModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+              variant="secondary"
+              size="sm"
+              leftIcon={<Edit className="h-4 w-4" />}
             >
-              <Edit className="h-4 w-4" />
               {t_leads("edit")}
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
               onClick={handleConvertToApplication}
-              className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+              size="sm"
             >
               {t("mark_converted")}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -223,12 +228,6 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
                   {t("lead_details")}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-500">{t("lead_id")}</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {lead.id}
-                    </p>
-                  </div>
                   <div>
                     <p className="text-xs text-gray-500">{t("status")}</p>
                     <div className="mt-1">

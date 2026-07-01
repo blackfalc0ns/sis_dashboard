@@ -15,7 +15,8 @@ import {
   Edit,
   Download,
 } from "lucide-react";
-import { DataTable, FilterPanel } from "@/components/ui";
+import { Button, DataTable, EmptyState, FilterPanel, Input, Select } from "@/components/ui";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTestModal";
 import TestScoreModal from "@/features/admissions/tests/components/TestScoreModal";
@@ -150,7 +151,6 @@ export default function TestsList() {
   }, [tests]);
 
   const columns = [
-    { key: "applicationId", label: t("application_id"), searchable: true },
     { key: "studentName", label: t("student_name"), searchable: true },
     { key: "type", label: t("test_type") },
     {
@@ -175,20 +175,23 @@ export default function TestsList() {
       label: t("actions_col"),
       render: (_value: unknown, row: Test & { studentName: string }) =>
         row.status === "cancelled" ? null : (
-          <button
+          <Button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               if (isReadOnly) return;
               setSelectedTest(row);
               setIsScoreModalOpen(true);
             }}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary hover:text-white border border-primary rounded-lg transition-colors"
+            variant="outline"
+            size="sm"
+            leftIcon={<Edit className="w-3 h-3" />}
+            className="px-3 py-1.5"
             title="Enter/Edit Score"
           >
-            <Edit className="w-3 h-3" />
             {row.score !== undefined ? t("edit") : t("enter")}{" "}
             {t("enter_score")}
-          </button>
+          </Button>
         ),
     },
   ];
@@ -206,16 +209,18 @@ export default function TestsList() {
   };
 
   const handleTestSubmit = async (data: {
+    applicationId: string;
+    studentName: string;
     date: string;
     time: string;
     type: string;
-    notes: string;
-    [key: string]: unknown;
+    subjectId: string;
+    subjectName: string;
   }) => {
     try {
       await createPlacementTest({
-        applicationId: "", // Will need to be provided by the modal in a real flow
-        studentName: String(data.studentName || ""),
+        applicationId: data.applicationId,
+        subjectId: data.subjectId,
         type: data.type || "Placement Test",
         date: data.date,
         time: data.time,
@@ -232,15 +237,12 @@ export default function TestsList() {
   const handleScoreSubmit = async (
     testId: string,
     score: number,
-    _maxScore: number,
-    status: "completed" | "failed",
-    notes?: string,
+    result?: string,
   ) => {
     try {
       await completePlacementTest(testId, {
         score,
-        status,
-        notes,
+        result,
       });
       showToast("Test score saved successfully!", "success");
       setIsScoreModalOpen(false);
@@ -335,21 +337,22 @@ export default function TestsList() {
           <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            type="button"
             onClick={() => setIsExportModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+            variant="secondary"
+            leftIcon={<Download className="w-4 h-4" />}
           >
-            <Download className="w-4 h-4" />
             {t("export")}
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
             onClick={() => setIsScheduleTestOpen(true)}
             disabled={isReadOnly}
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg font-medium text-sm transition-colors"
+            leftIcon={<Plus className="w-4 h-4" />}
           >
-            <Plus className="w-4 h-4" />
             {t("schedule_test")}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -359,54 +362,53 @@ export default function TestsList() {
       <FilterPanel
         searchSlot={
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="relative flex-1 min-w-[200px] max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
+            <div className="flex-1 min-w-[200px] max-w-md">
+              <Input
                 type="text"
                 placeholder={t("search_placeholder")}
                 value={searchQuery}
                 onChange={(e) => setValue("search", e.target.value, "replace")}
                 suppressHydrationWarning
-                className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
+                leftIcon={<Search className="w-4 h-4" />}
+                className={`placeholder:text-black/60 ${
                   searchQuery
                     ? "border-primary ring-2 ring-primary/20"
-                    : "border-gray-200"
+                    : ""
                 }`}
               />
             </div>
             {hasActiveFilters && (
-              <button
+              <Button
+                type="button"
                 onClick={clearFilters}
-                className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 hover:bg-red-100 text-red-700 rounded-lg font-medium text-sm transition-colors"
+                variant="danger"
+                leftIcon={<X className="w-4 h-4" />}
               >
-                <X className="w-4 h-4" />
                 {t("clear_filters")}
-              </button>
+              </Button>
             )}
           </div>
         }
         filtersSlot={
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {t("status")}
-              </label>
-              <select
+              <Select
+                label={t("status")}
                 value={statusFilter}
-                onChange={(e) =>
+                onChange={(value) =>
                   setValue(
                     "status",
-                    e.target.value as TestStatus | "all",
+                    value as TestStatus | "all",
                     "push",
                   )
                 }
-                className="w-full px-3 py-2 bg-white border text-black border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">{t("all_statuses")}</option>
-                <option value="scheduled">{t("scheduled")}</option>
-                <option value="completed">{t("completed")}</option>
-                <option value="failed">{t("failed")}</option>
-              </select>
+                options={[
+                  { value: "all", label: t("all_statuses") },
+                  { value: "scheduled", label: t("scheduled") },
+                  { value: "completed", label: t("completed") },
+                  { value: "failed", label: t("failed") },
+                ]}
+              />
             </div>
           </div>
         }
@@ -421,22 +423,21 @@ export default function TestsList() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-          <p className="text-gray-500">Loading tests...</p>
+        <div className="rounded-xl bg-white p-12 shadow-sm">
+          <PartialLoader />
         </div>
       ) : filteredTests.length === 0 ? (
-        <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-          <p className="text-gray-500">
-            {hasActiveFilters ? t("no_match") : t("no_tests")}
-          </p>
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="mt-4 text-primary hover:text-hover font-medium text-sm"
-            >
-              {t("clear_filters")}
-            </button>
-          )}
+        <div className="rounded-xl bg-white shadow-sm">
+          <EmptyState
+            message={hasActiveFilters ? t("no_match") : t("no_tests")}
+            action={
+              hasActiveFilters ? (
+                <Button type="button" variant="ghost" onClick={clearFilters}>
+                  {t("clear_filters")}
+                </Button>
+              ) : undefined
+            }
+          />
         </div>
       ) : (
         <DataTable

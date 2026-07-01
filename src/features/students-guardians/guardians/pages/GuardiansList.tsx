@@ -20,7 +20,7 @@ import {
   XCircle,
   Lock,
 } from "lucide-react";
-import { DataTable, FilterPanel } from "@/components/ui";
+import { Button, DataTable, EmptyState, FilterPanel, Input, Modal, Select } from "@/components/ui";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import { StudentGuardian } from "@/features/students-guardians/students/types";
@@ -440,7 +440,7 @@ export default function GuardiansList() {
       sortable: false,
       render: (_: unknown, row: { [key: string]: unknown }) => (
         <div className="flex items-center gap-2">
-          <button
+          <Button type="button" variant="ghost" size="sm"
             onClick={(e) => {
               e.stopPropagation();
               handleRowClick(row as unknown as StudentGuardian);
@@ -449,8 +449,8 @@ export default function GuardiansList() {
             title={t("actions.view_details")}
           >
             <Eye className="w-4 h-4" />
-          </button>
-          <button
+          </Button>
+          <Button type="button" variant="ghost" size="sm"
             onClick={(e) =>
               handleEditGuardianClick(e, row as unknown as StudentGuardian)
             }
@@ -458,8 +458,8 @@ export default function GuardiansList() {
             title={t("actions.edit")}
           >
             <Edit className="w-4 h-4" />
-          </button>
-          <button
+          </Button>
+          <Button type="button" variant="ghost" size="sm"
             onClick={(e) =>
               handleAccountLinkClick(e, row as unknown as StudentGuardian)
             }
@@ -472,7 +472,7 @@ export default function GuardiansList() {
             disabled={!canManageAccounts}
           >
             <Lock className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       ),
     },
@@ -570,57 +570,41 @@ export default function GuardiansList() {
       <FilterPanel
         searchSlot={
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative flex-1 w-full sm:max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
+            <div className="flex-1 w-full sm:max-w-md">
+              <Input
                 type="text"
+                leftIcon={<Search className="w-5 h-5" />}
                 placeholder={t("search_placeholder")}
                 value={searchQuery}
                 onChange={(e) => setValue("search", e.target.value, "replace")}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 placeholder:text-black/60 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <button
+              <Button type="button" leftIcon={<Plus className="w-4 h-4" />}
                 onClick={() => setShowCreateGuardianModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
               >
-                <Plus className="w-4 h-4" />
                 {t("actions.create_guardian")}
-              </button>
-              <button
+              </Button>
+              <Button type="button" variant="secondary" leftIcon={<Download className="w-4 h-4" />}
                 onClick={() => setShowExportModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
               >
-                <Download className="w-4 h-4" />
                 {t("export")}
-              </button>
+              </Button>
             </div>
           </div>
         }
         filtersSlot={
           <div className="pt-4 border-t border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t("relation")}
-                </label>
-                <select
+              <Select
+                  label={t("relation")}
                   value={relationFilter}
-                  onChange={(e) => {
-                    setValue("relation", e.target.value, "push");
+                  onChange={(value) => {
+                    setValue("relation", value, "push");
                   }}
-                  className="w-full text-black px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value="all">{t("all_relations")}</option>
-                  {uniqueRelations.map((relation) => (
-                    <option key={relation} value={relation}>
-                      {relation.charAt(0).toUpperCase() + relation.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  options={[{ value: "all", label: t("all_relations") }, ...uniqueRelations.map((relation) => ({ value: relation, label: relation.charAt(0).toUpperCase() + relation.slice(1) }))]}
+                />
             </div>
           </div>
         }
@@ -631,13 +615,11 @@ export default function GuardiansList() {
             <span className="text-sm text-gray-600">
               {t("active_filters")}
             </span>
-            <button
+            <Button type="button" variant="secondary" size="sm" leftIcon={<X className="w-3 h-3" />}
               onClick={clearFilters}
-              className="flex items-center gap-1 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-sm transition-colors"
             >
-              <X className="w-3 h-3" />
               {t("clear_all")}
-            </button>
+            </Button>
           </div>
         }
         hasActiveFilters={hasActiveFilters}
@@ -647,23 +629,7 @@ export default function GuardiansList() {
 
       {/* Guardians Table */}
       {filteredGuardians.length === 0 ? (
-        <div className="bg-white rounded-xl p-12 text-center shadow-sm">
-          <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {t("no_guardians")}
-          </h3>
-          <p className="text-gray-500 mb-4">
-            {hasActiveFilters ? t("try_adjusting") : t("no_guardians_message")}
-          </p>
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              {t("clear_filters")}
-            </button>
-          )}
-        </div>
+        <EmptyState icon={<Users className="w-12 h-12" />} title={t("no_guardians")} message={hasActiveFilters ? t("try_adjusting") : t("no_guardians_message")} action={hasActiveFilters ? <Button type="button" onClick={clearFilters}>{t("clear_filters")}</Button> : undefined} className="bg-white rounded-xl shadow-sm" />
       ) : (
         <DataTable
           columns={columns}
@@ -682,25 +648,12 @@ export default function GuardiansList() {
         />
       )}
 
-      {editingGuardian && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <Modal isOpen={Boolean(editingGuardian)} onClose={() => setEditingGuardian(null)} title={t("actions.edit")} size="lg">
+        {editingGuardian && (
           <form
             onSubmit={handleEditGuardianSubmit}
-            className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl"
+            className="space-y-4"
           >
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {t("actions.edit")}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setEditingGuardian(null)}
-                className="rounded p-1 text-gray-500 hover:bg-gray-100"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
 
             {editGuardianError && (
               <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -711,7 +664,7 @@ export default function GuardiansList() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <label className="text-sm font-medium text-gray-700">
                 {t("columns.name")}
-                <input
+                <Input
                   value={editGuardianForm.full_name}
                   onChange={(event) =>
                     setEditGuardianForm((current) => ({
@@ -725,7 +678,7 @@ export default function GuardiansList() {
               </label>
               <label className="text-sm font-medium text-gray-700">
                 {t("columns.relation")}
-                <input
+                <Input
                   value={editGuardianForm.relation}
                   onChange={(event) =>
                     setEditGuardianForm((current) => ({
@@ -739,7 +692,7 @@ export default function GuardiansList() {
               </label>
               <label className="text-sm font-medium text-gray-700">
                 {t("columns.phone")}
-                <input
+                <Input
                   value={editGuardianForm.phone_primary}
                   onChange={(event) =>
                     setEditGuardianForm((current) => ({
@@ -753,7 +706,7 @@ export default function GuardiansList() {
               </label>
               <label className="text-sm font-medium text-gray-700">
                 {t("columns.email")}
-                <input
+                <Input
                   type="email"
                   value={editGuardianForm.email}
                   onChange={(event) =>
@@ -767,7 +720,7 @@ export default function GuardiansList() {
               </label>
               <label className="text-sm font-medium text-gray-700">
                 {t("fields.job_title")}
-                <input
+                <Input
                   value={editGuardianForm.job_title}
                   onChange={(event) =>
                     setEditGuardianForm((current) => ({
@@ -780,7 +733,7 @@ export default function GuardiansList() {
               </label>
               <label className="text-sm font-medium text-gray-700">
                 {t("fields.workplace")}
-                <input
+                <Input
                   value={editGuardianForm.workplace}
                   onChange={(event) =>
                     setEditGuardianForm((current) => ({
@@ -795,7 +748,7 @@ export default function GuardiansList() {
 
             <div className="mt-4 flex flex-wrap gap-4">
               <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
+                <Input
                   type="checkbox"
                   checked={editGuardianForm.can_pickup}
                   onChange={(event) =>
@@ -808,7 +761,7 @@ export default function GuardiansList() {
                 {t("columns.can_pickup")}
               </label>
               <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
+                <Input
                   type="checkbox"
                   checked={editGuardianForm.can_receive_notifications}
                   onChange={(event) =>
@@ -823,24 +776,23 @@ export default function GuardiansList() {
             </div>
 
             <div className="mt-6 flex justify-end gap-3">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={() => setEditingGuardian(null)}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 {t("actions.cancel")}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                disabled={isSavingGuardian}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-hover disabled:opacity-60"
+                loading={isSavingGuardian}
               >
-                {isSavingGuardian ? t("actions.saving") : t("actions.save")}
-              </button>
+                {t("actions.save")}
+              </Button>
             </div>
           </form>
-        </div>
-      )}
+        )}
+      </Modal>
 
       <AddGuardianModal
         isOpen={showCreateGuardianModal}

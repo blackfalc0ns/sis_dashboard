@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
+import { isApiError } from "@/lib/api-error";
 import type { AttendancePolicy, AttendanceScopeType } from "../types";
 import { migratePeriodIds } from "@/features/academics/timetable/types/timetableConfig";
 import { fetchTimetableConfigs } from "@/features/academics/timetable/services/timetableConfigService";
@@ -7,112 +8,37 @@ import {
   type AttendanceScopeIds,
 } from "@/features/attendance/shared/attendanceScope";
 
-// In-memory mock data keyed by `${yearId}-${termId}`
-const policiesByTerm: Record<string, AttendancePolicy[]> = {
-  "year-1-term-1-1": [
-    {
-      id: "policy-1",
-      yearId: "year-1",
-      termId: "term-1-1",
-      nameAr: "سياسة الحضور الافتراضية",
-      nameEn: "Default Attendance Policy",
-      descriptionAr: "السياسة الافتراضية للحضور على مستوى المدرسة - تتبع بالحصص",
-      descriptionEn: "Default school-wide attendance policy - period-based tracking",
-      scopeType: "SCHOOL",
-      mode: "PERIOD",
-      selectedPeriodIds: ["p1", "p2"], // Using stable IDs
-      lateThresholdMinutes: 15,
-      earlyLeaveThresholdMinutes: 15,
-      absentIfMissedPeriodsCount: 2,
-      allowExcuses: true,
-      requireExcuseReason: false,
-      requireAttachmentForExcuse: false,
-      notifyTeachers: true,
-      notifyStudents: false,
-      notifyGuardians: true,
-      notifyOnAbsent: true,
-      notifyOnLate: true,
-      notifyOnEarlyLeave: false,
-      effectiveStartDate: "2024-09-01",
-      effectiveEndDate: "2024-12-31",
-      isActive: true,
-      createdAt: "2024-08-15T00:00:00Z",
-      updatedAt: "2024-08-15T00:00:00Z",
-    },
-    {
-      id: "policy-2",
-      yearId: "year-1",
-      termId: "term-1-1",
-      nameAr: "سياسة الحضور بالحصة - الصف الأول",
-      nameEn: "Period Attendance - Grade 1",
-      descriptionAr: "تتبع الحضور لكل حصة دراسية",
-      descriptionEn: "Track attendance per class period",
-      scopeType: "GRADE",
-      scopeIds: {
-        stageId: "stage-1",
-        gradeId: "grade-1",
-      },
-      mode: "PERIOD",
-      selectedPeriodIds: ["p1", "p2", "p3", "p4"], // Using stable IDs
-      lateThresholdMinutes: 10,
-      earlyLeaveThresholdMinutes: 10,
-      absentIfMissedPeriodsCount: 3,
-      allowExcuses: true,
-      requireExcuseReason: true,
-      requireAttachmentForExcuse: true,
-      notifyTeachers: true,
-      notifyStudents: true,
-      notifyGuardians: true,
-      notifyOnAbsent: true,
-      notifyOnLate: false,
-      notifyOnEarlyLeave: false,
-      effectiveStartDate: "2024-09-01",
-      effectiveEndDate: "2024-12-31",
-      isActive: true,
-      createdAt: "2024-08-16T00:00:00Z",
-      updatedAt: "2024-08-16T00:00:00Z",
-    },
-    {
-      id: "policy-3",
-      yearId: "year-1",
-      termId: "term-1-1",
-      nameAr: "سياسة الحضور - الصف الثاني",
-      nameEn: "Attendance Policy - Grade 2",
-      descriptionAr: "الحضور اليومي محسوب من حضور الحصص",
-      descriptionEn: "Daily attendance derived from period attendance",
-      scopeType: "GRADE",
-      scopeIds: {
-        stageId: "stage-1",
-        gradeId: "grade-2",
-      },
-      mode: "PERIOD",
-      selectedPeriodIds: ["p1", "p2", "p3", "p4", "p5"], // Using stable IDs
-      lateThresholdMinutes: 15,
-      earlyLeaveThresholdMinutes: 15,
-      absentIfMissedPeriodsCount: 4,
-      allowExcuses: true,
-      requireExcuseReason: false,
-      requireAttachmentForExcuse: false,
-      notifyTeachers: true,
-      notifyStudents: false,
-      notifyGuardians: true,
-      notifyOnAbsent: true,
-      notifyOnLate: true,
-      notifyOnEarlyLeave: true,
-      effectiveStartDate: "2024-09-01",
-      effectiveEndDate: "2024-12-31",
-      isActive: true,
-      createdAt: "2024-08-17T00:00:00Z",
-      updatedAt: "2024-08-17T00:00:00Z",
-    },
-  ],
-};
-
-const getTermKey = (yearId: string, termId: string) => `${yearId}-${termId}`;
-
 type BackendRecord = Record<string, unknown>;
 
 const BASE = "/attendance/policies";
+
+export interface ListPoliciesParams {
+  academicYearId: string;
+  termId: string;
+  scopeType?: AttendanceScopeType;
+  classroomId?: string;
+  isActive?: boolean;
+}
+
+export interface ValidatePolicyNameParams {
+  academicYearId: string;
+  termId: string;
+  scopeType: AttendanceScopeType;
+  scopeIds?: AttendanceScopeIds;
+  nameAr: string;
+  nameEn: string;
+  excludeId?: string;
+}
+
+export interface PolicyNameValidationResult {
+  uniqueAr: boolean;
+  uniqueEn: boolean;
+  available: boolean;
+}
+
+export function isAttendancePolicyConflict(error: unknown): boolean {
+  return isApiError(error) && error.code === "attendance.policy.conflict";
+}
 
 function asRecord(value: unknown): BackendRecord {
   return value && typeof value === "object" ? (value as BackendRecord) : {};
@@ -181,14 +107,6 @@ function getBoolean(object: BackendRecord, keys: string[], fallback = false) {
   return fallback;
 }
 
-function resolveScopeKey(scopeType: AttendanceScopeType, scopeIds?: AttendanceScopeIds) {
-  if (scopeType === "CLASSROOM") return scopeIds?.classroomId ? `classroom:${scopeIds.classroomId}` : undefined;
-  if (scopeType === "SECTION") return scopeIds?.sectionId ? `section:${scopeIds.sectionId}` : undefined;
-  if (scopeType === "GRADE") return scopeIds?.gradeId ? `grade:${scopeIds.gradeId}` : undefined;
-  if (scopeType === "STAGE") return scopeIds?.stageId ? `stage:${scopeIds.stageId}` : undefined;
-  return "school";
-}
-
 function stripScopeKeyPrefix(scopeKey: string) {
   const separatorIndex = scopeKey.indexOf(":");
   return separatorIndex === -1 ? scopeKey : scopeKey.slice(separatorIndex + 1);
@@ -223,11 +141,17 @@ function compactPayload<T extends Record<string, unknown>>(payload: T): Partial<
 
 function mapPolicy(item: unknown, fallback?: { yearId?: string; termId?: string }): AttendancePolicy {
   const object = unwrapPolicy(item);
+  const id = getString(object, ["id"]);
+  const yearId = getString(object, ["yearId", "academicYearId"], fallback?.yearId || "");
+  const termId = getString(object, ["termId"], fallback?.termId || "");
+  if (!id || !yearId || !termId) {
+    throw new Error("Invalid attendance policy response");
+  }
   const scopeType = String(object.scopeType || "SCHOOL").toUpperCase() as AttendanceScopeType;
   return {
-    id: getString(object, ["id"]),
-    yearId: getString(object, ["yearId", "academicYearId"], fallback?.yearId || ""),
-    termId: getString(object, ["termId"], fallback?.termId || ""),
+    id,
+    yearId,
+    termId,
     nameAr: getString(object, ["nameAr"]),
     nameEn: getString(object, ["nameEn"]),
     descriptionAr: getOptionalString(object, ["descriptionAr"]),
@@ -260,8 +184,10 @@ function mapPolicy(item: unknown, fallback?: { yearId?: string; termId?: string 
   };
 }
 
-function buildPolicyPayload(payload: Partial<Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">>, compact: boolean) {
-  const body = {
+type PolicyWriteInput = Partial<Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">>;
+
+function buildPolicyFields(payload: PolicyWriteInput) {
+  return {
     academicYearId: payload.yearId,
     termId: payload.termId,
     nameAr: payload.nameAr,
@@ -271,7 +197,6 @@ function buildPolicyPayload(payload: Partial<Omit<AttendancePolicy, "id" | "crea
     notesAr: payload.notesAr,
     notesEn: payload.notesEn,
     scopeType: payload.scopeType,
-    scopeKey: payload.scopeType ? resolveScopeKey(payload.scopeType, payload.scopeIds) : undefined,
     scopeIds: payload.scopeIds,
     ...buildScopeParams(payload.scopeType || "SCHOOL", payload.scopeIds),
     mode: payload.mode,
@@ -281,93 +206,67 @@ function buildPolicyPayload(payload: Partial<Omit<AttendancePolicy, "id" | "crea
     earlyLeaveThresholdMinutes: payload.earlyLeaveThresholdMinutes,
     autoAbsentAfterMinutes: payload.autoAbsentAfterMinutes,
     absentIfMissedPeriodsCount: payload.absentIfMissedPeriodsCount,
+    allowParentExcuseRequests: payload.allowExcuses,
     allowExcuses: payload.allowExcuses,
     requireExcuseReason: payload.requireExcuseReason,
+    requireExcuseAttachment: payload.requireAttachmentForExcuse,
     requireAttachmentForExcuse: payload.requireAttachmentForExcuse,
+    notifyGuardiansOnAbsence: payload.notifyGuardians,
     notifyTeachers: payload.notifyTeachers,
     notifyStudents: payload.notifyStudents,
     notifyGuardians: payload.notifyGuardians,
     notifyOnAbsent: payload.notifyOnAbsent,
     notifyOnLate: payload.notifyOnLate,
     notifyOnEarlyLeave: payload.notifyOnEarlyLeave,
+    effectiveFrom: payload.effectiveStartDate,
     effectiveStartDate: payload.effectiveStartDate,
+    effectiveTo: payload.effectiveEndDate,
     effectiveEndDate: payload.effectiveEndDate,
     isActive: payload.isActive,
   };
-  return compact ? compactPayload(body) : body;
 }
 
-/**
- * Normalize a name for comparison (trim, collapse spaces, lowercase for EN)
- */
-export const normalizeName = (name: string, isArabic: boolean = false): string => {
-  let normalized = name.trim().replace(/\s+/g, " ");
-  if (!isArabic) {
-    normalized = normalized.toLowerCase();
-  }
-  return normalized;
-};
-
-/**
- * Check if a policy name is unique within a term and scope
- */
-export const isPolicyNameUnique = (
-  yearId: string,
-  termId: string,
-  scopeType: AttendanceScopeType,
-  scopeIds: AttendanceScopeIds | undefined,
-  nameAr: string,
-  nameEn: string,
-  excludeId?: string
-): { uniqueAr: boolean; uniqueEn: boolean } => {
-  const key = getTermKey(yearId, termId);
-  const policies = policiesByTerm[key] || [];
-  
-  const normalizedAr = normalizeName(nameAr, true);
-  const normalizedEn = normalizeName(nameEn, false);
-
-  // Check for duplicates in the same scope
-  const duplicateAr = policies.some((p) => {
-    if (p.id === excludeId) return false;
-    if (p.scopeType !== scopeType) return false;
-    
-    // Check scope match
-    if (scopeType === "STAGE" && p.scopeIds?.stageId !== scopeIds?.stageId) return false;
-    if (scopeType === "GRADE" && (p.scopeIds?.stageId !== scopeIds?.stageId || p.scopeIds?.gradeId !== scopeIds?.gradeId)) return false;
-    if (scopeType === "SECTION" && (p.scopeIds?.stageId !== scopeIds?.stageId || p.scopeIds?.gradeId !== scopeIds?.gradeId || p.scopeIds?.sectionId !== scopeIds?.sectionId)) return false;
-    if (scopeType === "CLASSROOM" && (
-      p.scopeIds?.stageId !== scopeIds?.stageId ||
-      p.scopeIds?.gradeId !== scopeIds?.gradeId ||
-      p.scopeIds?.sectionId !== scopeIds?.sectionId ||
-      p.scopeIds?.classroomId !== scopeIds?.classroomId
-    )) return false;
-    
-    return normalizeName(p.nameAr, true) === normalizedAr;
-  });
-
-  const duplicateEn = policies.some((p) => {
-    if (p.id === excludeId) return false;
-    if (p.scopeType !== scopeType) return false;
-    
-    // Check scope match
-    if (scopeType === "STAGE" && p.scopeIds?.stageId !== scopeIds?.stageId) return false;
-    if (scopeType === "GRADE" && (p.scopeIds?.stageId !== scopeIds?.stageId || p.scopeIds?.gradeId !== scopeIds?.gradeId)) return false;
-    if (scopeType === "SECTION" && (p.scopeIds?.stageId !== scopeIds?.stageId || p.scopeIds?.gradeId !== scopeIds?.gradeId || p.scopeIds?.sectionId !== scopeIds?.sectionId)) return false;
-    if (scopeType === "CLASSROOM" && (
-      p.scopeIds?.stageId !== scopeIds?.stageId ||
-      p.scopeIds?.gradeId !== scopeIds?.gradeId ||
-      p.scopeIds?.sectionId !== scopeIds?.sectionId ||
-      p.scopeIds?.classroomId !== scopeIds?.classroomId
-    )) return false;
-    
-    return normalizeName(p.nameEn, false) === normalizedEn;
-  });
-
+function buildCreatePolicyPayload(payload: Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">) {
   return {
-    uniqueAr: !duplicateAr,
-    uniqueEn: !duplicateEn,
+    ...buildPolicyFields(payload),
+    notes: null,
+    dailyComputationStrategy: payload.dailyComputationStrategy ?? "DERIVED_FROM_PERIODS",
+    autoAbsentAfterMinutes: payload.autoAbsentAfterMinutes ?? null,
   };
-};
+}
+
+function buildPatchPolicyPayload(payload: PolicyWriteInput) {
+  return compactPayload(buildPolicyFields(payload));
+}
+
+export async function validatePolicyName(
+  params: ValidatePolicyNameParams,
+): Promise<PolicyNameValidationResult> {
+  const response = await apiGet<unknown>(`${BASE}/validate-name`, {
+    params: compactPayload({
+      academicYearId: params.academicYearId,
+      termId: params.termId,
+      scopeType: params.scopeType,
+      ...buildScopeParams(params.scopeType, params.scopeIds),
+      nameAr: params.nameAr,
+      nameEn: params.nameEn,
+      excludeId: params.excludeId,
+    }),
+  });
+  const result = unwrapPolicy(response);
+  if (
+    typeof result.uniqueAr !== "boolean" ||
+    typeof result.uniqueEn !== "boolean" ||
+    typeof result.available !== "boolean"
+  ) {
+    throw new Error("Invalid attendance policy name validation response");
+  }
+  return {
+    uniqueAr: result.uniqueAr,
+    uniqueEn: result.uniqueEn,
+    available: result.available,
+  };
+}
 
 /**
  * Fetch all policies for a term
@@ -375,13 +274,17 @@ export const isPolicyNameUnique = (
  */
 export const fetchPolicies = async (
   yearId: string,
-  termId: string
+  termId: string,
+  filters: Omit<ListPoliciesParams, "academicYearId" | "termId"> = {},
 ): Promise<AttendancePolicy[]> => {
   const response = await apiGet<unknown>(BASE, {
-    params: {
+    params: compactPayload({
       academicYearId: yearId,
       termId,
-    },
+      scopeType: filters.scopeType,
+      classroomId: filters.classroomId,
+      isActive: filters.isActive,
+    }),
   });
   const policies = unwrapArray(response).map((item) => mapPolicy(item, { yearId, termId }));
 
@@ -433,7 +336,7 @@ export const fetchPolicies = async (
 export const createPolicy = async (
   payload: Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">
 ): Promise<AttendancePolicy> => {
-  const response = await apiPost<unknown>(BASE, buildPolicyPayload(payload, false));
+  const response = await apiPost<unknown>(BASE, buildCreatePolicyPayload(payload));
   return mapPolicy(response, { yearId: payload.yearId, termId: payload.termId });
 };
 
@@ -444,7 +347,7 @@ export const updatePolicy = async (
   id: string,
   payload: Partial<Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">>
 ): Promise<AttendancePolicy> => {
-  const response = await apiPatch<unknown>(`${BASE}/${id}`, buildPolicyPayload(payload, true));
+  const response = await apiPatch<unknown>(`${BASE}/${id}`, buildPatchPolicyPayload(payload));
   return mapPolicy(response, { yearId: payload.yearId, termId: payload.termId });
 };
 

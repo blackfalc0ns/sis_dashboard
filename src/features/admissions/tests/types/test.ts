@@ -23,7 +23,8 @@ export interface Test {
   guardianName?: string;
   guardianPhone?: string;
   status: TestStatus;
-  score?: number;
+  score?: number | null;
   maxScore?: number;
+  result?: string | null;
   notes?: string;
 }

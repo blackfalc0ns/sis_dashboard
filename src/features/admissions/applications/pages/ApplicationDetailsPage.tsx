@@ -8,7 +8,6 @@ import {
   FileText,
   ClipboardCheck,
   MessageSquare,
-  Calendar,
   User,
   FileCheck,
   ArrowRight,
@@ -20,15 +19,17 @@ import ScheduleInterviewModal, {
   type ScheduleInterviewFormData,
 } from "@/features/admissions/interviews/components/ScheduleInterviewModal";
 import DecisionModal from "@/features/admissions/decisions/components/DecisionModal";
-import EnrollmentForm from "@/features/admissions/enrollment/components/EnrollmentForm";
+import ApplicationRegistrationWizard from "@/features/admissions/applications/components/registration/ApplicationRegistrationWizard";
+import { Button, EmptyState } from "@/components/ui";
 import DetailsTab from "@/features/admissions/applications/components/tabs/DetailsTab";
 import GuardiansTab from "@/features/admissions/applications/components/tabs/GuardiansTab";
 import DocumentsTab from "@/features/admissions/applications/components/tabs/DocumentsTab";
 import TestsTab from "@/features/admissions/applications/components/tabs/TestsTab";
 import InterviewsTab from "@/features/admissions/applications/components/tabs/InterviewsTab";
-import TimelineTab from "@/features/admissions/applications/components/tabs/TimelineTab";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useApplicationRelatedData } from "@/features/admissions/applications/hooks/useApplicationRelatedData";
 import type {
   Application,
   ApplicationStatus,
@@ -49,10 +50,6 @@ import {
   fetchDecisions,
   getDecisionFriendlyErrorMessage,
 } from "@/features/admissions/decisions/services/decisionsApiService";
-import {
-  createEnrollmentHandoffPreview,
-  getEnrollmentFriendlyErrorMessage,
-} from "@/features/admissions/enrollment/services/admissionsEnrollmentApiService";
 
 interface ApplicationDetailsPageProps {
   applicationId: string;
@@ -65,6 +62,15 @@ export default function ApplicationDetailsPage({
   const locale = useLocale();
   const router = useRouter();
   const { showToast } = useToast();
+  const { hasPermission, hasAllPermissions } = usePermissions();
+  const canManageApplications = hasPermission("admissions.applications.manage");
+  const canManageDecisions = hasPermission("admissions.decisions.manage");
+  const canRegisterApplication = hasAllPermissions([
+    "admissions.applications.manage",
+    "students.records.manage",
+    "students.guardians.manage",
+    "students.enrollments.manage",
+  ]);
   const normalizeQueryValues = useCallback(
     (values: Record<"tab", string>) => {
       const validTabs = new Set([
@@ -73,7 +79,6 @@ export default function ApplicationDetailsPage({
         "documents",
         "tests",
         "interviews",
-        "timeline",
       ]);
 
       return validTabs.has(values.tab) ? null : { tab: null };
@@ -94,10 +99,15 @@ export default function ApplicationDetailsPage({
   const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false);
   const [isScheduleInterviewOpen, setIsScheduleInterviewOpen] = useState(false);
   const [isDecisionOpen, setIsDecisionOpen] = useState(false);
+  const [isSubmittingDecision, setIsSubmittingDecision] = useState(false);
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
   const [application, setApplication] = useState<Application | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const relatedData = useApplicationRelatedData(
+    applicationId,
+    application?.requestedGradeId,
+  );
 
   const loadApplication = useCallback(async () => {
     setIsLoading(true);
@@ -154,15 +164,17 @@ export default function ApplicationDetailsPage({
   if (!application) {
     return (
       <div className="p-6">
-        <div className="text-center py-12">
-          <p className="text-gray-500">{error || "Application not found"}</p>
-          <button
-            onClick={() => router.push(`/${locale}/admissions/applications`)}
-            className="mt-4 px-4 py-2 bg-primary text-white rounded-lg"
-          >
-            Back to Applications
-          </button>
-        </div>
+        <EmptyState
+          message={error || "Application not found"}
+          action={
+            <Button
+              type="button"
+              onClick={() => router.push(`/${locale}/admissions/applications`)}
+            >
+              Back to Applications
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -192,11 +204,6 @@ export default function ApplicationDetailsPage({
       id: "interviews",
       label: t("tabs.interviews"),
       icon: <MessageSquare className="w-4 h-4" />,
-    },
-    {
-      id: "timeline",
-      label: t("tabs.timeline"),
-      icon: <Calendar className="w-4 h-4" />,
     },
   ];
 
@@ -252,12 +259,14 @@ export default function ApplicationDetailsPage({
     date: string;
     time: string;
     type: string;
-    notes: string;
+    subjectId: string;
+    subjectName: string;
   }) => {
     try {
       await createPlacementTest({
         applicationId: application.id,
-        studentName: application.studentName,
+        subjectId: data.subjectId,
+        type: data.type,
         date: data.date,
         time: data.time,
       });
@@ -275,7 +284,6 @@ export default function ApplicationDetailsPage({
     try {
       await createInterview({
         applicationId: application.id,
-        studentName: application.studentName,
         date: data.date,
         time: data.time,
         interviewerUserId: data.interviewerUserId,
@@ -295,6 +303,7 @@ export default function ApplicationDetailsPage({
     reason: string,
   ) => {
     try {
+      setIsSubmittingDecision(true);
       await createDecision({
         applicationId: application.id,
         decision,
@@ -309,21 +318,8 @@ export default function ApplicationDetailsPage({
           "Failed to create decision. Please try again.",
         "error",
       );
-    }
-  };
-
-  const handleEnrollmentSubmit = async () => {
-    try {
-      await createEnrollmentHandoffPreview(application.id);
-      setIsEnrollmentOpen(false);
-      showToast("Enrollment handoff preview created successfully.", "success");
-    } catch (enrollmentError) {
-      console.error("Failed to create enrollment handoff:", enrollmentError);
-      showToast(
-        getEnrollmentFriendlyErrorMessage(enrollmentError) ||
-          "Failed to create enrollment handoff. Please try again.",
-        "error",
-      );
+    } finally {
+      setIsSubmittingDecision(false);
     }
   };
 
@@ -333,20 +329,25 @@ export default function ApplicationDetailsPage({
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm mb-6">
           <div className="border-b border-gray-200 px-6 py-4">
-            <button
+            <Button
+              type="button"
               onClick={() => router.push(`/${locale}/admissions/applications`)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+              variant="ghost"
+              size="sm"
+              className="mb-4 px-0"
+              leftIcon={locale === "ar" ? <ArrowRight /> : <ArrowLeft />}
             >
-              {locale === "ar" ? <ArrowRight /> : <ArrowLeft />}
-              <span className="text-sm font-medium">Back to Applications</span>
-            </button>
+              Back to Applications
+            </Button>
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {t("header.title")} {application.id}
+                  {t("header.title")}
                 </h1>
                 <p className="text-sm text-gray-500 mt-1">
-                  {application.studentName} - {application.gradeRequested}
+                  {[application.studentName, relatedData.gradeLabel]
+                    .filter(Boolean)
+                    .join(" - ")}
                 </p>
               </div>
               <StatusBadge status={application.status} size="md" />
@@ -365,12 +366,30 @@ export default function ApplicationDetailsPage({
 
         {/* Content */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          {activeTab === "details" && <DetailsTab application={application} />}
+          {activeTab === "details" && (
+            <DetailsTab
+              application={application}
+              studentDraft={relatedData.studentDraft}
+              gradeLabel={relatedData.gradeLabel}
+              academicYearLabel={relatedData.academicYearLabel}
+              previousSchool={relatedData.previousSchool}
+            />
+          )}
           {activeTab === "guardians" && (
-            <GuardiansTab application={application} />
+            <GuardiansTab
+              application={application}
+              guardians={relatedData.guardians}
+              isLoading={relatedData.isLoadingHandoff}
+              error={relatedData.handoffError}
+              onRetry={relatedData.reloadHandoff}
+            />
           )}
           {activeTab === "documents" && (
-            <DocumentsTab application={application} />
+            <DocumentsTab
+              application={application}
+              initialDocuments={relatedData.documents}
+              preferInitialDocuments
+            />
           )}
           {activeTab === "tests" && (
             <TestsTab
@@ -384,45 +403,60 @@ export default function ApplicationDetailsPage({
               onScheduleInterview={handleScheduleInterview}
             />
           )}
-          {activeTab === "timeline" && (
-            <TimelineTab application={application} />
-          )}
         </div>
 
         {/* Sticky Action Bar */}
         <div className="bg-white rounded-xl shadow-sm p-6 sticky bottom-4">
           <div className="flex items-center gap-3 flex-wrap">
-            {canScheduleAdmissionsStep && (
+            {canManageApplications && canScheduleAdmissionsStep && (
               <>
-                <button
+                <Button
+                  type="button"
                   onClick={handleScheduleTest}
-                  className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  variant="secondary"
+                  size="sm"
                 >
                   {t("actions.schedule_test")}
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
                   onClick={handleScheduleInterview}
-                  className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  variant="secondary"
+                  size="sm"
                 >
                   {t("actions.schedule_interview")}
-                </button>
+                </Button>
               </>
             )}
-            {canMakeDecision && (
-              <button
+            {canManageDecisions && canMakeDecision && (
+              <Button
+                type="button"
                 onClick={handleMakeDecision}
-                className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+                size="sm"
               >
                 {t("actions.make_decision")}
-              </button>
+              </Button>
             )}
-            {application.status === "accepted" && (
-              <button
+            {application.status === "accepted" && !application.registrationState?.registered && (
+              <Button
+                type="button"
                 onClick={handleEnroll}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+                disabled={!canRegisterApplication}
+                title={
+                  canRegisterApplication
+                    ? undefined
+                    : "Additional student registration permissions are required"
+                }
+                variant="success"
+                size="sm"
               >
                 {t("actions.enroll_student")}
-              </button>
+              </Button>
+            )}
+            {application.registrationState?.registered && (
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+                {t("actions.enrolled_status")}
+              </p>
             )}
             {isFinalDecisionStatus && finalDecisionMessage && (
               <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700">
@@ -439,6 +473,7 @@ export default function ApplicationDetailsPage({
         onClose={() => setIsScheduleTestOpen(false)}
         onSubmit={handleScheduleTestSubmit}
         studentName={application.studentName}
+        applicationId={application.id}
       />
 
       <ScheduleInterviewModal
@@ -450,16 +485,20 @@ export default function ApplicationDetailsPage({
 
       <DecisionModal
         isOpen={isDecisionOpen}
-        onClose={() => setIsDecisionOpen(false)}
+        onClose={() => {
+          if (!isSubmittingDecision) setIsDecisionOpen(false);
+        }}
         onSubmit={handleDecisionSubmit}
         application={application}
+        isSubmitting={isSubmittingDecision}
       />
 
-      <EnrollmentForm
+      <ApplicationRegistrationWizard
+        applicationId={application.id}
+        studentName={application.studentName}
         isOpen={isEnrollmentOpen}
         onClose={() => setIsEnrollmentOpen(false)}
-        onSubmit={handleEnrollmentSubmit}
-        application={application}
+        onRegistered={loadApplication}
       />
     </div>
   );

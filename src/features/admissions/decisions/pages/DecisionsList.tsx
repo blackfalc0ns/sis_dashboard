@@ -12,8 +12,9 @@ import {
   Clock,
   Download,
 } from "lucide-react";
-import { DataTable, FilterPanel } from "@/components/ui";
+import { Button, DataTable, EmptyState, FilterPanel, Input, Select } from "@/components/ui";
 import { KPICardV2 } from "@/components/ui/kpi-card";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import { Decision, DecisionType } from "@/features/admissions/types/admissions";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
@@ -23,19 +24,36 @@ import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/adm
 import { formatVisibleDecisionsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
 import { fetchDecisions } from "@/features/admissions/decisions/services/decisionsApiService";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
+import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
+import DecisionDetailsDrawer from "@/features/admissions/decisions/components/DecisionDetailsDrawer";
 
 export default function DecisionsList() {
   const t = useTranslations("admissions.decisions");
   const locale = useLocale();
   const { isReadOnly } = useAdmissionsYearTermContext();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canViewDecisions = hasPermission("admissions.decisions.view");
 
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedDecisionId, setSelectedDecisionId] = useState<string | null>(null);
+  const closeDecisionDrawer = useCallback(() => {
+    setSelectedDecisionId(null);
+  }, []);
+  const openDecisionDrawer = useCallback((decision: Decision) => {
+    setSelectedDecisionId(decision.id);
+  }, []);
 
   const loadDecisions = useCallback(async () => {
+    if (!canViewDecisions) {
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const data = await fetchDecisions();
@@ -46,7 +64,7 @@ export default function DecisionsList() {
     } finally {
       setIsLoading(false);
     }
-  }, [showToast]);
+  }, [canViewDecisions, showToast]);
 
   useEffect(() => {
     void loadDecisions();
@@ -89,7 +107,9 @@ export default function DecisionsList() {
     return decisions.filter((decision) => {
       const matchesSearch =
         searchQuery === "" ||
-        decision.applicationId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (decision.studentName ?? "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
         decision.decidedBy.toLowerCase().includes(searchQuery.toLowerCase()) ||
         decision.reason.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -112,8 +132,14 @@ export default function DecisionsList() {
     return { total, accepted, waitlisted, rejected, acceptanceRate };
   }, [decisions]);
 
-  const columns = [
-    { key: "applicationId", label: t("application_id"), searchable: true },
+  const columns = useMemo(() => [
+    {
+      key: "studentName",
+      label: t("student_name"),
+      searchable: true,
+      render: (value: unknown) =>
+        typeof value === "string" && value.trim() ? value : "—",
+    },
     {
       key: "decision",
       label: t("decision"),
@@ -143,7 +169,11 @@ export default function DecisionsList() {
     },
     { key: "decidedBy", label: t("decided_by"), searchable: true },
     { key: "reason", label: t("reason") },
-  ];
+    // Rebuild translated column labels only when the active locale changes.
+    // `useTranslations()` can return a new function reference across renders,
+    // which would defeat memoization and make the table churn when opening the drawer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [locale]);
 
   const hasActiveFilters = searchQuery !== "" || decisionFilter !== "all";
 
@@ -155,7 +185,7 @@ export default function DecisionsList() {
     const exportLocale = format === "json" ? "en" : locale;
     const exportData = filteredDecisions.map((d) => ({
       ...d,
-      studentName: "",
+      studentName: d.studentName ?? "",
       grade: "",
     }));
     downloadAdmissionsExport({
@@ -165,6 +195,10 @@ export default function DecisionsList() {
       emptyMessage: hasActiveFilters ? t("no_match") : t("no_decisions"),
     });
   };
+
+  if (!canViewDecisions) {
+    return <AdmissionsAccessDenied />;
+  }
 
   return (
     <div className="space-y-6">
@@ -177,13 +211,6 @@ export default function DecisionsList() {
           icon={CheckCircle}
           iconColor="#3b82f6"
           iconBgColor="#dbeafe"
-          chartData={[
-            { label: "W1", value: 15 },
-            { label: "W2", value: 18 },
-            { label: "W3", value: 22 },
-            { label: "W4", value: kpis.total },
-          ]}
-          chartColor="#3b82f6"
         />
         <KPICardV2
           title={t("accepted")}
@@ -192,13 +219,6 @@ export default function DecisionsList() {
           icon={CheckCircle}
           iconColor="#10b981"
           iconBgColor="#d1fae5"
-          chartData={[
-            { label: "W1", value: 10 },
-            { label: "W2", value: 12 },
-            { label: "W3", value: 15 },
-            { label: "W4", value: kpis.accepted },
-          ]}
-          chartColor="#10b981"
         />
         <KPICardV2
           title={t("waitlisted")}
@@ -207,13 +227,6 @@ export default function DecisionsList() {
           icon={Clock}
           iconColor="#f59e0b"
           iconBgColor="#fef3c7"
-          chartData={[
-            { label: "W1", value: 3 },
-            { label: "W2", value: 4 },
-            { label: "W3", value: 5 },
-            { label: "W4", value: kpis.waitlisted },
-          ]}
-          chartColor="#f59e0b"
         />
         <KPICardV2
           title={t("rejected")}
@@ -222,13 +235,6 @@ export default function DecisionsList() {
           icon={XCircle}
           iconColor="#ef4444"
           iconBgColor="#fee2e2"
-          chartData={[
-            { label: "W1", value: 2 },
-            { label: "W2", value: 2 },
-            { label: "W3", value: 2 },
-            { label: "W4", value: kpis.rejected },
-          ]}
-          chartColor="#ef4444"
         />
       </div>
 
@@ -240,65 +246,62 @@ export default function DecisionsList() {
           <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
           <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
         </div>
-        <button
+        <Button
+          type="button"
+          variant="secondary"
           onClick={() => setIsExportModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+          leftIcon={<Download className="w-4 h-4" />}
         >
-          <Download className="w-4 h-4" />
           {t("export")}
-        </button>
+        </Button>
       </div>
 
       {/* Filters */}
       <FilterPanel
         searchSlot={
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="relative flex-1 min-w-[200px] max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
+            <div className="min-w-[200px] max-w-md flex-1">
+              <Input
                 type="text"
                 placeholder={t("search_placeholder")}
                 value={searchQuery}
                 onChange={(e) => setValue("search", e.target.value, "replace")}
-                className={`w-full pl-10 pr-4 py-2.5 bg-white border placeholder:text-black/60 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm ${
-                  searchQuery
-                    ? "border-primary ring-2 ring-primary/20"
-                    : "border-gray-200"
-                }`}
+                leftIcon={<Search className="w-4 h-4" />}
+                className={searchQuery ? "border-primary ring-2 ring-primary/20" : ""}
               />
             </div>
             {hasActiveFilters && (
-              <button
+              <Button
+                type="button"
+                variant="danger"
                 onClick={clearFilters}
-                className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 hover:bg-red-100 text-red-700 rounded-lg font-medium text-sm transition-colors"
+                leftIcon={<X className="w-4 h-4" />}
               >
-                <X className="w-4 h-4" />
                 {t("clear_filters")}
-              </button>
+              </Button>
             )}
           </div>
         }
         filtersSlot={
           <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              {t("decision")}
-            </label>
-            <select
+            <Select
+              label={t("decision")}
               value={decisionFilter}
-              onChange={(e) =>
+              onChange={(value) =>
                 setValue(
                   "decision",
-                  e.target.value as DecisionType | "all",
+                  value as DecisionType | "all",
                   "push",
                 )
               }
-              className="w-full text-black max-w-xs px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="all">{t("all_decisions")}</option>
-              <option value="accept">{t("accept")}</option>
-              <option value="waitlist">{t("waitlist")}</option>
-              <option value="reject">{t("reject")}</option>
-            </select>
+              options={[
+                { value: "all", label: t("all_decisions") },
+                { value: "accept", label: t("accept") },
+                { value: "waitlist", label: t("waitlist") },
+                { value: "reject", label: t("reject") },
+              ]}
+              className="max-w-xs"
+            />
           </div>
         }
         showFilters={showFilters}
@@ -312,27 +315,29 @@ export default function DecisionsList() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-          <p className="text-gray-500">Loading decisions...</p>
+        <div className="bg-white rounded-xl p-12 shadow-sm">
+          <PartialLoader />
         </div>
       ) : filteredDecisions.length === 0 ? (
-        <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-          <p className="text-gray-500">
-            {hasActiveFilters ? t("no_match") : t("no_decisions")}
-          </p>
-          {hasActiveFilters && (
-            <button
+        <div className="bg-white rounded-xl shadow-sm">
+          <EmptyState
+            message={hasActiveFilters ? t("no_match") : t("no_decisions")}
+            action={hasActiveFilters ? (
+              <Button
+                type="button"
+                variant="ghost"
               onClick={clearFilters}
-              className="mt-4 text-primary hover:text-hover font-medium text-sm"
             >
               {t("clear_filters")}
-            </button>
-          )}
+              </Button>
+            ) : undefined}
+          />
         </div>
       ) : (
         <DataTable
           columns={columns}
           data={filteredDecisions as (Decision & { [key: string]: unknown })[]}
+          onRowClick={openDecisionDrawer}
           searchQuery={searchQuery}
           urlState={{
             keyPrefix: "decisionsTable",
@@ -350,6 +355,11 @@ export default function DecisionsList() {
         confirmLabel={t("export")}
         datasetCount={filteredDecisions.length}
         emptyStateMessage={hasActiveFilters ? t("no_match") : t("no_decisions")}
+      />
+      <DecisionDetailsDrawer
+        decisionId={selectedDecisionId}
+        isOpen={selectedDecisionId !== null}
+        onClose={closeDecisionDrawer}
       />
     </div>
   );

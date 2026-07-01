@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { Send, Phone, Mail, MessageCircle } from "lucide-react";
+import { Button, EmptyState, TextArea } from "@/components/ui";
 import type { LeadMessage } from "@/features/admissions/leads/types/message";
 import {
   getOrCreateLeadConversation,
@@ -165,18 +166,18 @@ export default function LeadChatPanel({
             <p className="text-gray-500 text-sm">{t("loading")}</p>
           </div>
         ) : chatError ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <MessageCircle className="w-12 h-12 text-red-300 mb-3" />
-            <p className="text-red-500 text-sm">{chatError}</p>
-          </div>
+          <EmptyState
+            icon={<MessageCircle className="w-12 h-12 text-red-300" />}
+            message={chatError}
+            className="h-full"
+          />
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <MessageCircle className="w-12 h-12 text-gray-300 mb-3" />
-            <p className="text-gray-500 text-sm">{t("no_messages")}</p>
-            <p className="text-gray-400 text-xs mt-1">
-              {t("start_conversation")}
-            </p>
-          </div>
+          <EmptyState
+            icon={<MessageCircle className="w-12 h-12 text-gray-300" />}
+            title={t("no_messages")}
+            message={t("start_conversation")}
+            className="h-full"
+          />
         ) : (
           messages.map((message) => (
             <div
@@ -215,23 +216,26 @@ export default function LeadChatPanel({
       {/* Message Input */}
       <div className="p-4 border-t border-gray-200 bg-gray-50">
         <div className="flex gap-2">
-          <textarea
+          <TextArea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyPress}
             placeholder={t("type_message")}
             rows={2}
             disabled={isSending || !conversationId}
-            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+            resize="none"
+            className="flex-1"
           />
-          <button
+          <Button
+            type="button"
             onClick={handleSendMessage}
             disabled={!newMessage.trim() || isSending || !conversationId}
-            className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+            loading={isSending}
+            leftIcon={<Send className="w-4 h-4" />}
+            className="self-start"
           >
-            <Send className="w-4 h-4" />
             <span className="hidden sm:inline">{t("send")}</span>
-          </button>
+          </Button>
         </div>
         <p className="text-xs text-gray-500 mt-2">{t("press_enter")}</p>
       </div>

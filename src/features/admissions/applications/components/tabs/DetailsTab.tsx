@@ -4,13 +4,25 @@ import { useTranslations } from "next-intl";
 import { FileText, User, MapPin, Heart, Calendar } from "lucide-react";
 import { Application } from "@/features/admissions/types/admissions";
 import StatusBadge from "../../../shared/StatusBadge";
+import type { RegistrationStudentRequest } from "@/features/admissions/applications/api/registrationDtos";
 
 interface DetailsTabProps {
   application: Application;
+  studentDraft?: Partial<RegistrationStudentRequest> | null;
+  gradeLabel?: string | null;
+  academicYearLabel?: string | null;
+  previousSchool?: string | null;
 }
 
-export default function DetailsTab({ application }: DetailsTabProps) {
+export default function DetailsTab({
+  application,
+  studentDraft,
+  gradeLabel,
+  academicYearLabel,
+  previousSchool,
+}: DetailsTabProps) {
   const t = useTranslations("admissions.application360");
+  const studentContact = studentDraft?.contact;
 
   // Helper function to determine stage from grade
   const getStageFromGrade = (grade: string | undefined): string => {
@@ -25,8 +37,9 @@ export default function DetailsTab({ application }: DetailsTabProps) {
   const displayStage =
     application.stage ??
     getStageFromGrade(
-      application.grade_requested || application.gradeRequested,
+      gradeLabel || undefined,
     );
+  const displayGrade = gradeLabel;
 
   return (
     <div className="space-y-6">
@@ -43,44 +56,44 @@ export default function DetailsTab({ application }: DetailsTabProps) {
               {t("details.arabic_name")}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-              {application.first_name_ar && (
+            {studentDraft?.first_name_ar && (
                 <div>
                   <p className="text-xs text-gray-500">First Name (AR)</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {application.first_name_ar}
+                    {studentDraft.first_name_ar}
                   </p>
                 </div>
               )}
-              {application.father_name_ar && (
+              {studentDraft?.father_name_ar && (
                 <div>
                   <p className="text-xs text-gray-500">Father Name (AR)</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {application.father_name_ar}
+                    {studentDraft.father_name_ar}
                   </p>
                 </div>
               )}
-              {application.grandfather_name_ar && (
+              {studentDraft?.grandfather_name_ar && (
                 <div>
                   <p className="text-xs text-gray-500">Grandfather Name (AR)</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {application.grandfather_name_ar}
+                    {studentDraft.grandfather_name_ar}
                   </p>
                 </div>
               )}
-              {application.family_name_ar && (
+              {studentDraft?.family_name_ar && (
                 <div>
                   <p className="text-xs text-gray-500">Family Name (AR)</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {application.family_name_ar}
+                    {studentDraft.family_name_ar}
                   </p>
                 </div>
               )}
             </div>
-            {(application.full_name_ar || application.studentNameArabic) && (
+            {studentDraft?.full_name_ar && (
               <div className="mt-2">
                 <p className="text-xs text-gray-500">Full Name (AR)</p>
                 <p className="text-sm font-medium text-gray-900">
-                  {application.full_name_ar || application.studentNameArabic}
+                  {studentDraft.full_name_ar}
                 </p>
               </div>
             )}
@@ -92,44 +105,44 @@ export default function DetailsTab({ application }: DetailsTabProps) {
               {t("details.english_name")}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-              {application.first_name_en && (
+              {studentDraft?.first_name_en && (
                 <div>
                   <p className="text-xs text-gray-500">First Name (EN)</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {application.first_name_en}
+                    {studentDraft.first_name_en}
                   </p>
                 </div>
               )}
-              {application.father_name_en && (
+              {studentDraft?.father_name_en && (
                 <div>
                   <p className="text-xs text-gray-500">Father Name (EN)</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {application.father_name_en}
+                    {studentDraft.father_name_en}
                   </p>
                 </div>
               )}
-              {application.grandfather_name_en && (
+              {studentDraft?.grandfather_name_en && (
                 <div>
                   <p className="text-xs text-gray-500">Grandfather Name (EN)</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {application.grandfather_name_en}
+                    {studentDraft.grandfather_name_en}
                   </p>
                 </div>
               )}
-              {application.family_name_en && (
+              {studentDraft?.family_name_en && (
                 <div>
                   <p className="text-xs text-gray-500">Family Name (EN)</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {application.family_name_en}
+                    {studentDraft.family_name_en}
                   </p>
                 </div>
               )}
             </div>
-            {(application.full_name_en || application.studentName) && (
+            {(studentDraft?.full_name_en || studentDraft?.name || application.studentName) && (
               <div className="mt-2">
                 <p className="text-xs text-gray-500">Full Name (EN)</p>
                 <p className="text-sm font-medium text-gray-900">
-                  {application.full_name_en || application.studentName}
+                  {studentDraft?.full_name_en || studentDraft?.name || application.studentName}
                 </p>
               </div>
             )}
@@ -137,31 +150,33 @@ export default function DetailsTab({ application }: DetailsTabProps) {
 
           {/* Personal Information */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {application.gender && (
+            {studentDraft?.gender && (
               <div>
                 <p className="text-xs text-gray-500">{t("details.gender")}</p>
                 <p className="text-sm font-medium text-gray-900">
-                  {application.gender}
+                  {studentDraft.gender}
                 </p>
               </div>
             )}
-            {application.date_of_birth && (
+            {(studentDraft?.date_of_birth || studentDraft?.dateOfBirth) && (
               <div>
                 <p className="text-xs text-gray-500">
                   {t("details.date_of_birth")}
                 </p>
                 <p className="text-sm font-medium text-gray-900">
-                  {new Date(application.date_of_birth).toLocaleDateString()}
+                  {new Date(
+                    studentDraft.date_of_birth || studentDraft.dateOfBirth || "",
+                  ).toLocaleDateString()}
                 </p>
               </div>
             )}
-            {application.nationality && (
+            {studentDraft?.nationality && (
               <div>
                 <p className="text-xs text-gray-500">
                   {t("details.nationality")}
                 </p>
                 <p className="text-sm font-medium text-gray-900">
-                  {application.nationality}
+                  {studentDraft.nationality}
                 </p>
               </div>
             )}
@@ -176,7 +191,7 @@ export default function DetailsTab({ application }: DetailsTabProps) {
           {t("details.academic_info")}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {application.stage && (
+          {displayStage !== "N/A" && (
             <div>
               <p className="text-xs text-gray-500">{t("details.stage")}</p>
               <p className="text-sm font-medium text-gray-900">
@@ -184,13 +199,21 @@ export default function DetailsTab({ application }: DetailsTabProps) {
               </p>
             </div>
           )}
-          {(application.grade_requested || application.gradeRequested) && (
+          {displayGrade && (
             <div>
               <p className="text-xs text-gray-500">
                 {t("details.grade_requested")}
               </p>
               <p className="text-sm font-medium text-gray-900">
-                {application.grade_requested || application.gradeRequested}
+                {displayGrade}
+              </p>
+            </div>
+          )}
+          {academicYearLabel && (
+            <div>
+              <p className="text-xs text-gray-500">Academic Year</p>
+              <p className="text-sm font-medium text-gray-900">
+                {academicYearLabel}
               </p>
             </div>
           )}
@@ -202,13 +225,13 @@ export default function DetailsTab({ application }: DetailsTabProps) {
               </p>
             </div>
           )}
-          {application.previous_school && (
+          {previousSchool && (
             <div>
               <p className="text-xs text-gray-500">
                 {t("details.previous_school")}
               </p>
               <p className="text-sm font-medium text-gray-900">
-                {application.previous_school}
+                {previousSchool}
               </p>
             </div>
           )}
@@ -222,15 +245,15 @@ export default function DetailsTab({ application }: DetailsTabProps) {
           {t("details.contact_info")}
         </h3>
         <div className="space-y-3">
-          {application.address_line && (
+          {studentContact?.address_line && (
             <div>
               <p className="text-xs text-gray-500">{t("details.address")}</p>
               <p className="text-sm font-medium text-gray-900">
-                {application.address_line}
+                {studentContact.address_line}
               </p>
-              {(application.district || application.city) && (
+              {(studentContact.district || studentContact.city) && (
                 <p className="text-xs text-gray-600">
-                  {[application.district, application.city]
+                  {[studentContact.district, studentContact.city]
                     .filter(Boolean)
                     .join(", ")}
                 </p>
@@ -238,23 +261,23 @@ export default function DetailsTab({ application }: DetailsTabProps) {
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {application.student_phone && (
+            {studentContact?.student_phone && (
               <div>
                 <p className="text-xs text-gray-500">
                   {t("details.student_phone")}
                 </p>
                 <p className="text-sm font-medium text-gray-900">
-                  {application.student_phone}
+                  {studentContact.student_phone}
                 </p>
               </div>
             )}
-            {application.student_email && (
+            {studentContact?.student_email && (
               <div>
                 <p className="text-xs text-gray-500">
                   {t("details.student_email")}
                 </p>
                 <p className="text-sm font-medium text-gray-900">
-                  {application.student_email}
+                  {studentContact.student_email}
                 </p>
               </div>
             )}

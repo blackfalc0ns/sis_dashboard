@@ -39,18 +39,16 @@ export default function TestsTab({
   }, [application.id]);
 
   useEffect(() => {
-    void loadTests();
+    void Promise.resolve().then(loadTests);
   }, [loadTests]);
 
   const handleScoreSubmit = async (
     testId: string,
     score: number,
-    _maxScore: number,
-    _status: "completed" | "failed",
-    notes?: string,
+    result?: string,
   ) => {
     try {
-      await completePlacementTest(testId, { score, notes });
+      await completePlacementTest(testId, { score, result });
       showToast("Test score saved!", "success");
       setSelectedTest(null);
       await loadTests();

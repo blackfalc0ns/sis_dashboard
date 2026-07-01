@@ -15,4 +15,6 @@ export interface Document {
   uploadedDate?: string;
   url?: string; // URL to the document file
   fileType?: "pdf" | "image" | "doc"; // Type of file for preview
+  fileId?: string;
+  notes?: string;
 }

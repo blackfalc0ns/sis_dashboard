@@ -20,6 +20,7 @@ import InterviewRatingModal from "@/features/admissions/interviews/components/In
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import { Button, EmptyState } from "@/components/ui";
 import {
   fetchInterviewById,
   completeInterview,
@@ -69,15 +70,17 @@ export default function InterviewDetailsPage({
   if (!interview) {
     return (
       <div className="p-6">
-        <div className="text-center py-12">
-          <p className="text-gray-500">Interview not found</p>
-          <button
-            onClick={() => router.push(`/${locale}/admissions/interviews`)}
-            className="mt-4 px-4 py-2 bg-primary text-white rounded-lg"
-          >
-            Back to Interviews
-          </button>
-        </div>
+        <EmptyState
+          message="Interview not found"
+          action={
+            <Button
+              type="button"
+              onClick={() => router.push(`/${locale}/admissions/interviews`)}
+            >
+              Back to Interviews
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -91,7 +94,6 @@ export default function InterviewDetailsPage({
 
   const handleRatingSubmit = async (
     _interviewId: string,
-    _rating: number,
     notes?: string,
   ) => {
     try {
@@ -142,15 +144,16 @@ export default function InterviewDetailsPage({
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm mb-6">
           <div className="border-b border-gray-200 px-6 py-4">
-            <button
+            <Button
+              type="button"
               onClick={() => router.push(`/${locale}/admissions/interviews`)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+              variant="ghost"
+              size="sm"
+              className="mb-4 px-0"
+              leftIcon={locale === "ar" ? <ArrowRight /> : <ArrowLeft />}
             >
-              {locale === "ar" ? <ArrowRight /> : <ArrowLeft />}
-              <span className="text-sm font-medium">
-                {t("details.back_to_interviews")}
-              </span>
-            </button>
+              {t("details.back_to_interviews")}
+            </Button>
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
@@ -226,16 +229,19 @@ export default function InterviewDetailsPage({
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Application</p>
-                  <button
+                  <Button
+                    type="button"
                     onClick={() =>
                       router.push(
                         `/${locale}/admissions/applications/${interview.applicationId}`,
                       )
                     }
-                    className="text-sm font-medium text-primary hover:underline"
+                    variant="ghost"
+                    size="sm"
+                    className="px-0 text-primary"
                   >
-                    {interview.applicationId}
-                  </button>
+                    {t("actions.view_application")}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -265,14 +271,15 @@ export default function InterviewDetailsPage({
               {t("details.notes")}
             </h2>
             {interview.status !== "cancelled" && interview.status !== "completed" && (
-              <button
+              <Button
+                type="button"
                 onClick={handleComplete}
                 disabled={isReadOnly}
-                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+                size="sm"
+                leftIcon={<Edit className="w-4 h-4" />}
               >
-                <Edit className="w-4 h-4" />
                 {t("complete")}
-              </button>
+              </Button>
             )}
           </div>
 
@@ -287,10 +294,10 @@ export default function InterviewDetailsPage({
               </p>
             </div>
           ) : (
-            <div className="text-center py-8">
-              <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-sm text-gray-500">No notes yet</p>
-            </div>
+            <EmptyState
+              icon={<FileText className="w-12 h-12 text-gray-300" />}
+              message="No notes yet"
+            />
           )}
         </div>
 
@@ -299,32 +306,37 @@ export default function InterviewDetailsPage({
           <div className="flex items-center gap-3 flex-wrap">
             {(interview.status === "scheduled" || interview.status === "rescheduled") && (
               <>
-                <button
+                <Button
+                  type="button"
                   onClick={handleReschedule}
                   disabled={isReadOnly}
-                  className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  variant="secondary"
+                  size="sm"
                 >
                   {t("actions.reschedule")}
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
                   onClick={handleComplete}
                   disabled={isReadOnly}
-                  className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+                  size="sm"
                 >
                   {t("complete")}
-                </button>
+                </Button>
               </>
             )}
-            <button
+            <Button
+              type="button"
               onClick={() =>
                 router.push(
                   `/${locale}/admissions/applications/${interview.applicationId}`,
                 )
               }
-              className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+              variant="secondary"
+              size="sm"
             >
               {t("actions.view_application")}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

@@ -22,6 +22,7 @@ import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTe
 import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import { Button, EmptyState } from "@/components/ui";
 import {
   fetchPlacementTestById,
   completePlacementTest,
@@ -71,15 +72,17 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
   if (!test) {
     return (
       <div className="p-6">
-        <div className="text-center py-12">
-          <p className="text-gray-500">Test not found</p>
-          <button
-            onClick={() => router.push(`/${locale}/admissions/tests`)}
-            className="mt-4 px-4 py-2 bg-primary text-white rounded-lg"
-          >
-            Back to Tests
-          </button>
-        </div>
+        <EmptyState
+          message="Test not found"
+          action={
+            <Button
+              type="button"
+              onClick={() => router.push(`/${locale}/admissions/tests`)}
+            >
+              Back to Tests
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -94,12 +97,10 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
   const handleScoreSubmit = async (
     _testId: string,
     score: number,
-    _maxScore: number,
-    status: "completed" | "failed",
-    notes?: string,
+    result?: string,
   ) => {
     try {
-      await completePlacementTest(testId, { score, status, notes });
+      await completePlacementTest(testId, { score, result });
       showToast("Test score saved successfully!", "success");
       setIsScoreModalOpen(false);
       await loadTest();
@@ -117,7 +118,9 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
   const handleRescheduleSubmit = async (data: {
     date: string;
     time: string;
-    [key: string]: unknown;
+    type: string;
+    subjectId: string;
+    subjectName: string;
   }) => {
     try {
       await updatePlacementTest(testId, {
@@ -156,15 +159,16 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm mb-6">
           <div className="border-b border-gray-200 px-6 py-4">
-            <button
+            <Button
+              type="button"
               onClick={() => router.push(`/${locale}/admissions/tests`)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+              variant="ghost"
+              size="sm"
+              className="mb-4 px-0"
+              leftIcon={locale === "ar" ? <ArrowRight /> : <ArrowLeft />}
             >
-              {locale === "ar" ? <ArrowRight /> : <ArrowLeft />}
-              <span className="text-sm font-medium">
-                {t("details.back_to_tests")}
-              </span>
-            </button>
+              {t("details.back_to_tests")}
+            </Button>
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
@@ -250,16 +254,19 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
                 )}
                 <div>
                   <p className="text-xs text-gray-500">Application</p>
-                  <button
+                  <Button
+                    type="button"
                     onClick={() =>
                       router.push(
                         `/${locale}/admissions/applications/${test.applicationId}`,
                       )
                     }
-                    className="text-sm font-medium text-primary hover:underline"
+                    variant="ghost"
+                    size="sm"
+                    className="px-0 text-primary"
                   >
-                    {test.applicationId}
-                  </button>
+                    {t("actions.view_application")}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -291,16 +298,17 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
               {t("details.score_notes")}
             </h2>
             {test.status !== "cancelled" && (
-              <button
+              <Button
+                type="button"
                 onClick={handleAddScore}
                 disabled={isReadOnly}
-                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+                size="sm"
+                leftIcon={<Edit className="w-4 h-4" />}
               >
-                <Edit className="w-4 h-4" />
                 {test.score !== undefined
                   ? t("details.update_score")
                   : t("details.add_score")}
-              </button>
+              </Button>
             )}
           </div>
 
@@ -341,14 +349,14 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
               )}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-sm text-gray-500">
-                {test.status === "cancelled"
+            <EmptyState
+              icon={<FileText className="w-12 h-12 text-gray-300" />}
+              message={
+                test.status === "cancelled"
                   ? t("details.score_not_available_cancelled")
-                  : t("details.no_score_yet")}
-              </p>
-            </div>
+                  : t("details.no_score_yet")
+              }
+            />
           )}
         </div>
 
@@ -356,37 +364,42 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
         <div className="bg-white rounded-xl shadow-sm p-6 sticky bottom-4">
           <div className="flex items-center gap-3 flex-wrap">
             {(test.status === "scheduled" || test.status === "rescheduled") && (
-              <button
+              <Button
+                type="button"
                 onClick={handleReschedule}
                 disabled={isReadOnly}
-                className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                variant="secondary"
+                size="sm"
               >
                 {t("actions.reschedule")}
-              </button>
+              </Button>
             )}
             {(test.status === "scheduled" ||
               test.status === "rescheduled" ||
               test.status === "completed" ||
               test.status === "failed") &&
               test.score === undefined && (
-                <button
+                <Button
+                  type="button"
                   onClick={handleAddScore}
                   disabled={isReadOnly}
-                  className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+                  size="sm"
                 >
                   {t("actions.add_score")}
-                </button>
+                </Button>
               )}
-            <button
+            <Button
+              type="button"
               onClick={() =>
                 router.push(
                   `/${locale}/admissions/applications/${test.applicationId}`,
                 )
               }
-              className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+              variant="secondary"
+              size="sm"
             >
               {t("actions.view_application")}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -410,6 +423,7 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
         onClose={() => setIsRescheduleModalOpen(false)}
         onSubmit={handleRescheduleSubmit}
         studentName={studentName}
+        applicationId={test.applicationId}
       />
     </div>
   );

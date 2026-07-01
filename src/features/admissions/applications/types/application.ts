@@ -21,6 +21,20 @@ export interface Application {
   source?: ApplicationSource;
   status: ApplicationStatus;
   submittedDate: string;
+  submittedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  requestedAcademicYearId?: string | null;
+  requestedGradeId?: string | null;
+  registrationState?: {
+    registered: boolean;
+    studentId: string | null;
+    enrollmentId: string | null;
+    enrollmentStatus: string | null;
+    registeredVia: string | null;
+    registeredAt: string | null;
+    source: string;
+  };
 
   // Student Information
   first_name_ar?: string;

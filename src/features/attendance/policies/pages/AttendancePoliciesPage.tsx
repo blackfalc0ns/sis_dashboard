@@ -29,6 +29,7 @@ import {
   createPolicy,
   updatePolicy,
   deletePolicy,
+  isAttendancePolicyConflict,
 } from "../services/attendancePolicyService";
 import { computePolicyKpis, hasNotificationsEnabled, isPolicyConfigComplete } from "../utils/policyKpis";
 import type { AttendancePolicy, PolicyFormData } from "../types";
@@ -160,7 +161,9 @@ export default function AttendancePoliciesPage() {
       setSelectedPolicy(null);
     } catch (error) {
       console.error("Failed to save policy:", error);
-      showError(tCommon("error_saving"));
+      if (!isAttendancePolicyConflict(error)) {
+        showError(tCommon("error_saving"));
+      }
       throw error;
     }
   };

@@ -141,27 +141,10 @@ export const menuItems: MenuItem[] = [
     key: "admissions-registration",
     label_en: "Admissions & Registration",
     label_ar: "القبول والتسجيل",
-    href_en: "/en/admissions",
-    href_ar: "/ar/admissions",
+    href_en: "/en/admissions/applications",
+    href_ar: "/ar/admissions/applications",
     icon: UserPlus,
     children: [
-      {
-        key: "admissions-dashboard",
-        label_en: "Over View",
-        label_ar: "نظرة عامة",
-        href_en: "/en/admissions",
-        href_ar: "/ar/admissions",
-        icon: LayoutDashboard,
-      },
-      {
-        key: "admissions-leads",
-        label_en: "Leads",
-        label_ar: "الاستفسارات",
-        href_en: "/en/admissions/leads",
-        href_ar: "/ar/admissions/leads",
-        icon: Users,
-        badge: () => mockLeads.filter((lead) => lead.status === "New").length,
-      },
       {
         key: "admissions-applications",
         label_en: "Applications",
@@ -171,6 +154,15 @@ export const menuItems: MenuItem[] = [
         icon: FileText,
         badge: () =>
           mockApplications.filter((app) => app.status === "submitted").length,
+      },
+      {
+        key: "admissions-leads",
+        label_en: "Leads",
+        label_ar: "الاستفسارات",
+        href_en: "/en/admissions/leads",
+        href_ar: "/ar/admissions/leads",
+        icon: Users,
+        badge: () => mockLeads.filter((lead) => lead.status === "New").length,
       },
       {
         key: "admissions-tests",

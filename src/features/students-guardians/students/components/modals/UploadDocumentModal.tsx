@@ -5,6 +5,7 @@
 import { useState, useRef } from "react";
 import { XCircle, Upload, FileText, AlertCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Button, Modal, Select, TextArea } from "@/components/ui";
 
 interface UploadDocumentModalProps {
   isOpen: boolean;
@@ -117,44 +118,35 @@ export default function UploadDocumentModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 bg-opacity-30 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <form onSubmit={handleSubmit}>
-          {/* Modal Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-            <h3 className="text-lg font-bold text-gray-900">Upload Document</h3>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <XCircle className="w-6 h-6" />
-            </button>
-          </div>
-
-          {/* Modal Body */}
-          <div className="p-6 space-y-6">
+    <Modal
+      isOpen={isOpen}
+      onClose={handleCancel}
+      title="Upload Document"
+      size="lg"
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" form="upload-document-form">
+            Upload Document
+          </Button>
+        </>
+      }
+    >
+        <form id="upload-document-form" onSubmit={handleSubmit}>
+          <div className="space-y-6 pb-4">
             {/* Document Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Document Type <span className="text-red-500">*</span>
-              </label>
-              <select
+              <Select
+                label="Document Type"
                 required
                 value={formData.type}
-                onChange={(e) =>
-                  setFormData({ ...formData, type: e.target.value })
+                onChange={(value) =>
+                  setFormData({ ...formData, type: value })
                 }
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="">Select document type</option>
-                {DOCUMENT_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
+                placeholder="Select document type"
+                options={DOCUMENT_TYPES.map((type) => ({ value: type, label: type }))}
+              />
 
             {/* File Upload Area */}
             <div>
@@ -185,13 +177,15 @@ export default function UploadDocumentModal({
                     <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-sm font-medium text-gray-900 mb-1">
                       Drop your file here, or{" "}
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => fileInputRef.current?.click()}
-                        className="text-primary hover:underline"
+                        className="p-0 text-primary underline"
                       >
                         browse
-                      </button>
+                      </Button>
                     </p>
                     <p className="text-xs text-gray-500">
                       Supports: PDF, DOC, DOCX, JPG, PNG (Max 10MB)
@@ -208,38 +202,36 @@ export default function UploadDocumentModal({
                         {formatFileSize(selectedFile.size)}
                       </p>
                     </div>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => {
                         setSelectedFile(null);
                         if (fileInputRef.current) {
                           fileInputRef.current.value = "";
                         }
                       }}
-                      className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                      className="p-1 text-red-600"
                     >
                       <XCircle className="w-5 h-5" />
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Notes */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Notes (Optional)
-              </label>
-              <textarea
+              <TextArea
+                label="Notes (Optional)"
                 value={formData.notes}
                 onChange={(e) =>
                   setFormData({ ...formData, notes: e.target.value })
                 }
                 rows={3}
                 placeholder="Add any additional notes about this document..."
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                resize="none"
               />
-            </div>
 
             {/* Info Alert */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -259,25 +251,7 @@ export default function UploadDocumentModal({
               </div>
             </div>
           </div>
-
-          {/* Modal Footer */}
-          <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              Upload Document
-            </button>
-          </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

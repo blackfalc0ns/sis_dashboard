@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Eye, EyeOff, Edit2, Trash2 } from "lucide-react";
 import type { Student, StudentNote } from "@/features/students-guardians/students/types";
-import { DataTable, FilterPanel } from "@/components/ui";
+import { Button, DataTable, EmptyState, FilterPanel, Select } from "@/components/ui";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { getStudentDisplayName } from "@/features/students-guardians/students/utils/studentUtils";
 import AddNoteModal, {
@@ -192,20 +193,26 @@ export default function NotesTab({ student }: NotesTabProps) {
       sortable: false,
       render: () => (
         <div className="flex items-center gap-1">
-          <button
-            className="rounded p-1.5 text-gray-600 transition-colors hover:bg-gray-100"
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="p-1.5 text-gray-600"
             title={t("edit")}
             disabled
           >
             <Edit2 className="h-4 w-4" />
-          </button>
-          <button
-            className="rounded p-1.5 text-red-600 transition-colors hover:bg-red-50"
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="p-1.5 text-red-600"
             title={t("delete")}
             disabled
           >
             <Trash2 className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       ),
     },
@@ -219,8 +226,8 @@ export default function NotesTab({ student }: NotesTabProps) {
         </div>
       ) : null}
       {isLoading ? (
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
-          Loading notes...
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+          <PartialLoader size={24} />
         </div>
       ) : null}
       {error ? (
@@ -234,13 +241,13 @@ export default function NotesTab({ student }: NotesTabProps) {
           <h2 className="text-xl font-bold text-gray-900">{t("title")}</h2>
           <p className="mt-1 text-sm text-gray-500">{t("subtitle")}</p>
         </div>
-        <button
+        <Button
+          type="button"
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-hover"
+          leftIcon={<Plus className="h-4 w-4" />}
         >
-          <Plus className="h-4 w-4" />
           {t("add_note")}
-        </button>
+        </Button>
       </div>
 
       <FilterPanel
@@ -251,38 +258,28 @@ export default function NotesTab({ student }: NotesTabProps) {
         className="bg-transparent px-0 py-0 shadow-none"
         filtersSlot={
           <div className="grid grid-cols-1 gap-4 rounded-xl bg-white p-6 shadow-sm md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
-                {t("category")}
-              </label>
-              <select
+            <Select
+                label={t("category")}
                 value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-transparent focus:ring-2 focus:ring-primary"
-              >
-                <option value="all">{t("all_categories")}</option>
-                <option value="academic">{t("academic")}</option>
-                <option value="behavioral">{t("behavioral")}</option>
-                <option value="medical">{t("medical")}</option>
-                <option value="general">{t("general")}</option>
-              </select>
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
-                {t("visibility")}
-              </label>
-              <select
+                onChange={setCategoryFilter}
+                options={[
+                  { value: "all", label: t("all_categories") },
+                  { value: "academic", label: t("academic") },
+                  { value: "behavioral", label: t("behavioral") },
+                  { value: "medical", label: t("medical") },
+                  { value: "general", label: t("general") },
+                ]}
+            />
+            <Select
+                label={t("visibility")}
                 value={visibilityFilter}
-                onChange={(e) => setVisibilityFilter(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-transparent focus:ring-2 focus:ring-primary"
-              >
-                <option value="all">{t("all_notes")}</option>
-                <option value="visible_to_guardian">
-                  {t("visible_to_guardian")}
-                </option>
-                <option value="internal">{t("internal")}</option>
-              </select>
-            </div>
+                onChange={setVisibilityFilter}
+                options={[
+                  { value: "all", label: t("all_notes") },
+                  { value: "visible_to_guardian", label: t("visible_to_guardian") },
+                  { value: "internal", label: t("internal") },
+                ]}
+            />
           </div>
         }
       />
@@ -313,9 +310,7 @@ export default function NotesTab({ student }: NotesTabProps) {
       <div className="rounded-xl bg-white shadow-sm">
         <div className="p-6">
           {filteredNotes.length === 0 ? (
-            <div className="py-12 text-center">
-              <p className="text-gray-500">{t("no_match")}</p>
-            </div>
+            <EmptyState message={t("no_match")} />
           ) : (
             <DataTable
               columns={columns}

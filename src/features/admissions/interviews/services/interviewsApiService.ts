@@ -21,7 +21,6 @@ export interface FetchInterviewsParams {
 
 export interface CreateInterviewPayload {
   applicationId: string;
-  studentName?: string;
   scheduledAt?: string;
   date?: string;
   time?: string;
@@ -35,8 +34,9 @@ export interface CompleteInterviewPayload {
   notes?: string;
 }
 
-export type UpdateInterviewPayload =
-  Partial<CreateInterviewPayload & CompleteInterviewPayload>;
+export type UpdateInterviewPayload = Partial<
+  CreateInterviewPayload & CompleteInterviewPayload
+>;
 
 const toCreateBody = (payload: CreateInterviewPayload) => {
   return {
@@ -45,6 +45,7 @@ const toCreateBody = (payload: CreateInterviewPayload) => {
       payload.scheduledAt ||
       toIsoFromDateAndTime(payload.date || "", payload.time || ""),
     interviewerUserId: payload.interviewerUserId || undefined,
+    interviewerName: payload.interviewerName || undefined,
     notes: payload.notes || undefined,
   };
 };
@@ -66,7 +67,10 @@ export async function fetchInterviewById(id: string): Promise<Interview> {
 export async function createInterview(
   payload: CreateInterviewPayload,
 ): Promise<Interview> {
-  const response = await apiPost<unknown>(INTERVIEWS_ENDPOINT, toCreateBody(payload));
+  const response = await apiPost<unknown>(
+    INTERVIEWS_ENDPOINT,
+    toCreateBody(payload),
+  );
   return normalizeInterview(unwrapItemResponse(response, "created interview"));
 }
 
@@ -84,7 +88,10 @@ export async function updateInterview(
     date: undefined,
     time: undefined,
   };
-  const response = await apiPatch<unknown>(`${INTERVIEWS_ENDPOINT}/${id}`, body);
+  const response = await apiPatch<unknown>(
+    `${INTERVIEWS_ENDPOINT}/${id}`,
+    body,
+  );
   return normalizeInterview(unwrapItemResponse(response, "updated interview"));
 }
 
@@ -96,5 +103,7 @@ export async function completeInterview(
     status: payload.status || "completed",
     notes: payload.notes,
   });
-  return normalizeInterview(unwrapItemResponse(response, "completed interview"));
+  return normalizeInterview(
+    unwrapItemResponse(response, "completed interview"),
+  );
 }

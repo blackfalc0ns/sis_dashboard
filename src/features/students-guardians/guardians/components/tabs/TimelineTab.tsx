@@ -5,6 +5,7 @@
 import { useTranslations } from "next-intl";
 import { Clock } from "lucide-react";
 import type { StudentGuardian } from "@/features/students-guardians/students/types";
+import EmptyState from "@/components/ui/empty-state/EmptyState";
 
 interface TimelineTabProps {
   guardian: StudentGuardian;
@@ -25,13 +26,7 @@ export default function TimelineTab({}: TimelineTabProps) {
         </h2>
 
         {events.length === 0 ? (
-          <div className="text-center py-12">
-            <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No timeline events</p>
-            <p className="text-sm text-gray-400 mt-2">
-              Activity history will appear here
-            </p>
-          </div>
+          <EmptyState icon={<Clock className="w-12 h-12" />} title="No timeline events" message="Activity history will appear here" />
         ) : (
           <div className="space-y-4">
             {/* Timeline events will be rendered here */}

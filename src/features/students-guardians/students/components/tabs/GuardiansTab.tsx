@@ -25,6 +25,7 @@ import AddGuardianModal, {
 } from "@/features/students-guardians/students/components/modals/AddGuardianModal";
 import { useTranslations } from "next-intl";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import { Button, EmptyState, Input, Modal } from "@/components/ui";
 
 interface GuardiansTabProps {
   student: Student;
@@ -259,20 +260,21 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
+          <Button
+            type="button"
+            variant="outline"
             onClick={() => setShowLinkModal(true)}
-            className="flex items-center gap-2 px-4 py-2 border border-primary text-primary hover:bg-primary hover:text-white rounded-lg text-sm font-medium transition-colors"
+            leftIcon={<Search className="w-4 h-4" />}
           >
-            <Search className="w-4 h-4" />
             Link existing
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
+            leftIcon={<Plus className="w-4 h-4" />}
           >
-            <Plus className="w-4 h-4" />
             {t("add_guardian")}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -319,21 +321,27 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <button
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
                   className="p-2 text-gray-400 rounded-lg cursor-not-allowed"
                   title="Editing guardian links is not available yet"
                   disabled
                 >
                   <Edit2 className="w-4 h-4" />
-                </button>
+                </Button>
                 {!guardian.is_primary && (
-                  <button
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => void handleUnlinkGuardian(guardian.guardianId)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-red-500"
                     title="Unlink guardian from student"
                   >
                     <Trash2 className="w-4 h-4" />
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -435,19 +443,21 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
 
       {/* Empty State */}
       {guardians.length === 0 && (
-        <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-gray-200">
-          <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {t("no_guardians")}
-          </h3>
-          <p className="text-gray-500 mb-4">{t("no_guardians_message")}</p>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            {t("add_guardian")}
-          </button>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <EmptyState
+            icon={<Users className="w-12 h-12" />}
+            title={t("no_guardians")}
+            message={t("no_guardians_message")}
+            action={
+              <Button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                leftIcon={<Plus className="w-4 h-4" />}
+              >
+                {t("add_guardian")}
+              </Button>
+            }
+          />
         </div>
       )}
 
@@ -498,33 +508,41 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
       />
 
       {showLinkModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <form
-            onSubmit={handleLinkExistingGuardian}
-            className="w-full max-w-xl rounded-xl bg-white p-6 shadow-xl"
-          >
-            <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">
-                Link existing guardian
-              </h3>
-              <button
+        <Modal
+          isOpen={showLinkModal}
+          onClose={() => setShowLinkModal(false)}
+          title="Link existing guardian"
+          size="md"
+          footer={
+            <>
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={() => setShowLinkModal(false)}
-                className="text-gray-400 hover:text-gray-600"
               >
-                <XCircle className="h-6 w-6" />
-              </button>
-            </div>
-
-            <label className="block text-sm font-medium text-gray-700">
-              Search guardians
-              <input
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="link-existing-guardian-form"
+                disabled={!selectedGuardianId}
+              >
+                Link guardian
+              </Button>
+            </>
+          }
+        >
+          <form
+            id="link-existing-guardian-form"
+            onSubmit={handleLinkExistingGuardian}
+            className="space-y-4 pb-4"
+          >
+              <Input
+                label="Search guardians"
                 value={guardianSearch}
                 onChange={(event) => setGuardianSearch(event.target.value)}
-                className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm"
                 placeholder="Search by name, phone, or email"
               />
-            </label>
 
             <div className="mt-4 max-h-64 space-y-2 overflow-y-auto">
               {isSearchingGuardians ? (
@@ -533,18 +551,18 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
                 <p className="text-sm text-gray-500">No guardians found.</p>
               ) : (
                 guardianSearchResults.map((guardian) => (
-                  <label
+                  <Button
                     key={guardian.guardianId}
-                    className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-3 hover:border-primary"
+                    type="button"
+                    variant="ghost"
+                    fullWidth
+                    className={`justify-start rounded-lg border p-3 text-left ${
+                      selectedGuardianId === guardian.guardianId
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-200"
+                    }`}
+                    onClick={() => setSelectedGuardianId(guardian.guardianId)}
                   >
-                    <input
-                      type="radio"
-                      name="guardianId"
-                      value={guardian.guardianId}
-                      checked={selectedGuardianId === guardian.guardianId}
-                      onChange={() => setSelectedGuardianId(guardian.guardianId)}
-                      className="mt-1"
-                    />
                     <span>
                       <span className="block text-sm font-medium text-gray-900">
                         {guardian.full_name}
@@ -553,38 +571,24 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
                         {guardian.relation} - {guardian.phone_primary}
                       </span>
                     </span>
-                  </label>
+                  </Button>
                 ))
               )}
             </div>
 
-            <label className="mt-4 flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={linkAsPrimary}
-                onChange={(event) => setLinkAsPrimary(event.target.checked)}
-              />
+            <Button
+              type="button"
+              variant="ghost"
+              fullWidth
+              className={`justify-start rounded-lg border p-3 text-left ${
+                linkAsPrimary ? "border-primary bg-primary/5" : "border-gray-200"
+              }`}
+              onClick={() => setLinkAsPrimary((current) => !current)}
+            >
               Mark as primary guardian
-            </label>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setShowLinkModal(false)}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={!selectedGuardianId}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-hover disabled:opacity-60"
-              >
-                Link guardian
-              </button>
-            </div>
+            </Button>
           </form>
-        </div>
+        </Modal>
       )}
     </div>
   );

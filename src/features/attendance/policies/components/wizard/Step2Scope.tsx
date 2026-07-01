@@ -19,6 +19,7 @@ interface Step2ScopeProps {
   filteredGrades: Grade[];
   filteredSections: Section[];
   filteredClassrooms: Classroom[];
+  conflictError?: string;
   onFieldChange: <K extends keyof PolicyFormData>(
     field: K,
     value: PolicyFormData[K]
@@ -33,12 +34,22 @@ export default function Step2Scope({
   filteredGrades,
   filteredSections,
   filteredClassrooms,
+  conflictError,
   onFieldChange,
 }: Step2ScopeProps) {
   const t = useTranslations("attendance.policies.wizard");
 
   return (
     <div className="space-y-6">
+      {conflictError && (
+        <div
+          className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+          role="alert"
+        >
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+          <span>{conflictError}</span>
+        </div>
+      )}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
         <div className="text-sm text-amber-800">
