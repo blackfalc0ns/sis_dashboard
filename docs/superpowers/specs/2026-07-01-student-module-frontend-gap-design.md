@@ -35,6 +35,7 @@ Keep Attendance and Grades tabs unchanged as explicit future scope. They remain 
 ### Phase 2: Composite Registration Wizard
 
 - Create `students-guardians/registration`.
+- Add the app route at `src/app/[lang]/(dashboard)/students-guardians/registration/page.tsx`.
 - Add a multi-step wizard:
   1. Student Information
   2. Guardian
@@ -64,6 +65,9 @@ Keep Attendance and Grades tabs unchanged as explicit future scope. They remain 
 ### Phase 4: Profile Correction Requests
 
 - Create a dedicated feature under `students-guardians/profile-correction-requests`.
+- Add app routes:
+  - `src/app/[lang]/(dashboard)/students-guardians/profile-correction-requests/page.tsx`
+  - `src/app/[lang]/(dashboard)/students-guardians/profile-correction-requests/[requestId]/page.tsx`
 - Add the navigation item `Students & Guardians > Profile Correction Requests`.
 - Provide a staff queue workflow:
   - list pending requests by default or equivalent staff-focused view.
@@ -156,6 +160,7 @@ The UI is organized around staff workflows, not backend endpoint categories.
 Location:
 
 - `src/features/students-guardians/registration`
+- `src/app/[lang]/(dashboard)/students-guardians/registration/page.tsx`
 
 Primary entry:
 
@@ -211,6 +216,8 @@ Reuse the existing profile shell and tabs.
 Location:
 
 - `src/features/students-guardians/profile-correction-requests`
+- `src/app/[lang]/(dashboard)/students-guardians/profile-correction-requests/page.tsx`
+- `src/app/[lang]/(dashboard)/students-guardians/profile-correction-requests/[requestId]/page.tsx`
 
 Navigation:
 
