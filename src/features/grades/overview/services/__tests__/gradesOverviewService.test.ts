@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const apiMocks = vi.hoisted(() => ({ apiGet: vi.fn() }));
 vi.mock("@/lib/api", () => apiMocks);
 
-import { fetchAssessments, fetchGradesOverview } from "../gradesOverviewService";
+import { fetchAssessments, fetchGradesOverview, fetchStudentGradesSnapshot } from "../gradesOverviewService";
 
 describe("grades overview endpoint contract", () => {
   beforeEach(() => apiMocks.apiGet.mockReset());
@@ -76,5 +76,46 @@ describe("grades overview endpoint contract", () => {
         deliveryMode: "QUESTION_BASED",
       },
     });
+  });
+
+  it("fetches student grade snapshot with academicYearId and termId and maps the backend payload", async () => {
+    apiMocks.apiGet.mockResolvedValue({
+      studentId: "student-123",
+      academicYearId: "year-1",
+      termId: "term-1",
+      finalPercent: 85,
+      subjects: [
+        {
+          subjectId: "sub-1",
+          subjectName: "Math",
+          subjectNameEn: "Mathematics",
+          subjectNameAr: "الرياضيات",
+          finalPercent: 90,
+          assessmentCount: 2,
+        },
+      ],
+      assessments: [
+        {
+          assessmentId: "a-1",
+          subjectId: "sub-1",
+          title: "Quiz 1",
+          date: "2026-06-01",
+          percent: 90,
+        },
+      ],
+    });
+
+    const result = await fetchStudentGradesSnapshot("student-123", {
+      academicYearId: "year-1",
+      termId: "term-1",
+    });
+
+    expect(apiMocks.apiGet).toHaveBeenCalledWith("/grades/students/student-123/snapshot", {
+      params: { academicYearId: "year-1", termId: "term-1" },
+    });
+    expect(result.studentId).toBe("student-123");
+    expect(result.currentAverage).toBe(85);
+    expect(result.subjectRows).toHaveLength(1);
+    expect(result.subjectRows[0].subjectName).toBe("Mathematics");
   });
 });

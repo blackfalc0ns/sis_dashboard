@@ -13,12 +13,14 @@ import type {
   ExamScopeType,
   GradeRule,
   StudentGradesSnapshot,
+  BackendStudentGradeSnapshot,
 } from "../../shared/types";
 import {
   mapGradebookResponseToUi,
   mapBackendAssessmentToAssessment,
   mapBackendGradeRuleToUi,
 } from "../../gradebook/utils/gradebookMappers";
+import { mapBackendStudentGradeSnapshot } from "../utils/studentGradesSnapshotMapper";
 
 function scopeIdParam(filters: GradesScopeFilters): string | undefined {
   return filters.scopeId || undefined;
@@ -144,12 +146,14 @@ export async function fetchScopeGradeRule(
 
 export async function fetchStudentGradesSnapshot(
   studentId: string,
-  options?: { academicYearId?: string; termId?: string }
+  options?: { academicYearId?: string; termId?: string },
 ): Promise<StudentGradesSnapshot> {
-  return apiGet<StudentGradesSnapshot>(
+  const response = await apiGet<BackendStudentGradeSnapshot>(
     `/grades/students/${studentId}/snapshot`,
     {
-      params: options ?? {},
-    }
+      params: options,
+    },
   );
+
+  return mapBackendStudentGradeSnapshot(response);
 }

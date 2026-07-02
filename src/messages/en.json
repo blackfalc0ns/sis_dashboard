@@ -1386,6 +1386,9 @@
         "other_type": "Other (custom type)",
         "enter_type": "Enter document type...",
         "already_uploaded": "Already uploaded",
+        "status_pending_review": "This document was submitted by the applicant and is waiting for school review.",
+        "status_complete": "This document has been accepted by the school.",
+        "status_missing": "This document is missing or requires applicant action.",
         "cancel": "Cancel",
         "choose_file": "Choose File"
       },
@@ -3093,7 +3096,10 @@
           "attendance": "Attendance risk",
           "grades": "Grades risk",
           "behavior": "Behavior risk"
-        }
+        },
+        "missing_term_context": "Select an academic year and term to view grades.",
+        "no_snapshot_available": "No grade snapshot is available for this student in the selected term.",
+        "loading_error": "Failed to load student grades."
       },
       "behavior": {
         "title": "Behavior",
@@ -3105,6 +3111,7 @@
         "total_incidents": "Total Incidents",
         "this_semester": "This semester",
         "open_incidents": "Open Incidents",
+        "pending_review": "Pending Review",
         "needs_attention": "Needs attention",
         "behavior_trend": "Behavior Trend (Monthly)",
         "positive_points": "Positive Points",
@@ -3165,6 +3172,15 @@
         "allergies": "Allergies",
         "no_allergies": "No known allergies",
         "enter_allergies": "Enter allergies",
+        "conditions": "Conditions",
+        "medications": "Medications",
+        "add": "Add",
+        "add_condition": "Add condition",
+        "add_medication": "Add medication",
+        "no_conditions": "No conditions recorded",
+        "no_medications": "No medications recorded",
+        "max_items_reached": "Maximum 20 items reached",
+        "remove_item": "Remove {value}",
         "medical_notes": "Medical Notes",
         "enter_notes": "Enter any additional medical notes...",
         "emergency_plan": "Emergency Plan",
@@ -3197,6 +3213,7 @@
         "created_by": "Created By",
         "actions": "Actions",
         "edit": "Edit",
+        "save": "Save",
         "delete": "Delete",
         "note_for_student": "For student: {studentName}",
         "category_help": "Select the category that best describes this note",
@@ -3217,7 +3234,8 @@
         "guardian_visibility_title": "Guardian Visibility",
         "guardian_visibility_help": "This note will be visible to the student's guardians. Please ensure the content is appropriate and professional.",
         "cancel": "Cancel",
-        "note_added_successfully": "Note added successfully"
+        "note_added_successfully": "Note added successfully",
+        "note_updated_successfully": "Note updated successfully"
       },
       "timeline": {
         "title": "Activity Timeline",
@@ -3259,6 +3277,188 @@
         "withdrawal_history": "Withdrawal History",
         "no_history": "No withdrawal records available"
       }
+    },
+    "registration": {
+      "header_category": "Students & Guardians",
+      "header_title": "Registration wizard",
+      "header_subtitle": "Create the student, guardians, accounts, and enrollment.",
+      "steps": {
+        "student": "Student",
+        "guardians": "Guardians",
+        "accounts": "Accounts",
+        "enrollment": "Enrollment",
+        "review": "Review"
+      },
+      "buttons": {
+        "previous": "Previous",
+        "next": "Next",
+        "submit": "Submit registration",
+        "submitting": "Submitting…",
+        "select": "Select…"
+      },
+      "errors": {
+        "load_years_failed": "Could not load academic years.",
+        "registration_failed": "Registration failed."
+      },
+      "student_step": {
+        "title": "Student information",
+        "description": "Identity and contact details.",
+        "fields": {
+          "full_name_en": "English full name",
+          "full_name_ar": "Arabic full name",
+          "date_of_birth": "Date of birth",
+          "gender": "Gender",
+          "gender_options": {
+            "male": "Male",
+            "female": "Female"
+          },
+          "nationality": "Nationality",
+          "email": "Student email",
+          "phone": "Student phone",
+          "address": "Address",
+          "city": "City",
+          "district": "District"
+        }
+      },
+      "guardians_step": {
+        "title": "Guardians",
+        "description": "Add one or more guardians and select exactly one primary guardian.",
+        "add_guardian": "Add guardian",
+        "guardian_title": "Guardian {number}",
+        "remove_guardian": "Remove guardian",
+        "primary_guardian": "Primary guardian",
+        "fields": {
+          "profile": "Profile",
+          "profile_options": {
+            "create": "New guardian",
+            "existing": "Existing guardian"
+          },
+          "search_placeholder": "Search by name, phone, or national ID",
+          "full_name": "Full name",
+          "relation": "Relation",
+          "phone_primary": "Primary phone",
+          "phone_secondary": "Secondary phone",
+          "email": "Email",
+          "national_id": "National ID",
+          "job_title": "Job title",
+          "workplace": "Workplace",
+          "change_existing": "Change",
+          "search_users_placeholder": "Type to search…",
+          "searching": "Searching…",
+          "no_results": "No results"
+        }
+      },
+      "accounts_step": {
+        "title": "Accounts",
+        "description": "Create or link an account for every person.",
+        "student_account": "Student account",
+        "guardian_account": "Guardian {number}: {name}",
+        "guardian_account_help": "Guardian account metadata is not exposed by the current API. Select an eligible parent account only if this guardian is not already linked.",
+        "fields": {
+          "action": "Account action",
+          "action_options": {
+            "create": "Create account",
+            "link": "Link existing account"
+          },
+          "username": "Username",
+          "contact_email": "Contact email",
+          "generate_password": "Generate temporary password",
+          "search_users": "Search users"
+        }
+      },
+      "enrollment_step": {
+        "title": "Enrollment",
+        "description": "Choose a valid academic placement.",
+        "fields": {
+          "academic_year": "Academic year",
+          "term": "Term",
+          "grade": "Grade",
+          "section": "Section",
+          "classroom": "Classroom",
+          "enrollment_date": "Enrollment date"
+        }
+      },
+      "review_step": {
+        "title": "Review",
+        "description": "Confirm the registration before submission.",
+        "warning_existing_guardian": "This registration uses a staged, non-atomic flow because it includes an existing guardian. Enrollment is created before account operations.",
+        "fields": {
+          "student": "Student",
+          "guardians": "Guardians",
+          "accounts": "Accounts",
+          "enrollment": "Enrollment",
+          "not_selected": "Not selected",
+          "edit": "Edit",
+          "accounts_configured": "{count} configured"
+        }
+      },
+      "result": {
+        "needs_followup": "Registration needs follow-up",
+        "completed_with_warnings": "Registration completed with warnings",
+        "completed": "Registration completed",
+        "id": "Registration ID: {id}",
+        "created": "Created {date}",
+        "completed_at": "Completed {date}",
+        "student": "Student",
+        "enrollment": "Enrollment",
+        "guardians": "Guardians",
+        "primary": "Primary",
+        "can_pickup": "Can pickup",
+        "receives_notifications": "Receives notifications",
+        "accounts": "Accounts",
+        "warnings": "Warnings",
+        "acknowledged_checkbox": "I have copied or safely saved the temporary credentials.",
+        "back_to_students": "Back to students",
+        "view_student_profile": "View student profile"
+      },
+      "credentials": {
+        "student_account": "Student account",
+        "parent_account": "Parent account",
+        "guardian_account": "{name} account",
+        "username": "Username",
+        "login_email": "Login email",
+        "temporary_password": "Temporary password",
+        "copy_all": "Copy all credentials",
+        "copied": "Copied",
+        "copied_status": "Copied",
+        "failed_note": "The core registration remains saved. Complete this account from the student or guardian profile."
+      }
+    },
+    "profile_correction_requests": {
+      "title": "Profile Correction Requests",
+      "subtitle": "Review student profile change requests. Pending in current view: {count}.",
+      "students_guardians": "Students & Guardians",
+      "status": "Status",
+      "student_id": "Student ID",
+      "optional": "Optional",
+      "column_student": "Student",
+      "column_status": "Status",
+      "column_changes": "Changes",
+      "column_requested": "Requested",
+      "column_action": "Action",
+      "action_open": "Open",
+      "action_approve": "Approve",
+      "action_reject": "Reject",
+      "action_back": "Back to queue",
+      "status_pending": "Pending",
+      "status_approved": "Approved",
+      "status_rejected": "Rejected",
+      "status_cancelled": "Cancelled",
+      "status_all": "All",
+      "no_requests_found": "No requests found",
+      "no_requests_description": "No profile correction requests found.",
+      "error_prefix": "Error: ",
+      "no_view_permission": "No view permission.",
+      "detail_title": "Profile Correction Request",
+      "detail_reviewer_note": "Reviewer note",
+      "loading": "Loading...",
+      "request_not_found": "Request not found.",
+      "table_field": "Field",
+      "table_current": "Current Value",
+      "table_requested": "Requested Value",
+      "confirm_approve": "Are you sure you want to approve this request?",
+      "confirm_reject": "Are you sure you want to reject this request?",
+      "no_changes": "No changes specified in this request."
     },
     "shared": {
       "year_term_context": {

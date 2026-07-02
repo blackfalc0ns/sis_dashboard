@@ -1386,6 +1386,9 @@
         "other_type": "أخرى (نوع مخصص)",
         "enter_type": "أدخل نوع المستند...",
         "already_uploaded": "تم رفعه مسبقاً",
+        "status_pending_review": "تم رفع المستند من المتقدم وينتظر مراجعة المدرسة.",
+        "status_complete": "تمت مراجعة المستند وقبوله من المدرسة.",
+        "status_missing": "المستند ناقص ويتطلب إجراءً من المتقدم.",
         "cancel": "إلغاء",
         "choose_file": "اختر ملف"
       },
@@ -3094,7 +3097,10 @@
           "attendance": "انخفاض الحضور",
           "grades": "انخفاض الدرجات",
           "behavior": "مخاطر سلوكية"
-        }
+        },
+        "missing_term_context": "اختر السنة الدراسية والفصل الدراسي لعرض الدرجات.",
+        "no_snapshot_available": "لا تتوفر لقطة درجات لهذا الطالب في الفصل الدراسي المحدد.",
+        "loading_error": "تعذر تحميل درجات الطالب."
       },
       "behavior": {
         "title": "السلوك",
@@ -3106,6 +3112,7 @@
         "total_incidents": "إجمالي المخالفات",
         "this_semester": "هذا الفصل",
         "open_incidents": "المخالفات المفتوحة",
+        "pending_review": "قيد المراجعة",
         "needs_attention": "يحتاج اهتمام",
         "behavior_trend": "اتجاه السلوك (شهري)",
         "positive_points": "النقاط الإيجابية",
@@ -3166,6 +3173,15 @@
         "allergies": "الحساسية",
         "no_allergies": "لا توجد حساسية معروفة",
         "enter_allergies": "أدخل الحساسية",
+        "conditions": "الحالات",
+        "medications": "الأدوية",
+        "add": "إضافة",
+        "add_condition": "إضافة حالة",
+        "add_medication": "إضافة دواء",
+        "no_conditions": "لا توجد حالات مسجلة",
+        "no_medications": "لا توجد أدوية مسجلة",
+        "max_items_reached": "تم الوصول إلى الحد الأقصى 20 عنصرًا",
+        "remove_item": "إزالة {value}",
         "medical_notes": "ملاحظات طبية",
         "enter_notes": "أدخل أي ملاحظات طبية إضافية...",
         "emergency_plan": "خطة الطوارئ",
@@ -3198,6 +3214,7 @@
         "created_by": "أنشئ بواسطة",
         "actions": "الإجراءات",
         "edit": "تعديل",
+        "save": "حفظ",
         "delete": "حذف",
         "note_for_student": "للطالب: {studentName}",
         "category_help": "اختر الفئة التي تصف هذه الملاحظة بشكل أفضل",
@@ -3218,7 +3235,8 @@
         "guardian_visibility_title": "رؤية ولي الأمر",
         "guardian_visibility_help": "ستكون هذه الملاحظة مرئية لأولياء أمور الطالب. يرجى التأكد من أن المحتوى مناسب ومهني.",
         "cancel": "إلغاء",
-        "note_added_successfully": "تمت إضافة الملاحظة بنجاح"
+        "note_added_successfully": "تمت إضافة الملاحظة بنجاح",
+        "note_updated_successfully": "تم تحديث الملاحظة بنجاح"
       },
       "timeline": {
         "title": "الجدول الزمني للنشاط",
@@ -3260,6 +3278,188 @@
         "withdrawal_history": "سجل الانسحاب",
         "no_history": "لا توجد سجلات انسحاب متاحة"
       }
+    },
+    "registration": {
+      "header_category": "الطلاب وأولياء الأمور",
+      "header_title": "معالج التسجيل",
+      "header_subtitle": "إنشاء الطالب، أولياء الأمور، الحسابات، وقبول التسجيل.",
+      "steps": {
+        "student": "الطالب",
+        "guardians": "أولياء الأمور",
+        "accounts": "الحسابات",
+        "enrollment": "التسجيل",
+        "review": "المراجعة"
+      },
+      "buttons": {
+        "previous": "السابق",
+        "next": "التالي",
+        "submit": "إرسال التسجيل",
+        "submitting": "جاري الإرسال…",
+        "select": "اختر…"
+      },
+      "errors": {
+        "load_years_failed": "تعذر تحميل السنوات الأكاديمية.",
+        "registration_failed": "فشل التسجيل."
+      },
+      "student_step": {
+        "title": "معلومات الطالب",
+        "description": "تفاصيل الهوية والاتصال.",
+        "fields": {
+          "full_name_en": "الاسم الكامل بالإنجليزية",
+          "full_name_ar": "الاسم الكامل بالعربية",
+          "date_of_birth": "تاريخ الميلاد",
+          "gender": "الجنس",
+          "gender_options": {
+            "male": "ذكر",
+            "female": "أنثى"
+          },
+          "nationality": "الجنسية",
+          "email": "بريد الطالب الإلكتروني",
+          "phone": "هاتف الطالب",
+          "address": "العنوان",
+          "city": "المدينة",
+          "district": "الحي"
+        }
+      },
+      "guardians_step": {
+        "title": "أولياء الأمور",
+        "description": "أضف ولي أمر واحد أو أكثر واختر ولي أمر أساسي واحد فقط.",
+        "add_guardian": "إضافة ولي أمر",
+        "guardian_title": "ولي الأمر {number}",
+        "remove_guardian": "حذف ولي الأمر",
+        "primary_guardian": "ولي الأمر الأساسي",
+        "fields": {
+          "profile": "الملف الشخصي",
+          "profile_options": {
+            "create": "ولي أمر جديد",
+            "existing": "ولي أمر موجود"
+          },
+          "search_placeholder": "البحث بالاسم أو الهاتف أو الهوية الوطنية",
+          "full_name": "الاسم الكامل",
+          "relation": "العلاقة",
+          "phone_primary": "الهاتف الأساسي",
+          "phone_secondary": "الهاتف الثانوي",
+          "email": "البريد الإلكتروني",
+          "national_id": "رقم الهوية الوطنية",
+          "job_title": "المسمى الوظيفي",
+          "workplace": "مكان العمل",
+          "change_existing": "تغيير",
+          "search_users_placeholder": "اكتب للبحث...",
+          "searching": "جاري البحث...",
+          "no_results": "لا توجد نتائج"
+        }
+      },
+      "accounts_step": {
+        "title": "الحسابات",
+        "description": "إنشاء أو ربط حساب لكل شخص.",
+        "student_account": "حساب الطالب",
+        "guardian_account": "ولي الأمر {number}: {name}",
+        "guardian_account_help": "بيانات حساب ولي الأمر غير معروضة في واجهة البرمجية الحالية. اختر حساب أب/أم مؤهل فقط إذا لم يكن ولي الأمر هذا مرتبطاً بالفعل.",
+        "fields": {
+          "action": "إجراء الحساب",
+          "action_options": {
+            "create": "إنشاء حساب",
+            "link": "ربط حساب موجود"
+          },
+          "username": "اسم المستخدم",
+          "contact_email": "البريد الإلكتروني للاتصال",
+          "generate_password": "توليد كلمة مرور مؤقتة",
+          "search_users": "البحث عن المستخدمين"
+        }
+      },
+      "enrollment_step": {
+        "title": "التسجيل",
+        "description": "اختر قبولاً أكاديمياً صالحاً.",
+        "fields": {
+          "academic_year": "السنة الأكاديمية",
+          "term": "الفصل الدراسي",
+          "grade": "المرحلة الدراسية",
+          "section": "القسم",
+          "classroom": "الصف الدراسي",
+          "enrollment_date": "تاريخ التسجيل"
+        }
+      },
+      "review_step": {
+        "title": "المراجعة",
+        "description": "تأكيد التسجيل قبل الإرسال.",
+        "warning_existing_guardian": "يستخدم هذا التسجيل تدفقاً مرحلياً غير ذري لأنه يتضمن ولي أمر موجوداً. يتم إنشاء التسجيل قبل عمليات الحساب.",
+        "fields": {
+          "student": "الطالب",
+          "guardians": "أولياء الأمور",
+          "accounts": "الحسابات",
+          "enrollment": "التسجيل",
+          "not_selected": "لم يتم الاختيار",
+          "edit": "تعديل",
+          "accounts_configured": "تم تهيئة {count}"
+        }
+      },
+      "result": {
+        "needs_followup": "التسجيل بحاجة لمتابعة",
+        "completed_with_warnings": "اكتمل التسجيل مع وجود تحذيرات",
+        "completed": "اكتمل التسجيل",
+        "id": "رقم التسجيل: {id}",
+        "created": "تاريخ الإنشاء {date}",
+        "completed_at": "تاريخ الإكمال {date}",
+        "student": "الطالب",
+        "enrollment": "التسجيل",
+        "guardians": "أولياء الأمور",
+        "primary": "أساسي",
+        "can_pickup": "يمكنه الاستلام",
+        "receives_notifications": "يستقبل التنبيهات",
+        "accounts": "الحسابات",
+        "warnings": "التحذيرات",
+        "acknowledged_checkbox": "لقد قمت بنسخ أو حفظ بيانات الاعتماد المؤقتة بأمان.",
+        "back_to_students": "العودة للطلاب",
+        "view_student_profile": "عرض ملف الطالب"
+      },
+      "credentials": {
+        "student_account": "حساب الطالب",
+        "parent_account": "حساب ولي الأمر",
+        "guardian_account": "حساب {name}",
+        "username": "اسم المستخدم",
+        "login_email": "بريد تسجيل الدخول",
+        "temporary_password": "كلمة مرور مؤقتة",
+        "copy_all": "نسخ جميع بيانات الاعتماد",
+        "copied": "تم النسخ",
+        "copied_status": "تم النسخ",
+        "failed_note": "التسجيل الأساسي يظل محفوظاً. أكمل هذا الحساب من الملف الشخصي للطالب أو ولي الأمر."
+      }
+    },
+    "profile_correction_requests": {
+      "title": "طلبات تصحيح البيانات الشخصية",
+      "subtitle": "مراجعة طلبات تغيير البيانات الشخصية للطلاب. الطلبات المعلقة في العرض الحالي: {count}.",
+      "students_guardians": "الطلاب وأولياء الأمور",
+      "status": "الحالة",
+      "student_id": "رقم الطالب",
+      "optional": "اختياري",
+      "column_student": "الطالب",
+      "column_status": "الحالة",
+      "column_changes": "التغييرات",
+      "column_requested": "تاريخ الطلب",
+      "column_action": "الإجراء",
+      "action_open": "فتح",
+      "action_approve": "موافقة",
+      "action_reject": "رفض",
+      "action_back": "العودة إلى القائمة",
+      "status_pending": "معلق",
+      "status_approved": "مقبول",
+      "status_rejected": "مرفوض",
+      "status_cancelled": "ملغى",
+      "status_all": "الكل",
+      "no_requests_found": "لم يتم العثور على طلبات",
+      "no_requests_description": "لم يتم العثور على أي طلبات لتصحيح البيانات الشخصية.",
+      "error_prefix": "خطأ: ",
+      "no_view_permission": "ليس لديك صلاحية عرض هذه الصفحة.",
+      "detail_title": "طلب تصحيح البيانات الشخصية",
+      "detail_reviewer_note": "ملاحظة المراجع",
+      "loading": "جاري التحميل...",
+      "request_not_found": "الطلب غير موجود.",
+      "table_field": "الحقل",
+      "table_current": "القيمة الحالية",
+      "table_requested": "القيمة المطلوبة",
+      "confirm_approve": "هل أنت متأكد من موافقتك على هذا الطلب؟",
+      "confirm_reject": "هل أنت متأكد من رفضك لهذا الطلب؟",
+      "no_changes": "لم يتم تحديد أي تغييرات في هذا الطلب."
     },
     "shared": {
       "year_term_context": {
