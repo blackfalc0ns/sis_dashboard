@@ -86,6 +86,144 @@ describe("GradesTab", () => {
     expect(await screen.findByText("92.5%")).toBeInTheDocument();
   });
 
+  it("renders '--' for term average KPI when currentAverage is null", async () => {
+    vi.mocked(fetchStudentGradesSnapshot).mockResolvedValue({
+      studentId: "student-123",
+      currentAverage: null,
+      highestAverage: 0,
+      lowestAverage: 0,
+      totalAssessments: 0,
+      performanceTrend: [],
+      subjectRows: [
+        {
+          subjectId: "math",
+          subjectName: "Mathematics",
+          subjectNameAr: "الرياضيات",
+          average: null,
+          lastAssessmentScore: null,
+          assessmentsCount: 0,
+          trend: "stable",
+        },
+      ],
+    });
+
+    render(
+      <GradesTab
+        student={mockStudent}
+        academicYearId="year-2026"
+        termId="term-1"
+      />
+    );
+
+    const dashes = await screen.findAllByText("--");
+    expect(dashes.length).toBeGreaterThan(0);
+  });
+
+  it("renders rule card, status badge, completed weight progress, enhanced subject table, and assessments table", async () => {
+    vi.mocked(fetchStudentGradesSnapshot).mockResolvedValue({
+      studentId: "student-123",
+      currentAverage: 88.5,
+      highestAverage: 95.0,
+      lowestAverage: 82.0,
+      totalAssessments: 2,
+      completedWeight: 75,
+      status: "PASS",
+      rule: {
+        source: "school",
+        ruleId: "r-1",
+        passMark: 60,
+        rounding: "decimal_1",
+        gradingScale: "percentage",
+      },
+      performanceTrend: [{ label: "A1", average: 88.5 }],
+      subjectRows: [
+        {
+          subjectId: "math",
+          subjectName: "Mathematics",
+          subjectNameAr: "الرياضيات",
+          subjectNameEn: "Mathematics",
+          average: 88.5,
+          lastAssessmentScore: 90.0,
+          assessmentsCount: 2,
+          enteredCount: 1,
+          missingCount: 1,
+          absentCount: 0,
+          completedWeight: 75,
+          status: "PASS",
+          trend: "up",
+        },
+      ],
+      assessments: [
+        {
+          assessmentId: "a-1",
+          subjectId: "math",
+          title: "Quiz 1",
+          titleEn: "Quiz 1",
+          titleAr: "اختبار 1",
+          type: "QUIZ",
+          date: "2026-03-01",
+          weight: 20,
+          maxScore: 100,
+          itemId: "item-1",
+          score: 90,
+          percent: 90,
+          weightedContribution: 18,
+          status: "entered",
+          comment: null,
+          isVirtualMissing: false,
+        },
+        {
+          assessmentId: "a-2",
+          subjectId: "math",
+          title: null,
+          titleEn: null,
+          titleAr: null,
+          type: "MIDTERM",
+          date: "2026-04-15",
+          weight: 30,
+          maxScore: 100,
+          itemId: null,
+          score: null,
+          percent: null,
+          weightedContribution: null,
+          status: "missing",
+          comment: null,
+          isVirtualMissing: true,
+        },
+      ],
+    });
+
+    render(
+      <GradesTab
+        student={mockStudent}
+        academicYearId="year-2026"
+        termId="term-1"
+      />
+    );
+
+    // Verify rule info card and status badge
+    expect(await screen.findByText("rule_info")).toBeInTheDocument();
+    expect(screen.getAllByText("PASS").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("60%")).toBeInTheDocument();
+    expect(screen.getByText("percentage")).toBeInTheDocument();
+
+    // Verify completed weight KPI & progress bar
+    expect(screen.getByText("completed_weight")).toBeInTheDocument();
+    expect(screen.getAllByText("75%").length).toBeGreaterThanOrEqual(1);
+
+    // Verify enhanced subject table headers/data
+    expect(screen.getByText("col_completed_weight")).toBeInTheDocument();
+    expect(screen.getByText("col_entered")).toBeInTheDocument();
+    expect(screen.getByText("col_missing")).toBeInTheDocument();
+    expect(screen.getByText("1/2")).toBeInTheDocument();
+
+    // Verify assessments table
+    expect(screen.getByText("assessments_title")).toBeInTheDocument();
+    expect(screen.getByText("Quiz 1")).toBeInTheDocument();
+    expect(screen.getByText("MIDTERM — 2026-04-15")).toBeInTheDocument();
+    expect(screen.getByText("Virtual Missing")).toBeInTheDocument();
+  });
+
   it("renders no_snapshot_available error on 404 or enrollment not found", async () => {
     vi.mocked(fetchStudentGradesSnapshot).mockRejectedValue(
       new Error("Student enrollment not found (404)")
@@ -118,3 +256,4 @@ describe("GradesTab", () => {
     expect(await screen.findByText("Database connection error")).toBeInTheDocument();
   });
 });
+

@@ -341,11 +341,11 @@ export async function fetchStudentGradesViewModel(
       return {
         id: row.subjectId,
         subject: row.subjectName,
-        subjectAr: row.subjectNameAr,
+        subjectAr: row.subjectNameAr || row.subjectName,
         teacher:
           teacherAssignment?.teacherName || "-",
         teacherAr: teacherAssignment?.teacherNameArabic,
-        average: row.average,
+        average: row.average ?? 0,
         lastAssessmentScore: row.lastAssessmentScore,
         assessmentsCount: row.assessmentsCount,
         trend: row.trend,
