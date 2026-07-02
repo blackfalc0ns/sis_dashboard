@@ -61,7 +61,7 @@ export interface StudentGradesSubjectRow {
   subjectAr: string;
   teacher: string;
   teacherAr?: string;
-  average: number;
+  average: number | null;
   lastAssessmentScore: number | null;
   assessmentsCount: number;
   trend: "up" | "down" | "stable";
@@ -345,7 +345,7 @@ export async function fetchStudentGradesViewModel(
         teacher:
           teacherAssignment?.teacherName || "-",
         teacherAr: teacherAssignment?.teacherNameArabic,
-        average: row.average ?? 0,
+        average: row.average,
         lastAssessmentScore: row.lastAssessmentScore,
         assessmentsCount: row.assessmentsCount,
         trend: row.trend,
@@ -355,13 +355,17 @@ export async function fetchStudentGradesViewModel(
   const highestFallback = getTermMetricFallback(availableTerms, "highest");
   const lowestFallback = getTermMetricFallback(availableTerms, "lowest");
 
+  const numericAverages = subjectRows
+    .map((row) => row.average)
+    .filter((avg): avg is number => avg != null);
+
   const highestValue =
-    subjectRows.length > 0
-      ? Math.max(...subjectRows.map((row) => row.average))
+    numericAverages.length > 0
+      ? Math.max(...numericAverages)
       : highestFallback.value;
   const lowestValue =
-    subjectRows.length > 0
-      ? Math.min(...subjectRows.map((row) => row.average))
+    numericAverages.length > 0
+      ? Math.min(...numericAverages)
       : lowestFallback.value;
 
   const kpis: StudentGradesKpi[] = [

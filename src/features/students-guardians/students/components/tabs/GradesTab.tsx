@@ -117,6 +117,15 @@ export default function GradesTab({
         ),
       },
       {
+        key: "absent",
+        label: t("col_absent"),
+        render: (value: unknown) => (
+          <span className={Number(value) > 0 ? "font-semibold text-amber-600" : ""}>
+            {value as number}
+          </span>
+        ),
+      },
+      {
         key: "last_assessment",
         label: t("table.last_assessment"),
         render: (value: unknown) =>
@@ -169,6 +178,7 @@ export default function GradesTab({
         completedWeight: row.completedWeight,
         enteredTotal: `${row.enteredCount ?? 0}/${row.assessmentsCount ?? row.assessmentCount ?? 0}`,
         missing: row.missingCount ?? 0,
+        absent: row.absentCount ?? 0,
         last_assessment: row.lastAssessmentScore,
         assessments_count: row.assessmentsCount ?? row.assessmentCount ?? 0,
         status: row.status,
@@ -240,7 +250,7 @@ export default function GradesTab({
               </span>
               {isVirtualMissing && (
                 <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-red-100 text-red-800 border-red-300">
-                  Virtual Missing
+                  {t("pending_tag", { defaultValue: "Pending" })}
                 </span>
               )}
             </div>
@@ -354,6 +364,12 @@ export default function GradesTab({
                 </h4>
                 <div className="flex flex-wrap gap-4 text-xs text-gray-600 mt-1">
                   <span>
+                    Source:{" "}
+                    <strong className="capitalize">
+                      {snapshot.rule.source}
+                    </strong>
+                  </span>
+                  <span>
                     {t("pass_mark")}: <strong>{snapshot.rule.passMark}%</strong>
                   </span>
                   <span>
@@ -457,7 +473,11 @@ export default function GradesTab({
         )}
         <KPICardV2
           title={t("kpis.highest_grade")}
-          value={`${snapshot.highestAverage.toFixed(1)}%`}
+          value={
+            snapshot.highestAverage != null
+              ? `${snapshot.highestAverage.toFixed(1)}%`
+              : "--"
+          }
           subtitle={
             (locale === "ar" ? topSubject.subjectNameAr : topSubject.subjectName) ||
             topSubject.subjectName
@@ -469,7 +489,11 @@ export default function GradesTab({
         />
         <KPICardV2
           title={t("kpis.lowest_grade")}
-          value={`${snapshot.lowestAverage.toFixed(1)}%`}
+          value={
+            snapshot.lowestAverage != null
+              ? `${snapshot.lowestAverage.toFixed(1)}%`
+              : "--"
+          }
           subtitle={
             (locale === "ar" ? lowestSubject.subjectNameAr : lowestSubject.subjectName) ||
             lowestSubject.subjectName

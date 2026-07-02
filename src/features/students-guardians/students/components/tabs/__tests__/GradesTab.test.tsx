@@ -204,6 +204,7 @@ describe("GradesTab", () => {
     // Verify rule info card and status badge
     expect(await screen.findByText("rule_info")).toBeInTheDocument();
     expect(screen.getAllByText("PASS").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("school")).toBeInTheDocument();
     expect(screen.getByText("60%")).toBeInTheDocument();
     expect(screen.getByText("percentage")).toBeInTheDocument();
 
@@ -215,13 +216,14 @@ describe("GradesTab", () => {
     expect(screen.getByText("col_completed_weight")).toBeInTheDocument();
     expect(screen.getByText("col_entered")).toBeInTheDocument();
     expect(screen.getByText("col_missing")).toBeInTheDocument();
+    expect(screen.getByText("col_absent")).toBeInTheDocument();
     expect(screen.getByText("1/2")).toBeInTheDocument();
 
     // Verify assessments table
     expect(screen.getByText("assessments_title")).toBeInTheDocument();
     expect(screen.getByText("Quiz 1")).toBeInTheDocument();
     expect(screen.getByText("MIDTERM — 2026-04-15")).toBeInTheDocument();
-    expect(screen.getByText("Virtual Missing")).toBeInTheDocument();
+    expect(screen.getByText("pending_tag")).toBeInTheDocument();
   });
 
   it("renders no_snapshot_available error on 404 or enrollment not found", async () => {
