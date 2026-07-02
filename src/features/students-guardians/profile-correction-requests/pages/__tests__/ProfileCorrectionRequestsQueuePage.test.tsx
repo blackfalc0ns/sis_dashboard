@@ -72,8 +72,8 @@ describe("ProfileCorrectionRequestsQueuePage", () => {
     });
 
     // Check filters are rendered
-    expect(screen.getByLabelText("Status")).toBeInTheDocument();
-    expect(screen.getByLabelText("Student ID")).toBeInTheDocument();
+    expect(screen.getByLabelText("status")).toBeInTheDocument();
+    expect(screen.getByLabelText("student_id")).toBeInTheDocument();
 
     // Check table density (exclusive to DataTable primitive) is rendered
     expect(screen.getByText("table_density")).toBeInTheDocument();
@@ -82,8 +82,8 @@ describe("ProfileCorrectionRequestsQueuePage", () => {
     expect(screen.getByText("John Doe")).toBeInTheDocument();
     expect(screen.getByText("STU001")).toBeInTheDocument();
     expect(screen.getAllByText("STU002")).toHaveLength(2); // name is empty, fallback to ID, plus the ID display itself
-    expect(screen.getByText("pending")).toBeInTheDocument();
-    expect(screen.getByText("approved")).toBeInTheDocument();
+    expect(screen.getAllByText("status_pending").length).toBeGreaterThan(0);
+    expect(screen.getByText("status_approved")).toBeInTheDocument();
   });
 
   it("triggers router push when clicking Open button in table row", async () => {
@@ -95,7 +95,7 @@ describe("ProfileCorrectionRequestsQueuePage", () => {
       expect(screen.getByText("John Doe")).toBeInTheDocument();
     });
 
-    const openButtons = screen.getAllByRole("button", { name: "Open" });
+    const openButtons = screen.getAllByRole("button", { name: "action_open" });
     fireEvent.click(openButtons[0]);
 
     expect(mockPush).toHaveBeenCalledWith("/en/students-guardians/profile-correction-requests/req-1");

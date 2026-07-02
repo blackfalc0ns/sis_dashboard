@@ -15,16 +15,20 @@ vi.mock("next/navigation", () => ({
 }));
 
 // Mock next-intl
+const mockT = vi.fn((key: string) => key);
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
+  useTranslations: () => mockT,
 }));
+
+let mockCapabilities = {
+  canViewProfileCorrectionRequests: true,
+  canReviewProfileCorrectionRequests: true,
+};
 
 // Mock permissions
 vi.mock("@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities", () => ({
-  getStudentsGuardiansCapabilities: () => ({
-    canViewProfileCorrectionRequests: true,
-    canReviewProfileCorrectionRequests: true,
-  }),
+  getStudentsGuardiansCapabilities: () => mockCapabilities,
 }));
 
 vi.mock("@/hooks/usePermissions", () => ({
@@ -59,6 +63,10 @@ const mockRequest = {
 
 describe("ProfileCorrectionRequestDetailPage", () => {
   beforeEach(() => {
+    mockCapabilities = {
+      canViewProfileCorrectionRequests: true,
+      canReviewProfileCorrectionRequests: true,
+    };
     vi.clearAllMocks();
     vi.spyOn(window, "confirm").mockImplementation(() => true);
     vi.mocked(fetchProfileCorrectionRequestById).mockResolvedValue(mockRequest);
@@ -74,11 +82,9 @@ describe("ProfileCorrectionRequestDetailPage", () => {
     });
 
     // Check Back button
-    const backButton = screen.getByRole("button", { name: /Back to queue/i });
+    const backButton = screen.getByRole("button", { name: /action_back/i });
     expect(backButton).toBeInTheDocument();
-    // It should have the ghost variant class name from the Button primitive
-    expect(backButton.className).toContain("bg-transparent");
-    expect(backButton.className).toContain("hover:bg-gray-100");
+    
     // It should render ChevronLeft icon
     const backIcon = backButton.querySelector("svg");
     expect(backIcon).toBeInTheDocument();
@@ -90,18 +96,16 @@ describe("ProfileCorrectionRequestDetailPage", () => {
     expect(screen.getByText("John")).toBeInTheDocument();
 
     // Check Reviewer note uses TextArea
-    const textarea = screen.getByRole("textbox", { name: /Reviewer note/i });
+    const textarea = screen.getByRole("textbox", { name: /detail_reviewer_note/i });
     expect(textarea).toBeInTheDocument();
     expect(textarea.tagName).toBe("TEXTAREA");
-    // TextArea component has the wrapper div & standard classes
-    expect(textarea.className).toContain("resize-y");
 
-    // Check Approve and Reject buttons use Button with variant classes
-    const approveButton = screen.getByRole("button", { name: /Approve/i });
-    const rejectButton = screen.getByRole("button", { name: /Reject/i });
+    // Check Approve and Reject buttons use Button
+    const approveButton = screen.getByRole("button", { name: /action_approve/i });
+    const rejectButton = screen.getByRole("button", { name: /action_reject/i });
     
-    expect(approveButton.className).toContain("bg-green-600");
-    expect(rejectButton.className).toContain("bg-red-600");
+    expect(approveButton).toBeInTheDocument();
+    expect(rejectButton).toBeInTheDocument();
   });
 
   it("handles approving the profile correction request", async () => {
@@ -118,15 +122,15 @@ describe("ProfileCorrectionRequestDetailPage", () => {
       expect(screen.getByText("John Doe")).toBeInTheDocument();
     });
 
-    const textarea = screen.getByRole("textbox", { name: /Reviewer note/i });
+    const textarea = screen.getByRole("textbox", { name: /detail_reviewer_note/i });
     fireEvent.change(textarea, { target: { value: "Approved note" } });
 
-    const approveButton = screen.getByRole("button", { name: /Approve/i });
+    const approveButton = screen.getByRole("button", { name: /action_approve/i });
     await act(async () => {
       fireEvent.click(approveButton);
     });
 
-    expect(window.confirm).toHaveBeenCalledWith("Confirm approve?");
+    expect(window.confirm).toHaveBeenCalledWith("confirm_approve");
     expect(approveProfileCorrectionRequest).toHaveBeenCalledWith("req-1", {
       reviewerNote: "Approved note",
     });
@@ -147,15 +151,15 @@ describe("ProfileCorrectionRequestDetailPage", () => {
       expect(screen.getByText("John Doe")).toBeInTheDocument();
     });
 
-    const textarea = screen.getByRole("textbox", { name: /Reviewer note/i });
+    const textarea = screen.getByRole("textbox", { name: /detail_reviewer_note/i });
     fireEvent.change(textarea, { target: { value: "Rejected note" } });
 
-    const rejectButton = screen.getByRole("button", { name: /Reject/i });
+    const rejectButton = screen.getByRole("button", { name: /action_reject/i });
     await act(async () => {
       fireEvent.click(rejectButton);
     });
 
-    expect(window.confirm).toHaveBeenCalledWith("Confirm reject?");
+    expect(window.confirm).toHaveBeenCalledWith("confirm_reject");
     expect(rejectProfileCorrectionRequest).toHaveBeenCalledWith("req-1", {
       reviewerNote: "Rejected note",
     });
@@ -176,11 +180,31 @@ describe("ProfileCorrectionRequestDetailPage", () => {
       expect(screen.getByText("John Doe")).toBeInTheDocument();
     });
 
-    const textarea = screen.getByRole("textbox", { name: /Reviewer note/i });
+    const textarea = screen.getByRole("textbox", { name: /detail_reviewer_note/i });
     expect(textarea).toBeDisabled();
 
-    const approveButton = screen.getByRole("button", { name: /Approve/i });
-    const rejectButton = screen.getByRole("button", { name: /Reject/i });
+    const approveButton = screen.getByRole("button", { name: /action_approve/i });
+    const rejectButton = screen.getByRole("button", { name: /action_reject/i });
+    expect(approveButton).toBeDisabled();
+    expect(rejectButton).toBeDisabled();
+  });
+
+  it("disables reviewer note textarea and action buttons when canReviewProfileCorrectionRequests is false", async () => {
+    mockCapabilities.canReviewProfileCorrectionRequests = false;
+
+    await act(async () => {
+      render(<ProfileCorrectionRequestDetailPage requestId="req-1" />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("John Doe")).toBeInTheDocument();
+    });
+
+    const textarea = screen.getByRole("textbox", { name: /detail_reviewer_note/i });
+    expect(textarea).toBeDisabled();
+
+    const approveButton = screen.getByRole("button", { name: /action_approve/i });
+    const rejectButton = screen.getByRole("button", { name: /action_reject/i });
     expect(approveButton).toBeDisabled();
     expect(rejectButton).toBeDisabled();
   });

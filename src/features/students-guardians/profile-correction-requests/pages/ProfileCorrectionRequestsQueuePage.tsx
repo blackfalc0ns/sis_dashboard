@@ -9,13 +9,14 @@ import type {
   ProfileCorrectionRequestStatus,
 } from "@/features/students-guardians/profile-correction-requests/types/profileCorrectionRequests";
 import { fetchProfileCorrectionRequests } from "@/features/students-guardians/profile-correction-requests/services/profileCorrectionRequestsApiService";
-import { Input, Select, Button, EmptyState } from "@/components/ui";
-import DataTable, { type Column } from "@/components/ui/data-table/DataTable";
+import { Input, Select, Button, DataTable, type Column } from "@/components/ui";
+import { useTranslations } from "next-intl";
 
 export default function ProfileCorrectionRequestsQueuePage() {
   const router = useRouter();
   const params = useParams();
   const lang = (params.lang as string) || "en";
+  const t = useTranslations("students_guardians.profile_correction_requests");
   const permissions = usePermissions();
   const { canViewProfileCorrectionRequests } =
     getStudentsGuardiansCapabilities(permissions);
@@ -35,9 +36,7 @@ export default function ProfileCorrectionRequestsQueuePage() {
 
     let isCancelled = false;
 
-    void Promise.resolve().then(async () => {
-      if (isCancelled) return;
-
+    const loadRequests = async () => {
       setIsLoading(true);
       setError(null);
 
@@ -59,7 +58,9 @@ export default function ProfileCorrectionRequestsQueuePage() {
       } finally {
         if (!isCancelled) setIsLoading(false);
       }
-    });
+    };
+
+    void loadRequests();
 
     return () => {
       isCancelled = true;
@@ -74,7 +75,7 @@ export default function ProfileCorrectionRequestsQueuePage() {
   const columns: Column<ProfileCorrectionRequestListItem & { [key: string]: unknown }>[] = [
     {
       key: "student",
-      label: "Student",
+      label: t("column_student"),
       render: (_, request) => (
         <div>
           <div className="font-medium text-gray-900">
@@ -88,22 +89,22 @@ export default function ProfileCorrectionRequestsQueuePage() {
     },
     {
       key: "status",
-      label: "Status",
+      label: t("column_status"),
       render: (_, request) => (
-        <span className="capitalize">{request.status.toLowerCase()}</span>
+        <span>{t(`status_${request.status.toLowerCase()}`)}</span>
       ),
     },
     {
       key: "changeCount",
-      label: "Changes",
+      label: t("column_changes"),
     },
     {
       key: "requestedAt",
-      label: "Requested",
+      label: t("column_requested"),
     },
     {
       key: "actions",
-      label: "Action",
+      label: t("column_action"),
       render: (_, request) => (
         <Button
           variant="outline"
@@ -113,7 +114,7 @@ export default function ProfileCorrectionRequestsQueuePage() {
             router.push(`/${lang}/students-guardians/profile-correction-requests/${request.id}`);
           }}
         >
-          Open
+          {t("action_open")}
         </Button>
       ),
     },
@@ -123,7 +124,7 @@ export default function ProfileCorrectionRequestsQueuePage() {
     return (
       <div className="p-6">
         <div className="rounded-xl border border-gray-200 bg-white p-8 text-sm text-gray-600">
-          You do not have permission to view profile correction requests.
+          {t("no_view_permission")}
         </div>
       </div>
     );
@@ -133,36 +134,35 @@ export default function ProfileCorrectionRequestsQueuePage() {
     <div className="p-4 sm:p-6 space-y-6">
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <p className="text-sm font-semibold text-primary">
-          Students & Guardians
+          {t("students_guardians")}
         </p>
         <h1 className="mt-1 text-2xl font-bold text-gray-900">
-          Profile Correction Requests
+          {t("title")}
         </h1>
         <p className="mt-2 text-sm text-gray-600">
-          Review student profile change requests. Pending in current view:{" "}
-          {pendingCount}.
+          {t("subtitle", { count: pendingCount })}
         </p>
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <Select
-            label="Status"
+            label={t("status")}
             value={status}
             onChange={(val) => setStatus(val as ProfileCorrectionRequestStatus | "all")}
             options={[
-              { value: "PENDING", label: "Pending" },
-              { value: "APPROVED", label: "Approved" },
-              { value: "REJECTED", label: "Rejected" },
-              { value: "CANCELLED", label: "Cancelled" },
-              { value: "all", label: "All" },
+              { value: "PENDING", label: t("status_pending") },
+              { value: "APPROVED", label: t("status_approved") },
+              { value: "REJECTED", label: t("status_rejected") },
+              { value: "CANCELLED", label: t("status_cancelled") },
+              { value: "all", label: t("status_all") },
             ]}
           />
           <Input
-            label="Student ID"
+            label={t("student_id")}
             value={studentId}
             onChange={(event) => setStudentId(event.target.value)}
-            placeholder="Optional"
+            placeholder={t("optional")}
           />
         </div>
       </div>
@@ -182,8 +182,8 @@ export default function ProfileCorrectionRequestsQueuePage() {
             `/${lang}/students-guardians/profile-correction-requests/${request.id}`,
           )
         }
-        emptyTitle="No requests found"
-        emptyDescription="No profile correction requests found."
+        emptyTitle={t("no_requests_found")}
+        emptyDescription={t("no_requests_description")}
       />
     </div>
   );

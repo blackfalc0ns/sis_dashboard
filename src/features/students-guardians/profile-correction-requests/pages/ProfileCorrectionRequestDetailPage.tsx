@@ -12,6 +12,7 @@ import {
 } from "@/features/students-guardians/profile-correction-requests/services/profileCorrectionRequestsApiService";
 import { Button, TextArea } from "@/components/ui";
 import { ChevronLeft } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface ProfileCorrectionRequestDetailPageProps {
   requestId: string;
@@ -23,6 +24,7 @@ export default function ProfileCorrectionRequestDetailPage({
   const router = useRouter();
   const params = useParams();
   const lang = (params.lang as string) || "en";
+  const t = useTranslations("students_guardians.profile_correction_requests");
   const permissions = usePermissions();
   const {
     canViewProfileCorrectionRequests,
@@ -68,7 +70,8 @@ export default function ProfileCorrectionRequestDetailPage({
   }, [canViewProfileCorrectionRequests, requestId]);
 
   const handleReview = async (action: "approve" | "reject") => {
-    if (!request || !window.confirm(`Confirm ${action}?`)) return;
+    const confirmMessage = action === "approve" ? t("confirm_approve") : t("confirm_reject");
+    if (!request || !window.confirm(confirmMessage)) return;
 
     setIsReviewing(true);
     setError(null);
@@ -98,7 +101,7 @@ export default function ProfileCorrectionRequestDetailPage({
     return (
       <div className="p-6">
         <div className="rounded-xl border border-gray-200 bg-white p-8 text-sm text-gray-600">
-          You do not have permission to view profile correction requests.
+          {t("no_view_permission")}
         </div>
       </div>
     );
@@ -115,20 +118,8 @@ export default function ProfileCorrectionRequestDetailPage({
         leftIcon={<ChevronLeft className="h-4 w-4" />}
         className="w-fit"
       >
-        Back to queue
+        {t("action_back")}
       </Button>
-
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-semibold text-primary">
-          Profile Correction Request
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-gray-900">
-          {request?.studentName || request?.studentId || requestId}
-        </h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Status: <span className="capitalize">{request?.status ? request.status.toLowerCase() : "—"}</span>
-        </p>
-      </div>
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -138,21 +129,33 @@ export default function ProfileCorrectionRequestDetailPage({
 
       {isLoading ? (
         <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-500">
-          Loading...
+          {t("loading")}
         </div>
       ) : !request ? (
         <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-500">
-          Request not found.
+          {t("request_not_found")}
         </div>
       ) : (
         <>
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-semibold text-primary">
+              {t("detail_title")}
+            </p>
+            <h1 className="mt-1 text-2xl font-bold text-gray-900">
+              {request.studentName || request.studentId}
+            </h1>
+            <p className="mt-2 text-sm text-gray-600">
+              {t("status")}: <span>{t(`status_${request.status.toLowerCase()}`)}</span>
+            </p>
+          </div>
+
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                 <tr>
-                  <th className="px-4 py-3">Field</th>
-                  <th className="px-4 py-3">Current value</th>
-                  <th className="px-4 py-3">Requested value</th>
+                  <th className="px-4 py-3">{t("table_field")}</th>
+                  <th className="px-4 py-3">{t("table_current")}</th>
+                  <th className="px-4 py-3">{t("table_requested")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -175,11 +178,11 @@ export default function ProfileCorrectionRequestDetailPage({
 
           <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <TextArea
-              label="Reviewer note"
+              label={t("detail_reviewer_note")}
               rows={3}
               value={reviewerNote}
               onChange={(event) => setReviewerNote(event.target.value)}
-              disabled={isReviewing || request.status !== "PENDING"}
+              disabled={!canReviewProfileCorrectionRequests || isReviewing || request.status !== "PENDING"}
             />
             <div className="mt-4 flex flex-wrap gap-3">
               <Button
@@ -188,7 +191,7 @@ export default function ProfileCorrectionRequestDetailPage({
                 loading={isReviewing}
                 onClick={() => void handleReview("approve")}
               >
-                Approve
+                {t("action_approve")}
               </Button>
               <Button
                 variant="danger"
@@ -196,7 +199,7 @@ export default function ProfileCorrectionRequestDetailPage({
                 loading={isReviewing}
                 onClick={() => void handleReview("reject")}
               >
-                Reject
+                {t("action_reject")}
               </Button>
             </div>
           </div>
