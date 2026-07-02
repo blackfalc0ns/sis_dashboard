@@ -8,12 +8,18 @@ import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
-import AttendanceStatePanel from "@/features/attendance/shared/components/AttendanceStatePanel";
-import AttendanceDataPanel from "@/features/attendance/shared/components/AttendanceDataPanel";
 import AttendanceFiltersPanel from "@/features/attendance/shared/components/AttendanceFiltersPanel";
-import AttendanceMobileActions from "@/features/attendance/shared/components/AttendanceMobileActions";
 import AttendanceDetailsCard from "@/features/attendance/shared/components/AttendanceDetailsCard";
 import AttendanceBottomDrawer from "@/features/attendance/shared/components/AttendanceBottomDrawer";
+import {
+  AttendanceWorkspaceContentPanel,
+  AttendanceWorkspaceHeader,
+  AttendanceWorkspaceMobileActions,
+  AttendanceWorkspaceShell,
+  AttendanceWorkspaceSplit,
+  AttendanceWorkspaceStack,
+  AttendanceWorkspaceState,
+} from "@/features/attendance/shared/components/AttendanceWorkspaceShell";
 import {
   fetchStructureTree,
   type Stage,
@@ -443,85 +449,101 @@ export default function AttendanceExcusesPage() {
 
   if (!termContext.yearId || !termContext.termId) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex-1 flex items-center justify-center">
-          <AttendanceStatePanel
-            title={t("emptyStates.noYearTerm.title")}
-            description={t("emptyStates.noYearTerm.description")}
-          />
-        </div>
-      </div>
+      <AttendanceWorkspaceShell>
+        <AttendanceWorkspaceState
+          title={t("emptyStates.noYearTerm.title")}
+          description={t("emptyStates.noYearTerm.description")}
+        />
+      </AttendanceWorkspaceShell>
     );
   }
 
+  const requestsBody = requests.length === 0 ? (
+    <AttendanceWorkspaceState
+      title={t("emptyStates.noRecords.title")}
+      description={t("emptyStates.noRecords.description")}
+    />
+  ) : (
+    <ExcusesTable
+      requests={requests}
+      isReadOnly={isReadOnly}
+      onView={(request) => {
+        setSelectedRequest(request);
+        if (isMobile) {
+          setShowDetailsDrawer(true);
+        }
+      }}
+      onApprove={(request) => openDecision(request, "APPROVE")}
+      onReject={(request) => openDecision(request, "REJECT")}
+      onEdit={handleEditRequest}
+      onDelete={(request) => setDeleteTarget(request)}
+    />
+  );
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 p-4 flex flex-col gap-4 min-h-0" style={{ backgroundColor: "var(--background)" }}>
+    <>
+      <AttendanceWorkspaceShell>
+        <AttendanceWorkspaceHeader>
           <div>
-          <ExcusesKpisBar kpis={kpis} />
+            <ExcusesKpisBar kpis={kpis} />
           </div>
           {!isMobile && (
             <div>
-            <Button
-              variant="primary"
-              size="sm"
-              leftIcon={<Plus className="w-4 h-4" />}
-              disabled={isReadOnly}
-              onClick={handleCreateRequest}
-            >
-              {t("createRequest")}
-            </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Plus className="w-4 h-4" />}
+                disabled={isReadOnly}
+                onClick={handleCreateRequest}
+              >
+                {t("createRequest")}
+              </Button>
             </div>
           )}
+        </AttendanceWorkspaceHeader>
 
         {!isMobile && (
-          <div className="grid grid-cols-12 gap-4 min-h-0 flex-1">
-            <div className="col-span-8 min-h-0 flex flex-col gap-4">
-              <AttendanceFiltersPanel>
-                <ExcusesFiltersBar
-                  filters={filters}
-                  onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
-                  onReset={resetFilters}
-                  onOpenExport={() => setShowExportModal(true)}
+          <AttendanceWorkspaceSplit
+            main={
+              <>
+                <AttendanceFiltersPanel>
+                  <ExcusesFiltersBar
+                    filters={filters}
+                    onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
+                    onReset={resetFilters}
+                    onOpenExport={() => setShowExportModal(true)}
+                  />
+                </AttendanceFiltersPanel>
+                <AttendanceWorkspaceContentPanel loading={loading}>
+                  {requestsBody}
+                </AttendanceWorkspaceContentPanel>
+              </>
+            }
+            details={
+              <AttendanceDetailsCard>
+                <ExcuseDetailsDrawer
+                  request={selectedRequest}
+                  effectivePolicy={selectedRequestPolicy}
+                  isReadOnly={isReadOnly}
+                  onClose={() => setSelectedRequest(null)}
+                  onApprove={(request) => openDecision(request, "APPROVE")}
+                  onReject={(request) => openDecision(request, "REJECT")}
+                  onEdit={handleEditRequest}
                 />
-              </AttendanceFiltersPanel>
-
-              <AttendanceDataPanel loading={loading}>
-                {requests.length === 0 ? (
-                  <AttendanceStatePanel
-                    title={t("emptyStates.noRecords.title")}
-                    description={t("emptyStates.noRecords.description")}
-                  />
-                ) : (
-                  <ExcusesTable requests={requests} isReadOnly={isReadOnly}
-                    onView={(request) => setSelectedRequest(request)}
-                    onApprove={(request) => openDecision(request, "APPROVE")}
-                    onReject={(request) => openDecision(request, "REJECT")}
-                    onEdit={handleEditRequest}
-                    onDelete={(request) => setDeleteTarget(request)}
-                  />
-                )}
-              </AttendanceDataPanel>
-            </div>
-
-            <AttendanceDetailsCard>
-              <ExcuseDetailsDrawer
-                request={selectedRequest}
-                effectivePolicy={selectedRequestPolicy}
-                isReadOnly={isReadOnly}
-                onClose={() => setSelectedRequest(null)}
-                onApprove={(request) => openDecision(request, "APPROVE")}
-                onReject={(request) => openDecision(request, "REJECT")}
-                onEdit={handleEditRequest}
-              />
-            </AttendanceDetailsCard>
-          </div>
+              </AttendanceDetailsCard>
+            }
+          />
         )}
 
         {isMobile && (
-          <div className="flex flex-col gap-3 min-h-0 flex-1">
-            <AttendanceMobileActions columns={2}>
-              <Button variant="outline" size="sm" leftIcon={<Filter className="w-4 h-4" />} onClick={() => setShowFiltersDrawer(true)}>
+          <AttendanceWorkspaceStack>
+            <AttendanceWorkspaceMobileActions columns={2}>
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<Filter className="w-4 h-4" />}
+                onClick={() => setShowFiltersDrawer(true)}
+              >
                 {t("filters.filters")}
               </Button>
               <Button
@@ -533,30 +555,14 @@ export default function AttendanceExcusesPage() {
               >
                 {t("createRequest")}
               </Button>
-            </AttendanceMobileActions>
+            </AttendanceWorkspaceMobileActions>
 
-            <AttendanceDataPanel loading={loading}>
-              {requests.length === 0 ? (
-                <AttendanceStatePanel
-                  title={t("emptyStates.noRecords.title")}
-                  description={t("emptyStates.noRecords.description")}
-                />
-              ) : (
-                <ExcusesTable requests={requests} isReadOnly={isReadOnly}
-                  onView={(request) => {
-                    setSelectedRequest(request);
-                    setShowDetailsDrawer(true);
-                  }}
-                  onApprove={(request) => openDecision(request, "APPROVE")}
-                  onReject={(request) => openDecision(request, "REJECT")}
-                  onEdit={handleEditRequest}
-                  onDelete={(request) => setDeleteTarget(request)}
-                />
-              )}
-            </AttendanceDataPanel>
-          </div>
+            <AttendanceWorkspaceContentPanel loading={loading}>
+              {requestsBody}
+            </AttendanceWorkspaceContentPanel>
+          </AttendanceWorkspaceStack>
         )}
-      </div>
+      </AttendanceWorkspaceShell>
 
       <ExcusesFiltersDrawer
         isOpen={showFiltersDrawer}
@@ -627,7 +633,7 @@ export default function AttendanceExcusesPage() {
         datasetCount={requests.length}
         emptyStateMessage={t("emptyStates.noRecords.description")}
       />
-    </div>
+    </>
   );
 }
 
