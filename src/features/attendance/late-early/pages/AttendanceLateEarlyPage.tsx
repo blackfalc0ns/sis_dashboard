@@ -7,13 +7,19 @@ import { useMediaQuery } from "@mui/material";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
-import AttendanceStatePanel from "@/features/attendance/shared/components/AttendanceStatePanel";
 import AttendanceScopeHeader from "@/features/attendance/shared/components/AttendanceScopeHeader";
-import AttendanceDataPanel from "@/features/attendance/shared/components/AttendanceDataPanel";
 import AttendanceFiltersPanel from "@/features/attendance/shared/components/AttendanceFiltersPanel";
-import AttendanceMobileActions from "@/features/attendance/shared/components/AttendanceMobileActions";
 import AttendanceDetailsCard from "@/features/attendance/shared/components/AttendanceDetailsCard";
 import AttendanceBottomDrawer from "@/features/attendance/shared/components/AttendanceBottomDrawer";
+import {
+  AttendanceWorkspaceContentPanel,
+  AttendanceWorkspaceHeader,
+  AttendanceWorkspaceMobileActions,
+  AttendanceWorkspaceShell,
+  AttendanceWorkspaceSplit,
+  AttendanceWorkspaceStack,
+  AttendanceWorkspaceState,
+} from "@/features/attendance/shared/components/AttendanceWorkspaceShell";
 import { isScopeSelectionComplete } from "@/features/attendance/shared/attendanceScope";
 import {
   fetchStructureTree,
@@ -389,91 +395,95 @@ export default function AttendanceLateEarlyPage() {
 
   if (!termContext.yearId || !termContext.termId) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex-1 flex items-center justify-center">
-          <AttendanceStatePanel
-            title={t("emptyStates.noYearTerm.title")}
-            description={t("emptyStates.noYearTerm.description")}
-          />
-        </div>
-      </div>
+      <AttendanceWorkspaceShell>
+        <AttendanceWorkspaceState
+          title={t("emptyStates.noYearTerm.title")}
+          description={t("emptyStates.noYearTerm.description")}
+        />
+      </AttendanceWorkspaceShell>
     );
   }
 
   const isScopeSelectionIncomplete = !isScopeSelectionComplete(filters.scopeType, filters.scopeIds);
 
+  const incidentsBody = isScopeSelectionIncomplete ? (
+    <AttendanceWorkspaceState
+      title={t("emptyStates.selectScope.title")}
+      description={t("emptyStates.selectScope.description")}
+    />
+  ) : incidents.length === 0 ? (
+    <AttendanceWorkspaceState
+      title={t("emptyStates.noRecords.title")}
+      description={t("emptyStates.noRecords.description")}
+    />
+  ) : (
+    <LateEarlyTable
+      incidents={incidents}
+      isReadOnly={isReadOnly}
+      onView={handleOpenIncident}
+      onEditMinutes={handleEditMinutes}
+    />
+  );
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 p-4 flex flex-col gap-4 min-h-0" style={{ backgroundColor: "var(--background)" }}>
-        <AttendanceScopeHeader
-          isReadOnly={isReadOnly}
-          scopeType={filters.scopeType}
-          scopeIds={filters.scopeIds}
-          stages={stages}
-          grades={grades}
-          sections={sections}
-          classrooms={classrooms}
-        />
-        <LateEarlyKpisBar kpis={kpis} />
+    <>
+      <AttendanceWorkspaceShell>
+        <AttendanceWorkspaceHeader>
+          <AttendanceScopeHeader
+            isReadOnly={isReadOnly}
+            scopeType={filters.scopeType}
+            scopeIds={filters.scopeIds}
+            stages={stages}
+            grades={grades}
+            sections={sections}
+            classrooms={classrooms}
+          />
+          <LateEarlyKpisBar kpis={kpis} />
+        </AttendanceWorkspaceHeader>
 
         {!isMobile && (
-          <div className="grid grid-cols-12 gap-4 min-h-0 flex-1">
-            <div className="col-span-8 min-h-0 flex flex-col gap-4">
-              <AttendanceFiltersPanel>
-                <LateEarlyFiltersBar
-                  filters={{ ...filters, search: searchInput }}
-                  stages={stages}
-                  grades={grades}
-                  sections={sections}
-                  classrooms={classrooms}
-                  periods={periods}
-                  onFiltersChange={(patch) => {
-                    if ('search' in patch) {
-                      setSearchInput(patch.search || "");
-                    }
-                    setFilters((prev) => ({ ...prev, ...patch }));
-                  }}
-                  onResetFilters={resetFilters}
-                  onOpenExport={() => setShowExportModal(true)}
+          <AttendanceWorkspaceSplit
+            main={
+              <>
+                <AttendanceFiltersPanel>
+                  <LateEarlyFiltersBar
+                    filters={{ ...filters, search: searchInput }}
+                    stages={stages}
+                    grades={grades}
+                    sections={sections}
+                    classrooms={classrooms}
+                    periods={periods}
+                    onFiltersChange={(patch) => {
+                      if ("search" in patch) {
+                        setSearchInput(patch.search || "");
+                      }
+                      setFilters((prev) => ({ ...prev, ...patch }));
+                    }}
+                    onResetFilters={resetFilters}
+                    onOpenExport={() => setShowExportModal(true)}
+                  />
+                </AttendanceFiltersPanel>
+                <AttendanceWorkspaceContentPanel loading={loading}>
+                  {incidentsBody}
+                </AttendanceWorkspaceContentPanel>
+              </>
+            }
+            details={
+              <AttendanceDetailsCard>
+                <IncidentDetailsDrawer
+                  incident={selectedIncident}
+                  isReadOnly={isReadOnly}
+                  onClose={() => setSelectedIncident(null)}
+                  onEditMinutes={handleEditMinutes}
                 />
-              </AttendanceFiltersPanel>
-
-              <AttendanceDataPanel loading={loading}>
-                {isScopeSelectionIncomplete ? (
-                  <AttendanceStatePanel
-                    title={t("emptyStates.selectScope.title")}
-                    description={t("emptyStates.selectScope.description")}
-                  />
-                ) : incidents.length === 0 ? (
-                  <AttendanceStatePanel
-                    title={t("emptyStates.noRecords.title")}
-                    description={t("emptyStates.noRecords.description")}
-                  />
-                ) : (
-                  <LateEarlyTable
-                    incidents={incidents}
-                    isReadOnly={isReadOnly}
-                    onView={handleOpenIncident}
-                    onEditMinutes={handleEditMinutes}
-                  />
-                )}
-              </AttendanceDataPanel>
-            </div>
-
-            <AttendanceDetailsCard>
-              <IncidentDetailsDrawer
-                incident={selectedIncident}
-                isReadOnly={isReadOnly}
-                onClose={() => setSelectedIncident(null)}
-                onEditMinutes={handleEditMinutes}
-              />
-            </AttendanceDetailsCard>
-          </div>
+              </AttendanceDetailsCard>
+            }
+          />
         )}
 
         {isMobile && (
-          <div className="flex flex-col gap-4 min-h-0 flex-1">
-            <AttendanceMobileActions>
+          <AttendanceWorkspaceStack>
+            <AttendanceWorkspaceMobileActions>
               <Button
                 variant="outline"
                 size="sm"
@@ -482,31 +492,14 @@ export default function AttendanceLateEarlyPage() {
               >
                 {t("filters.filters")}
               </Button>
-            </AttendanceMobileActions>
+            </AttendanceWorkspaceMobileActions>
 
-            <AttendanceDataPanel loading={loading}>
-              {isScopeSelectionIncomplete ? (
-                <AttendanceStatePanel
-                  title={t("emptyStates.selectScope.title")}
-                  description={t("emptyStates.selectScope.description")}
-                />
-              ) : incidents.length === 0 ? (
-                <AttendanceStatePanel
-                  title={t("emptyStates.noRecords.title")}
-                  description={t("emptyStates.noRecords.description")}
-                />
-              ) : (
-                <LateEarlyTable
-                  incidents={incidents}
-                  isReadOnly={isReadOnly}
-                  onView={handleOpenIncident}
-                  onEditMinutes={handleEditMinutes}
-                />
-              )}
-            </AttendanceDataPanel>
-          </div>
+            <AttendanceWorkspaceContentPanel loading={loading}>
+              {incidentsBody}
+            </AttendanceWorkspaceContentPanel>
+          </AttendanceWorkspaceStack>
         )}
-      </div>
+      </AttendanceWorkspaceShell>
 
       <LateEarlyFiltersDrawer
         isOpen={filtersDrawerOpen}
@@ -556,6 +549,6 @@ export default function AttendanceLateEarlyPage() {
         datasetCount={incidents.length}
         emptyStateMessage={t("emptyStates.noRecords.description")}
       />
-    </div>
+    </>
   );
 }
