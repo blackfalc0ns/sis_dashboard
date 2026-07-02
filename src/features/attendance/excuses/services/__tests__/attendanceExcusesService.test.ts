@@ -113,17 +113,14 @@ describe("attendanceExcusesService", () => {
     await rejectExcuseRequest("excuse-2", "Rejected");
     await deleteExcuseRequest("excuse-1");
 
-    expect(mockedApiPost).toHaveBeenNthCalledWith(1, "/attendance/excuse-requests", {
+    expect(mockedApiPost.mock.calls[0][0]).toBe("/attendance/excuse-requests");
+    expect(mockedApiPost.mock.calls[0][1]).toStrictEqual({
       academicYearId: "year-1",
       termId: "term-1",
       studentId: "student-1",
       type: "ABSENCE",
       dateFrom: "2026-02-10",
       dateTo: "2026-02-10",
-      selectedPeriodIds: undefined,
-      selectedPeriodKeys: undefined,
-      lateMinutes: undefined,
-      earlyLeaveMinutes: undefined,
       reasonAr: "موعد طبي",
       reasonEn: "Medical appointment",
     });
@@ -141,5 +138,43 @@ describe("attendanceExcusesService", () => {
       { decisionNote: "Rejected" },
     );
     expect(mockedApiDelete).toHaveBeenCalledWith("/attendance/excuse-requests/excuse-1");
+  });
+
+  it("links already uploaded attachment file ids after creating an excuse request", async () => {
+    mockedApiPost
+      .mockResolvedValueOnce({ id: "excuse-1", academicYearId: "year-1", termId: "term-1", status: "PENDING" })
+      .mockResolvedValueOnce({ items: [] });
+
+    await createExcuseRequest({
+      yearId: "year-1",
+      termId: "term-1",
+      studentId: "student-1",
+      studentNameAr: "سارة علي",
+      studentNameEn: "Sara Ali",
+      scopeType: "SCHOOL",
+      type: "ABSENCE",
+      dateFrom: "2026-02-10",
+      dateTo: "2026-02-10",
+      reasonAr: "موعد طبي",
+      reasonEn: "Medical appointment",
+      attachments: [{ id: "file-1", name: "medical.pdf", size: 1000, type: "application/pdf", url: "/files/file-1" }],
+    });
+
+    expect(mockedApiPost.mock.calls[0][0]).toBe("/attendance/excuse-requests");
+    expect(mockedApiPost.mock.calls[0][1]).toStrictEqual({
+      academicYearId: "year-1",
+      termId: "term-1",
+      studentId: "student-1",
+      type: "ABSENCE",
+      dateFrom: "2026-02-10",
+      dateTo: "2026-02-10",
+      reasonAr: "موعد طبي",
+      reasonEn: "Medical appointment",
+    });
+    expect(mockedApiPost).toHaveBeenNthCalledWith(
+      2,
+      "/attendance/excuse-requests/excuse-1/attachments",
+      { fileIds: ["file-1"] },
+    );
   });
 });

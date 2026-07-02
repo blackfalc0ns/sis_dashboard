@@ -22,6 +22,12 @@ function asRecord(value: unknown): BackendRecord {
   return value && typeof value === "object" ? (value as BackendRecord) : {};
 }
 
+function omitUndefined<T extends Record<string, unknown>>(payload: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined)
+  ) as Partial<T>;
+}
+
 function unwrapArray(response: unknown): unknown[] {
   if (Array.isArray(response)) return response;
   const object = asRecord(response);
@@ -139,7 +145,7 @@ function mapRequest(item: unknown, fallback?: { yearId?: string; termId?: string
 }
 
 function buildRequestPayload(payload: Partial<ExcuseRequest>) {
-  return {
+  return omitUndefined({
     academicYearId: payload.yearId,
     termId: payload.termId,
     studentId: payload.studentId,
@@ -152,11 +158,11 @@ function buildRequestPayload(payload: Partial<ExcuseRequest>) {
     earlyLeaveMinutes: payload.minutesEarlyLeave,
     reasonAr: payload.reasonAr,
     reasonEn: payload.reasonEn,
-  };
+  });
 }
 
 function buildUpdatePayload(payload: Partial<ExcuseRequest>) {
-  return {
+  return omitUndefined({
     type: payload.type,
     dateFrom: payload.dateFrom,
     dateTo: payload.dateTo,
@@ -166,7 +172,7 @@ function buildUpdatePayload(payload: Partial<ExcuseRequest>) {
     earlyLeaveMinutes: payload.minutesEarlyLeave,
     reasonAr: payload.reasonAr,
     reasonEn: payload.reasonEn,
-  };
+  });
 }
 
 async function linkAttachments(requestId: string, attachments?: ExcuseRequest["attachments"]) {
