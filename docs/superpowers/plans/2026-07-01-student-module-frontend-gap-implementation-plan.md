@@ -12,6 +12,7 @@ Rule: no implementation should start until this implementation plan is reviewed 
 
 - Composite Registration Wizard is the primary Add Student flow.
 - Do not expose a new standalone Create Student modal in the main Students list.
+- Existing-guardian selection inside the Registration Wizard is approved through a multi-call flow because the composite registration DTO does not directly accept `guardianId`.
 - Centralize Students & Guardians capabilities and use named helpers in UI code.
 - Keep focused service boundaries. UI components consume frontend models/form state, not raw backend DTO shapes.
 - Complete only backend-backed Student Profile tabs.
@@ -86,7 +87,7 @@ Implement named helpers:
 
 ## Phase 2: Composite Registration Wizard
 
-Goal: make Add Student use a single composite registration workflow.
+Goal: make Add Student use the Registration Wizard, with composite registration for create-new-guardian flow and the approved multi-call orchestration for existing-guardian flow.
 
 ### Files to create
 
@@ -117,10 +118,14 @@ Goal: make Add Student use a single composite registration workflow.
 
 ### Service/API boundary changes
 
-- Add `registrationApiService` for the composite registration endpoint only.
+- Add `registrationApiService` for registration submission orchestration.
+- Use the composite registration endpoint for create-new-guardian flow.
+- Use confirmed student, guardian-link, and enrollment endpoints for the approved existing-guardian multi-call flow.
 - Keep `studentsApiService` focused on student list/detail/update.
 - Keep guardian creation data inside the registration DTO for this flow.
-- Do not implement existing-guardian selection unless the composite registration DTO accepts `guardianId` or product approves multi-call orchestration.
+- Support existing-guardian selection through the approved multi-call orchestration because the composite registration DTO does not directly accept `guardianId`.
+- Keep the create-new-guardian path on the composite registration endpoint.
+- Keep the existing-guardian path isolated in `registrationApiService` orchestration and use confirmed student/guardian/enrollment/link endpoints only.
 
 ### UI/component tasks
 
@@ -131,15 +136,16 @@ Goal: make Add Student use a single composite registration workflow.
    - Review
 2. Student Information step captures supported identity/contact/address fields.
 3. Guardian step creates guardian profile as the primary registration flow.
-4. Guardian relationship data sends only `is_primary`.
-5. Keep `can_pickup` and `can_receive_notifications` on guardian profile fields, not relationship fields.
-6. Enrollment step captures academic year, grade, section, classroom, term, enrollment date, and placement IDs based on the confirmed registration DTO.
-7. Review step submits once through `registrationApiService`.
-8. Success state links to the created student profile.
-9. Update Students list Add Student action to navigate to the localized registration route, e.g. `/{lang}/students-guardians/registration`, using the app's existing locale/navigation pattern.
-10. Preserve form state on API validation errors.
-11. Registration success state surfaces backend warnings where present.
-12. Registration success state handles returned parent/student account summaries safely, including temporary password display only if returned by backend.
+4. Guardian step also supports selecting/linking an existing guardian through the approved multi-call flow.
+5. Guardian relationship data sends only `is_primary`.
+6. Keep `can_pickup` and `can_receive_notifications` on guardian profile fields, not relationship fields.
+7. Enrollment step captures academic year, grade, section, classroom, term, enrollment date, and placement IDs based on the confirmed registration DTO.
+8. Review step submits through `registrationApiService`; create-new-guardian uses the composite endpoint, while existing-guardian selection uses the approved multi-call orchestration.
+9. Success state links to the created student profile.
+10. Update Students list Add Student action to navigate to the localized registration route, e.g. `/{lang}/students-guardians/registration`, using the app's existing locale/navigation pattern.
+11. Preserve form state on API validation errors.
+12. Registration success state surfaces backend warnings where present.
+13. Registration success state handles returned parent/student account summaries safely, including temporary password display only if returned by backend.
 
 ### Verification
 
@@ -147,8 +153,10 @@ Goal: make Add Student use a single composite registration workflow.
 - Mapper test: guardian profile fields and relationship fields stay separated.
 - Mapper test: relationship sends only `is_primary`.
 - Mapper test: enrollment sends confirmed DTO fields only.
+- Service/orchestration test: existing-guardian selection uses the approved multi-call flow and does not send unsupported `guardianId` to the composite DTO.
 - UI test where practical: Add Student navigates to Registration Wizard.
-- UI test where practical: submit calls composite registration once.
+- UI test where practical: create-new-guardian submit calls composite registration.
+- UI test where practical: existing-guardian submit follows the approved multi-call flow.
 - UI test where practical: success state surfaces backend warnings.
 - UI test where practical: temporary password display appears only when returned by backend.
 
@@ -189,7 +197,7 @@ Goal: reuse the existing Student Profile shell and complete only confirmed backe
 - `medicalProfileApiService` owns full medical profile read/update.
 - `studentNotesApiService` owns list/create/update only.
 - `guardiansApiService` owns guardian list/detail/create/update plus student guardian link/unlink/update-link.
-- `studentDocumentsApiService` owns student-scoped list, missing, upload/create, view/download through confirmed file endpoints, and import-from-application.
+- `studentDocumentsApiService` owns student-scoped list, missing, upload/create, view/download through confirmed file endpoints, import-from-application, and product-approved delete via `DELETE /students-guardians/documents/:documentId`.
 
 ### UI/component tasks
 
@@ -226,8 +234,9 @@ Documents:
 4. Show unavailable state instead of falling back to fake/sample URLs.
 5. Support list, missing documents, upload/create, and import-from-application where confirmed.
 6. Map import response states: `imported[]`, `skipped[]`, and `warnings[]`.
-7. Keep delete hidden unless a backend delete endpoint is confirmed.
-8. Gate document actions with `canViewDocuments`, `canManageDocuments`, and `canImportAdmissionsDocuments`.
+7. Student-document delete is backend-supported via `DELETE /students-guardians/documents/:documentId`, but include the delete UI only if product approves it.
+8. If included, delete requires confirmation, `canManageDocuments` gating, and no fake fallback behavior.
+9. Gate document actions with `canViewDocuments`, `canManageDocuments`, and `canImportAdmissionsDocuments`.
 
 ### Verification
 
@@ -236,6 +245,7 @@ Documents:
 - Guardians tests cover link/update-link/unlink endpoint wiring and capability usage.
 - Documents tests confirm no sample PDF or fake URL fallback exists.
 - Documents tests cover `imported[]`, `skipped[]`, and `warnings[]`.
+- Documents tests cover product-approved delete only if the delete UI is included; otherwise they confirm delete remains hidden by product decision.
 - UI checks confirm Attendance and Grades tabs remain Coming Soon.
 
 ## Phase 4: Profile Correction Requests
@@ -390,7 +400,7 @@ Manual verification:
 - Documents:
   - no sample PDF URLs.
   - no fake `/documents/{id}.pdf` fallback.
-  - no delete action unless backend delete endpoint is confirmed.
+  - delete action appears only if product approves it, with confirmation and `canManageDocuments` gating.
 - Profile Correction Requests:
   - status/student filters are sent to backend.
   - date filters are not sent to backend.
@@ -401,11 +411,11 @@ Manual verification:
 ## Explicit Out of Scope
 
 - No standalone Create Student modal in the main Students list.
-- No existing-guardian selection in Registration Wizard unless backend DTO accepts `guardianId` or product approves multi-call orchestration.
+- Existing-guardian selection is in scope only through the approved multi-call Registration Wizard flow; do not send unsupported `guardianId` in the composite DTO.
 - No Documents Center production implementation until global student-document list and stats endpoints exist.
 - No global mock document data.
 - No sample PDF URLs.
-- No student-document delete action without confirmed delete endpoint.
+- No student-document delete action unless product approves exposing it, even though backend supports `DELETE /students-guardians/documents/:documentId`.
 - No notes delete action because confirmed backend supports list/create/update only.
 - No destructive guardian-record deletion without confirmed backend endpoint.
 - No Attendance implementation beyond Coming Soon.

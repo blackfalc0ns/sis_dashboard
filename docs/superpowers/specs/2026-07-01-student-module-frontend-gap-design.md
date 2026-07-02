@@ -10,7 +10,7 @@ This design defines the approved frontend direction for closing those gaps witho
 
 ## Architecture Direction
 
-Create a new composite Registration feature under `students-guardians/registration`. This feature will implement a multi-step wizard: Student Information, Guardian, Enrollment, and Review. It will submit through the backend composite registration endpoint and will become the primary Add Student workflow.
+Create a new Registration feature under `students-guardians/registration`. This feature will implement a multi-step wizard: Student Information, Guardian, Enrollment, and Review. It will use the backend composite registration endpoint for the create-new-guardian path, support the approved multi-call flow for existing-guardian selection, and become the primary Add Student workflow.
 
 Keep API integration in focused feature services. Each service will call one backend area and normalize backend DTOs at the boundary before data reaches UI components.
 
@@ -42,6 +42,7 @@ Keep Attendance and Grades tabs unchanged as explicit future scope. They remain 
   3. Enrollment
   4. Review
 - Submit through the composite registration backend endpoint.
+- Use the approved multi-call orchestration when the wizard selects an existing guardian, because the composite registration DTO does not directly accept `guardianId`.
 - Make this the primary Add Student action from the Students list.
 - Do not expose a new standalone Create Student modal in the main Students list.
 
@@ -60,7 +61,8 @@ Keep Attendance and Grades tabs unchanged as explicit future scope. They remain 
   - keep destructive guardian-record deletion hidden unless a backend endpoint is confirmed.
 - Documents:
   - use real upload/view/download/import flows where backend/file endpoints are confirmed.
-  - keep delete hidden unless a backend delete endpoint is confirmed.
+  - student-document delete is backend-supported via `DELETE /students-guardians/documents/:documentId`, but the delete UI is included only if product approves it.
+  - if included, delete requires confirmation, `canManageDocuments` gating, and no fake fallback behavior.
 
 ### Phase 4: Profile Correction Requests
 
@@ -125,7 +127,7 @@ Backend rationale: student account linking is under student records permissions,
 
 - Owns student-scoped document list, missing documents, upload/create, view/download through confirmed file endpoints, and import-from-application.
 - Does not provide a global Documents Center API until backend supports global list/stats.
-- Does not expose delete unless a backend delete endpoint is confirmed.
+- Owns student-document delete through `DELETE /students-guardians/documents/:documentId` only if product approves exposing the delete UI.
 - Maps import-from-application response states: `imported[]`, `skipped[]`, and `warnings[]`.
 
 ### `medicalProfileApiService`
@@ -176,7 +178,7 @@ Wizard steps:
    - validation before moving forward.
 2. Guardian
    - create guardian profile as the primary registration flow.
-   - support selecting/linking an existing guardian only if the composite registration DTO is extended to accept an existing `guardianId`, or if product explicitly approves a multi-call orchestration.
+   - support selecting/linking an existing guardian through the approved multi-call orchestration because the composite registration DTO does not directly accept an existing `guardianId`.
    - relationship step supports `is_primary` only.
    - `can_pickup` and `can_receive_notifications` belong to the guardian profile, not the student-guardian relationship, unless backend changes the link DTO.
 3. Enrollment
@@ -184,7 +186,7 @@ Wizard steps:
    - capture academic year, grade, section, classroom, term, enrollment date, and placement IDs based on the confirmed registration DTO.
 4. Review
    - summarize student, guardian, relationship, and enrollment details.
-   - submit once through composite registration.
+   - submit through `registrationApiService`; create-new-guardian uses composite registration, while existing-guardian selection uses the approved multi-call orchestration.
    - show success result and link to the created student profile.
 
 ### Student Profile Tabs
@@ -206,7 +208,8 @@ Reuse the existing profile shell and tabs.
 - Documents:
   - replace mock/sample URLs with confirmed file-backed flows.
   - support list, missing documents, upload/create, view/download, and import-from-application where endpoints are confirmed.
-  - keep delete hidden unless backend confirms delete.
+  - student-document delete is backend-supported via `DELETE /students-guardians/documents/:documentId`, but the delete UI is included only if product approves it.
+  - if included, delete requires confirmation, `canManageDocuments` gating, and no fake fallback behavior.
 - Attendance and Grades:
   - remain visible as Coming Soon.
   - no mock implementation.
@@ -387,7 +390,7 @@ Student Profile:
 - Notes delete action is hidden because backend supports list/create/update only, not delete.
 - Guardians tab supports confirmed link/update-link/unlink actions.
 - Documents tab uses real service calls and never sample URLs.
-- Documents delete action is hidden because no confirmed student-document delete endpoint exists.
+- Documents delete action is included only if product approves it, despite backend support via `DELETE /students-guardians/documents/:documentId`.
 - Attendance/Grades remain Coming Soon.
 
 Profile Correction Requests:
@@ -428,7 +431,8 @@ Before handoff:
 2. Composite Registration Wizard:
    - Add `students-guardians/registration`.
    - Wire Students list Add Student to the wizard.
-   - Submit once through the composite registration endpoint.
+   - Use the composite registration endpoint for create-new-guardian registration.
+   - Use the approved multi-call orchestration for existing-guardian selection.
    - Keep existing direct student-create endpoint available only if already used elsewhere, but not as the primary Add Student workflow.
    - Do not expose a new standalone Create Student modal in the main Students list.
 3. Existing Student Profile tab completion:
