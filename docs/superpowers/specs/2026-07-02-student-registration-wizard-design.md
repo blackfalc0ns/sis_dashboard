@@ -16,7 +16,11 @@ Replace the current four-column registration form with a five-step wizard that m
 
 ## Verified backend contract
 
-The atomic path is `POST /students-guardians/registrations`. It accepts `student`, a non-empty `guardians` array, `enrollment`, and optional `studentAccount`.
+The atomic endpoint is `POST /students-guardians/registrations`. It creates the student, new guardian profiles, guardian links, and enrollment as the core registration. Account creation or linking is attempted afterward and may return warnings with failed or skipped account statuses without rolling back the core registration.
+
+Atomic submission is only valid when all guardians are new. If any existing guardian profile is selected, the frontend must use staged submission.
+
+The endpoint accepts `student`, a non-empty `guardians` array, `enrollment`, and optional `studentAccount`.
 
 Each new guardian entry contains:
 
@@ -24,7 +28,7 @@ Each new guardian entry contains:
 - optional `relationship.is_primary`
 - an `account` object in this frontend because account creation or linking is required by the product design
 
-An account uses mode `create` or `link`. Create mode requires `username`; link mode requires a UUID `userId`. The UI does not expose backend mode `none` because accounts are mandatory in this workflow.
+An account uses mode `create` or `link`. Create mode requires `username`; link mode requires a UUID `userId`. Account selection is mandatory in the wizard, but this is enforced by frontend validation rather than the backend contract. The backend accepts omitted accounts or mode `none` and returns skipped account summaries.
 
 Enrollment requires UUID `classroomId` and ISO `enrollmentDate`. The use case additionally requires an academic year through `academicYearId` or `academicYear`; the UI will submit `academicYearId`. Optional `termId`, `gradeId`, and `sectionId` are submitted when selected and must agree with their parent records. Only status `active` is accepted.
 
@@ -93,6 +97,8 @@ Display one account card for the student and one for every guardian. Each requir
 - Link provides a searchable user selector and stores its UUID.
 
 For an existing guardian already associated with a user, the linked account is selected and shown by default, subject to the data exposed by the guardian response.
+
+This default requires a backend dependency: guardian list or detail responses must expose safe guardian account metadata. The current responses do not include `userId` or an account summary, so the frontend cannot infer or preselect the linked user until that metadata is available.
 
 ### Enrollment
 
