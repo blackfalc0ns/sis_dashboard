@@ -35,7 +35,6 @@ const tabs = [
     labelKey: "tabs.enrollment_history",
     icon: GraduationCap,
   },
-  { key: "attendance", labelKey: "tabs.attendance", icon: Calendar },
   { key: "grades", labelKey: "tabs.grades", icon: GraduationCap },
   { key: "behavior", labelKey: "tabs.behavior", icon: Award },
   { key: "documents", labelKey: "tabs.documents", icon: FileText },
