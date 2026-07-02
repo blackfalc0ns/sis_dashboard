@@ -6,13 +6,19 @@ import { useMediaQuery } from "@mui/material";
 import { Filter } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
-import AttendanceStatePanel from "@/features/attendance/shared/components/AttendanceStatePanel";
 import AttendanceScopeHeader from "@/features/attendance/shared/components/AttendanceScopeHeader";
-import AttendanceDataPanel from "@/features/attendance/shared/components/AttendanceDataPanel";
 import AttendanceFiltersPanel from "@/features/attendance/shared/components/AttendanceFiltersPanel";
-import AttendanceMobileActions from "@/features/attendance/shared/components/AttendanceMobileActions";
 import AttendanceDetailsCard from "@/features/attendance/shared/components/AttendanceDetailsCard";
 import AttendanceBottomDrawer from "@/features/attendance/shared/components/AttendanceBottomDrawer";
+import {
+  AttendanceWorkspaceContentPanel,
+  AttendanceWorkspaceHeader,
+  AttendanceWorkspaceMobileActions,
+  AttendanceWorkspaceShell,
+  AttendanceWorkspaceSplit,
+  AttendanceWorkspaceStack,
+  AttendanceWorkspaceState,
+} from "@/features/attendance/shared/components/AttendanceWorkspaceShell";
 import AbsencesKpisBar from "../components/AbsencesKpisBar";
 import AbsencesFiltersBar from "../components/AbsencesFiltersBar";
 import AbsencesFiltersDrawer from "../components/AbsencesFiltersDrawer";
@@ -435,14 +441,12 @@ export default function AttendanceAbsencesPage() {
   // Empty states
   if (!termContext.yearId || !termContext.termId) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex-1 flex items-center justify-center">
-          <AttendanceStatePanel
-            title={t("emptyStates.noYearTerm.title")}
-            description={t("emptyStates.noYearTerm.description")}
-          />
-        </div>
-      </div>
+      <AttendanceWorkspaceShell>
+        <AttendanceWorkspaceState
+          title={t("emptyStates.noYearTerm.title")}
+          description={t("emptyStates.noYearTerm.description")}
+        />
+      </AttendanceWorkspaceShell>
     );
   }
 
@@ -451,81 +455,78 @@ export default function AttendanceAbsencesPage() {
     filters.scopeIds,
   );
 
+  const recordsBody = isScopeSelectionIncomplete ? (
+    <AttendanceWorkspaceState
+      title={t("emptyStates.selectScope.title")}
+      description={t("emptyStates.selectScope.description")}
+    />
+  ) : records.length === 0 ? (
+    <AttendanceWorkspaceState
+      title={t("emptyStates.noRecords.title")}
+      description={t("emptyStates.noRecords.description")}
+    />
+  ) : (
+    <AbsencesTable
+      records={records}
+      onRecordClick={handleRecordClick}
+      onEditExcuse={handleEditExcuse}
+      onEditEarlyLeave={handleEditEarlyLeave}
+      isReadOnly={isReadOnly}
+    />
+  );
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 flex flex-col gap-4 p-4 min-h-0">
-        <AttendanceScopeHeader
-          isReadOnly={isReadOnly}
-          scopeType={filters.scopeType}
-          scopeIds={filters.scopeIds}
-          stages={structureTree?.stages || []}
-          grades={structureTree?.grades || []}
-          sections={structureTree?.sections || []}
-          classrooms={structureTree?.classrooms || []}
-        />
+    <>
+      <AttendanceWorkspaceShell>
+        <AttendanceWorkspaceHeader>
+          <AttendanceScopeHeader
+            isReadOnly={isReadOnly}
+            scopeType={filters.scopeType}
+            scopeIds={filters.scopeIds}
+            stages={structureTree?.stages || []}
+            grades={structureTree?.grades || []}
+            sections={structureTree?.sections || []}
+            classrooms={structureTree?.classrooms || []}
+          />
+          <AbsencesKpisBar kpis={kpis} />
+        </AttendanceWorkspaceHeader>
 
-        {/* KPIs */}
-        <AbsencesKpisBar kpis={kpis} />
-
-        {/* Desktop Layout */}
         {!isMobile && (
-          <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">
-            {/* Left: Filters + Table */}
-            <div className="col-span-8 flex flex-col gap-4 min-h-0">
-              <AttendanceFiltersPanel className="rounded-lg">
-                <AbsencesFiltersBar
-                  filters={{ ...filters, search: searchInput }}
-                  onFiltersChange={handleFiltersChange}
-                  onClearFilters={handleClearFilters}
-                  onExport={() => setShowExportModal(true)}
-                  isReadOnly={isReadOnly}
-                  structureTree={structureTree}
-                />
-              </AttendanceFiltersPanel>
-              <AttendanceDataPanel
-                loading={isLoading}
-                className="flex-1 rounded-lg border overflow-hidden min-h-0"
-                loaderClassName="flex items-center justify-center h-full"
-              >
-                {isScopeSelectionIncomplete ? (
-                  <AttendanceStatePanel
-                    title={t("emptyStates.selectScope.title")}
-                    description={t("emptyStates.selectScope.description")}
-                  />
-                ) : records.length === 0 ? (
-                  <AttendanceStatePanel
-                    title={t("emptyStates.noRecords.title")}
-                    description={t("emptyStates.noRecords.description")}
-                  />
-                ) : (
-                  <AbsencesTable
-                    records={records}
-                    onRecordClick={handleRecordClick}
-                    onEditExcuse={handleEditExcuse}
-                    onEditEarlyLeave={handleEditEarlyLeave}
+          <AttendanceWorkspaceSplit
+            main={
+              <>
+                <AttendanceFiltersPanel className="rounded-lg">
+                  <AbsencesFiltersBar
+                    filters={{ ...filters, search: searchInput }}
+                    onFiltersChange={handleFiltersChange}
+                    onClearFilters={handleClearFilters}
+                    onExport={() => setShowExportModal(true)}
                     isReadOnly={isReadOnly}
+                    structureTree={structureTree}
                   />
-                )}
-              </AttendanceDataPanel>
-            </div>
-
-            {/* Right: Details Panel */}
-            <AttendanceDetailsCard className="rounded-lg">
-              <AbsenceDetailsPanel
-                record={selectedRecord}
-                onClose={() => setSelectedRecord(null)}
-                onEditExcuse={handleEditExcuse}
-                onEditEarlyLeave={handleEditEarlyLeave}
-                isReadOnly={isReadOnly}
-              />
-            </AttendanceDetailsCard>
-          </div>
+                </AttendanceFiltersPanel>
+                <AttendanceWorkspaceContentPanel loading={isLoading}>
+                  {recordsBody}
+                </AttendanceWorkspaceContentPanel>
+              </>
+            }
+            details={
+              <AttendanceDetailsCard className="rounded-lg">
+                <AbsenceDetailsPanel
+                  record={selectedRecord}
+                  onClose={() => setSelectedRecord(null)}
+                  onEditExcuse={handleEditExcuse}
+                  onEditEarlyLeave={handleEditEarlyLeave}
+                  isReadOnly={isReadOnly}
+                />
+              </AttendanceDetailsCard>
+            }
+          />
         )}
 
-        {/* Mobile Layout */}
         {isMobile && (
-          <div className="flex-1 flex flex-col gap-4 min-h-0">
-            <AttendanceMobileActions>
+          <AttendanceWorkspaceStack>
+            <AttendanceWorkspaceMobileActions>
               <Button
                 variant="outline"
                 size="sm"
@@ -534,100 +535,73 @@ export default function AttendanceAbsencesPage() {
               >
                 {t("filters.filters")}
               </Button>
-            </AttendanceMobileActions>
-            {/* Table */}
-            <AttendanceDataPanel
-              loading={isLoading}
-              className="flex-1 rounded-lg border overflow-hidden min-h-0"
-              loaderClassName="flex items-center justify-center h-full"
-            >
-              {isScopeSelectionIncomplete ? (
-                <AttendanceStatePanel
-                  title={t("emptyStates.selectScope.title")}
-                  description={t("emptyStates.selectScope.description")}
-                />
-              ) : records.length === 0 ? (
-                <AttendanceStatePanel
-                  title={t("emptyStates.noRecords.title")}
-                  description={t("emptyStates.noRecords.description")}
-                />
-              ) : (
-                <AbsencesTable
-                  records={records}
-                  onRecordClick={handleRecordClick}
-                  onEditExcuse={handleEditExcuse}
-                  onEditEarlyLeave={handleEditEarlyLeave}
-                  isReadOnly={isReadOnly}
-                />
-              )}
-            </AttendanceDataPanel>
-          </div>
+            </AttendanceWorkspaceMobileActions>
+            <AttendanceWorkspaceContentPanel loading={isLoading}>
+              {recordsBody}
+            </AttendanceWorkspaceContentPanel>
+          </AttendanceWorkspaceStack>
         )}
+      </AttendanceWorkspaceShell>
 
-        {/* Mobile Filters Drawer */}
-        <AbsencesFiltersDrawer
-          isOpen={showFiltersDrawer}
-          onClose={() => setShowFiltersDrawer(false)}
-          filters={{ ...filters, search: searchInput }}
-          onFiltersChange={handleFiltersChange}
-          onClearFilters={handleClearFilters}
-          onExport={() => setShowExportModal(true)}
-          structureTree={structureTree}
-        />
+      <AbsencesFiltersDrawer
+        isOpen={showFiltersDrawer}
+        onClose={() => setShowFiltersDrawer(false)}
+        filters={{ ...filters, search: searchInput }}
+        onFiltersChange={handleFiltersChange}
+        onClearFilters={handleClearFilters}
+        onExport={() => setShowExportModal(true)}
+        structureTree={structureTree}
+      />
 
-        {/* Mobile Details Drawer */}
-        <AttendanceBottomDrawer
-          isOpen={showDetailsDrawer}
+      <AttendanceBottomDrawer
+        isOpen={showDetailsDrawer}
+        onClose={() => setShowDetailsDrawer(false)}
+      >
+        <AbsenceDetailsPanel
+          record={selectedRecord}
           onClose={() => setShowDetailsDrawer(false)}
-        >
-          <AbsenceDetailsPanel
-            record={selectedRecord}
-            onClose={() => setShowDetailsDrawer(false)}
-            onEditExcuse={handleEditExcuse}
-            onEditEarlyLeave={handleEditEarlyLeave}
-            isReadOnly={isReadOnly}
-          />
-        </AttendanceBottomDrawer>
-
-        {/* Excuse Modal */}
-        <ExcuseModal
-          isOpen={excuseModalOpen}
-          onClose={() => {
-            setExcuseModalOpen(false);
-            setRecordToEdit(null);
-            setExcusePolicy(null);
-          }}
-          onSave={handleSaveExcuse}
-          initialReason={
-            recordToEdit?.excuse?.reasonAr ||
-            recordToEdit?.excuse?.reasonEn ||
-            ""
-          }
-          initialAttachments={recordToEdit?.excuse?.attachments || []}
-          requireAttachment={excusePolicy?.requireAttachmentForExcuse ?? false}
+          onEditExcuse={handleEditExcuse}
+          onEditEarlyLeave={handleEditEarlyLeave}
           isReadOnly={isReadOnly}
         />
+      </AttendanceBottomDrawer>
 
-        {/* Early Leave Modal */}
-        <EarlyLeaveEditorModal
-          isOpen={earlyLeaveModalOpen}
-          onClose={() => {
-            setEarlyLeaveModalOpen(false);
-            setRecordToEdit(null);
-          }}
-          onSave={handleSaveEarlyLeave}
-          initialMinutes={recordToEdit?.minutesEarlyLeave || 0}
-          isReadOnly={isReadOnly}
-        />
+      <ExcuseModal
+        isOpen={excuseModalOpen}
+        onClose={() => {
+          setExcuseModalOpen(false);
+          setRecordToEdit(null);
+          setExcusePolicy(null);
+        }}
+        onSave={handleSaveExcuse}
+        initialReason={
+          recordToEdit?.excuse?.reasonAr ||
+          recordToEdit?.excuse?.reasonEn ||
+          ""
+        }
+        initialAttachments={recordToEdit?.excuse?.attachments || []}
+        requireAttachment={excusePolicy?.requireAttachmentForExcuse ?? false}
+        isReadOnly={isReadOnly}
+      />
 
-        <AttendanceGlobalExportModal
-          isOpen={showExportModal}
-          onClose={() => setShowExportModal(false)}
-          onExport={handleExport}
-          datasetCount={records.length}
-          emptyStateMessage={t("emptyStates.noRecords.description")}
-        />
-      </div>
-    </div>
+      <EarlyLeaveEditorModal
+        isOpen={earlyLeaveModalOpen}
+        onClose={() => {
+          setEarlyLeaveModalOpen(false);
+          setRecordToEdit(null);
+        }}
+        onSave={handleSaveEarlyLeave}
+        initialMinutes={recordToEdit?.minutesEarlyLeave || 0}
+        isReadOnly={isReadOnly}
+      />
+
+      <AttendanceGlobalExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        datasetCount={records.length}
+        emptyStateMessage={t("emptyStates.noRecords.description")}
+      />
+    </>
   );
 }
