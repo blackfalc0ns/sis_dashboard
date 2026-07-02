@@ -84,6 +84,23 @@ type BackendScopeBreakdownRow = {
   attendanceRate?: number;
 };
 
+export interface DerivedDailyAbsenceReportRow {
+  date: string;
+  studentId: string;
+  scopeType: AttendanceReportsFilters["scopeType"];
+  scopeKey: string;
+  scopeIds: AttendanceScopeIds;
+  policyId: string;
+  missedPeriodCount: number;
+  requiredMissedPeriodsCount: number;
+  missedPeriodIds: string[];
+  evidencePeriodCount: number;
+  sourcePeriodIds: string[];
+  derivedStatus: AttendanceStatus;
+  source: "MANUAL" | "DERIVED_FROM_PERIODS";
+  reportOnly: true;
+}
+
 function resolveReportScopeKey(scopeType: AttendanceReportsFilters["scopeType"], scopeIds?: AttendanceScopeIds) {
   if (scopeType === "CLASSROOM") return scopeIds?.classroomId ? `classroom:${scopeIds.classroomId}` : undefined;
   if (scopeType === "SECTION") return scopeIds?.sectionId ? `section:${scopeIds.sectionId}` : undefined;
@@ -101,6 +118,11 @@ function buildReportQueryParams(params: AttendanceReportsFilters & { yearId: str
     scopeType: params.scopeType,
     scopeKey: resolveReportScopeKey(params.scopeType, params.scopeIds),
   };
+}
+
+function toPercentRate(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  return value <= 1 ? Math.round(value * 100) : value;
 }
 
 function unwrapItems<T>(response: unknown): T[] {
@@ -415,7 +437,7 @@ function mapBackendTrend(items: BackendTrendRow[]): ReportsTrendPoint[] {
     label: item.date,
     dateFrom: item.date,
     dateTo: item.date,
-    attendanceRate: item.attendanceRate || 0,
+    attendanceRate: toPercentRate(item.attendanceRate),
     markedCount: item.totalEntries || 0,
     presentCount: item.presentCount || 0,
     absentCount: item.absentCount || 0,
@@ -892,7 +914,7 @@ function mapBackendPerformanceRows(
     level,
     labelAr: item.scopeNameAr || item.scopeNameEn || item.scopeId,
     labelEn: item.scopeNameEn || item.scopeNameAr || item.scopeId,
-    attendanceRate: item.attendanceRate || 0,
+    attendanceRate: toPercentRate(item.attendanceRate),
     markedCount: item.totalEntries || 0,
     presentCount: item.presentCount || 0,
     absentCount: item.absentCount || 0,
@@ -973,7 +995,7 @@ function applyBackendSummaryToOverview(
 ): AttendanceReportsData["overview"] {
   if (!summary) return overview;
   const replacements: Partial<Record<ReportsKpiCard["key"], number>> = {
-    attendanceRate: summary.attendanceRate,
+    attendanceRate: toPercentRate(summary.attendanceRate),
     presentCount: summary.presentCount,
     absentCount: summary.absentCount,
     excusedCount: summary.excusedCount,
@@ -993,6 +1015,15 @@ function applyBackendSummaryToOverview(
       };
     }),
   };
+}
+
+export async function fetchDerivedDailyAbsences(
+  params: AttendanceReportsFilters & { yearId: string; termId: string }
+): Promise<DerivedDailyAbsenceReportRow[]> {
+  const response = await apiGet<unknown>("/attendance/reports/derived-daily-absences", {
+    params: buildReportQueryParams(params),
+  });
+  return unwrapItems<DerivedDailyAbsenceReportRow>(response);
 }
 
 export async function fetchAttendanceReportSummary(

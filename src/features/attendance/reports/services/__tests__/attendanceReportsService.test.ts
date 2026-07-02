@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiGet } from "@/lib/api";
-import { fetchAttendanceReportSummary } from "@/features/attendance/reports/services/attendanceReportsService";
+import {
+  fetchAttendanceReportSummary,
+  fetchDerivedDailyAbsences,
+} from "@/features/attendance/reports/services/attendanceReportsService";
 
 vi.mock("@/lib/api", () => ({
   apiGet: vi.fn(),
@@ -48,7 +51,7 @@ describe("attendanceReportsService", () => {
         lateCount: 1,
         earlyLeaveCount: 0,
         excusedCount: 0,
-        attendanceRate: 80,
+        attendanceRate: 0.8,
         affectedStudentsCount: 2,
       })
       .mockResolvedValueOnce({
@@ -61,7 +64,7 @@ describe("attendanceReportsService", () => {
             lateCount: 1,
             earlyLeaveCount: 0,
             excusedCount: 0,
-            attendanceRate: 80,
+            attendanceRate: 0.8,
           },
         ],
       })
@@ -72,7 +75,7 @@ describe("attendanceReportsService", () => {
             scopeNameAr: "Classroom 1",
             scopeNameEn: "Classroom 1",
             totalEntries: 10,
-            attendanceRate: 80,
+            attendanceRate: 0.8,
             incidentCount: 2,
           },
         ],
@@ -121,6 +124,7 @@ describe("attendanceReportsService", () => {
         groupBy: "classroom",
       },
     });
+    expect(mockedApiGet).toHaveBeenCalledTimes(3);
     expect(report.overview.cards.find((card) => card.key === "attendanceRate")?.value).toBe(80);
     expect(report.trend.points).toEqual([
       expect.objectContaining({ dateFrom: "2026-02-10", attendanceRate: 80 }),
@@ -128,5 +132,60 @@ describe("attendanceReportsService", () => {
     expect(report.performance.classroom).toEqual([
       expect.objectContaining({ id: "classroom-1", attendanceRate: 80 }),
     ]);
+  });
+
+  it("loads derived daily absences through a separate report endpoint", async () => {
+    mockedApiGet.mockResolvedValueOnce({
+      items: [
+        {
+          date: "2026-02-10",
+          studentId: "student-1",
+          scopeType: "CLASSROOM",
+          scopeKey: "classroom:classroom-1",
+          scopeIds: { classroomId: "classroom-1" },
+          policyId: "policy-1",
+          missedPeriodCount: 3,
+          requiredMissedPeriodsCount: 2,
+          missedPeriodIds: ["period-1", "period-2", "period-3"],
+          evidencePeriodCount: 4,
+          sourcePeriodIds: ["period-1", "period-2", "period-3", "period-4"],
+          derivedStatus: "ABSENT",
+          source: "DERIVED_FROM_PERIODS",
+          reportOnly: true,
+        },
+      ],
+    });
+
+    await expect(
+      fetchDerivedDailyAbsences({
+        yearId: "year-1",
+        termId: "term-1",
+        dateFrom: "2026-02-01",
+        dateTo: "2026-02-28",
+        scopeType: "CLASSROOM",
+        scopeIds: { classroomId: "classroom-1" },
+        attendanceStatus: "ALL",
+        excuseStatus: "ALL",
+        incidentType: "ALL",
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        date: "2026-02-10",
+        studentId: "student-1",
+        derivedStatus: "ABSENT",
+        reportOnly: true,
+      }),
+    ]);
+
+    expect(mockedApiGet).toHaveBeenCalledWith("/attendance/reports/derived-daily-absences", {
+      params: {
+        academicYearId: "year-1",
+        termId: "term-1",
+        dateFrom: "2026-02-01",
+        dateTo: "2026-02-28",
+        scopeType: "CLASSROOM",
+        scopeKey: "classroom:classroom-1",
+      },
+    });
   });
 });
