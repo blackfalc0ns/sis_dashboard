@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -25,7 +25,10 @@ export default function GradesTab({ student }: GradesTabProps) {
     const loadSnapshot = async () => {
       setIsLoading(true);
       try {
-        const nextSnapshot = await fetchStudentGradesSnapshot(student.id);
+        const nextSnapshot = await fetchStudentGradesSnapshot(student.id, {
+          academicYearId: "year-2026",
+          termId: "term-1",
+        });
         setSnapshot(nextSnapshot);
       } finally {
         setIsLoading(false);

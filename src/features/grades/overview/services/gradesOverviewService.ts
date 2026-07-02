@@ -146,7 +146,7 @@ export async function fetchScopeGradeRule(
 
 export async function fetchStudentGradesSnapshot(
   studentId: string,
-  options?: { academicYearId?: string; termId?: string },
+  options: { academicYearId: string; termId: string },
 ): Promise<StudentGradesSnapshot> {
   const response = await apiGet<BackendStudentGradeSnapshot>(
     `/grades/students/${studentId}/snapshot`,

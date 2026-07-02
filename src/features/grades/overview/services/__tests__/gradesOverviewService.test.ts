@@ -106,12 +106,12 @@ describe("grades overview endpoint contract", () => {
     });
 
     const result = await fetchStudentGradesSnapshot("student-123", {
-      academicYearId: "year-1",
+      academicYearId: "year-2026",
       termId: "term-1",
     });
 
     expect(apiMocks.apiGet).toHaveBeenCalledWith("/grades/students/student-123/snapshot", {
-      params: { academicYearId: "year-1", termId: "term-1" },
+      params: { academicYearId: "year-2026", termId: "term-1" },
     });
     expect(result.studentId).toBe("student-123");
     expect(result.currentAverage).toBe(85);
