@@ -308,3 +308,58 @@ export interface StudentGradesSnapshot {
     average: number;
   }>;
 }
+
+export interface BackendStudentGradeSnapshotSubject {
+  subjectId: string;
+  subjectName: string;
+  subjectNameAr: string | null;
+  subjectNameEn: string | null;
+  finalPercent: number | null;
+  completedWeight: number;
+  assessmentCount: number;
+  enteredCount: number;
+  missingCount: number;
+  absentCount: number;
+  status: string;
+}
+
+export interface BackendStudentGradeSnapshotAssessment {
+  assessmentId: string;
+  subjectId: string;
+  title: string | null;
+  titleEn: string | null;
+  titleAr: string | null;
+  type: string;
+  date: string;
+  weight: number;
+  maxScore: number;
+  itemId: string | null;
+  score: number | null;
+  percent: number | null;
+  weightedContribution: number | null;
+  status: string;
+  comment: string | null;
+  isVirtualMissing: boolean;
+}
+
+export interface BackendStudentGradeSnapshot {
+  studentId: string;
+  enrollmentId: string;
+  academicYearId: string;
+  yearId: string;
+  termId: string;
+  subjectId: string | null;
+  rule: {
+    source: string;
+    ruleId: string | null;
+    passMark: number;
+    rounding: string;
+    gradingScale: string;
+  };
+  finalPercent: number | null;
+  completedWeight: number;
+  status: string;
+  subjects: BackendStudentGradeSnapshotSubject[];
+  assessments: BackendStudentGradeSnapshotAssessment[];
+}
+
