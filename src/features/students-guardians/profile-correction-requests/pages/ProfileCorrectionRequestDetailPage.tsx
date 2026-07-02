@@ -35,27 +35,36 @@ export default function ProfileCorrectionRequestDetailPage({
   const [isLoading, setIsLoading] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
 
-  const reloadRequest = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      setRequest(await fetchProfileCorrectionRequestById(requestId));
-    } catch (loadError) {
-      setRequest(null);
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : "Failed to load profile correction request.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (!canViewProfileCorrectionRequests || !requestId) return;
+
+    let isCancelled = false;
+
+    const reloadRequest = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const data = await fetchProfileCorrectionRequestById(requestId);
+        if (!isCancelled) setRequest(data);
+      } catch (loadError) {
+        if (!isCancelled) {
+          setRequest(null);
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Failed to load profile correction request.",
+          );
+        }
+      } finally {
+        if (!isCancelled) setIsLoading(false);
+      }
+    };
+
     void reloadRequest();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    return () => {
+      isCancelled = true;
+    };
   }, [canViewProfileCorrectionRequests, requestId]);
 
   const handleReview = async (action: "approve" | "reject") => {
@@ -73,6 +82,7 @@ export default function ProfileCorrectionRequestDetailPage({
               reviewerNote: reviewerNote.trim() || undefined,
             });
       setRequest(nextRequest);
+      setReviewerNote("");
     } catch (reviewError) {
       setError(
         reviewError instanceof Error
@@ -126,9 +136,13 @@ export default function ProfileCorrectionRequestDetailPage({
         </div>
       )}
 
-      {isLoading || !request ? (
+      {isLoading ? (
         <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-500">
-          {isLoading ? "Loading..." : "Request not found."}
+          Loading...
+        </div>
+      ) : !request ? (
+        <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-500">
+          Request not found.
         </div>
       ) : (
         <>
@@ -165,11 +179,12 @@ export default function ProfileCorrectionRequestDetailPage({
               rows={3}
               value={reviewerNote}
               onChange={(event) => setReviewerNote(event.target.value)}
+              disabled={isReviewing || request.status !== "PENDING"}
             />
             <div className="mt-4 flex flex-wrap gap-3">
               <Button
                 variant="success"
-                disabled={!canReviewProfileCorrectionRequests || isReviewing}
+                disabled={!canReviewProfileCorrectionRequests || isReviewing || request.status !== "PENDING"}
                 loading={isReviewing}
                 onClick={() => void handleReview("approve")}
               >
@@ -177,7 +192,7 @@ export default function ProfileCorrectionRequestDetailPage({
               </Button>
               <Button
                 variant="danger"
-                disabled={!canReviewProfileCorrectionRequests || isReviewing}
+                disabled={!canReviewProfileCorrectionRequests || isReviewing || request.status !== "PENDING"}
                 loading={isReviewing}
                 onClick={() => void handleReview("reject")}
               >

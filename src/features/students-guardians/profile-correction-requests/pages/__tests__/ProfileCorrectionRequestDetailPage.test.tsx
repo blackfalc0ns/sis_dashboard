@@ -130,6 +130,7 @@ describe("ProfileCorrectionRequestDetailPage", () => {
     expect(approveProfileCorrectionRequest).toHaveBeenCalledWith("req-1", {
       reviewerNote: "Approved note",
     });
+    expect(textarea).toHaveValue("");
   });
 
   it("handles rejecting the profile correction request", async () => {
@@ -158,5 +159,29 @@ describe("ProfileCorrectionRequestDetailPage", () => {
     expect(rejectProfileCorrectionRequest).toHaveBeenCalledWith("req-1", {
       reviewerNote: "Rejected note",
     });
+    expect(textarea).toHaveValue("");
+  });
+
+  it("disables review note textarea and action buttons when request is not PENDING", async () => {
+    vi.mocked(fetchProfileCorrectionRequestById).mockResolvedValue({
+      ...mockRequest,
+      status: "APPROVED",
+    });
+
+    await act(async () => {
+      render(<ProfileCorrectionRequestDetailPage requestId="req-1" />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("John Doe")).toBeInTheDocument();
+    });
+
+    const textarea = screen.getByRole("textbox", { name: /Reviewer note/i });
+    expect(textarea).toBeDisabled();
+
+    const approveButton = screen.getByRole("button", { name: /Approve/i });
+    const rejectButton = screen.getByRole("button", { name: /Reject/i });
+    expect(approveButton).toBeDisabled();
+    expect(rejectButton).toBeDisabled();
   });
 });
