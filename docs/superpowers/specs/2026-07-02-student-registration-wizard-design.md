@@ -155,6 +155,32 @@ Final submission revalidates every step. Database-dependent rules—including re
 - Keyboard, focus, RTL, and representative mobile-layout checks.
 - Run the relevant unit tests and project type-check after implementation.
 
+## Registration result handling
+
+The raw registration response is normalized outside the form component into a typed result containing `registrationId`, student, guardians, enrollment, parent account summaries, student account summary, warnings, and backend timestamps. Account summaries preserve target, guardian ID, mode, status, safe user metadata, and an optional temporary password.
+
+The registration page replaces the wizard with a dedicated result panel after submission. The panel derives one of three outcomes:
+
+- Success: the core registration exists and no account failures or warnings were returned.
+- Completed with warnings: the core registration exists, but at least one account operation failed or was skipped, or backend warnings were returned.
+- Partial failure: the staged flow failed before the core registration was complete.
+
+An existing `registrationId` means the backend core registration succeeded even when account warnings are present. The UI must not label that result as a failed registration.
+
+The result panel shows registration and student identity, a profile action, created and completed times, enrollment placement and status, all guardian summaries, every account status, and backend warnings. The atomic response supplies the full result. The staged flow builds the same view model where data is available and retains its explicit partial-failure state when student, guardian linking, or enrollment fails.
+
+### Temporary credentials
+
+Temporary passwords remain only in local React result state. They are never logged, added to a URL, placed in browser storage, or copied into global state. Credential cards mask passwords by default and provide show or hide, copy username, copy login email, copy password, and copy-all actions.
+
+When any temporary password exists, leaving the result for the students list is disabled until the user confirms that the credentials were saved. Viewing the created student profile remains available. Removing the result panel from the page clears its local credential state.
+
+### Students list integration
+
+The Students page Add Student action is enabled and navigates to `/{lang}/students-guardians/registration`. The result panel provides Back to Students and View Student Profile actions. Returning to the Students route causes its existing local loading flow to fetch the list again; no registration result or credentials are passed between routes.
+
+Result tests cover response normalization, success and warning classification, masked credentials, copy and acknowledgement behavior, partial staged failures, and Add Student navigation.
+
 ## Out of scope
 
 - Changing the backend atomic endpoint to accept existing guardian profile IDs.
