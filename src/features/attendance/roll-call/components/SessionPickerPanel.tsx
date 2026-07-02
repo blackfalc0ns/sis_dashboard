@@ -14,6 +14,8 @@ import type { AttendanceScopeIds } from "@/features/attendance/shared/attendance
 import type { AttendanceSessionMode } from "../types";
 
 interface SessionPickerPanelProps {
+  variant?: "rail" | "drawer";
+
   // Scope
   scopeType: AttendanceScopeType;
   scopeIds: AttendanceScopeIds;
@@ -44,6 +46,7 @@ interface SessionPickerPanelProps {
 }
 
 export default function SessionPickerPanel({
+  variant = "rail",
   scopeType,
   scopeIds,
   stages,
@@ -61,10 +64,15 @@ export default function SessionPickerPanel({
   selectedPeriodId,
   onPeriodChange,
   sessionStatus,
+  disabled = false,
 }: SessionPickerPanelProps) {
   const t = useTranslations("attendance.rollCall");
   const tStatus = useTranslations("attendance.rollCall.sessionStatus");
   const locale = useLocale();
+  const frameClassName =
+    variant === "rail"
+      ? "flex h-full w-full flex-col rounded-lg border bg-[var(--background)]"
+      : "flex h-full w-full flex-col bg-[var(--background)]";
 
   const handlePrevPeriod = () => {
     if (!selectedPeriodId) return;
@@ -81,7 +89,7 @@ export default function SessionPickerPanel({
   };
 
   return (
-    <div style={{ backgroundColor: "var(--background)", borderRight: "1px solid var(--color-border)", borderLeft: "1px solid var(--color-border)" }} className="w-80 flex flex-col">
+    <div className={frameClassName}>
       {/* Header */}
       <div style={{ borderBottom: "1px solid var(--color-border)" }} className="p-4">
         <h3 style={{ color: "var(--color-gray-900)" }} className="text-lg font-semibold">{t("sessionPicker.title")}</h3>
@@ -102,6 +110,7 @@ export default function SessionPickerPanel({
             classrooms={classrooms}
             onScopeTypeChange={onScopeTypeChange}
             onScopeIdsChange={onScopeIdsChange}
+            disabled={disabled}
           />
         </div>
 
@@ -113,6 +122,7 @@ export default function SessionPickerPanel({
             onChange={(newDate) => onDateChange(newDate ? newDate.toISOString().split("T")[0] : "")}
             minDate={termStartDate ? new Date(termStartDate) : undefined}
             maxDate={termEndDate ? new Date(termEndDate) : undefined}
+            disabled={disabled}
           />
         </div>
 
@@ -127,7 +137,7 @@ export default function SessionPickerPanel({
                 variant="outline"
                 size="sm"
                 onClick={handlePrevPeriod}
-                disabled={ !selectedPeriodId || periods.findIndex((p) => p.id === selectedPeriodId) <= 0}
+                disabled={disabled || !selectedPeriodId || periods.findIndex((p) => p.id === selectedPeriodId) <= 0}
                 leftIcon={locale === "ar" ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
               >
                 {t("sessionPicker.prev")}
@@ -137,7 +147,7 @@ export default function SessionPickerPanel({
                 size="sm"
                 onClick={handleNextPeriod}
                 disabled={
-                   !selectedPeriodId || periods.findIndex((p) => p.id === selectedPeriodId) >= periods.length - 1
+                   disabled || !selectedPeriodId || periods.findIndex((p) => p.id === selectedPeriodId) >= periods.length - 1
                 }
                 rightIcon={locale === "ar" ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               >
@@ -153,6 +163,8 @@ export default function SessionPickerPanel({
                   <button
                     key={period.id}
                     onClick={() => onPeriodChange(period.id)}
+                    disabled={disabled}
+                    aria-pressed={isSelected}
                     style={{
                       backgroundColor: isSelected ? "var(--color-primary)" : "var(--background)",
                       color: isSelected ? "var(--color-white)" : "var(--color-gray-700)",
@@ -160,7 +172,7 @@ export default function SessionPickerPanel({
                     }}
                     className={`w-full text-left px-3 py-2 rounded border transition-colors ${
                       isSelected ? "" : "hover:bg-[var(--color-neutral-50)]"
-                    } ${"cursor-pointer"}`}
+                    } ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                   >
                     <div className={`font-medium ${locale === "ar" ? "text-right" : "text-left"}`}>
                       {locale === "ar" ? period.nameAr : period.nameEn}
