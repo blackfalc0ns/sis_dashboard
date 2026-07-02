@@ -6,5 +6,5 @@ export default async function StudentOverviewPage({
   params: Promise<{ studentId: string }>;
 }) {
   const { studentId } = await params;
-  return <StudentTabLoader studentId={studentId} tab="overview" />;
+  return <StudentTabLoader studentId={studentId} tab="personal" />;
 }

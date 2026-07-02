@@ -28,7 +28,6 @@ import { useSectionTabs } from "@/hooks/useSectionTabs";
 import { buildLocalePath } from "@/lib/routing/localePath";
 
 const tabs = [
-  { key: "overview", labelKey: "tabs.overview", icon: Activity },
   { key: "personal", labelKey: "tabs.personal_info", icon: User },
   { key: "guardians", labelKey: "tabs.guardians", icon: Users },
   {
