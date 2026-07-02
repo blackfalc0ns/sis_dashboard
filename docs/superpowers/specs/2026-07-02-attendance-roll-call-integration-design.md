@@ -80,16 +80,24 @@ Bulk marking remains secondary to Save and Submit. It must not visually compete 
 
 ### Initial Context
 
-The page loads the existing academic structure, timetable context, and effective policy needed by the session picker. A complete scope, date, and mode selection is required before resolving a session.
+The page loads the existing academic structure, timetable context, and effective policy needed by the session picker. A complete scope, date, and mode selection is required before previewing the roster or opening attendance.
 
-### Session Resolution
+### Roster Preview And Session Resolution
 
 When the session-defining selection changes:
 
 1. Fetch the roster through `fetchRoster()` using the selected hierarchy, academic context, date, mode, and period key.
-2. Resolve the session through `getOrCreateSession()` using the same selection.
-3. Merge the returned entries with roster students for display, defaulting students without entries to `UNMARKED` locally.
-4. Store an immutable baseline copy for dirty-state comparison.
+2. Clear any previously opened session and entries after unsaved-change protection allows the selection change.
+3. Show the roster as a preview without creating or resolving a session.
+4. Enable an explicit `Open attendance` action when the selection is complete and the roster is available.
+
+When the user chooses `Open attendance`:
+
+1. Resolve the session through `getOrCreateSession()` using the current selection.
+2. Merge the returned entries with roster students for display, defaulting students without entries to `UNMARKED` locally.
+3. Store an immutable baseline copy for dirty-state comparison.
+
+`POST /attendance/roll-call/session/resolve` must not run merely because scope, date, mode, or period changed. The explicit action is required because resolving may create the attendance session.
 
 Stale requests must not overwrite a newer selection. The existing request sequencing or cancellation mechanism must be retained or strengthened if the current page does not already guarantee this.
 
@@ -128,6 +136,7 @@ Use shared workspace state placement while keeping messages specific to roll cal
 - Initial page loading may use the existing main loader.
 - Session changes use a content-level loading state so the workspace frame does not disappear.
 - Incomplete scope or period selection shows a clear select-session state.
+- A valid roster preview with no opened session shows the explicit `Open attendance` action.
 - A valid session with no roster shows a no-students state.
 - Structure, timetable, policy, roster, and session-resolution failures render an inline retryable state in the affected workspace region.
 - Mutation failures use toasts and keep the current local draft intact.
