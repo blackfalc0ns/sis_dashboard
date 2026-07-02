@@ -101,4 +101,97 @@ describe("studentGradesSnapshotMapper", () => {
     expect(result.subjectRows[0].trend).toBe("up");
     expect(result.performanceTrend).toHaveLength(2);
   });
+
+  it("maps rule metadata, subject counts, and assessment items", () => {
+    const incompleteBackendSnapshot: BackendStudentGradeSnapshot = {
+      studentId: "stu-1",
+      enrollmentId: "enr-1",
+      academicYearId: "year-2026",
+      yearId: "year-2026",
+      termId: "term-1",
+      subjectId: null,
+      rule: {
+        source: "GRADE",
+        ruleId: "rule-1",
+        passMark: 50,
+        rounding: "decimal_0",
+        gradingScale: "percentage",
+      },
+      finalPercent: null,
+      completedWeight: 0,
+      status: "incomplete",
+      subjects: [
+        {
+          subjectId: "sub-math",
+          subjectName: "Demo Mathematics",
+          subjectNameAr: "Demo Mathematics",
+          subjectNameEn: "Demo Mathematics",
+          finalPercent: null,
+          completedWeight: 0,
+          assessmentCount: 2,
+          enteredCount: 0,
+          missingCount: 2,
+          absentCount: 0,
+          status: "incomplete",
+        },
+      ],
+      assessments: [
+        {
+          assessmentId: "asm-1",
+          subjectId: "sub-math",
+          title: "fvjh",
+          titleEn: "fvjh",
+          titleAr: "opip';k",
+          type: "QUIZ",
+          date: "2026-09-01",
+          weight: 15,
+          maxScore: 20,
+          itemId: null,
+          score: null,
+          percent: null,
+          weightedContribution: null,
+          status: "missing",
+          comment: null,
+          isVirtualMissing: true,
+        },
+        {
+          assessmentId: "asm-2",
+          subjectId: "sub-math",
+          title: null,
+          titleEn: null,
+          titleAr: null,
+          type: "QUIZ",
+          date: "2026-09-15",
+          weight: 15,
+          maxScore: 20,
+          itemId: null,
+          score: null,
+          percent: null,
+          weightedContribution: null,
+          status: "missing",
+          comment: null,
+          isVirtualMissing: true,
+        },
+      ],
+    };
+
+    const result = mapBackendStudentGradeSnapshot(incompleteBackendSnapshot);
+
+    expect(result.rule).toBeDefined();
+    expect(result.rule?.passMark).toBe(50);
+    expect(result.status).toBe("incomplete");
+    expect(result.completedWeight).toBe(0);
+
+    expect(result.subjectRows[0].completedWeight).toBe(0);
+    expect(result.subjectRows[0].assessmentCount).toBe(2);
+    expect(result.subjectRows[0].enteredCount).toBe(0);
+    expect(result.subjectRows[0].missingCount).toBe(2);
+    expect(result.subjectRows[0].status).toBe("incomplete");
+
+    expect(result.assessments).toHaveLength(2);
+    expect(result.assessments[0].title).toBe("fvjh");
+    expect(result.assessments[1].title).toBe(null);
+    expect(result.assessments[1].isVirtualMissing).toBe(true);
+  });
 });
+

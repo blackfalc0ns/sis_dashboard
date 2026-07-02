@@ -287,10 +287,17 @@ export interface AssessmentRosterItem {
 export interface StudentSubjectGradeSummary {
   subjectId: string;
   subjectName: string;
-  subjectNameAr: string;
-  average: number;
+  subjectNameAr?: string | null;
+  subjectNameEn?: string | null;
+  average: number | null;
   lastAssessmentScore: number | null;
   assessmentsCount: number;
+  assessmentCount?: number;
+  enteredCount?: number;
+  missingCount?: number;
+  absentCount?: number;
+  completedWeight?: number;
+  status?: string;
   trend: "up" | "down" | "stable";
 }
 
@@ -298,8 +305,12 @@ export interface StudentGradesSnapshot {
   studentId: string;
   academicYearId?: string;
   termId?: string;
+  rule?: BackendStudentGradeSnapshot["rule"];
+  status?: string;
+  completedWeight?: number;
   subjectRows: StudentSubjectGradeSummary[];
-  currentAverage: number;
+  assessments?: BackendStudentGradeSnapshotAssessment[];
+  currentAverage: number | null;
   highestAverage: number;
   lowestAverage: number;
   totalAssessments: number;

@@ -12,7 +12,6 @@ export function mapBackendStudentGradeSnapshot(
     mapSubjectRow(subject, snapshot.assessments),
   );
 
-  // Extract valid non-null numbers directly from backend subjects
   const validFinalPercents = snapshot.subjects
     .map((subject) => subject.finalPercent)
     .filter((value): value is number => value !== null && Number.isFinite(value));
@@ -21,8 +20,12 @@ export function mapBackendStudentGradeSnapshot(
     studentId: snapshot.studentId,
     academicYearId: snapshot.academicYearId,
     termId: snapshot.termId,
+    rule: snapshot.rule,
+    status: snapshot.status,
+    completedWeight: snapshot.completedWeight,
     subjectRows,
-    currentAverage: snapshot.finalPercent ?? average(validFinalPercents),
+    assessments: snapshot.assessments,
+    currentAverage: snapshot.finalPercent ?? (validFinalPercents.length > 0 ? average(validFinalPercents) : null),
     highestAverage: validFinalPercents.length > 0 ? Math.max(...validFinalPercents) : 0,
     lowestAverage: validFinalPercents.length > 0 ? Math.min(...validFinalPercents) : 0,
     totalAssessments: snapshot.assessments.length,
@@ -44,9 +47,16 @@ function mapSubjectRow(
     subjectId: subject.subjectId,
     subjectName: subject.subjectNameEn || subject.subjectName,
     subjectNameAr: subject.subjectNameAr || subject.subjectName,
-    average: subject.finalPercent ?? 0,
+    subjectNameEn: subject.subjectNameEn || subject.subjectName,
+    average: subject.finalPercent,
     lastAssessmentScore: scores.length > 0 ? scores[scores.length - 1] : null,
     assessmentsCount: subject.assessmentCount,
+    assessmentCount: subject.assessmentCount,
+    enteredCount: subject.enteredCount,
+    missingCount: subject.missingCount,
+    absentCount: subject.absentCount,
+    completedWeight: subject.completedWeight,
+    status: subject.status,
     trend: getTrend(scores),
   };
 }
