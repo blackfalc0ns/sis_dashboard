@@ -8,8 +8,23 @@ type BackendRecord = Record<string, unknown>;
 
 const BASE = "/attendance/absences";
 
+export interface AbsenceSummary {
+  totalIncidents: number;
+  absentCount: number;
+  lateCount: number;
+  earlyLeaveCount: number;
+  excusedCount: number;
+  affectedStudentsCount: number;
+}
+
 function asRecord(value: unknown): BackendRecord {
   return value && typeof value === "object" ? (value as BackendRecord) : {};
+}
+
+function omitUndefined<T extends Record<string, unknown>>(payload: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined)
+  ) as Partial<T>;
 }
 
 function unwrapArray(response: unknown): unknown[] {
@@ -60,6 +75,20 @@ function resolveScopeKey(scopeType: ScopeType, scopeIds?: AttendanceScopeIds) {
   if (scopeType === "GRADE") return scopeIds?.gradeId ? `grade:${scopeIds.gradeId}` : undefined;
   if (scopeType === "STAGE") return scopeIds?.stageId ? `stage:${scopeIds.stageId}` : undefined;
   return "school";
+}
+
+function buildAbsenceQueryParams(
+  params: { yearId: string; termId: string } & Partial<AbsencesFilters>
+) {
+  return omitUndefined({
+    academicYearId: params.yearId,
+    termId: params.termId,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+    scopeType: params.scopeType,
+    scopeKey: params.scopeType ? resolveScopeKey(params.scopeType, params.scopeIds) : undefined,
+    status: params.status && params.status !== "ALL" ? params.status : undefined,
+  });
 }
 
 function stripScopeKeyPrefix(scopeKey: string) {
@@ -137,15 +166,7 @@ export async function fetchAbsenceRecords(
   } & Partial<AbsencesFilters>
 ): Promise<AbsenceRecord[]> {
   const response = await apiGet<unknown>(BASE, {
-    params: {
-      academicYearId: params.yearId,
-      termId: params.termId,
-      dateFrom: params.dateFrom,
-      dateTo: params.dateTo,
-      scopeType: params.scopeType,
-      scopeKey: params.scopeType ? resolveScopeKey(params.scopeType, params.scopeIds) : undefined,
-      status: params.status && params.status !== "ALL" ? params.status : undefined,
-    },
+    params: buildAbsenceQueryParams(params),
   });
 
   const records = unwrapArray(response).map((item) => mapAbsenceRecord(item, params));
@@ -158,6 +179,14 @@ export async function fetchAbsenceRecords(
       if (!haystack.includes(query)) return false;
     }
     return true;
+  });
+}
+
+export async function fetchAbsenceSummary(
+  params: { yearId: string; termId: string } & Partial<AbsencesFilters>
+): Promise<AbsenceSummary> {
+  return apiGet<AbsenceSummary>(`${BASE}/summary`, {
+    params: buildAbsenceQueryParams(params),
   });
 }
 

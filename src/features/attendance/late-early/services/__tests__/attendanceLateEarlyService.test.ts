@@ -91,8 +91,8 @@ describe("attendanceLateEarlyService", () => {
       sessionId: "session-1",
       studentId: "student-1",
       type: "EARLY_LEAVE",
-      minutes: 20,
-      incidentId: "early-1",
+      minutes: 15,
+      incidentId: "incident-1",
     });
 
     expect(mockedApiPost).toHaveBeenCalledWith(
@@ -105,9 +105,9 @@ describe("attendanceLateEarlyService", () => {
       },
     );
     expect(mockedApiPatch).toHaveBeenCalledWith(
-      "/attendance/absences/early-1/early-leave",
+      "/attendance/absences/incident-1/early-leave",
       {
-        earlyLeaveMinutes: 20,
+        earlyLeaveMinutes: 15,
         correctionReason: "Corrected early leave minutes",
         note: "Corrected early leave minutes",
       },

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiGet, apiPatch } from "@/lib/api";
 import {
+  fetchAbsenceSummary,
   fetchAbsenceRecords,
   updateEarlyLeaveMinutes,
   updateExcuse,
@@ -72,7 +73,50 @@ describe("attendanceAbsencesService", () => {
         dateTo: "2026-02-28",
         scopeType: "CLASSROOM",
         scopeKey: "classroom:classroom-1",
-        status: undefined,
+      },
+    });
+  });
+
+  it("loads absence summary from the backend summary endpoint", async () => {
+    mockedApiGet.mockResolvedValueOnce({
+      totalIncidents: 6,
+      absentCount: 2,
+      lateCount: 2,
+      earlyLeaveCount: 1,
+      excusedCount: 1,
+      affectedStudentsCount: 4,
+    });
+
+    await expect(
+      fetchAbsenceSummary({
+        yearId: "year-1",
+        termId: "term-1",
+        dateFrom: "2026-02-01",
+        dateTo: "2026-02-28",
+        scopeType: "SCHOOL",
+        scopeIds: {},
+        status: "ALL",
+        granularities: ["PERIOD"],
+        onlyUnexcused: false,
+        search: "",
+      }),
+    ).resolves.toEqual({
+      totalIncidents: 6,
+      absentCount: 2,
+      lateCount: 2,
+      earlyLeaveCount: 1,
+      excusedCount: 1,
+      affectedStudentsCount: 4,
+    });
+
+    expect(mockedApiGet).toHaveBeenCalledWith("/attendance/absences/summary", {
+      params: {
+        academicYearId: "year-1",
+        termId: "term-1",
+        dateFrom: "2026-02-01",
+        dateTo: "2026-02-28",
+        scopeType: "SCHOOL",
+        scopeKey: "school",
       },
     });
   });
