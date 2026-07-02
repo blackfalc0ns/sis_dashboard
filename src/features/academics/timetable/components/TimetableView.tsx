@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import {
@@ -13,6 +14,8 @@ import {
   EyeOff,
   CheckCircle,
   Printer,
+  School,
+  GraduationCap,
 } from "lucide-react";
 import FilterBar from "./FilterBar";
 import TimetableGrid from "./TimetableGrid";
@@ -55,6 +58,7 @@ import {
   formatExportDate,
 } from "@/features/academics/utils/exportAdapter";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import AcademicModuleEmptyState from "@/features/academics/components/shared/AcademicModuleEmptyState";
 
 interface TimetableViewProps {
   schoolId: string;
@@ -97,7 +101,9 @@ export default function TimetableView({
   onNormalizeSelection,
 }: TimetableViewProps) {
   const t = useTranslations("academics.timetable");
+  const tEmpty = useTranslations("academics.module_empty_states");
   const tRoot = useTranslations();
+  const router = useRouter();
   const locale = useLocale();
   const { showToast } = useToast();
   const { hasPermission } = usePermissions();
@@ -239,7 +245,6 @@ export default function TimetableView({
     periods,
     apiError,
     isLoading,
-    dependenciesLoading,
     timetableLoading,
     isSaving,
     isPublished,
@@ -947,13 +952,13 @@ export default function TimetableView({
 
   if (grades.length === 0 && stages.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <AlertCircle className="w-12 h-12 text-gray-400 mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          {t("emptyState.noGrades.title")}
-        </h3>
-        <p className="text-gray-500 mb-4">{t("emptyState.noGrades.message")}</p>
-      </div>
+      <AcademicModuleEmptyState
+        icon={GraduationCap}
+        title={tEmpty("no_grades.title")}
+        description={tEmpty("no_grades.description")}
+        ctaLabel={tEmpty("no_grades.cta")}
+        onCtaClick={() => router.push(`/${locale}/academics/structure`)}
+      />
     );
   }
 
@@ -1503,71 +1508,51 @@ export default function TimetableView({
       {/* Grid */}
       <div className="flex-1 min-h-full overflow-auto p-3 lg:p-6 print:overflow-visible print:p-0">
         {!hasTimetableTarget ? (
-          <div className="flex flex-col items-center justify-center h-full">
-            <AlertCircle className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {t("emptyState.noSelection.title")}
-            </h3>
-            <p className="text-gray-500">
-              {t("emptyState.noSelection.message")}
-            </p>
-          </div>
+          <AcademicModuleEmptyState
+            icon={AlertCircle}
+            title={tEmpty("no_timetable_selection.title")}
+            description={tEmpty("no_timetable_selection.description")}
+            className="h-full"
+          />
         ) : !resolvedConfig ? (
           timetableLoading ? (
             <div className="flex h-full items-center justify-center min-h-[400px]">
               <PartialLoader />
             </div>
           ) : (
-            <div className="flex h-full flex-col items-center justify-center px-4 text-center">
-              <Settings className="mb-4 h-12 w-12 text-gray-400" />
-              <h3 className="mb-2 text-lg font-semibold text-gray-900">
-                {t("emptyState.noConfig.title")}
-              </h3>
-            <p className="mb-5 max-w-md text-sm text-gray-500">
-              {t("emptyState.noConfig.message")}
-            </p>
-            <Button
-              onClick={() => setConfigDialogOpen(true)}
-              disabled={!canCreateConfig}
-              variant="primary"
-              leftIcon={<Settings className="h-4 w-4" />}
-            >
-              {t("emptyState.noConfig.cta")}
-            </Button>
-          </div>
+            <AcademicModuleEmptyState
+              icon={Settings}
+              title={tEmpty("no_timetable_config.title")}
+              description={tEmpty("no_timetable_config.description")}
+              ctaLabel={tEmpty("no_timetable_config.cta")}
+              ctaDisabled={!canCreateConfig}
+              onCtaClick={() => setConfigDialogOpen(true)}
+              className="h-full"
+            />
           )
         ) : periods.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center px-4 text-center">
-            <Settings className="mb-4 h-12 w-12 text-gray-400" />
-            <h3 className="mb-2 text-lg font-semibold text-gray-900">
-              {t("emptyState.noPeriods.title")}
-            </h3>
-            <p className="mb-5 max-w-md text-sm text-gray-500">
-              {t("emptyState.noPeriods.message")}
-            </p>
-            {canManageTimetable && (
-              <Button
-                onClick={() => setConfigDialogOpen(true)}
-                disabled={!canEditTimetable}
-                variant="primary"
-                leftIcon={<Settings className="h-4 w-4" />}
-              >
-                {t("emptyState.noPeriods.cta")}
-              </Button>
-            )}
-          </div>
+          <AcademicModuleEmptyState
+            icon={Settings}
+            title={tEmpty("no_timetable_periods.title")}
+            description={tEmpty("no_timetable_periods.description")}
+            ctaLabel={
+              canManageTimetable
+                ? tEmpty("no_timetable_periods.cta")
+                : undefined
+            }
+            ctaDisabled={!canEditTimetable}
+            onCtaClick={
+              canManageTimetable ? () => setConfigDialogOpen(true) : undefined
+            }
+            className="h-full"
+          />
         ) : displayedClassrooms.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center px-4 text-center">
-            <AlertCircle className="mb-4 h-12 w-12 text-gray-400" />
-            <h3 className="mb-2 text-lg font-semibold text-gray-900">
-              {locale === "ar" ? "لا توجد فصول" : "No classrooms found"}
-            </h3>
-            <p className="max-w-md text-sm text-gray-500">
-              {locale === "ar"
-                ? "لا توجد فصول داخل النطاق المحدد."
-                : "No classrooms exist inside the selected timetable scope."}
-            </p>
-          </div>
+          <AcademicModuleEmptyState
+            icon={School}
+            title={tEmpty("no_classrooms.title")}
+            description={tEmpty("no_classrooms.description")}
+            className="h-full"
+          />
         ) : (
           <div
             ref={printMatrixRef}

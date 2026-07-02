@@ -5,7 +5,15 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, Grid3x3, BarChart3 } from "lucide-react";
+import {
+  AlertCircle,
+  BarChart3,
+  BookOpen,
+  Clock,
+  GraduationCap,
+  Grid3x3,
+  Users,
+} from "lucide-react";
 import { Tabs, Tab } from "@mui/material";
 import type {
   AcademicYear,
@@ -27,6 +35,7 @@ import TeacherLoadView from "../components/TeacherLoadView";
 import ValidationPanel from "../components/ValidationPanel";
 import { AccessDenied, Button } from "@/components/ui";
 import TeacherAllocationTechnicalDetails from "../components/TeacherAllocationTechnicalDetails";
+import AcademicModuleEmptyState from "@/features/academics/components/shared/AcademicModuleEmptyState";
 
 interface TeacherAllocationViewProps {
   academicYearId: string;
@@ -84,6 +93,7 @@ export default function TeacherAllocationView({
   onCloseValidationPanel,
 }: TeacherAllocationViewProps) {
   const t = useTranslations("academics.teacherAllocation");
+  const tEmpty = useTranslations("academics.module_empty_states");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -139,69 +149,23 @@ export default function TeacherAllocationView({
       )}
 
       {!isLoading && academicYearId && termId && (grades.length === 0 || !hasClassrooms) && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center max-w-md px-6">
-            <div className="text-gray-400 mb-4">
-              <svg
-                className="w-24 h-24 mx-auto"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1}
-                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {t("emptyState.noGradesOrClassrooms.title")}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {t("emptyState.noGradesOrClassrooms.message")}
-            </p>
-            <div className="flex justify-center">
-              <Button
-                variant="primary"
-                onClick={() => {
-                  router.push("/academics/structure");
-                }}
-              >
-                {t("emptyState.noGrades.cta")}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <AcademicModuleEmptyState
+          icon={GraduationCap}
+          title={tEmpty("no_grades_or_classrooms.title")}
+          description={tEmpty("no_grades_or_classrooms.description")}
+          ctaLabel={tEmpty("no_grades.cta")}
+          onCtaClick={() => router.push("/academics/structure")}
+        />
       )}
 
       {!isLoading && academicYearId && termId && grades.length > 0 && hasClassrooms && subjects.length === 0 && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center max-w-md px-6">
-            <div className="text-gray-400 mb-4">
-              <svg
-                className="w-24 h-24 mx-auto"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1}
-                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {t("emptyState.noSubjects.title")}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {t("emptyState.noSubjects.message")}
-            </p>
-          </div>
-        </div>
+        <AcademicModuleEmptyState
+          icon={BookOpen}
+          title={tEmpty("no_subjects.title")}
+          description={tEmpty("no_subjects.description")}
+          ctaLabel={tEmpty("no_subjects.cta")}
+          onCtaClick={() => router.push("/academics/subjects")}
+        />
       )}
 
       {!isLoading &&
@@ -211,9 +175,12 @@ export default function TeacherAllocationView({
         hasClassrooms &&
         subjects.length > 0 &&
         !hasSubjectWeeklyHours && (
-          <EmptyState
-            title={t("emptyState.noSubjectWeeklyHours.title")}
-            message={t("emptyState.noSubjectWeeklyHours.message")}
+          <AcademicModuleEmptyState
+            icon={Clock}
+            title={tEmpty("no_subject_weekly_hours.title")}
+            description={tEmpty("no_subject_weekly_hours.description")}
+            ctaLabel={tEmpty("no_subject_weekly_hours.cta")}
+            onCtaClick={() => router.push("/academics/subjects")}
           />
         )}
 
@@ -225,31 +192,11 @@ export default function TeacherAllocationView({
         subjects.length > 0 &&
         hasSubjectWeeklyHours &&
         teachers.length === 0 && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center max-w-md px-6">
-              <div className="text-gray-400 mb-4">
-                <svg
-                  className="w-24 h-24 mx-auto"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1}
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {t("emptyState.noTeachers.title")}
-              </h3>
-              <p className="text-gray-600">
-                {t("emptyState.noTeachers.message")}
-              </p>
-            </div>
-          </div>
+          <AcademicModuleEmptyState
+            icon={Users}
+            title={tEmpty("no_teachers.title")}
+            description={tEmpty("no_teachers.description")}
+          />
         )}
 
       {/* Main Content */}

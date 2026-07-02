@@ -6,10 +6,12 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useDebouncedCallback } from "use-debounce";
 import {
   AlertCircle,
+  BookOpen,
   ChevronUp,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  GraduationCap,
 } from "lucide-react";
 import { Drawer, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
@@ -56,6 +58,7 @@ import {
   curriculumPageVisibility,
 } from "./curriculumFilterState";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import AcademicModuleEmptyState from "@/features/academics/components/shared/AcademicModuleEmptyState";
 import {
   curriculumConfirmation,
   type CurriculumConfirmationAction,
@@ -74,6 +77,7 @@ export default function CurriculumPageContent() {
   const t = useTranslations("academics.curriculum");
   const tCommon = useTranslations("common");
   const tExport = useTranslations("academics.export");
+  const tEmpty = useTranslations("academics.module_empty_states");
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
@@ -1040,22 +1044,13 @@ export default function CurriculumPageContent() {
       )}
 
       {!isInitializing && !isOptionsLoading && !contextError && !hasGrades && (
-        <div className="flex-1 flex items-center justify-center bg-gray-50">
-          <div className="text-center max-w-md px-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {t("empty_state.no_grades.title")}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {t("empty_state.no_grades.message")}
-            </p>
-            <Button
-              variant="primary"
-              onClick={() => router.push(`/${locale}/academics/structure`)}
-            >
-              {t("empty_state.no_grades.cta")}
-            </Button>
-          </div>
-        </div>
+        <AcademicModuleEmptyState
+          icon={GraduationCap}
+          title={tEmpty("no_grades.title")}
+          description={tEmpty("no_grades.description")}
+          ctaLabel={tEmpty("no_grades.cta")}
+          onCtaClick={() => router.push(`/${locale}/academics/structure`)}
+        />
       )}
 
       {!isInitializing &&
@@ -1063,22 +1058,13 @@ export default function CurriculumPageContent() {
         !contextError &&
         hasGrades &&
         !hasSubjects && (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
-            <div className="text-center max-w-md px-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {t("empty_state.no_subjects.title")}
-              </h3>
-              <p className="text-gray-600 mb-6">
-                {t("empty_state.no_subjects.message")}
-              </p>
-              <Button
-                variant="primary"
-                onClick={() => router.push(`/${locale}/academics/subjects`)}
-              >
-                {t("empty_state.no_subjects.cta")}
-              </Button>
-            </div>
-          </div>
+          <AcademicModuleEmptyState
+            icon={BookOpen}
+            title={tEmpty("no_subjects.title")}
+            description={tEmpty("no_subjects.description")}
+            ctaLabel={tEmpty("no_subjects.cta")}
+            onCtaClick={() => router.push(`/${locale}/academics/subjects`)}
+          />
         )}
 
       {isPageLoading && hasScope && (
@@ -1088,29 +1074,22 @@ export default function CurriculumPageContent() {
       )}
 
       {(canShowCreateCurriculum || canShowCurriculumError) && (
-        <div className="flex-1 flex items-center justify-center bg-gray-50">
-          <div className="text-center max-w-md px-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {curriculumError || t("empty_state.no_curriculum.title")}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {curriculumError || t("empty_state.no_curriculum.message")}
-            </p>
-            {canShowCurriculumError ? (
-              <Button variant="primary" onClick={loadCurriculumData}>
-                {tCommon("retry")}
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                onClick={() => setShowCreateDialog(true)}
-                disabled={isReadOnly}
-              >
-                {t("actions.create_curriculum")}
-              </Button>
-            )}
-          </div>
-        </div>
+        <AcademicModuleEmptyState
+          icon={BookOpen}
+          title={curriculumError || tEmpty("no_curriculum.title")}
+          description={curriculumError || tEmpty("no_curriculum.description")}
+          ctaLabel={
+            canShowCurriculumError
+              ? tCommon("retry")
+              : t("actions.create_curriculum")
+          }
+          ctaDisabled={!canShowCurriculumError && isReadOnly}
+          onCtaClick={
+            canShowCurriculumError
+              ? loadCurriculumData
+              : () => setShowCreateDialog(true)
+          }
+        />
       )}
 
       {/* Main Content */}

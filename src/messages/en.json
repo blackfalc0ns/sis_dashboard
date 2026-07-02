@@ -3536,6 +3536,59 @@
         "exportFailedGeneric": "Export failed. Please try again."
       }
     },
+    "module_empty_states": {
+      "no_grades": {
+        "title": "No grades yet",
+        "description": "Create grades and classrooms before configuring academic modules.",
+        "cta": "Go to Academic Structure"
+      },
+      "no_grades_or_classrooms": {
+        "title": "No grades or classrooms yet",
+        "description": "Create grades, sections, and classrooms before assigning teachers.",
+        "cta": "Go to Academic Structure"
+      },
+      "no_subjects": {
+        "title": "No subjects yet",
+        "description": "Create subjects before configuring allocations, curricula, or teaching plans.",
+        "cta": "Go to Subjects"
+      },
+      "no_subject_weekly_hours": {
+        "title": "No weekly hours configured",
+        "description": "Add weekly hours to subject allocations before assigning teachers.",
+        "cta": "Go to Subjects"
+      },
+      "no_teachers": {
+        "title": "No teachers available",
+        "description": "Create teacher accounts before assigning teaching loads."
+      },
+      "no_curriculum": {
+        "title": "No curriculum yet",
+        "description": "Create a curriculum for the selected grade and subject to start planning lessons."
+      },
+      "no_timetable_selection": {
+        "title": "Select a timetable scope",
+        "description": "Choose a stage, grade, section, and classroom to view or edit the timetable."
+      },
+      "no_timetable_config": {
+        "title": "No timetable config yet",
+        "description": "Create a timetable configuration before adding periods or entries.",
+        "cta": "Create timetable config"
+      },
+      "no_timetable_periods": {
+        "title": "No timetable periods yet",
+        "description": "Set up periods before adding timetable entries.",
+        "cta": "Set up periods"
+      },
+      "no_classrooms": {
+        "title": "No classrooms found",
+        "description": "Create classrooms inside the selected scope before continuing."
+      },
+      "no_rooms": {
+        "title": "No rooms yet",
+        "description": "Create rooms to use in timetable planning.",
+        "cta": "Add room"
+      }
+    },
     "structure": {
       "context_bar": {
         "title": "Academic Context",
@@ -8696,7 +8749,7 @@
           "title": "Campaign composer",
           "description": "Create a general campaign using the GENERAL_MESSAGE template and custom campaign content.",
           "external_only": "Email campaigns are external delivery only and are not connected to in-app announcements or Notification Center.",
-          "credential_safety": "Credential-only variables such as {{credential.temporaryPassword}} are blocked here. Use credential delivery for account credentials."
+          "credential_safety": "Credential-only variables such as '{{credential.temporaryPassword}}' are blocked here. Use credential delivery for account credentials."
         },
         "fields": {
           "template_key": "Template key",

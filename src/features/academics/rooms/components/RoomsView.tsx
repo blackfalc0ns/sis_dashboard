@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDebouncedCallback } from "use-debounce";
-import { AlertCircle, Download, Edit2, Plus, Trash2 } from "lucide-react";
+import { AlertCircle, DoorOpen, Download, Edit2, Plus, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import { AccessDenied, Button } from "@/components/ui";
 import Select from "@/components/ui/input/Select";
@@ -30,6 +30,7 @@ import { Room } from "@/features/academics/timetable/types/timetable";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { usePermissions } from "@/hooks/usePermissions";
 import { isApiError } from "@/lib/api-error";
+import AcademicModuleEmptyState from "@/features/academics/components/shared/AcademicModuleEmptyState";
 
 interface RoomsViewProps {
   schoolId: string;
@@ -83,6 +84,7 @@ export default function RoomsView({
 }: RoomsViewProps) {
   const t = useTranslations("academics.timetable.rooms");
   const tCommon = useTranslations("common");
+  const tEmpty = useTranslations("academics.module_empty_states");
   const tExport = useTranslations("academics.export");
   const locale = useLocale();
   const router = useRouter();
@@ -527,26 +529,14 @@ export default function RoomsView({
               </div>
             </div>
           ) : rooms.length === 0 ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="max-w-sm text-center">
-                <h3 className="text-sm font-semibold text-gray-900">
-                  {t("emptyTitle")}
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  {t("emptyDescription")}
-                </p>
-                {canMutateRooms && (
-                  <Button
-                    className="mt-4"
-                    variant="primary"
-                    leftIcon={<Plus className="h-4 w-4" />}
-                    onClick={openAddRoomDialog}
-                  >
-                    {t("addRoom")}
-                  </Button>
-                )}
-              </div>
-            </div>
+            <AcademicModuleEmptyState
+              icon={DoorOpen}
+              title={tEmpty("no_rooms.title")}
+              description={tEmpty("no_rooms.description")}
+              ctaLabel={canMutateRooms ? tEmpty("no_rooms.cta") : undefined}
+              onCtaClick={canMutateRooms ? openAddRoomDialog : undefined}
+              className="py-12"
+            />
           ) : (
             <DataTable
               data={filteredRooms as unknown as { [key: string]: unknown }[]}

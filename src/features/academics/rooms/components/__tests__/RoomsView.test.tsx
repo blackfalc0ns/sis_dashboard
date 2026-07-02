@@ -118,22 +118,23 @@ describe("RoomsView", () => {
     expect(screen.getByText("Art Studio")).toBeInTheDocument();
 
     await user.clear(screen.getByPlaceholderText("searchPlaceholder"));
-    await user.click(screen.getByRole("button", { name: /allStatuses/i }));
+    await user.click(screen.getByText("allStatuses"));
     await user.click(screen.getByRole("button", { name: "active" }));
     expect(screen.getByText("Science Lab")).toBeInTheDocument();
     expect(screen.queryByText("Art Studio")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /active/i }));
+    await user.click(screen.getByRole("button", { name: "status" }));
     await user.click(screen.getByRole("button", { name: "allStatuses" }));
-    await user.click(screen.getByRole("button", { name: /allBuildings/i }));
+    await user.click(screen.getByText("allBuildings"));
     await user.click(screen.getByRole("button", { name: "Block B" }));
     expect(screen.queryByText("Science Lab")).not.toBeInTheDocument();
     expect(screen.getByText("Art Studio")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Block B/i }));
+    await user.click(screen.getByRole("button", { name: "building" }));
     await user.click(screen.getByRole("button", { name: "allBuildings" }));
-    await user.click(screen.getByRole("button", { name: /allFloors/i }));
-    await user.click(screen.getAllByRole("button", { name: "1" })[0]);
+    await user.click(screen.getByText("allFloors"));
+    const floorOneOptions = screen.getAllByRole("button", { name: "1" });
+    await user.click(floorOneOptions[floorOneOptions.length - 1]);
     expect(screen.getByText("Science Lab")).toBeInTheDocument();
     expect(screen.queryByText("Art Studio")).not.toBeInTheDocument();
   });
@@ -178,9 +179,11 @@ describe("RoomsView", () => {
     roomsServiceMocks.fetchRooms.mockResolvedValue([]);
     renderRoomsView();
 
-    expect(await screen.findByText("emptyTitle")).toBeInTheDocument();
-    expect(screen.getByText("emptyDescription")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "addRoom" })[1]).toBeEnabled();
+    expect(await screen.findByText("no_rooms.title")).toBeInTheDocument();
+    expect(screen.getByText("no_rooms.description")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "no_rooms.cta" }),
+    ).toBeEnabled();
   });
 
   it("shows load errors and allows retry", async () => {

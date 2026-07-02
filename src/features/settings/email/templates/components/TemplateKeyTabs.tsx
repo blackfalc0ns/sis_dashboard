@@ -42,8 +42,10 @@ export default function TemplateKeyTabs({
           >
             <span>{labels[key]}</span>
             <span
-              className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
-                isSelected ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
+              className={`mx-2.5 rounded-full px-2 py-0.5 text-xs ${
+                isSelected
+                  ? "bg-white/20 text-white"
+                  : "bg-gray-100 text-gray-600"
               }`}
             >
               {template?.isActive ? activeLabel : inactiveLabel}
