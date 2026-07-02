@@ -27,7 +27,7 @@ Malformed responses that omit required identifiers or context are treated as con
 
 ## Roll Call
 
-Roll call uses the core `/attendance/roll-call` endpoints with uppercase enum values.
+Roll call uses the core `/attendance/roll-call` endpoints with uppercase Prisma enum values, including attendance status, mode, and scope type.
 
 The roster screen first calls `GET /attendance/roll-call/roster` to preview students and current state without creating a session. `POST /attendance/roll-call/session/resolve` is called only when the user intentionally starts or opens attendance for editing. `PERIOD` sessions must include a `periodKey`; `DAILY` sessions use the backend daily key behavior and do not invent period fields.
 
@@ -40,7 +40,17 @@ Submitted edits use:
 
 - `POST /attendance/roll-call/sessions/:sessionId/entries/:studentId/correct`
 
-Correction requests include `correctionReason`. Submit and reopen continue through the documented submit and unsubmit endpoints. The list and detail session endpoints do not send unsupported pagination fields.
+Correction requests include the required `status` and `correctionReason` fields. A late-minute correction sends a full correction payload, for example:
+
+```json
+{
+  "status": "LATE",
+  "lateMinutes": 10,
+  "correctionReason": "Corrected after review"
+}
+```
+
+Submit and reopen continue through the documented submit and unsubmit endpoints. The list and detail session endpoints do not send unsupported pagination fields.
 
 ## Absences And Late/Early
 
@@ -53,7 +63,7 @@ Absences use:
 - `PATCH /attendance/absences/:id/excuse`
 - `PATCH /attendance/absences/:id/early-leave`
 
-Late and early-leave views continue filtering the same derived incident list for `LATE` and `EARLY_LEAVE`. Early-leave minute edits use the documented early-leave correction endpoint. Late minute corrections use the roll-call correction endpoint when the backend incident contract requires entry correction through the source session and student.
+Late and early-leave views continue filtering the same derived incident list for `LATE` and `EARLY_LEAVE`. Early-leave minute edits use the documented early-leave correction endpoint. Late minute corrections use the roll-call correction endpoint when the backend incident contract requires entry correction through the source session and student, and they must send `status: "LATE"` along with `lateMinutes` and `correctionReason`.
 
 Service filters send only documented query fields. Client-only filters, such as text matching or UI-only violation toggles, remain client-side after the backend result is mapped.
 
@@ -89,7 +99,7 @@ Reports use the documented aggregate endpoints:
 - `GET /attendance/reports/scope-breakdown`
 - `GET /attendance/reports/derived-daily-absences`
 
-Report query builders send only documented shared fields and the required `groupBy` field for scope breakdown. Rates from the backend are stored as `0..1` decimal values in mapped report models. Percentage formatting belongs in the presentation layer and must not feed `0..100` values back into service models.
+Report query builders send only documented shared fields and the required `groupBy` field for scope breakdown. Unlike Prisma-backed attendance enums, report `groupBy` uses lowercase values: `stage`, `grade`, `section`, and `classroom`. Rates from the backend are stored as `0..1` decimal values in mapped report models. Percentage formatting belongs in the presentation layer and must not feed `0..100` values back into service models.
 
 ## Policies
 
@@ -101,7 +111,20 @@ Compatibility aliases in policy responses are normalized at the service boundary
 
 ## Error Handling
 
-Backend error envelopes are handled through the existing API error path. Service-level contract failures should surface as ordinary failures to page code rather than silently manufacturing usable data.
+Backend error envelopes are handled through the existing API error path. The normalized backend shape is:
+
+```json
+{
+  "error": {
+    "code": "validation.failed",
+    "message": "...",
+    "details": {},
+    "traceId": "..."
+  }
+}
+```
+
+Service-level contract failures should surface as ordinary failures to page code rather than silently manufacturing usable data.
 
 Expected behavior:
 
@@ -130,10 +153,10 @@ Focused service tests cover:
 
 - Exact endpoints, methods, params, and bodies for each attendance service.
 - Use of `academicYearId` in outbound core attendance requests.
-- Uppercase enum values for core `/attendance/*` calls.
+- Uppercase Prisma enum values for core `/attendance/*` calls, while preserving lowercase report `groupBy` values.
 - No unsupported core pagination fields where the backend DTO omits them.
 - `PERIOD` roll-call payloads including `periodKey`.
-- Correction calls including `correctionReason`.
+- Correction calls including required `status` and `correctionReason` fields.
 - Formal excuse attachment linking with `fileIds`.
 - Approve and reject bodies containing only `decisionNote`.
 - Report rates preserved as `0..1`.
