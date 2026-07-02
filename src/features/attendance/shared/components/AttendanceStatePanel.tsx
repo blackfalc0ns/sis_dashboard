@@ -1,17 +1,20 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { AlertCircle } from "lucide-react";
 
 interface AttendanceStatePanelProps {
   title: string;
   description?: string;
   compact?: boolean;
+  action?: ReactNode;
 }
 
 export default function AttendanceStatePanel({
   title,
   description,
   compact = false,
+  action,
 }: AttendanceStatePanelProps) {
   return (
     <div className="flex items-center justify-center h-full p-10">
@@ -29,6 +32,7 @@ export default function AttendanceStatePanel({
         {description ? (
           <p style={{ color: "var(--text-muted)" }}>{description}</p>
         ) : null}
+        {action ? <div className="flex justify-center pt-1">{action}</div> : null}
       </div>
     </div>
   );

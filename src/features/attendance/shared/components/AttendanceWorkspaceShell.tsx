@@ -70,6 +70,25 @@ export function AttendanceWorkspaceStack({ children }: PropsWithChildren) {
   return <div className="flex min-h-0 flex-1 flex-col gap-4">{children}</div>;
 }
 
+interface AttendanceWorkspaceRailProps {
+  rail: ReactNode;
+  main: ReactNode;
+  className?: string;
+}
+
+export function AttendanceWorkspaceRail({
+  rail,
+  main,
+  className = "",
+}: AttendanceWorkspaceRailProps) {
+  return (
+    <div className={`flex min-h-0 flex-1 gap-4 ${className}`.trim()}>
+      <aside className="hidden w-80 shrink-0 lg:flex">{rail}</aside>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">{main}</div>
+    </div>
+  );
+}
+
 interface AttendanceWorkspaceMobileActionsProps extends PropsWithChildren {
   columns?: 1 | 2;
   className?: string;
@@ -114,12 +133,14 @@ interface AttendanceWorkspaceStateProps {
   title: string;
   description?: string;
   compact?: boolean;
+  action?: ReactNode;
 }
 
 export function AttendanceWorkspaceState({
   title,
   description,
   compact = false,
+  action,
 }: AttendanceWorkspaceStateProps) {
   return (
     <div className="flex min-h-full flex-1 items-center justify-center">
@@ -127,6 +148,7 @@ export function AttendanceWorkspaceState({
         title={title}
         description={description}
         compact={compact}
+        action={action}
       />
     </div>
   );
