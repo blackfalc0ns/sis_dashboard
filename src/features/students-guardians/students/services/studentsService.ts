@@ -334,26 +334,10 @@ export function getStudentsWithMedicalConditions(): Student[] {
 // ============================================================================
 
 const normalizeStudentNote = (
-  note: StudentNote | (StudentNote & { xpAdjustment?: number }),
+  note: StudentNote | StudentNote,
 ): StudentNote => ({
   ...note,
-  xpAdjustment:
-    typeof note.xpAdjustment === "number" && Number.isInteger(note.xpAdjustment)
-      ? note.xpAdjustment
-      : 0,
 });
-
-const validateXpAdjustment = (xpAdjustment: number) => {
-  if (!Number.isInteger(xpAdjustment)) {
-    throw new Error("xp_must_be_integer");
-  }
-  if (xpAdjustment < -50 || xpAdjustment > 50) {
-    throw new Error("xp_out_of_range");
-  }
-  if (xpAdjustment === 0) {
-    throw new Error("xp_cannot_be_zero");
-  }
-};
 
 /**
  * Get all notes for a student
@@ -383,67 +367,6 @@ export function getStudentNotesByVisibility(
   visibility: StudentNote["visibility"],
 ): StudentNote[] {
   return getStudentNotes(studentId).filter((n) => n.visibility === visibility);
-}
-
-export function addStudentNote(
-  studentId: string,
-  payload: CreateStudentNotePayload,
-): StudentNote {
-  validateXpAdjustment(payload.xpAdjustment);
-
-  const newNote: StudentNote = {
-    id: `NOTE-${studentId}-${Date.now()}`,
-    studentId,
-    date: new Date().toISOString(),
-    category: payload.category,
-    note: payload.note.trim(),
-    xpAdjustment: payload.xpAdjustment,
-    visibility: payload.visibility,
-    created_by: payload.created_by.trim(),
-  };
-
-  mockStudentNotes.unshift(newNote);
-  return normalizeStudentNote(newNote);
-}
-
-export function getStudentXpEvents(studentId: string): StudentXpEvent[] {
-  return getStudentNotes(studentId)
-    .filter((note) => note.xpAdjustment !== 0)
-    .map((note) => ({
-      id: note.id,
-      studentId: note.studentId,
-      date: note.date,
-      category: note.category,
-      points: note.xpAdjustment,
-      note: note.note,
-      visibility: note.visibility,
-      created_by: note.created_by,
-    }));
-}
-
-export function getStudentXpSummary(studentId: string): StudentXpSummary {
-  const events = getStudentXpEvents(studentId);
-  const last7DaysThreshold = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const recentEvents = events.filter(
-    (event) => new Date(event.date).getTime() >= last7DaysThreshold,
-  );
-
-  return {
-    totalXp: events.reduce((sum, event) => sum + event.points, 0),
-    recentXp: recentEvents.reduce((sum, event) => sum + event.points, 0),
-    weeklyXpDelta: recentEvents.reduce((sum, event) => sum + event.points, 0),
-    positiveNotesCount: events.filter((event) => event.points > 0).length,
-    negativeNotesCount: events.filter((event) => event.points < 0).length,
-    totalNotesCount: getStudentNotes(studentId).length,
-    positivePointsTotal: events
-      .filter((event) => event.points > 0)
-      .reduce((sum, event) => sum + event.points, 0),
-    negativePointsTotal: Math.abs(
-      events
-        .filter((event) => event.points < 0)
-        .reduce((sum, event) => sum + event.points, 0),
-    ),
-  };
 }
 
 // ============================================================================
@@ -1086,9 +1009,12 @@ export async function fetchMissingStudentDocuments(
 
 export async function createStudentDocument(
   studentId: string,
-  payloadWithFile: FormData,
+  payload: studentDocumentsApiService.CreateStudentDocumentPayload,
 ): Promise<StudentDocument> {
-  return studentDocumentsApiService.createStudentDocument(studentId, payloadWithFile);
+  return studentDocumentsApiService.createStudentDocument(
+    studentId,
+    payload,
+  );
 }
 
 export async function fetchStudentMedicalProfile(
@@ -1122,7 +1048,11 @@ export async function updateStudentNote(
   studentNoteId: string,
   payload: Partial<CreateStudentNotePayload>,
 ): Promise<StudentNote> {
-  return studentNotesApiService.updateStudentNote(studentId, studentNoteId, payload);
+  return studentNotesApiService.updateStudentNote(
+    studentId,
+    studentNoteId,
+    payload,
+  );
 }
 
 export async function fetchStudentTimeline(
