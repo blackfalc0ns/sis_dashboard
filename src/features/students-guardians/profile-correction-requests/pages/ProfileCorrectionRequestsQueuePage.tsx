@@ -9,7 +9,7 @@ import type {
   ProfileCorrectionRequestStatus,
 } from "@/features/students-guardians/profile-correction-requests/types/profileCorrectionRequests";
 import { fetchProfileCorrectionRequests } from "@/features/students-guardians/profile-correction-requests/services/profileCorrectionRequestsApiService";
-import { Input, Select, Button, DataTable, type Column } from "@/components/ui";
+import { Select, Button, DataTable, type Column } from "@/components/ui";
 import { useTranslations } from "next-intl";
 
 export default function ProfileCorrectionRequestsQueuePage() {
@@ -26,8 +26,35 @@ export default function ProfileCorrectionRequestsQueuePage() {
   const [requests, setRequests] = useState<ProfileCorrectionRequestListItem[]>(
     [],
   );
+  const [allRequests, setAllRequests] = useState<
+    ProfileCorrectionRequestListItem[]
+  >([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch all requests once on mount to populate student dropdown options
+  useEffect(() => {
+    if (!canViewProfileCorrectionRequests) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const loadAllRequests = async () => {
+      try {
+        const data = await fetchProfileCorrectionRequests({ status: "all" });
+        if (!isCancelled) setAllRequests(data);
+      } catch {
+        // Ignore background prefetch error for dropdown options
+      }
+    };
+
+    void loadAllRequests();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [canViewProfileCorrectionRequests]);
 
   useEffect(() => {
     if (!canViewProfileCorrectionRequests) {
@@ -67,12 +94,31 @@ export default function ProfileCorrectionRequestsQueuePage() {
     };
   }, [canViewProfileCorrectionRequests, status, studentId]);
 
+  const studentOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    [...allRequests, ...requests].forEach((req) => {
+      if (req.studentId) {
+        // Show student name only (fallback to studentId if name is missing)
+        map.set(req.studentId, req.studentName || req.studentId);
+      }
+    });
+
+    const opts = Array.from(map.entries()).map(([id, name]) => ({
+      value: id,
+      label: name, // Display name ONLY
+    }));
+
+    return [{ value: "all", label: t("status_all") }, ...opts];
+  }, [allRequests, requests, t]);
+
   const pendingCount = useMemo(
     () => requests.filter((request) => request.status === "PENDING").length,
     [requests],
   );
 
-  const columns: Column<ProfileCorrectionRequestListItem & { [key: string]: unknown }>[] = [
+  const columns: Column<
+    ProfileCorrectionRequestListItem & { [key: string]: unknown }
+  >[] = [
     {
       key: "student",
       label: t("column_student"),
@@ -81,9 +127,7 @@ export default function ProfileCorrectionRequestsQueuePage() {
           <div className="font-medium text-gray-900">
             {request.studentName || request.studentId}
           </div>
-          <div className="text-xs text-gray-500">
-            {request.studentId}
-          </div>
+          <div className="text-xs text-gray-500">{request.studentId}</div>
         </div>
       ),
     },
@@ -111,7 +155,9 @@ export default function ProfileCorrectionRequestsQueuePage() {
           size="sm"
           onClick={(e) => {
             e.stopPropagation();
-            router.push(`/${lang}/students-guardians/profile-correction-requests/${request.id}`);
+            router.push(
+              `/${lang}/students-guardians/profile-correction-requests/${request.id}`,
+            );
           }}
         >
           {t("action_open")}
@@ -136,9 +182,7 @@ export default function ProfileCorrectionRequestsQueuePage() {
         <p className="text-sm font-semibold text-primary">
           {t("students_guardians")}
         </p>
-        <h1 className="mt-1 text-2xl font-bold text-gray-900">
-          {t("title")}
-        </h1>
+        <h1 className="mt-1 text-2xl font-bold text-gray-900">{t("title")}</h1>
         <p className="mt-2 text-sm text-gray-600">
           {t("subtitle", { count: pendingCount })}
         </p>
@@ -149,7 +193,9 @@ export default function ProfileCorrectionRequestsQueuePage() {
           <Select
             label={t("status")}
             value={status}
-            onChange={(val) => setStatus(val as ProfileCorrectionRequestStatus | "all")}
+            onChange={(val) =>
+              setStatus(val as ProfileCorrectionRequestStatus | "all")
+            }
             options={[
               { value: "PENDING", label: t("status_pending") },
               { value: "APPROVED", label: t("status_approved") },
@@ -158,10 +204,12 @@ export default function ProfileCorrectionRequestsQueuePage() {
               { value: "all", label: t("status_all") },
             ]}
           />
-          <Input
+          <Select
             label={t("student_id")}
-            value={studentId}
-            onChange={(event) => setStudentId(event.target.value)}
+            value={studentId || "all"}
+            onChange={(val) => setStudentId(val === "all" ? "" : val)}
+            options={studentOptions}
+            searchable={true}
             placeholder={t("optional")}
           />
         </div>
@@ -175,7 +223,11 @@ export default function ProfileCorrectionRequestsQueuePage() {
 
       <DataTable<ProfileCorrectionRequestListItem & { [key: string]: unknown }>
         columns={columns}
-        data={requests as (ProfileCorrectionRequestListItem & { [key: string]: unknown })[]}
+        data={
+          requests as (ProfileCorrectionRequestListItem & {
+            [key: string]: unknown;
+          })[]
+        }
         isLoading={isLoading}
         onRowClick={(request) =>
           router.push(
