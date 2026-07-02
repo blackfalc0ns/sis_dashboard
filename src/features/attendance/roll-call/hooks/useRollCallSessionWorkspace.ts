@@ -57,6 +57,13 @@ export interface RollCallSessionWorkspace {
   resetDraft: () => void;
 }
 
+export class RollCallSubmissionError extends Error {
+  constructor(cause: unknown) {
+    super("The attendance draft was saved, but submission failed.", { cause });
+    this.name = "RollCallSubmissionError";
+  }
+}
+
 function reconcileEntries(
   sessionId: string,
   roster: RosterStudent[],
@@ -240,11 +247,16 @@ export function useRollCallSessionWorkspace(
     setIsSaving(true);
     try {
       const saved = await persistDraft();
-      const submitted = await submitSession(
-        saved.session.id,
-        saved.session.yearId,
-        saved.session.termId,
-      );
+      let submitted: AttendanceSession;
+      try {
+        submitted = await submitSession(
+          saved.session.id,
+          saved.session.yearId,
+          saved.session.termId,
+        );
+      } catch (error) {
+        throw new RollCallSubmissionError(error);
+      }
       setSession(submitted);
       return submitted;
     } finally {

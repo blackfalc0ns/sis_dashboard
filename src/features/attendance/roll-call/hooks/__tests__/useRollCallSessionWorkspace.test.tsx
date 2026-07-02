@@ -14,6 +14,7 @@ import {
   unsubmitSession,
 } from "../../services/attendanceRollCallService";
 import {
+  RollCallSubmissionError,
   useRollCallSessionWorkspace,
   type RollCallSelection,
 } from "../useRollCallSessionWorkspace";
@@ -322,7 +323,8 @@ describe("useRollCallSessionWorkspace", () => {
       }
     });
 
-    expect(caught).toEqual(new Error("submit failed"));
+    expect(caught).toBeInstanceOf(RollCallSubmissionError);
+    expect((caught as Error).cause).toEqual(new Error("submit failed"));
     expect(mockedSubmitSession).toHaveBeenCalledWith("session-1", "year-1", "term-1");
     expect(mockedSaveSession.mock.invocationCallOrder[0]).toBeLessThan(
       mockedSubmitSession.mock.invocationCallOrder[0],
