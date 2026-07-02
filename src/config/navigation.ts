@@ -231,14 +231,14 @@ export const menuItems: MenuItem[] = [
         href_ar: "/ar/students-guardians/students",
         icon: Users,
       },
-      {
-        key: "guardians-list",
-        label_en: "Guardians",
-        label_ar: "أولياء الأمور",
-        href_en: "/en/students-guardians/guardians",
-        href_ar: "/ar/students-guardians/guardians",
-        icon: UserCheck,
-      },
+      // {
+      //   key: "guardians-list",
+      //   label_en: "Guardians",
+      //   label_ar: "أولياء الأمور",
+      //   href_en: "/en/students-guardians/guardians",
+      //   href_ar: "/ar/students-guardians/guardians",
+      //   icon: UserCheck,
+      // },
       {
         key: "profile-correction-requests",
         label_en: "Profile Correction Requests",
