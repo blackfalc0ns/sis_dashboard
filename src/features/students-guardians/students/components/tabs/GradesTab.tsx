@@ -13,32 +13,73 @@ import type { StudentGradesSnapshot } from "@/features/grades/overview/types";
 
 interface GradesTabProps {
   student: Student;
+  academicYearId?: string | null;
+  termId?: string | null;
 }
 
-export default function GradesTab({ student }: GradesTabProps) {
+export default function GradesTab({
+  student,
+  academicYearId,
+  termId,
+}: GradesTabProps) {
   const t = useTranslations("students_guardians.profile.grades");
   const locale = useLocale();
   const [snapshot, setSnapshot] = useState<StudentGradesSnapshot | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isCancelled = false;
+
     const loadSnapshot = async () => {
+      if (!academicYearId || !termId) {
+        setSnapshot(null);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
+      setError(null);
+
       try {
         const nextSnapshot = await fetchStudentGradesSnapshot(student.id, {
-          academicYearId: "year-2026",
-          termId: "term-1",
+          academicYearId,
+          termId,
         });
-        setSnapshot(nextSnapshot);
+
+        if (!isCancelled) {
+          setSnapshot(nextSnapshot);
+        }
+      } catch (loadError) {
+        if (!isCancelled) {
+          setSnapshot(null);
+          const message = loadError instanceof Error ? loadError.message : "";
+          if (
+            message.includes("not found") ||
+            message.includes("404") ||
+            message.includes("enrollment")
+          ) {
+            setError(t("no_snapshot_available"));
+          } else {
+            setError(message || t("loading_error"));
+          }
+        }
       } finally {
-        setIsLoading(false);
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     void loadSnapshot();
-  }, [student.id]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [student.id, academicYearId, termId, t]);
 
   const subjectRows = snapshot?.subjectRows || [];
+
   const columns = useMemo(
     () => [
       {
@@ -77,10 +118,26 @@ export default function GradesTab({ student }: GradesTabProps) {
     trend: row.trend,
   }));
 
+  if (!academicYearId || !termId) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
+        {t("missing_term_context")}
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
         <PartialLoader />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-700">
+        {error}
       </div>
     );
   }

@@ -13,6 +13,8 @@ import MedicalTab from "@/features/students-guardians/students/components/tabs/M
 import NotesTab from "@/features/students-guardians/students/components/tabs/NotesTab";
 import TimelineTab from "@/features/students-guardians/students/components/tabs/TimelineTab";
 import BehaviorTab from "@/features/students-guardians/students/components/tabs/BehaviorTab";
+import GradesTab from "@/features/students-guardians/students/components/tabs/GradesTab";
+import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import { Clock } from "lucide-react";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
@@ -50,6 +52,8 @@ function renderTab(
   tab: StudentTabKey,
   student: Student,
   onStudentUpdated: () => void,
+  academicYearId?: string | null,
+  termId?: string | null,
 ) {
   switch (tab) {
     case "overview":
@@ -75,7 +79,13 @@ function renderTab(
     case "attendance":
       return <ComingSoonTab label="Attendance" />;
     case "grades":
-      return <ComingSoonTab label="Grades" />;
+      return (
+        <GradesTab
+          student={student}
+          academicYearId={academicYearId}
+          termId={termId}
+        />
+      );
     default:
       return null;
   }
@@ -85,6 +95,7 @@ export default function StudentTabLoader({
   studentId,
   tab,
 }: StudentTabLoaderProps) {
+  const { yearId, termId } = useStudentsGuardiansYearTermContext();
   const [student, setStudent] = useState<Student | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
@@ -145,5 +156,5 @@ export default function StudentTabLoader({
 
   if (!student) return null;
 
-  return renderTab(tab, student, loadStudent);
+  return renderTab(tab, student, loadStudent, yearId, termId);
 }

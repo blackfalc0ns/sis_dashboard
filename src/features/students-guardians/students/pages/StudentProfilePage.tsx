@@ -13,7 +13,6 @@ import {
   GraduationCap,
   Heart,
   FileText,
-  Activity,
   MessageSquare,
   Clock,
   Award,
@@ -28,6 +27,7 @@ import Button from "@/components/ui/button/Button";
 import EmptyState from "@/components/ui/empty-state/EmptyState";
 import StudentAccountLinkModal from "@/features/students-guardians/students/components/StudentAccountLinkModal";
 import { usePermissions } from "@/hooks/usePermissions";
+import { getStudentsGuardiansCapabilities } from "@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities";
 import {
   StudentAttendanceTab,
   StudentBehaviorTab,
@@ -37,7 +37,6 @@ import {
   StudentGuardiansTab,
   StudentMedicalTab,
   StudentNotesTab,
-  StudentOverviewTab,
   StudentPersonalInfoTab,
   StudentTimelineTab,
   StudentTransfersTab,
@@ -50,13 +49,14 @@ import {
   getStudentClassroom,
 } from "@/features/students-guardians/students/utils/studentUtils";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
+
 
 interface StudentProfilePageProps {
   studentId: string;
 }
 
 type TabKey =
-  | "overview"
   | "personal"
   | "guardians"
   | "enrollment"
@@ -71,7 +71,6 @@ type TabKey =
   | "withdrawal";
 
 const tabs = [
-  { key: "overview" as TabKey, labelKey: "tabs.overview", icon: Activity },
   { key: "personal" as TabKey, labelKey: "tabs.personal_info", icon: User },
   { key: "guardians" as TabKey, labelKey: "tabs.guardians", icon: Users },
   {
@@ -100,11 +99,13 @@ export default function StudentProfilePage({
   const t = useTranslations("students_guardians.profile");
   const locale = useLocale();
   const router = useRouter();
-  const { hasPermission } = usePermissions();
-  const canManageAccounts = hasPermission("settings.users.manage");
+  const permissions = usePermissions();
+  const { canLinkStudentAccount } =
+    getStudentsGuardiansCapabilities(permissions);
   const params = useParams();
   const lang = (params.lang as string) || "en";
-  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const { yearId, termId } = useStudentsGuardiansYearTermContext();
+  const [activeTab, setActiveTab] = useState<TabKey>("personal");
   const [studentRevision, setStudentRevision] = useState(0);
   const [student, setStudent] = useState<Student | null>(null);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
@@ -241,7 +242,6 @@ export default function StudentProfilePage({
   const profileStudent = enrichedStudent ?? student;
 
   const tabContent: Record<TabKey, ReactNode> = {
-    overview: <StudentOverviewTab student={profileStudent} />,
     personal: (
       <StudentPersonalInfoTab
         student={profileStudent}
@@ -251,7 +251,13 @@ export default function StudentProfilePage({
     guardians: <StudentGuardiansTab student={profileStudent} />,
     enrollment: <StudentEnrollmentHistoryTab student={profileStudent} />,
     attendance: <StudentAttendanceTab student={profileStudent} />,
-    grades: <StudentGradesTab student={profileStudent} />,
+    grades: (
+      <StudentGradesTab
+        student={profileStudent}
+        academicYearId={yearId}
+        termId={termId}
+      />
+    ),
     behavior: <StudentBehaviorTab student={profileStudent} />,
     documents: <StudentDocumentsTab student={profileStudent} />,
     medical: <StudentMedicalTab student={profileStudent} />,
@@ -332,9 +338,9 @@ export default function StudentProfilePage({
               type="button"
               variant="secondary"
               leftIcon={<Lock className="h-4 w-4" />}
-              disabled={!canManageAccounts}
+              disabled={!canLinkStudentAccount}
               title={
-                canManageAccounts
+                canLinkStudentAccount
                   ? t("account_linking.action")
                   : t("account_linking.manage_required")
               }
