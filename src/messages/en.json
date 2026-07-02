@@ -8679,7 +8679,12 @@
           "user_type": "User type",
           "user_type_placeholder": "Select user type",
           "custom_emails": "Custom emails",
-          "custom_emails_help": "Optional external recipients separated by commas or new lines.",
+          "custom_emails_help": "Optional external recipients. Add each email as a badge.",
+          "custom_email_placeholder": "Enter email address",
+          "custom_email_add": "Add email",
+          "custom_email_invalid": "Enter a valid email address.",
+          "custom_email_duplicate": "This email is already added.",
+          "custom_email_remove": "Remove {email}",
           "options": {
             "selected_users": "Selected users",
             "role": "Role",

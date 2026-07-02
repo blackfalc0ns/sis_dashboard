@@ -8680,7 +8680,12 @@
           "user_type": "نوع المستخدم",
           "user_type_placeholder": "اختر نوع المستخدم",
           "custom_emails": "عناوين بريد مخصصة",
-          "custom_emails_help": "مستلمون خارجيون اختياريون مفصولون بفواصل أو أسطر جديدة.",
+          "custom_emails_help": "مستلمون خارجيون اختياريون. أضف كل بريد كشارة.",
+          "custom_email_placeholder": "أدخل عنوان البريد",
+          "custom_email_add": "إضافة بريد",
+          "custom_email_invalid": "أدخل عنوان بريد صالحاً.",
+          "custom_email_duplicate": "هذا البريد مضاف بالفعل.",
+          "custom_email_remove": "إزالة {email}",
           "options": {
             "selected_users": "مستخدمون محددون",
             "role": "دور",

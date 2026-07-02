@@ -7,7 +7,7 @@ describe("CampaignComposer Sprint 11 behavior", () => {
   it("blocks credential-only variables in general campaigns", async () => {
     const user = userEvent.setup();
     const onPreviewRecipients = vi.fn();
-    const { container } = render(
+    render(
       <CampaignComposer
         canManage
         roles={[]}
@@ -23,12 +23,18 @@ describe("CampaignComposer Sprint 11 behavior", () => {
       />,
     );
 
-    const inputs = container.querySelectorAll("input:not([type='hidden'])");
-    const textareas = container.querySelectorAll("textarea");
-    fireEvent.change(inputs[0], { target: { value: "Welcome" } });
-    fireEvent.change(textareas[1], {
-      target: { value: "<p>{{credential.temporaryPassword}}</p>" },
-    });
+    fireEvent.change(
+      screen.getByRole("textbox", { name: /fields\.subject/ }),
+      {
+        target: { value: "Welcome" },
+      },
+    );
+    fireEvent.change(
+      screen.getByRole("textbox", { name: /fields\.body_html/ }),
+      {
+        target: { value: "<p>{{credential.temporaryPassword}}</p>" },
+      },
+    );
     await user.click(
       screen.getByRole("button", { name: "actions.preview_recipients" }),
     );

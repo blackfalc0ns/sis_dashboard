@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import CampaignAudienceStep, {
   type CampaignAudienceValues,
@@ -23,11 +24,21 @@ const translations: Record<string, string> = {
   "audience.user_type_placeholder": "Select user type",
   "audience.custom_emails": "Custom emails",
   "audience.custom_emails_help": "Optional external recipients.",
+  "audience.custom_email_add": "Add email",
+  "audience.custom_email_placeholder": "Enter email address",
+  "audience.custom_email_invalid": "Enter a valid email address.",
+  "audience.custom_email_duplicate": "This email is already added.",
+  "audience.custom_email_remove": "Remove {email}",
 };
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
-  useTranslations: () => (key: string) => translations[key] ?? key,
+  useTranslations:
+    () => (key: string, params?: Record<string, string>) =>
+      Object.entries(params ?? {}).reduce(
+        (message, [name, value]) => message.replace(`{${name}}`, value),
+        translations[key] ?? key,
+      ),
 }));
 
 vi.mock("@/features/communication/components/selectors/UserMultiSearchSelect", () => ({
@@ -147,5 +158,61 @@ describe("CampaignAudienceStep", () => {
         name: "No roles were loaded. Refresh and try again.",
       }),
     ).toBeDisabled();
+  });
+
+  it("adds custom emails as removable badges while storing backend text internally", async () => {
+    const user = userEvent.setup();
+    const onChange = renderAudienceStep(baseValues);
+
+    await user.type(
+      screen.getByRole("textbox", { name: "Custom emails" }),
+      "family@example.com",
+    );
+    await user.click(screen.getByRole("button", { name: "Add email" }));
+
+    expect(onChange).toHaveBeenCalledWith({
+      customEmailsText: "family@example.com",
+      audience: {
+        allSchool: true,
+        customEmails: ["family@example.com"],
+      },
+    });
+  });
+
+  it("removes custom email badges and updates the internal backend text", async () => {
+    const user = userEvent.setup();
+    const onChange = renderAudienceStep({
+      ...baseValues,
+      customEmailsText: "family@example.com\nparent@example.com",
+      audience: {
+        allSchool: true,
+        customEmails: ["family@example.com", "parent@example.com"],
+      },
+    });
+
+    await user.click(
+      screen.getByRole("button", { name: "Remove family@example.com" }),
+    );
+
+    expect(onChange).toHaveBeenCalledWith({
+      customEmailsText: "parent@example.com",
+      audience: {
+        allSchool: true,
+        customEmails: ["parent@example.com"],
+      },
+    });
+  });
+
+  it("rejects invalid custom emails before updating the audience payload", async () => {
+    const user = userEvent.setup();
+    const onChange = renderAudienceStep(baseValues);
+
+    await user.type(screen.getByRole("textbox", { name: "Custom emails" }), "bad");
+    await user.click(screen.getByRole("button", { name: "Add email" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Enter a valid email address.",
+    );
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
