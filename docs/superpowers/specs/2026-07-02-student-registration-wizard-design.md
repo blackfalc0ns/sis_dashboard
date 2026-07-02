@@ -64,7 +64,7 @@ Suggested boundaries:
 
 ### New guardians only
 
-The wizard maps all new guardians, their required account choices, the required student account, student data, and enrollment into one atomic registration request.
+The wizard maps all new guardians, required account choices, student data, and enrollment into one registration request. The backend creates the core registration atomically, then attempts account creation or linking afterward and reports account failures as warnings.
 
 ### One or more existing guardians
 
@@ -72,8 +72,8 @@ The staged path remains non-atomic:
 
 1. Create the student.
 2. Create any new guardian profiles and link all selected existing guardians.
-3. Create or link the required accounts.
-4. Create the enrollment.
+3. Create the enrollment.
+4. Create or link the required accounts.
 
 The review screen labels this path as multi-stage before submission. Execution records each completed stage. If a later stage fails, the UI reports the created student and completed links and provides a direct link to the student profile; it must not automatically repeat student creation.
 
@@ -96,9 +96,11 @@ Display one account card for the student and one for every guardian. Each requir
 - Create exposes username, contact email, password-generation controls, and optional role selection where supported.
 - Link provides a searchable user selector and stores its UUID.
 
-For an existing guardian already associated with a user, the linked account is selected and shown by default, subject to the data exposed by the guardian response.
+For an existing guardian already associated with a user, show the account as already linked and read-only, and mark the guardian account requirement as satisfied. Do not submit another account-link request for that guardian because the backend rejects account operations when the guardian already has a `userId`.
 
 This default requires a backend dependency: guardian list or detail responses must expose safe guardian account metadata. The current responses do not include `userId` or an account summary, so the frontend cannot infer or preselect the linked user until that metadata is available.
+
+Safe account selection has a second backend dependency. The current user search response exposes user ID, name, username, email fields, `roleId`, `roleName`, and status, but not `userType` or `roleKey`. The frontend must therefore filter candidates using configured, known role IDs, or the backend should provide a dedicated selector or search endpoint for eligible parent and student account candidates. A dedicated eligibility-aware endpoint is preferred because display role names are not a stable authorization boundary.
 
 ### Enrollment
 
