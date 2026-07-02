@@ -66,7 +66,6 @@ describe("attendanceRollCallService", () => {
         termId: "term-1",
         date: "2026-02-10",
         mode: "DAILY",
-        periodKey: undefined,
         scopeType: "CLASSROOM",
         classroomId: "classroom-1",
         scopeId: "classroom-1",
@@ -122,9 +121,6 @@ describe("attendanceRollCallService", () => {
       mode: "PERIOD",
       periodKey: "period-1",
       periodId: "period-1",
-      periodIndex: undefined,
-      periodLabelAr: undefined,
-      periodLabelEn: undefined,
     });
   });
 
@@ -154,7 +150,8 @@ describe("attendanceRollCallService", () => {
     mockedApiPut.mockResolvedValueOnce({ session, entries: [entry] });
     mockedApiPost
       .mockResolvedValueOnce({ ...session, status: "submitted" })
-      .mockResolvedValueOnce({ ...session, status: "draft" });
+      .mockResolvedValueOnce({ ...session, status: "draft" })
+      .mockResolvedValueOnce({ ...entry, status: "LATE" });
     mockedApiPut.mockResolvedValueOnce({ ...entry, status: "EXCUSED" });
 
     await saveSession(session, [entry]);
@@ -164,6 +161,12 @@ describe("attendanceRollCallService", () => {
       status: "EXCUSED",
       excuseReason: "Medical appointment",
     });
+    await upsertEntry("year-1", "term-1", "session-1", "student-1", {
+      status: "LATE",
+      minutesLate: 10,
+      note: "Corrected after review",
+      correctionReason: "Corrected after review",
+    } as Parameters<typeof upsertEntry>[4] & { correctionReason: string });
 
     expect(mockedApiPut).toHaveBeenNthCalledWith(
       1,
@@ -174,8 +177,6 @@ describe("attendanceRollCallService", () => {
             studentId: "student-1",
             status: "LATE",
             lateMinutes: 10,
-            earlyLeaveMinutes: undefined,
-            excuseReason: undefined,
             note: "Arrived after roll call",
           },
         ],
@@ -194,10 +195,17 @@ describe("attendanceRollCallService", () => {
       "/attendance/roll-call/sessions/session-1/entries/student-1",
       {
         status: "EXCUSED",
-        lateMinutes: undefined,
-        earlyLeaveMinutes: undefined,
         excuseReason: "Medical appointment",
-        note: undefined,
+      },
+    );
+    expect(mockedApiPost).toHaveBeenNthCalledWith(
+      3,
+      "/attendance/roll-call/sessions/session-1/entries/student-1/correct",
+      {
+        status: "LATE",
+        lateMinutes: 10,
+        note: "Corrected after review",
+        correctionReason: "Corrected after review",
       },
     );
   });

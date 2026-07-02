@@ -21,11 +21,18 @@ import {
 type ScopeType = AttendanceSession["scopeType"];
 
 type BackendRecord = Record<string, unknown>;
+type EntryPatch = Partial<AttendanceEntry> & { correctionReason?: string };
 
 const BASE = "/attendance/roll-call";
 
 function asRecord(value: unknown): BackendRecord {
   return value && typeof value === "object" ? (value as BackendRecord) : {};
+}
+
+function omitUndefined<T extends Record<string, unknown>>(payload: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined)
+  ) as Partial<T>;
 }
 
 function unwrapArray<T = unknown>(response: unknown, keys: string[] = ["items", "data", "students", "sessions", "entries"]): T[] {
@@ -208,14 +215,14 @@ function mapSessionWithEntries(response: unknown, fallback?: Partial<AttendanceS
 }
 
 function buildEntryPayload(entry: Partial<AttendanceEntry>) {
-  return {
+  return omitUndefined({
     studentId: entry.studentId,
     status: entry.status,
     lateMinutes: entry.minutesLate,
     earlyLeaveMinutes: entry.minutesEarlyLeave,
     excuseReason: entry.excuseReason,
     note: entry.note,
-  };
+  });
 }
 
 function buildSessionQuery(params: {
@@ -283,7 +290,7 @@ export async function fetchRoster(
   }
 ): Promise<RosterStudent[]> {
   const response = await apiGet<unknown>(`${BASE}/roster`, {
-      params: {
+      params: omitUndefined({
         academicYearId: options?.yearId,
         termId: options?.termId,
         date: options?.date,
@@ -291,7 +298,7 @@ export async function fetchRoster(
         periodKey: options?.periodKey,
         scopeType,
         ...buildScopeParams(scopeType, scopeIds),
-      },
+      }),
     });
 
   return unwrapArray(response).map(mapRosterStudent);
@@ -309,7 +316,7 @@ export async function getOrCreateSession(params: {
   periodNameAr?: string;
   periodNameEn?: string;
 }): Promise<SessionWithEntries> {
-  const response = await apiPost<unknown>(`${BASE}/session/resolve`, {
+  const response = await apiPost<unknown>(`${BASE}/session/resolve`, omitUndefined({
     academicYearId: params.yearId,
     termId: params.termId,
     date: params.date,
@@ -318,10 +325,9 @@ export async function getOrCreateSession(params: {
     mode: params.mode,
     periodKey: params.periodId,
     periodId: params.periodId,
-    periodIndex: params.periodIndex,
     periodLabelAr: params.periodNameAr,
     periodLabelEn: params.periodNameEn,
-  });
+  }));
 
   return mapSessionWithEntries(response, {
     yearId: params.yearId,
@@ -404,12 +410,27 @@ export async function upsertEntry(
   termId: string,
   sessionId: string,
   studentId: string,
-  patch: Partial<AttendanceEntry>
+  patch: EntryPatch
 ): Promise<AttendanceEntry> {
-  const response = await apiPut<unknown>(`${BASE}/sessions/${sessionId}/entries/${studentId}`, {
-    ...buildEntryPayload(patch),
-    studentId: undefined,
-  });
+  if (patch.correctionReason) {
+    const response = await apiPost<unknown>(
+      `${BASE}/sessions/${sessionId}/entries/${studentId}/correct`,
+      omitUndefined({
+        ...buildEntryPayload(patch),
+        studentId: undefined,
+        correctionReason: patch.correctionReason,
+      }),
+    );
+    return mapEntry(response, sessionId);
+  }
+
+  const response = await apiPut<unknown>(
+    `${BASE}/sessions/${sessionId}/entries/${studentId}`,
+    omitUndefined({
+      ...buildEntryPayload(patch),
+      studentId: undefined,
+    }),
+  );
 
   return mapEntry(response, sessionId);
 }
