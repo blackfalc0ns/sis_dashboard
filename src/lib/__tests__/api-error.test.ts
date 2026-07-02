@@ -3,16 +3,16 @@ import type { AxiosError } from "axios";
 import { ApiError } from "@/lib/api-error";
 
 describe("ApiError", () => {
-  it("preserves backend messages, details, and trace ids without mixing metadata", () => {
+  it("preserves backend validation envelope fields without mixing metadata", () => {
     const axiosError = {
       message: "Request failed",
       response: {
-        status: 409,
+        status: 400,
         data: {
           error: {
-            code: "academics.allocation.duplicate",
-            message: "Allocation already exists",
-            details: { classroomId: "classroom-1" },
+            code: "validation.failed",
+            message: "Validation failed",
+            details: { field: "scopeType" },
             traceId: "trace-123",
           },
         },
@@ -21,9 +21,9 @@ describe("ApiError", () => {
 
     const apiError = ApiError.fromAxiosError(axiosError);
 
-    expect(apiError.code).toBe("academics.allocation.duplicate");
-    expect(apiError.message).toBe("Allocation already exists");
-    expect(apiError.details).toEqual({ classroomId: "classroom-1" });
+    expect(apiError.code).toBe("validation.failed");
+    expect(apiError.message).toBe("Validation failed");
+    expect(apiError.details).toEqual({ field: "scopeType" });
     expect(apiError.traceId).toBe("trace-123");
   });
 });
