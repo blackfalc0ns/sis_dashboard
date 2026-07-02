@@ -206,6 +206,8 @@ export async function updateExcuse(
   reason: string,
   attachments: AttachmentMeta[]
 ): Promise<void> {
+  void attachments;
+
   await apiPatch(`${BASE}/${record.id}/excuse`, {
     correctionReason: reason,
     excuseReason: reason,

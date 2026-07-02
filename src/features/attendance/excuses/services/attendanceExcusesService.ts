@@ -230,12 +230,16 @@ export async function deleteExcuseRequest(id: string): Promise<void> {
   await apiDelete(`${BASE}/${id}`);
 }
 
-export async function approveExcuseRequest(id: string, decisionNote?: string, _decidedBy?: string) {
+export async function approveExcuseRequest(id: string, decisionNote?: string, decidedBy?: string) {
+  void decidedBy;
+
   const response = await apiPost<unknown>(`${BASE}/${id}/approve`, { decisionNote });
   return mapRequest(response);
 }
 
-export async function rejectExcuseRequest(id: string, decisionNote?: string, _decidedBy?: string) {
+export async function rejectExcuseRequest(id: string, decisionNote?: string, decidedBy?: string) {
+  void decidedBy;
+
   const response = await apiPost<unknown>(`${BASE}/${id}/reject`, { decisionNote });
   return mapRequest(response);
 }
