@@ -33,6 +33,7 @@ import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/use
 import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
 import GuardianAccountLinkModal from "@/features/students-guardians/guardians/components/GuardianAccountLinkModal";
 import { usePermissions } from "@/hooks/usePermissions";
+import { getStudentsGuardiansCapabilities } from "@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities";
 import {
   downloadStudentsGuardiansExport,
   getStudentsGuardiansExportLocaleForFormat,
@@ -44,8 +45,9 @@ export default function GuardiansList() {
   const t = useTranslations("students_guardians.guardians_list");
   const locale = useLocale();
   const router = useRouter();
-  const { hasPermission } = usePermissions();
-  const canManageAccounts = hasPermission("settings.users.manage");
+  const permissions = usePermissions();
+  const { canLinkGuardianAccount } =
+    getStudentsGuardiansCapabilities(permissions);
   const params = useParams();
   const lang = (params.lang as string) || "en";
   const {
@@ -307,7 +309,7 @@ export default function GuardiansList() {
     guardian: StudentGuardian,
   ) => {
     e.stopPropagation();
-    if (!canManageAccounts) {
+    if (!canLinkGuardianAccount) {
       setPageError(t("account_linking.manage_required"));
       return;
     }
@@ -464,12 +466,12 @@ export default function GuardiansList() {
               handleAccountLinkClick(e, row as unknown as StudentGuardian)
             }
             className={`p-1.5 rounded transition-colors ${
-              canManageAccounts
+              canLinkGuardianAccount
                 ? "text-gray-600 hover:bg-gray-100"
                 : "text-gray-400 cursor-not-allowed"
             }`}
             title={t("actions.link_account")}
-            disabled={!canManageAccounts}
+            disabled={!canLinkGuardianAccount}
           >
             <Lock className="w-4 h-4" />
           </Button>

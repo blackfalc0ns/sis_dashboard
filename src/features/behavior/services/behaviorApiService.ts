@@ -55,22 +55,7 @@ function withOccurredRange<T extends DateRangeFilters>(filters?: T): Omit<T, "da
 // (Used by student profile BehaviorTab)
 export type { BehaviorCategory, BehaviorRecord } from "../types";
 
-export interface BehaviorSummary {
-  totalPoints?: number;
-  weeklyDelta?: number;
-  recentPoints?: number;
-  totalIncidents?: number;
-  openIncidents?: number;
-  timeline?: BehaviorRecord[];
-  ledger?: BehaviorRecord[];
-  categoryBreakdown?: Array<{
-    categoryId: string;
-    categoryName: string;
-    count: number;
-    points: number;
-  }>;
-  [key: string]: unknown;
-}
+export type BehaviorSummary = BehaviorStudentSummaryResponse;
 
 export interface FetchBehaviorSummaryParams {
   academicYearId?: string;
@@ -124,13 +109,13 @@ export async function fetchStudentBehaviorSummary(
   const response = await apiGet<unknown>(
     `${BASE}/students/${studentId}/summary${query}`,
   );
-  // Unwrap common envelope shapes: { data: ... } or { summary: ... }
+  // Some API clients unwrap the response body while others preserve its envelope.
   if (response && typeof response === "object") {
     const obj = response as Record<string, unknown>;
     if (obj.data && typeof obj.data === "object") return obj.data as BehaviorSummary;
     if (obj.summary && typeof obj.summary === "object") return obj.summary as BehaviorSummary;
   }
-  return (response as BehaviorSummary) ?? {};
+  return response as BehaviorSummary;
 }
 
 export async function fetchBehaviorCategories(

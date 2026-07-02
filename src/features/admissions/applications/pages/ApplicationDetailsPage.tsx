@@ -8,7 +8,6 @@ import {
   FileText,
   ClipboardCheck,
   MessageSquare,
-  User,
   FileCheck,
   ArrowRight,
 } from "lucide-react";
@@ -184,11 +183,6 @@ export default function ApplicationDetailsPage({
       id: "details",
       label: t("tabs.details"),
       icon: <FileText className="w-4 h-4" />,
-    },
-    {
-      id: "guardians",
-      label: t("tabs.guardians"),
-      icon: <User className="w-4 h-4" />,
     },
     {
       id: "documents",
@@ -388,7 +382,6 @@ export default function ApplicationDetailsPage({
             <DocumentsTab
               application={application}
               initialDocuments={relatedData.documents}
-              preferInitialDocuments
             />
           )}
           {activeTab === "tests" && (

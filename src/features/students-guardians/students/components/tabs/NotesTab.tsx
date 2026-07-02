@@ -1,9 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Plus, Eye, EyeOff, Edit2, Trash2 } from "lucide-react";
-import type { Student, StudentNote } from "@/features/students-guardians/students/types";
-import { Button, DataTable, EmptyState, FilterPanel, Select } from "@/components/ui";
+import { useEffect, useState } from "react";
+import { Plus, Eye, EyeOff, Edit2 } from "lucide-react";
+import type {
+  Student,
+  StudentNote,
+} from "@/features/students-guardians/students/types";
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  FilterPanel,
+  Select,
+} from "@/components/ui";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { getStudentDisplayName } from "@/features/students-guardians/students/utils/studentUtils";
@@ -22,6 +31,7 @@ export default function NotesTab({ student }: NotesTabProps) {
   const [visibilityFilter, setVisibilityFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingNote, setEditingNote] = useState<StudentNote | null>(null);
   const [notesRevision, setNotesRevision] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [notes, setNotes] = useState<StudentNote[]>([]);
@@ -57,28 +67,12 @@ export default function NotesTab({ student }: NotesTabProps) {
     };
   }, [notesRevision, student.id]);
 
-  const xpSummary = useMemo(() => {
-    const xpEvents = notes.filter((note) => note.xpAdjustment !== 0);
-    return {
-      totalXp: xpEvents.reduce((sum, note) => sum + note.xpAdjustment, 0),
-      positiveNotesCount: xpEvents.filter((note) => note.xpAdjustment > 0).length,
-      negativeNotesCount: xpEvents.filter((note) => note.xpAdjustment < 0).length,
-    };
-  }, [notes]);
-
   const handleAddNote = async (noteData: NoteFormData) => {
-    if (noteData.xpAdjustment === 0) {
-      setError("XP adjustment cannot be zero.");
-      return;
-    }
-
     try {
       await studentsService.createStudentNote(student.id, {
-      category: noteData.category,
-      note: noteData.note,
-      xpAdjustment: noteData.xpAdjustment as number,
-      visibility: noteData.visibility,
-      created_by: noteData.created_by,
+        category: noteData.category,
+        note: noteData.note,
+        visibility: noteData.visibility,
       });
 
       setShowAddModal(false);
@@ -90,6 +84,24 @@ export default function NotesTab({ student }: NotesTabProps) {
         submitError instanceof Error
           ? submitError.message
           : "Unable to add note.",
+      );
+    }
+  };
+
+  const handleUpdateNote = async (noteData: NoteFormData) => {
+    if (!editingNote) return;
+
+    try {
+      await studentsService.updateStudentNote(student.id, editingNote.id, noteData);
+      setEditingNote(null);
+      setNotesRevision((current) => current + 1);
+      setFeedback(t("note_updated_successfully"));
+      setError(null);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Unable to update note.",
       );
     }
   };
@@ -159,24 +171,11 @@ export default function NotesTab({ student }: NotesTabProps) {
       label: t("note"),
       render: (value: unknown) => (
         <div className="max-w-md">
-          <p className="line-clamp-2 text-sm text-gray-900">{value as string}</p>
+          <p className="line-clamp-2 text-sm text-gray-900">
+            {value as string}
+          </p>
         </div>
       ),
-    },
-    {
-      key: "xpAdjustment",
-      label: t("xp"),
-      render: (value: unknown) => {
-        const xp = value as number;
-        const isPositive = xp > 0;
-        return (
-          <span
-            className={`font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}
-          >
-            {isPositive ? `+${xp}` : xp}
-          </span>
-        );
-      },
     },
     {
       key: "visibility",
@@ -191,7 +190,7 @@ export default function NotesTab({ student }: NotesTabProps) {
       key: "actions",
       label: t("actions"),
       sortable: false,
-      render: () => (
+      render: (_value: unknown, row: Record<string, unknown>) => (
         <div className="flex items-center gap-1">
           <Button
             type="button"
@@ -199,19 +198,9 @@ export default function NotesTab({ student }: NotesTabProps) {
             size="sm"
             className="p-1.5 text-gray-600"
             title={t("edit")}
-            disabled
+            onClick={() => setEditingNote(row as unknown as StudentNote)}
           >
             <Edit2 className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="p-1.5 text-red-600"
-            title={t("delete")}
-            disabled
-          >
-            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       ),
@@ -259,26 +248,29 @@ export default function NotesTab({ student }: NotesTabProps) {
         filtersSlot={
           <div className="grid grid-cols-1 gap-4 rounded-xl bg-white p-6 shadow-sm md:grid-cols-2">
             <Select
-                label={t("category")}
-                value={categoryFilter}
-                onChange={setCategoryFilter}
-                options={[
-                  { value: "all", label: t("all_categories") },
-                  { value: "academic", label: t("academic") },
-                  { value: "behavioral", label: t("behavioral") },
-                  { value: "medical", label: t("medical") },
-                  { value: "general", label: t("general") },
-                ]}
+              label={t("category")}
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              options={[
+                { value: "all", label: t("all_categories") },
+                { value: "academic", label: t("academic") },
+                { value: "behavioral", label: t("behavioral") },
+                { value: "medical", label: t("medical") },
+                { value: "general", label: t("general") },
+              ]}
             />
             <Select
-                label={t("visibility")}
-                value={visibilityFilter}
-                onChange={setVisibilityFilter}
-                options={[
-                  { value: "all", label: t("all_notes") },
-                  { value: "visible_to_guardian", label: t("visible_to_guardian") },
-                  { value: "internal", label: t("internal") },
-                ]}
+              label={t("visibility")}
+              value={visibilityFilter}
+              onChange={setVisibilityFilter}
+              options={[
+                { value: "all", label: t("all_notes") },
+                {
+                  value: "visible_to_guardian",
+                  label: t("visible_to_guardian"),
+                },
+                { value: "internal", label: t("internal") },
+              ]}
             />
           </div>
         }
@@ -288,22 +280,6 @@ export default function NotesTab({ student }: NotesTabProps) {
         <div className="rounded-xl bg-white p-4 shadow-sm">
           <p className="mb-1 text-sm text-gray-600">{t("total_notes")}</p>
           <p className="text-2xl font-bold text-gray-900">{notes.length}</p>
-        </div>
-        <div className="rounded-xl bg-white p-4 shadow-sm">
-          <p className="mb-1 text-sm text-gray-600">{t("total_xp")}</p>
-          <p className="text-2xl font-bold text-primary">{xpSummary.totalXp}</p>
-        </div>
-        <div className="rounded-xl bg-white p-4 shadow-sm">
-          <p className="mb-1 text-sm text-gray-600">{t("positive_notes")}</p>
-          <p className="text-2xl font-bold text-green-600">
-            {xpSummary.positiveNotesCount}
-          </p>
-        </div>
-        <div className="rounded-xl bg-white p-4 shadow-sm">
-          <p className="mb-1 text-sm text-gray-600">{t("negative_notes")}</p>
-          <p className="text-2xl font-bold text-red-600">
-            {xpSummary.negativeNotesCount}
-          </p>
         </div>
       </div>
 
@@ -327,6 +303,22 @@ export default function NotesTab({ student }: NotesTabProps) {
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddNote}
         studentName={getStudentDisplayName(student)}
+      />
+      <AddNoteModal
+        key={editingNote?.id ?? "closed-edit-note"}
+        isOpen={editingNote !== null}
+        onClose={() => setEditingNote(null)}
+        onSubmit={handleUpdateNote}
+        studentName={getStudentDisplayName(student)}
+        initialData={
+          editingNote
+            ? {
+                category: editingNote.category,
+                note: editingNote.note,
+                visibility: editingNote.visibility,
+              }
+            : undefined
+        }
       />
     </div>
   );

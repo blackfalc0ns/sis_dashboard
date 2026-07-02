@@ -5,6 +5,7 @@
 // SHARED COMPONENTS
 // ============================================================================
 export { default as ChartFilter, type ChartFilterValues } from './shared/ChartFilter';
+export * from './shared/permissions/studentsGuardiansCapabilities';
 
 // ============================================================================
 // DASHBOARD
@@ -36,6 +37,21 @@ export * from './students/utils/studentsListFilters';
 // ============================================================================
 export * from './guardians/pages/GuardiansList';
 export * from './guardians/pages/GuardianProfilePage';
+
+// ============================================================================
+// REGISTRATION
+// ============================================================================
+export * from './registration/pages/RegistrationWizardPage';
+export * from './registration/services/registrationApiService';
+export * from './registration/types/registration';
+
+// ============================================================================
+// PROFILE CORRECTION REQUESTS
+// ============================================================================
+export * from './profile-correction-requests/pages/ProfileCorrectionRequestsQueuePage';
+export * from './profile-correction-requests/pages/ProfileCorrectionRequestDetailPage';
+export * from './profile-correction-requests/services/profileCorrectionRequestsApiService';
+export * from './profile-correction-requests/types/profileCorrectionRequests';
 
 // ============================================================================
 // DOCUMENTS

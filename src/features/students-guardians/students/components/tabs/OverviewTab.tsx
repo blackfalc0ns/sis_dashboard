@@ -5,11 +5,16 @@
 import { AlertTriangle, TrendingUp, Award, AlertCircle } from "lucide-react";
 import { LineChart } from "@mui/x-charts/LineChart";
 import { useTranslations } from "next-intl";
-import { Student, RiskFlag } from "@/features/students-guardians/students/types";
+import {
+  Student,
+  RiskFlag,
+} from "@/features/students-guardians/students/types";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { getRiskFlagColor } from "@/features/students-guardians/students/utils/studentUtils";
-import { generateWeeklyTimestamps, generateMonthlyTimestamps } from "@/utils/formatters/chartDataHelpers";
-import { getStudentXpSummary } from "@/features/students-guardians/students/services/studentsService";
+import {
+  generateWeeklyTimestamps,
+  generateMonthlyTimestamps,
+} from "@/utils/formatters/chartDataHelpers";
 
 interface OverviewTabProps {
   student: Student;
@@ -17,8 +22,7 @@ interface OverviewTabProps {
 
 export default function OverviewTab({ student }: OverviewTabProps) {
   const t = useTranslations("students_guardians.profile.overview");
-  const xpSummary = getStudentXpSummary(student.id);
-  
+
   // Generate timestamps for chart data
   const weeklyTimestamps = generateWeeklyTimestamps(4);
   const monthlyTimestamps = generateMonthlyTimestamps(4);
@@ -99,7 +103,11 @@ export default function OverviewTab({ student }: OverviewTabProps) {
             { label: "W1", value: 90, ts: weeklyTimestamps[0] },
             { label: "W2", value: 91, ts: weeklyTimestamps[1] },
             { label: "W3", value: 91, ts: weeklyTimestamps[2] },
-            { label: "W4", value: student.attendance_percentage ?? 92, ts: weeklyTimestamps[3] },
+            {
+              label: "W4",
+              value: student.attendance_percentage ?? 92,
+              ts: weeklyTimestamps[3],
+            },
           ]}
           chartColor={
             (student.attendance_percentage ?? 92) >= 90 ? "#10b981" : "#f59e0b"
@@ -124,41 +132,15 @@ export default function OverviewTab({ student }: OverviewTabProps) {
             { label: "M1", value: 82, ts: monthlyTimestamps[0] },
             { label: "M2", value: 84, ts: monthlyTimestamps[1] },
             { label: "M3", value: 84, ts: monthlyTimestamps[2] },
-            { label: "M4", value: student.current_average ?? 85, ts: monthlyTimestamps[3] },
+            {
+              label: "M4",
+              value: student.current_average ?? 85,
+              ts: monthlyTimestamps[3],
+            },
           ]}
           chartColor={
             (student.current_average ?? 85) >= 85 ? "#3b82f6" : "#ef4444"
           }
-        />
-        <KPICardV2
-          title={t("behavior_points")}
-          value={xpSummary.totalXp}
-          subtitle={t("xp_this_week", { count: xpSummary.weeklyXpDelta })}
-          icon={Award}
-          iconColor="#8b5cf6"
-          iconBgColor="#ede9fe"
-          chartData={[
-            { label: "W1", value: Math.max(xpSummary.totalXp - 15, 0), ts: weeklyTimestamps[0] },
-            { label: "W2", value: Math.max(xpSummary.totalXp - 10, 0), ts: weeklyTimestamps[1] },
-            { label: "W3", value: Math.max(xpSummary.totalXp - 5, 0), ts: weeklyTimestamps[2] },
-            { label: "W4", value: xpSummary.totalXp, ts: weeklyTimestamps[3] },
-          ]}
-          chartColor="#8b5cf6"
-        />
-        <KPICardV2
-          title={t("incidents")}
-          value={xpSummary.negativeNotesCount}
-          subtitle={t("this_semester")}
-          icon={AlertCircle}
-          iconColor="#f59e0b"
-          iconBgColor="#fef3c7"
-          chartData={[
-            { label: "M1", value: 1, ts: monthlyTimestamps[0] },
-            { label: "M2", value: 3, ts: monthlyTimestamps[1] },
-            { label: "M3", value: 2, ts: monthlyTimestamps[2] },
-            { label: "M4", value: 2, ts: monthlyTimestamps[3] },
-          ]}
-          chartColor="#f59e0b"
         />
       </div>
 

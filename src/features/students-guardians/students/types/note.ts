@@ -23,7 +23,6 @@ export interface StudentNote {
   date: string; // When the note was created (ISO date string)
   category: NoteCategory; // Note category
   note: string; // Note content
-  xpAdjustment: number; // Signed XP delta attached to the note
   visibility: NoteVisibility; // Who can see this note
   created_by: string; // Who created the note (teacher/staff name)
 }
@@ -31,9 +30,7 @@ export interface StudentNote {
 export interface CreateStudentNotePayload {
   category: NoteCategory;
   note: string;
-  xpAdjustment: number;
   visibility: NoteVisibility;
-  created_by: string;
 }
 
 export interface StudentXpEvent {

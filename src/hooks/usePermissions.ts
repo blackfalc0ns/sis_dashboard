@@ -15,9 +15,16 @@ export type PermissionKey =
   | "admissions.documents.view"
   | "admissions.documents.manage"
   | "students.records.manage"
+  | "students.guardians.view"
   | "students.guardians.manage"
   | "students.enrollments.manage"
   | "students.enrollments.view"
+  | "students.documents.view"
+  | "students.documents.manage"
+  | "students.medical.view"
+  | "students.medical.manage"
+  | "students.notes.view"
+  | "students.notes.manage"
   | "students.lifecycle.manage"
   | "students.records.view"
   | "attendance.rollcall.submit"
@@ -171,6 +178,10 @@ export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
     "admissions-applications": "admissions.applications.view",
     "admissions-decisions": "admissions.decisions.view",
     "admissions-enrollment": "students.enrollments.view",
+    "students-list": "students.records.view",
+    "guardians-list": "students.guardians.view",
+    "profile-correction-requests": "students.records.view",
+    "documents-center": "students.documents.view",
     "academics-overview": "academics.overview.view",
     "academics-structure": "academics.structure.view",
     "academics-rooms": "academics.structure.view",

@@ -53,11 +53,6 @@ export default function Application360Modal({
       icon: <FileText className="w-4 h-4" />,
     },
     {
-      id: "guardians",
-      label: t("tabs.guardians"),
-      icon: <User className="w-4 h-4" />,
-    },
-    {
       id: "documents",
       label: t("tabs.documents"),
       icon: <FileCheck className="w-4 h-4" />,

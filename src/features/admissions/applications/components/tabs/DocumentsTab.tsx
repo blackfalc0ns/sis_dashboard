@@ -37,20 +37,9 @@ const DOCUMENT_TYPES = [
 interface DocumentsTabProps {
   application: Application;
   initialDocuments?: Document[];
-  preferInitialDocuments?: boolean;
 }
 
 type ReviewAction = "accept" | "reject" | "request_replacement";
-
-function documentStatusDescription(status: Document["status"]): string {
-  if (status === "pending_review") {
-    return "This document was submitted by the applicant and is waiting for school review.";
-  }
-  if (status === "complete") {
-    return "This document has been accepted by the school.";
-  }
-  return "This document is missing, rejected, or waiting for applicant replacement.";
-}
 
 function documentReviewErrorMessage(error: unknown): string {
   if (!isApiError(error)) {
@@ -112,7 +101,6 @@ function documentMutationErrorMessage(error: unknown, fallback: string): string 
 export default function DocumentsTab({
   application,
   initialDocuments,
-  preferInitialDocuments = false,
 }: DocumentsTabProps) {
   const t = useTranslations("admissions.application360");
   const locale = useLocale();
@@ -151,12 +139,6 @@ export default function DocumentsTab({
     canManageDocuments &&
     ["documents_pending", "submitted", "under_review"].includes(application.status);
 
-  useEffect(() => {
-    if (preferInitialDocuments && initialDocuments) {
-      setDocuments(initialDocuments);
-    }
-  }, [initialDocuments, preferInitialDocuments]);
-
   const loadDocuments = useCallback(async () => {
     if (!canViewDocuments) return;
     setIsLoading(true);
@@ -173,9 +155,8 @@ export default function DocumentsTab({
   }, [application.id, canViewDocuments]);
 
   useEffect(() => {
-    if (preferInitialDocuments) return;
     void loadDocuments();
-  }, [loadDocuments, preferInitialDocuments]);
+  }, [loadDocuments]);
 
   useEffect(() => {
     return () => {
@@ -516,7 +497,11 @@ export default function DocumentsTab({
                       </p>
                     )}
                     <p className="mt-1 max-w-xl text-xs text-gray-500">
-                      {documentStatusDescription(doc.status)}
+                      {doc.status === "pending_review"
+                        ? t("documents.status_pending_review")
+                        : doc.status === "complete"
+                          ? t("documents.status_complete")
+                          : t("documents.status_missing")}
                     </p>
                   </div>
                 </div>

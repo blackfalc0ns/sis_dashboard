@@ -9,7 +9,6 @@ import {
   FileText,
   ClipboardCheck,
   MessageSquare,
-  User,
   FileCheck,
 } from "lucide-react";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
@@ -40,7 +39,6 @@ import {
 
 const tabs = [
   { key: "details", labelKey: "tabs.details", icon: FileText },
-  { key: "guardians", labelKey: "tabs.guardians", icon: User },
   { key: "documents", labelKey: "tabs.documents", icon: FileCheck },
   { key: "tests", labelKey: "tabs.tests", icon: ClipboardCheck },
   { key: "interviews", labelKey: "tabs.interviews", icon: MessageSquare },

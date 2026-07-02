@@ -18,3 +18,21 @@ describe("Admissions navigation", () => {
     );
   });
 });
+
+describe("Students & Guardians navigation", () => {
+  it("exposes Profile Correction Requests after its route exists", () => {
+    const studentsGuardians = menuItems.find(
+      (menuItem) => menuItem.key === "students-guardians",
+    );
+
+    expect(studentsGuardians?.children).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "profile-correction-requests",
+          href_en: "/en/students-guardians/profile-correction-requests",
+          href_ar: "/ar/students-guardians/profile-correction-requests",
+        }),
+      ]),
+    );
+  });
+});

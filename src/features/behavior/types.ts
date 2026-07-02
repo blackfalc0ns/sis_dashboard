@@ -481,9 +481,48 @@ export interface BehaviorStudentSummaryFilters {
 
 /** GET /behavior/students/:studentId/summary → response */
 export interface BehaviorStudentSummaryResponse {
-  student: Record<string, unknown>;
-  timeline: unknown[];
-  categoryBreakdown: unknown[];
+  student: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    displayName: string;
+    nameAr: string | null;
+    code: string | null;
+    admissionNo: string | null;
+  };
+  scope: {
+    academicYearId: string | null;
+    termId: string | null;
+    studentId: string;
+    classroomId: string | null;
+    occurredFrom: string | null;
+    occurredTo: string | null;
+  };
+  records: BehaviorRecordSummary;
+  severity: Record<BehaviorSeverity, number>;
+  points: {
+    totalPoints: number;
+    positivePoints: number;
+    negativePoints: number;
+    awardEntries: number;
+    penaltyEntries: number;
+  };
+  review: {
+    pendingReview: number;
+    reviewed: number;
+    approvalRate: number;
+    rejectionRate: number;
+  };
+  categoryBreakdown: Array<{
+    categoryId: string;
+    code: string;
+    nameEn: string;
+    nameAr: string;
+    type: BehaviorType;
+    records: BehaviorRecordSummary;
+    points: { totalPoints: number };
+  }>;
+  timeline: BehaviorRecord[];
   ledger: unknown[];
 }
 

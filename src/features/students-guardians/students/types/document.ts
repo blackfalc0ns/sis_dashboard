@@ -13,6 +13,7 @@ export interface StudentDocument {
   type: string; // Document type (Birth Certificate, Passport, etc.)
   name: string; // File name
   status: DocumentStatus; // Document status (complete, missing)
+  fileId?: string; // Backing file id used for secure view/download
   uploadedDate?: string; // When the document was uploaded (ISO date string)
 }
 

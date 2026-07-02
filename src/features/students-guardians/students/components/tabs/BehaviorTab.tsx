@@ -2,14 +2,14 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { Award, AlertTriangle, TrendingUp, Plus, AlertCircle } from "lucide-react";
-import { BarChart } from "@mui/x-charts/BarChart";
 import { Student } from "@/features/students-guardians/students/types";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable, type Column } from "@/components/ui/data-table";
 import { useTranslations, useLocale } from "next-intl";
 import * as behaviorApi from "@/features/behavior/services/behaviorApiService";
 import { behaviorUiError } from "@/features/behavior/services/behaviorErrors";
 import { validateRecordContent } from "@/features/behavior/shared/utils/behaviorUiRules";
+import BehaviorDetailDrawer from "@/features/behavior/shared/components/BehaviorDetailDrawer";
 import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
@@ -29,16 +29,50 @@ interface BehaviorTabProps {
   student: Student;
 }
 
-const EMPTY_SUMMARY: BehaviorSummary = {
-  totalPoints: 0,
-  weeklyDelta: 0,
-  recentPoints: 0,
-  totalIncidents: 0,
-  openIncidents: 0,
-  timeline: [],
-  ledger: [],
-  categoryBreakdown: [],
+type BehaviorTableRow = BehaviorRecord &
+  Record<string, unknown> & {
+  categoryName?: string;
+  createdByName?: string;
+  displayTitle?: string;
+  displayNote?: string;
+  classroomName?: string;
+  gradeName?: string;
 };
+
+const localizePair = (
+  isRTL: boolean,
+  englishValue?: string | null,
+  arabicValue?: string | null,
+) =>
+  (isRTL ? arabicValue || englishValue : englishValue || arabicValue) ||
+  undefined;
+
+function mapBehaviorRecordForTable(
+  record: BehaviorRecord,
+  isRTL: boolean,
+): BehaviorTableRow {
+  return {
+    ...record,
+    categoryName:
+      localizePair(isRTL, record.category?.nameEn, record.category?.nameAr) ||
+      record.categoryName ||
+      record.categoryId ||
+      "—",
+    createdByName: record.createdBy?.displayName || record.createdById || "—",
+    displayTitle: localizePair(isRTL, record.titleEn, record.titleAr) || "—",
+    displayNote: localizePair(isRTL, record.noteEn, record.noteAr) || "—",
+    classroomName: localizePair(
+      isRTL,
+      record.enrollment?.classroom?.nameEn,
+      record.enrollment?.classroom?.nameAr,
+    ),
+    gradeName: localizePair(
+      isRTL,
+      record.enrollment?.classroom?.section?.grade?.nameEn,
+      record.enrollment?.classroom?.section?.grade?.nameAr,
+    ),
+  };
+}
 
 export default function BehaviorTab({ student }: BehaviorTabProps) {
   const t = useTranslations("students_guardians.profile.behavior");
@@ -48,12 +82,18 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
   const { yearId, termId } = useStudentsGuardiansYearTermContext();
 
   // ── Summary state ──────────────────────────────────────────────────────────
-  const [summary, setSummary] = useState<BehaviorSummary>(EMPTY_SUMMARY);
+  const [summary, setSummary] = useState<BehaviorSummary | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(true);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [records, setRecords] = useState<BehaviorRecord[]>([]);
+  const [isLoadingRecords, setIsLoadingRecords] = useState(true);
+  const [recordsError, setRecordsError] = useState<string | null>(null);
 
   const [activeView, setActiveView] = useState<"reinforcement" | "incidents">(
     "reinforcement",
+  );
+  const [selectedRecord, setSelectedRecord] = useState<BehaviorRecord | null>(
+    null,
   );
 
   // ── Add Behavior Record modal state ────────────────────────────────────────
@@ -82,20 +122,39 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
         includeCategoryBreakdown: true,
         includeLedger: true,
       });
-      setSummary({ ...EMPTY_SUMMARY, ...data });
+      setSummary(data);
     } catch (err) {
       setSummaryError(
         err instanceof Error ? err.message : "Failed to load behavior summary.",
       );
-      setSummary(EMPTY_SUMMARY);
+      setSummary(null);
     } finally {
       setIsLoadingSummary(false);
     }
   }, [student.id]);
 
+  const loadRecords = useCallback(async () => {
+    setIsLoadingRecords(true);
+    setRecordsError(null);
+    try {
+      const studentRecords = await behaviorApi.fetchBehaviorRecords({
+        studentId: student.id,
+      });
+      setRecords(studentRecords);
+    } catch (err) {
+      setRecordsError(
+        err instanceof Error ? err.message : "Failed to load behavior records.",
+      );
+      setRecords([]);
+    } finally {
+      setIsLoadingRecords(false);
+    }
+  }, [student.id]);
+
   useEffect(() => {
     loadSummary();
-  }, [loadSummary]);
+    loadRecords();
+  }, [loadRecords, loadSummary]);
 
   // ── Load categories when modal type changes ────────────────────────────────
   useEffect(() => {
@@ -197,7 +256,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
       await behaviorApi.submitBehaviorRecord(record.id);
 
       closeModal();
-      await loadSummary();
+      await Promise.all([loadSummary(), loadRecords()]);
     } catch (err) {
       setModalError(
         behaviorUiError(err, "Failed to add behavior record.", tBehavior).message,
@@ -214,45 +273,16 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
     }));
   }, [categories, isRTL]);
 
-  // ── Derive records from summary ────────────────────────────────────────────
-  const allRecords: BehaviorRecord[] = [
-    ...(summary.timeline ?? []),
-    ...(summary.ledger ?? []),
-  ].filter(
-    (r, idx, arr) => arr.findIndex((x) => x.id === r.id) === idx, // deduplicate
+  const tableRecords = records.map((record) =>
+    mapBehaviorRecordForTable(record, isRTL),
   );
 
-  const reinforcementRecords = allRecords.filter(
+  const reinforcementRecords = tableRecords.filter(
     (r) => r.type === "positive" || (r.points ?? 0) > 0,
   );
-  const incidentRecords = allRecords.filter(
+  const incidentRecords = tableRecords.filter(
     (r) => r.type === "negative" || (r.points ?? 0) < 0,
   );
-
-  // ── Monthly chart buckets ──────────────────────────────────────────────────
-  const monthFormatter = new Intl.DateTimeFormat(undefined, { month: "short" });
-  const now = new Date();
-  const monthlyChart = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
-    return {
-      key: `${date.getFullYear()}-${date.getMonth()}`,
-      label: monthFormatter.format(date),
-      positive: 0,
-      negative: 0,
-    };
-  });
-
-  allRecords.forEach((r) => {
-    const d = new Date(r.occurredAt);
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
-    const bucket = monthlyChart.find((b) => b.key === key);
-    if (!bucket) return;
-    if ((r.points ?? 0) > 0 || r.type === "positive") {
-      bucket.positive += Math.abs(r.points ?? 1);
-    } else {
-      bucket.negative += Math.abs(r.points ?? 1);
-    }
-  });
 
   // ── Column definitions ─────────────────────────────────────────────────────
   const getSeverityBadge = (severity: string) => {
@@ -270,12 +300,13 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
     );
   };
 
-  const reinforcementColumns = [
+  const reinforcementColumns: Column<BehaviorTableRow>[] = [
     {
       key: "occurredAt",
       label: t("date"),
       render: (v: unknown) => new Date(v as string).toLocaleDateString(),
     },
+    { key: "displayTitle", label: tBehavior("table.title") },
     { key: "categoryName", label: t("category") },
     {
       key: "points",
@@ -286,44 +317,42 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
         </span>
       ),
     },
-    { key: "noteEn", label: t("note") },
+    { key: "displayNote", label: t("note") },
     { key: "createdByName", label: t("recorded_by") },
   ];
 
-  const incidentColumns = [
+  const incidentColumns: Column<BehaviorTableRow>[] = [
     {
       key: "occurredAt",
       label: t("date"),
       render: (v: unknown) => new Date(v as string).toLocaleDateString(),
     },
+    { key: "displayTitle", label: tBehavior("table.title") },
+    { key: "categoryName", label: t("category") },
     {
       key: "severity",
       label: t("severity"),
       render: (v: unknown) => getSeverityBadge(v as string ?? "low"),
     },
-    { key: "noteEn", label: t("description") },
+    { key: "displayNote", label: t("description") },
     { key: "status", label: t("status") },
     { key: "createdByName", label: t("recorded_by") },
   ];
 
   // ── KPI values ─────────────────────────────────────────────────────────────
-  const totalPoints = summary.totalPoints ?? 0;
-  const weeklyDelta = summary.weeklyDelta ?? 0;
-  const recentPoints = summary.recentPoints ?? 0;
-  const totalIncidents =
-    summary.totalIncidents ?? incidentRecords.length;
-  const openIncidents =
-    summary.openIncidents ??
-    incidentRecords.filter((r) => r.status === "submitted").length;
+  const totalPoints = summary?.points.totalPoints ?? 0;
+  const recentPoints = summary?.points.positivePoints ?? 0;
+  const totalIncidents = summary?.records.negative ?? 0;
+  const openIncidents = summary?.review.pendingReview ?? 0;
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       {/* Error banner */}
-      {summaryError && (
+      {(summaryError || recordsError) && (
         <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          {summaryError}
+          {summaryError || recordsError}
         </div>
       )}
 
@@ -332,28 +361,18 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
         <KPICardV2
           title={t("total_points")}
           value={isLoadingSummary ? "—" : totalPoints}
-          subtitle={t("net_change", { count: weeklyDelta })}
+          subtitle={t("this_semester")}
           icon={Award}
           iconColor="#8b5cf6"
           iconBgColor="#ede9fe"
-          chartData={monthlyChart.map((e) => ({
-            label: e.label,
-            value: e.positive - e.negative,
-          }))}
-          chartColor="#8b5cf6"
         />
         <KPICardV2
-          title={t("recent_points")}
+          title={t("positive_points")}
           value={isLoadingSummary ? "—" : recentPoints}
-          subtitle={t("last_7_days")}
+          subtitle={t("this_semester")}
           icon={TrendingUp}
           iconColor="#10b981"
           iconBgColor="#d1fae5"
-          chartData={monthlyChart.map((e) => ({
-            label: e.label,
-            value: e.positive,
-          }))}
-          chartColor="#10b981"
         />
         <KPICardV2
           title={t("total_incidents")}
@@ -362,58 +381,15 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
           icon={AlertTriangle}
           iconColor="#f59e0b"
           iconBgColor="#fef3c7"
-          chartData={monthlyChart.map((e) => ({
-            label: e.label,
-            value: e.negative,
-          }))}
-          chartColor="#f59e0b"
         />
         <KPICardV2
-          title={t("open_incidents")}
+          title={t("pending_review")}
           value={isLoadingSummary ? "—" : openIncidents}
           subtitle={t("needs_attention")}
           icon={AlertTriangle}
           iconColor="#ef4444"
           iconBgColor="#fee2e2"
-          chartData={monthlyChart.map((e) => ({
-            label: e.label,
-            value: e.negative,
-          }))}
-          chartColor="#ef4444"
         />
-      </div>
-
-      {/* Chart */}
-      <div className="rounded-xl bg-white p-6 shadow-sm">
-        <h3 className="mb-4 text-lg font-bold text-gray-900">
-          {t("behavior_trend")}
-        </h3>
-        <div className="h-80">
-          <BarChart
-            xAxis={[
-              {
-                scaleType: "band",
-                data: monthlyChart.map((e) => e.label),
-              },
-            ]}
-            series={[
-              {
-                data: monthlyChart.map((e) => e.positive),
-                label: t("positive_points"),
-                color: "#10b981",
-                stack: "total",
-              },
-              {
-                data: monthlyChart.map((e) => e.negative),
-                label: t("incidents"),
-                color: "#ef4444",
-                stack: "total",
-              },
-            ]}
-            height={300}
-            margin={{ top: 20, bottom: 40, left: 50, right: 20 }}
-          />
-        </div>
       </div>
 
       {/* Records table */}
@@ -448,7 +424,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
         </div>
 
         <div className="p-6">
-          {isLoadingSummary ? (
+          {isLoadingRecords ? (
             <div className="flex justify-center py-10">
               <PartialLoader size={24} />
             </div>
@@ -456,7 +432,8 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
             reinforcementRecords.length > 0 ? (
               <DataTable
                 columns={reinforcementColumns}
-                data={reinforcementRecords as unknown as Record<string, unknown>[]}
+                data={reinforcementRecords}
+                onRowClick={setSelectedRecord}
                 showPagination={false}
               />
             ) : (
@@ -465,7 +442,8 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
           ) : incidentRecords.length > 0 ? (
             <DataTable
               columns={incidentColumns}
-              data={incidentRecords as unknown as Record<string, unknown>[]}
+              data={incidentRecords}
+              onRowClick={setSelectedRecord}
               showPagination={false}
             />
           ) : (
@@ -599,6 +577,12 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
           )}
         </div>
       </Modal>
+      <BehaviorDetailDrawer
+        record={selectedRecord}
+        isOpen={selectedRecord !== null}
+        onClose={() => setSelectedRecord(null)}
+        isReadOnly
+      />
     </div>
   );
 }

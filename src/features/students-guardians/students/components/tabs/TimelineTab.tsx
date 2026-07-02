@@ -28,7 +28,6 @@ export default function TimelineTab({ student }: TimelineTabProps) {
   const t = useTranslations("students_guardians.profile.timeline");
   const [events, setEvents] = useState<StudentTimelineEvent[]>([]);
   const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [showFilters, setShowFilters] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -126,33 +125,6 @@ export default function TimelineTab({ student }: TimelineTabProps) {
         </div>
       ) : null}
 
-      <FilterPanel
-        showFilters={showFilters}
-        onToggleFilters={() => setShowFilters((current) => !current)}
-        toggleTitle={t("filters")}
-        toggleAriaLabel={t("filters")}
-        className="px-0 py-0 bg-transparent shadow-none"
-        filtersSlot={
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <Select
-              label={t("event_type")}
-              value={typeFilter}
-              onChange={setTypeFilter}
-              fullWidth={false}
-              className="md:w-64"
-              options={[
-                { value: "all", label: t("all_events") },
-                { value: "application_submitted", label: t("application") },
-                { value: "document_uploaded", label: t("documents") },
-                { value: "test_completed", label: t("tests") },
-                { value: "interview_completed", label: t("interviews") },
-                { value: "decision_made", label: t("decisions") },
-              ]}
-            />
-          </div>
-        }
-      />
-
       {/* Timeline */}
       <div className="bg-white rounded-xl p-6 shadow-sm">
         {filteredEvents.length === 0 ? (
@@ -182,12 +154,17 @@ export default function TimelineTab({ student }: TimelineTabProps) {
                       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                         <div className="flex items-start justify-between mb-2">
                           <h4 className="font-semibold text-gray-900">
-                            {event.title}
+                            {event.label || event.title}
                           </h4>
                           <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
                             {new Date(event.date).toLocaleDateString()}
                           </span>
                         </div>
+                        {event.description ? (
+                          <p className="text-sm text-gray-600">
+                            {event.description}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                   </div>

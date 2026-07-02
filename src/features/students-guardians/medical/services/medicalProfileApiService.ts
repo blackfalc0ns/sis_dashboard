@@ -8,6 +8,39 @@ import {
 
 const STUDENTS_BASE_PATH = "/students-guardians/students";
 
+interface UpdateStudentMedicalProfilePayload {
+  bloodType?: string;
+  allergies?: string;
+  notes?: string;
+  conditions?: string[];
+  medications?: string[];
+}
+
+function normalizeOptionalText(value?: string) {
+  return value === undefined ? undefined : value.trim();
+}
+
+function normalizeMedicalList(values?: string[]) {
+  if (values === undefined) return undefined;
+
+  return values
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
+function mapMedicalProfileToUpdatePayload(
+  profile: Partial<StudentMedicalProfile>,
+): UpdateStudentMedicalProfilePayload {
+  return {
+    bloodType: normalizeOptionalText(profile.blood_type),
+    allergies: normalizeOptionalText(profile.allergies),
+    notes: normalizeOptionalText(profile.notes),
+    conditions: normalizeMedicalList(profile.conditions),
+    medications: normalizeMedicalList(profile.medications),
+  };
+}
+
 export async function fetchMedicalProfile(
   studentId: string,
 ): Promise<StudentMedicalProfile | null> {
@@ -32,7 +65,7 @@ export async function upsertMedicalProfile(
 ): Promise<StudentMedicalProfile> {
   const response = await apiPatch<unknown>(
     `${STUDENTS_BASE_PATH}/${studentId}/medical-profile`,
-    payload,
+    mapMedicalProfileToUpdatePayload(payload),
   );
   return normalizeMedicalProfile(
     unwrapItemResponse(response, "Updated medical profile"),

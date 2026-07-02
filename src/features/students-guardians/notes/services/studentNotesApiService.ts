@@ -15,21 +15,24 @@ export async function createStudentNote(
   studentId: string,
   payload: CreateStudentNotePayload,
 ): Promise<StudentNote> {
-  if (payload.xpAdjustment === 0) {
-    throw new Error("xp_cannot_be_zero");
-  }
   const response = await apiPost<unknown>(
     `${STUDENTS_BASE_PATH}/${studentId}/notes`,
     payload,
   );
-  return normalizeStudentNote(unwrapItemResponse(response, "Created student note"));
+  return normalizeStudentNote(
+    unwrapItemResponse(response, "Created student note"),
+  );
 }
 
 export async function fetchStudentNotes(
   studentId: string,
 ): Promise<StudentNote[]> {
-  const response = await apiGet<unknown>(`${STUDENTS_BASE_PATH}/${studentId}/notes`);
-  return unwrapArrayResponse(response, "Student notes").map(normalizeStudentNote);
+  const response = await apiGet<unknown>(
+    `${STUDENTS_BASE_PATH}/${studentId}/notes`,
+  );
+  return unwrapArrayResponse(response, "Student notes").map(
+    normalizeStudentNote,
+  );
 }
 
 export async function updateStudentNote(
@@ -37,12 +40,11 @@ export async function updateStudentNote(
   studentNoteId: string,
   payload: Partial<CreateStudentNotePayload>,
 ): Promise<StudentNote> {
-  if (payload.xpAdjustment === 0) {
-    throw new Error("xp_cannot_be_zero");
-  }
   const response = await apiPatch<unknown>(
     `${STUDENTS_BASE_PATH}/${studentId}/notes/${studentNoteId}`,
     payload,
   );
-  return normalizeStudentNote(unwrapItemResponse(response, "Updated student note"));
+  return normalizeStudentNote(
+    unwrapItemResponse(response, "Updated student note"),
+  );
 }

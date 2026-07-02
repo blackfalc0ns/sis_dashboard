@@ -24,6 +24,7 @@ import EmptyState from "@/components/ui/empty-state/EmptyState";
 import GuardianAccountLinkModal from "@/features/students-guardians/guardians/components/GuardianAccountLinkModal";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { usePermissions } from "@/hooks/usePermissions";
+import { getStudentsGuardiansCapabilities } from "@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities";
 
 interface GuardianProfilePageProps {
   guardianId: string;
@@ -52,8 +53,9 @@ export default function GuardianProfilePage({
   const t = useTranslations("students_guardians.guardian_profile");
   const locale = useLocale();
   const router = useRouter();
-  const { hasPermission } = usePermissions();
-  const canManageAccounts = hasPermission("settings.users.manage");
+  const permissions = usePermissions();
+  const { canLinkGuardianAccount } =
+    getStudentsGuardiansCapabilities(permissions);
   const params = useParams();
   const lang = (params.lang as string) || "en";
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
@@ -176,9 +178,9 @@ export default function GuardianProfilePage({
               type="button"
               variant="secondary"
               leftIcon={<Lock className="h-4 w-4" />}
-              disabled={!canManageAccounts}
+              disabled={!canLinkGuardianAccount}
               title={
-                canManageAccounts
+                canLinkGuardianAccount
                   ? t("account_linking.action")
                   : t("account_linking.manage_required")
               }

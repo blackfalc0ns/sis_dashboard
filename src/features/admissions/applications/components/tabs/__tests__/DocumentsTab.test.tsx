@@ -6,6 +6,19 @@ import DocumentsTab from "@/features/admissions/applications/components/tabs/Doc
 import type { Application, Document } from "@/features/admissions/types/admissions";
 import { ApiError } from "@/lib/api-error";
 
+vi.mock("next-intl", () => ({
+  useLocale: () => "en",
+  useTranslations: () => (key: string) =>
+    ({
+      "documents.status_pending_review":
+        "This document was submitted by the applicant and is waiting for school review.",
+      "documents.status_complete":
+        "This document has been accepted by the school.",
+      "documents.status_missing":
+        "This document is missing or requires applicant action.",
+    })[key] ?? key,
+}));
+
 const serviceMocks = vi.hoisted(() => ({
   acceptApplicationDocument: vi.fn(),
   createApplicationDocument: vi.fn(),
@@ -194,7 +207,30 @@ describe("DocumentsTab review actions", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "This document is missing, rejected, or waiting for applicant replacement.",
+        "This document is missing or requires applicant action.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("renders a bridged document with an unfamiliar document type", async () => {
+    renderDocumentsTabWithDocuments([
+      {
+        id: "doc-portal-custom",
+        type: "Applicant Portfolio Evidence",
+        name: "portfolio.pdf",
+        labelEn: "Applicant Portfolio Evidence",
+        status: "pending_review",
+        fileId: "file-portal-custom",
+        fileType: "pdf",
+      },
+    ]);
+
+    expect(
+      await screen.findByText("Applicant Portfolio Evidence"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "This document was submitted by the applicant and is waiting for school review.",
       ),
     ).toBeInTheDocument();
   });
@@ -347,6 +383,19 @@ describe("DocumentsTab review actions", () => {
         "No documents have been submitted for this application yet.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("revalidates empty initial documents from the Admissions API on entry", async () => {
+    serviceMocks.fetchApplicationDocuments.mockResolvedValue(applicationDocuments);
+    render(
+      <DocumentsTab
+        application={{ ...application, documents: [] }}
+        initialDocuments={[]}
+      />,
+    );
+
+    expect(await screen.findByText("Pending document")).toBeInTheDocument();
+    expect(serviceMocks.fetchApplicationDocuments).toHaveBeenCalledWith("app-1");
   });
 
   it.each([

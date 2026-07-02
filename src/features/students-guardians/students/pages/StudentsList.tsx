@@ -364,18 +364,11 @@ export default function StudentsList() {
   const handleAddNote = async (noteData: NoteFormData) => {
     if (!selectedStudent) return;
 
-    if (noteData.xpAdjustment === 0) {
-      setPageError("XP adjustment cannot be zero.");
-      return;
-    }
-
     try {
       await studentsService.createStudentNote(selectedStudent.id, {
         category: noteData.category,
         note: noteData.note,
-        xpAdjustment: noteData.xpAdjustment as number,
         visibility: noteData.visibility,
-        created_by: noteData.created_by,
       });
       setShowAddNoteModal(false);
       setSelectedStudent(null);
@@ -544,31 +537,10 @@ export default function StudentsList() {
       },
     },
     {
-      key: "current_average",
-      label: t("columns.average"),
-      render: (_: unknown, row: { [key: string]: unknown }) => {
-        const student = row as unknown as (typeof studentsWithEnrollment)[0];
-        return student.contextPerformance || student.ytdPerformance
-          ? `${(student.contextPerformance || student.ytdPerformance)?.gradeAverage}%`
-          : t("columns.na");
-      },
-    },
-    {
       key: "status",
       label: t("columns.status"),
       render: (value: unknown) =>
         getStatusBadge(value as "Active" | "Withdrawn" | "Suspended"),
-    },
-    {
-      key: "risk_flags",
-      label: t("columns.risk_flags"),
-      sortable: false,
-      render: (_: unknown, row: { [key: string]: unknown }) => {
-        const student = row as unknown as (typeof studentsWithEnrollment)[0];
-        return getRiskBadges(
-          student.contextPerformance || student.ytdPerformance,
-        );
-      },
     },
     {
       key: "actions",
@@ -597,7 +569,9 @@ export default function StudentsList() {
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              // Handle edit
+              router.push(
+                `/${lang}/students-guardians/students/${(row as unknown as Student).id}`,
+              );
             }}
             className="p-1.5 text-gray-600"
             title={t("actions.edit")}
@@ -656,37 +630,8 @@ export default function StudentsList() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6 overflow-x-hidden">
-      {/* Date Range Filter */}
-      <DateRangeFilter
-        value={dateRange}
-        onChange={(nextRange) => {
-          const shouldResetCustom = nextRange !== "custom";
-          setValues(
-            {
-              dateRange: nextRange,
-              startDate: shouldResetCustom ? null : customStartDate || null,
-              endDate: shouldResetCustom ? null : customEndDate || null,
-            },
-            "push",
-          );
-        }}
-        customStartDate={customStartDate}
-        customEndDate={customEndDate}
-        onCustomDateChange={(start, end) => {
-          setValues(
-            {
-              dateRange: "custom",
-              startDate: start || null,
-              endDate: end || null,
-            },
-            "replace",
-          );
-        }}
-        showAllTime={true}
-      />
-
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
         <KPICardV2
           title={
             dateRange === "all"
@@ -703,13 +648,6 @@ export default function StudentsList() {
           icon={Users}
           iconColor="#3b82f6"
           iconBgColor="#dbeafe"
-          chartData={[
-            { label: "M1", value: kpis.total - 15 },
-            { label: "M2", value: kpis.total - 10 },
-            { label: "M3", value: kpis.total - 5 },
-            { label: "M4", value: kpis.total },
-          ]}
-          chartColor="#3b82f6"
         />
         <KPICardV2
           title={t("kpis.active_students")}
@@ -718,43 +656,6 @@ export default function StudentsList() {
           icon={UserCheck}
           iconColor="#10b981"
           iconBgColor="#d1fae5"
-          chartData={[
-            { label: "M1", value: kpis.active - 12 },
-            { label: "M2", value: kpis.active - 8 },
-            { label: "M3", value: kpis.active - 4 },
-            { label: "M4", value: kpis.active },
-          ]}
-          chartColor="#10b981"
-        />
-        <KPICardV2
-          title={t("kpis.withdrawn")}
-          value={kpis.withdrawn}
-          subtitle={t("kpis.this_period")}
-          icon={UserX}
-          iconColor="#6b7280"
-          iconBgColor="#f3f4f6"
-          chartData={[
-            { label: "M1", value: Math.max(0, kpis.withdrawn - 3) },
-            { label: "M2", value: Math.max(0, kpis.withdrawn - 2) },
-            { label: "M3", value: Math.max(0, kpis.withdrawn - 1) },
-            { label: "M4", value: kpis.withdrawn },
-          ]}
-          chartColor="#6b7280"
-        />
-        <KPICardV2
-          title={t("kpis.at_risk_students")}
-          value={kpis.atRisk}
-          subtitle={t("kpis.need_attention")}
-          icon={AlertTriangle}
-          iconColor="#ef4444"
-          iconBgColor="#fee2e2"
-          chartData={[
-            { label: "M1", value: Math.max(0, kpis.atRisk - 2) },
-            { label: "M2", value: Math.max(0, kpis.atRisk - 1) },
-            { label: "M3", value: kpis.atRisk },
-            { label: "M4", value: kpis.atRisk },
-          ]}
-          chartColor="#ef4444"
         />
       </div>
 
@@ -786,8 +687,9 @@ export default function StudentsList() {
           <Button
             type="button"
             variant="secondary"
-            disabled
-            title="Coming soon"
+            onClick={() =>
+              router.push(`/${lang}/students-guardians/registration`)
+            }
             leftIcon={<Plus className="w-4 h-4" />}
           >
             {t("add_student")}
@@ -814,7 +716,9 @@ export default function StudentsList() {
                   setValue("search", e.target.value, "replace");
                 }}
                 leftIcon={<Search className="w-4 h-4" />}
-                className={searchQuery ? "border-primary ring-2 ring-primary/20" : ""}
+                className={
+                  searchQuery ? "border-primary ring-2 ring-primary/20" : ""
+                }
               />
             </div>
             {hasActiveFilters && (
@@ -835,58 +739,63 @@ export default function StudentsList() {
               label={t("filter_labels.grade")}
               value={gradeFilter}
               onChange={(nextGrade) => {
-                  setValues(
-                    {
-                      grade: nextGrade,
-                      section: null,
-                      classroom: null,
-                    },
-                    "push",
-                  );
-                }}
+                setValues(
+                  {
+                    grade: nextGrade,
+                    section: null,
+                    classroom: null,
+                  },
+                  "push",
+                );
+              }}
               options={[
                 { value: "all", label: t("filter_options.all_grades") },
-                ...uniqueGrades.map((grade) => ({ value: grade, label: grade })),
+                ...uniqueGrades.map((grade) => ({
+                  value: grade,
+                  label: grade,
+                })),
               ]}
             />
             <Select
               label={t("filter_labels.section")}
               value={sectionFilter}
               onChange={(nextSection) => {
-                  setValues(
-                    {
-                      section: nextSection,
-                      classroom: null,
-                    },
-                    "push",
-                  );
-                }}
+                setValues(
+                  {
+                    section: nextSection,
+                    classroom: null,
+                  },
+                  "push",
+                );
+              }}
               options={[
                 { value: "all", label: t("filter_options.all_sections") },
-                ...uniqueSections.map((section) => ({ value: section, label: section })),
+                ...uniqueSections.map((section) => ({
+                  value: section,
+                  label: section,
+                })),
               ]}
             />
             <Select
               label={t("filter_labels.classroom")}
               value={classroomFilter}
               onChange={(value) => {
-                  setValue("classroom", value, "push");
-                }}
+                setValue("classroom", value, "push");
+              }}
               options={[
                 { value: "all", label: t("filter_options.all_classrooms") },
-                ...uniqueClassrooms.map((classroom) => ({ value: classroom, label: classroom })),
+                ...uniqueClassrooms.map((classroom) => ({
+                  value: classroom,
+                  label: classroom,
+                })),
               ]}
             />
             <Select
               label={t("filter_labels.status")}
               value={statusFilter}
               onChange={(value) => {
-                  setValue(
-                    "status",
-                    value as StudentStatus | "all",
-                    "push",
-                  );
-                }}
+                setValue("status", value as StudentStatus | "all", "push");
+              }}
               options={[
                 { value: "all", label: t("filter_options.all_statuses") },
                 { value: "Active", label: t("status.active") },
@@ -903,11 +812,13 @@ export default function StudentsList() {
         <div className="bg-white rounded-xl shadow-sm">
           <EmptyState
             message={hasActiveFilters ? t("no_match") : t("no_students")}
-            action={hasActiveFilters ? (
-              <Button type="button" variant="ghost" onClick={clearFilters}>
-                {t("clear_filters")}
-              </Button>
-            ) : undefined}
+            action={
+              hasActiveFilters ? (
+                <Button type="button" variant="ghost" onClick={clearFilters}>
+                  {t("clear_filters")}
+                </Button>
+              ) : undefined
+            }
           />
         </div>
       ) : (

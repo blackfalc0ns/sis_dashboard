@@ -46,6 +46,7 @@ import {
   fetchStructureTree,
   type Grade,
 } from "@/features/academics/academic-structure-tree/services/structureService";
+import { applicationSourceLabel } from "@/features/admissions/applications/utils/applicationSourceLabel";
 
 export default function ApplicationsList() {
   const t = useTranslations("admissions.applications");
@@ -319,8 +320,7 @@ export default function ApplicationsList() {
     {
       key: "source",
       label: t("source"),
-      render: (value: unknown) =>
-        typeof value === "string" ? sourceLabels[value] ?? value : "—",
+      render: (value: unknown) => applicationSourceLabel(value, sourceLabels),
     },
     {
       key: "status",

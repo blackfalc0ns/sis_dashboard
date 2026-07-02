@@ -8,7 +8,10 @@ import {
   XCircle,
   Clock,
 } from "lucide-react";
-import { Student, StudentEnrollment } from "@/features/students-guardians/students/types";
+import {
+  Student,
+  StudentEnrollment,
+} from "@/features/students-guardians/students/types";
 import {
   getEnrollmentHistory,
   getPlacementHistory,
@@ -29,12 +32,15 @@ export default function EnrollmentHistoryTab({
 }: EnrollmentHistoryTabProps) {
   const t = useTranslations("students_guardians.profile.enrollment_history");
   const [enrollment, setEnrollment] = useState<StudentEnrollment | null>(null);
-  const [enrollmentHistory, setEnrollmentHistory] = useState<StudentEnrollment[]>(
-    [],
-  );
+  const [enrollmentHistory, setEnrollmentHistory] = useState<
+    StudentEnrollment[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const placementHistory = useMemo(() => getPlacementHistory(student.id), [student.id]);
+  const placementHistory = useMemo(
+    () => getPlacementHistory(student.id),
+    [student.id],
+  );
 
   useEffect(() => {
     let isCancelled = false;
@@ -97,7 +103,11 @@ export default function EnrollmentHistoryTab({
     );
   };
 
-  const currentPlacement = [enrollment?.grade, enrollment?.section, enrollment?.classroom]
+  const currentPlacement = [
+    enrollment?.grade,
+    enrollment?.section,
+    enrollment?.classroom,
+  ]
     .filter(Boolean)
     .join(" • ");
 
@@ -169,7 +179,8 @@ export default function EnrollmentHistoryTab({
           <KPICardV2
             title={t("completed")}
             value={
-              enrollmentHistory.filter((item) => item.status === "completed").length
+              enrollmentHistory.filter((item) => item.status === "completed")
+                .length
             }
             icon={CheckCircle}
             iconColor="#10b981"
@@ -228,21 +239,33 @@ export default function EnrollmentHistoryTab({
 
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">{t("grade")}</p>
-                        <p className="text-sm font-medium text-gray-900">{historyEntry.grade}</p>
+                        <p className="text-xs text-gray-500 mb-1">
+                          {t("grade")}
+                        </p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {historyEntry.grade}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">{t("section")}</p>
-                        <p className="text-sm font-medium text-gray-900">{historyEntry.section}</p>
+                        <p className="text-xs text-gray-500 mb-1">
+                          {t("section")}
+                        </p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {historyEntry.section}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">{t("classroom")}</p>
+                        <p className="text-xs text-gray-500 mb-1">
+                          {t("classroom")}
+                        </p>
                         <p className="text-sm font-medium text-gray-900">
                           {historyEntry.classroom || t("na")}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">{t("enrollment_date")}</p>
+                        <p className="text-xs text-gray-500 mb-1">
+                          {t("enrollment_date")}
+                        </p>
                         <p className="text-sm font-medium text-gray-900">
                           {formatDate(historyEntry.enrollmentDate)}
                         </p>
@@ -275,42 +298,6 @@ export default function EnrollmentHistoryTab({
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          {t("movement_title")}
-        </h3>
-        {placementHistory.length === 0 ? (
-          <p className="text-sm text-gray-500">{t("no_history")}</p>
-        ) : (
-          <div className="space-y-3">
-            {placementHistory.map((movement) => (
-              <div
-                key={movement.id}
-                className="rounded-lg border border-gray-200 bg-gray-50 p-4"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium text-gray-900">
-                    {getMovementLabel(movement.actionType)}
-                  </p>
-                  <span className="text-xs text-gray-500">
-                    {formatDate(movement.effectiveDate)}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm text-gray-600">
-                  {[movement.fromGrade, movement.fromSection, movement.fromClassroom]
-                    .filter(Boolean)
-                    .join(" • ") || t("na")}
-                  {" → "}
-                  {[movement.toGrade, movement.toSection, movement.toClassroom]
-                    .filter(Boolean)
-                    .join(" • ") || t("na")}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

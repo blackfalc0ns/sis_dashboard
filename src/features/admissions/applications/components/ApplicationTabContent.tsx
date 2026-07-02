@@ -96,7 +96,6 @@ export default function ApplicationTabContent({
       <DocumentsTab
         application={application}
         initialDocuments={relatedData.documents}
-        preferInitialDocuments
       />
     );
   }

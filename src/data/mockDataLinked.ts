@@ -40,7 +40,9 @@ const splitStudentName = (fullName: string) => {
   };
 };
 
-const enrichApplicationStudentNames = (application: Application): Application => {
+const enrichApplicationStudentNames = (
+  application: Application,
+): Application => {
   const arabicNameParts = splitStudentName(application.full_name_ar);
   const englishNameParts = splitStudentName(application.full_name_en);
 
@@ -2767,10 +2769,6 @@ export const mockStudentNotes: StudentNote[] = mockStudents.flatMap(
         date: new Date(2026, 1, 1 + i * 7).toISOString(),
         category,
         note: seededPick(`${student.id}-note-${i}`, noteTexts[category]),
-        xpAdjustment:
-          seededNumber(`${student.id}-xp-sign-${i}`, 0, 1) === 0
-            ? seededNumber(`${student.id}-xp-negative-${i}`, -18, -3)
-            : seededNumber(`${student.id}-xp-positive-${i}`, 4, 20),
         visibility,
         created_by: [
           "Ms. Sarah Johnson",

@@ -8,7 +8,6 @@ import {
   Upload,
   Download,
   Eye,
-  Trash2,
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
@@ -24,6 +23,7 @@ import UploadDocumentModal, {
 } from "@/features/students-guardians/students/components/modals/UploadDocumentModal";
 import DocumentViewerModal from "@/features/admissions/applications/components/modals/DocumentViewerModal";
 import { useTranslations } from "next-intl";
+import { downloadFileBlob, uploadFile } from "@/services/filesService";
 
 interface DocumentsTabProps {
   student: Student;
@@ -41,6 +41,9 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
     url?: string;
     fileType?: string;
   } | null>(null);
+  const [selectedObjectUrl, setSelectedObjectUrl] = useState<string | null>(
+    null,
+  );
 
   const loadDocuments = useCallback(async () => {
     setIsLoading(true);
@@ -72,16 +75,14 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
   }, [loadDocuments]);
 
   const handleUploadDocument = async (documentData: DocumentUploadData) => {
-    const formData = new FormData();
-    formData.append("type", documentData.type);
-    formData.append("status", "complete");
-    if (documentData.notes) {
-      formData.append("notes", documentData.notes);
-    }
-    formData.append("file", documentData.file);
-
     try {
-      await studentsService.createStudentDocument(student.id, formData);
+      const uploadedFile = await uploadFile(documentData.file);
+      await studentsService.createStudentDocument(student.id, {
+        type: documentData.type,
+        status: "complete",
+        fileId: uploadedFile.id,
+        notes: documentData.notes,
+      });
       setShowUploadModal(false);
       await loadDocuments();
     } catch (uploadError) {
@@ -98,32 +99,79 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
     setShowUploadModal(true);
   };
 
-  const handleViewDocument = (doc: Record<string, unknown>) => {
-    // Generate a mock URL for demonstration
-    const mockUrl = `/documents/${doc.id}.pdf`;
-    const fileType = (doc.name as string)?.endsWith(".pdf")
-      ? "pdf"
-      : (doc.name as string)?.match(/\.(jpg|jpeg|png|gif)$/i)
-        ? "image"
-        : "other";
+  const getDocumentFileId = (doc: Record<string, unknown>) =>
+    typeof doc.fileId === "string" && doc.fileId.trim()
+      ? doc.fileId.trim()
+      : null;
 
-    setSelectedDocument({
-      type: doc.type as string,
-      name: doc.name as string,
-      url: mockUrl,
-      fileType,
-    });
+  const getFileType = (name: string) => {
+    if (name.endsWith(".pdf")) return "pdf";
+    if (/\.(jpg|jpeg|png|gif)$/i.test(name)) return "image";
+    return "other";
   };
 
-  const handleDownloadDocument = (doc: Record<string, unknown>) => {
-    // Generate a mock download URL
-    const mockUrl = `/documents/${doc.id}.pdf`;
-    const link = document.createElement("a");
-    link.href = mockUrl;
-    link.download = doc.name as string;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleViewDocument = async (doc: Record<string, unknown>) => {
+    const fileId = getDocumentFileId(doc);
+    if (!fileId) {
+      setError("Document file is unavailable from the backend response.");
+      return;
+    }
+
+    try {
+      const blob = await downloadFileBlob(fileId);
+      const objectUrl = URL.createObjectURL(blob);
+      if (selectedObjectUrl) {
+        URL.revokeObjectURL(selectedObjectUrl);
+      }
+      setSelectedObjectUrl(objectUrl);
+      const name = String(doc.name ?? "Document");
+      setSelectedDocument({
+        type: String(doc.type ?? ""),
+        name,
+        url: objectUrl,
+        fileType: getFileType(name),
+      });
+    } catch (viewError) {
+      setError(
+        viewError instanceof Error
+          ? viewError.message
+          : "Unable to view document.",
+      );
+    }
+  };
+
+  const handleDownloadDocument = async (doc: Record<string, unknown>) => {
+    const fileId = getDocumentFileId(doc);
+    if (!fileId) {
+      setError("Document file is unavailable from the backend response.");
+      return;
+    }
+
+    try {
+      const blob = await downloadFileBlob(fileId);
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = String(doc.name ?? "document");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+    } catch (downloadError) {
+      setError(
+        downloadError instanceof Error
+          ? downloadError.message
+          : "Unable to download document.",
+      );
+    }
+  };
+
+  const handleCloseViewer = () => {
+    if (selectedObjectUrl) {
+      URL.revokeObjectURL(selectedObjectUrl);
+    }
+    setSelectedObjectUrl(null);
+    setSelectedDocument(null);
   };
 
   const getStatusBadge = (status: string) => {
@@ -196,7 +244,7 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => handleViewDocument(row)}
+                onClick={() => void handleViewDocument(row)}
                 className="p-1.5 text-primary"
                 title={t("view")}
               >
@@ -206,7 +254,7 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => handleDownloadDocument(row)}
+                onClick={() => void handleDownloadDocument(row)}
                 className="p-1.5 text-gray-600"
                 title={t("download")}
               >
@@ -226,15 +274,6 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
               <Upload className="w-4 h-4" />
             </Button>
           )}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="p-1.5 text-red-600"
-            title={t("delete")}
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
         </div>
       ),
     },
@@ -336,7 +375,7 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
       {/* Document Viewer Modal */}
       <DocumentViewerModal
         isOpen={!!selectedDocument}
-        onClose={() => setSelectedDocument(null)}
+        onClose={handleCloseViewer}
         document={selectedDocument}
       />
     </div>

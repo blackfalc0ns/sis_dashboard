@@ -1,4 +1,4 @@
-import { apiClient, apiGet, apiPatch } from "@/lib/api";
+import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import type { StudentDocument } from "@/features/students-guardians/students/types";
 import {
   normalizeStudentDocument,
@@ -9,16 +9,23 @@ import {
 const STUDENTS_BASE_PATH = "/students-guardians/students";
 const DOCUMENTS_BASE_PATH = "/students-guardians/documents";
 
+export interface CreateStudentDocumentPayload {
+  type: string;
+  fileId: string;
+  status: StudentDocument["status"];
+  notes?: string;
+}
+
 export async function createStudentDocument(
   studentId: string,
-  payloadWithFile: FormData,
+  payload: CreateStudentDocumentPayload,
 ): Promise<StudentDocument> {
-  const response = await apiClient.post<unknown>(
+  const response = await apiPost<unknown>(
     `${STUDENTS_BASE_PATH}/${studentId}/documents`,
-    payloadWithFile,
+    payload,
   );
   return normalizeStudentDocument(
-    unwrapItemResponse(response.data, "Created student document"),
+    unwrapItemResponse(response, "Created student document"),
   );
 }
 

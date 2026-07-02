@@ -1,11 +1,12 @@
 import { apiPost } from "@/lib/api";
 
-export type AccountLinkMode = "create" | "link_existing";
+export type AccountLinkMode = "create" | "link" | "link_existing";
 export type TemporaryPasswordMode = "none" | "generate";
 
 export interface AccountLinkRequest {
   mode: AccountLinkMode;
-  username: string;
+  username?: string;
+  userId?: string;
   contactEmail?: string | null;
   temporaryPasswordMode?: TemporaryPasswordMode;
 }

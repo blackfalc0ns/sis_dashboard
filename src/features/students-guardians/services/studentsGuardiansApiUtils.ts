@@ -62,14 +62,35 @@ const pickNumber = (
   return fallback;
 };
 
+const pickStringList = (source: ApiRecord, keys: string[]): string[] => {
+  for (const key of keys) {
+    const value = source[key];
+    if (Array.isArray(value)) {
+      return value.filter(
+        (entry): entry is string => typeof entry === "string",
+      );
+    }
+    if (typeof value === "string" && value.trim()) {
+      return value
+        .split(/\r?\n|,/)
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+    }
+  }
+  return [];
+};
+
 const unwrapNested = (response: unknown): unknown => {
   if (!isRecord(response)) return response;
 
-  if (Array.isArray(response.data) || isRecord(response.data)) return response.data;
+  if (Array.isArray(response.data) || isRecord(response.data))
+    return response.data;
   if (Array.isArray(response.items)) return response.items;
   if (Array.isArray(response.result) || isRecord(response.result)) {
     const result = response.result;
-    return isRecord(result) && Array.isArray(result.items) ? result.items : result;
+    return isRecord(result) && Array.isArray(result.items)
+      ? result.items
+      : result;
   }
   if (Array.isArray(response.payload) || isRecord(response.payload)) {
     const payload = response.payload;
@@ -178,7 +199,9 @@ export function normalizeStudent(raw: unknown): Student {
   };
 }
 
-export function normalizeGuardian(raw: unknown): StudentGuardian & { id: string } {
+export function normalizeGuardian(
+  raw: unknown,
+): StudentGuardian & { id: string } {
   const item = readRecord(raw, "Guardian");
   const guardianId = pickString(item, ["guardianId", "id", "guardian_id"]);
 
@@ -223,7 +246,11 @@ export function normalizeEnrollment(
   raw: unknown,
 ): StudentEnrollment & { id: string } {
   const item = readRecord(raw, "Enrollment");
-  const enrollmentId = pickString(item, ["enrollmentId", "id", "enrollment_id"]);
+  const enrollmentId = pickString(item, [
+    "enrollmentId",
+    "id",
+    "enrollment_id",
+  ]);
 
   return {
     ...(item as Partial<StudentEnrollment>),
@@ -239,13 +266,21 @@ export function normalizeEnrollment(
     classroomId: pickString(item, ["classroomId", "classroom_id"]),
     classroom: pickString(item, ["classroom", "classroomName"]),
     enrollmentDate: pickString(item, ["enrollmentDate", "enrollment_date"]),
-    status: pickString(item, ["status"], "active") as StudentEnrollment["status"],
+    status: pickString(
+      item,
+      ["status"],
+      "active",
+    ) as StudentEnrollment["status"],
   };
 }
 
 export function normalizeStudentDocument(
   raw: unknown,
-): StudentDocument & { studentDocumentId?: string; notes?: string; url?: string } {
+): StudentDocument & {
+  studentDocumentId?: string;
+  notes?: string;
+  url?: string;
+} {
   const item = readRecord(raw, "Student document");
   const id = pickString(item, ["id", "studentDocumentId", "documentId"]);
   return {
@@ -255,8 +290,17 @@ export function normalizeStudentDocument(
     studentId: pickString(item, ["studentId", "student_id"]),
     type: pickString(item, ["type", "documentType"]),
     name: pickString(item, ["name", "fileName", "file_name"], "Document"),
-    status: pickString(item, ["status"], "missing") as StudentDocument["status"],
-    uploadedDate: pickString(item, ["uploadedDate", "uploaded_at", "created_at"]),
+    status: pickString(
+      item,
+      ["status"],
+      "missing",
+    ) as StudentDocument["status"],
+    fileId: pickString(item, ["fileId", "file_id"]),
+    uploadedDate: pickString(item, [
+      "uploadedDate",
+      "uploaded_at",
+      "created_at",
+    ]),
     notes: pickString(item, ["notes"]),
     url: pickString(item, ["url", "fileUrl", "file_url"]),
   };
@@ -269,8 +313,9 @@ export function normalizeMedicalProfile(raw: unknown): StudentMedicalProfile {
     studentId: pickString(item, ["studentId", "student_id"]),
     blood_type: pickString(item, ["blood_type", "bloodType"]),
     allergies: pickString(item, ["allergies"]),
+    conditions: pickStringList(item, ["conditions"]),
+    medications: pickStringList(item, ["medications"]),
     notes: pickString(item, ["notes"]),
-    emergency_plan: pickString(item, ["emergency_plan", "emergencyPlan"]),
   };
 }
 
@@ -281,10 +326,17 @@ export function normalizeStudentNote(raw: unknown): StudentNote {
     id: pickString(item, ["id", "studentNoteId", "noteId"]),
     studentId: pickString(item, ["studentId", "student_id"]),
     date: pickString(item, ["date", "created_at", "createdAt"]),
-    category: pickString(item, ["category"], "general") as StudentNote["category"],
+    category: pickString(
+      item,
+      ["category"],
+      "general",
+    ) as StudentNote["category"],
     note: pickString(item, ["note", "content", "text"]),
-    xpAdjustment: pickNumber(item, ["xpAdjustment", "xp_adjustment"]),
-    visibility: pickString(item, ["visibility"], "internal") as StudentNote["visibility"],
+    visibility: pickString(
+      item,
+      ["visibility"],
+      "internal",
+    ) as StudentNote["visibility"],
     created_by: pickString(item, ["created_by", "createdBy"]),
   };
 }
@@ -297,7 +349,9 @@ export function normalizeTimelineEvent(raw: unknown): StudentTimelineEvent {
     studentId: pickString(item, ["studentId", "student_id"]),
     type: pickString(item, ["type"], "note") as StudentTimelineEvent["type"],
     date: pickString(item, ["date", "created_at", "createdAt"]),
-    title: pickString(item, ["title", "name", "description"]),
+    title: pickString(item, ["title", "label", "name", "description"]),
+    label: pickString(item, ["label", "title", "name"]),
+    description: pickString(item, ["description"]),
     meta: isRecord(item.meta) ? item.meta : undefined,
   };
 }
