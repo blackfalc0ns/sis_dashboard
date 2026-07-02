@@ -46,10 +46,13 @@ export default function RollCallHeaderBar({
                       onUnsubmit;
 
   return (
-    <div style={{ backgroundColor: "var(--background)", borderBottom: "1px solid var(--color-border)" }} className="px-4 py-3">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+    <div
+      style={{ backgroundColor: "var(--background)" }}
+      className="rounded-lg border px-3 py-3"
+    >
+      <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
         {/* Left: Bulk Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           {!isReadOnly && !isSubmitted && (
             <>
               <Button
@@ -68,7 +71,7 @@ export default function RollCallHeaderBar({
         </div>
 
         {/* Right: Save/Submit/Export Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 md:justify-end">
           {/* Export */}
           <Button
             variant="outline"

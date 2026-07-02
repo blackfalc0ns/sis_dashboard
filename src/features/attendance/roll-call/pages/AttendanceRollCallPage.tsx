@@ -3,16 +3,24 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
-import { Filter } from "lucide-react";
-import { useMediaQuery } from "@mui/material";
+import { CalendarDays, Filter } from "lucide-react";
 import { useToast } from "@/components/ui/toast/Toast";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import Button from "@/components/ui/button/Button";
 import ScopeBreadcrumb from "@/features/attendance/shared/components/ScopeBreadcrumb";
 import AttendanceReadOnlyBanner from "@/features/attendance/shared/components/AttendanceReadOnlyBanner";
-import AttendanceStatePanel from "@/features/attendance/shared/components/AttendanceStatePanel";
+import AttendanceBottomDrawer from "@/features/attendance/shared/components/AttendanceBottomDrawer";
+import {
+  AttendanceWorkspaceContentPanel,
+  AttendanceWorkspaceMobileActions,
+  AttendanceWorkspaceRail,
+  AttendanceWorkspaceShell,
+  AttendanceWorkspaceState,
+} from "@/features/attendance/shared/components/AttendanceWorkspaceShell";
 import SessionPickerPanel from "../components/SessionPickerPanel";
-import RosterFiltersBar, { type RosterFilters } from "../components/RosterFiltersBar";
+import RosterFiltersBar, {
+  type RosterFilters,
+} from "../components/RosterFiltersBar";
 import RollCallFiltersDrawer from "../components/RollCallFiltersDrawer";
 import RollCallHeaderBar from "../components/RollCallHeaderBar";
 import AttendanceKpisBar from "../components/AttendanceKpisBar";
@@ -28,12 +36,11 @@ import {
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   fetchEffectivePolicy,
-  fetchRoster,
-  getOrCreateSession,
-  saveSession,
-  submitSession,
-  unsubmitSession,
 } from "../services/attendanceRollCallService";
+import {
+  RollCallSubmissionError,
+  useRollCallSessionWorkspace,
+} from "../hooks/useRollCallSessionWorkspace";
 import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
 import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 import { exportAttendanceSession } from "../utils/attendanceExport";
@@ -49,14 +56,12 @@ import {
 import type { AttendanceScopeType } from "@/features/attendance/policies/types";
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
-import { isScopeSelectionComplete, type AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
+import {
+  isScopeSelectionComplete,
+  type AttendanceScopeIds,
+} from "@/features/attendance/shared/attendanceScope";
 import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
-import type {
-  AttendanceSession,
-  AttendanceEntry,
-  RosterStudent,
-  AttendanceStatus,
-} from "../types";
+import type { AttendanceEntry, AttendanceStatus } from "../types";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 
 export default function AttendanceRollCallPage() {
@@ -65,7 +70,6 @@ export default function AttendanceRollCallPage() {
   const locale = useLocale();
   const router = useRouter();
   const { showSuccess, showError } = useToast();
-  const isMobile = useMediaQuery("(max-width: 768px)");
 
   // Use unified term context
   const termContext = useAttendanceYearTermLayoutContext();
@@ -83,22 +87,20 @@ export default function AttendanceRollCallPage() {
 
   // Policy & timetable
   const [policy, setPolicy] = useState<AttendancePolicy | null>(null);
-  const [periods, setPeriods] = useState<import("@/features/academics/timetable/types/timetableConfig").TimetablePeriod[]>([]);
+  const [periods, setPeriods] = useState<
+    import("@/features/academics/timetable/types/timetableConfig").TimetablePeriod[]
+  >([]);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
 
-  // Session & roster
-  const [session, setSession] = useState<AttendanceSession | null>(null);
-  const [roster, setRoster] = useState<RosterStudent[]>([]);
-  const [entries, setEntries] = useState<AttendanceEntry[]>([]);
-  const [originalEntries, setOriginalEntries] = useState<AttendanceEntry[]>([]);
-
   // UI state
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isContextLoading, setIsContextLoading] = useState(true);
+  const [contextError, setContextError] = useState<Error | null>(null);
+  const [contextRetryToken, setContextRetryToken] = useState(0);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showUnsubmitConfirm, setShowUnsubmitConfirm] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showSessionDrawer, setShowSessionDrawer] = useState(false);
 
   // Filter state
   const [showFilters, setShowFilters] = useState(false);
@@ -122,12 +124,8 @@ export default function AttendanceRollCallPage() {
       search: "replace",
     },
     normalize: (current) => {
-      const nextUpdates: Partial<
-        Record<
-          keyof typeof current,
-          string | null
-        >
-      > = {};
+      const nextUpdates: Partial<Record<keyof typeof current, string | null>> =
+        {};
       const validStatuses = [
         "ALL",
         "UNMARKED",
@@ -139,7 +137,11 @@ export default function AttendanceRollCallPage() {
       ] satisfies Array<"ALL" | "UNMARKED" | AttendanceStatus>;
       const validExcuseCompleteness = ["ALL", "COMPLETE", "MISSING"];
 
-      if (!validStatuses.includes(current.status as (typeof validStatuses)[number])) {
+      if (
+        !validStatuses.includes(
+          current.status as (typeof validStatuses)[number],
+        )
+      ) {
         nextUpdates.status = null;
       }
 
@@ -213,8 +215,40 @@ export default function AttendanceRollCallPage() {
     [filters, setValues],
   );
 
+  const periodData = periods.find((period) => period.id === selectedPeriodId);
+  const sessionSelection = useMemo(
+    () => ({
+      yearId: termContext.yearId ?? undefined,
+      termId: termContext.termId ?? undefined,
+      date,
+      scopeType,
+      scopeIds,
+      mode: policy?.mode,
+      periodId: selectedPeriodId ?? undefined,
+      periodIndex: periodData?.index,
+      periodNameAr: periodData?.nameAr,
+      periodNameEn: periodData?.nameEn,
+      enabled:
+        Boolean(policy) &&
+        isScopeSelectionComplete(scopeType, scopeIds) &&
+        (policy?.mode !== "PERIOD" || Boolean(selectedPeriodId)),
+    }),
+    [
+      date,
+      periodData,
+      policy,
+      scopeIds,
+      scopeType,
+      selectedPeriodId,
+      termContext.termId,
+      termContext.yearId,
+    ],
+  );
+  const rollCall = useRollCallSessionWorkspace(sessionSelection);
+  const { roster, session, entries, isDirty } = rollCall;
+  const setEntries = rollCall.setEntries;
+  const { saveDraft, submitDraft, unsubmit, resetDraft } = rollCall;
   const isReadOnly = termContext.isReadOnly;
-  const isDirty = JSON.stringify(entries) !== JSON.stringify(originalEntries);
   const isSubmitted = session?.status === "SUBMITTED";
   const shouldGuardNavigation = isDirty && !isReadOnly && !isSubmitted;
   const suppressNextPopStateRef = useRef(false);
@@ -246,8 +280,9 @@ export default function AttendanceRollCallPage() {
 
       // Status filter
       if (filters.status !== "ALL") {
-        if (filters.status === "UNMARKED" && entry?.status) return false;
-        if (filters.status !== "UNMARKED" && entry?.status !== filters.status) return false;
+        if (filters.status === "UNMARKED" && entry?.status !== "UNMARKED") return false;
+        if (filters.status !== "UNMARKED" && entry?.status !== filters.status)
+          return false;
       }
 
       // Excuse completeness filter
@@ -258,13 +293,19 @@ export default function AttendanceRollCallPage() {
         const isComplete =
           hasReason && (!policy?.requireAttachmentForExcuse || hasAttachment);
 
-        if (filters.excuseCompleteness === "COMPLETE" && !isComplete) return false;
-        if (filters.excuseCompleteness === "MISSING" && isComplete) return false;
+        if (filters.excuseCompleteness === "COMPLETE" && !isComplete)
+          return false;
+        if (filters.excuseCompleteness === "MISSING" && isComplete)
+          return false;
       }
 
       // Late minutes filter
       if (filters.lateMin !== undefined) {
-        if (entry?.status !== "LATE" || !entry.minutesLate || entry.minutesLate < filters.lateMin) {
+        if (
+          entry?.status !== "LATE" ||
+          !entry.minutesLate ||
+          entry.minutesLate < filters.lateMin
+        ) {
           return false;
         }
       }
@@ -299,39 +340,63 @@ export default function AttendanceRollCallPage() {
 
   // Load structure tree
   useEffect(() => {
-    if (!termContext.yearId || !termContext.termId) return;
+    if (!termContext.yearId || !termContext.termId) {
+      setIsContextLoading(false);
+      return;
+    }
 
+    let cancelled = false;
     const loadStructure = async () => {
       try {
-        const tree = await fetchStructureTree(termContext.yearId!, termContext.termId!);
+        const tree = await fetchStructureTree(
+          termContext.yearId!,
+          termContext.termId!,
+        );
+        if (cancelled) return;
         setStages(tree.stages);
         setGrades(tree.grades);
         setSections(tree.sections);
         setClassrooms(tree.classrooms);
       } catch (error) {
+        if (cancelled) return;
         console.error("Failed to load structure:", error);
+        setContextError(error instanceof Error ? error : new Error("structure-load-failed"));
       }
     };
 
     loadStructure();
-  }, [termContext.yearId, termContext.termId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [contextRetryToken, termContext.yearId, termContext.termId]);
 
   // Load policy and timetable when scope/date changes
   useEffect(() => {
-    if (!termContext.yearId || !termContext.termId || !date) return;
+    if (!termContext.yearId || !termContext.termId || !date) {
+      setIsContextLoading(false);
+      return;
+    }
 
-    if (!isScopeSelectionComplete(scopeType, scopeIds)) return;
+    if (!isScopeSelectionComplete(scopeType, scopeIds)) {
+      setPolicy(null);
+      setPeriods([]);
+      setIsContextLoading(false);
+      return;
+    }
 
+    let cancelled = false;
     const loadPolicyAndTimetable = async () => {
       try {
-        // Fetch policy
+        setIsContextLoading(true);
+        setContextError(null);
         const effectivePolicy = await fetchEffectivePolicy(
           termContext.yearId!,
           termContext.termId!,
           scopeType,
           scopeIds,
-          date
+          date,
         );
+        if (cancelled) return;
         setPolicy(effectivePolicy);
 
         // Fetch timetable config if PERIOD mode
@@ -341,26 +406,29 @@ export default function AttendanceRollCallPage() {
             termId: termContext.termId!,
             scopeType: "TERM",
           });
-          const gradeConfig =
-            scopeIds.gradeId
-              ? await fetchTimetableConfig({
-                  academicYearId: termContext.yearId!,
-                  termId: termContext.termId!,
-                  scopeType: "GRADE",
-                  gradeId: scopeIds.gradeId,
-                })
-              : null;
-          const sectionConfig =
-            scopeIds.sectionId
-              ? await fetchTimetableConfig({
-                  academicYearId: termContext.yearId!,
-                  termId: termContext.termId!,
-                  scopeType: "SECTION",
-                  sectionId: scopeIds.sectionId,
-                })
-              : null;
+          const gradeConfig = scopeIds.gradeId
+            ? await fetchTimetableConfig({
+                academicYearId: termContext.yearId!,
+                termId: termContext.termId!,
+                scopeType: "GRADE",
+                gradeId: scopeIds.gradeId,
+              })
+            : null;
+          const sectionConfig = scopeIds.sectionId
+            ? await fetchTimetableConfig({
+                academicYearId: termContext.yearId!,
+                termId: termContext.termId!,
+                scopeType: "SECTION",
+                sectionId: scopeIds.sectionId,
+              })
+            : null;
 
-          const resolved = resolveTimetableConfig(termConfig, gradeConfig, sectionConfig);
+          const resolved = resolveTimetableConfig(
+            termConfig,
+            gradeConfig,
+            sectionConfig,
+          );
+          if (cancelled) return;
           setPeriods(resolved.periods);
 
           // Auto-select first period if none selected
@@ -372,64 +440,29 @@ export default function AttendanceRollCallPage() {
           setSelectedPeriodId(null);
         }
       } catch (error) {
+        if (cancelled) return;
         console.error("Failed to load policy/timetable:", error);
+        setPolicy(null);
+        setPeriods([]);
+        setContextError(error instanceof Error ? error : new Error("attendance-context-load-failed"));
+      } finally {
+        if (!cancelled) setIsContextLoading(false);
       }
     };
 
     loadPolicyAndTimetable();
-  }, [termContext.yearId, termContext.termId, scopeType, scopeIds, date, selectedPeriodId]);
-
-  // Load session and roster
-  useEffect(() => {
-    if (!termContext.yearId || !termContext.termId || !date || !policy) return;
-
-    if (!isScopeSelectionComplete(scopeType, scopeIds)) return;
-
-    // For PERIOD mode, need period selection
-    if (policy.mode === "PERIOD" && !selectedPeriodId) return;
-
-    const loadSessionAndRoster = async () => {
-      try {
-        setIsLoading(true);
-
-        // Fetch roster
-        const rosterData = await fetchRoster(scopeType, scopeIds, {
-          yearId: termContext.yearId!,
-          termId: termContext.termId!,
-          date,
-          mode: policy.mode,
-          periodKey: selectedPeriodId || undefined,
-        });
-        setRoster(rosterData);
-
-        // Get or create session
-        const periodData = periods.find((p) => p.id === selectedPeriodId);
-        const sessionData = await getOrCreateSession({
-          yearId: termContext.yearId!,
-          termId: termContext.termId!,
-          date,
-          scopeType,
-          scopeIds,
-          mode: policy.mode,
-          periodId: selectedPeriodId || undefined,
-          periodIndex: periodData?.index,
-          periodNameAr: periodData?.nameAr,
-          periodNameEn: periodData?.nameEn,
-        });
-
-        setSession(sessionData.session);
-        setEntries(sessionData.entries);
-        setOriginalEntries(JSON.parse(JSON.stringify(sessionData.entries)));
-      } catch (error) {
-        console.error("Failed to load session/roster:", error);
-        showError(tCommon("error_loading"));
-      } finally {
-        setIsLoading(false);
-      }
+    return () => {
+      cancelled = true;
     };
-
-    loadSessionAndRoster();
-  }, [termContext.yearId, termContext.termId, date, scopeType, scopeIds, policy, selectedPeriodId, periods, showError, tCommon]);
+  }, [
+    termContext.yearId,
+    termContext.termId,
+    contextRetryToken,
+    scopeType,
+    scopeIds,
+    date,
+    selectedPeriodId,
+  ]);
 
   // Handle entry change
   const handleEntryChange = useCallback(
@@ -449,7 +482,7 @@ export default function AttendanceRollCallPage() {
         } else {
           // Create new
           const newEntry: AttendanceEntry = {
-            id: `entry-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+            id: `${session?.id || "preview"}:${studentId}`,
             sessionId: session?.id || "",
             studentId,
             status: updates.status || "PRESENT",
@@ -462,7 +495,7 @@ export default function AttendanceRollCallPage() {
         }
       });
     },
-    [session]
+    [session, setEntries],
   );
 
   // Save
@@ -470,17 +503,13 @@ export default function AttendanceRollCallPage() {
     if (!session) return;
 
     try {
-      setIsSaving(true);
-      await saveSession(session, entries);
-      setOriginalEntries(JSON.parse(JSON.stringify(entries)));
+      await saveDraft();
       showSuccess(t("messages.saved"));
     } catch (error) {
       console.error("Failed to save:", error);
       showError(tCommon("error_saving"));
-    } finally {
-      setIsSaving(false);
     }
-  }, [session, entries, t, tCommon, showSuccess, showError]);
+  }, [session, saveDraft, t, tCommon, showSuccess, showError]);
 
   // Submit
   const handleSubmit = useCallback(async () => {
@@ -488,7 +517,7 @@ export default function AttendanceRollCallPage() {
 
     // Validate entries
     const validationErrors: string[] = [];
-    
+
     entries.forEach((entry) => {
       const student = roster.find((s) => s.id === entry.studentId);
       const studentName = locale === "ar" ? student?.nameAr : student?.nameEn;
@@ -497,12 +526,15 @@ export default function AttendanceRollCallPage() {
       if (entry.status === "EXCUSED") {
         if (!entry.excuseReason) {
           validationErrors.push(
-            `${studentName}: ${t("excuse.requiredReason")}`
+            `${studentName}: ${t("excuse.requiredReason")}`,
           );
         }
-        if (policy.requireAttachmentForExcuse && (!entry.excuseAttachments || entry.excuseAttachments.length === 0)) {
+        if (
+          policy.requireAttachmentForExcuse &&
+          (!entry.excuseAttachments || entry.excuseAttachments.length === 0)
+        ) {
           validationErrors.push(
-            `${studentName}: ${t("excuse.requiredAttachment")}`
+            `${studentName}: ${t("excuse.requiredAttachment")}`,
           );
         }
       }
@@ -510,9 +542,7 @@ export default function AttendanceRollCallPage() {
       // Check EARLY_LEAVE entries
       if (entry.status === "EARLY_LEAVE") {
         if (!entry.minutesEarlyLeave || entry.minutesEarlyLeave < 1) {
-          validationErrors.push(
-            `${studentName}: ${t("earlyLeave.required")}`
-          );
+          validationErrors.push(`${studentName}: ${t("earlyLeave.required")}`);
         }
       }
     });
@@ -525,54 +555,65 @@ export default function AttendanceRollCallPage() {
     // Check completion
     if (kpis.unmarkedCount > 0) {
       const confirmed = window.confirm(
-        t("messages.submitIncomplete", { count: kpis.unmarkedCount })
+        t("messages.submitIncomplete", { count: kpis.unmarkedCount }),
       );
       if (!confirmed) return;
     }
 
     try {
-      setIsSaving(true);
-      // Save first
-      await saveSession(session, entries);
-      // Then submit
-      const submitted = await submitSession(session.id, termContext.yearId!, termContext.termId!);
-      setSession(submitted);
-      setOriginalEntries(JSON.parse(JSON.stringify(entries)));
+      await submitDraft();
       showSuccess(t("messages.submitted"));
     } catch (error) {
       console.error("Failed to submit:", error);
-      showError(tCommon("error_saving"));
-    } finally {
-      setIsSaving(false);
+      showError(
+        error instanceof RollCallSubmissionError
+          ? t("workspace.submitError")
+          : tCommon("error_saving"),
+      );
     }
-  }, [session, policy, entries, kpis, roster, termContext.yearId, termContext.termId, locale, t, tCommon, showSuccess, showError]);
+  }, [
+    session,
+    policy,
+    entries,
+    kpis,
+    roster,
+    locale,
+    submitDraft,
+    t,
+    tCommon,
+    showSuccess,
+    showError,
+  ]);
 
   // Unsubmit
   const handleUnsubmit = useCallback(async () => {
     if (!session) return;
 
     try {
-      setIsSaving(true);
-      const unsubmitted = await unsubmitSession(termContext.yearId!, termContext.termId!, session.id);
-      setSession(unsubmitted);
+      await unsubmit();
       showSuccess(t("messages.unsubmittedSuccess"));
     } catch (error) {
       console.error("Failed to unsubmit:", error);
       showError(tCommon("error_saving"));
-    } finally {
-      setIsSaving(false);
     }
-  }, [session, termContext.yearId, termContext.termId, t, tCommon, showSuccess, showError]);
+  }, [
+    session,
+    unsubmit,
+    t,
+    tCommon,
+    showSuccess,
+    showError,
+  ]);
 
   const handleUnsubmitConfirm = useCallback(() => {
     setShowUnsubmitConfirm(false);
     handleUnsubmit();
   }, [handleUnsubmit]);
 
-    // Reset
+  // Reset
   const handleReset = useCallback(() => {
-    setEntries(JSON.parse(JSON.stringify(originalEntries)));
-  }, [originalEntries]);
+    resetDraft();
+  }, [resetDraft]);
 
   // Export
   const handleLegacyExport = useCallback(() => {
@@ -594,7 +635,18 @@ export default function AttendanceRollCallPage() {
       locale,
       scopeName,
     });
-  }, [classrooms, entries, grades, locale, roster, scopeIds, scopeType, sections, session, stages]);
+  }, [
+    classrooms,
+    entries,
+    grades,
+    locale,
+    roster,
+    scopeIds,
+    scopeType,
+    sections,
+    session,
+    stages,
+  ]);
 
   const selectedYearName =
     (locale === "ar"
@@ -631,14 +683,33 @@ export default function AttendanceRollCallPage() {
       }
 
       const columns: ExportColumn[] = [
-        { key: "studentNumber", label: locale === "ar" ? "رقم الطالب" : "Student Number" },
+        {
+          key: "studentNumber",
+          label: locale === "ar" ? "رقم الطالب" : "Student Number",
+        },
         { key: "studentName", label: locale === "ar" ? "الطالب" : "Student" },
-        { key: "studentNameEn", label: locale === "ar" ? "الطالب (بالإنجليزية)" : "Student (English)" },
-        { key: "studentNameAr", label: locale === "ar" ? "الطالب (بالعربية)" : "Student (Arabic)" },
+        {
+          key: "studentNameEn",
+          label: locale === "ar" ? "الطالب (بالإنجليزية)" : "Student (English)",
+        },
+        {
+          key: "studentNameAr",
+          label: locale === "ar" ? "الطالب (بالعربية)" : "Student (Arabic)",
+        },
         { key: "status", label: locale === "ar" ? "الحالة" : "Status" },
-        { key: "minutesLate", label: locale === "ar" ? "دقائق التأخير" : "Minutes Late" },
-        { key: "minutesEarlyLeave", label: locale === "ar" ? "دقائق المغادرة المبكرة" : "Minutes Early Leave" },
-        { key: "excuseReason", label: locale === "ar" ? "سبب العذر" : "Excuse Reason" },
+        {
+          key: "minutesLate",
+          label: locale === "ar" ? "دقائق التأخير" : "Minutes Late",
+        },
+        {
+          key: "minutesEarlyLeave",
+          label:
+            locale === "ar" ? "دقائق المغادرة المبكرة" : "Minutes Early Leave",
+        },
+        {
+          key: "excuseReason",
+          label: locale === "ar" ? "سبب العذر" : "Excuse Reason",
+        },
         { key: "note", label: locale === "ar" ? "ملاحظة" : "Note" },
       ];
 
@@ -687,8 +758,11 @@ export default function AttendanceRollCallPage() {
           title: "Attendance Roll Call",
           metadata: {
             yearName:
-              termContext.academicYears.find((item) => item.id === termContext.yearId)
-                ?.nameEn || termContext.yearId || "",
+              termContext.academicYears.find(
+                (item) => item.id === termContext.yearId,
+              )?.nameEn ||
+              termContext.yearId ||
+              "",
             termName: term?.nameEn || term?.name || "",
             scopeTypeName: scopeType,
             scopeName: getAttendanceScopeLabel({
@@ -776,8 +850,19 @@ export default function AttendanceRollCallPage() {
   }, [roster, handleEntryChange]);
 
   const handleClearAll = useCallback(() => {
-    setEntries([]);
-  }, []);
+    setEntries((currentEntries) =>
+      currentEntries.map((entry) => ({
+        ...entry,
+        status: "UNMARKED",
+        minutesLate: undefined,
+        minutesEarlyLeave: undefined,
+        excuseReason: undefined,
+        excuseAttachments: undefined,
+        note: undefined,
+        updatedAt: new Date().toISOString(),
+      })),
+    );
+  }, [setEntries]);
 
   // Unsaved changes guard
   const checkUnsavedChanges = useCallback(
@@ -789,7 +874,7 @@ export default function AttendanceRollCallPage() {
         action();
       }
     },
-    [isDirty, isReadOnly, isSubmitted]
+    [isDirty, isReadOnly, isSubmitted],
   );
 
   const handleDiscardConfirm = useCallback(() => {
@@ -805,28 +890,28 @@ export default function AttendanceRollCallPage() {
     (newScopeType: AttendanceScopeType) => {
       checkUnsavedChanges(() => setScopeType(newScopeType));
     },
-    [checkUnsavedChanges]
+    [checkUnsavedChanges],
   );
 
   const handleScopeIdsChange = useCallback(
     (newScopeIds: AttendanceScopeIds) => {
       checkUnsavedChanges(() => setScopeIds(newScopeIds));
     },
-    [checkUnsavedChanges]
+    [checkUnsavedChanges],
   );
 
   const handleDateChange = useCallback(
     (newDate: string) => {
       checkUnsavedChanges(() => setDate(newDate));
     },
-    [checkUnsavedChanges]
+    [checkUnsavedChanges],
   );
 
   const handlePeriodChange = useCallback(
     (periodId: string) => {
       checkUnsavedChanges(() => setSelectedPeriodId(periodId));
     },
-    [checkUnsavedChanges]
+    [checkUnsavedChanges],
   );
 
   const handleResetFilters = () => {
@@ -856,14 +941,20 @@ export default function AttendanceRollCallPage() {
 
     const handleDocumentClick = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0) return;
-      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+        return;
 
       const target = event.target;
       if (!(target instanceof Element)) return;
 
       const anchor = target.closest("a");
       if (!(anchor instanceof HTMLAnchorElement)) return;
-      if (!anchor.href || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+      if (
+        !anchor.href ||
+        anchor.target === "_blank" ||
+        anchor.hasAttribute("download")
+      )
+        return;
 
       const nextUrl = new URL(anchor.href, window.location.href);
       const currentUrl = new URL(window.location.href);
@@ -905,142 +996,214 @@ export default function AttendanceRollCallPage() {
     };
   }, [checkUnsavedChanges, router, shouldGuardNavigation]);
 
-  if (isLoading && !term) {
-    return (
-      <MainLoader />
+  const handleOpenSession = async () => {
+    try {
+      await rollCall.openSession();
+      setShowSessionDrawer(false);
+    } catch (error) {
+      console.error("Failed to open roll-call session:", error);
+      showError(t("workspace.openError"));
+    }
+  };
+
+  const handleRetryContext = () => {
+    setContextRetryToken((value) => value + 1);
+  };
+
+  if (isContextLoading && !term) {
+    return <MainLoader />;
+  }
+
+  const scopeComplete = isScopeSelectionComplete(scopeType, scopeIds);
+  const showNoPolicy = scopeComplete && !policy && !isContextLoading;
+  const showNoTimetable =
+    policy?.mode === "PERIOD" && periods.length === 0 && !isContextLoading;
+  const pickerDisabled =
+    isReadOnly || Boolean(isSubmitted) || rollCall.isOpening || rollCall.isSaving;
+
+  const sessionPickerProps = {
+    scopeType,
+    scopeIds,
+    stages,
+    grades,
+    sections,
+    classrooms,
+    onScopeTypeChange: handleScopeTypeChange,
+    onScopeIdsChange: handleScopeIdsChange,
+    date,
+    onDateChange: handleDateChange,
+    termStartDate: term?.startDate || "",
+    termEndDate: term?.endDate || "",
+    mode: policy?.mode || ("DAILY" as const),
+    periods,
+    selectedPeriodId,
+    onPeriodChange: handlePeriodChange,
+    sessionStatus: session?.status || null,
+    disabled: pickerDisabled,
+  };
+
+  let workspaceContent;
+  if (contextError) {
+    workspaceContent = (
+      <AttendanceWorkspaceState
+        title={t("workspace.contextError")}
+        action={<Button onClick={handleRetryContext}>{t("workspace.retry")}</Button>}
+      />
+    );
+  } else if (!scopeComplete) {
+    workspaceContent = (
+      <AttendanceWorkspaceState
+        title={t("workspace.chooseSession")}
+        description={t("workspace.chooseSessionDescription")}
+      />
+    );
+  } else if (showNoPolicy) {
+    workspaceContent = (
+      <AttendanceWorkspaceState
+        title={t("empty.noPolicy")}
+        description={t("empty.noPolicyDesc")}
+      />
+    );
+  } else if (showNoTimetable) {
+    workspaceContent = (
+      <AttendanceWorkspaceState
+        title={t("empty.noTimetable")}
+        description={t("empty.noTimetableDesc")}
+      />
+    );
+  } else if (rollCall.loadError) {
+    workspaceContent = (
+      <AttendanceWorkspaceState
+        title={t("workspace.previewError")}
+        action={<Button onClick={rollCall.retryPreview}>{t("workspace.retry")}</Button>}
+      />
+    );
+  } else if (!isContextLoading && !rollCall.isPreviewLoading && roster.length === 0) {
+    workspaceContent = (
+      <AttendanceWorkspaceState
+        title={t("empty.noStudents")}
+        description={t("empty.noStudentsDesc")}
+      />
+    );
+  } else if (!session && roster.length > 0) {
+    workspaceContent = (
+      <AttendanceWorkspaceState
+        title={t("workspace.openSession")}
+        description={t("workspace.openSessionDescription")}
+        action={
+          <Button
+            variant="primary"
+            onClick={handleOpenSession}
+            disabled={isReadOnly || rollCall.isOpening}
+          >
+            {t("workspace.openSession")}
+          </Button>
+        }
+      />
+    );
+  } else if (session) {
+    workspaceContent = (
+      <RosterTable
+        roster={filteredRoster}
+        entries={entries}
+        policy={policy}
+        onEntryChange={handleEntryChange}
+        isReadOnly={isReadOnly || isSubmitted}
+        searchQuery={filters.search}
+      />
     );
   }
 
-  // Empty states
-  const showNoPolicy = !policy && !isLoading;
-  const showNoTimetable = policy?.mode === "PERIOD" && periods.length === 0 && !isLoading;
-  const showNoRoster = roster.length === 0 && !isLoading && policy;
+  const mainContent = (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      {session && roster.length > 0 ? (
+        <RollCallHeaderBar
+          isDirty={isDirty}
+          isReadOnly={isReadOnly}
+          isSubmitted={isSubmitted}
+          canSubmit={!isReadOnly && !isSubmitted}
+          termStatus={termContext.termStatus || "open"}
+          onSave={handleSave}
+          onSubmit={handleSubmit}
+          onUnsubmit={() => setShowUnsubmitConfirm(true)}
+          onReset={handleReset}
+          onExport={() => setShowExportModal(true)}
+          onMarkAllPresent={handleMarkAllPresent}
+          onClearAll={handleClearAll}
+          isSaving={rollCall.isSaving}
+        />
+      ) : null}
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {isReadOnly && (
-        <AttendanceReadOnlyBanner message={t("readonly_banner")} />
-      )}
+      {roster.length > 0 ? (
+        <ScopeBreadcrumb
+          scopeType={scopeType}
+          scopeIds={scopeIds}
+          stages={stages}
+          grades={grades}
+          sections={sections}
+          classrooms={classrooms}
+        />
+      ) : null}
 
-      <div className="flex-1 flex overflow-hidden flex-col md:flex-row">
-        <div className="hidden md:flex">
-          <SessionPickerPanel
-            scopeType={scopeType}
-            scopeIds={scopeIds}
-            stages={stages}
-            grades={grades}
-            sections={sections}
-            classrooms={classrooms}
-            onScopeTypeChange={handleScopeTypeChange}
-            onScopeIdsChange={handleScopeIdsChange}
-            date={date}
-            onDateChange={handleDateChange}
-            termStartDate={term?.startDate || ""}
-            termEndDate={term?.endDate || ""}
-            mode={policy?.mode || "DAILY"}
-            periods={periods}
-            selectedPeriodId={selectedPeriodId}
-            onPeriodChange={handlePeriodChange}
-            sessionStatus={session?.status || null}
-            disabled={isReadOnly || isSubmitted}
+      {session && roster.length > 0 ? <AttendanceKpisBar kpis={kpis} /> : null}
+
+      {session && roster.length > 0 ? (
+        <div className="hidden lg:block">
+          <RosterFiltersBar
+            filters={filters}
+            onFiltersChange={setFilters}
+            policy={policy}
+            showFilters={showFilters}
+            onToggleFilters={() => setShowFilters(!showFilters)}
           />
         </div>
+      ) : null}
 
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {session && roster.length > 0 && (
-            <RollCallHeaderBar
-              isDirty={isDirty}
-              isReadOnly={isReadOnly}
-              isSubmitted={isSubmitted}
-              canSubmit={!isReadOnly && !isSubmitted}
-              termStatus={termContext.termStatus || "open"}
-              onSave={handleSave}
-              onSubmit={handleSubmit}
-              onUnsubmit={() => setShowUnsubmitConfirm(true)}
-              onReset={handleReset}
-              onExport={() => setShowExportModal(true)}
-              onMarkAllPresent={handleMarkAllPresent}
-              onClearAll={handleClearAll}
-              isSaving={isSaving}
-            />
-          )}
-          {session && roster.length > 0 && (
-            <div className="px-4 py-2">
-              <ScopeBreadcrumb
-                scopeType={scopeType}
-                scopeIds={scopeIds}
-                stages={stages}
-                grades={grades}
-                sections={sections}
-                classrooms={classrooms}
-              />
-            </div>
-          )}
-          {session && roster.length > 0 && <AttendanceKpisBar kpis={kpis} />}
+      <AttendanceWorkspaceMobileActions columns={2} className="lg:hidden">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowSessionDrawer(true)}
+          leftIcon={<CalendarDays className="h-4 w-4" />}
+        >
+          {t("workspace.sessionAction")}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowFiltersDrawer(true)}
+          leftIcon={<Filter className="h-4 w-4" />}
+          disabled={!session}
+        >
+          {t("filters.openFilters")}
+        </Button>
+      </AttendanceWorkspaceMobileActions>
 
-          {session && roster.length > 0 && !isMobile && (
-            <RosterFiltersBar
-              filters={filters}
-              onFiltersChange={setFilters}
-              policy={policy}
-              showFilters={showFilters}
-              onToggleFilters={() => setShowFilters(!showFilters)}
-            />
-          )}
+      <AttendanceWorkspaceContentPanel
+        loading={isContextLoading || rollCall.isPreviewLoading || rollCall.isOpening}
+      >
+        {workspaceContent}
+      </AttendanceWorkspaceContentPanel>
+    </div>
+  );
 
-          {session && roster.length > 0 && isMobile && (
-            <div style={{ backgroundColor: "var(--background)", borderBottom: "1px solid var(--color-border)" }} className="px-4 py-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFiltersDrawer(true)}
-                leftIcon={<Filter className="w-4 h-4" />}
-                className="w-full"
-              >
-                {t("filters.openFilters")}
-              </Button>
-            </div>
-          )}
+  return (
+    <AttendanceWorkspaceShell
+      readOnlyBanner={
+        isReadOnly ? <AttendanceReadOnlyBanner message={t("readonly_banner")} /> : null
+      }
+    >
+      <AttendanceWorkspaceRail
+        rail={<SessionPickerPanel variant="rail" {...sessionPickerProps} />}
+        main={mainContent}
+      />
 
-          {showNoPolicy && (
-            <div className="flex-1 p-8">
-              <AttendanceStatePanel
-                title={t("empty.noPolicy")}
-                description={t("empty.noPolicyDesc")}
-              />
-            </div>
-          )}
-
-          {showNoTimetable && (
-            <div className="flex-1 p-8">
-              <AttendanceStatePanel
-                title={t("empty.noTimetable")}
-                description={t("empty.noTimetableDesc")}
-              />
-            </div>
-          )}
-
-          {showNoRoster && (
-            <div className="flex-1 p-8">
-              <AttendanceStatePanel
-                title={t("empty.noStudents")}
-                description={t("empty.noStudentsDesc")}
-              />
-            </div>
-          )}
-
-          {session && roster.length > 0 && !showNoPolicy && !showNoTimetable && (
-            <RosterTable
-              roster={filteredRoster}
-              entries={entries}
-              policy={policy}
-              onEntryChange={handleEntryChange}
-              isReadOnly={isReadOnly || isSubmitted}
-              searchQuery={filters.search}
-            />
-          )}
-        </div>
-      </div>
+      <AttendanceBottomDrawer
+        isOpen={showSessionDrawer}
+        onClose={() => setShowSessionDrawer(false)}
+      >
+        <SessionPickerPanel variant="drawer" {...sessionPickerProps} />
+      </AttendanceBottomDrawer>
 
       <RollCallFiltersDrawer
         isOpen={showFiltersDrawer}
@@ -1081,11 +1244,6 @@ export default function AttendanceRollCallPage() {
         datasetCount={filteredRoster.length}
         emptyStateMessage={t("empty.noStudentsDesc")}
       />
-    </div>
+    </AttendanceWorkspaceShell>
   );
 }
-
-
-
-
-

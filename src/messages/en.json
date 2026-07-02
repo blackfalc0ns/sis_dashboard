@@ -6747,6 +6747,18 @@
       "title": "Live Roll Call",
       "subtitle": "Take attendance for students",
       "readonly_banner": "This term is closed. You cannot edit attendance.",
+      "workspace": {
+        "openSession": "Open attendance",
+        "openSessionDescription": "Review the roster, then open attendance to start marking.",
+        "chooseSession": "Choose a session",
+        "chooseSessionDescription": "Select a complete scope, date, and period to preview the roster.",
+        "sessionAction": "Session",
+        "retry": "Retry",
+        "previewError": "The roster could not be loaded.",
+        "contextError": "Attendance settings could not be loaded.",
+        "openError": "Attendance could not be opened.",
+        "submitError": "Attendance was saved, but submission failed. Try submitting again."
+      },
       "sessionPicker": {
         "title": "Session Selection",
         "subtitle": "Choose scope, date, and period",
