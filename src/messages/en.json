@@ -3552,6 +3552,15 @@
         "promote_carry_over": "Promote / Carry Over",
         "more_actions": "More Actions"
       },
+      "academic_context_empty": {
+        "no_years_title": "No academic years yet",
+        "no_years_description": "Create an academic year before using academic modules.",
+        "no_terms_title": "No terms yet",
+        "no_terms_description": "Create a term before using academic modules.",
+        "create_year": "Create academic year",
+        "create_term": "Create term",
+        "permission_required": "You need academic structure permission to create this."
+      },
       "readonly_banner": {
         "message": "This term is closed. Academic Structure is read-only.",
         "tooltip": "You cannot edit the structure for a closed term"
