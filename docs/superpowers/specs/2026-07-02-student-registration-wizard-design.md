@@ -112,7 +112,7 @@ Review groups values by step, provides Edit actions, identifies atomic versus st
 
 ## Validation and errors
 
-- Validate a step before forward navigation and validate fields on blur.
+- Validate a step before forward navigation and validate touched fields on blur. Next must leave the current step unchanged whenever that step has any validation error; navigation advances only after the current step passes every frontend rule.
 - Show field-level errors and a concise step summary; move focus to the first invalid field.
 - Enforce a non-empty guardian collection and exactly one primary guardian.
 - Enforce create or link account configuration for the student and every guardian.
@@ -120,6 +120,20 @@ Review groups values by step, provides Edit actions, identifies atomic versus st
 - Map backend field metadata to the corresponding input when present; otherwise show a form-level error.
 - Disable duplicate submission while preserving entered data.
 - For staged failures, show per-stage state and recovery context rather than a generic registration failure.
+
+### Step validation contract
+
+Validation returns field-addressable issues so the wizard can associate messages with inputs and focus the first invalid field.
+
+The Student step requires a resolvable name: a full English or Arabic name containing at least two parts, or explicit first and family name fields when those fields are exposed. It enforces backend maximum lengths, valid email and phone formats, and a valid ISO birth date. The mapper sends only `dateOfBirth`, not both supported birth-date aliases.
+
+The Guardians step requires at least one guardian. Every new guardian needs a resolvable name containing at least two parts, a relation, and a primary phone. It validates optional email and secondary phone values and all backend maximum lengths. Existing guardians require a selected guardian UUID. Exactly one guardian must be primary.
+
+The Accounts step requires a decision for the student and every guardian unless safe backend metadata proves an existing guardian account is already linked. Create mode requires a non-empty username no longer than 64 characters. Link mode requires a selected user UUID. Optional contact email and role ID values must satisfy backend formats. Candidate user eligibility and whether a user is already linked remain backend-enforced until an eligibility-aware selector endpoint exists.
+
+The Enrollment step requires academic year, classroom, and enrollment date; identifier fields must be UUIDs and the date must be an ISO date. The UI keeps status `active`. Changing academic year resets term, grade, section, and classroom; changing term resets the loaded structure selections; changing grade resets section and classroom; changing section resets classroom.
+
+Final submission revalidates every step. Database-dependent rules—including record existence, active academic year, hierarchy ownership, seat limits, user type, and prior account links—are reported from the backend as form-level errors unless the response identifies a field.
 
 ## Accessibility and responsive behavior
 
