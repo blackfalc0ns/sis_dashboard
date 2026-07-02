@@ -1,7 +1,7 @@
 // FILE: src/features/auth/context/AuthProvider.tsx
 "use client";
 
-import React, { useCallback, useEffect, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { AuthContext } from "./AuthContext";
 import { authService } from "@/services/auth-service";
@@ -25,6 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const pendingRedirectRef = useRef<string | null>(null);
   const currentLocale = localeFromPathname(pathname);
 
   const getLocalizedPath = useCallback(
@@ -94,7 +95,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const handleSessionExpired = () => {
       setUser(null);
       setIsLoading(false);
-      router.push(loginPathWithRedirect());
     };
 
     window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
@@ -153,23 +153,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isLoginRoute = pathname === loginPath;
       const isChangePasswordRoute = pathname === changePasswordPath;
       const isRootRoute = pathname === "/" || pathname === "/ar" || pathname === "/en";
+      let redirectPath: string | null = null;
 
       if (!user && !isLoginRoute && !isRootRoute) {
-        router.push(loginPathWithRedirect());
-        return;
+        redirectPath = loginPathWithRedirect();
+      } else if (user && mustChangePassword && !isChangePasswordRoute) {
+        redirectPath = changePasswordPath;
+      } else if (
+        user &&
+        !mustChangePassword &&
+        (isLoginRoute || isChangePasswordRoute)
+      ) {
+        redirectPath = isLoginRoute
+          ? loginReturnPath() ?? dashboardPath
+          : dashboardPath;
       }
 
-      if (!user) {
-        return;
-      }
-
-      if (mustChangePassword && !isChangePasswordRoute) {
-        router.push(changePasswordPath);
-        return;
-      }
-
-      if (!mustChangePassword && (isLoginRoute || isChangePasswordRoute)) {
-        router.push(isLoginRoute ? loginReturnPath() ?? dashboardPath : dashboardPath);
+      if (!redirectPath) {
+        pendingRedirectRef.current = null;
+      } else if (pendingRedirectRef.current !== redirectPath) {
+        pendingRedirectRef.current = redirectPath;
+        router.push(redirectPath);
       }
     }
   }, [

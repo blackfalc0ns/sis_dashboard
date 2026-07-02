@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider } from "@/features/auth/context/AuthProvider";
 
@@ -14,7 +14,7 @@ const authProviderMocks = vi.hoisted(() => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: authProviderMocks.push }),
   usePathname: () => authProviderMocks.pathname,
-  useSearchParams: () => authProviderMocks.searchParams,
+  useSearchParams: () => new URLSearchParams(authProviderMocks.searchParams),
 }));
 
 vi.mock("@/services/auth-service", () => ({
@@ -66,6 +66,44 @@ describe("AuthProvider route redirects", () => {
     await waitFor(() => {
       expect(authProviderMocks.push).toHaveBeenCalledWith(
         "/ar/dashboard/recent-activities",
+      );
+    });
+  });
+
+  it("redirects once when concurrent requests report an expired session", async () => {
+    authProviderMocks.pathname = "/ar/academics";
+    authProviderMocks.hasTokens.mockReturnValue(true);
+    authProviderMocks.getCurrentUser.mockResolvedValue({
+      id: "user-1",
+      mustChangePassword: false,
+    });
+
+    const { rerender } = render(
+      <AuthProvider>
+        <div>Protected app</div>
+      </AuthProvider>,
+    );
+
+    await waitFor(() => {
+      expect(authProviderMocks.getCurrentUser).toHaveBeenCalledTimes(1);
+    });
+    authProviderMocks.push.mockClear();
+
+    act(() => {
+      window.dispatchEvent(new Event("moazez:session-expired"));
+      window.dispatchEvent(new Event("moazez:session-expired"));
+    });
+
+    rerender(
+      <AuthProvider>
+        <div>Protected app</div>
+      </AuthProvider>,
+    );
+
+    await waitFor(() => {
+      expect(authProviderMocks.push).toHaveBeenCalledTimes(1);
+      expect(authProviderMocks.push).toHaveBeenCalledWith(
+        "/ar/login?next=%2Far%2Facademics",
       );
     });
   });

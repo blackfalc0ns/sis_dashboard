@@ -31,6 +31,7 @@ describe('GuardedLink Component', () => {
     mockReplace.mockClear();
     mockPrefetch.mockClear();
     mockGuardedNavigate.mockClear();
+    mockGuardedNavigate.mockImplementation((action: () => void) => action());
     mockProgressStart.mockClear();
   });
 
@@ -81,6 +82,29 @@ describe('GuardedLink Component', () => {
     
     // Should guard and then push
     expect(mockGuardedNavigate).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith('/test');
+  });
+
+  it('starts navigation feedback only after the guard permits navigation', () => {
+    let permittedNavigation: (() => void) | undefined;
+    const onNavigationStart = vi.fn();
+    mockGuardedNavigate.mockImplementation((action: () => void) => {
+      permittedNavigation = action;
+    });
+
+    render(
+      <GuardedLink href="/test" onNavigationStart={onNavigationStart}>
+        Test Link
+      </GuardedLink>,
+    );
+    fireEvent.click(screen.getByText('Test Link'));
+
+    expect(onNavigationStart).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
+
+    permittedNavigation?.();
+
+    expect(onNavigationStart).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenCalledWith('/test');
   });
 

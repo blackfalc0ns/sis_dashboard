@@ -67,6 +67,9 @@ const isDraftNode = (node: { id: string } | null) =>
 const curriculumStatusLabelKey = (status: Curriculum["status"]) =>
   `status.${status}` as const;
 
+const preserveEmptyArray = <T,>(previous: T[]) =>
+  previous.length === 0 ? previous : [];
+
 export default function CurriculumPageContent() {
   const t = useTranslations("academics.curriculum");
   const tCommon = useTranslations("common");
@@ -280,8 +283,8 @@ export default function CurriculumPageContent() {
       return;
     }
     if (!academicYearId || !termId) {
-      setGrades([]);
-      setSubjects([]);
+      setGrades(preserveEmptyArray);
+      setSubjects(preserveEmptyArray);
       setSelectedGradeId("");
       setSelectedSubjectId("");
       setContextError("");
@@ -380,8 +383,8 @@ export default function CurriculumPageContent() {
     } catch (error) {
       if (requestId !== optionsRequestIdRef.current) return;
       console.error("Failed to load data:", error);
-      setGrades([]);
-      setSubjects([]);
+      setGrades(preserveEmptyArray);
+      setSubjects(preserveEmptyArray);
       setSelectedGradeId("");
       setSelectedSubjectId("");
       setContextError(tCommon("error"));

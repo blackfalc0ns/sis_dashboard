@@ -114,11 +114,10 @@ export default function GuardedLink({
     // Call custom onClick if provided
     onClick?.(e);
     
-    // Notify parent that navigation is starting
-    onNavigationStart?.();
-    
     // Guard the navigation
     guardedNavigate(() => {
+      onNavigationStart?.();
+
       // Start progress bar immediately before navigation
       progress.start();
       
