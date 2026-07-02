@@ -1,0 +1,190 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { usePermissions } from "@/hooks/usePermissions";
+import { getStudentsGuardiansCapabilities } from "@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities";
+import type {
+  ProfileCorrectionRequestListItem,
+  ProfileCorrectionRequestStatus,
+} from "@/features/students-guardians/profile-correction-requests/types/profileCorrectionRequests";
+import { fetchProfileCorrectionRequests } from "@/features/students-guardians/profile-correction-requests/services/profileCorrectionRequestsApiService";
+import { Input, Select, Button, EmptyState } from "@/components/ui";
+import DataTable, { type Column } from "@/components/ui/data-table/DataTable";
+
+export default function ProfileCorrectionRequestsQueuePage() {
+  const router = useRouter();
+  const params = useParams();
+  const lang = (params.lang as string) || "en";
+  const permissions = usePermissions();
+  const { canViewProfileCorrectionRequests } =
+    getStudentsGuardiansCapabilities(permissions);
+  const [status, setStatus] =
+    useState<ProfileCorrectionRequestStatus | "all">("PENDING");
+  const [studentId, setStudentId] = useState("");
+  const [requests, setRequests] = useState<ProfileCorrectionRequestListItem[]>(
+    [],
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!canViewProfileCorrectionRequests) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    void Promise.resolve().then(async () => {
+      if (isCancelled) return;
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const data = await fetchProfileCorrectionRequests({
+          status,
+          studentId: studentId.trim() || undefined,
+        });
+        if (!isCancelled) setRequests(data);
+      } catch (loadError) {
+        if (!isCancelled) {
+          setRequests([]);
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Failed to load profile correction requests.",
+          );
+        }
+      } finally {
+        if (!isCancelled) setIsLoading(false);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [canViewProfileCorrectionRequests, status, studentId]);
+
+  const pendingCount = useMemo(
+    () => requests.filter((request) => request.status === "PENDING").length,
+    [requests],
+  );
+
+  const columns: Column<ProfileCorrectionRequestListItem & { [key: string]: unknown }>[] = [
+    {
+      key: "student",
+      label: "Student",
+      render: (_, request) => (
+        <div>
+          <div className="font-medium text-gray-900">
+            {request.studentName || request.studentId}
+          </div>
+          <div className="text-xs text-gray-500">
+            {request.studentId}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (_, request) => (
+        <span className="capitalize">{request.status.toLowerCase()}</span>
+      ),
+    },
+    {
+      key: "changeCount",
+      label: "Changes",
+    },
+    {
+      key: "requestedAt",
+      label: "Requested",
+    },
+    {
+      key: "actions",
+      label: "Action",
+      render: (_, request) => (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/${lang}/students-guardians/profile-correction-requests/${request.id}`);
+          }}
+        >
+          Open
+        </Button>
+      ),
+    },
+  ];
+
+  if (!canViewProfileCorrectionRequests) {
+    return (
+      <div className="p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-8 text-sm text-gray-600">
+          You do not have permission to view profile correction requests.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <p className="text-sm font-semibold text-primary">
+          Students & Guardians
+        </p>
+        <h1 className="mt-1 text-2xl font-bold text-gray-900">
+          Profile Correction Requests
+        </h1>
+        <p className="mt-2 text-sm text-gray-600">
+          Review student profile change requests. Pending in current view:{" "}
+          {pendingCount}.
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <Select
+            label="Status"
+            value={status}
+            onChange={(val) => setStatus(val as ProfileCorrectionRequestStatus | "all")}
+            options={[
+              { value: "PENDING", label: "Pending" },
+              { value: "APPROVED", label: "Approved" },
+              { value: "REJECTED", label: "Rejected" },
+              { value: "CANCELLED", label: "Cancelled" },
+              { value: "all", label: "All" },
+            ]}
+          />
+          <Input
+            label="Student ID"
+            value={studentId}
+            onChange={(event) => setStudentId(event.target.value)}
+            placeholder="Optional"
+          />
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      <DataTable<ProfileCorrectionRequestListItem & { [key: string]: unknown }>
+        columns={columns}
+        data={requests as (ProfileCorrectionRequestListItem & { [key: string]: unknown })[]}
+        isLoading={isLoading}
+        onRowClick={(request) =>
+          router.push(
+            `/${lang}/students-guardians/profile-correction-requests/${request.id}`,
+          )
+        }
+        emptyTitle="No requests found"
+        emptyDescription="No profile correction requests found."
+      />
+    </div>
+  );
+}
