@@ -17,7 +17,7 @@ type ApiRecord = Record<string, unknown>;
 export interface CreateApplicationDocumentPayload {
   fileId: string;
   documentType: string;
-  status?: ApplicationDocumentStatusDto;
+  status?: Exclude<ApplicationDocumentStatusDto, "pending_review">;
   notes?: string;
 }
 
@@ -46,7 +46,7 @@ export async function createApplicationDocument(
   return toLegacyDocument(
     await linkApplicationDocument(applicationId, {
       ...payload,
-      status: payload.status ?? "pending_review",
+      status: payload.status ?? "complete",
     }),
   );
 }

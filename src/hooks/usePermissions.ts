@@ -176,6 +176,7 @@ export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
     ...settingsNavigationPermissionByKey,
     ...reinforcementNavigationPermissionByKey,
     "admissions-applications": "admissions.applications.view",
+    "admissions-workflow-policy": "admissions.applications.view",
     "admissions-decisions": "admissions.decisions.view",
     "admissions-enrollment": "students.enrollments.view",
     "students-list": "students.records.view",

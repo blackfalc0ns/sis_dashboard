@@ -14,6 +14,10 @@ export interface ApplicationDocumentResponseDto {
   fileId: string;
   documentType: string;
   status: ApplicationDocumentStatusDto;
+  source: "staff_upload" | "applicant_portal";
+  canReview: boolean;
+  reviewEligibility: { canAccept: boolean; canReject: boolean; canRequestReplacement: boolean; reason: "reviewable" | "application_status_not_reviewable" | "document_not_pending_review" | "not_applicant_portal_document" | "applicant_document_not_uploaded" };
+  linkedApplicantDocument: { id: string; status: "uploaded" | "accepted" | "rejected" | "needs_replacement" | "superseded" } | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -23,11 +27,10 @@ export interface ApplicationDocumentResponseDto {
 export interface LinkApplicationDocumentRequest {
   fileId: string;
   documentType: string;
-  status?: ApplicationDocumentStatusDto;
+  status?: Exclude<ApplicationDocumentStatusDto, "pending_review">;
   notes?: string;
 }
 
 export interface ReviewApplicationDocumentRequest {
   note?: string;
 }
-

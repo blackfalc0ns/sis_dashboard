@@ -2,6 +2,7 @@ import type {
   ApplicationSourceDto,
   ApplicationStatusDto,
   RegistrationStateDto,
+  DocumentsSummaryDto, DashboardStateDto,
 } from "../api/applicationDtos";
 
 export interface ApplicationRecord {
@@ -16,5 +17,6 @@ export interface ApplicationRecord {
   createdAt: string;
   updatedAt: string;
   registrationState: RegistrationStateDto;
+  documentsSummary: DocumentsSummaryDto;
+  dashboardState: DashboardStateDto;
 }
-

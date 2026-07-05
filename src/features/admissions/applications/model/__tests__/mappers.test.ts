@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapApplicationDto, toLegacyApplication, toLegacyDocument } from "../mappers";
+import { mapApplicationDocumentDto, mapApplicationDto, toLegacyApplication, toLegacyDocument } from "../mappers";
 
 const applicationDto = {
   id: "app-1",
@@ -15,6 +15,20 @@ const applicationDto = {
 } as const;
 
 describe("application mappers", () => {
+  it("preserves backend-computed application action state", () => {
+    const result = mapApplicationDto({ ...applicationDto,
+      documentsSummary: { totalCount: 1, completeCount: 0, missingCount: 1, pendingReviewCount: 0, reviewableCount: 0, applicantPortalCount: 0, staffUploadCount: 1, needsReplacementCount: 0, hasPendingReview: false, hasReviewableDocuments: false, hasMissingDocuments: true },
+      dashboardState: { canProceedToDecision: false, canRegister: false, registrationState: "not_accepted", decisionState: { canCreateDecision: false, canAccept: false, canWaitlist: false, canReject: false, reason: "workflow_policy_not_satisfied" }, workflowReadiness: { policy: { requiresPlacementTest: true, requiresInterview: true, allowDirectAcceptance: false, source: "default" }, placementTests: { required: true, total: 0, completed: 0, satisfied: false }, interviews: { required: true, total: 0, completed: 0, satisfied: false } }, documentSignals: { hasPendingReview: false, hasReviewableDocuments: false, hasMissingDocuments: true, pendingReviewCount: 0, reviewableCount: 0, missingCount: 1, needsReplacementCount: 0 }, blockers: [] },
+    });
+    expect(result.documentsSummary.missingCount).toBe(1);
+    expect(result.dashboardState.decisionState.reason).toBe("workflow_policy_not_satisfied");
+  });
+
+  it("preserves backend document review eligibility", () => {
+    const result = mapApplicationDocumentDto({ id: "doc-1", applicationId: "app-1", fileId: "file-1", documentType: "passport", status: "pending_review", source: "applicant_portal", canReview: true, reviewEligibility: { canAccept: true, canReject: true, canRequestReplacement: true, reason: "reviewable" }, linkedApplicantDocument: { id: "portal-1", status: "uploaded" }, notes: null, createdAt: "2026-07-01", updatedAt: "2026-07-01" });
+    expect(result.canReview).toBe(true);
+    expect(result.reviewEligibility.reason).toBe("reviewable");
+  });
   it("maps the backend application without inventing related resources", () => {
     const result = mapApplicationDto(applicationDto);
 
@@ -60,4 +74,3 @@ describe("application mappers", () => {
     });
   });
 });
-

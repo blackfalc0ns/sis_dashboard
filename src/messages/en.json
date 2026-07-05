@@ -806,6 +806,21 @@
     "view_all": "View all"
   },
   "admissions": {
+    "workflowPolicy": {
+      "title": "Admissions workflow policy",
+      "description": "Control the school requirements used to determine decision and registration readiness.",
+      "summary": { "title": "Effective policy", "description": "These rules apply to all admissions applications in this school.", "updatedAt": "Last updated: {value}" },
+      "source": { "default": "Default policy", "school_override": "School override" },
+      "requiresPlacementTest": { "label": "Require placement test", "description": "Applications must have at least one completed placement test before a decision." },
+      "requiresInterview": { "label": "Require interview", "description": "Applications must have at least one completed interview before a decision." },
+      "allowDirectAcceptance": { "label": "Allow direct acceptance", "description": "Allow acceptance without tests or interviews when both workflow steps are optional." },
+      "directAcceptanceWarning": "Acceptance remains blocked when tests and interviews are optional unless direct acceptance is enabled. Waitlist and reject remain available.",
+      "readOnly": "You can view this policy, but you do not have permission to change it.",
+      "actions": { "save": "Save policy", "reset": "Reset changes", "retry": "Try again" },
+      "states": { "loading": "Loading workflow policy...", "loadFailed": "Could not load workflow policy", "loadFailedDescription": "Check your connection and try again." },
+      "messages": { "saved": "Workflow policy saved.", "saveFailed": "Could not save workflow policy. Your changes were preserved." },
+      "accessDenied": { "title": "Workflow policy access denied", "description": "You do not have permission to view the admissions workflow policy." }
+    },
     "context_bar": {
       "title": "Academic Context",
       "academic_year": "Academic year",

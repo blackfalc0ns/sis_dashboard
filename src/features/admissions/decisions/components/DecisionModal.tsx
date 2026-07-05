@@ -27,6 +27,7 @@ export default function DecisionModal({
   const locale = useLocale();
   const [decision, setDecision] = useState<DecisionType>("accept");
   const [reason, setReason] = useState("");
+  const state = application.dashboardState?.decisionState;
 
   if (!isOpen) return null;
 
@@ -40,7 +41,7 @@ export default function DecisionModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedReason = reason.trim();
-    if (isSubmitting) return;
+    if (isSubmitting || (state && !({ accept: state.canAccept, waitlist: state.canWaitlist, reject: state.canReject }[decision]))) return;
     onSubmit(decision, trimmedReason);
   };
 
@@ -85,7 +86,7 @@ export default function DecisionModal({
                 type="button"
                 variant="ghost"
                 onClick={() => setDecision("accept")}
-                disabled={isSubmitting}
+                disabled={isSubmitting || state?.canAccept === false}
                 className={`p-4 border-2 rounded-lg transition-all ${
                   decision === "accept"
                     ? "border-emerald-500 bg-emerald-50"
@@ -112,7 +113,7 @@ export default function DecisionModal({
                 type="button"
                 variant="ghost"
                 onClick={() => setDecision("waitlist")}
-                disabled={isSubmitting}
+                disabled={isSubmitting || state?.canWaitlist === false}
                 className={`p-4 border-2 rounded-lg transition-all ${
                   decision === "waitlist"
                     ? "border-amber-500 bg-amber-50"
@@ -139,7 +140,7 @@ export default function DecisionModal({
                 type="button"
                 variant="ghost"
                 onClick={() => setDecision("reject")}
-                disabled={isSubmitting}
+                disabled={isSubmitting || state?.canReject === false}
                 className={`p-4 border-2 rounded-lg transition-all ${
                   decision === "reject"
                     ? "border-red-500 bg-red-50"

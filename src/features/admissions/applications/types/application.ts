@@ -10,6 +10,7 @@ import type { Document } from "./document";
 import type { Test } from "@/features/admissions/tests/types/test";
 import type { Interview } from "@/features/admissions/interviews/types/interview";
 import type { Decision } from "@/features/admissions/decisions/types/decision";
+import type { DashboardStateDto, DocumentsSummaryDto } from "../api/applicationDtos";
 
 export interface Application {
   // Allow additional properties for flexibility
@@ -35,6 +36,8 @@ export interface Application {
     registeredAt: string | null;
     source: string;
   };
+  documentsSummary?: DocumentsSummaryDto;
+  dashboardState?: DashboardStateDto;
 
   // Student Information
   first_name_ar?: string;

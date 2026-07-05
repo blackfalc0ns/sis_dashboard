@@ -17,4 +17,8 @@ export interface Document {
   fileType?: "pdf" | "image" | "doc"; // Type of file for preview
   fileId?: string;
   notes?: string;
+  source?: "staff_upload" | "applicant_portal";
+  canReview?: boolean;
+  reviewEligibility?: { canAccept: boolean; canReject: boolean; canRequestReplacement: boolean; reason: string };
+  linkedApplicantDocument?: { id: string; status: string } | null;
 }

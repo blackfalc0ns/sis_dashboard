@@ -13,7 +13,7 @@ import {
   unwrapItemResponse,
 } from "@/features/students-guardians/services/studentsGuardiansApiUtils";
 
-const GUARDIANS_BASE_PATH = "/students-guardians/students/guardians";
+const GUARDIANS_BASE_PATH = "/students-guardians/guardians";
 const STUDENTS_BASE_PATH = "/students-guardians/students";
 
 export interface FetchGuardiansParams {

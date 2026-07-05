@@ -17,6 +17,11 @@ describe("Admissions navigation", () => {
       ]),
     );
   });
+
+  it("links the workflow policy page from Admissions", () => {
+    const admissions = menuItems.find((item) => item.key === "admissions-registration");
+    expect(admissions?.children).toEqual(expect.arrayContaining([expect.objectContaining({ key: "admissions-workflow-policy", href_en: "/en/admissions/workflow-policy", href_ar: "/ar/admissions/workflow-policy" })]));
+  });
 });
 
 describe("Students & Guardians navigation", () => {

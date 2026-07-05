@@ -236,7 +236,7 @@ export default function ApplicationsList() {
 
     // 3. Missing Documents
     const missingDocuments = scopedApplications.filter((app) =>
-      app.documents.some((doc) => doc.status === "missing"),
+      app.documentsSummary?.hasMissingDocuments ?? app.documents.some((doc) => doc.status === "missing"),
     ).length;
 
     // 4. Approved
@@ -393,7 +393,7 @@ export default function ApplicationsList() {
           await createApplicationDocument(createdApplication.id, {
             fileId,
             documentType: doc.labelEn,
-            status: "pending_review",
+            status: "complete",
           });
         } catch (docError) {
           console.error(`Failed to upload document ${doc.labelEn}:`, docError);

@@ -11,7 +11,6 @@ import {
   GraduationCap,
   UserCheck,
   FolderOpen,
-  ArrowLeftRight,
   UserMinus,
   BookOpen,
   Network,
@@ -31,6 +30,7 @@ import {
   Gift,
   Settings2,
   Activity,
+  Route,
 } from "lucide-react";
 import {
   mockLeads,
@@ -204,6 +204,14 @@ export const menuItems: MenuItem[] = [
         href_ar: "/ar/admissions/enrollment",
         icon: GraduationCap,
       },
+      {
+        key: "admissions-workflow-policy",
+        label_en: "Workflow Policy",
+        label_ar: "سياسة سير العمل",
+        href_en: "/en/admissions/workflow-policy",
+        href_ar: "/ar/admissions/workflow-policy",
+        icon: Route,
+      },
     ],
   },
 
@@ -231,14 +239,14 @@ export const menuItems: MenuItem[] = [
         href_ar: "/ar/students-guardians/students",
         icon: Users,
       },
-      // {
-      //   key: "guardians-list",
-      //   label_en: "Guardians",
-      //   label_ar: "أولياء الأمور",
-      //   href_en: "/en/students-guardians/guardians",
-      //   href_ar: "/ar/students-guardians/guardians",
-      //   icon: UserCheck,
-      // },
+      {
+        key: "guardians-list",
+        label_en: "Guardians",
+        label_ar: "أولياء الأمور",
+        href_en: "/en/students-guardians/guardians",
+        href_ar: "/ar/students-guardians/guardians",
+        icon: UserCheck,
+      },
       {
         key: "profile-correction-requests",
         label_en: "Profile Correction Requests",

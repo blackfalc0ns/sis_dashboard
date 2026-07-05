@@ -46,6 +46,8 @@ export function mapApplicationDto(value: unknown): ApplicationRecord {
       registeredAt: null,
       source: "derived_from_student_application_id",
     },
+    documentsSummary: dto.documentsSummary,
+    dashboardState: dto.dashboardState,
   };
 }
 
@@ -86,6 +88,8 @@ export function toLegacyApplication(record: ApplicationRecord): Application {
     requestedAcademicYearId: record.requestedAcademicYearId,
     requestedGradeId: record.requestedGradeId,
     registrationState: record.registrationState,
+    documentsSummary: record.documentsSummary,
+    dashboardState: record.dashboardState,
   };
 }
 
@@ -105,5 +109,9 @@ export function toLegacyDocument(dto: ApplicationDocumentResponseDto): Document 
     labelEn: dto.documentType,
     notes: dto.notes ?? undefined,
     fileId: dto.fileId,
+    source: dto.source,
+    canReview: dto.canReview,
+    reviewEligibility: dto.reviewEligibility,
+    linkedApplicantDocument: dto.linkedApplicantDocument,
   };
 }

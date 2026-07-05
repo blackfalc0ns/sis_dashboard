@@ -269,7 +269,7 @@ export default function DocumentsTab({
       await createApplicationDocument(application.id, {
         fileId,
         documentType: docType,
-        status: "pending_review",
+        status: "complete",
       });
       showToast("Document uploaded successfully.", "success");
       await loadDocuments();
@@ -507,7 +507,7 @@ export default function DocumentsTab({
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   <StatusBadge status={doc.status} />
-                  {isEditable && doc.status === "pending_review" && (
+                  {isEditable && (doc.canReview ?? doc.status === "pending_review") && (
                     <div className="flex flex-wrap items-center justify-end gap-2">
                       <Button
                         size="sm"
@@ -537,6 +537,11 @@ export default function DocumentsTab({
                       </Button>
                     </div>
                   )}
+                  {doc.status === "pending_review" && doc.canReview === false && doc.reviewEligibility ? (
+                    <span className="text-xs text-amber-700" title={doc.reviewEligibility.reason}>
+                      {doc.reviewEligibility.reason.replaceAll("_", " ")}
+                    </span>
+                  ) : null}
                   <Button
                     size="sm"
                     variant="outline"

@@ -221,7 +221,8 @@ export default function ApplicationDetailsPage({
   const canScheduleAdmissionsStep = canScheduleAdmissionsSteps.includes(
     application.status,
   );
-  const canMakeDecision = canMakeDecisionStatuses.includes(application.status);
+  const canMakeDecision = application.dashboardState?.canProceedToDecision
+    ?? canMakeDecisionStatuses.includes(application.status);
   const finalDecisionMessage =
     application.status === "waitlisted"
       ? t("actions.waitlisted_no_transition")
@@ -434,11 +435,11 @@ export default function ApplicationDetailsPage({
               <Button
                 type="button"
                 onClick={handleEnroll}
-                disabled={!canRegisterApplication}
+                disabled={!canRegisterApplication || application.dashboardState?.canRegister === false}
                 title={
-                  canRegisterApplication
+                  canRegisterApplication && application.dashboardState?.canRegister !== false
                     ? undefined
-                    : "Additional student registration permissions are required"
+                    : application.dashboardState?.blockers?.map((blocker) => blocker.message).join("; ") || "Registration is blocked or additional permissions are required"
                 }
                 variant="success"
                 size="sm"
