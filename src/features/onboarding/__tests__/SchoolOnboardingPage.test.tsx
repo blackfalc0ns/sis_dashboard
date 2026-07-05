@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SchoolOnboardingPage from "../pages/SchoolOnboardingPage";
 import type { SetupEvaluation, SetupSnapshot } from "../types";
@@ -7,8 +8,17 @@ const hookMock = vi.hoisted(() => ({
   useSetupStatus: vi.fn(),
 }));
 
+const navigationMock = vi.hoisted(() => ({
+  push: vi.fn(),
+}));
+
 vi.mock("../hooks/useSetupStatus", () => ({
   useSetupStatus: hookMock.useSetupStatus,
+}));
+
+vi.mock("next/navigation", () => ({
+  useParams: () => ({ lang: "en" }),
+  useRouter: () => ({ push: navigationMock.push }),
 }));
 
 const snapshot = {
@@ -33,12 +43,45 @@ const evaluation: SetupEvaluation = {
   },
 };
 
+function createEvaluation(overrides?: {
+  academicContextComplete?: boolean;
+  structureComplete?: boolean;
+  isComplete?: boolean;
+}): SetupEvaluation {
+  const academicContextComplete = overrides?.academicContextComplete ?? true;
+  const structureComplete = overrides?.structureComplete ?? true;
+  const isComplete = overrides?.isComplete ?? false;
+
+  return {
+    ...evaluation,
+    completedCount: isComplete ? 5 : 3,
+    progressPercent: isComplete ? 100 : 60,
+    isComplete,
+    steps: {
+      ...evaluation.steps,
+      academicContext: {
+        id: "academicContext",
+        status: academicContextComplete ? "complete" : "available",
+        isComplete: academicContextComplete,
+        lockedBy: [],
+      },
+      structure: {
+        id: "structure",
+        status: structureComplete ? "complete" : "available",
+        isComplete: structureComplete,
+        lockedBy: [],
+      },
+    },
+  };
+}
+
 describe("SchoolOnboardingPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     hookMock.useSetupStatus.mockReturnValue({
       snapshot,
-      evaluation,
+      evaluation: createEvaluation({ isComplete: true }),
       selectedYear: null,
       selectedTerm: null,
       schoolId: "school-1",
@@ -53,5 +96,50 @@ describe("SchoolOnboardingPage", () => {
     expect(screen.getByRole("heading", { name: "School setup" })).toBeVisible();
     expect(screen.getByText("5/5 complete (100%)")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Dismiss setup guide" })).not.toBeInTheDocument();
+  });
+
+  it("disables skip until academic context and structure are complete", () => {
+    hookMock.useSetupStatus.mockReturnValue({
+      snapshot,
+      evaluation: createEvaluation({
+        academicContextComplete: false,
+        structureComplete: false,
+      }),
+      selectedYear: null,
+      selectedTerm: null,
+      schoolId: "school-1",
+      refreshStep: vi.fn(),
+      retryStep: vi.fn(),
+    });
+
+    render(<SchoolOnboardingPage />);
+
+    expect(screen.getByRole("button", { name: "Skip setup" })).toBeDisabled();
+    expect(
+      screen.getByText("Add academic years, terms, and academic structure before skipping."),
+    ).toBeVisible();
+  });
+
+  it("stores a session skip and returns to the dashboard when minimum academic setup exists", async () => {
+    const user = userEvent.setup();
+    hookMock.useSetupStatus.mockReturnValue({
+      snapshot,
+      evaluation: createEvaluation({
+        academicContextComplete: true,
+        structureComplete: true,
+      }),
+      selectedYear: null,
+      selectedTerm: null,
+      schoolId: "school-1",
+      refreshStep: vi.fn(),
+      retryStep: vi.fn(),
+    });
+
+    render(<SchoolOnboardingPage />);
+
+    await user.click(screen.getByRole("button", { name: "Skip setup" }));
+
+    expect(sessionStorage.getItem("sis:onboarding:skipped:school-1")).toBe("true");
+    expect(navigationMock.push).toHaveBeenCalledWith("/en/dashboard");
   });
 });
