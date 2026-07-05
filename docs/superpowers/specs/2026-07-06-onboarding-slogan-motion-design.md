@@ -18,7 +18,8 @@ Add a compact hero above the existing skip notice and setup guide.
 Use CSS and Tailwind utilities only. Do not add an animation dependency.
 
 - On initial render, the hero fades in and moves upward slightly.
-- The skip notice and setup guide use the same entrance treatment with short staggered delays.
+- The skip notice and the entire `SetupGuide` container use the same entrance treatment with short staggered delays.
+- After the `SetupGuide` container enters, its header, progress bar, step-card row, and selected-step panel appear in a restrained internal sequence.
 - Step cards receive subtle border, background, and shadow transitions on hover and selection without scaling or layout shift.
 - The progress bar keeps its width transition with a 300ms ease-out duration.
 - The selected step content fades in when the selected step changes.
@@ -30,6 +31,7 @@ Entrance animations should complete within 500ms. Interactive transitions should
 
 - `SchoolOnboardingPage` owns the hero and page-level entrance sequencing.
 - `SetupGuide` owns step-card, progress-bar, and selected-content transitions.
+- `SetupGuide` also owns the internal entrance sequence for its header, progress, cards, and selected-step panel.
 - Global CSS defines reusable onboarding entrance keyframes and reduced-motion behavior.
 - Existing setup evaluation, skip rules, API behavior, and route structure remain unchanged.
 
