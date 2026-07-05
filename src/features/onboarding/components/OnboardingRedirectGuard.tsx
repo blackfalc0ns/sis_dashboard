@@ -3,14 +3,10 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSetupStatus } from "../hooks/useSetupStatus";
-import type { SetupSnapshot } from "../types";
+import { isSetupSnapshotLoading } from "../utils/setupStatus";
 
 function skippedStorageKey(schoolId: string) {
   return `sis:onboarding:skipped:${schoolId}`;
-}
-
-function isSnapshotLoading(snapshot: SetupSnapshot) {
-  return Object.values(snapshot).some((resource) => resource.status === "loading");
 }
 
 function localeFromPathname(pathname: string | null) {
@@ -45,7 +41,7 @@ export function OnboardingRedirectGuard({
       return;
     }
 
-    if (isSnapshotLoading(snapshot) || hasSkippedOnboarding(schoolId)) {
+    if (isSetupSnapshotLoading(snapshot) || hasSkippedOnboarding(schoolId)) {
       return;
     }
 

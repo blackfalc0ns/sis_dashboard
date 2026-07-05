@@ -16,6 +16,10 @@ function hasText(value: string | null | undefined) {
   return Boolean(value?.trim());
 }
 
+export function isSetupSnapshotLoading(snapshot: SetupSnapshot) {
+  return Object.values(snapshot).some((resource) => resource.status === "loading");
+}
+
 function resourceStatus<T>(
   resource: ResourceState<T>,
   isComplete: (data: T) => boolean,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SetupSnapshot } from "../types";
-import { evaluateSetup } from "../utils/setupStatus";
+import { evaluateSetup, isSetupSnapshotLoading } from "../utils/setupStatus";
 
 const organization = {
   schoolName: "Moazez School",
@@ -110,6 +110,20 @@ const emptySnapshot: SetupSnapshot = {
 };
 
 describe("evaluateSetup", () => {
+  it.each([
+    {
+      name: "one resource is loading",
+      snapshot: {
+        ...emptySnapshot,
+        rooms: { status: "loading", data: [] },
+      } as SetupSnapshot,
+      expected: true,
+    },
+    { name: "all resources are settled", snapshot: emptySnapshot, expected: false },
+  ])("reports $expected when $name", ({ snapshot, expected }) => {
+    expect(isSetupSnapshotLoading(snapshot)).toBe(expected);
+  });
+
   it("marks all steps complete when the minimum real setup chain exists", () => {
     const evaluation = evaluateSetup(completeSnapshot);
 
