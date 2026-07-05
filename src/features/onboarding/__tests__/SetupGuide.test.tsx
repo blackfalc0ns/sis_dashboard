@@ -99,6 +99,28 @@ describe("SetupGuide", () => {
     expect(screen.queryByText("Rooms panel")).not.toBeInTheDocument();
   });
 
+  it("remounts animated step content when the selected step changes", () => {
+    const props = {
+      copy,
+      evaluation: makeEvaluation(),
+      onSelectStep: vi.fn(),
+      onRetryStep: vi.fn(),
+      stepContent: Object.fromEntries(
+        stepIds.map((id) => [id, <p key={id}>{id} panel</p>]),
+      ) as never,
+    };
+    const { rerender } = render(
+      <SetupGuide {...props} selectedStepId="academicContext" />,
+    );
+    const firstContent = screen.getByText("academicContext panel").parentElement;
+
+    rerender(<SetupGuide {...props} selectedStepId="structure" />);
+
+    const nextContent = screen.getByText("structure panel").parentElement;
+    expect(nextContent).not.toBe(firstContent);
+    expect(nextContent).toBeVisible();
+  });
+
   it("uses buttons for keyboard-operable available and error steps", async () => {
     const user = userEvent.setup();
     const onSelectStep = vi.fn();
