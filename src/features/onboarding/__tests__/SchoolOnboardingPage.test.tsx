@@ -98,6 +98,23 @@ describe("SchoolOnboardingPage", () => {
     expect(screen.queryByRole("button", { name: "Dismiss setup guide" })).not.toBeInTheDocument();
   });
 
+  it("renders the welcoming onboarding hero before the setup workflow", () => {
+    render(<SchoolOnboardingPage />);
+
+    const heading = screen.getByRole("heading", {
+      level: 1,
+      name: "Let’s get your school ready",
+    });
+
+    expect(heading).toBeVisible();
+    expect(
+      screen.getByText(
+        "Complete the essential setup so every part of your school dashboard works smoothly.",
+      ),
+    ).toBeVisible();
+    expect(heading.closest("header")).toHaveClass("onboarding-enter");
+  });
+
   it("disables skip until academic context and structure are complete", () => {
     hookMock.useSetupStatus.mockReturnValue({
       snapshot,
