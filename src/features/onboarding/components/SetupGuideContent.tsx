@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { setupSteps } from "../config/setupSteps";
 import type { SetupEvaluation, SetupSnapshot, SetupStepId } from "../types";
 import type { UseSetupStatusResult } from "../hooks/useSetupStatus";
@@ -164,12 +164,10 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
     () => (title ? { ...defaultSetupGuideCopy, title } : defaultSetupGuideCopy),
     [title],
   );
-
-  useEffect(() => {
-    if (result.evaluation.steps[selectedStepId].status === "locked") {
-      setSelectedStepId(firstSelectableStep(result.evaluation));
-    }
-  }, [result.evaluation, selectedStepId]);
+  const effectiveSelectedStepId =
+    result.evaluation.steps[selectedStepId].status === "locked"
+      ? firstSelectableStep(result.evaluation)
+      : selectedStepId;
 
   return (
     <SetupGuide
@@ -177,7 +175,7 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
       evaluation={result.evaluation}
       onRetryStep={result.retryStep}
       onSelectStep={setSelectedStepId}
-      selectedStepId={selectedStepId}
+      selectedStepId={effectiveSelectedStepId}
       stepContent={createStepContent(result, result.snapshot)}
     />
   );
