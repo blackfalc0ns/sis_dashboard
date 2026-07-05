@@ -26,6 +26,7 @@ import ActivitiesCard from "../components/ActivitiesCard";
 import FilterBar from "../components/FilterBar";
 import QuickActionPanel from "../components/QuickActionPanel";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import { SetupGuideCard } from "@/features/onboarding/components/SetupGuideCard";
 import { DASHBOARD_ALERT_PREVIEW_LIMIT } from "@/features/dashboard/constants/dashboardPreviewLimits";
 import { dashboardExportRowsFromViewModels } from "@/features/dashboard/mappers/dashboardViewMapper";
 import type {
@@ -179,6 +180,8 @@ export default function SchoolDashboardView({
       />
 
       <DashboardActionRow alertsState={alertsState} pathname={pathname} t={t} />
+
+      <SetupGuideCard />
 
       <TopKpiGrid locale={locale} summaryState={summaryState} t={t} />
 

@@ -23,6 +23,10 @@ vi.mock("@/features/dashboard/services/dashboardApiService", () => ({
   fetchDashboardActivityFeed: vi.fn(),
 }));
 
+vi.mock("@/features/onboarding/components/SetupGuideCard", () => ({
+  SetupGuideCard: () => <section>Quick school setup</section>,
+}));
+
 vi.mock("@/features/communication/api/communication.service", () => ({
   createAnnouncement: vi.fn(),
 }));
@@ -55,6 +59,7 @@ describe("SchoolDashboardContainer", () => {
     render(<SchoolDashboardContainer />);
 
     expect(await screen.findByText("School command center")).toBeInTheDocument();
+    expect(screen.getByText("Quick school setup")).toBeInTheDocument();
     expect(screen.getByText("Active Students")).toBeInTheDocument();
     expect(screen.getAllByText("125").length).toBeGreaterThan(0);
     expect(screen.getByText(/Absences marked today/)).toBeInTheDocument();
