@@ -705,6 +705,14 @@ export const menuItems: MenuItem[] = [
         icon: Building2,
       },
       {
+        key: "settings-onboarding",
+        label_en: "School setup",
+        label_ar: "إعداد المدرسة",
+        href_en: "/en/settings/onboarding",
+        href_ar: "/ar/settings/onboarding",
+        icon: ListChecks,
+      },
+      {
         key: "settings-users",
         label_en: "Users",
         label_ar: "المستخدمون",

@@ -11287,6 +11287,43 @@
       "emailPlaceholder": "student@example.com"
     }
   },
+  "onboarding": {
+    "title": "School setup",
+    "cardTitle": "Quick school setup",
+    "progressLabel": "Setup progress",
+    "dismiss": "Dismiss setup guide",
+    "retry": "Retry",
+    "lockedPrefix": "Complete first",
+    "statuses": {
+      "complete": "Complete",
+      "available": "Available",
+      "locked": "Locked",
+      "loading": "Loading",
+      "error": "Needs attention"
+    },
+    "steps": {
+      "organization": {
+        "title": "Organization",
+        "description": "Add core school profile data."
+      },
+      "academicContext": {
+        "title": "Academic year",
+        "description": "Create the active year and term."
+      },
+      "structure": {
+        "title": "Structure",
+        "description": "Create stage, grade, and section."
+      },
+      "subjects": {
+        "title": "Subjects",
+        "description": "Create subjects and grade allocations."
+      },
+      "rooms": {
+        "title": "Rooms",
+        "description": "Create the first room."
+      }
+    }
+  },
   "lightModeDropdown": {
     "collapse": "Collapse",
     "low": "Low",

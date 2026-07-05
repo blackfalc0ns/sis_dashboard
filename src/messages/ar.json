@@ -11288,6 +11288,43 @@
       "emailPlaceholder": "student@example.com"
     }
   },
+  "onboarding": {
+    "title": "إعداد المدرسة",
+    "cardTitle": "إعداد المدرسة السريع",
+    "progressLabel": "تقدم الإعداد",
+    "dismiss": "إخفاء دليل الإعداد",
+    "retry": "إعادة المحاولة",
+    "lockedPrefix": "أكمل أولًا",
+    "statuses": {
+      "complete": "مكتمل",
+      "available": "متاح",
+      "locked": "مقفل",
+      "loading": "جارٍ التحميل",
+      "error": "يحتاج انتباه"
+    },
+    "steps": {
+      "organization": {
+        "title": "المؤسسة",
+        "description": "أضف بيانات ملف المدرسة الأساسية."
+      },
+      "academicContext": {
+        "title": "العام الدراسي",
+        "description": "أنشئ العام والفصل النشطين."
+      },
+      "structure": {
+        "title": "الهيكل",
+        "description": "أنشئ المرحلة والصف والشعبة."
+      },
+      "subjects": {
+        "title": "المواد",
+        "description": "أنشئ المواد وتوزيعات الصفوف."
+      },
+      "rooms": {
+        "title": "الغرف",
+        "description": "أنشئ أول غرفة."
+      }
+    }
+  },
   "lightModeDropdown": {
     "collapse": "طي",
     "low": "الصغرى",
