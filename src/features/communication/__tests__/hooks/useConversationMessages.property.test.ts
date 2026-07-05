@@ -68,11 +68,8 @@ function setupDefaultMocks() {
  * All messages share the same conversationId to simulate a real conversation.
  */
 const sortedMessagesArb = fc
-  .tuple(
-    fc.array(messageArb, { minLength: 2, maxLength: 20 }),
-    fc.nat({ max: 100 }),
-  )
-  .map(([messages, _]) => {
+  .array(messageArb, { minLength: 2, maxLength: 20 })
+  .map((messages) => {
     // Assign distinct createdAt timestamps sorted ascending
     const baseTime = new Date("2024-01-01T00:00:00.000Z").getTime();
     return messages.map((msg, index) => ({
@@ -85,9 +82,12 @@ const sortedMessagesArb = fc
   });
 
 /**
- * Generate a new body text for the update payload.
+ * Generate a new non-blank body text for the update payload.
+ * The hook intentionally treats whitespace-only bodies as missing payload text.
  */
-const updatedBodyArb = fc.string({ minLength: 1, maxLength: 500 });
+const updatedBodyArb = fc
+  .string({ minLength: 1, maxLength: 500 })
+  .filter((body) => body.trim().length > 0);
 
 // ─── Property Tests ──────────────────────────────────────────────────────────
 
@@ -98,13 +98,12 @@ describe("Property 10: Message Update Preserves Order", () => {
   });
 
   fcTest.prop(
-    [sortedMessagesArb, updatedBodyArb],
+    [sortedMessagesArb, updatedBodyArb, fc.nat({ max: 19 })],
     { numRuns: 20, timeout: 30_000 },
   )(
     "patchFromRealtime updates body in place without changing message order",
-    async (messages, newBody) => {
-      // Pick a random target index to update
-      const targetIndex = Math.floor(Math.random() * messages.length);
+    async (messages, newBody, targetIndexSeed) => {
+      const targetIndex = targetIndexSeed % messages.length;
       const targetMessage = messages[targetIndex];
 
       // Record the original order of message IDs
