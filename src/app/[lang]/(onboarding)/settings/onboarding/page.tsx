@@ -1,5 +1,5 @@
-import SchoolOnboardingPage from "@/features/onboarding/pages/SchoolOnboardingPage";
+import OnboardingWelcomePage from "@/features/onboarding/pages/OnboardingWelcomePage";
 
-export default function SettingsOnboardingRoute() {
-  return <SchoolOnboardingPage />;
+export default function OnboardingWelcomeRoute() {
+  return <OnboardingWelcomePage />;
 }
