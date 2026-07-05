@@ -7,7 +7,7 @@ export default function OnboardingLayout({
 }) {
   return (
     <ToastProvider>
-      <main aria-label="Onboarding setup" className="min-h-screen bg-gray-50">
+      <main aria-label="Onboarding setup" className="min-h-screen bg-primary">
         {children}
       </main>
     </ToastProvider>
