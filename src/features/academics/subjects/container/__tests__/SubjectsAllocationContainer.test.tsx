@@ -10,8 +10,10 @@ import {
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { usePermissions } from "@/hooks/usePermissions";
 
-const { mockedSubjectsAllocationView } = vi.hoisted(() => ({
+const { mockedSubjectsAllocationView, mockedClearDirty, mockedMarkDirty } = vi.hoisted(() => ({
   mockedSubjectsAllocationView: vi.fn(),
+  mockedClearDirty: vi.fn(),
+  mockedMarkDirty: vi.fn(),
 }));
 
 vi.mock("@/features/academics/subjects/views/SubjectsAllocationView", () => ({
@@ -52,8 +54,8 @@ vi.mock("@/features/academics/hooks/useAcademicContextBarActions", () => ({
 
 vi.mock("@/hooks/useDirtyKey", () => ({
   useDirtyKey: () => ({
-    clearDirty: vi.fn(),
-    markDirty: vi.fn(),
+    clearDirty: mockedClearDirty,
+    markDirty: mockedMarkDirty,
   }),
 }));
 

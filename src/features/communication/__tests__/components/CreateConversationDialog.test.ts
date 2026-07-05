@@ -126,7 +126,7 @@ describe("CreateConversationDialog component validation", () => {
     const onSubmit = vi.fn();
     render(React.createElement(CreateConversationDialog, { ...defaultProps, onSubmit }));
 
-    const typeSelect = screen.getByRole("button", { name: labels.group });
+    const typeSelect = screen.getByRole("button", { name: labels.type });
     fireEvent.click(typeSelect);
     const classroomOption = await screen.findByText("Classroom Option");
     fireEvent.click(classroomOption);
@@ -147,7 +147,7 @@ describe("CreateConversationDialog component validation", () => {
     const onSubmit = vi.fn();
     render(React.createElement(CreateConversationDialog, { ...defaultProps, onSubmit }));
 
-    const typeSelect = screen.getByRole("button", { name: labels.group });
+    const typeSelect = screen.getByRole("button", { name: labels.type });
     fireEvent.click(typeSelect);
     const stageOption = await screen.findByText("Stage Option");
     fireEvent.click(stageOption);
@@ -168,7 +168,7 @@ describe("CreateConversationDialog component validation", () => {
     const onSubmit = vi.fn();
     render(React.createElement(CreateConversationDialog, { ...defaultProps, onSubmit }));
 
-    const typeSelect = screen.getByRole("button", { name: labels.group });
+    const typeSelect = screen.getByRole("button", { name: labels.type });
     fireEvent.click(typeSelect);
     const gradeOption = await screen.findByText("Grade Option");
     fireEvent.click(gradeOption);
@@ -189,7 +189,7 @@ describe("CreateConversationDialog component validation", () => {
     const onSubmit = vi.fn();
     render(React.createElement(CreateConversationDialog, { ...defaultProps, onSubmit }));
 
-    const typeSelect = screen.getByRole("button", { name: labels.group });
+    const typeSelect = screen.getByRole("button", { name: labels.type });
     fireEvent.click(typeSelect);
     const sectionOption = await screen.findByText("Section Option");
     fireEvent.click(sectionOption);
@@ -271,4 +271,3 @@ describe("CreateConversationDialog component validation", () => {
     });
   });
 });
-

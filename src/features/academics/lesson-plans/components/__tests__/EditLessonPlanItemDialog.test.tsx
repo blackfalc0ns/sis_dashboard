@@ -76,7 +76,7 @@ describe("EditLessonPlanItemDialog", () => {
     await user.type(titleInput, "New title");
     await user.clear(notesInput);
     await user.type(notesInput, "New notes");
-    await user.click(screen.getByRole("button", { name: /Sep 16/i }));
+    await user.click(screen.getByRole("button", { name: "editItem.plannedDay" }));
     await user.click(screen.getByRole("button", { name: /Sep 17/i }));
     await user.click(screen.getByRole("button", { name: "editItem.save" }));
 
@@ -132,7 +132,7 @@ describe("EditLessonPlanItemDialog", () => {
     );
 
     await user.click(
-      await screen.findByRole("button", { name: "addWithoutSlot" }),
+      await screen.findByRole("button", { name: "timetableSlotOptions.label" }),
     );
     await user.click(screen.getByRole("button", { name: "Period 1" }));
     await user.click(screen.getByRole("button", { name: "editItem.save" }));

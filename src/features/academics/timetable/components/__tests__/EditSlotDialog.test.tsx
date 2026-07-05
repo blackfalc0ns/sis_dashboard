@@ -63,7 +63,7 @@ describe("EditSlotDialog", () => {
       await screen.findByText("noTeacherAllocationForClassroom"),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /noTeacher/i }),
+      screen.getByRole("button", { name: "teacher" }),
     ).toBeDisabled();
   });
 });

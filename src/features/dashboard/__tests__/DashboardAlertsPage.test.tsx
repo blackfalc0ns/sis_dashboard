@@ -71,11 +71,11 @@ describe("DashboardAlertsPage", () => {
       screen.queryByRole("button", { name: "Apply filters" }),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "All sources" }));
+    await user.click(screen.getByRole("button", { name: "Source" }));
     await user.click(screen.getByRole("button", { name: "Attendance" }));
-    await user.click(screen.getByRole("button", { name: "All severities" }));
+    await user.click(screen.getByRole("button", { name: "Severity" }));
     await user.click(screen.getByRole("button", { name: "Critical" }));
-    await user.click(screen.getByRole("button", { name: "20 alerts" }));
+    await user.click(screen.getByRole("button", { name: "Limit" }));
     await user.click(screen.getByRole("button", { name: "50 alerts" }));
     await user.click(screen.getByLabelText("Include zero-count alerts"));
 
@@ -109,7 +109,7 @@ describe("DashboardAlertsPage", () => {
 
     expect(await screen.findByText("Dashboard alerts")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "All sources" }));
+    await user.click(screen.getByRole("button", { name: "Source" }));
     await user.click(screen.getByRole("button", { name: "Attendance" }));
 
     expect(screen.getByLabelText("Loading dashboard alerts")).toBeInTheDocument();

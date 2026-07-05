@@ -98,6 +98,12 @@ vi.mock("../../services/calendarService", () => ({
 vi.mock("@/features/academics/academic-structure-tree/services/structureService", () => ({
   fetchAcademicYears: vi.fn().mockResolvedValue([]),
   fetchTerms: vi.fn().mockResolvedValue([]),
+  fetchStructureTree: vi.fn().mockResolvedValue({
+    stages: [],
+    grades: [],
+    sections: [],
+    classrooms: [],
+  }),
 }));
 
 vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({

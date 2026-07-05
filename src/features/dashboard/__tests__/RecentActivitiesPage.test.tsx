@@ -137,9 +137,9 @@ describe("RecentActivitiesPage", () => {
       screen.queryByRole("button", { name: "Apply filters" }),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "All sources" }));
+    await user.click(screen.getByRole("button", { name: "Source" }));
     await user.click(screen.getByRole("button", { name: "Attendance" }));
-    await user.click(screen.getByRole("button", { name: "All actor types" }));
+    await user.click(screen.getByRole("button", { name: "Actor type" }));
     await user.click(screen.getByRole("button", { name: "Admin" }));
     await user.type(
       screen.getByPlaceholderText("Filter by event type"),
@@ -178,7 +178,7 @@ describe("RecentActivitiesPage", () => {
 
     expect(await screen.findByText("Recent activities")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "All sources" }));
+    await user.click(screen.getByRole("button", { name: "Source" }));
     await user.click(screen.getByRole("button", { name: "Attendance" }));
 
     expect(screen.getByLabelText("Loading recent activities")).toBeInTheDocument();

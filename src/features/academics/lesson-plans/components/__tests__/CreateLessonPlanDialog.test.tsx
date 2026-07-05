@@ -14,7 +14,7 @@ describe("CreateLessonPlanDialog", () => {
     const user = userEvent.setup();
     render(<CreateLessonPlanDialog isOpen weeks={weeks} plans={plans as never} onClose={vi.fn()} onSubmit={vi.fn()} />);
 
-    await user.click(screen.getByRole("button", { name: "createPlan.weekPlaceholder" }));
+    await user.click(screen.getByRole("button", { name: "createPlan.weekLabel" }));
     expect(screen.getByRole("button", { name: /2026-09-01.*createPlan.alreadyHasPlan/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /2026-09-08/ })).toBeEnabled();
   });
@@ -34,7 +34,7 @@ describe("CreateLessonPlanDialog", () => {
     const user = userEvent.setup();
     render(<CreateLessonPlanDialog isOpen weeks={weeks} plans={[]} onClose={vi.fn()} onSubmit={onSubmit} />);
 
-    await user.click(screen.getByRole("button", { name: "createPlan.weekPlaceholder" }));
+    await user.click(screen.getByRole("button", { name: "createPlan.weekLabel" }));
     await user.click(screen.getByRole("button", { name: /2026-09-08/ }));
     const [title, description] = screen.getAllByRole("textbox");
     await user.clear(title);

@@ -74,7 +74,7 @@ describe("AddLessonDialog planned day selection", () => {
     const user = userEvent.setup();
     const onConfirm = renderDialog(["2026-09-09", "2026-09-10"]);
 
-    await user.click(screen.getByRole("button", { name: /Sep 9/i }));
+    await user.click(screen.getByRole("button", { name: "selectPlannedDay" }));
     await user.click(screen.getByRole("button", { name: /Sep 10/i }));
     await user.click(screen.getByRole("button", { name: "confirm" }));
 
@@ -100,7 +100,7 @@ describe("AddLessonDialog planned day selection", () => {
     const onConfirm = renderDialog(["2026-09-10"]);
 
     await user.click(
-      await screen.findByRole("button", { name: "addWithoutSlot" }),
+      await screen.findByRole("button", { name: "timetableSlotOptions.label" }),
     );
     await user.click(screen.getByRole("button", { name: /Period 2/i }));
     await user.click(screen.getByRole("button", { name: "confirm" }));

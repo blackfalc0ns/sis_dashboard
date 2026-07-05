@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import NotificationSearchSelect from "../../components/selectors/NotificationSearchSelect";
@@ -60,7 +60,7 @@ describe("NotificationSearchSelect", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /select a notification/i }));
+    await user.click(screen.getByRole("button", { name: "Notification" }));
     expect(getNotificationsMock).toHaveBeenCalledWith({ page: 1, limit: 50 });
     expect(await screen.findByText(/Transport delay - system_alert/)).toBeVisible();
     expect(screen.getByText(/Science fair registration is open/)).toBeVisible();
@@ -75,7 +75,11 @@ describe("NotificationSearchSelect", () => {
     fireEvent.scroll(list);
 
     expect(await screen.findByText(/Grade report published/)).toBeVisible();
-    expect(screen.getByRole("button", { name: "Notification" })).toBeVisible();
+    expect(
+      within(screen.getByRole("list")).getByRole("button", {
+        name: "Notification",
+      }),
+    ).toBeVisible();
     expect(getNotificationsMock).toHaveBeenLastCalledWith({ page: 2, limit: 50 });
     expect(screen.getAllByText(/Science fair registration is open/)).toHaveLength(1);
 

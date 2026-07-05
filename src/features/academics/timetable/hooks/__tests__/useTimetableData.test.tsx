@@ -165,6 +165,7 @@ const hookParams = {
   selectedGradeId: "grade-1",
   selectedSectionId: "section-1",
   selectedClassroomId: "classroom-1",
+  isScopeSelectionNormalized: true,
   showToast: vi.fn(),
 };
 

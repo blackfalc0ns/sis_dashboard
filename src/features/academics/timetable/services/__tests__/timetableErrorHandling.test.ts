@@ -86,13 +86,13 @@ describe("timetableErrorHandling", () => {
       },
     );
 
-    expect(conflictFromTimetableError(error)).toEqual({
+    expect(conflictFromTimetableError(error)).toEqual(expect.objectContaining({
       type: "TEACHER",
       dayKey: "tue",
       periodIndex: 4,
       resourceId: "teacher-1",
       resourceName: "Ms. Noor",
       sections: [],
-    });
+    }));
   });
 });

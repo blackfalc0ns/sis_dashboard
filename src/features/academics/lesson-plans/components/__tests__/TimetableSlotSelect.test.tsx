@@ -60,7 +60,7 @@ describe("TimetableSlotSelect", () => {
     renderSelect();
 
     await waitFor(() => expect(listEntries).toHaveBeenCalled());
-    await user.click(screen.getByRole("button", { name: "Without slot" }));
+    await user.click(screen.getByRole("button", { name: "Timetable slot" }));
     expect(
       screen.getByText(
         "Period 2 · 08:45 - 09:30 · Mathematics · Teacher One",
@@ -101,7 +101,7 @@ describe("TimetableSlotSelect", () => {
     renderSelect();
 
     await waitFor(() => expect(listEntries).toHaveBeenCalledTimes(4));
-    await user.click(screen.getByRole("button", { name: "Without slot" }));
+    await user.click(screen.getByRole("button", { name: "Timetable slot" }));
     expect(
       screen.getByText(
         "Period 2 · 08:45 - 09:30 · Mathematics · Teacher One",
@@ -127,7 +127,7 @@ describe("TimetableSlotSelect", () => {
     const user = userEvent.setup();
     renderSelect(onChange);
 
-    await user.click(await screen.findByRole("button", { name: "Without slot" }));
+    await user.click(await screen.findByRole("button", { name: "Timetable slot" }));
     await user.click(screen.getByRole("button", { name: /Period 2/ }));
     await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ id: "entry-1" })));
   });

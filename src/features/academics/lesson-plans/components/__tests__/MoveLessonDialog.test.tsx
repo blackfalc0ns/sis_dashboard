@@ -46,7 +46,7 @@ describe("MoveLessonDialog", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Sep 16/i }));
+    await user.click(screen.getByRole("button", { name: "plannedDay" }));
     await user.click(screen.getByRole("button", { name: /Sep 17/i }));
     await user.click(screen.getByRole("button", { name: "actions.confirmMove" }));
 
@@ -99,7 +99,7 @@ describe("MoveLessonDialog", () => {
     );
 
     await user.click(
-      await screen.findByRole("button", { name: "moveWithoutSlot" }),
+      await screen.findByRole("button", { name: "timetableSlotOptions.label" }),
     );
     await user.click(screen.getByRole("button", { name: "Period 1" }));
     await user.click(screen.getByRole("button", { name: "actions.confirmMove" }));
