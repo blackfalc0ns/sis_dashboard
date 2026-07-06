@@ -5,7 +5,7 @@ import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/Aca
 
 interface UseGuardedAcademicContextChangeParams {
   hasUnsavedChanges: boolean;
-  confirmDiscard: () => boolean;
+  confirmDiscard: () => Promise<boolean>;
   onDiscard?: () => void;
 }
 
@@ -23,7 +23,7 @@ export function useGuardedAcademicContextChange({
   useEffect(() => {
     setGuardHandlers({
       onAcademicYearChange: async (yearId: string) => {
-        if (hasUnsavedChanges && !confirmDiscard()) {
+        if (hasUnsavedChanges && !(await confirmDiscard())) {
           return;
         }
 
@@ -33,8 +33,8 @@ export function useGuardedAcademicContextChange({
 
         await changeAcademicYear(yearId);
       },
-      onTermChange: (termId: string) => {
-        if (hasUnsavedChanges && !confirmDiscard()) {
+      onTermChange: async (termId: string) => {
+        if (hasUnsavedChanges && !(await confirmDiscard())) {
           return;
         }
 
