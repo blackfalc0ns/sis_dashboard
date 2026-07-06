@@ -6,6 +6,7 @@ import type { Curriculum, Unit } from "../../services/curriculumService";
 import {
   createLesson,
   createUnit,
+  deleteUnit,
 } from "../../services/curriculumService";
 import CurriculumEditor from "../CurriculumEditor";
 
@@ -28,6 +29,28 @@ vi.mock("../../services/curriculumService", async (importOriginal) => {
 });
 
 vi.mock("../LearningContentPanel", () => ({ default: () => null }));
+
+vi.mock("@/components/ui/confirm-dialog/ConfirmDialog", () => ({
+  default: ({
+    cancelLabel,
+    confirmLabel,
+    isOpen,
+    onClose,
+    onConfirm,
+  }: {
+    cancelLabel: string;
+    confirmLabel: string;
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+  }) =>
+    isOpen ? (
+      <div>
+        <button type="button" onClick={onClose}>{cancelLabel}</button>
+        <button type="button" onClick={onConfirm}>{confirmLabel}</button>
+      </div>
+    ) : null,
+}));
 
 const curriculum = { id: "curriculum-1" } as Curriculum;
 const unit = { id: "unit-1", curriculumId: curriculum.id } as Unit;
@@ -102,5 +125,35 @@ describe("CurriculumEditor", () => {
     await user.type(screen.getByLabelText(/objectives/), " revised");
     expect(screen.queryByText("Objective is invalid")).not.toBeInTheDocument();
     expect(screen.getByText("Duration must be positive")).toBeInTheDocument();
+  });
+
+  it("waits for modal confirmation before deleting a unit", async () => {
+    const user = userEvent.setup();
+    const existingUnit = {
+      ...unit,
+      title: "Unit one",
+      description: null,
+      estimatedLessons: null,
+    } as Unit;
+
+    render(
+      <CurriculumEditor
+        {...baseProps}
+        units={[existingUnit]}
+        selectedNode={{ type: "unit", id: "unit-1" }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "delete" }));
+    expect(deleteUnit).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "cancel" }));
+    expect(deleteUnit).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "delete" }));
+    await user.click(screen.getAllByRole("button", { name: "delete" })[1]);
+
+    expect(deleteUnit).toHaveBeenCalledOnce();
+    expect(deleteUnit).toHaveBeenCalledWith("curriculum-1", "unit-1");
   });
 });

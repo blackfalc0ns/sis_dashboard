@@ -4320,6 +4320,7 @@
         "save": "Save",
         "saving": "Saving...",
         "delete": "Delete",
+        "cancel": "Cancel",
         "mark_done": "Mark as Done",
         "undo_done": "Undo Done",
         "confirm_delete": "Are you sure you want to delete this item?",

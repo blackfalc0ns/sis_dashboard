@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Save, Trash2, BookOpen } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import TextArea from "@/components/ui/input/TextArea";
 import Input from "@/components/ui/input/Input";
 import {
@@ -52,6 +53,8 @@ const emptyForm: CurriculumEditorForm = {
   estimatedMinutes: "",
 };
 
+type CurriculumNodeSelection = { type: "unit" | "lesson"; id: string };
+
 const curriculumEditorFields = [
   "title",
   "description",
@@ -82,6 +85,9 @@ export default function CurriculumEditor({
     Partial<Record<keyof CurriculumEditorForm, string>>
   >({});
   const [formMessages, setFormMessages] = useState<string[]>([]);
+  const [pendingDeleteNode, setPendingDeleteNode] =
+    useState<CurriculumNodeSelection | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [learningContentOpen, setLearningContentOpen] = useState(false);
@@ -89,6 +95,7 @@ export default function CurriculumEditor({
   useEffect(() => {
     setFieldErrors({});
     setFormMessages([]);
+    setPendingDeleteNode(null);
     if (!selectedNode) {
       setFormData(emptyForm);
       setOriginalData(emptyForm);
@@ -221,24 +228,33 @@ export default function CurriculumEditor({
     }
   };
 
-  const handleDelete = async () => {
-    if (isReadOnly || !selectedNode || !confirm(t("confirm_delete"))) return;
+  const requestDelete = () => {
+    if (isReadOnly || !selectedNode) return;
+    setPendingDeleteNode(selectedNode);
+  };
 
+  const confirmDeleteNode = async () => {
+    if (!pendingDeleteNode) return;
+
+    setIsDeleting(true);
     try {
-      if (selectedNode.type === "unit") {
-        await deleteUnit(curriculum.id, selectedNode.id);
+      if (pendingDeleteNode.type === "unit") {
+        await deleteUnit(curriculum.id, pendingDeleteNode.id);
       } else {
-        const lesson = lessons.find((item) => item.id === selectedNode.id);
+        const lesson = lessons.find((item) => item.id === pendingDeleteNode.id);
         if (!lesson) return;
-        await deleteLesson(curriculum.id, lesson.unitId, selectedNode.id);
+        await deleteLesson(curriculum.id, lesson.unitId, pendingDeleteNode.id);
       }
       await onRefresh();
+      setPendingDeleteNode(null);
       if (onSelectNode) {
         onSelectNode(null);
       }
     } catch (error) {
       const mapped = curriculumUiError(error, tValidation("invalid"));
       setFormMessages([...new Set([mapped.message, ...mapped.details])]);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -366,7 +382,7 @@ export default function CurriculumEditor({
             {!isNew && (
               <>
                 <Button
-                  onClick={handleDelete}
+                  onClick={requestDelete}
                   variant="danger"
                   leftIcon={<Trash2 className="w-4 h-4" />}
                   disabled={isReadOnly}
@@ -391,6 +407,20 @@ export default function CurriculumEditor({
           onClose={() => setLearningContentOpen(false)}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={pendingDeleteNode !== null}
+        onClose={() => {
+          if (!isDeleting) setPendingDeleteNode(null);
+        }}
+        onConfirm={() => void confirmDeleteNode()}
+        title={t("delete")}
+        description={t("confirm_delete")}
+        confirmLabel={t("delete")}
+        cancelLabel={t("cancel")}
+        loading={isDeleting}
+        severity="danger"
+      />
     </div>
   );
 }
