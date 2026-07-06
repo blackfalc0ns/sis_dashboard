@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OnboardingRedirectGuard } from "../components/OnboardingRedirectGuard";
 import type { SetupEvaluation, SetupSnapshot } from "../types";
@@ -30,6 +30,11 @@ const snapshot = {
   },
   subjects: { status: "success", data: { subjects: [], allocations: [] } },
   rooms: { status: "success", data: [] },
+} as unknown as SetupSnapshot;
+
+const loadingSnapshot = {
+  ...snapshot,
+  organization: { status: "loading" },
 } as unknown as SetupSnapshot;
 
 function evaluation(isComplete: boolean): SetupEvaluation {
@@ -76,9 +81,10 @@ function evaluation(isComplete: boolean): SetupEvaluation {
 function mockStatus(overrides?: {
   isComplete?: boolean;
   schoolId?: string;
+  snapshot?: SetupSnapshot;
 }) {
   hookMock.useSetupStatus.mockReturnValue({
-    snapshot,
+    snapshot: overrides?.snapshot ?? snapshot,
     evaluation: evaluation(overrides?.isComplete ?? false),
     selectedYear: null,
     selectedTerm: null,
@@ -97,7 +103,7 @@ describe("OnboardingRedirectGuard", () => {
   });
 
   it("redirects dashboard users to onboarding when setup is incomplete", async () => {
-    render(
+    const { container } = render(
       <OnboardingRedirectGuard>
         <div>Dashboard content</div>
       </OnboardingRedirectGuard>,
@@ -106,41 +112,64 @@ describe("OnboardingRedirectGuard", () => {
     await waitFor(() => {
       expect(navigationMock.replace).toHaveBeenCalledWith("/en/settings/onboarding");
     });
+
+    expect(container.querySelector(".logo-loader")).toBeInTheDocument();
+    expect(screen.queryByText("Dashboard content")).not.toBeInTheDocument();
+  });
+
+  it("shows the main loader instead of dashboard content while setup status loads", () => {
+    mockStatus({ snapshot: loadingSnapshot });
+
+    const { container } = render(
+      <OnboardingRedirectGuard>
+        <div>Dashboard content</div>
+      </OnboardingRedirectGuard>,
+    );
+
+    expect(container.querySelector(".logo-loader")).toBeInTheDocument();
+    expect(screen.queryByText("Dashboard content")).not.toBeInTheDocument();
+    expect(navigationMock.replace).not.toHaveBeenCalled();
   });
 
   it("does not redirect from the onboarding page itself", () => {
     navigationMock.usePathname.mockReturnValue("/en/settings/onboarding");
 
-    render(
+    const { container } = render(
       <OnboardingRedirectGuard>
         <div>Onboarding content</div>
       </OnboardingRedirectGuard>,
     );
 
     expect(navigationMock.replace).not.toHaveBeenCalled();
+    expect(screen.getByText("Onboarding content")).toBeInTheDocument();
+    expect(container.querySelector(".logo-loader")).not.toBeInTheDocument();
   });
 
   it("does not redirect again after the user skipped onboarding in the same session", () => {
     sessionStorage.setItem("sis:onboarding:skipped:school-1", "true");
 
-    render(
+    const { container } = render(
       <OnboardingRedirectGuard>
         <div>Dashboard content</div>
       </OnboardingRedirectGuard>,
     );
 
     expect(navigationMock.replace).not.toHaveBeenCalled();
+    expect(screen.getByText("Dashboard content")).toBeInTheDocument();
+    expect(container.querySelector(".logo-loader")).not.toBeInTheDocument();
   });
 
   it("does not redirect when setup is complete", () => {
     mockStatus({ isComplete: true });
 
-    render(
+    const { container } = render(
       <OnboardingRedirectGuard>
         <div>Dashboard content</div>
       </OnboardingRedirectGuard>,
     );
 
     expect(navigationMock.replace).not.toHaveBeenCalled();
+    expect(screen.getByText("Dashboard content")).toBeInTheDocument();
+    expect(container.querySelector(".logo-loader")).not.toBeInTheDocument();
   });
 });

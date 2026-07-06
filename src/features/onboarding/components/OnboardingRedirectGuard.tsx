@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useSetupStatus } from "../hooks/useSetupStatus";
 import { isSetupSnapshotLoading } from "../utils/setupStatus";
 
@@ -35,18 +36,26 @@ export function OnboardingRedirectGuard({
   const pathname = usePathname();
   const router = useRouter();
   const { evaluation, schoolId, snapshot } = useSetupStatus();
+  const isSnapshotLoading = isSetupSnapshotLoading(snapshot);
+  const onboardingPath = isOnboardingPath(pathname);
+  const skipped = schoolId ? hasSkippedOnboarding(schoolId) : false;
+  const shouldRedirect = Boolean(
+    schoolId &&
+      !evaluation.isComplete &&
+      !onboardingPath &&
+      !isSnapshotLoading &&
+      !skipped,
+  );
 
   useEffect(() => {
-    if (!schoolId || evaluation.isComplete || isOnboardingPath(pathname)) {
-      return;
-    }
-
-    if (isSetupSnapshotLoading(snapshot) || hasSkippedOnboarding(schoolId)) {
-      return;
-    }
+    if (!shouldRedirect) return;
 
     router.replace(`/${localeFromPathname(pathname)}/settings/onboarding`);
-  }, [evaluation.isComplete, pathname, router, schoolId, snapshot]);
+  }, [pathname, router, shouldRedirect]);
+
+  if (isSnapshotLoading || shouldRedirect) {
+    return <MainLoader />;
+  }
 
   return <>{children}</>;
 }
