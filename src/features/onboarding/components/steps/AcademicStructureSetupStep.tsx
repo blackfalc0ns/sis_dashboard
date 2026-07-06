@@ -14,13 +14,6 @@ import {
 
 export interface AcademicStructureSetupStepCopy {
   summary: string;
-  savedData: string;
-  edit: string;
-  cancel: string;
-  stagesCount(count: number): string;
-  gradesCount(count: number): string;
-  sectionsCount(count: number): string;
-  incomplete: string;
   stageTitle: string;
   gradeTitle: string;
   sectionTitle: string;
@@ -95,9 +88,6 @@ export function AcademicStructureSetupStep({
   const [nameEn, setNameEn] = useState("");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const hasMinimumData =
-    tree.stages.length > 0 && tree.grades.length > 0 && tree.sections.length > 0;
-  const [isEditing, setIsEditing] = useState(!hasMinimumData);
 
   useEffect(() => {
     setNameAr("");
@@ -105,56 +95,11 @@ export function AcademicStructureSetupStep({
     setError("");
   }, [actionKey]);
 
-  useEffect(() => {
-    setIsEditing(!hasMinimumData);
-  }, [hasMinimumData]);
-
-  if (!isEditing) {
-    return (
-      <div className="space-y-4">
-        <p className="text-sm text-gray-600">{copy.summary}</p>
-        <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4">
-          <div>
-            <h3 className="text-base font-semibold text-gray-950">{copy.savedData}</h3>
-            <p className="mt-1 text-sm text-gray-600">
-              {hasMinimumData ? copy.complete : copy.incomplete}
-            </p>
-          </div>
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-sm font-medium text-gray-950">
-                {copy.stagesCount(tree.stages.length)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-sm font-medium text-gray-950">
-                {copy.gradesCount(tree.grades.length)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-sm font-medium text-gray-950">
-                {copy.sectionsCount(tree.sections.length)}
-              </p>
-            </div>
-          </div>
-          <Button onClick={() => setIsEditing(true)} type="button" variant="secondary">
-            {copy.edit}
-          </Button>
-        </section>
-      </div>
-    );
-  }
-
   if (nextAction.type === "complete") {
     return (
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <h3 className="text-base font-semibold text-gray-950">{nextAction.title}</h3>
-          <p className="text-sm text-gray-600">{copy.summary}</p>
-        </div>
-        <Button onClick={() => setIsEditing(false)} type="button" variant="secondary">
-          {copy.cancel}
-        </Button>
+      <div className="space-y-2">
+        <h3 className="text-base font-semibold text-gray-950">{nextAction.title}</h3>
+        <p className="text-sm text-gray-600">{copy.summary}</p>
       </div>
     );
   }
@@ -228,16 +173,9 @@ export function AcademicStructureSetupStep({
         />
       </div>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
-      <div className="flex flex-wrap gap-2">
-        {hasMinimumData ? (
-          <Button onClick={() => setIsEditing(false)} type="button" variant="secondary">
-            {copy.cancel}
-          </Button>
-        ) : null}
-        <Button loading={isSaving} onClick={() => void handleSubmit()} type="button">
-          {isSaving ? copy.saving : copy.save}
-        </Button>
-      </div>
+      <Button loading={isSaving} onClick={() => void handleSubmit()} type="button">
+        {isSaving ? copy.saving : copy.save}
+      </Button>
     </div>
   );
 }

@@ -38,13 +38,6 @@ const emptyTree = { stages: [], grades: [], sections: [], classrooms: [] };
 
 const copy = {
   summary: "Create the first stage, grade, and section.",
-  savedData: "Saved setup data",
-  edit: "Edit",
-  cancel: "Cancel",
-  stagesCount: (count: number) => `${count} stages`,
-  gradesCount: (count: number) => `${count} grades`,
-  sectionsCount: (count: number) => `${count} sections`,
-  incomplete: "Academic structure is still incomplete",
   stageTitle: "Create stage",
   gradeTitle: "Create grade",
   sectionTitle: "Create section",
@@ -60,31 +53,6 @@ const copy = {
 describe("AcademicStructureSetupStep", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("shows saved structure data before editing", async () => {
-    const user = userEvent.setup();
-
-    render(
-      <AcademicStructureSetupStep
-        copy={copy}
-        refreshStep={vi.fn()}
-        termId="term-1"
-        tree={{ ...emptyTree, stages: [stage], grades: [grade], sections: [section] }}
-        yearId="year-1"
-      />,
-    );
-
-    expect(screen.getByRole("heading", { name: copy.savedData })).toBeVisible();
-    expect(screen.getByText(copy.stagesCount(1))).toBeVisible();
-    expect(screen.getByText(copy.gradesCount(1))).toBeVisible();
-    expect(screen.getByText(copy.sectionsCount(1))).toBeVisible();
-
-    await user.click(screen.getByRole("button", { name: copy.edit }));
-    expect(screen.getByRole("heading", { name: copy.complete })).toBeVisible();
-
-    await user.click(screen.getByRole("button", { name: copy.cancel }));
-    expect(screen.getByRole("heading", { name: copy.savedData })).toBeVisible();
   });
 
   it("creates the next missing stage, grade, then section using refreshed IDs", async () => {
@@ -104,7 +72,6 @@ describe("AcademicStructureSetupStep", () => {
       />,
     );
 
-    expect(screen.queryByRole("heading", { name: copy.savedData })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Create stage" })).toBeVisible();
     await user.type(screen.getByRole("textbox", { name: "Arabic name" }), "ابتدائي");
     await user.type(screen.getByRole("textbox", { name: "English name" }), "Primary");
