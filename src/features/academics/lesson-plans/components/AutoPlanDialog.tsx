@@ -9,6 +9,11 @@ import { ApiError } from "@/lib/api-error";
 import type { AutoPlanLessonPlanResponseDto } from "../services/lessonPlansService";
 import { lessonPlansUiError } from "../services/lessonPlansErrors";
 import type { AutoPlanReadiness } from "../services/autoPlanReadiness";
+import LessonPlansMissingDataCta from "./LessonPlansMissingDataCta";
+import type {
+  LessonPlansMissingDataScope,
+  LessonPlansMissingDataStatus,
+} from "./lessonPlansMissingData";
 import {
   autoPlanDateErrors,
   formatDateOnly,
@@ -34,6 +39,9 @@ interface Props {
   readiness: AutoPlanReadiness;
   blockedMessage: string;
   hasVisibleLessons: boolean;
+  locale: string;
+  scope: LessonPlansMissingDataScope;
+  onNavigate: (href: string) => void;
 }
 
 export default function AutoPlanDialog({
@@ -47,6 +55,9 @@ export default function AutoPlanDialog({
   readiness,
   blockedMessage,
   hasVisibleLessons,
+  locale,
+  scope,
+  onNavigate,
 }: Props) {
   const t = useTranslations("academics.lessonPlans");
   const tReadiness = useTranslations("academics.lessonPlans.autoPlan.readiness");
@@ -59,11 +70,18 @@ export default function AutoPlanDialog({
     null,
   );
   const [loading, setLoading] = useState(false);
+  const [backendMissingDataStatus, setBackendMissingDataStatus] = useState<
+    Extract<
+      LessonPlansMissingDataStatus,
+      "missing-curriculum" | "missing-timetable-slots"
+    > | null
+  >(null);
   useEffect(() => {
     if (!isOpen) return;
     setFrom(parseDateOnly(termStartDate));
     setTo(parseDateOnly(termEndDate));
     setPreview(null);
+    setBackendMissingDataStatus(null);
   }, [isOpen, termEndDate, termStartDate]);
   const fromValue = from ? formatDateOnly(from) : undefined;
   const toValue = to ? formatDateOnly(to) : undefined;
@@ -99,6 +117,7 @@ export default function AutoPlanDialog({
     }
     if (!valid || !fromValue || !toValue) return;
     setLoading(true);
+    setBackendMissingDataStatus(null);
     try {
       const response = await (apply
         ? onApply({ from: fromValue, to: toValue, overwrite })
@@ -108,6 +127,13 @@ export default function AutoPlanDialog({
         onClose();
       } else setPreview(response);
     } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.code === "academics.lesson_plan.auto_plan_no_curriculum") {
+          setBackendMissingDataStatus("missing-curriculum");
+        } else if (error.code === "academics.lesson_plan.auto_plan_no_slots") {
+          setBackendMissingDataStatus("missing-timetable-slots");
+        }
+      }
       showError(backendAutoPlanError(error));
     } finally {
       setLoading(false);
@@ -224,6 +250,16 @@ export default function AutoPlanDialog({
             <p className="mt-2 text-xs text-amber-800">
               {tReadiness(readiness.blockingReasons[0])}
             </p>
+          )}
+          {backendMissingDataStatus && (
+            <div className="mt-3">
+              <LessonPlansMissingDataCta
+                status={backendMissingDataStatus}
+                locale={locale}
+                scope={scope}
+                onNavigate={onNavigate}
+              />
+            </div>
           )}
         </div>
         <div className="grid gap-3 sm:grid-cols-2">

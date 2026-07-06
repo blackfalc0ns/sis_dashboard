@@ -1042,6 +1042,9 @@ export default function LessonPlansPage() {
         readiness={autoPlanReadiness}
         blockedMessage={autoPlanBlockedMessage}
         hasVisibleLessons={lessons.length > 0}
+        locale={locale}
+        scope={missingDataScope}
+        onNavigate={handleMissingDataNavigation}
       />
     </div>
   );
