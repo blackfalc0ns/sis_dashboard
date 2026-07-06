@@ -22,7 +22,10 @@ import {
   type LessonContentItem,
   type LessonContentType,
 } from "@/features/academics/curriculum/services/curriculumService";
-import { curriculumUiError } from "@/features/academics/curriculum/services/curriculumErrors";
+import {
+  curriculumFormErrors,
+  curriculumUiError,
+} from "@/features/academics/curriculum/services/curriculumErrors";
 import { usePermissions } from "@/hooks/usePermissions";
 import { downloadFile, uploadFile } from "../services/filesService";
 import {
@@ -55,6 +58,17 @@ function createEmptyContentForm(): ContentForm {
     isRequired: true,
   };
 }
+
+type ContentField = Exclude<keyof ContentForm, "id"> | "fileId";
+const contentFields = [
+  "type",
+  "title",
+  "bodyText",
+  "url",
+  "fileId",
+  "estimatedMinutes",
+  "isRequired",
+] as const satisfies readonly ContentField[];
 
 function isValidHttpUrl(value: string) {
   try {
@@ -94,6 +108,10 @@ export default function LearningContentPanel({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<ContentField, string>>
+  >({});
+  const [formMessages, setFormMessages] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<File>();
   const [existingFileId, setExistingFileId] = useState<string | null>(null);
   const [existingFileName, setExistingFileName] = useState<string | null>(null);
@@ -104,6 +122,8 @@ export default function LearningContentPanel({
     setExistingFileId(null);
     setExistingFileName(null);
     setError(null);
+    setFieldErrors({});
+    setFormMessages([]);
   }, []);
 
   const loadItems = useCallback(async () => {
@@ -122,6 +142,14 @@ export default function LearningContentPanel({
     resetFormToCreate();
     if (open) void loadItems();
   }, [curriculumId, lessonId, loadItems, open, resetFormToCreate, unitId]);
+
+  const updateFormField = <Field extends Exclude<keyof ContentForm, "id">>(
+    field: Field,
+    value: ContentForm[Field],
+  ) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    setFieldErrors((current) => ({ ...current, [field]: undefined }));
+  };
 
   const handleSave = async () => {
     const fileValidation = form.type === "FILE"
@@ -143,6 +171,8 @@ export default function LearningContentPanel({
     }
     setSaving(true);
     setError(null);
+    setFieldErrors({});
+    setFormMessages([]);
     try {
       const fileId = form.type === "FILE"
         ? await resolveLessonContentFileId(selectedFile, existingFileId, uploadFile)
@@ -165,7 +195,11 @@ export default function LearningContentPanel({
       await loadItems();
       resetFormToCreate();
     } catch (saveError) {
-      setError(curriculumUiError(saveError, t("save_failed")).message);
+      const mapped = curriculumUiError(saveError, t("save_failed"));
+      const projected = curriculumFormErrors(mapped, contentFields);
+      setError(mapped.message);
+      setFieldErrors(projected.fieldErrors);
+      setFormMessages(projected.formMessages);
     } finally {
       setSaving(false);
     }
@@ -247,6 +281,17 @@ export default function LearningContentPanel({
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {error && <div className="text-red-600 bg-red-50 p-3 rounded">{error}</div>}
+          {formMessages.length > 0 && (
+            <div
+              role="alert"
+              aria-live="polite"
+              className="rounded-lg bg-red-50 p-3 text-sm text-red-700"
+            >
+              {formMessages.map((message) => (
+                <p key={message}>{message}</p>
+              ))}
+            </div>
+          )}
           
           <div className="bg-white p-4 rounded-lg shadow-sm border border-border space-y-4">
             <h3 className="font-medium">{form.id ? t("edit_item") : t("add_item")}</h3>
@@ -254,7 +299,8 @@ export default function LearningContentPanel({
             <Input
               label={t("item_title")}
               value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              onChange={(e) => updateFormField("title", e.target.value)}
+              error={fieldErrors.title}
               disabled={isReadOnly}
               required
             />
@@ -269,6 +315,8 @@ export default function LearningContentPanel({
                   setSelectedFile(undefined);
                   setExistingFileId(null);
                   setExistingFileName(null);
+                  setFieldErrors({});
+                  setFormMessages([]);
                   setForm({
                     ...createEmptyContentForm(),
                     id: form.id,
@@ -279,13 +327,15 @@ export default function LearningContentPanel({
                 }}
                 disabled={isReadOnly}
                 selectSize="sm"
+                error={fieldErrors.type}
               />
 
             {form.type === "TEXT" && (
               <TextArea
                 label={t("body_text")}
                 value={form.bodyText}
-                onChange={(event) => setForm({ ...form, bodyText: event.target.value })}
+                onChange={(event) => updateFormField("bodyText", event.target.value)}
+                error={fieldErrors.bodyText}
                 disabled={isReadOnly}
                 rows={5}
               />
@@ -305,16 +355,23 @@ export default function LearningContentPanel({
                     setSelectedFile(file);
                     const validation = validateLearningContentFile(file, existingFileId);
                     setError(validation ? t(`file_${validation}`) : null);
+                    setFieldErrors((current) => ({ ...current, fileId: undefined }));
                   }}
                 />
                 <p className="text-xs text-gray-500">{t("file_help")}</p>
+                {fieldErrors.fileId && (
+                  <p role="alert" className="text-xs text-red-600">
+                    {fieldErrors.fileId}
+                  </p>
+                )}
               </div>
             )}
             {(form.type === "VIDEO_LINK" || form.type === "EXTERNAL_LINK") && (
               <Input
                 label={t("url")}
                 value={form.url}
-                onChange={(event) => setForm({ ...form, url: event.target.value })}
+                onChange={(event) => updateFormField("url", event.target.value)}
+                error={fieldErrors.url}
                 disabled={isReadOnly}
                 placeholder="https://example.com"
               />
@@ -323,7 +380,8 @@ export default function LearningContentPanel({
             <Input
               label={t("estimated_minutes")}
               value={form.estimatedMinutes}
-              onChange={(e) => setForm({ ...form, estimatedMinutes: e.target.value })}
+              onChange={(e) => updateFormField("estimatedMinutes", e.target.value)}
+              error={fieldErrors.estimatedMinutes}
               disabled={isReadOnly}
               type="number"
             />
@@ -333,13 +391,18 @@ export default function LearningContentPanel({
                 type="checkbox"
                 id="isRequired"
                 checked={form.isRequired}
-                onChange={(e) => setForm({ ...form, isRequired: e.target.checked })}
+                onChange={(e) => updateFormField("isRequired", e.target.checked)}
                 disabled={isReadOnly}
                 className="rounded border-gray-300 text-primary focus:ring-primary"
               />
               <label htmlFor="isRequired" className="text-sm text-gray-700">
                 {t("is_required")}
               </label>
+              {fieldErrors.isRequired && (
+                <span role="alert" className="text-xs text-red-600">
+                  {fieldErrors.isRequired}
+                </span>
+              )}
             </div>
 
             <div className="flex gap-2 justify-end">
@@ -446,6 +509,9 @@ export default function LearningContentPanel({
                       variant="secondary"
                       size="sm"
                       onClick={() => {
+                        setError(null);
+                        setFieldErrors({});
+                        setFormMessages([]);
                         setSelectedFile(undefined);
                         setExistingFileId(item.file?.fileId || item.file?.id || null);
                         setExistingFileName(
