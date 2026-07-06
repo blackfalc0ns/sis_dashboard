@@ -36,6 +36,70 @@ function addStructureParent(
   params.set("nodeId", nodeId);
 }
 
+type RouteConfig = {
+  pathname: string;
+  addScope: (
+    params: URLSearchParams,
+    scope: LessonPlansMissingDataScope,
+  ) => void;
+};
+
+const addGradeParent = (params: URLSearchParams, scope: LessonPlansMissingDataScope) =>
+  addStructureParent(params, "stage", scope.stageId);
+const addSectionParent = (params: URLSearchParams, scope: LessonPlansMissingDataScope) =>
+  addStructureParent(params, "grade", scope.gradeId);
+const addClassroomParent = (params: URLSearchParams, scope: LessonPlansMissingDataScope) =>
+  addStructureParent(params, "section", scope.sectionId);
+
+function addSubjectScope(params: URLSearchParams) {
+  params.set("tab", "subjects");
+}
+
+function addAllocationScope(
+  params: URLSearchParams,
+  scope: LessonPlansMissingDataScope,
+) {
+  params.set("tab", "matrix");
+  setIfPresent(params, "grade", scope.gradeId);
+  setIfPresent(params, "section", scope.sectionId);
+  setIfPresent(params, "classroom", scope.classroomId);
+  setIfPresent(params, "subject", scope.subjectId);
+}
+
+function addCurriculumScope(
+  params: URLSearchParams,
+  scope: LessonPlansMissingDataScope,
+) {
+  setIfPresent(params, "grade", scope.gradeId);
+  setIfPresent(params, "subject", scope.subjectId);
+}
+
+function addTimetableScope(
+  params: URLSearchParams,
+  scope: LessonPlansMissingDataScope,
+) {
+  setIfPresent(params, "grade", scope.gradeId);
+  setIfPresent(params, "section", scope.sectionId);
+  setIfPresent(params, "classroom", scope.classroomId);
+}
+
+const routeByStatus: Record<LessonPlansMissingDataStatus, RouteConfig> = {
+  "missing-grade": { pathname: "/academics/structure", addScope: addGradeParent },
+  "missing-section": { pathname: "/academics/structure", addScope: addSectionParent },
+  "missing-classroom": { pathname: "/academics/structure", addScope: addClassroomParent },
+  "missing-subject": { pathname: "/academics/subjects", addScope: addSubjectScope },
+  "missing-teacher-allocation": {
+    pathname: "/academics/teacher-allocation",
+    addScope: addAllocationScope,
+  },
+  "missing-curriculum": { pathname: "/academics/curriculum", addScope: addCurriculumScope },
+  "no-curriculum-lessons": {
+    pathname: "/academics/curriculum",
+    addScope: addCurriculumScope,
+  },
+  "missing-timetable-slots": { pathname: "/academics/timetable", addScope: addTimetableScope },
+};
+
 export function buildLessonPlansMissingDataHref(
   status: LessonPlansMissingDataStatus,
   locale: string,
@@ -44,47 +108,8 @@ export function buildLessonPlansMissingDataHref(
   const params = new URLSearchParams();
   setIfPresent(params, "year", scope.academicYearId);
   setIfPresent(params, "term", scope.termId);
-
-  let pathname: string;
-  switch (status) {
-    case "missing-grade":
-      pathname = "/academics/structure";
-      addStructureParent(params, "stage", scope.stageId);
-      break;
-    case "missing-section":
-      pathname = "/academics/structure";
-      addStructureParent(params, "grade", scope.gradeId);
-      break;
-    case "missing-classroom":
-      pathname = "/academics/structure";
-      addStructureParent(params, "section", scope.sectionId);
-      break;
-    case "missing-subject":
-      pathname = "/academics/subjects";
-      params.set("tab", "subjects");
-      break;
-    case "missing-teacher-allocation":
-      pathname = "/academics/teacher-allocation";
-      params.set("tab", "matrix");
-      setIfPresent(params, "grade", scope.gradeId);
-      setIfPresent(params, "section", scope.sectionId);
-      setIfPresent(params, "classroom", scope.classroomId);
-      setIfPresent(params, "subject", scope.subjectId);
-      break;
-    case "missing-curriculum":
-    case "no-curriculum-lessons":
-      pathname = "/academics/curriculum";
-      setIfPresent(params, "grade", scope.gradeId);
-      setIfPresent(params, "subject", scope.subjectId);
-      break;
-    case "missing-timetable-slots":
-      pathname = "/academics/timetable";
-      setIfPresent(params, "grade", scope.gradeId);
-      setIfPresent(params, "section", scope.sectionId);
-      setIfPresent(params, "classroom", scope.classroomId);
-      break;
-  }
-
+  const route = routeByStatus[status];
+  route.addScope(params, scope);
   const query = params.toString();
-  return `/${locale}${pathname}${query ? `?${query}` : ""}`;
+  return `/${locale}${route.pathname}${query ? `?${query}` : ""}`;
 }
