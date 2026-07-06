@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
@@ -56,11 +56,8 @@ export function SubjectsSetupStep({
   const [isSaving, setIsSaving] = useState(false);
   const hasMinimumData =
     subjectsData.subjects.length > 0 && subjectsData.allocations.length > 0;
-  const [isEditing, setIsEditing] = useState(!hasMinimumData);
-
-  useEffect(() => {
-    setIsEditing(!hasMinimumData);
-  }, [hasMinimumData]);
+  const [isManuallyEditing, setIsManuallyEditing] = useState(false);
+  const isEditing = !hasMinimumData || isManuallyEditing;
 
   const gradeOptions = useMemo(
     () => grades.map((grade) => ({ value: grade.id, label: grade.nameEn || grade.name })),
@@ -117,7 +114,7 @@ export function SubjectsSetupStep({
               </p>
             </div>
           </div>
-          <Button onClick={() => setIsEditing(true)} type="button" variant="secondary">
+          <Button onClick={() => setIsManuallyEditing(true)} type="button" variant="secondary">
             {copy.edit}
           </Button>
         </section>
@@ -127,7 +124,7 @@ export function SubjectsSetupStep({
           <div className="flex flex-wrap gap-2">
             {hasMinimumData ? (
               <Button
-                onClick={() => setIsEditing(false)}
+                onClick={() => setIsManuallyEditing(false)}
                 type="button"
                 variant="secondary"
               >
@@ -162,7 +159,7 @@ export function SubjectsSetupStep({
             </div>
             {hasMinimumData ? (
               <Button
-                onClick={() => setIsEditing(false)}
+                onClick={() => setIsManuallyEditing(false)}
                 type="button"
                 variant="secondary"
               >

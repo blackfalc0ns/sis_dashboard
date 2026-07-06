@@ -97,17 +97,14 @@ export function AcademicStructureSetupStep({
   const [isSaving, setIsSaving] = useState(false);
   const hasMinimumData =
     tree.stages.length > 0 && tree.grades.length > 0 && tree.sections.length > 0;
-  const [isEditing, setIsEditing] = useState(!hasMinimumData);
+  const [isManuallyEditing, setIsManuallyEditing] = useState(false);
+  const isEditing = !hasMinimumData || isManuallyEditing;
 
   useEffect(() => {
     setNameAr("");
     setNameEn("");
     setError("");
   }, [actionKey]);
-
-  useEffect(() => {
-    setIsEditing(!hasMinimumData);
-  }, [hasMinimumData]);
 
   if (!isEditing) {
     return (
@@ -137,7 +134,7 @@ export function AcademicStructureSetupStep({
               </p>
             </div>
           </div>
-          <Button onClick={() => setIsEditing(true)} type="button" variant="secondary">
+          <Button onClick={() => setIsManuallyEditing(true)} type="button" variant="secondary">
             {copy.edit}
           </Button>
         </section>
@@ -152,7 +149,7 @@ export function AcademicStructureSetupStep({
           <h3 className="text-base font-semibold text-gray-950">{nextAction.title}</h3>
           <p className="text-sm text-gray-600">{copy.summary}</p>
         </div>
-        <Button onClick={() => setIsEditing(false)} type="button" variant="secondary">
+        <Button onClick={() => setIsManuallyEditing(false)} type="button" variant="secondary">
           {copy.cancel}
         </Button>
       </div>
@@ -230,7 +227,7 @@ export function AcademicStructureSetupStep({
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       <div className="flex flex-wrap gap-2">
         {hasMinimumData ? (
-          <Button onClick={() => setIsEditing(false)} type="button" variant="secondary">
+          <Button onClick={() => setIsManuallyEditing(false)} type="button" variant="secondary">
             {copy.cancel}
           </Button>
         ) : null}
