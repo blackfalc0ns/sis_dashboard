@@ -55,6 +55,12 @@ export interface CurriculumUiError {
   message: string;
   traceId?: string;
   details: string[];
+  fieldErrors: Record<string, string[]>;
+}
+
+export interface CurriculumFormErrors<Field extends string> {
+  fieldErrors: Partial<Record<Field, string>>;
+  formMessages: string[];
 }
 
 export function curriculumUiError(
@@ -62,7 +68,7 @@ export function curriculumUiError(
   fallbackMessage: string,
 ): CurriculumUiError {
   if (!isApiError(error)) {
-    return { message: fallbackMessage, details: [] };
+    return { message: fallbackMessage, details: [], fieldErrors: {} };
   }
 
   const message = isCurriculumErrorCode(error.code)
@@ -73,7 +79,31 @@ export function curriculumUiError(
     message,
     traceId: error.traceId,
     details: detailMessages(error.details),
+    fieldErrors: error.errors ?? {},
   };
+}
+
+export function curriculumFormErrors<Field extends string>(
+  error: CurriculumUiError,
+  fields: readonly Field[],
+): CurriculumFormErrors<Field> {
+  const knownFields = new Set<string>(fields);
+  const fieldErrors: Partial<Record<Field, string>> = {};
+  const formMessages = [...error.details];
+
+  for (const [path, messages] of Object.entries(error.fieldErrors)) {
+    const matchedField = [path, ...path.split(".").reverse()].find((segment) =>
+      knownFields.has(segment),
+    );
+
+    if (matchedField) {
+      fieldErrors[matchedField as Field] ??= messages[0];
+    } else {
+      formMessages.push(...messages);
+    }
+  }
+
+  return { fieldErrors, formMessages };
 }
 
 export function isCurriculumErrorCode(
