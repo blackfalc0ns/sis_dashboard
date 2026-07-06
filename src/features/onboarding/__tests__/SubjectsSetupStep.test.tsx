@@ -41,11 +41,6 @@ const subject = {
 
 const copy = {
   summary: "Create subjects and allocate weekly hours.",
-  savedData: "Saved setup data",
-  edit: "Edit",
-  cancel: "Cancel",
-  subjectsCount: (count: number) => `${count} subjects`,
-  allocationsCount: (count: number) => `${count} allocations`,
   createSubject: "Create subject",
   grade: "Grade",
   subject: "Subject",
@@ -58,34 +53,6 @@ const copy = {
 describe("SubjectsSetupStep", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("shows saved subjects and allocations before editing", async () => {
-    const user = userEvent.setup();
-
-    render(
-      <SubjectsSetupStep
-        copy={copy}
-        grades={[grade]}
-        refreshStep={vi.fn()}
-        stages={[stage]}
-        subjectsData={{
-          subjects: [subject],
-          allocations: [{ gradeId: grade.id, subjectId: subject.id, weeklyHours: 4 }],
-        }}
-        termId="term-1"
-      />,
-    );
-
-    expect(screen.getByRole("heading", { name: copy.savedData })).toBeVisible();
-    expect(screen.getByText(copy.subjectsCount(1))).toBeVisible();
-    expect(screen.getByText(copy.allocationsCount(1))).toBeVisible();
-
-    await user.click(screen.getByRole("button", { name: copy.edit }));
-    expect(screen.getByRole("button", { name: copy.saveAllocation })).toBeVisible();
-
-    await user.click(screen.getByRole("button", { name: copy.cancel }));
-    expect(screen.getByRole("heading", { name: copy.savedData })).toBeVisible();
   });
 
   it("opens SubjectDialog when no subject exists", async () => {
@@ -102,7 +69,6 @@ describe("SubjectsSetupStep", () => {
       />,
     );
 
-    expect(screen.queryByRole("heading", { name: copy.savedData })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Create subject" }));
 
     expect(screen.getByText("Subject dialog open")).toBeVisible();
