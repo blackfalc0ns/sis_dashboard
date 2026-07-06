@@ -16,6 +16,10 @@ vi.mock("../hooks/useSetupStatus", () => ({
   useSetupStatus: hookMock.useSetupStatus,
 }));
 
+vi.mock("next-intl", () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
 vi.mock("next/navigation", () => ({
   useParams: () => ({ lang: "en" }),
   useRouter: () => ({ push: navigationMock.push }),
@@ -93,7 +97,9 @@ describe("SchoolOnboardingPage", () => {
   it("always renders the permanent full setup page even when complete", () => {
     render(<SchoolOnboardingPage />);
 
-    expect(screen.getByRole("heading", { name: "School setup" })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "setup.guideTitle" }),
+    ).toBeVisible();
     expect(screen.getByText("5/5 complete (100%)")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Dismiss setup guide" })).not.toBeInTheDocument();
   });
@@ -103,14 +109,12 @@ describe("SchoolOnboardingPage", () => {
 
     const heading = screen.getByRole("heading", {
       level: 1,
-      name: "Let’s get your school ready",
+      name: "setup.title",
     });
 
     expect(heading).toBeVisible();
     expect(
-      screen.getByText(
-        "Complete the essential setup so every part of your school dashboard works smoothly.",
-      ),
+      screen.getByText("setup.description"),
     ).toBeVisible();
     expect(heading.closest("header")).toHaveClass("onboarding-enter");
   });
@@ -131,10 +135,8 @@ describe("SchoolOnboardingPage", () => {
 
     render(<SchoolOnboardingPage />);
 
-    expect(screen.getByRole("button", { name: "Skip setup" })).toBeDisabled();
-    expect(
-      screen.getByText("Add academic years, terms, and academic structure before skipping."),
-    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "setup.skip" })).toBeDisabled();
+    expect(screen.getByText("setup.skipRequirement")).toBeVisible();
   });
 
   it("stores a session skip and returns to the dashboard when minimum academic setup exists", async () => {
@@ -154,7 +156,7 @@ describe("SchoolOnboardingPage", () => {
 
     render(<SchoolOnboardingPage />);
 
-    await user.click(screen.getByRole("button", { name: "Skip setup" }));
+    await user.click(screen.getByRole("button", { name: "setup.skip" }));
 
     expect(sessionStorage.getItem("sis:onboarding:skipped:school-1")).toBe("true");
     expect(navigationMock.push).toHaveBeenCalledWith("/en/dashboard");

@@ -11,6 +11,10 @@ vi.mock("../hooks/useSetupStatus", () => ({
   useSetupStatus: hookMock.useSetupStatus,
 }));
 
+vi.mock("next-intl", () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
 vi.mock("next/navigation", () => ({
   useParams: () => ({ lang: "en" }),
   useRouter: () => navigationMock,
@@ -77,20 +81,20 @@ describe("OnboardingWelcomePage", () => {
     render(<OnboardingWelcomePage />);
 
     expect(
-      screen.getByRole("heading", { name: "Welcome to your school workspace" }),
+      screen.getByRole("heading", { name: "welcome.title" }),
     ).toBeVisible();
-    expect(screen.getByText("Organization")).toBeVisible();
-    expect(screen.getByText("Academic year and terms")).toBeVisible();
-    expect(screen.getByText("Academic structure")).toBeVisible();
-    expect(screen.getByText("Subjects and allocations")).toBeVisible();
-    expect(screen.getByText("Rooms")).toBeVisible();
+    expect(screen.getByText("welcome.stages.organization.title")).toBeVisible();
+    expect(screen.getByText("welcome.stages.academicContext.title")).toBeVisible();
+    expect(screen.getByText("welcome.stages.structure.title")).toBeVisible();
+    expect(screen.getByText("welcome.stages.subjects.title")).toBeVisible();
+    expect(screen.getByText("welcome.stages.rooms.title")).toBeVisible();
   });
 
   it("opens the localized setup workflow", async () => {
     const user = userEvent.setup();
     render(<OnboardingWelcomePage />);
 
-    await user.click(screen.getByRole("button", { name: "Start setup" }));
+    await user.click(screen.getByRole("button", { name: "welcome.start" }));
 
     expect(navigationMock.push).toHaveBeenCalledWith(
       "/en/settings/onboarding/setup",
@@ -101,9 +105,9 @@ describe("OnboardingWelcomePage", () => {
     mockStatus({ ...snapshot, rooms: { status: "loading", data: [] } });
     render(<OnboardingWelcomePage />);
 
-    expect(screen.getByText("Preparing your setup…")).toBeVisible();
+    expect(screen.getByText("loading.preparing")).toBeVisible();
     expect(
-      screen.queryByRole("button", { name: "Start setup" }),
+      screen.queryByRole("button", { name: "welcome.start" }),
     ).not.toBeInTheDocument();
   });
 
@@ -115,7 +119,7 @@ describe("OnboardingWelcomePage", () => {
       expect(navigationMock.replace).toHaveBeenCalledWith("/en/dashboard");
     });
     expect(
-      screen.queryByRole("button", { name: "Start setup" }),
+      screen.queryByRole("button", { name: "welcome.start" }),
     ).not.toBeInTheDocument();
   });
 });

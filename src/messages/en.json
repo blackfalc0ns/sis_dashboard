@@ -11296,6 +11296,7 @@
       "title": "Welcome to your school workspace",
       "description": "Follow the guided setup to add the essential data your dashboard needs and avoid missing-data errors.",
       "start": "Start setup",
+      "stagesLabel": "Setup stages",
       "stages": {
         "organization": { "title": "Organization", "description": "Add your school profile and core details." },
         "academicContext": { "title": "Academic year and terms", "description": "Define the calendar used across academics." },
