@@ -1,4 +1,6 @@
 import type { LessonPlan } from "../services/lessonPlansService";
+import type { LessonPlansScopeStatus } from "../hooks/useLessonPlansData";
+import type { LessonPlansMissingDataStatus } from "../components/lessonPlansMissingData";
 
 export function canEditLessonPlans(input: {
   canManage: boolean;
@@ -20,6 +22,28 @@ export type LessonPlansViewState =
   | "no-weeks"
   | "no-lessons"
   | "ready";
+
+const actionableScopeStatuses = new Set<LessonPlansScopeStatus>([
+  "missing-grade",
+  "missing-section",
+  "missing-classroom",
+  "missing-subject",
+  "missing-teacher-allocation",
+  "missing-curriculum",
+]);
+
+export function missingDataStatusForLessonPlansView(
+  scopeStatus: LessonPlansScopeStatus,
+  viewState: LessonPlansViewState,
+): LessonPlansMissingDataStatus | null {
+  if (actionableScopeStatuses.has(scopeStatus)) {
+    return scopeStatus as LessonPlansMissingDataStatus;
+  }
+  if (viewState === "no-allocation") return "missing-teacher-allocation";
+  if (viewState === "no-curriculum") return "missing-curriculum";
+  if (viewState === "no-lessons") return "no-curriculum-lessons";
+  return null;
+}
 
 export function resolveLessonPlansView(input: {
   loading: boolean;

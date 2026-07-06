@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, AlertTitle, useMediaQuery, useTheme } from "@mui/material";
 import { useDebouncedCallback } from "use-debounce";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
-import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
 import LessonPlansFilters from "../components/LessonPlansFilters";
 import LessonPlansBoard from "../components/LessonPlansBoard";
@@ -17,6 +16,7 @@ import LessonLibraryDrawer from "../components/LessonLibraryDrawer";
 import AddLessonDialog from "../components/AddLessonDialog";
 import MobileBottomBar from "../components/MobileBottomBar";
 import AutoPlanDialog from "../components/AutoPlanDialog";
+import LessonPlansMissingDataCta from "../components/LessonPlansMissingDataCta";
 import CreateLessonPlanDialog, {
   type CreateLessonPlanDialogPayload,
 } from "../components/CreateLessonPlanDialog";
@@ -27,6 +27,7 @@ import { useLessonPlansFilters } from "../hooks/useLessonPlansFilters";
 import { useLessonPlanMutations } from "../hooks/useLessonPlanMutations";
 import {
   canEditLessonPlans,
+  missingDataStatusForLessonPlansView,
   resolveLessonPlansView,
 } from "./lessonPlansPageState";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -533,31 +534,10 @@ export default function LessonPlansPage() {
     [handleAddLessonFromWeek, syncLibraryParams],
   );
 
-  const handleGoToCurriculum = useCallback(() => {
-    const params = new URLSearchParams();
-    if (academicYearId) {
-      params.set("year", academicYearId);
-    }
-    if (termId) {
-      params.set("term", termId);
-    }
-    if (selectedGradeId) {
-      params.set("grade", selectedGradeId);
-    }
-    if (selectedSubjectId) {
-      params.set("subject", selectedSubjectId);
-    }
-
-    const query = params.toString();
-    router.push(`/${locale}/academics/curriculum${query ? `?${query}` : ""}`);
-  }, [
-    academicYearId,
-    locale,
-    router,
-    selectedGradeId,
-    selectedSubjectId,
-    termId,
-  ]);
+  const handleMissingDataNavigation = useCallback(
+    (href: string) => router.push(href),
+    [router],
+  );
 
   const lessonPlanExportRows = useMemo(() => {
     const unitMap = new Map(units.map((unit) => [unit.id, unit]));
@@ -647,6 +627,30 @@ export default function LessonPlansPage() {
     weeks,
     lessons,
   });
+  const missingDataStatus = missingDataStatusForLessonPlansView(
+    scopeStatus,
+    viewState,
+  );
+  const missingDataScope = useMemo(
+    () => ({
+      academicYearId,
+      termId,
+      stageId: selectedStageId,
+      gradeId: selectedGradeId,
+      sectionId: selectedSectionId,
+      classroomId: resolvedClassroomId,
+      subjectId: selectedSubjectId,
+    }),
+    [
+      academicYearId,
+      resolvedClassroomId,
+      selectedGradeId,
+      selectedSectionId,
+      selectedStageId,
+      selectedSubjectId,
+      termId,
+    ],
+  );
   const showSkeleton = viewState === "loading";
   const createPlanDisabled =
     isReadOnly || scopeStatus !== "ready" || weeks.length === 0;
@@ -802,7 +806,7 @@ export default function LessonPlansPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {t("emptyState.noSelection.title")}
               </h3>
-              <p className="text-gray-600">
+              <p className={missingDataStatus ? "mb-4 text-gray-600" : "text-gray-600"}>
                 {t(
                   scopeStatus === "missing-classroom"
                     ? "scope.selectClassroom"
@@ -819,6 +823,14 @@ export default function LessonPlansPage() {
                               : "scope.incompleteScope",
                 )}
               </p>
+              {missingDataStatus && (
+                <LessonPlansMissingDataCta
+                  status={missingDataStatus}
+                  locale={locale}
+                  scope={missingDataScope}
+                  onNavigate={handleMissingDataNavigation}
+                />
+              )}
             </div>
           ) : viewState === "no-selection" ? (
             <div className="text-center py-12">
@@ -850,9 +862,12 @@ export default function LessonPlansPage() {
               <p className="text-gray-600 mb-4">
                 {t("emptyState.noCurriculum.message")}
               </p>
-              <Button type="button" onClick={handleGoToCurriculum}>
-                {t("emptyState.noLessons.cta")}
-              </Button>
+              <LessonPlansMissingDataCta
+                status="missing-curriculum"
+                locale={locale}
+                scope={missingDataScope}
+                onNavigate={handleMissingDataNavigation}
+              />
             </div>
           ) : viewState === "no-weeks" ? (
             <div className="text-center py-12">
@@ -869,9 +884,12 @@ export default function LessonPlansPage() {
               <p className="text-gray-600 mb-4">
                 {t("emptyState.noLessons.message")}
               </p>
-              <Button type="button" onClick={handleGoToCurriculum}>
-                {t("emptyState.noLessons.cta")}
-              </Button>
+              <LessonPlansMissingDataCta
+                status="no-curriculum-lessons"
+                locale={locale}
+                scope={missingDataScope}
+                onNavigate={handleMissingDataNavigation}
+              />
             </div>
           ) : (
             <div className="space-y-4">
