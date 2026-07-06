@@ -5998,6 +5998,13 @@
         "noPlan": {
           "title": "No Lessons Planned",
           "message": "Drag lessons from the library to weeks to start planning"
+        },
+        "ctas": {
+          "academicStructure": "Go to Academic Structure",
+          "subjects": "Go to Subjects",
+          "teacherAllocation": "Go to Teacher Allocation",
+          "curriculum": "Go to Curriculum",
+          "timetable": "Go to Timetable"
         }
       },
       "notesDialog": {
