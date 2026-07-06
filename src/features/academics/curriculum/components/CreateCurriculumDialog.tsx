@@ -5,7 +5,12 @@ import { useTranslations } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
+import TextArea from "@/components/ui/input/TextArea";
 import { createCurriculum } from "@/features/academics/curriculum/services/curriculumService";
+import {
+  curriculumFormErrors,
+  curriculumUiError,
+} from "@/features/academics/curriculum/services/curriculumErrors";
 
 interface CreateCurriculumDialogProps {
   isOpen: boolean;
@@ -18,6 +23,9 @@ interface CreateCurriculumDialogProps {
   gradeName: string;
   subjectName: string;
 }
+
+type CreateCurriculumField = "title" | "description";
+const createCurriculumFields = ["title", "description"] as const;
 
 export default function CreateCurriculumDialog({
   isOpen,
@@ -35,10 +43,16 @@ export default function CreateCurriculumDialog({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<CreateCurriculumField, string>>
+  >({});
+  const [formMessages, setFormMessages] = useState<string[]>([]);
 
   const defaultTitle = `${gradeName} - ${subjectName}`;
 
   const handleSubmit = async () => {
+    setFieldErrors({});
+    setFormMessages([]);
     setIsSubmitting(true);
     try {
       await createCurriculum({
@@ -53,7 +67,10 @@ export default function CreateCurriculumDialog({
       setTitle("");
       setDescription("");
     } catch (error) {
-      console.error("Failed to create curriculum:", error);
+      const mapped = curriculumUiError(error, "Unable to create curriculum.");
+      const projected = curriculumFormErrors(mapped, createCurriculumFields);
+      setFieldErrors(projected.fieldErrors);
+      setFormMessages([...new Set([mapped.message, ...projected.formMessages])]);
     } finally {
       setIsSubmitting(false);
     }
@@ -79,25 +96,40 @@ export default function CreateCurriculumDialog({
       <div className="space-y-4">
         <p className="text-sm text-gray-600">{t("description")}</p>
 
+        {formMessages.length > 0 && (
+          <div
+            role="alert"
+            aria-live="polite"
+            className="rounded-lg bg-red-50 p-3 text-sm text-red-700"
+          >
+            {formMessages.map((message) => (
+              <p key={message}>{message}</p>
+            ))}
+          </div>
+        )}
+
         <Input
           label={t("name")}
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => {
+            setTitle(e.target.value);
+            setFieldErrors((current) => ({ ...current, title: undefined }));
+          }}
           placeholder={defaultTitle}
           helperText={t("name_helper")}
+          error={fieldErrors.title}
         />
-        
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700">
-            Description (Optional)
-          </label>
-          <textarea
-            className="w-full border-gray-300 rounded-md shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 border"
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
+
+        <TextArea
+          label="Description (Optional)"
+          rows={3}
+          value={description}
+          error={fieldErrors.description}
+          onChange={(e) => {
+            setDescription(e.target.value);
+            setFieldErrors((current) => ({ ...current, description: undefined }));
+          }}
+        />
       </div>
     </Modal>
   );
