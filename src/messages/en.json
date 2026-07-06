@@ -11288,6 +11288,45 @@
     }
   },
   "onboarding": {
+    "layout": { "label": "Onboarding setup" },
+    "loading": { "preparing": "Preparing your setup…" },
+    "errors": { "stepLoadFailed": "Could not load this setup step." },
+    "welcome": {
+      "eyebrow": "School onboarding",
+      "title": "Welcome to your school workspace",
+      "description": "Follow the guided setup to add the essential data your dashboard needs and avoid missing-data errors.",
+      "start": "Start setup",
+      "stages": {
+        "organization": { "title": "Organization", "description": "Add your school profile and core details." },
+        "academicContext": { "title": "Academic year and terms", "description": "Define the calendar used across academics." },
+        "structure": { "title": "Academic structure", "description": "Create stages, grades, and sections." },
+        "subjects": { "title": "Subjects and allocations", "description": "Connect subjects to grades and weekly hours." },
+        "rooms": { "title": "Rooms", "description": "Add rooms used by schedules and assignments." }
+      }
+    },
+    "setup": {
+      "eyebrow": "School onboarding",
+      "title": "Let’s get your school ready",
+      "description": "Complete the essential setup so every part of your school dashboard works smoothly.",
+      "skipRequirement": "Add academic years, terms, and academic structure before skipping.",
+      "skip": "Skip setup",
+      "guideTitle": "School setup"
+    },
+    "guide": {
+      "cardTitle": "Quick school setup",
+      "progressLabel": "Setup progress",
+      "progressText": "{completed}/{total} complete ({percent}%)",
+      "dismiss": "Dismiss setup guide",
+      "retry": "Retry",
+      "lockedPrefix": "Complete first",
+      "statuses": {
+        "complete": "Complete",
+        "available": "Available",
+        "locked": "Locked",
+        "loading": "Loading",
+        "error": "Needs attention"
+      }
+    },
     "title": "School setup",
     "cardTitle": "Quick school setup",
     "progressLabel": "Setup progress",
@@ -11303,22 +11342,61 @@
     },
     "steps": {
       "organization": {
+        "summary": "Complete the school profile used across the dashboard.",
+        "schoolName": "School name",
+        "shortName": "Short name",
+        "timezone": "Timezone",
+        "addressLine": "Address",
+        "city": "City",
+        "country": "Country",
+        "save": "Save profile",
+        "saving": "Saving",
+        "required": "School name is required",
+        "saveFailed": "Could not save profile",
         "title": "Organization",
         "description": "Add core school profile data."
       },
       "academicContext": {
+        "summary": "Create the academic year and terms used by academic pages.",
+        "yearsCount": "{count, plural, =0 {No academic years} one {# academic year} other {# academic years}}",
+        "termsCount": "{count, plural, =0 {No terms} one {# term} other {# terms}}",
+        "createYear": "Create academic year",
+        "createTerm": "Create term",
         "title": "Academic year",
         "description": "Create the active year and term."
       },
       "structure": {
+        "summary": "Create the minimum academic structure chain.",
+        "stageTitle": "Create stage",
+        "gradeTitle": "Create grade",
+        "sectionTitle": "Create section",
+        "nameAr": "Arabic name",
+        "nameEn": "English name",
+        "save": "Create",
+        "saving": "Creating",
+        "required": "Both names are required",
+        "saveFailed": "Could not create structure item",
+        "complete": "Academic structure has the minimum required chain.",
         "title": "Structure",
         "description": "Create stage, grade, and section."
       },
       "subjects": {
+        "summary": "Create subjects and allocate weekly hours to a grade.",
+        "createSubject": "Create subject",
+        "grade": "Grade",
+        "subject": "Subject",
+        "weeklyHours": "Weekly hours",
+        "saveAllocation": "Save allocation",
+        "saving": "Saving",
+        "saveFailed": "Could not save allocation",
         "title": "Subjects",
         "description": "Create subjects and grade allocations."
       },
       "rooms": {
+        "summary": "Create rooms used by timetables and room assignments.",
+        "createRoom": "Create room",
+        "missingSchool": "No school selected",
+        "saveFailed": "Could not create room",
         "title": "Rooms",
         "description": "Create the first room."
       }

@@ -20,6 +20,27 @@ describe("onboarding translations and navigation", () => {
     expect(keysOf(ar.onboarding).sort()).toEqual(keysOf(en.onboarding).sort());
   });
 
+  it("contains complete localized onboarding copy", () => {
+    expect(en.onboarding.welcome.title).toBe(
+      "Welcome to your school workspace",
+    );
+    expect(ar.onboarding.welcome.title).toBe(
+      "مرحبًا بك في مساحة عمل مدرستك",
+    );
+    expect(en.onboarding.setup.skip).toBe("Skip setup");
+    expect(ar.onboarding.setup.skip).toBe("تخطي الإعداد");
+    expect(en.onboarding.steps.organization.saveFailed).toBe(
+      "Could not save profile",
+    );
+    expect(ar.onboarding.steps.organization.saveFailed).toBe(
+      "تعذر حفظ ملف المدرسة",
+    );
+    expect(en.onboarding.guide.progressText).toContain("{completed}");
+    expect(ar.onboarding.steps.academicContext.yearsCount).toContain(
+      "plural",
+    );
+  });
+
   it("adds school setup under settings after branding", () => {
     const settings = menuItems.find((item) => item.key === "settings");
     const keys = settings?.children?.map((item) => item.key) ?? [];
