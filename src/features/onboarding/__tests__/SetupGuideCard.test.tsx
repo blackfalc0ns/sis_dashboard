@@ -12,6 +12,10 @@ vi.mock("../hooks/useSetupStatus", () => ({
   useSetupStatus: hookMock.useSetupStatus,
 }));
 
+vi.mock("next-intl", () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
 const snapshot = {
   organization: { status: "success", data: null },
   academicContext: { status: "success", data: { years: [], termsByYear: {} } },
@@ -59,13 +63,19 @@ describe("SetupGuideCard", () => {
     const user = userEvent.setup();
     const { rerender } = render(<SetupGuideCard />);
 
-    expect(screen.getByRole("heading", { name: "Quick school setup" })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "guide.cardTitle" }),
+    ).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Dismiss setup guide" }));
-    expect(screen.queryByRole("heading", { name: "Quick school setup" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "guide.dismiss" }));
+    expect(
+      screen.queryByRole("heading", { name: "guide.cardTitle" }),
+    ).not.toBeInTheDocument();
 
     rerender(<SetupGuideCard />);
-    expect(screen.queryByRole("heading", { name: "Quick school setup" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "guide.cardTitle" }),
+    ).not.toBeInTheDocument();
     expect(sessionStorage.getItem("sis:onboarding:dismissed:school-1")).toBe("true");
   });
 
@@ -74,6 +84,8 @@ describe("SetupGuideCard", () => {
 
     render(<SetupGuideCard />);
 
-    expect(screen.queryByRole("heading", { name: "Quick school setup" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "guide.cardTitle" }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -18,6 +18,7 @@ export interface SetupGuideCopy {
   title: string;
   progressLabel: string;
   progressText(completed: number, total: number, percent: number): string;
+  stepError: string;
   retry: string;
   lockedPrefix: string;
   statuses: Record<SetupStepStatus, string>;
@@ -192,8 +193,8 @@ export function SetupGuide({
               {selectedCopy.description}
             </p>
             <p className="mt-2 text-sm text-gray-700">{selectedStatusLabel}</p>
-            {selectedStep.error ? (
-              <p className="mt-2 text-sm text-red-700">{selectedStep.error}</p>
+            {selectedStep.status === "error" ? (
+              <p className="mt-2 text-sm text-red-700">{copy.stepError}</p>
             ) : null}
           </div>
           {selectedStep.status === "error" ? (

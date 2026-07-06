@@ -100,8 +100,8 @@ describe("SchoolOnboardingPage", () => {
     expect(
       screen.getByRole("heading", { name: "setup.guideTitle" }),
     ).toBeVisible();
-    expect(screen.getByText("5/5 complete (100%)")).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Dismiss setup guide" })).not.toBeInTheDocument();
+    expect(screen.getByText("guide.progressText")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "guide.dismiss" })).not.toBeInTheDocument();
   });
 
   it("renders the welcoming onboarding hero before the setup workflow", () => {

@@ -13,6 +13,7 @@ const copy = {
     `${completed}/${total} complete (${percent}%)`,
   retry: "Retry",
   lockedPrefix: "Complete first",
+  stepError: "Localized load failure",
   statuses: {
     complete: "Complete",
     available: "Available",
@@ -181,7 +182,8 @@ describe("SetupGuide", () => {
       />,
     );
 
-    expect(screen.getByText("Could not load structure")).toBeVisible();
+    expect(screen.getByText("Localized load failure")).toBeVisible();
+    expect(screen.queryByText("Could not load structure")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Retry" }));
 
     expect(onRetryStep).toHaveBeenCalledWith("structure");

@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useSetupStatus } from "../hooks/useSetupStatus";
 import { SetupGuideContent } from "./SetupGuideContent";
 
@@ -10,6 +11,7 @@ function dismissedKey(schoolId: string) {
 }
 
 export function SetupGuideCard() {
+  const t = useTranslations("onboarding");
   const result = useSetupStatus();
   const [isDismissed, setIsDismissed] = useState(false);
   const key = dismissedKey(result.schoolId);
@@ -25,7 +27,7 @@ export function SetupGuideCard() {
   return (
     <div className="relative mb-5">
       <button
-        aria-label="Dismiss setup guide"
+        aria-label={t("guide.dismiss")}
         className="absolute right-3 top-3 z-10 rounded-full p-2 text-gray-500 transition hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         onClick={() => {
           sessionStorage.setItem(key, "true");

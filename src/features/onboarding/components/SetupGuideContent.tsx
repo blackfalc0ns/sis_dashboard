@@ -1,95 +1,40 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { setupSteps } from "../config/setupSteps";
 import type { SetupEvaluation, SetupSnapshot, SetupStepId } from "../types";
 import type { UseSetupStatusResult } from "../hooks/useSetupStatus";
 import { SetupGuide, type SetupGuideCopy } from "./SetupGuide";
-import { OrganizationSetupStep } from "./steps/OrganizationSetupStep";
-import { AcademicContextSetupStep } from "./steps/AcademicContextSetupStep";
-import { AcademicStructureSetupStep } from "./steps/AcademicStructureSetupStep";
-import { SubjectsSetupStep } from "./steps/SubjectsSetupStep";
-import { RoomsSetupStep } from "./steps/RoomsSetupStep";
+import {
+  OrganizationSetupStep,
+  type OrganizationSetupStepCopy,
+} from "./steps/OrganizationSetupStep";
+import {
+  AcademicContextSetupStep,
+  type AcademicContextSetupStepCopy,
+} from "./steps/AcademicContextSetupStep";
+import {
+  AcademicStructureSetupStep,
+  type AcademicStructureSetupStepCopy,
+} from "./steps/AcademicStructureSetupStep";
+import {
+  SubjectsSetupStep,
+  type SubjectsSetupStepCopy,
+} from "./steps/SubjectsSetupStep";
+import { RoomsSetupStep, type RoomsSetupStepCopy } from "./steps/RoomsSetupStep";
 
 const emptyAcademicContext = { years: [], termsByYear: {} };
 const emptyStructure = { stages: [], grades: [], sections: [], classrooms: [] };
 const emptySubjects = { subjects: [], allocations: [] };
 
-export const defaultSetupGuideCopy: SetupGuideCopy = {
-  title: "Quick school setup",
-  progressLabel: "Setup progress",
-  progressText: (completed, total, percent) => `${completed}/${total} complete (${percent}%)`,
-  retry: "Retry",
-  lockedPrefix: "Complete first",
-  statuses: {
-    complete: "Complete",
-    available: "Available",
-    locked: "Locked",
-    loading: "Loading",
-    error: "Needs attention",
-  },
-  steps: {
-    organization: { title: "Organization", description: "Add core school profile data." },
-    academicContext: { title: "Academic year", description: "Create the active year and term." },
-    structure: { title: "Structure", description: "Create stage, grade, and section." },
-    subjects: { title: "Subjects", description: "Create subjects and grade allocations." },
-    rooms: { title: "Rooms", description: "Create the first room." },
-  },
-};
-
-const organizationCopy = {
-  summary: "Complete the school profile used across the dashboard.",
-  schoolName: "School name",
-  shortName: "Short name",
-  timezone: "Timezone",
-  addressLine: "Address",
-  city: "City",
-  country: "Country",
-  save: "Save profile",
-  saving: "Saving",
-  required: "School name is required",
-  saveFailed: "Could not save profile",
-};
-
-const academicContextCopy = {
-  summary: "Create the academic year and terms used by academic pages.",
-  yearsCount: (count: number) => `${count} years`,
-  termsCount: (count: number) => `${count} terms`,
-  createYear: "Create academic year",
-  createTerm: "Create term",
-};
-
-const structureCopy = {
-  summary: "Create the minimum academic structure chain.",
-  stageTitle: "Create stage",
-  gradeTitle: "Create grade",
-  sectionTitle: "Create section",
-  nameAr: "Arabic name",
-  nameEn: "English name",
-  save: "Create",
-  saving: "Creating",
-  required: "Both names are required",
-  saveFailed: "Could not create structure item",
-  complete: "Academic structure has the minimum required chain.",
-};
-
-const subjectsCopy = {
-  summary: "Create subjects and allocate weekly hours to a grade.",
-  createSubject: "Create subject",
-  grade: "Grade",
-  subject: "Subject",
-  weeklyHours: "Weekly hours",
-  saveAllocation: "Save allocation",
-  saving: "Saving",
-  saveFailed: "Could not save allocation",
-};
-
-const roomsCopy = {
-  summary: "Create rooms used by timetables and room assignments.",
-  createRoom: "Create room",
-  missingSchool: "No school selected",
-  saveFailed: "Could not create room",
-};
+interface SetupStepCopies {
+  organization: OrganizationSetupStepCopy;
+  academicContext: AcademicContextSetupStepCopy;
+  structure: AcademicStructureSetupStepCopy;
+  subjects: SubjectsSetupStepCopy;
+  rooms: RoomsSetupStepCopy;
+}
 
 function firstSelectableStep(evaluation: SetupEvaluation): SetupStepId {
   return (
@@ -98,7 +43,11 @@ function firstSelectableStep(evaluation: SetupEvaluation): SetupStepId {
   );
 }
 
-function createStepContent(result: UseSetupStatusResult, snapshot: SetupSnapshot) {
+function createStepContent(
+  result: UseSetupStatusResult,
+  snapshot: SetupSnapshot,
+  copy: SetupStepCopies,
+) {
   const academicData =
     snapshot.academicContext.status === "success"
       ? snapshot.academicContext.data
@@ -115,14 +64,14 @@ function createStepContent(result: UseSetupStatusResult, snapshot: SetupSnapshot
   return {
     organization: (
       <OrganizationSetupStep
-        copy={organizationCopy}
+        copy={copy.organization}
         profile={snapshot.organization.status === "success" ? snapshot.organization.data : null}
         refreshStep={result.refreshStep}
       />
     ),
     academicContext: (
       <AcademicContextSetupStep
-        copy={academicContextCopy}
+        copy={copy.academicContext}
         data={academicData}
         refreshStep={result.refreshStep}
         selectedYear={result.selectedYear}
@@ -130,7 +79,7 @@ function createStepContent(result: UseSetupStatusResult, snapshot: SetupSnapshot
     ),
     structure: (
       <AcademicStructureSetupStep
-        copy={structureCopy}
+        copy={copy.structure}
         refreshStep={result.refreshStep}
         termId={result.selectedTerm?.id ?? ""}
         tree={structure}
@@ -139,7 +88,7 @@ function createStepContent(result: UseSetupStatusResult, snapshot: SetupSnapshot
     ),
     subjects: (
       <SubjectsSetupStep
-        copy={subjectsCopy}
+        copy={copy.subjects}
         grades={structure.grades}
         refreshStep={result.refreshStep}
         stages={structure.stages}
@@ -147,7 +96,13 @@ function createStepContent(result: UseSetupStatusResult, snapshot: SetupSnapshot
         termId={result.selectedTerm?.id ?? ""}
       />
     ),
-    rooms: <RoomsSetupStep copy={roomsCopy} refreshStep={result.refreshStep} schoolId={result.schoolId} />,
+    rooms: (
+      <RoomsSetupStep
+        copy={copy.rooms}
+        refreshStep={result.refreshStep}
+        schoolId={result.schoolId}
+      />
+    ),
   };
 }
 
@@ -157,13 +112,99 @@ interface SetupGuideContentProps {
 }
 
 export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
+  const t = useTranslations("onboarding");
   const [selectedStepId, setSelectedStepId] = useState<SetupStepId>(() =>
     firstSelectableStep(result.evaluation),
   );
-  const copy = useMemo(
-    () => (title ? { ...defaultSetupGuideCopy, title } : defaultSetupGuideCopy),
-    [title],
-  );
+  const copy: SetupGuideCopy = {
+    title: title ?? t("guide.cardTitle"),
+    progressLabel: t("guide.progressLabel"),
+    progressText: (completed, total, percent) =>
+      t("guide.progressText", { completed, total, percent }),
+    stepError: t("errors.stepLoadFailed"),
+    retry: t("guide.retry"),
+    lockedPrefix: t("guide.lockedPrefix"),
+    statuses: {
+      complete: t("guide.statuses.complete"),
+      available: t("guide.statuses.available"),
+      locked: t("guide.statuses.locked"),
+      loading: t("guide.statuses.loading"),
+      error: t("guide.statuses.error"),
+    },
+    steps: {
+      organization: {
+        title: t("steps.organization.title"),
+        description: t("steps.organization.description"),
+      },
+      academicContext: {
+        title: t("steps.academicContext.title"),
+        description: t("steps.academicContext.description"),
+      },
+      structure: {
+        title: t("steps.structure.title"),
+        description: t("steps.structure.description"),
+      },
+      subjects: {
+        title: t("steps.subjects.title"),
+        description: t("steps.subjects.description"),
+      },
+      rooms: {
+        title: t("steps.rooms.title"),
+        description: t("steps.rooms.description"),
+      },
+    },
+  };
+  const stepCopies: SetupStepCopies = {
+    organization: {
+      summary: t("steps.organization.summary"),
+      schoolName: t("steps.organization.schoolName"),
+      shortName: t("steps.organization.shortName"),
+      timezone: t("steps.organization.timezone"),
+      addressLine: t("steps.organization.addressLine"),
+      city: t("steps.organization.city"),
+      country: t("steps.organization.country"),
+      save: t("steps.organization.save"),
+      saving: t("steps.organization.saving"),
+      required: t("steps.organization.required"),
+      saveFailed: t("steps.organization.saveFailed"),
+    },
+    academicContext: {
+      summary: t("steps.academicContext.summary"),
+      yearsCount: (count) => t("steps.academicContext.yearsCount", { count }),
+      termsCount: (count) => t("steps.academicContext.termsCount", { count }),
+      createYear: t("steps.academicContext.createYear"),
+      createTerm: t("steps.academicContext.createTerm"),
+    },
+    structure: {
+      summary: t("steps.structure.summary"),
+      stageTitle: t("steps.structure.stageTitle"),
+      gradeTitle: t("steps.structure.gradeTitle"),
+      sectionTitle: t("steps.structure.sectionTitle"),
+      nameAr: t("steps.structure.nameAr"),
+      nameEn: t("steps.structure.nameEn"),
+      save: t("steps.structure.save"),
+      saving: t("steps.structure.saving"),
+      required: t("steps.structure.required"),
+      saveFailed: t("steps.structure.saveFailed"),
+      complete: t("steps.structure.complete"),
+    },
+    subjects: {
+      summary: t("steps.subjects.summary"),
+      createSubject: t("steps.subjects.createSubject"),
+      grade: t("steps.subjects.grade"),
+      subject: t("steps.subjects.subject"),
+      weeklyHours: t("steps.subjects.weeklyHours"),
+      saveAllocation: t("steps.subjects.saveAllocation"),
+      saving: t("steps.subjects.saving"),
+      saveFailed: t("steps.subjects.saveFailed"),
+    },
+    rooms: {
+      summary: t("steps.rooms.summary"),
+      createRoom: t("steps.rooms.createRoom"),
+      missingSchool: t("steps.rooms.missingSchool"),
+      saveFailed: t("steps.rooms.saveFailed"),
+    },
+  };
   const effectiveSelectedStepId =
     result.evaluation.steps[selectedStepId].status === "locked"
       ? firstSelectableStep(result.evaluation)
@@ -176,7 +217,7 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
       onRetryStep={result.retryStep}
       onSelectStep={setSelectedStepId}
       selectedStepId={effectiveSelectedStepId}
-      stepContent={createStepContent(result, result.snapshot)}
+      stepContent={createStepContent(result, result.snapshot, stepCopies)}
     />
   );
 }
