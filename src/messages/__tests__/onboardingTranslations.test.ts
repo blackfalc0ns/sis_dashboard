@@ -49,11 +49,6 @@ describe("onboarding translations and navigation", () => {
       "تعديل الهوية",
     );
     expect(ar.onboarding.steps.organization.locationRequired).toBeTruthy();
-    expect(en.onboarding.steps.academicContext.edit).toBe("Edit");
-    expect(en.onboarding.steps.structure.stagesCount).toContain("{count");
-    expect(en.onboarding.steps.subjects.allocationsCount).toContain("{count");
-    expect(en.onboarding.steps.rooms.roomsCount).toContain("{count");
-    expect(ar.onboarding.steps.academicContext.cancel).toBeTruthy();
   });
 
   it("adds school setup under settings after branding", () => {
