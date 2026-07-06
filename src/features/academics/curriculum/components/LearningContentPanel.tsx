@@ -10,6 +10,7 @@ import {
   useTheme,
 } from "@mui/material";
 import Button from "@/components/ui/button/Button";
+import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import Input from "@/components/ui/input/Input";
 import TextArea from "@/components/ui/input/TextArea";
 import Select from "@/components/ui/input/Select";
@@ -112,6 +113,9 @@ export default function LearningContentPanel({
     Partial<Record<ContentField, string>>
   >({});
   const [formMessages, setFormMessages] = useState<string[]>([]);
+  const [pendingDeleteItem, setPendingDeleteItem] =
+    useState<LessonContentItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File>();
   const [existingFileId, setExistingFileId] = useState<string | null>(null);
   const [existingFileName, setExistingFileName] = useState<string | null>(null);
@@ -124,6 +128,7 @@ export default function LearningContentPanel({
     setError(null);
     setFieldErrors({});
     setFormMessages([]);
+    setPendingDeleteItem(null);
   }, []);
 
   const loadItems = useCallback(async () => {
@@ -205,16 +210,26 @@ export default function LearningContentPanel({
     }
   };
 
-  const handleDelete = async (item: LessonContentItem) => {
-    if (isReadOnly || !confirm(t("confirm_delete"))) return;
+  const confirmDeleteItem = async () => {
+    if (!pendingDeleteItem) return;
+
+    setIsDeleting(true);
     try {
-      await deleteLessonContent(curriculumId, unitId, lessonId, item.id);
-      if (form.id === item.id) {
+      await deleteLessonContent(
+        curriculumId,
+        unitId,
+        lessonId,
+        pendingDeleteItem.id,
+      );
+      if (form.id === pendingDeleteItem.id) {
         resetFormToCreate();
       }
       await loadItems();
+      setPendingDeleteItem(null);
     } catch (deleteError) {
       setError(curriculumUiError(deleteError, t("delete_failed")).message);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -537,8 +552,10 @@ export default function LearningContentPanel({
                     <IconButton
                       size="small"
                       color="error"
-                      onClick={() => handleDelete(item)}
+                      onClick={() => setPendingDeleteItem(item)}
                       disabled={isReadOnly}
+                      aria-label={t("delete")}
+                      title={t("delete")}
                     >
                       <Trash2 className="w-4 h-4" />
                     </IconButton>
@@ -549,6 +566,20 @@ export default function LearningContentPanel({
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={pendingDeleteItem !== null}
+        onClose={() => {
+          if (!isDeleting) setPendingDeleteItem(null);
+        }}
+        onConfirm={() => void confirmDeleteItem()}
+        title={t("delete")}
+        description={t("confirm_delete")}
+        confirmLabel={t("delete")}
+        cancelLabel={t("cancel")}
+        loading={isDeleting}
+        severity="danger"
+      />
     </Drawer>
   );
 }
