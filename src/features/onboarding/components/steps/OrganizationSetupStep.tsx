@@ -2,24 +2,27 @@
 
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
-import Input from "@/components/ui/input/Input";
-import Select from "@/components/ui/input/Select";
-import { timezones } from "@/features/settings/constants/defaults";
-import { updateBrandingProfile } from "@/features/settings/services/brandingService";
+import { SchoolBrandingEditor } from "@/features/settings/branding/components/SchoolBrandingEditor";
+import type { SchoolBrandingFormCopy } from "@/features/settings/branding/components/SchoolBrandingEditor";
+import { useSchoolBrandingEditor } from "@/features/settings/branding/hooks/useSchoolBrandingEditor";
+import {
+  calculateBrandingProfileCompleteness,
+  getEmptyBrandingProfile,
+  updateBrandingProfile,
+} from "@/features/settings/services/brandingService";
 import type { SchoolProfileSettings } from "@/features/settings/types";
 
 export interface OrganizationSetupStepCopy {
   summary: string;
-  schoolName: string;
-  shortName: string;
-  timezone: string;
-  addressLine: string;
-  city: string;
-  country: string;
+  savedData: string;
+  editBranding: string;
+  cancel: string;
   save: string;
   saving: string;
-  required: string;
-  saveFailed: string;
+  completeness(percent: number): string;
+  noLogo: string;
+  noLocation: string;
+  editor: SchoolBrandingFormCopy;
 }
 
 interface OrganizationSetupStepProps {
@@ -28,84 +31,169 @@ interface OrganizationSetupStepProps {
   refreshStep(stepId: "organization"): Promise<void> | void;
 }
 
-export function OrganizationSetupStep({ copy, profile, refreshStep }: OrganizationSetupStepProps) {
-  const [draft, setDraft] = useState<SchoolProfileSettings | null>(profile);
-  const [error, setError] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
+function createInitialProfile(profile: SchoolProfileSettings | null) {
+  return profile ?? getEmptyBrandingProfile();
+}
+
+function BrandingSummary({
+  copy,
+  profile,
+}: {
+  copy: OrganizationSetupStepCopy;
+  profile: SchoolProfileSettings;
+}) {
+  const completeness = calculateBrandingProfileCompleteness(profile);
+  const coordinates =
+    profile.latitude !== null && profile.longitude !== null
+      ? copy.editor.coordinates(
+          profile.latitude.toFixed(5),
+          profile.longitude.toFixed(5),
+        )
+      : null;
+
+  return (
+    <section className="space-y-4 rounded-3xl border border-gray-200 bg-white p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-950">
+            {copy.savedData}
+          </h3>
+          <p className="mt-1 text-sm text-gray-600">
+            {copy.completeness(completeness)}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[0.45fr_0.55fr]">
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            {copy.editor.uploadLogo}
+          </p>
+          {profile.logoUrl ? (
+            <div className="mt-3 flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                alt={profile.schoolName}
+                className="h-16 w-16 rounded-full object-cover ring-4 ring-white"
+                src={profile.logoUrl}
+              />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-gray-950">
+                  {profile.schoolName}
+                </p>
+                <p className="text-sm text-gray-500">{profile.shortName}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-gray-500">{copy.noLogo}</p>
+          )}
+        </div>
+
+        <div className="grid gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm md:grid-cols-2">
+          <SummaryItem label={copy.editor.schoolName} value={profile.schoolName} />
+          <SummaryItem label={copy.editor.shortName} value={profile.shortName} />
+          <SummaryItem label={copy.editor.timezone} value={profile.timezone} />
+          <SummaryItem label={copy.editor.city} value={profile.city} />
+          <SummaryItem label={copy.editor.country} value={profile.country} />
+          <SummaryItem
+            label={copy.editor.footerSignature}
+            value={profile.footerSignature}
+          />
+          <div className="md:col-span-2">
+            <SummaryItem
+              label={copy.editor.selectedLocation}
+              value={profile.formattedAddress || copy.noLocation}
+            />
+            {coordinates ? (
+              <p className="mt-1 text-xs text-gray-500">{coordinates}</p>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SummaryItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {label}
+      </dt>
+      <dd className="mt-1 text-gray-900">{value || "—"}</dd>
+    </div>
+  );
+}
+
+export function OrganizationSetupStep({
+  copy,
+  profile,
+  refreshStep,
+}: OrganizationSetupStepProps) {
+  const [savedProfile, setSavedProfile] = useState(() =>
+    createInitialProfile(profile),
+  );
+  const [isEditing, setIsEditing] = useState(profile === null);
 
   useEffect(() => {
-    setDraft(profile);
-    setError("");
+    setSavedProfile(createInitialProfile(profile));
+    setIsEditing(profile === null);
   }, [profile]);
 
-  if (!draft) {
-    return <p className="text-sm text-gray-600">{copy.summary}</p>;
-  }
-
-  const updateField = (key: keyof SchoolProfileSettings, value: string) => {
-    setDraft((current) => (current ? { ...current, [key]: value } : current));
-    setError("");
-  };
-
-  const handleSave = async () => {
-    if (!draft.schoolName.trim()) {
-      setError(copy.required);
-      return;
-    }
-
-    setIsSaving(true);
-    setError("");
-
-    try {
-      await updateBrandingProfile(draft);
+  const editor = useSchoolBrandingEditor({
+    initialProfile: savedProfile,
+    copy: copy.editor,
+    onSave: async (draft) => {
+      const saved = await updateBrandingProfile(draft);
+      setSavedProfile(saved);
       await refreshStep("organization");
-    } catch {
-      setError(copy.saveFailed);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+      setIsEditing(false);
+      return saved;
+    },
+  });
+
+  if (isEditing) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-gray-600">{copy.summary}</p>
+        <SchoolBrandingEditor copy={copy.editor} editor={editor} />
+        <div className="flex flex-wrap justify-end gap-2">
+          {profile ? (
+            <Button
+              disabled={editor.isSaving}
+              onClick={() => {
+                editor.cancel();
+                setIsEditing(false);
+              }}
+              type="button"
+              variant="secondary"
+            >
+              {copy.cancel}
+            </Button>
+          ) : null}
+          <Button
+            disabled={editor.isSaving}
+            loading={editor.isSaving}
+            onClick={() => void editor.save()}
+            type="button"
+          >
+            {editor.isSaving ? copy.saving : copy.save}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-600">{copy.summary}</p>
-      <div className="grid gap-3 md:grid-cols-2">
-        <Input
-          label={copy.schoolName}
-          onChange={(event) => updateField("schoolName", event.target.value)}
-          required
-          value={draft.schoolName}
-        />
-        <Input
-          label={copy.shortName}
-          onChange={(event) => updateField("shortName", event.target.value)}
-          value={draft.shortName}
-        />
-        <Select
-          label={copy.timezone}
-          onChange={(value) => updateField("timezone", value)}
-          options={timezones.map((timezone) => ({ value: timezone, label: timezone }))}
-          value={draft.timezone}
-        />
-        <Input
-          label={copy.city}
-          onChange={(event) => updateField("city", event.target.value)}
-          value={draft.city}
-        />
-        <Input
-          label={copy.country}
-          onChange={(event) => updateField("country", event.target.value)}
-          value={draft.country}
-        />
-        <Input
-          label={copy.addressLine}
-          onChange={(event) => updateField("addressLine", event.target.value)}
-          value={draft.addressLine}
-        />
-      </div>
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
-      <Button loading={isSaving} onClick={() => void handleSave()} type="button">
-        {isSaving ? copy.saving : copy.save}
+      <BrandingSummary copy={copy} profile={editor.profile} />
+      <Button
+        onClick={() => setIsEditing(true)}
+        type="button"
+        variant="secondary"
+      >
+        {copy.editBranding}
       </Button>
     </div>
   );

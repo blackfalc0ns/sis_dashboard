@@ -13,6 +13,7 @@ vi.mock("../hooks/useSetupStatus", () => ({
 }));
 
 vi.mock("next-intl", () => ({
+  useLocale: () => "en",
   useTranslations: () => (key: string) => key,
 }));
 

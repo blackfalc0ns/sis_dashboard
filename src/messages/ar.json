@@ -11369,6 +11369,7 @@
         "uploadHint": "PNG أو JPG، بحد أقصى 2 ميجابايت",
         "pickFromMap": "اختيار من الخريطة",
         "clearLocation": "مسح الموقع",
+        "locationStale": "اختر موقع المدرسة مرة أخرى بعد تعديل العنوان.",
         "locationRequired": "حدد موقعًا صالحًا للمدرسة",
         "shortNameRequired": "الاسم المختصر مطلوب",
         "timezoneRequired": "المنطقة الزمنية مطلوبة",

@@ -11368,6 +11368,7 @@
         "uploadHint": "PNG or JPG, up to 2 MB",
         "pickFromMap": "Pick from map",
         "clearLocation": "Clear location",
+        "locationStale": "Pick the school location again after editing the address.",
         "locationRequired": "Select a valid school location",
         "shortNameRequired": "Short name is required",
         "timezoneRequired": "Timezone is required",
