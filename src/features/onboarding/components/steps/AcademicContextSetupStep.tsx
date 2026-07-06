@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Button from "@/components/ui/button/Button";
 import { YearDialog, TermDialog } from "@/features/academics/components/dialogs/YearTermDialogs";
 import type {
@@ -11,12 +11,8 @@ import type { AcademicContextSetupData } from "../../types";
 
 export interface AcademicContextSetupStepCopy {
   summary: string;
-  savedData: string;
-  edit: string;
-  cancel: string;
   yearsCount(count: number): string;
   termsCount(count: number): string;
-  selectedYear(name: string): string;
   createYear: string;
   createTerm: string;
 }
@@ -42,13 +38,6 @@ export function AcademicContextSetupStep({
   const [isTermDialogOpen, setIsTermDialogOpen] = useState(false);
   const targetYear = selectedYear ?? data.years[0] ?? null;
   const targetTerms: Term[] = targetYear ? data.termsByYear[targetYear.id] ?? [] : [];
-  const termCount = countTerms(data);
-  const hasMinimumData = data.years.length > 0 && termCount > 0;
-  const [isEditing, setIsEditing] = useState(!hasMinimumData);
-
-  useEffect(() => {
-    setIsEditing(!hasMinimumData);
-  }, [hasMinimumData]);
 
   const handleSuccess = () => {
     void refreshStep("academicContext");
@@ -57,69 +46,23 @@ export function AcademicContextSetupStep({
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-600">{copy.summary}</p>
-      {!isEditing ? (
-        <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4">
-          <div>
-            <h3 className="text-base font-semibold text-gray-950">{copy.savedData}</h3>
-            {targetYear ? (
-              <p className="mt-1 text-sm text-gray-600">
-                {copy.selectedYear(targetYear.name)}
-              </p>
-            ) : null}
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-sm font-medium text-gray-950">
-                {copy.yearsCount(data.years.length)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-sm font-medium text-gray-950">
-                {copy.termsCount(termCount)}
-              </p>
-            </div>
-          </div>
-          <Button onClick={() => setIsEditing(true)} type="button" variant="secondary">
-            {copy.edit}
-          </Button>
-        </section>
-      ) : null}
-      {isEditing ? (
-        <div className="space-y-3">
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-lg border border-gray-200 bg-white p-3">
-              <p className="text-sm font-medium text-gray-950">
-                {copy.yearsCount(data.years.length)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-3">
-              <p className="text-sm font-medium text-gray-950">
-                {copy.termsCount(termCount)}
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {hasMinimumData ? (
-              <Button
-                onClick={() => setIsEditing(false)}
-                type="button"
-                variant="secondary"
-              >
-                {copy.cancel}
-              </Button>
-            ) : null}
-            {targetYear ? (
-              <Button onClick={() => setIsTermDialogOpen(true)} type="button">
-                {copy.createTerm}
-              </Button>
-            ) : (
-              <Button onClick={() => setIsYearDialogOpen(true)} type="button">
-                {copy.createYear}
-              </Button>
-            )}
-          </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-lg border border-gray-200 bg-white p-3">
+          <p className="text-sm font-medium text-gray-950">{copy.yearsCount(data.years.length)}</p>
         </div>
-      ) : null}
+        <div className="rounded-lg border border-gray-200 bg-white p-3">
+          <p className="text-sm font-medium text-gray-950">{copy.termsCount(countTerms(data))}</p>
+        </div>
+      </div>
+      {targetYear ? (
+        <Button onClick={() => setIsTermDialogOpen(true)} type="button">
+          {copy.createTerm}
+        </Button>
+      ) : (
+        <Button onClick={() => setIsYearDialogOpen(true)} type="button">
+          {copy.createYear}
+        </Button>
+      )}
       <YearDialog
         editYear={null}
         existingYears={data.years}
