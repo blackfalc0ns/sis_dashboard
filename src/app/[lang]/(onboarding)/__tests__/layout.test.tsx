@@ -8,16 +8,20 @@ vi.mock("@/components/ui/toast/Toast", () => ({
   ),
 }));
 
+vi.mock("next-intl/server", () => ({
+  getTranslations: async () => (key: string) => key,
+}));
+
 describe("OnboardingLayout", () => {
-  it("renders onboarding content inside its own standalone main layout", () => {
+  it("renders onboarding content inside its own standalone main layout", async () => {
     render(
-      <OnboardingLayout>
-        <div>Onboarding setup content</div>
-      </OnboardingLayout>,
+      await OnboardingLayout({
+        children: <div>Onboarding setup content</div>,
+      }),
     );
 
     expect(
-      screen.getByRole("main", { name: "Onboarding setup" }),
+      screen.getByRole("main", { name: "layout.label" }),
     ).toContainElement(screen.getByText("Onboarding setup content"));
   });
 });

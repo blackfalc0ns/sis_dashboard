@@ -1,13 +1,16 @@
 import { ToastProvider } from "@/components/ui/toast/Toast";
+import { getTranslations } from "next-intl/server";
 
-export default function OnboardingLayout({
+export default async function OnboardingLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const t = await getTranslations("onboarding");
+
   return (
     <ToastProvider>
-      <main aria-label="Onboarding setup" className="min-h-screen bg-primary">
+      <main aria-label={t("layout.label")} className="min-h-screen bg-gray-50">
         {children}
       </main>
     </ToastProvider>
