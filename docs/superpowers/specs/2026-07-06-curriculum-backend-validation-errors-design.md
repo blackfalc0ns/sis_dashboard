@@ -19,7 +19,7 @@ Extend `curriculumUiError` in `src/features/academics/curriculum/services/curric
 - field errors keyed by the backend field path;
 - unmatched detail messages for form-level display.
 
-The normalizer will accept the backend detail shapes already supported by the application: strings, arrays, and nested objects. Nested object keys will be retained as dot-separated paths so forms can match either an exact field path or its final field segment. It will not infer errors from arbitrary exception messages.
+The normalizer will read field validation from `ApiError.errors` and accept the detail shapes already supported by the application: strings, arrays, and nested objects. Nested object keys will be retained as dot-separated paths so forms can match either an exact field path or its final field segment. It will not infer errors from arbitrary exception messages.
 
 ## Form behavior
 
