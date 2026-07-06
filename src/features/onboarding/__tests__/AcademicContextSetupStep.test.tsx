@@ -38,8 +38,12 @@ const term = {
 
 const copy = {
   summary: "Create the academic year and terms.",
+  savedData: "Saved setup data",
+  edit: "Edit",
+  cancel: "Cancel",
   yearsCount: (count: number) => `${count} years`,
   termsCount: (count: number) => `${count} terms`,
+  selectedYear: (name: string) => `Selected year: ${name}`,
   createYear: "Create academic year",
   createTerm: "Create term",
 };
@@ -47,6 +51,30 @@ const copy = {
 describe("AcademicContextSetupStep", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("shows saved academic context data before editing", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <AcademicContextSetupStep
+        copy={copy}
+        data={{ years: [year], termsByYear: { [year.id]: [term] } }}
+        selectedYear={year}
+        refreshStep={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: copy.savedData })).toBeVisible();
+    expect(screen.getByText(copy.yearsCount(1))).toBeVisible();
+    expect(screen.getByText(copy.termsCount(1))).toBeVisible();
+    expect(screen.getByText(copy.selectedYear(year.name))).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: copy.edit }));
+    expect(screen.getByRole("button", { name: copy.createTerm })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: copy.cancel }));
+    expect(screen.getByRole("heading", { name: copy.savedData })).toBeVisible();
   });
 
   it("opens YearDialog with existingYears when no academic year exists", async () => {
@@ -62,6 +90,7 @@ describe("AcademicContextSetupStep", () => {
       />,
     );
 
+    expect(screen.queryByRole("heading", { name: copy.savedData })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Create academic year" }));
 
     expect(screen.getByText("Year dialog open")).toBeVisible();
@@ -88,6 +117,7 @@ describe("AcademicContextSetupStep", () => {
       />,
     );
 
+    await user.click(screen.getByRole("button", { name: copy.edit }));
     await user.click(screen.getByRole("button", { name: "Create term" }));
 
     expect(screen.getByText("Term dialog open")).toBeVisible();
