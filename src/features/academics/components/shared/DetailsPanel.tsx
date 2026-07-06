@@ -18,6 +18,7 @@ import TextArea from "@/components/ui/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
 import { validateArEnDifferent } from "@/utils/validation/bilingualValidation";
+import { getClassroomNameWhitespaceErrors } from "@/features/academics/academic-structure-tree/utils/classroomNameValidation";
 
 type NodeType = "stage" | "grade" | "section" | "classroom";
 type NodeRef = { type: NodeType; id: string } | null;
@@ -152,7 +153,20 @@ export default function DetailsPanel({
       nextBilingualErrors.en = tValidation("required_en");
     }
 
-    if (nameAr?.trim() && nameEn?.trim()) {
+    const whitespaceErrors = getClassroomNameWhitespaceErrors(
+      selectedNode?.type ?? "stage",
+      nameAr,
+      nameEn,
+      tValidation("classroom_name_no_whitespace"),
+    );
+    if (!nextBilingualErrors.ar && whitespaceErrors.ar) nextBilingualErrors.ar = whitespaceErrors.ar;
+    if (!nextBilingualErrors.en && whitespaceErrors.en) nextBilingualErrors.en = whitespaceErrors.en;
+
+    if (
+      nameAr?.trim() &&
+      nameEn?.trim() &&
+      Object.keys(nextBilingualErrors).length === 0
+    ) {
       const arEnErrors = validateArEnDifferent(nameAr, nameEn);
       if (arEnErrors.arError) nextBilingualErrors.ar = tValidation("arEnMustDiffer");
       if (arEnErrors.enError) nextBilingualErrors.en = tValidation("arEnMustDiffer");

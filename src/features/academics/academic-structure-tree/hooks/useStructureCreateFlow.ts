@@ -17,6 +17,7 @@ import {
   type Classroom,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import { validateArEnDifferent } from "@/utils/validation/bilingualValidation";
+import { getClassroomNameWhitespaceErrors } from "@/features/academics/academic-structure-tree/utils/classroomNameValidation";
 
 type CreateItemType = "stage" | "grade" | "section" | "classroom";
 
@@ -128,6 +129,14 @@ export function useStructureCreateFlow({
 
     if (!newItemNameAr.trim()) nextErrors.ar = tValidation("required_ar");
     if (!newItemNameEn.trim()) nextErrors.en = tValidation("required_en");
+    const whitespaceErrors = getClassroomNameWhitespaceErrors(
+      addModalType,
+      newItemNameAr,
+      newItemNameEn,
+      tValidation("classroom_name_no_whitespace"),
+    );
+    if (!nextErrors.ar && whitespaceErrors.ar) nextErrors.ar = whitespaceErrors.ar;
+    if (!nextErrors.en && whitespaceErrors.en) nextErrors.en = whitespaceErrors.en;
     if ((addModalType === "grade" || addModalType === "section" || addModalType === "classroom") && newItemCapacity <= 0) {
       nextErrors.capacity = t("details.validation.capacity_required");
     }
@@ -135,7 +144,12 @@ export function useStructureCreateFlow({
       nextErrors.order = tValidation("required");
     }
 
-    if (newItemNameAr.trim() && newItemNameEn.trim()) {
+    if (
+      newItemNameAr.trim() &&
+      newItemNameEn.trim() &&
+      !nextErrors.ar &&
+      !nextErrors.en
+    ) {
       const arEnErrors = validateArEnDifferent(newItemNameAr, newItemNameEn);
       if (arEnErrors.arError) nextErrors.ar = tValidation("arEnMustDiffer");
       if (arEnErrors.enError) nextErrors.en = tValidation("arEnMustDiffer");

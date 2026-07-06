@@ -6778,6 +6778,7 @@
     "unique_name_en_section": "English section name must be unique within the grade",
     "unique_name_ar_classroom": "Arabic classroom name must be unique within the section",
     "unique_name_en_classroom": "English classroom name must be unique within the section",
+    "classroom_name_no_whitespace": "Classroom names cannot contain spaces",
     "arEnMustDiffer": "Arabic and English values must be different",
     "urlRequired": "URL is required",
     "urlInvalid": "Enter a valid URL",
