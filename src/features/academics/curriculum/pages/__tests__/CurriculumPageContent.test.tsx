@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CurriculumPageContent from "../CurriculumPageContent";
 
@@ -7,6 +8,9 @@ const routerMocks = {
   replace: vi.fn(),
 };
 const translate = (key: string) => key;
+const guardMocks = vi.hoisted(() => ({
+  params: null as { confirmDiscard: () => Promise<boolean> } | null,
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => routerMocks,
@@ -17,6 +21,15 @@ vi.mock("next-intl", () => ({
   useLocale: () => "en",
   useTranslations: () => translate,
 }));
+
+vi.mock("@mui/material", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@mui/material")>();
+  return {
+    ...actual,
+    useMediaQuery: () => false,
+    useTheme: () => ({ breakpoints: { down: () => "" } }),
+  };
+});
 
 vi.mock("@/hooks/usePermissions", () => ({
   usePermissions: () => ({
@@ -35,7 +48,36 @@ vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({
 }));
 
 vi.mock("@/features/academics/hooks/useGuardedAcademicContextChange", () => ({
-  useGuardedAcademicContextChange: vi.fn(),
+  useGuardedAcademicContextChange: vi.fn(
+    (params: { confirmDiscard: () => Promise<boolean> }) => {
+      guardMocks.params = params;
+    },
+  ),
+}));
+
+vi.mock("@/components/ui/confirm-dialog/ConfirmDialog", () => ({
+  default: ({
+    cancelLabel,
+    confirmLabel,
+    isOpen,
+    onClose,
+    onConfirm,
+    title,
+  }: {
+    cancelLabel: string;
+    confirmLabel: string;
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    title: string;
+  }) =>
+    isOpen ? (
+      <div>
+        <p>{title}</p>
+        <button type="button" onClick={onClose}>{cancelLabel}</button>
+        <button type="button" onClick={onConfirm}>{confirmLabel}</button>
+      </div>
+    ) : null,
 }));
 
 vi.mock(
@@ -98,6 +140,7 @@ describe("CurriculumPageContent", () => {
   beforeEach(() => {
     routerMocks.push.mockClear();
     routerMocks.replace.mockClear();
+    guardMocks.params = null;
   });
 
   afterEach(() => {
@@ -121,5 +164,39 @@ describe("CurriculumPageContent", () => {
       ),
     ).toBe(false);
     expect(routerMocks.replace).not.toHaveBeenCalled();
+  });
+
+  it("resolves an unsaved-change decision as cancelled when the dialog closes", async () => {
+    const user = userEvent.setup();
+    render(<CurriculumPageContent />);
+    await waitFor(() => expect(guardMocks.params).not.toBeNull());
+
+    let decision!: Promise<boolean>;
+    act(() => {
+      decision = guardMocks.params!.confirmDiscard();
+    });
+    expect(await screen.findByText("unsaved_changes.title")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "unsaved_changes.cancel" }),
+    );
+
+    await expect(decision).resolves.toBe(false);
+  });
+
+  it("resolves an unsaved-change decision as confirmed", async () => {
+    const user = userEvent.setup();
+    render(<CurriculumPageContent />);
+    await waitFor(() => expect(guardMocks.params).not.toBeNull());
+
+    let decision!: Promise<boolean>;
+    act(() => {
+      decision = guardMocks.params!.confirmDiscard();
+    });
+    await user.click(
+      await screen.findByRole("button", { name: "unsaved_changes.discard" }),
+    );
+
+    await expect(decision).resolves.toBe(true);
   });
 });

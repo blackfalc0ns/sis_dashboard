@@ -4262,7 +4262,10 @@
         }
       },
       "unsaved_changes": {
-        "message": "You have unsaved changes. Discard them?"
+        "title": "Discard unsaved changes?",
+        "message": "You have unsaved changes. Discard them?",
+        "discard": "Discard changes",
+        "cancel": "Cancel"
       },
       "create_dialog": {
         "title": "Create Curriculum",

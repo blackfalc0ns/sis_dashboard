@@ -140,11 +140,15 @@ export default function CurriculumPageContent() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [confirmationAction, setConfirmationAction] =
     useState<CurriculumConfirmationAction | null>(null);
   const [isConfirmingAction, setIsConfirmingAction] = useState(false);
   const optionsRequestIdRef = useRef(0);
   const curriculumRequestIdRef = useRef(0);
+  const discardDecisionRef = useRef<
+    ((confirmed: boolean) => void) | null
+  >(null);
 
   const isArchived = curriculum?.status === "archived";
   const isClosedTerm = termStatus === "closed";
@@ -173,15 +177,35 @@ export default function CurriculumPageContent() {
     : null;
 
   const confirmDiscardChanges = useCallback(
-    () => confirm(t("unsaved_changes.message")),
-    [t],
+    () =>
+      new Promise<boolean>((resolve) => {
+        discardDecisionRef.current?.(false);
+        discardDecisionRef.current = resolve;
+        setShowDiscardDialog(true);
+      }),
+    [],
   );
+
+  const settleDiscardConfirmation = useCallback((confirmed: boolean) => {
+    const resolve = discardDecisionRef.current;
+    discardDecisionRef.current = null;
+    setShowDiscardDialog(false);
+    resolve?.(confirmed);
+  }, []);
 
   useGuardedAcademicContextChange({
     hasUnsavedChanges,
     confirmDiscard: confirmDiscardChanges,
     onDiscard: () => setHasUnsavedChanges(false),
   });
+
+  useEffect(
+    () => () => {
+      discardDecisionRef.current?.(false);
+      discardDecisionRef.current = null;
+    },
+    [],
+  );
 
   useEffect(() => {
     setSearchInputValue(queryState.searchQuery);
@@ -619,9 +643,9 @@ export default function CurriculumPageContent() {
     setSelectedNode((previous) => (isDraftNode(previous) ? previous : null));
   }, [curriculum, lessons, queryState.lessonId, queryState.unitId, units]);
 
-  const handleGradeChange = (gradeId: string) => {
+  const handleGradeChange = async (gradeId: string) => {
     if (hasUnsavedChanges) {
-      if (!confirmDiscardChanges()) return;
+      if (!(await confirmDiscardChanges())) return;
       setHasUnsavedChanges(false);
     }
     setSelectedGradeId(gradeId);
@@ -639,9 +663,9 @@ export default function CurriculumPageContent() {
     );
   };
 
-  const handleSubjectChange = (subjectId: string) => {
+  const handleSubjectChange = async (subjectId: string) => {
     if (hasUnsavedChanges) {
-      if (!confirmDiscardChanges()) return;
+      if (!(await confirmDiscardChanges())) return;
       setHasUnsavedChanges(false);
     }
     setSelectedSubjectId(subjectId);
@@ -1327,6 +1351,17 @@ export default function CurriculumPageContent() {
           severity={confirmation.severity}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={showDiscardDialog}
+        onClose={() => settleDiscardConfirmation(false)}
+        onConfirm={() => settleDiscardConfirmation(true)}
+        title={t("unsaved_changes.title")}
+        description={t("unsaved_changes.message")}
+        confirmLabel={t("unsaved_changes.discard")}
+        cancelLabel={t("unsaved_changes.cancel")}
+        severity="warning"
+      />
     </div>
   );
 }
