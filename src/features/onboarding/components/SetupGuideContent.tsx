@@ -60,8 +60,6 @@ function createStepContent(
     snapshot.subjects.status === "success"
       ? snapshot.subjects.data
       : snapshot.subjects.data ?? emptySubjects;
-  const rooms =
-    snapshot.rooms.status === "success" ? snapshot.rooms.data : snapshot.rooms.data ?? [];
 
   return {
     organization: (
@@ -102,7 +100,6 @@ function createStepContent(
       <RoomsSetupStep
         copy={copy.rooms}
         refreshStep={result.refreshStep}
-        rooms={rooms}
         schoolId={result.schoolId}
       />
     ),
@@ -201,24 +198,13 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
     },
     academicContext: {
       summary: t("steps.academicContext.summary"),
-      savedData: t("steps.academicContext.savedData"),
-      edit: t("steps.academicContext.edit"),
-      cancel: t("steps.academicContext.cancel"),
       yearsCount: (count) => t("steps.academicContext.yearsCount", { count }),
       termsCount: (count) => t("steps.academicContext.termsCount", { count }),
-      selectedYear: (name) => t("steps.academicContext.selectedYear", { name }),
       createYear: t("steps.academicContext.createYear"),
       createTerm: t("steps.academicContext.createTerm"),
     },
     structure: {
       summary: t("steps.structure.summary"),
-      savedData: t("steps.structure.savedData"),
-      edit: t("steps.structure.edit"),
-      cancel: t("steps.structure.cancel"),
-      stagesCount: (count) => t("steps.structure.stagesCount", { count }),
-      gradesCount: (count) => t("steps.structure.gradesCount", { count }),
-      sectionsCount: (count) => t("steps.structure.sectionsCount", { count }),
-      incomplete: t("steps.structure.incomplete"),
       stageTitle: t("steps.structure.stageTitle"),
       gradeTitle: t("steps.structure.gradeTitle"),
       sectionTitle: t("steps.structure.sectionTitle"),
@@ -232,11 +218,6 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
     },
     subjects: {
       summary: t("steps.subjects.summary"),
-      savedData: t("steps.subjects.savedData"),
-      edit: t("steps.subjects.edit"),
-      cancel: t("steps.subjects.cancel"),
-      subjectsCount: (count) => t("steps.subjects.subjectsCount", { count }),
-      allocationsCount: (count) => t("steps.subjects.allocationsCount", { count }),
       createSubject: t("steps.subjects.createSubject"),
       grade: t("steps.subjects.grade"),
       subject: t("steps.subjects.subject"),
@@ -247,10 +228,6 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
     },
     rooms: {
       summary: t("steps.rooms.summary"),
-      savedData: t("steps.rooms.savedData"),
-      edit: t("steps.rooms.edit"),
-      cancel: t("steps.rooms.cancel"),
-      roomsCount: (count) => t("steps.rooms.roomsCount", { count }),
       createRoom: t("steps.rooms.createRoom"),
       missingSchool: t("steps.rooms.missingSchool"),
       saveFailed: t("steps.rooms.saveFailed"),
